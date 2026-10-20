@@ -39,7 +39,7 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
    Consume the committed ring-produced golden vectors (formspec/crates/formspec-signature-adapter-ring/tests/fixtures/golden-vectors/{ecdsa-p256-sha256,rsa-pss-sha256}.json) from webcrypto adapter (fs-n6vp) and trellis-admission-formspec (fs-fmc9). Verify byte-for-byte equivalence: same signed_bytes + public_key + signature_bytes_cose_sign1 verifies under all adapters. Deferred residue from fs-wxoz. Acceptance: harness lives somewhere shared (likely crates/formspec-cross-stack-fixture-harness/ or a new crate); each adapter has a parametrised test consuming the JSON fixtures; CI runs all three.
 
 - **FORMSPEC-SIGNATURE-ADAPTER-TRELLIS-001 — Trellis-side Formspec signature handling** · `fs-fmc9` · P2
-   links T4-SIG-RECEIPT-001 — signed receipt + cross-adapter byte… `fs-m4v5`, Trellis #19 — TRELLIS-CERTIFICATE-RECEIPT-EMBEDDING-001:… `fs-qlgh`, Cross-adapter byte-equivalence harness — webcrypto +… `fs-bmyq`
+   links T4-SIG-RECEIPT-001 — deployment-signed receipt and… `fs-m4v5`, Trellis #19 — TRELLIS-CERTIFICATE-RECEIPT-EMBEDDING-001:… `fs-qlgh`, Cross-adapter byte-equivalence harness — webcrypto +… `fs-bmyq`
 
    **Status reframed 2026-05-16 after ADR 0109.** The earlier "LANDED" claim that named a `trellis-formspec-signature` Verifier crate was fossil text from the pre-convergence plan; that crate does not exist and was deliberately abandoned. Per archived signature-wire-convergence plan F-5 (`thoughts/archive/plans/2026-05-09-signature-wire-convergence-plan.md:381-385`), Trellis does NOT carry an independent Verifier port. Post-ADR-0109, consumer signature dispatch is method-URI based and lives above Trellis admission through `integrity-cose` plus the Formspec method registry.
 
@@ -61,7 +61,7 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
      - Python mirror parity (out of MVP scope; tracked for follow-up).
 
 - **CROSS-STACK-FIXTURES-001 — Byte-populated cross-stack fixtures (Formspec-side rollup)** · `fs-qikb` · P2
-   links WOS-T4 cross-stack proof + signature-attestation /… `fs-w0li`, Trellis #1 — WOS-T4 residue: consume byte-populated bundle… `fs-mm86`
+   blocked-by T4-SIG-BUNDLE-007 — full path… `fs-5883` · links WOS-T4 cross-stack proof + signature-attestation /… `fs-w0li`, Trellis #1 — WOS-T4 residue: consume byte-populated bundle… `fs-mm86`
 
    Formspec-side view of cross-stack fixture bundles ALSO tracked stack-side at WOS-T4 (fs-w0li). Seven bundle directories with manifest.toml skeletons + formspec-cross-stack-fixture-harness (11 tests, 3 negative). Bundles 001-003 byte-populated and verified end-to-end (Response schema validates; signedPayload.digest matches canonical bytes; verificationReceipt byte-matches verification-receipt.cose; ring adapter verifies detached Ed25519 COSE_Sign1). Bundles 004-007 + helper-factoring (.H) atomic work tracked under WOS-T4 children: T4_B4=fs-3zx5, T4_B5=fs-816y, T4_B6=fs-f68p, T4_B7=fs-5883, T4_HARNESS=fs-5wrh.
 
@@ -105,7 +105,7 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 **P4 — backlog / trigger-gated:**
 
 - **FORMSPEC-WEBCRYPTO-VENDOR-MATRIX-001 - Document and gate WebCrypto adapter browser-matrix floor** · `fs-1e7i` · P4
-   links T4-SIG-CONFORMANCE-VECTORS-001 — RFC 8032 + Wycheproof +… `fs-gq4y`, T4-SIG-COSE-001 — COSE_Sign1 primitive/profile boundary `fs-pjsw`
+   blocked-by T4-SIG-CONFORMANCE-VECTORS-001 — RFC 8032 + Wycheproof +… `fs-gq4y` · links T4-SIG-CONFORMANCE-VECTORS-001 — RFC 8032 + Wycheproof +… `fs-gq4y`, T4-SIG-COSE-001 — COSE_Sign1 primitive/profile boundary `fs-pjsw`
 
    formspec-signature-adapter-webcrypto verifies real Ed25519 + ECDSA-P256 via crypto.subtle.{importKey,verify,sign} with raw SEC1 / IEEE-P1363 wire format. Implementation depends on Node 18+ globalThis.crypto.subtle and the per-vendor minimum versions documented inline (Ed25519 comment at index.ts:99 references Safari 17+ / Chrome 117+ / Firefox 130+, ECDSA-P256 raw SEC1 import similarly platform-gated). No e2e or vendor-matrix proof asserts these floors today; unit tests run on Node only. Risk: a regression on Safari 16 / Chrome 116 / older WebViews silently breaks production verification while CI passes.
 
@@ -113,13 +113,6 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
      - Adapter README documents the assumed WebCrypto runtime floor (Node + per-browser minimum versions).
      - MVP browser-matrix e2e gate (Playwright cross-browser fixture, or equivalent) verifies the happy path on the supported set.
      - CI fails if a supported browser drops below floor.
-
-- **FORMSPEC-TYPES-REGEN-001 — Regenerate TypeScript types after Phase 2 schema changes** · `fs-4wsj` · P4
-   blocked-by FORMSPEC-WIRE-COSE-SIGN1-001 — Wire migration to COSE_Sign1 `fs-w8sm`
-
-   formspec/packages/formspec-types/src/generated/*.ts must regenerate after response.schema.json changes (COSE_Sign1 signatureValue, registry signatureMethod, signedAt/signingIntent in signedPayload, signerEvidence, verificationReceipt). Run: cd formspec && npm run types:gen. Downstream: policy-studio + formspec-studio also need regen (STUDIO-SIGNATURE-TYPE-REGEN-001).
-
-   **Acceptance:** TypeScript types regenerated; downstream policy-studio + formspec-studio regen tracked separately.
 
 - **FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification extension property** · `fs-du1p` · P4
    blocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`
@@ -157,6 +150,7 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 - ~~**Offline authoring profile in Respondent Ledger companion**~~ `fs-921l` · CLOSED — Respondent Ledger now carries integrityProfile and offlineAuthoring; chained / trellis-wrapped ledgers require paired event hashes on every embedded event; offline buffers use…
 - ~~**ResponseCorrection event in Respondent Ledger §6**~~ `fs-txpb` · CLOSED — response.correction-recorded carries recordKind='responseCorrection' plus target-event hash, corrected-field subset, original/corrected value pairs, reason, and neutral…
 - ~~**FORMSPEC-SIGN-VERIFY-001 — Response signature semantic verifier**~~ `fs-5u91` · CLOSED — Wire cross-field invariant verifier into lint/validate path: authoredSignatures[*].signedPayload.responseId MUST equal top-level id; definitionUrl/definitionVersion MUST equal…
+- ~~**FORMSPEC-TYPES-REGEN-001 — Regenerate TypeScript types after Phase 2 schema changes**~~ `fs-4wsj` · CLOSED — formspec/packages/formspec-types/src/generated/*.ts must regenerate after response.schema.json changes (COSE_Sign1 signatureValue, registry signatureMethod, signedAt/signingIntent…
 - ~~**FORMSPEC-EVAL-VALID-UNTIL-001 — validUntil duration computation**~~ `fs-cf51` · CLOSED — formspec-eval/src/screener_eval.rs:522 has TODO: Implement proper duration addition for validUntil.
 - ~~**FORMSPEC-SIGNATURE-PORT-VERIFIERERROR-001 - Decide TS VerifierError fate (delete dead-code or rewire adapters)**~~ `fs-m2ja` · CLOSED — formspec-signature-port (TypeScript) defines class VerifierError at index.ts:79-87 with four code variants (method_unsupported, verification_failed, invalid_cose, internal), but…
 
@@ -170,23 +164,6 @@ Eight-scout parallel survey of `formspec/` covering Rust crates, npm packages, P
 <!-- GENERATED by scripts/generate-todo.mjs from tk epic fs-974u — edit tickets via tk, not this section -->
 
 Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md` §Public-release survey.
-
-**P0 — blocking (immediate):**
-
-- **FORMSPEC-PR-SIG-007 — Signature TS packages still `private: true` and ship src/index.ts** · `fs-8ilk` · P0
-
-   **Blocker** for actual publication. Three signature TS packages are marked `private: true` and ship `main: ./src/index.ts` (raw TypeScript, no build).
-
-   **Sites:**
-   - packages/formspec-signature-port/package.json:4 — private: true; main: ./src/index.ts
-   - packages/formspec-signature-cose/package.json:4 — same
-   - packages/formspec-signature-adapter-webcrypto/package.json:3 — same
-
-   **Approach:** Drop private, add tsc/tsup build emitting dist/, add publishConfig.access, add exports map (mirror @formspec-org/adapters), add files, license, repository. Add build step to root scripts.
-
-   **Note on signature-cose:** Package is a 21-line near-pure re-export shim of @formspec-org/integrity-cose with renames. Either commit to documenting it as the Formspec-profile binding layer (and add minimal but real value), or delete the package and consumers import @formspec-org/integrity-cose directly. Don't ship a hop that adds nothing.
-
-   **Acceptance:** All three TS signature packages publish-ready: private removed, build step emits dist, exports map locks down public surface. Decision on signature-cose existence documented.
 
 **P1 — high-leverage:**
 
@@ -259,17 +236,9 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
      - Single build_receipt fn.
      - ADAPTER_VERSION from env! macro. forbid(unsafe_code) on all three signature crates.
 
-- **FORMSPEC-PR-RUST-003 — License sync: formspec-changeset + formspec-assist (BUSL → Apache)** · `fs-dozw` · P1
+- **FORMSPEC-PR-RUST-003 — Complete intentional BSL package README and distribution disclosure** · `fs-dozw` · P1
 
-   **Blocker (packaging landmine).**
 
-   **Two unsynced BUSL packages in an otherwise Apache-2.0 workspace:**
-   - crates/formspec-changeset/Cargo.toml:5 — license = "BUSL-1.1" (every other Rust crate uses license.workspace = true → Apache-2.0)
-   - packages/formspec-assist/package.json:11 — "license": "BUSL-1.1" while every other TS package is Apache-2.0
-
-   BUSL is a commercial-source license; mixing into an Apache workspace blows up downstream packaging.
-
-   **Fix:** Decide intentionality per package. If Apache-2.0: align. If genuinely BUSL: workspace license should not declare otherwise, the public-release plan for these packages needs review, and LICENSING.md should call them out as restricted-use clearly.
 
    **Acceptance:** Both packages have a definitive license decision. LICENSING.md reflects the decision. If staying BUSL, README declares it prominently and downstream packaging is auditable.
 
@@ -563,9 +532,14 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 
    **Fix:** Add suite cases for mapping forward+reverse, migration apply, validation-report shape parity, registry-resolve. Wire TS shared-suite runner into npm run test:unit so parity drift fails CI.
 
-   Plus: tests/conformance/schemas/test_response_schema.py:413 — test deliberately accepts response-pin-mismatch.response.json as schema-valid-but-semantically-invalid, pending the verifier in FORMSPEC-SIGN-VERIFY-001. Tag as xfail so the gap is visible in CI output rather than silent.
+   Preserve the intentional schema/semantic boundary: the pin-mismatch fixture is schema-valid, while the signed-payload verifier must reject the mismatched pin. Current test_response_schema.py covers both and fs-5u91 records the verifier work; a successful structural-validation test must not be marked xfail.
 
-   **Acceptance:** Cross-runtime parity suite covers mapping + migration + registry-resolve + validation-report. TS runner wired into CI. response-pin-mismatch test xfail-tagged.
+   Historical instruction (superseded): tag the schema-valid pin-mismatch case as xfail while waiting for the verifier. The verifier is now implemented; this instruction no longer applies.
+
+   **Acceptance:**
+     - Cross-runtime parity suite covers mapping + migration + registry-resolve + validation-report.
+     - TS runner remains wired into CI.
+     - Preserve positive schema validation and negative semantic pin validation; verify the current shared suite without treating static test inspection as a fresh pass.
 
 - **FORMSPEC-PR-WC-003 — Define host interfaces; drop `this as any` self-casts** · `fs-kofm` · P2
 
@@ -766,7 +740,7 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
    **Low cluster:**
    - crates/formspec-eval — #![warn(clippy::missing_docs_in_private_items)] at lib.rs:19 then disabled per-file in 15+ files (nrb.rs:2, revalidate/mod.rs:2, etc). Pick one policy.
    - crates/formspec-eval/src/recalculate/mod.rs:170-424 — 8 `let _ = ` ignored returns in tests; one (line 241) is `let _ = values` vestigial.
-   - crates/formspec-eval/Cargo.toml:23-25 — [[test]] section with path tests/integration/mod.rs; cargo finds integration tests automatically. Suspicious historical artifact.
+   - crates/formspec-eval/Cargo.toml — preserve explicit registration of tests/integration/mod.rs unless a deliberate target-layout change proves identical test discovery. The earlier suggestion that this nested mod.rs target was automatically redundant is unverified; dropping it must not silently remove the integration suite.
    - crates/formspec-eval/Cargo.toml:10-17 — chrono, fancy-regex, rust_decimal hardcoded versions. Move to [workspace.dependencies].
 
    **Acceptance:** All listed cleanups landed.
@@ -824,6 +798,7 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 - ~~**FORMSPEC-PR-SIG-003 — RSA-PSS/ECDSA dispatched-but-stubbed (TS WebCrypto dishonest receipts)**~~ `fs-0krt` · CLOSED — **Blocker (security-critical).** formspec-signature-adapter-webcrypto/src/index.ts:128-135: verifyEcdsaP256 and verifyRsaPssSha256 always return 'unsupported' — explicit case-arm…
 - ~~**FORMSPEC-PR-INFRA-003 — examples/refrences/ misspelled directory**~~ `fs-46hz` · CLOSED — **Blocker (first-impression typo).** Directory misspelled 'refrences' while the npm workspace, package name (formspec-references), and start scripts all use 'references'.
 - ~~**FORMSPEC-PR-SIG-001 — Registry-status allowlist (kill the blacklist Blocker)**~~ `fs-6x61` · CLOSED — **Blocker (security-critical).** formspec-signature-adapter-ring/src/lib.rs:142-153: adapter accepts a registry method if its status is anything OTHER than literal "deprecated".
+- ~~**FORMSPEC-PR-SIG-007 — Signature TS packages still `private: true` and ship src/index.ts**~~ `fs-8ilk` · CLOSED — **Blocker** for actual publication.
 - ~~**FORMSPEC-PR-SIG-006 — Receipt signing key held in instance for nonexistent feature (TS)**~~ `fs-lh0l` · CLOSED — **Blocker (security-critical).** formspec-signature-adapter-webcrypto/src/index.ts:22-23,63-66: `receiptSigningKey: CryptoKeyPair | null` accepted via constructor, stored in…
 - ~~**FORMSPEC-PR-SIG-002 — receipt_bytes never populated (Rust adapter ships unsigned receipts)**~~ `fs-migs` · CLOSED — **Blocker (security-critical).** formspec-signature-adapter-ring/src/lib.rs:48,69,90: receipt_bytes is always set to None across all three receipt-builder methods.
 - ~~**FORMSPEC-PR-SIG-005 — Crypto errors swallowed (TS bare catch{}; Rust Ok(failed) convention)**~~ `fs-no9r` · CLOSED — **Blocker (security-critical).** Forgeries and internal errors collapse to the same 'failed' bucket.
@@ -895,6 +870,17 @@ Validated findings from formspec/CODE-SMELL-AUDIT-2026-05-17.md (nine formspec-s
 
    **Acceptance:** Shared path helpers; fel-core tests green; no behavior change.
 
+- **Bound and cache release workflow jobs** · `fs-smjx` · P2
+
+   Current remaining scope (2026-10-18): `ci.yml` and `docs-check.yml` already carry job timeouts and maintained npm/pip/Rust caches. The four current release jobs in `.github/workflows/publish-pypi.yml` (`build-wheels`, `build-sdist`, `publish`) and `publish-crates.yml` (`publish`) have no explicit `timeout-minutes`. The PyPI build jobs also lack explicit build caches; the crates publisher already uses `Swatinem/rust-cache@v2`.
+
+   This is bounded P2 maintenance. No failed release, availability incident, or security consequence was established by this review. Preserve the working CI/doc configuration and existing crates cache.
+
+   **Acceptance:**
+     - Give each of the four release jobs an explicit, justified time bound.
+     - Add appropriate lockfile-aware caches to the PyPI build steps, using maintained action support; do not add a cache to upload-only work without a real build input.
+     - Verify the workflow structure and cache inputs through CI or dry validation that does not publish packages. Keep actual publication out of this maintenance check.
+
 **P3 — sustaining:**
 
 - **Schema: tighten ledger-event untyped value slots** · `fs-2iwf` · P3
@@ -926,7 +912,6 @@ Validated findings from formspec/CODE-SMELL-AUDIT-2026-05-17.md (nine formspec-s
 - ~~**Split default-field.tsx (1400 lines)**~~ `fs-ft8s` · CLOSED — packages/formspec-react/src/defaults/fields/default-field.tsx
 - ~~**Type webcomponent hub (~230 any in src)**~~ `fs-li2p` · CLOSED — element.ts + behaviors/types.ts + emit-node.ts; audit undercounted emit-node.
 - ~~**Type webcomponent hub (~230 any in src)**~~ `fs-my5h` · CLOSED — element.ts + behaviors/types.ts + emit-node.ts; audit undercounted emit-node.
-- ~~**CI: actions/cache + timeout-minutes on workflows**~~ `fs-smjx` · CLOSED — formspec/.github: no actions/cache or timeout-minutes (ci.yml, docs-check.yml, publish*.yml).
 - ~~**Split default-field.tsx (1400 lines)**~~ `fs-to9c` · CLOSED — packages/formspec-react/src/defaults/fields/default-field.tsx
 - ~~**Type webcomponent hub (element, behaviors, emit-node)**~~ `fs-tz1m` · CLOSED — ~97 any in hub trio (emit-node undercounted in audit); ~231 any in webcomponent/src.
 - ~~**Refactor runtime_mapping execute_mapping**~~ `fs-977v` · CLOSED — engine.rs 357 lines; array mode duplication.
