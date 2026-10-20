@@ -1,6 +1,5 @@
 //! Phase 1: Rebuild — build the item tree from a definition JSON.
 
-mod bind_targets;
 mod initial_values;
 mod item_tree;
 mod repeat_data;

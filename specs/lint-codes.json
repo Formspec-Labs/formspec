@@ -1460,6 +1460,42 @@
       "suggestedFix": "use a FEL expression that references at least one @-binding (e.g., \"@invocation.id & '/<effect-name>'\") so the key varies per invocation; literal-string keys silently defeat idempotency by producing the same value for every attempt",
       "fixtures": ["tests/fixtures/lint/W1802-response-actions-static-idempotency-key.json"],
       "state": "tested"
+    },
+    {
+      "code": "W900",
+      "pass": 10,
+      "severity": "warning",
+      "title": "Required and read-only without a declared value source",
+      "specRef": "specs/core/spec.md#definition-advisories",
+      "suggestedFix": "review the declared value source or required/read-only combination; loaded or programmatically populated data may be intentional",
+      "fixtures": [
+        "tests/fixtures/lint/W900-bind-advisory.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W901",
+      "pass": 10,
+      "severity": "warning",
+      "title": "Pre-population replaced by calculation",
+      "specRef": "specs/core/spec.md#definition-advisories",
+      "suggestedFix": "verify that prePopulate and calculate on this field are both intentional",
+      "fixtures": [
+        "tests/fixtures/lint/W901-bind-advisory.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W902",
+      "pass": 10,
+      "severity": "info",
+      "title": "Required on a calculated read-only field",
+      "specRef": "specs/core/spec.md#definition-advisories",
+      "suggestedFix": "verify that required is intentional when calculate yields an empty value; keep normal required validation",
+      "fixtures": [
+        "tests/fixtures/lint/W902-bind-advisory.json"
+      ],
+      "state": "tested"
     }
   ]
 }

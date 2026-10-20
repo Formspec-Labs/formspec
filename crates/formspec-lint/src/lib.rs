@@ -1,4 +1,4 @@
-//! Formspec Linter — 9-pass static analysis and validation pipeline.
+//! Formspec Linter — static analysis and validation pipeline.
 //!
 //! Pass 1 (E100): Document type detection
 //! Pass 1b (E101): JSON Schema validation against embedded schemas
@@ -15,6 +15,7 @@
 //! cross-field invariants (ADR 0150 §6)
 //! Registry-only E611 is emitted by the TypeScript AppGraphValidator, not this crate.
 //! Pass 9 (E1100-E1805/W1100-W1802): Companion document semantic lint
+//! Pass 10 (W900-W902): Definition and Screener Bind advisories (Core §3.10.3)
 //!
 //! ## Documentation
 //!
@@ -25,6 +26,7 @@
 #![warn(clippy::missing_docs_in_private_items)]
 
 pub mod app_graph_report;
+mod bind_consistency;
 mod generated;
 mod lint_json;
 mod metadata;
@@ -229,11 +231,13 @@ fn lint_definition(
         diagnostics.extend(dependencies::analyze_dependencies(&compilation.compiled));
     }
 
+    diagnostics.extend(bind_consistency::check_bind_consistency(doc));
     None
 }
 
 fn lint_screener(doc: &Value, options: &LintOptions, diagnostics: &mut Vec<LintDiagnostic>) {
     diagnostics.extend(pass_screener::lint_screener_semantics(doc, !options.no_fel));
+    diagnostics.extend(bind_consistency::check_bind_consistency(doc));
     if !options.no_fel {
         let compilation = expressions::compile_screener_expressions(doc);
         diagnostics.extend(compilation.diagnostics);

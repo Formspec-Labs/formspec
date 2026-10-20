@@ -5,21 +5,21 @@ use std::collections::HashMap;
 use serde_json::{Map, Value};
 
 /// One Bind entry: its `path` spelling and its properties.
-pub(crate) type BindEntry<'a> = (&'a str, &'a Map<String, Value>);
+pub type BindEntry<'a> = (&'a str, &'a Map<String, Value>);
 
 /// Bind entries by target Item path, each list in document order.
 ///
 /// Core §4.3.3: a `[*]` path targets the Item whose path is the Bind path with every
 /// `[*]` removed, so `jobs[*].hours` and `jobs.hours` share one list. Array-style and
 /// object-style `binds` are both read; object keys keep document order.
-pub(crate) struct BindTargets<'a> {
+pub struct BindTargets<'a> {
     /// `[*]`-stripped Bind path to its entries.
     by_item: HashMap<String, Vec<BindEntry<'a>>>,
 }
 
 impl<'a> BindTargets<'a> {
     /// Group the Definition's `binds` value by target Item path.
-    pub(crate) fn new(binds: Option<&'a Value>) -> Self {
+    pub fn new(binds: Option<&'a Value>) -> Self {
         let entries: Vec<BindEntry<'a>> = match binds {
             Some(Value::Array(binds)) => binds
                 .iter()
@@ -45,12 +45,12 @@ impl<'a> BindTargets<'a> {
     }
 
     /// Entries targeting the Item at `item_path`, in document order.
-    pub(crate) fn entries(&self, item_path: &str) -> &[BindEntry<'a>] {
+    pub fn entries(&self, item_path: &str) -> &[BindEntry<'a>] {
         self.by_item.get(item_path).map_or(&[], Vec::as_slice)
     }
 
     /// The effective Bind: properties merged in document order, later values winning.
-    pub(crate) fn merged(&self, item_path: &str) -> Map<String, Value> {
+    pub fn merged(&self, item_path: &str) -> Map<String, Value> {
         let mut merged = Map::new();
         for (_, bind) in self.entries(item_path) {
             merged.extend(bind.iter().map(|(key, value)| (key.clone(), value.clone())));
@@ -59,7 +59,7 @@ impl<'a> BindTargets<'a> {
     }
 
     /// The `path` spelling of the entry whose `property` wins for `item_path`.
-    pub(crate) fn winning_path(&self, item_path: &str, property: &str) -> Option<&'a str> {
+    pub fn winning_path(&self, item_path: &str, property: &str) -> Option<&'a str> {
         self.entries(item_path)
             .iter()
             .rev()

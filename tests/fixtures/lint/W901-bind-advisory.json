@@ -1,0 +1,33 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.org/advisory",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Bind advisory",
+  "items": [
+    {
+      "key": "value",
+      "type": "field",
+      "label": "Value",
+      "dataType": "string",
+      "prePopulate": {
+        "instance": "profile",
+        "path": "seed"
+      }
+    }
+  ],
+  "binds": [
+    {
+      "path": "value",
+      "readonly": "true",
+      "calculate": "'computed'"
+    }
+  ],
+  "instances": {
+    "profile": {
+      "data": {
+        "seed": "initial"
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # formspec-lint
 
-Rust **static analysis** for Formspec JSON documents — a nine-pass pipeline over `serde_json::Value` that mirrors the conceptual checks described in repo `specs/` and `schemas/`. Built on [`formspec-core`](../formspec-core/) (document detection, item walks, registry types) and [`fel-core`](../fel-core/) (FEL parsing/dependencies).
+Rust **static analysis** for Formspec JSON documents — a pipeline over `serde_json::Value` that mirrors the conceptual checks described in repo `specs/` and `schemas/`. Built on [`formspec-core`](../formspec-core/) (document detection, item walks, registry types) and [`fel-core`](../fel-core/) (FEL parsing/dependencies).
 
 ## Scope
 
@@ -17,6 +17,7 @@ Rust **static analysis** for Formspec JSON documents — a nine-pass pipeline ov
 | 7 | E800–E807, W800–W804 | `pass_component` | Component tree, builtins, binds, compatibility matrix. |
 | 8 | E606, E607, E610, E900–E902 | `pass_surface`, `pass_response` | Surface route-graph checks and Response signed-payload pin invariants. |
 | 9 | E1100–E1507, W1100–W1500 | `pass_mapping`, `pass_ontology`, `pass_references_doc`, `pass_locale`, `pass_screener` | Companion document semantic lint for Mapping, Ontology, References, Locale, Screener, and Determination Record consistency. |
+| 10 | W900–W902 | `bind_consistency` | Optional nonblocking Definition/Screener Bind advisories; shared effective Bind merge and readonly inheritance. |
 
 Supporting modules: **`types`** (diagnostics, options, result), **`lint_json`** (wire JSON for hosts), **`semantic_helpers`** (strict paths, Definition context, interpolation helpers), **`component_matrix`** (built-in input vs. `dataType` rules).
 

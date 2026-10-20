@@ -93,7 +93,7 @@ impl LintMode {
 pub struct LintDiagnostic {
     /// Error/warning code (e.g., `E100`, `E201`, `W300`).
     pub code: LintCode,
-    /// Pass number (1-9).
+    /// Phase number from the canonical lint registry.
     pub pass: u8,
     /// Severity: error, warning, info.
     pub severity: LintSeverity,

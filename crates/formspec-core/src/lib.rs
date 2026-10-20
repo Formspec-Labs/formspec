@@ -9,6 +9,7 @@
 
 pub mod assembler;
 pub mod assembly_fel_rewrite;
+pub mod bind_targets;
 pub mod changelog;
 pub mod component_tree;
 pub mod definition_items;
@@ -37,6 +38,7 @@ pub use assembler::{
 pub use assembly_fel_rewrite::{
     AssemblyFelRewriteMap, assembly_fel_rewrite_map_from_value, rewrite_fel_for_assembly,
 };
+pub use bind_targets::{BindEntry, BindTargets};
 pub use component_tree::visit_component_subtree;
 pub use definition_items::{
     DefinitionItemKeyPolicy, DefinitionItemVisitCtx, coerce_definition_item_key_segment,

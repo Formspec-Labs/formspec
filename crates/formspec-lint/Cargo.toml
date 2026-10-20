@@ -3,7 +3,7 @@ name = "formspec-lint"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Formspec Linter — 8-pass static analysis pipeline"
+description = "Formspec static analysis and validation pipeline"
 repository = "https://github.com/Formspec-Labs/formspec"
 
 [dependencies]

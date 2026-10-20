@@ -30,8 +30,8 @@ use formspec_core::{
 };
 use serde_json::Value;
 
-use super::bind_targets::BindTargets;
 use crate::types::{ExcludedValueMode, ItemInfo, NrbMode, VariableDef, WhitespaceMode};
+use formspec_core::BindTargets;
 
 pub(super) fn bool_or_string_expr(value: &Value) -> Option<String> {
     match value {
