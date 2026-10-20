@@ -96,6 +96,7 @@ fn lint_options_from_wasm_json(options_json: Option<&str>) -> Result<LintOptions
         mode: LintMode::from_host_option_str(parsed.mode.as_deref()),
         registry_documents: parsed.registry_documents,
         definition_document: parsed.definition_document,
+        mapping_source_context: None,
         screener_document: parsed.screener_document,
         theme_document: parsed.theme_document,
         component_documents: parsed.component_documents,
