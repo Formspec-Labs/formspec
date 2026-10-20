@@ -77,7 +77,7 @@ pub use schema_validation::{validate_mapping_source, validate_mapping_source_ass
 #[doc(inline)]
 pub use semantic_helpers::compatible_version_satisfied;
 pub use types::{
-    LintDiagnostic, LintMode, LintOptions, LintResult, LintSeverity, sort_diagnostics,
+    LintDiagnostic, LintMode, LintOptions, LintResult, LintSeverity, MappingSourceContext, sort_diagnostics,
 };
 
 // ── Lint pipeline ───────────────────────────────────────────────
@@ -150,10 +150,11 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
             diagnostics.extend(pass_screener::lint_determination_record(doc));
         }
         DocumentType::Mapping => {
-            diagnostics.extend(pass_mapping::lint_mapping(
+            diagnostics.extend(pass_mapping::analyze_mapping_with_context(
                 doc,
                 options.definition_document.as_ref(),
-            ));
+                options.mapping_source_context.as_ref(),
+            ).diagnostics);
         }
         DocumentType::Ontology => {
             diagnostics.extend(pass_ontology::lint_ontology(

@@ -49,12 +49,23 @@ pub fn lint_mapping(mapping: &Value, definition: Option<&Value>) -> Vec<LintDiag
 }
 
 pub fn analyze_mapping(mapping: &Value, definition: Option<&Value>) -> MappingStaticAnalysis {
+    analyze_mapping_with_context(mapping, definition, None)
+}
+
+pub(crate) fn analyze_mapping_with_context(
+    mapping: &Value,
+    definition: Option<&Value>,
+    context: Option<&crate::MappingSourceContext>,
+) -> MappingStaticAnalysis {
     let external = mapping.get("sourceSchema");
     // External schemas are not Definitions, even when a caller supplies one.
     let definition = if external.is_some() { None } else { definition };
     let mut analyzer = Analyzer {
         mapping,
-        source_schema: external.and_then(|source| source.get("schema")),
+        source_schema: context
+            .map(|context| &context.schema)
+            .or_else(|| external.and_then(|source| source.get("schema"))),
+        definition_data_path: context.map(|context| context.data_path.as_str()),
         definition_index: definition.map(tree::build_item_index),
         required_paths: definition
             .map(crate::semantic_helpers::required_item_paths)
@@ -70,6 +81,58 @@ pub fn analyze_mapping(mapping: &Value, definition: Option<&Value>) -> MappingSt
         target_writes: Vec::new(),
     };
 
+    if let Some(context) = context {
+        if let Some(definition) = definition {
+            if formspec_core::detect_document_type(definition)
+                != Some(formspec_core::DocumentType::Definition)
+            {
+                analyzer.diagnostics.push(error(
+                    crate::LintCode::E1100,
+                    PASS,
+                    "$",
+                    "Host source context requires a genuine Formspec Definition document",
+                ));
+            }
+            if mapping["definitionRef"] != definition["url"] || definition["url"].is_null() {
+                analyzer.diagnostics.push(error(
+                    crate::LintCode::E1100,
+                    PASS,
+                    "$.definitionRef",
+                    "Host source context requires the associated genuine Definition identity",
+                ));
+            }
+            let compatible = mapping["definitionVersion"]
+                .as_str()
+                .zip(definition["version"].as_str())
+                .and_then(|(range, version)| {
+                    crate::semantic_helpers::compatible_version_satisfied(range, version)
+                });
+            if compatible != Some(true) {
+                analyzer.diagnostics.push(error(crate::LintCode::E1100, PASS, "$.definitionVersion",
+                    "Host source context Definition version does not satisfy the Mapping association"));
+            }
+        }
+        let invalid = if external.is_some() {
+            Some("Host source context cannot accompany external sourceSchema".to_string())
+        } else if definition.is_none() {
+            Some("Host source context requires the associated Definition".to_string())
+        } else if context.data_path.is_empty()
+            || parse_form_path(&context.data_path, false).is_err()
+        {
+            Some("Host source context requires a valid Definition data path".to_string())
+        } else if let Err(reason) = resolve_schema_path(&context.schema, &context.data_path) {
+            Some(format!("Host source context data path: {reason}"))
+        } else {
+            crate::schema_validation::compile_schema(&context.schema)
+                .err()
+                .map(|error| error.to_string())
+        };
+        if let Some(reason) = invalid {
+            analyzer
+                .diagnostics
+                .push(error(crate::LintCode::E1100, PASS, "$", reason));
+        }
+    }
     if let Some(external) = external {
         if let Err(reason) = crate::validate_mapping_source_association(external) {
             analyzer.diagnostics.push(error(
@@ -119,6 +182,7 @@ pub fn analyze_mapping(mapping: &Value, definition: Option<&Value>) -> MappingSt
 struct Analyzer<'a> {
     mapping: &'a Value,
     source_schema: Option<&'a Value>,
+    definition_data_path: Option<&'a str>,
     definition_index: Option<tree::ItemTreeIndex>,
     required_paths: HashSet<String>,
     target_format: String,
@@ -141,6 +205,16 @@ enum WriteSource {
 }
 
 impl<'a> Analyzer<'a> {
+    // Metadata uses the host schema; only genuine answer paths use item semantics.
+    fn definition_path<'b>(&self, path: &'b str) -> Option<&'b str> {
+        match self.definition_data_path {
+            None => Some(path),
+            Some(prefix) => path
+                .strip_prefix(prefix)
+                .and_then(|tail| tail.strip_prefix('.')),
+        }
+    }
+
     fn collect_default_writes(&mut self) {
         let Some(defaults) = self.mapping.get("defaults").and_then(Value::as_object) else {
             return;
@@ -199,6 +273,8 @@ impl<'a> Analyzer<'a> {
                 Ok(segments) => {
                     normalized_source_segments = normalized_segments(&segments);
                     if let Some(schema) = self.source_schema
+                        && (self.definition_index.is_none()
+                            || self.definition_path(&effective_path).is_none())
                         && let Err(reason) = resolve_schema_path(schema, &effective_path)
                     {
                         self.diagnostics.push(error(
@@ -212,8 +288,10 @@ impl<'a> Analyzer<'a> {
                             format!("Mapping sourcePath {effective_path:?}: {reason}"),
                         ));
                     }
-                    if let Some(index) = self.definition_index.as_ref() {
-                        match resolve_item_path(&effective_path, index, false) {
+                    if let Some(index) = self.definition_index.as_ref()
+                        && let Some(path) = self.definition_path(&effective_path)
+                    {
+                        match resolve_item_path(path, index, false) {
                             Ok(Some(item)) => {
                                 resolved_definition_item = Some(item.full_path.clone());
                             }
@@ -474,8 +552,22 @@ impl<'a> Analyzer<'a> {
                     ));
                     continue;
                 }
-                if let Some(index) = self.definition_index.as_ref() {
-                    match resolve_item_path(&effective, index, false) {
+                if let Some(schema) = self.source_schema
+                    && (self.definition_index.is_none()
+                        || self.definition_path(&effective).is_none())
+                    && let Err(reason) = resolve_schema_path(schema, &effective)
+                {
+                    self.diagnostics.push(error(
+                        crate::LintCode::E1112,
+                        PASS,
+                        format!("{base_path}.projection.sourcePaths[{i}]"),
+                        reason,
+                    ));
+                }
+                if let Some(index) = self.definition_index.as_ref()
+                    && let Some(path) = self.definition_path(&effective)
+                {
+                    match resolve_item_path(path, index, false) {
                         Ok(Some(_)) => {}
                         Ok(None) => self.diagnostics.push(error(
                             crate::LintCode::E1112,
@@ -533,6 +625,13 @@ impl<'a> Analyzer<'a> {
         if paths.is_empty() {
             return RequirednessInference::unknown(RequirednessUnknownReason::NoSourcePaths);
         }
+        let Some(paths): Option<Vec<_>> = paths
+            .iter()
+            .map(|path| self.definition_path(path))
+            .collect()
+        else {
+            return RequirednessInference::unknown(RequirednessUnknownReason::UnresolvedSourcePath);
+        };
         if paths
             .iter()
             .any(|path| !matches!(resolve_item_path(path, index, false), Ok(Some(_))))

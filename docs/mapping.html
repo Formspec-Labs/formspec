@@ -894,6 +894,20 @@ processors MUST NOT fetch external schemas during execution. Target
 serialization adapters apply to forward target output; external reverse
 output remains schema-validated source JSON. Raw rule-array execution
 makes no source-association validation claim.</p>
+<p>A host specification MAY define a protected input representation
+around genuine Definition data for a Definition-associated Mapping. The
+host MUST identify the Definition data path and declare the surrounding
+metadata shape. The Mapping retains its genuine
+<code>definitionRef</code> and <code>definitionVersion</code>; the host
+representation is not a document <code>sourceSchema</code> association.
+Semantic lint MUST resolve data paths beneath that root using the
+selected Definition item tree and metadata paths using the host schema.
+The host MUST check the actual input, exact selected Definition
+identity/version and protected metadata before executing rules.
+Supplying a host context without its selected Definition, or combining
+it with document <code>sourceSchema</code>, MUST refuse qualification. A
+validator lacking the selected Definition MUST report item checks as
+unavailable rather than successful.</p>
 <p>Source identity, version, and inline schema belong to the
 independently versioned Mapping document and round-trip through
 authoring unchanged. A processor MUST NOT invent a Definition

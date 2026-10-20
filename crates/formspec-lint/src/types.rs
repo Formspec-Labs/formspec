@@ -221,6 +221,18 @@ pub fn sort_diagnostics(diags: &mut [LintDiagnostic]) {
 
 // ── Lint options ────────────────────────────────────────────────
 
+/// Host-owned input containing genuine Definition data at a declared path.
+///
+/// This describes input representation, not a document source association. The
+/// selected Definition remains authoritative for every path below `data_path`.
+#[derive(Debug, Clone)]
+pub struct MappingSourceContext {
+    /// JSON Schema declaring the host metadata and the Definition data root.
+    pub schema: Value,
+    /// Dotted path to the genuine Definition data object in the host input.
+    pub data_path: String,
+}
+
 /// Options for the lint pipeline.
 #[derive(Debug, Clone, Default)]
 pub struct LintOptions {
@@ -234,6 +246,9 @@ pub struct LintOptions {
     /// and pass 9 companion-document semantic lint.
     /// When `None`, cross-artifact checks are skipped (single-document mode).
     pub definition_document: Option<Value>,
+    /// Host-defined representation for a Definition-associated Mapping.
+    /// Requires a paired Definition; cannot accompany document `sourceSchema`.
+    pub mapping_source_context: Option<MappingSourceContext>,
     /// Optional paired Screener for target-qualified Locale presentation checks.
     pub screener_document: Option<Value>,
     /// Optional paired Theme document for Locale `$page.*` string-key checks.
