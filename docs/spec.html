@@ -88,8 +88,9 @@ Propagation</a></li>
 <li><a href="#element-wise-array-operations"
 id="toc-element-wise-array-operations">3.9 Element-Wise Array
 Operations</a></li>
-<li><a href="#error-handling" id="toc-error-handling">3.10 Error
-Handling</a></li>
+<li><a href="#error-handling-and-static-analysis"
+id="toc-error-handling-and-static-analysis">3.10 Error Handling and
+Static Analysis</a></li>
 <li><a href="#reserved-words" id="toc-reserved-words">3.11 Reserved
 Words</a></li>
 <li><a href="#extension-functions" id="toc-extension-functions">3.12
@@ -4684,10 +4685,13 @@ line totals:</p>
 <code>$lineItems[*].amount</code> is <code>[20.00, 17.50, 25.00]</code>,
 the result is <code>[1.60, 1.40, 2.00]</code>.</p>
 </blockquote>
-<h3 id="error-handling">3.10 Error Handling</h3>
-<p>FEL distinguishes between two classes of errors: <strong>definition
-errors</strong> (detected at load time) and <strong>evaluation
-errors</strong> (detected at runtime during expression evaluation).</p>
+<h3 id="error-handling-and-static-analysis">3.10 Error Handling and
+Static Analysis</h3>
+<p>Formspec distinguishes between three classes of findings:
+<strong>definition errors</strong> (detected at load time),
+<strong>evaluation errors</strong> (detected at runtime during
+expression evaluation), and <strong>definition advisories</strong>
+(static analysis findings about Bind consistency).</p>
 <h4 id="definition-errors">3.10.1 Definition Errors</h4>
 <p>A definition error indicates that the Definition document is
 malformed or internally inconsistent. Definition errors are detected
@@ -4813,6 +4817,83 @@ should not be punished for a Definition author’s mistake. A type error
 in one expression should not prevent the rest of the form from
 functioning. The diagnostic recording ensures that errors are observable
 by authors during testing.</p>
+<h4 id="definition-advisories">3.10.3 Definition Advisories</h4>
+<p>A <strong>definition advisory</strong> identifies a Bind combination
+whose behavior may not match author intent, without indicating a
+structural or syntactic error. Processors MAY detect and report
+definition advisories. A processor that does not implement advisory
+detection remains conformant.</p>
+<p>An advisory MUST NOT halt processing, invalidate the Definition, or
+affect the <code>valid</code> status of a lint or validation result. A
+processor MUST NOT promote an advisory to an error, including in a
+strict lint mode. Normal processing and validation still apply: for
+example, a required field whose calculation returns <code>null</code>
+can still fail required validation.</p>
+<p>Each reported advisory MUST include a stable code, the targeted Bind
+path, a severity of <code>warning</code> or <code>info</code>, and a
+human-readable message. The codes and severities below identify these
+findings; they do not prescribe a lint pipeline or require a particular
+implementation.</p>
+<p>Analysis MUST use the effective Bind properties for a path after
+merging multiple Binds according to §4.3.1, together with the targeted
+Item’s properties. An expression is <strong>statically true</strong> for
+these checks only if its result is always <code>true</code> without
+evaluating against Instance data. Processors implementing these checks
+MUST recognize the literal expression <code>"true"</code> and MAY
+recognize other constant expressions. Expressions containing field
+references MUST NOT be treated as statically true. Processors SHOULD NOT
+report DA-01 or DA-03 when their <code>required</code> or
+<code>readonly</code> condition depends on Instance data.</p>
+<p><strong>DA-01 — Required and read-only without a value source
+(<code>W900</code>, <code>warning</code>).</strong> This pattern has
+statically true <code>required</code> and <code>readonly</code>
+properties and none of the following declared value sources for the
+targeted field:</p>
+<ul>
+<li>A <code>calculate</code> expression targeting the same path.</li>
+<li>An <code>initialValue</code> property on the Item (§4.2.3).</li>
+<li>A <code>prePopulate</code> declaration on the Item (§4.2.3).</li>
+</ul>
+<p>Processors detecting this pattern SHOULD report DA-01. The user
+cannot supply the required value through normal input, and the
+Definition declares no source that fills the field at initialization or
+recalculation.</p>
+<p>The <code>default</code> Bind property does not count as a value
+source for DA-01. It applies on a transition from non-relevant to
+relevant (§4.3.1), rather than on initial Response creation. It
+therefore does not ensure an initial value for a required, read-only
+field.</p>
+<p>This analysis does not establish that the field is empty: a loaded
+Response, Mapping, or other programmatic population may already supply
+its value. An advisory SHOULD describe the missing declared source
+rather than assert that validation will always fail.</p>
+<p><strong>DA-02 — Pre-population overwritten by calculation
+(<code>W901</code>, <code>warning</code>).</strong> This pattern has
+both a <code>prePopulate</code> declaration and a <code>calculate</code>
+expression targeting the same field. Processors detecting this pattern
+SHOULD report DA-02: calculation replaces the initialized value during
+Recalculate (§2.4, §4.3.1), so the pre-populated value may not serve the
+author’s intended purpose.</p>
+<p>The <code>prePopulate.editable</code> flag does not affect this
+check. It controls whether the user can edit the populated field; it
+does not prevent calculation from replacing its value. This advisory
+does not change the initialization rules for <code>prePopulate</code>,
+including relative declarations within a <code>seedFrom</code> scope
+(§4.2.3).</p>
+<p><strong>DA-03 — Required on a calculated read-only field
+(<code>W902</code>, <code>info</code>).</strong> This pattern has
+statically true <code>required</code>, a <code>calculate</code>
+expression, and a read-only state that is either statically true or
+implicit because <code>readonly</code> is absent (§4.3.1). An explicit
+<code>readonly: "false"</code> or an Instance-dependent
+<code>readonly</code> expression does not establish this pattern.</p>
+<p>Processors MAY report DA-03 to invite the author to verify the
+combination. When calculation always produces a non-empty value,
+<code>required</code> adds no further validation. A calculation may
+intentionally produce <code>null</code> or another empty value, however,
+and <code>required</code> may deliberately reject that result. DA-03
+MUST NOT suppress required validation or imply that the author must
+remove it.</p>
 <h3 id="reserved-words">3.11 Reserved Words</h3>
 <p>The following identifiers are reserved in FEL and MUST NOT be used as
 field keys, Data Source names, or extension function names:</p>

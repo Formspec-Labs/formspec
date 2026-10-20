@@ -2473,11 +2473,12 @@ across repeat collections before aggregation.
 > If `$taxRate` is `0.08` and `$lineItems[*].amount` is `[20.00, 17.50, 25.00]`,
 > the result is `[1.60, 1.40, 2.00]`.
 
-### 3.10 Error Handling
+### 3.10 Error Handling and Static Analysis
 
-FEL distinguishes between two classes of errors: **definition errors** (detected
-at load time) and **evaluation errors** (detected at runtime during expression
-evaluation).
+Formspec distinguishes between three classes of findings: **definition errors**
+(detected at load time), **evaluation errors** (detected at runtime during
+expression evaluation), and **definition advisories** (static analysis findings
+about Bind consistency).
 
 #### 3.10.1 Definition Errors
 
@@ -2516,6 +2517,79 @@ evaluation because form users should not be punished for a Definition author's
 mistake. A type error in one expression should not prevent the rest of the form
 from functioning. The diagnostic recording ensures that errors are observable
 by authors during testing.
+
+#### 3.10.3 Definition Advisories
+
+A **definition advisory** identifies a Bind combination whose behavior may not
+match author intent, without indicating a structural or syntactic error.
+Processors MAY detect and report definition advisories. A processor that does
+not implement advisory detection remains conformant.
+
+An advisory MUST NOT halt processing, invalidate the Definition, or affect the
+`valid` status of a lint or validation result. A processor MUST NOT promote an
+advisory to an error, including in a strict lint mode. Normal processing and
+validation still apply: for example, a required field whose calculation returns
+`null` can still fail required validation.
+
+Each reported advisory MUST include a stable code, the targeted Bind path, a
+severity of `warning` or `info`, and a human-readable message. The codes and
+severities below identify these findings; they do not prescribe a lint pipeline
+or require a particular implementation.
+
+Analysis MUST use the effective Bind properties for a path after merging
+multiple Binds according to §4.3.1, together with the targeted Item's properties.
+An expression is **statically true** for these checks only if its result is
+always `true` without evaluating against Instance data. Processors implementing
+these checks MUST recognize the literal expression `"true"` and MAY recognize
+other constant expressions. Expressions containing field references MUST NOT
+be treated as statically true. Processors SHOULD NOT report DA-01 or DA-03 when
+their `required` or `readonly` condition depends on Instance data.
+
+**DA-01 — Required and read-only without a value source (`W900`, `warning`).**
+This pattern has statically true `required` and `readonly` properties and none
+of the following declared value sources for the targeted field:
+
+- A `calculate` expression targeting the same path.
+- An `initialValue` property on the Item (§4.2.3).
+- A `prePopulate` declaration on the Item (§4.2.3).
+
+Processors detecting this pattern SHOULD report DA-01. The user cannot supply
+the required value through normal input, and the Definition declares no source
+that fills the field at initialization or recalculation.
+
+The `default` Bind property does not count as a value source for DA-01. It
+applies on a transition from non-relevant to relevant (§4.3.1), rather than on
+initial Response creation. It therefore does not ensure an initial value for a
+required, read-only field.
+
+This analysis does not establish that the field is empty: a loaded Response,
+Mapping, or other programmatic population may already supply its value. An
+advisory SHOULD describe the missing declared source rather than assert that
+validation will always fail.
+
+**DA-02 — Pre-population overwritten by calculation (`W901`, `warning`).**
+This pattern has both a `prePopulate` declaration and a `calculate` expression
+targeting the same field. Processors detecting this pattern SHOULD report
+DA-02: calculation replaces the initialized value during Recalculate (§2.4,
+§4.3.1), so the pre-populated value may not serve the author's intended purpose.
+
+The `prePopulate.editable` flag does not affect this check. It controls whether
+the user can edit the populated field; it does not prevent calculation from
+replacing its value. This advisory does not change the initialization rules for
+`prePopulate`, including relative declarations within a `seedFrom` scope
+(§4.2.3).
+
+**DA-03 — Required on a calculated read-only field (`W902`, `info`).**
+This pattern has statically true `required`, a `calculate` expression, and a
+read-only state that is either statically true or implicit because `readonly`
+is absent (§4.3.1). An explicit `readonly: "false"` or an Instance-dependent
+`readonly` expression does not establish this pattern.
+
+Processors MAY report DA-03 to invite the author to verify the combination.
+When calculation always produces a non-empty value, `required` adds no further
+validation. A calculation may intentionally produce `null` or another empty
+value, however, and `required` may deliberately reject that result. DA-03 MUST
+NOT suppress required validation or imply that the author must remove it.
 
 ### 3.11 Reserved Words
 
