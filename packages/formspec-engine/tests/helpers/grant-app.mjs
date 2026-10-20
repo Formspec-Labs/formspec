@@ -6,6 +6,10 @@ const definition = JSON.parse(
   readFileSync(new URL('../fixtures/grant-app-definition.json', import.meta.url), 'utf8')
 );
 
+const registryEntries = JSON.parse(
+  readFileSync(new URL('../../../../registries/formspec-common.registry.json', import.meta.url), 'utf8')
+).entries;
+
 // Stub fetch so instance source URLs (api.example.gov) don't hit the network,
 // and suppress the expected console.error from the engine's catch handler.
 const _originalFetch = globalThis.fetch;
@@ -22,7 +26,7 @@ console.error = (...args) => {
 };
 
 export function createGrantEngine() {
-  const engine = new FormEngine(JSON.parse(JSON.stringify(definition)));
+  const engine = new FormEngine(JSON.parse(JSON.stringify(definition)), { registryEntries });
   if (typeof engine.skipScreener === 'function') {
     engine.skipScreener();
   }

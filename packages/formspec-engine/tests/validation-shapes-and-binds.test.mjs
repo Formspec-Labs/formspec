@@ -3,7 +3,7 @@
  *
  * Migrated from tests/e2e/playwright/integration/grant-app-validation.spec.ts
  *
- * Tests bind constraints (constraint, whitespace normalization),
+ * Tests registered data-type constraints, bind whitespace normalization,
  * ValidationReport shape contract, and shape rules
  * (activeWhen, timing, or/not composition).
  */
@@ -16,7 +16,7 @@ import {
   getValidationReport,
 } from './helpers/grant-app.mjs';
 
-// ── Bind Constraints ─────────────────────────────────────────────────
+// ── Registered Data Types and Binds ─────────────────────────────────────────────────
 
 test('should reject EIN not matching XX-XXXXXXX pattern', () => {
   const engine = createGrantEngine();
@@ -25,7 +25,9 @@ test('should reject EIN not matching XX-XXXXXXX pattern', () => {
   const report = getValidationReport(engine, 'continuous');
   const einErr = report.results.find(r => r.path === 'applicantInfo.ein' && r.constraintKind === 'constraint');
   assert.ok(einErr, 'Expected EIN constraint error');
-  assert.ok(einErr.message.includes('EIN must be in the format'), `Expected message about EIN format, got: ${einErr.message}`);
+  assert.equal(einErr.code, 'PATTERN_MISMATCH');
+  assert.equal(einErr.source, 'external');
+  assert.equal(einErr.message, 'Must be a valid EIN');
 });
 
 test('should accept a valid EIN and clear the constraint error', () => {
@@ -49,7 +51,7 @@ test('should trim whitespace from contactEmail input (whitespace: trim)', () => 
   assert.equal(engineValue(engine, 'applicantInfo.contactEmail'), 'jane@example.org');
 });
 
-test('should apply second bind constraint on contactEmail (bind inheritance AND semantics)', () => {
+test('should reject contactEmail that violates the registered email pattern', () => {
   const engine = createGrantEngine();
   engine.setValue('applicantInfo.contactEmail', 'notanemail');
 
@@ -58,7 +60,9 @@ test('should apply second bind constraint on contactEmail (bind inheritance AND 
     r.path === 'applicantInfo.contactEmail' && r.constraintKind === 'constraint'
   );
   assert.ok(emailErr, 'Expected email constraint error');
-  assert.equal(emailErr.message, 'Contact email must contain @.');
+  assert.equal(emailErr.code, 'PATTERN_MISMATCH');
+  assert.equal(emailErr.source, 'external');
+  assert.equal(emailErr.message, 'Must be a valid Email address');
 });
 
 test('should clear contactEmail constraint when email contains @', () => {

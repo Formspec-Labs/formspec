@@ -80,10 +80,10 @@ test('should report duration field as readonly via engine readonlySignals (disab
   assert.equal(engine.readonlySignals['projectNarrative.duration']?.value, true);
 });
 
-test('should initialize contactPhone with initialValue of 202-555-0100', () => {
+test('should initialize contactPhone with initialValue of (202) 555-0100', () => {
   const engine = createGrantEngine();
 
-  assert.equal(engineValue(engine, 'applicantInfo.contactPhone'), '202-555-0100');
+  assert.equal(engineValue(engine, 'applicantInfo.contactPhone'), '(202) 555-0100');
 });
 
 test('should render orgSubType child field and include value in response', () => {

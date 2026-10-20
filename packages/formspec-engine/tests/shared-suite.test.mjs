@@ -12,6 +12,11 @@ const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const suiteDir = path.join(repoRoot, 'tests', 'conformance', 'suite');
 const realExamplesManifestPath = path.join(suiteDir, 'real-examples.manifest.json');
 const originalConsoleError = console.error;
+const originalFetch = globalThis.fetch;
+// The grant source fixture exercises inline fallback without an external service.
+globalThis.fetch = async (url, ...options) => url === 'https://api.example.gov/responses/2024/{entityId}'
+  ? { ok: false, status: 503 }
+  : originalFetch(url, ...options);
 
 console.error = (...args) => {
   if (typeof args[0] === 'string' && args[0].startsWith('Failed to load instance source')) {
@@ -22,6 +27,7 @@ console.error = (...args) => {
 
 test.after(() => {
   console.error = originalConsoleError;
+  globalThis.fetch = originalFetch;
 });
 
 function readJson(filePath) {

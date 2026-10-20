@@ -33,7 +33,7 @@ test('should expose pinned definition url and version from loaded definition', (
 
 test('should hydrate initialValue fields before any user interaction', () => {
   const engine = createGrantEngine();
-  assert.equal(engineValue(engine, 'applicantInfo.contactPhone'), '202-555-0100');
+  assert.equal(engineValue(engine, 'applicantInfo.contactPhone'), '(202) 555-0100');
 });
 
 // ── Mixed field type data entry ──────────────────────────────────────
