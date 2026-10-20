@@ -11,7 +11,9 @@ import json
 
 import pytest
 
-from tests.unit.support.schema_fixtures import ROOT_DIR, SCHEMA_DIR, SPEC_DIR
+from tests.unit.support.schema_fixtures import (
+    ROOT_DIR, SCHEMA_DIR, SPEC_DIR, build_schema_registry,
+)
 
 
 def _load(name):
@@ -617,9 +619,37 @@ class TestMappingTopLevel:
 
     def test_ms3_1__required_fields(self):
         assert set(MAP_S["required"]) == {
-            "$formspecMapping", "version", "definitionRef", "definitionVersion",
-            "targetSchema", "rules",
+            "$formspecMapping", "version", "targetSchema", "rules",
         }
+
+    @pytest.mark.parametrize("source,valid", [
+        ({"definitionRef": "https://example.org/form", "definitionVersion": "1.0.0"}, True),
+        ({"sourceSchema": {"url": "https://example.org/source", "version": "1.0.0", "schema": {}}}, True),
+        ({}, False),
+        ({"definitionRef": "https://example.org/form"}, False),
+        ({"definitionVersion": "1.0.0"}, False),
+        ({"definitionRef": "https://example.org/form", "definitionVersion": "1.0.0",
+          "sourceSchema": {"url": "https://example.org/source", "version": "1.0.0", "schema": {}}}, False),
+        ({"definitionRef": "https://example.org/form",
+          "sourceSchema": {"url": "https://example.org/source", "version": "1.0.0", "schema": {}}}, False),
+        ({"definitionVersion": "1.0.0",
+          "sourceSchema": {"url": "https://example.org/source", "version": "1.0.0", "schema": {}}}, False),
+    ], ids=["definition", "external", "missing", "ref-only", "version-only",
+            "both", "external-and-ref", "external-and-version"])
+    def test_ms3_1__exactly_one_complete_source_association(self, source, valid):
+        """A Mapping names either a Definition pair or an external source schema."""
+        from jsonschema import Draft202012Validator
+
+        document = {
+            "$formspecMapping": "1.0", "version": "1.0.0",
+            "targetSchema": {"format": "json"},
+            "rules": [{"sourcePath": "value", "targetPath": "value", "transform": "preserve"}],
+            **source,
+        }
+        validator = Draft202012Validator(
+            MAP_S, registry=build_schema_registry(MAP_S, COMMON_S),
+        )
+        assert validator.is_valid(document) is valid
 
     def test_ms3_1__direction_enum_and_default(self):
         d = MAP_S["properties"]["direction"]
@@ -647,7 +677,7 @@ class TestMappingTopLevel:
         `modules: ModuleRef[]` carrier."""
         expected = {
             "$formspecMapping", "version", "$schema", "definitionRef", "definitionVersion",
-            "targetSchema", "direction", "autoMap", "defaults", "rules",
+            "sourceSchema", "targetSchema", "direction", "autoMap", "defaults", "rules",
             "adapters", "conformanceLevel", "extensions",
             "modules",
             # A sidecar says what it is, like every other: name / title / description (ignored during execution).

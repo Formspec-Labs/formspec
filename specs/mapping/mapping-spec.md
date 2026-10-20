@@ -64,8 +64,8 @@ redefined.
 ## Bottom Line Up Front
 
 <!-- bluf:start file=mapping-spec.bluf.md -->
-- This document defines bidirectional Mapping DSL transforms between Formspec Responses and external schemas.
-- A valid mapping requires `$formspecMapping`, `version`, `definitionRef`, `definitionVersion`, `targetSchema`, and at least one `rules` entry.
+- This document defines bidirectional Mapping DSL transforms between Formspec Responses or explicitly schema-associated external JSON and external schemas.
+- A valid mapping requires `$formspecMapping`, `version`, `targetSchema`, at least one `rules` entry, and exactly one source association: both `definitionRef` and `definitionVersion`, or `sourceSchema`. Partial or mixed associations are invalid.
 - Field rules are declarative and can compose transforms for preserve/drop/expression/coerce/value map/array reshaping.
 - Field rules may include optional `projection` metadata for static contract projection; runtime mapping execution ignores it.
 - This BLUF is governed by `schemas/mapping.schema.json`; generated schema references are the canonical structural contract.
