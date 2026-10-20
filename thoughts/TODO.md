@@ -4,7 +4,7 @@ Formspec-level ADR, plan, spec, research, and review tracking. Code-validated 20
 
 Directories: [`adr/`](adr/), [`plans/`](plans/), [`specs/`](specs/), [`research/`](research/), [`reviews/`](reviews/), [`archive/`](archive/).
 
-**Ticket source-of-truth.** The eight marker blocks below regenerate from `tk` epics via `make todo-sync` (see [`../../scripts/TODO-SYNC.md`](../../scripts/TODO-SYNC.md)). Merge-group tickets (M1-M28), active specs/plans, immediate-extraction items, and P4 promotion candidates are tk-managed. The ADR status table, archive counts, swarm validation snapshot, and per-section scope-expansion / test-strategy commentary stay hand-edited — they're frozen analysis or editorial overlay, not action items. Underlying TODO.csv rows remain the authoritative ticket data; merge groups are the actionable shipping units derived from them.
+**Ticket source-of-truth.** The eight marker blocks below regenerate from `tk` epics via `make todo-sync` (see [`../../scripts/TODO-SYNC.md`](../../scripts/TODO-SYNC.md)). Merge-group tickets (M1-M28), active specs/plans, immediate-extraction items, and P4 promotion candidates are tk-managed. The ADR status table, archive counts, swarm validation snapshot, and per-section scope-expansion / test-strategy commentary stay hand-edited — they're frozen analysis or editorial overlay, not action items. Canonical `tk` tickets own current actionable status and acceptance. `TODO.csv` preserves extracted task identities, original descriptions and reviewed outcome notes; merge groups are the shipping units.
 
 ---
 
@@ -202,7 +202,7 @@ All 346 tasks validated by 9 parallel formspec-scout agents. Each task's target 
 
 ## P0 deep-dive (2026-05-14) — 24 tickets, 3 scouts
 
-Scouts traced each P0 ticket from symptom → root domino → product impact, evaluating whether each change should be bigger (additional files, test strategy, cascade). Merge groups below are tk-managed; scope-expansion findings and test strategy are editorial overlay (stay hand-edit because they're per-group commentary).
+The historical extraction contains 24 P0 rows. Current acceptance reconciles them to 22 implemented outcomes and two superseded wizard API requests; the row identities and original descriptions remain intact in `TODO.csv`. Canonical [`fs-5a5s`](../../.tickets/fs-5a5s.md) and its group tickets own the dispositions. Generated ticket summaries below retain their source text; the editorial outcome and verification tables record current semantics.
 
 ### Merge groups (ship together)
 
@@ -255,29 +255,35 @@ P0 deep-dive 2026-05-14 grouped 24 individual tickets into 8 merge groups (M1-M8
 
 <!-- tk:end -->
 
-### Key scope-expansion findings
+### Current outcomes
 
-P0 tickets that scouts flagged as **too narrow as written:**
+| Group | Current disposition | Owning ticket |
+|-------|---------------------|---------------|
+| M1 | Three grant Definitions converge on native `uri`, demand timing, interpolated shape message and source/static fallback behavior; newer registry/default/FEL semantics preserved. | [`fs-880a`](../../.tickets/fs-880a.md) |
+| M2 | Web Theme Pages, regions and responsive overrides ship together; Definition data unchanged. | [`fs-ffas`](../../.tickets/fs-ffas.md) |
+| M3 | Local registry retained. Component-tree Page plus placement and `pageMode` is the current wizard model; PLAN-001/002 are **SUPERSEDED**, not implemented legacy APIs. | [`fs-mgdq`](../../.tickets/fs-mgdq.md) |
+| M4 | `bindSharedFieldEffects` owns reactive ARIA state for current controls/groups; default and USWDS behavior retained. | [`fs-pd72`](../../.tickets/fs-pd72.md) |
+| M5 | Maintained FEL `formatNumber`/`formatDate` and their supported deterministic locale subset retained. | [`fs-8vu5`](../../.tickets/fs-8vu5.md) |
+| M6 | Current Assist §8 identity, native descriptions and opt-in submission boundaries qualified across actual adapters; retired path/injection API not restored. | [`fs-sva6`](../../.tickets/fs-sva6.md) |
+| M7 | Core §3.10.3 nonblocking advisories and §3.10 retitle published in canonical/generated documentation. | [`fs-9nnv`](../../.tickets/fs-9nnv.md) |
+| M8 | One Rust advisory owner feeds Python, WASM, MCP and Studio. Advisory phase 10 preserves existing Surface/Response pass 8; duplicated TS policy removed. | [`fs-4edk`](../../.tickets/fs-4edk.md) |
+| 0040-013 | Current maintained MCP inventory advertises and checks success/typed-error outputs through one schema catalog; historical tool count/path replaced. | [`fs-rls6`](../../.tickets/fs-rls6.md) |
 
-- **0029-003, 0029-015, 0029-017**: The `benchmarks/tasks/grant-application/reference/definition.json` has the same drift. Fix ALL THREE copies (example, benchmark reference, engine fixture) for convergence — or at minimum verify the engine fixture is canonical and propagate forward.
-- **0030-032/033/034**: theme-pdf.json already has pages/regions. The web theme has orphaned breakpoints. These tickets should be merged into one commit that adds pages WITH regions WITH responsive — otherwise the intermediate state is broken (pages without regions).
-- **0031-005**: Zero independent value. 11 dependent tickets blocked on it. Either ship with the first dependent ticket (0031-006) or create a skeleton that passes schema validation and is immediately extended.
-- **0053-017/018**: Should add `toolAnnotations` to `AdapterContext` (a shared type) so ALL adapters (default, USWDS, Tailwind) pick up `data-formspec-*` and `toolparamdescription` without per-adapter work.
-- **SPEC-092**: The Rust Pass 8 should also scan screener items and shape paths (not just definition items), extending what the current TS `buildAdvisories` checks.
+### Verification and scope
 
-### Test strategy per group
+| Group | Current evidence | Boundary |
+|-------|------------------|----------|
+| M1 | Converged fixture hashes, native schema/Definition controls, actual demand/interpolation/source-cache execution and full maintained engine suite. | Source/fixture/runtime qualification; no live data-source reliability claim. |
+| M2 | Native Theme checks, layout tests and actual grant navigation/region browser controls on reviewed Theme bytes. | Current desktop/mobile layout; no unrelated visual certification. |
+| M3 | Current local Registry plus maintained studio-core Page/placement APIs and component commands agree with reshaped acceptance. | PLAN-001/002 superseded; no `add_group` or `addWizardPage` restoration. |
+| M4 | Current shared/group ARIA controls in 583 webcomponent and 301 adapter tests; actual browser labels/group behavior. | Maintained reactive owner and USWDS semantics, not obsolete first-input assumptions. |
+| M5 | Current exact engine: 51 locale tests plus six direct English/French formatting/null controls through native WASM. | Supported locale subset; no full ICU or separate Python parity certification. |
+| M6 | Nine actual default/USWDS/Tailwind Chromium controls; removal of the shared description writer fails, exact restoration passes; combined source rerun passes. | Configured registry autocomplete only; no ontology resolver, optional help synthesis or active WebMCP/provider claim. |
+| M7 | Actual `docs:check`, canonical Core/generated artifact parity and independent review. | Documentation and current spec semantics. |
+| M8 | Native rule/mode/value-source/inheritance tests, Python/WASM/MCP boundary controls and mounted Definition/Screener consumers. | One native policy owner; no independent Python mirror or shape-derived rule policy. |
+| 0040-013 | All maintained 25 tools (19 product, 6 Node) exercised through actual SDK success/typed-error/corruption controls; combined 575 runnable checks pass. | Separate Wireframes server excluded; four pre-existing absolute demo-import files remain excluded and tracked by [`fs-eqz0`](../../.tickets/fs-eqz0.md). |
 
-| Group | Test location | Key assertion |
-|-------|--------------|---------------|
-| M1 | `tests/conformance/suite/`, `tests/unit/` | No regression on `info: 0` in submit mode; `uri` is valid dataType |
-| M2 | `cargo nextest run -p formspec-lint`, `npm test` | Lint handles pages/regions; E2E doesn't break |
-| M3 | `packages/formspec-mcp/tests/structure.test.ts` | `add_group` creates definition group + sets wizard mode |
-| M4 | Playwright E2E | `aria-describedby` on inputs stays in sync with desc/hint changes |
-| M5 | `cargo nextest run -p fel-core` | `formatNumber(1234.5)` returns `"1,234.5"` |
-| M6 | Playwright E2E | `[data-formspec-path]` count = field count |
-| M7 | `npm run docs:check` | Generated artifacts pass freshness check |
-| M8 | `cargo nextest run -p formspec-lint` | W900 fires for required+readonly; suppressed when calculate present |
-| 0040-013 | `packages/formspec-mcp/tests/` | Every tool validates response against outputSchema |
+These are local reviewed source and execution outcomes, not deployment, registry publication or whole-platform readiness. Original extraction text remains historical; explicit current outcomes supersede its retired APIs, paths and pass numbering.
 
 ---
 
