@@ -63,7 +63,9 @@
       "schema": {
         "priorAwardAmount": "integer",
         "performanceRating": "string"
-      }
+      },
+      "source": "https://api.example.gov/responses/2024/{entityId}",
+      "static": true
     }
   },
   "migrations": {
@@ -156,7 +158,7 @@
     },
     {
       "name": "budgetHasLineItems",
-      "expression": "not isNull($lineItems[0].category)",
+      "expression": "not isNull($lineItems[1].category)",
       "scope": "budget"
     },
     {
@@ -230,12 +232,9 @@
           "type": "field",
           "key": "projectWebsite",
           "label": "Project Website",
-          "dataType": "string",
+          "dataType": "uri",
           "description": "URL for the project's public website or information page.",
-          "hint": "e.g. https://example.org/project",
-          "extensions": {
-            "x-formspec-url": true
-          }
+          "hint": "e.g. https://example.org/project"
         },
         {
           "type": "field",
@@ -799,6 +798,10 @@
       "calculate": "string(@budgetHasLineItems)"
     },
     {
+      "path": "instances.scratchPad.lastSavedTotal",
+      "calculate": "moneyAmount(@grandTotal)"
+    },
+    {
       "path": "applicantInfo.orgName",
       "required": "true"
     },
@@ -976,6 +979,18 @@
         "count($budget.lineItems[*].category) > count($subcontractors[*].subName)",
         "count($subcontractors[*].subName) > count($budget.lineItems[*].category)"
       ]
+    },
+    {
+      "id": "websiteFormat",
+      "target": "applicantInfo.projectWebsite",
+      "severity": "info",
+      "timing": "demand",
+      "constraint": "empty($applicantInfo.projectWebsite) or matches($applicantInfo.projectWebsite, '^https?://')",
+      "message": "Project website should start with http:// or https://. Current value: {{$applicantInfo.projectWebsite}}",
+      "code": "WEBSITE_FORMAT",
+      "extensions": {
+        "x-help-link": "https://example.gov/help/uri-format"
+      }
     }
   ]
 }

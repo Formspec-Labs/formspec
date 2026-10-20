@@ -14,11 +14,16 @@
   },
   "nonRelevantBehavior": "remove",
   "extensions": {
+    "x-formspec-common": {
+      "registryUrl": "https://formspec.org/registries/formspec-common.registry.json",
+      "version": "1.0.0"
+    },
     "x-agency": "DOH",
     "x-program-code": "RHI-2026"
   },
   "formPresentation": {
     "pageMode": "wizard",
+    "sidenav": true,
     "labelPosition": "top",
     "density": "comfortable",
     "defaultCurrency": "USD"
@@ -49,9 +54,8 @@
       }
     },
     "priorYearData": {
-      "description": "Prior-year performance data fetched from agency API",
-      "source": "https://api.example.gov/responses/2024/{entityId}",
-      "static": true,
+      "description": "Prior-year performance data (inline static data for standalone example)",
+      "readonly": true,
       "data": {
         "priorAwardAmount": 250000,
         "performanceRating": "satisfactory"
@@ -59,7 +63,9 @@
       "schema": {
         "priorAwardAmount": "integer",
         "performanceRating": "string"
-      }
+      },
+      "source": "https://api.example.gov/responses/2024/{entityId}",
+      "static": true
     }
   },
   "migrations": {
@@ -213,6 +219,9 @@
             "pdf": "Applicant EIN",
             "csv": "applicant_ein"
           },
+          "extensions": {
+            "x-formspec-ein": true
+          },
           "prePopulate": {
             "instance": "agencyData",
             "path": "ein",
@@ -233,6 +242,7 @@
           "label": "Organization Type",
           "dataType": "choice",
           "optionSet": "orgTypes",
+          "initialValue": "nonprofit",
           "children": [
             {
               "type": "field",
@@ -261,7 +271,10 @@
           "key": "contactEmail",
           "label": "Contact Email",
           "dataType": "string",
-          "semanticType": "email"
+          "semanticType": "email",
+          "extensions": {
+            "x-formspec-email": true
+          }
         },
         {
           "type": "field",
@@ -269,12 +282,15 @@
           "label": "Contact Phone",
           "dataType": "string",
           "semanticType": "phone",
-          "initialValue": "202-555-0100"
+          "extensions": {
+            "x-formspec-phone-nanp": true
+          },
+          "initialValue": "(202) 555-0100"
         },
         {
           "type": "display",
           "key": "nonprofitPhoneHint",
-          "label": "Include area code for nonprofit reporting requirements (e.g. 202-555-0100)."
+          "label": "Include area code for nonprofit reporting requirements (e.g. (202) 555-0100)."
         },
         {
           "type": "field",
@@ -438,9 +454,6 @@
           "liveRegion": "polite"
         }
       },
-      "extensions": {
-        "x-budget-version": "2.0"
-      },
       "children": [
         {
           "type": "group",
@@ -576,6 +589,11 @@
           "key": "phaseTotal",
           "label": "Phase Total",
           "dataType": "money"
+        },
+        {
+          "type": "display",
+          "key": "projectPhasesTotal",
+          "label": "Total Phases Cost"
         }
       ]
     },
@@ -607,8 +625,7 @@
           "type": "field",
           "key": "subAmount",
           "label": "Contracted Amount",
-          "dataType": "decimal",
-          "currency": "EUR"
+          "dataType": "decimal"
         },
         {
           "type": "field",
@@ -659,28 +676,20 @@
     {
       "path": "applicantInfo.ein",
       "whitespace": "normalize",
-      "constraint": "matches($applicantInfo.ein, '^[0-9]{2}-[0-9]{7}$')",
-      "constraintMessage": "EIN must be in the format XX-XXXXXXX (e.g. 12-3456789)."
+      "constraintMessage": "EIN must be in XX-XXXXXXX format."
     },
     {
       "path": "applicantInfo.contactEmail",
-      "whitespace": "trim"
-    },
-    {
-      "path": "applicantInfo.contactEmail",
-      "constraint": "contains($applicantInfo.contactEmail, '@')",
-      "constraintMessage": "Contact email must contain @."
+      "whitespace": "trim",
+      "constraintMessage": "Please enter a valid email address."
     },
     {
       "path": "applicantInfo.contactPhone",
-      "constraint": "matches($applicantInfo.contactPhone, '^[0-9]{3}-[0-9]{3}-[0-9]{4}$')",
-      "constraintMessage": "Phone must be in the format XXX-XXX-XXXX (e.g. 202-555-0100)."
+      "whitespace": "normalize"
     },
     {
       "path": "applicantInfo.projectWebsite",
-      "whitespace": "trim",
-      "constraint": "empty($applicantInfo.projectWebsite) or matches(lower($applicantInfo.projectWebsite), '^https?://([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\\\.)+[a-z]{2,63}(:[0-9]{1,5})?(/[\\\\S]*)?$')",
-      "constraintMessage": "Project website must be a valid http(s) URL with a domain (e.g. https://example.org/project)."
+      "whitespace": "trim"
     },
     {
       "path": "projectNarrative.endDate",
@@ -698,6 +707,16 @@
       "relevant": "$applicantInfo.orgType != 'government'"
     },
     {
+      "path": "projectNarrative.indirectRate",
+      "constraint": "$ = null or ($ >= 0 and $ <= 100)",
+      "constraintMessage": "Indirect cost rate must be between 0 and 100."
+    },
+    {
+      "path": "projectNarrative.selfAssessment",
+      "constraint": "$ = null or ($ >= 1 and $ <= 5)",
+      "constraintMessage": "Proposal confidence must be between 1 and 5."
+    },
+    {
       "path": "budget.lineItems[*].quantity",
       "constraint": "$quantity = null or $quantity >= 0",
       "constraintMessage": "Quantity must not be negative."
@@ -708,6 +727,11 @@
       "constraintMessage": "Unit cost must not be negative."
     },
     {
+      "path": "projectPhases[*].phaseTasks[*].hours",
+      "constraint": "$hours = null or $hours >= 0",
+      "constraintMessage": "Hours must not be negative."
+    },
+    {
       "path": "projectPhases[*].phaseTasks[*].hourlyRate",
       "constraint": "$hourlyRate = null or moneyAmount($hourlyRate) >= 0",
       "constraintMessage": "Hourly rate must not be negative."
@@ -716,6 +740,11 @@
       "path": "budget.lineItems[*].subtotal",
       "calculate": "$unitCost * $quantity",
       "readonly": "true"
+    },
+    {
+      "path": "subcontractors[*].subAmount",
+      "constraint": "$subAmount = null or $subAmount >= 0",
+      "constraintMessage": "Amount must not be negative."
     },
     {
       "path": "projectPhases[*].phaseTasks[*].taskCost",
@@ -783,7 +812,7 @@
     {
       "path": "applicantInfo.orgType",
       "required": "true",
-      "default": "'nonprofit'"
+      "default": "nonprofit"
     },
     {
       "path": "applicantInfo.contactName",
@@ -914,18 +943,6 @@
       ]
     },
     {
-      "id": "websiteFormat",
-      "target": "applicantInfo.projectWebsite",
-      "severity": "info",
-      "timing": "demand",
-      "constraint": "empty($applicantInfo.projectWebsite) or matches($applicantInfo.projectWebsite, '^https?://')",
-      "message": "Project website should start with http:// or https://. Current value: {{$applicantInfo.projectWebsite}}",
-      "code": "WEBSITE_FORMAT",
-      "extensions": {
-        "x-help-link": "https://example.gov/help/uri-format"
-      }
-    },
-    {
       "id": "shapeRefCoverageAlwaysTrueA",
       "target": "#",
       "severity": "info",
@@ -962,6 +979,18 @@
         "count($budget.lineItems[*].category) > count($subcontractors[*].subName)",
         "count($subcontractors[*].subName) > count($budget.lineItems[*].category)"
       ]
+    },
+    {
+      "id": "websiteFormat",
+      "target": "applicantInfo.projectWebsite",
+      "severity": "info",
+      "timing": "demand",
+      "constraint": "empty($applicantInfo.projectWebsite) or matches($applicantInfo.projectWebsite, '^https?://')",
+      "message": "Project website should start with http:// or https://. Current value: {{$applicantInfo.projectWebsite}}",
+      "code": "WEBSITE_FORMAT",
+      "extensions": {
+        "x-help-link": "https://example.gov/help/uri-format"
+      }
     }
   ]
 }
