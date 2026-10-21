@@ -87,7 +87,13 @@ fn set_path(root: &mut Value, path: &str, value: Value) {
     for (position, segment) in segments.iter().enumerate() {
         let last = position + 1 == segments.len();
         let next_is_index = matches!(segments.get(position + 1), Some(Segment::Index(_)));
-        let empty = || if next_is_index { Value::Array(Vec::new()) } else { Value::Object(Map::new()) };
+        let empty = || {
+            if next_is_index {
+                Value::Array(Vec::new())
+            } else {
+                Value::Object(Map::new())
+            }
+        };
         match segment {
             Segment::Key(key) => {
                 if !current.is_object() {
@@ -126,7 +132,11 @@ fn leaves<'a>(value: &'a Value, prefix: &str, out: &mut Vec<(String, &'a Value)>
     match value {
         Value::Object(map) => {
             for (key, entry) in map {
-                let path = if prefix.is_empty() { key.clone() } else { format!("{prefix}.{key}") };
+                let path = if prefix.is_empty() {
+                    key.clone()
+                } else {
+                    format!("{prefix}.{key}")
+                };
                 leaves(entry, &path, out);
             }
         }
@@ -147,8 +157,14 @@ fn leaves<'a>(value: &'a Value, prefix: &str, out: &mut Vec<(String, &'a Value)>
 fn item_paths(definition: &Value) -> HashSet<String> {
     fn walk(items: &[Value], prefix: &str, out: &mut HashSet<String>) {
         for item in items {
-            let Some(key) = item.get("key").and_then(Value::as_str) else { continue };
-            let path = if prefix.is_empty() { key.to_string() } else { format!("{prefix}.{key}") };
+            let Some(key) = item.get("key").and_then(Value::as_str) else {
+                continue;
+            };
+            let path = if prefix.is_empty() {
+                key.to_string()
+            } else {
+                format!("{prefix}.{key}")
+            };
             if let Some(children) = item.get("children").and_then(Value::as_array) {
                 walk(children, &path, out);
             }
@@ -230,7 +246,10 @@ pub fn apply_migrations_to_response_data(
     }
 
     for rule in rules {
-        let transform = rule.get("transform").and_then(Value::as_str).unwrap_or("preserve");
+        let transform = rule
+            .get("transform")
+            .and_then(Value::as_str)
+            .unwrap_or("preserve");
         let target = rule.get("target").and_then(Value::as_str);
         let source_path = rule.get("source").and_then(Value::as_str);
         match (transform, target) {
@@ -241,9 +260,18 @@ pub fn apply_migrations_to_response_data(
                 }
             }
             ("expression", Some(target)) => {
-                let Some(expression) = rule.get("expression").and_then(Value::as_str) else { continue };
-                let source_value = source_path.and_then(|path| get_path(&source, path)).cloned().unwrap_or(Value::Null);
-                set_path(&mut output, target, eval_rule(expression, &source_value, &source, now_iso));
+                let Some(expression) = rule.get("expression").and_then(Value::as_str) else {
+                    continue;
+                };
+                let source_value = source_path
+                    .and_then(|path| get_path(&source, path))
+                    .cloned()
+                    .unwrap_or(Value::Null);
+                set_path(
+                    &mut output,
+                    target,
+                    eval_rule(expression, &source_value, &source, now_iso),
+                );
             }
             _ => {}
         }
@@ -322,7 +350,11 @@ mod tests {
               "expression": "@source.work.employer & ' (' & string($) & 'h)'" }
         ]);
         let out = apply_migrations_to_response_data(
-            &def, json!({ "work": { "employer": "ACME", "hours": 8 } }), "1.0.0", "2026-01-01T00:00:00Z");
+            &def,
+            json!({ "work": { "employer": "ACME", "hours": 8 } }),
+            "1.0.0",
+            "2026-01-01T00:00:00Z",
+        );
         assert_eq!(out["work"]["jobs"][0]["employer"], json!("ACME (8h)"));
     }
 
@@ -333,9 +365,16 @@ mod tests {
             "1.0.0",
         );
         assert_eq!(out["able"], json!("yes"), "carried forward: still an item");
-        assert_eq!(out["work"]["worked"], json!("no"), "carried forward inside a group");
+        assert_eq!(
+            out["work"]["worked"],
+            json!("no"),
+            "carried forward inside a group"
+        );
         assert!(out.get("severance").is_none(), "dropped by rule");
-        assert!(out.get("severanceAmount").is_none(), "not an item of this version");
+        assert!(
+            out.get("severanceAmount").is_none(),
+            "not an item of this version"
+        );
     }
 
     #[test]
@@ -348,7 +387,10 @@ mod tests {
 
     #[test]
     fn carried_rows_keep_their_indices() {
-        let out = migrate(json!({ "work": { "jobs": [{ "employer": "A" }, { "employer": "B" }] } }), "1.0.0");
+        let out = migrate(
+            json!({ "work": { "jobs": [{ "employer": "A" }, { "employer": "B" }] } }),
+            "1.0.0",
+        );
         assert_eq!(out["work"]["jobs"][1]["employer"], json!("B"));
     }
 
@@ -358,7 +400,10 @@ mod tests {
         assert_eq!(migrate(data.clone(), "1.5.0"), data);
         let mut def = definition();
         def.as_object_mut().unwrap().remove("migrations");
-        assert_eq!(apply_migrations_to_response_data(&def, data.clone(), "1.0.0", "now"), data);
+        assert_eq!(
+            apply_migrations_to_response_data(&def, data.clone(), "1.0.0", "now"),
+            data
+        );
     }
 
     #[test]
@@ -370,7 +415,15 @@ mod tests {
 
     #[test]
     fn paths_parse_and_write_through_indices() {
-        assert_eq!(parse_path("a.b[2].c"), vec![Segment::Key("a".into()), Segment::Key("b".into()), Segment::Index(2), Segment::Key("c".into())]);
+        assert_eq!(
+            parse_path("a.b[2].c"),
+            vec![
+                Segment::Key("a".into()),
+                Segment::Key("b".into()),
+                Segment::Index(2),
+                Segment::Key("c".into())
+            ]
+        );
         assert_eq!(strip_indices("a.b[2].c[0]"), "a.b.c");
         let mut v = json!({});
         set_path(&mut v, "a.b[1].c", json!(1));

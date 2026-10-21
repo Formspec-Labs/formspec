@@ -206,12 +206,13 @@ impl<'a> Analyzer<'a> {
                     // Info, not a warning: resolving `system` from `defaultSystem` is the documented
                     // design (Ontology spec §3.2 example) — a warning here fires on every binding of a
                     // document that uses the feature as intended.
-                    self.diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::info(
-                        crate::LintCode::W1205,
-                        PASS,
-                        json_path_member(&json_path, "system"),
-                        "Ontology concept resolves its system from defaultSystem",
-                    )));
+                    self.diagnostics
+                        .push(crate::metadata::with_metadata(LintDiagnostic::info(
+                            crate::LintCode::W1205,
+                            PASS,
+                            json_path_member(&json_path, "system"),
+                            "Ontology concept resolves its system from defaultSystem",
+                        )));
                 } else {
                     self.diagnostics.push(warning(
                         crate::LintCode::W1206,

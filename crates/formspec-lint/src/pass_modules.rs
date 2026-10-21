@@ -1057,9 +1057,11 @@ mod tests {
             1,
             "expected unresolved surface widgetName E603, got {diags:?}"
         );
-        assert!(e603[0]
-            .path
-            .contains("routes[0].slots[0].binding.widgetName"));
+        assert!(
+            e603[0]
+                .path
+                .contains("routes[0].slots[0].binding.widgetName")
+        );
         assert!(e603[0].message.contains("TypoWidget"));
     }
 
@@ -1285,14 +1287,19 @@ mod tests {
                     "schema failure at {path}: {diagnostics:?}"
                 );
                 assert_eq!(failures[0].path, path);
-                assert!(failures[0]
-                    .message
-                    .contains("declared props schema cannot compile"));
+                assert!(
+                    failures[0]
+                        .message
+                        .contains("declared props schema cannot compile")
+                );
                 assert!(failures[0].message.contains("x-test-mod"));
                 assert!(failures[0].message.contains("x-test-slider"));
-                assert_eq!(failures[0].suggested_fix.as_deref(), Some(
-                    "repair the contributing module's declared props schema and its local references before changing payload data"
-                ));
+                assert_eq!(
+                    failures[0].suggested_fix.as_deref(),
+                    Some(
+                        "repair the contributing module's declared props schema and its local references before changing payload data"
+                    )
+                );
             }
         }
     }
@@ -1304,18 +1311,24 @@ mod tests {
             json!({"$defs": {"Number": {"type": "number"}}, "$ref": "#/$defs/Number"}),
         ] {
             for (_, diagnostics) in lint_config_sites(&props, &json!(3)) {
-                assert!(diagnostics
-                    .iter()
-                    .all(|diagnostic| diagnostic.code != "E604"));
+                assert!(
+                    diagnostics
+                        .iter()
+                        .all(|diagnostic| diagnostic.code != "E604")
+                );
             }
         }
         for (_, diagnostics) in lint_config_sites(&json!(false), &json!(3)) {
-            assert!(diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.code == "E604"));
-            assert!(diagnostics
-                .iter()
-                .all(|diagnostic| !diagnostic.message.contains("cannot compile")));
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == "E604")
+            );
+            assert!(
+                diagnostics
+                    .iter()
+                    .all(|diagnostic| !diagnostic.message.contains("cannot compile"))
+            );
         }
     }
 

@@ -798,7 +798,9 @@ mod tests {
             "home": concept("urn:c:home")
         }});
         let derived = derive_json_ld_context(&definition, &ontology);
-        let home_scope = derived.context["home"]["@context"].as_object().expect("scoped context");
+        let home_scope = derived.context["home"]["@context"]
+            .as_object()
+            .expect("scoped context");
         assert!(home_scope.contains_key("jobs"), "{}", derived.context);
         assert_eq!(home_scope["jobs"], Value::Null);
         assert!(derived.diagnostics.is_empty(), "{:?}", derived.diagnostics);

@@ -20,7 +20,8 @@
 
 use fel_core::{
     Environment, ExtensionFunctions, FormspecEnvironment, Value,
-    expr_is_interpolation_static_literal, expr_references_instance_data, has_error_diagnostics, parse,
+    expr_is_interpolation_static_literal, expr_references_instance_data, has_error_diagnostics,
+    parse,
 };
 
 use crate::fel_eval::Fel;

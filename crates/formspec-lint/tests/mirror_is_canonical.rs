@@ -17,8 +17,13 @@ fn assert_mirror(mirror_dir: &str, canonical_dir: &str) {
         }
         let mirrored = fs::read(entry.path()).expect("mirrored file");
         let canonical_path = repo_root.join(canonical_dir).join(&name);
-        let canonical = fs::read(&canonical_path)
-            .unwrap_or_else(|_| panic!("{} has no canonical file at {}", name.to_string_lossy(), canonical_path.display()));
+        let canonical = fs::read(&canonical_path).unwrap_or_else(|_| {
+            panic!(
+                "{} has no canonical file at {}",
+                name.to_string_lossy(),
+                canonical_path.display()
+            )
+        });
         assert!(
             mirrored == canonical,
             "crates/formspec-lint/{mirror_dir}/{} differs from {canonical_dir}/{}; run `make sync-lint-schemas`",

@@ -95,7 +95,10 @@ fn test_value_map_matches_boolean_and_number_sources_by_their_string_form() {
     let rule = |forward: Vec<(Value, Value)>| MappingRule {
         source_path: Some("v".to_string()),
         target_path: "code".to_string(),
-        transform: TransformType::ValueMap { forward, unmapped: UnmappedStrategy::Error },
+        transform: TransformType::ValueMap {
+            forward,
+            unmapped: UnmappedStrategy::Error,
+        },
         condition: None,
         priority: 0,
         reverse_priority: None,
@@ -105,13 +108,25 @@ fn test_value_map_matches_boolean_and_number_sources_by_their_string_form() {
         reverse: None,
     };
     let yes_no = vec![(json!("true"), json!("Y")), (json!("false"), json!("N"))];
-    let result = execute_mapping(&[rule(yes_no.clone())], &json!({ "v": true }), MappingDirection::Forward);
+    let result = execute_mapping(
+        &[rule(yes_no.clone())],
+        &json!({ "v": true }),
+        MappingDirection::Forward,
+    );
     assert_eq!(result.output["code"], "Y");
     assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
-    let result = execute_mapping(&[rule(yes_no)], &json!({ "v": false }), MappingDirection::Forward);
+    let result = execute_mapping(
+        &[rule(yes_no)],
+        &json!({ "v": false }),
+        MappingDirection::Forward,
+    );
     assert_eq!(result.output["code"], "N");
     let levels = vec![(json!("1"), json!("low")), (json!("2"), json!("high"))];
-    let result = execute_mapping(&[rule(levels)], &json!({ "v": 2 }), MappingDirection::Forward);
+    let result = execute_mapping(
+        &[rule(levels)],
+        &json!({ "v": 2 }),
+        MappingDirection::Forward,
+    );
     assert_eq!(result.output["code"], "high");
 }
 
