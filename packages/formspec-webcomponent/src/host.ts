@@ -63,6 +63,7 @@ export async function mountHost(
     if (documents.locales?.length) element.localeDocuments = documents.locales;
     if (documents.locale) element.locale = documents.locale;
     if (documents.theme) element.themeDocument = documents.theme;
+    if (documents.component) element.componentDocument = documents.component;
     if (documents.initialData) element.initialData = documents.initialData;
     element.definition = documents.definition;
     await drawn(element, timeoutMs);

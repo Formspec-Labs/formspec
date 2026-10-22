@@ -193,11 +193,15 @@ export function SurfaceRouteView({
     };
   }, [grant]);
 
+  const titleLevel = resolveRouteTitleLevel(plan.headingBaseLevel);
+  const titleText = presentedRouteTitle(handle, resolveRouteTitle);
+  const titleId = `fs-surface-title-${handle.routeId}`;
   const route = {
     surfaceId: handle.surfaceId,
     surfaceRef: plan.surfaceRef,
     routeId: handle.routeId,
     routeClass: handle.route.routeClass,
+    title: titleText,
     params,
   };
   const semanticOutputScope = resolveSemanticOutputScope?.({
@@ -205,10 +209,20 @@ export function SurfaceRouteView({
     route,
     runtimeGeneration,
   });
-
-  const titleLevel = resolveRouteTitleLevel(plan.headingBaseLevel);
-  const titleText = presentedRouteTitle(handle, resolveRouteTitle);
-  const titleId = `fs-surface-title-${handle.routeId}`;
+  const hasWidgetSlot = plan.slots.some(
+    (slotPlan) => slotPlan.slotType === 'module-widget',
+  );
+  const hasDecisionFormSlot = plan.slots.some(
+    (slotPlan) => slotPlan.slotType === 'definition-form',
+  );
+  const routeClass = String(handle.route.routeClass ?? 'unclassified');
+  const routeLayout =
+    (routeClass === 'review' && plan.slots.length > 1) ||
+    (handle.route.routeClass === 'operation' &&
+      hasWidgetSlot &&
+      hasDecisionFormSlot)
+      ? 'split'
+      : undefined;
 
   return (
     <article
@@ -217,6 +231,7 @@ export function SurfaceRouteView({
       data-route={handle.routeId}
       data-surface={handle.surfaceId}
       data-route-class={handle.route.routeClass ?? 'unclassified'}
+      data-route-layout={routeLayout}
       data-tenant-theme={grant.admitsTenantTheme ? 'admitted' : 'refused'}
       data-tenant-token-count={grant.tenantTokenKeys.length}
       {...needTraceAttributes(generationNeedAnchors(handle.route))}

@@ -29,8 +29,9 @@ const layoutCSS = readCSSResolved(
 );
 
 describe('Display component skin parity', () => {
-    it('assigns semantic text color to the shared display paragraph class', () => {
+    it('assigns semantic text color and 65ch measure to the shared display paragraph class', () => {
         expect(extractRuleProp(layoutCSS, '.formspec-text', 'color')).toBe('var(--formspec-default-text)');
+        expect(extractRuleProp(layoutCSS, '.formspec-text', 'max-width')).toBe('65ch');
     });
 
     it('uses a stronger divider tone so display dividers remain visible in dark mode', () => {
@@ -39,10 +40,13 @@ describe('Display component skin parity', () => {
         );
     });
 
-    it('puts the brand accent on the root stack every rendered form contains', () => {
+    it('keeps the brand accent on structural headings without double-bordering the root stack', () => {
+        expect(
+            extractRuleProp(layoutCSS, '.formspec-group-title', 'border-inline-start'),
+        ).toBe('3px solid var(--formspec-default-primary)');
         expect(
             extractRuleProp(layoutCSS, '.formspec-container > .formspec-stack', 'border-inline-start'),
-        ).toBe('3px solid var(--formspec-default-primary)');
+        ).toBeNull();
     });
 
     it('ships dark-mode alert foreground overrides with higher-contrast colors', () => {

@@ -41,6 +41,63 @@ describe('mountHost', () => {
         const theme = { $formspecTheme: '1.0', url: 'urn:test:t', version: '1.0.0', tokens: {}, adapter: 'uswds' } as never;
         await expect(mountHost({ definition, theme }, { wasmBytes })).rejects.toThrow(/adapter 'uswds'.*only: default/);
     });
+
+    it('forwards documents.component, suppresses .formspec-required on readonly fields, and localizes fileUpload dropzone', async () => {
+        const richDef = {
+            $formspec: '1.0',
+            url: 'urn:test:rich',
+            version: '1.0.0',
+            status: 'draft',
+            title: 'Rich',
+            items: [
+                { key: 'refCode', type: 'field', dataType: 'string', label: 'Reference code', required: true, readonly: true },
+                { key: 'photo', type: 'field', dataType: 'file', label: 'Photo', presentation: { widgetHint: 'FileUpload' } },
+            ],
+        } as never;
+        const comp = {
+            $formspecComponent: '1.0',
+            url: 'urn:test:rich:comp',
+            version: '1.0.0',
+            targetDefinition: { url: 'urn:test:rich', version: '1.0.0' },
+            tree: {
+                component: 'Stack',
+                children: [
+                    {
+                        component: 'Section',
+                        title: 'Section One',
+                        children: [
+                            { component: 'TextInput', bind: 'refCode' },
+                            { component: 'FileUpload', bind: 'photo' },
+                        ],
+                    },
+                ],
+            },
+        } as never;
+        const esLocale = {
+            $formspecLocale: '2.0',
+            version: '1.0.0',
+            locale: 'es-US',
+            target: { kind: 'definition', url: 'urn:test:rich' },
+            strings: {
+                '$ui.fileUpload.dropzone': 'Arrastre un archivo aquí',
+                '$ui.fileUpload.browse': 'Subir archivo',
+            },
+        } as never;
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const el = await mountHost(
+            { definition: richDef, component: comp, locales: [esLocale], locale: 'es-US' },
+            { wasmBytes },
+            container,
+        );
+        expect(el.componentDocument).toEqual(comp);
+        expect(el.textContent).toContain('Section One');
+        const readonlyField = el.querySelector('[data-name="refCode"]');
+        expect(readonlyField?.classList.contains('formspec-field--readonly')).toBe(true);
+        expect(readonlyField?.querySelectorAll('.formspec-required').length).toBe(0);
+        expect(el.querySelector('.formspec-file-drop-label')?.textContent).toBe('Arrastre un archivo aquí');
+        expect(el.querySelector('.formspec-file-browse-btn')?.textContent).toBe('Subir archivo');
+    });
 });
 
 describe('bootHost', () => {

@@ -223,17 +223,19 @@ export function bindSharedFieldEffects(
     // marks nothing useful by marking everything (theme §5.2). aria-required below is untouched: assistive
     // technology reads the state, not the marker.
     const showRequiredMarker = presentation?.requiredIndicator !== 'none';
+    const readonlySignal = vm ? vm.readonly : ctx.engine.readonlySignals[fieldPath];
 
     // Required indicator + reactive label
     disposers.push(effect(() => {
         const isRequired = vm
             ? vm.required.value
             : (ctx.engine.requiredSignals[fieldPath]?.value ?? false);
+        const isReadonly = readonlySignal?.value ?? false;
         // A label's content model is phrasing only, so the subset renders inline here (core §4.2.1). With a
         // view model the parse runs on the authored template and the values fill its leaves.
         if (vm) writeRichText(refs.label, vm.labelTemplate.value, { inline: true, interpolate: vm.interpolate });
         else writeRichText(refs.label, labelText, { inline: true });
-        if (isRequired && showRequiredMarker) {
+        if (isRequired && !isReadonly && showRequiredMarker) {
             const indicator = document.createElement('abbr');
             indicator.className = 'formspec-required usa-label--required';
             indicator.setAttribute('title', 'required');
@@ -359,7 +361,6 @@ export function bindSharedFieldEffects(
     }));
 
     // Readonly
-    const readonlySignal = vm ? vm.readonly : ctx.engine.readonlySignals[fieldPath];
     if (refs.optionControls) {
         // `readonly` has no effect on radios or checkboxes. While read-only, cancel the click that would change an
         // option (label clicks and keyboard selection dispatch one too): options stay enabled, focusable, and
@@ -375,6 +376,7 @@ export function bindSharedFieldEffects(
     }
     disposers.push(effect(() => {
         const isReadonly = readonlySignal?.value ?? false;
+        refs.root.classList.toggle('formspec-field--readonly', isReadonly);
         if (!refs.skipSharedReadonlyControl) {
             if (actualInput instanceof HTMLInputElement || actualInput instanceof HTMLTextAreaElement) {
                 actualInput.readOnly = isReadonly;

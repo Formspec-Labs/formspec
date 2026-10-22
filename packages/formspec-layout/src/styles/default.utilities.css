@@ -145,5 +145,50 @@
   color: var(--formspec-default-text-muted);
 }
 
-:where(.formspec-size-compact) { zoom: 0.875; }
-:where(.formspec-size-large) { zoom: 1.125; }
+:where(.formspec-size-compact) {
+  font-size: 0.875rem;
+  --formspec-font-size-xs: 0.7rem;
+  --formspec-font-size-sm: 0.8125rem;
+  --formspec-font-size-md: 0.875rem;
+  --formspec-font-size-lg: 1rem;
+  --formspec-default-font-size-xs: 0.7rem;
+  --formspec-default-font-size-sm: 0.8125rem;
+  --formspec-default-font-size-md: 0.875rem;
+  --formspec-default-font-size-lg: 1rem;
+  --formspec-space-xs: 0.25rem;
+  --formspec-space-sm: 0.4rem;
+  --formspec-space-md: 0.65rem;
+  --formspec-spacing-xs: 0.25rem;
+  --formspec-spacing-sm: 0.4rem;
+  --formspec-spacing-md: 0.65rem;
+  --formspec-spacing-field: 0.65rem;
+  --formspec-control-height: 2.25rem;
+}
+
+:where(.formspec-size-compact :is(input, select, textarea, button, .formspec-label, .formspec-legend, .formspec-description, .formspec-hint, .formspec-text)) {
+  font-size: 0.875em;
+}
+
+:where(.formspec-size-large) {
+  font-size: 1.125rem;
+  --formspec-font-size-xs: 0.875rem;
+  --formspec-font-size-sm: 1rem;
+  --formspec-font-size-md: 1.125rem;
+  --formspec-font-size-lg: 1.35rem;
+  --formspec-default-font-size-xs: 0.875rem;
+  --formspec-default-font-size-sm: 1rem;
+  --formspec-default-font-size-md: 1.125rem;
+  --formspec-default-font-size-lg: 1.35rem;
+  --formspec-space-xs: 0.4rem;
+  --formspec-space-sm: 0.65rem;
+  --formspec-space-md: 1.1rem;
+  --formspec-spacing-xs: 0.4rem;
+  --formspec-spacing-sm: 0.65rem;
+  --formspec-spacing-md: 1.1rem;
+  --formspec-spacing-field: 1rem;
+  --formspec-control-height: 3rem;
+}
+
+:where(.formspec-size-large :is(input, select, textarea, button, .formspec-label, .formspec-legend, .formspec-description, .formspec-hint, .formspec-text)) {
+  font-size: 1.125em;
+}

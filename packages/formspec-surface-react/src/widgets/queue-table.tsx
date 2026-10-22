@@ -120,6 +120,19 @@ function cellText(value: unknown): string {
   return JSON.stringify(value);
 }
 
+type SurfaceCellKind = 'timestamp' | 'identifier' | 'status';
+
+function detectCellKind(
+  id: string | undefined,
+  value: string,
+): SurfaceCellKind | undefined {
+  if (!value) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(value)) return 'timestamp';
+  if (/^(urn:|sha256:|[A-Z0-9]+-[A-Z0-9-]+)/.test(value)) return 'identifier';
+  if (id && /^(status|state|priority)$/i.test(id)) return 'status';
+  return undefined;
+}
+
 type UnknownRecord = Readonly<Record<string, unknown>>;
 
 const SAFE_PATH_PART = /^[a-zA-Z0-9_-]+$/;
@@ -328,7 +341,13 @@ export function QueueTable({
           aria-label={caption ?? slot.title ?? 'Queue'}
         >
           <table className="fs-surface-queue__table" data-probe="queue-table">
-            {caption && <caption className="fs-surface-queue__caption">{caption}</caption>}
+            {caption && (
+              <caption
+                className={`fs-surface-queue__caption${caption === slot.title ? ' fs-surface-visually-hidden' : ''}`}
+              >
+                {caption}
+              </caption>
+            )}
             <thead>
               <tr>
                 {columns.map((column) => (
@@ -363,17 +382,23 @@ export function QueueTable({
                       `row-${index}:${rowLabel}`
                     }
                   >
-                    {columns.map((column) =>
-                      column.key === rowHeaderKey ? (
-                        <th key={column.key} scope="row">
-                          {cellText(row[column.key])}
+                    {columns.map((column) => {
+                      const text = cellText(row[column.key]);
+                      const cellKind = detectCellKind(column.key, text);
+                      return column.key === rowHeaderKey ? (
+                        <th key={column.key} scope="row" data-cell-kind={cellKind}>
+                          {text}
                         </th>
                       ) : (
-                        <td key={column.key} data-numeric={column.numeric ? 'true' : undefined}>
-                          {cellText(row[column.key])}
+                        <td
+                          key={column.key}
+                          data-numeric={column.numeric ? 'true' : undefined}
+                          data-cell-kind={cellKind}
+                        >
+                          {text}
                         </td>
-                      ),
-                    )}
+                      );
+                    })}
                     {rendersRowAction ? (
                       <td
                         data-action-column=""

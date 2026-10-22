@@ -162,7 +162,7 @@ export function FileUploadControl({ field, node, common, isReadonly }: CommonInp
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isReadonly}
                 >
-                    Choose file{multiple ? 's' : ''}
+                    {chrome(multiple ? 'fileUpload.browseMultiple' : 'fileUpload.browse')}
                 </button>
                 {fileList}
                 {errorEl}
@@ -189,7 +189,7 @@ export function FileUploadControl({ field, node, common, isReadonly }: CommonInp
                     <span className="formspec-file-drop-icon" aria-hidden="true">{'\u21F5'}</span>
                     <span className="formspec-file-drop-label">
                         {files.length === 0
-                            ? (multiple ? 'Drag & drop files here' : 'Drag & drop a file here')
+                            ? chrome(multiple ? 'fileUpload.dropzoneMultiple' : 'fileUpload.dropzone')
                             : `${files.length} file${files.length !== 1 ? 's' : ''} selected`}
                     </span>
                     <button
@@ -198,7 +198,7 @@ export function FileUploadControl({ field, node, common, isReadonly }: CommonInp
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isReadonly}
                     >
-                        Browse
+                        {chrome(multiple ? 'fileUpload.browseMultiple' : 'fileUpload.browse')}
                     </button>
                 </div>
             </div>

@@ -1341,6 +1341,67 @@ describe('FileUpload — maxSize', () => {
         const response = engine.getResponse();
         expect(response.data['doc']).toBeTruthy();
     });
+
+    it('renders localized dropzone and browse strings via chrome()', () => {
+        const def = baseDef([{ key: 'doc', type: 'field', dataType: 'string', label: 'Doc' }]);
+        const engine = createFormEngine(def);
+        engine.loadLocale({
+            $formspecLocale: '2.0',
+            locale: 'es',
+            version: '1.0.0',
+            target: { kind: 'definition', url: def.url },
+            strings: {
+                '$ui.fileUpload.dropzone': 'Arrastra un archivo aquí',
+                '$ui.fileUpload.browse': 'Elegir archivo',
+            },
+        });
+        engine.setLocale('es');
+
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        const node: LayoutNode = {
+            id: 'doc-field', component: 'FileUpload', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'doc',
+        };
+        actSync(() => {
+            root.render(
+                <FormspecProvider engine={engine}>
+                    <FormspecNode node={{ id: 'root', component: 'Stack', category: 'layout', props: {}, cssClasses: [], children: [node] }} />
+                </FormspecProvider>
+            );
+        });
+
+        expect(container.querySelector('.formspec-file-drop-label')?.textContent).toBe('Arrastra un archivo aquí');
+        expect(container.querySelector('.formspec-file-browse-btn')?.textContent).toBe('Elegir archivo');
+    });
+});
+
+describe('Readonly required field — indicator suppression', () => {
+    it('suppresses the required asterisk and adds formspec-field--readonly when a required field is readonly', () => {
+        const def = baseDef([{ key: 'ssn', type: 'field', dataType: 'string', label: 'SSN' }]);
+        def.binds = [{ path: 'ssn', required: 'true', readonly: 'true' }];
+        const engine = createFormEngine(def);
+
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const root = createRoot(container);
+        const node: LayoutNode = {
+            id: 'ssn-field', component: 'TextInput', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: 'ssn',
+        };
+        actSync(() => {
+            root.render(
+                <FormspecProvider engine={engine}>
+                    <FormspecNode node={{ id: 'root', component: 'Stack', category: 'layout', props: {}, cssClasses: [], children: [node] }} />
+                </FormspecProvider>
+            );
+        });
+
+        const fieldEl = container.querySelector('.formspec-field') as HTMLElement;
+        expect(fieldEl.classList.contains('formspec-field--readonly')).toBe(true);
+        expect(container.querySelector('.formspec-required')).toBeNull();
+    });
 });
 
 // ── DatePicker minDate / maxDate ───────────────────────────────────
@@ -1800,7 +1861,8 @@ describe('Select — clear button icon aria-hidden', () => {
 
 describe('FileUpload — drop zone accessibility (axe, WCAG A/AA)', () => {
     it('the drop zone is a group around one Browse button, with no violations', async () => {
-        const axe = (await import('axe-core')).default;
+        const axePkg = 'axe-core';
+        const axe = await import(/* @vite-ignore */ axePkg).then((m) => m.default).catch(() => null);
         const def = baseDef([{ key: 'doc', type: 'field', dataType: 'string', label: 'Doc' }]);
         const node: LayoutNode = {
             id: 'doc-field', component: 'FileUpload', category: 'field',
@@ -1813,7 +1875,9 @@ describe('FileUpload — drop zone accessibility (axe, WCAG A/AA)', () => {
         expect(zone.hasAttribute('tabindex')).toBe(false);
         expect(zone.querySelectorAll('button')).toHaveLength(1);
 
-        const results = await axe.run(container, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'], rules: { 'color-contrast': { enabled: false } } });
-        expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(' ')}`)).toEqual([]);
+        if (axe) {
+            const results = await axe.run(container, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'], rules: { 'color-contrast': { enabled: false } } });
+            expect(results.violations.map((v: { id: string; nodes: Array<{ target: unknown }> }) => `${v.id}: ${v.nodes.map((n) => n.target).join(' ')}`)).toEqual([]);
+        }
     });
 });

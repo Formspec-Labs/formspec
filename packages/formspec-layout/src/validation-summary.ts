@@ -107,6 +107,7 @@ export function readValidationSummaryRows(
         }
         const field = formLevel ? null : source.field(path);
         const label = field?.label ?? (formLevel ? null : path.replace(/\[\d+\]/g, ''));
+        const cleanLabel = label === null ? null : label.replace(/\.$/, '');
         const canJump = jumpLinks && !formLevel && (source.jumpable ? source.jumpable(path) : field !== null);
         rows.push({
             severity,
@@ -114,7 +115,7 @@ export function readValidationSummaryRows(
             formLevel,
             message,
             label,
-            text: label === null ? message : source.chrome('validationSummary.row', { label, message }),
+            text: cleanLabel === null ? message : source.chrome('validationSummary.row', { label: cleanLabel, message }),
             jumpPath: canJump ? path : null,
             jumpHref: canJump && field?.controlId ? `#${field.controlId}` : null,
         });

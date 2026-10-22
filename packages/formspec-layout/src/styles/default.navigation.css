@@ -335,9 +335,9 @@
   flex-direction: column;
   gap: 0.25rem;
   padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 68%, white);
+  border: none;
   border-radius: var(--formspec-default-radius-sm);
-  background: color-mix(in srgb, white 82%, var(--formspec-default-surface));
+  background: color-mix(in srgb, white 72%, var(--formspec-default-surface-quiet));
 }
 
 .formspec-screener-continue {

@@ -24,7 +24,9 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
     const browseBtn = document.createElement('button');
     browseBtn.type = 'button';
     browseBtn.className = 'formspec-file-browse-btn formspec-focus-ring formspec-button-secondary';
-    watchText(actx, uiText(actx.engine, 'fileUpload.browse', undefined, 'Browse'), (text) => { browseBtn.textContent = text; });
+    const browseKey = behavior.multiple ? 'fileUpload.browseMultiple' : 'fileUpload.browse';
+    const browseFallback = behavior.multiple ? 'Browse files' : 'Browse';
+    watchText(actx, uiText(actx.engine, browseKey, undefined, browseFallback), (text) => { browseBtn.textContent = text; });
     // The button is the one keyboard stop, so it must say which field it belongs to: "<label> Browse".
     fieldDOM.label.id ||= `${behavior.id}-label`;
     browseBtn.id = `${behavior.id}-browse`;
@@ -100,7 +102,9 @@ export const renderFileUpload: AdapterRenderFn<FileUploadBehavior> = (
 
         const label = document.createElement('span');
         label.className = 'formspec-file-drop-label';
-        label.textContent = behavior.multiple ? 'Drag & drop files here' : 'Drag & drop a file here';
+        const dropzoneKey = behavior.multiple ? 'fileUpload.dropzoneMultiple' : 'fileUpload.dropzone';
+        const dropzoneFallback = behavior.multiple ? 'Drag & drop files here' : 'Drag & drop a file here';
+        watchText(actx, uiText(actx.engine, dropzoneKey, undefined, dropzoneFallback), (text) => { label.textContent = text; });
 
         content.appendChild(icon);
         content.appendChild(label);

@@ -396,14 +396,14 @@ function Value({
             );
           })}
         </ul>
-        <pre className="fs-response-review-json">
+        <pre className="fs-response-review-json fs-surface-review__structured">
           {JSON.stringify(v, null, 2)}
         </pre>
       </>
     );
   // JSON preserves all keys, values, array order and scalar types without string coercion.
   return (
-    <pre className="fs-response-review-json">{JSON.stringify(v, null, 2)}</pre>
+    <pre className="fs-response-review-json fs-surface-review__structured">{JSON.stringify(v, null, 2)}</pre>
   );
 }
 
@@ -710,7 +710,7 @@ function ReviewBody({
         {p.phase === "accepted-record" ? c.copy.acceptedRecord
           : p.phase === "before-sign" ? c.copy.beforeSign : c.copy.beforeSubmit}
       </p>
-      <dl className="fs-response-review-context">
+      <dl className="fs-response-review-context fs-response-review__meta">
         {p.phase !== "accepted-record" ? <div>
           <dt>{c.copy.draftVersion}</dt>
           <dd>{p.draft.version}</dd>

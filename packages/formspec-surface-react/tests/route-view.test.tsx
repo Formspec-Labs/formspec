@@ -407,4 +407,43 @@ describe('theme boundary, as rendered', () => {
     expect(route.getAttribute('data-route-class')).toBe('unclassified');
     expect(route.getAttribute('data-tenant-theme')).toBe('refused');
   });
+
+  it('marks multi-slot review and evidence+decision operation routes with data-route-layout="split"', () => {
+    const splitSurface = surfaceWith([
+      {
+        id: 'case-review',
+        path: '/case',
+        title: 'Case review',
+        routeClass: 'operation',
+        slots: [
+          {
+            id: 'evidence',
+            slotType: 'module-widget',
+            binding: { moduleId: 'x-chrome', widgetName: 'x-receipt-panel' },
+          },
+          {
+            id: 'decision',
+            slotType: 'definition-form',
+            binding: { definitionRef: 'urn:example:decision' },
+          },
+        ],
+      },
+    ]);
+    const splitApp = composeSurfaceApp([splitSurface]);
+    const handle = splitApp.routes.find((candidate) => candidate.routeId === 'case-review') as SurfaceRouteHandle;
+    const plan = planMatchedRoute<SurfaceWidget>({
+      handle,
+      app: splitApp,
+      experiences,
+      definitions: new Map(),
+      registryEntries: [],
+      widgets,
+      themeAuthority: authority,
+    });
+    const container = render(
+      <SurfaceRouteView plan={plan} strings={resolveSurfaceStrings()} />,
+    );
+    const route = container.querySelector('[data-route="case-review"]') as HTMLElement;
+    expect(route.getAttribute('data-route-layout')).toBe('split');
+  });
 });

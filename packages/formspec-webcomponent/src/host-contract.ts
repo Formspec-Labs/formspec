@@ -1,6 +1,6 @@
 /** @filedesc The host page contract shared by the browser entry and the Node page builder: the documents a page is built from and the ids and attributes it uses. No DOM, no Node. */
 import type { LocaleDocument } from '@formspec-org/engine/render';
-import type { FormDefinition } from '@formspec-org/types';
+import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
 import type { ThemeDocument } from '@formspec-org/layout';
 import type { FormDataRecord } from './hub-types';
 
@@ -16,6 +16,7 @@ export interface HostReceipt {
 /** The pinned documents a page is built from (ADR 0166 §1). Nothing else shapes the render. */
 export interface HostDocuments {
     definition: FormDefinition;
+    component?: ComponentDocument | null;
     theme?: ThemeDocument | null;
     /** Every pinned Locale; `locale` picks the active one. */
     locales?: LocaleDocument[];

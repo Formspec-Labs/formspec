@@ -18,4 +18,12 @@ describe('default skin styleHints', () => {
         expect(rules.length, cls).toBeGreaterThan(0);
         for (const selector of rules) expect(selector.trim().startsWith(':where('), selector).toBe(true);
     });
+
+    it('uses rem and custom properties instead of non-standard zoom for size hints', () => {
+        expect(css).not.toMatch(/\bzoom\s*:/);
+        expect(css).toContain('font-size: 0.875rem');
+        expect(css).toContain('font-size: 1.125rem');
+        expect(css).toContain('--formspec-control-height: 2.25rem');
+        expect(css).toContain('--formspec-control-height: 3rem');
+    });
 });

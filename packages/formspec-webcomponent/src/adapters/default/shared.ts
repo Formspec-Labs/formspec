@@ -120,7 +120,11 @@ export function finalizeFieldDOM(
 ): void {
     const vm = behavior.vm;
     const isRequired = vm ? untracked(() => vm.required.value) : false;
-    const showMarker = behavior.presentation.requiredIndicator !== 'none';
+    const isReadonly = vm ? untracked(() => vm.readonly.value) : false;
+    if (isReadonly) {
+        fieldDOM.root.classList.add('formspec-field--readonly');
+    }
+    const showMarker = behavior.presentation.requiredIndicator !== 'none' && !isReadonly;
     if (isRequired && showMarker && !fieldDOM.label.querySelector('.formspec-required')) {
         const marker = document.createElement('abbr');
         marker.className = 'formspec-required usa-label--required';

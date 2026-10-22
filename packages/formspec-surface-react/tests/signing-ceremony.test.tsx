@@ -173,3 +173,9 @@ it('requires localized review reason strings only for opted-in config',()=>{
  const ajv=new Ajv2020({strict:false});addFormats(ajv);ajv.addSchema(common);const validate=ajv.compile(SIGNING_CEREMONY_CONFIG_SCHEMA);
  expect(validate(props().config)).toBe(true);expect(validate({...props().config,requireResponseReview:true})).toBe(false);expect(validate(requireReview(props()).config)).toBe(true);
 });
+
+it('attaches ceremony title and status hook classes to the rendered section',()=>{
+ const {el}=mount(signed(props()));
+ expect(el.querySelector('.fs-surface-ceremony__title')?.textContent).toBe(copy.heading);
+ expect(el.querySelector('.fs-surface-ceremony__status')?.textContent).toBe(copy.signed);
+});

@@ -166,9 +166,14 @@ hr.formspec-divider {
 .formspec-group-title {
   margin: 0 0 0.5rem;
   color: var(--formspec-default-text);
+  font-family: var(--formspec-font-heading, var(--formspec-default-font-heading));
   font-size: 1.18rem;
   font-weight: 650;
   letter-spacing: -0.028em;
+}
+
+.formspec-section > :is(h1, h2, h3) {
+  font-family: var(--formspec-font-heading, var(--formspec-default-font-heading));
 }
 
 .formspec-group-title {
@@ -186,14 +191,6 @@ hr.formspec-divider {
   padding-inline-start: 0.6rem;
 }
 
-/* Every rendered form has this direct root stack. Keep one brand-bearing
- * surface even when the Definition contains only plain fields and therefore
- * has no section heading, legend, or submit control. */
-.formspec-container > .formspec-stack {
-  border-inline-start: 3px solid var(--formspec-default-primary);
-  padding-inline-start: var(--formspec-spacing-md, 0.75rem);
-}
-
 .formspec-card-title {
   margin-bottom: 0;
 }
@@ -208,8 +205,17 @@ hr.formspec-divider {
 
 .formspec-text {
   margin: 0;
+  max-width: 65ch;
   color: var(--formspec-default-text);
   line-height: 1.6;
+}
+
+.formspec-validation-summary,
+.formspec-container .formspec-validation-summary {
+  padding: 1rem 1.25rem;
+  border-inline-start: 4px solid var(--formspec-default-error);
+  border-radius: var(--formspec-default-radius-md);
+  background: var(--formspec-default-error-surface);
 }
 
 .formspec-alert {
@@ -505,4 +511,27 @@ hr.formspec-divider {
 
 .fs-issuer-query-indicator {
   margin-left: auto;
+}
+
+:is(.formspec-card, .formspec-panel) .formspec-screener {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 480px) {
+  .formspec-card {
+    padding-inline: 0.9rem;
+  }
+}
+
+@media (pointer: coarse) {
+  .formspec-alert-close {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    width: 2.75rem;
+    height: 2.75rem;
+  }
 }

@@ -2,6 +2,8 @@
 
 .formspec-container {
   font-family: var(--formspec-font-family, "Instrument Sans", "Avenir Next", "Segoe UI", sans-serif);
+  --formspec-default-font-heading: "Fraunces", "Instrument Serif", Georgia, serif;
+  --formspec-default-font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
   font-size: 0.96rem;
   line-height: 1.6;
   color: var(--formspec-color-foreground, #20241f);
@@ -33,6 +35,7 @@
   --formspec-default-primary: var(--formspec-color-primary, #27594f);
   --formspec-default-primary-strong: var(--formspec-color-primary-dark, #1d443c);
   --formspec-default-danger: var(--formspec-color-error, #c1281f);
+  --formspec-default-error: var(--formspec-default-danger);
   --formspec-default-danger-strong: #b1261d;
   --formspec-default-success: var(--formspec-color-success, #2f855a);
   --formspec-default-warning: var(--formspec-color-warning, #946112);
@@ -66,6 +69,7 @@
   --formspec-default-readonly-input-border: var(--formspec-readonly-input-border, #d8d0c3);
   --formspec-default-readonly-input-text: var(--formspec-readonly-input-text, #4f473d);
   --formspec-default-danger-surface: color-mix(in srgb, var(--formspec-default-danger) 10%, white);
+  --formspec-default-error-surface: var(--formspec-default-danger-surface);
   --formspec-default-danger-surface-soft: #fdf1ef;
   --formspec-default-success-surface: #ebf5ef;
   --formspec-default-warning-surface: #fff2db;
@@ -120,6 +124,7 @@
   --formspec-default-primary: var(--formspec-color-dark-primary, #8bb8ac);
   --formspec-default-primary-strong: #b6d7cf;
   --formspec-default-danger: var(--formspec-color-dark-error, #ff8b7f);
+  --formspec-default-error: var(--formspec-default-danger);
   --formspec-default-danger-strong: #ffb2a9;
   --formspec-default-success: var(--formspec-color-dark-success, #79c89d);
   --formspec-default-warning: var(--formspec-color-dark-warning, #e2b35c);
@@ -165,6 +170,7 @@
 
   /* Status surfaces — computed from accents and background */
   --formspec-default-danger-surface: color-mix(in srgb, var(--formspec-default-danger) 18%, var(--formspec-default-bg));
+  --formspec-default-error-surface: var(--formspec-default-danger-surface);
   --formspec-default-danger-surface-soft: #2c1c19;
   --formspec-default-success-surface: color-mix(in srgb, var(--formspec-default-success) 12%, var(--formspec-default-bg));
   --formspec-default-warning-surface: color-mix(in srgb, var(--formspec-default-warning) 14%, var(--formspec-default-bg));

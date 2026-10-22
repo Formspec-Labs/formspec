@@ -776,3 +776,13 @@
   background: var(--formspec-default-surface-soft);
   color: var(--formspec-default-text);
 }
+
+@media (pointer: coarse) {
+  .formspec-select-clear,
+  .formspec-combobox-chip-remove {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}

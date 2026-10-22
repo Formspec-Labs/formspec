@@ -750,6 +750,107 @@ describe('StructuredPanel', () => {
     expect(readStructuredPanelPath({}, 'constructor.name')).toBeUndefined();
     expect(readStructuredPanelPath({}, 'bad[0]')).toBeUndefined();
   });
+
+  it('adds domain-neutral data-cell-kind attributes and visually hides duplicate or slug titles', () => {
+    const container = render(
+      <StructuredPanel
+        {...props({
+          slot: { id: 'inbox', title: 'Reviewer inbox' },
+          config: {
+            id: 'reviewer-inbox',
+            title: 'Reviewer inbox',
+            ...trace,
+            blocks: [
+              {
+                id: 'case-facts',
+                title: 'case-facts',
+                type: 'key-value',
+                ...trace,
+                items: [
+                  { id: 'caseRef', label: 'Case ID', path: 'summary.caseRef', ...trace },
+                  { id: 'submittedAt', label: 'Submitted', path: 'summary.submittedAt', ...trace },
+                  { id: 'status', label: 'Status', path: 'summary.status', ...trace },
+                ],
+              },
+              {
+                id: 'active-cases',
+                title: 'active-cases',
+                type: 'table',
+                path: 'rows',
+                caption: 'active-cases',
+                ...trace,
+                columns: [
+                  { id: 'caseRef', label: 'Case', path: 'caseRef', ...trace },
+                  { id: 'updatedAt', label: 'Updated', path: 'updatedAt', ...trace },
+                  { id: 'priority', label: 'Priority', path: 'priority', ...trace },
+                ],
+              },
+            ],
+          },
+          data: {
+            summary: {
+              caseRef: 'CASE-2026-0412',
+              submittedAt: '2026-04-08T14:22:00Z',
+              status: 'Needs review',
+            },
+            rows: [
+              {
+                caseRef: 'urn:formspec:case:412',
+                updatedAt: '2026-04-09',
+                priority: 'High',
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(
+      container
+        .querySelector('.fs-structured-panel__title')
+        ?.classList.contains('fs-surface-visually-hidden'),
+    ).toBe(true);
+    expect(
+      container
+        .querySelector('[data-block-id="active-cases"] .fs-structured-panel__block-title')
+        ?.classList.contains('fs-surface-visually-hidden'),
+    ).toBe(true);
+    expect(
+      container
+        .querySelector('[data-field-id="caseRef"]')
+        ?.getAttribute('data-field-format'),
+    ).toBe('mono');
+    expect(
+      container
+        .querySelector('[data-field-id="caseRef"] dd')
+        ?.getAttribute('data-cell-kind'),
+    ).toBe('identifier');
+    expect(
+      container
+        .querySelector('[data-field-id="submittedAt"] dd')
+        ?.getAttribute('data-cell-kind'),
+    ).toBe('timestamp');
+    expect(
+      container
+        .querySelector('[data-field-id="status"] dd')
+        ?.getAttribute('data-cell-kind'),
+    ).toBe('status');
+    expect(
+      container
+        .querySelector('td[data-column-id="caseRef"]')
+        ?.getAttribute('data-cell-kind'),
+    ).toBe('identifier');
+    expect(
+      container
+        .querySelector('td[data-column-id="updatedAt"]')
+        ?.getAttribute('data-cell-kind'),
+    ).toBe('timestamp');
+    expect(
+      container
+        .querySelector('td[data-column-id="priority"]')
+        ?.getAttribute('data-cell-kind'),
+    ).toBe('status');
+  });
 });
 
 describe('IntakeBanner', () => {

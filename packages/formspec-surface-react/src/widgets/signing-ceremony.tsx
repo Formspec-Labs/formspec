@@ -166,7 +166,7 @@ function SigningCeremonyAct({ props, data, copy, requireResponseReview }: { prop
     finally { if (alive.current) setPending(false); }
   }
   return <section className="fs-surface-ceremony" data-widget="signing-ceremony" data-tenant-theme="refused">
-    <Heading level={props.headingLevel}>{copy.heading}</Heading>
+    <Heading level={props.headingLevel} className="fs-surface-ceremony__title">{copy.heading}</Heading>
     <p id={`${id}-read`}>{copy.readInstruction}</p>
     <div ref={scroll} className="fs-surface-ceremony__full-text" tabIndex={0} role="region" aria-label={copy.heading} aria-describedby={`${id}-read`}
       onScroll={() => { const area = scroll.current; if (area && area.scrollTop + area.clientHeight >= area.scrollHeight - 1) setAtEnd(true); }}>
@@ -185,7 +185,7 @@ function SigningCeremonyAct({ props, data, copy, requireResponseReview }: { prop
       {submit && <button type="button" disabled={pending || outcomeUnknown || !reviewed || !signed} onClick={() => void emit('submit')}>{submit.label}</button>}
       {paper && <button type="button" disabled={pending} onClick={() => void emit('paper')}>{paper.label}</button>}
     </div>
-    <p role="status" aria-live="polite">{outcomeUnknown ? '' : pending ? copy.pending : failed ? copy.failed : !reviewed ? data.review?.state?.status === 'pending' ? copy.reviewPending : copy.reviewUnavailable : signed ? copy.signed : !sign || !submit ? copy.unavailable : ''}</p>
+    <p className="fs-surface-ceremony__status" role="status" aria-live="polite">{outcomeUnknown ? '' : pending ? copy.pending : failed ? copy.failed : !reviewed ? data.review?.state?.status === 'pending' ? copy.reviewPending : copy.reviewUnavailable : signed ? copy.signed : !sign || !submit ? copy.unavailable : ''}</p>
   </section>;
 }
 

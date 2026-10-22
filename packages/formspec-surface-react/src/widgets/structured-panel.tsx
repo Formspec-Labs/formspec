@@ -282,6 +282,19 @@ function scalarText(value: unknown): string | undefined {
   return scalar === undefined ? undefined : String(scalar);
 }
 
+type SurfaceCellKind = 'timestamp' | 'identifier' | 'status';
+
+function detectCellKind(
+  id: string | undefined,
+  value: string,
+): SurfaceCellKind | undefined {
+  if (!value) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}(T.*)?$/.test(value)) return 'timestamp';
+  if (/^(urn:|sha256:|[A-Z0-9]+-[A-Z0-9-]+)/.test(value)) return 'identifier';
+  if (id && /^(status|state|priority)$/i.test(id)) return 'status';
+  return undefined;
+}
+
 type JsonSelection = { status: 'found'; value: unknown } | { status: 'missing' | 'refused' };
 
 /** Own data properties only; refused access is different from absent evidence. */
@@ -506,12 +519,16 @@ function blockFrame(
   block: UnknownRecord,
   headingLevel: SurfaceWidgetProps['headingLevel'],
   content: (anchors: readonly string[]) => ReactNode,
+  parentTitle?: string | undefined,
 ): ReactNode {
   const id = safeId(block.id);
   if (!id) return null;
   const anchors = needAnchors(block);
   if (anchors.length === 0) return null;
   const title = nonEmptyString(block.title);
+  const suppressTitle = Boolean(
+    title && (title === id || (parentTitle !== undefined && title === parentTitle)),
+  );
   const renderedContent = content(anchors);
   if (renderedContent === null || renderedContent === undefined) return null;
   return (
@@ -523,7 +540,10 @@ function blockFrame(
       {...traceAttributes(anchors)}
     >
       {title ? (
-        <Heading level={headingLevel} className="fs-structured-panel__block-title">
+        <Heading
+          level={headingLevel}
+          className={`fs-structured-panel__block-title${suppressTitle ? ' fs-surface-visually-hidden' : ''}`}
+        >
           {title}
         </Heading>
       ) : null}
@@ -616,26 +636,35 @@ function renderKeyValue(
   data: Readonly<Record<string, unknown>>,
   routeParams: Readonly<Record<string, string>>,
   headingLevel: SurfaceWidgetProps['headingLevel'],
+  parentTitle?: string | undefined,
 ): ReactNode {
   return blockFrame(block, headingLevel, (anchors) => {
     const items = renderedKeyValueItems(block, data, routeParams);
     if (items.length === 0) return blockEmpty(block, anchors);
     return (
       <dl className="fs-structured-panel__facts">
-        {items.map((item) => (
-          <div
-            className="fs-structured-panel__fact"
-            data-field-id={item.id}
-            key={item.id}
-            {...traceAttributes(item.anchors)}
-          >
-            <dt>{item.label}</dt>
-            <dd>{item.value}</dd>
-          </div>
-        ))}
+        {items.map((item) => {
+          const cellKind = detectCellKind(item.id, item.value);
+          return (
+            <div
+              className="fs-structured-panel__fact"
+              data-field-id={item.id}
+              data-field-format={
+                cellKind === 'timestamp' || cellKind === 'identifier'
+                  ? 'mono'
+                  : undefined
+              }
+              key={item.id}
+              {...traceAttributes(item.anchors)}
+            >
+              <dt>{item.label}</dt>
+              <dd data-cell-kind={cellKind}>{item.value}</dd>
+            </div>
+          );
+        })}
       </dl>
     );
-  });
+  }, parentTitle);
 }
 
 function renderList(
@@ -752,12 +781,17 @@ function renderTable(
   headingLevel: SurfaceWidgetProps['headingLevel'],
   availableActions: readonly SurfaceWidgetAction[],
   emitAction: SurfaceWidgetProps['emitAction'],
+  parentTitle?: string | undefined,
 ): ReactNode {
   return blockFrame(block, headingLevel, (anchors) => {
     const rows = renderedTableRows(block, data);
     const columns = renderedTableColumns(block);
     if (rows.length === 0 || columns.length === 0) return blockEmpty(block, anchors);
     const caption = nonEmptyString(block.caption);
+    const blockTitle = nonEmptyString(block.title);
+    const suppressCaption = Boolean(
+      caption && (caption === blockTitle || caption === parentTitle),
+    );
     const responsiveMode = block.responsiveMode === 'scroll' ? 'scroll' : 'stack';
     const rowAction = admittedTableRowAction(block, availableActions);
     return (
@@ -766,10 +800,14 @@ function renderTable(
         data-responsive-mode={responsiveMode}
         role="region"
         tabIndex={0}
-        aria-label={caption ?? nonEmptyString(block.title) ?? safeId(block.id)}
+        aria-label={caption ?? blockTitle ?? safeId(block.id)}
       >
         <table className="fs-structured-panel__table">
-          {caption ? <caption>{caption}</caption> : null}
+          {caption ? (
+            <caption className={suppressCaption ? 'fs-surface-visually-hidden' : undefined}>
+              {caption}
+            </caption>
+          ) : null}
           <thead>
             <tr>
               {columns.map((column) => (
@@ -797,17 +835,23 @@ function renderTable(
           <tbody>
             {rows.map((row, rowIndex) => (
               <tr key={`row-${rowIndex}`}>
-                {columns.map((column) => (
-                  <td
-                    key={column.id}
-                    data-column-id={column.id}
-                    data-column-label={column.label}
-                    data-numeric={column.numeric ? 'true' : undefined}
-                    {...traceAttributes(column.anchors)}
-                  >
-                    {scalarText(readStructuredPanelPath(row, column.path)) ?? ''}
-                  </td>
-                ))}
+                {columns.map((column) => {
+                  const cellValue =
+                    scalarText(readStructuredPanelPath(row, column.path)) ?? '';
+                  const cellKind = detectCellKind(column.id, cellValue);
+                  return (
+                    <td
+                      key={column.id}
+                      data-column-id={column.id}
+                      data-column-label={column.label}
+                      data-numeric={column.numeric ? 'true' : undefined}
+                      data-cell-kind={cellKind}
+                      {...traceAttributes(column.anchors)}
+                    >
+                      {cellValue}
+                    </td>
+                  );
+                })}
                 {rowAction ? (
                   <td
                     data-column-id="action"
@@ -848,7 +892,7 @@ function renderTable(
         </table>
       </div>
     );
-  });
+  }, parentTitle);
 }
 
 function renderProgress(
@@ -893,6 +937,7 @@ function renderBlock(
   headingLevel: SurfaceWidgetProps['headingLevel'],
   availableActions: readonly SurfaceWidgetAction[],
   emitAction: SurfaceWidgetProps['emitAction'],
+  parentTitle?: string | undefined,
 ): ReactNode {
   const block = record(candidate);
   if (!block) return null;
@@ -902,7 +947,7 @@ function renderBlock(
     case 'metric':
       return renderMetric(block, data, headingLevel);
     case 'key-value':
-      return renderKeyValue(block, data, routeParams, headingLevel);
+      return renderKeyValue(block, data, routeParams, headingLevel, parentTitle);
     case 'list':
       return renderList(block, data, headingLevel);
     case 'table':
@@ -912,6 +957,7 @@ function renderBlock(
         headingLevel,
         availableActions,
         emitAction,
+        parentTitle,
       );
     case 'progress':
       return renderProgress(block, data, headingLevel);
@@ -1136,7 +1182,22 @@ export function StructuredPanel({
   const title = panelAnchors.length > 0 ? nonEmptyString(panel.title) : undefined;
   const body = panelAnchors.length > 0 ? nonEmptyString(panel.body) : undefined;
   const header = eyebrow || state || title || body;
+  const routeTitle = nonEmptyString((route as { title?: unknown }).title);
+  const suppressPanelTitle = Boolean(
+    title && (title === slot.title || title === authoredPanelId || title === routeTitle),
+  );
+  const suppressSingleBlockTitle = Boolean(
+    title &&
+      !suppressPanelTitle &&
+      configuredBlocks.length === 1 &&
+      !eyebrow &&
+      !state &&
+      !body,
+  );
   const blockHeadingLevel = title ? nextLevel(headingLevel) : headingLevel;
+  const parentTitle = suppressSingleBlockTitle
+    ? nonEmptyString(record(configuredBlocks[0])?.title) ?? title ?? slot.title
+    : title ?? slot.title;
   const renderedBlockEntries = configuredBlocks.flatMap((candidate) => {
     const block = record(candidate);
     const id = safeId(block?.id);
@@ -1148,6 +1209,7 @@ export function StructuredPanel({
         blockHeadingLevel,
         actions,
         emitAction,
+        parentTitle,
       );
     return node === null || node === undefined
       ? []
@@ -1238,7 +1300,10 @@ export function StructuredPanel({
             {state ? <span data-panel-field="state">{state}</span> : null}
           </div>
           {title ? (
-            <Heading level={headingLevel} className="fs-structured-panel__title">
+            <Heading
+              level={headingLevel}
+              className={`fs-structured-panel__title${suppressPanelTitle ? ' fs-surface-visually-hidden' : ''}`}
+            >
               {title}
             </Heading>
           ) : null}

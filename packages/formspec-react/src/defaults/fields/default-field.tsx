@@ -135,7 +135,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
             {showError ? field.error : ''}
         </p>
     );
-    const requiredNode = field.required ? (
+    const requiredNode = field.required && !isReadonly ? (
         <abbr className="formspec-required usa-label--required" title="required"> *</abbr>
     ) : null;
 
@@ -162,7 +162,14 @@ export function DefaultField({ field, node }: FieldComponentProps) {
 
         return (
             <div
-                className={`formspec-field formspec-field--inline formspec-field--toggle ${isProtected ? 'formspec-protected' : ''} ${themeClass}`.trim()}
+                className={[
+                    'formspec-field',
+                    'formspec-field--inline',
+                    'formspec-field--toggle',
+                    isReadonly ? 'formspec-field--readonly' : '',
+                    isProtected ? 'formspec-protected' : '',
+                    themeClass,
+                ].filter(Boolean).join(' ').trim()}
                 style={node.style as React.CSSProperties | undefined}
                 data-name={field.path}
                 {...graphAttrs}
@@ -202,7 +209,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
         const labelId = `${field.id}-label`;
         const labelHidden = node.labelPosition === 'hidden';
         // A checkbox `group` has no aria-required (WAI-ARIA 1.2): the legend says "required" in place of the asterisk.
-        const legendRequiredNode = node.component === 'CheckboxGroup' && field.required ? (
+        const legendRequiredNode = node.component === 'CheckboxGroup' && field.required && !isReadonly ? (
             <>
                 <abbr className="formspec-required usa-label--required" title="required" aria-hidden="true"> *</abbr>
                 <span className="formspec-sr-only usa-sr-only"> required</span>
@@ -211,7 +218,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
 
         return (
             <fieldset
-                className={[`formspec-fieldset`, isProtected ? 'formspec-protected' : '', themeClass].filter(Boolean).join(' ').trim()}
+                className={[`formspec-fieldset`, isReadonly ? 'formspec-field--readonly' : '', isProtected ? 'formspec-protected' : '', themeClass].filter(Boolean).join(' ').trim()}
                 style={node.style as React.CSSProperties | undefined}
                 data-name={field.path}
                 {...graphAttrs}
@@ -248,7 +255,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
 
     return (
         <div
-            className={[`formspec-field`, isProtected ? 'formspec-protected' : '', themeClass, controlSurfaceClass].filter(Boolean).join(' ').trim()}
+            className={[`formspec-field`, isReadonly ? 'formspec-field--readonly' : '', isProtected ? 'formspec-protected' : '', themeClass, controlSurfaceClass].filter(Boolean).join(' ').trim()}
             style={node.style as React.CSSProperties | undefined}
             data-name={field.path}
             {...graphAttrs}
