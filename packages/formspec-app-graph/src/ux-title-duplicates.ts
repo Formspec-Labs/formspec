@@ -266,12 +266,20 @@ function componentDiagnostics(component: ResolvedArtifactHandle): AppGraphDiagno
   return tree ? componentTreeDiagnostics(component, tree, '/tree') : [];
 }
 
+const STRUCTURED_PANEL_DELIVERY_CONTRACT_IDS = new Set([
+  STRUCTURED_PANEL_DELIVERY_CONTRACT_ID,
+  'StructuredPanel',
+  'x-structured-panel',
+]);
+
 function isStructuredPanel(
   widget: SurfaceWidgetSlot,
   contribution: ReturnType<typeof resolvedWidgetContributionFromEntries>,
 ): boolean {
   const deliveryContractId = stringProp(widgetShape(contribution), 'deliveryContractId');
-  if (deliveryContractId === STRUCTURED_PANEL_DELIVERY_CONTRACT_ID) return true;
+  if (deliveryContractId !== undefined && STRUCTURED_PANEL_DELIVERY_CONTRACT_IDS.has(deliveryContractId)) {
+    return true;
+  }
   return deliveryContractId === undefined
     && (widget.widgetName === 'StructuredPanel' || widget.widgetName === 'x-structured-panel');
 }
@@ -317,6 +325,28 @@ function structuredPanelDiagnostics(
         'structured-panel',
       );
       if (!panelTitle) continue;
+
+      const routes = recordArray(ownProp(record(surface.document), 'routes'));
+      const route = routes[widget.routeIndex];
+      const routeTitle = stringProp(route, 'title') ?? stringProp(route, 'id');
+      const routeCandidate = titleCandidate(
+        surface,
+        stringProp(route, 'title') !== undefined
+          ? `/routes/${widget.routeIndex}/title`
+          : `/routes/${widget.routeIndex}/id`,
+        routeTitle,
+        'surface-route',
+      );
+      if (routeCandidate && routeCandidate.normalizedTitle === panelTitle.normalizedTitle) {
+        diagnostics.push(...duplicateTitleDiagnostics(
+          [routeCandidate, panelTitle],
+          {
+            kind: 'surface-route-structured-panel',
+            label: `Surface route '${widget.routeId ?? widget.routeIndex}' and ${panelLabel}`,
+          },
+        ));
+      }
+
       for (const blockTitle of blockTitles) {
         if (panelTitle.normalizedTitle !== blockTitle.normalizedTitle) continue;
         diagnostics.push(...duplicateTitleDiagnostics(

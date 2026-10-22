@@ -490,4 +490,39 @@ describe('validateStructuredPanelContracts', () => {
       diagnostic.code === STRUCTURED_PANEL_CONTRACT_CODES.dataPathImpossible
     )).toBe(true);
   });
+
+  it('warns when a StructuredPanel block title is slug-shaped instead of human-readable', () => {
+    const report = validateStructuredPanelContracts(fixture({
+      blocks: [{
+        id: 'applicant-summary',
+        type: 'metric',
+        title: 'applicant-summary',
+        path: 'primary.stats.total',
+      }, {
+        id: 'payment',
+        type: 'metric',
+        title: 'payment_status_code',
+        path: 'primary.stats.total',
+      }, {
+        id: 'readable',
+        type: 'metric',
+        title: 'Applicant Summary',
+        path: 'primary.stats.total',
+      }],
+    }));
+
+    expect(report).toMatchObject([{
+      code: STRUCTURED_PANEL_CONTRACT_CODES.blockTitleSlug,
+      severity: 'warning',
+      primarySource: {
+        jsonPointer: '/routes/0/slots/0/binding/config/blocks/0/title',
+      },
+    }, {
+      code: STRUCTURED_PANEL_CONTRACT_CODES.blockTitleSlug,
+      severity: 'warning',
+      primarySource: {
+        jsonPointer: '/routes/0/slots/0/binding/config/blocks/1/title',
+      },
+    }]);
+  });
 });

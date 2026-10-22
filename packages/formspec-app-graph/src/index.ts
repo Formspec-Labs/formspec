@@ -92,6 +92,7 @@ export {
   validateDataSources,
 } from './data-sources.js';
 export {
+  LOCALE_ASSOCIATION_CODES,
   normalizeLocaleTag,
   validateLocaleAssociations,
 } from './locale-associations.js';
@@ -140,6 +141,10 @@ export {
   type AdmittedStructuredPanelConfirmation,
   type StructuredPanelConfirmationAdmission,
 } from './structured-panel-contracts.js';
+export {
+  UX_AUTHORING_QUALITY_CODES,
+  validateUxAuthoringQuality,
+} from './ux-authoring-quality.js';
 export {
   UX_TITLE_DUPLICATE_CODE,
   validateUxTitleDuplicates,

@@ -303,4 +303,64 @@ describe('validateUxTitleDuplicates', () => {
       },
     ]);
   });
+
+  it('warns when a StructuredPanel config.title repeats its containing route title', () => {
+    const registry = handle('registry', 'registry', {
+      entries: [{
+        name: 'x-panel-module',
+        category: 'module',
+        contributes: ['x-panel-widget'],
+      }, {
+        name: 'x-panel-widget',
+        category: 'widget',
+        widgetShape: {
+          widgetName: 'StructuredPanel',
+          deliveryContractId: '@formspec-org/surface-react/StructuredPanel@0.1',
+        },
+      }],
+    });
+    const surface = handle('surface', 'surface', {
+      routes: [{
+        id: 'review',
+        title: 'Application Review',
+        slots: [{
+          id: 'summary-panel',
+          slotType: 'module-widget',
+          binding: {
+            moduleId: 'x-panel-module',
+            widgetName: 'StructuredPanel',
+            config: {
+              title: ' Application   Review ',
+              blocks: [{
+                id: 'overview',
+                type: 'metric',
+                title: 'Overview',
+                path: 'overview',
+              }],
+            },
+          },
+        }],
+      }],
+    });
+
+    const diagnostics = validateUxTitleDuplicates(context(registry, surface));
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toMatchObject({
+      code: UX_TITLE_DUPLICATE_CODE,
+      severity: 'warning',
+      primarySource: {
+        artifactSlot: 'surface',
+        jsonPointer: '/routes/0/slots/0/binding/config/title',
+      },
+      relatedSources: [{
+        artifactSlot: 'surface',
+        jsonPointer: '/routes/0/title',
+      }],
+      details: {
+        scopeKind: 'surface-route-structured-panel',
+        normalizedTitle: 'Application Review',
+      },
+    });
+  });
 });

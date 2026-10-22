@@ -46,6 +46,7 @@ import { validateSurfaceWidgetActions } from './surface-widget-actions.js';
 import { validateStructuredPanelContracts } from './structured-panel-contracts.js';
 import { validateThemeTokenRegistry } from './theme-token-registry.js';
 import { validateUiGraphPolicy } from './ui-graph-policy.js';
+import { validateUxAuthoringQuality } from './ux-authoring-quality.js';
 import { validateUxTitleDuplicates } from './ux-title-duplicates.js';
 
 const UI_GRAPH_POLICY_SCHEMA_ID = 'https://formspec.org/schemas/uiGraphPolicy/0.1';
@@ -346,6 +347,7 @@ function runCrossArtifactValidators(
     validateStructuredPanelContracts,
     validateThemeTokenRegistry,
     validateUiGraphPolicy,
+    validateUxAuthoringQuality,
     validateUxTitleDuplicates,
     ...(validators ?? []),
   ];
