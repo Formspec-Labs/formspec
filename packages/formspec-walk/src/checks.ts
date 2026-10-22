@@ -142,7 +142,7 @@ declare global {
 
 /** Default selector matching `<formspec-render>` or a React `<FormspecForm>` root container. */
 export const DEFAULT_WALK_ROOT_SELECTOR =
-    'formspec-render, [data-formspec-render-root], .formspec-container:not(formspec-render .formspec-container):has([data-formspec-form])';
+    ':is(formspec-render, [data-formspec-render-root], .formspec-container:not(formspec-render .formspec-container):has([data-formspec-form]))';
 
 /**
  * One rendered form under test. Each method checks one thing the documents promise and records what
