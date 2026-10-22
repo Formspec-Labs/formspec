@@ -1,6 +1,7 @@
 /** @filedesc The reference-renderer accessibility check: axe-core (WCAG A/AA) on each wizard page and again with validation errors shown, as a structured report. */
 import type { Page } from '@playwright/test';
 import { revealSearch, type RecipeStep } from './reveal.js';
+import { DEFAULT_WALK_ROOT_SELECTOR } from './checks.js';
 
 /** axe rule tags the check runs: WCAG 2.0 A/AA, 2.1 A/AA and 2.2 AA. */
 export const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] as const;
@@ -211,7 +212,7 @@ type AxeBuilderCtor = new (options: { page: Page }) => { withTags(tags: string[]
 async function loadAxe(): Promise<AxeBuilderCtor> {
     try {
         const mod = await import('@axe-core/playwright');
-        return (mod.AxeBuilder ?? (mod as { default?: unknown }).default) as AxeBuilderCtor;
+        return (mod.AxeBuilder ?? (mod as { default?: unknown }).default) as unknown as AxeBuilderCtor;
     } catch {
         throw new AxeMissingError();
     }
@@ -284,7 +285,7 @@ const TAB = '[role="tab"]';
  */
 export async function runAxePass(page: Page, options: AxePassOptions = {}): Promise<AxePassResult> {
     const AxeBuilder = await loadAxe();
-    const rootSelector = options.root ?? 'formspec-render';
+    const rootSelector = options.root ?? DEFAULT_WALK_ROOT_SELECTOR;
     const maxPages = options.maxPages ?? 200;
     const maxReveals = options.maxReveals ?? 20;
     const result: AxePassResult = {
@@ -493,7 +494,7 @@ export async function checkAccessibility(page: Page, options: AccessibilityCheck
     });
     const work = (async () => {
         await options.open(page);
-        await waitForForm(page, options.root ?? 'formspec-render');
+        await waitForForm(page, options.root ?? DEFAULT_WALK_ROOT_SELECTOR);
         const pass = await runAxePass(page, options);
         // The page's own policy refuses what routing never saw (a fetch from the engine, a stylesheet link).
         const blocked: string[] = await page.evaluate(() => (window as { __formspecHost?: { blocked?: string[] } }).__formspecHost?.blocked ?? []);

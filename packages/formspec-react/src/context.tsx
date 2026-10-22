@@ -199,6 +199,8 @@ export interface FormspecContextValue {
     fieldHelpLabel: string;
     /** Effective formPresentation (definition merged with component document). */
     formPresentation?: Record<string, unknown>;
+    /** Synchronize the `show-validation-summary` attribute from `.formspec-container`. */
+    setShowValidationSummaryAttr?: (show: boolean) => void;
 }
 
 /** @internal The provider's value, or `null` outside one — read it through {@link useFormspecContext}. */
@@ -586,6 +588,9 @@ export function FormspecProvider(props: FormspecProviderProps) {
         [engine, componentDocument],
     );
 
+    const [showValidationSummaryAttr, setShowValidationSummaryAttr] = useState(false);
+    const effectiveShowValidationSummary = showValidationSummary || showValidationSummaryAttr;
+
     const layoutPlan = useMemo(() => {
         if (!engine) return null;
         const def = engine.getDefinition();
@@ -631,9 +636,9 @@ export function FormspecProvider(props: FormspecProviderProps) {
                 ensureActionButton(root, planCtx.nextId, { pageMode, actionRef: action.id });
             }
         }
-        if (showValidationSummary) ensureValidationSummary(root, planCtx.nextId);
+        if (effectiveShowValidationSummary) ensureValidationSummary(root, planCtx.nextId);
         return root;
-    }, [engine, componentDocument, componentGraph, hostEvidence, effectiveThemeDocument, activeBreakpoint, onSubmit, responseActionInvoker, showValidationSummary, responseActionsDocument, mergedFormPresentation]);
+    }, [engine, componentDocument, componentGraph, hostEvidence, effectiveThemeDocument, activeBreakpoint, onSubmit, responseActionInvoker, effectiveShowValidationSummary, responseActionsDocument, mergedFormPresentation]);
 
     // §10: surface a finding when the host wires onSubmit but no submit Action
     // is published — otherwise auto-inject silently no-ops.
@@ -735,8 +740,9 @@ export function FormspecProvider(props: FormspecProviderProps) {
             admitFieldHelpUri,
             fieldHelpLabel,
             formPresentation: mergedFormPresentation,
+            setShowValidationSummaryAttr,
         }),
-        [engine, layoutPlan, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, latestSubmitSignal, recordSubmit, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation],
+        [engine, layoutPlan, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, latestSubmitSignal, recordSubmit, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation, setShowValidationSummaryAttr],
     );
 
     return (

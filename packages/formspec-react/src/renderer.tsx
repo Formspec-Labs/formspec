@@ -2,17 +2,20 @@
 
 /** @filedesc FormspecForm — auto-renderer that walks LayoutNode tree into React elements. */
 import React, { useState, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
-import type { IssuerSource } from '@formspec-org/engine';
+import type { IFormEngine, IssuerSource } from '@formspec-org/engine';
 import { buildPlatformTheme, emitMergedThemeCssVars } from '@formspec-org/layout';
 const defaultThemeJson = buildPlatformTheme();
 import { FormspecProvider } from './context';
-import type { FormspecProviderProps } from './context';
+import type { FormspecProviderProps, SubmitResult } from './context';
 import { useFormspecContext } from './context';
 import { FormspecNode } from './node-renderer';
 import { ActionFeedbackContent } from './action-feedback.js';
 import { IssuerChromeSlot, parseQueryIssuerOverride } from './issuer';
 import { FormspecScreener } from './screener/FormspecScreener';
 import type { ScreenerRoute, ScreenerRouteType } from './screener/types';
+import { useForm, type SubmitOptions } from './use-form';
+import { useLocale } from './use-locale';
+import { focusFirstInvalidField } from './use-focus-field';
 
 /** Match `<formspec-render>`: emit theme + component tokens on `.formspec-container` so CSS variables resolve the same as the web component (e.g. radio group border). */
 function syncSystemAppearanceClass(el: HTMLDivElement | null, systemPrefersDark: boolean): void {
@@ -219,17 +222,90 @@ export interface FormspecFormContentProps {
     className?: string;
 }
 
+export interface WalkBridgeSubmitOptions extends SubmitOptions {
+    emitEvent?: boolean;
+}
+
+export interface WalkBridgeElement extends HTMLDivElement {
+    engine?: IFormEngine;
+    submit?: (options?: WalkBridgeSubmitOptions) => SubmitResult;
+    locale?: string;
+}
+
 /** Render the current provider's form, including its scoped tokens and issuer chrome. */
 export function FormspecFormContent({ className }: FormspecFormContentProps) {
-    const { engine, layoutPlan } = useFormspecContext();
+    const {
+        engine,
+        layoutPlan,
+        recordSubmit,
+        onSubmit,
+        setShowValidationSummaryAttr,
+    } = useFormspecContext();
+    const { submit: submitForm } = useForm();
+    const { activeLocale, direction } = useLocale();
     const containerRef = useEmitThemeTokensOnFormspecContainerRef();
 
+    useLayoutEffect(() => {
+        const el = containerRef.current as WalkBridgeElement | null;
+        if (!el) return;
+
+        el.engine = engine;
+        el.submit = (options?: WalkBridgeSubmitOptions): SubmitResult => {
+            const result = submitForm(options);
+            recordSubmit(result);
+            if (result.validationReport && !result.validationReport.valid) {
+                focusFirstInvalidField(el, result.validationReport.results);
+            }
+            if (options?.emitEvent !== false) {
+                onSubmit?.(result);
+            }
+            return result;
+        };
+        Object.defineProperty(el, 'locale', {
+            configurable: true,
+            get: () => engine.getActiveLocale?.() ?? '',
+            set: (code: string) => {
+                engine.setLocale(code);
+                if (code) {
+                    el.setAttribute('lang', code);
+                    el.setAttribute('dir', engine.getLocaleDirection());
+                } else {
+                    el.removeAttribute('lang');
+                    el.removeAttribute('dir');
+                }
+            },
+        });
+
+        setShowValidationSummaryAttr?.(el.hasAttribute('show-validation-summary'));
+        const observer = new MutationObserver(() => {
+            setShowValidationSummaryAttr?.(el.hasAttribute('show-validation-summary'));
+        });
+        observer.observe(el, {
+            attributes: true,
+            attributeFilter: ['show-validation-summary'],
+        });
+
+        return () => {
+            observer.disconnect();
+            delete el.engine;
+            delete el.submit;
+            Reflect.deleteProperty(el, 'locale');
+        };
+    }, [engine, submitForm, recordSubmit, onSubmit, setShowValidationSummaryAttr]);
+
+    const containerClass = className
+        ? `formspec-container ${className}`
+        : 'formspec-container';
+
     if (!layoutPlan) {
-        const containerClass = className
-            ? `formspec-container ${className}`
-            : 'formspec-container';
         return (
-            <div ref={containerRef} className={containerClass}>
+            <div
+                ref={containerRef}
+                className={containerClass}
+                data-formspec-render-root=""
+                lang={activeLocale || undefined}
+                dir={activeLocale ? direction : undefined}
+            >
                 <IssuerChromeSlot
                     engine={engine}
                     hostOrigin={browserHostOrigin()}
@@ -240,12 +316,14 @@ export function FormspecFormContent({ className }: FormspecFormContentProps) {
         );
     }
 
-    const containerClass = className
-        ? `formspec-container ${className}`
-        : 'formspec-container';
-
     return (
-        <div ref={containerRef} className={containerClass}>
+        <div
+            ref={containerRef}
+            className={containerClass}
+            data-formspec-render-root=""
+            lang={activeLocale || undefined}
+            dir={activeLocale ? direction : undefined}
+        >
             <IssuerChromeSlot
                 engine={engine}
                 hostOrigin={browserHostOrigin()}

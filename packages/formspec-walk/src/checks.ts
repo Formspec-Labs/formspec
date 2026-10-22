@@ -140,6 +140,10 @@ declare global {
     }
 }
 
+/** Default selector matching `<formspec-render>` or a React `<FormspecForm>` root container. */
+export const DEFAULT_WALK_ROOT_SELECTOR =
+    'formspec-render, [data-formspec-render-root], .formspec-container:not(formspec-render .formspec-container):has([data-formspec-form])';
+
 /**
  * One rendered form under test. Each method checks one thing the documents promise and records what
  * contradicts them in `findings`; `expectClean()` raises them all at once, so a run reports everything.
@@ -163,7 +167,7 @@ export class Walk {
 
     /** Open the page (or mount), activate the locale, add the renderer's default summary if the page placed none. */
     static async open(page: Page, options: OpenOptions): Promise<Walk> {
-        const rootSelector = options.root ?? 'formspec-render';
+        const rootSelector = options.root ?? DEFAULT_WALK_ROOT_SELECTOR;
         if (options.url) await page.goto(options.url);
         if (options.mount) await options.mount(page);
         await page.waitForSelector(`${rootSelector} [data-name]`);
