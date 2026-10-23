@@ -67,7 +67,7 @@ impl Visit for BindPass<'_> {
         let fel = walk.fel;
         let normalize_expr = |expr: &str| resolve_qualified_repeat_refs(expr, &item.path);
 
-        let was_relevant = item.prev_relevant;
+        let was_relevant = item.mip.prev_relevant;
 
         let own_relevant = if let Some(ref expr) = item.relevance {
             let normalized_expr = normalize_expr(expr);
@@ -75,9 +75,9 @@ impl Visit for BindPass<'_> {
         } else {
             true
         };
-        item.relevant = own_relevant && parent.relevant;
+        item.mip.relevant = own_relevant && parent.relevant;
 
-        if item.relevant && !was_relevant {
+        if item.mip.relevant && !was_relevant {
             let current = values.get(&item.path);
             let is_empty = match current {
                 None | Some(JsonValue::Null) => true,
@@ -111,7 +111,7 @@ impl Visit for BindPass<'_> {
             }
         }
 
-        if !item.relevant && item.excluded_value == Some(crate::types::ExcludedValueMode::Null) {
+        if !item.mip.relevant && item.excluded_value == Some(crate::types::ExcludedValueMode::Null) {
             env.set_field(&item.path, Value::Null);
         }
 
@@ -122,15 +122,15 @@ impl Visit for BindPass<'_> {
         } else {
             item.calculate.is_some()
         };
-        item.readonly = own_readonly || parent.readonly;
+        item.mip.readonly = own_readonly || parent.readonly;
 
-        if item.relevant {
+        if item.mip.relevant {
             if let Some(ref expr) = item.required_expr {
                 let normalized_expr = normalize_expr(expr);
-                item.required = fel.eval_bool(&normalized_expr, env, false);
+                item.mip.required = fel.eval_bool(&normalized_expr, env, false);
             }
         } else {
-            item.required = false;
+            item.mip.required = false;
         }
 
         if let Some(val) = values.get(&item.path) {
@@ -153,15 +153,15 @@ impl Visit for BindPass<'_> {
             &item.path,
             MipState {
                 valid: !self.invalid_paths.contains(&item.path),
-                relevant: item.relevant,
-                readonly: item.readonly,
-                required: item.required,
+                relevant: item.mip.relevant,
+                readonly: item.mip.readonly,
+                required: item.mip.required,
             },
         );
 
         Parent {
-            relevant: item.relevant,
-            readonly: item.readonly,
+            relevant: item.mip.relevant,
+            readonly: item.mip.readonly,
         }
     }
 }
@@ -182,22 +182,22 @@ pub(crate) fn refresh_required_state(
     fel: Fel<'_>,
 ) {
     for item in items.iter_mut() {
-        if item.relevant {
+        if item.mip.relevant {
             if let Some(ref expr) = item.required_expr {
                 let normalized_expr = resolve_qualified_repeat_refs(expr, &item.path);
-                item.required = fel.eval_bool(&normalized_expr, env, false);
+                item.mip.required = fel.eval_bool(&normalized_expr, env, false);
             }
         } else {
-            item.required = false;
+            item.mip.required = false;
         }
 
         env.set_mip(
             &item.path,
             MipState {
                 valid: !invalid_paths.contains(&item.path),
-                relevant: item.relevant,
-                readonly: item.readonly,
-                required: item.required,
+                relevant: item.mip.relevant,
+                readonly: item.mip.readonly,
+                required: item.mip.required,
             },
         );
 

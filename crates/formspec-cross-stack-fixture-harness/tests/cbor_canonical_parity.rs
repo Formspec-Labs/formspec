@@ -33,6 +33,8 @@ const PARITY_TARGETS: &[(&str, &str)] = &[
     ("004-tampered-signature-failed", "wos-provenance.cbor"),
     ("006-deferred-pending-helper", "trellis-events.cbor"),
     ("006-deferred-pending-helper", "wos-provenance.cbor"),
+    ("007-cross-stack-trellis-export", "trellis-events.cbor"),
+    ("007-cross-stack-trellis-export", "wos-provenance.cbor"),
 ];
 
 fn bundle_file(bundle: &str, name: &str) -> std::path::PathBuf {

@@ -32,7 +32,6 @@ test.describe('Grant App: Wizard Navigation', () => {
     await engineSetValue(page, 'projectNarrative.startDate', '2027-01-01');
     await engineSetValue(page, 'projectNarrative.endDate', '2028-01-01');
     await engineSetValue(page, 'projectNarrative.focusAreas', ['health', 'education']);
-    await page.waitForTimeout(100);
 
     await goToPage(page, 'Budget');
     const heading = await page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first().textContent();
@@ -46,14 +45,12 @@ test.describe('Grant App: Wizard Navigation', () => {
 
     // Click Next → go to page 2 (Project Narrative)
     await page.locator('button.formspec-wizard-next').first().click();
-    await page.waitForTimeout(150);
 
     const heading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first();
     await expect(heading).toHaveText('Project Narrative');
 
     // Click Previous → back to page 1 (Applicant Info)
     await page.locator('button.formspec-wizard-prev').first().click();
-    await page.waitForTimeout(150);
 
     const heading1 = page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first();
     await expect(heading1).toHaveText('Applicant Info');

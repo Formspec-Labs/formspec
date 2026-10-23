@@ -612,7 +612,7 @@ If raw values are omitted for policy reasons, implementations **SHOULD** record 
 
 This enables proof that a material change happened without retaining the full sensitive content indefinitely.
 
-When a Privacy Profile is loaded, each `ChangeSetEntry` for a response field **MUST** inherit the field's `accessControl.class` as `accessClass` when the class is resolvable. Raw `before` and `after` values for a class **MUST NOT** be exposed to a reader who lacks authority for that class. Implementations **MAY** retain hashes, display summaries, or redaction metadata outside the raw value bucket only when doing so does not leak more than the deployment's header/tag policy allows.
+When field-level data classification is declared (via `x-data-classification`, per `disclosure-classification-reconciliation.md`), each `ChangeSetEntry` for a response field **MUST** inherit the field's resolved classification sensitivity token (e.g. `restricted`, `confidential`, `pii`) as `accessClass` when resolvable. Raw `before` and `after` values for a protected class **MUST NOT** be exposed to a reader who lacks authority for that class. Implementations **MAY** retain hashes, display summaries, or redaction metadata outside the raw value bucket only when doing so does not leak more than the deployment's header/tag policy allows.
 
 ### 7.9 Example
 
@@ -790,7 +790,7 @@ The event **MUST** carry `data` with this shape:
 }
 ```
 
-`declinedAt` **MUST** be present. `reason` **SHOULD** be present and **MUST** be free text when present; implementations honoring per-field `accessControl.class` SHOULD treat `reason` as respondent-authored narrative text under the deployment's prevailing class for narrative reasons. `clauseReferences` **MAY** be present and **MUST** be non-empty when present; each entry is an opaque implementation reference (RFC 6901 JSON Pointer into the Definition, item key, clause id, or disclosure id). `partyRef` **MAY** be present for multi-party drafts per FW-0050 composition and **MUST** be omitted in single-party flows.
+`declinedAt` **MUST** be present. `reason` **SHOULD** be present and **MUST** be free text when present; implementations honoring per-field data classification (`x-data-classification`) SHOULD treat `reason` as respondent-authored narrative text under the deployment's prevailing sensitivity class for narrative reasons. `clauseReferences` **MAY** be present and **MUST** be non-empty when present; each entry is an opaque implementation reference (RFC 6901 JSON Pointer into the Definition, item key, clause id, or disclosure id). `partyRef` **MAY** be present for multi-party drafts per FW-0050 composition and **MUST** be omitted in single-party flows.
 
 The event **SHOULD** include a `ChangeSetEntry` with `op = status-transition` recording the lifecycle move from `in-progress` to `stopped`, since the form act ends.
 
@@ -893,7 +893,7 @@ The event **MUST** carry `data` with this shape:
 
 `erasedAt`, `classesErased`, and `deletionReceiptRef` **MUST** be present.
 
-`classesErased` **MUST** be non-empty and **MUST** carry resolved `accessControl.class` tokens drawn from the deployment's Access-Class Registry. Implementations that erase ALL retained respondent data for the response **MUST** still enumerate the affected class tokens; they **MUST NOT** use an open-ended marker like `"*"` or `"all"`.
+`classesErased` **MUST** be non-empty and **MUST** carry resolved data classification tokens (drawn from `x-data-classification` sensitivity levels or categories, per `disclosure-classification-reconciliation.md`). Implementations that erase ALL retained respondent data for the response **MUST** still enumerate the affected class tokens; they **MUST NOT** use an open-ended marker like `"*"` or `"all"`.
 
 `retentionWaived` **MAY** be present and **SHOULD** list retention-policy identifiers waived for this erasure (e.g., legal-hold exceptions consumed). Empty or omitted when no retention waiver applies.
 
@@ -958,7 +958,7 @@ The event **MUST** carry `data` with this shape:
 
 The closed enum lets verifiers, support staff, and analytics surfaces interpret the flag without per-deployment vocabulary work. Implementations that need an additional flag kind **MUST NOT** stuff it into `note`; they **MUST** propose an extension to the closed taxonomy.
 
-`note` **MAY** be present and **MUST** be free text when present. Class inheritance follows the flagged field's `accessControl.class` when resolvable.
+`note` **MAY** be present and **MUST** be free text when present. Class inheritance follows the flagged field's resolved `x-data-classification` sensitivity token when resolvable.
 
 `itemKey` **MAY** be present and **SHOULD** be the stable Formspec item key when the path maps directly to one.
 

@@ -252,3 +252,19 @@ A conforming Identity Binding Profile processor:
    not as routing, receipt, or safety-team policy.
 9. MUST NOT infer identity proofing, signer authority, or legal sufficiency from
    profile conformance alone.
+
+## 10. Credential-Exchange Surfaces and Anti-Phishing Guarantee
+
+### 10.1 Anti-Phishing Guarantee on Credential Surfaces
+On any credential-exchange surface (including routes classified under `routeClass: "authentication"` per `surface-spec.md` §3), the rendered chrome and visual appearance attributable to the identity authority constitute an indispensable, human-facing anti-phishing control.
+
+Specifically:
+- An authentication or credential-exchange surface presented to a human actor **MUST** render exclusively under chrome attributable directly to the authoritative platform or identity provider.
+- An implementation **MUST NOT** permit deploying tenants or third parties to restyle, rebrand, or inject custom theme tokens into surfaces where credentials, passkey ceremonies, or identity assertions are exchanged (`routeClass: "authentication"`).
+- **Normative Guarantee:** *The visual presentation of a credential-exchange surface is an integral component of the identity authentication ceremony. When an actor submits credentials or performs an authenticator ceremony, they rely on the authentic chrome of the identity authority to ensure their credential is provided solely to the intended relying party.*
+
+### 10.2 Falsification by Theme Variation
+If tenant-controlled theming, restyling, or branding were permitted on an `authentication` route, the visual assurance that distinguishes an authoritative identity provider from an imposter or phishing surrogate is defeated. Under tenant styling, the claim that *"the actor gave this credential to the party they believed they were giving it to"* becomes false.
+
+### 10.3 Source of Authority for Route Class Refusal
+This guarantee serves as the normative IDENTITY-owned authority cited by the Rendering ring (ADR 0161 §5 and `ui-graph-policy-spec.md` §5.7) to enforce the unconditional refusal of tenant theming on routes classified as `authentication` (`THEME-ROUTE-CLASS`).

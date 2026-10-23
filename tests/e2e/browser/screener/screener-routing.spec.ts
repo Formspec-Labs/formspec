@@ -24,7 +24,7 @@ async function mountWithScreener(page: any) {
       throw e;
     }
   }, { def: definition, scr: screener, comp: component, thm: theme, reg: registry });
-  await page.waitForTimeout(200);
+  await page.locator('.formspec-screener, .formspec-root').first().waitFor({ state: 'visible' });
 }
 
 test.describe('Screener: Rendering and Route Selection', () => {
@@ -192,7 +192,6 @@ test.describe('Screener: Rendering and Route Selection', () => {
     expect(detail.route.label).toBe('New Application');
 
     // Since route target matches definition URL, main form should now render
-    await page.waitForTimeout(200);
     const wizard = page.locator('.formspec-wizard');
     await expect(wizard).toBeVisible();
 
@@ -215,7 +214,7 @@ test.describe('Screener: Rendering and Route Selection', () => {
     await page.locator('[data-name="applicantType"] select').selectOption('nonprofit');
     await page.locator('[data-name="requestedAmount"] input[type="number"]').fill('100000');
     await page.locator('.formspec-screener-continue').click();
-    await page.waitForTimeout(100);
+    await expect(page.locator('.formspec-screener-continue')).toBeHidden();
 
     const routeAfter = await page.evaluate(() => {
       const el: any = document.querySelector('formspec-render');
@@ -239,7 +238,7 @@ test.describe('Screener: Rendering and Route Selection', () => {
       el.componentDocument = comp;
       el.themeDocument = thm;
     }, { def: definition, scr: screenerDoc, comp: component, thm: theme, reg: registry });
-    await page.waitForTimeout(200);
+    await page.locator('.formspec-wizard').waitFor({ state: 'visible' });
 
     // Main form should be visible, no screener
     const wizard = page.locator('.formspec-wizard');
@@ -256,7 +255,6 @@ test.describe('Screener: Rendering and Route Selection', () => {
     await page.locator('[data-name="applicantType"] select').selectOption('nonprofit');
     // Leave requestedAmount empty, don't touch isReturning checkbox
     await page.locator('.formspec-screener-continue').click();
-    await page.waitForTimeout(200);
 
     // Should stay on screener
     const screenerFields = page.locator('.formspec-screener-fields');
@@ -277,7 +275,6 @@ test.describe('Screener: Rendering and Route Selection', () => {
     // Trigger validation with only applicantType filled
     await page.locator('[data-name="applicantType"] select').selectOption('nonprofit');
     await page.locator('.formspec-screener-continue').click();
-    await page.waitForTimeout(200);
 
     // requestedAmount should show a required error
     const amountError = page.locator('[data-name="requestedAmount"] .formspec-error');
@@ -320,7 +317,6 @@ test.describe('Screener: Rendering and Route Selection', () => {
     await page.locator('[data-name="applicantType"] select').selectOption('nonprofit');
     await page.locator('[data-name="requestedAmount"] input[type="number"]').fill('100000');
     await page.locator('.formspec-screener-continue').click();
-    await page.waitForTimeout(500);
 
     // Wizard should be visible
     const wizard = page.locator('.formspec-wizard');

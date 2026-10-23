@@ -15,6 +15,8 @@ publish = false
 [dependencies]
 integrity-cose = { path = "../../../integrity-stack/crates/integrity-cose" }
 integrity-verify = { path = "../../../integrity-stack/crates/integrity-verify" }
+thiserror = "1"
+
 
 [dev-dependencies]
 proptest = "1"

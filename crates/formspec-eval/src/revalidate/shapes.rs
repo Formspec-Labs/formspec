@@ -42,7 +42,7 @@ impl Validation<'_> {
         if target != "#"
             && !target.is_empty()
             && let Some(item) = find_item_by_path(items, target)
-            && !item.relevant
+            && !item.mip.relevant
         {
             return;
         }
@@ -147,7 +147,7 @@ impl Validation<'_> {
         for concrete_path in &concrete_paths {
             // §5.6 rule 1: skip non-relevant targets
             if let Some(item) = find_item_by_path(items, concrete_path)
-                && !item.relevant
+                && !item.mip.relevant
             {
                 continue;
             }

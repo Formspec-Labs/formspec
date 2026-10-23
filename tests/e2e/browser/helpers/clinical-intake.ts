@@ -97,7 +97,7 @@ export async function completeScreener(
   await page.locator('[data-name="sChiefComplaint"] select').selectOption(chiefComplaint);
   await page.locator('[data-name="sPainLevel"] input[type="number"]').fill(String(painLevel));
   await page.locator('.formspec-screener-continue').click();
-  await page.waitForTimeout(300);
+  await page.locator('.formspec-screener-continue').waitFor({ state: 'hidden' });
 }
 
 /** Programmatically add a repeat instance via engine. Returns new count. */

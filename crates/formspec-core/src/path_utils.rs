@@ -39,7 +39,7 @@ impl PathSegment {
     /// `Exact("name")` → `"name"`, `Indexed(0)` → `"0"`, `Wildcard` → `"*"`,
     /// `Special("@index")` → `"@index"`.
     ///
-    /// For round-trippable serialization use [`Display`] / [`Path::to_string`].
+    /// For round-trippable serialization use [`std::fmt::Display`] / [`ToString::to_string`].
     pub fn flat_key(&self) -> String {
         match self {
             PathSegment::Exact(s) | PathSegment::Special(s) => s.clone(),

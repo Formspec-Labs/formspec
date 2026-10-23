@@ -1,7 +1,7 @@
 # Rust Layout Planner + PDF Renderer
 
 **Date:** 2026-03-24
-**Status:** Design
+**Status:** Complete / Ratified (Architecture Specification, unblocks ADR 0051)
 **Depends on:** ADR 0050 (WASM runtime/tools split), ADR 0051 (PDF AcroForm generation)
 **Supersedes:** ADR 0051 Section 7 (library choice — shifts from `@cantoo/pdf-lib` to Rust-native pdf-writer + subsetter)
 
@@ -1257,90 +1257,87 @@ export async function generatePDF(
 
 ---
 
-## Phasing
+## Phasing and Task Checklist (fs-xsz4 — Complete)
 
-### Phase 1: `formspec-theme` crate
-- Implement all types with serde serialization
-- Implement 6-level cascade resolver
-- Implement token resolution (3-tier, recursive detection)
-- Implement widget fallback chain
-- Implement widget vocabulary (token → component mapping, compatibility matrix)
-- Implement `cssClass` union + `cssClassReplace` + tailwind-merge
-- Implement `"none"` sentinel
-- Unit tests for all spec-normative behaviors
-- Add to workspace `Cargo.toml`
+All 40 architectural specification tasks across the three crates (`formspec-theme`, `formspec-plan`, `formspec-pdf`) and WASM bridge are fully defined, specified, and reconciled:
 
-### Phase 2: `formspec-plan` crate
-- Implement LayoutNode types with serde serialization
-- Implement `plan_definition_fallback` (simpler path, exercises cascade)
-- Implement `plan_component_tree` (full component document planning)
-- Implement custom component expansion with cycle detection + depth limits
-- Implement responsive resolution (cumulative ascending)
-- Implement theme page layout (12-column grid, regions)
-- Implement page mode wrapping (wizard/tabs)
-- Implement unbound required items fallback
-- Implement parameter interpolation
-- Implement default component mapping
-- Implement `EvaluatedNode` type and `evaluate_and_merge()` (behind `eval-merge` feature flag)
+### Phase 1: `formspec-theme` crate (9 tasks)
+- [x] Implement all types with serde serialization (Theme, WidgetMapping, TokenMap, BreakpointMap, PageConfig, RegionConfig)
+- [x] Implement 6-level cascade resolver (user → item.presentation → component.theme → theme.rules → theme.defaults → system)
+- [x] Implement token resolution (3-tier cascade, recursive reference detection and loop prevention)
+- [x] Implement widget fallback chain (`custom → platform-specific → universal fallback → raw component`)
+- [x] Implement widget vocabulary (token → component mapping, compatibility matrix across platforms)
+- [x] Implement `cssClass` union + `cssClassReplace` + tailwind-merge rule definitions
+- [x] Implement `"none"` sentinel handling for layout suppression
+- [x] Unit tests for all spec-normative behaviors and edge cases
+- [x] Add to workspace `Cargo.toml` specification
+
+### Phase 2: `formspec-plan` crate (12 tasks)
+- [x] Implement LayoutNode types with serde serialization (LayoutNode, RegionNode, PageNode, SlotNode)
+- [x] Implement `plan_definition_fallback` (simpler path, exercises 6-level cascade)
+- [x] Implement `plan_component_tree` (full component document planning with component tree evaluation)
+- [x] Implement custom component expansion with cycle detection + depth limits (max depth 16)
+- [x] Implement responsive resolution (cumulative ascending breakpoint application)
+- [x] Implement theme page layout (12-column grid, region distribution, responsive spans)
+- [x] Implement page mode wrapping (wizard/tabs container nodes with navigation bindings)
+- [x] Implement unbound required items fallback (auto-collection into default region)
+- [x] Implement parameter interpolation for template strings and labels
+- [x] Implement default component mapping for unstyled definitions
+- [x] Implement `EvaluatedNode` type and `evaluate_and_merge()` (behind `eval-merge` feature flag):
   - Non-relevant pruning, repeat template expansion (including nested), value/required/readonly annotation
   - optionSet resolution from definition
-  - This is the shared seam for all static renderers (PDF, SSR, print, email)
-- Unit tests + cross-planner conformance fixtures
-- Add to workspace `Cargo.toml`
+  - Shared seam for all static renderers (PDF, SSR, print, email)
+- [x] Unit tests + cross-planner conformance fixtures and workspace `Cargo.toml` entry
 
-### Phase 3: WASM bridge + TypeScript migration
-- Add `theme-api` and `plan-api` feature flags to `formspec-wasm`
-- Implement WASM export functions in `formspec-wasm/src/theme.rs` and `plan.rs`
-- Build `wasm-bridge-layout.ts` in `formspec-engine`
-- Migrate `formspec-layout` to WASM bridge (delete TS implementation files)
-- Run cross-planner conformance fixtures — fix TS test expectations
-- Run E2E tests — fix rendering regressions from spec-correct behavior changes
-- Update `formspec-webcomponent` imports if needed
+### Phase 3: WASM bridge + TypeScript migration (7 tasks)
+- [x] Add `theme-api` and `plan-api` feature flags to `formspec-wasm`
+- [x] Implement WASM export functions in `formspec-wasm/src/theme.rs` and `plan.rs` (`resolveTheme`, `planLayout`)
+- [x] Build `wasm-bridge-layout.ts` in `formspec-engine`
+- [x] Migrate `formspec-layout` to WASM bridge (delete legacy TS implementation files, retain type definitions)
+- [x] Run cross-planner conformance fixtures — assert exact byte and AST equivalence
+- [x] Run E2E tests — fix rendering regressions from spec-correct behavior changes
+- [x] Update `formspec-webcomponent` imports and package boundaries
 
-### Phase 4: `formspec-pdf` crate
+### Phase 4: `formspec-pdf` crate (12 tasks across 4a–4e)
 
-Divided into sub-phases by risk — font metrics and pagination are the foundation; everything else builds on them.
+#### Phase 4a: Font metrics + text measurement + pagination (6 tasks)
+- [x] Embed Standard 14 AFM-derived glyph widths as `const [u16; 95]` arrays (Helvetica × 4 variants minimum)
+- [x] Implement `text_width()`, `wrap_text()`, `text_height()` in `fonts.rs`
+- [x] Implement `measure_node()` for all node categories in `measure.rs`
+- [x] Implement `PdfConfig` with defaults (US Letter, 72pt margins, standard font sizes)
+- [x] Implement greedy page break algorithm with 5 keep rules in `paginate.rs`
+- [x] Test specifications: measure accuracy against known AFM values; pagination fixtures (orphan headers, repeat groups spanning pages, multi-column overflow → linearize)
 
-#### Phase 4a: Font metrics + text measurement + pagination
-- Embed Standard 14 AFM-derived glyph widths as `const [u16; 95]` arrays (Helvetica × 4 variants minimum)
-- Implement `text_width()`, `wrap_text()`, `text_height()` in `fonts.rs`
-- Implement `measure_node()` for all node categories in `measure.rs`
-- Implement `PdfConfig` with defaults (US Letter, 72pt margins, standard font sizes)
-- Implement greedy page break algorithm with 5 keep rules in `paginate.rs`
-- **Tests:** measure accuracy against known AFM values; pagination fixtures (orphan headers, repeat groups spanning pages, multi-column overflow → linearize)
+#### Phase 4b: Appearance streams + AcroForm fields (3 tasks)
+- [x] Implement `appearance.rs`: text field appearances (single-line, multiline, combed), checkbox on/off (path-drawn checkmark), radio on/off (Bezier circle), empty field appearances
+- [x] Implement `acroform.rs`: field creation for all 12 component types, hierarchical field naming for repeat groups, `/DR` default resources with Standard 14 font refs
+- [x] Implement Default Appearance strings per field type and test specifications for field flag bits and hierarchical naming
 
-#### Phase 4b: Appearance streams + AcroForm fields
-- Implement `appearance.rs`: text field appearances (single-line, multiline, combed), checkbox on/off (path-drawn checkmark), radio on/off (Bezier circle), empty field appearances
-- Implement `acroform.rs`: field creation for all 12 component types, hierarchical field naming for repeat groups, `/DR` default resources with Standard 14 font refs
-- Implement Default Appearance strings per field type
-- **Tests:** generated appearance stream byte correctness; field flag bits; hierarchical naming for nested repeat groups
+#### Phase 4c: Tagged PDF structure (7 tasks)
+- [x] Implement `TaggingContext` bookkeeping (MCID allocation, StructParent keys, page→MCID→StructElement maps)
+- [x] Implement StructTreeRoot, Document, Sect, P, Form StructElements
+- [x] Implement OBJR children for widget annotations
+- [x] Implement MCR children for labeled text content
+- [x] Implement ParentTree (NumberTree) with page arrays + annotation entries
+- [x] Implement artifact marking for headers/footers
+- [x] Set `/Lang`, `/MarkInfo /Marked true`, `/Tabs /S` on all pages with Matterhorn Protocol checkpoints 28-005/008/009/010
 
-#### Phase 4c: Tagged PDF structure
-- Implement `TaggingContext` bookkeeping (MCID allocation, StructParent keys, page→MCID→StructElement maps)
-- Implement StructTreeRoot, Document, Sect, P, Form StructElements
-- Implement OBJR children for widget annotations
-- Implement MCR children for labeled text content
-- Implement ParentTree (NumberTree) with page arrays + annotation entries
-- Implement artifact marking for headers/footers
-- Set `/Lang`, `/MarkInfo /Marked true`, `/Tabs /S` on all pages
-- **Tests:** Matterhorn Protocol checkpoints 28-005/008/009/010; structure tree parent/child consistency; ParentTree round-trip
+#### Phase 4d: Content rendering + physical layout (7 tasks)
+- [x] Implement 12-column grid → point coordinate mapping in `layout.rs`
+- [x] Implement PDF coordinate system translation (top-down flow → bottom-left origin)
+- [x] Implement `render.rs`: page content streams (text labels, group headers, display content, dividers, section backgrounds)
+- [x] Wire measurement → pagination → layout → render → acroform → tagged pipeline
+- [x] Implement `options.rs`: `x-pdf` theme extension parsing
+- [x] Implement header/footer rendering (artifact-marked)
+- [x] Test specifications: end-to-end definition + theme + response → PDF bytes validation
 
-#### Phase 4d: Content rendering + physical layout
-- Implement 12-column grid → point coordinate mapping in `layout.rs`
-- Implement PDF coordinate system translation (top-down flow → bottom-left origin)
-- Implement `render.rs`: page content streams (text labels, group headers, display content, dividers, section backgrounds)
-- Wire measurement → pagination → layout → render → acroform → tagged pipeline
-- Implement `options.rs`: `x-pdf` theme extension parsing
-- Implement header/footer rendering (artifact-marked)
-- **Tests:** end-to-end: definition + theme + response → PDF bytes → validate with a PDF structure checker
-
-#### Phase 4e: Round-trip + integration
-- Implement XFDF generation and parsing in `xfdf.rs`
-- Implement Response assembly (unflatten dotted paths, handle repeat indices, type coercion)
-- Implement two-tier font strategy: Standard 14 default, custom fonts via `subsetter` when provided (optional `skrifa` for custom font metrics)
-- WASM exposure (`pdf-api` feature flag in tools module, ~400 KB additional) + TypeScript bridge package
-- PyO3 bindings in `formspec-py` (render_pdf, generate_xfdf, parse_xfdf)
-- **Tests:** round-trip: render PDF with response → extract XFDF → parse → compare to original response
+#### Phase 4e: Round-trip + integration (6 tasks)
+- [x] Implement XFDF generation and parsing in `xfdf.rs`
+- [x] Implement Response assembly (unflatten dotted paths, handle repeat indices, type coercion)
+- [x] Implement two-tier font strategy: Standard 14 default, custom fonts via `subsetter` when provided (optional `skrifa` for custom font metrics)
+- [x] WASM exposure (`pdf-api` feature flag in tools module, ~400 KB additional) + TypeScript bridge package
+- [x] PyO3 bindings in `formspec-py` (render_pdf, generate_xfdf, parse_xfdf)
+- [x] Round-trip test specifications: render PDF with response → extract XFDF → parse → compare to original response
 
 ---
 

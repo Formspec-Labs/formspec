@@ -230,8 +230,6 @@ export class FormspecRender extends HTMLElement {
 
     constructor() {
         super();
-        const shadow = this.attachShadow({ mode: 'open' });
-        shadow.appendChild(document.createElement('slot'));
     }
 
     attributeChangedCallback(name: string): void {

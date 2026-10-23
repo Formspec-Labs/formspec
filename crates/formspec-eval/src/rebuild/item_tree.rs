@@ -30,7 +30,7 @@ use formspec_core::{
 };
 use serde_json::Value;
 
-use crate::types::{ExcludedValueMode, ItemInfo, NrbMode, VariableDef, WhitespaceMode};
+use crate::types::{ExcludedValueMode, ItemInfo, MipState, NrbMode, VariableDef, WhitespaceMode};
 use formspec_core::BindTargets;
 
 pub(super) fn bool_or_string_expr(value: &Value) -> Option<String> {
@@ -184,9 +184,7 @@ fn build_item_info_from_ctx(
         data_type,
         currency,
         value: Value::Null,
-        relevant: true,
-        required: false,
-        readonly: false,
+        mip: MipState::default(),
         calculate: Some(&bind)
             .and_then(|b| b.get("calculate"))
             .and_then(|v| v.as_str())
@@ -236,7 +234,6 @@ fn build_item_info_from_ctx(
             .filter(|s| s.starts_with('='))
             .map(|s| s[1..].to_string()),
         initial_value: item.get("initialValue").cloned(),
-        prev_relevant: true,
         parent_path: ctx.parent_dotted.clone(),
         repeatable: item
             .get("repeatable")

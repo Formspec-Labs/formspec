@@ -32,16 +32,19 @@ test.describe('Smoke: Grant Application Happy Path', () => {
 
     // 5. Add a repeat instance for budget.lineItems
     await addRepeatInstance(page, 'budget.lineItems');
-    await page.waitForTimeout(50);
 
     // 6. Set quantity and unitCost on lineItems[0] via real inputs
     const quantityInput = page.locator('input.formspec-datatable-input[name="budget.lineItems[0].quantity"]');
     const unitCostInput = page.locator('input.formspec-datatable-input[name="budget.lineItems[0].unitCost"]');
     await quantityInput.fill('4');
     await unitCostInput.fill('250');
-    await page.waitForTimeout(100);
+    await expect(unitCostInput).toHaveValue('250');
 
     // 7. Verify @totalDirect variable is non-zero
+    await page.waitForFunction(() => {
+      const v = (document.querySelector('formspec-render') as any)?.getEngine?.()?.variables?.['totalDirect']?.value;
+      return v && typeof v.amount === 'number' && v.amount > 0;
+    });
     const totalDirect = await engineVariable(page, 'totalDirect');
     // totalDirect is a money object {amount, currency}
     expect(totalDirect).toBeTruthy();

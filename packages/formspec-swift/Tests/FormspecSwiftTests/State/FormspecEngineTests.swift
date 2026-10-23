@@ -369,4 +369,34 @@ struct FormspecEngineTests {
         // email field untouched by batch 2
         #expect(engine.fieldState(for: "email")?.firstError == "Required")
     }
+
+    // MARK: - testLastErrorSurfacing
+
+    @Test("engineError event populates lastError and clearLastError resets it")
+    func testEngineErrorSetsLastError() {
+        let engine = FormspecEngine(rootLayoutNode: makeRootLayoutNode())
+        #expect(engine.lastError == nil)
+
+        engine.processEvents([.engineError(message: "Custom JS failure")])
+        #expect(engine.lastError == .engineLoadFailed(message: "Custom JS failure"))
+
+        engine.clearLastError()
+        #expect(engine.lastError == nil)
+    }
+
+    @Test("mutating a disposed engine sets lastError and async mutator throws")
+    func testDisposedEngineSurfacesBridgeDisconnected() async {
+        let engine = FormspecEngine(rootLayoutNode: makeRootLayoutNode())
+        engine.dispose()
+
+        // Synchronous mutator sets lastError
+        engine.setValue("anyField", value: "test")
+        #expect(engine.lastError == .bridgeDisconnected)
+
+        // Async throws variant throws bridgeDisconnected
+        await #expect(throws: FormspecError.bridgeDisconnected) {
+            try await engine.setValueAsync("anyField", value: "test")
+        }
+    }
 }
+

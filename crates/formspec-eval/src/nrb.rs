@@ -83,7 +83,7 @@ fn collect_non_relevant_with_nrb(
 ) {
     for item in items {
         let mode = item.nrb.unwrap_or(inherited);
-        if !item.relevant && item.item_type != "display" {
+        if !item.mip.relevant && item.item_type != "display" {
             out.push((item.path.clone(), mode));
         }
         collect_non_relevant_with_nrb(&item.children, mode, out);
@@ -94,41 +94,18 @@ fn collect_non_relevant_with_nrb(
 mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
+    use crate::types::MipState;
+
     fn make_item(path: &str, nrb: Option<NrbMode>) -> ItemInfo {
         ItemInfo {
             key: path.split('.').last().unwrap_or(path).to_string(),
             path: path.to_string(),
-            item_type: "field".to_string(),
-            data_type: None,
-            currency: None,
-            value: Value::Null,
-            relevant: false,
-            required: false,
-            readonly: false,
-            calculate: None,
-            precision: None,
-            constraint: None,
-            constraint_message: None,
-            relevance: None,
-            required_expr: None,
-            readonly_expr: None,
-            whitespace: None,
             nrb,
-            excluded_value: None,
-            default_value: None,
-            default_expression: None,
-            initial_value: None,
-            prev_relevant: true,
-            parent_path: None,
-            repeatable: false,
-            repeat_min: None,
-            repeat_max: None,
-            option_values: vec![],
-            accept_types: vec![],
-            extensions: vec![],
-            pre_populate_instance: None,
-            pre_populate_path: None,
-            children: vec![],
+            mip: MipState {
+                relevant: false,
+                ..Default::default()
+            },
+            ..Default::default()
         }
     }
 

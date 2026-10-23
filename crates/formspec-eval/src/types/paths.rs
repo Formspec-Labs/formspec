@@ -125,7 +125,7 @@ pub(crate) fn resolve_qualified_repeat_refs(expression: &str, current_item_path:
 
 pub(crate) fn collect_non_relevant(items: &[ItemInfo], out: &mut Vec<String>) {
     for item in items {
-        if !item.relevant {
+        if !item.mip.relevant {
             out.push(item.path.clone());
         }
         collect_non_relevant(&item.children, out);
@@ -138,8 +138,8 @@ pub(crate) fn collect_mip_state(
     readonly: &mut HashMap<String, bool>,
 ) {
     for item in items {
-        required.insert(item.path.clone(), item.required);
-        readonly.insert(item.path.clone(), item.readonly);
+        required.insert(item.path.clone(), item.mip.required);
+        readonly.insert(item.path.clone(), item.mip.readonly);
         collect_mip_state(&item.children, required, readonly);
     }
 }

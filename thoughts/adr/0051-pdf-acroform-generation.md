@@ -1,6 +1,6 @@
 # ADR 0051: PDF Generation via AcroForm on the LayoutNode Seam
 
-**Status:** Proposed
+**Status:** Accepted (Unblocked by implementation spec at thoughts/specs/2026-03-24-rust-layout-planner-and-pdf.md)
 **Date:** 2026-03-24
 
 ## Context

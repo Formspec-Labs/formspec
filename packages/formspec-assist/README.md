@@ -149,3 +149,15 @@ npx vitest
 Coverage spans the tool catalog, error codes, profile workflows, sidecar resolution, page navigation, repeat groups, and the WebMCP binding (against a spec-shaped fake `ModelContext` in `tests/helpers.ts`).
 
 `tests/conformance-fixtures.test.ts` replays the cross-implementation corpus at [`tests/conformance/fixtures/assist/`](../../tests/conformance/fixtures/assist/) — one fixture per draft.3 MUST clause, runnable by any conformant Assist Provider (spec §12 "Conformance fixtures").
+
+## License
+
+This package is licensed under the **Business Source License 1.1 (BSL-1.1)**.
+
+- **Use Grant:** You may use this code for internal use within your organization, development, testing, evaluation, non-commercial and academic use, and for building internal tools (even commercially) as long as they are not offered to third parties as a form authoring product.
+- **Restricted Use:** Offering a hosted, managed, on-premises, or packaged form authoring product to third parties using this code requires a commercial license.
+- **Conversion:** On **April 7, 2030**, this code converts automatically to the **Apache License 2.0**.
+- **Data Ownership:** Form definitions, schemas, responses, and artifacts authored using this software remain your data and are not subject to this license.
+
+See the repository [LICENSING.md](../../LICENSING.md) and [LICENSE-BSL](../../LICENSE-BSL) for full legal terms.
+

@@ -223,10 +223,10 @@ mod tests {
         let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         let parent = find_item_by_path(&items, "parent").unwrap();
-        assert!(!parent.relevant, "parent should be non-relevant");
+        assert!(!parent.mip.relevant, "parent should be non-relevant");
         let child = find_item_by_path(&items, "parent.child").unwrap();
         assert!(
-            !child.relevant,
+            !child.mip.relevant,
             "child should be non-relevant due to parent"
         );
     }
@@ -252,10 +252,10 @@ mod tests {
         let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
         let parent = find_item_by_path(&items, "parent").unwrap();
-        assert!(parent.relevant, "parent should be relevant");
+        assert!(parent.mip.relevant, "parent should be relevant");
         let child = find_item_by_path(&items, "parent.child").unwrap();
         assert!(
-            !child.relevant,
+            !child.mip.relevant,
             "child should be non-relevant from own bind"
         );
     }
@@ -284,12 +284,12 @@ mod tests {
 
         let child = find_item_by_path(&items, "section.field").unwrap();
         assert!(
-            child.readonly,
+            child.mip.readonly,
             "child should be readonly due to OR inheritance from parent"
         );
 
         let parent = find_item_by_path(&items, "section").unwrap();
-        assert!(parent.readonly, "parent should be explicitly readonly");
+        assert!(parent.mip.readonly, "parent should be explicitly readonly");
 
         let _ = values;
     }
@@ -318,12 +318,12 @@ mod tests {
 
         let parent = find_item_by_path(&items, "section").unwrap();
         assert!(
-            !parent.readonly,
+            !parent.mip.readonly,
             "parent should not inherit readonly from child"
         );
 
         let child = find_item_by_path(&items, "section.field").unwrap();
-        assert!(child.readonly, "child should be explicitly readonly");
+        assert!(child.mip.readonly, "child should be explicitly readonly");
     }
 
     #[test]
@@ -377,11 +377,11 @@ mod tests {
 
         let field = find_item_by_path(&items, "field").unwrap();
         assert!(
-            !field.relevant,
+            !field.mip.relevant,
             "field should be non-relevant when toggle is false"
         );
-        assert!(field.readonly, "field should be readonly");
-        assert!(!field.required, "required suppressed when non-relevant");
+        assert!(field.mip.readonly, "field should be readonly");
+        assert!(!field.mip.required, "required suppressed when non-relevant");
     }
 
     #[test]
@@ -405,16 +405,16 @@ mod tests {
         let mut items = rebuild_item_tree(&def);
         let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
-        assert!(!find_item_by_path(&items, "grandparent").unwrap().relevant);
+        assert!(!find_item_by_path(&items, "grandparent").unwrap().mip.relevant);
         assert!(
             !find_item_by_path(&items, "grandparent.parent")
                 .unwrap()
-                .relevant
+                .mip.relevant
         );
         assert!(
             !find_item_by_path(&items, "grandparent.parent.child")
                 .unwrap()
-                .relevant,
+                .mip.relevant,
             "grandchild should be non-relevant via AND inheritance from grandparent"
         );
     }
@@ -444,13 +444,13 @@ mod tests {
 
         let child = find_item_by_path(&items, "grandparent.parent.child").unwrap();
         assert!(
-            child.readonly,
+            child.mip.readonly,
             "grandchild should be readonly via OR inheritance from grandparent"
         );
 
         let parent = find_item_by_path(&items, "grandparent.parent").unwrap();
         assert!(
-            parent.readonly,
+            parent.mip.readonly,
             "parent should be readonly via OR inheritance from grandparent"
         );
     }
@@ -478,15 +478,15 @@ mod tests {
 
         let grandparent = find_item_by_path(&items, "grandparent").unwrap();
         assert!(
-            grandparent.required,
+            grandparent.mip.required,
             "grandparent has explicit required bind"
         );
 
         let parent = find_item_by_path(&items, "grandparent.parent").unwrap();
-        assert!(!parent.required, "parent should NOT inherit required");
+        assert!(!parent.mip.required, "parent should NOT inherit required");
 
         let child = find_item_by_path(&items, "grandparent.parent.child").unwrap();
-        assert!(!child.required, "grandchild should NOT inherit required");
+        assert!(!child.mip.required, "grandchild should NOT inherit required");
     }
 
     #[test]

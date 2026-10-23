@@ -20,7 +20,7 @@ pub use evaluation::{
     ValidationResult,
 };
 pub use extensions::ExtensionConstraint;
-pub use item_tree::ItemInfo;
+pub use item_tree::{ItemInfo, MipState};
 pub use modes::{ExcludedValueMode, NrbMode, WhitespaceMode};
 pub use taxonomy::{ConstraintKind, Severity, ValidationCode, ValidationSource};
 

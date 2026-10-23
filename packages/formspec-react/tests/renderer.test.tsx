@@ -2609,4 +2609,36 @@ describe('simpleMarkdown URL sanitization in Text nodes', () => {
         const container = await renderTextNode('[XSS](  JAVASCRIPT:alert(1))');
         expect(container.querySelector('a')).toBeNull();
     });
+
+    it('strips iframe and srcdoc injection vectors', async () => {
+        const container = await renderTextNode('<iframe srcdoc="<script>alert(1)</script>"></iframe>');
+        expect(container.querySelector('iframe')).toBeNull();
+        expect(container.querySelector('script')).toBeNull();
+    });
+
+    it('strips script tags and malicious HTML embedded inside bold/italic formatting', async () => {
+        const container = await renderTextNode('**<script>alert("bold-xss")</script>Bold Text**');
+        expect(container.querySelector('script')).toBeNull();
+        const strong = container.querySelector('strong');
+        expect(strong).toBeTruthy();
+    });
+
+    it('prevents attribute breakout / event handler injection in links', async () => {
+        const container = await renderTextNode('[Safe Link](https://example.com" onmouseover="alert(1))');
+        expect(container.querySelector('script')).toBeNull();
+        expect(container.querySelector('[onmouseover]')).toBeNull();
+        const anchor = container.querySelector('a');
+        if (anchor) {
+            expect(anchor.getAttribute('onmouseover')).toBeNull();
+        }
+    });
+
+    it('sanitizes img tags with onerror handlers inside italic markup', async () => {
+        const container = await renderTextNode('*<img src="x" onerror="alert(1)">Italic Text*');
+        expect(container.querySelector('img')).toBeNull();
+        expect(container.querySelector('[onerror]')).toBeNull();
+        const em = container.querySelector('em');
+        expect(em).toBeTruthy();
+    });
 });
+

@@ -10,7 +10,6 @@
 
 #![forbid(unsafe_code)]
 
-use std::fmt::{Display, Formatter};
 
 pub use integrity_cose::{
     COSE_LABEL_ALG, COSE_LABEL_KID, COSE_LABEL_METHOD_URI, COSE_SIGN1_TAG, CoseError, CoseSign1,
@@ -35,13 +34,16 @@ pub const FORMSPEC_SIG_METHOD_URI_PREFIX: &str = "urn:formspec:sig-method:";
 pub const FORMSPEC_RECEIPT_METHOD_URI_PREFIX: &str = "urn:formspec:receipt-method:";
 
 /// Formspec COSE profile decode failure.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(thiserror::Error, Clone, Debug, PartialEq, Eq)]
 pub enum FormspecCoseError {
     /// The underlying COSE envelope did not decode.
-    Decode(String),
+    #[error("COSE decode failed: {0}")]
+    Decode(#[from] CoseError),
     /// The protected header omitted the `method_uri` label.
+    #[error("missing Formspec method_uri protected header (label {COSE_LABEL_METHOD_URI})")]
     MissingMethodUri,
     /// The protected header carried a method URI outside the expected prefix.
+    #[error("method_uri {got:?} does not match expected prefix {expected_prefix:?}")]
     WrongMethodUriPrefix {
         /// Prefix the caller expected (e.g. `urn:formspec:sig-method:`).
         expected_prefix: &'static str,
@@ -50,29 +52,6 @@ pub enum FormspecCoseError {
     },
 }
 
-impl Display for FormspecCoseError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Decode(message) => write!(f, "COSE decode failed: {message}"),
-            Self::MissingMethodUri => write!(
-                f,
-                "missing Formspec method_uri protected header (label {COSE_LABEL_METHOD_URI})"
-            ),
-            Self::WrongMethodUriPrefix {
-                expected_prefix,
-                got,
-            } => {
-                write!(
-                    f,
-                    "method_uri {got:?} does not match expected prefix {expected_prefix:?}"
-                )
-            }
-        }
-    }
-}
-
-impl std::error::Error for FormspecCoseError {}
-
 /// Builds a Formspec consumer detached-signature protected header (ADR 0109).
 ///
 /// Emits a MAP_3 with `alg`, `kid`, and `method_uri` at COSE label `-65540`.
@@ -80,6 +59,14 @@ impl std::error::Error for FormspecCoseError {}
 /// signatures or [`FORMSPEC_RECEIPT_METHOD_URI_PREFIX`] for receipts; this
 /// helper does not enforce the prefix (callers select which subspace they
 /// emit) but the verifier rejects values outside the expected prefix.
+///
+/// # Algorithm Identifier Width Decision
+///
+/// COSE algorithms in RFC 9053 / IANA COSE Algorithms Registry fit comfortably within `i32`
+/// (e.g., EdDSA = -8, ES256 = -7, etc.). While `integrity-cose` internally accommodates
+/// `i128` labels for full CBOR integer range completeness, Formspec uses `i32` at the public
+/// interface because all standardized and Formspec-supported signing algorithms fit in 32 bits,
+/// matching `detached_signature_protected_header(alg: i32, ...)`.
 #[must_use]
 pub fn protected_header_bytes(alg: i32, kid: &[u8], method_uri: &str) -> Vec<u8> {
     detached_signature_protected_header(alg, kid, method_uri)
@@ -100,10 +87,8 @@ pub fn decode_cose_sign1_with_method_uri(
     bytes: &[u8],
     expected_prefix: &'static str,
 ) -> Result<(CoseSign1, String), FormspecCoseError> {
-    let cose =
-        decode_cose_sign1(bytes).map_err(|error| FormspecCoseError::Decode(error.to_string()))?;
-    let header = decode_protected_header(cose.protected_header())
-        .map_err(|error| FormspecCoseError::Decode(error.to_string()))?;
+    let cose = decode_cose_sign1(bytes)?;
+    let header = decode_protected_header(cose.protected_header())?;
     match header.method_uri {
         Some(method_uri) if method_uri.starts_with(expected_prefix) => Ok((cose, method_uri)),
         Some(got) => Err(FormspecCoseError::WrongMethodUriPrefix {

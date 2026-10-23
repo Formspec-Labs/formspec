@@ -64,7 +64,7 @@ impl Validation<'_> {
     ) {
         let (values, siblings) = (self.values, &self.siblings);
         // Skip non-relevant items (validation suppressed per S5.6)
-        if !item.relevant {
+        if !item.mip.relevant {
             return;
         }
 
@@ -72,7 +72,7 @@ impl Validation<'_> {
         let val = resolve_value_by_path(values, &item.path);
 
         // Required check
-        if item.required && is_empty_for_required_bind(&val) {
+        if item.mip.required && is_empty_for_required_bind(&val) {
             findings.results.push(ValidationResult {
                 path: item.path.clone(),
                 severity: Severity::Error,

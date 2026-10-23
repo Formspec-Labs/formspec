@@ -115,19 +115,18 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
      - CI fails if a supported browser drops below floor.
 
 - **FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification extension property** · `fs-du1p` · P4
-   blocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`
+   unblocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`
 
-   After `fs-lb8y` selects the canonical disclosure-classification axis, formalize
-   `x-data-classification` only if that decision retains it. The compliance
-   exploration proposes sensitivity levels
+   `fs-lb8y` decided 2026-10-23 (`specs/audit/disclosure-classification-reconciliation.md`) that
+   `x-data-classification` is the single canonical disclosure classification axis;
+   the competing `accessControl.class` proposal is formally retired. Formalize
+   `x-data-classification` with sensitivity levels
    (public/internal/confidential/restricted/pii), categories
-   (PII/PHI/financial), and regulatory tags. Do not land this as a parallel axis
-   to `accessControl.class`.
+   (PII/PHI/financial), and regulatory tags.
 
    **Acceptance:**
-     - `fs-lb8y` records that `x-data-classification` is canonical or explicitly maps it to the chosen axis.
-     - If retained, `formspec-common.registry.json` registers the extension, its schema validates sensitivity, categories, and regulatory tags, C001 warns for unclassified PHI fields, and the clinical-intake example uses it.
-     - If retired, this ticket closes with the replacement mapping and no duplicate schema.
+     - `fs-lb8y` records that `x-data-classification` is canonical (DONE).
+     - `formspec-common.registry.json` registers the extension, its schema validates sensitivity, categories, and regulatory tags, C001 warns for unclassified PHI fields, and the clinical-intake example uses it.
 
 - **WOS Formspec-Coprocessor integrator alignment (P11-BL-051)** · `fs-op37` · P4
 
@@ -1112,19 +1111,18 @@ Work that has been researched and decided against for now. Tracked here so it is
    **Acceptance:** Concrete use case where content-addressed identity solves a cross-stack integrity problem that current hash chains (§9.2) don't.
 
 - **FORMSPEC-FIELD-CLASSIFICATION-001 — Field-level access classification [DEFERRED]** · `fs-fvgk` · P4
-   blocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`, FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification… `fs-du1p`
+   blocked-by FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification… `fs-du1p`
 
    ADR 0074 (thoughts/adr/0074-formspec-native-field-level-transparency.md)
    proposes `accessControl` on items, bucketed response encryption, key bags, a
    Privacy Profile and Access-Class Registry, Phase 5 Emission, and cross-class
-   FEL rules. This remains deferred. `fs-lb8y` must first choose whether
-   `accessControl.class` or `x-data-classification` is canonical; this ticket MUST
-   follow that decision rather than assuming both axes or assuming `fs-du1p`
-   lands unchanged.
+   FEL rules. This remains deferred. Per `fs-lb8y` (2026-10-23), `x-data-classification`
+   is canonical and `accessControl.class` is retired. Any future encryption design
+   must build on `x-data-classification` and MUST NOT reintroduce a parallel axis.
 
    **Acceptance:**
-     - `fs-lb8y` has selected and documented one canonical classification axis.
-     - The labeling prerequisite is implemented and exercised in a form with compliance requirements.
+     - `fs-lb8y` has selected and documented `x-data-classification` as the canonical axis (DONE).
+     - The labeling prerequisite is implemented in `fs-du1p` and exercised in a form with compliance requirements.
      - Any later encryption design uses that axis and does not introduce a parallel vocabulary.
 
 - **FORMSPEC-INTAKEHANDOFF-EMISSION-001 — Native IntakeHandoff custody envelope [DEFERRED]** · `fs-hixs` · P4

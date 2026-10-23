@@ -12,7 +12,6 @@ test.describe('Grant App: Conditional Visibility', () => {
 
   test('should show indirectRate field for non-government org types', async ({ page }) => {
     await engineSetValue(page, 'applicantInfo.orgType', 'nonprofit');
-    await page.waitForTimeout(100);
 
     const rateField = page.locator('[data-name="projectNarrative.indirectRate"]');
     await expect(rateField).not.toHaveClass(/formspec-hidden/);
@@ -20,7 +19,6 @@ test.describe('Grant App: Conditional Visibility', () => {
 
   test('should hide indirectRate field when orgType is government', async ({ page }) => {
     await engineSetValue(page, 'applicantInfo.orgType', 'government');
-    await page.waitForTimeout(100);
 
     const rateField = page.locator('[data-name="projectNarrative.indirectRate"]');
     await expect(rateField).toHaveClass(/formspec-hidden/);
@@ -37,7 +35,6 @@ test.describe('Grant App: Conditional Visibility', () => {
 
     // Enable subcontractors via engine
     await engineSetValue(page, 'budget.usesSubcontractors', true);
-    await page.waitForTimeout(50);
 
     // Content should now be visible
     await expect(wrapper).not.toHaveClass(/formspec-hidden/);
@@ -54,7 +51,6 @@ test.describe('Grant App: Conditional Visibility', () => {
 
   test('Compliance alert is not visible when usesSubcontractors is false', async ({ page }) => {
     await goToPage(page, 'Subcontractors');
-    await page.waitForTimeout(100);
 
     // usesSubcontractors is false by default, so the conditional group (and alert) should be hidden
     const alertVisible = await page.evaluate(() => {
@@ -69,11 +65,9 @@ test.describe('Grant App: Conditional Visibility', () => {
 
   test('Compliance alert appears when usesSubcontractors becomes true', async ({ page }) => {
     await goToPage(page, 'Subcontractors');
-    await page.waitForTimeout(100);
 
     // Enable subcontractors to show the compliance alert
     await engineSetValue(page, 'budget.usesSubcontractors', true);
-    await page.waitForTimeout(200);
 
     const panel = page.locator('.formspec-wizard-panel:not(.formspec-hidden)');
     await expect(panel.locator('.formspec-alert--info', { hasText: 'Compliance reminder' })).toBeVisible();

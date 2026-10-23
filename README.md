@@ -136,4 +136,5 @@ Created by [Michael Deeb](https://www.linkedin.com/in/michael-deeb/) at [TealWol
 
 ## License
 
-Open-core. Runtime (engine, renderers, FEL, linter, schemas, specs): [Apache-2.0](LICENSE). Authoring tools (core, assist, changeset): [BSL 1.1](LICENSE-BSL) → converts to Apache-2.0 April 7, 2030.
+Open-core. Runtime (engine, renderers, FEL, linter, schemas, specs): [Apache-2.0](LICENSE). Authoring tools (core, assist, changeset): [BSL 1.1](LICENSE-BSL) → converts to Apache-2.0 April 7, 2030. See [LICENSING.md](LICENSING.md) for full licensing model and distribution disclosures.
+

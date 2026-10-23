@@ -1,0 +1,221 @@
+{
+  "description": "ADR 0151 P1 fixture corpus proving node.id <-> KernelObjectRef stability across replay, merge, export/import, and cross-document moves per ADR 0150 §5.3 and ADR 0151 §4.1, §4.4, §15 residual (fs-o7zr).",
+  "format": "formspec-document-kernel/v1",
+  "vectors": [
+    {
+      "case": "replay-stability",
+      "artifactType": "component",
+      "initialOps": [
+        {
+          "type": "addComponentNode",
+          "payload": {
+            "parentRef": null,
+            "nodeId": "urn:formspec:node:replay-field-1",
+            "node": { "kind": "TextField", "name": "applicant_email" }
+          }
+        },
+        {
+          "type": "moveComponentNode",
+          "payload": {
+            "nodeId": "urn:formspec:node:replay-field-1",
+            "newParentRef": "urn:formspec:node:container-1",
+            "newIndex": 1,
+            "movedFrom": {
+              "route": "route-root",
+              "nodePath": "/root/replay-field-1"
+            }
+          }
+        },
+        {
+          "type": "copyComponentNode",
+          "payload": {
+            "originalNodeId": "urn:formspec:node:replay-field-1",
+            "newNodeId": "urn:formspec:node:replay-field-2",
+            "newParentRef": "urn:formspec:node:container-2",
+            "newIndex": 0,
+            "copiedFrom": {
+              "route": "route-container-1",
+              "nodePath": "/container-1/replay-field-1"
+            }
+          }
+        }
+      ],
+      "assertions": {
+        "nodesPreserved": [
+          "urn:formspec:node:replay-field-1",
+          "urn:formspec:node:replay-field-2"
+        ],
+        "expectedProvenance": {
+          "urn:formspec:node:replay-field-1": {
+            "movedFrom": {
+              "route": "route-root",
+              "nodePath": "/root/replay-field-1"
+            }
+          },
+          "urn:formspec:node:replay-field-2": {
+            "copiedFrom": {
+              "route": "route-container-1",
+              "nodePath": "/container-1/replay-field-1"
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "merge-stability",
+      "artifactType": "component",
+      "baseOps": [
+        {
+          "type": "addComponentNode",
+          "payload": {
+            "parentRef": null,
+            "nodeId": "urn:formspec:node:base-input",
+            "node": { "kind": "NumberInput", "name": "base_val" }
+          }
+        }
+      ],
+      "branchAOps": [
+        {
+          "type": "moveComponentNode",
+          "payload": {
+            "nodeId": "urn:formspec:node:base-input",
+            "newParentRef": "urn:formspec:node:panel-a",
+            "newIndex": 0,
+            "movedFrom": {
+              "route": "route-a",
+              "nodePath": "/base-input"
+            }
+          }
+        }
+      ],
+      "branchBOps": [
+        {
+          "type": "addComponentNode",
+          "payload": {
+            "parentRef": null,
+            "nodeId": "urn:formspec:node:branch-b-extra",
+            "node": { "kind": "Checkbox", "name": "agree" }
+          }
+        }
+      ],
+      "assertions": {
+        "expectedNodes": [
+          "urn:formspec:node:base-input",
+          "urn:formspec:node:branch-b-extra"
+        ],
+        "expectedProvenance": {
+          "urn:formspec:node:base-input": {
+            "movedFrom": {
+              "route": "route-a",
+              "nodePath": "/base-input"
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "export-import-stability",
+      "artifactType": "component",
+      "ops": [
+        {
+          "type": "addComponentNode",
+          "payload": {
+            "parentRef": null,
+            "nodeId": "urn:formspec:node:persisted-field",
+            "node": { "kind": "Select", "name": "state" }
+          }
+        },
+        {
+          "type": "copyComponentNode",
+          "payload": {
+            "originalNodeId": "urn:formspec:node:persisted-field",
+            "newNodeId": "urn:formspec:node:persisted-copy",
+            "newParentRef": null,
+            "newIndex": 1,
+            "copiedFrom": {
+              "route": "route-main",
+              "nodePath": "/persisted-field"
+            }
+          }
+        }
+      ],
+      "assertions": {
+        "nodesPreserved": [
+          "urn:formspec:node:persisted-field",
+          "urn:formspec:node:persisted-copy"
+        ],
+        "expectedProvenance": {
+          "urn:formspec:node:persisted-copy": {
+            "copiedFrom": {
+              "route": "route-main",
+              "nodePath": "/persisted-field"
+            }
+          }
+        }
+      }
+    },
+    {
+      "case": "cross-document-move-stability",
+      "sourceArtifactType": "component",
+      "targetArtifactType": "component",
+      "sourceOps": [
+        {
+          "type": "addComponentNode",
+          "payload": {
+            "parentRef": null,
+            "nodeId": "urn:formspec:node:cross-doc-item",
+            "node": { "kind": "Card", "title": "Move Me" }
+          }
+        }
+      ],
+      "moveOperation": {
+        "nodeId": "urn:formspec:node:cross-doc-item",
+        "targetParentRef": "urn:formspec:node:target-container",
+        "targetIndex": 0,
+        "sourceRoute": "step-1"
+      },
+      "assertions": {
+        "sourceArchived": "urn:formspec:node:cross-doc-item",
+        "targetContains": "urn:formspec:node:cross-doc-item",
+        "expectedMovedFrom": {
+          "route": "step-1",
+          "nodePath": "/urn:formspec:node:cross-doc-item",
+          "documentId": "Component"
+        }
+      }
+    },
+    {
+      "case": "bundle-id-collision-rejection",
+      "description": "Baseline E605 collision scenario: target document already has the node ID, ensuring ADR 0150 §5.3 bundle uniqueness is preserved",
+      "sourceArtifactType": "component",
+      "targetArtifactType": "component",
+      "sourceOps": [
+        {
+          "type": "addComponentNode",
+          "payload": {
+            "parentRef": null,
+            "nodeId": "header",
+            "node": { "kind": "Section", "title": "Comp A header" }
+          }
+        }
+      ],
+      "targetOps": [
+        {
+          "type": "addComponentNode",
+          "payload": {
+            "parentRef": null,
+            "nodeId": "header",
+            "node": { "kind": "Section", "title": "Comp B header" }
+          }
+        }
+      ],
+      "attemptedMove": {
+        "nodeId": "header"
+      },
+      "assertions": {
+        "expectCollisionError": true,
+        "collidingId": "header"
+      }
+    }
+  ]
+}

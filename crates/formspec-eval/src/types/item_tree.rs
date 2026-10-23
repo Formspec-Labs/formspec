@@ -4,6 +4,30 @@ use serde_json::Value;
 
 use super::modes::{ExcludedValueMode, NrbMode, WhitespaceMode};
 
+/// Relevance, requirement, and readonly evaluation state (MIP).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MipState {
+    /// Whether the item is relevant (visible).
+    pub relevant: bool,
+    /// Whether the item is required.
+    pub required: bool,
+    /// Whether the item is readonly.
+    pub readonly: bool,
+    /// Previous relevance state (for tracking transitions).
+    pub prev_relevant: bool,
+}
+
+impl Default for MipState {
+    fn default() -> Self {
+        Self {
+            relevant: true,
+            required: false,
+            readonly: false,
+            prev_relevant: true,
+        }
+    }
+}
+
 /// A node in the evaluation item tree.
 #[derive(Debug, Clone)]
 pub struct ItemInfo {
@@ -19,12 +43,8 @@ pub struct ItemInfo {
     pub currency: Option<String>,
     /// Current value.
     pub value: Value,
-    /// Whether the item is relevant (visible).
-    pub relevant: bool,
-    /// Whether the item is required.
-    pub required: bool,
-    /// Whether the item is readonly.
-    pub readonly: bool,
+    /// MIP state (relevance, requirement, readonly, previous relevance).
+    pub mip: MipState,
     /// Calculated expression (if any).
     pub calculate: Option<String>,
     /// Numeric precision for calculated values.
@@ -51,8 +71,6 @@ pub struct ItemInfo {
     pub default_expression: Option<String>,
     /// Initial value for field seeding (literal or "=expr").
     pub initial_value: Option<Value>,
-    /// Previous relevance state (for tracking transitions).
-    pub prev_relevant: bool,
     /// Parent path (None for top-level items).
     pub parent_path: Option<String>,
     /// Whether this group is repeatable.
@@ -74,3 +92,41 @@ pub struct ItemInfo {
     /// Child items.
     pub children: Vec<ItemInfo>,
 }
+
+impl Default for ItemInfo {
+    fn default() -> Self {
+        Self {
+            key: String::new(),
+            path: String::new(),
+            item_type: "field".to_string(),
+            data_type: None,
+            currency: None,
+            value: Value::Null,
+            mip: MipState::default(),
+            calculate: None,
+            precision: None,
+            constraint: None,
+            constraint_message: None,
+            relevance: None,
+            required_expr: None,
+            readonly_expr: None,
+            whitespace: None,
+            nrb: None,
+            excluded_value: None,
+            default_value: None,
+            default_expression: None,
+            initial_value: None,
+            parent_path: None,
+            repeatable: false,
+            repeat_min: None,
+            repeat_max: None,
+            option_values: Vec::new(),
+            accept_types: Vec::new(),
+            extensions: Vec::new(),
+            pre_populate_instance: None,
+            pre_populate_path: None,
+            children: Vec::new(),
+        }
+    }
+}
+

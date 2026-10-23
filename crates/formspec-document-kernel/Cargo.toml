@@ -1,0 +1,17 @@
+[package]
+name = "formspec-document-kernel"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Rust document kernel wrapping Automerge 2.0 with substrate-aware op shapes for multi-actor editing (ADR 0151)"
+repository = "https://github.com/Formspec-Labs/formspec"
+publish = false
+
+[dependencies]
+automerge = "0.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = { workspace = true }
+
+[dev-dependencies]
+serde_json = "1"

@@ -1,5 +1,7 @@
-/** @filedesc Tool input readers and JSON-Schema-shaped validation for Assist tool calls. */
+/** @filedesc Tool input readers and JSON-Schema validation for Assist tool calls using Ajv. */
 
+import Ajv from 'ajv';
+import type { ValidateFunction } from 'ajv';
 import { AssistError } from './errors.js';
 import type { ValidationProfile } from '@formspec-org/types';
 
@@ -27,10 +29,15 @@ export function readPath(input: Record<string, unknown>): string {
   return input.path;
 }
 
-// The readers below run after validateToolInput, which has already enforced each enum and shape.
-
 export function readAudience(input: Record<string, unknown>): 'human' | 'agent' | 'both' {
-  return (input.audience as 'human' | 'agent' | 'both' | undefined) ?? 'agent';
+  const aud = input.audience;
+  if (aud === 'human' || aud === 'agent' || aud === 'both') {
+    return aud;
+  }
+  if (aud === undefined) {
+    return 'agent';
+  }
+  throw new AssistError('INVALID_VALUE', `input.audience must be one of: human, agent, both (got ${JSON.stringify(aud)})`);
 }
 
 export function readValidationProfile(input: Record<string, unknown>): ValidationProfile {
@@ -50,8 +57,20 @@ function invalid(message: string): AssistError {
   return new AssistError('INVALID_VALUE', message);
 }
 
-function propertyName(location: string, key: string): string {
-  return location === 'input' ? key : `${location.slice('input.'.length)}.${key}`;
+const ajv = new Ajv({
+  allErrors: true,
+  strict: false,
+});
+
+const validatorCache = new WeakMap<object, ValidateFunction>();
+
+function getValidator(schema: ToolSchema): ValidateFunction {
+  let validator = validatorCache.get(schema);
+  if (!validator) {
+    validator = ajv.compile(schema as Record<string, unknown>);
+    validatorCache.set(schema, validator);
+  }
+  return validator;
 }
 
 /** `{ path, value }` for an object schema with properties; empty when it has none. */
@@ -87,79 +106,91 @@ function shapeOf(schema: ToolSchema): string {
   }
 }
 
-function matchesType(type: string, value: unknown): boolean {
-  switch (type) {
-    case 'array':
-      return Array.isArray(value);
-    case 'boolean':
-      return typeof value === 'boolean';
-    case 'integer':
-      return Number.isInteger(value);
-    case 'number':
-      return typeof value === 'number' && Number.isFinite(value);
-    case 'object':
-      return isPlainObject(value);
-    case 'string':
-      return typeof value === 'string';
-    default:
-      return true;
+function formatLocation(instancePath: string): string {
+  if (!instancePath) return 'input';
+  const parts = instancePath.split('/').filter(Boolean);
+  let loc = 'input';
+  for (const part of parts) {
+    if (/^\d+$/.test(part)) {
+      loc += `[${part}]`;
+    } else {
+      loc += `.${part}`;
+    }
   }
+  return loc;
 }
 
-function validateAgainstSchema(schema: ToolSchema, value: unknown, location: string): void {
-  if (schema.anyOf) {
-    for (const branch of schema.anyOf) {
-      try {
-        validateAgainstSchema(branch, value, location);
-        return;
-      } catch {
-        // try the next alternative
-      }
-    }
-    throw invalid(`${location} must be ${schema.anyOf.map(shapeOf).join(' or ')} (got ${JSON.stringify(value)})`);
+function formatPropertyName(instancePath: string, key: string): string {
+  const loc = formatLocation(instancePath);
+  return loc === 'input' ? key : `${loc.slice('input.'.length)}.${key}`;
+}
+
+function getValueAtPath(root: unknown, instancePath: string): unknown {
+  const parts = instancePath.split('/').filter(Boolean);
+  let cur = root;
+  for (const part of parts) {
+    if (cur == null || typeof cur !== 'object') return undefined;
+    cur = (cur as Record<string, unknown>)[part];
   }
-  if (schema.enum && !schema.enum.includes(value)) {
-    throw invalid(`${location} must be one of: ${schema.enum.map(String).join(', ')} (got ${JSON.stringify(value)})`);
-  }
-  if (!schema.type) {
-    return;
-  }
-  if (!matchesType(schema.type, value)) {
-    throw invalid(`${location} must be ${shapeOf(schema)}`);
-  }
-  if (schema.minimum !== undefined && (value as number) < schema.minimum) {
-    throw invalid(`${location} must be ${shapeOf(schema)} (got ${JSON.stringify(value)})`);
-  }
-  if (Array.isArray(value)) {
-    value.forEach((entry, index) => schema.items && validateAgainstSchema(schema.items, entry, `${location}[${index}]`));
-    return;
-  }
-  if (!isPlainObject(value)) {
-    return;
-  }
-  const properties = schema.properties ?? {};
-  for (const key of schema.required ?? []) {
-    if (value[key] === undefined) {
-      const property = properties[key] ?? {};
-      const description = property.description?.replace(/\.$/, '') ?? '';
-      throw invalid(`missing required input property "${propertyName(location, key)}" (${property.type ?? 'any'}: ${description})`);
+  return cur;
+}
+
+function findSubSchema(rootSchema: ToolSchema, instancePath: string): { subSchema: ToolSchema; parentSchema: ToolSchema | undefined } {
+  const parts = instancePath.split('/').filter(Boolean);
+  let current = rootSchema;
+  let parent: ToolSchema | undefined = undefined;
+  for (const part of parts) {
+    parent = current;
+    if (/^\d+$/.test(part)) {
+      if (current.items) current = current.items;
+    } else if (current.properties && current.properties[part]) {
+      current = current.properties[part];
     }
   }
-  if (schema.additionalProperties === false) {
-    const accepted = Object.keys(properties);
-    for (const key of Object.keys(value)) {
-      if (!(key in properties)) {
-        throw invalid(`unexpected input property "${propertyName(location, key)}"; accepted: ${accepted.length ? accepted.join(', ') : 'none'}`);
-      }
-    }
-  }
-  for (const [key, property] of Object.entries(properties)) {
-    if (value[key] !== undefined) {
-      validateAgainstSchema(property, value[key], `${location}.${key}`);
-    }
-  }
+  return { subSchema: current, parentSchema: parent };
 }
 
 export function validateToolInput(schema: ToolSchema, input: Record<string, unknown>): void {
-  validateAgainstSchema(schema, input, 'input');
+  const validator = getValidator(schema);
+  const valid = validator(input);
+  if (valid) return;
+
+  const errors = validator.errors;
+  if (!errors || errors.length === 0) return;
+
+  // If there is an anyOf error, prefer anyOf over individual branch failures
+  const anyOfErr = errors.find((e) => e.keyword === 'anyOf');
+  const err = anyOfErr || errors[0];
+  const { subSchema } = findSubSchema(schema, err.instancePath);
+  const location = formatLocation(err.instancePath);
+  const val = getValueAtPath(input, err.instancePath);
+
+  if (subSchema.enum && !subSchema.enum.includes(val)) {
+    throw invalid(`${location} must be one of: ${subSchema.enum.map(String).join(', ')} (got ${JSON.stringify(val)})`);
+  }
+  if (err.keyword === 'enum') {
+    const allowed = (err.params.allowedValues as unknown[]).map(String).join(', ');
+    throw invalid(`${location} must be one of: ${allowed} (got ${JSON.stringify(val)})`);
+  }
+  if (err.keyword === 'additionalProperties') {
+    const propName = formatPropertyName(err.instancePath, err.params.additionalProperty);
+    const accepted = Object.keys(subSchema.properties ?? {});
+    throw invalid(`unexpected input property "${propName}"; accepted: ${accepted.length ? accepted.join(', ') : 'none'}`);
+  }
+  if (err.keyword === 'required') {
+    const propName = formatPropertyName(err.instancePath, err.params.missingProperty);
+    const prop = subSchema.properties?.[err.params.missingProperty] ?? {};
+    const description = prop.description?.replace(/\.$/, '') ?? '';
+    throw invalid(`missing required input property "${propName}" (${prop.type ?? 'any'}: ${description})`);
+  }
+  if (err.keyword === 'type') {
+    throw invalid(`${location} must be ${shapeOf(subSchema)}`);
+  }
+  if (err.keyword === 'minimum') {
+    throw invalid(`${location} must be ${shapeOf(subSchema)} (got ${JSON.stringify(val)})`);
+  }
+  if (err.keyword === 'anyOf') {
+    throw invalid(`${location} must be ${shapeOf(subSchema)} (got ${JSON.stringify(val)})`);
+  }
+  throw invalid(err.message ?? 'Invalid tool input');
 }

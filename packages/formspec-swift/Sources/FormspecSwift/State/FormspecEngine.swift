@@ -2,6 +2,7 @@
 
 import Foundation
 import Observation
+import os
 
 // MARK: - FormspecEngine
 
@@ -18,6 +19,11 @@ import Observation
 @MainActor @Observable
 public final class FormspecEngine {
 
+    // MARK: - Logging
+
+    /// Subsystem logger for FormspecEngine runtime diagnostics.
+    public static let logger = Logger(subsystem: "org.formspec.FormspecSwift", category: "Engine")
+
     // MARK: - Public observable state
 
     /// Reactive form-level state (title, validation summary, page metadata).
@@ -32,7 +38,18 @@ public final class FormspecEngine {
     /// All locales declared in the bundle.
     public private(set) var availableLocales: [String] = []
 
+    /// The most recent error encountered by the engine or bridge mutators, if any.
+    public private(set) var lastError: FormspecError?
+
+    /// Clear the current `lastError`.
+    public func clearLastError() {
+        lastError = nil
+    }
+
     // MARK: - Private state
+
+    /// Flag indicating whether the engine has been disposed.
+    private var isDisposed = false
 
     /// Cache of per-field state objects, keyed by instance path.
     private var fieldStateCache: [String: FieldState] = [:]
@@ -132,23 +149,102 @@ public final class FormspecEngine {
         fieldStateCache[path]
     }
 
+    // MARK: - Bridge command dispatching
+
+    /// Dispatch a command to the bridge asynchronously, capturing any thrown errors into `lastError`.
+    private func sendCommand(_ command: EngineCommand) {
+        guard !isDisposed else {
+            let error = FormspecError.bridgeDisconnected
+            Self.logger.error("Bridge command dropped: bridge is disposed")
+            self.lastError = error
+            return
+        }
+        guard let bridge else {
+            // Test instances initialized without bridge silently return
+            return
+        }
+        Task { [weak self] in
+            do {
+                try await bridge.send(command)
+            } catch WebViewEngineError.notLoaded {
+                let err = FormspecError.bridgeDisconnected
+                Self.logger.error("Bridge command failed: bridge not loaded")
+                self?.lastError = err
+            } catch let error as FormspecError {
+                Self.logger.error("Bridge command failed: \(error.localizedDescription, privacy: .public)")
+                self?.lastError = error
+            } catch {
+                let err = FormspecError.engineLoadFailed(message: error.localizedDescription)
+                Self.logger.error("Bridge command failed: \(error.localizedDescription, privacy: .public)")
+                self?.lastError = err
+            }
+        }
+    }
+
+    /// Dispatch a command to the bridge asynchronously, throwing errors and recording in `lastError`.
+    private func sendCommandThrowing(_ command: EngineCommand) async throws {
+        guard !isDisposed else {
+            let error = FormspecError.bridgeDisconnected
+            Self.logger.error("Bridge command dropped: bridge is disposed")
+            self.lastError = error
+            throw error
+        }
+        guard let bridge else {
+            return
+        }
+        do {
+            try await bridge.send(command)
+        } catch WebViewEngineError.notLoaded {
+            let err = FormspecError.bridgeDisconnected
+            Self.logger.error("Bridge command failed: bridge not loaded")
+            self.lastError = err
+            throw err
+        } catch let error as FormspecError {
+            Self.logger.error("Bridge command failed: \(error.localizedDescription, privacy: .public)")
+            self.lastError = error
+            throw error
+        } catch {
+            let err = FormspecError.engineLoadFailed(message: error.localizedDescription)
+            Self.logger.error("Bridge command failed: \(error.localizedDescription, privacy: .public)")
+            self.lastError = err
+            throw err
+        }
+    }
+
     // MARK: - Mutations
 
-    /// Set a field's value, forwarding to the JS engine.
+    /// Set a field's value, forwarding to the JS engine and recording any error in `lastError`.
     public func setValue(_ path: String, value: Any?) {
         let jsonValue = anyToJSONValue(value)
-        Task { try? await bridge?.send(.setValue(path: path, value: jsonValue)) }
+        sendCommand(.setValue(path: path, value: jsonValue))
     }
 
-    /// Change the active locale, forwarding to the JS engine.
+    /// Set a field's value, throwing on bridge failure.
+    public func setValueAsync(_ path: String, value: Any?) async throws {
+        let jsonValue = anyToJSONValue(value)
+        try await sendCommandThrowing(.setValue(path: path, value: jsonValue))
+    }
+
+    /// Change the active locale, forwarding to the JS engine and recording any error in `lastError`.
     public func setLocale(_ languageCode: String) {
         currentLocale = languageCode
-        Task { try? await bridge?.send(.setLocale(languageCode: languageCode)) }
+        sendCommand(.setLocale(languageCode: languageCode))
     }
 
-    /// Replace the entire form response, forwarding to the JS engine.
+    /// Change the active locale, throwing on bridge failure.
+    public func setLocaleAsync(_ languageCode: String) async throws {
+        currentLocale = languageCode
+        try await sendCommandThrowing(.setLocale(languageCode: languageCode))
+    }
+
+    /// Replace the entire form response, forwarding to the JS engine and recording any error in `lastError`.
     public func setResponse(_ data: JSONValue) {
-        Task { try? await bridge?.send(.setResponse(data)) }
+        sendCommand(.setResponse(data))
+    }
+
+    /// Replace the entire form response, throwing on bridge failure.
+    public func setResponseAsync(_ data: JSONValue) async throws {
+        try await sendCommandThrowing(.setResponse(data))
     }
 
     /// Add a new repeat instance to the named group.
@@ -156,13 +252,23 @@ public final class FormspecEngine {
     /// Returns `nil` immediately (actual count comes back as an event).
     @discardableResult
     public func addRepeatInstance(_ groupName: String) -> Int? {
-        Task { try? await bridge?.send(.addRepeatInstance(groupName: groupName)) }
+        sendCommand(.addRepeatInstance(groupName: groupName))
         return nil
+    }
+
+    /// Add a new repeat instance to the named group, throwing on bridge failure.
+    public func addRepeatInstanceAsync(_ groupName: String) async throws {
+        try await sendCommandThrowing(.addRepeatInstance(groupName: groupName))
     }
 
     /// Remove the repeat instance at `index` from the named group.
     public func removeRepeatInstance(_ groupName: String, at index: Int) {
-        Task { try? await bridge?.send(.removeRepeatInstance(groupName: groupName, index: index)) }
+        sendCommand(.removeRepeatInstance(groupName: groupName, index: index))
+    }
+
+    /// Remove the repeat instance at `index` from the named group, throwing on bridge failure.
+    public func removeRepeatInstanceAsync(_ groupName: String, at index: Int) async throws {
+        try await sendCommandThrowing(.removeRepeatInstance(groupName: groupName, index: index))
     }
 
     // MARK: - Queries
@@ -187,6 +293,7 @@ public final class FormspecEngine {
 
     /// Tear down the WebView bridge and clear all state.
     public func dispose() {
+        isDisposed = true
         bridge?.dispose()
         bridge = nil
         fieldStateCache.removeAll()
@@ -233,7 +340,8 @@ public final class FormspecEngine {
             engineReadyContinuation = nil
 
         case .engineError(let message):
-            NSLog("[FormspecEngine] Engine error: %@", message)
+            Self.logger.error("Engine error: \(message, privacy: .public)")
+            lastError = .engineLoadFailed(message: message)
         }
     }
 
@@ -287,11 +395,11 @@ public final class FormspecEngine {
 extension FormspecEngine: FieldStateDelegate {
     public func fieldDidSetValue(_ path: String, value: Any?) {
         let jsonValue = anyToJSONValue(value)
-        Task { try? await bridge?.send(.setValue(path: path, value: jsonValue)) }
+        sendCommand(.setValue(path: path, value: jsonValue))
     }
 
     public func fieldDidTouch(_ path: String) {
-        Task { try? await bridge?.send(.touchField(path: path)) }
+        sendCommand(.touchField(path: path))
     }
 }
 

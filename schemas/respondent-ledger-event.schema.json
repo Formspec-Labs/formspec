@@ -581,7 +581,7 @@
         "accessClass": {
           "type": "string",
           "minLength": 1,
-          "description": "Resolved accessControl.class for the changed response field when a Privacy Profile or class-aware processor can resolve it."
+          "description": "Resolved data classification sensitivity token (from `x-data-classification`, per `disclosure-classification-reconciliation.md`) for the changed response field when resolvable."
         },
         "before": {
           "description": "Prior value when retained under the implementation's privacy policy."
@@ -940,7 +940,7 @@
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "description": "Resolved accessControl.class tokens whose data was erased. Each entry MUST be a non-empty string drawn from the deployment's Access-Class Registry.",
+          "description": "Resolved data classification tokens (from `x-data-classification`, per `disclosure-classification-reconciliation.md`) whose data was erased. Each entry MUST be a non-empty string drawn from the deployment's recognized classification vocabulary.",
           "items": {
             "type": "string",
             "minLength": 1

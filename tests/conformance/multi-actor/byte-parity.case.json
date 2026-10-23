@@ -1,0 +1,51 @@
+{
+  "description": "Multi-actor editing byte-parity and convergence vectors per ADR 0151 §9 / fs-apve.",
+  "format": "formspec-document-kernel/v1",
+  "vectors": [
+    {
+      "case": "definition-item-property",
+      "artifactType": "definition",
+      "ops": [
+        {
+          "type": "setItemProperty",
+          "payload": {
+            "path": "contact.email",
+            "property": "label",
+            "value": "Email Address"
+          }
+        }
+      ]
+    },
+    {
+      "case": "component-add-move-copy-lifecycle",
+      "artifactType": "component",
+      "ops": [
+        {
+          "type": "addComponentNode",
+          "payload": {
+            "parentRef": null,
+            "nodeId": "urn:formspec:node:field-1",
+            "node": { "kind": "TextField", "name": "first_name" }
+          }
+        },
+        {
+          "type": "moveComponentNode",
+          "payload": {
+            "nodeId": "urn:formspec:node:field-1",
+            "newParentRef": "urn:formspec:node:container",
+            "newIndex": 1
+          }
+        },
+        {
+          "type": "copyComponentNode",
+          "payload": {
+            "originalNodeId": "urn:formspec:node:field-1",
+            "newNodeId": "urn:formspec:node:field-2",
+            "newParentRef": null,
+            "newIndex": 0
+          }
+        }
+      ]
+    }
+  ]
+}

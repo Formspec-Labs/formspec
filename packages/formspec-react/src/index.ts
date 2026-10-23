@@ -112,3 +112,5 @@ export const defaultTheme = buildPlatformTheme();
 
 export { useChromeText, chromeText } from './use-chrome-text';
 export type { ChromeText } from './use-chrome-text';
+
+export { renderSanitizedMarkdown, simpleMarkdown } from './node-renderer-display';

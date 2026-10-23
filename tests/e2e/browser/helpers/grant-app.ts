@@ -48,7 +48,7 @@ export async function mountGrantApplication(page: Page): Promise<void> {
     el.componentDocument = comp;
     el.themeDocument     = thm;
   }, { def: definition, comp: component, thm: theme, reg: registry });
-  await page.waitForTimeout(200);
+  await page.locator('formspec-render .formspec-root, formspec-render .formspec-wizard').first().waitFor({ state: 'visible' });
 }
 
 /** Read the engine's structureVersion signal value. */

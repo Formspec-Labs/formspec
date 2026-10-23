@@ -62,8 +62,7 @@ async function mountPageMode(
             comp: THREE_PAGE_TREE,
         },
     );
-    // Let the render cycle complete
-    await page.waitForTimeout(200);
+    await page.locator('formspec-render .formspec-root, formspec-render input').first().waitFor({ state: 'visible' });
 }
 
 // ── Single mode ──────────────────────────────────────────────────────────────
@@ -120,7 +119,6 @@ test.describe('pageMode: wizard', () => {
 
         // Click Next → page 2
         await page.locator('button.formspec-wizard-next').click();
-        await page.waitForTimeout(100);
 
         const panels = page.locator('.formspec-wizard-panel');
         await expect(panels.nth(0)).toBeHidden();
@@ -128,7 +126,6 @@ test.describe('pageMode: wizard', () => {
 
         // Click Previous → back to page 1
         await page.locator('button.formspec-wizard-prev').click();
-        await page.waitForTimeout(100);
 
         await expect(panels.nth(0)).toBeVisible();
         await expect(panels.nth(1)).toBeHidden();
@@ -140,7 +137,6 @@ test.describe('pageMode: wizard', () => {
         const nextBtn = page.locator('button.formspec-wizard-next');
         await nextBtn.click(); // page 2
         await nextBtn.click(); // page 3 (last)
-        await page.waitForTimeout(100);
 
         await expect(nextBtn).toHaveText('Submit');
     });
@@ -150,9 +146,7 @@ test.describe('pageMode: wizard', () => {
 
         await page.fill('input[name="name"]', 'Alice');
         await page.locator('button.formspec-wizard-next').click();
-        await page.waitForTimeout(100);
         await page.locator('button.formspec-wizard-prev').click();
-        await page.waitForTimeout(100);
 
         await expect(page.locator('input[name="name"]')).toHaveValue('Alice');
     });
@@ -190,7 +184,6 @@ test.describe('pageMode: tabs', () => {
         await mountPageMode(page, 'tabs');
 
         await page.locator('.formspec-tab').nth(1).click();
-        await page.waitForTimeout(100);
 
         const panels = page.locator('.formspec-tab-panel');
         await expect(panels.nth(0)).toBeHidden();
@@ -222,11 +215,9 @@ test.describe('pageMode: tabs', () => {
 
         // Switch to second tab
         await page.locator('.formspec-tab').nth(1).click();
-        await page.waitForTimeout(100);
 
         // Switch back to first tab
         await page.locator('.formspec-tab').nth(0).click();
-        await page.waitForTimeout(100);
 
         await expect(page.locator('input[name="name"]')).toHaveValue('Bob');
     });
@@ -239,7 +230,6 @@ test.describe('pageMode: tabs', () => {
 
         // ArrowRight → second tab
         await page.keyboard.press('ArrowRight');
-        await page.waitForTimeout(100);
 
         const buttons = page.locator('.formspec-tab');
         await expect(buttons.nth(1)).toHaveAttribute('aria-selected', 'true');

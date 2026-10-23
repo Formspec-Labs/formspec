@@ -17,31 +17,46 @@ import {
     projectionMetadataAttrs,
 } from './projection-metadata.js';
 
+import { marked } from 'marked';
+import sanitizeHtml from 'sanitize-html';
+
 /**
- * Minimal markdown-to-HTML converter. Handles the subset required by the Text
- * component spec: bold, italic, links, inline code, and newlines.
+ * Sanitized markdown-to-HTML parser preventing XSS, script injection, srcdoc,
+ * attribute injection, and unescaped HTML vectors.
  */
-function simpleMarkdown(text: string): string {
-    return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, linkText, url) => {
-            const trimmed = url.trim().toLowerCase();
-            if (
-                trimmed.startsWith('javascript:') ||
-                trimmed.startsWith('data:') ||
-                trimmed.startsWith('vbscript:')
-            ) {
-                return `<span>${linkText}</span>`;
-            }
-            return `<a href="${url}">${linkText}</a>`;
-        })
-        .replace(/\n/g, '<br>');
+export function renderSanitizedMarkdown(text: string): string {
+    if (!text) return '';
+    const raw = marked.parseInline(text, { gfm: true, breaks: true }) as string;
+    return sanitizeHtml(raw, {
+        allowedTags: ['em', 'strong', 'a', 'code', 'br', 'span', 'p'],
+        allowedAttributes: {
+            a: ['href', 'title', 'target', 'rel'],
+            span: ['class'],
+            code: ['class'],
+        },
+        allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+        allowedSchemesRelative: true,
+        disallowedTagsMode: 'escape',
+        transformTags: {
+            'a': (tagName, attribs) => {
+                const rawHref = (attribs.href || '').trim();
+                const lower = rawHref.toLowerCase();
+                if (
+                    !rawHref ||
+                    lower.startsWith('javascript:') ||
+                    lower.startsWith('data:') ||
+                    lower.startsWith('vbscript:')
+                ) {
+                    return { tagName: 'span', attribs: {} };
+                }
+                return { tagName, attribs };
+            },
+        },
+    });
 }
+
+/** Backward-compatible alias for renderSanitizedMarkdown. */
+export const simpleMarkdown = renderSanitizedMarkdown;
 
 const NO_VALUE = createSignal(null);
 const NO_READONLY = createSignal(false);
@@ -182,7 +197,7 @@ export function DisplayNode({ node }: { node: LayoutNode }) {
                         className={textClassName}
                         style={style}
                         {...graphAttrs}
-                        dangerouslySetInnerHTML={{ __html: simpleMarkdown(text) }}
+                        dangerouslySetInnerHTML={{ __html: renderSanitizedMarkdown(text) }}
                     />
                 );
             }

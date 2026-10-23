@@ -13,7 +13,6 @@ test.describe('Grant App: Review & Submit Page', () => {
   test('should resolve orgType optionSet label in Summary on Review & Submit page', async ({ page }) => {
     // Set orgType to 'nonprofit' before navigating
     await engineSetValue(page, 'applicantInfo.orgType', 'nonprofit');
-    await page.waitForTimeout(50);
 
     // Navigate to Review & Submit page
     await goToPage(page, 'Review & Submit');
@@ -21,7 +20,6 @@ test.describe('Grant App: Review & Submit Page', () => {
     // Expand the Applicant Information collapsible
     const collapsible = page.locator('.formspec-collapsible').filter({ hasText: 'Applicant Information' }).first();
     await collapsible.click();
-    await page.waitForTimeout(100);
 
     // The Summary should show the label "Nonprofit Organization" not the raw value "nonprofit"
     const summary = collapsible.locator('.formspec-summary');

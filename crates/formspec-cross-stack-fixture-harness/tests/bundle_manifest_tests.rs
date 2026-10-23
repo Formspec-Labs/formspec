@@ -143,6 +143,10 @@ struct TrellisEventData {
     verification_receipt: Option<String>,
     custody_hook_present: bool,
     admission_failed_reason: Option<String>,
+    #[serde(default)]
+    uca_corroborated: Option<bool>,
+    #[serde(default)]
+    uca: Option<serde_json::Value>,
 }
 
 /// Local alias — fixture root lives in the harness library (`paths` module).
@@ -517,6 +521,16 @@ fn validate_response_schema(response_json: &serde_json::Value) {
         &std::fs::read_to_string(common_schema_path).expect("read common schema"),
     )
     .expect("parse common schema");
+    let definition_schema_path = formspec_root().join("schemas/definition.schema.json");
+    let definition_schema: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(definition_schema_path).expect("read definition schema"),
+    )
+    .expect("parse definition schema");
+    let issuer_schema_path = formspec_root().join("schemas/issuer.schema.json");
+    let issuer_schema: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(issuer_schema_path).expect("read issuer schema"),
+    )
+    .expect("parse issuer schema");
     let response_validator = jsonschema::options()
         .with_resource(
             "https://formspec.org/schemas/common/1.0",
@@ -529,6 +543,14 @@ fn validate_response_schema(response_json: &serde_json::Value) {
         .with_resource(
             "https://formspec.org/schemas/verification-receipt/1.0",
             jsonschema::Resource::from_contents(verification_receipt_schema),
+        )
+        .with_resource(
+            "https://formspec.org/schemas/definition/1.0",
+            jsonschema::Resource::from_contents(definition_schema),
+        )
+        .with_resource(
+            "https://formspec.org/schemas/issuer/1.0",
+            jsonschema::Resource::from_contents(issuer_schema),
         )
         .build(&response_schema)
         .expect("compile response schema");
@@ -1233,6 +1255,8 @@ fn test_bundle_006_deferred_pending_helper_path() {
 
 #[test]
 fn test_bundle_007_expects_byte_equality() {
+    use base64::Engine;
+
     let root = cross_stack_root();
     let bundles = discover_bundles(root.to_str().unwrap()).unwrap();
     let b007 = bundles
@@ -1241,6 +1265,7 @@ fn test_bundle_007_expects_byte_equality() {
         .expect("bundle 007 not found");
 
     let eq = &b007.manifest.cross_layer_byte_equality;
+    assert!(eq.formspec_signed_payload_digest_equals_wos.unwrap());
     assert!(eq.signature_value_bytes_equals_trellis_uca.unwrap());
     assert!(eq.verification_receipt_bytes_identical.unwrap());
     assert!(eq.response_hash_equals_export.unwrap());
@@ -1253,6 +1278,79 @@ fn test_bundle_007_expects_byte_equality() {
         .expect("trellis outcome missing");
     assert!(trellis.uca_corroborated.unwrap());
     assert!(trellis.export_present.unwrap());
+
+    // 1. Verify Formspec response with ring adapter
+    let fixture = load_verified_response_fixture("007-cross-stack-trellis-export");
+    verify_with_ring(&fixture);
+
+    let bundle_dir = cross_stack_root().join("007-cross-stack-trellis-export");
+
+    // 2. Verify WOS provenance record
+    let wos_bytes =
+        std::fs::read(bundle_dir.join("wos-provenance.cbor")).expect("read wos-provenance.cbor");
+    let wos: WosProvenanceBundle =
+        ciborium::from_reader(wos_bytes.as_slice()).expect("decode WOS provenance CBOR");
+    assert_eq!(wos.records.len(), 1);
+    let record = &wos.records[0];
+    assert_eq!(record.record_kind, "signatureAffirmation");
+    let wos_data: WosSignatureAffirmationData =
+        serde_json::from_value(record.data.clone()).expect("signatureAffirmation data");
+    assert_eq!(wos_data.source_signature_id, "sig-cross-stack-002");
+    assert_eq!(
+        wos_data.signed_payload_digest,
+        fixture.signature.signed_payload.digest,
+        "formspec_signed_payload_digest_equals_wos invariant"
+    );
+    assert_eq!(wos_data.signing_intent, fixture.signature.signing_intent);
+    assert!(wos_data.custody_hook_eligible);
+    assert_eq!(wos_data.primitive_verification.status, "verified");
+
+    let receipt_b64 = base64::engine::general_purpose::STANDARD.encode(&fixture.receipt_bytes);
+    assert_eq!(
+        wos_data.verification_receipt.as_deref(),
+        Some(receipt_b64.as_str()),
+        "verification_receipt_bytes_identical invariant (WOS layer)"
+    );
+
+    // 3. Verify Trellis events record
+    let trellis_bytes =
+        std::fs::read(bundle_dir.join("trellis-events.cbor")).expect("read trellis-events.cbor");
+    let trellis_bundle: TrellisEventsBundle =
+        ciborium::from_reader(trellis_bytes.as_slice()).expect("decode Trellis events CBOR");
+    assert_eq!(trellis_bundle.events.len(), 1);
+    let event = &trellis_bundle.events[0];
+    assert_eq!(event.event_kind, "wos.kernel.signature_affirmation");
+    assert!(event.data.custody_hook_present);
+    assert_eq!(event.data.uca_corroborated, Some(true));
+    assert_eq!(
+        event.data.signed_payload_digest,
+        fixture.signature.signed_payload.digest
+    );
+    assert_eq!(
+        event.data.verification_receipt,
+        wos_data.verification_receipt,
+        "verification_receipt_bytes_identical invariant (Trellis layer)"
+    );
+
+    // 4. Assert signature_value_bytes_equals_trellis_uca
+    let uca_sig = event
+        .data
+        .uca
+        .as_ref()
+        .and_then(|u| u.get("signatureValue"))
+        .and_then(|v| v.as_str())
+        .expect("Trellis event data must carry UCA signatureValue");
+    assert_eq!(
+        uca_sig,
+        fixture.signature.signature_value,
+        "signature_value_bytes_equals_trellis_uca invariant"
+    );
+
+    // 5. Verify trellis-export.zip existence and non-emptiness
+    let export_zip_path = bundle_dir.join("trellis-export.zip");
+    assert!(export_zip_path.is_file(), "trellis-export.zip must exist");
+    let export_zip_bytes = std::fs::read(&export_zip_path).expect("read export zip");
+    assert!(!export_zip_bytes.is_empty(), "trellis-export.zip must not be empty");
 }
 
 fn invalid_dir() -> PathBuf {

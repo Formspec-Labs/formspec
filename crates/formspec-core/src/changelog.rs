@@ -12,67 +12,92 @@ use serde_json::Map;
 use serde_json::Value;
 
 /// Kind of change between two definition versions.
-#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChangeType {
+    /// An element was added in the target version.
     Added,
+    /// An element was removed in the target version.
     Removed,
+    /// An element was modified between versions.
     Modified,
 }
 
 /// Definition subsystem affected by a change.
-#[allow(missing_docs)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChangeTarget {
+    /// An item (field, group, etc.) was affected.
     Item,
+    /// A bind expression or property was affected.
     Bind,
+    /// A validation shape was affected.
     Shape,
+    /// An option set was affected.
     OptionSet,
+    /// A data source declaration was affected.
     DataSource,
+    /// A screener rule was affected.
     Screener,
+    /// A data migration rule was affected.
     Migration,
+    /// Form metadata was affected.
     Metadata,
 }
 
 /// Severity classification of a single change.
-#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChangeImpact {
+    /// Presentational change that does not affect semantics or validation.
     Cosmetic,
+    /// Additive or non-breaking semantic change.
     Compatible,
+    /// Breaking semantic change requiring downstream attention or data migration.
     Breaking,
 }
 
 /// Semantic version bump implied by the aggregate impact.
-#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SemverImpact {
+    /// Backward-compatible bug fixes or cosmetic adjustments.
     Patch,
+    /// Backward-compatible new functionality or additions.
     Minor,
+    /// Incompatible API, schema, or semantic changes.
     Major,
 }
 
 /// A single atomic change between two definition versions.
-#[allow(missing_docs)]
 pub struct Change {
+    /// Type of atomic change (added, removed, modified).
     pub change_type: ChangeType,
+    /// Target subsystem within the definition.
     pub target: ChangeTarget,
+    /// JSON Pointer or logical path to the affected element.
     pub path: String,
+    /// Severity classification of this change.
     pub impact: ChangeImpact,
+    /// Property key or identifier affected within the target element.
     pub key: Option<String>,
+    /// Human-readable description of the change.
     pub description: Option<String>,
+    /// Previous value before the change (if any).
     pub before: Option<Value>,
+    /// New value after the change (if any).
     pub after: Option<Value>,
+    /// Migration recommendation or hint for downstream consumers.
     pub migration_hint: Option<String>,
 }
 
 /// Structured diff between two definition versions.
-#[allow(missing_docs)]
 pub struct Changelog {
+    /// Canonical URL of the definition that was compared.
     pub definition_url: String,
+    /// Base version string being migrated from.
     pub from_version: String,
+    /// Target version string being migrated to.
     pub to_version: String,
+    /// Recommended semantic version increment based on aggregate impact.
     pub semver_impact: SemverImpact,
+    /// Ordered list of atomic changes.
     pub changes: Vec<Change>,
 }
 

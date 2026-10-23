@@ -70,7 +70,7 @@ fn emit(
                 }
                 // A repeat removed as non-relevant survives only through a descendant whose own
                 // `keep` or `empty` outranks it, the rule the group branch applies to its object.
-                let removed = !item.relevant && mode == NrbMode::Remove;
+                let removed = !item.mip.relevant && mode == NrbMode::Remove;
                 if removed && rows.iter().all(|(_, row)| row.is_empty()) {
                     continue;
                 }

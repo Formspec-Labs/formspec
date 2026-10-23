@@ -9,10 +9,20 @@ import {
   getValidationReport,
   goToPage,
   waitForFormEngine,
+  waitForRelevant,
+  waitForEngineValue,
 } from './engine-harness';
 import { waitForWasm } from './harness';
 
-export { engineSetValue, engineValue, getResponse, getValidationReport, goToPage };
+export {
+  engineSetValue,
+  engineValue,
+  getResponse,
+  getValidationReport,
+  goToPage,
+  waitForRelevant,
+  waitForEngineValue,
+};
 
 const ROOT = path.resolve(__dirname, '../../../../');
 const REPORT_DIR = path.join(ROOT, 'examples/grant-report');

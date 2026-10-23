@@ -18,15 +18,14 @@ test.describe('Grant App: Field Interaction', () => {
 
   test('should reflect engine setValue in the DOM input for applicantInfo.orgName', async ({ page }) => {
     await engineSetValue(page, 'applicantInfo.orgName', 'Test Organization');
-    await page.waitForTimeout(100);
-
-    // Verify engine has the value
-    const engineVal = await engineValue(page, 'applicantInfo.orgName');
-    expect(engineVal).toBe('Test Organization');
 
     // Verify DOM input reflects the value
     const input = page.locator('[data-name="applicantInfo.orgName"] input, input[name="applicantInfo.orgName"]').first();
     await expect(input).toHaveValue('Test Organization');
+
+    // Verify engine has the value
+    const engineVal = await engineValue(page, 'applicantInfo.orgName');
+    expect(engineVal).toBe('Test Organization');
   });
 
   test('should render bound TextInput components on the grant application first wizard page', async ({ page }) => {
@@ -47,7 +46,7 @@ test.describe('Grant App: Field Interaction', () => {
 
     // Click "university" option
     await radios.filter({ hasText: '' }).nth(1).click();
-    await page.waitForTimeout(50);
+    await expect(radios.nth(1)).toBeChecked();
 
     const value = await page.evaluate(() => {
       const el: any = document.querySelector('formspec-render');
@@ -71,7 +70,10 @@ test.describe('Grant App: Field Interaction', () => {
     const addBtn = page.locator('.formspec-datatable-add').first();
     await expect(addBtn).toBeVisible();
     await addBtn.click();
-    await page.waitForTimeout(100);
+    await page.waitForFunction(() => {
+      const el: any = document.querySelector('formspec-render');
+      return el?.getEngine()?.repeats['budget.lineItems']?.value === 2;
+    });
 
     const newCount = await page.evaluate(() => {
       const el: any = document.querySelector('formspec-render');

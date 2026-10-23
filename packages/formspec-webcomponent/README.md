@@ -34,6 +34,15 @@ el.themeDocument = myTheme;
 
 The element is exported but not auto-registered. Call `customElements.define()` with your preferred tag name.
 
+## DOM Architecture: Explicit Light-DOM Design
+
+`<formspec-render>` is an **explicit Light-DOM custom element** (`el.shadowRoot === null`). The element does not attach an internal decorative shadow root; its root container (`.formspec-container`) is rendered directly into Light DOM as a child of the element.
+
+This intentional architecture provides:
+1. **Unencumbered Form Semantics & A11y**: Form controls, labels, and validation states participate directly in the page accessibility tree, browser autofill, and password managers without encountering cross-shadow-boundary ARIA or focus issues.
+2. **Predictable Styling**: Host application themes, global CSS tokens, and web fonts cascade naturally to form elements.
+3. **Host-Level Encapsulation**: When an embedder requires strict CSS encapsulation, `<formspec-render>` can be placed inside the host application's own Shadow Root (e.g. `const shadow = host.attachShadow({ mode: 'open' }); shadow.appendChild(el);`). The element detects its containing root node via `this.getRootNode()` and dynamically links its required stylesheets into that containing shadow root, keeping them isolated without leaking into the outer document.
+
 ## Properties
 
 | Property | Type | Description |

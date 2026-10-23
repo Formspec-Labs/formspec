@@ -5,6 +5,7 @@ import {
   engineValue,
   engineSetValue,
   isRelevant,
+  waitForRelevant,
   getValidationReport,
 } from '../helpers/grant-report';
 
@@ -38,7 +39,8 @@ test.describe('Grant Report: multiChoice → Expenditure Relevance', () => {
 
   test('selecting a topic makes the corresponding expenditure field relevant', async ({ page }) => {
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment', 'housing']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', true);
+    await waitForRelevant(page, 'expenditures.housing', true);
 
     expect(await isRelevant(page, 'expenditures.employment')).toBe(true);
     expect(await isRelevant(page, 'expenditures.housing')).toBe(true);
@@ -47,11 +49,11 @@ test.describe('Grant Report: multiChoice → Expenditure Relevance', () => {
 
   test('deselecting a topic makes expenditure field non-relevant again', async ({ page }) => {
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', true);
     expect(await isRelevant(page, 'expenditures.employment')).toBe(true);
 
     await engineSetValue(page, 'expenditures.applicableTopics', []);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', false);
     expect(await isRelevant(page, 'expenditures.employment')).toBe(false);
   });
 });
@@ -64,7 +66,7 @@ test.describe('Grant Report: Default Bind Re-relevance', () => {
   test('default value applied on relevance transition', async ({ page }) => {
     // Select employment → field becomes relevant
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', true);
     expect(await isRelevant(page, 'expenditures.employment')).toBe(true);
 
     // Set a value (setValue coerces numbers to money objects for money-typed fields)
@@ -74,14 +76,14 @@ test.describe('Grant Report: Default Bind Re-relevance', () => {
 
     // Deselect → non-relevant
     await engineSetValue(page, 'expenditures.applicableTopics', []);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', false);
     expect(await isRelevant(page, 'expenditures.employment')).toBe(false);
 
     // Re-select → relevant again, default should apply (value was cleared/null)
     // Clear the value first to simulate the non-relevant→relevant path
     await engineSetValue(page, 'expenditures.employment', null);
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', true);
 
     // The default bind should set the value to money object with amount 0
     const val = await engineValue(page, 'expenditures.employment');
@@ -92,7 +94,7 @@ test.describe('Grant Report: Default Bind Re-relevance', () => {
     // Select employment → default 0 applied
     await engineSetValue(page, 'expenditures.employment', null);
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', true);
 
     const report = await getValidationReport(page, 'continuous');
     const constraintErrors = report.results.filter(
@@ -109,10 +111,15 @@ test.describe('Grant Report: Calculate + Admin Gate', () => {
 
   test('total expenditures auto-calculates from selected topics', async ({ page }) => {
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment', 'housing']);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.employment', true);
     await engineSetValue(page, 'expenditures.employment', 45000);
     await engineSetValue(page, 'expenditures.housing', 32000);
-    await page.waitForTimeout(100);
+    await page.waitForFunction(() => {
+      const el: any = document.querySelector('formspec-render');
+      const v = el?.getEngine()?.signals['expenditures.total']?.value;
+      const amount = v && typeof v === 'object' && 'amount' in v ? Number(v.amount) : Number(v);
+      return amount === 77000;
+    });
 
     const total = await engineValue(page, 'expenditures.total');
     // moneySum returns a money object; verify amount
@@ -125,11 +132,11 @@ test.describe('Grant Report: Calculate + Admin Gate', () => {
     expect(await isRelevant(page, 'expenditures.administrationExpenditure')).toBe(false);
 
     await engineSetValue(page, 'expenditures.hasAdministrationCosts', true);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.administrationExpenditure', true);
     expect(await isRelevant(page, 'expenditures.administrationExpenditure')).toBe(true);
 
     await engineSetValue(page, 'expenditures.hasAdministrationCosts', false);
-    await page.waitForTimeout(100);
+    await waitForRelevant(page, 'expenditures.administrationExpenditure', false);
     expect(await isRelevant(page, 'expenditures.administrationExpenditure')).toBe(false);
   });
 });

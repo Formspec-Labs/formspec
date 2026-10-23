@@ -87,8 +87,7 @@ async function mountWithLocale(page: any, locale?: any, activeLocale?: string) {
     el.definition = def;
     el.componentDocument = comp;
   }, { def: DEFINITION, comp: COMPONENT, loc: locale, activeLoc: activeLocale });
-  // Let signals settle
-  await page.waitForTimeout(200);
+  await page.locator('[data-name="name"] label').waitFor({ state: 'visible' });
 }
 
 // ── Tests ──
@@ -159,7 +158,6 @@ test.describe('Locale Rendering', () => {
       const el: any = document.querySelector('formspec-render');
       el.locale = 'ar';
     });
-    await page.waitForTimeout(200);
     await expect(page.locator('[data-name="name"] label')).toContainText('الاسم الكامل');
   });
 

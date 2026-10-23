@@ -789,8 +789,7 @@ class AssistProviderImpl implements AssistProvider {
   }
 
   private fieldValidation(path: string): ValidationResult[] {
-    const vm = this.requireField(path);
-    void vm;
+    this.requireField(path);
     return this.engine.validationResults[path]?.value ?? [];
   }
 

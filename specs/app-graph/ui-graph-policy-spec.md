@@ -495,10 +495,9 @@ and this section is only the mechanism that enforces it:
 [`respondent-ledger-spec.md`](../audit/respondent-ledger-spec.md) §13A.2 for
 `proof` and §13A.3 for `verification`;
 [`wysiwys-ceremony-spec.md`](../registry/wysiwys-ceremony-spec.md) §3 for
-`ceremony`. Two values are enforced here without such a statement behind them:
-`authentication`, whose owning concern exists but states no
-appearance-dependent guarantee yet, and `attestation`, which no owning
-specification claims at all. Both are recorded as open in
+`ceremony`; and
+[`identity-binding-profile-spec.md`](../identity-binding/identity-binding-profile-spec.md) §10 for
+`authentication`. Only `attestation` remains an unowned exception in
 [ADR 0161](../../../thoughts/adr/0161-route-class-and-rendering-ring-boundary.md)
 §5 pin register, which is the index of where every value's refusal is stated.
 

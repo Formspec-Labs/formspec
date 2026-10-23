@@ -50,6 +50,8 @@ module-name = "formspec._native"
 include = [
     { path = "LICENSE", format = "sdist" },
     { path = "LICENSE-BSL", format = "sdist" },
+    { path = "src/formspec/_native.pyi" },
+    { path = "src/formspec/py.typed" },
 ]
 
 [tool.pytest.ini_options]

@@ -169,7 +169,7 @@ fn repeat_has_host_data(
 pub(crate) fn apply_previous_non_relevant(items: &mut [ItemInfo], non_relevant_paths: &[String]) {
     for item in items.iter_mut() {
         if non_relevant_paths.contains(&item.path) {
-            item.prev_relevant = false;
+            item.mip.prev_relevant = false;
         }
         apply_previous_non_relevant(&mut item.children, non_relevant_paths);
     }

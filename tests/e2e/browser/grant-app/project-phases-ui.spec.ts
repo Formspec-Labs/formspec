@@ -24,20 +24,18 @@ test.describe('Grant App: Project Phases UI', () => {
     await engineSetValue(page, 'projectNarrative.startDate', '2027-01-01');
     await engineSetValue(page, 'projectNarrative.endDate', '2028-01-01');
     await engineSetValue(page, 'projectNarrative.focusAreas', ['health']);
-    await page.waitForTimeout(100);
 
     await goToPage(page, 'Project Phases');
 
     await addRepeatInstance(page, 'projectPhases[0].phaseTasks');
     await engineSetValue(page, 'projectPhases[0].phaseTasks[0].hours', 10);
     await engineSetValue(page, 'projectPhases[0].phaseTasks[0].hourlyRate', { amount: 100, currency: 'USD' });
-    await page.waitForTimeout(100);
-
-    const phaseTotal = await engineValue(page, 'projectPhases[0].phaseTotal');
-    expect(phaseTotal).toMatchObject({ amount: 1000, currency: 'USD' });
 
     const phaseTotalText = page.locator('.formspec-wizard-panel:not(.formspec-hidden)');
     await expect(phaseTotalText).toContainText('$1,000.00');
+
+    const phaseTotal = await engineValue(page, 'projectPhases[0].phaseTotal');
+    expect(phaseTotal).toMatchObject({ amount: 1000, currency: 'USD' });
   });
 
   test('should update phaseTotal when task data is entered via engine', async ({ page }) => {
@@ -51,20 +49,18 @@ test.describe('Grant App: Project Phases UI', () => {
     await engineSetValue(page, 'projectNarrative.startDate', '2027-01-01');
     await engineSetValue(page, 'projectNarrative.endDate', '2028-01-01');
     await engineSetValue(page, 'projectNarrative.focusAreas', ['health']);
-    await page.waitForTimeout(100);
 
     await goToPage(page, 'Project Phases');
 
     await addRepeatInstance(page, 'projectPhases[0].phaseTasks');
     await engineSetValue(page, 'projectPhases[0].phaseTasks[0].hours', 8);
     await engineSetValue(page, 'projectPhases[0].phaseTasks[0].hourlyRate', { amount: 150, currency: 'USD' });
-    await page.waitForTimeout(100);
-
-    const phaseTotal = await engineValue(page, 'projectPhases[0].phaseTotal');
-    expect(phaseTotal).toMatchObject({ amount: 1200, currency: 'USD' });
 
     const panel = page.locator('.formspec-wizard-panel:not(.formspec-hidden)');
     await expect(panel).toContainText('$1,200.00');
+
+    const phaseTotal = await engineValue(page, 'projectPhases[0].phaseTotal');
+    expect(phaseTotal).toMatchObject({ amount: 1200, currency: 'USD' });
   });
 
   test('should display non-zero projectPhasesTotal in the Phases Summary card', async ({ page }) => {
@@ -72,10 +68,6 @@ test.describe('Grant App: Project Phases UI', () => {
     await engineSetValue(page, 'projectPhases[0].phaseName', 'Design Phase');
     await engineSetValue(page, 'projectPhases[0].phaseTasks[0].hours', 20);
     await engineSetValue(page, 'projectPhases[0].phaseTasks[0].hourlyRate', { amount: 75, currency: 'USD' });
-    await page.waitForTimeout(100);
-
-    const total = await engineVariable(page, 'projectPhasesTotal');
-    expect(total).toMatchObject({ amount: 1500, currency: 'USD' });
 
     await engineSetValue(page, 'applicantInfo.orgName', 'Test Org');
     await engineSetValue(page, 'applicantInfo.ein', '12-3456789');
@@ -87,12 +79,14 @@ test.describe('Grant App: Project Phases UI', () => {
     await engineSetValue(page, 'projectNarrative.startDate', '2027-01-01');
     await engineSetValue(page, 'projectNarrative.endDate', '2028-01-01');
     await engineSetValue(page, 'projectNarrative.focusAreas', ['health']);
-    await page.waitForTimeout(100);
 
     await goToPage(page, 'Project Phases');
 
     const summaryCard = page.locator('.formspec-wizard-panel:not(.formspec-hidden)');
     await expect(summaryCard).toContainText('$1,500.00');
+
+    const total = await engineVariable(page, 'projectPhasesTotal');
+    expect(total).toMatchObject({ amount: 1500, currency: 'USD' });
   });
 });
 
@@ -106,13 +100,9 @@ test.describe('Grant App: ProgressBar on Project Narrative', () => {
 
     // Set selfAssessment (bound to ProgressBar with max=5)
     await engineSetValue(page, 'projectNarrative.selfAssessment', 3);
-    await page.waitForTimeout(50);
 
-    const progressValue = await page.evaluate(() => {
-      const progress = document.querySelector('.formspec-progress-bar progress') as HTMLProgressElement | null;
-      return progress?.value;
-    });
-    expect(progressValue).toBe(3);
+    const progress = page.locator('.formspec-progress-bar progress');
+    await expect(progress).toHaveAttribute('value', '3');
   });
 
   test('ProgressBar label is applied as aria-label', async ({ page }) => {
@@ -129,12 +119,8 @@ test.describe('Grant App: ProgressBar on Project Narrative', () => {
     await goToPage(page, 'Project Narrative');
 
     await engineSetValue(page, 'projectNarrative.selfAssessment', 4);
-    await page.waitForTimeout(50);
 
-    const percentText = await page.evaluate(() => {
-      const span = document.querySelector('.formspec-progress-bar .formspec-progress-percent');
-      return span?.textContent;
-    });
-    expect(percentText).toBe('80%');  // 4/5 = 80%
+    const percent = page.locator('.formspec-progress-bar .formspec-progress-percent');
+    await expect(percent).toHaveText('80%');  // 4/5 = 80%
   });
 });

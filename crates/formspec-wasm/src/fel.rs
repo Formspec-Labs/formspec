@@ -7,6 +7,8 @@
 //! siblings, which native `cargo nextest` tests in [`crate::wasm_tests`] can drive without
 //! linking the `wasm-bindgen` runtime. The wrappers only wrap `String` → `JsError`.
 
+#![allow(deprecated)]
+
 use fel_core::{
     EvaluatorOptions, ExtensionFunctions, Trace, evaluate, evaluate_with,
     fel_diagnostics_to_json_value, fel_to_ui_json, field_map_from_json_str,
@@ -62,9 +64,16 @@ pub(crate) fn fel_eval_envelope_json(
 
 /// Parse and evaluate a FEL expression with optional field values (JSON object).
 /// Returns the result as a JSON string.
-#[wasm_bindgen(js_name = "evalFEL")]
+#[wasm_bindgen(js_name = "evalFel")]
 pub fn eval_fel(expression: &str, fields_json: &str) -> Result<String, JsError> {
     eval_fel_inner(expression, fields_json).map_err(|e| JsError::new(&e))
+}
+
+/// Legacy alias for [`eval_fel`] using uppercase `FEL`.
+#[deprecated(note = "Use evalFel instead")]
+#[wasm_bindgen(js_name = "evalFEL")]
+pub fn eval_fel_legacy(expression: &str, fields_json: &str) -> Result<String, JsError> {
+    eval_fel(expression, fields_json)
 }
 
 pub(crate) fn eval_fel_inner(expression: &str, fields_json: &str) -> Result<String, String> {
@@ -80,9 +89,16 @@ pub(crate) fn eval_fel_inner(expression: &str, fields_json: &str) -> Result<Stri
 /// Returns a JSON string of shape `{ "value": ..., "diagnostics": [...], "trace": [TraceStep, ...] }`.
 /// TraceStep is the tagged union from [`fel_core::TraceStep`] (`kind` = `"FieldResolved"`,
 /// `"FunctionCalled"`, `"BinaryOp"`, `"IfBranch"`, `"ShortCircuit"`).
-#[wasm_bindgen(js_name = "evalFELWithTrace")]
+#[wasm_bindgen(js_name = "evalFelWithTrace")]
 pub fn eval_fel_with_trace(expression: &str, fields_json: &str) -> Result<String, JsError> {
     eval_fel_with_trace_inner(expression, fields_json).map_err(|e| JsError::new(&e))
+}
+
+/// Legacy alias for [`eval_fel_with_trace`] using uppercase `FEL`.
+#[deprecated(note = "Use evalFelWithTrace instead")]
+#[wasm_bindgen(js_name = "evalFELWithTrace")]
+pub fn eval_fel_with_trace_legacy(expression: &str, fields_json: &str) -> Result<String, JsError> {
+    eval_fel_with_trace(expression, fields_json)
 }
 
 pub(crate) fn eval_fel_with_trace_inner(
@@ -113,7 +129,7 @@ pub(crate) fn eval_fel_with_trace_inner(
 /// Evaluate a FEL expression with full context and trace each evaluation step.
 ///
 /// `extensions` resolves calls to host extension functions (Core §3.12).
-#[wasm_bindgen(js_name = "evalFELWithContextTrace")]
+#[wasm_bindgen(js_name = "evalFelWithContextTrace")]
 pub fn eval_fel_with_context_trace(
     expression: &str,
     context_json: &str,
@@ -125,6 +141,17 @@ pub fn eval_fel_with_context_trace(
         extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
     )
     .map_err(|e| JsError::new(&e))
+}
+
+/// Legacy alias for [`eval_fel_with_context_trace`] using uppercase `FEL`.
+#[deprecated(note = "Use evalFelWithContextTrace instead")]
+#[wasm_bindgen(js_name = "evalFELWithContextTrace")]
+pub fn eval_fel_with_context_trace_legacy(
+    expression: &str,
+    context_json: &str,
+    extensions: Option<FelExtensionHost>,
+) -> Result<String, JsError> {
+    eval_fel_with_context_trace(expression, context_json, extensions)
 }
 
 pub(crate) fn eval_fel_with_context_trace_inner(
@@ -160,7 +187,7 @@ pub(crate) fn eval_fel_with_context_trace_inner(
 /// `context_json` is a JSON object: { fields, variables?, mipStates?, repeatContext? }
 ///
 /// `extensions` resolves calls to host extension functions (Core §3.12).
-#[wasm_bindgen(js_name = "evalFELWithContext")]
+#[wasm_bindgen(js_name = "evalFelWithContext")]
 pub fn eval_fel_with_context(
     expression: &str,
     context_json: &str,
@@ -172,6 +199,17 @@ pub fn eval_fel_with_context(
         extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
     )
     .map_err(|e| JsError::new(&e))
+}
+
+/// Legacy alias for [`eval_fel_with_context`] using uppercase `FEL`.
+#[deprecated(note = "Use evalFelWithContext instead")]
+#[wasm_bindgen(js_name = "evalFELWithContext")]
+pub fn eval_fel_with_context_legacy(
+    expression: &str,
+    context_json: &str,
+    extensions: Option<FelExtensionHost>,
+) -> Result<String, JsError> {
+    eval_fel_with_context(expression, context_json, extensions)
 }
 
 pub(crate) fn eval_fel_with_context_inner(
@@ -209,9 +247,9 @@ pub(crate) fn interpolated_json(interpolated: &Interpolated) -> Result<String, S
 
 /// Resolve `{{expression}}` sequences in `template` against a FEL context (Locale §3.3.1).
 ///
-/// `context_json` has the `evalFELWithContext` shape; `extensions` resolves host
+/// `context_json` has the `evalFelWithContext` shape; `extensions` resolves host
 /// extension functions. Returns JSON `{ text, warnings: [{ expression, message }] }`.
-#[wasm_bindgen(js_name = "interpolateFELTemplate")]
+#[wasm_bindgen(js_name = "interpolateFelTemplate")]
 pub fn interpolate_fel_template(
     template: &str,
     context_json: &str,
@@ -223,6 +261,17 @@ pub fn interpolate_fel_template(
         extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
     )
     .map_err(|e| JsError::new(&e))
+}
+
+/// Legacy alias for [`interpolate_fel_template`] using uppercase `FEL`.
+#[deprecated(note = "Use interpolateFelTemplate instead")]
+#[wasm_bindgen(js_name = "interpolateFELTemplate")]
+pub fn interpolate_fel_template_legacy(
+    template: &str,
+    context_json: &str,
+    extensions: Option<FelExtensionHost>,
+) -> Result<String, JsError> {
+    interpolate_fel_template(template, context_json, extensions)
 }
 
 pub(crate) fn interpolate_fel_template_inner(
@@ -278,15 +327,31 @@ pub(crate) fn interpolate_template_inner(
 
 /// Parse a FEL expression and return whether it's valid.
 #[cfg(feature = "fel-authoring")]
-#[wasm_bindgen(js_name = "parseFEL")]
+#[wasm_bindgen(js_name = "parseFel")]
 pub fn parse_fel(expression: &str) -> bool {
     parse(expression).is_ok()
 }
 
+/// Legacy alias for [`parse_fel`] using uppercase `FEL`.
 #[cfg(feature = "fel-authoring")]
-#[wasm_bindgen(js_name = "tokenizeFEL")]
+#[deprecated(note = "Use parseFel instead")]
+#[wasm_bindgen(js_name = "parseFEL")]
+pub fn parse_fel_legacy(expression: &str) -> bool {
+    parse_fel(expression)
+}
+
+#[cfg(feature = "fel-authoring")]
+#[wasm_bindgen(js_name = "tokenizeFel")]
 pub fn tokenize_fel(expression: &str) -> Result<String, JsError> {
     tokenize_fel_inner(expression).map_err(|e| JsError::new(&e))
+}
+
+/// Legacy alias for [`tokenize_fel`] using uppercase `FEL`.
+#[cfg(feature = "fel-authoring")]
+#[deprecated(note = "Use tokenizeFel instead")]
+#[wasm_bindgen(js_name = "tokenizeFEL")]
+pub fn tokenize_fel_legacy(expression: &str) -> Result<String, JsError> {
+    tokenize_fel(expression)
 }
 
 #[cfg(feature = "fel-authoring")]
@@ -297,10 +362,18 @@ pub(crate) fn tokenize_fel_inner(expression: &str) -> Result<String, String> {
 
 /// Print a FEL expression AST back to normalized source string.
 #[cfg(feature = "fel-authoring")]
-#[wasm_bindgen(js_name = "printFEL")]
+#[wasm_bindgen(js_name = "printFel")]
 pub fn print_fel(expression: &str) -> Result<String, JsError> {
     let expr = parse_fel_source(expression).map_err(|e| JsError::new(&e))?;
     Ok(print_expr(&expr))
+}
+
+/// Legacy alias for [`print_fel`] using uppercase `FEL`.
+#[cfg(feature = "fel-authoring")]
+#[deprecated(note = "Use printFel instead")]
+#[wasm_bindgen(js_name = "printFEL")]
+pub fn print_fel_legacy(expression: &str) -> Result<String, JsError> {
+    print_fel(expression)
 }
 
 /// Try to lift a FEL expression into Studio `ConditionGroup` JSON (`lifted` / `unlifted`).
@@ -312,11 +385,18 @@ pub fn try_lift_condition_group_wasm(expression: &str) -> Result<String, JsError
 }
 
 /// Extract field dependencies from a FEL expression.
-#[wasm_bindgen(js_name = "getFELDependencies")]
+#[wasm_bindgen(js_name = "getFelDependencies")]
 pub fn get_fel_deps(expression: &str) -> Result<String, JsError> {
     let deps = get_fel_dependencies(expression);
     let arr: Vec<&str> = deps.iter().map(|s| s.as_str()).collect();
     to_json_string(&arr).map_err(|e| JsError::new(&e))
+}
+
+/// Legacy alias for [`get_fel_deps`] using uppercase `FEL`.
+#[deprecated(note = "Use getFelDependencies instead")]
+#[wasm_bindgen(js_name = "getFELDependencies")]
+pub fn get_fel_deps_legacy(expression: &str) -> Result<String, JsError> {
+    get_fel_deps(expression)
 }
 
 /// Extract full dependency info from a FEL expression.
@@ -331,23 +411,40 @@ pub fn extract_deps(expression: &str) -> Result<String, JsError> {
 
 // ── FEL Analysis ────────────────────────────────────────────────
 
-#[wasm_bindgen(js_name = "analyzeFEL")]
+#[wasm_bindgen(js_name = "analyzeFel")]
 pub fn analyze_fel_wasm(expression: &str) -> Result<String, JsError> {
     let result = analyze_fel(expression);
     let json = fel_analysis_to_json_value(&result);
     to_json_string(&json).map_err(|e| JsError::new(&e))
 }
 
+/// Legacy alias for [`analyze_fel_wasm`] using uppercase `FEL`.
+#[deprecated(note = "Use analyzeFel instead")]
+#[wasm_bindgen(js_name = "analyzeFEL")]
+pub fn analyze_fel_wasm_legacy(expression: &str) -> Result<String, JsError> {
+    analyze_fel_wasm(expression)
+}
+
 /// Analyze a FEL expression with field data type context for type-mismatch warnings.
 ///
 /// `field_types_json` is a JSON object mapping field paths to data type strings,
 /// e.g. `{"revenue": "money", "age": "number"}`.
-#[wasm_bindgen(js_name = "analyzeFELWithFieldTypes")]
+#[wasm_bindgen(js_name = "analyzeFelWithFieldTypes")]
 pub fn analyze_fel_with_field_types_wasm(
     expression: &str,
     field_types_json: &str,
 ) -> Result<String, JsError> {
     analyze_fel_with_field_types_inner(expression, field_types_json).map_err(|e| JsError::new(&e))
+}
+
+/// Legacy alias for [`analyze_fel_with_field_types_wasm`] using uppercase `FEL`.
+#[deprecated(note = "Use analyzeFelWithFieldTypes instead")]
+#[wasm_bindgen(js_name = "analyzeFELWithFieldTypes")]
+pub fn analyze_fel_with_field_types_wasm_legacy(
+    expression: &str,
+    field_types_json: &str,
+) -> Result<String, JsError> {
+    analyze_fel_with_field_types_wasm(expression, field_types_json)
 }
 
 fn analyze_fel_with_field_types_inner(
@@ -368,15 +465,23 @@ fn analyze_fel_with_field_types_inner(
 }
 
 #[cfg(feature = "fel-authoring")]
-#[wasm_bindgen(js_name = "collectFELRewriteTargets")]
+#[wasm_bindgen(js_name = "collectFelRewriteTargets")]
 pub fn collect_fel_rewrite_targets_wasm(expression: &str) -> Result<String, JsError> {
     let targets = collect_fel_rewrite_targets(expression);
     let json = fel_rewrite_targets_to_json_value(&targets);
     to_json_string(&json).map_err(|e| JsError::new(&e))
 }
 
+/// Legacy alias for [`collect_fel_rewrite_targets_wasm`] using uppercase `FEL`.
 #[cfg(feature = "fel-authoring")]
-#[wasm_bindgen(js_name = "rewriteFELReferences")]
+#[deprecated(note = "Use collectFelRewriteTargets instead")]
+#[wasm_bindgen(js_name = "collectFELRewriteTargets")]
+pub fn collect_fel_rewrite_targets_wasm_legacy(expression: &str) -> Result<String, JsError> {
+    collect_fel_rewrite_targets_wasm(expression)
+}
+
+#[cfg(feature = "fel-authoring")]
+#[wasm_bindgen(js_name = "rewriteFelReferences")]
 pub fn rewrite_fel_references_wasm(
     expression: &str,
     rewrites_json: &str,
@@ -385,6 +490,17 @@ pub fn rewrite_fel_references_wasm(
         parse_value_str(rewrites_json, "rewrites JSON").map_err(|e| JsError::new(&e))?;
     let options = rewrite_options_from_camel_case_json(&rewrites);
     Ok(rewrite_fel_source_references(expression, &options))
+}
+
+/// Legacy alias for [`rewrite_fel_references_wasm`] using uppercase `FEL`.
+#[cfg(feature = "fel-authoring")]
+#[deprecated(note = "Use rewriteFelReferences instead")]
+#[wasm_bindgen(js_name = "rewriteFELReferences")]
+pub fn rewrite_fel_references_wasm_legacy(
+    expression: &str,
+    rewrites_json: &str,
+) -> Result<String, JsError> {
+    rewrite_fel_references_wasm(expression, rewrites_json)
 }
 
 #[cfg(feature = "fel-authoring")]

@@ -4,6 +4,8 @@
 //! by shared field keys (creates/references/targets relationships) and groups them
 //! into dependency components that must be accepted or rejected together.
 
+#![warn(missing_docs)]
+
 pub mod extract;
 pub mod graph;
 
