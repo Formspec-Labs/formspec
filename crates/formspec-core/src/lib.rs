@@ -21,6 +21,7 @@ pub mod json_artifacts;
 pub mod json_util;
 pub mod jsonld_context;
 pub mod option_sets;
+pub mod parser_recovery;
 pub mod path_utils;
 pub mod registry_client;
 pub mod response_migration;
@@ -68,6 +69,9 @@ pub use jsonld_context::{
     json_ld_derivation_to_json_value,
 };
 pub use option_sets::resolve_option_sets_on_definition;
+pub use parser_recovery::{
+    JsonParseDiagnostic, JsonRecoveryError, ParsedJsonResult, parse_json_with_recovery,
+};
 pub use path_utils::{
     ItemLocation, TreeItem, definition_item_location_to_json_value, item_at_path,
     item_location_at_path, json_definition_item_at_path, json_definition_item_location_at_path,
@@ -91,4 +95,6 @@ pub use value_coerce::coerce_field_value;
 pub use wire_keys::JsonWireStyle;
 
 #[doc(inline)]
-pub use validation_report::{ValidationReportAssemblyError, build_validation_report};
+pub use validation_report::{
+    ValidationReportAssemblyError, build_validation_report, format_diagnostic_report,
+};

@@ -55,6 +55,11 @@ impl Registry {
         })
     }
 
+    /// Return a slice of all parsed entries in document order.
+    pub fn entries(&self) -> &[RegistryEntry] {
+        &self.entries
+    }
+
     /// Find all entries matching `name`, optionally filtered by a version constraint.
     /// Results are sorted by version descending (highest first).
     pub fn find(&self, name: &str, version_constraint: Option<&str>) -> Vec<&RegistryEntry> {

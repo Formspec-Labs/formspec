@@ -20,6 +20,64 @@
       "constraints": {
         "pattern": "^\\d{2}-\\d{7}$"
       }
+    },
+    {
+      "name": "x-formspec-calculate-match",
+      "category": "function",
+      "version": "1.0.0",
+      "status": "draft",
+      "description": "Calculate matching funds required for a grant application based on requested amount.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "parameters": [
+        { "name": "requested", "type": "decimal", "description": "Total requested grant funds" },
+        { "name": "matchPercent", "type": "decimal", "description": "Required cost share percentage" }
+      ],
+      "returns": "decimal"
+    },
+    {
+      "name": "x-formspec-ein-format",
+      "category": "constraint",
+      "version": "0.9.0",
+      "status": "deprecated",
+      "description": "Legacy EIN string format constraint validator.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "deprecationNotice": "Use x-formspec-ein dataType pattern constraint instead.",
+      "parameters": [
+        { "name": "value", "type": "string", "description": "The EIN candidate string to validate." }
+      ]
+    },
+    {
+      "name": "x-formspec-grant-budget-version",
+      "category": "property",
+      "version": "0.8.0",
+      "status": "retired",
+      "description": "Retired grant budget specification version tracking property.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "deprecationNotice": "Retired in favor of core x-budget-version attribute."
+    },
+    {
+      "name": "x-formspec-grant-suite",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Bundles core grant application data types and calculation functions.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "contributes": [
+        "x-formspec-ein",
+        "x-formspec-calculate-match"
+      ]
+    },
+    {
+      "name": "x-formspec-currency-cents",
+      "category": "unit-kind",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Monetary amount expressed in integer cents for precision accounting.",
+      "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
+      "semantics": {
+        "baseUnit": "USD",
+        "multiplier": 0.01
+      }
     }
   ]
 }

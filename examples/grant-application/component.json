@@ -68,7 +68,7 @@
                     ]
                   },
                   { "component": "RadioGroup", "bind": "applicantInfo.orgType", "orientation": "horizontal", "columns": 2 },
-                  { "component": "TextInput", "bind": "applicantInfo.projectWebsite", "prefix": "https://" },
+                  { "component": "TextInput", "bind": "applicantInfo.projectWebsite", "prefix": "https://", "suffix": ".gov", "inputMode": "url" },
                   {
                     "component": "ConditionalGroup",
                     "when": "$applicantInfo.orgType != null",
@@ -98,7 +98,7 @@
               },
               {
                 "component": "Panel",
-                "placement": "right",
+                "placement": "left",
                 "title": "Applicant Help",
                 "width": "260px",
                 "children": [
@@ -128,6 +128,8 @@
                 "component": "Stack",
                 "direction": "horizontal",
                 "gap": "$token.space.sm",
+                "align": "center",
+                "wrap": true,
                 "children": [
                   { "component": "Badge", "text": "Draft", "variant": "warning", "when": "empty($projectNarrative.abstract)" },
                   { "component": "Badge", "text": "Initialized", "variant": "default", "when": "not empty($projectNarrative.projectTitle)" },
@@ -402,7 +404,8 @@
                   {
                     "component": "Modal",
                     "title": "Subcontractor Certification Requirements",
-                    "trigger": "button",
+                    "trigger": "auto",
+                    "when": "$budget.usesSubcontractors",
                     "triggerLabel": "View Certification Requirements",
                     "size": "md",
                     "closable": true,

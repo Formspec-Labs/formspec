@@ -131,6 +131,53 @@ pub fn build_validation_report(
     Ok(report)
 }
 
+/// Format an assembled validation report into a human-readable diagnostic text report.
+///
+/// Returns a formatted multi-line string containing the overall validity, counts,
+/// metadata pins, and finding diagnostics.
+pub fn format_diagnostic_report(report: &Value) -> Result<String, String> {
+    let obj = report
+        .as_object()
+        .ok_or_else(|| "Report must be a JSON object".to_string())?;
+
+    let valid = obj.get("valid").and_then(Value::as_bool).unwrap_or(false);
+    let timestamp = obj.get("timestamp").and_then(Value::as_str).unwrap_or("unknown");
+    let url = obj.get("definitionUrl").and_then(Value::as_str).unwrap_or("none");
+    let version = obj.get("definitionVersion").and_then(Value::as_str).unwrap_or("none");
+
+    let counts = obj.get("counts").and_then(Value::as_object);
+    let errors = counts.and_then(|c| c.get("error")).and_then(Value::as_u64).unwrap_or(0);
+    let warnings = counts.and_then(|c| c.get("warning")).and_then(Value::as_u64).unwrap_or(0);
+    let info = counts.and_then(|c| c.get("info")).and_then(Value::as_u64).unwrap_or(0);
+
+    let mut out = String::new();
+    out.push_str(&format!(
+        "Validation Diagnostic Report: {}\nTimestamp: {}\nDefinition: {} (version: {})\nCounts: {} errors, {} warnings, {} info\n",
+        if valid { "PASSED" } else { "FAILED" },
+        timestamp,
+        url,
+        version,
+        errors,
+        warnings,
+        info
+    ));
+
+    if let Some(findings) = obj.get("results").and_then(Value::as_array) {
+        if !findings.is_empty() {
+            out.push_str("Findings:\n");
+            for (idx, finding) in findings.iter().enumerate() {
+                let severity = finding.get("severity").and_then(Value::as_str).unwrap_or("error");
+                let path = finding.get("path").and_then(Value::as_str).unwrap_or("$");
+                let msg = finding.get("message").and_then(Value::as_str).unwrap_or("No message");
+                let kind = finding.get("constraintKind").and_then(Value::as_str).unwrap_or("unknown");
+                out.push_str(&format!("  [{idx}] {severity}: {path} [{kind}] - {msg}\n"));
+            }
+        }
+    }
+
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,5 +235,30 @@ mod tests {
         assert_eq!(report["valid"], false);
         assert_eq!(report["counts"]["error"], 1);
         // This remains a candidate: maintained schema admission rejects this finding.
+    }
+
+    #[test]
+    fn format_diagnostic_report_renders_summary_and_findings() {
+        let finding = json!({
+            "$formspecValidationResult": "1.0",
+            "severity": "error",
+            "constraintKind": "required",
+            "source": "bind",
+            "path": "applicantInfo.orgName",
+            "message": "Field is required"
+        });
+        let report = build_validation_report(
+            &[finding],
+            "2026-10-23T04:00:00Z",
+            Some("https://example.gov/forms/grant"),
+            Some("1.0.0"),
+        )
+        .unwrap();
+
+        let formatted = format_diagnostic_report(&report).unwrap();
+        assert!(formatted.contains("FAILED"));
+        assert!(formatted.contains("Counts: 1 errors, 0 warnings, 0 info"));
+        assert!(formatted.contains("applicantInfo.orgName"));
+        assert!(formatted.contains("Field is required"));
     }
 }

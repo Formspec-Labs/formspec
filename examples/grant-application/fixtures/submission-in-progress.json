@@ -44,6 +44,24 @@
             "code": "FIELD_REQUIRED",
             "source": "bind",
             "sourceId": "projectNarrative.startDate"
+        },
+        {
+            "$formspecValidationResult": "1.0",
+            "path": "budget.lineItems",
+            "severity": "error",
+            "constraintKind": "cardinality",
+            "message": "At least one budget line item is required.",
+            "code": "MIN_REPEAT"
+        },
+        {
+            "$formspecValidationResult": "1.0",
+            "path": "budget.requestedAmount",
+            "severity": "error",
+            "constraintKind": "shape",
+            "message": "Requested amount must be greater than zero.",
+            "code": "SHAPE_CONSTRAINT",
+            "source": "shape",
+            "shapeId": "positiveAmount"
         }
     ],
     "data": {

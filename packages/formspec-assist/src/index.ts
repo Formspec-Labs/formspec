@@ -6,6 +6,41 @@ export { targetDefinitionMatches } from '@formspec-org/types';
 export { DEFAULT_WEBMCP_TOOLS, PROFILE_WEBMCP_TOOLS, registerAssistTools } from './webmcp-binding.js';
 export type { RegisterAssistToolsOptions } from './webmcp-binding.js';
 
+export {
+  InProcessTransport,
+  PostMessageTransport,
+  HttpTransport,
+  createHttpServerHandler,
+  generateCallId,
+} from './transport/index.js';
+export type {
+  AssistTransport,
+  MessageEndpoint,
+  PostMessageRequest,
+  PostMessageResponse,
+  PostMessageTransportOptions,
+  HttpRequestLike,
+  HttpResponseLike,
+  HttpTransportOptions,
+} from './transport/index.js';
+
+export {
+  ChatSessionImpl,
+  createChatSession,
+  DeterministicMockAdapter,
+} from './chat/index.js';
+export type {
+  ChatMessage,
+  ChatRole,
+  ChatSession,
+  ChatSessionOptions,
+  ExtractionResult,
+  GuidedStep,
+  LLMAdapter,
+  LLMResponse,
+  Suggestion,
+} from './chat/index.js';
+
 export type {
   AssistProvider,
   AssistProviderOptions,

@@ -72,6 +72,17 @@
         "x-example-money-cents",
         "x-example-risk-score"
       ]
+    },
+    {
+      "name": "x-example-legacy-auth",
+      "category": "property",
+      "version": "1.0.0",
+      "status": "retired",
+      "description": "Legacy authentication token property (retired in favor of OAuth2 tokens)",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "deprecationNotice": "Retired in favor of standard OAuth2 tokens"
     }
   ]
 }
