@@ -13,7 +13,7 @@ from formspec import _native as formspec_rust  # noqa: E402 — maturin-built ex
 
 # Direct leaf imports — bypass fel/__init__.py to avoid circular import
 # (formspec.__init__ → _rust → fel.__init__ → _rust would deadlock)
-from formspec.fel.errors import Diagnostic, FelSyntaxError, Severity  # noqa: E402
+from formspec.fel.errors import Diagnostic, FelSyntaxError, Severity, SourcePos  # noqa: E402
 from formspec.fel.types import (  # noqa: E402
     FelArray,
     FelBoolean,
@@ -329,14 +329,69 @@ def _serialize_variables(
 
 
 # ── FEL functions ────────────────────────────────────────────────
+ 
+ 
+def _extract_source_pos(source: str, raw: dict[str, Any]) -> SourcePos | None:
+    span = raw.get("span")
+    pos = raw.get("pos")
+
+    offset: int | None = None
+    line: int | None = None
+    col: int | None = None
+
+    if isinstance(pos, SourcePos):
+        return pos
+    elif isinstance(pos, dict):
+        offset = pos.get("offset")
+        line = pos.get("line")
+        col = pos.get("col")
+    elif isinstance(pos, int):
+        offset = pos
+
+    if offset is None and isinstance(span, dict):
+        offset = span.get("start")
+        if offset is None:
+            offset = span.get("offset")
+
+    if offset is None:
+        return None
+
+    try:
+        offset = int(offset)
+    except (TypeError, ValueError):
+        return None
+
+    if line is None or col is None:
+        clamped_offset = max(0, min(offset, len(source)))
+        lines = source[:clamped_offset].split("\n")
+        line = len(lines)
+        col = len(lines[-1]) + 1
+
+    return SourcePos(offset=offset, line=line, col=col)
 
 
 def parse(source: str) -> ParsedExpression:
     """Validate FEL syntax and return an opaque handle."""
-    valid = formspec_rust.parse_fel(source)
-    if not valid:
-        raise FelSyntaxError(f"FEL parse error: {source!r}")
-    return ParsedExpression(source=source)
+    result = formspec_rust.parse_fel(source)
+    if result is True or result is None:
+        return ParsedExpression(source=source)
+    elif result is False:
+        err = f"invalid syntax in {source!r}"
+    else:
+        err = str(result)
+
+    pos = None
+    import re
+    m = re.search(r'(?:at|starting at)\s+position\s+(\d+)', err)
+    if m:
+        try:
+            offset = int(m.group(1))
+            clamped_offset = max(0, min(offset, len(source)))
+            lines = source[:clamped_offset].split("\n")
+            pos = SourcePos(offset=offset, line=len(lines), col=len(lines[-1]) + 1)
+        except (ValueError, TypeError):
+            pass
+    raise FelSyntaxError(f"FEL parse error: {err}", pos=pos)
 
 
 def evaluate(
@@ -366,7 +421,7 @@ def evaluate(
     diagnostics = [
         Diagnostic(
             message=_normalize_diagnostic_message(str(raw.get("message", ""))),
-            pos=None,
+            pos=_extract_source_pos(source, raw),
             severity=_severity_from_str(raw.get("severity")),
             code=(str(raw.get("code")) if raw.get("code") is not None else None),
         )

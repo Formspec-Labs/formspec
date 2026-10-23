@@ -121,6 +121,30 @@ def test_evaluate_string():
     assert result.value.value == "hello"
 
 
+def test_evaluate_diagnostic_span_repeated_binary_division_by_zero():
+    """fs-ign8: division by zero in compound expr points to failing operator, not earlier valid operator."""
+    result = evaluate("10 / 2 + 50 / 0")
+    assert len(result.diagnostics) == 1
+    diag = result.diagnostics[0]
+    assert diag.message == "division by zero"
+    assert diag.pos is not None
+    assert diag.pos.line == 1
+    assert diag.pos.col == 13
+    assert diag.pos.offset == 12
+
+
+def test_evaluate_diagnostic_span_cannot_apply_operator_extraction():
+    """fs-ign8: cannot apply '+' extracts operator and points accurately to failing token."""
+    result = evaluate("1 + 2 + ('abc' + 3)")
+    assert len(result.diagnostics) == 1
+    diag = result.diagnostics[0]
+    assert "cannot apply '+'" in diag.message
+    assert diag.pos is not None
+    assert diag.pos.line == 1
+    assert diag.pos.col == 16
+    assert diag.pos.offset == 15
+
+
 # ── FEL eval_fel_with_trace ──────────────────────────────────────
 
 

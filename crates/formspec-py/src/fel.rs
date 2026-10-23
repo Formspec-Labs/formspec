@@ -125,7 +125,9 @@ pub fn eval_fel_detailed(
 ) -> PyResult<PyObject> {
     let expr = parse_fel_expr(expression)?;
     let env = build_formspec_env(py, fields, instances, mip_states, variables, now_iso)?;
-    let result = evaluate(&expr, &env);
+    let mut result = evaluate(&expr, &env);
+
+    attach_spans_to_diagnostics(&mut result.diagnostics, expression);
 
     let diagnostics = json_to_python(py, &fel_diagnostics_to_json_value(&result.diagnostics))?;
 
@@ -135,10 +137,161 @@ pub fn eval_fel_detailed(
     Ok(payload.into())
 }
 
-/// Parse a FEL expression and return whether it's valid.
+/// Helper to ensure all evaluation diagnostics carry byte spans into the expression source.
+fn attach_spans_to_diagnostics(diagnostics: &mut [fel_core::Diagnostic], expression: &str) {
+    for d in diagnostics.iter_mut() {
+        if d.span.is_none() {
+            d.span = find_diagnostic_span(d, expression);
+        }
+    }
+}
+
+fn find_diagnostic_span(
+    d: &fel_core::Diagnostic,
+    expression: &str,
+) -> Option<std::ops::Range<usize>> {
+    // 1. Function-based diagnostic kinds
+    if let Some(ref kind) = d.kind {
+        let name = match kind {
+            fel_core::DiagnosticKind::UndefinedFunction { name } => name.as_str(),
+            fel_core::DiagnosticKind::ArityMismatch { name, .. } => name.as_str(),
+            fel_core::DiagnosticKind::TypeMismatch { fn_name, .. } => fn_name.as_str(),
+            fel_core::DiagnosticKind::MissingTimezoneContext { fn_name, .. } => fn_name.as_str(),
+        };
+        if let Ok(tokens) = fel_core::lexer::Lexer::new(expression).tokenize() {
+            for st in &tokens {
+                if let fel_core::lexer::Token::Identifier(ref id) = st.token {
+                    if id == name {
+                        return Some(st.span.start..st.span.end);
+                    }
+                }
+            }
+        }
+        if let Some(idx) = expression.find(name) {
+            return Some(idx..idx + name.len());
+        }
+        if !expression.is_empty() {
+            return Some(0..expression.len());
+        }
+        return None;
+    }
+
+    // 2. Operator extraction when kind is None
+    let target_str: Option<String> = if d.message.contains("cannot apply") {
+        if let Some(start) = d.message.find('\'') {
+            if let Some(end) = d.message[start + 1..].find('\'') {
+                Some(d.message[start + 1..start + 1 + end].to_string())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else if d.message.contains("division by zero") || d.message.contains("division overflow") {
+        Some("/".to_string())
+    } else if d.message.contains("cannot add") || d.message.contains("arithmetic overflow (+)") {
+        Some("+".to_string())
+    } else if d.message.contains("cannot subtract")
+        || d.message.contains("arithmetic overflow (-)")
+        || d.message.contains("cannot negate")
+    {
+        Some("-".to_string())
+    } else if d.message.contains("cannot multiply") || d.message.contains("arithmetic overflow (*)")
+    {
+        Some("*".to_string())
+    } else if d.message.contains("cannot concat") {
+        Some("&".to_string())
+    } else {
+        None
+    };
+
+    // 3. Token-based span matching
+    if let Ok(tokens) = fel_core::lexer::Lexer::new(expression).tokenize() {
+        // For division by zero: if there is a `/` followed by literal zero, match that exact operator
+        if d.message.contains("division by zero") {
+            for (i, st) in tokens.iter().enumerate() {
+                if matches!(st.token, fel_core::lexer::Token::Slash) {
+                    if let Some(next) = tokens.get(i + 1) {
+                        if matches!(&next.token, fel_core::lexer::Token::Number(n) if n.is_zero()) {
+                            return Some(st.span.start..st.span.end);
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Some(ref target) = target_str {
+            // For binary operators, search from the end (rev) so compound expressions point to failing operator
+            for st in tokens.iter().rev() {
+                let matches_target = match (&st.token, target.as_str()) {
+                    (fel_core::lexer::Token::Plus, "+") => true,
+                    (fel_core::lexer::Token::Minus, "-") => true,
+                    (fel_core::lexer::Token::Star, "*") => true,
+                    (fel_core::lexer::Token::Slash, "/") => true,
+                    (fel_core::lexer::Token::Percent, "%") => true,
+                    (fel_core::lexer::Token::Ampersand, "&") => true,
+                    (fel_core::lexer::Token::And, "and") => true,
+                    (fel_core::lexer::Token::Or, "or") => true,
+                    (fel_core::lexer::Token::Not, "not") => true,
+                    (fel_core::lexer::Token::Bang, "!") => true,
+                    (fel_core::lexer::Token::Identifier(id), t) if id == t => true,
+                    _ => false,
+                };
+                if matches_target {
+                    return Some(st.span.start..st.span.end);
+                }
+            }
+        }
+    }
+
+    // 4. String-based fallback
+    if d.message.contains("division by zero") {
+        let zero_div_pos = expression.match_indices('/').find_map(|(idx, _)| {
+            let after = expression[idx + 1..].trim_start();
+            if after.starts_with('0') || after.starts_with("(0") {
+                Some(idx)
+            } else {
+                None
+            }
+        });
+        if let Some(idx) = zero_div_pos {
+            return Some(idx..idx + 1);
+        }
+    }
+
+    if let Some(ref target) = target_str {
+        if let Some(idx) = expression.rfind(target.as_str()) {
+            return Some(idx..idx + target.len());
+        }
+        if let Some(idx) = expression.find(target.as_str()) {
+            return Some(idx..idx + target.len());
+        }
+    }
+
+    if !expression.is_empty() {
+        Some(0..expression.len())
+    } else {
+        None
+    }
+}
+
+/// Parse a FEL expression and return None if valid, or Some(error_message) if invalid.
 #[pyfunction]
-pub fn parse_fel(expression: &str) -> bool {
-    parse(expression).is_ok()
+pub fn parse_fel(expression: &str) -> Option<String> {
+    match parse(expression) {
+        Ok(_) => None,
+        Err(fel_core::Error::Parse(pe)) => {
+            if let Some(span) = pe.span {
+                if pe.message.contains("at position") || pe.message.contains("starting at position") {
+                    Some(pe.message)
+                } else {
+                    Some(format!("{} at position {}", pe.message, span.start))
+                }
+            } else {
+                Some(pe.message)
+            }
+        }
+    }
 }
 
 /// Extract field dependencies from a FEL expression.
@@ -211,3 +364,64 @@ pub fn rewrite_fel_for_assembly_py(expression: &str, map: &Bound<'_, PyAny>) -> 
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
     Ok(rewrite_fel_for_assembly_core(expression, &m))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_fel_valid() {
+        assert_eq!(parse_fel("1 + 2"), None);
+        assert_eq!(parse_fel("$a > 10 and $b"), None);
+    }
+
+    #[test]
+    fn test_parse_fel_invalid_surfaces_message_and_position() {
+        // Test 1: trailing operator / unexpected eof
+        let err1 = parse_fel("1 +").expect("should error");
+        assert!(err1.contains("unexpected token") || err1.contains("position"), "{err1}");
+
+        // Test 2: unexpected token / character
+        let err2 = parse_fel("1 @ 2").expect("should error");
+        assert!((err2.contains("unexpected character") || err2.contains("unexpected token")) && err2.contains("position"), "{err2}");
+
+        // Test 3: unclosed string literal
+        let err3 = parse_fel("'unterminated").expect("should error");
+        assert!(err3.contains("unterminated string") && err3.contains("position"), "{err3}");
+    }
+
+    #[test]
+    fn test_attach_spans_to_diagnostics() {
+        let mut diags = vec![
+            fel_core::Diagnostic::undefined_function("unknownFn"),
+            fel_core::Diagnostic::error("division by zero"),
+        ];
+        attach_spans_to_diagnostics(&mut diags, "unknownFn(1 / 0)");
+        assert_eq!(diags[0].span, Some(0..9));
+        assert_eq!(diags[1].span, Some(12..13));
+    }
+
+    #[test]
+    fn test_attach_spans_repeated_binary_operators_and_cannot_apply() {
+        // Division by zero in compound expression points accurately to the failing operator
+        let mut diags1 = vec![fel_core::Diagnostic::error("division by zero")];
+        attach_spans_to_diagnostics(&mut diags1, "10 / 2 + 50 / 0");
+        assert_eq!(diags1[0].span, Some(12..13));
+
+        // Division by zero where first division is the failing one
+        let mut diags2 = vec![fel_core::Diagnostic::error("division by zero")];
+        attach_spans_to_diagnostics(&mut diags2, "10 / 0 + 50 / 2");
+        assert_eq!(diags2[0].span, Some(3..4));
+
+        // cannot apply '+' extracts '+' and targets the failing operator in compound expression
+        let mut diags3 = vec![fel_core::Diagnostic::error("cannot apply '+' to string and number")];
+        attach_spans_to_diagnostics(&mut diags3, "1 + 2\n\"abc\" + 3");
+        assert_eq!(diags3[0].span, Some(12..13));
+
+        // cannot apply '-' extracts '-' and searches from the end
+        let mut diags4 = vec![fel_core::Diagnostic::error("cannot apply '-' to number and string")];
+        attach_spans_to_diagnostics(&mut diags4, "10 - 5 - \"bad\"");
+        assert_eq!(diags4[0].span, Some(7..8));
+    }
+}
+
