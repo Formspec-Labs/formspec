@@ -1,0 +1,24 @@
+{
+  "description": "ADR 0151 §9 & §13.1 Trellis Binding and SessionOpBatch Idempotency Parity Fixtures",
+  "version": "1.0",
+  "fixtures": [
+    {
+      "name": "trellis-session-op-batch-binding",
+      "sessionRef": "urn:formspec:session:manifest-scope-42:ulid-01",
+      "branchId": "branch-session-01-forms-mcp",
+      "actor": "urn:formspec:actor:mcp:forms:session-01",
+      "prevHash": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "ops": [
+        {
+          "type": "setItemProperty",
+          "payload": {
+            "path": "income.annual",
+            "property": "type",
+            "value": "number"
+          }
+        }
+      ],
+      "expectedEventType": "substrate.append.response_action_session_op_batch"
+    }
+  ]
+}

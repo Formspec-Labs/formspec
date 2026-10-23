@@ -1,0 +1,116 @@
+{
+  "description": "ADR 0151 §5.2 FEL Rename Worked Example Conformance Fixtures",
+  "version": "1.0",
+  "cases": [
+    {
+      "name": "fel-rename-deterministic-repair",
+      "description": "Actor A renames field 'email' to 'contactEmail'. Actor B concurrently adds validation bind referencing '$.email'. Kernel detects unambiguous rename and rewrites reference to '$.contactEmail' emitting OpsReanchored.",
+      "actorA": {
+        "id": "urn:formspec:actor:agent:designer",
+        "actorClass": "agent",
+        "ops": [
+          {
+            "type": "setItemProperty",
+            "payload": {
+              "path": "contactEmail",
+              "property": "label",
+              "value": "Contact Email"
+            }
+          },
+          {
+            "type": "setItemProperty",
+            "payload": {
+              "path": "contactEmail",
+              "property": "renamedFrom",
+              "value": "email"
+            }
+          }
+        ]
+      },
+      "actorB": {
+        "id": "urn:formspec:actor:mcp:forms:session-01",
+        "actorClass": "mcp",
+        "ops": [
+          {
+            "type": "setBind",
+            "payload": {
+              "path": "contactEmail",
+              "properties": {
+                "constraint": "$.email != null",
+                "message": "Email is required"
+              }
+            }
+          }
+        ]
+      },
+      "expectedOutcome": "repaired",
+      "expectedReanchoredRewrite": "$.email -> $.contactEmail"
+    },
+    {
+      "name": "fel-rename-deleted-mcp-rollback",
+      "description": "Actor A deletes field 'email'. Actor B (MCP) adds validation referencing '$.email'. With no unambiguous rename target, MCP defaults to reject-and-rollback emitting OpsRolledBack.",
+      "actorA": {
+        "id": "urn:formspec:actor:human:author",
+        "actorClass": "human",
+        "ops": [
+          {
+            "type": "deleteNode",
+            "payload": {
+              "nodeId": "email"
+            }
+          }
+        ]
+      },
+      "actorB": {
+        "id": "urn:formspec:actor:mcp:forms:session-01",
+        "actorClass": "mcp",
+        "ops": [
+          {
+            "type": "setBind",
+            "payload": {
+              "path": "phone",
+              "properties": {
+                "constraint": "$.email != null"
+              }
+            }
+          }
+        ]
+      },
+      "expectedOutcome": "rolledBack",
+      "expectedRollbackReasonContains": "Dangling FEL reference '$.email'"
+    },
+    {
+      "name": "fel-rename-deleted-human-quarantine",
+      "description": "Actor A deletes field 'email'. Actor B (Human) adds validation referencing '$.email'. Human precedence defaults to quarantine-and-surface with diagnostic.",
+      "actorA": {
+        "id": "urn:formspec:actor:human:designer-1",
+        "actorClass": "human",
+        "ops": [
+          {
+            "type": "deleteNode",
+            "payload": {
+              "nodeId": "email"
+            }
+          }
+        ]
+      },
+      "actorB": {
+        "id": "urn:formspec:actor:human:designer-2",
+        "actorClass": "human",
+        "ops": [
+          {
+            "type": "setBind",
+            "payload": {
+              "path": "phone",
+              "properties": {
+                "constraint": "$.email != null"
+              }
+            }
+          }
+        ]
+      },
+      "expectedOutcome": "quarantined",
+      "expectedDiagnosticReasonContains": "Dangling FEL reference '$.email'"
+    }
+  ]
+}

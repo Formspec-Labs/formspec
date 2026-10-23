@@ -1510,6 +1510,18 @@
       "state": "tested"
     },
     {
+      "code": "E905",
+      "pass": 8,
+      "severity": "error",
+      "title": "Unregistered signature method URI (FORMSPEC-SIG-METHOD-REGISTERED-001)",
+      "specRef": "specs/core/spec.md#signature-method-registry",
+      "suggestedFix": "use an active registered signature method URI from signature-method-registry.json",
+      "fixtures": [
+        "tests/fixtures/lint/E905-unregistered-signature-method.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W900",
       "pass": 10,
       "severity": "warning",

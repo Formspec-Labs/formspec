@@ -28,4 +28,34 @@ pub enum KernelError {
     /// Internal serialization or format failure.
     #[error("serialization error: {0}")]
     Serialization(String),
+
+    /// Actor admission denied by posture (ADR 0150 §5.4, ADR 0151 §8 #5).
+    #[error("actor admission denied for '{actor}': {reason}")]
+    ActorAdmissionDenied {
+        /// Actor ID that was denied admission.
+        actor: String,
+        /// Denial rationale.
+        reason: String,
+    },
+
+    /// Changeset branch was rejected and rolled back due to schema convergence violations.
+    #[error("convergence rollback for '{actor}': {reason}")]
+    ConvergenceRollback {
+        /// Actor whose ops were rolled back.
+        actor: String,
+        /// Reason for rollback.
+        reason: String,
+    },
+
+    /// Changeset branch not found.
+    #[error("changeset branch not found: {0}")]
+    BranchNotFound(String),
+
+    /// Changeset branch already closed (accepted or rejected).
+    #[error("changeset branch already closed: {0}")]
+    BranchAlreadyClosed(String),
+
+    /// Schema-aware convergence violation.
+    #[error("schema violation: {0}")]
+    SchemaViolation(String),
 }

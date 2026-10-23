@@ -14,3 +14,7 @@ publish = false
 
 [dependencies]
 integrity-signature = { path = "../../../integrity-stack/crates/integrity-signature" }
+
+[dev-dependencies]
+serde_json = "1"
+

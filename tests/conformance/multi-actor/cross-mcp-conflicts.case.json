@@ -1,0 +1,65 @@
+{
+  "description": "ADR 0151 §7 Cross-MCP Coordination and Conflict Scenarios",
+  "version": "1.0",
+  "scenarios": [
+    {
+      "name": "cross-mcp-concurrent-nonconflicting-edits",
+      "description": "Forms-MCP and Wireframes-MCP both edit the same authoring session concurrently. Forms-MCP adds Definition fields while Wireframes-MCP adds Surface/Component layout. Ops converge cleanly with individual AuthorActor attribution.",
+      "mcpForms": {
+        "actorUrn": "urn:formspec:actor:mcp:forms:session-89",
+        "actChannel": "mcp",
+        "ops": [
+          {
+            "type": "setItemProperty",
+            "payload": {
+              "path": "householdSize",
+              "property": "type",
+              "value": "integer"
+            }
+          },
+          {
+            "type": "setItemProperty",
+            "payload": {
+              "path": "householdSize",
+              "property": "label",
+              "value": "Number of Household Members"
+            }
+          }
+        ]
+      },
+      "mcpWireframes": {
+        "actorUrn": "urn:formspec:actor:mcp:wireframes:session-89",
+        "actChannel": "mcp",
+        "ops": [
+          {
+            "type": "addComponentNode",
+            "payload": {
+              "parentRef": null,
+              "nodeId": "urn:formspec:node:household-card",
+              "node": {
+                "type": "Card",
+                "title": "Household Members"
+              }
+            }
+          }
+        ]
+      },
+      "expectedConvergence": "clean"
+    },
+    {
+      "name": "cross-mcp-bundle-id-collision",
+      "description": "Forms-MCP and Wireframes-MCP concurrently author components with the same bundle-unique ID. The kernel enforces bundle uniqueness and rejects the second insertion with BundleIdCollision.",
+      "mcpForms": {
+        "actorUrn": "urn:formspec:actor:mcp:forms:session-89",
+        "actChannel": "mcp",
+        "nodeId": "urn:formspec:node:shared-banner"
+      },
+      "mcpWireframes": {
+        "actorUrn": "urn:formspec:actor:mcp:wireframes:session-89",
+        "actChannel": "mcp",
+        "nodeId": "urn:formspec:node:shared-banner"
+      },
+      "expectedError": "BundleIdCollision"
+    }
+  ]
+}

@@ -1,8 +1,12 @@
-//! Conformance test suite shell for `formspec-document-kernel` per ADR 0151 §9.
+use std::collections::HashMap;
 
-use automerge::ActorId;
+use automerge::{ActorId, ReadDoc};
 use formspec_document_kernel::bindings::{js_wasm, python};
-use formspec_document_kernel::{KernelDocument, SubstrateArtifactType, SubstrateOp};
+use formspec_document_kernel::{
+    studio_ledger_idempotency_key, studio_ledger_idempotency_material, validate_convergence,
+    ActorClass, ChangesetBranchManager, ConvergenceMode, ConvergenceOutcome, KernelDocument,
+    KernelError, SessionOpBatch, SubstrateArtifactType, SubstrateOp,
+};
 use serde_json::json;
 
 #[test]
@@ -645,5 +649,499 @@ fn test_fixture_corpus_node_id_kernel_ref_stability() {
             other => panic!("unknown case: {other}"),
         }
     }
+}
+
+#[test]
+fn test_schema_aware_convergence_shadow_gate_fel_rename() {
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let fixture_path = format!("{}/../../tests/conformance/multi-actor/fel-rename-worked-example.case.json", manifest_dir);
+    let content = std::fs::read_to_string(&fixture_path).expect("read fel-rename fixture");
+    let fixture: serde_json::Value = serde_json::from_str(&content).expect("parse fel-rename fixture");
+
+    let cases = fixture["cases"].as_array().expect("cases array");
+    for case in cases {
+        let name = case["name"].as_str().expect("case name");
+        match name {
+            "fel-rename-deterministic-repair" => {
+                let mut doc = KernelDocument::new(SubstrateArtifactType::Definition);
+                // Initial state has field 'email'
+                doc.apply_op(&SubstrateOp::SetItemProperty {
+                    path: "email".to_string(),
+                    property: "label".to_string(),
+                    value: json!("Email"),
+                }).expect("init email field");
+
+                let mut known_renames = HashMap::new();
+                known_renames.insert("email".to_string(), "contactEmail".to_string());
+
+                // Actor A renames email to contactEmail
+                let mut ops = Vec::new();
+                for op_val in case["actorA"]["ops"].as_array().expect("actorA ops") {
+                    let op: SubstrateOp = serde_json::from_value(op_val.clone()).expect("parse op");
+                    doc.apply_op(&op).expect("apply actorA op");
+                    ops.push(op);
+                }
+
+                // Actor B binds $.email
+                for op_val in case["actorB"]["ops"].as_array().expect("actorB ops") {
+                    let op: SubstrateOp = serde_json::from_value(op_val.clone()).expect("parse op");
+                    doc.apply_op(&op).expect("apply actorB op");
+                    ops.push(op);
+                }
+
+                let report = validate_convergence(
+                    &doc,
+                    &ops,
+                    case["actorB"]["id"].as_str().expect("actorB id"),
+                    ActorClass::Mcp,
+                    Some(ConvergenceMode::DeterministicRepair),
+                    &known_renames,
+                );
+
+                match report.outcome {
+                    ConvergenceOutcome::Repaired(reanchors) => {
+                        assert!(!reanchors.is_empty(), "must record reanchors");
+                        assert_eq!(
+                            reanchors[0].rewrite,
+                            case["expectedReanchoredRewrite"].as_str().expect("expectedReanchoredRewrite")
+                        );
+                    }
+                    other => panic!("expected Repaired outcome, got {:?}", other),
+                }
+            }
+            "fel-rename-deleted-mcp-rollback" => {
+                let mut doc = KernelDocument::new(SubstrateArtifactType::Definition);
+                let known_renames = HashMap::new(); // No rename mapping
+
+                let mut ops = Vec::new();
+                for op_val in case["actorA"]["ops"].as_array().expect("actorA ops") {
+                    let op: SubstrateOp = serde_json::from_value(op_val.clone()).expect("parse op");
+                    doc.apply_op(&op).expect("apply actorA op");
+                    ops.push(op);
+                }
+                for op_val in case["actorB"]["ops"].as_array().expect("actorB ops") {
+                    let op: SubstrateOp = serde_json::from_value(op_val.clone()).expect("parse op");
+                    doc.apply_op(&op).expect("apply actorB op");
+                    ops.push(op);
+                }
+
+                let report = validate_convergence(
+                    &doc,
+                    &ops,
+                    case["actorB"]["id"].as_str().expect("actorB id"),
+                    ActorClass::Mcp,
+                    Some(ConvergenceMode::RejectAndRollback),
+                    &known_renames,
+                );
+
+                match report.outcome {
+                    ConvergenceOutcome::RolledBack(rb) => {
+                        let expected_frag = case["expectedRollbackReasonContains"].as_str().expect("frag");
+                        assert!(
+                            rb.reason.contains(expected_frag),
+                            "reason '{}' must contain '{}'",
+                            rb.reason,
+                            expected_frag
+                        );
+                    }
+                    other => panic!("expected RolledBack outcome, got {:?}", other),
+                }
+            }
+            "fel-rename-deleted-human-quarantine" => {
+                let mut doc = KernelDocument::new(SubstrateArtifactType::Definition);
+                let known_renames = HashMap::new();
+
+                let mut ops = Vec::new();
+                for op_val in case["actorA"]["ops"].as_array().expect("actorA ops") {
+                    let op: SubstrateOp = serde_json::from_value(op_val.clone()).expect("parse op");
+                    doc.apply_op(&op).expect("apply actorA op");
+                    ops.push(op);
+                }
+                for op_val in case["actorB"]["ops"].as_array().expect("actorB ops") {
+                    let op: SubstrateOp = serde_json::from_value(op_val.clone()).expect("parse op");
+                    doc.apply_op(&op).expect("apply actorB op");
+                    ops.push(op);
+                }
+
+                let report = validate_convergence(
+                    &doc,
+                    &ops,
+                    case["actorB"]["id"].as_str().expect("actorB id"),
+                    ActorClass::Human,
+                    Some(ConvergenceMode::QuarantineAndSurface),
+                    &known_renames,
+                );
+
+                match report.outcome {
+                    ConvergenceOutcome::Quarantined(diags) => {
+                        assert!(!diags.is_empty(), "must emit quarantine diagnostics");
+                        let expected_frag = case["expectedDiagnosticReasonContains"].as_str().expect("frag");
+                        assert!(
+                            diags[0].reason.contains(expected_frag),
+                            "diag '{}' must contain '{}'",
+                            diags[0].reason,
+                            expected_frag
+                        );
+                    }
+                    other => panic!("expected Quarantined outcome, got {:?}", other),
+                }
+            }
+            other => panic!("unknown case: {other}"),
+        }
+    }
+}
+
+#[test]
+fn test_changeset_branch_manager_lifecycle() {
+    let mut manager = ChangesetBranchManager::new();
+    let mut manifest_doc = KernelDocument::new(SubstrateArtifactType::AppManifest);
+    let mut def_doc = KernelDocument::new(SubstrateArtifactType::Definition);
+
+    let session_urn = "urn:formspec:session:manifest-scope-1:ulid-99";
+    let allowed_actor = "urn:formspec:actor:mcp:forms:session-01";
+    let unauthorized_actor = "urn:formspec:actor:malicious:hacker";
+
+    let mut artifact_docs = HashMap::new();
+    artifact_docs.insert(SubstrateArtifactType::Definition, def_doc.fork());
+
+    // 1. Posture admission rejection
+    let denied = manager.open_changeset(
+        &mut manifest_doc,
+        session_urn,
+        unauthorized_actor,
+        ActorClass::Mcp,
+        Some(ConvergenceMode::RejectAndRollback),
+        Some(&[allowed_actor.to_string()]),
+        &mut artifact_docs,
+    );
+    match denied {
+        Err(KernelError::ActorAdmissionDenied { actor, .. }) => {
+            assert_eq!(actor, unauthorized_actor);
+        }
+        other => panic!("expected ActorAdmissionDenied, got {:?}", other),
+    }
+
+    // 2. Successful branch open
+    let branch_id = manager
+        .open_changeset(
+            &mut manifest_doc,
+            session_urn,
+            allowed_actor,
+            ActorClass::Mcp,
+            Some(ConvergenceMode::RejectAndRollback),
+            Some(&[allowed_actor.to_string()]),
+            &mut artifact_docs,
+        )
+        .expect("open_changeset should succeed");
+
+    assert!(manager.is_branch_open(&branch_id));
+
+    // Invariant check: App Manifest carries session URN in sessions[] before branch ops
+    assert!(
+        manifest_doc
+            .raw_crdt_doc()
+            .get(automerge::ROOT, "sessions")
+            .unwrap()
+            .is_some(),
+        "manifest sessions[] list must exist"
+    );
+
+    // Invariant check: App Manifest carries NO streams[] field (ADR 0151 §4.2)
+    assert!(
+        !manifest_doc.has_root_key("streams"),
+        "ADR 0151 invariant violation: App Manifest carries no streams[] field"
+    );
+
+    // 3. Dispatch op to branch
+    manager
+        .dispatch_op(
+            &branch_id,
+            SubstrateArtifactType::Definition,
+            SubstrateOp::SetItemProperty {
+                path: "customer.email".to_string(),
+                property: "label".to_string(),
+                value: json!("Email Address"),
+            },
+            Some(ActorId::from("actor-forms-mcp".as_bytes())),
+        )
+        .expect("dispatch_op should succeed");
+
+    // 4. Preview impact
+    let mut canonical_map = HashMap::new();
+    canonical_map.insert(SubstrateArtifactType::Definition, def_doc.fork());
+    let preview = manager
+        .preview_impact(&branch_id, &canonical_map)
+        .expect("preview_impact");
+
+    assert_eq!(preview.op_count, 1);
+    assert_eq!(preview.affected_artifacts, vec![SubstrateArtifactType::Definition]);
+    assert_eq!(preview.affected_paths, vec!["customer.email".to_string()]);
+
+    // 5. Accept changeset
+    let mut canonical_docs = HashMap::new();
+    canonical_docs.insert(SubstrateArtifactType::Definition, def_doc);
+    let known_renames = HashMap::new();
+
+    let batch = manager
+        .accept_changeset(&branch_id, &mut canonical_docs, &known_renames)
+        .expect("accept_changeset should succeed");
+
+    assert_eq!(batch.session_ref, session_urn);
+    assert_eq!(batch.actor, allowed_actor);
+    assert_eq!(batch.semantic_ops.len(), 1);
+    assert!(!batch.new_heads.is_empty());
+
+    // Verify canonical definition doc received the edit
+    let canonical_def = canonical_docs.get(&SubstrateArtifactType::Definition).unwrap();
+    let prop = canonical_def
+        .get_item_property("customer.email", "label")
+        .expect("lookup");
+    assert_eq!(prop, Some(json!("Email Address")));
+
+    // Verify branch was discarded from memory
+    assert!(!manager.is_branch_open(&branch_id));
+
+    // 6. Test reject branch
+    let mut second_docs = HashMap::new();
+    let mut fresh_def = KernelDocument::new(SubstrateArtifactType::Definition);
+    second_docs.insert(SubstrateArtifactType::Definition, fresh_def.fork());
+
+    let branch_2 = manager
+        .open_changeset(
+            &mut manifest_doc,
+            session_urn,
+            allowed_actor,
+            ActorClass::Mcp,
+            Some(ConvergenceMode::RejectAndRollback),
+            None,
+            &mut second_docs,
+        )
+        .expect("open second branch");
+
+    manager
+        .dispatch_op(
+            &branch_2,
+            SubstrateArtifactType::Definition,
+            SubstrateOp::SetItemProperty {
+                path: "discarded.field".to_string(),
+                property: "label".to_string(),
+                value: json!("Discard Me"),
+            },
+            None,
+        )
+        .expect("dispatch to branch 2");
+
+    let rollback = manager.reject_changeset(&branch_2).expect("reject_changeset");
+    assert_eq!(rollback.actor, allowed_actor);
+    assert_eq!(rollback.ops.len(), 1);
+    assert!(!manager.is_branch_open(&branch_2));
+}
+
+#[test]
+fn test_cross_mcp_coordination_and_conflict_gate() {
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let fixture_path = format!("{}/../../tests/conformance/multi-actor/cross-mcp-conflicts.case.json", manifest_dir);
+    let content = std::fs::read_to_string(&fixture_path).expect("read cross-mcp fixture");
+    let fixture: serde_json::Value = serde_json::from_str(&content).expect("parse cross-mcp fixture");
+
+    let scenarios = fixture["scenarios"].as_array().expect("scenarios");
+    for sc in scenarios {
+        let name = sc["name"].as_str().expect("scenario name");
+        match name {
+            "cross-mcp-concurrent-nonconflicting-edits" => {
+                let mut manager = ChangesetBranchManager::new();
+                let mut manifest = KernelDocument::new(SubstrateArtifactType::AppManifest);
+                let mut def = KernelDocument::new(SubstrateArtifactType::Definition);
+                let mut comp = KernelDocument::new(SubstrateArtifactType::Component);
+
+                let session_id = "urn:formspec:session:manifest-scope-77:ulid-89";
+                let forms_actor = sc["mcpForms"]["actorUrn"].as_str().unwrap();
+                let wireframes_actor = sc["mcpWireframes"]["actorUrn"].as_str().unwrap();
+
+                let mut forms_artifacts = HashMap::new();
+                forms_artifacts.insert(SubstrateArtifactType::Definition, def.fork());
+                forms_artifacts.insert(SubstrateArtifactType::Component, comp.fork());
+
+                let mut wireframes_artifacts = HashMap::new();
+                wireframes_artifacts.insert(SubstrateArtifactType::Definition, def.fork());
+                wireframes_artifacts.insert(SubstrateArtifactType::Component, comp.fork());
+
+                // Open Forms-MCP branch
+                let forms_branch = manager
+                    .open_changeset(
+                        &mut manifest,
+                        session_id,
+                        forms_actor,
+                        ActorClass::Mcp,
+                        Some(ConvergenceMode::RejectAndRollback),
+                        None,
+                        &mut forms_artifacts,
+                    )
+                    .expect("open forms branch");
+
+                // Open Wireframes-MCP branch
+                let wireframes_branch = manager
+                    .open_changeset(
+                        &mut manifest,
+                        session_id,
+                        wireframes_actor,
+                        ActorClass::Mcp,
+                        Some(ConvergenceMode::RejectAndRollback),
+                        None,
+                        &mut wireframes_artifacts,
+                    )
+                    .expect("open wireframes branch");
+
+                // Forms-MCP dispatches ops
+                for op_val in sc["mcpForms"]["ops"].as_array().unwrap() {
+                    let op: SubstrateOp = serde_json::from_value(op_val.clone()).unwrap();
+                    manager
+                        .dispatch_op(&forms_branch, SubstrateArtifactType::Definition, op, None)
+                        .expect("forms op");
+                }
+
+                // Wireframes-MCP dispatches ops
+                for op_val in sc["mcpWireframes"]["ops"].as_array().unwrap() {
+                    let op: SubstrateOp = serde_json::from_value(op_val.clone()).unwrap();
+                    manager
+                        .dispatch_op(&wireframes_branch, SubstrateArtifactType::Component, op, None)
+                        .expect("wireframes op");
+                }
+
+                // Merge both into canonical docs
+                let mut canonical = HashMap::new();
+                canonical.insert(SubstrateArtifactType::Definition, def);
+                canonical.insert(SubstrateArtifactType::Component, comp);
+
+                let known_renames = HashMap::new();
+                let batch_1 = manager
+                    .accept_changeset(&forms_branch, &mut canonical, &known_renames)
+                    .expect("accept forms branch");
+                let batch_2 = manager
+                    .accept_changeset(&wireframes_branch, &mut canonical, &known_renames)
+                    .expect("accept wireframes branch");
+
+                assert_eq!(batch_1.actor, forms_actor);
+                assert_eq!(batch_2.actor, wireframes_actor);
+
+                // Both artifacts received the independent changes
+                let merged_def = canonical.get(&SubstrateArtifactType::Definition).unwrap();
+                let merged_comp = canonical.get(&SubstrateArtifactType::Component).unwrap();
+
+                assert_eq!(
+                    merged_def.get_item_property("householdSize", "type").unwrap(),
+                    Some(json!("integer"))
+                );
+                assert!(merged_comp.registry().get_object_ref("urn:formspec:node:household-card").is_some());
+            }
+            "cross-mcp-bundle-id-collision" => {
+                let colliding_id = sc["mcpForms"]["nodeId"].as_str().unwrap();
+                let mut source = KernelDocument::new(SubstrateArtifactType::Component);
+                let mut target = KernelDocument::new(SubstrateArtifactType::Component);
+
+                source.apply_op(&SubstrateOp::AddComponentNode {
+                    parent_ref: None,
+                    node_id: colliding_id.to_string(),
+                    node: json!({ "type": "Banner" }),
+                }).expect("source banner");
+
+                target.apply_op(&SubstrateOp::AddComponentNode {
+                    parent_ref: None,
+                    node_id: colliding_id.to_string(),
+                    node: json!({ "type": "Banner" }),
+                }).expect("target banner");
+
+                let collision_res = KernelDocument::cross_document_move(
+                    &mut source,
+                    &mut target,
+                    colliding_id,
+                    None,
+                    0,
+                    None,
+                );
+
+                match collision_res {
+                    Err(KernelError::BundleIdCollision(id)) => {
+                        assert_eq!(id, colliding_id);
+                    }
+                    other => panic!("expected BundleIdCollision, got {:?}", other),
+                }
+            }
+            other => panic!("unknown scenario: {other}"),
+        }
+    }
+}
+
+#[test]
+fn test_trellis_binding_and_idempotency_parity() {
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let parity_fixture_path = format!(
+        "{}/../../tests/conformance/fixtures/studio-ledger-idempotency/cross-language-parity.case.json",
+        manifest_dir
+    );
+    let content = std::fs::read_to_string(&parity_fixture_path).expect("read parity fixture");
+    let fixture: serde_json::Value = serde_json::from_str(&content).expect("parse parity fixture");
+
+    // 1. Verify byte parity for all test vectors in cross-language-parity.case.json
+    for vec in fixture["vectors"].as_array().expect("vectors") {
+        let case_name = vec["case"].as_str().unwrap();
+        let ledger_scope = vec["ledgerScope"].as_str().unwrap();
+        let branch_id = vec["branchId"].as_str().unwrap();
+        let op_batch_hash = vec["opBatchHash"].as_str().unwrap();
+        let expected_material = vec["expectedMaterial"].as_str().unwrap();
+        let expected_key = vec["expectedIdempotencyKey"].as_str().unwrap();
+
+        let actual_material = studio_ledger_idempotency_material(ledger_scope, branch_id, op_batch_hash);
+        assert_eq!(
+            actual_material, expected_material,
+            "case '{}' material mismatch",
+            case_name
+        );
+
+        let actual_key = studio_ledger_idempotency_key(ledger_scope, branch_id, op_batch_hash);
+        assert_eq!(
+            actual_key, expected_key,
+            "case '{}' key mismatch",
+            case_name
+        );
+    }
+
+    // 2. Verify SessionOpBatch serialization to TrellisEventPayload
+    let trellis_fixture_path = format!(
+        "{}/../../tests/conformance/multi-actor/trellis-binding.case.json",
+        manifest_dir
+    );
+    let trellis_content = std::fs::read_to_string(&trellis_fixture_path).expect("read trellis fixture");
+    let trellis_fixture: serde_json::Value = serde_json::from_str(&trellis_content).expect("parse trellis fixture");
+
+    let fix = &trellis_fixture["fixtures"][0];
+    let session_ref = fix["sessionRef"].as_str().unwrap();
+    let branch_id = fix["branchId"].as_str().unwrap();
+    let actor = fix["actor"].as_str().unwrap();
+    let prev_hash = fix["prevHash"].as_str().unwrap();
+
+    let batch = SessionOpBatch {
+        version: "1.0".to_string(),
+        session_ref: session_ref.to_string(),
+        branch_id: branch_id.to_string(),
+        actor: actor.to_string(),
+        artifact_refs: vec!["Definition".to_string()],
+        previous_heads: vec!["hash1".to_string()],
+        new_heads: vec!["hash2".to_string()],
+        semantic_ops: vec![SubstrateOp::SetItemProperty {
+            path: "income.annual".to_string(),
+            property: "type".to_string(),
+            value: json!("number"),
+        }],
+        change_hashes: vec!["change1".to_string()],
+        change_blobs: None,
+    };
+
+    let payload = batch.to_trellis_event_payload(prev_hash);
+    assert_eq!(payload.ledger_scope, session_ref);
+    assert_eq!(payload.prev_hash, prev_hash);
+    assert_eq!(payload.event_type, fix["expectedEventType"].as_str().unwrap());
+    assert!(payload.idempotency_key.starts_with("sha256:"));
+    assert_eq!(payload.idempotency_key.len(), 71); // "sha256:" + 64 hex
 }
 
