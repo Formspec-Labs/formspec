@@ -82,12 +82,10 @@ import {
     resolvePinnedDefinition,
 } from './response-assembly.js';
 import {
-    buildWasmFelExpressionContext,
     mergeWasmEvalWithExternalValidations,
     normalizeExpressionForWasmEvaluation,
     visibleScopedVariableValues,
     wasmEvaluateDefinitionPayload,
-    type WasmFelContextBuildInput,
 } from './wasm-fel.js';
 import { felContextSchema, felContextSnapshot } from './fel-context.js';
 import type { WasmFelContextHandle, WasmInterpolated } from '../wasm-bridge-runtime.js';
@@ -109,7 +107,6 @@ import {
     normalizeRemoteOptions,
     parseInstanceTarget,
     resolveNowProvider,
-    safeEvaluateExpression,
     setNestedPathValue,
     setResponsePathValue,
     splitIndexedPath,
@@ -161,7 +158,6 @@ export class FormEngine implements IFormEngine {
     private _felContext: { key: string; handle: WasmFelContextHandle } | null = null;
     private readonly _groupItems = new Map<string, FormItem>();
     private readonly _shapeTiming = new Map<string, 'continuous' | 'submit' | 'demand'>();
-    private readonly _instanceCalculateBinds: EngineBindConfig[] = [];
     private readonly _displaySignalPaths = new Set<string>();
     private readonly _prePopulateReadonly = new Set<string>();
     private readonly _seedFromGroups: SeedFromGroup[];
@@ -266,8 +262,7 @@ export class FormEngine implements IFormEngine {
         this.initializeOptionSignals();
         this.initializeInstances();
         this.initializeBindConfigs(this.definition.items);
-        this.collectInstanceCalculateBinds();
-        this.validateInstanceCalculateTargets();
+        this.rejectInstancePathBinds();
         validateVariableDefinitionCycles(this._variableDefs);
         validateCalculateBindCycles(this._bindConfigs);
         this.registerItems(this.definition.items);
@@ -1413,7 +1408,7 @@ export class FormEngine implements IFormEngine {
             const inlineBind = extractInlineBind(item, path);
             if (inlineBind) {
                 this._bindConfigs[path] = { ...this._bindConfigs[path], ...inlineBind };
-                if (inlineBind.calculate && !parseInstanceTarget(path)) {
+                if (inlineBind.calculate) {
                     this._calculatedFields.add(path);
                 }
             }
@@ -1426,7 +1421,7 @@ export class FormEngine implements IFormEngine {
             // Core §4.3.3 / Rust BindTargets: only `[*]` is stripped; a concrete `[n]` names no Item.
             const path = bind.path.replace(/\[\*\]/g, '');
             this._bindConfigs[path] = { ...this._bindConfigs[path], ...(bind as EngineBindConfig), path };
-            if (bind.calculate && !parseInstanceTarget(bind.path)) {
+            if (bind.calculate) {
                 this._calculatedFields.add(path);
             }
         }
@@ -1449,26 +1444,18 @@ export class FormEngine implements IFormEngine {
         }
     }
 
-    private collectInstanceCalculateBinds(): void {
-        for (const bind of Object.values(this._bindConfigs)) {
-            if (bind.calculate && parseInstanceTarget(bind.path)) {
-                this._instanceCalculateBinds.push(bind);
-            }
-        }
-    }
-
-    private validateInstanceCalculateTargets(): void {
-        for (const bind of this._instanceCalculateBinds) {
-            const target = parseInstanceTarget(bind.path);
-            if (!target) {
-                continue;
-            }
-            const instance = this.definition.instances?.[target.instanceName];
-            if (!instance) {
-                throw new Error(`Unknown instance '${target.instanceName}' targeted by bind '${bind.path}'`);
-            }
-            if (instance.readonly !== false) {
-                throw new Error(`Calculate bind cannot target readonly instance '${target.instanceName}'`);
+    /**
+     * Core §4.3.3 / §3.10.1: a Bind path resolves to an Item, so one naming an instance (`instances.<name>…`,
+     * `@instance('<name>')…`) is a definition error. Instance data is host-written (`setInstanceValue`).
+     * A path that is also an Item path (a group keyed `instances`) is an ordinary Item bind.
+     */
+    private rejectInstancePathBinds(): void {
+        for (const bind of this.definition.binds ?? []) {
+            if (!this._groupItems.has(bind.path.replace(/\[\*\]/g, '')) && parseInstanceTarget(bind.path)) {
+                throw new Error(
+                    `Bind path '${bind.path}' names an instance, not an Item (Core §4.3.3); `
+                    + 'write instance data with setInstanceValue',
+                );
             }
         }
     }
@@ -1688,17 +1675,12 @@ export class FormEngine implements IFormEngine {
         }
     }
 
-    private writeInstanceValue(
-        instanceName: string,
-        path: string | undefined,
-        value: FormFieldValue,
-        options?: { bypassReadonly?: boolean },
-    ): void {
+    private writeInstanceValue(instanceName: string, path: string | undefined, value: FormFieldValue): void {
         const instance = this.definition.instances?.[instanceName];
         if (!instance) {
             throw new Error(`Unknown instance '${instanceName}'`);
         }
-        if (!options?.bypassReadonly && instance.readonly !== false) {
+        if (instance.readonly !== false) {
             throw new Error(`Instance '${instanceName}' is readonly`);
         }
 
@@ -1730,52 +1712,6 @@ export class FormEngine implements IFormEngine {
         );
     }
 
-    private evaluateExpression(
-        expression: string,
-        currentItemPath = '',
-        dataOverride?: JsonRecord,
-        resultOverride?: EvalResult | null,
-        scopedVariableOverrides?: JsonRecord,
-        replaceSelfRef = false,
-    ): FormFieldValue {
-        return safeEvaluateExpression(
-            this.normalizeExpressionForWasm(expression, currentItemPath, replaceSelfRef),
-            buildWasmFelExpressionContext(this.felContextInput(currentItemPath, {
-                resultOverride,
-                dataOverride,
-                scopedVariableOverrides,
-            })),
-            this._extensionFunctions,
-        );
-    }
-
-    private felContextInput(
-        currentItemPath: string,
-        overrides: Pick<WasmFelContextBuildInput, 'resultOverride' | 'dataOverride' | 'scopedVariableOverrides'> = {},
-    ): WasmFelContextBuildInput {
-        return {
-            currentItemPath,
-            data: this._data,
-            fullResult: this._fullResult,
-            ...overrides,
-            fieldSignals: this.signals,
-            validationResults: this.validationResults,
-            relevantSignals: this.relevantSignals,
-            readonlySignals: this.readonlySignals,
-            requiredSignals: this.requiredSignals,
-            repeats: this.repeats,
-            bindConfigs: this._bindConfigs,
-            fieldDataTypes: this._fieldDataTypes,
-            variableDefs: this._variableDefs,
-            variableSignals: this.variableSignals,
-            instanceData: this.instanceData,
-            nowIso: this.nowISO(),
-            locale: this.felLocale(),
-            dateFormats: this._localeStore.dateFormats() ?? undefined,
-            meta: this._runtimeContext.meta,
-        };
-    }
-
     /**
      * The locale FEL formats and reports: the host's runtime locale when it set one, else the Locale
      * document currently selected — so `setLocale('fr')` alone renders French dates, and the patterns
@@ -1792,8 +1728,7 @@ export class FormEngine implements IFormEngine {
      * `_evaluate` (evaluation version), rows through structure changes, instances through the instance
      * version. Reading those signals also re-runs a caller's computed whenever the snapshot would change.
      * Each read then names only its expression and Item path, so it costs the scope it resolves against
-     * rather than the size of the form. In-flight evaluation reads use `evaluateExpression`, which builds a
-     * one-shot context from the partial state it is midway through producing.
+     * rather than the size of the form.
      */
     private felContext(): WasmFelContextHandle {
         // The Locale version is part of the key: a switch changes the date patterns the snapshot carries.
@@ -2019,10 +1954,6 @@ export class FormEngine implements IFormEngine {
             this._extensionFunctions,
         ) as EvalResult;
         const evalResult = this.shapedEvalResult(baseResult);
-
-        // Apply TS-side fixups that WASM can't handle:
-        // 1. Instance calculate write-back (binds targeting @instance(...) paths)
-        this.applyInstanceCalculates(evalResult);
         // Shape timing is enforced in Rust `revalidate` for the default continuous WASM eval;
         // no TS-side filter needed for parity with batch eval.
         const delta = diffEvalResults(this._previousEvalResult, evalResult);
@@ -2049,7 +1980,6 @@ export class FormEngine implements IFormEngine {
                 variableSignalKeys: this._variableSignalKeys,
                 prePopulateReadonly: this._prePopulateReadonly,
             });
-            this.syncInstanceCalculateSignals();
             patchErrorSignalsFromWasm(this._rx, {
                 validationResults: this.validationResults,
                 errorSignals: this.errorSignals,
@@ -2072,38 +2002,6 @@ export class FormEngine implements IFormEngine {
             }),
             this._extensionFunctions,
         ) as EvalResult);
-    }
-
-    private applyInstanceCalculates(result: EvalResult): boolean {
-        let changed = false;
-        for (const bind of this._instanceCalculateBinds) {
-            const target = parseInstanceTarget(bind.path);
-            if (!target || !bind.calculate) {
-                continue;
-            }
-            const value = this.evaluateExpression(bind.calculate, '', this._data, result);
-            const before = cloneValue(this.getInstanceData(target.instanceName, target.instancePath));
-            this.writeInstanceValue(target.instanceName, target.instancePath, value, { bypassReadonly: true });
-            if (!deepEqual(before, this.getInstanceData(target.instanceName, target.instancePath))) {
-                changed = true;
-            }
-        }
-        return changed;
-    }
-
-    private syncInstanceCalculateSignals(): void {
-        for (const bind of this._instanceCalculateBinds) {
-            const target = parseInstanceTarget(bind.path);
-            if (!target || !bind.calculate) {
-                continue;
-            }
-            const nextValue = this.evaluateExpression(bind.calculate);
-            if ((nextValue === null || nextValue === undefined)
-                && this.getInstanceData(target.instanceName, target.instancePath) !== undefined) {
-                continue;
-            }
-            this.writeInstanceValue(target.instanceName, target.instancePath, nextValue, { bypassReadonly: true });
-        }
     }
 
     private normalizeExpressionForWasm(expression: string, currentItemPath = '', replaceSelfRef = false): string {

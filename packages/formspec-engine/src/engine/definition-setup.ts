@@ -11,7 +11,6 @@ import type { EngineBindConfig } from './helpers.js';
 import {
     detectNamedCycle,
     parentPathOf,
-    parseInstanceTarget,
     resolveRelativeDependency,
     toBasePath,
 } from './helpers.js';
@@ -37,7 +36,7 @@ export function validateVariableDefinitionCycles(variableDefs: FormVariable[]): 
 export function validateCalculateBindCycles(bindConfigs: Record<string, EngineBindConfig>): void {
     const graph = new Map<string, Set<string>>();
     for (const [path, bind] of Object.entries(bindConfigs)) {
-        if (!bind.calculate || parseInstanceTarget(path)) {
+        if (!bind.calculate) {
             continue;
         }
         const deps = new Set<string>();

@@ -2,11 +2,11 @@
  * Instance command handlers for Formspec Studio Core.
  *
  * Instances are named external data sources declared in a form definition. FEL
- * expressions reference them via `@instance('name')` to read (or, when
- * `readonly: false`, write) data that lives outside the form's own item tree.
- * Common use cases include pre-populating fields from a patient record, looking
- * up reference data, or exposing a writable scratch-pad for intermediate
- * calculations.
+ * expressions read them via `@instance('name')`: data that lives outside the
+ * form's own item tree. No Bind writes one (Core §4.3.3); a `readonly: false`
+ * instance accepts host writes through the engine API. Common use cases include
+ * pre-populating fields from a patient record, looking up reference data, or
+ * keeping host session state that is never submitted.
  *
  * Each instance can point to an external URI (`source`), carry inline `data`,
  * declare a JSON Schema for its structure, and be marked `static` (a caching
