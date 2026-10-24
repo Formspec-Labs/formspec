@@ -80,18 +80,6 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 
    **Acceptance:** Schema created; lives in formspec; consumed by WOS admission gate.
 
-- **FORMSPEC-SIGNATURE-VERIFY-PORT-001 — Verifier port trait + Receipt shape** · `fs-gftu` · P3
-
-   Rust trait Verifier + TS port mirror. D2 from substrate boundary plan.
-
-   **Acceptance:** Crate created; trait surface defined; Receipt shape pinned; tests for JSON round-trip green.
-
-- **FORMSPEC-SIGNATURE-METHOD-REGISTRY-001 — Signature-method registry v1.0.0** · `fs-lcei` · P3
-
-   Registry document + machine-readable JSON. D7 from substrate boundary plan.
-
-   **Acceptance:** Spec doc + registry JSON; lint rule FORMSPEC-SIG-METHOD-REGISTERED-001 enforces registered URIs.
-
 - **FORMSPEC-RECEIPT-METHOD-URI-REGISTRY-001 - Add urn:formspec:receipt-method:* value space to signature-method registry** · `fs-p4is` · P3
 
    ADR-0111 (receipt-signing posture) introduces deployment-class ReceiptSigner adapters whose COSE_Sign1 envelopes carry a method_uri per ADR-0109. The method_uri value space for receipt signing must be distinct from response signing (different role, different preimage, different key class) — proposed prefix urn:formspec:receipt-method:<implementation>@<ver>. The reference ring-in-process adapter uses urn:formspec:receipt-signer:ring-in-process@1 but that's the adapter-id, not the method_uri value. Need: (1) one entry per supported receipt-signing method registered in formspec/specs/registry/signature-method-registry.md and formspec/registries/signature-method-registry.json; (2) explicit prose distinction between sig-method and receipt-method prefixes; (3) lint rule rejecting receipt envelopes whose method_uri is in the sig-method subspace (and vice versa).
@@ -115,18 +103,19 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
      - CI fails if a supported browser drops below floor.
 
 - **FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification extension property** · `fs-du1p` · P4
-   unblocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`
+   blocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`
 
-   `fs-lb8y` decided 2026-10-23 (`specs/audit/disclosure-classification-reconciliation.md`) that
-   `x-data-classification` is the single canonical disclosure classification axis;
-   the competing `accessControl.class` proposal is formally retired. Formalize
-   `x-data-classification` with sensitivity levels
+   After `fs-lb8y` selects the canonical disclosure-classification axis, formalize
+   `x-data-classification` only if that decision retains it. The compliance
+   exploration proposes sensitivity levels
    (public/internal/confidential/restricted/pii), categories
-   (PII/PHI/financial), and regulatory tags.
+   (PII/PHI/financial), and regulatory tags. Do not land this as a parallel axis
+   to `accessControl.class`.
 
    **Acceptance:**
-     - `fs-lb8y` records that `x-data-classification` is canonical (DONE).
-     - `formspec-common.registry.json` registers the extension, its schema validates sensitivity, categories, and regulatory tags, C001 warns for unclassified PHI fields, and the clinical-intake example uses it.
+     - `fs-lb8y` records that `x-data-classification` is canonical or explicitly maps it to the chosen axis.
+     - If retained, `formspec-common.registry.json` registers the extension, its schema validates sensitivity, categories, and regulatory tags, C001 warns for unclassified PHI fields, and the clinical-intake example uses it.
+     - If retired, this ticket closes with the replacement mapping and no duplicate schema.
 
 - **WOS Formspec-Coprocessor integrator alignment (P11-BL-051)** · `fs-op37` · P4
 
@@ -149,6 +138,8 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
 - ~~**Offline authoring profile in Respondent Ledger companion**~~ `fs-921l` · CLOSED — Respondent Ledger now carries integrityProfile and offlineAuthoring; chained / trellis-wrapped ledgers require paired event hashes on every embedded event; offline buffers use…
 - ~~**ResponseCorrection event in Respondent Ledger §6**~~ `fs-txpb` · CLOSED — response.correction-recorded carries recordKind='responseCorrection' plus target-event hash, corrected-field subset, original/corrected value pairs, reason, and neutral…
 - ~~**FORMSPEC-SIGN-VERIFY-001 — Response signature semantic verifier**~~ `fs-5u91` · CLOSED — Wire cross-field invariant verifier into lint/validate path: authoredSignatures[*].signedPayload.responseId MUST equal top-level id; definitionUrl/definitionVersion MUST equal…
+- ~~**FORMSPEC-SIGNATURE-VERIFY-PORT-001 — Verifier port trait + Receipt shape**~~ `fs-gftu` · CLOSED — Rust trait Verifier + TS port mirror.
+- ~~**FORMSPEC-SIGNATURE-METHOD-REGISTRY-001 — Signature-method registry v1.0.0**~~ `fs-lcei` · CLOSED — Registry document + machine-readable JSON.
 - ~~**FORMSPEC-TYPES-REGEN-001 — Regenerate TypeScript types after Phase 2 schema changes**~~ `fs-4wsj` · CLOSED — formspec/packages/formspec-types/src/generated/*.ts must regenerate after response.schema.json changes (COSE_Sign1 signatureValue, registry signatureMethod, signedAt/signingIntent…
 - ~~**FORMSPEC-EVAL-VALID-UNTIL-001 — validUntil duration computation**~~ `fs-cf51` · CLOSED — formspec-eval/src/screener_eval.rs:522 has TODO: Implement proper duration addition for validUntil.
 - ~~**FORMSPEC-SIGNATURE-PORT-VERIFIERERROR-001 - Decide TS VerifierError fate (delete dead-code or rewire adapters)**~~ `fs-m2ja` · CLOSED — formspec-signature-port (TypeScript) defines class VerifierError at index.ts:79-87 with four code variants (method_unsupported, verification_failed, invalid_cose, internal), but…
@@ -165,28 +156,6 @@ Eight-scout parallel survey of `formspec/` covering Rust crates, npm packages, P
 Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md` §Public-release survey.
 
 **P1 — high-leverage:**
-
-- **FORMSPEC-PR-PY-005 — parse_fel surfaces real parse error message** · `fs-0m1p` · P1
-
-   **High.** crates/formspec-py/src/fel.rs:139-142 + src/formspec/_rust.py:288-293: native returns bool; wrapper raises FelSyntaxError(f'FEL parse error: {source!r}') with no actual error text. User sees no reason why parse failed.
-
-   **Fix:** Change native parse_fel to return Option<String> (None = valid, Some(msg) = error). Or expose a second parse_fel_diagnostics(expression) -> str | None. Surface message in FelSyntaxError.
-
-   **Acceptance:** FelSyntaxError carries the actual parse error message. Test asserts the message contains an identifiable token/position for at least 3 distinct parse-failure shapes.
-
-- **FORMSPEC-PR-TS-002 — Delete shadowed ComponentDocument / LocaleDocument in engine** · `fs-4bnq` · P1
-
-   **Blocker.** Engine re-declares ComponentDocument and ComponentObject (interfaces.ts:183-207) with looser shapes (Record<string, any>, [key: string]: any) than the canonical schema-derived versions in @formspec-org/types/dist/generated/component.ts. Engine re-exports ITS OWN version at index.ts:18 and engine-render-entry.ts:18. Consumers importing ComponentDocument from @formspec-org/engine get the shadow, not the schema.
-
-   Same story for LocaleDocument:
-   - packages/formspec-engine/src/locale.ts:8-19 (engine)
-   - packages/formspec-core/src/types.ts:76-95 (LocaleState)
-
-   Two independent declarations of the same JSON envelope. normalizeBcp47 is byte-for-byte the same algorithm in both files (engine/locale.ts:145-162 + core/locale-utils.ts:2-16). Comments admit it.
-
-   **Fix:** Delete engine-local declarations. Import + re-export ComponentDocument, ComponentObject from @formspec-org/types. Either lift LocaleDocument into formspec-types (schema-derived) or canonicalize in one of the two and import. Export normalizeBcp47 from one location, import from the other.
-
-   **Acceptance:** Engine re-exports ComponentDocument from @formspec-org/types directly. Single LocaleDocument source. normalizeBcp47 defined in one place. No tests broken.
 
 - **FORMSPEC-PR-WASM-001 — FEL casing convergence in js_name exports** · `fs-4zhu` · P1
 
@@ -206,16 +175,6 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 
    **Acceptance:** .pyi stubs ship in the wheel. mypy in strict mode against a sample consumer compiles. Stub generation wired into CI.
 
-- **FORMSPEC-PR-REACT-004 — Replace simpleMarkdown with sanitized markdown (CVE prevention)** · `fs-8zhe` · P1
-
-   **High (future CVE).** packages/formspec-react/src/node-renderer.tsx:53-73: simpleMarkdown is hand-rolled regex emitting dangerouslySetInnerHTML. Handles javascript:/data:/vbscript: URLs but missed srcdoc, attribute injection via unescaped ] in links, and HTML embedded inside bold/italic. For a marquee package shipping to the browser, this is the kind of thing that gets a CVE.
-
-   **Fix:** Either (a) pull in marked + DOMPurify (peer or bundled), or (b) restrict to plain text by default and document format: 'markdown' as opt-in with host-provided sanitizer.
-
-   **Acceptance:**
-     - Markdown rendering uses a vetted parser + sanitizer (marked+DOMPurify), or markdown is gated behind explicit opt-in with documented sanitizer requirement.
-     - Tests cover the previously missed injection vectors (srcdoc, attr injection, HTML in bold).
-
 - **FORMSPEC-PR-SIG-008 — VerifierError taxonomy + std::error::Error + typed key reference** · `fs-dos6` · P1
 
    **High (signature port).** Multiple smaller findings cluster into one shape change:
@@ -234,12 +193,6 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
      - Variants distinguish UnsupportedKeyRef vs KeyResolution vs Internal. unreachable! removed; single alg dispatch.
      - Single build_receipt fn.
      - ADAPTER_VERSION from env! macro. forbid(unsafe_code) on all three signature crates.
-
-- **FORMSPEC-PR-RUST-003 — Complete intentional BSL package README and distribution disclosure** · `fs-dozw` · P1
-
-
-
-   **Acceptance:** Both packages have a definitive license decision. LICENSING.md reflects the decision. If staying BUSL, README declares it prominently and downstream packaging is auditable.
 
 - **FORMSPEC-PR-TS-010 — Replace hand-rolled JSON Schema validator in formspec-assist** · `fs-ht89` · P1
 
@@ -325,28 +278,17 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
      - CoseError flow preserves typing.
      - Crypto deps centrally pinned in workspace dependencies table.
 
-- **FORMSPEC-PR-EVAL-001 — ItemInfo: 26-field god struct → MipState extraction + Default impl** · `fs-qkjb` · P1
+- **FORMSPEC-PR-TS-007 — FormEngine.instanceSourceCache: static singleton → per-instance** · `fs-q1q7` · P1
 
-   **High.** crates/formspec-eval/src/types/item_tree.rs:7-74: ItemInfo is 26 fields. Every test that constructs an item lists all 26 fields with None/vec![] defaults (revalidate/mod.rs:115-149, nrb.rs:98-132, plus 8 more sites). Whitespace, nrb, excluded_value stored as Option<String> forces from_str_lossy at every consumer. relevant/required/readonly/prev_relevant are 4 bools shaped like a MIP state cluster.
+   **High (silent multi-engine bug).** packages/formspec-engine/src/engine/FormEngine.ts:90: public static instanceSourceCache = new Map<string, any>(). Class-static singleton. Cross-instance shared mutable state for instance fetches.
 
-   **Fix:**
-   (a) Add Default impl.
-   (b) Replace whitespace: Option<String> with Option<WhitespaceMode>; nrb: Option<String> with Option<NrbMode>; parse once in rebuild/item_tree.rs. (Pairs with PR-SWEEP-001 closed-taxonomy sweep.)
-   (c) Extract struct MipState { relevant, required, readonly, prev_relevant } — already a concept in fel-core; mirror here.
+   Multi-engine consumers (test isolation, server-side parallel renders) silently leak. Already used as such in tests (tests/writable-instances.test.mjs:132 calls FormEngine.instanceSourceCache.clear()).
 
-   Pair with crates/formspec-eval/src/revalidate/mod.rs:115-590 — 8 ItemInfo literals of 30+ lines each; fixed by Default impl.
+   **Fix:** Per-instance cache, or expose clearInstanceSources() method on instances.
 
-   **Acceptance:** ItemInfo has Default impl. MipState extracted. Closed-enum fields typed. Test literals shrink to <10 lines.
+   **Related:** FormEngine.ts:846 — console.error('Failed to load instance source ...') logs into consumer's console with no opt-out. Route through configurable logger on FormEngineRuntimeContext, or surface as typed event/promise rejection from waitForInstanceSources().
 
-- **FORMSPEC-PR-SWIFT-002 — Bridge mutators swallow errors via try?** · `fs-uaxx` · P1
-
-   **High.** packages/formspec-swift/Sources/FormspecSwift/State/FormspecEngine.swift:138-166: all mutating methods (setValue, setLocale, setResponse, addRepeatInstance, removeRepeatInstance) use `Task { try? await bridge?.send(...) }` — fire-and-forget with swallowed errors. If the bridge is disposed mid-flight, if send throws on serialization, if the JS engine rejects: silent. try? is the Swift equivalent of catch{}.
-
-   **Fix:** Either (a) make all mutators async throws and let SwiftUI bridge them via Task { try await engine.setValue(...) } at the call site, OR (b) post the error onto an @Observable lastError: FormspecError? property the UI can surface. Don't drop them on the floor.
-
-   Plus packages/formspec-swift/Sources/FormspecSwift/State/FormspecEngine.swift:237 — NSLog("[FormspecEngine] Engine error: %@", message): engine errors disappear into NSLog (effectively swallowed in release builds). Use os.Logger with a public subsystem for app-level subscription.
-
-   **Acceptance:** Mutator errors surface programmatically (async throws or observable lastError). NSLog replaced with os.Logger.
+   **Acceptance:** Per-instance cache. Tests no longer reach into static state. Engine logger configurable on runtime context. Instance-load failures surface programmatically.
 
 - **FORMSPEC-PR-INFRA-005 — 165 page.waitForTimeout + retries:2 masks flake** · `fs-wmm9` · P1
 
@@ -366,19 +308,6 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
    **Fix:** Replace with page.locator(...).waitFor() / expect(locator).toHaveValue(...) / engine-event listeners. Engine exposes signal-driven hooks via the harness — wait on those. Drop retries to 1, target 0 before public-release tag.
 
    **Acceptance:** page.waitForTimeout reduced to <20 (only intentional debounce waits). Retries dropped to 0 on the public-release tag commit. CI green over 10 consecutive runs.
-
-- **FORMSPEC-PR-WC-001 — Shadow DOM intent: commit or drop** · `fs-z405` · P1
-
-   **Blocker (architectural confusion).** packages/formspec-webcomponent/src/element.ts:112-116: attachShadow({ mode: 'open' }) with a single <slot>. But rootContainer (the .formspec-container div) is appended to this (light DOM, line 600). The form renders into light DOM; the shadow root with the slot is decorative. Consumers' CSS leaks in unpredictably.
-
-   **Fix (pick one):**
-   (a) Render into the shadow root and inject stylesheets via adoptedStyleSheets (provides encapsulation).
-   (b) Don't attach a shadow root at all (acknowledge light-DOM design).
-   The README claims it works either way but the code only really does (b) badly.
-
-   Document the choice prominently — this is the kind of detail that turns ugly the moment a developer opens DevTools to inspect.
-
-   **Acceptance:** Decision implemented (shadow-encapsulated or explicitly light-DOM). README documents the choice. CSS isolation tests verify the chosen posture.
 
 **P2 — standard:**
 
@@ -615,18 +544,6 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 
    **Acceptance:** Nav delegate compares full URL equality (standardized). MainActor-safe. swift build + swift test pass. A test with a contrived same-name URL outside the bundle gets rejected.
 
-- **FORMSPEC-PR-TS-007 — FormEngine.instanceSourceCache: static singleton → per-instance** · `fs-q1q7` · P2
-
-   **High (silent multi-engine bug).** packages/formspec-engine/src/engine/FormEngine.ts:90: public static instanceSourceCache = new Map<string, any>(). Class-static singleton. Cross-instance shared mutable state for instance fetches.
-
-   Multi-engine consumers (test isolation, server-side parallel renders) silently leak. Already used as such in tests (tests/writable-instances.test.mjs:132 calls FormEngine.instanceSourceCache.clear()).
-
-   **Fix:** Per-instance cache, or expose clearInstanceSources() method on instances.
-
-   **Related:** FormEngine.ts:846 — console.error('Failed to load instance source ...') logs into consumer's console with no opt-out. Route through configurable logger on FormEngineRuntimeContext, or surface as typed event/promise rejection from waitForInstanceSources().
-
-   **Acceptance:** Per-instance cache. Tests no longer reach into static state. Engine logger configurable on runtime context. Instance-load failures surface programmatically.
-
 - **FORMSPEC-PR-EVAL-004 — Money/currency fallback policy + revalidate cleanups** · `fs-qvwk` · P2
 
    **Medium cluster:**
@@ -804,11 +721,15 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 - ~~**FORMSPEC-PR-SIG-004 — cose.kid ↔ request.keyRef binding check (TS kid-swap vector)**~~ `fs-skj0` · CLOSED — **Blocker (security-critical).** formspec-signature-adapter-webcrypto/src/index.ts:98-125: verifyEd25519 decodes cose.kid from the protected header (line 109) but never compares…
 - ~~**FORMSPEC-PR-INFRA-001 — grant-application/README.md describes non-existent files**~~ `fs-xd9m` · CLOSED — **Blocker (first-impression).** examples/grant-application/README.md describes server/, index.html, main.js, tools.html, tools.js, vite.config.js, package.json, REVIEW-PROMPT.md,…
 - ~~**FORMSPEC-PR-RUST-004 — Cross-stack-fixture-harness dep classification**~~ `fs-04y9` · CLOSED — **Blocker.** crates/formspec-cross-stack-fixture-harness/Cargo.toml:10-20: base64, ciborium, jsonschema, toml, and formspec-signature-{adapter-ring,cose,port} declared as regular…
+- ~~**FORMSPEC-PR-PY-005 — parse_fel surfaces real parse error message**~~ `fs-0m1p` · CLOSED — **High.** crates/formspec-py/src/fel.rs:139-142 + src/formspec/_rust.py:288-293: native returns bool; wrapper raises FelSyntaxError(f'FEL parse error: {source!r}') with no actual…
+- ~~**FORMSPEC-PR-TS-002 — Delete shadowed ComponentDocument / LocaleDocument in engine**~~ `fs-4bnq` · CLOSED — **Blocker.** Engine re-declares ComponentDocument and ComponentObject (interfaces.ts:183-207) with looser shapes (Record<string, any>, [key: string]: any) than the canonical…
 - ~~**FORMSPEC-PR-SWEEP-007 — Lock down npm exports + delete dead/stale files**~~ `fs-4tui` · CLOSED — Three packages ship their entire dist/ to the public because no `exports` map is set.
 - ~~**FORMSPEC-PR-TS-005 — Delete dead/stale files (validationReport.ts, public-contract.ts, wasm-bridge.ts)**~~ `fs-6eox` · CLOSED — Subset of PR-SWEEP-007.
+- ~~**FORMSPEC-PR-REACT-004 — Replace simpleMarkdown with sanitized markdown (CVE prevention)**~~ `fs-8zhe` · CLOSED — **High (future CVE).** packages/formspec-react/src/node-renderer.tsx:53-73: simpleMarkdown is hand-rolled regex emitting dangerouslySetInnerHTML.
 - ~~**FORMSPEC-PR-REACT-001 — Add 'use client' directives (Next.js / RSC compatibility)**~~ `fs-9z4w` · CLOSED — **Blocker for Next.js adoption.** Zero 'use client' directives anywhere.
 - ~~**FORMSPEC-PR-PY-001 — Severity.INFO missing; collapse info+warning bug**~~ `fs-a88b` · CLOSED — **High.** src/formspec/_rust.py:171-176: _severity_from_str collapses both 'info' AND 'warning' to Severity.WARNING.
 - ~~**FORMSPEC-PR-SWEEP-002 — Eliminate wire-style drift in formspec-core**~~ `fs-do5q` · CLOSED — Spec declares **camelCase** JSON keys for definition/response documents.
+- ~~**FORMSPEC-PR-RUST-003 — Complete intentional BSL package README and distribution disclosure**~~ `fs-dozw` · CLOSED — FORMSPEC-PR-RUST-003 — Complete intentional BSL package README and distribution disclosure
 - ~~**FORMSPEC-PR-SWEEP-005 — Collapse telescoping constructors (Rust + TS public surfaces)**~~ `fs-etqz` · CLOSED — Three public surfaces have the same shape problem: positional N-argument constructors / function families that consumers must pick the right one from cold.
 - ~~**FORMSPEC-PR-ADAPT-002 — Externalize 184KB USWDS integration CSS**~~ `fs-fp3e` · CLOSED — **High (bundle hostility).** ~184KB `integration-css.ts` string inside the USWDS adapter JS bundle.
 - ~~**FORMSPEC-PR-SWEEP-003 — Promote shared Path/PathSegment to formspec-core**~~ `fs-i17a` · CLOSED — Path semantics are spec-normative (`formspec/specs/core/spec.md` — bind `path`, dotted segments).
@@ -816,11 +737,14 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 - ~~**FORMSPEC-PR-TS-003 — Retighten IFormEngine to remove `any` from public contract**~~ `fs-mfiv` · CLOSED — **Blocker** for public TS API. `packages/formspec-engine/src/interfaces.ts` — `IFormEngine` leaks `any` ~14×: `EngineSignal<any>`, `setValue(..., value: any)`, `getResponse():…
 - ~~**FORMSPEC-PR-SWEEP-006 — `as any` → augmented types in formspec-core**~~ `fs-nj9y` · CLOSED — Root cause: augmented types in `formspec-types` (schema conditional properties) post-date `formspec-core` queries/handlers written against narrower shapes.
 - ~~**FORMSPEC-PR-INFRA-004 — CI studio-e2e-tests job runs non-existent script**~~ `fs-pqlz` · CLOSED — **High.** .github/workflows/ci.yml:111: studio-e2e-tests job runs `npm run test:studio:e2e` but package.json has no such script.
+- ~~**FORMSPEC-PR-EVAL-001 — ItemInfo: 26-field god struct → MipState extraction + Default impl**~~ `fs-qkjb` · CLOSED — **High.** crates/formspec-eval/src/types/item_tree.rs:7-74: ItemInfo is 26 fields.
 - ~~**FORMSPEC-PR-REACT-002 — useSyncExternalStore needs getServerSnapshot**~~ `fs-qzzb` · CLOSED — **Blocker for SSR.** packages/formspec-react/src/use-signal.ts:14-34: useSyncExternalStore called without a getServerSnapshot argument.
 - ~~**FORMSPEC-PR-SWIFT-001 — WKWebView JS escape misses U+2028/U+2029 (injection vector)**~~ `fs-tgky` · CLOSED — **High (security).** packages/formspec-swift/Sources/FormspecSwift/Bridge/WebViewEngine.swift:87-97: manual JS string escape via replacingOccurrences of '\\' and "'".
 - ~~**FORMSPEC-PR-ADAPT-001 — Shared single-input skeleton (USWDS + Tailwind)**~~ `fs-tn31` · CLOSED — **Problem:** USWDS and Tailwind adapters duplicated mechanical input wiring per field type.
+- ~~**FORMSPEC-PR-SWIFT-002 — Bridge mutators swallow errors via try?**~~ `fs-uaxx` · CLOSED — **High.** packages/formspec-swift/Sources/FormspecSwift/State/FormspecEngine.swift:138-166: all mutating methods (setValue, setLocale, setResponse, addRepeatInstance,…
 - ~~**FORMSPEC-PR-ADAPT-003 — Peer dep wildcard "*" → "^0.x.0"**~~ `fs-wjm8` · CLOSED — **High.** packages/formspec-adapters/package.json:33-36: peerDependencies on @formspec-org/webcomponent: "*" — wildcard.
 - ~~**FORMSPEC-PR-PY-004 — abi3-py310 build (collapse wheel matrix)**~~ `fs-x77k` · CLOSED — **High.** No abi3 build configured.
+- ~~**FORMSPEC-PR-WC-001 — Shadow DOM intent: commit or drop**~~ `fs-z405` · CLOSED — **Blocker (architectural confusion).** packages/formspec-webcomponent/src/element.ts:112-116: attachShadow({ mode: 'open' }) with a single <slot>.
 - ~~**FORMSPEC-PR-EVAL-003 — Screener eval: FEL parity + module split**~~ `fs-zs72` · CLOSED — **Problem:** Screener `eval_condition` mapped FEL parse errors to silent `false` — routes looked "condition-false" with no determination-record signal.
 - ~~**FORMSPEC-PR-WASM-002 — Boy-scout cleanups in formspec-wasm**~~ `fs-9m35` · CLOSED — **Medium cluster:**
 - crates/formspec-wasm/src/fel.rs:74-87 vs :126-144 — evalFEL records error diagnostics but returns a value; evalFELWithContext calls…
@@ -1111,18 +1035,19 @@ Work that has been researched and decided against for now. Tracked here so it is
    **Acceptance:** Concrete use case where content-addressed identity solves a cross-stack integrity problem that current hash chains (§9.2) don't.
 
 - **FORMSPEC-FIELD-CLASSIFICATION-001 — Field-level access classification [DEFERRED]** · `fs-fvgk` · P4
-   blocked-by FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification… `fs-du1p`
+   blocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`, FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification… `fs-du1p`
 
    ADR 0074 (thoughts/adr/0074-formspec-native-field-level-transparency.md)
    proposes `accessControl` on items, bucketed response encryption, key bags, a
    Privacy Profile and Access-Class Registry, Phase 5 Emission, and cross-class
-   FEL rules. This remains deferred. Per `fs-lb8y` (2026-10-23), `x-data-classification`
-   is canonical and `accessControl.class` is retired. Any future encryption design
-   must build on `x-data-classification` and MUST NOT reintroduce a parallel axis.
+   FEL rules. This remains deferred. `fs-lb8y` must first choose whether
+   `accessControl.class` or `x-data-classification` is canonical; this ticket MUST
+   follow that decision rather than assuming both axes or assuming `fs-du1p`
+   lands unchanged.
 
    **Acceptance:**
-     - `fs-lb8y` has selected and documented `x-data-classification` as the canonical axis (DONE).
-     - The labeling prerequisite is implemented in `fs-du1p` and exercised in a form with compliance requirements.
+     - `fs-lb8y` has selected and documented one canonical classification axis.
+     - The labeling prerequisite is implemented and exercised in a form with compliance requirements.
      - Any later encryption design uses that axis and does not introduce a parallel vocabulary.
 
 - **FORMSPEC-INTAKEHANDOFF-EMISSION-001 — Native IntakeHandoff custody envelope [DEFERRED]** · `fs-hixs` · P4

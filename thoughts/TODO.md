@@ -247,23 +247,11 @@ All P1 tickets evaluated for root-cause layer, product impact, and scope expansi
 
 P1 deep-dive 2026-05-14: 20 tickets grouped into 8 merge groups M9-M16. Component exercises, ARIA last mile, extensions back-sync, fixture constraintKinds, registry entries (blocked on 0031-005/P0), assist transport, assist consent, assist-chat scaffold. SPEC-042 = 0053-020 duplicate noted. See formspec/thoughts/TODO.md 'P1 deep-dive' section.
 
-- **M10 — ARIA describedBy last mile (~1h)** · `fs-5g1s` · P1
-
-   Remove 3 remaining manual sets in radio-group, checkbox-group, text-input adapters. Scope note: screener.ts has 4 MORE manual aria-describedby sets outside default adapters (lines 230/255/268/284) — out of scope for this ticket but track separately. Test: Playwright E2E.
-
-   **Acceptance:** Ticket PLAN-010 closes. radio-group + checkbox-group + text-input adapters use core path.
-
 - **M16 — Assist-chat scaffold (~1h, dedupe SPEC-042 → 0053-020)** · `fs-5xuj` · P1
 
    Create formspec-assist-chat/ with interfaces + stubs. Scope: SPEC-042 is identical (ADR 0053 and Spec assist-chat both extracted same package scaffold) — mark duplicate. Test: npm run build — package builds; createChatSession returns ChatSession.
 
    **Acceptance:** Ticket 0053-020 closes. formspec-assist-chat/ package created with interfaces + stubs. SPEC-042 marked duplicate-of:0053-020.
-
-- **M13 — Complete registry example entries and lifecycle coverage** · `fs-ga4b` · P1
-
-
-
-   **Acceptance:** Tickets 0031-006..0031-011 close. Six entries on registry.json mapping statuses across all 4 lifecycle states (incl. retired).
 
 - **M11 — Extensions back-sync x-budget-version + x-help-link (~1h)** · `fs-gxys` · P1
 
@@ -271,27 +259,14 @@ P1 deep-dive 2026-05-14: 20 tickets grouped into 8 merge groups M9-M16. Componen
 
    **Acceptance:** Ticket 0029-020 closes. x-budget-version + x-help-link added; benchmark reference copy aligned.
 
-- **M14 — Assist transport (InProcess + PostMessage + HTTP) (~4h)** · `fs-krx9` · P1
-
-   Transport abstraction blocks 0053-026. Ship abstraction + at least InProcess + PostMessage concretes in one commit. Test: packages/formspec-assist/tests/ — transport registration + tool invoke round-trips.
-
-   **Acceptance:** Tickets 0053-004, 0053-026 close together. Transport abstraction interface + InProcess + PostMessage + HTTP transport ship as one commit.
-
-- **M12 — Fixture constraintKinds (~1h)** · `fs-m3kx` · P1
-
-   Add cardinality + shape validation results to submission-in-progress.json. Scope: retired lifecycle status missing from ALL registries (not just grant-app); kitchen-sink fixture also lacks it — backfill for conformance coverage. Test: Python conformance — all 6 constraintKind values found in fixtures.
-
-   **Acceptance:** Ticket 0029-067 closes. Cardinality + shape validation results in submission-in-progress.json; kitchen-sink fixture also backfilled.
-
-- **M9 — Component exercises (~1h)** · `fs-paeb` · P1
-
-   Stack align/wrap, TextInput inputMode/suffix, Panel left, Modal auto — all component.json. Scope: 0029-043 ticket claims 8 inputMode values but schema only supports 5 (text/email/tel/url/search) — schema analysis gap in extraction. Test: Playwright E2E + visual — Stack wraps, url keyboard on mobile, Panel left, Modal auto-opens.
-
-   **Acceptance:** Tickets 0029-034, 0029-035, 0029-043, 0029-045, 0029-060, 0029-061 close. All touch component.json — single commit.
-
 **Recently closed (kept for traceability; archive when stale):**
 
+- ~~**M10 — ARIA describedBy last mile (~1h)**~~ `fs-5g1s` · CLOSED — Remove 3 remaining manual sets in radio-group, checkbox-group, text-input adapters.
+- ~~**M13 — Complete registry example entries and lifecycle coverage**~~ `fs-ga4b` · CLOSED — M13 — Complete registry example entries and lifecycle coverage
 - ~~**M15 — Assist consent (requestUserInteraction) (~2h)**~~ `fs-gjqi` · CLOSED — Wire requestUserInteraction into profile.apply confirm flow + tool schema annotations.
+- ~~**M14 — Assist transport (InProcess + PostMessage + HTTP) (~4h)**~~ `fs-krx9` · CLOSED — Transport abstraction blocks 0053-026.
+- ~~**M12 — Fixture constraintKinds (~1h)**~~ `fs-m3kx` · CLOSED — Add cardinality + shape validation results to submission-in-progress.json.
+- ~~**M9 — Component exercises (~1h)**~~ `fs-paeb` · CLOSED — Stack align/wrap, TextInput inputMode/suffix, Panel left, Modal auto — all component.json.
 
 <!-- tk:end -->
 
