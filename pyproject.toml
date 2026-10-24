@@ -54,7 +54,7 @@ include = [
 
 [tool.pytest.ini_options]
 pythonpath = "src"
-testpaths = ["tests"]
+testpaths = ["tests", "benchmarks"]
 markers = [
     "schema: JSON schema and schema/spec contract tests",
     "schema_contract: cross-schema and prose-contract schema tests",

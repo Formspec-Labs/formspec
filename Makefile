@@ -38,8 +38,9 @@ test-e2e: node_modules
 # formspec-studio extracted to sibling repo formspec-stack/formspec-studio/ on 2026-05-04.
 # Its e2e suite is owned there; not run as part of formspec's `make test`.
 
+# No path: pytest takes testpaths from pyproject.toml, the same list CI's bare `pytest` runs.
 test-python: build-python
-	.venv/bin/python -m pytest tests/
+	.venv/bin/python -m pytest
 
 test-scripts: node_modules
 	npm run test:scripts
