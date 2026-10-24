@@ -253,17 +253,12 @@ P1 deep-dive 2026-05-14: 20 tickets grouped into 8 merge groups M9-M16. Componen
 
    **Acceptance:** Ticket 0053-020 closes. formspec-assist-chat/ package created with interfaces + stubs. SPEC-042 marked duplicate-of:0053-020.
 
-- **M11 — Extensions back-sync x-budget-version + x-help-link (~1h)** · `fs-gxys` · P1
-
-   Add missing x-budget-version + x-help-link; align benchmark reference copy too. Scope: three-way divergence between example, benchmark reference, engine fixture. Fix example AND benchmark; engine fixture is canonical — consider making it source of truth. Test: grep across 3 copies.
-
-   **Acceptance:** Ticket 0029-020 closes. x-budget-version + x-help-link added; benchmark reference copy aligned.
-
 **Recently closed (kept for traceability; archive when stale):**
 
 - ~~**M10 — ARIA describedBy last mile (~1h)**~~ `fs-5g1s` · CLOSED — Remove 3 remaining manual sets in radio-group, checkbox-group, text-input adapters.
 - ~~**M13 — Complete registry example entries and lifecycle coverage**~~ `fs-ga4b` · CLOSED — M13 — Complete registry example entries and lifecycle coverage
 - ~~**M15 — Assist consent (requestUserInteraction) (~2h)**~~ `fs-gjqi` · CLOSED — Wire requestUserInteraction into profile.apply confirm flow + tool schema annotations.
+- ~~**M11 — Extensions back-sync x-budget-version + x-help-link (~1h)**~~ `fs-gxys` · CLOSED — Add missing x-budget-version + x-help-link; align benchmark reference copy too.
 - ~~**M14 — Assist transport (InProcess + PostMessage + HTTP) (~4h)**~~ `fs-krx9` · CLOSED — Transport abstraction blocks 0053-026.
 - ~~**M12 — Fixture constraintKinds (~1h)**~~ `fs-m3kx` · CLOSED — Add cardinality + shape validation results to submission-in-progress.json.
 - ~~**M9 — Component exercises (~1h)**~~ `fs-paeb` · CLOSED — Stack align/wrap, TextInput inputMode/suffix, Panel left, Modal auto — all component.json.
@@ -286,7 +281,7 @@ P1 deep-dive 2026-05-14: 20 tickets grouped into 8 merge groups M9-M16. Componen
 |-------|--------------|---------------|
 | M9 | Playwright E2E + visual | Stack wraps, url keyboard on mobile, Panel left, Modal auto-opens |
 | M10 | Playwright E2E | aria-describedby stays in sync on radio-group/checkbox-group/text-input |
-| M11 | `grep` across 3 copies | x-budget-version + x-help-link present in all grant-app definitions |
+| M11 | `tests/integration/fixtures/test_core_fixtures.py` + `grant-app-convergence.test.mjs` | 3 grant-app definitions byte-identical and schema-valid; x-help-link on shapes; no x-budget-version |
 | M12 | Python conformance | All 6 constraintKind values found in fixtures |
 | M13 | `cargo nextest run -p formspec-core` | Registry entries pass schema validation (registry_client) |
 | M14 | `packages/formspec-assist/tests/` | Transport registration + tool invoke round-trips |
