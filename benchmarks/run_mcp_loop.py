@@ -88,6 +88,7 @@ MCP_TOOL_ALLOWLIST = [
         "formspec_compose_multi_view_bundle",
         "formspec_add_changelog_entry",
         "formspec_add_ontology_link",
+        "formspec_manage_registry",
         "formspec_query_document",
         "formspec_migrate_document",
         "formspec_manage_lifecycle",
