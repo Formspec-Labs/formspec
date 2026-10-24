@@ -434,6 +434,7 @@ def test_every_tested_rule_has_at_least_one_triggering_fixture() -> None:
                 component_documents = None
                 locale_documents = None
                 bundle_component_documents: list[dict] | None = comp_docs or None
+                posture_declaration = None
             else:
                 try:
                     document = json.loads(fixture_path.read_text(encoding="utf-8"))
