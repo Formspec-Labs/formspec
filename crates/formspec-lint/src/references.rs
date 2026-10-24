@@ -334,6 +334,38 @@ mod tests {
         assert_eq!(e300[0].path, "$.binds[0].path");
     }
 
+    // ── 2b. Instance paths are not Bind targets (Core §4.3.3, §3.10.1) ──
+
+    #[test]
+    fn instance_path_bind_emits_e300_in_both_syntaxes() {
+        let instances = json!({ "pad": { "readonly": false, "data": { "total": 0 } } });
+        let binds = json!([
+            { "path": "instances.pad.total", "calculate": "1" },
+            { "path": "@instance('pad').total", "calculate": "1" }
+        ]);
+        let doc = json!({
+            "items": [{ "key": "amount", "dataType": "decimal" }],
+            "instances": instances,
+            "binds": binds
+        });
+        let e300: Vec<_> = lint(&doc)
+            .into_iter()
+            .filter(|d| d.code == LintCode::E300)
+            .map(|d| d.path)
+            .collect();
+        assert_eq!(e300, ["$.binds[0].path", "$.binds[1].path"]);
+
+        // A group keyed `instances` is an ordinary Item, so the same dotted path resolves.
+        let doc = json!({
+            "items": [{ "key": "instances", "children": [
+                { "key": "pad", "children": [{ "key": "total", "dataType": "decimal" }] }
+            ] }],
+            "instances": instances,
+            "binds": [binds[0]]
+        });
+        assert!(!codes(&lint(&doc)).contains(&"E300"));
+    }
+
     // ── 3. Valid dotted path — no E300 ────────────────────────
 
     #[test]

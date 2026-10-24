@@ -56,7 +56,7 @@ The remainder of this README is a feature inventory — useful for navigating th
 
 **Bind MIPs**
 
-- **calculate** — subtotals (unitCost * quantity), duration (dateDiff), phaseTotal (sum of taskCosts), orgNameUpper, indirectRateRounded, projectedEndDate, budgetDeviation, contactPhoneFallback, hasLineItems, scratchPad write-back
+- **calculate** — subtotals (unitCost * quantity), duration (dateDiff), phaseTotal (sum of taskCosts), orgNameUpper, indirectRateRounded, projectedEndDate, budgetDeviation, contactPhoneFallback, hasLineItems
 - **relevant** — nonprofitPhoneHint shown only for nonprofits, indirectRate hidden for government, subcontractors conditional on usesSubcontractors
 - **required** — static (orgName, ein, abstract, startDate, endDate, focusAreas) and conditional (projectWebsite required only for universities)
 - **readonly** — static (subtotal, duration, phaseTotal, projectedEndDate, budgetDeviation) and conditional (submissionDeadline readonly when both dates set)
@@ -99,7 +99,7 @@ The remainder of this README is a feature inventory — useful for navigating th
 **Instance data**
 
 - **Readonly** — agencyData (maxAward, fiscalYear, ein) with readonly: true
-- **Writable with schema** — scratchPad (lastSavedTotal, budgetNotes) with typed schema and readonly: false
+- **Writable with schema** — scratchPad (lastSavedTotal, budgetNotes) with typed schema and readonly: false; the host writes it (`setInstanceValue`), never a Bind (Core §4.3.3)
 - **Readonly inline** — priorYearData uses inline static data (priorAwardAmount, performanceRating) so the standalone example works without a backend server
 
 **Pre-population**

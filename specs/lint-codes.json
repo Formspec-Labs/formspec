@@ -59,7 +59,8 @@
       "specRef": "specs/core/spec.md#433-path-syntax",
       "suggestedFix": "change bind target to match an item key, or add the missing item to `items`",
       "fixtures": [
-        "tests/fixtures/lint/E300-unresolved-bind-target.json"
+        "tests/fixtures/lint/E300-unresolved-bind-target.json",
+        "tests/fixtures/lint/E300-instance-path-bind.json"
       ],
       "state": "tested"
     },

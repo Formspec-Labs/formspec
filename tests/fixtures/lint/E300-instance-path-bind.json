@@ -1,0 +1,17 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.com/forms/e300-instance-path",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "E300 fixture — binds target a writable instance path; Bind paths resolve to Items only (Core §4.3.3)",
+  "items": [
+    { "key": "amount", "type": "field", "label": "Amount", "dataType": "decimal" }
+  ],
+  "instances": {
+    "scratch": { "readonly": false, "data": { "total": 0 }, "schema": { "total": "decimal" } }
+  },
+  "binds": [
+    { "path": "instances.scratch.total", "calculate": "$amount * 2" },
+    { "path": "@instance('scratch').total", "calculate": "$amount * 2" }
+  ]
+}

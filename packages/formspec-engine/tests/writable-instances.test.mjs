@@ -100,14 +100,16 @@ test('source instance with static: true is marked in definition', () => {
   assert.equal(engine.definition.instances.priorYearData.static, true);
 });
 
-test('calculate bind writes grand total to scratchPad.lastSavedTotal', () => {
+test('scratchPad.lastSavedTotal is host-written: field edits leave it, setInstanceValue sets it', () => {
   const engine = createGrantEngine();
 
   addRepeatInstance(engine, 'budget.lineItems');
   engine.setValue('budget.lineItems[0].unitCost', 100);
   engine.setValue('budget.lineItems[0].quantity', 5);
+  assert.equal(engine.instanceData?.scratchPad?.lastSavedTotal, 0, 'no Bind writes an instance (Core §4.3.3)');
 
-  assert.equal(engine.instanceData?.scratchPad?.lastSavedTotal, 500);
+  engine.setInstanceValue('scratchPad', 'lastSavedTotal', 500);
+  assert.equal(engine.compileExpression("@instance('scratchPad').lastSavedTotal")(), 500);
 });
 
 test('FEL instance() function reads from writable instance', () => {
@@ -195,29 +197,38 @@ test('a relative instance source with no page to resolve against is left to its 
   }
 });
 
-test('calculate bind targeting readonly instance throws at init', () => {
-  const def = {
-    $formspec: '1.0',
-    url: 'https://test.example/form',
-    version: '1.0.0',
-    status: 'active',
-    title: 'Test',
-    name: 'test',
-    instances: {
-      readonlyInst: {
-        readonly: true,
-        data: { x: 1 },
-      },
-    },
-    items: [
-      { type: 'field', key: 'f1', dataType: 'integer' },
-    ],
-    binds: [
-      { path: 'instances.readonlyInst.x', calculate: '$f1' },
-    ],
-  };
+// Core §4.3.3 / §3.10.1: a Bind path resolves to an Item. Instances are read by FEL and written only by
+// the host (setInstanceValue), so an instance-path Bind is a definition error whatever its MIP or `readonly`.
+const instanceBindDefinition = (items, binds, readonly = false) => ({
+  $formspec: '1.0', url: 'https://test.example/form', version: '1.0.0', status: 'active', title: 'Test', name: 'test',
+  instances: { pad: { readonly, data: { total: 0 }, schema: { total: 'decimal' } } },
+  items: [{ type: 'field', key: 'amount', dataType: 'decimal' }, ...items],
+  binds,
+});
 
-  assert.throws(() => new FormEngine(def), /readonly/);
+for (const [label, readonly, bind] of [
+  ['calculate on a writable instance', false, { path: 'instances.pad.total', calculate: '$amount * 2' }],
+  ['calculate on a readonly instance', true, { path: 'instances.pad.total', calculate: '$amount * 2' }],
+  ['@instance() path syntax', false, { path: "@instance('pad').total", calculate: '$amount * 2' }],
+  ['non-calculate MIP', false, { path: 'instances.pad.total', required: 'true' }],
+]) {
+  test(`instance-path bind is a definition error: ${label}`, () => {
+    assert.throws(() => new FormEngine(instanceBindDefinition([], [bind], readonly)), /names an instance, not an Item/);
+  });
+}
+
+test('a group keyed `instances` is an ordinary Item: its bind evaluates and no instance is written', () => {
+  const engine = new FormEngine(instanceBindDefinition(
+    [{ type: 'group', key: 'instances', children: [
+      { type: 'group', key: 'pad', children: [{ type: 'field', key: 'total', dataType: 'decimal' }] },
+    ] }],
+    [{ path: 'instances.pad.total', calculate: '$amount * 2' }],
+  ));
+
+  engine.setValue('amount', 25);
+
+  assert.equal(engine.signals['instances.pad.total'].value, 50);
+  assert.equal(engine.getInstanceData('pad', 'total'), 0);
 });
 
 test('non-fetchable source (formspec-fn:) does not call fetch or log errors', async () => {
@@ -334,35 +345,4 @@ test('https source triggers fetch', async () => {
   } finally {
     globalThis.fetch = origFetch;
   }
-});
-
-test('writable instance calculate bind updates on field change', async () => {
-  const def = {
-    $formspec: '1.0',
-    url: 'https://test.example/form',
-    version: '1.0.0',
-    status: 'active',
-    title: 'Test',
-    name: 'test',
-    instances: {
-      pad: {
-        readonly: false,
-        data: { total: 0 },
-        schema: { total: 'decimal' },
-      },
-    },
-    items: [
-      { type: 'field', key: 'amount', dataType: 'decimal' },
-    ],
-    binds: [
-      { path: 'instances.pad.total', calculate: '$amount * 2' },
-    ],
-  };
-
-  const engine = new FormEngine(def);
-  engine.setValue('amount', 25);
-
-  await new Promise(resolve => setTimeout(resolve, 50));
-
-  assert.equal(engine.getInstanceData('pad', 'total'), 50);
 });

@@ -39,7 +39,7 @@
       }
     },
     "scratchPad": {
-      "description": "Writable scratch-pad for intermediate calculations that should not be submitted",
+      "description": "Host-written session state, never submitted: the budget total at the last save and working budget notes. The host writes it through the engine API; expressions read it via @instance('scratchPad').",
       "readonly": false,
       "data": {
         "lastSavedTotal": 0,
@@ -50,7 +50,7 @@
         "budgetNotes": "string"
       },
       "extensions": {
-        "x-purpose": "intermediate-calculations"
+        "x-purpose": "host-session-state"
       }
     },
     "priorYearData": {
@@ -796,10 +796,6 @@
     {
       "path": "budget.hasLineItems",
       "calculate": "string(@budgetHasLineItems)"
-    },
-    {
-      "path": "instances.scratchPad.lastSavedTotal",
-      "calculate": "moneyAmount(@grandTotal)"
     },
     {
       "path": "applicantInfo.orgName",
