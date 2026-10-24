@@ -334,7 +334,7 @@ P2 deep-dive 2026-05-14: 20 tickets grouped. Component E2E tests, Registry Pytho
 
 - **M17 — Component E2E tests (~2h)** · `fs-nqrt` · P2
 
-   Test: Playwright grant-app specs — component properties render; altContact fields in DOM; scratchPad reads/writes via FEL.
+   Test: Playwright grant-app specs — component properties render; altContact fields in DOM; scratchPad reads via FEL; the host writes it via setInstanceValue (instance-path Binds are retracted, formspec d7f24e88).
 
    **Acceptance:** Tickets 0029-075, 0030-046, 0031-037 close. Playwright tests for new component props, ref fragment resolution, writable instances.
 
@@ -356,7 +356,7 @@ P2 deep-dive 2026-05-14: 20 tickets grouped. Component E2E tests, Registry Pytho
 
 | Group | Test location | Key assertion |
 |-------|--------------|---------------|
-| M17 | Playwright grant-app specs | component properties render; altContact fields in DOM; scratchPad reads/writes via FEL |
+| M17 | Playwright grant-app specs | component properties render; altContact fields in DOM; scratchPad reads via FEL, host writes via setInstanceValue |
 | M18 | `python3 -c "from formspec.registry import Registry"` | Import succeeds; `Registry.load()` round-trips through Rust |
 | M19 | `packages/formspec-mcp/tests/integration.test.ts` | Pre-merge and post-merge flows identical for key authoring paths |
 | M20 | `packages/formspec-core/tests/diagnostics.test.ts` | Theme-placed item fires diagnostic with "theme-placed" wording |
