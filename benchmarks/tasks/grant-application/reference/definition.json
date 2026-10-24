@@ -437,7 +437,6 @@
       "type": "group",
       "key": "budget",
       "label": "Budget",
-      "x-budget-version": "1.0.0",
       "presentation": {
         "layout": {
           "flow": "grid",

@@ -53,7 +53,7 @@
       "status": "retired",
       "description": "Retired grant budget specification version tracking property.",
       "compatibility": { "formspecVersion": ">=1.0.0 <2.0.0" },
-      "deprecationNotice": "Retired in favor of core x-budget-version attribute."
+      "deprecationNotice": "Retired without a replacement."
     },
     {
       "name": "x-formspec-grant-suite",

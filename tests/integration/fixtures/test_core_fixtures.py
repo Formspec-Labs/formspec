@@ -297,14 +297,27 @@ def _iter_items(items: list[dict]) -> list[dict]:
             flattened.extend(_iter_items(children))
     return flattened
 
-def test_grant_definition_and_contact_fragment_are_schema_valid() -> None:
-    # The Rust linter is stricter than the old Python SchemaValidator,
-    # so we just verify lint runs without crashing (some diagnostics expected)
-    definition_diagnostics = lint(_load_json(DEFINITION_PATH))
-    assert isinstance(definition_diagnostics, list)
+# The example, benchmark reference and engine fixture definitions are kept
+# byte-identical (packages/formspec-engine/tests/grant-app-convergence.test.mjs).
+GRANT_DEFINITION_DOCUMENTS = (
+    DEFINITION_PATH,
+    REPO_ROOT / "benchmarks" / "tasks" / "grant-application" / "reference" / "definition.json",
+    REPO_ROOT / "packages" / "formspec-engine" / "tests" / "fixtures" / "grant-app-definition.json",
+    CONTACT_FRAGMENT_PATH,
+)
 
-    fragment_diagnostics = lint(_load_json(CONTACT_FRAGMENT_PATH))
-    assert isinstance(fragment_diagnostics, list)
+@pytest.mark.parametrize(
+    "path", GRANT_DEFINITION_DOCUMENTS, ids=lambda p: f"{p.parent.name}/{p.name}"
+)
+def test_grant_definition_documents_are_schema_valid(
+    path: Path, definition_schema: dict, schema_registry
+) -> None:
+    validator = Draft202012Validator(definition_schema, registry=schema_registry)
+    errors = [
+        f"{list(error.absolute_path)}: {error.message}"
+        for error in validator.iter_errors(_load_json(path))
+    ]
+    assert errors == []
 
 def test_grant_definition_exercises_ref_keyprefix_and_migration_coverage() -> None:
     definition = _load_json(DEFINITION_PATH)

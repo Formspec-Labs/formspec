@@ -135,7 +135,7 @@ The remainder of this README is a feature inventory — useful for navigating th
 
 **Extensions**
 
-- **x- properties** — at definition level (x-agency, x-program-code), bind level (x-validation-group), shape level (x-help-link), route level (x-route-category), instance level (x-purpose), item level (x-budget-version), screener level (x-screener-version)
+- **x- properties** — at definition level (x-agency, x-program-code), bind level (x-validation-group), shape level (x-help-link), route level (x-route-category), instance level (x-purpose), item level (x-formspec-ein, x-formspec-email, x-formspec-phone-nanp)
 
 **Form metadata**
 
