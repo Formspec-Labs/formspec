@@ -89,7 +89,7 @@ Currently the only instance (`agencyData`) is `readonly: true`. The spec defines
 
 1. **Add writable instance to `definition.json`** — e.g., `scratchPad` with `readonly: false`, inline `data`, and `schema` type declarations
 2. **Add `source` instance** — an instance with `source` (external URL) and `static: true`
-3. **Engine: mutable instance signals** — writable instances produce signals that can be updated via `setValue` or FEL `calculate` binds
+3. **Engine: mutable instance signals** — writable instances produce signals that can be updated via `setValue` or FEL `calculate` binds. *Retracted 2026-10-24 for `calculate` binds:* Bind paths resolve to Items only (Core §4.3.3, §3.10.1 "Instance-path Bind"), so the host writes a `readonly: false` instance (`setValue` / `setInstanceValue`) and Variables (§4.5) carry intermediate values.
 4. **`schema` on instance** — engine validates instance data shape against declared schema
 
 **Tests:**
@@ -97,7 +97,7 @@ Currently the only instance (`agencyData`) is `readonly: true`. The spec defines
 - Unit test: readonly instance rejects writes
 - Unit test: `source` instance loads from URL (mock in test)
 - Unit test: `static` instance caches and doesn't re-fetch
-- E2E: a FEL expression writes to a scratch-pad instance, another field reads from it
+- E2E: the host writes a scratch-pad instance, a FEL expression reads from it (a FEL write was retracted; see item 3)
 
 ### E. Multi-Platform Labels & Themes
 

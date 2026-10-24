@@ -206,7 +206,7 @@ export type Shape1 = {
  */
 export type FELExpression = string;
 /**
- * A named secondary data source available to FEL expressions via @instance('name'). Provides lookup tables, prior-year data, configuration values, and external reference data. At least one of 'source' or 'data' MUST be present. When both exist, 'data' serves as the fallback when 'source' is unavailable. Secondary instances are read-only by default during form completion; a calculate Bind MUST NOT target a path within a read-only instance.
+ * A named secondary data source available to FEL expressions via @instance('name'). Provides lookup tables, prior-year data, configuration values, and external reference data. At least one of 'source' or 'data' MUST be present. When both exist, 'data' serves as the fallback when 'source' is unavailable. Secondary instances are read-only by default during form completion. No Bind targets an instance (Bind paths resolve to Items); a readonly: false instance is written only by the host, through the processor's API.
  *
  * This interface was referenced by `FormDefinition`'s JSON-Schema
  * via the `definition` "Instance".
@@ -237,7 +237,7 @@ export type Instance = Instance1 & {
     [k: string]: string;
   };
   /**
-   * If true (DEFAULT), the instance MUST NOT be modified by calculate Binds or any mechanism during form execution. When false, the instance acts as a writable scratch-pad for intermediate calculations that should not be submitted.
+   * If true (DEFAULT), the instance MUST NOT be modified during form execution. If false, the host MAY modify it during form execution through the processor's API (e.g. session state such as a last-saved snapshot); expressions read the new data on the next evaluation, and it is never part of the Response. No Bind targets an instance under either value; intermediate values belong in Variables.
    */
   readonly?: boolean;
   /**
@@ -815,7 +815,7 @@ export interface ItemPartyPolicy {
  */
 export interface Bind {
   /**
-   * Path expression identifying the target data node(s). Uses dot notation for nesting and [*] for all instances of a repeatable group. MUST resolve to at least one Item key in the Definition. Examples: 'fieldKey', 'group.field', 'repeat[*].field', 'groupA.groupB[*].field'.
+   * Path expression identifying the target data node(s). Uses dot notation for nesting and [*] for all instances of a repeatable group. MUST resolve to at least one Item key in the Definition; an instance path (instances.<name>..., @instance('<name>')...) is never a Bind target. Examples: 'fieldKey', 'group.field', 'repeat[*].field', 'groupA.groupB[*].field'.
    */
   path: string;
   /**

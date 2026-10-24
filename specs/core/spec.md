@@ -261,7 +261,7 @@ Formspec supports **multiple named instances**:
 | Instance kind | Name | Description |
 |---|---|---|
 | **Primary instance** | `"$primary"` (implicit) | The form data being collected. This is the default target for all field references that do not specify an instance name. |
-| **Secondary instance** | Any user-defined string | Reference data supplied at form-load time: lookup tables, prior-year data, configuration values, code lists. Secondary instances are read-only during form completion. |
+| **Secondary instance** | Any user-defined string | Reference data supplied at form-load time: lookup tables, prior-year data, configuration values, code lists. Expressions read secondary instances; no Bind writes one (§4.3.3). A secondary instance is read-only during form completion unless it declares `readonly: false` (§4.4.1), in which case only the host writes it. |
 
 A conformant processor MUST maintain the primary instance. It SHOULD support at
 least one secondary instance. It MAY support an arbitrary number.
@@ -1369,9 +1369,10 @@ and documentation — but a conformant processor is NOT REQUIRED to validate
 Data Source contents against it.
 
 Secondary instances populated by Data Sources are **read-only** during form
-completion. A `calculate` Bind MUST NOT target a path within a secondary
-instance. A conformant processor MUST signal a definition error if such a Bind
-is encountered.
+completion unless declared `readonly: false`, which admits host writes only
+(§4.4.1). No Bind targets a path within a secondary instance — Bind paths
+resolve to Items (§4.3.3) — and a conformant processor MUST signal a definition
+error if such a Bind is encountered.
 
 Repeatable Groups MAY declare `seedFrom` to open `$primary` rows from a secondary-instance array at creation time, after host primary data (§4.2.2.1).
 
@@ -2605,7 +2606,7 @@ following and MUST NOT proceed to Recalculate:
 | **Circular dependency** | The dependency graph (§3.6) contains a cycle. The error message MUST identify at least one field key in the cycle. |
 | **Arity mismatch** | A function is called with the wrong number of arguments. |
 | **Calculate target conflict** | A `calculate` Bind targets a field that is also targeted by another `calculate` Bind. Each field MUST have at most one `calculate` Bind. |
-| **Read-only instance write** | A `calculate` Bind targets a path within a secondary (read-only) instance. |
+| **Instance-path Bind** | A Bind `path` names a secondary instance (`instances.<name>…` or `@instance('<name>')…`) rather than an Item. Bind paths resolve to Items only (§4.3.3); no Bind writes an instance, whatever its `readonly` value (§4.4.1). |
 
 #### 3.10.2 Evaluation Errors
 
@@ -3692,7 +3693,7 @@ property name serves as the instance's identifier.
 | `static` | boolean | **0..1** (OPTIONAL) | If `true`, the instance data does not change during the lifetime of a single form session. Implementations MAY cache static instance data aggressively. Default: `false`. |
 | `data` | any | **0..1** (OPTIONAL) | Inline instance data. If both `source` and `data` are present, `data` serves as the fallback when the `source` is unavailable. If only `data` is present, the instance is fully inline. |
 | `schema` | object | **0..1** (OPTIONAL) | Type declarations for the instance's fields. Keys are field names; values are data type strings (using the same core data types defined in §4.2.3). Implementations SHOULD use the schema for type coercion and expression type-checking. |
-| `readonly` | boolean | **0..1** (OPTIONAL) | If `true`, the instance data MUST NOT be modified by `calculate` Binds or any other mechanism during form execution. Default: `true`. A `calculate` Bind targeting a path within a read-only instance is a definition error. When `false`, the instance acts as a writable scratch-pad for intermediate calculations that should not be submitted. |
+| `readonly` | boolean | **0..1** (OPTIONAL) | If `true`, the instance data MUST NOT be modified during form execution. Default: `true`. If `false`, the host MAY modify the instance data during form execution through the processor's API (e.g. session state such as a last-saved snapshot); expressions read the new data on the next evaluation, and the data is never part of the Response. No Bind targets an instance under either value (§4.3.3); intermediate values belong in Variables (§4.5). |
 
 At least one of `source` or `data` MUST be present. An Instance with neither
 MUST be rejected as a Definition error.

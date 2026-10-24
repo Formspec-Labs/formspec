@@ -48,7 +48,7 @@ A JSON object mirroring the item tree, containing current field values. Rules:
 - repeatable `group` with key `k` → JSON array of objects under `k`
 - `display` items have no instance representation
 
-Supports multiple named instances: `$primary` (default, mutable) and user-defined secondary instances (read-only reference data).
+Supports multiple named instances: `$primary` (default, mutable) and user-defined secondary instances (reference data FEL reads; read-only unless `readonly: false`, which admits host writes only).
 
 ### 3. Item
 A node in the definition's structural tree. Every item has a `key` (unique across the whole definition, matches `^[a-zA-Z][a-zA-Z0-9_]*$`) and a `type`:
@@ -100,7 +100,7 @@ Required properties: `name` (unique identifier, used in `@instance('name')`).
 | `source` (URL) | Fetched from endpoint at form-load time; must be JSON |
 | `source` with `formspec-fn:` URI | Host-provided function data source (e.g., `"source": "formspec-fn:lookupPatient"`) — host environment maps URI to a callback |
 
-Secondary instances are **read-only** — calculate binds must not target them.
+Secondary instances are **read-only** unless `readonly: false` (host-written via the processor API, never submitted). No Bind targets an instance — Bind paths resolve to Items; intermediate values belong in Variables.
 
 ## Three-Layer Architecture
 
@@ -253,7 +253,7 @@ Missing field (exists in definition but no value) → `null`. Field key not in d
 
 ### Error Handling
 
-**Definition errors** (load-time, block processing): syntax errors, undefined references, undefined instances/functions, circular dependencies, arity mismatches, calculate target conflicts, read-only instance writes.
+**Definition errors** (load-time, block processing): syntax errors, undefined references, undefined instances/functions, circular dependencies, arity mismatches, calculate target conflicts, instance-path Binds (`instances.<name>…` / `@instance('<name>')…` as a Bind `path`).
 
 **Evaluation errors** (runtime, produce `null` + diagnostic): type errors, division by zero, index out of bounds, date overflow, regex errors. Evaluation errors don't halt — they produce `null` so the rest of the form keeps working.
 

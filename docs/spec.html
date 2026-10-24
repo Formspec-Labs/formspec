@@ -558,8 +558,11 @@ field references that do not specify an instance name.</td>
 <td><strong>Secondary instance</strong></td>
 <td>Any user-defined string</td>
 <td>Reference data supplied at form-load time: lookup tables, prior-year
-data, configuration values, code lists. Secondary instances are
-read-only during form completion.</td>
+data, configuration values, code lists. Expressions read secondary
+instances; no Bind writes one (§4.3.3). A secondary instance is
+read-only during form completion unless it declares
+<code>readonly: false</code> (§4.4.1), in which case only the host
+writes it.</td>
 </tr>
 </tbody>
 </table>
@@ -2365,10 +2368,11 @@ informative — it aids tooling and documentation — but a conformant
 processor is NOT REQUIRED to validate Data Source contents against
 it.</p>
 <p>Secondary instances populated by Data Sources are
-<strong>read-only</strong> during form completion. A
-<code>calculate</code> Bind MUST NOT target a path within a secondary
-instance. A conformant processor MUST signal a definition error if such
-a Bind is encountered.</p>
+<strong>read-only</strong> during form completion unless declared
+<code>readonly: false</code>, which admits host writes only (§4.4.1). No
+Bind targets a path within a secondary instance — Bind paths resolve to
+Items (§4.3.3) — and a conformant processor MUST signal a definition
+error if such a Bind is encountered.</p>
 <p>Repeatable Groups MAY declare <code>seedFrom</code> to open
 <code>$primary</code> rows from a secondary-instance array at creation
 time, after host primary data (§4.2.2.1).</p>
@@ -4880,9 +4884,12 @@ by another <code>calculate</code> Bind. Each field MUST have at most one
 <code>calculate</code> Bind.</td>
 </tr>
 <tr>
-<td><strong>Read-only instance write</strong></td>
-<td>A <code>calculate</code> Bind targets a path within a secondary
-(read-only) instance.</td>
+<td><strong>Instance-path Bind</strong></td>
+<td>A Bind <code>path</code> names a secondary instance
+(<code>instances.&lt;name&gt;…</code> or
+<code>@instance('&lt;name&gt;')…</code>) rather than an Item. Bind paths
+resolve to Items only (§4.3.3); no Bind writes an instance, whatever its
+<code>readonly</code> value (§4.4.1).</td>
 </tr>
 </tbody>
 </table>
@@ -7266,12 +7273,13 @@ expression type-checking.</td>
 <td><code>readonly</code></td>
 <td>boolean</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
-<td>If <code>true</code>, the instance data MUST NOT be modified by
-<code>calculate</code> Binds or any other mechanism during form
-execution. Default: <code>true</code>. A <code>calculate</code> Bind
-targeting a path within a read-only instance is a definition error. When
-<code>false</code>, the instance acts as a writable scratch-pad for
-intermediate calculations that should not be submitted.</td>
+<td>If <code>true</code>, the instance data MUST NOT be modified during
+form execution. Default: <code>true</code>. If <code>false</code>, the
+host MAY modify the instance data during form execution through the
+processor’s API (e.g. session state such as a last-saved snapshot);
+expressions read the new data on the next evaluation, and the data is
+never part of the Response. No Bind targets an instance under either
+value (§4.3.3); intermediate values belong in Variables (§4.5).</td>
 </tr>
 </tbody>
 </table>
