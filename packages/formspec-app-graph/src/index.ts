@@ -110,6 +110,7 @@ export {
 export {
   collectRenderedNeedTraceNodes,
   RENDERED_NEED_TRACE_CODES,
+  runRenderedNeedTrace,
   validateRenderedNeedTrace,
   type RenderedNeedTraceAnchor,
   type RenderedNeedTraceCollectionFailure,
@@ -117,6 +118,14 @@ export {
   type RenderedNeedTraceNode,
   type RenderedNeedTraceTypedNeedRef,
 } from './rendered-need-trace.js';
+export {
+  LOCALE_LINT_ORIGIN,
+  lintPathToJsonPointer,
+  localeLintValidator,
+  type AppGraphDocumentLinter,
+  type AppGraphLintDiagnostic,
+  type AppGraphLocaleLintContext,
+} from './locale-lint.js';
 export {
   validateScreenerSurfaceTargets,
 } from './screener-surface-targets.js';

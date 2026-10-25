@@ -306,6 +306,17 @@ function definitionItemsNeedFileUploadChrome(items: readonly JsonRecord[]): bool
   return false;
 }
 
+/** The Definition URL a Component document renders, under any of its target spellings. */
+export function componentTargetUrl(compDoc: JsonRecord | undefined): string | undefined {
+  const target = record(ownProp(compDoc, 'target'));
+  const targetDefinition = record(ownProp(compDoc, 'targetDefinition'));
+  return stringProp(target, 'url')
+    ?? stringProp(target, 'definitionRef')
+    ?? stringProp(targetDefinition, 'url')
+    ?? stringProp(targetDefinition, 'definitionRef')
+    ?? stringProp(compDoc, 'definitionRef');
+}
+
 function componentTreeHasNode(node: JsonRecord, componentName: string): boolean {
   if (stringProp(node, 'component') === componentName) return true;
   return recordArray(ownProp(node, 'children')).some((child) =>
@@ -333,18 +344,9 @@ function localeUiChromeDiagnostics(
     const targetDef = matchingDefinitions[0]!;
     const defItems = recordArray(ownProp(record(targetDef.document), 'items'));
 
-    const targetingComponents = components.filter((comp) => {
-      const compDoc = record(comp.document);
-      const target = record(ownProp(compDoc, 'target'));
-      const targetDefinition = record(ownProp(compDoc, 'targetDefinition'));
-      const targetUrl =
-        stringProp(target, 'url')
-        ?? stringProp(target, 'definitionRef')
-        ?? stringProp(targetDefinition, 'url')
-        ?? stringProp(targetDefinition, 'definitionRef')
-        ?? stringProp(compDoc, 'definitionRef');
-      return targetUrl === tuple.url;
-    });
+    const targetingComponents = components.filter((comp) =>
+      componentTargetUrl(record(comp.document)) === tuple.url
+    );
 
     const needsSelectChrome =
       definitionItemsNeedSelectChrome(defItems)

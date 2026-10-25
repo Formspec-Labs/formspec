@@ -177,6 +177,7 @@ Each MAY appear at most once.
 | `references` | `SiblingRef` | Legacy single References association |
 | `ontology` | `SiblingRef` | Legacy single Ontology association |
 | `entrySurface` | absolute URL string | App Manifest 2.4 entry Surface selector; see §3.4.1 |
+| `needs` | `SiblingRef` | App Manifest 2.4 only. The Needs Document ([Needs spec](../needs/needs-spec.md)) paired with this app (Needs §2.1). Optional: including it publishes the research evidence — statements, groundings, and adoption actors — with the bundle. A deployment package carries its Needs Document privately by default; add this member only when that evidence is meant to be public. |
 
 ### 3.3 Optional Array-Cardinality Members
 
@@ -288,7 +289,7 @@ of those sibling-owned fields.
 The App Manifest schema declares `additionalProperties: false`. New members
 require an App Manifest schema version bump. `dataSources[]` requires 2.1 or
 later, `components[]` requires 2.2 or later, `screeners[]` requires 2.3 or
-later, and `entrySurface`, `referenceDocuments[]`, `ontologies[]`, and
+later, and `entrySurface`, `needs`, `referenceDocuments[]`, `ontologies[]`, and
 `responseActionDocuments[]` require exactly 2.4. An older document carrying a
 newer member is invalid. The closed shape keeps manifest resolution deterministic.
 
@@ -320,6 +321,7 @@ Absence MUST NOT trigger synthesis. Specifically:
 - A manifest without `dataSources[]` MUST NOT cause processors to synthesize a Data Sources catalog from Definition `instances`, widget payloads, fixture paths, or URL naming conventions. Definition-local `instances` keep their existing form-local meaning.
 - A manifest without `components[]` MUST NOT cause processors to discover additional Component documents from filenames, URLs, route names, or Surface structure. The singular `component` compatibility member names at most one Component document.
 - A manifest without `screeners[]` MUST NOT cause processors to discover Screener documents from filenames, TraceIndex, Runtime Plan, embedded Definition screeners, hostEvidence, loaded Definitions, or Surface route names. A Screener must be associated by `screeners[]` before AppGraphValidator checks `surface:<route-id>` targets against loaded Surfaces.
+- A manifest without `needs` MUST NOT cause processors to discover a Needs Document from co-location or file naming. A caller MAY still pair one explicitly (Needs §2.1), as a deployment publisher does from its package; otherwise Needs processing is inapplicable.
 - A manifest with empty `definitions[]` (non-form app) MUST NOT cause a renderer to fabricate a Definition. Non-form apps compose surfaces and modules; form rendering paths SHOULD NOT trigger.
 
 A **form-only app** (single-element `definitions[]`, no `surfaces`) is a valid manifest and a valid form. It is the simple-form path: one Definition file plus one App Manifest file, no synthesis, today's behavior with the addition of a stable form identity.

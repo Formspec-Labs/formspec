@@ -190,7 +190,23 @@ export interface AppGraphValidationRequest {
   crossArtifactValidators?: AppGraphCrossArtifactValidator[];
   /** The deployment host's shipped widget contracts; absent means no host check runs. */
   hostWidgetContracts?: HostWidgetContracts;
+  /**
+   * Run the strict rendered-Need trace (Needs spec S10.3) and record it in the
+   * report's `renderedNeedTrace`. Absent means it does not run and no record is
+   * written; passing `validateRenderedNeedTrace` as a cross-artifact validator
+   * runs the same rule without the record.
+   */
+  renderedNeedTrace?: AppGraphRenderedNeedTraceMode;
   options?: AppGraphValidationOptions;
+}
+
+/** `required`: always run. `when-declared`: run only when Needs are paired or a rendered node carries a Need trace. */
+export type AppGraphRenderedNeedTraceMode = 'required' | 'when-declared';
+
+/** Report record of a strict rendered-Need trace run; the server checks it instead of re-running the rule. */
+export interface AppGraphRenderedNeedTraceRecord {
+  status: 'completed' | 'not-applicable';
+  definitions: { url: string; version: string }[];
 }
 
 export interface AppGraphSchemaResult {
@@ -221,11 +237,12 @@ export interface AppGraphHostEvidence {
   /**
    * Needs Documents the caller pairs with this bundle (needs-spec S2.1).
    *
-   * Host evidence, never an App Manifest slot: a Needs Document declares no
-   * `targetDefinition` and no bundle binding, so the pairing is the caller's
-   * act. Absent the pairing, `needRefs` resolution and all of coverage are
-   * *inapplicable, not failing* — the checker emits nothing, and MUST NOT
-   * infer a pairing from co-location or file naming.
+   * A Needs Document declares no `targetDefinition` and no bundle binding,
+   * so the pairing is an explicit act: the caller's here, or the App
+   * Manifest's optional `needs` member, which the bundle-export producer
+   * appends to this list. Absent a pairing, `needRefs` resolution and all of
+   * coverage are *inapplicable, not failing* — the checker emits nothing, and
+   * MUST NOT infer a pairing from co-location or file naming.
    */
   needsDocuments?: AppGraphHostEvidenceDocument[];
   hostLandmarks?: AppGraphHostLandmarks;
@@ -269,4 +286,5 @@ export interface AppGraphValidationReport {
   diagnostics: AppGraphDiagnostic[];
   phases: AppGraphPhaseStatus[];
   support?: AppGraphSupportProfile;
+  renderedNeedTrace?: AppGraphRenderedNeedTraceRecord;
 }

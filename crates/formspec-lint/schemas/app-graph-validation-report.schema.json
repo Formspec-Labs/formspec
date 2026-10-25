@@ -36,6 +36,9 @@
     },
     "support": {
       "$ref": "#/$defs/SupportProfile"
+    },
+    "renderedNeedTrace": {
+      "$ref": "#/$defs/RenderedNeedTraceRecord"
     }
   },
   "$defs": {
@@ -129,7 +132,7 @@
       "properties": {
         "artifactSlot": {
           "type": "string",
-          "pattern": "^hostEvidence\\.(uiGraphPolicies|componentGraphContexts)\\[[0-9]+\\]$"
+          "pattern": "^hostEvidence\\.(uiGraphPolicies|componentGraphContexts|needsDocuments)\\[[0-9]+\\]$"
         },
         "source": {
           "type": "string",
@@ -251,8 +254,8 @@
         "evidenceSlot": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^hostEvidence\\.(uiGraphPolicies|componentGraphContexts)\\[[0-9]+\\]$",
-          "description": "Request evidence slot, such as hostEvidence.uiGraphPolicies[0] or hostEvidence.componentGraphContexts[0]. This is diagnostic evidence only, not an App Manifest slot."
+          "pattern": "^hostEvidence\\.(uiGraphPolicies|componentGraphContexts|needsDocuments)\\[[0-9]+\\]$",
+          "description": "Request evidence slot, such as hostEvidence.uiGraphPolicies[0], hostEvidence.componentGraphContexts[0], or hostEvidence.needsDocuments[0]. This is diagnostic evidence only, not an App Manifest slot."
         },
         "schemaId": {
           "type": "string",
@@ -324,6 +327,27 @@
         "importedDiagnostics": { "type": "integer", "minimum": 0 },
         "unsupportedFeatures": { "type": "integer", "minimum": 0 },
         "skippedPhases": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "RenderedNeedTraceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "definitions"],
+      "description": "Record of the strict rendered-Need trace (Needs spec S10.3), present only when the caller requested it and the cross-artifact phase completed. `completed`: the trace rule ran over the loaded graph and its findings are in `diagnostics`. `not-applicable`: the caller requested it only when declared, and the graph pairs no Needs Document and carries no Need trace. `definitions` lists the loaded Definitions the run covered; a server checks a published Definition against it instead of re-running the rule.",
+      "properties": {
+        "status": { "enum": ["completed", "not-applicable"] },
+        "definitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["url", "version"],
+            "properties": {
+              "url": { "type": "string", "minLength": 1 },
+              "version": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
       }
     },
     "SupportProfile": {

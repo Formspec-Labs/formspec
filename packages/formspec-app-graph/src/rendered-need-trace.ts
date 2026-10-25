@@ -4,6 +4,8 @@ import {
   type AppGraphContext,
   type AppGraphDiagnostic,
   type AppGraphHostEvidenceDocument,
+  type AppGraphRenderedNeedTraceMode,
+  type AppGraphRenderedNeedTraceRecord,
   type AppGraphSourcePointer,
   type ResolvedArtifactHandle,
 } from './types.js';
@@ -1343,9 +1345,48 @@ export function validateRenderedNeedTrace(
   context: AppGraphContext,
   previewScenarios: readonly ResolvedArtifactHandle[] = [],
 ): AppGraphDiagnostic[] {
+  return traceDiagnostics(
+    pairedNeedsDocuments(context),
+    collectRenderedNeedTraceNodes(context, previewScenarios),
+  );
+}
+
+
+function nodeCarriesTrace(node: RenderedNeedTraceNode): boolean {
+  return node.anchors.length > 0
+    || node.invalidAnchors.length > 0
+    || (node.typedNeedRefs?.length ?? 0) > 0;
+}
+
+/**
+ * Run the strict profile under `mode` and return its findings with the
+ * report record (Needs spec S10.3) that lets a server check the run instead of
+ * re-running it. `definitions` names every loaded Definition the run covered.
+ */
+export function runRenderedNeedTrace(
+  context: AppGraphContext,
+  mode: AppGraphRenderedNeedTraceMode,
+): { diagnostics: AppGraphDiagnostic[]; record: AppGraphRenderedNeedTraceRecord } {
   const paired = pairedNeedsDocuments(context);
+  const nodes = collectRenderedNeedTraceNodes(context);
+  const applies = mode === 'required' || paired.length > 0 || nodes.some(nodeCarriesTrace);
+  const definitions = context.handles
+    .filter((handle) => handle.artifactKind === 'definition' && handle.status === 'loaded')
+    .flatMap((handle) => {
+      const url = stringProp(record(handle.document), 'url');
+      const version = stringProp(record(handle.document), 'version');
+      return url && version ? [{ url, version }] : [];
+    });
+  return applies
+    ? { diagnostics: traceDiagnostics(paired, nodes), record: { status: 'completed', definitions } }
+    : { diagnostics: [], record: { status: 'not-applicable', definitions } };
+}
+
+function traceDiagnostics(
+  paired: readonly AppGraphHostEvidenceDocument[],
+  nodes: readonly RenderedNeedTraceNode[],
+): AppGraphDiagnostic[] {
   if (paired.length === 0) {
-    const nodes = collectRenderedNeedTraceNodes(context, previewScenarios);
     const first = nodes[0];
     if (!first) return [];
     return [traceDiagnostic(
@@ -1360,6 +1401,5 @@ export function validateRenderedNeedTrace(
   }
 
   const { byId, roots } = pairedNeeds(paired);
-  return collectRenderedNeedTraceNodes(context, previewScenarios)
-    .flatMap((node) => validateNode(node, byId, roots));
+  return nodes.flatMap((node) => validateNode(node, byId, roots));
 }

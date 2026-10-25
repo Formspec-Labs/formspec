@@ -58,6 +58,7 @@
       "if": {
         "anyOf": [
           { "required": ["referenceDocuments"] },
+          { "required": ["needs"] },
           { "required": ["ontologies"] },
           { "required": ["responseActionDocuments"] }
         ]
@@ -190,6 +191,13 @@
       "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
       "description": "App Manifest v2.4 entry Surface selector. The value is a canonical absolute URL and MUST exactly match one surfaces[].url. It selects the Surface only; the selected Surface's own entry selects the route. It MUST NOT contain a bundle-local Surface.id or a route override. For v2.4, omit this member only when surfaces[] has zero or one entry; two or more Surfaces require it.",
       "$comment": "JSON Schema enforces the v2.4 version gate, at-least-one-Surface requirement when present, and required selection for two-or-more Surfaces. Exact value-to-surfaces[].url matching is an AppGraphValidator rule."
+    },
+    "needs": {
+      "$ref": "#/$defs/SiblingRef",
+      "description": "Optional Needs Document (Needs spec) paired with this app (Needs §2.1). This member is valid only when `$formspecBundle` is '2.4'. Including it publishes the research evidence — Need statements, groundings, and adoption actors — with the bundle; a deployment package carries its Needs Document privately by default. When present, AppGraph validation pairs this document as Needs evidence; processors MUST NOT discover a Needs Document any other way.",
+      "examples": [
+        { "url": "https://example.gov/apps/intake/needs", "version": "1.0.0" }
+      ]
     },
     "dataSources": {
       "type": "array",

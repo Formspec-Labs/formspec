@@ -79,6 +79,7 @@ Additional terms:
 - A Need is born `proposed` or `adopted`, is superseded rather than erased, and carries an integer `revision` over its statement and grounding. An AI may file a `proposed` Need; only a human may carry an `ai-proposed` Need to `adopted`.
 - Experience Units cite Needs through `needRefs[]` (deliberately unpinned); GENERATION anchors cite them as `need:<id>@<revision>` (deliberately pinned). Human intent tracks the Need; machine provenance tracks the revision.
 - A Needs Coverage checker computes which adopted Needs no artifact serves (`NEED-COVERAGE-001`) and which Units serve no Need (`NEED-COVERAGE-002`). Coverage is reportable, never blocking.
+- A publication that pairs a Needs Document or carries Need traces publishes only when every rendered element traces directly to an adopted, current Need (S10.3); one with neither publishes unchanged. Adoption is publisher-attested until signed adoption records exist.
 - Needs MUST NOT affect data capture, validation, or the processing model. The Needs Document is upstream of every other Formspec artifact and is cited by them, never the reverse; this BLUF is governed by `schemas/needs.schema.json`, the canonical structural contract.
 <!-- bluf:end -->
 
@@ -105,7 +106,7 @@ This specification does NOT define:
 - Acceptance tests. Validation rules belong to Definition (core S4); conformance fixtures to the test corpus.
 - Work sequencing. Backlog rows, priority, and scheduling belong to the stack's planning artifacts. A Needs Document is not a backlog.
 - Regeneration merge behavior (see Status).
-- Sign-off and release gating. Adoption of a Need (S4.3) is not approval of a release.
+- Release approval. Adoption of a Need (S4.3) is not approval of a release. Publication does check trace closure when a publication pairs Needs or carries Need traces (S10.3): that proves every rendered element answers to an adopted Need, not that the release is approved.
 
 ### 1.2 Relationship to the Formspec Layers
 
@@ -203,6 +204,8 @@ A Needs Document is a JSON object at the top level with the following properties
 A Needs Document declares no `targetDefinition` and no bundle binding — scope is established by the **caller**, who pairs a Needs Document with an app bundle for resolution and coverage (the same caller-pairs posture as the Experience bundle-scope rule, experience-spec S10.1). This spec calls that the **paired bundle**.
 
 When no Needs Document is paired, every processing step that reads one — `needRefs` resolution and all of coverage — is **inapplicable, not failing**: it emits no finding of any kind. A processor MUST NOT infer a pairing from co-location, file naming, or any other convention.
+
+A deployment package's Needs member and an App Manifest `needs` member ([App Manifest spec](../bundle/app-manifest-spec.md) §3.2) are explicit pairings: the publisher declares the pair. The package member is the default and keeps the document private to the deployment; the App Manifest member is optional and publishes the research evidence — statements, groundings, and adoption actors — with the public bundle.
 
 ## 3. Journeys
 
@@ -550,7 +553,20 @@ Who may *file* a Need is discriminated in-band by `origin` + `proposedBy` / `ado
 
 Minting the row is an ADR 0152 §4.2 table amendment carrying its op mapping, per that ADR's registry discipline. Until minted, the floor rules of S4.3 (human-only adoption of `ai-proposed` Needs) are the only normative constraint, and they hold with or without a postured deployment. A deployment MAY NOT weaken the floor via posture; posture only narrows.
 
+**Adoption is publisher-attested.** Until signed adoption records exist (INTEGRITY attestation of adopted Needs is deferred — Status), an `adoptedBy` of `kind: human` is the publisher's attestation that a human adopted the Need. No processor can verify it; publication (S10.3) relies on it as attested, not proven, and a publisher that publishes a Need as `adopted` answers for that claim.
+
 One inherited check is recorded as authoring guidance, not v1 machinery: adopting a Need whose Assertion Grounding cites a Rulespec assertion that Rulespec itself marks ineligible for operational use (`rkaf:usageEligibility`) is authority laundering on the product side. v1 processors do not resolve assertion IRIs (S5.1); postured deployments that do resolve them SHOULD refuse the adoption.
+
+### 10.3 Publication Trace
+
+A **publication** makes a package's artifacts live for respondents: a deployment package publish, or a server accepting a Definition version.
+
+1. **Trigger.** Trace closure applies when the publication pairs a Needs Document (S2.1) or any of its artifacts carries a Need trace — a `need:` anchor (S8) or a typed `needRefs[]` citation on a rendered Unit. A publication with neither publishes without it.
+2. **Rule.** When it applies, every rendered element — every authored node whose own content can render in a normal product view — MUST carry its own direct trace, and every trace MUST resolve to exactly one Need of the paired document that is `adopted` and, for an anchor, pinned at that Need's current `revision`. A parent's trace never covers a child. Traces with no paired Needs Document fail.
+3. **Refusal.** A publisher MUST refuse a publication that fails the rule. The AppGraph strict rendered-Need profile (`@formspec-org/app-graph`, request member `renderedNeedTrace`, codes `APP-GRAPH-RENDERED-*`) is the one implementation; other gates check its record instead of re-implementing it.
+4. **Server proof.** A server accepting a Definition version whose Definition, Component, or Locale documents carry a Need anchor MUST refuse it unless the accompanying AppGraph validation report is admitted (no error diagnostic) and records `renderedNeedTrace.status` `completed` with that Definition's `url` and `version` among `renderedNeedTrace.definitions`. The server checks the record; it does not re-run the rule ([ADR 0153](../../../thoughts/adr/0153-formspec-app-graph-production-boundary.md): the server runs no app graph). The record is publisher-attested, as adoption is (S10.2).
+
+This is a publication gate, not a Core operation: S11.4 prohibition 2 still forbids blocking validation, submission, generation, or any Core operation on a `NEED-*` finding, and coverage (S9) stays report-only.
 
 ## 11. Conformance
 
@@ -585,7 +601,7 @@ A conformant Needs Coverage checker MUST:
 A conformant processor MUST NOT:
 
 1. Use a Needs Document to alter data capture, validation, requiredness, relevance, calculation, or any other Core semantics.
-2. Block validation, submission, generation, or any Core operation on the basis of any `NEED-*` finding.
+2. Block validation, submission, generation, or any Core operation on the basis of any `NEED-*` finding. Publication trace closure (S10.3) gates publication, which is not a Core operation, under its own `APP-GRAPH-RENDERED-*` codes.
 3. Treat the Needs Document as a backlog: it carries no priority, no ordering semantics, and no scheduling meaning, and processors MUST NOT derive any.
 4. Write coverage state, served-ness, or any computed judgment into a Needs Document. Coverage output is report-only.
 5. Set or transition `status: adopted` on behalf of an `ai-agent` actor for an `ai-proposed` Need (S4.3).

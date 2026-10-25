@@ -67,6 +67,7 @@ export interface AppGraphValidationReport {
    */
   phases: PhaseStatus[];
   support?: SupportProfile;
+  renderedNeedTrace?: RenderedNeedTraceRecord;
 }
 /**
  * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
@@ -150,7 +151,7 @@ export interface ArtifactRef {
  */
 export interface EvidenceSchemaResult {
   /**
-   * Request evidence slot, such as hostEvidence.uiGraphPolicies[0] or hostEvidence.componentGraphContexts[0]. This is diagnostic evidence only, not an App Manifest slot.
+   * Request evidence slot, such as hostEvidence.uiGraphPolicies[0], hostEvidence.componentGraphContexts[0], or hostEvidence.needsDocuments[0]. This is diagnostic evidence only, not an App Manifest slot.
    */
   evidenceSlot: string;
   schemaId: string;
@@ -213,4 +214,17 @@ export interface SupportProfile {
   artifactKinds?: string[];
   schemaIds?: string[];
   featureFlags?: string[];
+}
+/**
+ * Record of the strict rendered-Need trace (Needs spec S10.3), present only when the caller requested it and the cross-artifact phase completed. `completed`: the trace rule ran over the loaded graph and its findings are in `diagnostics`. `not-applicable`: the caller requested it only when declared, and the graph pairs no Needs Document and carries no Need trace. `definitions` lists the loaded Definitions the run covered; a server checks a published Definition against it instead of re-running the rule.
+ *
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "RenderedNeedTraceRecord".
+ */
+export interface RenderedNeedTraceRecord {
+  status: 'completed' | 'not-applicable';
+  definitions: {
+    url: string;
+    version: string;
+  }[];
 }

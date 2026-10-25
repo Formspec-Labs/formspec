@@ -9,6 +9,7 @@ import {
   type AppGraphPhaseStatus,
   type AppGraphSchemaResult,
   type AppGraphSourcePointer,
+  type AppGraphRenderedNeedTraceRecord,
   type AppGraphSupportProfile,
   type AppGraphValidationReport,
   type AppGraphValidationSummary,
@@ -124,6 +125,7 @@ export interface CreateAppGraphReportInput {
   evidenceResults?: AppGraphEvidenceSchemaResult[];
   phases?: AppGraphPhaseStatus[];
   support?: AppGraphSupportProfile;
+  renderedNeedTrace?: AppGraphRenderedNeedTraceRecord;
 }
 
 export function createAppGraphReport(input: CreateAppGraphReportInput): AppGraphValidationReport {
@@ -160,5 +162,6 @@ export function createAppGraphReport(input: CreateAppGraphReportInput): AppGraph
     diagnostics,
     phases,
     support: input.support ? { ...input.support } : undefined,
+    ...(input.renderedNeedTrace ? { renderedNeedTrace: input.renderedNeedTrace } : {}),
   };
 }

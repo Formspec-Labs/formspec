@@ -6,6 +6,7 @@ import type {
 } from '@formspec-org/types';
 import {
   APP_GRAPH_PHASES,
+  type AppGraphContext,
   type AppGraphCrossArtifactValidator,
   type AppGraphDiagnostic,
   type AppGraphEvidenceKind,
@@ -15,6 +16,7 @@ import {
   type AppGraphEvidenceSchemaResult,
   type AppGraphPhase,
   type AppGraphPhaseStatus,
+  type AppGraphRenderedNeedTraceRecord,
   type AppGraphSchemaResult,
   type AppGraphSchemaValidator,
   type AppGraphValidationRequest,
@@ -39,6 +41,7 @@ import { validateExperienceReferentialIntegrity } from './experience-referential
 import { validateExecutableSchemaContracts } from './executable-schema-contracts.js';
 import { validateLocaleAssociations } from './locale-associations.js';
 import { validateNeedsCoverage } from './needs-coverage.js';
+import { runRenderedNeedTrace } from './rendered-need-trace.js';
 import { validateScreenerSurfaceTargets } from './screener-surface-targets.js';
 import { validateSurfaceDefinitionSlots } from './surface-definition-slots.js';
 import { validateSurfaceExperienceUnits } from './surface-experience-units.js';
@@ -353,7 +356,18 @@ function runCrossArtifactValidators(
     validateHostWidgetContracts,
     ...(validators ?? []),
   ];
-  return allValidators.flatMap((validator) => validator({
+  return allValidators.flatMap((validator) =>
+    validator(crossArtifactContext(request, handles, schemaResults, evidenceResults))
+  );
+}
+
+function crossArtifactContext(
+  request: AppGraphValidationRequest,
+  handles: readonly ResolvedArtifactHandle[],
+  schemaResults: readonly AppGraphSchemaResult[],
+  evidenceResults: readonly AppGraphEvidenceSchemaResult[],
+): AppGraphContext {
+  return {
     manifest: request.manifest,
     handles: [...handles],
     schemaResults: [...schemaResults],
@@ -361,7 +375,7 @@ function runCrossArtifactValidators(
     hostEvidence: request.hostEvidence,
     moduleResolution: request.moduleResolution,
     hostWidgetContracts: request.hostWidgetContracts,
-  }));
+  };
 }
 
 function moduleResolutionDiagnostic(diagnostic: ModuleResolutionDiagnostic): AppGraphDiagnostic {
@@ -453,6 +467,7 @@ export function validateAppGraph(request: AppGraphValidationRequest) {
   const schemaStatus = schemaPhaseStatus(schemaAndEvidenceResults);
   let crossArtifactStatus: AppGraphPhaseStatus;
   let crossDiagnostics: AppGraphDiagnostic[] = [];
+  let renderedNeedTrace: AppGraphRenderedNeedTraceRecord | undefined;
 
   if (unresolved.length > 0) {
     crossArtifactStatus = phaseStatus('cross-artifact', 'skipped', 'unresolved-artifacts');
@@ -469,6 +484,14 @@ export function validateAppGraph(request: AppGraphValidationRequest) {
       schemaResults,
       evidenceResults,
     );
+    if (request.renderedNeedTrace) {
+      const trace = runRenderedNeedTrace(
+        crossArtifactContext(request, handles, schemaResults, evidenceResults),
+        request.renderedNeedTrace,
+      );
+      crossDiagnostics.push(...trace.diagnostics);
+      renderedNeedTrace = trace.record;
+    }
   }
 
   const diagnostics = normalizeDiagnostics([
@@ -486,5 +509,6 @@ export function validateAppGraph(request: AppGraphValidationRequest) {
     evidenceResults,
     phases: phaseStatuses(request, schemaStatus, crossArtifactStatus),
     support: request.options?.support,
+    ...(renderedNeedTrace ? { renderedNeedTrace } : {}),
   });
 }
