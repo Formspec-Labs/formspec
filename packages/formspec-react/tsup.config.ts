@@ -10,12 +10,13 @@ export default defineConfig({
     dts: true,
     sourcemap: true,
     clean: true,
+    // ESM-only dependencies are bundled so the CJS output can require them.
+    // CommonJS dependencies (sanitize-html, and postcss beneath it) stay
+    // external: bundled into the ESM output, their require("path") throws.
     noExternal: [
         'canonicalize',
         '@noble/hashes',
-        'sanitize-html',
         'marked',
-        'dompurify',
     ],
     external: [
         'react',
