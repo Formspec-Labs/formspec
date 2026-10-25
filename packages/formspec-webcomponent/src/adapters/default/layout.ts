@@ -438,32 +438,9 @@ export function renderModal(behavior: ModalLayoutBehavior, parent: HTMLElement, 
     actx.applyAccessibility(dialog, comp);
     actx.applyStyle(dialog, comp.style);
 
-    const scheduleFocus = () => queueMicrotask(() => focusFirstIn(dialog));
-    const whenPx = (comp.whenPrefix as string | undefined) ?? host.prefix;
-
-    const triggerMode = comp.trigger || 'button';
-    if (triggerMode === 'auto') {
+    if (comp.trigger === 'auto') {
         parent.appendChild(dialog);
-        dialog.addEventListener('close', () => clearPopupFixedPosition(dialog));
-        if (comp.when) {
-            const exprFn = host.engine.compileExpression(comp.when, whenPx);
-            host.cleanupFns.push(effect(() => {
-                const shouldOpen = !!exprFn();
-                if (shouldOpen && !dialog.open) {
-                    clearPopupFixedPosition(dialog);
-                    dialog.showModal();
-                    scheduleFocus();
-                } else if (!shouldOpen && dialog.open) {
-                    dialog.close();
-                }
-            }));
-        } else {
-            queueMicrotask(() => {
-                clearPopupFixedPosition(dialog);
-                if (!dialog.open) dialog.showModal();
-                scheduleFocus();
-            });
-        }
+        behavior.bindAutoOpen(dialog, () => queueMicrotask(() => focusFirstIn(dialog)));
         return;
     }
 

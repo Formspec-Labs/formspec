@@ -74,9 +74,10 @@ test.describe('Grant App: Website Field', () => {
     await mountGrantApplication(page);
   });
 
-  test('website field should not have a .org suffix that restricts URLs', async ({ page }) => {
-    const suffix = page.locator('.formspec-field[data-name="applicantInfo.projectWebsite"] .formspec-suffix');
-    await expect(suffix).toHaveCount(0);
+  test('website field frames the URL between the https:// prefix and the .gov suffix', async ({ page }) => {
+    const field = page.locator('.formspec-field[data-name="applicantInfo.projectWebsite"]');
+    await expect(field.locator('.formspec-prefix')).toHaveText('https://');
+    await expect(field.locator('.formspec-suffix')).toHaveText('.gov');
   });
 });
 

@@ -82,28 +82,31 @@ test.describe('Components: Grant App Component Rendering', () => {
     expect(bg).not.toBe('rgba(0, 0, 0, 0)');
   });
 
-  test('should render Applicant Help panel with right placement metadata', async ({ page }) => {
+  test('should render Applicant Help panel with left placement metadata', async ({ page }) => {
     const helpPanel = page.locator('.formspec-panel').filter({
       has: page.locator('.formspec-panel-header', { hasText: 'Applicant Help' }),
     });
     await expect(helpPanel).toHaveCount(1);
-    await expect(helpPanel).toHaveAttribute('data-placement', 'right');
+    await expect(helpPanel).toHaveAttribute('data-placement', 'left');
   });
 
   test('should support modal trigger and size variants on Subcontractors page', async ({ page }) => {
     await goToPage(page, 'Subcontractors');
     await engineSetValue(page, 'budget.usesSubcontractors', true);
-    await page.waitForTimeout(150);
 
-    // Compliance notice is now an inline Alert (not a blocking auto-modal)
     const panel = page.locator('.formspec-wizard-panel:not(.formspec-hidden)');
     await expect(panel.locator('.formspec-alert--info', { hasText: 'Compliance reminder' })).toBeVisible();
 
+    // trigger "auto": the certification modal opens on its own once `when` holds on its page; no trigger button.
     const certModal = page.locator('.formspec-modal').filter({
       has: page.locator('.formspec-modal-title', { hasText: 'Subcontractor Certification Requirements' }),
     });
     await expect(certModal).toHaveCount(1);
     await expect(certModal).toHaveAttribute('data-size', 'md');
+    await expect(certModal).toHaveAttribute('open', '');
+    await expect(page.locator('.formspec-modal-trigger', { hasText: 'View Certification Requirements' })).toHaveCount(0);
+    await certModal.locator('.formspec-modal-close').click();
+    await expect(certModal).not.toHaveAttribute('open', '');
 
     const riskModal = page.locator('.formspec-modal').filter({
       has: page.locator('.formspec-modal-title', { hasText: 'Subcontractor Risk Checklist' }),

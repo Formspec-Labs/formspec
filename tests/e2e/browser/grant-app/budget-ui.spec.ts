@@ -56,15 +56,14 @@ test.describe('Grant App: Subcontractor Toggle Navigation', () => {
     await mountGrantApplication(page);
   });
 
-  test('auto-triggered modal should not block page interaction with a backdrop', async ({ page }) => {
+  test('the Subcontractors auto modal does not open or block while its page is hidden', async ({ page }) => {
     await goToPage(page, 'Budget');
     await engineSetValue(page, 'budget.usesSubcontractors', true);
 
-    // The Next button should be clickable without needing to close a modal first
+    // Its `when` now holds, but its page is not shown: no open dialog, so nothing makes Budget inert.
+    await expect(page.locator('dialog.formspec-modal[open]')).toHaveCount(0);
     const nextBtn = page.locator('button.formspec-wizard-next').first();
     await expect(nextBtn).toBeEnabled();
-
-    // The key assertion: clicking Next should work without being blocked by a dialog backdrop
     await nextBtn.click({ timeout: 5000 });
 
     const heading = page.locator('.formspec-wizard-panel:not(.formspec-hidden) .formspec-section-title').first();
@@ -125,17 +124,19 @@ test.describe('Grant App: Popup Anchoring Near Triggers', () => {
   test('modal should open near its trigger button', async ({ page }) => {
     await goToPage(page, 'Subcontractors');
     await engineSetValue(page, 'budget.usesSubcontractors', true);
+    // The certification modal opens itself on this page (trigger "auto"); dismiss it to reach the triggered one.
+    await page.locator('dialog.formspec-modal[open] .formspec-modal-close').click();
 
-    const trigger = page.locator('.formspec-modal-trigger', { hasText: 'View Certification Requirements' });
+    const trigger = page.locator('.formspec-modal-trigger', { hasText: 'View Risk Checklist' });
     await expect(trigger).toBeVisible();
     await trigger.click();
     await page.locator('dialog.formspec-modal[open]').waitFor({ state: 'visible' });
 
     const geometry = await page.evaluate(() => {
       const triggerEl = Array.from(document.querySelectorAll('.formspec-modal-trigger'))
-        .find((el) => el.textContent?.trim() === 'View Certification Requirements') as HTMLElement | undefined;
+        .find((el) => el.textContent?.trim() === 'View Risk Checklist') as HTMLElement | undefined;
       const dialogEl = Array.from(document.querySelectorAll('dialog.formspec-modal[open]'))
-        .find((el) => el.querySelector('.formspec-modal-title')?.textContent?.trim() === 'Subcontractor Certification Requirements') as HTMLElement | undefined;
+        .find((el) => el.querySelector('.formspec-modal-title')?.textContent?.trim() === 'Subcontractor Risk Checklist') as HTMLElement | undefined;
       if (!triggerEl || !dialogEl) return null;
       const triggerRect = triggerEl.getBoundingClientRect();
       const dialogRect = dialogEl.getBoundingClientRect();

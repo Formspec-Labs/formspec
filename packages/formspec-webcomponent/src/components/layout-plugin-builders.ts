@@ -3,6 +3,7 @@ import type { RenderContext } from '../types';
 import { layoutHostSlice } from '../adapters/layout-host';
 import { compText, plannedTitle } from './layout-plugin-factory';
 import { effect } from '@preact/signals-core';
+import { bindAutoModal } from '@formspec-org/layout';
 import { repeatAffordances, renderRepeatRows } from '../rendering/repeat-affordances';
 import { itemLabel } from '../rendering/item-label';
 import { uiText } from '../adapters/ui-text.js';
@@ -107,6 +108,17 @@ export function buildModalBehavior(comp: any, ctx: RenderContext): ModalLayoutBe
     return {
         ...hostWithTitleDescription(comp, ctx),
         triggerLabelText: compText(ctx, comp, 'triggerLabel', () => comp.triggerLabel || uiText(ctx.engine, 'modal.open').value),
+        bindAutoOpen(dialog, onOpen) {
+            const auto = bindAutoModal(dialog, onOpen);
+            ctx.cleanupFns.push(() => auto.dispose());
+            if (!comp.when) {
+                auto.setCondition(true);
+                return;
+            }
+            // emit-node leaves an auto Modal's `when` to this binding instead of wrapping it.
+            const holds = ctx.engine.compileExpression(comp.when, comp.whenPrefix ?? ctx.prefix);
+            ctx.cleanupFns.push(effect(() => auto.setCondition(!!holds())));
+        },
     };
 }
 

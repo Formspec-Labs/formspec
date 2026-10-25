@@ -1,5 +1,4 @@
 /** @filedesc USWDS Modal — native `<dialog>` with `usa-modal` inner structure (CSS-only; no USWDS modal JS). */
-import { effect } from '@preact/signals-core';
 import { uiText, watchText, type AdapterContext, type ModalLayoutBehavior } from '@formspec-org/webcomponent';
 import { focusFirstIn, positionOverlayNearTrigger, type PopupPlacement } from './overlay';
 
@@ -57,27 +56,8 @@ export function renderUSWDSModal(behavior: ModalLayoutBehavior, parent: HTMLElem
     actx.applyStyle(dialog, comp.style);
     parent.appendChild(dialog);
 
-    const triggerMode = comp.trigger || 'button';
-    if (triggerMode === 'auto') {
-        if (comp.when) {
-            const exprFn = host.engine.compileExpression(comp.when, host.prefix);
-            host.cleanupFns.push(
-                effect(() => {
-                    const shouldOpen = !!exprFn();
-                    if (shouldOpen && !dialog.open) {
-                        dialog.showModal();
-                        queueMicrotask(() => focusFirstIn(dialog));
-                    } else if (!shouldOpen && dialog.open) {
-                        dialog.close();
-                    }
-                })
-            );
-        } else {
-            queueMicrotask(() => {
-                if (!dialog.open) dialog.showModal();
-                focusFirstIn(dialog);
-            });
-        }
+    if (comp.trigger === 'auto') {
+        behavior.bindAutoOpen(dialog, () => queueMicrotask(() => focusFirstIn(dialog)));
         return;
     }
 

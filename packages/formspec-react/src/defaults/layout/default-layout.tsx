@@ -3,9 +3,11 @@
 /** @filedesc Default layout component — semantic HTML containers with CSS class structure. */
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import {
+    bindAutoModal,
     positionPopupNearTrigger,
     clearPopupFixedPosition,
     MODAL_FIRST_FOCUSABLE_SELECTOR,
+    type AutoModal,
     type PopupPlacement,
 } from '@formspec-org/layout';
 import type { LayoutComponentProps } from '../../component-map';
@@ -497,18 +499,21 @@ function ModalLayout({ node, children, themeClass, style }: LayoutProps) {
         dialogRef.current?.close();
     }, []);
 
+    // `trigger: "auto"`: open exactly while `when` holds and the dialog's tab panel is shown (Component spec §6.16, §8.1).
+    const autoModalRef = useRef<AutoModal | null>(null);
     useLayoutEffect(() => {
-        if (triggerMode !== 'auto') return;
         const d = dialogRef.current;
-        if (!d) return;
-        if (autoOpenDesired && !d.open) {
-            clearPopupFixedPosition(d);
-            d.showModal();
-            focusDialogContent();
-        } else if (!autoOpenDesired && d.open) {
-            d.close();
-        }
-    }, [triggerMode, autoOpenDesired, focusDialogContent]);
+        if (triggerMode !== 'auto' || !d) return;
+        const auto = bindAutoModal(d, focusDialogContent);
+        autoModalRef.current = auto;
+        return () => {
+            auto.dispose();
+            autoModalRef.current = null;
+        };
+    }, [triggerMode, focusDialogContent]);
+    useLayoutEffect(() => {
+        autoModalRef.current?.setCondition(autoOpenDesired);
+    }, [autoOpenDesired, triggerMode, focusDialogContent]);
 
     const handleDialogClick = useCallback(
         (e: React.MouseEvent<HTMLDialogElement>) => {

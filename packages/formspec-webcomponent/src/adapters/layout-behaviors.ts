@@ -201,6 +201,12 @@ export interface ModalLayoutBehavior {
     host: LayoutHostSlice;
     titleText: LocalizedText | null;
     triggerLabelText: LocalizedText;
+    /**
+     * `trigger: "auto"`: keep `dialog` open exactly while the Modal's `when` holds and its page is shown
+     * (Component spec §6.16, §8.1); `onOpen` runs after each automatic open. Call it instead of drawing
+     * a trigger button.
+     */
+    bindAutoOpen(dialog: HTMLDialogElement, onOpen: () => void): void;
 }
 
 export interface PopoverLayoutBehavior {

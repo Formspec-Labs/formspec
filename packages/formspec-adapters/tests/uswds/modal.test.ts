@@ -19,11 +19,13 @@ function mount(comp: Record<string, unknown> = {}) {
         } as never,
         titleText: signal('Terms and Conditions'),
         triggerLabelText: signal('View terms'),
+        bindAutoOpen: vi.fn(),
     };
     const parent = document.createElement('div');
     document.body.appendChild(parent);
     renderUSWDSModal(behavior, parent, mockAdapterContext());
     return {
+        behavior,
         dialog: parent.querySelector('dialog') as HTMLDialogElement,
         trigger: parent.querySelector('button.usa-button:not(.usa-modal__close)') as HTMLButtonElement,
     };
@@ -36,6 +38,13 @@ describe('USWDS Modal', () => {
         expect(dialog.classList.contains('usa-modal--lg')).toBe(true);
         expect(dialog.querySelector('.usa-modal__content > .usa-modal__main > h2.usa-modal__heading')?.textContent).toBe('Terms and Conditions');
         expect(dialog.getAttribute('aria-labelledby')).toBe('terms-title');
+    });
+
+    it('leaves a trigger "auto" Modal to the shared open-while-shown binding and draws no trigger', () => {
+        const { behavior, dialog, trigger } = mount({ trigger: 'auto', when: '$uses' });
+        expect(behavior.bindAutoOpen).toHaveBeenCalledWith(dialog, expect.any(Function));
+        expect(trigger).toBeNull();
+        expect(dialog.open).toBe(false);
     });
 
     it('opens as the browser-centered modal when the spec sets no placement', () => {

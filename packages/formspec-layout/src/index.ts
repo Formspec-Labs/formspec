@@ -77,6 +77,8 @@ export {
     MODAL_FIRST_FOCUSABLE_SELECTOR,
 } from './popup-position.js';
 export type { PopupPlacement } from './popup-position.js';
+export { bindAutoModal } from './auto-modal.js';
+export type { AutoModal } from './auto-modal.js';
 
 // TextInput character count copy (theme widgetConfig.maxLength)
 export {
