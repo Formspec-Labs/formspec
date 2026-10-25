@@ -1,4 +1,4 @@
-/** @filedesc Internal helpers shared by FormEngine (paths, coercion, validation shaping, FEL context). */
+/** @filedesc Internal helpers shared by FormEngine (paths, coercion, validation shaping, FEL path rewriting). */
 
 import type { EngineSignal } from '../reactivity/types.js';
 import type {
@@ -22,11 +22,8 @@ import type {
 import {
     wasmAnalyzeFEL,
     wasmCoerceFieldValue,
-    wasmEvalFELWithContext,
     wasmGetFELDependencies,
     wasmNormalizeIndexedPath,
-    type FelExtensionHost,
-    type WasmFelContext,
 } from '../wasm-bridge-runtime.js';
 
 export type EngineBindConfig = FormBind & {
@@ -226,51 +223,6 @@ export function normalizeWasmValue<T>(value: T): T {
     return cloneValue(value);
 }
 
-/**
- * Encode a field value in the FEL type envelope its `dataType` declares (Core §2.1.3).
- *
- * `money` objects become `{ $type: 'money', amount, currency }`; `date` and
- * `dateTime` strings become `{ $type: 'date', value }`. WASM (fel-core) decodes
- * both, including the ISO date parse; this only tags the declared type.
- */
-export function tagFelValueByPath(
-    path: string,
-    value: FormFieldValue,
-    fieldDataTypes: Record<string, string | undefined>,
-): FormFieldValue {
-    const isString = typeof value === 'string';
-    const isRecord = !!value && typeof value === 'object' && !Array.isArray(value);
-    if (!isString && !isRecord) return value;
-    const dataType = fieldDataTypes[toBasePath(path)];
-    if (isString) {
-        return dataType === 'date' || dataType === 'dateTime'
-            ? { $type: 'date', value }
-            : value;
-    }
-    const record = value as Record<string, unknown>;
-    if (record.$type === undefined && dataType === 'money' && 'amount' in record && 'currency' in record) {
-        return {
-            $type: 'money',
-            amount: record.amount as JsonValue,
-            currency: record.currency as JsonValue,
-        };
-    }
-    return value;
-}
-
-export function toWasmContextValue<T>(value: T): T {
-    if (Array.isArray(value)) {
-        return value.map((entry) => toWasmContextValue(entry)) as T;
-    }
-    if (value && typeof value === 'object') {
-        const record = value as Record<string, unknown>;
-        return Object.fromEntries(
-            Object.entries(record).map(([key, entry]) => [key, toWasmContextValue(entry)]),
-        ) as T;
-    }
-    return cloneValue(value);
-}
-
 export function deepEqual(left: unknown, right: unknown): boolean {
     if (Object.is(left, right)) {
         return true;
@@ -379,8 +331,8 @@ export function getScopeAncestors(scopePath: string): string[] {
 
 // ── Path navigation helpers (shared via `Path`) ──────────────────────
 //
-// All three of `getNestedValue`, `setNestedPathValue`, `setExpressionContextValue`
-// walk a path through nested objects/arrays. They now share the same parser
+// `getNestedValue` and `setNestedPathValue` walk a path through nested
+// objects/arrays. They share the same parser
 // (`Path.parse`) and filter out Wildcard/Special segments — those are not
 // concrete data-path elements. Pre-refactor regex tokenizer would silently
 // look up `obj["*"]` for a wildcard, producing garbage; the typed walk
@@ -435,48 +387,6 @@ export function setNestedPathValue(target: JsonRecord, path: string, value: Form
             current = current[seg.key] as MutableJsonPath;
         }
     }
-    const last = segments[segments.length - 1];
-    if (last.kind === PathSegmentKind.Indexed) {
-        current[last.index] = value;
-    } else {
-        current[last.key] = value;
-    }
-}
-
-export function setExpressionContextValue(target: JsonRecord, path: string, value: FormFieldValue): void {
-    const segments = concreteSegments(path);
-    if (segments.length === 0) {
-        return;
-    }
-
-    let current: MutableJsonPath = target;
-    for (let i = 0; i < segments.length - 1; i += 1) {
-        if (current === null || current === undefined || typeof current !== 'object') {
-            return;
-        }
-        const seg = segments[i];
-        const nextIsIndex = segments[i + 1].kind === PathSegmentKind.Indexed;
-        if (seg.kind === PathSegmentKind.Indexed) {
-            const existing = current[seg.index];
-            if (existing !== undefined && (existing === null || typeof existing !== 'object')) {
-                return;
-            }
-            current[seg.index] ??= nextIsIndex ? [] : {};
-            current = current[seg.index] as MutableJsonPath;
-        } else {
-            const existing = current[seg.key];
-            if (existing !== undefined && (existing === null || typeof existing !== 'object')) {
-                return;
-            }
-            current[seg.key] ??= nextIsIndex ? [] : {};
-            current = current[seg.key] as MutableJsonPath;
-        }
-    }
-
-    if (current === null || current === undefined || typeof current !== 'object') {
-        return;
-    }
-
     const last = segments[segments.length - 1];
     if (last.kind === PathSegmentKind.Indexed) {
         current[last.index] = value;
@@ -604,94 +514,8 @@ export function flattenObject(value: JsonValue, prefix = '', output: JsonRecord 
     return output;
 }
 
-/** FEL context snapshot of the non-repeat fields under `prefix`, leaves tagged by `dataType`. */
-export function buildGroupSnapshotForPath(
-    prefix: string,
-    signals: Record<string, EngineSignal<FormFieldValue>>,
-    fieldDataTypes: Record<string, string | undefined>,
-): JsonRecord {
-    const snapshot: JsonRecord = {};
-    for (const [path, signalRef] of Object.entries(signals)) {
-        if (!path.startsWith(`${prefix}.`)) {
-            continue;
-        }
-        const relative = path.slice(prefix.length + 1);
-        if (!relative || relative.includes('[')) {
-            continue;
-        }
-        setNestedPathValue(snapshot, relative, tagFelValueByPath(path, cloneValue(signalRef.value), fieldDataTypes));
-    }
-    return snapshot;
-}
-
-/** FEL context rows of repeat group `groupPath`, leaves tagged by `dataType`. One pass over signals: O(signals). */
-export function buildRepeatCollection(
-    groupPath: string,
-    count: number,
-    signals: Record<string, EngineSignal<FormFieldValue>>,
-    fieldDataTypes: Record<string, string | undefined>,
-): JsonValue[] {
-    const rows: JsonRecord[] = Array.from({ length: count }, () => ({}));
-    const prefix = `${groupPath}[`;
-    for (const [path, signalRef] of Object.entries(signals)) {
-        if (!path.startsWith(prefix)) {
-            continue;
-        }
-        const close = path.indexOf('].', prefix.length);
-        const rawIndex = close === -1 ? '' : path.slice(prefix.length, close);
-        const index = /^\d+$/.test(rawIndex) ? Number(rawIndex) : -1;
-        if (index < 0 || index >= count) {
-            continue;
-        }
-        setResponsePathValue(
-            rows[index],
-            path.slice(close + 2),
-            tagFelValueByPath(path, cloneValue(signalRef.value), fieldDataTypes),
-        );
-    }
-    return rows;
-}
-
-export function getRepeatAncestors(
-    currentItemPath: string,
-    repeats: Record<string, EngineSignal<number>>,
-): Array<{ groupPath: string; index: number; count: number }> {
-    const matches = currentItemPath.match(/[^.[\]]+\[\d+\]|[^.[\]]+/g) ?? [];
-    const ancestors: Array<{ groupPath: string; index: number; count: number }> = [];
-    let current = '';
-    for (const segment of matches) {
-        const repeatMatch = segment.match(/^(.+)\[(\d+)\]$/);
-        if (repeatMatch) {
-            current = current ? `${current}.${repeatMatch[1]}` : repeatMatch[1];
-            if (repeats[current]) {
-                ancestors.push({
-                    groupPath: current,
-                    index: Number(repeatMatch[2]),
-                    count: repeats[current].value,
-                });
-            }
-            current = `${current}[${repeatMatch[2]}]`;
-        } else {
-            current = current ? `${current}.${segment}` : segment;
-        }
-    }
-    return ancestors;
-}
-
 export function isEmptyValue(value: unknown): boolean {
     return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0);
-}
-
-export function safeEvaluateExpression(
-    expression: string,
-    context: WasmFelContext,
-    extensions?: FelExtensionHost,
-): FormFieldValue {
-    try {
-        return wasmEvalFELWithContext(expression, context, extensions);
-    } catch {
-        return null;
-    }
 }
 
 const INLINE_BIND_KEYS = [
@@ -896,7 +720,7 @@ export function resolveQualifiedGroupRefs(
         result = result.replace(pattern, (_match, fieldName) => {
             if (isInnermost) {
                 // For the innermost repeat scope, resolve to bare sibling ref
-                // (buildExpressionContext already adds siblings as short names)
+                // (the FEL context resolves bare sibling names in the row's lexical scope, Core §3.2.1)
                 return fieldName;
             }
             // For outer repeat scopes, resolve to the FEL-indexed path.
