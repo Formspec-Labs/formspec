@@ -71,7 +71,7 @@ Frame lives in `formspec-stack/DEVELOPMENT-PHILOSOPHY.md`. Formspec additions:
 - **`crates/`**, **`fel-core/`**, **`formspec-wasm/`** — Rust crates. Source of truth for FEL grammar, evaluator, validation semantics, coercion, migrations, mapping execution, lint rules. Exposed via WASM (browser) and Python (server).
 - **`schemas/`** — JSON Schemas (definition, response, intake-handoff, validationReport, mapping, theme, component, registry).
 - **`specs/`** — Markdown spec sources (`*.md`), BLUF summaries (`*.bluf.md`), generated LLM artifacts (`*.llm.md`). Generated files MUST NOT be hand-edited. Prefer `*.llm.md` for context. Use `formspec-specs` skill for authoritative lookup.
-- **`docs/api/`** + colocated **`API.llm.md`** — Generated API reference (pdoc + TypeDoc). Regenerate with `make api-docs`. `API.llm.md` is gitignored; prefer it over reading source.
+- **`docs/api/`** (gitignored) + **`API.llm.md`** beside each documented package and `src/formspec/` (tracked; `git ls-files '*API.llm.md'`) — Generated API reference (pdoc + TypeDoc). Regenerate with `make api-docs`; prefer `API.llm.md` over reading source.
 - **`thoughts/`** — All plans, ADRs, research, design artifacts. Never put plans in `docs/`. ADR/plan/spec metadata lives in [`thoughts/README.md`](thoughts/README.md) — CLAUDE.md never inlines metadata that changes weekly.
   - `thoughts/TODO.md` — work tracking index. [`thoughts/adr/`](thoughts/adr/) — active ADRs. [`thoughts/plans/`](thoughts/plans/), [`thoughts/specs/`](thoughts/specs/) — active. Implemented/superseded → `thoughts/archive/...`. `npm run docs:check` enforces archive paths in tracked links.
 - **`tests/`** — Python conformance suite. **`tests/e2e/`** — Playwright + JSON fixtures.
@@ -96,7 +96,7 @@ Every source file ships a one-line description harvested by `scripts/generate-fi
 - Use the **`formspec-specs`** skill (invoke via `Skill` tool with `skill: "formspec-specs:formspec-specs"`) for any question about spec semantics, schema structure, cross-tier behavior, or FEL grammar. **Do not guess from code.** Applies to all agents and subagents.
 - Structural truth: `schemas/*.json`. Behavioral semantics that schemas cannot encode: canonical `specs/**/*.md`.
 - Schema nodes marked `x-lm.critical=true` (LM-attention vendor extension — flags nodes language models must read closely) MUST include both `description` and at least one `examples` entry.
-- Generated marker blocks (`<!-- bluf:start ... -->`, `<!-- schema-ref:start ... -->`) and all `*.llm.md` files MUST NOT be hand-edited.
+- Generated marker blocks (`<!-- bluf:start ... -->`, `<!-- schema-ref:start ... -->`) and all generated `*.llm.md` files MUST NOT be hand-edited.
 - Carve-out: `specs/core/spec.llm.md` is hand-maintained (no `scripts/spec-artifacts.config.json` entry) — edit it in the same change as `specs/core/spec.md`.
 - Workflow for any schema/spec change: edit schema/canonical prose/BLUF → `npm run docs:generate` → `npm run docs:check`.
 
