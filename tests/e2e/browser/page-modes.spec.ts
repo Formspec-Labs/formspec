@@ -62,7 +62,8 @@ async function mountPageMode(
             comp: THREE_PAGE_TREE,
         },
     );
-    await page.locator('formspec-render .formspec-root, formspec-render input').first().waitFor({ state: 'visible' });
+    // Every page shows a TextInput, so a visible input means the active page has drawn.
+    await page.locator('formspec-render input:visible').first().waitFor({ state: 'visible' });
 }
 
 // ── Single mode ──────────────────────────────────────────────────────────────

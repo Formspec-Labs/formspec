@@ -40,15 +40,8 @@ test.describe('Smoke: Grant Application Happy Path', () => {
     await unitCostInput.fill('250');
     await expect(unitCostInput).toHaveValue('250');
 
-    // 7. Verify @totalDirect variable is non-zero
-    await page.waitForFunction(() => {
-      const v = (document.querySelector('formspec-render') as any)?.getEngine?.()?.variables?.['totalDirect']?.value;
-      return v && typeof v.amount === 'number' && v.amount > 0;
-    });
-    const totalDirect = await engineVariable(page, 'totalDirect');
-    // totalDirect is a money object {amount, currency}
-    expect(totalDirect).toBeTruthy();
-    expect(totalDirect.amount).toBeGreaterThan(0);
+    // 7. Verify @totalDirect (a money object {amount, currency}) becomes non-zero
+    await expect.poll(async () => (await engineVariable(page, 'totalDirect'))?.amount).toBeGreaterThan(0);
 
     // 8. Get the response and assert structural contract
     const response = await getResponse(page, 'continuous');
