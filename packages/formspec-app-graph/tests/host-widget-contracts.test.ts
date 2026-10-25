@@ -120,6 +120,15 @@ describe('validateHostWidgetContracts', () => {
       .toEqual(['WIDGET-UNIMPLEMENTED']);
   });
 
+  it('names the widgets the host does ship for that module, so an author can pick one', () => {
+    const [diagnostic] = validate({ version: '0.1.0' }, { anyModule: { Banner: [], Table: [variant('0.1.0')] } }, 'Panel');
+    expect(diagnostic?.details?.shippedWidgets).toEqual(['Banner', 'Table']);
+    expect(diagnostic?.message).toContain('It ships: Banner, Table.');
+    const [perModule] = validate({ version: '0.1.0' }, { anyModule: { Banner: [] }, modules: { 'x-panel-module': {} } }, 'Panel');
+    expect(perModule?.details?.shippedWidgets).toEqual([]);
+    expect(perModule?.message).toContain('It ships none for this module.');
+  });
+
   it('a per-module host set replaces anyModule for that module', () => {
     expect(validate({ version: '0.1.0' }, { anyModule: HOST.anyModule, modules: { 'x-panel-module': { Panel: [variant('0.1.1')] } } })[0]?.details?.reasons)
       .toEqual(['registry-entry-version-mismatch']);

@@ -155,9 +155,13 @@ export function hostWidgetContractVariants(
   host: HostWidgetContracts,
   key: { moduleId: string; widgetName: string },
 ): readonly WidgetRuntimeContract[] | undefined {
-  const moduleSet = ownProp(host.modules, key.moduleId) as HostWidgetContractSet | undefined;
-  const variants = ownProp(moduleSet ?? host.anyModule, key.widgetName);
+  const variants = ownProp(hostModuleWidgetSet(host, key.moduleId), key.widgetName);
   return Array.isArray(variants) ? variants : undefined;
+}
+
+/** The host's widget set for one module: its own set when declared, which replaces anyModule. */
+function hostModuleWidgetSet(host: HostWidgetContracts, moduleId: string): HostWidgetContractSet | undefined {
+  return (ownProp(host.modules, moduleId) as HostWidgetContractSet | undefined) ?? host.anyModule;
 }
 
 /**
@@ -214,14 +218,17 @@ export function validateHostWidgetContracts(context: AppGraphContext): AppGraphD
         ...(entry ? { contributionName: entry.name } : {}),
       };
       if (variants === undefined) {
+        const shippedWidgets = Object.keys(hostModuleWidgetSet(host, widget.moduleId) ?? {}).sort();
         diagnostics.push({
           code: HOST_WIDGET_CONTRACT_CODES.unimplemented,
           severity: 'error',
           phase: 'cross-artifact',
           origin: 'app-graph-validator',
-          message: `The deployment host supplies no widget "${widget.widgetName}" for module "${widget.moduleId}", so publication cannot render this binding.`,
+          message: `The deployment host supplies no widget "${widget.widgetName}" for module "${widget.moduleId}", so publication cannot render this binding. ${
+            shippedWidgets.length === 0 ? 'It ships none for this module.' : `It ships: ${shippedWidgets.join(', ')}.`
+          }`,
           primarySource: diagnosticSourceForHandle(surface, pointer),
-          details,
+          details: { ...details, shippedWidgets },
         });
         continue;
       }
