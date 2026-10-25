@@ -579,22 +579,22 @@ export class FormEngine implements IFormEngine {
             throw new TypeError('setValue path cannot be null');
         }
 
-        const instanceTarget = this.instanceTargetUnlessItem(name, toBasePath(name));
+        const basePath = toBasePath(name);
+        const instanceTarget = this.instanceTargetUnlessItem(name, basePath);
         if (instanceTarget) {
             this.writeInstanceValue(instanceTarget.instanceName, instanceTarget.instancePath, value);
             this._evaluate();
             return;
         }
 
-        if (this.writeFieldData(name, value)) {
+        if (this.writeFieldData(name, value, basePath)) {
             (this.writeSources[name] ??= this._rx.signal<WriteSource | null>(null)).value = options.source ?? 'user';
             this._evaluate();
         }
     }
 
     /** Coerces and stores a field value without evaluating; false for calculated or undeclared fields. */
-    private writeFieldData(name: string, value: FormFieldValue): boolean {
-        const basePath = toBasePath(name);
+    private writeFieldData(name: string, value: FormFieldValue, basePath = toBasePath(name)): boolean {
         if (this._calculatedFields.has(basePath)) {
             return false;
         }
