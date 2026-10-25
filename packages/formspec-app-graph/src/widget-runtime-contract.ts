@@ -91,31 +91,45 @@ export function widgetContractMismatchReasons(
   return reasons;
 }
 
-/** `widgetShape.widgetName` → every contract variant the host can deliver for it. */
+/**
+ * `widgetShape.widgetName` → every contract variant the host can deliver for
+ * it. A key with an empty list is a widget the host supplies with no delivery
+ * contract; a missing key is a widget the host does not supply.
+ */
 export type HostWidgetContractSet = Readonly<Record<string, readonly WidgetRuntimeContract[]>>;
 
 /**
  * The widget contracts a deployment host ships, as data. `modules` names hosts'
- * per-module sets; every other admitted module gets `anyModule`. A host that
- * lists no variant for a widget does not supply that widget at all.
+ * per-module sets; every other admitted module gets `anyModule`.
  */
 export interface HostWidgetContracts {
   anyModule?: HostWidgetContractSet;
   modules?: Readonly<Record<string, HostWidgetContractSet>>;
 }
 
+/** The parts of a runtime widget module (`@formspec-org/surface` `WidgetModule`) the host set reads. */
+export interface HostWidgetModuleShape {
+  widgets: Readonly<Record<string, unknown>>;
+  contracts?: Readonly<Record<string, WidgetRuntimeContract>>;
+}
+
 /**
- * Each widget's distinct contracts across the module variants a host can build
- * (one per supported version option). Variants keep first-seen order.
+ * Every widget the host's module variants supply (one variant per supported
+ * version option), each with its distinct contracts in first-seen order; a
+ * widget no variant gives a contract maps to an empty list.
  */
 export function hostWidgetContractSet(
-  moduleContracts: readonly Readonly<Record<string, WidgetRuntimeContract>>[],
+  modules: readonly HostWidgetModuleShape[],
 ): HostWidgetContractSet {
   const set: Record<string, WidgetRuntimeContract[]> = {};
-  for (const contracts of moduleContracts) {
-    for (const [widgetName, contract] of Object.entries(contracts)) {
+  for (const module of modules) {
+    for (const widgetName of Object.keys(module.widgets)) {
       const variants = (set[widgetName] ??= []);
-      if (!variants.some((known) => widgetContractMismatchReasons(contractAsEntry(known), contract).length === 0)) {
+      const contract = ownProp(module.contracts, widgetName) as WidgetRuntimeContract | undefined;
+      if (
+        contract !== undefined
+        && !variants.some((known) => widgetContractMismatchReasons(contractAsEntry(known), contract).length === 0)
+      ) {
         variants.push(contract);
       }
     }
@@ -133,27 +147,31 @@ function contractAsEntry(contract: WidgetRuntimeContract): WidgetRuntimeContract
   };
 }
 
-/** The variants the host delivers for one binding; undefined when the host does not supply the widget. */
+/**
+ * The variants the host delivers for one binding: undefined when the host does
+ * not supply the widget, empty when it supplies it with no delivery contract.
+ */
 export function hostWidgetContractVariants(
   host: HostWidgetContracts,
   key: { moduleId: string; widgetName: string },
 ): readonly WidgetRuntimeContract[] | undefined {
   const moduleSet = ownProp(host.modules, key.moduleId) as HostWidgetContractSet | undefined;
   const variants = ownProp(moduleSet ?? host.anyModule, key.widgetName);
-  return Array.isArray(variants) && variants.length > 0 ? variants : undefined;
+  return Array.isArray(variants) ? variants : undefined;
 }
 
 /**
  * The variant the host delivers for an entry: the first that implements it,
  * else the first with the fewest mismatch reasons, so the refusal names the
- * smallest gap. Publication selects with this too.
+ * smallest gap; undefined when the host ships the widget with no contract.
+ * Publication selects with this too.
  */
 export function selectHostWidgetContract(
   variants: readonly WidgetRuntimeContract[],
   entry: WidgetRuntimeContractEntry | undefined,
-): WidgetRuntimeContract {
-  let best = variants[0]!;
-  if (entry === undefined) return best;
+): WidgetRuntimeContract | undefined {
+  let best = variants[0];
+  if (entry === undefined || best === undefined) return best;
   let bestCount = Number.POSITIVE_INFINITY;
   for (const variant of variants) {
     const count = widgetContractMismatchReasons(entry, variant).length;

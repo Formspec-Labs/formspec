@@ -165,6 +165,7 @@ export {
   widgetContractMismatchReasons,
   type HostWidgetContractSet,
   type HostWidgetContracts,
+  type HostWidgetModuleShape,
   type WidgetRenderedConfigNodeContract,
   type WidgetRuntimeContract,
   type WidgetRuntimeContractEntry,

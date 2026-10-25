@@ -33,6 +33,7 @@ function validate(
   entry: { version: string; renderedConfigNodes?: unknown; deliveryContractId?: string },
   host: HostWidgetContracts | 'none' = HOST,
   widgetName = 'Panel',
+  declaresContract = true,
 ) {
   return validateAppGraph({
     manifest: handle('manifest', 'appManifest', {}),
@@ -44,11 +45,13 @@ function validate(
             name: 'x-panel',
             category: 'widget',
             version: entry.version,
-            widgetShape: {
-              widgetName,
-              deliveryContractId: entry.deliveryContractId ?? DELIVERY,
-              renderedConfigNodes: entry.renderedConfigNodes ?? NODES,
-            },
+            widgetShape: declaresContract
+              ? {
+                widgetName,
+                deliveryContractId: entry.deliveryContractId ?? DELIVERY,
+                renderedConfigNodes: entry.renderedConfigNodes ?? NODES,
+              }
+              : { widgetName },
           },
         ],
       })],
@@ -103,6 +106,15 @@ describe('validateHostWidgetContracts', () => {
       .toEqual(['rendered-config-inventory-mismatch']);
   });
 
+  it('a widget the host supplies without a contract resolves as the runtime resolver does', () => {
+    const host = { anyModule: { Panel: [] } };
+    expect(validate({ version: '0.1.0', deliveryContractId: undefined, renderedConfigNodes: undefined }, host, 'Panel', false)).toEqual([]);
+    expect(validate({ version: '0.1.0' }, host)[0]).toMatchObject({
+      code: 'WIDGET-DELIVERY-CONTRACT-MISMATCH',
+      details: { reasons: ['runtime-contract-missing'], shippedVersions: [] },
+    });
+  });
+
   it('refuses a binding the host does not supply at all', () => {
     expect(validate({ version: '0.1.0' }, { anyModule: {} }).map((diagnostic) => diagnostic.code))
       .toEqual(['WIDGET-UNIMPLEMENTED']);
@@ -120,9 +132,10 @@ describe('validateHostWidgetContracts', () => {
 
 describe('hostWidgetContractSet', () => {
   it('collects each widget\'s distinct contracts across the module variants a host can build', () => {
+    const component = () => null;
     expect(hostWidgetContractSet([
-      { Panel: variant('0.1.0'), Other: variant('0.1.0') },
-      { Panel: variant('0.1.1'), Other: variant('0.1.0') },
-    ])).toEqual({ Panel: [variant('0.1.0'), variant('0.1.1')], Other: [variant('0.1.0')] });
+      { widgets: { Panel: component, Other: component, Banner: component }, contracts: { Panel: variant('0.1.0'), Other: variant('0.1.0') } },
+      { widgets: { Panel: component, Other: component, Banner: component }, contracts: { Panel: variant('0.1.1'), Other: variant('0.1.0') } },
+    ])).toEqual({ Panel: [variant('0.1.0'), variant('0.1.1')], Other: [variant('0.1.0')], Banner: [] });
   });
 });
