@@ -97,6 +97,7 @@ Every source file ships a one-line description harvested by `scripts/generate-fi
 - Structural truth: `schemas/*.json`. Behavioral semantics that schemas cannot encode: canonical `specs/**/*.md`.
 - Schema nodes marked `x-lm.critical=true` (LM-attention vendor extension — flags nodes language models must read closely) MUST include both `description` and at least one `examples` entry.
 - Generated marker blocks (`<!-- bluf:start ... -->`, `<!-- schema-ref:start ... -->`) and all `*.llm.md` files MUST NOT be hand-edited.
+- Carve-out: `specs/core/spec.llm.md` is hand-maintained (no `scripts/spec-artifacts.config.json` entry) — edit it in the same change as `specs/core/spec.md`.
 - Workflow for any schema/spec change: edit schema/canonical prose/BLUF → `npm run docs:generate` → `npm run docs:check`.
 
 [`context.md`](context.md) is the project's living overview (what Formspec is, why, where it's going). Update on material scope/positioning/roadmap shifts. Implementation details belong in this file.
