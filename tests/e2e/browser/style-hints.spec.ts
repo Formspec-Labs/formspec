@@ -42,6 +42,20 @@ function styleOf(page: Page, selector: string, property: string): Promise<string
   return page.locator(`formspec-render ${selector}`).first().evaluate((el, prop) => getComputedStyle(el).getPropertyValue(prop), property);
 }
 
+/**
+ * The font size the first element matching `selector` paints at, in px: its computed font-size times the
+ * CSS zoom it inherits. An adapter may scale an item through either (USWDS zooms, the default skin sizes).
+ */
+function paintedFontSize(page: Page, selector: string): Promise<number> {
+  return page.locator(`formspec-render ${selector}`).first()
+    .evaluate((el) => parseFloat(getComputedStyle(el).fontSize) * ((el as Element & { currentCSSZoom?: number }).currentCSSZoom ?? 1));
+}
+
+/** How much larger the first `selector` paints than the first `baseline`. */
+async function scaleOf(page: Page, selector: string, baseline: string): Promise<number> {
+  return (await paintedFontSize(page, selector)) / (await paintedFontSize(page, baseline));
+}
+
 for (const { adapter, textSelector, loaded } of [
   // USWDS wraps display text in a prose block that takes the item's classes; the default adapter's text is the root.
   { adapter: 'uswds', textSelector: '.formspec-emphasis-muted .formspec-text', loaded: '480px' },
@@ -62,11 +76,14 @@ for (const { adapter, textSelector, loaded } of [
 
       expect(await styleOf(page, '[data-name="featured"]', 'border-left-style')).toBe('solid');
       expect(parseFloat(await styleOf(page, '[data-name="featured"]', 'border-left-width'))).toBeGreaterThan(1);
-      expect(await styleOf(page, '[data-name="featured"]', 'zoom')).toBe('1.125');
       expect(await styleOf(page, '[data-name="plain"]', 'border-left-style')).toBe('none');
+      // size "large" scales the item's label and its control alike.
+      expect(await scaleOf(page, '[data-name="featured"] label', '[data-name="plain"] label')).toBeCloseTo(1.125, 2);
+      expect(await scaleOf(page, '[data-name="featured"] input', '[data-name="plain"] input')).toBeCloseTo(1.125, 2);
 
       expect(await styleOf(page, textSelector, 'color')).not.toBe(plainColor);
-      expect(await styleOf(page, '.formspec-emphasis-muted', 'zoom')).toBe('0.875');
+      // size "compact" shrinks the display text below the form's own text size.
+      expect(await scaleOf(page, textSelector, '.formspec-container')).toBeCloseTo(0.875, 2);
 
       // A choice label paints its own ink in USWDS, so muted has to reach it too.
       const choiceLabel = '[data-name="quiet"] label';

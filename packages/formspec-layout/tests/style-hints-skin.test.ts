@@ -19,11 +19,15 @@ describe('default skin styleHints', () => {
         for (const selector of rules) expect(selector.trim().startsWith(':where('), selector).toBe(true);
     });
 
-    it('uses rem and custom properties instead of non-standard zoom for size hints', () => {
+    // tests/e2e/browser/style-hints.spec.ts measures the painted sizes; this pins the mechanism.
+    it('scales size hints through --formspec-size-scale, which the base sizes multiply, not zoom', () => {
         expect(css).not.toMatch(/\bzoom\s*:/);
-        expect(css).toContain('font-size: 0.875rem');
-        expect(css).toContain('font-size: 1.125rem');
-        expect(css).toContain('--formspec-control-height: 2.25rem');
-        expect(css).toContain('--formspec-control-height: 3rem');
+        expect(css).toMatch(/:where\(\.formspec-size-compact\)\s*\{[^}]*--formspec-size-scale:\s*0\.875;/);
+        expect(css).toMatch(/:where\(\.formspec-size-large\)\s*\{[^}]*--formspec-size-scale:\s*1\.125;/);
+        const base = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../src/styles/default.base.css'), 'utf8');
+        for (const selector of ['.formspec-container :where(label)', '.formspec-container :where(button)', '.formspec-legend', '.formspec-description', '.formspec-hint']) {
+            const rule = base.match(new RegExp(`(?:^|\\n)${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`));
+            expect(rule?.[1], selector).toMatch(/font-size:\s*calc\([^;]*var\(--formspec-size-scale, 1\)\)/);
+        }
     });
 });

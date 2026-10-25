@@ -129,7 +129,8 @@ describe('Field spacing token ownership', () => {
             'var(--formspec-spacing-xs, 0.25rem)',
         );
         expect(extractRuleProp(layoutCSS, '.formspec-legend', 'display')).toBe('block');
-        expect(extractRuleProp(layoutCSS, '.formspec-legend', 'font-size')).toBe('0.84rem');
+        // A label's size, scaled by an item's styleHints size the same way.
+        expect(extractRuleProp(layoutCSS, '.formspec-legend', 'font-size')).toBe('calc(0.84rem * var(--formspec-size-scale, 1))');
     });
 
     it('keeps shared field skin selectors in the canonical layout bundle instead of the React add-on', () => {

@@ -128,7 +128,9 @@
 /* Core §4.2.5.3 styleHints, carried onto an item's root as classes by the resolver. Zero specificity: they are
  * the author's defaults, so a state or a Theme class restyles over them. A tone is the leading bar this skin
  * already gives headings; muted re-points the skin's text tokens for everything in the item; size scales the
- * item's words and controls together. */
+ * item's words and controls together: it sets `--formspec-size-scale`, which the base label, legend, help,
+ * control and adornment sizes multiply (default.base.css), so the hint itself stays at zero specificity,
+ * and it re-points the spacing tokens the skin's gaps read. */
 :where(.formspec-emphasis-primary, .formspec-emphasis-success, .formspec-emphasis-warning, .formspec-emphasis-danger) {
   border-inline-start: 3px solid var(--formspec-emphasis-tone);
   padding-inline-start: var(--formspec-spacing-md, 0.75rem);
@@ -146,49 +148,19 @@
 }
 
 :where(.formspec-size-compact) {
-  font-size: 0.875rem;
-  --formspec-font-size-xs: 0.7rem;
-  --formspec-font-size-sm: 0.8125rem;
-  --formspec-font-size-md: 0.875rem;
-  --formspec-font-size-lg: 1rem;
-  --formspec-default-font-size-xs: 0.7rem;
-  --formspec-default-font-size-sm: 0.8125rem;
-  --formspec-default-font-size-md: 0.875rem;
-  --formspec-default-font-size-lg: 1rem;
-  --formspec-space-xs: 0.25rem;
-  --formspec-space-sm: 0.4rem;
-  --formspec-space-md: 0.65rem;
+  --formspec-size-scale: 0.875;
+  font-size: 0.875em;
   --formspec-spacing-xs: 0.25rem;
   --formspec-spacing-sm: 0.4rem;
   --formspec-spacing-md: 0.65rem;
   --formspec-spacing-field: 0.65rem;
-  --formspec-control-height: 2.25rem;
-}
-
-:where(.formspec-size-compact :is(input, select, textarea, button, .formspec-label, .formspec-legend, .formspec-description, .formspec-hint, .formspec-text)) {
-  font-size: 0.875em;
 }
 
 :where(.formspec-size-large) {
-  font-size: 1.125rem;
-  --formspec-font-size-xs: 0.875rem;
-  --formspec-font-size-sm: 1rem;
-  --formspec-font-size-md: 1.125rem;
-  --formspec-font-size-lg: 1.35rem;
-  --formspec-default-font-size-xs: 0.875rem;
-  --formspec-default-font-size-sm: 1rem;
-  --formspec-default-font-size-md: 1.125rem;
-  --formspec-default-font-size-lg: 1.35rem;
-  --formspec-space-xs: 0.4rem;
-  --formspec-space-sm: 0.65rem;
-  --formspec-space-md: 1.1rem;
+  --formspec-size-scale: 1.125;
+  font-size: 1.125em;
   --formspec-spacing-xs: 0.4rem;
   --formspec-spacing-sm: 0.65rem;
   --formspec-spacing-md: 1.1rem;
   --formspec-spacing-field: 1rem;
-  --formspec-control-height: 3rem;
-}
-
-:where(.formspec-size-large :is(input, select, textarea, button, .formspec-label, .formspec-legend, .formspec-description, .formspec-hint, .formspec-text)) {
-  font-size: 1.125em;
 }
