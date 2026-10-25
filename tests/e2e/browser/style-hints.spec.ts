@@ -26,6 +26,14 @@ const DEFINITION = {
       options: [{ value: 'y', label: 'Yes' }, { value: 'n', label: 'No' }],
       presentation: { styleHints: { emphasis: 'muted' } },
     },
+    {
+      key: 'big', type: 'group', label: 'Big group',
+      presentation: { styleHints: { size: 'large' } },
+      children: [{
+        key: 'inner', type: 'field', dataType: 'string', label: 'Inner',
+        presentation: { styleHints: { size: 'compact' } },
+      }],
+    },
   ],
   binds: [{ path: 'mustFix', required: 'true' }],
 };
@@ -80,6 +88,9 @@ for (const { adapter, textSelector, loaded } of [
       // size "large" scales the item's label and its control alike.
       expect(await scaleOf(page, '[data-name="featured"] label', '[data-name="plain"] label')).toBeCloseTo(1.125, 2);
       expect(await scaleOf(page, '[data-name="featured"] input', '[data-name="plain"] input')).toBeCloseTo(1.125, 2);
+      // Nested sizes compound: compact inside large reads near normal (1.125 × 0.875).
+      expect(await scaleOf(page, '[data-name="big.inner"] label', '[data-name="plain"] label')).toBeCloseTo(0.984, 2);
+      expect(await scaleOf(page, '[data-name="big.inner"] input', '[data-name="plain"] input')).toBeCloseTo(0.984, 2);
 
       expect(await styleOf(page, textSelector, 'color')).not.toBe(plainColor);
       // size "compact" shrinks the display text below the form's own text size.

@@ -26,8 +26,9 @@
   gap: var(--formspec-spacing-md, 1rem) var(--formspec-spacing-field, 0.75rem);
 }
 
-/* Label, legend, help, control and adornment sizes multiply `--formspec-size-scale`, which the core §4.2.5.3
- * `size` hint sets on an item (default.utilities.css); outside one it is unset and the factor is 1. */
+/* Every text and control size an item draws in this skin (here and in the inputs, data and surfaces sheets)
+ * multiplies `--formspec-size-scale`, which the core §4.2.5.3 `size` hint sets on the item
+ * (default.utilities.css); outside one it is unset and the factor is 1. */
 .formspec-container :where(input:not([type="radio"]):not([type="checkbox"]):not([type="range"]):not([hidden]):not(.formspec-combobox-input):not(.formspec-file-input-hidden)),
 .formspec-container :where(textarea),
 .formspec-container :where(select) {
@@ -266,7 +267,7 @@
   padding: 0.6rem 0.8rem;
   cursor: pointer;
   color: var(--formspec-default-text);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--formspec-size-scale, 1));
   font-weight: 600;
 }
 
@@ -287,12 +288,12 @@
 }
 
 .formspec-field-help-title {
-  font-size: 0.9375rem;
+  font-size: calc(0.9375rem * var(--formspec-size-scale, 1));
 }
 
 .formspec-field-help-reference p {
   color: var(--formspec-default-text-subtle);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--formspec-size-scale, 1));
   line-height: 1.5;
 }
 
@@ -303,41 +304,41 @@
 
 h1.formspec-heading {
   margin: 1.5rem 0 0.5rem;
-  font-size: 1.55rem;
+  font-size: calc(1.55rem * var(--formspec-size-scale, 1));
   font-weight: 700;
   letter-spacing: -0.03em;
 }
 
 h2.formspec-heading {
   margin: 1.5rem 0 0.5rem;
-  font-size: 1.28rem;
+  font-size: calc(1.28rem * var(--formspec-size-scale, 1));
   font-weight: 700;
   letter-spacing: -0.025em;
 }
 
 h3.formspec-heading {
   margin: 1rem 0 0.25rem;
-  font-size: 1.02rem;
+  font-size: calc(1.02rem * var(--formspec-size-scale, 1));
   font-weight: 650;
 }
 
 h4.formspec-heading {
   margin: 0.75rem 0 0.25rem;
-  font-size: 0.9375rem;
+  font-size: calc(0.9375rem * var(--formspec-size-scale, 1));
   font-weight: 600;
 }
 
 h5.formspec-heading,
 h6.formspec-heading {
   margin: 0.5rem 0 0.25rem;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--formspec-size-scale, 1));
   font-weight: 600;
 }
 
 .formspec-error {
   min-height: 1.25rem;
   margin-top: 0.25rem;
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--formspec-size-scale, 1));
   font-weight: 500;
   color: var(--formspec-default-danger);
 }
@@ -462,7 +463,7 @@ h6.formspec-heading {
   border-radius: var(--formspec-default-radius-pill);
   background: var(--formspec-default-readonly-badge-bg);
   color: var(--formspec-default-readonly-badge-text);
-  font-size: 0.68rem;
+  font-size: calc(0.68rem * var(--formspec-size-scale, 1));
   font-weight: 650;
   line-height: 1;
   letter-spacing: 0.06em;

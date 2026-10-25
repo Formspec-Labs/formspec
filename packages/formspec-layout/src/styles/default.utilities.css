@@ -128,9 +128,9 @@
 /* Core §4.2.5.3 styleHints, carried onto an item's root as classes by the resolver. Zero specificity: they are
  * the author's defaults, so a state or a Theme class restyles over them. A tone is the leading bar this skin
  * already gives headings; muted re-points the skin's text tokens for everything in the item; size scales the
- * item's words and controls together: it sets `--formspec-size-scale`, which the base label, legend, help,
- * control and adornment sizes multiply (default.base.css), so the hint itself stays at zero specificity,
- * and it re-points the spacing tokens the skin's gaps read. */
+ * item's words and controls together: it sets `--formspec-size-scale`, which every text and control size the
+ * skin gives an item multiplies (default.base.css), so the hint itself stays at zero specificity, and it
+ * re-points the spacing tokens the skin's gaps read. */
 :where(.formspec-emphasis-primary, .formspec-emphasis-success, .formspec-emphasis-warning, .formspec-emphasis-danger) {
   border-inline-start: 3px solid var(--formspec-emphasis-tone);
   padding-inline-start: var(--formspec-spacing-md, 0.75rem);
@@ -164,3 +164,13 @@
   --formspec-spacing-md: 1.1rem;
   --formspec-spacing-field: 1rem;
 }
+
+/* A size inside another one compounds (core §4.2.5.3), so a compact item in a large group reads near normal
+ * scale. A custom property cannot multiply the value it inherits, so the nested pairs carry the product
+ * (exact to two levels; a third level resolves to one of the pairs). */
+:where(.formspec-size-large .formspec-size-compact, .formspec-size-compact .formspec-size-large) {
+  --formspec-size-scale: 0.984375;
+}
+
+:where(.formspec-size-large .formspec-size-large) { --formspec-size-scale: 1.265625; }
+:where(.formspec-size-compact .formspec-size-compact) { --formspec-size-scale: 0.765625; }

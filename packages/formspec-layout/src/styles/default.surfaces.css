@@ -89,7 +89,7 @@ hr.formspec-divider {
 .formspec-repeat-instance-label {
   margin: 0;
   color: var(--formspec-default-text-strong);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--formspec-size-scale, 1));
   font-weight: 650;
   letter-spacing: 0.035em;
   text-transform: uppercase;
@@ -167,7 +167,7 @@ hr.formspec-divider {
   margin: 0 0 0.5rem;
   color: var(--formspec-default-text);
   font-family: var(--formspec-font-heading, var(--formspec-default-font-heading));
-  font-size: 1.18rem;
+  font-size: calc(1.18rem * var(--formspec-size-scale, 1));
   font-weight: 650;
   letter-spacing: -0.028em;
 }

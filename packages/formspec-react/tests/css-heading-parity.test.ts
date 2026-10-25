@@ -51,7 +51,8 @@ describe('Canonical heading scale', () => {
     for (const level of [1, 2, 3, 4, 5, 6]) {
         it(`h${level} font-size matches the expected scale`, () => {
             const size = extractHeadingProp(layoutCSS, level, 'font-size');
-            expect(size).toBe(expectedScale[level].size);
+            // A display heading Item scales with its styleHints `size` (core §4.2.5.3).
+            expect(size).toBe(`calc(${expectedScale[level].size} * var(--formspec-size-scale, 1))`);
         });
 
         it(`h${level} font-weight matches the expected scale`, () => {
