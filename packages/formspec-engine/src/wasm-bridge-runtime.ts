@@ -184,18 +184,6 @@ export function wasmEvalFELWithContextEnvelope(
 /** Alias for `wasmEvalFELWithContextEnvelope` using modern camelCase. */
 export const wasmEvalFelWithContextEnvelope = wasmEvalFELWithContextEnvelope;
 
-/** Evaluate a FEL expression with full FormspecEnvironment context. Returns the value only. */
-export function wasmEvalFELWithContext(
-    expression: string,
-    context: WasmFelContext,
-    extensions?: FelExtensionHost,
-): any {
-    return wasmEvalFELWithContextEnvelope(expression, context, extensions).value;
-}
-
-/** Alias for `wasmEvalFELWithContext` using modern camelCase. */
-export const wasmEvalFelWithContext = wasmEvalFELWithContext;
-
 /** Host extension functions (Core §3.12) handed to evaluating exports; Rust calls `arity` and `invoke`. */
 export type FelExtensionHost = import('../wasm-pkg-runtime/formspec_wasm_runtime.js').FelExtensionHost;
 

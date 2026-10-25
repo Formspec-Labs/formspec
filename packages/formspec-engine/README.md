@@ -395,7 +395,7 @@ The engine builds a reactive signal graph on construction. Three `@preact/signal
 - **`computed(fn)`** — read-only derived. Used for: `calculate` field values, FEL-based MIP states, validation results, error signals, variable signals.
 - **`effect(fn)`** — side effect. Used for: applying `bind.default` values on relevance transitions.
 
-Reactive FEL uses **`compileExpression()`** closures: each closure reads `structureVersion`, instance/evaluation version signals, and calls **`wasmEvalFELWithContext`** with a JSON context built from engine state. Preact captures signal reads when the closure runs inside a `computed`. **Dependency lists** for binds (e.g. `calculate`) come from **`wasmGetFELDependencies`** during definition setup — same Rust parser as eval, not a TypeScript CST walk.
+Reactive FEL uses **`compileExpression()`** closures: each closure reads `structureVersion`, instance/evaluation version signals, and calls **`evaluate`** on the engine's WASM-resident `FelContext` handle (`wasmCreateFelContext`; schema and snapshot in `src/engine/fel-context.ts`), naming only the expression and Item path. The handle reloads its form-scope snapshot once per engine state, not per read. Preact captures signal reads when the closure runs inside a `computed`. **Dependency lists** for binds (e.g. `calculate`) come from **`wasmGetFELDependencies`** during definition setup — same Rust parser as eval, not a TypeScript CST walk.
 
 ### FEL surface in this package (`src/fel/`)
 
