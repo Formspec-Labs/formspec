@@ -157,6 +157,20 @@ export {
   PLATFORM_TOKEN_KEYS,
 } from './platform-token-keys.js';
 export {
+  HOST_WIDGET_CONTRACT_CODES,
+  hostWidgetContractSet,
+  hostWidgetContractVariants,
+  selectHostWidgetContract,
+  validateHostWidgetContracts,
+  widgetContractMismatchReasons,
+  type HostWidgetContractSet,
+  type HostWidgetContracts,
+  type WidgetRenderedConfigNodeContract,
+  type WidgetRuntimeContract,
+  type WidgetRuntimeContractEntry,
+  type WidgetRuntimeContractMismatchReason,
+} from './widget-runtime-contract.js';
+export {
   resolveWidgetContribution,
   type WidgetContributionEntry,
   type WidgetContributionIdentity,

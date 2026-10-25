@@ -1,5 +1,6 @@
 /** @filedesc Shared AppGraphValidator report kernel. */
 
+import { validateHostWidgetContracts } from './widget-runtime-contract.js';
 import type {
   ModuleResolutionDiagnostic,
 } from '@formspec-org/types';
@@ -349,6 +350,7 @@ function runCrossArtifactValidators(
     validateUiGraphPolicy,
     validateUxAuthoringQuality,
     validateUxTitleDuplicates,
+    validateHostWidgetContracts,
     ...(validators ?? []),
   ];
   return allValidators.flatMap((validator) => validator({
@@ -358,6 +360,7 @@ function runCrossArtifactValidators(
     evidenceResults: [...evidenceResults],
     hostEvidence: request.hostEvidence,
     moduleResolution: request.moduleResolution,
+    hostWidgetContracts: request.hostWidgetContracts,
   }));
 }
 

@@ -1,5 +1,6 @@
 /** @filedesc Production-callable AppGraph report producer pipeline. */
 
+import type { HostWidgetContracts } from './widget-runtime-contract.js';
 import type {
   ArtifactResolutionReport,
   ModuleResolutionReport,
@@ -40,6 +41,8 @@ export interface AppGraphReportProducerRequest extends ArtifactResolverRequest {
   schemaValidators: AppGraphSchemaValidators;
   evidenceSchemaValidators?: AppGraphEvidenceSchemaValidators;
   crossArtifactValidators?: AppGraphCrossArtifactValidator[];
+  /** See `AppGraphValidationRequest.hostWidgetContracts`. */
+  hostWidgetContracts?: HostWidgetContracts;
   validationOptions?: AppGraphValidationOptions;
 }
 
@@ -95,6 +98,7 @@ function finishAppGraphValidationReport(
     schemaValidators: request.schemaValidators,
     ...(request.evidenceSchemaValidators ? { evidenceSchemaValidators: request.evidenceSchemaValidators } : {}),
     ...(request.crossArtifactValidators ? { crossArtifactValidators: request.crossArtifactValidators } : {}),
+    ...(request.hostWidgetContracts ? { hostWidgetContracts: request.hostWidgetContracts } : {}),
     ...(request.validationOptions ? { options: request.validationOptions } : {}),
   };
   const report = validateAppGraph(validationRequest);

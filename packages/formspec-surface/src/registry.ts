@@ -35,7 +35,12 @@
  * `RegistryEntry.name` would resolve nothing the day a module uses a
  * PascalCase widget name — which the schema explicitly permits.
  */
-import { resolveWidgetContribution } from '@formspec-org/app-graph';
+import {
+  resolveWidgetContribution,
+  widgetContractMismatchReasons,
+  type WidgetRenderedConfigNodeContract,
+  type WidgetRuntimeContract,
+} from '@formspec-org/app-graph';
 import type { RegistryDocument, RegistryEntry } from '@formspec-org/types';
 import { surfaceDiagnostic, type SurfaceDiagnostic, type SurfaceDiagnosticSite } from './diagnostics.js';
 
@@ -67,16 +72,10 @@ export interface WidgetModule<TComponent> {
   contracts?: Readonly<Record<string, WidgetRuntimeContract>>;
 }
 
-export interface WidgetRenderedConfigNodeContract {
-  pointerPattern: string;
-  kind: string;
-}
-
-export interface WidgetRuntimeContract {
-  deliveryContractId: string;
-  registryEntryVersion: string;
-  renderedConfigNodes: readonly WidgetRenderedConfigNodeContract[];
-}
+/** Owned by `@formspec-org/app-graph`, which compares it at authoring time too. */
+export type { WidgetRenderedConfigNodeContract, WidgetRuntimeContract };
+/** The one comparison, shared with the authoring host check; see `@formspec-org/app-graph`. */
+export { widgetContractMismatchReasons };
 
 /**
  * Two independent axes, never collapsed into one: **declared** is whether a
@@ -222,60 +221,6 @@ export function createWidgetRegistry<TComponent>(
       );
     },
   };
-}
-
-function objectRecord(value: unknown): Record<string, unknown> | undefined {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : undefined;
-}
-
-function normalizedRenderedConfigNodes(value: unknown): string[] | undefined {
-  if (!Array.isArray(value)) return undefined;
-  const normalized: string[] = [];
-  for (const rawNode of value) {
-    const node = objectRecord(rawNode);
-    if (typeof node?.pointerPattern !== 'string' || typeof node.kind !== 'string') {
-      return undefined;
-    }
-    normalized.push(`${node.pointerPattern}\u0000${node.kind}`);
-  }
-  return normalized.sort();
-}
-
-function widgetContractMismatchReasons(
-  entry: RegistryEntry,
-  contract: WidgetRuntimeContract | undefined,
-): string[] {
-  const shape = objectRecord(entry.widgetShape);
-  const deliveryContractId = shape?.deliveryContractId;
-  const renderedConfigNodes = shape?.renderedConfigNodes;
-  const declaresRuntimeContract =
-    deliveryContractId !== undefined || renderedConfigNodes !== undefined;
-  if (!declaresRuntimeContract) return [];
-  if (!contract) return ['runtime-contract-missing'];
-
-  const reasons: string[] = [];
-  if (entry.version !== contract.registryEntryVersion) {
-    reasons.push('registry-entry-version-mismatch');
-  }
-  if (
-    typeof deliveryContractId !== 'string'
-    || deliveryContractId !== contract.deliveryContractId
-  ) {
-    reasons.push('delivery-contract-id-mismatch');
-  }
-  const declaredNodes = normalizedRenderedConfigNodes(renderedConfigNodes);
-  const deliveredNodes = normalizedRenderedConfigNodes(contract.renderedConfigNodes);
-  if (
-    declaredNodes === undefined
-    || deliveredNodes === undefined
-    || declaredNodes.length !== deliveredNodes.length
-    || declaredNodes.some((node, index) => node !== deliveredNodes[index])
-  ) {
-    reasons.push('rendered-config-inventory-mismatch');
-  }
-  return reasons;
 }
 
 export interface FlattenedRegistryEntries {

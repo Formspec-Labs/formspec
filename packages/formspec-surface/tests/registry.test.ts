@@ -10,8 +10,13 @@
 import { describe, expect, it } from 'vitest';
 import type { RegistryDocument, RegistryEntry } from '@formspec-org/types';
 import {
+  HOST_WIDGET_CONTRACT_CODES,
+  widgetContractMismatchReasons as authoringMismatchReasons,
+} from '@formspec-org/app-graph';
+import {
   createWidgetRegistry,
   flattenRegistryEntries,
+  widgetContractMismatchReasons,
   widgetContributionFor,
 } from '../src/registry.js';
 import { registryDocument } from './fixtures.js';
@@ -184,6 +189,26 @@ describe('renderer delivery contracts', () => {
     expect(registry.diagnose(key, resolution, {})).toMatchObject({
       code: 'WIDGET-DELIVERY-CONTRACT-MISMATCH',
     });
+  });
+
+  it('refuses with the reasons and code the authoring host check reports, from one comparison', () => {
+    expect(widgetContractMismatchReasons).toBe(authoringMismatchReasons);
+    const contract = {
+      deliveryContractId: 'example/Panel@1',
+      registryEntryVersion: '1.0.0',
+      renderedConfigNodes: renderedConfigNodes.slice(0, 1),
+    };
+    const registry = createWidgetRegistry({
+      registryEntries: contractEntries,
+      modules: [{ moduleId: 'x-contract-module', widgets: { Panel }, contracts: { Panel: contract } }],
+    });
+    const key = { moduleId: 'x-contract-module', widgetName: 'Panel' };
+    const resolution = registry.resolve(key);
+    expect(resolution).toMatchObject({
+      status: 'incompatible',
+      reasons: authoringMismatchReasons(contractEntries[1]!, contract),
+    });
+    expect(registry.diagnose(key, resolution, {})?.code).toBe(HOST_WIDGET_CONTRACT_CODES.mismatch);
   });
 
   it('refuses a component that omits a Registry-declared runtime contract', () => {

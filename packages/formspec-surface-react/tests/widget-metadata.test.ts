@@ -72,7 +72,7 @@ describe('public widget metadata', () => {
     expect(schema.properties.presentation).toBe(metadata.ACCEPTED_RESPONSE_REVIEW_PRESENTATION_SCHEMA);
   });
   it('preserves the exact objects exported by both existing public APIs', () => {
-    const oldNames = Object.keys(widgets).filter(name => /^(ACCEPTED_(?:TASK_)?RESPONSE_REVIEW_|RESPONSE_REVIEW_|SIGNING_CEREMONY_|STRUCTURED_.*_CONFIG_SCHEMA$|resolveAcceptedResponseReviewFieldSelection$)/.test(name));
+    const oldNames = Object.keys(widgets).filter(name => /^(ACCEPTED_(?:TASK_)?RESPONSE_REVIEW_|RESPONSE_REVIEW_|SIGNING_CEREMONY_|STRUCTURED_.*_CONFIG_SCHEMA$|resolveAcceptedResponseReviewFieldSelection$|(?:STRUCTURED_PANEL|QUEUE_TABLE|RECEIPT_PANEL|CEREMONY_FRAME)_(?:DELIVERY_CONTRACT_ID|RENDERED_CONFIG_NODES)$|MODULE_WIDGET_STATE_RENDERED_CONFIG_NODES$|STRUCTURED_PANEL_REGISTRY_ENTRY_VERSIONS$|starterWidgetContracts$)/.test(name));
     expect(Object.keys(metadata).sort()).toEqual(oldNames.sort());
     for (const [name, value] of Object.entries(metadata)) {
       expect((root as Record<string, unknown>)[name]).toBe(value);
@@ -130,6 +130,7 @@ describe('public widget metadata', () => {
       '../src/widgets/response-review-metadata.ts',
       '../src/widgets/response-review-selection.ts',
       '../src/widgets/signing-ceremony-metadata.ts',
+      '../src/widgets/starter-contract-metadata.ts',
       '../src/generated/signing-content-source-schema.ts',
       '../src/widgets/structured-panel-metadata.ts',
     ].map(path => testFile(path).href).sort());

@@ -16,11 +16,7 @@ export type ModuleWidgetStateName =
   | 'unavailable'
   | 'error';
 
-/** Registry inventory entries required by the generic shell state renderer. */
-export const MODULE_WIDGET_STATE_RENDERED_CONFIG_NODES = [
-  { pointerPattern: '/stateViews/*', kind: 'module-widget-state-view' },
-  { pointerPattern: '/stateViews/*/actions/*', kind: 'module-widget-state-action' },
-] as const;
+export { MODULE_WIDGET_STATE_RENDERED_CONFIG_NODES } from './widgets/starter-contract-metadata.js';
 
 export interface ModuleWidgetEmptyWhen {
   inputName: string;

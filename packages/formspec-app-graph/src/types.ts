@@ -1,5 +1,6 @@
 /** @filedesc Shared AppGraphValidator interface and report types. */
 
+import type { HostWidgetContracts } from './widget-runtime-contract.js';
 import type { ModuleResolutionReport } from '@formspec-org/types';
 
 export const APP_GRAPH_PHASES = [
@@ -153,6 +154,7 @@ export interface AppGraphContext {
   evidenceResults: AppGraphEvidenceSchemaResult[];
   hostEvidence?: AppGraphHostEvidence;
   moduleResolution?: ModuleResolutionReport;
+  hostWidgetContracts?: HostWidgetContracts;
 }
 
 export type AppGraphCrossArtifactValidator = (context: AppGraphContext) => AppGraphDiagnostic[];
@@ -186,6 +188,8 @@ export interface AppGraphValidationRequest {
   schemaValidators?: AppGraphSchemaValidators;
   evidenceSchemaValidators?: AppGraphEvidenceSchemaValidators;
   crossArtifactValidators?: AppGraphCrossArtifactValidator[];
+  /** The deployment host's shipped widget contracts; absent means no host check runs. */
+  hostWidgetContracts?: HostWidgetContracts;
   options?: AppGraphValidationOptions;
 }
 
