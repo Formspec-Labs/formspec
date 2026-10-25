@@ -12,18 +12,34 @@ beforeAll(async () => {
     await initFormspecEngine();
 });
 
-// happy-dom lays nothing out: stand in for the browser's rendering facts. An element is rendered unless it
-// or an ancestor carries `hidden`; ResizeObserver callbacks run on `layout()`.
-const observers = new Set<{ cb: ResizeObserverCallback; targets: Set<Element> }>();
+// happy-dom lays nothing out, so this stands in for the browser. An element is rendered unless it or an
+// ancestor carries `hidden`, and a rendered box has a non-zero size. `layout()` is a frame: like
+// ResizeObserver it reports only targets whose box appeared or vanished since their last report (a new
+// target counts as 0×0). `resizeAll()` is a frame in which every rendered box changed size.
+type Observer = { cb: ResizeObserverCallback; seen: Map<Element, boolean> };
+const observers = new Set<Observer>();
+const rendered = (el: Element) => (el as HTMLElement).checkVisibility();
+function deliver(changed: (o: Observer) => Element[]): void {
+    for (const o of [...observers]) {
+        const targets = changed(o);
+        if (targets.length) o.cb(targets.map((target) => ({ target })) as unknown as ResizeObserverEntry[], {} as ResizeObserver);
+    }
+}
 function layout(): void {
-    for (const o of observers) if (o.targets.size) o.cb([], {} as ResizeObserver);
+    deliver((o) => [...o.seen].filter(([el, was]) => {
+        o.seen.set(el, rendered(el));
+        return rendered(el) !== was;
+    }).map(([el]) => el));
+}
+function resizeAll(): void {
+    deliver((o) => [...o.seen.keys()].filter(rendered));
 }
 beforeEach(() => {
     vi.stubGlobal('ResizeObserver', class {
-        private o: { cb: ResizeObserverCallback; targets: Set<Element> };
-        constructor(cb: ResizeObserverCallback) { this.o = { cb, targets: new Set() }; observers.add(this.o); }
-        observe(el: Element) { this.o.targets.add(el); }
-        unobserve(el: Element) { this.o.targets.delete(el); }
+        private o: Observer;
+        constructor(cb: ResizeObserverCallback) { this.o = { cb, seen: new Map() }; observers.add(this.o); }
+        observe(el: Element) { if (!this.o.seen.has(el)) this.o.seen.set(el, false); }
+        unobserve(el: Element) { this.o.seen.delete(el); }
         disconnect() { observers.delete(this.o); }
     });
     (HTMLElement.prototype as any).checkVisibility = function (this: HTMLElement) {
@@ -85,7 +101,7 @@ describe('Modal trigger "auto" (React)', () => {
         showTab(1);
         layout();
         dialog.close();
-        layout();
+        resizeAll(); // the panel relaid out: not a reason to re-prompt
         expect(dialog.open).toBe(false);
 
         showTab(0);

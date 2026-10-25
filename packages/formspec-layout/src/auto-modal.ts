@@ -24,7 +24,13 @@ export function bindAutoModal(dialog: HTMLDialogElement, onOpen?: () => void): A
     let shown = false;
     let disposed = false;
     const observed = new WeakSet<Element>();
-    const resize = typeof ResizeObserver === 'function' ? new ResizeObserver(reconcile) : null;
+    const resize = typeof ResizeObserver === 'function'
+        ? new ResizeObserver(() => { measured = true; reconcile(); })
+        : null;
+    // The observer reports only boxes that changed since it last looked, and its first look is the next
+    // frame: a host can hide the form in between, and an ancestor already hidden by then is never
+    // reported. Opening waits for that first report, so an open dialog always has a later report to close it.
+    let measured = !resize;
 
     // A render attaches the dialog's ancestors after binding it, so the chain is extended later, but never
     // from the ResizeObserver callback: an ancestor observed there sits shallower than the boxes being
@@ -40,7 +46,7 @@ export function bindAutoModal(dialog: HTMLDialogElement, onOpen?: () => void): A
     }
 
     function reconcile(): void {
-        const next = holds && isRendered(dialog);
+        const next = holds && measured && isRendered(dialog);
         if (next === shown) return;
         shown = next;
         if (next && !dialog.open) {

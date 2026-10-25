@@ -2,7 +2,7 @@
 import type { RenderContext } from '../types';
 import { layoutHostSlice } from '../adapters/layout-host';
 import { compText, plannedTitle } from './layout-plugin-factory';
-import { effect } from '@preact/signals-core';
+import { computed, effect } from '@preact/signals-core';
 import { bindAutoModal } from '@formspec-org/layout';
 import { repeatAffordances, renderRepeatRows } from '../rendering/repeat-affordances';
 import { itemLabel } from '../rendering/item-label';
@@ -116,8 +116,10 @@ export function buildModalBehavior(comp: any, ctx: RenderContext): ModalLayoutBe
                 return;
             }
             // emit-node leaves an auto Modal's `when` to this binding instead of wrapping it.
-            const holds = ctx.engine.compileExpression(comp.when, comp.whenPrefix ?? ctx.prefix);
-            ctx.cleanupFns.push(effect(() => auto.setCondition(!!holds())));
+            const when = ctx.engine.compileExpression(comp.when, comp.whenPrefix ?? ctx.prefix);
+            // compileExpression re-runs on every engine evaluation; `computed` passes on only a changed result.
+            const holds = computed(() => !!when());
+            ctx.cleanupFns.push(effect(() => auto.setCondition(holds.value)));
         },
     };
 }
