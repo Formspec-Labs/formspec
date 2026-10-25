@@ -570,7 +570,7 @@ function surfaceNodes(
         `${routePointer}/navigation`,
         `${nodeLabel(route, `routes[${routeIndex}]`)} implicit navigation`,
         RENDERED_NEED_TRACE_CODES.navigationImplicit,
-        `Route '${nodeLabel(route, `routes[${routeIndex}]`)}' would render an implicit navigation label. Author an explicit navigation object with its own Need trace or set navigation.visible to false.`,
+        `Route '${nodeLabel(route, `routes[${routeIndex}]`)}' would render an implicit navigation label. Author an explicit navigation object with its own Need trace; a hidden one (visible: false) needs the trace too, because its scope still shapes shell navigation.`,
         'implicit-navigation-derived-from-route',
       ));
     }
