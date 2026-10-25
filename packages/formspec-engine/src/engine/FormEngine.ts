@@ -579,7 +579,7 @@ export class FormEngine implements IFormEngine {
             throw new TypeError('setValue path cannot be null');
         }
 
-        const instanceTarget = parseInstanceTarget(name);
+        const instanceTarget = this.instanceTargetUnlessItem(name, toBasePath(name));
         if (instanceTarget) {
             this.writeInstanceValue(instanceTarget.instanceName, instanceTarget.instancePath, value);
             this._evaluate();
@@ -1447,17 +1447,21 @@ export class FormEngine implements IFormEngine {
     /**
      * Core §4.3.3 / §3.10.1: a Bind path resolves to an Item, so one naming an instance (`instances.<name>…`,
      * `@instance('<name>')…`) is a definition error. Instance data is host-written (`setInstanceValue`).
-     * A path that is also an Item path (a group keyed `instances`) is an ordinary Item bind.
      */
     private rejectInstancePathBinds(): void {
         for (const bind of this.definition.binds ?? []) {
-            if (!this._groupItems.has(bind.path.replace(/\[\*\]/g, '')) && parseInstanceTarget(bind.path)) {
+            if (this.instanceTargetUnlessItem(bind.path, bind.path.replace(/\[\*\]/g, ''))) {
                 throw new Error(
                     `Bind path '${bind.path}' names an instance, not an Item (Core §4.3.3); `
                     + 'write instance data with setInstanceValue',
                 );
             }
         }
+    }
+
+    /** `instances` is a legal Item key, so a path whose `itemPath` names an Item is that Item, never an instance target. */
+    private instanceTargetUnlessItem(path: string, itemPath: string): ReturnType<typeof parseInstanceTarget> {
+        return this._groupItems.has(itemPath) ? null : parseInstanceTarget(path);
     }
 
     private registerItems(items: FormItem[], prefix = ''): void {

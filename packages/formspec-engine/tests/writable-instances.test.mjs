@@ -231,6 +231,42 @@ test('a group keyed `instances` is an ordinary Item: its bind evaluates and no i
   assert.equal(engine.getInstanceData('pad', 'total'), 0);
 });
 
+// Item keys may be `instances` (not reserved), so setValue resolves an Item path before an instance target.
+const instancesGroup = [{ type: 'group', key: 'instances', children: [
+  { type: 'group', key: 'pad', children: [{ type: 'field', key: 'total', dataType: 'decimal' }] },
+  { type: 'group', key: 'rows', repeatable: true, minRepeat: 1, children: [{ type: 'field', key: 'note', dataType: 'string' }] },
+] }];
+
+for (const [label, instances] of [
+  ['a writable instance of the same name is declared', { pad: { readonly: false, data: { total: 0 }, schema: { total: 'decimal' } } }],
+  ['no instance of that name exists', undefined],
+]) {
+  test(`setValue on a field under a group keyed \`instances\` writes the field when ${label}`, () => {
+    const engine = new FormEngine({
+      $formspec: '1.0', url: 'https://test.example/form', version: '1.0.0', status: 'active', title: 'Test', name: 'test',
+      ...(instances ? { instances } : {}),
+      items: instancesGroup,
+    });
+
+    engine.setValue('instances.pad.total', 7);
+    engine.setValue('instances.rows[0].note', 'kept');
+
+    assert.equal(engine.signals['instances.pad.total'].value, 7);
+    assert.equal(engine.signals['instances.rows[0].note'].value, 'kept');
+    assert.deepEqual(engine.getResponse().data.instances, { pad: { total: 7 }, rows: [{ note: 'kept' }] });
+    if (instances) assert.equal(engine.getInstanceData('pad', 'total'), 0);
+  });
+}
+
+test('setValue on `instances.<name>…` with no Item at that path is a host write to the instance', () => {
+  const engine = new FormEngine(instanceBindDefinition([], []));
+
+  engine.setValue('instances.pad.total', 7);
+
+  assert.equal(engine.getInstanceData('pad', 'total'), 7);
+  assert.equal(engine.getResponse().data.instances, undefined);
+});
+
 test('non-fetchable source (formspec-fn:) does not call fetch or log errors', async () => {
   const errors = [];
   const origError = console.error;
