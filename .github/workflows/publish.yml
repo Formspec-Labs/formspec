@@ -24,6 +24,11 @@ jobs:
         with:
           repository: Formspec-Labs/fel-core
           path: fel-core
+      - name: Check out the integrity-stack sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/integrity-stack
+          path: integrity-stack
       - uses: actions/setup-node@v6
         with:
           node-version: "22"
@@ -31,6 +36,9 @@ jobs:
       # Trusted publishing (OIDC) requires npm CLI >= 11.5.1; Node 22 images still ship npm 10.x.
       - name: Install npm for Trusted Publishing
         run: npm install -g npm@^11.5.1
+      - name: Build the integrity-canonical sibling
+        working-directory: integrity-stack
+        run: npm ci --workspace packages/integrity-canonical && npm run build --workspace packages/integrity-canonical
       - run: npm install
       - run: npm run build
 
@@ -65,12 +73,20 @@ jobs:
         with:
           repository: Formspec-Labs/fel-core
           path: fel-core
+      - name: Check out the integrity-stack sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/integrity-stack
+          path: integrity-stack
       - uses: actions/setup-node@v6
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
       - name: Install npm for Trusted Publishing
         run: npm install -g npm@^11.5.1
+      - name: Build the integrity-canonical sibling
+        working-directory: integrity-stack
+        run: npm ci --workspace packages/integrity-canonical && npm run build --workspace packages/integrity-canonical
       - run: npm install
       - run: npm run build
 

@@ -2,7 +2,9 @@ name: CI
 
 # Every job checks this repository out into `formspec/` and its public sibling `fel-core/` beside it, because
 # the Rust crates depend on fel-core by relative path (`../../../fel-core`) — the stack couples siblings by
-# path until they are published. The signature family, whose Rust dependencies live in the
+# path until they are published. Jobs that build the npm packages also check out `integrity-stack/` and build
+# packages/integrity-canonical first: the root devDependency links it by path (`file:../integrity-stack/...`)
+# and the engine imports it, so its dist must exist before `npm run build`. The signature family, whose Rust dependencies live in the
 # `integrity-stack` sibling and are not on crates.io yet, is excluded from the workspace (Cargo.toml) and runs through `make test-rust`
 # wherever that sibling is checked out.
 
@@ -28,6 +30,11 @@ jobs:
         with:
           repository: Formspec-Labs/fel-core
           path: fel-core
+      - name: Check out the integrity-stack sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/integrity-stack
+          path: integrity-stack
       - uses: actions/setup-node@v6
         with:
           node-version: "22"
@@ -47,6 +54,9 @@ jobs:
       - run: pip install maturin
       - run: pip install -e ".[test]"
       - run: pip install --no-build-isolation ./crates/formspec-py
+      - name: Build the integrity-canonical sibling
+        working-directory: integrity-stack
+        run: npm ci --workspace packages/integrity-canonical && npm run build --workspace packages/integrity-canonical
       - run: npm ci
       - run: npm run build
       - run: npm run test:unit
@@ -99,6 +109,11 @@ jobs:
         with:
           repository: Formspec-Labs/fel-core
           path: fel-core
+      - name: Check out the integrity-stack sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/integrity-stack
+          path: integrity-stack
       - uses: actions/setup-node@v6
         with:
           node-version: "22"
@@ -118,6 +133,9 @@ jobs:
       - run: pip install maturin
       - run: pip install -e ".[test]" fastapi "uvicorn[standard]" pydantic
       - run: pip install --no-build-isolation ./crates/formspec-py
+      - name: Build the integrity-canonical sibling
+        working-directory: integrity-stack
+        run: npm ci --workspace packages/integrity-canonical && npm run build --workspace packages/integrity-canonical
       - run: npm ci
       - run: npm run build
       - run: npx playwright install --with-deps chromium
