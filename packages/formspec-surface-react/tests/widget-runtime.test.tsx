@@ -286,6 +286,15 @@ describe('qualified widget data', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('[data-probe="classification"]')!.click(); await Promise.resolve(); });
     expect(feedback).toEqual([expected]);
   });
+  it('names the emitting route by identity alone, never by its presented title', async () => {
+    const Widget: SurfaceWidget = ({ emitAction }) => <button data-probe="identity" onClick={() => { void emitAction('accepted'); }}>Submit</button>;
+    const executor = vi.fn<SurfaceWidgetActionExecutor>(async () => completed());
+    const container = render(<SurfaceApp bundle={bundle()} location="/receipt" onNavigate={() => {}}
+      widgetModules={runtimeModule(Widget)} widgetActionExecutor={executor} setDocumentTitle={false} />);
+    await act(async () => { container.querySelector<HTMLButtonElement>('[data-probe="identity"]')!.click(); await Promise.resolve(); });
+    expect(Object.keys(executor.mock.calls[0]![0].source.route).sort())
+      .toEqual(['params', 'routeClass', 'routeId', 'surfaceId', 'surfaceRef']);
+  });
   it.each([[false, false], [true, false], [false, true], [true, true]])('preserves unknown action feedback without navigation for joined=%s obsolete=%s', async (joined, obsolete) => {
     let finish!: (value: ReturnType<typeof completed>) => void;
     const executor = vi.fn<SurfaceWidgetActionExecutor>(() => new Promise(resolve => { finish = resolve; }));

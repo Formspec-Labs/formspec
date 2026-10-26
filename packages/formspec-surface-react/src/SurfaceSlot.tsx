@@ -1550,11 +1550,19 @@ function SurfaceWidgetSlot({
         return refused();
       }
 
+      // Hosts admit an emission by exact source identity; the route's presented
+      // title is localized text, so it stays out of the source.
       const source = {
         moduleId: plan.key.moduleId,
         widgetName: plan.key.widgetName,
         slotId: plan.slotId,
-        route,
+        route: {
+          surfaceId: route.surfaceId,
+          surfaceRef: route.surfaceRef,
+          routeId: route.routeId,
+          routeClass: route.routeClass,
+          params: route.params,
+        },
         outputName,
       };
       const emittedGeneration = runtimeGeneration;
