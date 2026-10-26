@@ -79,13 +79,16 @@ class TestRegistryMirror:
 
         enum_branch, pattern_branch = COMMON["$defs"]["AccessClass"]["anyOf"]
         assert sorted(enum_branch["enum"]) == tokens
-        alternation = re.match(r"^\^\(([^)]*)\)", pattern_branch["pattern"]).group(1)
-        assert sorted(alternation.split("|")) == prefixes
+        match = re.match(r"^\^\(([^)]*)\)", pattern_branch["pattern"])
+        assert match, f"AccessClass pattern lost its prefix alternation: {pattern_branch['pattern']}"
+        assert sorted(match.group(1).split("|")) == prefixes
 
     def test_token_segment_grammar_matches_registry_shape(self):
         """common AccessClass suffix segments and AccessClassShape.token share one grammar."""
         common = COMMON["$defs"]["AccessClass"]["anyOf"][1]["pattern"]
-        segment = re.fullmatch(r"\^\([^)]*\)\(\\\.(.+)\)\+\$", common).group(1)
+        match = re.fullmatch(r"\^\([^)]*\)\(\\\.(.+)\)\+\$", common)
+        assert match, f"AccessClass prefixed-token pattern changed shape: {common}"
+        segment = match.group(1)
         token = REGISTRY_SCHEMA["$defs"]["AccessClassShape"]["properties"]["token"]["pattern"]
         assert token == f"^{segment}(\\.{segment})*$"
 
