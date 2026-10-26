@@ -21,8 +21,8 @@
   "data": {
     "erasedAt": "2026-05-26T18:00:00Z",
     "classesErased": [
-      "household-financial",
-      "household-identifying"
+      "protected",
+      "hipaa.phi"
     ],
     "retentionWaived": [
       "policy:retention-5y-financial"

@@ -7,8 +7,8 @@ Source schema: `schemas/deletion-receipt.schema.json`
 
 ## Bottom Line Up Front
 
-- Deletion Receipts are issuer-signed evidence that draft erasure completed for a draft id and declared classes of erased material.
-- Receipts are class-level evidence only and must never include raw erased values.
+- Deletion Receipts are issuer-signed evidence that draft erasure completed for a draft id and declared storage artifacts of erased material.
+- Receipts are artifact-level evidence only and must never include raw erased values.
 - Signed evidence is mandatory: carry ADR-0111 `receiptBytes` inline or reference an existing signed Verification Receipt / receipt artifact.
 - The signer role is issuer-only; respondent-signed deletion receipts are non-conforming.
 
@@ -21,7 +21,7 @@ Source schema: `schemas/deletion-receipt.schema.json`
 | `#/$defs/CryptographicMethod/properties/verificationReceiptRef` | no | string | Allows signed receipt evidence to be held by reference without inventing a second signature artifact shape | URI for an existing repo-native structured Verification Receipt or receipt artifact carrying the signed receipt bytes for this deletion receipt. |
 | `#/$defs/ReceiptSigner/properties/role` | yes | string | Prevents respondent-signed deletion receipts from masquerading as issuer attestations | Deletion receipts are issuer attestations, not respondent signatures. |
 | `#/properties/$formspecDeletionReceipt` | yes | string | Document marker for the Deletion Receipt sidecar | Deletion Receipt specification version. MUST be '1.0'. |
-| `#/properties/classesErased` | yes | array | Declares what classes were erased while avoiding value replay | Class-level categories of draft material erased. MUST NOT contain erased values. |
+| `#/properties/artifactsErased` | yes | array | Declares which storage artifacts were erased while avoiding value replay | Storage artifacts of draft material erased. Distinct from Access-Class Registry tokens (Respondent Ledger data.erased classesErased). MUST NOT contain erased values. |
 | `#/properties/deletedAt` | yes | string | Completion timestamp for the erasure operation | RFC 3339 timestamp when the issuer recorded deletion completion. |
 | `#/properties/deletedDraftId` | yes | string | Binds the receipt to the erased draft without embedding draft contents | Identifier of the draft whose retained material was erased. |
 | `#/properties/receiptId` | yes | string | Portable receipt identity | Stable URI identifying this deletion receipt. |
@@ -36,7 +36,7 @@ Source schema: `schemas/deletion-receipt.schema.json`
 
 ## Conformance Essentials
 
-- A conforming Deletion Receipt must include $formspecDeletionReceipt=1.0, version, receiptId, deletedDraftId, deletedAt, issuer, classesErased, retentionWaived, cryptographicMethod, and receiptSigner.
+- A conforming Deletion Receipt must include $formspecDeletionReceipt=1.0, version, receiptId, deletedDraftId, deletedAt, issuer, artifactsErased, retentionWaived, cryptographicMethod, and receiptSigner.
 - Processors must reject receipts without cryptographicMethod.receiptBytes or cryptographicMethod.verificationReceiptRef.
 - Processors must reject extensions payloads on Deletion Receipt documents and nested receipt records.
 - Processors must reject raw erased values and signer roles other than issuer.

@@ -53,6 +53,7 @@ pub fn extension_category_to_wire(category: ExtensionCategory) -> &'static str {
         ExtensionCategory::SlotType => "slot-type",
         ExtensionCategory::ValidationMappingRow => "validation-mapping-row",
         ExtensionCategory::TokenCategory => "token-category",
+        ExtensionCategory::AccessClass => "access-class",
     }
 }
 

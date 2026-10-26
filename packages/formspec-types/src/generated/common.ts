@@ -51,6 +51,7 @@ export type AttachmentValue =
       size?: number;
       [k: string]: unknown;
     };
+export type AccessClass = ('unclassified' | 'protected') | string;
 /**
  * Shared origin class for response values and respondent-ledger changes. Closed-core values mirror respondent-ledger-event.schema.json ChangeSetEntry.valueClass; module-contributed extensions use the x-* registry lane.
  *

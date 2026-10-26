@@ -504,7 +504,7 @@ A **form engine** — data, logic, validation, rendering. Defines what forms are
 
 | # | Feature | Source | Why deferred |
 |---|---------|--------|-------------|
-| D.1 | **Field-level access classification** | ADR-0074 | Premature — proposes bucketed response encryption, key bags, Phase 5 emission. Major version bump before any production users. User need is simpler: `x-data-classification` metadata. |
+| D.1 | **Class-bucketed response encryption** | ADR-0074 | Premature — bucketed response encryption, key bags, Phase 5 emission. The class itself landed: Definition `accessControl.class` from the closed Access-Class Registry (extension-registry.md §3.2.3, fs-lb8y). Encryption by class stays deferred (fs-fvgk). |
 | D.2 | **Native IntakeHandoff emission** | ADR-0079 | Custody is the story, not the envelope. `targetWorkflow` on definitions + auto-envelope is infrastructure that adds complexity before the custody narrative has proven user value. |
 | D.3 | **Content-addressed artifact identity** | ADR-0081 | `*Ref` syntax and shared canonicalization library are infrastructure. Needed eventually; no user-facing impact yet. |
 | D.4 | **Remove Theme Page Layout** | ADR-0052 | Spec change to replace `theme.pages` with component-tree-native pages. Implementation is drifting there already; formal removal is a spec cleanup, not a user feature. |

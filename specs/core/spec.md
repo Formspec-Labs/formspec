@@ -3094,6 +3094,7 @@ The following properties are recognized on all Item types:
 | `labels` | object | **0..1** (OPTIONAL) | Alternative display labels keyed by context name. Well-known context names include `"short"`, `"pdf"`, `"csv"`, and `"accessibility"`. Implementations MAY define additional context names. |
 | `purpose` | object | **0..1** (OPTIONAL) | Plain-language purpose and citation metadata explaining why this item is asked or shown. `purpose` MAY cite a References entry, PKAF authority chain, rule URI, or implementation-specific authority reference. It MUST NOT replace `accessControl.class` or privacy-profile audience policy. |
 | `consequences` | object | **0..1** (OPTIONAL) | Respondent-facing consequence metadata for this item, including triggered deadlines, lock-in effects, and external actions such as referrals, payments, credit checks, or mandatory reports. A consequence declaration explains and gates the action; it does not itself perform the action. |
+| `accessControl` | object | **0..1** (OPTIONAL; Field and Group only) | Disclosure class of this Item's data. `class` is one token from the Access-Class Registry ([Extension Registry §3.2.3](../registry/extension-registry.md#323-access-classes)); an Item without one takes its nearest ancestor Group's class, else `unclassified`. Processors that expose raw response values MUST gate them by the effective class. `subjectKind` (`address`, `contact`, `employer`) MAY qualify `protected` for renderer mask copy only and MUST NOT appear in any receipt, ledger event, or export. |
 
 **Text resolution.** Before display, each of an Item's text properties is
 resolved through one cascade, first match wins, then interpolated (below).
@@ -3166,8 +3167,9 @@ and list entries into line-separated inline runs.
 
 The retired EXT-1 `privacy` sibling block is not part of the Definition
 schema. Safe-address and other field-level protection semantics use
-`accessControl.class` and the Privacy Profile / Access-Class Registry
-companions, not an item-level `privacy` object.
+`accessControl.class`, not an item-level `privacy` object or an `x-`
+extension: processors may ignore extensions (§8), so an extension cannot carry
+a disclosure rule.
 
 #### 4.2.2 Group Items
 

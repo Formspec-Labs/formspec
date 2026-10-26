@@ -162,6 +162,19 @@ export interface PurposeMetadata {
   retention?: string;
 }
 /**
+ * Disclosure class of a Field or Group's data (Core §4.2.1). An Item without accessControl takes its nearest ancestor Group's class, else `unclassified`. Processors that expose raw response values MUST gate them by the effective class. Not allowed on display Items.
+ */
+export interface AccessControl {
+  /**
+   * One Access-Class Registry token (extension-registry.md §3.2.3): a core token, or `<prefix>.<name>` under a registered prefix. Shared by Definition `accessControl.class` and Respondent Ledger `accessClass` / `classesErased`. This enum and pattern mirror the `access-class` entries in registries/formspec-common.registry.json; a conformance test rebuilds them from the registry. A prefixed token must also be declared by a loaded registry (lint E613).
+   */
+  class: (('unclassified' | 'protected') | string) & string;
+  /**
+   * Renderer-only qualifier for `protected` that picks mask copy (ADR 0157). MUST NOT appear in any receipt, ledger event, or export.
+   */
+  subjectKind?: 'address' | 'contact' | 'employer';
+}
+/**
  * EXT-28 / ADR-0155 §5: per-item party-scoped visibility, editability, and signature obligation policy. Absence means the item is visible-to, editable-by, and signed-by all declared parties (legacy single-party semantics extended to N parties). See core spec §4.8.3.
  */
 export interface ItemPartyPolicy {

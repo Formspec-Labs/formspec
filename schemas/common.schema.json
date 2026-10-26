@@ -363,6 +363,16 @@
       "propertyNames": { "pattern": "^x-" },
       "description": "Extension object whose keys must be prefixed with x-."
     },
+    "AccessClass": {
+      "type": "string",
+      "description": "One Access-Class Registry token (extension-registry.md §3.2.3): a core token, or `<prefix>.<name>` under a registered prefix. Shared by Definition `accessControl.class` and Respondent Ledger `accessClass` / `classesErased`. This enum and pattern mirror the `access-class` entries in registries/formspec-common.registry.json; a conformance test rebuilds them from the registry. A prefixed token must also be declared by a loaded registry (lint E613).",
+      "anyOf": [
+        { "type": "string", "enum": ["unclassified", "protected"] },
+        { "type": "string", "pattern": "^(cui|hipaa)(\\.[a-z][a-z0-9]*(-[a-z0-9]+)*)+$" }
+      ],
+      "default": "unclassified",
+      "examples": ["unclassified", "protected", "cui.privacy", "hipaa.phi"]
+    },
     "ValueClass": {
       "oneOf": [
         {

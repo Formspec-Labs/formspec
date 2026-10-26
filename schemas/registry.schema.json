@@ -251,9 +251,10 @@
             "action-intent",
             "slot-type",
             "validation-mapping-row",
-            "token-category"
+            "token-category",
+            "access-class"
           ],
-          "description": "The entry category. Determines which category-specific properties are required: dataType requires baseType; function requires parameters and returns; constraint requires parameters; concept requires conceptUri; vocabulary requires vocabularySystem; module requires contributes; unit-kind requires semantics; widget requires widgetShape; action-intent requires validation; slot-type requires slotShape; validation-mapping-row requires row; token-category requires categoryShape. property has no additional required properties. `namespace` was renamed to `module` per ADR 0150 §4.1 (greenfield rename, no alias).",
+          "description": "The entry category. Determines which category-specific properties are required: dataType requires baseType; function requires parameters and returns; constraint requires parameters; concept requires conceptUri; vocabulary requires vocabularySystem; module requires contributes; unit-kind requires semantics; widget requires widgetShape; action-intent requires validation; slot-type requires slotShape; validation-mapping-row requires row; token-category requires categoryShape; access-class requires classShape. property has no additional required properties. `namespace` was renamed to `module` per ADR 0150 §4.1 (greenfield rename, no alias).",
           "examples": ["dataType", "function", "constraint", "module", "concept", "vocabulary", "widget", "unit-kind", "token-category"],
           "x-lm": {
             "critical": true,
@@ -600,6 +601,14 @@
             }
           ]
         },
+        "classShape": {
+          "$ref": "#/$defs/AccessClassShape",
+          "description": "Access-Class Registry value. REQUIRED when category is 'access-class'. Like token-category, the entry `name` is an x-* contribution id; `classShape.token` or `classShape.prefix` is the value Definition `accessControl.class` uses (extension-registry.md §3.2.3).",
+          "examples": [
+            {"token": "protected", "maps": {"fhirHcs": [{"system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality", "code": "R"}]}},
+            {"prefix": "cui", "maps": {"regulatory": ["32 CFR Part 2002"]}}
+          ]
+        },
         "conceptUri": {
           "type": "string",
           "format": "uri",
@@ -811,6 +820,21 @@
           "if": {
             "properties": {
               "category": {
+                "const": "access-class"
+              }
+            },
+            "required": ["category"]
+          },
+          "then": {
+            "required": [
+              "classShape"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "category": {
                 "const": "dataType"
               }
             }
@@ -894,6 +918,66 @@
           }
         }
       ]
+    },
+    "AccessClassShape": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "One Access-Class Registry value: a class token, or a prefix deployments register tokens under. A dot-free token or any prefix is Formspec-owned; a deployment token is `<prefix>.<name>` under a registered prefix (extension-registry.md §3.2.3).",
+      "oneOf": [
+        { "required": ["token"] },
+        { "required": ["prefix"] }
+      ],
+      "properties": {
+        "token": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*(\\.[a-z][a-z0-9]*(-[a-z0-9]+)*)*$",
+          "description": "Class token as written in Definition `accessControl.class`."
+        },
+        "prefix": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*$",
+          "description": "Namespace under which deployments register `<prefix>.<name>` tokens."
+        },
+        "maps": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Labels for this class in external schemes. Interchange and compliance metadata only; processors decide access and erasure by token.",
+          "properties": {
+            "cui": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 },
+              "description": "NARA CUI Registry category markings (e.g. `PRVCY`)."
+            },
+            "fhirHcs": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["system", "code"],
+                "properties": {
+                  "system": { "type": "string", "format": "uri" },
+                  "code": { "type": "string", "minLength": 1 }
+                }
+              },
+              "description": "HL7 FHIR security-label codings (HCS confidentiality, sensitivity, or handling caveat)."
+            },
+            "dpv": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "format": "uri" },
+              "description": "W3C Data Privacy Vocabulary concept IRIs."
+            },
+            "regulatory": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 },
+              "description": "Regulation or policy citations governing this class."
+            }
+          }
+        }
+      }
     },
     "TokenCategoryShape": {
       "type": "object",

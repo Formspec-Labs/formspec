@@ -7,7 +7,7 @@
   "issuer": {
     "name": "Springfield Benefits Office"
   },
-  "classesErased": ["draft-response"],
+  "artifactsErased": ["draft-response"],
   "retentionWaived": [],
   "cryptographicMethod": {
     "method": "urn:formspec:receipt-method:ed25519-cose-sign1@1",

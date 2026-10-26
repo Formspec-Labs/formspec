@@ -353,7 +353,7 @@
         "The receiptSigner role is issuer-only; respondent-signed deletion receipts are non-conforming."
       ],
       "conformanceEssentials": [
-        "A conforming Deletion Receipt must include $formspecDeletionReceipt=1.0, version, receiptId, deletedDraftId, deletedAt, issuer, classesErased, retentionWaived, cryptographicMethod, and receiptSigner.",
+        "A conforming Deletion Receipt must include $formspecDeletionReceipt=1.0, version, receiptId, deletedDraftId, deletedAt, issuer, artifactsErased, retentionWaived, cryptographicMethod, and receiptSigner.",
         "Processors must reject receipts without cryptographicMethod.receiptBytes or cryptographicMethod.verificationReceiptRef.",
         "Processors must reject extensions payloads on Deletion Receipt documents and nested receipt records.",
         "Processors must reject raw erased values and signer roles other than issuer."

@@ -2,4 +2,5 @@
 - A valid Registry 1.1 document requires `$formspecRegistry: "1.1"`, `publisher`, `published`, and `entries`.
 - Registry entries standardize naming, lifecycle, and compatibility bounds for extension interoperability.
 - A module widget declares configuration through `widgetShape.props`, runtime data through closed `widgetShape.dataInputs[]`, and emitted events through closed `widgetShape.actionOutputs[]`; input names and output names are unique within their respective lists.
+- An `access-class` entry registers one `accessControl.class` token or deployment prefix; the Access-Class Registry is closed (`unclassified`, `protected`, prefixes `cui`, `hipaa`), and `maps` only labels a class in CUI, FHIR, or DPV terms.
 - This BLUF is governed by `schemas/registry.schema.json`; generated references expose the schema-defined structure.

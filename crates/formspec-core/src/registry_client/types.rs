@@ -45,6 +45,8 @@ pub enum ExtensionCategory {
     ValidationMappingRow,
     /// Token category specification for design tokens.
     TokenCategory,
+    /// Access-Class Registry token or deployment prefix (extension-registry.md §3.2.3).
+    AccessClass,
 }
 
 /// Organization publishing a registry document.
@@ -97,8 +99,8 @@ pub enum RegistryWarning {
 /// aggregator + contribution categories: `contributes[]` for module entries,
 /// and the typed payload slots for `unit-kind` (`semantics`), `widget`
 /// (`widget_shape`), `action-intent` (`validation`), `validation-mapping-row`
-/// (`row`), `slot-type` (`slot_shape`), and `token-category`
-/// (`category_shape`). The `extensions` slot holds `^x-` keys (the
+/// (`row`), `slot-type` (`slot_shape`), `token-category`
+/// (`category_shape`), and `access-class` (`class_shape`). The `extensions` slot holds `^x-` keys (the
 /// substrate uses `x-formspec-kind-value` here for `property` contributions
 /// that republish closed-core enum values without a typed payload — see
 /// `specs/registry/extension-registry.md` §4.1 Rule 1 dotted-translation
@@ -159,6 +161,10 @@ pub struct RegistryEntry {
 
     /// `token-category` contribution payload: REQUIRED on `token-category` entries.
     pub category_shape: Option<serde_json::Value>,
+
+    /// `access-class` payload (`token` or `prefix`, plus `maps`): REQUIRED on
+    /// `access-class` entries.
+    pub class_shape: Option<serde_json::Value>,
 }
 
 /// Function/constraint parameter declaration.

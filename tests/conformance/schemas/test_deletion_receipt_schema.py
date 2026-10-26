@@ -70,3 +70,16 @@ def test_verification_receipt_reference_can_carry_signed_evidence() -> None:
 def test_invalid_fixtures_fail_schema(fixture_name: str) -> None:
     with pytest.raises(ValidationError):
         _validator().validate(_fixture_doc(fixture_name))
+
+
+def test_erased_artifacts_are_not_access_classes() -> None:
+    """`artifactsErased` names storage artifacts; the ledger's `classesErased` owns class tokens."""
+    doc = _fixture_doc("valid-draft-erasure.json")
+    _validator().validate(doc)
+    renamed = copy.deepcopy(doc)
+    renamed["classesErased"] = renamed.pop("artifactsErased")
+    with pytest.raises(ValidationError):
+        _validator().validate(renamed)
+    doc["artifactsErased"] = ["protected"]
+    with pytest.raises(ValidationError):
+        _validator().validate(doc)

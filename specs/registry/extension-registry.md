@@ -72,6 +72,7 @@ Additional terms:
 - A valid Registry 1.1 document requires `$formspecRegistry: "1.1"`, `publisher`, `published`, and `entries`.
 - Registry entries standardize naming, lifecycle, and compatibility bounds for extension interoperability.
 - A module widget declares configuration through `widgetShape.props`, runtime data through closed `widgetShape.dataInputs[]`, and emitted events through closed `widgetShape.actionOutputs[]`; input names and output names are unique within their respective lists.
+- An `access-class` entry registers one `accessControl.class` token or deployment prefix; the Access-Class Registry is closed (`unclassified`, `protected`, prefixes `cui`, `hipaa`), and `maps` only labels a class in CUI, FHIR, or DPV terms.
 - This BLUF is governed by `schemas/registry.schema.json`; generated references expose the schema-defined structure.
 <!-- bluf:end -->
 
@@ -153,7 +154,7 @@ Each element of the `entries` array is a JSON object describing one extension.
 | Property | Type | Req | Description |
 |---|---|---|---|
 | `name` | string | REQUIRED | The `x-`-prefixed extension identifier. |
-| `category` | enum | REQUIRED | One of: `"dataType"`, `"function"`, `"constraint"`, `"property"`, `"module"` (renamed from `"namespace"` per ADR 0150 §4.1), `"concept"`, `"vocabulary"`, or one of the six substrate contribution categories `"unit-kind"` / `"widget"` / `"action-intent"` / `"slot-type"` / `"validation-mapping-row"` / `"token-category"` (ADR 0150 §4.2). |
+| `category` | enum | REQUIRED | One of: `"dataType"`, `"function"`, `"constraint"`, `"property"`, `"module"` (renamed from `"namespace"` per ADR 0150 §4.1), `"concept"`, `"vocabulary"`, one of the six substrate contribution categories `"unit-kind"` / `"widget"` / `"action-intent"` / `"slot-type"` / `"validation-mapping-row"` / `"token-category"` (ADR 0150 §4.2), or `"access-class"` (§3.2.3). |
 | `version` | string | REQUIRED | Semver version of the extension itself. |
 | `status` | enum | REQUIRED | One of: `"draft"`, `"stable"`, `"deprecated"`, `"retired"`. See §6. |
 | `publisher` | object | OPTIONAL | Entry-level publisher override. Same schema as §2.1. |
@@ -228,6 +229,12 @@ names the token key prefix consumed by ModuleResolver and UI Graph Policy.
 Custom token-category prefixes MUST be `x-*`; platform prefixes remain owned by
 the platform Token Registry. Every key in `categoryShape.tokens` MUST start
 with `categoryShape.prefix + "."`.
+
+**`access-class`** — one Access-Class Registry value (§3.2.3):
+
+| Property | Type | Req | Description |
+|---|---|---|---|
+| `classShape` | object | REQUIRED | Exactly one of `token` or `prefix`, plus optional `maps`. |
 
 #### 3.2.1 Widget configuration, data inputs, and action outputs
 
@@ -338,6 +345,43 @@ providing shared, reusable terminology metadata at the registry level.
 > metadata consumed by ontology-aware tooling, data science pipelines, and
 > interoperability layers.
 
+#### 3.2.3 Access classes
+
+An `access-class` entry registers one value of the Definition item property
+`accessControl.class` (Core §4.2.1), or one prefix under which deployments
+register their own values. As with `token-category`, the entry `name` stays an
+`x-*` contribution identifier; `classShape` carries the value.
+
+| `classShape` member | Meaning |
+|---|---|
+| `token` | A class value: a dot-free core token, or `<prefix>.<name>` under a registered prefix. |
+| `prefix` | A namespace in which a deployment may register tokens. |
+| `maps` | OPTIONAL labels in external schemes: `cui` (NARA CUI category markings), `fhirHcs` (HL7 FHIR security-label codings `{system, code}`), `dpv` (W3C Data Privacy Vocabulary IRIs), `regulatory` (citations). |
+
+The **Access-Class Registry** is the set of `access-class` entries Formspec
+publishes in `registries/formspec-common.registry.json`. It is closed:
+
+| Token or prefix | Meaning |
+|---|---|
+| `unclassified` | Default when an Item declares no class. No restriction beyond the response's own audience. |
+| `protected` | A value whose disclosure to an unauthorized audience could endanger or locate the respondent: safe addresses, contact endpoints, employer identity (ADR 0157). |
+| `cui.*` | US federal Controlled Unclassified Information, one token per CUI category. |
+| `hipaa.*` | HIPAA protected health information. |
+
+1. A class is one token, and it is the unit of both disclosure and erasure.
+   Respondent Ledger `ChangeSetEntry.accessClass` and `data.erased`
+   `classesErased` carry these tokens.
+2. A deployment MAY add tokens only under a registered prefix, by publishing
+   `access-class` token entries in its own Registry Document. It MUST NOT
+   register a dot-free token or a new prefix; those are added here, and
+   `common.schema.json` `AccessClass` mirrors them. (`wos.*` is not a
+   registered prefix.)
+3. A value outside the core tokens and registered prefixes fails schema
+   validation. A linter MUST report a class that is neither a core token
+   nor declared by a loaded registry's `access-class` token entry (E613).
+4. `maps` labels a class for interchange and compliance tooling only.
+   Processors decide access and erasure by the token, never by `maps`.
+
 ---
 
 ## 4. Naming Rules
@@ -444,7 +488,7 @@ This section is the single source of truth for the convention; closed-core
 modules published under [ADR 0150 §14 P1](../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#14-implementation-order)
 conform to it (`x-formspec-core-task`, `x-formspec-core-actions`,
 `x-formspec-core-component`, `x-formspec-core-trace`,
-`x-formspec-core-ledger`). Subsequent non-core modules (P2+) cite this
+`x-formspec-core-ledger`, `x-formspec-core-access-class`). Subsequent non-core modules (P2+) cite this
 section rather than reauthoring the rules.
 
 ### 4.2 Posture admission (ADR 0150 §4.4 / §5.4)
@@ -771,7 +815,8 @@ the top-level `$formspecRegistry`, `publisher`, and `published` properties.
         "dataType", "function", "constraint", "property",
         "module", "concept", "vocabulary",
         "unit-kind", "widget", "action-intent",
-        "slot-type", "validation-mapping-row", "token-category"
+        "slot-type", "validation-mapping-row", "token-category",
+        "access-class"
       ]
     },
     "version": {

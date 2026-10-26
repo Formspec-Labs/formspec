@@ -1,6 +1,6 @@
 # Reconciled Formspec Disclosure Classification Axis
 
-**Status:** Accepted  
+**Status:** Superseded 2026-10-26 by the owner's Option A decision on `fs-lb8y`: `accessControl.class` from the closed Access-Class Registry ([extension-registry.md §3.2.3](../../../specs/registry/extension-registry.md#323-access-classes)) is the one axis, and `x-data-classification` is retired. This record was agent-authored and never ratified; its ledger rewrites were reverted. Kept for history only.  
 **Date:** 2026-10-23  
 **Ticket:** `fs-lb8y`  
 **Owner:** DATA Concern Port (`sys:formspec`)  

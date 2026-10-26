@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/deletion-receipt/1.0",
   "title": "Formspec Deletion Receipt",
-  "description": "Issuer-signed evidence that an abandoned draft or erase request completed for a draft id and declared classes of draft material. The receipt is class-level evidence and must not embed erased values. Production receipts carry ADR-0111 signed receipt bytes or reference an existing repo-native Verification Receipt / receipt artifact.",
+  "description": "Issuer-signed evidence that an abandoned draft or erase request completed for a draft id and declared storage artifacts of draft material. The receipt is artifact-level evidence and must not embed erased values. Production receipts carry ADR-0111 signed receipt bytes or reference an existing repo-native Verification Receipt / receipt artifact.",
   "type": "object",
   "required": [
     "$formspecDeletionReceipt",
@@ -11,7 +11,7 @@
     "deletedDraftId",
     "deletedAt",
     "issuer",
-    "classesErased",
+    "artifactsErased",
     "retentionWaived",
     "cryptographicMethod",
     "receiptSigner"
@@ -68,18 +68,18 @@
       "$ref": "#/$defs/IssuerRef",
       "description": "Issuer that signs and stands behind the deletion attestation."
     },
-    "classesErased": {
+    "artifactsErased": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/DataClass"
+        "$ref": "#/$defs/ErasedArtifact"
       },
       "minItems": 1,
       "uniqueItems": true,
-      "description": "Class-level categories of draft material erased. MUST NOT contain erased values.",
+      "description": "Storage artifacts of draft material erased. Distinct from Access-Class Registry tokens (Respondent Ledger data.erased classesErased). MUST NOT contain erased values.",
       "examples": [["draft-response", "attachments", "autosave-cache"]],
       "x-lm": {
         "critical": true,
-        "intent": "Declares what classes were erased while avoiding value replay"
+        "intent": "Declares which storage artifacts were erased while avoiding value replay"
       }
     },
     "retentionWaived": {
@@ -88,7 +88,7 @@
         "$ref": "#/$defs/RetentionWaiver"
       },
       "default": [],
-      "description": "Retention classes the issuer waived for this erasure. Empty means no waiver was declared."
+      "description": "Artifacts whose retention the issuer waived for this erasure. Empty means no waiver was declared."
     },
     "cryptographicMethod": {
       "$ref": "#/$defs/CryptographicMethod",
@@ -133,8 +133,8 @@
         }
       }
     },
-    "DataClass": {
-      "description": "Class of draft material. Deployment-specific classes MUST use x- prefix.",
+    "ErasedArtifact": {
+      "description": "Storage artifact of draft material. Deployment-specific artifacts MUST use x- prefix.",
       "anyOf": [
         {
           "type": "string",
@@ -160,17 +160,17 @@
     },
     "RetentionWaiver": {
       "type": "object",
-      "required": ["class", "basis"],
+      "required": ["artifact", "basis"],
       "additionalProperties": false,
       "properties": {
-        "class": {
-          "$ref": "#/$defs/DataClass",
-          "description": "Data class whose retention was waived."
+        "artifact": {
+          "$ref": "#/$defs/ErasedArtifact",
+          "description": "Artifact whose retention was waived."
         },
         "basis": {
           "type": "string",
           "enum": ["user-request", "retention-period-expired", "controller-policy", "legal-review", "other"],
-          "description": "Why the issuer waived retention for this class."
+          "description": "Why the issuer waived retention for this artifact."
         },
         "authorityRef": {
           "type": "string",

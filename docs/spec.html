@@ -5902,6 +5902,21 @@ referrals, payments, credit checks, or mandatory reports. A consequence
 declaration explains and gates the action; it does not itself perform
 the action.</td>
 </tr>
+<tr>
+<td><code>accessControl</code></td>
+<td>object</td>
+<td><strong>0..1</strong> (OPTIONAL; Field and Group only)</td>
+<td>Disclosure class of this Item’s data. <code>class</code> is one
+token from the Access-Class Registry (<a
+href="../registry/extension-registry.md#323-access-classes">Extension
+Registry §3.2.3</a>); an Item without one takes its nearest ancestor
+Group’s class, else <code>unclassified</code>. Processors that expose
+raw response values MUST gate them by the effective class.
+<code>subjectKind</code> (<code>address</code>, <code>contact</code>,
+<code>employer</code>) MAY qualify <code>protected</code> for renderer
+mask copy only and MUST NOT appear in any receipt, ledger event, or
+export.</td>
+</tr>
 </tbody>
 </table>
 <p><strong>Text resolution.</strong> Before display, each of an Item’s
@@ -6021,9 +6036,10 @@ renderer MUST keep the inline constructs and MAY flatten paragraphs and
 list entries into line-separated inline runs.</p>
 <p>The retired EXT-1 <code>privacy</code> sibling block is not part of
 the Definition schema. Safe-address and other field-level protection
-semantics use <code>accessControl.class</code> and the Privacy Profile /
-Access-Class Registry companions, not an item-level <code>privacy</code>
-object.</p>
+semantics use <code>accessControl.class</code>, not an item-level
+<code>privacy</code> object or an <code>x-</code> extension: processors
+may ignore extensions (§8), so an extension cannot carry a disclosure
+rule.</p>
 <h4 id="group-items">4.2.2 Group Items</h4>
 <p>A <strong>Group</strong> Item is a structural container. It organizes
 child Items into logical sections and MAY represent repeatable

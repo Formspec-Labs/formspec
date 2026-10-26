@@ -20,7 +20,7 @@ depends_on:
 This document is a draft normative companion to Formspec. It defines the SC-2
 Deletion Receipt sidecar: an issuer-signed statement that a draft-abandonment or
 erasure flow completed for a specific draft identifier and erased declared
-classes of draft material.
+artifacts of draft material.
 
 The receipt is evidence of the issuer's deletion operation. It is not the data
 that was deleted, and it MUST NOT embed erased response values, attachments,
@@ -56,7 +56,7 @@ In scope:
 - stable receipt identity;
 - deleted draft identifier;
 - deletion timestamp;
-- erased data-class taxonomy;
+- erased-artifact taxonomy;
 - retention waivers;
 - issuer signer identity;
 - cryptographic receipt-signing method and signed-payload digest;
@@ -68,7 +68,7 @@ Out of scope:
 - storage deletion algorithms;
 - legal advice or jurisdiction-specific sufficiency;
 - raw erased content;
-- analytics retention policy beyond declared class-level erasure;
+- analytics retention policy beyond declared artifact-level erasure;
 - Formspec-web UI or runtime behavior.
 
 ## 2. Document Structure
@@ -87,8 +87,8 @@ Required fields:
 | `deletedDraftId` | The abandoned or erased draft identifier. |
 | `deletedAt` | RFC 3339 timestamp when the issuer recorded deletion completion. |
 | `issuer` | Issuer that signs and stands behind the deletion attestation. |
-| `classesErased` | Non-empty list of erased data classes. |
-| `retentionWaived` | List of retention classes the issuer waived for this erasure. Empty means no waiver was declared. |
+| `artifactsErased` | Non-empty list of erased storage artifacts. |
+| `retentionWaived` | List of artifacts whose retention the issuer waived for this erasure. Empty means no waiver was declared. |
 | `cryptographicMethod` | Receipt-signing method, signed-payload digest, and signed receipt evidence. |
 | `receiptSigner` | Issuer signing key reference. `role` MUST be `issuer`. |
 
@@ -105,10 +105,10 @@ Example:
     "name": "Springfield Benefits Office",
     "identifier": "https://springfield.gov/benefits"
   },
-  "classesErased": ["draft-response", "attachments", "autosave-cache"],
+  "artifactsErased": ["draft-response", "attachments", "autosave-cache"],
   "retentionWaived": [
     {
-      "class": "analytics-linkage",
+      "artifact": "analytics-linkage",
       "basis": "user-request",
       "authorityRef": "GDPR-Article-17"
     }
@@ -129,11 +129,13 @@ Example:
 }
 ```
 
-## 3. Erased Classes
+## 3. Erased Artifacts
 
-`classesErased` is a class-level statement. It does not carry erased values.
+`artifactsErased` names storage artifacts, not data sensitivity: it does not
+carry erased values, and it is not the Access-Class Registry vocabulary that
+Respondent Ledger `data.erased` `classesErased` uses.
 
-Standard data classes:
+Standard artifacts:
 
 - `draft-response`
 - `draft-metadata`
@@ -147,11 +149,11 @@ Standard data classes:
 - `notification-contact`
 - `other`
 
-Deployment-specific classes MUST use the `x-` prefix.
+Deployment-specific artifacts MUST use the `x-` prefix.
 
 ## 4. Retention Waivers
 
-`retentionWaived` names classes for which the issuer waived an otherwise
+`retentionWaived` names artifacts for which the issuer waived an otherwise
 available retention reason. It is not a list of data that remains retained. If a
 deployment must preserve material for legal obligation, public-interest
 archiving, legal claims, or another jurisdictional exception, that preservation
@@ -189,7 +191,7 @@ A conforming Deletion Receipt processor:
    `cryptographicMethod.verificationReceiptRef`.
 3. MUST reject receipt documents whose `receiptSigner.role` is not `issuer`.
 4. MUST reject receipt documents that carry non-schema raw erased values.
-5. MUST treat `classesErased` as class-level evidence, not value-level replay.
+5. MUST treat `artifactsErased` as artifact-level evidence, not value-level replay.
 6. MUST reject `extensions` payloads at the document level and within nested
    receipt records.
 7. MUST NOT imply that receipt validity alone establishes jurisdiction-specific

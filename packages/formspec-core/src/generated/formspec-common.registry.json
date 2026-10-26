@@ -3313,6 +3313,111 @@
       "extensions": {
         "x-formspec-kind-value": "ai.proposal-accepted"
       }
+    },
+    {
+      "name": "x-formspec-core-access-class",
+      "category": "module",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Closed-core Access-Class Registry (extension-registry.md \u00a73.2.3): the core `accessControl.class` tokens and the prefixes deployments register tokens under. Validation flows through common.schema.json `AccessClass`; lint E613 resolves prefixed tokens against loaded registries.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "contributes": [
+        "x-formspec-core-access-class-unclassified",
+        "x-formspec-core-access-class-protected",
+        "x-formspec-core-access-class-cui",
+        "x-formspec-core-access-class-hipaa"
+      ]
+    },
+    {
+      "name": "x-formspec-core-access-class-unclassified",
+      "category": "access-class",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Access class `unclassified`: the default when an Item declares no `accessControl.class`. No restriction beyond the response's own audience.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "classShape": {
+        "token": "unclassified",
+        "maps": {
+          "fhirHcs": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality",
+              "code": "N"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "x-formspec-core-access-class-protected",
+      "category": "access-class",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Access class `protected`: a value whose disclosure to an unauthorized audience could endanger or locate the respondent (safe addresses, contact endpoints, employer identity; ADR 0157).",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "classShape": {
+        "token": "protected",
+        "maps": {
+          "fhirHcs": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality",
+              "code": "R"
+            }
+          ],
+          "dpv": [
+            "https://w3id.org/dpv#SensitivePersonalData"
+          ],
+          "regulatory": [
+            "34 U.S.C. 12291(b)(2)"
+          ]
+        }
+      }
+    },
+    {
+      "name": "x-formspec-core-access-class-cui",
+      "category": "access-class",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Access-class prefix `cui`: deployments register `cui.<category>` tokens for US federal Controlled Unclassified Information.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "classShape": {
+        "prefix": "cui",
+        "maps": {
+          "regulatory": [
+            "32 CFR Part 2002"
+          ]
+        }
+      }
+    },
+    {
+      "name": "x-formspec-core-access-class-hipaa",
+      "category": "access-class",
+      "version": "1.0.0",
+      "status": "stable",
+      "description": "Access-class prefix `hipaa`: deployments register `hipaa.<name>` tokens for HIPAA protected health information.",
+      "compatibility": {
+        "formspecVersion": ">=1.0.0 <2.0.0"
+      },
+      "license": "Apache-2.0",
+      "classShape": {
+        "prefix": "hipaa",
+        "maps": {
+          "regulatory": [
+            "45 CFR Parts 160 and 164"
+          ]
+        }
+      }
     }
   ]
 }

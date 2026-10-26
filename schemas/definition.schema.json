@@ -1038,6 +1038,9 @@
           },
           "description": "Item-level extension data. All keys MUST be prefixed with 'x-'. MUST NOT alter core semantics."
         },
+        "accessControl": {
+          "$ref": "#/$defs/AccessControl"
+        },
         "partyPolicy": {
           "$ref": "#/$defs/ItemPartyPolicy",
           "description": "EXT-28 / ADR-0155 §5: per-item party-scoped visibility, editability, and signature obligation policy. Absence means the item is visible-to, editable-by, and signed-by all declared parties (legacy single-party semantics extended to N parties). See core spec §4.8.3."
@@ -1071,6 +1074,7 @@
               "purpose": true,
               "extensions": true,
               "partyPolicy": true,
+              "accessControl": true,
               "x-generation": true,
               "children": {
                 "type": "array",
@@ -1178,6 +1182,7 @@
               "purpose": true,
               "extensions": true,
               "partyPolicy": true,
+              "accessControl": true,
               "x-generation": true,
               "attests": {
                 "type": "array",
@@ -1737,6 +1742,30 @@
           ]
         }
       ]
+    },
+    "AccessControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class"],
+      "description": "Disclosure class of a Field or Group's data (Core §4.2.1). An Item without accessControl takes its nearest ancestor Group's class, else `unclassified`. Processors that expose raw response values MUST gate them by the effective class. Not allowed on display Items.",
+      "properties": {
+        "class": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/AccessClass"
+        },
+        "subjectKind": {
+          "type": "string",
+          "enum": ["address", "contact", "employer"],
+          "description": "Renderer-only qualifier for `protected` that picks mask copy (ADR 0157). MUST NOT appear in any receipt, ledger event, or export."
+        }
+      },
+      "examples": [
+        { "class": "protected", "subjectKind": "address" },
+        { "class": "hipaa.phi" }
+      ],
+      "x-lm": {
+        "critical": true,
+        "intent": "The one field classification axis: access, disclosure, and erasure all key on accessControl.class."
+      }
     },
     "SeedFrom": {
       "type": "object",

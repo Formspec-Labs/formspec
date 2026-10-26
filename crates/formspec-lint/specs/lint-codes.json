@@ -233,6 +233,18 @@
       "state": "tested"
     },
     {
+      "code": "E613",
+      "pass": 3,
+      "severity": "error",
+      "title": "Access class resolves no core token or loaded registry entry (ACCESS-CLASS-UNREGISTERED)",
+      "specRef": "specs/registry/extension-registry.md#323-access-classes",
+      "suggestedFix": "use a core token (`unclassified`, `protected`), or declare the `<prefix>.<name>` token in a loaded registry's `access-class` entry under a registered prefix (`cui`, `hipaa`)",
+      "fixtures": [
+        "tests/fixtures/lint/E613-access-class-unregistered.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "E606",
       "pass": 8,
       "severity": "error",

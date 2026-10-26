@@ -40,7 +40,7 @@ export type RegistryEntry = {
    */
   name: string;
   /**
-   * The entry category. Determines which category-specific properties are required: dataType requires baseType; function requires parameters and returns; constraint requires parameters; concept requires conceptUri; vocabulary requires vocabularySystem; module requires contributes; unit-kind requires semantics; widget requires widgetShape; action-intent requires validation; slot-type requires slotShape; validation-mapping-row requires row; token-category requires categoryShape. property has no additional required properties. `namespace` was renamed to `module` per ADR 0150 §4.1 (greenfield rename, no alias).
+   * The entry category. Determines which category-specific properties are required: dataType requires baseType; function requires parameters and returns; constraint requires parameters; concept requires conceptUri; vocabulary requires vocabularySystem; module requires contributes; unit-kind requires semantics; widget requires widgetShape; action-intent requires validation; slot-type requires slotShape; validation-mapping-row requires row; token-category requires categoryShape; access-class requires classShape. property has no additional required properties. `namespace` was renamed to `module` per ADR 0150 §4.1 (greenfield rename, no alias).
    */
   category:
     | 'dataType'
@@ -55,7 +55,8 @@ export type RegistryEntry = {
     | 'action-intent'
     | 'slot-type'
     | 'validation-mapping-row'
-    | 'token-category';
+    | 'token-category'
+    | 'access-class';
   /**
    * Semver version of the extension itself (not the Formspec version). Within a registry document, the (name, version) tuple MUST be unique. A new major version MAY re-enter draft status.
    */
@@ -211,6 +212,7 @@ export type RegistryEntry = {
    */
   row?: {};
   categoryShape?: TokenCategoryShape;
+  classShape?: AccessClassShape;
   /**
    * The concept's IRI in its defining system. REQUIRED when category is 'concept'. This is the globally unique identifier for the concept this entry represents. When the publisher is the concept's authority (an agency publishing its own data dictionary), the entry IS the definition of record and the IRI SHOULD resolve — to a page or JSON document carrying the same definition.
    */
@@ -259,6 +261,59 @@ export type RegistryEntry = {
    */
   vocabularyVersion?: string;
   filter?: VocabularyFilter;
+};
+/**
+ * Access-Class Registry value. REQUIRED when category is 'access-class'. Like token-category, the entry `name` is an x-* contribution id; `classShape.token` or `classShape.prefix` is the value Definition `accessControl.class` uses (extension-registry.md §3.2.3).
+ */
+export type AccessClassShape = {
+  /**
+   * Class token as written in Definition `accessControl.class`.
+   */
+  token?: string;
+  /**
+   * Namespace under which deployments register `<prefix>.<name>` tokens.
+   */
+  prefix?: string;
+  /**
+   * Labels for this class in external schemes. Interchange and compliance metadata only; processors decide access and erasure by token.
+   */
+  maps?: {
+    /**
+     * NARA CUI Registry category markings (e.g. `PRVCY`).
+     *
+     * @minItems 1
+     */
+    cui?: [string, ...string[]];
+    /**
+     * HL7 FHIR security-label codings (HCS confidentiality, sensitivity, or handling caveat).
+     *
+     * @minItems 1
+     */
+    fhirHcs?: [
+      {
+        system: string;
+        code: string;
+      },
+      ...{
+        system: string;
+        code: string;
+      }[]
+    ];
+    /**
+     * W3C Data Privacy Vocabulary concept IRIs.
+     *
+     * @minItems 1
+     */
+    dpv?: [string, ...string[]];
+    /**
+     * Regulation or policy citations governing this class.
+     *
+     * @minItems 1
+     */
+    regulatory?: [string, ...string[]];
+  };
+} & {
+  [k: string]: unknown;
 };
 /**
  * Semantic token type used by tooling to select editors and validate values.

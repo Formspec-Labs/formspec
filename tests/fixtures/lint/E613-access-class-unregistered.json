@@ -1,0 +1,16 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.com/forms/e613",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "E613 fixture — registered prefix, but no loaded registry declares the token",
+  "items": [
+    {
+      "key": "income",
+      "type": "field",
+      "label": "Monthly income",
+      "dataType": "decimal",
+      "accessControl": { "class": "cui.privacy" }
+    }
+  ]
+}

@@ -401,7 +401,7 @@ def _field_edit_recorded_event() -> dict:
                 "path": "household.monthlyIncome",
                 "valueClass": "user-input",
                 "itemKey": "household_monthly_income",
-                "accessClass": "standard",
+                "accessClass": "cui.privacy",
                 "editBatchId": "batch-save-2026-04-28-001",
                 "editSequence": 0,
                 "before": 2400,
@@ -414,6 +414,13 @@ def _field_edit_recorded_event() -> dict:
 
 def test_field_edit_recorded_event_is_schema_valid():
     _validate_event(_field_edit_recorded_event())
+
+
+def test_change_set_access_class_must_be_registry_token():
+    event = _field_edit_recorded_event()
+    event["changes"][0]["accessClass"] = "standard"
+    with pytest.raises(ValidationError):
+        _validate_event(event)
 
 
 # ---------------------------------------------------------------------------
@@ -533,6 +540,14 @@ def test_consent_revoked_requires_consent_scope():
 def test_data_erased_requires_classes_erased_non_empty():
     event = _ext5_event("data-erased/key-shred-erasure.json")
     event["data"]["classesErased"] = []
+    with pytest.raises(ValidationError):
+        _validate_event(event)
+
+
+@pytest.mark.parametrize("token", ["household-financial", "standard", "wos.case"])
+def test_data_erased_classes_must_be_access_class_registry_tokens(token):
+    event = _ext5_event("data-erased/key-shred-erasure.json")
+    event["data"]["classesErased"] = [token]
     with pytest.raises(ValidationError):
         _validate_event(event)
 

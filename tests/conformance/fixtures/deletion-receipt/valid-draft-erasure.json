@@ -8,10 +8,10 @@
     "name": "Springfield Benefits Office",
     "identifier": "https://springfield.gov/benefits"
   },
-  "classesErased": ["draft-response", "attachments", "autosave-cache"],
+  "artifactsErased": ["draft-response", "attachments", "autosave-cache"],
   "retentionWaived": [
     {
-      "class": "analytics-linkage",
+      "artifact": "analytics-linkage",
       "basis": "user-request",
       "authorityRef": "GDPR-Article-17"
     }

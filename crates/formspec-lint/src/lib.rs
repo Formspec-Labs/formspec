@@ -5,6 +5,7 @@
 //! Pass 2 (E200/E201): Tree indexing, duplicate key/path detection
 //! Pass 3 (E300/E301/E302/W300): Reference validation — bind paths, shape targets, optionSets
 //! Pass 3b (E600/E601/E602): Extension resolution against registry documents
+//! Pass 3b (E613): Item `accessControl.class` resolution against the Access-Class Registry
 //! Pass 3c (E603/E604): Module contribution resolution + payload-schema validation (ADR 0150 §4.2/§4.3)
 //! Pass 3e (E608/E609): Posture admission — module field-equality + actor URN scan (ADR 0150 §4.4/§5.4)
 //! Pass 4 (E400): FEL expression compilation
@@ -26,6 +27,7 @@
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
+mod access_classes;
 pub mod app_graph_report;
 mod bind_consistency;
 mod document_declarations;
@@ -241,6 +243,10 @@ fn lint_definition(
     diagnostics.extend(references::check_references(doc, &tree_index));
     diagnostics.extend(document_declarations::lint_documents(doc));
     diagnostics.extend(extensions::check_extensions(
+        doc,
+        &options.registry_documents,
+    ));
+    diagnostics.extend(access_classes::check_access_classes(
         doc,
         &options.registry_documents,
     ));

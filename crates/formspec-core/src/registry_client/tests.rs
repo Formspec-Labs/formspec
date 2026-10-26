@@ -1103,3 +1103,28 @@ fn validate_deprecated_requires_notice() {
     let issues = reg.validate();
     assert!(issues.iter().any(|m| m.contains("deprecationNotice")));
 }
+
+#[test]
+fn registry_entry_access_class_carries_class_shape() {
+    // extension-registry.md §3.2.3: the Access-Class Registry is the closed
+    // set of `access-class` entries; `classShape` carries the token or prefix.
+    let json_str = include_str!("../../../../registries/formspec-common.registry.json");
+    let val: serde_json::Value = serde_json::from_str(json_str).unwrap();
+    let reg = Registry::from_json(&val).unwrap();
+    let entry = reg
+        .find_one("x-formspec-core-access-class-protected", None)
+        .unwrap();
+    assert_eq!(entry.category, ExtensionCategory::AccessClass);
+    assert_eq!(
+        super::extension_category_to_wire(entry.category),
+        "access-class"
+    );
+    let shape = entry
+        .class_shape
+        .as_ref()
+        .expect("access-class entry MUST surface class_shape on the Rust struct");
+    assert_eq!(
+        shape.get("token").and_then(|v| v.as_str()),
+        Some("protected")
+    );
+}

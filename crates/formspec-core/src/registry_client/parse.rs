@@ -177,6 +177,7 @@ pub(super) fn parse_category(s: &str) -> Option<ExtensionCategory> {
         "slot-type" => Some(ExtensionCategory::SlotType),
         "validation-mapping-row" => Some(ExtensionCategory::ValidationMappingRow),
         "token-category" => Some(ExtensionCategory::TokenCategory),
+        "access-class" => Some(ExtensionCategory::AccessClass),
         _ => None,
     }
 }
@@ -271,6 +272,7 @@ pub(super) fn parse_entry(val: &Value, index: usize) -> Result<RegistryEntry, Re
     let slot_shape = obj.get("slotShape").cloned();
     let row = obj.get("row").cloned();
     let category_shape = obj.get("categoryShape").cloned();
+    let class_shape = obj.get("classShape").cloned();
 
     Ok(RegistryEntry {
         name,
@@ -290,5 +292,6 @@ pub(super) fn parse_entry(val: &Value, index: usize) -> Result<RegistryEntry, Re
         slot_shape,
         row,
         category_shape,
+        class_shape,
     })
 }
