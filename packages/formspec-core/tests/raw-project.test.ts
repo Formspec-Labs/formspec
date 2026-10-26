@@ -2,6 +2,37 @@ import { describe, it, expect } from 'vitest';
 import { RawProject, createRawProject } from '../src/index.js';
 
 describe('RawProject', () => {
+  describe('Definition export', () => {
+    it.each([
+      { name: 'omitted', binds: undefined },
+      { name: 'explicit empty', binds: [] },
+      { name: 'authored', binds: [{ path: 'text', required: 'true' }] },
+    ])('preserves $name binds and authored JSON values', ({ binds }) => {
+      const items = [
+        { key: 'unset', type: 'field' as const, dataType: 'string' as const, initialValue: null },
+        { key: 'flag', type: 'field' as const, dataType: 'boolean' as const, initialValue: false },
+        { key: 'count', type: 'field' as const, dataType: 'integer' as const, initialValue: 0 },
+        { key: 'text', type: 'field' as const, dataType: 'string' as const, initialValue: '' },
+      ];
+      const raw = createRawProject({ seed: { definition: {
+        $formspec: '1.0', url: 'urn:test:export-json', version: '1.0.0', status: 'draft',
+        title: 'Export', items, ...(binds === undefined ? {} : { binds }),
+      } } });
+
+      const exported = raw.export().definitions[0];
+      if (binds === undefined) expect(exported).not.toHaveProperty('binds');
+      else expect(exported.binds).toEqual(binds);
+      expect(exported.items).toEqual(items);
+      expect(JSON.parse(JSON.stringify(exported))).toStrictEqual(exported);
+
+      exported.items[0].initialValue = 'changed';
+      exported.items.push({ key: 'extra', type: 'field', dataType: 'string' });
+      if (exported.binds?.length) exported.binds[0].required = 'false';
+      expect(raw.definition.items).toEqual(items);
+      expect(raw.definition.binds).toEqual(binds);
+    });
+  });
+
   it('is exported as RawProject class', () => {
     const raw = createRawProject();
     expect(raw).toBeInstanceOf(RawProject);

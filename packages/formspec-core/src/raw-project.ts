@@ -80,6 +80,7 @@ import {
   listRegistries as _listRegistries,
   browseExtensions as _browseExtensions,
   resolveExtension as _resolveExtension,
+  serializeToJSON,
 } from './queries/index.js';
 import { evalFELWithTrace, type FelTraceResult } from '@formspec-org/engine/fel-runtime';
 import { exportComponentTree, importComponentTree } from './component-export.js';
@@ -353,7 +354,7 @@ export class RawProject implements IProjectCore {
       // ADR 0150 §5.2 App Manifest reframe: `definitions` is plural. P0 authoring
       // still owns a single Definition, so this array is single-element; multi-
       // definition authoring lands at P1+.
-      definitions: [this._state.definition],
+      definitions: [serializeToJSON(this._state)],
       // component-spec §1.2: a Component Document overrides Theme widget selection, so a
       // tree the Definition alone generates is not emitted — its absence lets the theme apply.
       ...(componentExport.derived ? {} : {
