@@ -5,7 +5,7 @@
   "type": "module",
   "sideEffects": false,
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19.0"
   },
   "license": "Apache-2.0",
   "repository": {
@@ -45,6 +45,7 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
+    "test:consumer": "vitest run tests/cjs-smoke.test.ts tests/esm-smoke.test.ts",
     "test:watch": "vitest"
   },
   "peerDependencies": {
