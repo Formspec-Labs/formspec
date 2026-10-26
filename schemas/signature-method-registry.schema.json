@@ -50,7 +50,9 @@
           },
           "alg": {
             "type": ["integer", "null"],
-            "description": "IANA COSE algorithm identifier. null for methods awaiting IANA registration (e.g., PQC).",
+            "minimum": -9223372036854775808,
+            "exclusiveMaximum": 9223372036854775808,
+            "description": "IANA COSE algorithm identifier. null for methods awaiting IANA registration (e.g., PQC). Bounded to the signed 64-bit range the integrity-cose byte authority carries; both bounds are powers of two, so they are exact even for validators that read numbers as IEEE doubles. Such validators still cannot tell integers beyond 2^53 apart, so near the bounds only an exact-integer validator (or integrity-cose itself) decides.",
             "examples": [-8, -7]
           },
           "status": {
