@@ -1,0 +1,18 @@
+{
+  "fixture": "invalid-needs-in-v2-4",
+  "purpose": "App Manifest 2.4 does not gain the 2.5 needs member.",
+  "expected": {
+    "valid": false,
+    "errorContains": "2.5"
+  },
+  "bundle": {
+    "$formspecBundle": "2.4",
+    "version": "1.0.0",
+    "id": "https://example.gov/apps/intake",
+    "definitions": [],
+    "needs": {
+      "url": "https://example.gov/apps/intake/needs",
+      "version": "1.0.0"
+    }
+  }
+}

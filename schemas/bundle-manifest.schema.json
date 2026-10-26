@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://formspec.org/schemas/bundleManifest/2.4",
-  "title": "Formspec App Manifest (v2.4)",
-  "description": "A Formspec App Manifest per the App Manifest specification (formerly Bundle Manifest). The author-facing composition layer above a Formspec app. An app composes zero-or-more Definitions, Surfaces, Registries, Components, Screeners, Data Sources catalogs, and Locales plus optional substrate artifacts. App Manifest v2.4 adds fail-closed entrySurface selection and ordered plural association for target- and scope-aware companion documents while retaining the legacy single References, Ontology, and Response Actions members. Older 2.x documents retain their historical member gates; the signed Surface-bundle profile requires migration to v2.4 before admission. `definitions` is REQUIRED but MAY be an empty array for a non-form app. See specs/bundle/app-manifest-spec.md for normative prose.",
+  "$id": "https://formspec.org/schemas/bundleManifest/2.5",
+  "title": "Formspec App Manifest (v2.5)",
+  "description": "A Formspec App Manifest per the App Manifest specification (formerly Bundle Manifest). The author-facing composition layer above a Formspec app. An app composes zero-or-more Definitions, Surfaces, Registries, Components, Screeners, Data Sources catalogs, and Locales plus optional substrate artifacts. App Manifest v2.4 adds fail-closed entrySurface selection and ordered plural association for target- and scope-aware companion documents while retaining the legacy single References, Ontology, and Response Actions members; v2.5 adds the optional needs member. Older 2.x documents retain their historical member gates; the signed Surface-bundle profile requires v2.4 or later. `definitions` is REQUIRED but MAY be an empty array for a non-form app. See specs/bundle/app-manifest-spec.md for normative prose.",
   "$comment": "Bundle-graph id-uniqueness invariant per ADR 0150 §5.3: every authored ComponentBase.id reachable from this App Manifest MUST be unique across all referenced Component documents (not merely per-document). JSON Schema cannot enforce cross-document uniqueness; linter rule E605 (COMP-BUNDLE-ID-COLLISION) walks the bundle graph and hard-fails on duplicates. Load-bearing for cross-document Component-tree refactors (ADR 0151).",
   "type": "object",
   "required": ["$formspecBundle", "version", "id", "definitions"],
@@ -12,7 +12,7 @@
       "if": { "required": ["dataSources"] },
       "then": {
         "properties": {
-          "$formspecBundle": { "enum": ["2.1", "2.2", "2.3", "2.4"] }
+          "$formspecBundle": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5"] }
         }
       }
     },
@@ -20,7 +20,7 @@
       "if": { "required": ["components"] },
       "then": {
         "properties": {
-          "$formspecBundle": { "enum": ["2.2", "2.3", "2.4"] }
+          "$formspecBundle": { "enum": ["2.2", "2.3", "2.4", "2.5"] }
         }
       }
     },
@@ -28,7 +28,7 @@
       "if": { "required": ["screeners"] },
       "then": {
         "properties": {
-          "$formspecBundle": { "enum": ["2.3", "2.4"] }
+          "$formspecBundle": { "enum": ["2.3", "2.4", "2.5"] }
         }
       }
     },
@@ -37,7 +37,7 @@
       "then": {
         "required": ["surfaces"],
         "properties": {
-          "$formspecBundle": { "const": "2.4" },
+          "$formspecBundle": { "enum": ["2.4", "2.5"] },
           "surfaces": { "minItems": 1 }
         }
       }
@@ -45,7 +45,7 @@
     {
       "if": {
         "properties": {
-          "$formspecBundle": { "const": "2.4" },
+          "$formspecBundle": { "enum": ["2.4", "2.5"] },
           "surfaces": { "minItems": 2 }
         },
         "required": ["$formspecBundle", "surfaces"]
@@ -58,14 +58,21 @@
       "if": {
         "anyOf": [
           { "required": ["referenceDocuments"] },
-          { "required": ["needs"] },
           { "required": ["ontologies"] },
           { "required": ["responseActionDocuments"] }
         ]
       },
       "then": {
         "properties": {
-          "$formspecBundle": { "const": "2.4" }
+          "$formspecBundle": { "enum": ["2.4", "2.5"] }
+        }
+      }
+    },
+    {
+      "if": { "required": ["needs"] },
+      "then": {
+        "properties": {
+          "$formspecBundle": { "const": "2.5" }
         }
       }
     }
@@ -76,9 +83,9 @@
   "properties": {
     "$formspecBundle": {
       "type": "string",
-      "enum": ["2.0", "2.1", "2.2", "2.3", "2.4"],
-      "description": "App Manifest specification version. v2.1 introduces dataSources[], v2.2 introduces components[], v2.3 introduces screeners[], and v2.4 introduces entrySurface plus target-aware Locale and ordered plural References, Ontology, and Response Actions associations. Older 2.x documents retain their historical member and entry semantics.",
-      "examples": ["2.0", "2.1", "2.2", "2.3", "2.4"],
+      "enum": ["2.0", "2.1", "2.2", "2.3", "2.4", "2.5"],
+      "description": "App Manifest specification version. v2.1 introduces dataSources[], v2.2 introduces components[], v2.3 introduces screeners[], v2.4 introduces entrySurface plus target-aware Locale and ordered plural References, Ontology, and Response Actions associations, and v2.5 introduces the optional needs member. Older 2.x documents retain their historical member and entry semantics.",
+      "examples": ["2.0", "2.1", "2.2", "2.3", "2.4", "2.5"],
       "x-lm": {
         "critical": true,
         "intent": "Version pin for App Manifest document compatibility"
@@ -139,7 +146,7 @@
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/SiblingRef" },
-      "description": "Optional ordered list of Response Actions documents. This member is valid only when `$formspecBundle` is '2.4'. Each document retains its declared scope and target, allowing one app to compose response-scoped submission actions with app-scoped operations without discovery or host-side action injection."
+      "description": "Optional ordered list of Response Actions documents. This member is valid only when `$formspecBundle` is '2.4' or later. Each document retains its declared scope and target, allowing one app to compose response-scoped submission actions with app-scoped operations without discovery or host-side action injection."
     },
     "component": {
       "$ref": "#/$defs/SiblingRef",
@@ -157,7 +164,7 @@
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/SiblingRef" },
-      "description": "Optional ordered list of References documents. This member is valid only when `$formspecBundle` is '2.4'. Each loaded document retains its own required targetDefinition association, allowing one multi-Definition app to compose human or agent resources for each Definition without discovery or host-side document injection."
+      "description": "Optional ordered list of References documents. This member is valid only when `$formspecBundle` is '2.4' or later. Each loaded document retains its own required targetDefinition association, allowing one multi-Definition app to compose human or agent resources for each Definition without discovery or host-side document injection."
     },
     "ontology": {
       "$ref": "#/$defs/SiblingRef",
@@ -167,7 +174,7 @@
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/SiblingRef" },
-      "description": "Optional ordered list of Ontology documents. This member is valid only when `$formspecBundle` is '2.4'. Each loaded document retains its own required targetDefinition association. Array order is load order; when more than one loaded Ontology binds the same target path, the Ontology and Assist specifications' last-loaded precedence applies."
+      "description": "Optional ordered list of Ontology documents. This member is valid only when `$formspecBundle` is '2.4' or later. Each loaded document retains its own required targetDefinition association. Array order is load order; when more than one loaded Ontology binds the same target path, the Ontology and Assist specifications' last-loaded precedence applies."
     },
     "registries": {
       "type": "array",
@@ -189,12 +196,12 @@
       "type": "string",
       "format": "uri",
       "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
-      "description": "App Manifest v2.4 entry Surface selector. The value is a canonical absolute URL and MUST exactly match one surfaces[].url. It selects the Surface only; the selected Surface's own entry selects the route. It MUST NOT contain a bundle-local Surface.id or a route override. For v2.4, omit this member only when surfaces[] has zero or one entry; two or more Surfaces require it.",
-      "$comment": "JSON Schema enforces the v2.4 version gate, at-least-one-Surface requirement when present, and required selection for two-or-more Surfaces. Exact value-to-surfaces[].url matching is an AppGraphValidator rule."
+      "description": "App Manifest v2.4+ entry Surface selector. The value is a canonical absolute URL and MUST exactly match one surfaces[].url. It selects the Surface only; the selected Surface's own entry selects the route. It MUST NOT contain a bundle-local Surface.id or a route override. For v2.4 and later, omit this member only when surfaces[] has zero or one entry; two or more Surfaces require it.",
+      "$comment": "JSON Schema enforces the v2.4-or-later version gate, at-least-one-Surface requirement when present, and required selection for two-or-more Surfaces. Exact value-to-surfaces[].url matching is an AppGraphValidator rule."
     },
     "needs": {
       "$ref": "#/$defs/SiblingRef",
-      "description": "Optional Needs Document (Needs spec) paired with this app (Needs §2.1). This member is valid only when `$formspecBundle` is '2.4'. Including it publishes the research evidence — Need statements, groundings, and adoption actors — with the bundle; a deployment package carries its Needs Document privately by default. When present, AppGraph validation pairs this document as Needs evidence; processors MUST NOT discover a Needs Document any other way.",
+      "description": "Optional Needs Document (Needs spec) paired with this app (Needs §2.1). This member is valid only when `$formspecBundle` is '2.5'. Including it publishes the research evidence — Need statements, groundings, and adoption actors — with the bundle; a deployment package carries its Needs Document privately by default. When present, AppGraph validation pairs this document as Needs evidence; processors MUST NOT discover a Needs Document any other way.",
       "examples": [
         { "url": "https://example.gov/apps/intake/needs", "version": "1.0.0" }
       ]
@@ -268,7 +275,7 @@
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/LocaleRef" },
-      "description": "Optional array of Locale references. In App Manifest v2.4 each reference URL MUST be unique; the same normalized language tag MAY appear for different loaded targets. The reference locale MUST match the loaded Locale document, whose target MUST be this App Manifest or one loaded Definition. Duplicate loaded (target.kind, target.url, normalized locale) tuples are invalid. App Manifest v2.0-v2.3 retain their historical locale-only uniqueness rule.",
+      "description": "Optional array of Locale references. In App Manifest v2.4 and later each reference URL MUST be unique; the same normalized language tag MAY appear for different loaded targets. The reference locale MUST match the loaded Locale document, whose target MUST be this App Manifest or one loaded Definition. Duplicate loaded (target.kind, target.url, normalized locale) tuples are invalid. App Manifest v2.0-v2.3 retain their historical locale-only uniqueness rule.",
       "examples": [
         [
           { "url": "https://example.gov/apps/intake/locale-en-us", "version": "1.0.0", "locale": "en-US" },
@@ -277,7 +284,7 @@
       ],
       "x-lm": {
         "critical": true,
-        "intent": "Target-aware Locale document references keyed by unique URL in App Manifest v2.4"
+        "intent": "Target-aware Locale document references keyed by unique URL in App Manifest v2.4 and later"
       }
     },
     "mappings": {

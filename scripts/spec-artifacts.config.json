@@ -706,13 +706,13 @@
         "Ambiguous route handles and path collisions fail closed: the shell reports the ambiguity and resolves no affected route.",
         "Every slot type and static-content kind is handled exhaustively. Malformed runtime input produces an unavailable plan plus a dedicated diagnostic instead of a thrown exception or generic fallback.",
         "The route composition layer owns effective Theme-token emission. Platform values remain under tenant overrides, nested renderers suppress duplicate emission, and no renderer writes beyond an element or output subtree it owns.",
-        "App Manifest 2.4 selects the entry Surface by exact entrySurface URL under zero/one/many rules; the selected Surface's entry remains the only route selector, and manifest order or local ids never substitute.",
+        "App Manifest 2.4+ selects the entry Surface by exact entrySurface URL under zero/one/many rules; the selected Surface's entry remains the only route selector, and manifest order or local ids never substitute.",
         "Transitions become supplied-by-slot only when the rendered binding publishes the matching form control or Registry-declared Surface-mapped widget output. A widget receives only emitAction(outputName), and each emission uses one stable invocation identity: duplicate in-flight delivery coalesces, Response Actions retry preserves identity and Response snapshot, durable outcomes replay, obsolete-generation completion is ignored, and a current successful result navigates at most once through exactly one eligible transition.",
         "Shell text uses Locale 2.0's closed app-targeted $module.x-formspec-surface.shell.* family and FEL {{...}} context; the Surface-only {name} parser is retired.",
         "A signed bundle export is verified before any bundle-derived output is rendered."
       ],
       "conformanceEssentials": [
-        "Route lookup, App Manifest 2.4 entry selection, and route-handle resolution return no route when identity or matching is ambiguous, and report APP-ENTRY-AMBIGUOUS, APP-ENTRY-SURFACE-UNRESOLVED, or the matching route diagnostic.",
+        "Route lookup, App Manifest 2.4+ entry selection, and route-handle resolution return no route when identity or matching is ambiguous, and report APP-ENTRY-AMBIGUOUS, APP-ENTRY-SURFACE-UNRESOLVED, or the matching route diagnostic.",
         "Unknown slot types and static-content kinds fail closed with SLOT-TYPE-UNKNOWN or STATIC-CONTENT-KIND-UNKNOWN; dispatch does not throw.",
         "Tenant Theme tokens reach only admitted route subtrees, are layered over platform tokens key by key, and are emitted once by the composition owner with cleanup.",
         "Transition conditions resolve to active, condition-false, or condition-unevaluable; unevaluable conditions do not fire and report TRANSITION-CONDITION-UNEVALUABLE.",
@@ -727,24 +727,24 @@
       "bluf": "specs/bundle/app-manifest-spec.bluf.md",
       "llm": "specs/bundle/app-manifest-spec.llm.md",
       "behaviorEssentials": [
-        "App Manifest (formerly Bundle Manifest, reframed v2.0 and extended through v2.4) is a pure composition document: it names an app by canonical sibling URLs and versions without inlining or synthesizing artifacts.",
+        "App Manifest (formerly Bundle Manifest, reframed v2.0 and extended through v2.5) is a pure composition document: it names an app by canonical sibling URLs and versions without inlining or synthesizing artifacts.",
         "Absent siblings invoke each sibling spec's existing defaults; no synthesis, no inline sidecars, no shims on existing primary specs.",
         "App `id` MUST be distinct from every sibling URL. In 2.4 Locale references are unique by URL, while loaded Locale identity is the complete target-kind, target-URL, normalized-locale tuple; the same tag may serve distinct targets.",
         "App `version` is strict SemVer 2.0.0; per-SiblingRef.version accepts exact SemVer or range expressions resolved at sibling-resolution time.",
         "dataSources[] is valid from 2.1, components[] from 2.2, screeners[] from 2.3, and entrySurface plus referenceDocuments[], ontologies[], and responseActionDocuments[] only in 2.4.",
-        "App Manifest 2.4 entrySurface is an absolute URL: absent with zero Surfaces, optional and implicitly sole with one, required with two or more, and when present an exact match to one surfaces[].url. The selected Surface's entry selects the route.",
+        "App Manifest 2.4+ entrySurface is an absolute URL: absent with zero Surfaces, optional and implicitly sole with one, required with two or more, and when present an exact match to one surfaces[].url. The selected Surface's entry selects the route.",
         "Forward composition preserves sibling-owned targetDefinition, targetSurfaceRoutes, Locale 2.0 target, and Response Actions scope: a legacy references, ontology, or responseActions singleton loads first, followed by its plural array order; reverse discovery continues to work.",
         "`definitions[]` MAY be empty (non-form apps composing only surfaces/modules), single-element (form-only common case), or multi-element (multi-form apps)."
       ],
       "conformanceEssentials": [
-        "A conforming App Manifest must use a supported $formspecBundle value through '2.4', strict-SemVer version, URI-shaped id, and a REQUIRED definitions[] array which MAY be empty.",
+        "A conforming App Manifest must use a supported $formspecBundle value through '2.5', strict-SemVer version, URI-shaped id, and a REQUIRED definitions[] array which MAY be empty.",
         "Processors MUST enforce version-specific array uniqueness, id-vs-sibling-URL distinctness, sibling-pin consistency, Locale 2.0 target association, Screener target association, and module coherence at resolution time.",
         "Loaded sibling discriminators must match the slot per the §3.4 table; Definition is identified by `$formspec` (unqualified) while every other sibling carries `$formspec<Type>`.",
         "Documents with $formspecBundle='1.0' (legacy Bundle Manifest) MUST be rejected — the 1.0 → 2.0 plural-shape change is BREAKING per ADR 0150 §11.2.",
         "Documents with newer members must meet their version gate; entrySurface and plural companion members are valid only in 2.4, and entrySurface never accepts a local Surface id or route override.",
         "References, Ontology, and response-scoped Response Actions must target a loaded Definition; app-scoped Response Actions declare scope app and omit targetDefinition.",
         "For 2.4, each Locale reference URL is unique, its locale matches the loaded Locale 2.0 document, and its target is this app or a loaded Definition; fallback never crosses that target.",
-        "App Manifest does NOT introduce shims or aliases: older documents retain historical behavior, while the 2.4 path requires migration."
+        "App Manifest does NOT introduce shims or aliases: older documents retain historical behavior, while the 2.4+ path requires migration; 2.5 only adds the optional needs member."
       ]
     },
     {

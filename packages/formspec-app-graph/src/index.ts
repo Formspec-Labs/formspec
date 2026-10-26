@@ -24,10 +24,13 @@ export {
   type BundleExportAppGraphReportProducerRequest,
 } from './producer.js';
 export {
+  APP_MANIFEST_VERSIONS,
+  appManifestVersionAtLeast,
   artifactResolutionGraphInput,
   resolveArtifacts,
   resolveBundleExportArtifacts,
   type ArtifactResolutionGraphInput,
+  type AppManifestVersion,
   type ArtifactLoader,
   type ArtifactLoaderDiagnosticInput,
   type ArtifactLoaderInput,

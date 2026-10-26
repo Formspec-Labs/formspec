@@ -1,0 +1,17 @@
+{
+  "fixture": "app-needs-v2-5",
+  "purpose": "App Manifest 2.5 pairs a Needs Document through the optional needs member; including it publishes the research evidence.",
+  "expected": {
+    "valid": true
+  },
+  "bundle": {
+    "$formspecBundle": "2.5",
+    "version": "1.0.0",
+    "id": "https://example.gov/apps/intake",
+    "definitions": [],
+    "needs": {
+      "url": "https://example.gov/apps/intake/needs",
+      "version": "1.0.0"
+    }
+  }
+}

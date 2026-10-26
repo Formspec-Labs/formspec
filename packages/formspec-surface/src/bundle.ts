@@ -56,6 +56,7 @@ import type { ScreenerDocumentHandle } from './screener-slot.js';
 import type { ScreenerDocument } from '@formspec-org/types';
 import type { DataSourceCatalogHandle } from './data-source-loader.js';
 import type { MappingDocumentHandle } from './definition-form-initial-data.js';
+import { appManifestVersionAtLeast } from '@formspec-org/app-graph';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
 import type { ExperienceDocumentHandle } from './experience-unit.js';
 
@@ -115,9 +116,9 @@ export interface ResolvedBundle {
   localeDocuments?: readonly LocaleDocument[];
   surfaces: readonly SurfaceDocument[];
   /**
-   * The exact loaded Surface selected by App Manifest 2.4.
+   * The exact loaded Surface selected by App Manifest 2.4 and later.
    *
-   * `null` means 2.4 selected no Surface (valid zero-Surface app, ambiguous
+   * `null` means 2.4+ selected no Surface (valid zero-Surface app, ambiguous
    * omission, or unresolved explicit selector). Older 2.x bundles omit this
    * property so composition retains their historical manifest-order rule.
    */
@@ -217,7 +218,7 @@ export function dereferenceBundleExport(bundle: BundleExport): ResolvedBundle {
   const surfaces = resolvedSurfaces.map(({ document }) => document);
 
   let entrySurface: SurfaceDocument | null | undefined;
-  if (bundle.manifest.$formspecBundle === '2.4') {
+  if (appManifestVersionAtLeast(bundle.manifest.$formspecBundle, '2.4')) {
     const refs = bundle.manifest.surfaces ?? [];
     const selector = bundle.manifest.entrySurface;
 

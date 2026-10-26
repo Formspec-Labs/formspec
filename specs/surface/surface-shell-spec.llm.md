@@ -23,14 +23,14 @@ _No BLUF configured._
 - Ambiguous route handles and path collisions fail closed: the shell reports the ambiguity and resolves no affected route.
 - Every slot type and static-content kind is handled exhaustively. Malformed runtime input produces an unavailable plan plus a dedicated diagnostic instead of a thrown exception or generic fallback.
 - The route composition layer owns effective Theme-token emission. Platform values remain under tenant overrides, nested renderers suppress duplicate emission, and no renderer writes beyond an element or output subtree it owns.
-- App Manifest 2.4 selects the entry Surface by exact entrySurface URL under zero/one/many rules; the selected Surface's entry remains the only route selector, and manifest order or local ids never substitute.
+- App Manifest 2.4+ selects the entry Surface by exact entrySurface URL under zero/one/many rules; the selected Surface's entry remains the only route selector, and manifest order or local ids never substitute.
 - Transitions become supplied-by-slot only when the rendered binding publishes the matching form control or Registry-declared Surface-mapped widget output. A widget receives only emitAction(outputName), and each emission uses one stable invocation identity: duplicate in-flight delivery coalesces, Response Actions retry preserves identity and Response snapshot, durable outcomes replay, obsolete-generation completion is ignored, and a current successful result navigates at most once through exactly one eligible transition.
 - Shell text uses Locale 2.0's closed app-targeted $module.x-formspec-surface.shell.* family and FEL {{...}} context; the Surface-only {name} parser is retired.
 - A signed bundle export is verified before any bundle-derived output is rendered.
 
 ## Conformance Essentials
 
-- Route lookup, App Manifest 2.4 entry selection, and route-handle resolution return no route when identity or matching is ambiguous, and report APP-ENTRY-AMBIGUOUS, APP-ENTRY-SURFACE-UNRESOLVED, or the matching route diagnostic.
+- Route lookup, App Manifest 2.4+ entry selection, and route-handle resolution return no route when identity or matching is ambiguous, and report APP-ENTRY-AMBIGUOUS, APP-ENTRY-SURFACE-UNRESOLVED, or the matching route diagnostic.
 - Unknown slot types and static-content kinds fail closed with SLOT-TYPE-UNKNOWN or STATIC-CONTENT-KIND-UNKNOWN; dispatch does not throw.
 - Tenant Theme tokens reach only admitted route subtrees, are layered over platform tokens key by key, and are emitted once by the composition owner with cleanup.
 - Transition conditions resolve to active, condition-false, or condition-unevaluable; unevaluable conditions do not fire and report TRANSITION-CONDITION-UNEVALUABLE.

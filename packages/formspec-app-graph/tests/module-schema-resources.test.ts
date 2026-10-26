@@ -27,7 +27,7 @@ for (const name of readdirSync(schemaDirectory).filter(name => name.endsWith('.s
   if (schema.$id) canonicalAjv.addSchema(schema);
 }
 const schemaIds: Record<string, string> = {
-  appManifest: 'https://formspec.org/schemas/bundleManifest/2.4',
+  appManifest: 'https://formspec.org/schemas/bundleManifest/2.5',
   surface: 'https://formspec.org/schemas/surface/0.2',
   registry: 'https://formspec.org/schemas/registry/v1.1/registry.json',
 };

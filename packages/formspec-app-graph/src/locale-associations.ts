@@ -1,5 +1,6 @@
-/** @filedesc App Manifest 2.4 Locale reference and target coherence checks. */
+/** @filedesc App Manifest 2.4+ Locale reference and target coherence checks. */
 
+import { appManifestVersionAtLeast } from './artifact-resolver.js';
 import { satisfies, valid, validRange } from 'semver';
 import type {
   AppGraphContext,
@@ -405,7 +406,7 @@ function localeUiChromeDiagnostics(
 }
 
 export function validateLocaleAssociations(context: AppGraphContext): AppGraphDiagnostic[] {
-  if (stringProp(manifestRecord(context), '$formspecBundle') !== '2.4') return [];
+  if (!appManifestVersionAtLeast(stringProp(manifestRecord(context), '$formspecBundle'), '2.4')) return [];
   const perLocale = perLocaleDiagnostics(context);
   return [
     ...duplicateRefDiagnostics(context),

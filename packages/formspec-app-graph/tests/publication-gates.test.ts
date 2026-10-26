@@ -1,6 +1,7 @@
 /** @filedesc Locale lint injection, the rendered-Need trace record, and App Manifest needs pairing. */
 import { describe, expect, it } from 'vitest';
 import {
+  appManifestVersionAtLeast,
   produceBundleExportAppGraphValidationReport,
   lintPathToJsonPointer,
   localeLintValidator,
@@ -38,7 +39,7 @@ const theme = { $formspecTheme: '1.0', url: themeUrl, version: '1.0.0', targetDe
 function bundle(def: unknown, extra: { needs?: unknown; locale?: boolean } = {}) {
   return {
     manifest: {
-      $formspecBundle: '2.4',
+      $formspecBundle: '2.5',
       id: 'https://example.gov/apps/intake',
       version: '1.0.0',
       definitions: [{ url: definitionUrl, version: '1.0.0' }],
@@ -148,5 +149,21 @@ describe('renderedNeedTrace record (Needs spec S10.3)', () => {
     });
     expect(missing.report.ok).toBe(false);
     expect(missing.report.diagnostics.map((entry) => entry.code)).toContain('APP-GRAPH-NEEDS-REF');
+  });
+});
+
+describe('App Manifest 2.5', () => {
+  it('keeps every 2.4 rule: each minor is additive', async () => {
+    expect(appManifestVersionAtLeast('2.5', '2.4')).toBe(true);
+    expect(appManifestVersionAtLeast('2.4', '2.4')).toBe(true);
+    expect(appManifestVersionAtLeast('2.3', '2.4')).toBe(false);
+    expect(appManifestVersionAtLeast('2.6', '2.4')).toBe(false);
+    const result = await produceBundleExportAppGraphValidationReport({
+      ...bundle(definition(), { locale: true }),
+      ...permissive,
+    });
+    // 2.4's target-aware Locale association applies to 2.5: the Locale reference resolves and validates.
+    expect(result.report.ok).toBe(true);
+    expect(result.artifactResolutionReport.artifacts.locales?.[0]?.status).toBe('loaded');
   });
 });

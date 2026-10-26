@@ -1,5 +1,6 @@
-/** @filedesc App Manifest 2.4 entry Surface and selected route validation. */
+/** @filedesc App Manifest 2.4+ entry Surface and selected route validation. */
 
+import { appManifestVersionAtLeast } from './artifact-resolver.js';
 import type {
   AppGraphContext,
   AppGraphDiagnostic,
@@ -106,7 +107,7 @@ function unresolvedRouteDiagnostic(
  */
 export function validateAppEntry(context: AppGraphContext): AppGraphDiagnostic[] {
   const manifest = record(context.manifest.document);
-  if (stringProp(manifest, '$formspecBundle') !== '2.4') return [];
+  if (!appManifestVersionAtLeast(stringProp(manifest, '$formspecBundle'), '2.4')) return [];
 
   const refs = manifestSurfaceRefs(context);
   const entrySurface = stringProp(manifest, 'entrySurface');
