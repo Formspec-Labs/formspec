@@ -260,6 +260,37 @@ mod tests {
     }
 
     #[test]
+    fn facade_preserves_typed_key_resolution_errors() -> Result<(), Box<dyn std::error::Error>> {
+        const METHOD: &str = "urn:formspec:sig-method:ed25519-cose-sign1@1";
+        let registry = SignatureMethodRegistry {
+            version: "1.0.0".into(),
+            entries: vec![RegistryEntry {
+                id: METHOD.into(),
+                suite: "Ed25519".into(),
+                wire: "COSE_Sign1".into(),
+                alg: Some(-8),
+                status: "registered".into(),
+                deprecation_notice: None,
+            }],
+        };
+        let error = RingVerifier::new()
+            .verify(
+                &VerifyRequest {
+                    signed_bytes: vec![],
+                    signature_bytes: vec![],
+                    method_uri: METHOD.into(),
+                    key_ref: KeyRef::Kid(b"missing-key".to_vec()),
+                },
+                &registry,
+            )
+            .expect_err("missing key cannot produce a verdict");
+        assert!(matches!(&error, VerifierError::KeyResolution { .. }));
+        let boxed: Box<dyn std::error::Error> = error.into();
+        assert!(boxed.downcast_ref::<VerifierError>().is_some());
+        Ok(())
+    }
+
+    #[test]
     fn facade_uses_formspec_receipt_payload_domain() {
         let receipt = VerificationReceipt {
             result: VerificationResult::Verified,
