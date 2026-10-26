@@ -75,7 +75,7 @@ fn string_accepts_any_string() {
 #[test]
 fn string_rejects_non_strings() {
     assert_invalid("string", json!(42));
-    assert_invalid("string", json!(3.14));
+    assert_invalid("string", json!(12.34));
     assert_invalid("string", json!(true));
     assert_invalid("string", json!(false));
 }
@@ -99,7 +99,7 @@ fn text_accepts_any_string() {
 fn text_rejects_non_strings() {
     assert_invalid("text", json!(42));
     assert_invalid("text", json!(true));
-    assert_invalid("text", json!(3.14));
+    assert_invalid("text", json!(12.34));
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -117,7 +117,7 @@ fn integer_accepts_whole_numbers() {
 
 #[test]
 fn integer_rejects_fractional_numbers() {
-    assert_invalid("integer", json!(3.14));
+    assert_invalid("integer", json!(12.34));
     assert_invalid("integer", json!(-0.5));
     assert_invalid("integer", json!(1.1));
 }
@@ -136,7 +136,7 @@ fn integer_rejects_non_numbers() {
 #[test]
 fn decimal_accepts_any_number() {
     assert_valid("decimal", json!(0));
-    assert_valid("decimal", json!(3.14));
+    assert_valid("decimal", json!(12.34));
     assert_valid("decimal", json!(-999.99));
     assert_valid("decimal", json!(42));
 }

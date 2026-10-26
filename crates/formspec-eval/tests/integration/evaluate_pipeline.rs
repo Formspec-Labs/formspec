@@ -969,12 +969,12 @@ fn round_trip_number_integer() {
 
 #[test]
 fn round_trip_number_decimal() {
-    let json_val = json!(3.14);
+    let json_val = json!(12.34);
     let fel_val = fel_core::json_to_fel(&json_val);
     let back = fel_core::fel_to_json(&fel_val);
     let back_f = back.as_f64().expect("should be a number");
     assert!(
-        (back_f - 3.14).abs() < 0.001,
+        (back_f - 12.34).abs() < 0.001,
         "decimal round-trip: got {back_f}"
     );
 }

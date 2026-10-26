@@ -32,7 +32,7 @@ fn test_math_builtins() {
     let ctx = make_eval_context(json!({
         "cost": -125.75,
         "quantity": 4,
-        "ratio": 3.14159
+        "ratio": 12.34159
     }));
 
     // abs
@@ -41,7 +41,7 @@ fn test_math_builtins() {
 
     // round
     let res = ctx.evaluate("round($ratio, 2)", "ratio", false, None, None).unwrap();
-    assert_eq!(res.value, Value::Number(Decimal::new(314, 2)));
+    assert_eq!(res.value, Value::Number(Decimal::new(1234, 2)));
 
     // ceil & floor
     let res = ctx.evaluate("ceil(3.2)", "", false, None, None).unwrap();
