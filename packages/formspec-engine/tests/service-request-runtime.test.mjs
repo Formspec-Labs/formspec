@@ -1,6 +1,7 @@
 /** @filedesc Pure service-request planner and output-extraction contract tests. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { canonicalResponseHandoffBytes, parseJsonExact } from '@formspec-org/integrity-canonical';
 import {
   extractServiceRequestOutputs,
   planServiceRequest,
@@ -144,4 +145,91 @@ test('transition and session outputs must be non-empty strings', () => {
     }),
     /session output draftToken must resolve to a non-empty string/,
   );
+});
+
+
+const exactResponseText = '{"$formspecResponse":"1.0","data":{"amount":1234567890.123456789,"count":9007199254740993,"safe":1.25,"nested":[{"negative":-1234567890.123456789},9007199254740993]}}';
+const exactRequest = {
+  id: 'sign-draft', adapter: 'http-json', request: {
+    method: 'POST', pathTemplate: '/drafts/sign',
+    bodyBindings: { '/canonical_response': { from: 'input', path: 'response' } },
+  }, outputs: { response: { path: '/canonical_response' } },
+};
+
+test('planner preserves exact numeric leaves and detaches ordinary Response containers', () => {
+  const response = parseJsonExact(exactResponseText);
+  const planned = planServiceRequest(exactRequest, { input: { response } });
+  assert.equal(JSON.stringify(planned.body), `{"canonical_response":${exactResponseText}}`);
+  assert.deepEqual(canonicalResponseHandoffBytes(planned.body.canonical_response), canonicalResponseHandoffBytes(response));
+  assert.equal(JSON.isRawJSON(planned.body.canonical_response.data.amount), true);
+  assert.equal(planned.body.canonical_response.data.amount, response.data.amount);
+  assert.equal(Object.isFrozen(response.data.amount), true);
+  const defaults = planServiceRequest({ ...exactRequest, request: {
+    method: 'POST', pathTemplate: '/drafts/sign', bodyDefaults: { canonical_response: response },
+  } }, { input: {} });
+  assert.equal(JSON.stringify(defaults.body), JSON.stringify(planned.body));
+  response.data.nested.push('later change'); response.data.safe = 2;
+  assert.equal(JSON.stringify(planned.body), `{"canonical_response":${exactResponseText}}`);
+  assert.equal(JSON.stringify(defaults.body), JSON.stringify(planned.body));
+});
+
+test('extracted exact Response output retains its bytes through the next planned request', () => {
+  const response = parseJsonExact(exactResponseText);
+  const extracted = extractServiceRequestOutputs(exactRequest, { canonical_response: response });
+  assert.deepEqual(canonicalResponseHandoffBytes(extracted.internal.response), canonicalResponseHandoffBytes(response));
+  const next = planServiceRequest({ ...exactRequest, request: { ...exactRequest.request,
+    bodyBindings: { '/canonical_response': { from: 'result', path: 'response' } },
+  } }, { input: {}, result: extracted.internal });
+  assert.equal(JSON.stringify(next.body), `{"canonical_response":${exactResponseText}}`);
+  assert.deepEqual(canonicalResponseHandoffBytes(next.body.canonical_response), canonicalResponseHandoffBytes(response));
+  response.data.nested.push('later change');
+  assert.equal(JSON.stringify(extracted.internal.response), exactResponseText);
+  assert.equal(JSON.stringify(next.body), `{"canonical_response":${exactResponseText}}`);
+});
+
+test('a genuine raw numeric leaf is not root bodyDefaults structured data', () => {
+  const numericLeaf = parseJsonExact('1234567890.123456789');
+  assert.throws(() => planServiceRequest({ ...exactRequest,
+    request: { method: 'POST', pathTemplate: '/drafts/sign', bodyDefaults: numericLeaf },
+  }, { input: {} }), /bodyDefaults must be a JSON object/);
+});
+
+test('selectors and pointers cannot traverse or mutate a raw numeric leaf as an object', () => {
+  const response = parseJsonExact(exactResponseText);
+  assert.throws(() => resolveRuntimeValueSelector(
+    { from: 'input', path: 'response.data.amount.rawJSON' }, { input: { response } }), /structured data/);
+  assert.throws(() => extractServiceRequestOutputs({ ...exactRequest,
+    outputs: { raw: { path: '/canonical_response/data/count/rawJSON' } },
+  }, { canonical_response: response }), /structured data/);
+  assert.throws(() => planServiceRequest({ ...exactRequest, request: {
+    method: 'POST', pathTemplate: '/drafts/sign', bodyDefaults: { amount: response.data.amount },
+    bodyBindings: { '/amount/rawJSON': { from: 'literal', value: 'changed' } },
+  } }, { input: {} }), /not structured data|scalar value/);
+  assert.equal(JSON.stringify(response.data.amount), '1234567890.123456789');
+});
+
+test('plain rawJSON lookalikes remain ordinary objects without numeric authority', () => {
+  for (const amount of [{ rawJSON: '1234567890.123456789' }, Object.assign(Object.create(null), { rawJSON: '1234567890.123456789' })]) {
+    const planned = planServiceRequest(exactRequest, { input: { response: { data: { amount } } } });
+    assert.equal(JSON.isRawJSON(planned.body.canonical_response.data.amount), false);
+    assert.equal(JSON.stringify(planned.body), '{"canonical_response":{"data":{"amount":{"rawJSON":"1234567890.123456789"}}}}');
+    assert.notDeepEqual(canonicalResponseHandoffBytes(planned.body.canonical_response),
+      canonicalResponseHandoffBytes(parseJsonExact('{"data":{"amount":1234567890.123456789}}')));
+  }
+});
+
+test('exact copying retains scalar exposure and ordinary JSON refusal checks', () => {
+  const cycle = {}; cycle.next = cycle;
+  const accessor = {}; Object.defineProperty(accessor, 'answer', { enumerable: true, get() { throw new Error('must not invoke'); } });
+  for (const [value, expected] of [[NaN, /non-finite/], [Infinity, /non-finite/], [cycle, /cycle/], [accessor, /own data property/], [[, 1], /sparse/]]) {
+    assert.throws(() => planServiceRequest(exactRequest, { input: { response: value } }), expected);
+  }
+  const numericLeaf = parseJsonExact('1234567890.123456789');
+  for (const exposure of ['transition', 'session']) {
+    assert.throws(() => extractServiceRequestOutputs({ ...exactRequest,
+      outputs: { amount: { path: '/amount', exposure } },
+    }, { amount: numericLeaf }), /non-empty string/);
+  }
+  const planned = planServiceRequest(exactRequest, { input: { response: { data: { amount: 1.25, count: 7 } } } });
+  assert.equal(JSON.stringify(planned.body), '{"canonical_response":{"data":{"amount":1.25,"count":7}}}');
 });

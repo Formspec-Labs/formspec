@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { canonicalResponseHandoffBytes, parseJsonExact } from '@formspec-org/integrity-canonical';
 import { createStaticResponseMetadataReader } from '@formspec-org/engine/static-presentation';
 import { captureResponseFieldMetadata } from '@formspec-org/surface';
 import { createFieldViewModel } from '../dist/field-view-model.js';
@@ -115,4 +116,36 @@ test('pins genuine authored D1 docs; English positive, regional Spanish refusal;
 test('matches recorded and document optional URL when both are absent',()=>{
   const input=inputs();delete input.locale.url;delete input.response.displayedLocale.url;
   assert.equal(createStaticResponseMetadataReader(input).label('people[0].name'),'Nombre');
+});
+
+
+test('static reader accepts exact numeric answers without changing the Response and detaches its original structure', () => {
+  const input = inputs();
+  input.definition.items[0].children.push(
+    { key: 'amount', type: 'field', dataType: 'decimal', label: 'Exact amount' },
+    { key: 'count', type: 'field', dataType: 'integer', label: 'Exact count' });
+  input.response = parseJsonExact(JSON.stringify(input.response).replace('"name":"Ana"',
+    '"name":"Ana","amount":1234567890.123456789,"count":9007199254740993'));
+  const before = createHash('sha256').update(canonicalResponseHandoffBytes(input.response)).digest('hex');
+  const reader = createStaticResponseMetadataReader(input);
+  assert.equal(reader.label('people[0].amount'), 'Exact amount');
+  assert.equal(reader.label('people[0].count'), 'Exact count');
+  assert.deepEqual(reader.options('people[0].amount'), []);
+  assert.equal(createHash('sha256').update(canonicalResponseHandoffBytes(input.response)).digest('hex'), before);
+  assert.match(JSON.stringify(input.response), /"amount":1234567890\.123456789/);
+  assert.match(JSON.stringify(input.response), /"count":9007199254740993/);
+  input.definition.items[0].children[2].label = 'Changed label';
+  input.response.data.people.length = 0;
+  assert.equal(reader.label('people[0].amount'), 'Exact amount');
+  assert.throws(() => reader.label('people[0].amount.rawJSON'), /path-/);
+});
+
+test('a raw numeric answer cannot supply a group object through its implementation property', () => {
+  const input = inputs();
+  input.definition.items[0].children.push({ key: 'amount', type: 'group', children: [
+    { key: 'rawJSON', type: 'field', dataType: 'string', label: 'Must not disclose implementation' },
+  ] });
+  input.response = parseJsonExact(JSON.stringify(input.response).replace('"name":"Ana"',
+    '"name":"Ana","amount":1234567890.123456789'));
+  assert.throws(() => createStaticResponseMetadataReader(input).label('people[0].amount.rawJSON'), /path-/);
 });

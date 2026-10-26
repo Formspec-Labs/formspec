@@ -76,8 +76,13 @@ function fail(message: string): never {
     throw new ServiceRequestRuntimeError(message);
 }
 
+function isRawJson(value: unknown): boolean {
+    const json = JSON as typeof JSON & { isRawJSON?: (value: unknown) => boolean };
+    return json.isRawJSON?.(value) ?? false;
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
-    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+    if (value === null || typeof value !== 'object' || Array.isArray(value) || isRawJson(value)) return false;
     const prototype = Object.getPrototypeOf(value);
     return prototype === Object.prototype || prototype === null;
 }
@@ -86,7 +91,7 @@ function ownDataValue(value: unknown, segment: string, label: string): unknown {
     if (FORBIDDEN_PROPERTY_NAMES.has(segment)) {
         return fail(`${label} contains a forbidden property segment`);
     }
-    if (value === null || typeof value !== 'object') {
+    if (value === null || typeof value !== 'object' || isRawJson(value)) {
         return fail(`${label} does not resolve through structured data`);
     }
     const descriptor = Object.getOwnPropertyDescriptor(value, segment);
@@ -103,6 +108,8 @@ function cloneJson(value: unknown, label: string, seen = new Set<object>()): Jso
         return value;
     }
     if (typeof value !== 'object') return fail(`${label} is not JSON data`);
+    // Genuine built-in raw JSON is an immutable primitive, not a traversable object.
+    if (isRawJson(value)) return value as JsonValue;
     if (seen.has(value)) return fail(`${label} contains a cycle`);
     seen.add(value);
     try {
