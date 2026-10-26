@@ -75,12 +75,10 @@
     "@formspec-org/engine": "*",
     "@formspec-org/layout": "*",
     "@formspec-org/types": "*",
-    "@noble/hashes": "2.4.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/sanitize-html": "^2.13.0",
     "axe-core": "4.13.0",
-    "canonicalize": "^3.0.0",
     "happy-dom": "^17.6.1",
     "publint": "0.3.25",
     "react": "^19.0.0",
@@ -89,6 +87,8 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@noble/hashes": "2.4.0",
+    "canonicalize": "^3.0.0",
     "marked": "^15.0.7",
     "sanitize-html": "^2.14.0"
   }
