@@ -102,20 +102,16 @@ Work in the Formspec spec and runtime itself that other layers depend on. Lives 
      - MVP browser-matrix e2e gate (Playwright cross-browser fixture, or equivalent) verifies the happy path on the supported set.
      - CI fails if a supported browser drops below floor.
 
-- **FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification extension property** · `fs-du1p` · P4
+- **FORMSPEC-DATA-CLASSIFICATION-001 — Compliance labels and the unclassified-sensitive-field lint on the Access-Class Registry** · `fs-du1p` · P4
    blocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`
 
-   After `fs-lb8y` selects the canonical disclosure-classification axis, formalize
-   `x-data-classification` only if that decision retains it. The compliance
-   exploration proposes sensitivity levels
-   (public/internal/confidential/restricted/pii), categories
-   (PII/PHI/financial), and regulatory tags. Do not land this as a parallel axis
-   to `accessControl.class`.
+   `fs-lb8y` made Definition `accessControl.class` the only classification axis. Its tokens come from the closed Access-Class Registry (`access-class` entries, extension-registry.md §3.2.3: `unclassified`, `protected`, prefixes `cui` and `hipaa`), and `x-data-classification` is retired. Form authors still need regulatory labels and a warning when sensitive data goes unclassified (JOURNEYS FORM-001). The labels go in each registry entry's `maps` (`cui`, `fhirHcs`, `dpv`, `regulatory`), not in a second property.
 
    **Acceptance:**
-     - `fs-lb8y` records that `x-data-classification` is canonical or explicitly maps it to the chosen axis.
-     - If retained, `formspec-common.registry.json` registers the extension, its schema validates sensitivity, categories, and regulatory tags, C001 warns for unclassified PHI fields, and the clinical-intake example uses it.
-     - If retired, this ticket closes with the replacement mapping and no duplicate schema.
+     - The `protected`, `cui` and `hipaa` registry entries carry reviewed `maps` values.
+     - Lint C001 warns when a field whose concept or data type implies regulated data (PII/PHI/financial) has effective class `unclassified`, with red and green fixtures.
+     - The clinical-intake example classifies its PHI fields with a registered `hipaa.*` token declared in a deployment registry, and lints clean.
+     - No `x-data-classification` property, schema or registry entry exists.
 
 - **WOS Formspec-Coprocessor integrator alignment (P11-BL-051)** · `fs-op37` · P4
 
@@ -157,16 +153,6 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 
 **P1 — high-leverage:**
 
-- **FORMSPEC-PR-WASM-001 — FEL casing convergence in js_name exports** · `fs-4zhu` · P1
-
-   **High.** crates/formspec-wasm/src/fel.rs: evalFEL, analyzeFEL, parseFEL, tokenizeFEL, printFEL, getFELDependencies, analyzeFELWithFieldTypes, collectFELRewriteTargets, rewriteFELReferences all use uppercase 'FEL'. But prepareFelExpression, rewriteFelForAssembly, felExprIsInterpolationStaticLiteral, isValidFelIdentifier, sanitizeFelIdentifier use 'Fel'/'fel'. Adjacent in autocomplete; reads inconsistent.
-
-   **Fix:** Modern TS convention (Google/Airbnb/MS handbook) is camelCase with lowercase acronyms — evalFel, analyzeFel, etc. Rename via js_name = "..." only (Rust fn names stay snake_case). Audit packages/formspec-engine/src/wasm-bridge-runtime.ts + wasm-bridge-tools.ts for breakage in one sweep. Document the rename in an ADR or CHANGELOG so re-export sites in formspec-engine know the change.
-
-   Also: crates/formspec-wasm/src/split_abi.rs:8 — js_name = formspecWasmSplitAbiVersion is bare-token vs every other js_name as quoted string. Use "formspecWasmSplitAbiVersion".
-
-   **Acceptance:** All FEL js_name exports use consistent casing. wasm-bridge-runtime.ts + wasm-bridge-tools.ts updated. CHANGELOG documents the rename. Bare-token js_name fixed.
-
 - **FORMSPEC-PR-PY-003 — Generate .pyi type stubs** · `fs-77oj` · P1
 
    **High.** `find ... -name '*.pyi'` returns nothing. PyO3 0.28 does not auto-emit stubs. IDEs see formspec_rust.eval_fel(...) as Any. The whole public surface is untyped at import.
@@ -203,35 +189,6 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
    **Approach:** Remove #[allow]s, write one-liner docs per variant/field. Add #![warn(missing_docs)] to changeset and cross-stack-fixture-harness.
 
    **Acceptance:** Zero #[allow(missing_docs)] on public-API types in formspec-core. Crate docstrings on changeset and fixture-harness. cargo doc --no-deps warning-free.
-
-- **FORMSPEC-PR-REACT-003 — CJS build + sideEffects: false + react-dom peer** · `fs-oc8z` · P1
-
-   **Blocker for distribution.** ESM-only, no CJS fallback. Marquee React package — many real-world Webpack/Jest/legacy CRA setups still need require(). Also missing sideEffects: false (kills tree-shaking on bundlers that respect it). react-dom peer dep missing.
-
-   **Sites:**
-   - packages/formspec-react/package.json:14-25 — add dual ESM/CJS build via tsup or tsc+CJS pass
-   - packages/formspec-react/package.json — add "sideEffects": false, "engines.node" field
-   - packages/formspec-react/package.json:32 — peerDependencies adds "react-dom": "^18.0.0 || ^19.0.0"
-
-   **Acceptance:** Dual ESM+CJS build emits both formats. sideEffects: false declared. react-dom peer present. Smoke test in a CRA-style consumer succeeds.
-
-- **FORMSPEC-PR-SIG-009 — Crypto registry alg width + workspace dep pinning** · `fs-ogx7` · P1
-
-   **High (cross-stack).** Two related findings about how crypto deps and alg ids are typed across the workspace.
-
-   **Status update 2026-05-16:** ADR 0109 closed one of the original findings by deletion: the retired integer dispatch path was removed from `formspec-signature-cose` entirely. The closed finding below records that closure for traceability. The remaining four findings stand.
-
-   **Findings:**
-   - formspec-signature-port/src/lib.rs:236 — RegistryEntry.alg: Option<i32>. integrity-cose stores COSE alg as i128 (matching CBOR major-0/major-1 range). Formspec registry truncates. `i128::from(alg)` at adapter (-adapter-ring/src/lib.rs:179) papers over it. Future neg alg id outside i32 silently loses fidelity.
-   - formspec-signature-cose/src/lib.rs:53 — protected_header_bytes takes alg: i32, widens to i128 before forwarding. Public signature width disagrees with byte authority.
-   - ~~formspec-signature-cose/src/lib.rs:84-89 — panic site inside the retired integer-dispatch extractor. Internal invariant — replace with FormspecCoseError::Decode internal-invariant variant. Panics in crypto paths are DoS.~~ **Closed by ADR 0109 (P3-T3, 2026-05-16):** the extractor and retired dispatch field no longer exist in the crate.
-   - formspec-signature-cose/src/lib.rs:23 — FormspecCoseError::Decode(String) flattens typed CoseError. #[from] CoseError via thiserror or Decode { source: CoseError }.
-   - formspec-signature-adapter-ring/Cargo.toml:12-13 — ring and base64 pinned per-crate (also appears in formspec-cross-stack-fixture-harness, formspec-wasm). Three independent pins for security-critical deps. Move to [workspace.dependencies].
-
-   **Acceptance:**
-     - RegistryEntry.alg width matches integrity-cose (i64 or i128 with explicit narrowing-doc decision). protected_header_bytes signature matches byte authority. expect-in-crypto-path replaced with error.
-     - CoseError flow preserves typing.
-     - Crypto deps centrally pinned in workspace dependencies table.
 
 - **FORMSPEC-PR-TS-007 — FormEngine.instanceSourceCache: static singleton → per-instance** · `fs-q1q7` · P1
 
@@ -679,6 +636,7 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 - ~~**FORMSPEC-PR-PY-005 — parse_fel surfaces real parse error message**~~ `fs-0m1p` · CLOSED — **High.** crates/formspec-py/src/fel.rs:139-142 + src/formspec/_rust.py:288-293: native returns bool; wrapper raises FelSyntaxError(f'FEL parse error: {source!r}') with no actual…
 - ~~**FORMSPEC-PR-TS-002 — Delete shadowed ComponentDocument / LocaleDocument in engine**~~ `fs-4bnq` · CLOSED — **Blocker.** Engine re-declares ComponentDocument and ComponentObject (interfaces.ts:183-207) with looser shapes (Record<string, any>, [key: string]: any) than the canonical…
 - ~~**FORMSPEC-PR-SWEEP-007 — Lock down npm exports + delete dead/stale files**~~ `fs-4tui` · CLOSED — Three packages ship their entire dist/ to the public because no `exports` map is set.
+- ~~**FORMSPEC-PR-WASM-001 — FEL casing convergence in js_name exports**~~ `fs-4zhu` · CLOSED — **High.** crates/formspec-wasm/src/fel.rs: evalFEL, analyzeFEL, parseFEL, tokenizeFEL, printFEL, getFELDependencies, analyzeFELWithFieldTypes, collectFELRewriteTargets,…
 - ~~**FORMSPEC-PR-TS-005 — Delete dead/stale files (validationReport.ts, public-contract.ts, wasm-bridge.ts)**~~ `fs-6eox` · CLOSED — Subset of PR-SWEEP-007.
 - ~~**FORMSPEC-PR-REACT-004 — Replace simpleMarkdown with sanitized markdown (CVE prevention)**~~ `fs-8zhe` · CLOSED — **High (future CVE).** packages/formspec-react/src/node-renderer.tsx:53-73: simpleMarkdown is hand-rolled regex emitting dangerouslySetInnerHTML.
 - ~~**FORMSPEC-PR-REACT-001 — Add 'use client' directives (Next.js / RSC compatibility)**~~ `fs-9z4w` · CLOSED — **Blocker for Next.js adoption.** Zero 'use client' directives anywhere.
@@ -694,6 +652,8 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 - ~~**FORMSPEC-PR-SWEEP-001 — Close stringly-typed taxonomies (Rust runtimes)**~~ `fs-lwsi` · CLOSED — Unchecked `String` fields for fully-enumerated taxonomies across Rust eval/lint/core.
 - ~~**FORMSPEC-PR-TS-003 — Retighten IFormEngine to remove `any` from public contract**~~ `fs-mfiv` · CLOSED — **Blocker** for public TS API. `packages/formspec-engine/src/interfaces.ts` — `IFormEngine` leaks `any` ~14×: `EngineSignal<any>`, `setValue(..., value: any)`, `getResponse():…
 - ~~**FORMSPEC-PR-SWEEP-006 — `as any` → augmented types in formspec-core**~~ `fs-nj9y` · CLOSED — Root cause: augmented types in `formspec-types` (schema conditional properties) post-date `formspec-core` queries/handlers written against narrower shapes.
+- ~~**FORMSPEC-PR-REACT-003 — CJS build + sideEffects: false + react-dom peer**~~ `fs-oc8z` · CLOSED — **Blocker for distribution.** ESM-only, no CJS fallback.
+- ~~**FORMSPEC-PR-SIG-009 — Crypto registry alg width + workspace dep pinning**~~ `fs-ogx7` · CLOSED — **High (cross-stack).** Two related findings about how crypto deps and alg ids are typed across the workspace.
 - ~~**FORMSPEC-PR-INFRA-004 — CI studio-e2e-tests job runs non-existent script**~~ `fs-pqlz` · CLOSED — **High.** .github/workflows/ci.yml:111: studio-e2e-tests job runs `npm run test:studio:e2e` but package.json has no such script.
 - ~~**FORMSPEC-PR-EVAL-001 — ItemInfo: 26-field god struct → MipState extraction + Default impl**~~ `fs-qkjb` · CLOSED — **High.** crates/formspec-eval/src/types/item_tree.rs:7-74: ItemInfo is 26 fields.
 - ~~**FORMSPEC-PR-REACT-002 — useSyncExternalStore needs getServerSnapshot**~~ `fs-qzzb` · CLOSED — **Blocker for SSR.** packages/formspec-react/src/use-signal.ts:14-34: useSyncExternalStore called without a getServerSnapshot argument.
@@ -993,7 +953,7 @@ Work that has been researched and decided against for now. Tracked here so it is
    **Acceptance:** Concrete use case where content-addressed identity solves a cross-stack integrity problem that current hash chains (§9.2) don't.
 
 - **FORMSPEC-FIELD-CLASSIFICATION-001 — Field-level access classification [DEFERRED]** · `fs-fvgk` · P4
-   blocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`, FORMSPEC-DATA-CLASSIFICATION-001 — x-data-classification… `fs-du1p`
+   blocked-by Reconcile Formspec disclosure classification axis `fs-lb8y`, FORMSPEC-DATA-CLASSIFICATION-001 — Compliance labels and… `fs-du1p`
 
    ADR 0074 (thoughts/adr/0074-formspec-native-field-level-transparency.md)
    proposes `accessControl` on items, bucketed response encryption, key bags, a
