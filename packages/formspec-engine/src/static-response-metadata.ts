@@ -1,4 +1,5 @@
 /** @filedesc Static wording from admitted original artifacts; never evaluates answers. */
+import { canonicalJsonBytes, parseJsonExact } from '@formspec-org/integrity-canonical';
 import { Path, PathSegmentKind, targetDefinitionMatches } from '@formspec-org/types';
 import type { FormDefinition, FormItem, FormResponse, LocaleDocument, OptionEntry } from '@formspec-org/types';
 import { LocaleStore } from './locale.js';
@@ -17,6 +18,11 @@ function refuse(reason: string): never {
     throw new Error(`static-response-metadata-${reason}`);
 }
 
+function isDataObject(value: unknown): value is Record<string, unknown> {
+    const json = JSON as typeof JSON & { isRawJSON?: (value: unknown) => boolean };
+    return value !== null && typeof value === 'object' && !Array.isArray(value) && !json.isRawJSON?.(value);
+}
+
 function staticText(text: string): string {
     if (typeof text !== 'string' || text.includes('{{')) refuse('interpolation-unproven');
     return text;
@@ -32,7 +38,8 @@ export function createStaticResponseMetadataReader(input: StaticResponseMetadata
     label(path: string): string;
     options(path: string): readonly { value: string; label: string }[];
 } {
-    const { definition, response, locale } = structuredClone(input);
+    const { definition, response, locale } = parseJsonExact(
+        new TextDecoder().decode(canonicalJsonBytes(input))) as StaticResponseMetadataInput;
     if (response.definitionUrl !== definition.url || response.definitionVersion !== definition.version) {
         refuse('definition-mismatch');
     }
@@ -80,14 +87,14 @@ export function createStaticResponseMetadataReader(input: StaticResponseMetadata
                 if (!item || item.type !== 'group' || !item.repeatable || !Array.isArray(value)
                     || !Object.prototype.hasOwnProperty.call(value, segment.index)) refuse('path-invalid');
                 value = value[segment.index];
-                if (!value || typeof value !== 'object' || Array.isArray(value)) refuse('path-invalid');
+                if (!isDataObject(value)) refuse('path-invalid');
             } else if (segment.kind === PathSegmentKind.Exact) {
                 if (index > 0) {
                     if (!item || item.type !== 'group' || Array.isArray(value)) refuse('path-invalid');
                     items = item.children ?? [];
                 }
                 const matches = items.filter(candidate => candidate.key === segment.key);
-                if (matches.length !== 1 || !value || typeof value !== 'object'
+                if (matches.length !== 1 || !isDataObject(value)
                     || !Object.prototype.hasOwnProperty.call(value, segment.key)) refuse('path-unavailable');
                 item = matches[0];
                 value = (value as Record<string, unknown>)[segment.key];
