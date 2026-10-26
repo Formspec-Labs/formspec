@@ -1,0 +1,52 @@
+{
+  "id": "module-publisher-matching-first",
+  "description": "A same-id publisher mismatch and a fully matching row admit in matching-first order.",
+  "document": {
+    "$formspecExperience": "1.0",
+    "version": "1.0.0",
+    "targetDefinition": {
+      "url": "https://example.com/forms/posture-admission/admits-extra"
+    },
+    "modules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "publisher": "https://example.org/",
+        "lockHash": "sha256:module"
+      }
+    ],
+    "units": [],
+    "tasks": []
+  },
+  "postureDeclaration": {
+    "$postureDeclaration": "1.0",
+    "url": "https://example.com/posture/admits-extra",
+    "version": "1.0.0",
+    "signaturePolicy": {
+      "allowedMethods": [
+        "urn:formspec:sig-method:ed25519-cose-sign1@1"
+      ],
+      "minimumPrimitiveVerification": "verified",
+      "receiptSigningRequired": false
+    },
+    "allowedModules": [
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "publisher": "https://example.org/",
+        "lockHash": "sha256:module"
+      },
+      {
+        "id": "x-formspec-presentation",
+        "version": "0.1.0",
+        "publisher": "https://other.example.org/",
+        "lockHash": "sha256:module"
+      }
+    ]
+  },
+  "expectedCodes": [],
+  "forbiddenCodes": [
+    "E608",
+    "E609"
+  ]
+}

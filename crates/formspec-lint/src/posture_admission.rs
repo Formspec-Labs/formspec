@@ -36,17 +36,21 @@ pub fn evaluate_module_posture_admission(
         return Ok(());
     }
 
+    let mut first_field_mismatch = None;
     for posture_entry in allowed_modules {
         match posture_entry_field_mismatch(posture_entry, document_module) {
             PostureCompare::IdMismatch => continue,
             PostureCompare::Match => return Ok(()),
             PostureCompare::FieldMismatch(field) => {
-                return Err(ModulePostureAdmissionFailure::FieldMismatch(field));
+                first_field_mismatch.get_or_insert(field);
             }
         }
     }
 
-    Err(ModulePostureAdmissionFailure::NotListed)
+    Err(first_field_mismatch.map_or(
+        ModulePostureAdmissionFailure::NotListed,
+        ModulePostureAdmissionFailure::FieldMismatch,
+    ))
 }
 
 enum PostureCompare {
@@ -188,5 +192,79 @@ mod tests {
             evaluate_module_posture_admission(&doc, &allowed),
             Err(ModulePostureAdmissionFailure::NotListed)
         );
+    }
+
+    #[test]
+    fn posture_admission_retains_first_same_id_mismatch_after_exhaustion() {
+        let doc = ModuleRefFields {
+            publisher: Some("https://example.org/".to_string()),
+            lock_hash: Some("sha256:actual".to_string()),
+            ..module("x-a", "1.0.0")
+        };
+        let wrong_publisher = ModuleRefFields {
+            publisher: Some("https://other.example.org/".to_string()),
+            ..doc.clone()
+        };
+        let wrong_hash = ModuleRefFields {
+            lock_hash: Some("sha256:other".to_string()),
+            ..doc.clone()
+        };
+        for (allowed, expected_field) in [
+            (
+                vec![
+                    module("x-unrelated", "9.0.0"),
+                    wrong_publisher.clone(),
+                    wrong_hash.clone(),
+                ],
+                "publisher",
+            ),
+            (vec![wrong_hash, wrong_publisher], "lockHash"),
+        ] {
+            assert_eq!(
+                evaluate_module_posture_admission(&doc, &allowed),
+                Err(ModulePostureAdmissionFailure::FieldMismatch(expected_field))
+            );
+        }
+    }
+
+    #[test]
+    fn posture_admission_shared_lint_corpus() {
+        let fixture_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/conformance/fixtures/posture-admission");
+        let mut paths: Vec<_> = std::fs::read_dir(fixture_dir)
+            .expect("posture admission fixture directory must exist")
+            .map(|entry| entry.expect("fixture entry must be readable").path())
+            .filter(|path| path.to_string_lossy().ends_with(".case.json"))
+            .collect();
+        paths.sort();
+        assert!(!paths.is_empty(), "shared posture corpus must not be empty");
+        let mut failures = Vec::new();
+        for path in paths {
+            let case: Value =
+                serde_json::from_slice(&std::fs::read(&path).expect("fixture must be readable"))
+                    .expect("fixture must contain valid JSON");
+            let options = crate::LintOptions {
+                posture_declaration: case.get("postureDeclaration").cloned(),
+                ..Default::default()
+            };
+            let result = crate::lint_with_options(&case["document"], &options);
+            let codes: Vec<_> = result
+                .diagnostics
+                .iter()
+                .map(|diag| diag.code.to_string())
+                .collect();
+            for (key, expected_present) in [("expectedCodes", true), ("forbiddenCodes", false)] {
+                for code in case[key]
+                    .as_array()
+                    .expect("fixture codes must be an array")
+                {
+                    let code = code.as_str().expect("fixture code must be a string");
+                    if codes.iter().any(|emitted| emitted == code) != expected_present {
+                        failures.push(format!("{}: {key} {code}; emitted {codes:?}", case["id"]));
+                    }
+                }
+            }
+        }
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
     }
 }

@@ -26,6 +26,7 @@ export function evaluateModulePostureAdmission(
     return { admitted: true };
   }
 
+  let firstFieldMismatch: PostureModuleField | undefined;
   for (const postureEntry of allowedModules) {
     const fieldMismatch = postureEntryFieldMismatch(postureEntry, documentRef);
     if (fieldMismatch === 'id-mismatch') {
@@ -34,9 +35,12 @@ export function evaluateModulePostureAdmission(
     if (fieldMismatch === null) {
       return { admitted: true };
     }
-    return { admitted: false, reason: 'field-mismatch', field: fieldMismatch };
+    firstFieldMismatch ??= fieldMismatch;
   }
 
+  if (firstFieldMismatch !== undefined) {
+    return { admitted: false, reason: 'field-mismatch', field: firstFieldMismatch };
+  }
   return { admitted: false, reason: 'not-listed' };
 }
 

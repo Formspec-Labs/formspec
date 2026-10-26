@@ -18,6 +18,62 @@ function registry(entries: ModuleResolverInput['registries'][number]['entries'])
 }
 
 describe('resolveModules', () => {
+  const admittedModule = {
+    id: 'x-pinned',
+    version: '1.0.0',
+    publisher: 'https://example.org/',
+    lockHash: 'sha256:actual',
+  };
+  const mismatches = [
+    ['version', '2.0.0', 'expectedVersion', 'actualVersion'],
+    ['publisher', 'https://other.example.org/', 'expectedPublisher', 'actualPublisher'],
+    ['lockHash', 'sha256:other', 'expectedLockHash', 'actualLockHash'],
+  ] as const;
+
+  function resolveWithAllowlist(allowedModules: typeof admittedModule[]) {
+    return resolveModules({
+      appModules: [{
+        ...admittedModule,
+        source: {
+          artifactSlot: 'app',
+          artifactKind: 'appManifest',
+          source: 'memory://app',
+          jsonPointer: '/modules/0',
+          module: admittedModule,
+        },
+      }],
+      documents: [],
+      registries: registry([
+        { name: admittedModule.id, category: 'module', version: admittedModule.version, contributes: [] },
+      ]),
+      admission: { allowedModules },
+    });
+  }
+
+  it.each(mismatches)('admits a later full match after a %s mismatch in either order', (field, wrong) => {
+    const mismatch = { ...admittedModule, [field]: wrong };
+    for (const allowedModules of [[mismatch, admittedModule], [admittedModule, mismatch]]) {
+      const report = resolveWithAllowlist(allowedModules);
+      expect(report.ok).toBe(true);
+      expect(report.modules[0].status).toBe('admitted');
+      expect(report.diagnostics).toEqual([]);
+    }
+  });
+
+  it.each(mismatches)('retains the first same-id %s refusal details after all candidates fail', (field, wrong, expectedKey, actualKey) => {
+    const report = resolveWithAllowlist([
+      { ...admittedModule, id: 'x-unrelated' },
+      { ...admittedModule, [field]: wrong },
+      { ...admittedModule, version: '3.0.0' },
+    ]);
+    expect(report.ok).toBe(false);
+    expect(report.modules[0].status).toBe('denied');
+    expect(report.diagnostics).toMatchObject([{
+      code: 'MODULE-ADMISSION-DENIED',
+      details: { [expectedKey]: wrong, [actualKey]: admittedModule[field] },
+    }]);
+  });
+
   it('treats duplicate Registry claimants as a conflict only when more than one owner is admitted', () => {
     const report = resolveModules({
       appModules: [{
