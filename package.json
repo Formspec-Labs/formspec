@@ -72,6 +72,7 @@
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@changesets/cli": "^2.30.0",
+    "@formspec-org/integrity-canonical": "file:../integrity-stack/packages/integrity-canonical",
     "@guidepup/playwright": "^0.19.1",
     "@playwright/test": "^1.42.0",
     "@storybook/addon-vitest": "^10.4.0-alpha.5",

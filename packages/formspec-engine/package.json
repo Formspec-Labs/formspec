@@ -75,7 +75,7 @@
     "@preact/signals-core": "^1.6.0",
     "canonicalize": "^3.0.0",
     "semver": "^7.8.1",
-    "@formspec-org/integrity-canonical": "file:../../../integrity-stack/packages/integrity-canonical",
+    "@formspec-org/integrity-canonical": "^0.1.1",
     "@formspec/signature-port": "^0.1.0",
     "@formspec/signature-cose": "^0.1.0"
   },

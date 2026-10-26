@@ -164,6 +164,27 @@ for (const [name, { dir, pkg }] of manifests) {
   }
 }
 
+// --- Publish fence: a published manifest installs outside this checkout ---
+//
+// A `file:`/`link:` path in a runtime field ships verbatim and resolves only
+// beside the sibling checkout it names. Declare a version range; the workspace
+// root links the local sibling for development.
+
+const LOCAL_SPEC = /^(?:file|link):/;
+for (const [name, { pkg }] of manifests) {
+  if (pkg.private) continue;
+  for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+    for (const [dep, spec] of Object.entries(pkg[field] ?? {})) {
+      if (!LOCAL_SPEC.test(spec)) continue;
+      console.error(
+        `✗  ${name} lists ${dep} as "${spec}" in ${field} — ` +
+        `published manifests must declare a version range`,
+      );
+      violations++;
+    }
+  }
+}
+
 // --- summary ---
 
 if (violations === 0) {
