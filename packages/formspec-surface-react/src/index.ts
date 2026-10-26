@@ -83,6 +83,7 @@ export type {
   SurfaceWidgetModule,
   SurfaceWidgetProps,
   SurfaceWidgetRouteContext,
+  SurfaceWidgetRouteIdentity,
 } from './widget-api.js';
 
 export {

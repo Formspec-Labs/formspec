@@ -46,7 +46,8 @@ import type {
 } from '@formspec-org/react';
 import type { FormDefinition, FormResponse, ResponseActionsDocument } from '@formspec-org/types';
 
-export interface SurfaceWidgetRouteContext {
+/** The route a host admits a widget action emission by: identity only, no presented text. */
+export interface SurfaceWidgetRouteIdentity {
   surfaceId: string;
   /** Exact App Manifest Surface URL, when the route came from a resolved export. */
   surfaceRef?: string | undefined;
@@ -54,6 +55,22 @@ export interface SurfaceWidgetRouteContext {
   routeClass: RouteClass | undefined;
   /** Resolved route parameters for the current URL. */
   params: Readonly<Record<string, string>>;
+}
+
+export interface SurfaceWidgetRouteContext extends SurfaceWidgetRouteIdentity {
+  /** The route's presented, localized title, for rendering; never part of an action source. */
+  title?: string | undefined;
+}
+
+/** Projects a route context onto the identity an action source carries. */
+export function routeIdentity(route: SurfaceWidgetRouteIdentity): SurfaceWidgetRouteIdentity {
+  return {
+    surfaceId: route.surfaceId,
+    surfaceRef: route.surfaceRef,
+    routeId: route.routeId,
+    routeClass: route.routeClass,
+    params: route.params,
+  };
 }
 
 export type SurfaceWidgetActionLabel =
@@ -148,7 +165,7 @@ export interface SurfaceWidgetActionSource {
   moduleId: string;
   widgetName: string;
   slotId: string;
-  route: SurfaceWidgetRouteContext;
+  route: SurfaceWidgetRouteIdentity;
   outputName: string;
 }
 

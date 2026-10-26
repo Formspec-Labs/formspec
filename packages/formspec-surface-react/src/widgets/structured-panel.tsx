@@ -1182,7 +1182,7 @@ export function StructuredPanel({
   const title = panelAnchors.length > 0 ? nonEmptyString(panel.title) : undefined;
   const body = panelAnchors.length > 0 ? nonEmptyString(panel.body) : undefined;
   const header = eyebrow || state || title || body;
-  const routeTitle = nonEmptyString((route as { title?: unknown }).title);
+  const routeTitle = nonEmptyString(route.title);
   const suppressPanelTitle = Boolean(
     title && (title === slot.title || title === authoredPanelId || title === routeTitle),
   );

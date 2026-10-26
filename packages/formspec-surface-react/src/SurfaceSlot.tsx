@@ -94,6 +94,7 @@ import type {
   SurfaceWidgetResponseContext,
   SurfaceWidgetRouteContext,
 } from './widget-api.js';
+import { routeIdentity } from './widget-api.js';
 import {
   allocateWidgetActionInvocationId,
   admitSurfaceWidgetActionInput,
@@ -1556,13 +1557,7 @@ function SurfaceWidgetSlot({
         moduleId: plan.key.moduleId,
         widgetName: plan.key.widgetName,
         slotId: plan.slotId,
-        route: {
-          surfaceId: route.surfaceId,
-          surfaceRef: route.surfaceRef,
-          routeId: route.routeId,
-          routeClass: route.routeClass,
-          params: route.params,
-        },
+        route: routeIdentity(route),
         outputName,
       };
       const emittedGeneration = runtimeGeneration;
