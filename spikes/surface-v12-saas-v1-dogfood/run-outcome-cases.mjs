@@ -79,7 +79,7 @@ const CASE_SCHEMA = "https://formspec.org/schemas/outcomeVerificationCase/0.1";
 const REPORT_SCHEMA =
   "https://formspec.org/schemas/outcomeVerificationReport/0.1";
 const NEEDS_SCHEMA = "https://formspec.org/schemas/needs/1.0";
-const MANIFEST_SCHEMA = "https://formspec.org/schemas/bundleManifest/2.4";
+const MANIFEST_SCHEMA = "https://formspec.org/schemas/bundleManifest/2.5";
 const RUNNER_SUPPORTED_STEP_KINDS = Object.freeze([
   "open-route",
   "set-item",
@@ -1078,7 +1078,8 @@ function inventorySubjects(document) {
       if (isRecord(source)) addSubject(subjects, "data-source", source.id);
     }
   }
-  if (document.$formspecBundle === "2.4") {
+  // App Manifest 2.4 and later (each minor additive) identify the app subject.
+  if (document.$formspecBundle === "2.4" || document.$formspecBundle === "2.5") {
     addSubject(subjects, "app-manifest", document.id);
   }
   return subjects;

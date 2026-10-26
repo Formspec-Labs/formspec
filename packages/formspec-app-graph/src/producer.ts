@@ -24,7 +24,7 @@ import type {
   AppGraphEvidenceSchemaValidators,
   AppGraphDiagnostic,
   AppGraphHostEvidence,
-  AppGraphRenderedNeedTraceMode,
+  AppGraphRenderedNeedTraceRequest,
   AppGraphSchemaValidators,
   AppGraphValidationOptions,
   AppGraphValidationReport,
@@ -46,7 +46,7 @@ export interface AppGraphReportProducerRequest extends ArtifactResolverRequest {
   /** See `AppGraphValidationRequest.hostWidgetContracts`. */
   hostWidgetContracts?: HostWidgetContracts;
   /** See `AppGraphValidationRequest.renderedNeedTrace`. */
-  renderedNeedTrace?: AppGraphRenderedNeedTraceMode;
+  renderedNeedTrace?: AppGraphRenderedNeedTraceRequest;
   validationOptions?: AppGraphValidationOptions;
 }
 

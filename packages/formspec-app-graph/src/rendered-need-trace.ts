@@ -4,13 +4,15 @@ import {
   type AppGraphContext,
   type AppGraphDiagnostic,
   type AppGraphHostEvidenceDocument,
-  type AppGraphRenderedNeedTraceMode,
+  type AppGraphRenderedNeedTraceRequest,
+  type AppGraphTracedDefinition,
   type AppGraphRenderedNeedTraceRecord,
   type AppGraphSourcePointer,
   type ResolvedArtifactHandle,
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
 import { NEED_ANCHOR } from './needs-coverage.js';
+import { componentTargetUrl } from './locale-associations.js';
 import {
   registryWidgetEntries,
   resolvedWidgetContributionFromEntries,
@@ -672,50 +674,57 @@ function collectDefinitionItems(
   items: unknown,
   pointer: string,
   out: RenderedNeedTraceNode[],
+  family: FormFamily,
 ): void {
   if (!Array.isArray(items)) return;
   items.forEach((rawItem, index) => {
     const item = record(rawItem);
     if (!item) return;
     const itemPointer = `${pointer}/${index}`;
-    out.push(generationNode(handle, 'definition-item', itemPointer, item, `items[${index}]`));
+    out.push(generationNode(handle, `${family}-item`, itemPointer, item, `items[${index}]`));
     if (Array.isArray(item.options)) {
       item.options.forEach((rawOption, optionIndex) => {
         const option = record(rawOption);
         if (!option) return;
         out.push(generationNode(
           handle,
-          'definition-option',
+          `${family}-option`,
           `${itemPointer}/options/${optionIndex}`,
           option,
           `options[${optionIndex}]`,
         ));
       });
     }
-    collectDefinitionItems(handle, item.children, `${itemPointer}/children`, out);
+    collectDefinitionItems(handle, item.children, `${itemPointer}/children`, out, family);
   });
 }
 
-function definitionNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
+/**
+ * A Definition or a Screener: both render Items, options, binds, and shapes, and a Screener's
+ * respondent-facing items need their own traces exactly as a Definition's do.
+ */
+type FormFamily = 'definition' | 'screener';
+
+function definitionNodes(handle: ResolvedArtifactHandle, family: FormFamily = 'definition'): RenderedNeedTraceNode[] {
   const document = record(handle.document);
   if (!document) return [];
   const out: RenderedNeedTraceNode[] = [
     generationNode(
       handle,
-      'definition-document',
+      `${family}-document`,
       '',
       document,
-      stringProp(document, 'title') ?? 'Definition',
+      stringProp(document, 'title') ?? (family === 'screener' ? 'Screener' : 'Definition'),
     ),
   ];
-  collectDefinitionItems(handle, document.items, '/items', out);
+  collectDefinitionItems(handle, document.items, '/items', out, family);
   if (Array.isArray(document.binds)) {
     document.binds.forEach((rawBind, bindIndex) => {
       const bind = record(rawBind);
       if (!bind) return;
       out.push(generationNode(
         handle,
-        'definition-bind',
+        `${family}-bind`,
         `/binds/${bindIndex}`,
         bind,
         stringProp(bind, 'path') ?? `binds[${bindIndex}]`,
@@ -728,7 +737,7 @@ function definitionNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[
       if (!shape) return;
       out.push(generationNode(
         handle,
-        'definition-shape',
+        `${family}-shape`,
         `/shapes/${shapeIndex}`,
         shape,
         `shapes[${shapeIndex}]`,
@@ -745,7 +754,7 @@ function definitionNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[
         if (!option) return;
         out.push(generationNode(
           handle,
-          'definition-option',
+          `${family}-option`,
           `/optionSets/${escapePointerSegment(setName)}/options/${optionIndex}`,
           option,
           `${setName}.options[${optionIndex}]`,
@@ -1120,6 +1129,8 @@ export function collectRenderedNeedTraceNodes(
         return surfaceNodes(handle, registryEntries);
       case 'definition':
         return definitionNodes(handle);
+      case 'screener':
+        return definitionNodes(handle, 'screener');
       case 'theme':
         return themeNodes(handle);
       case 'responseActions':
@@ -1365,18 +1376,35 @@ function nodeCarriesTrace(node: RenderedNeedTraceNode): boolean {
  */
 export function runRenderedNeedTrace(
   context: AppGraphContext,
-  mode: AppGraphRenderedNeedTraceMode,
+  request: AppGraphRenderedNeedTraceRequest,
 ): { diagnostics: AppGraphDiagnostic[]; record: AppGraphRenderedNeedTraceRecord } {
   const paired = pairedNeedsDocuments(context);
   const nodes = collectRenderedNeedTraceNodes(context);
-  const applies = mode === 'required' || paired.length > 0 || nodes.some(nodeCarriesTrace);
-  const definitions = context.handles
-    .filter((handle) => handle.artifactKind === 'definition' && handle.status === 'loaded')
-    .flatMap((handle) => {
-      const url = stringProp(record(handle.document), 'url');
-      const version = stringProp(record(handle.document), 'version');
-      return url && version ? [{ url, version }] : [];
-    });
+  const applies = request.mode === 'required' || paired.length > 0 || nodes.some(nodeCarriesTrace);
+  const loaded = (kind: string) => context.handles.filter((handle) => handle.artifactKind === kind && handle.status === 'loaded');
+  const covered = (handle: ResolvedArtifactHandle) => {
+    const url = stringProp(record(handle.document), 'url');
+    return url ? [{ url, sha256: request.digest(handle.document) }] : [];
+  };
+  const definitions = loaded('definition').flatMap((handle): AppGraphTracedDefinition[] => {
+    const url = stringProp(record(handle.document), 'url');
+    const version = stringProp(record(handle.document), 'version');
+    if (!url || !version) return [];
+    return [{
+      url,
+      version,
+      sha256: request.digest(handle.document),
+      locales: loaded('locale')
+        .filter((locale) => {
+          const target = record(record(locale.document)?.target);
+          return stringProp(target, 'kind') === 'definition' && stringProp(target, 'url') === url;
+        })
+        .flatMap(covered),
+      components: loaded('component')
+        .filter((component) => componentTargetUrl(record(component.document)) === url)
+        .flatMap(covered),
+    }];
+  });
   return applies
     ? { diagnostics: traceDiagnostics(paired, nodes), record: { status: 'completed', definitions } }
     : { diagnostics: [], record: { status: 'not-applicable', definitions } };

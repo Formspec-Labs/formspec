@@ -40,6 +40,13 @@ export type Origin =
  * via the `definition` "PhaseStatusValue".
  */
 export type PhaseStatusValue = 'completed' | 'skipped' | 'not-run';
+/**
+ * SHA-256 over the document's RFC 8785 (JCS) canonical bytes, written sha256:<hex>: the hash Source computes for a published Definition.
+ *
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "CanonicalDigest".
+ */
+export type CanonicalDigest = string;
 
 /**
  * Deterministic AppGraphValidator output report. This schema covers the report envelope emitted by @formspec-org/app-graph after artifact-resolution, schema, module-resolution, surface-local, cross-artifact, authorization-boundary, and unsupported-feature phases. It is a data contract only: it does not schema validator requests, resolver implementations, runtime execution, rendered output, credentials, fetched payloads, or host cache contents.
@@ -216,15 +223,35 @@ export interface SupportProfile {
   featureFlags?: string[];
 }
 /**
- * Record of the strict rendered-Need trace (Needs spec S10.3), present only when the caller requested it and the cross-artifact phase completed. `completed`: the trace rule ran over the loaded graph and its findings are in `diagnostics`. `not-applicable`: the caller requested it only when declared, and the graph pairs no Needs Document and carries no Need trace. `definitions` lists the loaded Definitions the run covered; a server checks a published Definition against it instead of re-running the rule.
+ * Record of the strict rendered-Need trace (Needs spec S10.3), present only when the caller requested it and the cross-artifact phase completed. `completed`: the trace rule ran over the loaded graph and its findings are in `diagnostics`. `not-applicable`: the caller requested it only when declared, and the graph pairs no Needs Document and carries no Need trace. `definitions` lists each loaded Definition the run covered, bound to its content by canonical digest together with the Locales and Components that target it; a server checks a published version's documents against these digests instead of re-running the rule.
  *
  * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
  * via the `definition` "RenderedNeedTraceRecord".
  */
 export interface RenderedNeedTraceRecord {
   status: 'completed' | 'not-applicable';
-  definitions: {
-    url: string;
-    version: string;
-  }[];
+  definitions: TracedDefinition[];
+}
+/**
+ * A Definition the trace covered, with the Locales and Components targeting it that the run also covered.
+ *
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "TracedDefinition".
+ */
+export interface TracedDefinition {
+  url: string;
+  version: string;
+  sha256: CanonicalDigest;
+  locales: CoveredDocument[];
+  components: CoveredDocument[];
+}
+/**
+ * A document the trace covered, identified by URL and bound by its canonical digest.
+ *
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "CoveredDocument".
+ */
+export interface CoveredDocument {
+  url: string;
+  sha256: CanonicalDigest;
 }

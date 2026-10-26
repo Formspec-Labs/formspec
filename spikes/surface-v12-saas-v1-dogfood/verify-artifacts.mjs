@@ -46,7 +46,7 @@ const ARTIFACTS = join(ROOT, 'artifacts');
 const EVIDENCE = join(ROOT, 'evidence');
 const SCHEMAS = join(REPO_ROOT, 'schemas');
 const NEEDS_SCHEMA_ID = 'https://formspec.org/schemas/needs/1.0';
-const MANIFEST_SCHEMA_ID = 'https://formspec.org/schemas/bundleManifest/2.4';
+const MANIFEST_SCHEMA_ID = 'https://formspec.org/schemas/bundleManifest/2.5';
 
 const FIXTURES = [
   { name: 'saas-v1', preview: 'main' },

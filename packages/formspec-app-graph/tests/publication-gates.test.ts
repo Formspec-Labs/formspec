@@ -1,4 +1,5 @@
 /** @filedesc Locale lint injection, the rendered-Need trace record, and App Manifest needs pairing. */
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   appManifestVersionAtLeast,
@@ -56,6 +57,10 @@ function bundle(def: unknown, extra: { needs?: unknown; locale?: boolean } = {})
   };
 }
 
+/** A stand-in for the host's canonical digest; the record only needs it to be a sha256:<hex> function of the document. */
+const digest = (document: unknown) => `sha256:${createHash('sha256').update(JSON.stringify(document)).digest('hex')}`;
+const whenDeclared = { mode: 'when-declared' as const, digest };
+
 const permissive = {
   schemaValidators: () => ({ ok: true }),
   evidenceSchemaValidators: () => ({ ok: true }),
@@ -94,6 +99,31 @@ describe('localeLintValidator', () => {
     expect(finding?.message).toContain('bare key');
   });
 
+  it('supplies every Component targeting the Locale\'s Definition (Locale spec §7: the loaded set)', async () => {
+    const component = (handle: string) => ({
+      $formspecComponent: '1.0',
+      url: `https://example.gov/components/${handle}`,
+      version: '1.0.0',
+      targetDefinition: { url: definitionUrl },
+      tree: { component: 'Stack', id: `${handle}-root` },
+    });
+    const base = bundle(definition(), { locale: true });
+    const seen: AppGraphLocaleLintContext[] = [];
+    await produceBundleExportAppGraphValidationReport({
+      manifest: {
+        ...base.manifest,
+        components: ['respondent', 'review'].map((handle) => ({ url: component(handle).url, version: '1.0.0', handle })),
+      },
+      documents: { ...base.documents, ...Object.fromEntries(['respondent', 'review'].map((handle) => [component(handle).url, component(handle)])) },
+      ...permissive,
+      crossArtifactValidators: [localeLintValidator((_document, context) => {
+        seen.push(context);
+        return { diagnostics: [] };
+      })],
+    });
+    expect(seen[0]?.componentDocuments).toEqual([component('respondent'), component('review')]);
+  });
+
   it('converts lint paths to JSON Pointers', () => {
     expect(lintPathToJsonPointer('$')).toBe('');
     expect(lintPathToJsonPointer('$.strings["a/b~c.label"]')).toBe('/strings/a~1b~0c.label');
@@ -107,12 +137,12 @@ describe('renderedNeedTrace record (Needs spec S10.3)', () => {
     const result = await produceBundleExportAppGraphValidationReport({
       ...bundle(definition()),
       ...permissive,
-      renderedNeedTrace: 'when-declared',
+      renderedNeedTrace: whenDeclared,
     });
     expect(result.report.ok).toBe(true);
     expect(result.report.renderedNeedTrace).toEqual({
       status: 'not-applicable',
-      definitions: [{ url: definitionUrl, version: '1.0.0' }],
+      definitions: [{ url: definitionUrl, version: '1.0.0', sha256: digest(definition()), locales: [], components: [] }],
     });
   });
 
@@ -120,7 +150,7 @@ describe('renderedNeedTrace record (Needs spec S10.3)', () => {
     const result = await produceBundleExportAppGraphValidationReport({
       ...bundle(definition('need:collect-name@1')),
       ...permissive,
-      renderedNeedTrace: 'when-declared',
+      renderedNeedTrace: whenDeclared,
     });
     expect(result.report.renderedNeedTrace?.status).toBe('completed');
     expect(result.report.diagnostics.map((entry) => entry.code))
@@ -136,7 +166,7 @@ describe('renderedNeedTrace record (Needs spec S10.3)', () => {
     const paired = await produceBundleExportAppGraphValidationReport({
       ...bundle(definition('need:collect-name@1'), { needs }),
       ...permissive,
-      renderedNeedTrace: 'when-declared',
+      renderedNeedTrace: whenDeclared,
     });
     expect(paired.report.renderedNeedTrace?.status).toBe('completed');
     expect(paired.report.diagnostics.map((entry) => entry.code))
@@ -165,5 +195,50 @@ describe('App Manifest 2.5', () => {
     // 2.4's target-aware Locale association applies to 2.5: the Locale reference resolves and validates.
     expect(result.report.ok).toBe(true);
     expect(result.artifactResolutionReport.artifacts.locales?.[0]?.status).toBe('loaded');
+  });
+});
+
+describe('renderedNeedTrace binds content', () => {
+  it('records the digests of each covered Definition and the Locales targeting it', async () => {
+    const result = await produceBundleExportAppGraphValidationReport({
+      ...bundle(definition('need:collect-name@1'), { locale: true }),
+      ...permissive,
+      renderedNeedTrace: whenDeclared,
+    });
+    expect(result.report.renderedNeedTrace?.definitions).toEqual([{
+      url: definitionUrl,
+      version: '1.0.0',
+      sha256: digest(definition('need:collect-name@1')),
+      locales: [{ url: localeUrl, sha256: digest(locale) }],
+      components: [],
+    }]);
+  });
+
+  it('traces Screener items like Definition items, so their anchors trigger the run', async () => {
+    const screenerUrl = 'https://example.gov/screeners/eligibility';
+    const screener = {
+      $formspecScreener: '1.0',
+      url: screenerUrl,
+      version: '1.0.0',
+      title: 'Eligibility',
+      items: [{ key: 'age', type: 'field', dataType: 'integer', label: 'Age', 'x-generation': { anchors: ['need:collect-name@1'] } }],
+    };
+    const needs = { $formspecNeeds: '1.0', version: '1.0.0', needs: [{ id: 'collect-name', status: 'adopted', revision: 1 }] };
+    const run = async (withNeeds: boolean) => {
+      const base = bundle(definition(), withNeeds ? { needs } : {});
+      return (await produceBundleExportAppGraphValidationReport({
+        manifest: { ...base.manifest, screeners: [{ url: screenerUrl, version: '1.0.0' }] },
+        documents: { ...base.documents, [screenerUrl]: screener },
+        ...permissive,
+        renderedNeedTrace: whenDeclared,
+      })).report;
+    };
+    // Only the Screener item carries a trace, and that alone makes the run apply.
+    expect((await run(false)).renderedNeedTrace?.status).toBe('completed');
+    // Paired: the anchored item resolves; the untraced Screener frame is refused like a Definition's.
+    const screenerFindings = (await run(true)).diagnostics
+      .filter((entry) => entry.primarySource?.artifactKind === 'screener')
+      .map((entry) => [entry.code, entry.primarySource?.jsonPointer]);
+    expect(screenerFindings).toEqual([['APP-GRAPH-RENDERED-NEED-MISSING', '']]);
   });
 });

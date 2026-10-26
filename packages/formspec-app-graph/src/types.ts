@@ -196,17 +196,45 @@ export interface AppGraphValidationRequest {
    * written; passing `validateRenderedNeedTrace` as a cross-artifact validator
    * runs the same rule without the record.
    */
-  renderedNeedTrace?: AppGraphRenderedNeedTraceMode;
+  renderedNeedTrace?: AppGraphRenderedNeedTraceRequest;
   options?: AppGraphValidationOptions;
 }
 
 /** `required`: always run. `when-declared`: run only when Needs are paired or a rendered node carries a Need trace. */
 export type AppGraphRenderedNeedTraceMode = 'required' | 'when-declared';
 
+/**
+ * The host's canonical document digest, injected (this package carries no hashing): RFC 8785
+ * JCS bytes, SHA-256, `sha256:<hex>` — the hash Source computes for a published Definition.
+ */
+export type AppGraphDocumentDigest = (document: unknown) => string;
+
+export interface AppGraphRenderedNeedTraceRequest {
+  mode: AppGraphRenderedNeedTraceMode;
+  digest: AppGraphDocumentDigest;
+}
+
+/** One covered document, bound by its canonical digest. */
+export interface AppGraphCoveredDocument {
+  url: string;
+  sha256: string;
+}
+
+/**
+ * A Definition the trace covered, bound to its content: the Definition's digest plus the
+ * Locales and Components that target it. A server admits a published version only when its
+ * Definition, Locales, and Component digests are all here.
+ */
+export interface AppGraphTracedDefinition extends AppGraphCoveredDocument {
+  version: string;
+  locales: AppGraphCoveredDocument[];
+  components: AppGraphCoveredDocument[];
+}
+
 /** Report record of a strict rendered-Need trace run; the server checks it instead of re-running the rule. */
 export interface AppGraphRenderedNeedTraceRecord {
   status: 'completed' | 'not-applicable';
-  definitions: { url: string; version: string }[];
+  definitions: AppGraphTracedDefinition[];
 }
 
 export interface AppGraphSchemaResult {

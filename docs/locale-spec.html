@@ -2939,11 +2939,15 @@ runtime string lookup.</p>
 is structural and runs without it. Theme-aware <code>$page.*</code>
 checks run only when <code>theme_document</code> is supplied.
 Component-aware <code>$component.*</code> checks run only when
-<code>component_documents</code> are supplied. Fallback-cycle checks
-inspect the current Locale plus <code>locale_documents</code> supplied
-in lint context. App-target and complete-tuple checks run only when the
-App Manifest and referenced Locale documents are supplied; schema-only
-lint does not pretend to perform that graph validation.</p>
+<code>component_documents</code> are supplied. The supplied set is every
+Component Document loaded with the Locale’s target Definition (§3.1.8):
+in an app graph, each Component targeting that Definition; at a single
+form-version publication, the Component published with it. A key that
+resolves in none of them is E1411. Fallback-cycle checks inspect the
+current Locale plus <code>locale_documents</code> supplied in lint
+context. App-target and complete-tuple checks run only when the App
+Manifest and referenced Locale documents are supplied; schema-only lint
+does not pretend to perform that graph validation.</p>
 <h2 id="processing-model">8. Processing Model</h2>
 <h3 id="integration-with-the-four-phase-cycle">8.1 Integration with the
 Four-Phase Cycle</h3>

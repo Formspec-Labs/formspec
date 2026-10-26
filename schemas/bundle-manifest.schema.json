@@ -201,7 +201,7 @@
     },
     "needs": {
       "$ref": "#/$defs/SiblingRef",
-      "description": "Optional Needs Document (Needs spec) paired with this app (Needs §2.1). This member is valid only when `$formspecBundle` is '2.5'. Including it publishes the research evidence — Need statements, groundings, and adoption actors — with the bundle; a deployment package carries its Needs Document privately by default. When present, AppGraph validation pairs this document as Needs evidence; processors MUST NOT discover a Needs Document any other way.",
+      "description": "Optional Needs Document (Needs spec) paired with this app (Needs §2.1). This member is valid only when `$formspecBundle` is '2.5' or later. Including it publishes the research evidence — Need statements, groundings, and adoption actors — with the bundle; a deployment package carries its Needs Document privately by default. When present, AppGraph validation pairs this document as Needs evidence; processors MUST NOT discover a Needs Document any other way.",
       "examples": [
         { "url": "https://example.gov/apps/intake/needs", "version": "1.0.0" }
       ]

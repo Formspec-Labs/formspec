@@ -1495,7 +1495,10 @@ Definition-aware checks run only when lint receives `definition_document`;
 the path-form item-key check (E1402) is structural and runs without it.
 Theme-aware `$page.*` checks run only when `theme_document` is supplied.
 Component-aware `$component.*` checks run only when `component_documents` are
-supplied. Fallback-cycle checks inspect the current Locale plus
+supplied. The supplied set is every Component Document loaded with the Locale's
+target Definition (§3.1.8): in an app graph, each Component targeting that
+Definition; at a single form-version publication, the Component published with
+it. A key that resolves in none of them is E1411. Fallback-cycle checks inspect the current Locale plus
 `locale_documents` supplied in lint context. App-target and complete-tuple
 checks run only when the App Manifest and referenced Locale documents are
 supplied; schema-only lint does not pretend to perform that graph validation.

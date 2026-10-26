@@ -179,7 +179,7 @@ Each MAY appear at most once.
 | `references` | `SiblingRef` | Legacy single References association |
 | `ontology` | `SiblingRef` | Legacy single Ontology association |
 | `entrySurface` | absolute URL string | App Manifest 2.4+ entry Surface selector; see §3.4.1 |
-| `needs` | `SiblingRef` | App Manifest 2.5 only. The Needs Document ([Needs spec](../needs/needs-spec.md)) paired with this app (Needs §2.1). Optional: including it publishes the research evidence — statements, groundings, and adoption actors — with the bundle. A deployment package carries its Needs Document privately by default; add this member only when that evidence is meant to be public. |
+| `needs` | `SiblingRef` | App Manifest 2.5 or later. The Needs Document ([Needs spec](../needs/needs-spec.md)) paired with this app (Needs §2.1). Optional: including it publishes the research evidence — statements, groundings, and adoption actors — with the bundle. A deployment package carries its Needs Document privately by default; add this member only when that evidence is meant to be public. |
 
 ### 3.3 Optional Array-Cardinality Members
 
@@ -292,7 +292,7 @@ The App Manifest schema declares `additionalProperties: false`. New members
 require an App Manifest schema version bump. `dataSources[]` requires 2.1 or
 later, `components[]` requires 2.2 or later, `screeners[]` requires 2.3 or
 later, `entrySurface`, `referenceDocuments[]`, `ontologies[]`, and
-`responseActionDocuments[]` require 2.4 or later, and `needs` requires 2.5. An older document carrying a
+`responseActionDocuments[]` require 2.4 or later, and `needs` requires 2.5 or later. An older document carrying a
 newer member is invalid. The closed shape keeps manifest resolution deterministic.
 
 Authors MAY use `x-*` extension properties on the top-level object for tooling-specific metadata. Manifest-aware processors MUST ignore unknown `x-*` properties when resolving siblings.

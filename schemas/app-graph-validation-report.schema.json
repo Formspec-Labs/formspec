@@ -333,22 +333,42 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["status", "definitions"],
-      "description": "Record of the strict rendered-Need trace (Needs spec S10.3), present only when the caller requested it and the cross-artifact phase completed. `completed`: the trace rule ran over the loaded graph and its findings are in `diagnostics`. `not-applicable`: the caller requested it only when declared, and the graph pairs no Needs Document and carries no Need trace. `definitions` lists the loaded Definitions the run covered; a server checks a published Definition against it instead of re-running the rule.",
+      "description": "Record of the strict rendered-Need trace (Needs spec S10.3), present only when the caller requested it and the cross-artifact phase completed. `completed`: the trace rule ran over the loaded graph and its findings are in `diagnostics`. `not-applicable`: the caller requested it only when declared, and the graph pairs no Needs Document and carries no Need trace. `definitions` lists each loaded Definition the run covered, bound to its content by canonical digest together with the Locales and Components that target it; a server checks a published version's documents against these digests instead of re-running the rule.",
       "properties": {
         "status": { "enum": ["completed", "not-applicable"] },
         "definitions": {
           "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["url", "version"],
-            "properties": {
-              "url": { "type": "string", "minLength": 1 },
-              "version": { "type": "string", "minLength": 1 }
-            }
-          }
+          "items": { "$ref": "#/$defs/TracedDefinition" }
         }
       }
+    },
+    "TracedDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "version", "sha256", "locales", "components"],
+      "description": "A Definition the trace covered, with the Locales and Components targeting it that the run also covered.",
+      "properties": {
+        "url": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/CanonicalDigest" },
+        "locales": { "type": "array", "items": { "$ref": "#/$defs/CoveredDocument" } },
+        "components": { "type": "array", "items": { "$ref": "#/$defs/CoveredDocument" } }
+      }
+    },
+    "CoveredDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "sha256"],
+      "description": "A document the trace covered, identified by URL and bound by its canonical digest.",
+      "properties": {
+        "url": { "type": "string", "minLength": 1 },
+        "sha256": { "$ref": "#/$defs/CanonicalDigest" }
+      }
+    },
+    "CanonicalDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 over the document's RFC 8785 (JCS) canonical bytes, written sha256:<hex>: the hash Source computes for a published Definition."
     },
     "SupportProfile": {
       "type": "object",
