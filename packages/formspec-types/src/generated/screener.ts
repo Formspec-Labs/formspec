@@ -7,6 +7,7 @@
 
 /* eslint-disable */
 import type { Item, Bind } from './definition.js';
+import type { Generation } from './common.js';
 /**
  * A standalone Formspec Screener document for respondent classification and routing. A Screener is a freestanding routing instrument — it does not bind to a target Definition. Its relationship to Definitions is expressed entirely through route targets. A Screener declares screening items, binds evaluated in an isolated scope, and an ordered evaluation pipeline with pluggable strategies (first-match, fan-out, score-threshold, or extensions). Evaluation produces a Determination Record capturing matched routes, eliminated routes, scores, inputs with answer states, and evaluation metadata. Lifecycle primitives: availability windows, result validity durations, and evaluation version binding.
  */
@@ -56,6 +57,7 @@ export interface ScreenerDocument {
    * Extension declarations. Uses the same extension mechanism as Definition (core §4.6).
    */
   extensions?: {};
+  'x-generation'?: Generation;
 }
 /**
  * Calendar window during which the screener accepts new respondents. When omitted, the screener is always available.
@@ -181,41 +183,6 @@ export interface ItemPartyPolicy {
    * @minItems 1
    */
   signedBy?: [string, ...string[]];
-}
-/**
- * Generation provenance for this rendered Item. Strict data-only authoring profiles require every group, field, and display Item to carry a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision.
- */
-export interface Generation {
-  /**
-   * Existing field (component.schema.json:256-259): generator source label, such as an Experience Unit, prompt, template, or generator input bundle. Preserved as-is.
-   */
-  source?: string;
-  /**
-   * Existing field (component.schema.json:260-263): generator strategy identifier, such as unit-to-section or a host-defined strategy name. Preserved as-is.
-   */
-  strategy?: string;
-  /**
-   * Existing field (component.schema.json:268-271): generation timestamp. Authors SHOULD use an RFC 3339 date-time string. Preserved as-is.
-   */
-  generatedAt?: string;
-  /**
-   * Existing field (component.schema.json:272-279): source anchors with a standard prefix and source-layer-owned suffix. The prefix set is closed; `need` joined it per needs-spec S8, whose `need:<id>@<revision>` grammar is normative in spec prose (this shared regex stays broad by existing convention — per-prefix grammar is not encoded here).
-   */
-  anchors?: string[];
-  /**
-   * Actor attribution per §5.4. Migration-friendly: pre-existing free-form string values (e.g. 'component-generator/1.0.0') continue to validate; new authoring stamps the full AuthorActor inline.
-   */
-  generatedBy?: string | AuthorActor;
-  sourceModule?: ModuleRef;
-  /**
-   * Set by tooling on cross-Component move per §5.3. Graph-wide provenance uses ComponentNodeIdentityRef; CrossComponentRef is retained only as same-runtime compatibility evidence.
-   */
-  movedFrom?: ComponentNodeIdentityRef | CrossComponentRef;
-  /**
-   * Set by tooling on cross-Component copy per §5.3. Graph-wide provenance uses ComponentNodeIdentityRef; CrossComponentRef is retained only as same-runtime compatibility evidence.
-   */
-  copiedFrom?: ComponentNodeIdentityRef | CrossComponentRef;
-  extensions?: Extensions;
 }
 /**
  * Authoring identity per ADR 0150 §5.4. Distinct from `respondent-ledger-event.Actor` (respondent-identity) and `experience.Actor` (workflow-role) — three Actor $defs by design. `kind` and `actChannel` are terminal-closed enums; product nuance (e.g. discriminating Wireframes-MCP from Forms-MCP, both `actChannel: 'mcp'`) rides URN-encoded into `id`, not via new enum values.

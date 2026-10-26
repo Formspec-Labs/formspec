@@ -118,6 +118,10 @@
         "pattern": "^x-"
       },
       "description": "Extension declarations. Uses the same extension mechanism as Definition (core §4.6)."
+    },
+    "x-generation": {
+      "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+      "description": "Generation provenance for the rendered Screener title and screener-level copy, as on a Definition. A publication's rendered-Need trace (Needs spec §10.3) requires a direct Need anchor here. It does not change screening."
     }
   },
   "$defs": {

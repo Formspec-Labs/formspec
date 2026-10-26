@@ -272,6 +272,7 @@ REQUIRED property.
 | `binds` | array of Bind | No | Bind declarations scoped to screener items. Uses the standard Bind schema (core §4.3). Paths reference screener item keys. |
 | `evaluation` | array of Phase | **Yes** | Ordered evaluation pipeline. See §4. MAY be empty during authoring. |
 | `extensions` | object | No | Extension declarations. Uses the same extension mechanism as Definition (core §4.6). |
+| `x-generation` | Generation | No | Generation provenance for the rendered Screener title and screener-level copy, as on a Definition. A publication's rendered-Need trace (Needs spec §10.3) requires a direct Need anchor here, as on each rendered Item. It does not change screening. |
 
 [semver]: https://semver.org/spec/v2.0.0.html
 

@@ -240,5 +240,8 @@ describe('renderedNeedTrace binds content', () => {
       .filter((entry) => entry.primarySource?.artifactKind === 'screener')
       .map((entry) => [entry.code, entry.primarySource?.jsonPointer]);
     expect(screenerFindings).toEqual([['APP-GRAPH-RENDERED-NEED-MISSING', '']]);
+    // The Screener title takes its own anchor at the root (Screener spec §2.1 x-generation).
+    Object.assign(screener, { 'x-generation': { anchors: ['need:collect-name@1'] } });
+    expect((await run(true)).diagnostics.filter((entry) => entry.primarySource?.artifactKind === 'screener')).toEqual([]);
   });
 });
