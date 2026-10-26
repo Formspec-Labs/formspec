@@ -19,13 +19,10 @@ What this guard enforces TODAY (in scope of the Response Actions remediation):
    (error severity per Component §5.19 Resolver Invariants) at the
    conformance layer.
 
-What this guard does NOT enforce yet (out of scope, tracked separately):
-
-- ``score == 1.0`` against the validator. The references carry pre-existing
-  schema drift unrelated to Response Actions (``Spacer`` missing a schema
-  branch, ``Page`` body shape mismatch, ``presentation.layout.page`` removal,
-  etc). Filed in ``TODO.md`` under "benchmark references — broader schema
-  drift" so a future remediation can lift this gate to the full ``1.0`` bar.
+The full-schema bar lives in ``benchmarks/test_benchmark_harness.py``:
+``test_reference_validates_cleanly`` checks every reference validates and
+``test_runner_scores_reference_against_itself`` asserts ``score == 1.0`` per
+task (both run under ``make test-python`` via ``testpaths``).
 """
 
 from __future__ import annotations
