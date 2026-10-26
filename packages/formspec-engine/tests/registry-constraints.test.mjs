@@ -44,7 +44,7 @@ function createEmailEngine(registryEntries) {
         extensions: { 'x-formspec-email': true },
       },
     ],
-  }, undefined, registryEntries);
+  }, { registryEntries });
 }
 
 test('registry pattern constraint rejects invalid email', () => {
@@ -125,7 +125,7 @@ test('disabled extension (false) does not enforce constraints', () => {
         extensions: { 'x-formspec-email': false },
       },
     ],
-  }, undefined, [emailRegistryEntry]);
+  }, { registryEntries: [emailRegistryEntry] });
 
   engine.setValue('email', 'not-an-email');
   const report = engine.getValidationReport({ profile: 'live' });
@@ -221,7 +221,7 @@ function createPercentageEngine(registryEntries) {
         extensions: { 'x-formspec-percentage': true },
       },
     ],
-  }, undefined, registryEntries);
+  }, { registryEntries });
 }
 
 test('registry minimum constraint rejects value below minimum', () => {

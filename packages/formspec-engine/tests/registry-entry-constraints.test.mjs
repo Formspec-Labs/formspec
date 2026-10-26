@@ -36,7 +36,7 @@ function makeEngine(extName, dataType) {
       label: 'Value',
       extensions: { [extName]: true },
     }],
-  }, undefined, [entry]);
+  }, { registryEntries: [entry] });
 }
 
 function hasCode(engine, code) {
@@ -475,7 +475,7 @@ test('x-formspec-luhn: engine does not crash with luhn extension declared', () =
       label: 'Card',
       extensions: { 'x-formspec-luhn': true },
     }],
-  }, undefined, [entry]);
+  }, { registryEntries: [entry] });
 
   // Should not throw — constraint entries have no pattern/range to enforce
   engine.setValue('card', '4111111111111111');
@@ -500,7 +500,7 @@ test('x-formspec-age: engine does not crash with age extension declared', () => 
       label: 'Date of Birth',
       extensions: { 'x-formspec-age': true },
     }],
-  }, undefined, [entry]);
+  }, { registryEntries: [entry] });
 
   engine.setValue('dob', '1990-01-15');
   const report = engine.getValidationReport({ profile: 'live' });
@@ -521,7 +521,7 @@ test('x-formspec-mask: engine does not crash with mask extension declared', () =
       label: 'Account',
       extensions: { 'x-formspec-mask': true },
     }],
-  }, undefined, [entry]);
+  }, { registryEntries: [entry] });
 
   engine.setValue('acct', '123456789');
   const report = engine.getValidationReport({ profile: 'live' });

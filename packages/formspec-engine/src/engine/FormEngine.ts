@@ -210,10 +210,8 @@ export class FormEngine implements IFormEngine {
 
     public constructor(
         definition: FormDefinition,
-        optionsOrRuntimeContext?: FormEngineOptions | FormEngineRuntimeContext,
-        legacyRegistryEntries?: RegistryEntry[],
+        options: FormEngineOptions = {},
     ) {
-        const options = FormEngine.normalizeConstructorOptions(optionsOrRuntimeContext, legacyRegistryEntries);
         const {
             runtimeContext,
             registryEntries,
@@ -1199,33 +1197,6 @@ export class FormEngine implements IFormEngine {
 
     private nowISO(): string {
         return this._runtimeContext.nowProvider().toISOString();
-    }
-
-    private static normalizeConstructorOptions(
-        optionsOrRuntimeContext?: FormEngineOptions | FormEngineRuntimeContext,
-        legacyRegistryEntries?: RegistryEntry[],
-    ): FormEngineOptions {
-        const maybeOptions = optionsOrRuntimeContext as FormEngineOptions | undefined;
-        const hasOptionsShape = maybeOptions !== undefined && (
-            Object.prototype.hasOwnProperty.call(maybeOptions, 'runtimeContext')
-            || Object.prototype.hasOwnProperty.call(maybeOptions, 'registryEntries')
-            || Object.prototype.hasOwnProperty.call(maybeOptions, 'reactiveRuntime')
-            || Object.prototype.hasOwnProperty.call(maybeOptions, 'issuerFetcher')
-            || Object.prototype.hasOwnProperty.call(maybeOptions, 'issuerOverride')
-            || Object.prototype.hasOwnProperty.call(maybeOptions, 'extensionFunctions')
-            || Object.prototype.hasOwnProperty.call(maybeOptions, 'responseData')
-            || Object.prototype.hasOwnProperty.call(maybeOptions, 'instanceSourceResolver')
-        );
-        if (hasOptionsShape) {
-            return {
-                ...maybeOptions,
-                registryEntries: maybeOptions.registryEntries ?? legacyRegistryEntries,
-            };
-        }
-        return {
-            runtimeContext: optionsOrRuntimeContext as FormEngineRuntimeContext | undefined,
-            registryEntries: legacyRegistryEntries,
-        };
     }
 
     private initializeOptionSignals(): void {

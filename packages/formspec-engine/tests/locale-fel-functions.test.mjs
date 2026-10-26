@@ -181,7 +181,7 @@ test('pluralCategory() with field value as count', () => {
     items: [
       { key: 'count', type: 'field', dataType: 'integer', label: 'Count', initialValue: 5 },
     ],
-  }), { locale: 'en' });
+  }), { runtimeContext: { locale: 'en' } });
   const fn = engine.compileExpression('pluralCategory($count)');
   assert.equal(fn(), 'other');
 
