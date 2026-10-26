@@ -2,6 +2,8 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import semver from 'semver';
 
 /**
  * Layer assignments — lower number = lower level.
@@ -45,152 +47,167 @@ function getInternalDeps(pkg) {
   return deps;
 }
 
-let violations = 0;
-let checked = 0;
 
-const dirs = readdirSync(PACKAGES_DIR, { withFileTypes: true })
-  .filter(d => d.isDirectory())
-  .map(d => d.name);
+/**
+ * Whether a published manifest's runtime spec resolves from the registry: a
+ * semver range, or an `npm:` alias of one. Paths, git, GitHub shorthand,
+ * tarballs, tags and workspace protocols all fail; list them here only by
+ * widening this predicate on purpose.
+ */
+export function isRegistrySpec(spec) {
+  const alias = /^npm:(?:@[^/@]+\/)?[^/@]+(?:@(.*))?$/.exec(spec);
+  return semver.validRange(alias ? (alias[1] ?? '*') : spec) !== null;
+}
 
-for (const dir of dirs) {
-  const pkgPath = join(PACKAGES_DIR, dir, 'package.json');
-  let pkg;
-  try {
-    pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-  } catch {
-    continue;
-  }
+function main() {
+  let violations = 0;
+  let checked = 0;
 
-  const name = pkg.name;
-  if (!(name in LAYERS)) {
-    console.warn(`⚠  ${name} has no layer assignment — add it to LAYERS in check-dep-fences.mjs`);
-    continue;
-  }
+  const dirs = readdirSync(PACKAGES_DIR, { withFileTypes: true })
+    .filter(d => d.isDirectory())
+    .map(d => d.name);
 
-  const myLayer = LAYERS[name];
-  const deps = getInternalDeps(pkg);
-  checked++;
+  for (const dir of dirs) {
+    const pkgPath = join(PACKAGES_DIR, dir, 'package.json');
+    let pkg;
+    try {
+      pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    } catch {
+      continue;
+    }
 
-  for (const dep of deps) {
-    const depLayer = LAYERS[dep];
-    if (depLayer >= myLayer) {
-      console.error(
-        `✗  ${name} (layer ${myLayer}) depends on ${dep} (layer ${depLayer}) — ` +
-        `dependencies must point to a strictly lower layer`
-      );
-      violations++;
+    const name = pkg.name;
+    if (!(name in LAYERS)) {
+      console.warn(`⚠  ${name} has no layer assignment — add it to LAYERS in check-dep-fences.mjs`);
+      continue;
+    }
+
+    const myLayer = LAYERS[name];
+    const deps = getInternalDeps(pkg);
+    checked++;
+
+    for (const dep of deps) {
+      const depLayer = LAYERS[dep];
+      if (depLayer >= myLayer) {
+        console.error(
+          `✗  ${name} (layer ${myLayer}) depends on ${dep} (layer ${depLayer}) — ` +
+          `dependencies must point to a strictly lower layer`
+        );
+        violations++;
+      }
     }
   }
-}
 
-// --- WASM fence: only @formspec/engine may import generated WASM glue ---
+  // --- WASM fence: only @formspec/engine may import generated WASM glue ---
 
-const WASM_OWNER = 'formspec-engine';
-const WASM_PATTERN = /(?:wasm-pkg(?:-runtime|-tools)?|formspec-wasm|formspec_wasm(?:_runtime|_tools)?)/;
+  const WASM_OWNER = 'formspec-engine';
+  const WASM_PATTERN = /(?:wasm-pkg(?:-runtime|-tools)?|formspec-wasm|formspec_wasm(?:_runtime|_tools)?)/;
 
-for (const dir of dirs) {
-  if (dir === WASM_OWNER) continue;
-  const srcDir = join(PACKAGES_DIR, dir, 'src');
-  if (!existsSync(srcDir)) continue;
+  for (const dir of dirs) {
+    if (dir === WASM_OWNER) continue;
+    const srcDir = join(PACKAGES_DIR, dir, 'src');
+    if (!existsSync(srcDir)) continue;
 
-  let grepOut = '';
-  try {
-    grepOut = execSync(
-      `grep -rn "wasm-pkg\\|formspec-wasm\\|formspec_wasm\\|formspec_wasm_runtime\\|formspec_wasm_tools" "${srcDir}" --include="*.ts" --include="*.mts" --include="*.js" --include="*.mjs" 2>/dev/null || true`,
-      { encoding: 'utf8' },
-    );
-  } catch { /* empty */ }
-
-  for (const line of grepOut.split('\n').filter(Boolean)) {
-    if (!WASM_PATTERN.test(line)) continue;
-    console.error(`✗  ${dir} imports WASM — only ${WASM_OWNER} may use the WASM package`);
-    console.error(`   ${line}`);
-    violations++;
-  }
-}
-
-// --- License fence: an openly licensed package never reaches a source-available one ---
-//
-// Layers alone allow it: `assist` (BUSL-1.1, layer 2) sits below
-// `surface-react` (Apache-2.0, layer 3), and that import is what stopped
-// Apache-2.0 hosts from vendoring the binding. A capability both need moves
-// to an openly licensed lower layer; host-specific behavior enters through a
-// port. Checks every manifest field plus source imports, so a hoisted
-// workspace symlink cannot hide an undeclared import.
-
-const SOURCE_AVAILABLE_LICENSES = new Set(['BUSL-1.1']);
-const SOURCE_EXTENSIONS = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
-
-const manifests = new Map();
-for (const dir of dirs) {
-  try {
-    const pkg = JSON.parse(readFileSync(join(PACKAGES_DIR, dir, 'package.json'), 'utf8'));
-    manifests.set(pkg.name, { dir, pkg });
-  } catch { /* not a package */ }
-}
-const restricted = [...manifests.entries()]
-  .filter(([, { pkg }]) => SOURCE_AVAILABLE_LICENSES.has(pkg.license))
-  .map(([name]) => name);
-
-for (const [name, { dir, pkg }] of manifests) {
-  if (SOURCE_AVAILABLE_LICENSES.has(pkg.license)) continue;
-  const license = pkg.license ?? 'unlicensed';
-
-  for (const field of ['dependencies', 'peerDependencies', 'devDependencies', 'optionalDependencies']) {
-    for (const dep of Object.keys(pkg[field] ?? {})) {
-      if (!restricted.includes(dep)) continue;
-      console.error(
-        `✗  ${name} (${license}) lists ${dep} (${manifests.get(dep).pkg.license}) in ${field} — ` +
-        `openly licensed packages must not depend on source-available ones`,
+    let grepOut = '';
+    try {
+      grepOut = execSync(
+        `grep -rn "wasm-pkg\\|formspec-wasm\\|formspec_wasm\\|formspec_wasm_runtime\\|formspec_wasm_tools" "${srcDir}" --include="*.ts" --include="*.mts" --include="*.js" --include="*.mjs" 2>/dev/null || true`,
+        { encoding: 'utf8' },
       );
+    } catch { /* empty */ }
+
+    for (const line of grepOut.split('\n').filter(Boolean)) {
+      if (!WASM_PATTERN.test(line)) continue;
+      console.error(`✗  ${dir} imports WASM — only ${WASM_OWNER} may use the WASM package`);
+      console.error(`   ${line}`);
       violations++;
     }
   }
 
-  const srcDir = join(PACKAGES_DIR, dir, 'src');
-  if (!existsSync(srcDir)) continue;
-  for (const file of readdirSync(srcDir, { recursive: true })) {
-    if (!SOURCE_EXTENSIONS.test(file)) continue;
-    const text = readFileSync(join(srcDir, file), 'utf8');
-    for (const dep of restricted) {
-      const specifier = new RegExp(`['"]${dep.replace('/', '\\/')}(?:\\/[^'"]*)?['"]`);
-      if (!specifier.test(text)) continue;
-      console.error(
-        `✗  ${name} (${license}) imports ${dep} (${manifests.get(dep).pkg.license}) in src/${file} — ` +
-        `openly licensed packages must not import source-available ones`,
-      );
-      violations++;
+  // --- License fence: an openly licensed package never reaches a source-available one ---
+  //
+  // Layers alone allow it: `assist` (BUSL-1.1, layer 2) sits below
+  // `surface-react` (Apache-2.0, layer 3), and that import is what stopped
+  // Apache-2.0 hosts from vendoring the binding. A capability both need moves
+  // to an openly licensed lower layer; host-specific behavior enters through a
+  // port. Checks every manifest field plus source imports, so a hoisted
+  // workspace symlink cannot hide an undeclared import.
+
+  const SOURCE_AVAILABLE_LICENSES = new Set(['BUSL-1.1']);
+  const SOURCE_EXTENSIONS = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
+
+  const manifests = new Map();
+  for (const dir of dirs) {
+    try {
+      const pkg = JSON.parse(readFileSync(join(PACKAGES_DIR, dir, 'package.json'), 'utf8'));
+      manifests.set(pkg.name, { dir, pkg });
+    } catch { /* not a package */ }
+  }
+  const restricted = [...manifests.entries()]
+    .filter(([, { pkg }]) => SOURCE_AVAILABLE_LICENSES.has(pkg.license))
+    .map(([name]) => name);
+
+  for (const [name, { dir, pkg }] of manifests) {
+    if (SOURCE_AVAILABLE_LICENSES.has(pkg.license)) continue;
+    const license = pkg.license ?? 'unlicensed';
+
+    for (const field of ['dependencies', 'peerDependencies', 'devDependencies', 'optionalDependencies']) {
+      for (const dep of Object.keys(pkg[field] ?? {})) {
+        if (!restricted.includes(dep)) continue;
+        console.error(
+          `✗  ${name} (${license}) lists ${dep} (${manifests.get(dep).pkg.license}) in ${field} — ` +
+          `openly licensed packages must not depend on source-available ones`,
+        );
+        violations++;
+      }
     }
+
+    const srcDir = join(PACKAGES_DIR, dir, 'src');
+    if (!existsSync(srcDir)) continue;
+    for (const file of readdirSync(srcDir, { recursive: true })) {
+      if (!SOURCE_EXTENSIONS.test(file)) continue;
+      const text = readFileSync(join(srcDir, file), 'utf8');
+      for (const dep of restricted) {
+        const specifier = new RegExp(`['"]${dep.replace('/', '\\/')}(?:\\/[^'"]*)?['"]`);
+        if (!specifier.test(text)) continue;
+        console.error(
+          `✗  ${name} (${license}) imports ${dep} (${manifests.get(dep).pkg.license}) in src/${file} — ` +
+          `openly licensed packages must not import source-available ones`,
+        );
+        violations++;
+      }
+    }
+  }
+
+  // --- Publish fence: a published manifest installs outside this checkout ---
+  //
+  // A path, git, or tarball spec in a runtime field ships verbatim and resolves
+  // only where it was written. Declare a version range (isRegistrySpec); the
+  // workspace root links the local sibling for development.
+
+  for (const [name, { pkg }] of manifests) {
+    if (pkg.private) continue;
+    for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+      for (const [dep, spec] of Object.entries(pkg[field] ?? {})) {
+        if (isRegistrySpec(spec)) continue;
+        console.error(
+          `✗  ${name} lists ${dep} as "${spec}" in ${field} — ` +
+          `published manifests must declare a version range`,
+        );
+        violations++;
+      }
+    }
+  }
+
+  // --- summary ---
+
+  if (violations === 0) {
+    console.log(`✓  All ${checked} packages respect dependency fences (including WASM exclusivity and license fences)`);
+    process.exit(0);
+  } else {
+    console.error(`\n✗  ${violations} violation(s) found`);
+    process.exit(1);
   }
 }
 
-// --- Publish fence: a published manifest installs outside this checkout ---
-//
-// A `file:`/`link:` path in a runtime field ships verbatim and resolves only
-// beside the sibling checkout it names. Declare a version range; the workspace
-// root links the local sibling for development.
-
-const LOCAL_SPEC = /^(?:file|link):/;
-for (const [name, { pkg }] of manifests) {
-  if (pkg.private) continue;
-  for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
-    for (const [dep, spec] of Object.entries(pkg[field] ?? {})) {
-      if (!LOCAL_SPEC.test(spec)) continue;
-      console.error(
-        `✗  ${name} lists ${dep} as "${spec}" in ${field} — ` +
-        `published manifests must declare a version range`,
-      );
-      violations++;
-    }
-  }
-}
-
-// --- summary ---
-
-if (violations === 0) {
-  console.log(`✓  All ${checked} packages respect dependency fences (including WASM exclusivity and license fences)`);
-  process.exit(0);
-} else {
-  console.error(`\n✗  ${violations} violation(s) found`);
-  process.exit(1);
-}
+if (process.argv[1] === fileURLToPath(import.meta.url)) main();
