@@ -162,7 +162,7 @@ export interface PurposeMetadata {
   retention?: string;
 }
 /**
- * Disclosure class of a Field or Group's data (Core §4.2.1). An Item without accessControl takes its nearest ancestor Group's class, else `unclassified`. Processors that expose raw response values MUST gate them by the effective class. Not allowed on display Items.
+ * Disclosure class of a Field or Group's data (Core §4.2.1). An Item without accessControl takes its nearest ancestor Group's class, else `unclassified`. Without an audience policy, a value whose effective class is not `unclassified` is never disclosed to a public audience. Not allowed on display Items.
  */
 export interface AccessControl {
   /**
@@ -170,7 +170,7 @@ export interface AccessControl {
    */
   class: (('unclassified' | 'protected') | string) & string;
   /**
-   * Renderer-only qualifier for `protected` that picks mask copy (ADR 0157). MUST NOT appear in any receipt, ledger event, or export.
+   * Renderer-only qualifier for `protected` that picks mask copy (ADR 0157). Allowed only with `class: protected`. MUST NOT appear in any receipt, ledger event, or export.
    */
   subjectKind?: 'address' | 'contact' | 'employer';
 }

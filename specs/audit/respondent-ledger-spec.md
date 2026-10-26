@@ -612,7 +612,7 @@ If raw values are omitted for policy reasons, implementations **SHOULD** record 
 
 This enables proof that a material change happened without retaining the full sensitive content indefinitely.
 
-Each `ChangeSetEntry` for a response field **MUST** carry the field's effective `accessControl.class` ([Core §4.2.1](../core/spec.md#421-common-item-properties); tokens from the [Access-Class Registry](../registry/extension-registry.md#323-access-classes)) as `accessClass` whenever that class is not `unclassified`. Raw `before` and `after` values for a class **MUST NOT** be exposed to a reader who lacks authority for that class. Implementations **MAY** retain hashes, display summaries, or redaction metadata outside the raw value bucket only when doing so does not leak more than the deployment's header/tag policy allows.
+Each `ChangeSetEntry` for a response field **MUST** carry the field's effective `accessControl.class` ([Core §4.2.1](../core/spec.md#421-common-item-properties); tokens from the [Access-Class Registry](../registry/extension-registry.md#323-access-classes)) as `accessClass` whenever that class is not `unclassified`. Raw `before` and `after` values of such an entry **MUST NOT** be exposed to a public audience unless a loaded audience policy grants it (Core §4.2.1), nor to any reader that policy denies. Implementations **MAY** retain hashes, display summaries, or redaction metadata outside the raw value bucket only when doing so does not leak more than the deployment's header/tag policy allows.
 
 ### 7.9 Example
 
@@ -893,7 +893,7 @@ The event **MUST** carry `data` with this shape:
 
 `erasedAt`, `classesErased`, and `deletionReceiptRef` **MUST** be present.
 
-`classesErased` **MUST** be non-empty and **MUST** carry `accessControl.class` tokens from the Access-Class Registry; the class is the erasure unit (one class key destroyed per token). Implementations that erase ALL retained respondent data for the response **MUST** still enumerate the affected class tokens; they **MUST NOT** use an open-ended marker like `"*"` or `"all"`.
+`classesErased` **MUST** be non-empty and **MUST** carry the `accessControl.class` tokens (Access-Class Registry) of the erased data; each token is one erasure unit. Where a deployment encrypts by class, erasing a class destroys that class's key; `unclassified` data has no class key and is erased by the method `cryptographicMethod` names. Implementations that erase ALL retained respondent data for the response **MUST** still enumerate the affected class tokens; they **MUST NOT** use an open-ended marker like `"*"` or `"all"`.
 
 `retentionWaived` **MAY** be present and **SHOULD** list retention-policy identifiers waived for this erasure (e.g., legal-hold exceptions consumed). Empty or omitted when no retention waiver applies.
 

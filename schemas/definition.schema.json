@@ -1747,7 +1747,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["class"],
-      "description": "Disclosure class of a Field or Group's data (Core §4.2.1). An Item without accessControl takes its nearest ancestor Group's class, else `unclassified`. Processors that expose raw response values MUST gate them by the effective class. Not allowed on display Items.",
+      "description": "Disclosure class of a Field or Group's data (Core §4.2.1). An Item without accessControl takes its nearest ancestor Group's class, else `unclassified`. Without an audience policy, a value whose effective class is not `unclassified` is never disclosed to a public audience. Not allowed on display Items.",
       "properties": {
         "class": {
           "$ref": "https://formspec.org/schemas/common/1.0#/$defs/AccessClass"
@@ -1755,9 +1755,11 @@
         "subjectKind": {
           "type": "string",
           "enum": ["address", "contact", "employer"],
-          "description": "Renderer-only qualifier for `protected` that picks mask copy (ADR 0157). MUST NOT appear in any receipt, ledger event, or export."
+          "description": "Renderer-only qualifier for `protected` that picks mask copy (ADR 0157). Allowed only with `class: protected`. MUST NOT appear in any receipt, ledger event, or export."
         }
       },
+      "if": { "required": ["subjectKind"] },
+      "then": { "properties": { "class": { "const": "protected" } } },
       "examples": [
         { "class": "protected", "subjectKind": "address" },
         { "class": "hipaa.phi" }

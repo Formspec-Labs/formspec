@@ -5906,19 +5906,33 @@ the action.</td>
 <td><code>accessControl</code></td>
 <td>object</td>
 <td><strong>0..1</strong> (OPTIONAL; Field and Group only)</td>
-<td>Disclosure class of this Item’s data. <code>class</code> is one
-token from the Access-Class Registry (<a
+<td>Disclosure class of this Item’s data: <code>class</code>, one token
+from the Access-Class Registry (<a
 href="../registry/extension-registry.md#323-access-classes">Extension
-Registry §3.2.3</a>); an Item without one takes its nearest ancestor
-Group’s class, else <code>unclassified</code>. Processors that expose
-raw response values MUST gate them by the effective class.
-<code>subjectKind</code> (<code>address</code>, <code>contact</code>,
-<code>employer</code>) MAY qualify <code>protected</code> for renderer
-mask copy only and MUST NOT appear in any receipt, ledger event, or
-export.</td>
+Registry §3.2.3</a>), and, only with <code>class: "protected"</code>,
+the renderer-only <code>subjectKind</code> (<code>address</code>,
+<code>contact</code>, <code>employer</code>). See <strong>Access
+classes</strong> below.</td>
 </tr>
 </tbody>
 </table>
+<p><strong>Access classes.</strong> An Item’s <em>effective class</em>
+is its own <code>accessControl.class</code>; otherwise its nearest
+ancestor Group’s effective class; otherwise <code>unclassified</code>. A
+Field MAY override its Group in either direction. Inheritance fails
+closed: a Field left unclassified inside a <code>protected</code> Group
+stays protected.</p>
+<p>A <em>public audience</em> is any reader who holds no role on the
+case: the respondent’s receipt and status pages, public verification
+output, and any export to a third party. Staff whose case role grants
+them the case are not a public audience, and the respondent’s own
+in-progress entry is not a disclosure. Unless a loaded audience policy
+(Privacy Profile) grants it, a processor MUST NOT disclose to a public
+audience any value whose effective class is not
+<code>unclassified</code>; it MAY show that the value exists.
+<code>subjectKind</code> selects mask copy only and MUST NOT appear in
+any receipt, ledger event, or export. Conformance fixture:
+<code>tests/conformance/fixtures/access-class/</code>.</p>
 <p><strong>Text resolution.</strong> Before display, each of an Item’s
 text properties is resolved through one cascade, first match wins, then
 interpolated (below). With an active display context <code>c</code> (a

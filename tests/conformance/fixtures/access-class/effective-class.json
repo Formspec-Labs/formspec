@@ -1,0 +1,53 @@
+{
+  "title": "Effective access class and the public-audience default",
+  "description": "Core §4.2.1: an Item's effective class is its own accessControl.class, else its nearest ancestor Group's, else unclassified. With no audience policy loaded, a value is disclosed to a public audience only when its effective class is unclassified. Paths are dotted Item keys; display Items carry no data and have no class.",
+  "definition": {
+    "$formspec": "1.0",
+    "url": "https://example.org/forms/access-class-inheritance",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "Access-class inheritance",
+    "items": [
+      { "key": "name", "type": "field", "label": "Name", "dataType": "string" },
+      {
+        "key": "home",
+        "type": "group",
+        "label": "Home",
+        "accessControl": { "class": "protected", "subjectKind": "address" },
+        "children": [
+          { "key": "street", "type": "field", "label": "Street", "dataType": "string" },
+          { "key": "county", "type": "field", "label": "County", "dataType": "string", "accessControl": { "class": "unclassified" } },
+          {
+            "key": "unit",
+            "type": "group",
+            "label": "Unit",
+            "children": [
+              { "key": "number", "type": "field", "label": "Number", "dataType": "string" }
+            ]
+          },
+          { "key": "note", "type": "display", "label": "Shown to you only." }
+        ]
+      },
+      {
+        "key": "health",
+        "type": "group",
+        "label": "Health",
+        "children": [
+          { "key": "diagnosis", "type": "field", "label": "Diagnosis", "dataType": "string", "accessControl": { "class": "hipaa.phi" } },
+          { "key": "insurer", "type": "field", "label": "Insurer", "dataType": "string" }
+        ]
+      }
+    ]
+  },
+  "expected": [
+    { "path": "name", "effectiveClass": "unclassified", "publicDisclosure": true },
+    { "path": "home", "effectiveClass": "protected", "publicDisclosure": false },
+    { "path": "home.street", "effectiveClass": "protected", "publicDisclosure": false },
+    { "path": "home.county", "effectiveClass": "unclassified", "publicDisclosure": true },
+    { "path": "home.unit", "effectiveClass": "protected", "publicDisclosure": false },
+    { "path": "home.unit.number", "effectiveClass": "protected", "publicDisclosure": false },
+    { "path": "health", "effectiveClass": "unclassified", "publicDisclosure": true },
+    { "path": "health.diagnosis", "effectiveClass": "hipaa.phi", "publicDisclosure": false },
+    { "path": "health.insurer", "effectiveClass": "unclassified", "publicDisclosure": true }
+  ]
+}

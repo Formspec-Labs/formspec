@@ -1,10 +1,18 @@
-//! E613 end to end: `accessControl.class` against the Access-Class Registry.
+//! E613 end to end: the `lint` cases of the shared access-class conformance fixture.
 // Rust guideline compliant 2026-02-21
 use formspec_lint::{LintOptions, lint_with_options};
 use serde_json::{Value, json};
 
+/// Load the shared access-class value fixture.
+fn class_values() -> Value {
+    serde_json::from_str(include_str!(
+        "../../../tests/conformance/fixtures/access-class/class-values.json"
+    ))
+    .unwrap()
+}
+
 /// Load the shared E613 lint fixture (registered prefix, undeclared token).
-fn fixture() -> Value {
+fn lint_fixture() -> Value {
     serde_json::from_str(include_str!(
         "../../../tests/fixtures/lint/E613-access-class-unregistered.json"
     ))
@@ -19,50 +27,61 @@ fn common_registry() -> Value {
     .unwrap()
 }
 
-/// Return the diagnostic codes emitted for `doc` with `registries` loaded.
+/// Build a deployment registry declaring `tokens` (each `{token, status}`).
+fn deployment_registry(tokens: &Value) -> Value {
+    let entries: Vec<Value> = tokens
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            json!({
+                "name": "x-acme-access-class",
+                "category": "access-class",
+                "status": row["status"],
+                "classShape": { "token": row["token"] }
+            })
+        })
+        .collect();
+    json!({ "entries": entries })
+}
+
+/// Return the sorted diagnostic codes for `doc` with `registries` loaded.
 fn codes(doc: &Value, registries: Vec<Value>) -> Vec<String> {
     let options = LintOptions {
         registry_documents: registries,
         ..LintOptions::default()
     };
-    lint_with_options(doc, &options)
+    let mut found: Vec<String> = lint_with_options(doc, &options)
         .diagnostics
         .into_iter()
         .map(|d| d.code.to_string())
-        .collect()
-}
-
-/// Set the fixture field's class.
-fn with_class(class: &str) -> Value {
-    let mut doc = fixture();
-    doc["items"][0]["accessControl"]["class"] = json!(class);
-    doc
+        .collect();
+    found.sort();
+    found
 }
 
 #[test]
-fn undeclared_prefixed_token_is_e613_only() {
-    assert_eq!(codes(&fixture(), vec![common_registry()]), ["E613"]);
-}
-
-#[test]
-fn deployment_registry_declaration_resolves_the_token() {
-    let deployment = json!({ "entries": [{
-        "name": "x-acme-access-class-cui-privacy",
-        "category": "access-class",
-        "status": "stable",
-        "classShape": { "token": "cui.privacy", "maps": { "cui": ["PRVCY"] } }
-    }] });
-    assert!(codes(&fixture(), vec![common_registry(), deployment]).is_empty());
+fn shared_fixture_lint_cases() {
+    for case in class_values()["lint"].as_array().unwrap() {
+        let mut doc = lint_fixture();
+        doc["items"][0]["accessControl"]["class"] = case["class"].clone();
+        let registries = vec![
+            common_registry(),
+            deployment_registry(&case["deploymentTokens"]),
+        ];
+        let expected: Vec<String> = case["codes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|c| c.as_str().unwrap().to_string())
+            .collect();
+        assert_eq!(codes(&doc, registries), expected, "{case}");
+    }
 }
 
 #[test]
 fn core_tokens_pass_without_registries() {
-    assert!(codes(&with_class("protected"), vec![]).is_empty());
-}
-
-#[test]
-fn unregistered_prefix_fails_schema_and_registry() {
-    let found = codes(&with_class("wos.case"), vec![common_registry()]);
-    assert!(found.contains(&"E101".to_string()), "{found:?}");
-    assert!(found.contains(&"E613".to_string()), "{found:?}");
+    let mut doc = lint_fixture();
+    doc["items"][0]["accessControl"]["class"] = json!("protected");
+    assert!(codes(&doc, vec![]).is_empty());
 }

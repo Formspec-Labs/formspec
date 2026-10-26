@@ -1,12 +1,11 @@
 // Rust guideline compliant 2026-02-21
 //! Pass 3b (E613): `accessControl.class` resolution against the Access-Class Registry.
 //!
-//! A class resolves when it is a core token (`unclassified`, `protected`) or when a
-//! loaded registry document declares it through an `access-class` entry's
-//! `classShape.token` (extension-registry.md §3.2.3). Schema validation (E101) already
-//! refuses values outside the core tokens and registered prefixes; this pass catches
-//! the remaining gap, a well-formed `<prefix>.<name>` token that no loaded registry
-//! declares, and restates any schema-refused class with a registry-specific message.
+//! Schema validation (E101) refuses any class outside the core tokens and the
+//! registered prefixes. This pass covers what the schema cannot see: a well-formed
+//! `<prefix>.<name>` token under a registered prefix that no loaded registry declares
+//! through a `draft` or `stable` `access-class` entry (extension-registry.md §3.2.3).
+//! Schema-refused values are left to E101, so a value is never reported twice.
 
 use std::collections::HashSet;
 
@@ -21,27 +20,58 @@ use crate::types::LintDiagnostic;
 /// Lint pass number shared with extension resolution (E600-E602).
 const PASS: u8 = 3;
 
-/// Core Access-Class Registry tokens; mirrors `common.schema.json` `$defs/AccessClass`.
-const CORE_ACCESS_CLASSES: [&str; 2] = ["unclassified", "protected"];
+/// Registered deployment prefixes; mirrors the `common.schema.json` `AccessClass` pattern.
+const REGISTERED_PREFIXES: [&str; 2] = ["cui", "hipaa"];
 
-/// Collects `classShape.token` values from `access-class` entries in loaded registries.
-fn registry_access_classes(registry_documents: &[Value]) -> HashSet<&str> {
+/// Returns whether `segment` matches the token grammar `[a-z][a-z0-9]*(-[a-z0-9]+)*`.
+fn is_token_segment(segment: &str) -> bool {
+    let mut parts = segment.split('-');
+    let head = parts.next().unwrap_or_default();
+    let starts_with_letter = head.starts_with(|c: char| c.is_ascii_lowercase());
+    let alnum = |part: &str| {
+        !part.is_empty()
+            && part
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+    };
+    starts_with_letter && alnum(head) && parts.all(alnum)
+}
+
+/// Returns whether `class` is a schema-valid `<prefix>.<name>` deployment token.
+fn is_prefixed_token(class: &str) -> bool {
+    let mut segments = class.split('.');
+    let prefix = segments.next().unwrap_or_default();
+    let rest: Vec<&str> = segments.collect();
+    REGISTERED_PREFIXES.contains(&prefix)
+        && !rest.is_empty()
+        && rest.iter().all(|segment| is_token_segment(segment))
+}
+
+/// Collects tokens declared by `draft` or `stable` `access-class` registry entries.
+fn declared_access_classes(registry_documents: &[Value]) -> HashSet<&str> {
     registry_documents
         .iter()
         .filter_map(|doc| doc.get("entries").and_then(Value::as_array))
         .flatten()
         .filter(|entry| entry.get("category").and_then(Value::as_str) == Some("access-class"))
+        .filter(|entry| {
+            matches!(
+                entry.get("status").and_then(Value::as_str),
+                Some("draft" | "stable")
+            )
+        })
         .filter_map(|entry| entry.pointer("/classShape/token").and_then(Value::as_str))
         .collect()
 }
 
-/// Reports every item `accessControl.class` that resolves no core or registry token.
+/// Reports prefixed item classes that no loaded registry declares.
 ///
-/// Returns one **E613** error per unresolved class, located at
-/// `$.items[key=…].accessControl.class`. Items without `accessControl`, or with a
-/// non-string class (a schema error already), produce nothing.
+/// Returns one **E613** error per well-formed `<prefix>.<name>` class under a
+/// registered prefix that no `draft` or `stable` `access-class` entry declares,
+/// located at `$.items[key=…].accessControl.class`. Core tokens and
+/// schema-refused values produce nothing here.
 pub fn check_access_classes(document: &Value, registry_documents: &[Value]) -> Vec<LintDiagnostic> {
-    let declared = registry_access_classes(registry_documents);
+    let declared = declared_access_classes(registry_documents);
     let mut diagnostics = Vec::new();
     visit_definition_items_from_document(document, &mut |ctx| {
         let Some(class) = ctx
@@ -51,7 +81,7 @@ pub fn check_access_classes(document: &Value, registry_documents: &[Value]) -> V
         else {
             return;
         };
-        if CORE_ACCESS_CLASSES.contains(&class) || declared.contains(class) {
+        if !is_prefixed_token(class) || declared.contains(class) {
             return;
         }
         let path = extension_item_diagnostic_path_from_dotted(&ctx.dotted_path);
@@ -59,9 +89,7 @@ pub fn check_access_classes(document: &Value, registry_documents: &[Value]) -> V
             crate::LintCode::E613,
             PASS,
             format!("{path}.accessControl.class"),
-            format!(
-                "Access class '{class}' is not a core token and no loaded registry declares it"
-            ),
+            format!("Access class '{class}' is not declared by a draft or stable registry entry"),
         )));
     });
     diagnostics
@@ -84,30 +112,20 @@ mod tests {
         })
     }
 
-    fn registry_declaring(token: &str) -> Value {
+    fn registry_declaring(token: &str, status: &str) -> Value {
         json!({ "entries": [{
             "name": "x-acme-access-class",
             "category": "access-class",
-            "status": "stable",
+            "status": status,
             "classShape": { "token": token }
         }] })
-    }
-
-    #[test]
-    fn core_tokens_resolve_without_registries() {
-        for class in CORE_ACCESS_CLASSES {
-            assert!(
-                check_access_classes(&definition(class), &[]).is_empty(),
-                "{class}"
-            );
-        }
     }
 
     #[test]
     fn undeclared_prefixed_token_emits_e613() {
         let diags = check_access_classes(
             &definition("cui.privacy"),
-            &[registry_declaring("cui.other")],
+            &[registry_declaring("cui.other", "stable")],
         );
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].code, "E613");
@@ -120,27 +138,27 @@ mod tests {
     }
 
     #[test]
-    fn registry_declared_prefixed_token_resolves() {
-        assert!(
-            check_access_classes(
-                &definition("cui.privacy"),
-                &[registry_declaring("cui.privacy")]
-            )
-            .is_empty()
-        );
-    }
-
-    #[test]
-    fn unknown_dot_free_token_emits_e613() {
-        let diags = check_access_classes(&definition("safe-address"), &[]);
-        assert_eq!(diags.len(), 1);
-        assert_eq!(diags[0].code, "E613");
+    fn schema_refused_values_are_left_to_e101() {
+        for class in [
+            "safe-address",
+            "wos.case",
+            "cui",
+            "cui.",
+            "CUI.privacy",
+            "cui.Bad",
+        ] {
+            assert!(
+                check_access_classes(&definition(class), &[]).is_empty(),
+                "{class}"
+            );
+        }
     }
 
     #[test]
     fn non_access_class_entries_do_not_declare_tokens() {
         let registry = json!({ "entries": [{
-            "name": "x-acme", "category": "property", "classShape": { "token": "cui.privacy" }
+            "name": "x-acme", "category": "property", "status": "stable",
+            "classShape": { "token": "cui.privacy" }
         }] });
         assert_eq!(
             check_access_classes(&definition("cui.privacy"), &[registry]).len(),
@@ -149,16 +167,35 @@ mod tests {
     }
 
     #[test]
-    fn core_tokens_mirror_common_schema() {
+    fn token_grammar_matches_the_schema_segment() {
+        for ok in ["a", "law-enforcement", "sp2", "a1-b2"] {
+            assert!(is_token_segment(ok), "{ok}");
+        }
+        for bad in ["", "1a", "A", "a-", "-a", "a--b", "a_b"] {
+            assert!(!is_token_segment(bad), "{bad}");
+        }
+    }
+
+    #[test]
+    fn registered_prefixes_mirror_common_schema() {
         let common: Value = serde_json::from_str(include_str!("../schemas/common.schema.json"))
             .expect("embedded common schema parses");
-        let mirrored: Vec<&str> = common
-            .pointer("/$defs/AccessClass/anyOf/0/enum")
-            .and_then(Value::as_array)
-            .expect("AccessClass core enum")
-            .iter()
-            .filter_map(Value::as_str)
-            .collect();
-        assert_eq!(mirrored, CORE_ACCESS_CLASSES);
+        let pattern = common
+            .pointer("/$defs/AccessClass/anyOf/1/pattern")
+            .and_then(Value::as_str)
+            .expect("AccessClass prefix pattern");
+        let alternation = pattern
+            .strip_prefix("^(")
+            .and_then(|rest| rest.split_once(')'))
+            .map(|(alternation, _)| alternation)
+            .expect("pattern starts with a prefix alternation");
+        assert_eq!(
+            alternation.split('|').collect::<Vec<_>>(),
+            REGISTERED_PREFIXES
+        );
+        assert!(
+            pattern.ends_with(r"(\.[a-z][a-z0-9]*(-[a-z0-9]+)*)+$"),
+            "segment grammar changed; update is_token_segment: {pattern}"
+        );
     }
 }

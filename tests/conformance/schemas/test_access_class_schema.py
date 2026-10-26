@@ -1,8 +1,11 @@
 """Access-Class Registry ↔ Definition `accessControl.class` conformance.
 
 The registry (`access-class` entries in formspec-common.registry.json) is the
-source; common.schema.json `AccessClass` mirrors its core tokens and registered prefixes
-(extension-registry.md §3.2.3). These tests pin both directions and the drift.
+source; common.schema.json `AccessClass` mirrors its core tokens and registered
+prefixes, and registry.schema.json `AccessClassShape.token` shares its segment
+grammar (extension-registry.md §3.2.3). The JSON fixtures under
+tests/conformance/fixtures/access-class/ are the portable cases; this module is
+their Python runner and reference oracle (Core §4.2.1).
 """
 import copy
 import json
@@ -20,13 +23,14 @@ from tests.unit.support.helpers import (
 )
 from tests.unit.support.schema_fixtures import build_schema_registry, load_schema
 
+ROOT = Path(__file__).resolve().parents[3]
+FIXTURES = ROOT / "tests" / "conformance" / "fixtures" / "access-class"
 COMMON = load_schema("common.schema.json")
 DEFINITION = load_schema("definition.schema.json")
 REGISTRY_SCHEMA = load_schema("registry.schema.json")
-REGISTRY_DOC = json.loads(
-    (Path(__file__).resolve().parents[3] / "registries" / "formspec-common.registry.json")
-    .read_text(encoding="utf-8")
-)
+REGISTRY_DOC = json.loads((ROOT / "registries" / "formspec-common.registry.json").read_text("utf-8"))
+CLASS_VALUES = json.loads((FIXTURES / "class-values.json").read_text("utf-8"))
+EFFECTIVE = json.loads((FIXTURES / "effective-class.json").read_text("utf-8"))
 
 
 def _validate_definition(doc):
@@ -52,6 +56,19 @@ def _field_with(access_control):
     return base_definition(items=[minimal_field(accessControl=access_control)])
 
 
+def effective_classes(items, inherited="unclassified", prefix=""):
+    """Reference oracle for Core §4.2.1: own class, else nearest Group's, else unclassified."""
+    out = {}
+    for item in items:
+        if item["type"] == "display":
+            continue
+        path = f"{prefix}{item['key']}"
+        cls = item.get("accessControl", {}).get("class", inherited)
+        out[path] = cls
+        out.update(effective_classes(item.get("children", []), cls, f"{path}."))
+    return out
+
+
 class TestRegistryMirror:
     def test_schema_enum_and_pattern_rebuild_from_registry(self):
         shapes = _access_class_shapes()
@@ -65,6 +82,13 @@ class TestRegistryMirror:
         alternation = re.match(r"^\^\(([^)]*)\)", pattern_branch["pattern"]).group(1)
         assert sorted(alternation.split("|")) == prefixes
 
+    def test_token_segment_grammar_matches_registry_shape(self):
+        """common AccessClass suffix segments and AccessClassShape.token share one grammar."""
+        common = COMMON["$defs"]["AccessClass"]["anyOf"][1]["pattern"]
+        segment = re.fullmatch(r"\^\([^)]*\)\(\\\.(.+)\)\+\$", common).group(1)
+        token = REGISTRY_SCHEMA["$defs"]["AccessClassShape"]["properties"]["token"]["pattern"]
+        assert token == f"^{segment}(\\.{segment})*$"
+
     def test_registry_core_tokens_are_dot_free(self):
         for shape in _access_class_shapes():
             if "token" in shape:
@@ -76,19 +100,30 @@ class TestRegistryMirror:
                 _validate_registry_entry(entry)
 
 
-class TestDefinitionAccessControl:
-    @pytest.mark.parametrize("value", ["unclassified", "protected", "cui.privacy", "hipaa.phi", "cui.law-enforcement.sp"])
-    def test_registry_and_prefixed_values_accepted(self, value):
+class TestClassValuesFixture:
+    @pytest.mark.parametrize("value", CLASS_VALUES["accepted"])
+    def test_accepted(self, value):
         _validate_definition(_field_with({"class": value}))
 
-    @pytest.mark.parametrize(
-        "value",
-        ["safe-address", "standard", "household-financial", "wos.reason", "cui", "cui.", "CUI.privacy", "protected.x", ""],
-    )
-    def test_unknown_values_and_unregistered_prefixes_refused(self, value):
+    @pytest.mark.parametrize("value", CLASS_VALUES["refused"])
+    def test_refused(self, value):
         with pytest.raises(ValidationError):
             _validate_definition(_field_with({"class": value}))
 
+
+class TestEffectiveClassFixture:
+    def test_fixture_definition_is_schema_valid(self):
+        _validate_definition(EFFECTIVE["definition"])
+
+    def test_effective_class_and_public_disclosure(self):
+        actual = effective_classes(EFFECTIVE["definition"]["items"])
+        expected = {row["path"]: row for row in EFFECTIVE["expected"]}
+        assert actual == {path: row["effectiveClass"] for path, row in expected.items()}
+        for path, row in expected.items():
+            assert row["publicDisclosure"] is (actual[path] == "unclassified"), path
+
+
+class TestDefinitionAccessControl:
     def test_group_may_declare_class(self):
         group = minimal_group(children=[minimal_field()], accessControl={"class": "protected"})
         _validate_definition(base_definition(items=[group]))
@@ -101,6 +136,11 @@ class TestDefinitionAccessControl:
         _validate_definition(_field_with({"class": "protected", "subjectKind": "employer"}))
         with pytest.raises(ValidationError):
             _validate_definition(_field_with({"class": "protected", "subjectKind": "household"}))
+
+    @pytest.mark.parametrize("value", ["unclassified", "cui.privacy"])
+    def test_subject_kind_requires_protected(self, value):
+        with pytest.raises(ValidationError):
+            _validate_definition(_field_with({"class": value, "subjectKind": "address"}))
 
     def test_class_is_required_inside_access_control(self):
         with pytest.raises(ValidationError):

@@ -1061,9 +1061,11 @@ are added here, and <code>common.schema.json</code>
 <code>AccessClass</code> mirrors them. (<code>wos.*</code> is not a
 registered prefix.)</li>
 <li>A value outside the core tokens and registered prefixes fails schema
-validation. A linter MUST report a class that is neither a core token
-nor declared by a loaded registry’s <code>access-class</code> token
-entry (E613).</li>
+validation. A linter MUST report a well-formed
+<code>&lt;prefix&gt;.&lt;name&gt;</code> token that no loaded registry
+declares through a <code>draft</code> or <code>stable</code>
+<code>access-class</code> token entry (E613); a deprecated or retired
+entry does not declare it.</li>
 <li><code>maps</code> labels a class for interchange and compliance
 tooling only. Processors decide access and erasure by the token, never
 by <code>maps</code>.</li>

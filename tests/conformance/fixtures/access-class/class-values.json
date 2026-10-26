@@ -1,0 +1,16 @@
+{
+  "title": "Access-Class Registry values: schema admission and E613 lint",
+  "description": "Definition accessControl.class values every implementation must accept or refuse (extension-registry.md §3.2.3, common.schema.json AccessClass), and the lint codes each class yields with the given deployment registry tokens loaded beside the Formspec common registry.",
+  "accepted": ["unclassified", "protected", "cui.privacy", "hipaa.phi", "cui.law-enforcement.sp"],
+  "refused": ["safe-address", "standard", "household-financial", "wos.reason", "cui", "cui.", "CUI.privacy", "protected.x", ""],
+  "lint": [
+    { "class": "protected", "deploymentTokens": [], "codes": [] },
+    { "class": "cui.privacy", "deploymentTokens": [], "codes": ["E613"] },
+    { "class": "cui.privacy", "deploymentTokens": [{ "token": "cui.privacy", "status": "stable" }], "codes": [] },
+    { "class": "cui.privacy", "deploymentTokens": [{ "token": "cui.privacy", "status": "draft" }], "codes": [] },
+    { "class": "cui.privacy", "deploymentTokens": [{ "token": "cui.privacy", "status": "deprecated" }], "codes": ["E613"] },
+    { "class": "cui.privacy", "deploymentTokens": [{ "token": "cui.privacy", "status": "retired" }], "codes": ["E613"] },
+    { "class": "wos.case", "deploymentTokens": [], "codes": ["E101"] },
+    { "class": "safe-address", "deploymentTokens": [], "codes": ["E101"] }
+  ]
+}

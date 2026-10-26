@@ -3094,7 +3094,23 @@ The following properties are recognized on all Item types:
 | `labels` | object | **0..1** (OPTIONAL) | Alternative display labels keyed by context name. Well-known context names include `"short"`, `"pdf"`, `"csv"`, and `"accessibility"`. Implementations MAY define additional context names. |
 | `purpose` | object | **0..1** (OPTIONAL) | Plain-language purpose and citation metadata explaining why this item is asked or shown. `purpose` MAY cite a References entry, PKAF authority chain, rule URI, or implementation-specific authority reference. It MUST NOT replace `accessControl.class` or privacy-profile audience policy. |
 | `consequences` | object | **0..1** (OPTIONAL) | Respondent-facing consequence metadata for this item, including triggered deadlines, lock-in effects, and external actions such as referrals, payments, credit checks, or mandatory reports. A consequence declaration explains and gates the action; it does not itself perform the action. |
-| `accessControl` | object | **0..1** (OPTIONAL; Field and Group only) | Disclosure class of this Item's data. `class` is one token from the Access-Class Registry ([Extension Registry §3.2.3](../registry/extension-registry.md#323-access-classes)); an Item without one takes its nearest ancestor Group's class, else `unclassified`. Processors that expose raw response values MUST gate them by the effective class. `subjectKind` (`address`, `contact`, `employer`) MAY qualify `protected` for renderer mask copy only and MUST NOT appear in any receipt, ledger event, or export. |
+| `accessControl` | object | **0..1** (OPTIONAL; Field and Group only) | Disclosure class of this Item's data: `class`, one token from the Access-Class Registry ([Extension Registry §3.2.3](../registry/extension-registry.md#323-access-classes)), and, only with `class: "protected"`, the renderer-only `subjectKind` (`address`, `contact`, `employer`). See **Access classes** below. |
+
+**Access classes.** An Item's *effective class* is its own
+`accessControl.class`; otherwise its nearest ancestor Group's effective class;
+otherwise `unclassified`. A Field MAY override its Group in either direction.
+Inheritance fails closed: a Field left unclassified inside a `protected` Group
+stays protected.
+
+A *public audience* is any reader who holds no role on the case: the
+respondent's receipt and status pages, public verification output, and any
+export to a third party. Staff whose case role grants them the case are not a
+public audience, and the respondent's own in-progress entry is not a
+disclosure. Unless a loaded audience policy (Privacy Profile) grants it, a
+processor MUST NOT disclose to a public audience any value whose effective
+class is not `unclassified`; it MAY show that the value exists. `subjectKind`
+selects mask copy only and MUST NOT appear in any receipt, ledger event, or
+export. Conformance fixture: `tests/conformance/fixtures/access-class/`.
 
 **Text resolution.** Before display, each of an Item's text properties is
 resolved through one cascade, first match wins, then interpolated (below).

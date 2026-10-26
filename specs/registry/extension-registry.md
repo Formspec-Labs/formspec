@@ -377,8 +377,10 @@ publishes in `registries/formspec-common.registry.json`. It is closed:
    `common.schema.json` `AccessClass` mirrors them. (`wos.*` is not a
    registered prefix.)
 3. A value outside the core tokens and registered prefixes fails schema
-   validation. A linter MUST report a class that is neither a core token
-   nor declared by a loaded registry's `access-class` token entry (E613).
+   validation. A linter MUST report a well-formed `<prefix>.<name>` token
+   that no loaded registry declares through a `draft` or `stable`
+   `access-class` token entry (E613); a deprecated or retired entry does not
+   declare it.
 4. `maps` labels a class for interchange and compliance tooling only.
    Processors decide access and erasure by the token, never by `maps`.
 
