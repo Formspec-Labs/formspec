@@ -2,10 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FormEngine } from '../../dist/index.js';
-import { wasmEvalFEL } from '../../dist/wasm-bridge-runtime.js';
+import { wasmEvalFel } from '../../dist/wasm-bridge-runtime.js';
 
 function evalFel(expr) {
-  return wasmEvalFEL(expr);
+  return wasmEvalFel(expr);
 }
 
 function engineWithCalc(calculate, dataType = 'string') {

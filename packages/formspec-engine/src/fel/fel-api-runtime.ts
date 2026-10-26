@@ -4,13 +4,13 @@ import type { FELAnalysis } from '../interfaces.js';
 
 export type { FELAnalysis } from '../interfaces.js';
 import {
-    wasmAnalyzeFEL,
-    wasmAnalyzeFELWithFieldTypes,
+    wasmAnalyzeFel,
+    wasmAnalyzeFelWithFieldTypes,
     wasmComputeDependencyGroups,
-    wasmEvalFELWithTrace,
-    wasmEvalFELWithContextTrace,
+    wasmEvalFelWithTrace,
+    wasmEvalFelWithContextTrace,
     wasmEvaluateDefinition,
-    wasmGetFELDependencies,
+    wasmGetFelDependencies,
     wasmIsValidFelIdentifier,
     wasmItemAtPath,
     wasmNormalizeIndexedPath,
@@ -31,7 +31,7 @@ export const normalizeIndexedPath = wasmNormalizeIndexedPath;
 export const itemAtPath = wasmItemAtPath;
 
 export function analyzeFEL(expression: string): FELAnalysis {
-    const raw = wasmAnalyzeFEL(expression);
+    const raw = wasmAnalyzeFel(expression);
     return {
         ...raw,
         errors: raw.errors.map(e => normalizeFelAnalysisError(expression, e)),
@@ -43,7 +43,7 @@ export function analyzeFELWithFieldTypes(
     expression: string,
     fieldTypes: Record<string, string>,
 ): FELAnalysis {
-    const raw = wasmAnalyzeFELWithFieldTypes(expression, fieldTypes);
+    const raw = wasmAnalyzeFelWithFieldTypes(expression, fieldTypes);
     return {
         ...raw,
         errors: raw.errors.map(e => normalizeFelAnalysisError(expression, e)),
@@ -90,15 +90,15 @@ export function itemLocationAtPath<T extends TreeItemLike<T>>(items: T[], path: 
 }
 
 export function getFELDependencies(expression: string): string[] {
-    return wasmGetFELDependencies(expression);
+    return wasmGetFelDependencies(expression);
 }
 
 /**
  * Evaluate a FEL expression and return a structured trace of evaluation steps.
  * See `FelTraceStep` for the step variants; wire format matches Rust `fel_core::TraceStep`.
  */
-export const evalFELWithTrace = wasmEvalFELWithTrace;
-export const evalFELWithContextTrace = wasmEvalFELWithContextTrace;
+export const evalFELWithTrace = wasmEvalFelWithTrace;
+export const evalFELWithContextTrace = wasmEvalFelWithContextTrace;
 
 export const evaluateDefinition = wasmEvaluateDefinition;
 

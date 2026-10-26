@@ -7,13 +7,7 @@ import {
 import { getWasmModule, isWasmReady } from './wasm-bridge-runtime.js';
 import type { FELConditionGroupLiftResult } from './interfaces.js';
 
-export type WasmToolsModule = typeof import('../wasm-pkg-tools/formspec_wasm_tools.js') & {
-    parseFel?: (expression: string) => boolean;
-    tokenizeFel?: (expression: string) => string;
-    printFel?: (expression: string) => string;
-    collectFelRewriteTargets?: (expression: string) => string;
-    rewriteFelReferences?: (expression: string, rewrites_json: string) => string;
-};
+export type WasmToolsModule = typeof import('../wasm-pkg-tools/formspec_wasm_tools.js');
 
 let _wasmToolsReady = false;
 let _initToolsPromise: Promise<void> | null = null;
@@ -151,30 +145,24 @@ export function resetToolsWasmDynamicImportCountForTest(): void {
 // ---------------------------------------------------------------------------
 
 /** Parse a FEL expression and return whether it's valid. */
-export function wasmParseFEL(expression: string): boolean {
+export function wasmParseFel(expression: string): boolean {
     assertWasmToolsReadySync();
-    const fn = wasmTools().parseFel ?? wasmTools().parseFEL;
+    const fn = wasmTools().parseFel;
     return fn(expression);
 }
 
-/** Alias for `wasmParseFEL` using modern camelCase. */
-export const wasmParseFel = wasmParseFEL;
-
 /** Tokenize a FEL expression and return positioned token records. */
-export function wasmTokenizeFEL(expression: string): Array<{
+export function wasmTokenizeFel(expression: string): Array<{
     tokenType: string;
     text: string;
     start: number;
     end: number;
 }> {
     assertWasmToolsReadySync();
-    const fn = wasmTools().tokenizeFel ?? wasmTools().tokenizeFEL;
+    const fn = wasmTools().tokenizeFel;
     const resultJson = fn(expression);
     return JSON.parse(resultJson);
 }
-
-/** Alias for `wasmTokenizeFEL` using modern camelCase. */
-export const wasmTokenizeFel = wasmTokenizeFEL;
 
 /** Extract full dependency info from a FEL expression. */
 export function wasmExtractDependencies(expression: string): {
@@ -323,7 +311,7 @@ export function wasmLintDocumentWithRegistries(
 }
 
 /** Collect the rewriteable targets in a FEL expression. */
-export function wasmCollectFELRewriteTargets(expression: string): {
+export function wasmCollectFelRewriteTargets(expression: string): {
     fieldPaths: string[];
     currentPaths: string[];
     variables: string[];
@@ -331,16 +319,13 @@ export function wasmCollectFELRewriteTargets(expression: string): {
     navigationTargets: Array<{ functionName: 'prev' | 'next' | 'parent'; name: string }>;
 } {
     assertWasmToolsReadySync();
-    const fn = wasmTools().collectFelRewriteTargets ?? wasmTools().collectFELRewriteTargets;
+    const fn = wasmTools().collectFelRewriteTargets;
     const resultJson = fn(expression);
     return JSON.parse(resultJson);
 }
 
-/** Alias for `wasmCollectFELRewriteTargets` using modern camelCase. */
-export const wasmCollectFelRewriteTargets = wasmCollectFELRewriteTargets;
-
 /** Rewrite a FEL expression using explicit rewrite maps. */
-export function wasmRewriteFELReferences(
+export function wasmRewriteFelReferences(
     expression: string,
     rewrites: {
         fieldPaths?: Record<string, string>;
@@ -351,12 +336,9 @@ export function wasmRewriteFELReferences(
     },
 ): string {
     assertWasmToolsReadySync();
-    const fn = wasmTools().rewriteFelReferences ?? wasmTools().rewriteFELReferences;
+    const fn = wasmTools().rewriteFelReferences;
     return fn(expression, JSON.stringify(rewrites));
 }
-
-/** Alias for `wasmRewriteFELReferences` using modern camelCase. */
-export const wasmRewriteFelReferences = wasmRewriteFELReferences;
 
 /** Rewrite FEL using definition-assembly `RewriteMap` JSON (fragment + host keys). */
 export function wasmRewriteFelForAssembly(expression: string, mapJson: string): string {
@@ -380,14 +362,11 @@ export function wasmRewriteMessageTemplate(
 }
 
 /** Print a FEL expression AST back to normalized source. */
-export function wasmPrintFEL(expression: string): string {
+export function wasmPrintFel(expression: string): string {
     assertWasmToolsReadySync();
-    const fn = wasmTools().printFel ?? wasmTools().printFEL;
+    const fn = wasmTools().printFel;
     return fn(expression);
 }
-
-/** Alias for `wasmPrintFEL` using modern camelCase. */
-export const wasmPrintFel = wasmPrintFEL;
 
 /** Parse FEL and lift a homogeneous `and` / `or` chain into Studio condition-group JSON when possible. */
 export function wasmTryLiftConditionGroup(expression: string): FELConditionGroupLiftResult {

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { initFormspecEngine } from '../dist/index.js';
-import { wasmEvalFELWithTrace } from '../dist/wasm-bridge-runtime.js';
+import { wasmEvalFelWithTrace } from '../dist/wasm-bridge-runtime.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,7 +27,7 @@ test('fel function semantics fixture', async () => {
   const cases = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
   for (const c of cases) {
     const fields = c.data && typeof c.data === 'object' ? c.data : {};
-    const out = wasmEvalFELWithTrace(c.expr, fields);
+    const out = wasmEvalFelWithTrace(c.expr, fields);
     assert.deepEqual(normalize(out.value), normalize(c.expected_value), c.id);
     const codes = (out.diagnostics ?? [])
       .map((d) => d.code)

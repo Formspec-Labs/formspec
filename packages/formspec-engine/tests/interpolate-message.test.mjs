@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { interpolateMessage } from '../dist/interpolate-message.js';
-import { wasmEvalFELWithContextEnvelope } from '../dist/wasm-bridge-runtime.js';
+import { wasmEvalFelWithContextEnvelope } from '../dist/wasm-bridge-runtime.js';
 
 // --- Basic interpolation ---
 
@@ -177,7 +177,7 @@ test('rule 2: WASM error diagnostics preserve literal even with $ sigil', () => 
   // even though the expression contains $
   const { text, warnings } = interpolateMessage(
     'Total: {{$amount + "text"}}',
-    (expr) => wasmEvalFELWithContextEnvelope(expr, { fields: { amount: 42 } }),
+    (expr) => wasmEvalFelWithContextEnvelope(expr, { fields: { amount: 42 } }),
   );
   assert.equal(text, 'Total: {{$amount + "text"}}');
   assert.equal(warnings.length, 1);
@@ -188,7 +188,7 @@ test('rule 2: WASM eval without diagnostics proceeds normally', () => {
   // Normal evaluation: no diagnostics, value is 42
   const { text, warnings } = interpolateMessage(
     'Total: {{$amount}}',
-    (expr) => wasmEvalFELWithContextEnvelope(expr, { fields: { amount: 42 } }),
+    (expr) => wasmEvalFelWithContextEnvelope(expr, { fields: { amount: 42 } }),
   );
   assert.equal(text, 'Total: 42');
   assert.equal(warnings.length, 0);

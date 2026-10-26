@@ -648,7 +648,7 @@ Find the mutable parent/index/item triple for a dotted tree path.
 
 ## `itemAtPath: typeof wasmItemAtPath`
 
-## `evalFELWithTrace: typeof wasmEvalFELWithTrace`
+## `evalFELWithTrace: typeof wasmEvalFelWithTrace`
 
 Evaluate a FEL expression and return a structured trace of evaluation steps.
 See `FelTraceStep` for the step variants; wire format matches Rust `fel_core::TraceStep`.
@@ -696,7 +696,7 @@ Rewrite FEL references using callback options (bridges to WASM rewrite).
 
 ## `rewriteFEL(expression: string, map: RewriteMap): string`
 
-## `tokenizeFEL: typeof wasmTokenizeFEL`
+## `tokenizeFEL: typeof wasmTokenizeFel`
 
 ## `rewriteMessageTemplate: typeof wasmRewriteMessageTemplate`
 
@@ -712,7 +712,7 @@ Rewrite FEL references using callback options (bridges to WASM rewrite).
 
 ## `generateChangelog: typeof wasmGenerateChangelog`
 
-## `printFEL: typeof wasmPrintFEL`
+## `printFEL: typeof wasmPrintFel`
 
 ## `tryLiftConditionGroup: typeof wasmTryLiftConditionGroup`
 
@@ -1902,19 +1902,19 @@ In browsers, the generated wasm-bindgen loader fetches the sibling `.wasm` asset
 Initialized runtime module — for `wasm-bridge-tools` only (ABI check).
 Not re-exported from the public `wasm-bridge` barrel.
 
-## `wasmEvalFEL(expression: string, fields?: Record<string, any>): any`
+## `wasmEvalFel(expression: string, fields?: Record<string, any>): any`
 
 Evaluate a FEL expression with optional field values. Returns the evaluated value.
 
-## `wasmEvalFELWithContextEnvelope(expression: string, context: WasmFelContext): FelEvalResult`
+## `wasmEvalFelWithContextEnvelope(expression: string, context: WasmFelContext): FelEvalResult`
 
 Evaluate a FEL expression with full FormspecEnvironment context (value + diagnostics flag).
 
-## `wasmEvalFELWithContext(expression: string, context: WasmFelContext): any`
+## `wasmEvalFelWithContext(expression: string, context: WasmFelContext): any`
 
 Evaluate a FEL expression with full FormspecEnvironment context. Returns the value only.
 
-## `wasmEvalFELWithTrace(expression: string, fields?: Record<string, unknown>): FelTraceResult`
+## `wasmEvalFelWithTrace(expression: string, fields?: Record<string, unknown>): FelTraceResult`
 
 Evaluate a FEL expression with a structured trace of evaluation steps.
 
@@ -1942,7 +1942,7 @@ Apply `migrations` on a definition to flat response data (FEL transforms in Rust
 
 Coerce an inbound field value (whitespace, numeric strings, money, precision).
 
-## `wasmGetFELDependencies(expression: string): string[]`
+## `wasmGetFelDependencies(expression: string): string[]`
 
 Extract field path dependencies from a FEL expression. Returns an array of path strings.
 
@@ -1996,11 +1996,11 @@ Evaluate a Formspec definition against provided data.
 Evaluate a standalone Screener Document against respondent inputs.
 Returns a Determination Record (always non-null).
 
-## `wasmAnalyzeFEL(expression: string): WasmFelAnalysisResultJson`
+## `wasmAnalyzeFel(expression: string): WasmFelAnalysisResultJson`
 
 Analyze a FEL expression and return structural info.
 
-## `wasmAnalyzeFELWithFieldTypes(expression: string, fieldTypes: Record<string, string>): WasmFelAnalysisResultJson`
+## `wasmAnalyzeFelWithFieldTypes(expression: string, fieldTypes: Record<string, string>): WasmFelAnalysisResultJson`
 
 Analyze a FEL expression with field data type context for type-mismatch warnings.
 
@@ -2097,11 +2097,11 @@ Exported for unit tests; `initWasmTools` uses this after loading the tools modul
 
 @internal Reset import counter (use only in isolated test processes).
 
-## `wasmParseFEL(expression: string): boolean`
+## `wasmParseFel(expression: string): boolean`
 
 Parse a FEL expression and return whether it's valid.
 
-## `wasmTokenizeFEL(expression: string): Array<{
+## `wasmTokenizeFel(expression: string): Array<{
     tokenType: string;
     text: string;
     start: number;
@@ -2191,7 +2191,7 @@ Lint a Formspec document.
 
 @deprecated Use `wasmLintDocument(doc, { registryDocuments })`.
 
-## `wasmCollectFELRewriteTargets(expression: string): {
+## `wasmCollectFelRewriteTargets(expression: string): {
     fieldPaths: string[];
     currentPaths: string[];
     variables: string[];
@@ -2204,7 +2204,7 @@ Lint a Formspec document.
 
 Collect the rewriteable targets in a FEL expression.
 
-## `wasmRewriteFELReferences(expression: string, rewrites: {
+## `wasmRewriteFelReferences(expression: string, rewrites: {
     fieldPaths?: Record<string, string>;
     currentPaths?: Record<string, string>;
     variables?: Record<string, string>;
@@ -2228,7 +2228,7 @@ Rewrite FEL using definition-assembly `RewriteMap` JSON (fragment + host keys).
 
 Rewrite FEL expressions embedded in {{...}} interpolation segments.
 
-## `wasmPrintFEL(expression: string): string`
+## `wasmPrintFel(expression: string): string`
 
 Print a FEL expression AST back to normalized source.
 

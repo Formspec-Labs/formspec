@@ -5,7 +5,7 @@ import {
   type FelEvalResult,
   type WasmFelContext,
   type WasmInterpolated,
-  wasmInterpolateFELTemplate,
+  wasmInterpolateFelTemplate,
   wasmInterpolateTemplate,
 } from './wasm-bridge-runtime.js';
 
@@ -44,7 +44,7 @@ export function interpolateFELTemplate(
   extensions?: FelExtensionHost,
 ): InterpolateResult {
   if (!template || !template.includes('{{')) return { text: template, warnings: [] };
-  return toInterpolateResult(wasmInterpolateFELTemplate(template, context, extensions));
+  return toInterpolateResult(wasmInterpolateFelTemplate(template, context, extensions));
 }
 
 function toEnvelope(outcome: unknown): { value: unknown; hasErrorDiagnostics: boolean } {

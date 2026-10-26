@@ -1,6 +1,6 @@
 /** @filedesc Host FEL extension functions (Core §3.12) registered on an engine and handed to WASM. */
 
-import { type FelExtensionHost, wasmCheckFELExtensionName } from './wasm-bridge-runtime.js';
+import { type FelExtensionHost, wasmCheckFelExtensionName } from './wasm-bridge-runtime.js';
 
 /** A registered extension: its implementation and optional arity bounds. */
 export interface FelExtensionFunctionRegistration {
@@ -24,7 +24,7 @@ export class FelExtensionFunctions implements FelExtensionHost {
 
     /** Registers `name`, replacing an earlier registration; throws for a FEL built-in or reserved word. */
     public register(name: string, registration: FelExtensionFunctionRegistration): void {
-        wasmCheckFELExtensionName(name);
+        wasmCheckFelExtensionName(name);
         this.functions.set(name, { ...registration });
     }
 

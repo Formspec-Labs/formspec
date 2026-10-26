@@ -28,25 +28,25 @@ export type {
 } from '../interfaces.js';
 
 import {
-    wasmCollectFELRewriteTargets,
+    wasmCollectFelRewriteTargets,
     wasmDeriveJsonLdContext,
     wasmFindRegistryEntry,
     wasmGenerateChangelog,
     wasmLintDocument,
     wasmListBuiltinFunctions,
     wasmParseRegistry,
-    wasmPrintFEL,
+    wasmPrintFel,
     wasmRewriteFelForAssembly,
-    wasmRewriteFELReferences,
+    wasmRewriteFelReferences,
     wasmRewriteMessageTemplate,
-    wasmTokenizeFEL,
+    wasmTokenizeFel,
     wasmTryLiftConditionGroup,
     wasmValidateExtensionUsage,
     wasmValidateLifecycleTransition,
     wasmWellKnownRegistryUrl,
 } from '../wasm-bridge-tools.js';
 
-export const tokenizeFEL = wasmTokenizeFEL;
+export const tokenizeFEL = wasmTokenizeFel;
 
 function mapRewriteEntries(
     entries: string[],
@@ -84,8 +84,8 @@ function mapRewriteNavigationTargets(
 
 /** Rewrite FEL references using callback options (bridges to WASM rewrite). */
 export function rewriteFELReferences(expression: string, options: FELRewriteOptions): string {
-    const targets = wasmCollectFELRewriteTargets(expression);
-    return wasmRewriteFELReferences(expression, {
+    const targets = wasmCollectFelRewriteTargets(expression);
+    return wasmRewriteFelReferences(expression, {
         fieldPaths: mapRewriteEntries(targets.fieldPaths, options.rewriteFieldPath),
         currentPaths: mapRewriteEntries(targets.currentPaths, options.rewriteCurrentPath),
         variables: mapRewriteEntries(targets.variables, options.rewriteVariable),
@@ -103,7 +103,7 @@ export const wellKnownRegistryUrl = wasmWellKnownRegistryUrl;
 export const deriveJsonLdContext = wasmDeriveJsonLdContext;
 export type { JsonLdContextDiagnostic } from '../wasm-bridge-tools.js';
 export const generateChangelog = wasmGenerateChangelog;
-export const printFEL = wasmPrintFEL;
+export const printFEL = wasmPrintFel;
 
 export const tryLiftConditionGroup = wasmTryLiftConditionGroup;
 

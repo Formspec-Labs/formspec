@@ -1,10 +1,10 @@
-/** @filedesc FEL trace bridge — wasmEvalFELWithTrace round-trips Rust TraceStep shape to TS. */
+/** @filedesc FEL trace bridge — wasmEvalFelWithTrace round-trips Rust TraceStep shape to TS. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { wasmEvalFELWithTrace } from '../dist/wasm-bridge-runtime.js';
+import { wasmEvalFelWithTrace } from '../dist/wasm-bridge-runtime.js';
 
 test('trace: $a + $b emits two FieldResolved + one BinaryOp', () => {
-  const result = wasmEvalFELWithTrace('$a + $b', { a: 3, b: 4 });
+  const result = wasmEvalFelWithTrace('$a + $b', { a: 3, b: 4 });
   assert.equal(result.value, 7);
   assert.deepEqual(result.diagnostics, []);
   assert.equal(result.trace.length, 3, `got trace ${JSON.stringify(result.trace)}`);
@@ -25,7 +25,7 @@ test('trace: $a + $b emits two FieldResolved + one BinaryOp', () => {
 });
 
 test('trace: if($x > 0, ..., ...) records IfBranch with selected branch', () => {
-  const result = wasmEvalFELWithTrace("if($x > 0, 'pos', 'neg')", { x: 5 });
+  const result = wasmEvalFelWithTrace("if($x > 0, 'pos', 'neg')", { x: 5 });
   assert.equal(result.value, 'pos');
   const ifStep = result.trace.find((s) => s.kind === 'IfBranch');
   assert.ok(ifStep, `expected IfBranch, got ${JSON.stringify(result.trace)}`);
@@ -34,7 +34,7 @@ test('trace: if($x > 0, ..., ...) records IfBranch with selected branch', () => 
 });
 
 test('trace: false and $undef short-circuits and skips undefined ref', () => {
-  const result = wasmEvalFELWithTrace('false and $undefined', {});
+  const result = wasmEvalFelWithTrace('false and $undefined', {});
   const short = result.trace.find((s) => s.kind === 'ShortCircuit' && s.op === 'and');
   assert.ok(short, `expected ShortCircuit, got ${JSON.stringify(result.trace)}`);
   const rightResolved = result.trace.find(
@@ -44,5 +44,5 @@ test('trace: false and $undef short-circuits and skips undefined ref', () => {
 });
 
 test('trace: parse error throws', () => {
-  assert.throws(() => wasmEvalFELWithTrace('1 +', {}));
+  assert.throws(() => wasmEvalFelWithTrace('1 +', {}));
 });

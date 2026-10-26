@@ -5,6 +5,5 @@ All notable changes to the Formspec project will be documented in this file.
 ## [Unreleased]
 
 ### Changed - formspec-wasm (fs-4zhu)
-- Converged FEL WASM export function `js_name` attributes from uppercase acronyms (`evalFEL`, `analyzeFEL`, etc.) to modern TypeScript camelCase (`evalFel`, `analyzeFel`, `parseFel`, `tokenizeFel`, `printFel`, `getFelDependencies`, `analyzeFelWithFieldTypes`, `collectFelRewriteTargets`, `rewriteFelReferences`).
-- Maintained deprecated legacy uppercase aliases (`evalFEL`, etc.) to ensure seamless backward compatibility for existing consumers.
-- Standardized split ABI version export `js_name = "formspecWasmSplitAbiVersion"` as a quoted string.
+- Renamed every FEL WASM export `js_name` to camelCase with a lowercase acronym: `evalFel`, `evalFelWithContext`, `evalFelWithTrace`, `evalFelWithContextTrace`, `interpolateFelTemplate`, `parseFel`, `tokenizeFel`, `printFel`, `getFelDependencies`, `analyzeFel`, `analyzeFelWithFieldTypes`, `collectFelRewriteTargets`, `rewriteFelReferences`, `checkFelExtensionName`. The uppercase `FEL` exports are removed, with no aliases; callers of the raw WASM module must use the new names.
+- Renamed the engine bridge helpers to match (`wasmEvalFel`, `wasmAnalyzeFel`, `wasmTokenizeFel`, ...). The public `@formspec-org/engine` FEL API (`evalFEL`, `analyzeFEL`, `tokenizeFEL`, ...) is unchanged.

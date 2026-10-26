@@ -20,9 +20,9 @@ import type {
     RuntimeMappingResult,
 } from '../interfaces.js';
 import {
-    wasmAnalyzeFEL,
+    wasmAnalyzeFel,
     wasmCoerceFieldValue,
-    wasmGetFELDependencies,
+    wasmGetFelDependencies,
     wasmNormalizeIndexedPath,
 } from '../wasm-bridge-runtime.js';
 

@@ -8,7 +8,7 @@ import {
   rewriteFELReferences,
   validateExtensionUsage,
 } from '../dist/index.js';
-import { wasmRewriteFELReferences, wasmRewriteMessageTemplate } from '../dist/wasm-bridge-tools.js';
+import { wasmRewriteFelReferences, wasmRewriteMessageTemplate } from '../dist/wasm-bridge-tools.js';
 
 test('analyzeFEL reports parse errors with location metadata', () => {
   const analysis = analyzeFEL('$a +');
@@ -67,9 +67,9 @@ test('rewriteFELReferences rewrites navigation targets only for literal first ar
   assert.equal(result, "prev(concat('amount', @suffix)) + next('pref_amount')");
 });
 
-test('wasmRewriteFELReferences preserves non-reference source text and quote style', () => {
+test('wasmRewriteFelReferences preserves non-reference source text and quote style', () => {
   const expression = 'prev( /* keep */ "members" , $member.total ) + $foo /* tail */ + @instance(\'census\').name + @current.total + @var_name';
-  const result = wasmRewriteFELReferences(expression, {
+  const result = wasmRewriteFelReferences(expression, {
     fieldPaths: {
       'member.total': 'household.memberTotal',
       foo: 'bar',

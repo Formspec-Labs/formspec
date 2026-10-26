@@ -69,13 +69,6 @@ pub fn eval_fel(expression: &str, fields_json: &str) -> Result<String, JsError> 
     eval_fel_inner(expression, fields_json).map_err(|e| JsError::new(&e))
 }
 
-/// Legacy alias for [`eval_fel`] using uppercase `FEL`.
-#[deprecated(note = "Use evalFel instead")]
-#[wasm_bindgen(js_name = "evalFEL")]
-pub fn eval_fel_legacy(expression: &str, fields_json: &str) -> Result<String, JsError> {
-    eval_fel(expression, fields_json)
-}
-
 pub(crate) fn eval_fel_inner(expression: &str, fields_json: &str) -> Result<String, String> {
     let expr = parse_fel_source(expression)?;
     let fields = field_map_from_json_str(fields_json)?;
@@ -92,13 +85,6 @@ pub(crate) fn eval_fel_inner(expression: &str, fields_json: &str) -> Result<Stri
 #[wasm_bindgen(js_name = "evalFelWithTrace")]
 pub fn eval_fel_with_trace(expression: &str, fields_json: &str) -> Result<String, JsError> {
     eval_fel_with_trace_inner(expression, fields_json).map_err(|e| JsError::new(&e))
-}
-
-/// Legacy alias for [`eval_fel_with_trace`] using uppercase `FEL`.
-#[deprecated(note = "Use evalFelWithTrace instead")]
-#[wasm_bindgen(js_name = "evalFELWithTrace")]
-pub fn eval_fel_with_trace_legacy(expression: &str, fields_json: &str) -> Result<String, JsError> {
-    eval_fel_with_trace(expression, fields_json)
 }
 
 pub(crate) fn eval_fel_with_trace_inner(
@@ -141,17 +127,6 @@ pub fn eval_fel_with_context_trace(
         extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
     )
     .map_err(|e| JsError::new(&e))
-}
-
-/// Legacy alias for [`eval_fel_with_context_trace`] using uppercase `FEL`.
-#[deprecated(note = "Use evalFelWithContextTrace instead")]
-#[wasm_bindgen(js_name = "evalFELWithContextTrace")]
-pub fn eval_fel_with_context_trace_legacy(
-    expression: &str,
-    context_json: &str,
-    extensions: Option<FelExtensionHost>,
-) -> Result<String, JsError> {
-    eval_fel_with_context_trace(expression, context_json, extensions)
 }
 
 pub(crate) fn eval_fel_with_context_trace_inner(
@@ -199,17 +174,6 @@ pub fn eval_fel_with_context(
         extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
     )
     .map_err(|e| JsError::new(&e))
-}
-
-/// Legacy alias for [`eval_fel_with_context`] using uppercase `FEL`.
-#[deprecated(note = "Use evalFelWithContext instead")]
-#[wasm_bindgen(js_name = "evalFELWithContext")]
-pub fn eval_fel_with_context_legacy(
-    expression: &str,
-    context_json: &str,
-    extensions: Option<FelExtensionHost>,
-) -> Result<String, JsError> {
-    eval_fel_with_context(expression, context_json, extensions)
 }
 
 pub(crate) fn eval_fel_with_context_inner(
@@ -261,17 +225,6 @@ pub fn interpolate_fel_template(
         extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
     )
     .map_err(|e| JsError::new(&e))
-}
-
-/// Legacy alias for [`interpolate_fel_template`] using uppercase `FEL`.
-#[deprecated(note = "Use interpolateFelTemplate instead")]
-#[wasm_bindgen(js_name = "interpolateFELTemplate")]
-pub fn interpolate_fel_template_legacy(
-    template: &str,
-    context_json: &str,
-    extensions: Option<FelExtensionHost>,
-) -> Result<String, JsError> {
-    interpolate_fel_template(template, context_json, extensions)
 }
 
 pub(crate) fn interpolate_fel_template_inner(
@@ -332,26 +285,10 @@ pub fn parse_fel(expression: &str) -> bool {
     parse(expression).is_ok()
 }
 
-/// Legacy alias for [`parse_fel`] using uppercase `FEL`.
-#[cfg(feature = "fel-authoring")]
-#[deprecated(note = "Use parseFel instead")]
-#[wasm_bindgen(js_name = "parseFEL")]
-pub fn parse_fel_legacy(expression: &str) -> bool {
-    parse_fel(expression)
-}
-
 #[cfg(feature = "fel-authoring")]
 #[wasm_bindgen(js_name = "tokenizeFel")]
 pub fn tokenize_fel(expression: &str) -> Result<String, JsError> {
     tokenize_fel_inner(expression).map_err(|e| JsError::new(&e))
-}
-
-/// Legacy alias for [`tokenize_fel`] using uppercase `FEL`.
-#[cfg(feature = "fel-authoring")]
-#[deprecated(note = "Use tokenizeFel instead")]
-#[wasm_bindgen(js_name = "tokenizeFEL")]
-pub fn tokenize_fel_legacy(expression: &str) -> Result<String, JsError> {
-    tokenize_fel(expression)
 }
 
 #[cfg(feature = "fel-authoring")]
@@ -368,14 +305,6 @@ pub fn print_fel(expression: &str) -> Result<String, JsError> {
     Ok(print_expr(&expr))
 }
 
-/// Legacy alias for [`print_fel`] using uppercase `FEL`.
-#[cfg(feature = "fel-authoring")]
-#[deprecated(note = "Use printFel instead")]
-#[wasm_bindgen(js_name = "printFEL")]
-pub fn print_fel_legacy(expression: &str) -> Result<String, JsError> {
-    print_fel(expression)
-}
-
 /// Try to lift a FEL expression into Studio `ConditionGroup` JSON (`lifted` / `unlifted`).
 #[cfg(feature = "fel-authoring")]
 #[wasm_bindgen(js_name = "tryLiftConditionGroup")]
@@ -390,13 +319,6 @@ pub fn get_fel_deps(expression: &str) -> Result<String, JsError> {
     let deps = get_fel_dependencies(expression);
     let arr: Vec<&str> = deps.iter().map(|s| s.as_str()).collect();
     to_json_string(&arr).map_err(|e| JsError::new(&e))
-}
-
-/// Legacy alias for [`get_fel_deps`] using uppercase `FEL`.
-#[deprecated(note = "Use getFelDependencies instead")]
-#[wasm_bindgen(js_name = "getFELDependencies")]
-pub fn get_fel_deps_legacy(expression: &str) -> Result<String, JsError> {
-    get_fel_deps(expression)
 }
 
 /// Extract full dependency info from a FEL expression.
@@ -418,13 +340,6 @@ pub fn analyze_fel_wasm(expression: &str) -> Result<String, JsError> {
     to_json_string(&json).map_err(|e| JsError::new(&e))
 }
 
-/// Legacy alias for [`analyze_fel_wasm`] using uppercase `FEL`.
-#[deprecated(note = "Use analyzeFel instead")]
-#[wasm_bindgen(js_name = "analyzeFEL")]
-pub fn analyze_fel_wasm_legacy(expression: &str) -> Result<String, JsError> {
-    analyze_fel_wasm(expression)
-}
-
 /// Analyze a FEL expression with field data type context for type-mismatch warnings.
 ///
 /// `field_types_json` is a JSON object mapping field paths to data type strings,
@@ -435,16 +350,6 @@ pub fn analyze_fel_with_field_types_wasm(
     field_types_json: &str,
 ) -> Result<String, JsError> {
     analyze_fel_with_field_types_inner(expression, field_types_json).map_err(|e| JsError::new(&e))
-}
-
-/// Legacy alias for [`analyze_fel_with_field_types_wasm`] using uppercase `FEL`.
-#[deprecated(note = "Use analyzeFelWithFieldTypes instead")]
-#[wasm_bindgen(js_name = "analyzeFELWithFieldTypes")]
-pub fn analyze_fel_with_field_types_wasm_legacy(
-    expression: &str,
-    field_types_json: &str,
-) -> Result<String, JsError> {
-    analyze_fel_with_field_types_wasm(expression, field_types_json)
 }
 
 fn analyze_fel_with_field_types_inner(
@@ -472,14 +377,6 @@ pub fn collect_fel_rewrite_targets_wasm(expression: &str) -> Result<String, JsEr
     to_json_string(&json).map_err(|e| JsError::new(&e))
 }
 
-/// Legacy alias for [`collect_fel_rewrite_targets_wasm`] using uppercase `FEL`.
-#[cfg(feature = "fel-authoring")]
-#[deprecated(note = "Use collectFelRewriteTargets instead")]
-#[wasm_bindgen(js_name = "collectFELRewriteTargets")]
-pub fn collect_fel_rewrite_targets_wasm_legacy(expression: &str) -> Result<String, JsError> {
-    collect_fel_rewrite_targets_wasm(expression)
-}
-
 #[cfg(feature = "fel-authoring")]
 #[wasm_bindgen(js_name = "rewriteFelReferences")]
 pub fn rewrite_fel_references_wasm(
@@ -490,17 +387,6 @@ pub fn rewrite_fel_references_wasm(
         parse_value_str(rewrites_json, "rewrites JSON").map_err(|e| JsError::new(&e))?;
     let options = rewrite_options_from_camel_case_json(&rewrites);
     Ok(rewrite_fel_source_references(expression, &options))
-}
-
-/// Legacy alias for [`rewrite_fel_references_wasm`] using uppercase `FEL`.
-#[cfg(feature = "fel-authoring")]
-#[deprecated(note = "Use rewriteFelReferences instead")]
-#[wasm_bindgen(js_name = "rewriteFELReferences")]
-pub fn rewrite_fel_references_wasm_legacy(
-    expression: &str,
-    rewrites_json: &str,
-) -> Result<String, JsError> {
-    rewrite_fel_references_wasm(expression, rewrites_json)
 }
 
 #[cfg(feature = "fel-authoring")]

@@ -9,7 +9,7 @@ import {
   wasmPrepareFelExpression,
   wasmResolveOptionSetsOnDefinition,
 } from '../dist/wasm-bridge-runtime.js';
-import { wasmRewriteFelForAssembly, wasmTokenizeFEL } from '../dist/wasm-bridge-tools.js';
+import { wasmRewriteFelForAssembly, wasmTokenizeFel } from '../dist/wasm-bridge-tools.js';
 
 test('wasmEvaluateDefinition forwards previousValidations to the batch evaluator', () => {
   const definition = {
@@ -179,8 +179,8 @@ test('wasmPrepareFelExpression does not splice repeat alias after a dot', () => 
   assert.equal(out, 'x.rows.score');
 });
 
-test('wasmTokenizeFEL returns positioned tokens through the JS bridge', () => {
-  const tokens = wasmTokenizeFEL('if($qty >= 1, $price, 0)');
+test('wasmTokenizeFel returns positioned tokens through the JS bridge', () => {
+  const tokens = wasmTokenizeFel('if($qty >= 1, $price, 0)');
 
   assert.ok(tokens.length > 0);
   assert.equal(tokens[0].tokenType, 'If');

@@ -24,16 +24,7 @@ import {
 let _wasmReady = false;
 let _initPromise: Promise<void> | null = null;
 
-export type WasmModule = typeof import('../wasm-pkg-runtime/formspec_wasm_runtime.js') & {
-    evalFel?: (expression: string, fields_json: string) => string;
-    evalFelWithContext?: (expression: string, context_json: string, extensions?: FelExtensionHost | null) => string;
-    evalFelWithTrace?: (expression: string, fields_json: string) => string;
-    evalFelWithContextTrace?: (expression: string, context_json: string, extensions?: FelExtensionHost | null) => string;
-    interpolateFelTemplate?: (template: string, context_json: string, extensions?: FelExtensionHost | null) => string;
-    getFelDependencies?: (expression: string) => string;
-    analyzeFel?: (expression: string) => string;
-    analyzeFelWithFieldTypes?: (expression: string, field_types_json: string) => string;
-};
+export type WasmModule = typeof import('../wasm-pkg-runtime/formspec_wasm_runtime.js');
 
 let _wasm: WasmModule | null = null;
 
@@ -135,18 +126,15 @@ function parseFelEvalEnvelope(resultJson: string): FelEvalResult {
         return parsed;
     }
     throw new Error(
-        'evalFEL returned unexpected JSON (expected { value, hasErrorDiagnostics })',
+        'evalFel returned unexpected JSON (expected { value, hasErrorDiagnostics })',
     );
 }
 
 /** Evaluate a FEL expression with optional field values. Returns the evaluated value. */
-export function wasmEvalFEL(expression: string, fields: Record<string, any> = {}): any {
-    const fn = wasm().evalFel ?? wasm().evalFEL;
+export function wasmEvalFel(expression: string, fields: Record<string, any> = {}): any {
+    const fn = wasm().evalFel;
     return parseFelEvalEnvelope(fn(expression, JSON.stringify(fields))).value;
 }
-
-/** Alias for `wasmEvalFEL` using modern camelCase. */
-export const wasmEvalFel = wasmEvalFEL;
 
 /** FEL evaluation context for the richer WASM evaluator. */
 export interface WasmFelContext {
@@ -171,25 +159,22 @@ export interface WasmFelContext {
 }
 
 /** Evaluate a FEL expression with full FormspecEnvironment context (value + diagnostics flag). */
-export function wasmEvalFELWithContextEnvelope(
+export function wasmEvalFelWithContextEnvelope(
     expression: string,
     context: WasmFelContext,
     extensions?: FelExtensionHost,
 ): FelEvalResult {
-    const fn = wasm().evalFelWithContext ?? wasm().evalFELWithContext;
+    const fn = wasm().evalFelWithContext;
     const resultJson = fn(expression, JSON.stringify(context), extensions);
     return parseFelEvalEnvelope(resultJson);
 }
-
-/** Alias for `wasmEvalFELWithContextEnvelope` using modern camelCase. */
-export const wasmEvalFelWithContextEnvelope = wasmEvalFELWithContextEnvelope;
 
 /** Host extension functions (Core §3.12) handed to evaluating exports; Rust calls `arity` and `invoke`. */
 export type FelExtensionHost = import('../wasm-pkg-runtime/formspec_wasm_runtime.js').FelExtensionHost;
 
 /** Throws when `name` may not be an extension function: a FEL built-in or reserved word (Core §3.12). */
-export function wasmCheckFELExtensionName(name: string): void {
-    wasm().checkFELExtensionName(name);
+export function wasmCheckFelExtensionName(name: string): void {
+    wasm().checkFelExtensionName(name);
 }
 
 /**
@@ -266,31 +251,25 @@ export interface FelTraceResult {
  * (MCP tools, error explainers). Values in the trace are projected to JSON,
  * losing FEL type fidelity (money/date) but gaining universal readability.
  */
-export function wasmEvalFELWithTrace(
+export function wasmEvalFelWithTrace(
     expression: string,
     fields: Record<string, unknown> = {},
 ): FelTraceResult {
-    const fn = wasm().evalFelWithTrace ?? wasm().evalFELWithTrace;
+    const fn = wasm().evalFelWithTrace;
     const resultJson = fn(expression, JSON.stringify(fields));
     return JSON.parse(resultJson);
 }
 
-/** Alias for `wasmEvalFELWithTrace` using modern camelCase. */
-export const wasmEvalFelWithTrace = wasmEvalFELWithTrace;
-
 /** Evaluate a FEL expression against full FormspecEnvironment context and trace each step. */
-export function wasmEvalFELWithContextTrace(
+export function wasmEvalFelWithContextTrace(
     expression: string,
     context: WasmFelContext,
     extensions?: FelExtensionHost,
 ): FelTraceResult {
-    const fn = wasm().evalFelWithContextTrace ?? wasm().evalFELWithContextTrace;
+    const fn = wasm().evalFelWithContextTrace;
     const resultJson = fn(expression, JSON.stringify(context), extensions);
     return JSON.parse(resultJson);
 }
-
-/** Alias for `wasmEvalFELWithContextTrace` using modern camelCase. */
-export const wasmEvalFelWithContextTrace = wasmEvalFELWithContextTrace;
 
 /** Interpolation result from Rust: resolved text plus one warning per expression left literal. */
 export interface WasmInterpolated {
@@ -299,17 +278,14 @@ export interface WasmInterpolated {
 }
 
 /** Locale §3.3.1: resolve every `{{expression}}` in `template` against a FEL context, in one call. */
-export function wasmInterpolateFELTemplate(
+export function wasmInterpolateFelTemplate(
     template: string,
     context: WasmFelContext,
     extensions?: FelExtensionHost,
 ): WasmInterpolated {
-    const fn = wasm().interpolateFelTemplate ?? wasm().interpolateFELTemplate;
+    const fn = wasm().interpolateFelTemplate;
     return JSON.parse(fn(template, JSON.stringify(context), extensions));
 }
-
-/** Alias for `wasmInterpolateFELTemplate` using modern camelCase. */
-export const wasmInterpolateFelTemplate = wasmInterpolateFELTemplate;
 
 /**
  * Locale §3.3.1 with a host evaluator: Rust scans the template and applies the escape, failure,
@@ -369,8 +345,8 @@ export function wasmCoerceFieldValue(
 }
 
 /** Extract field path dependencies from a FEL expression. Returns an array of path strings. */
-export function wasmGetFELDependencies(expression: string): string[] {
-    const resultJson = wasm().getFELDependencies(expression);
+export function wasmGetFelDependencies(expression: string): string[] {
+    const resultJson = wasm().getFelDependencies(expression);
     return JSON.parse(resultJson);
 }
 
@@ -480,17 +456,17 @@ export function wasmEvaluateScreenerDocument(
 }
 
 /** Analyze a FEL expression and return structural info. */
-export function wasmAnalyzeFEL(expression: string): WasmFelAnalysisResultJson {
-    const resultJson = wasm().analyzeFEL(expression);
+export function wasmAnalyzeFel(expression: string): WasmFelAnalysisResultJson {
+    const resultJson = wasm().analyzeFel(expression);
     return JSON.parse(resultJson) as WasmFelAnalysisResultJson;
 }
 
 /** Analyze a FEL expression with field data type context for type-mismatch warnings. */
-export function wasmAnalyzeFELWithFieldTypes(
+export function wasmAnalyzeFelWithFieldTypes(
     expression: string,
     fieldTypes: Record<string, string>,
 ): WasmFelAnalysisResultJson {
-    const resultJson = wasm().analyzeFELWithFieldTypes(
+    const resultJson = wasm().analyzeFelWithFieldTypes(
         expression,
         JSON.stringify(fieldTypes),
     );

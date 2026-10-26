@@ -44,7 +44,7 @@ export type { TreeItemLike, ItemLocation } from './fel/fel-api.js';
 export { createMappingEngine, RuntimeMappingEngine } from './mapping/RuntimeMappingEngine.js';
 
 /** FEL eval for tooling (WASM); returns a JSON-compatible value. */
-export { wasmEvalFEL as evalFEL } from './wasm-bridge-runtime.js';
+export { wasmEvalFel as evalFEL } from './wasm-bridge-runtime.js';
 
 /** @deprecated Use `lintDocument(doc, { registryDocuments })`. */
 export { wasmLintDocumentWithRegistries as lintDocumentWithRegistries } from './wasm-bridge-tools.js';

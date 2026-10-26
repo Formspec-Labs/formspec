@@ -82,7 +82,7 @@ mod tests {
     fn analyze_fel_wasm_invalid_expression_errors_are_objects() {
         use crate::fel::analyze_fel_wasm;
 
-        let raw = analyze_fel_wasm("$a +").expect("analyzeFEL");
+        let raw = analyze_fel_wasm("$a +").expect("analyzeFel");
         let v: Value = serde_json::from_str(&raw).expect("JSON");
         assert_eq!(v["valid"], false);
         let err0 = &v["errors"][0];

@@ -1,6 +1,6 @@
 //! `FelContext`: a WASM-resident FEL context the engine loads once per evaluation and reads many times.
 //!
-//! `evalFELWithContext` takes the whole form context as JSON on every call, so an ad-hoc read
+//! `evalFelWithContext` takes the whole form context as JSON on every call, so an ad-hoc read
 //! (`compileExpression`, a component `when`, one `{{}}` segment) costs O(form size). This handle
 //! holds [`HostFelContext`] across calls: the host loads a form-scope snapshot when its evaluation,
 //! structure, or instance version changes, and each read passes only the expression and the Item path.

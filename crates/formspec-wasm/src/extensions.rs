@@ -36,7 +36,7 @@ extern "C" {
 }
 
 /// Throws when `name` may not be registered: a FEL built-in or reserved word (Core §3.12 rule 1).
-#[wasm_bindgen(js_name = "checkFELExtensionName")]
+#[wasm_bindgen(js_name = "checkFelExtensionName")]
 pub fn check_fel_extension_name(name: &str) -> Result<(), JsError> {
     check_extension_name(name).map_err(|e| JsError::new(&e.to_string()))
 }

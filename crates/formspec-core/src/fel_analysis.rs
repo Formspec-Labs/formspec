@@ -1120,7 +1120,7 @@ pub fn fel_analysis_to_json_value(result: &FelAnalysis) -> Value {
     })
 }
 
-/// [`FelRewriteTargets`] as sorted JSON (camelCase keys) for `collectFELRewriteTargets`.
+/// [`FelRewriteTargets`] as sorted JSON (camelCase keys) for `collectFelRewriteTargets`.
 pub fn fel_rewrite_targets_to_json_value(targets: &FelRewriteTargets) -> Value {
     let mut field_paths: Vec<_> = targets.field_paths.iter().cloned().collect();
     field_paths.sort();
@@ -1149,7 +1149,7 @@ pub fn fel_rewrite_targets_to_json_value(targets: &FelRewriteTargets) -> Value {
     })
 }
 
-/// Build [`RewriteOptions`] from the camelCase JSON map used by `rewriteFELReferences` / `rewriteMessageTemplate`.
+/// Build [`RewriteOptions`] from the camelCase JSON map used by `rewriteFelReferences` / `rewriteMessageTemplate`.
 pub fn rewrite_options_from_camel_case_json(rewrites: &Value) -> RewriteOptions {
     let empty = serde_json::Map::new();
     let rewrites_obj = rewrites.as_object().unwrap_or(&empty);

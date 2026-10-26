@@ -1,6 +1,6 @@
 # formspec-wasm
 
-`wasm-bindgen` crate exposing the Rust Formspec stack to TypeScript and browsers. Public API is `#[wasm_bindgen]` functions on the crate root modules (`evalFEL`, `lintDocument`, `evaluateDefinition`, …); inputs and outputs are mostly JSON strings.
+`wasm-bindgen` crate exposing the Rust Formspec stack to TypeScript and browsers. Public API is `#[wasm_bindgen]` functions on the crate root modules (`evalFel`, `lintDocument`, `evaluateDefinition`, …); inputs and outputs are mostly JSON strings.
 
 ## Cargo features
 
@@ -13,9 +13,9 @@
 | `mapping-api` | **yes** | `executeMappingRules`, `executeMappingDocument`. |
 | `registry-api` | **yes** | Registry parse/lookup/lifecycle + `validateExtensionUsage`. |
 | `changelog-api` | **yes** | `generateChangelog`. |
-| `fel-authoring` | **yes** | `parseFEL`, `tokenizeFEL`, `printFEL`, `tryLiftConditionGroup`, `extractDependencies`, FEL rewrites, `rewriteFelForAssembly`, `listBuiltinFunctions`. |
+| `fel-authoring` | **yes** | `parseFel`, `tokenizeFel`, `printFel`, `tryLiftConditionGroup`, `extractDependencies`, FEL rewrites, `rewriteFelForAssembly`, `listBuiltinFunctions`. |
 
-**Runtime WASM** (`npm run build:wasm:runtime`): `wasm-pack … -- --no-default-features` — **none** of the above; only **eval / screener / coerce / migrations / option sets / core FEL** (`evalFEL*`, `prepareFelExpression`, `getFELDependencies`, `analyzeFEL`, path helpers) + **split ABI** string.
+**Runtime WASM** (`npm run build:wasm:runtime`): `wasm-pack … -- --no-default-features` — **none** of the above; only **eval / screener / coerce / migrations / option sets / core FEL** (`evalFel*`, `prepareFelExpression`, `getFelDependencies`, `analyzeFel`, path helpers) + **split ABI** string.
 
 **Tools WASM**: default features = `full-wasm` (all rows). TypeScript loads runtime first, tools lazily (**ADR 0050**).
 
@@ -25,7 +25,7 @@ Sibling binding: **[`formspec-py`](../formspec-py/)** (`formspec_rust`) targets 
 
 | Module | Role |
 |--------|------|
-| `fel` | Always: eval, `prepareFelExpression`, `getFELDependencies`, `analyzeFEL`, path helpers. `fel-authoring`: tokenize/parse/print/rewrites/catalog. |
+| `fel` | Always: eval, `prepareFelExpression`, `getFelDependencies`, `analyzeFel`, path helpers. `fel-authoring`: tokenize/parse/print/rewrites/catalog. |
 | `evaluate` | `evaluateDefinition`, `evaluateScreenerDocument`, context/trigger parsing |
 | `definition` | Always: option sets + migrations. `definition-assembly`: `assembleDefinition`. |
 | `value_coerce` | `coerceFieldValue` (item/bind/definition/value JSON strings) |

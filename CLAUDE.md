@@ -147,7 +147,7 @@ Fence checker: [`scripts/check-dep-fences.mjs`](scripts/check-dep-fences.mjs).
 
 ### Logic ownership: Rust/WASM first
 
-Spec business logic lives in Rust crates (`crates/formspec-*`, `fel-core`) and ships through WASM (browser/engine) and Python (server/tooling). TypeScript orchestrates: reactive `FormEngine` state, webcomponent rendering, studio commands, **thin bridges to WASM**. **Do not add new spec behavior in TS.** FEL parse, dependency extraction, analysis, prepare, eval all run through WASM (`getFELDependencies`, `analyzeFEL`, `evalFEL`). `packages/formspec-engine/src/fel/` is API glue (`fel-api-runtime` / `fel-api-tools`), not an in-tree Chevrotain stack.
+Spec business logic lives in Rust crates (`crates/formspec-*`, `fel-core`) and ships through WASM (browser/engine) and Python (server/tooling). TypeScript orchestrates: reactive `FormEngine` state, webcomponent rendering, studio commands, **thin bridges to WASM**. **Do not add new spec behavior in TS.** FEL parse, dependency extraction, analysis, prepare, eval all run through WASM (`getFelDependencies`, `analyzeFel`, `evalFel`). `packages/formspec-engine/src/fel/` is API glue (`fel-api-runtime` / `fel-api-tools`), not an in-tree Chevrotain stack.
 
 ### FormEngine — `packages/formspec-engine/src/index.ts`
 

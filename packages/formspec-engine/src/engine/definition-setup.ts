@@ -3,8 +3,8 @@
 import type { FormVariable } from '@formspec-org/types';
 import type { FormDefinition } from '@formspec-org/types';
 import {
-    wasmAnalyzeFEL,
-    wasmGetFELDependencies,
+    wasmAnalyzeFel,
+    wasmGetFelDependencies,
     wasmResolveOptionSetsOnDefinition,
 } from '../wasm-bridge-runtime.js';
 import type { EngineBindConfig } from './helpers.js';
@@ -25,7 +25,7 @@ export function validateVariableDefinitionCycles(variableDefs: FormVariable[]): 
     const graph = new Map<string, Set<string>>();
     for (const variableDef of variableDefs) {
         const deps = new Set<string>();
-        for (const name of wasmAnalyzeFEL(variableDef.expression).variables) {
+        for (const name of wasmAnalyzeFel(variableDef.expression).variables) {
             deps.add(name);
         }
         graph.set(variableDef.name, deps);
@@ -41,7 +41,7 @@ export function validateCalculateBindCycles(bindConfigs: Record<string, EngineBi
         }
         const deps = new Set<string>();
         const parentPath = parentPathOf(path);
-        for (const dep of wasmGetFELDependencies(bind.calculate)) {
+        for (const dep of wasmGetFelDependencies(bind.calculate)) {
             const resolved = resolveRelativeDependency(dep, parentPath, path);
             if (resolved) {
                 deps.add(toBasePath(resolved));

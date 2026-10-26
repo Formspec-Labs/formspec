@@ -6,7 +6,7 @@ import {
     initFormspecEngineTools,
     isFormspecEngineToolsInitialized,
 } from '../../dist/init-formspec-engine.js';
-import { isWasmToolsReady, wasmTokenizeFEL } from '../../dist/wasm-bridge-tools.js';
+import { isWasmToolsReady, wasmTokenizeFel } from '../../dist/wasm-bridge-tools.js';
 
 test('initFormspecEngine leaves tools WASM unloaded', async () => {
     await initFormspecEngine();
@@ -17,7 +17,7 @@ test('initFormspecEngine leaves tools WASM unloaded', async () => {
 test('tools bridge throws until initFormspecEngineTools', async () => {
     await initFormspecEngine();
     assert.throws(
-        () => wasmTokenizeFEL('$a + 1'),
+        () => wasmTokenizeFel('$a + 1'),
         /tools WASM/,
     );
 });
@@ -27,7 +27,7 @@ test('initFormspecEngineTools enables tokenizeFEL bridge', async () => {
     await initFormspecEngineTools();
     assert.equal(isWasmToolsReady(), true);
     assert.equal(isFormspecEngineToolsInitialized(), true);
-    const tokens = wasmTokenizeFEL('1 + 2');
+    const tokens = wasmTokenizeFel('1 + 2');
     assert.ok(Array.isArray(tokens));
     assert.ok(tokens.length > 0);
 });
