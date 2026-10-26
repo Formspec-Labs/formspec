@@ -106,7 +106,8 @@ changes hidden inside one atomic Preact batch are observed as its final state.
 In-place changes that do not notify public signals are outside observation;
 activation and terminal checks still compare current content. These are private
 freshness checks, separate from canonical Response and signature profiles.
-The hash dependency requires Node 20.19 or later for Node consumers.
+Node consumers need Node `^20.19.0 || >=22.12.0`: the CommonJS build `require()`s
+ESM-only Formspec packages, which needs unflagged `require(esm)`.
 
 ### Renderer chrome for custom controls
 

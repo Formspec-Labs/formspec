@@ -62,6 +62,11 @@ jobs:
       - run: npm run test:unit
       - run: npm run test:scripts
       - run: npm run test:packed --workspace=@formspec-org/react
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20.19.0"
+      - name: Packed @formspec-org/react probe on the Node 20.19 floor
+        run: node packages/formspec-react/scripts/test-packed.mjs
 
   python-tests:
     name: Python Tests

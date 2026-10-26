@@ -7,6 +7,9 @@ export default defineConfig({
         'semantic-controls': 'src/semantic-controls.ts',
     },
     format: ['esm', 'cjs'],
+    // CJS too: without it each CJS entry embeds its own copy of src/context.tsx,
+    // so a root FormspecProvider and a `/hooks` hook see different contexts.
+    splitting: true,
     dts: true,
     sourcemap: true,
     clean: true,
