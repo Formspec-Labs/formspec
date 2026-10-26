@@ -1,6 +1,6 @@
 {
   "name": "@formspec-org/react",
-  "description": "React hooks and auto-renderer for Formspec — use any component library with FormEngine",
+  "description": "React hooks and auto-renderer for Formspec \u2014 use any component library with FormEngine",
   "version": "2.1.0",
   "type": "module",
   "sideEffects": false,
@@ -82,7 +82,6 @@
     "axe-core": "4.13.0",
     "canonicalize": "^3.0.0",
     "happy-dom": "^17.6.1",
-    "marked": "^15.0.7",
     "publint": "0.3.25",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -90,6 +89,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "marked": "^15.0.7",
     "sanitize-html": "^2.14.0"
   }
 }
