@@ -29,15 +29,15 @@ test.describe('WASM tools network (main harness)', () => {
             'Runtime-only init should not fetch tools WASM yet',
         ).toEqual([]);
 
-        await page.evaluate(async () => {
+        const tokenized = await page.evaluate(async () => {
             const w = window as unknown as {
-                initFormspecEngineTools?: () => Promise<void>;
-                tokenizeFEL?: (expr: string) => unknown;
+                initFormspecEngineTools: () => Promise<void>;
+                tokenizeFEL: (expr: string) => unknown;
             };
-            await w.initFormspecEngineTools?.();
-            w.tokenizeFEL?.('1 + 2');
-            w.tokenizeFEL?.('3 + 4');
+            await w.initFormspecEngineTools();
+            return [w.tokenizeFEL('1 + 2'), w.tokenizeFEL('3 + 4')].map(Array.isArray);
         });
+        expect(tokenized, 'tokenizeFEL should return token arrays').toEqual([true, true]);
 
         expect(
             toolsWasmUrls.length,
