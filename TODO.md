@@ -175,43 +175,6 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 
    **Acceptance:** .pyi stubs ship in the wheel. mypy in strict mode against a sample consumer compiles. Stub generation wired into CI.
 
-- **FORMSPEC-PR-SIG-008 — VerifierError taxonomy + std::error::Error + typed key reference** · `fs-dos6` · P1
-
-   **High (signature port).** Multiple smaller findings cluster into one shape change:
-
-   **Findings:**
-   - formspec-signature-port/src/lib.rs:252-269 (Rust) — VerifierError doesn't implement std::error::Error. FormspecCoseError does (-cose/src/lib.rs:49). Callers can't ?-chain through thiserror/anyhow.
-   - formspec-signature-port/src/lib.rs:252-258 — adapter returns VerifierError::Internal { reason: 'key resolution for X not supported' }. Wrong taxonomy: 'Internal' can't be distinguished from 'adapter crashed'. Add KeyResolution + UnsupportedKeyRef variants.
-   - formspec-signature-adapter-ring/src/lib.rs:195 — `unreachable!` panic site after outer match; runtime panic in verification path = DoS. Collapse outer+inner alg dispatch into a single match.
-   - formspec-signature-adapter-ring/src/lib.rs:31-92 — three near-identical receipt-builder methods (unsupported_receipt, failed_receipt, verified_receipt) differing only in enum variant. Single build_receipt with VerificationResult parameter.
-   - formspec-signature-adapter-ring/src/lib.rs:9 — ADAPTER_VERSION hardcoded to '0.1.0', drifts from Cargo.toml. Use env!("CARGO_PKG_VERSION").
-   - formspec-signature-adapter-ring/src/lib.rs:1 + formspec-signature-port/src/lib.rs:1 — missing #![forbid(unsafe_code)] (signature-cose has it; the other two don't).
-   - formspec-signature-port/src/lib.rs:60-62 — KidOrThumbprint(String); panic risk in -adapter-ring/src/lib.rs:160 via &key_ref[..32] on multi-byte boundary. Resolved by KeyRef enum in PR-SWEEP-004.
-
-   **Acceptance:**
-     - VerifierError impls std::error::Error (or thiserror::Error).
-     - Variants distinguish UnsupportedKeyRef vs KeyResolution vs Internal. unreachable! removed; single alg dispatch.
-     - Single build_receipt fn.
-     - ADAPTER_VERSION from env! macro. forbid(unsafe_code) on all three signature crates.
-
-- **FORMSPEC-PR-TS-010 — Replace hand-rolled JSON Schema validator in formspec-assist** · `fs-ht89` · P1
-
-   **High (public agent-tool surface).** packages/formspec-assist/src/provider.ts:184-243: hand-rolled JSON Schema validator (validateAgainstSchema) covers a strict subset. Given the package is on the public boundary handling agent tool calls, schema drift between declared and validated is silent. Tools could pass values they say they reject.
-
-   **Fix:** Bundle Ajv (small, well-known) or use the engine's existing schema machinery if it's exposed. Don't ship a hand-rolled validator on a public surface.
-
-   **Related cleanups in same package:**
-   - packages/formspec-assist/src/provider.ts (969 lines, single file) — split into provider.ts (class+dispatch shell), tools/declarations.ts, tools/handlers.ts (per tool group), tools/schema-validator.ts, tools/field-status.ts.
-   - packages/formspec-assist/src/provider.ts:484-488 — getProgress() recomputes page progress on every call from page-sequence walking; large forms = hot. Cache or expose as reactive signal.
-   - packages/formspec-assist/src/provider.ts:732-794 — learnProfile naming (profile vs mutableProfile), duplicate synthetic profile creation, brittle control flow. Extract helper.
-   - packages/formspec-assist/src/provider.ts:578-589 — registerWithModelContext ignores result of modelContext.registerTool; tool re-registration silently shadows.
-   - packages/formspec-assist/src/provider.ts:885-903 — emitDiscoveryEvent manually polyfills CustomEvent; plain object isn't an Event (stopPropagation broken). Skip or warn instead.
-   - packages/formspec-assist/src/provider.ts:89-91 vs 93-107 — two field-lookup paths (findItem via collectFieldMetadata + findItemByPath); pick one.
-   - packages/formspec-assist/src/provider.ts:116-118 — readAudience casts input.audience to narrow type without validation; either trust schema or validate in helper.
-   - packages/formspec-assist/src/provider.ts:920-923 — `void vm;` discarded variable. Drop.
-
-   **Acceptance:** Schema validator replaced with Ajv (or engine's). provider.ts split into <300 line files. Listed cleanups landed.
-
 - **FORMSPEC-PR-PY-002 — Source positions thrown away on every diagnostic** · `fs-ign8` · P1
 
    **High.** src/formspec/_rust.py:319-329 (evaluate): `pos=None` is hard-coded. Native side returns span: {start, end} per analyze_expression's docstring; eval_fel_detailed returns diagnostics including this info. Wrapper drops it. Users can never point at a failing character span.
@@ -221,14 +184,6 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
    **Related:** PR-PY-005 below — parse_fel discards parse error message similarly. Both fall out of one disciplined sweep over wrapper output structure.
 
    **Acceptance:** Diagnostics carry SourcePos. Tests cover position propagation for at least 3 distinct FEL evaluation failure cases.
-
-- **FORMSPEC-PR-TS-004 — FormEngine constructor → FormEngineOptions** · `fs-kfci` · P1
-
-   Subset of PR-SWEEP-005 called out as priority since FormEngine is the public ergonomic frontier. packages/formspec-engine/src/engine/FormEngine.ts:145 + init.ts:9-15: FormEngine constructor and createFormEngine factory both take (definition, runtimeContext?, registryEntries?, reactiveRuntime?) — 4-positional with 3 trailing optionals. README example new FormEngine({...}) already disagrees (object-form).
-
-   **Fix:** class FormEngine { constructor(definition: FormDefinition, options?: FormEngineOptions) } where FormEngineOptions = { runtimeContext?, registryEntries?, reactiveRuntime? }. createFormEngine mirrors.
-
-   **Acceptance:** Constructor takes options object. README example matches code. Old signature deprecated for one release.
 
 - **FORMSPEC-PR-RUST-001 — Doc-pass on public Rust API surfaces** · `fs-mdxe` · P1
 
@@ -729,10 +684,13 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 - ~~**FORMSPEC-PR-REACT-001 — Add 'use client' directives (Next.js / RSC compatibility)**~~ `fs-9z4w` · CLOSED — **Blocker for Next.js adoption.** Zero 'use client' directives anywhere.
 - ~~**FORMSPEC-PR-PY-001 — Severity.INFO missing; collapse info+warning bug**~~ `fs-a88b` · CLOSED — **High.** src/formspec/_rust.py:171-176: _severity_from_str collapses both 'info' AND 'warning' to Severity.WARNING.
 - ~~**FORMSPEC-PR-SWEEP-002 — Eliminate wire-style drift in formspec-core**~~ `fs-do5q` · CLOSED — Spec declares **camelCase** JSON keys for definition/response documents.
+- ~~**FORMSPEC-PR-SIG-008 — VerifierError taxonomy + std::error::Error + typed key reference**~~ `fs-dos6` · CLOSED — **High (signature port).** Multiple smaller findings cluster into one shape change:
 - ~~**FORMSPEC-PR-RUST-003 — Complete intentional BSL package README and distribution disclosure**~~ `fs-dozw` · CLOSED — FORMSPEC-PR-RUST-003 — Complete intentional BSL package README and distribution disclosure
 - ~~**FORMSPEC-PR-SWEEP-005 — Collapse telescoping constructors (Rust + TS public surfaces)**~~ `fs-etqz` · CLOSED — Three public surfaces have the same shape problem: positional N-argument constructors / function families that consumers must pick the right one from cold.
 - ~~**FORMSPEC-PR-ADAPT-002 — Externalize 184KB USWDS integration CSS**~~ `fs-fp3e` · CLOSED — **High (bundle hostility).** ~184KB `integration-css.ts` string inside the USWDS adapter JS bundle.
+- ~~**FORMSPEC-PR-TS-010 — Replace hand-rolled JSON Schema validator in formspec-assist**~~ `fs-ht89` · CLOSED — **High (public agent-tool surface).** packages/formspec-assist/src/provider.ts:184-243: hand-rolled JSON Schema validator (validateAgainstSchema) covers a strict subset.
 - ~~**FORMSPEC-PR-SWEEP-003 — Promote shared Path/PathSegment to formspec-core**~~ `fs-i17a` · CLOSED — Path semantics are spec-normative (`formspec/specs/core/spec.md` — bind `path`, dotted segments).
+- ~~**FORMSPEC-PR-TS-004 — FormEngine constructor → FormEngineOptions**~~ `fs-kfci` · CLOSED — Subset of PR-SWEEP-005 called out as priority since FormEngine is the public ergonomic frontier. packages/formspec-engine/src/engine/FormEngine.ts:145 + init.ts:9-15: FormEngine…
 - ~~**FORMSPEC-PR-SWEEP-001 — Close stringly-typed taxonomies (Rust runtimes)**~~ `fs-lwsi` · CLOSED — Unchecked `String` fields for fully-enumerated taxonomies across Rust eval/lint/core.
 - ~~**FORMSPEC-PR-TS-003 — Retighten IFormEngine to remove `any` from public contract**~~ `fs-mfiv` · CLOSED — **Blocker** for public TS API. `packages/formspec-engine/src/interfaces.ts` — `IFormEngine` leaks `any` ~14×: `EngineSignal<any>`, `setValue(..., value: any)`, `getResponse():…
 - ~~**FORMSPEC-PR-SWEEP-006 — `as any` → augmented types in formspec-core**~~ `fs-nj9y` · CLOSED — Root cause: augmented types in `formspec-types` (schema conditional properties) post-date `formspec-core` queries/handlers written against narrower shapes.
