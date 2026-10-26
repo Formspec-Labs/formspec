@@ -35,7 +35,6 @@ export function renderSanitizedMarkdown(text: string): string {
             code: ['class'],
         },
         allowedSchemes: ['http', 'https', 'mailto', 'tel'],
-        allowedSchemesRelative: true,
         disallowedTagsMode: 'escape',
         transformTags: {
             'a': (tagName, attribs) => {
