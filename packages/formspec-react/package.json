@@ -46,6 +46,7 @@
     "build": "tsup",
     "test": "vitest run",
     "test:consumer": "vitest run tests/cjs-smoke.test.ts tests/esm-smoke.test.ts",
+    "test:packed": "node scripts/test-packed.mjs",
     "test:watch": "vitest"
   },
   "peerDependencies": {

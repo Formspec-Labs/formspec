@@ -61,6 +61,7 @@ jobs:
       - run: npm run build
       - run: npm run test:unit
       - run: npm run test:scripts
+      - run: npm run test:packed --workspace=@formspec-org/react
 
   python-tests:
     name: Python Tests
