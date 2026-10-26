@@ -1,5 +1,6 @@
 /** @filedesc Issuer document HTTP fetcher port and default fetch-backed adapter. */
 
+import { canonicalJsonBytes, parseJsonExact } from '@formspec-org/integrity-canonical';
 import type { Issuer } from './types';
 
 export interface IssuerFetchOptions {
@@ -95,10 +96,12 @@ async function verifyContentHash(issuer: Issuer, rawBytes: Uint8Array): Promise<
         return;
     }
     const expected = match[1];
-    const digestBytes = rawBytes.buffer.slice(
-        rawBytes.byteOffset,
-        rawBytes.byteOffset + rawBytes.byteLength,
-    ) as ArrayBuffer;
+    // Hash a separate exact-number view; keep the public Issuer and bytes intact.
+    const normalized = {
+        ...parseJsonExact(new TextDecoder().decode(rawBytes)) as Record<string, unknown>,
+        version: issuer.version.slice(0, match.index),
+    };
+    const digestBytes = canonicalJsonBytes(normalized);
     const actualBuffer = await crypto.subtle.digest('SHA-256', digestBytes);
     const actual = Array.from(new Uint8Array(actualBuffer))
         .map((byte) => byte.toString(16).padStart(2, '0'))

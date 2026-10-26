@@ -394,10 +394,42 @@ Renderers fetch Issuer Documents over HTTP. Renderers MUST respect
 indefinitely when explicit cache headers are absent; a default max age of 3600
 seconds is RECOMMENDED.
 
-When `version` includes `+sha256-<hex>`, the renderer MUST verify fetched bytes
-against the hash. A hash mismatch MUST invalidate the cached document and force
-a refetch. A `version` change for the same URL MUST invalidate any cached Issuer
-Document for that URL.
+When the top-level `version` ends with `+sha256-` followed by exactly 64
+lowercase hexadecimal digits, the renderer MUST verify that digest as follows:
+
+1. Parse the fetched JSON text while preserving exact decimal number values,
+   including numbers in extensions. Verification MUST NOT round numbers through
+   a binary64 representation before canonicalization.
+2. Copy the root object and remove only the terminal `+sha256-<hex>` suffix from
+   that copy's top-level `version`. Keep the base version and every other member,
+   including nested `version` values and extensions, unchanged.
+3. Encode the copy using `integrity-canonical-json-v1`: RFC 8785 canonical JSON
+   with exact decimal numbers, as supplied by the shared `integrity-canonical`
+   byte primitive. The hash input is the canonical JSON UTF-8 bytes alone, with
+   no domain prefix, byte-order mark, trailing newline, or HTTP formatting.
+4. Compute SHA-256 over those bytes and compare its lowercase hexadecimal digest
+   to the suffix. Preserve the original full `version` and fetched bytes for
+   callers; normalization applies only to the hash input.
+
+A hash mismatch MUST invalidate the cached document and force a refetch that
+bypasses the cached response. If the refetched document still mismatches, the
+renderer MUST reject it. A `version` change for the same URL MUST invalidate any
+cached Issuer Document for that URL.
+
+For example, a producer starts with the following canonical bytes (the code
+block's newline is not part of the bytes):
+
+```json
+{"$formspecIssuer":"1.0","kind":"organization","name":"X","url":"https://x/i.json","version":"1.0.0"}
+```
+
+Their SHA-256 digest is
+`2b6759e7e8904b5004bf11a3f9c3190568488d0957608b136d7901e6e6a49fba`.
+The producer publishes the document with `version` set to
+`1.0.0+sha256-2b6759e7e8904b5004bf11a3f9c3190568488d0957608b136d7901e6e6a49fba`.
+A verifier removes that suffix in its copy and obtains the same bytes and digest.
+Reordering object members or changing insignificant whitespace leaves the digest
+unchanged; changing the base version or any other content changes it.
 
 `parentOrganization` is version-free in v1 and resolves to the latest parent
 Issuer Document. A future version may allow a pinned object shape for parent
@@ -568,9 +600,11 @@ Embed-time overrides are trusted because the embedding host is the deployer.
 The visible-indicator requirement does not apply to embed-time overrides.
 
 Issuer fetches introduce remote content and cache-integrity concerns. Renderers
-SHOULD verify `+sha256-<hex>` version suffixes when present and MUST refetch on
-hash mismatch. Cryptographic attestation of Issuer document bytes is reserved
-for future Trellis-binding work.
+MUST verify `+sha256-<hex>` version suffixes and handle mismatches as specified in
+§14. This self-consistency check does not authenticate the publisher: a party
+that replaces the document can also replace its self-declared digest.
+Cryptographic attestation of Issuer document bytes is reserved for future
+Trellis-binding work.
 
 Implementations that also process WOS identity attestations MUST keep Issuer
 separate from `attestationProvider`. The same legal entity may appear in both
