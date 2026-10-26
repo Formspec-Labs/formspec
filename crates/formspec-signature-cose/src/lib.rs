@@ -2,14 +2,13 @@
 
 //! Formspec COSE_Sign1 compatibility helpers.
 //!
-//! The shared COSE implementation lives in `integrity-cose`. This crate keeps
-//! the existing Formspec crate name and helper signatures while re-exporting
-//! the common implementation, plus the post-ADR-0109 `method_uri` dispatch
+//! The shared COSE implementation lives in `integrity-cose`, which also owns
+//! the `alg` width (`i64`). This crate re-exports it under the Formspec crate
+//! name and adds the post-ADR-0109 `method_uri` dispatch
 //! surface for the consumer detached-signature envelope shape (MAP_3 with
 //! `method_uri` at COSE label `-65540`).
 
 #![forbid(unsafe_code)]
-
 
 pub use integrity_cose::{
     COSE_LABEL_ALG, COSE_LABEL_KID, COSE_LABEL_METHOD_URI, COSE_SIGN1_TAG, CoseError, CoseSign1,
@@ -50,26 +49,6 @@ pub enum FormspecCoseError {
         /// Method URI the envelope carried.
         got: String,
     },
-}
-
-/// Builds a Formspec consumer detached-signature protected header (ADR 0109).
-///
-/// Emits a MAP_3 with `alg`, `kid`, and `method_uri` at COSE label `-65540`.
-/// `method_uri` MUST start with [`FORMSPEC_SIG_METHOD_URI_PREFIX`] for response
-/// signatures or [`FORMSPEC_RECEIPT_METHOD_URI_PREFIX`] for receipts; this
-/// helper does not enforce the prefix (callers select which subspace they
-/// emit) but the verifier rejects values outside the expected prefix.
-///
-/// # Algorithm Identifier Width Decision
-///
-/// COSE algorithms in RFC 9053 / IANA COSE Algorithms Registry fit comfortably within `i32`
-/// (e.g., EdDSA = -8, ES256 = -7, etc.). While `integrity-cose` internally accommodates
-/// `i128` labels for full CBOR integer range completeness, Formspec uses `i32` at the public
-/// interface because all standardized and Formspec-supported signing algorithms fit in 32 bits,
-/// matching `detached_signature_protected_header(alg: i32, ...)`.
-#[must_use]
-pub fn protected_header_bytes(alg: i32, kid: &[u8], method_uri: &str) -> Vec<u8> {
-    detached_signature_protected_header(alg, kid, method_uri)
 }
 
 /// Decodes a Formspec COSE_Sign1 envelope and validates the `method_uri` prefix.
@@ -125,7 +104,7 @@ mod tests {
 
     #[test]
     fn decodes_detached_cose_sign1() {
-        let protected = protected_header_bytes(-8, &[0x11; 16], SIG_METHOD_ED25519);
+        let protected = detached_signature_protected_header(-8, &[0x11; 16], SIG_METHOD_ED25519);
         let signature = vec![7u8; 64];
         let encoded = encode_cose_sign1(&protected, None, &signature);
 
@@ -143,7 +122,7 @@ mod tests {
 
     #[test]
     fn rejects_embedded_payload_mismatch() {
-        let protected = protected_header_bytes(-8, &[0x22; 16], SIG_METHOD_ED25519);
+        let protected = detached_signature_protected_header(-8, &[0x22; 16], SIG_METHOD_ED25519);
         let encoded = encode_cose_sign1(&protected, Some(b"inside"), &[1, 2, 3]);
         let (cose, _) = decode_cose_sign1_with_method_uri(&encoded, FORMSPEC_SIG_METHOD_URI_PREFIX)
             .expect("decode");
@@ -157,7 +136,7 @@ mod tests {
 
     #[test]
     fn protected_header_emits_sig_method_uri() {
-        let protected = protected_header_bytes(-8, &[0xAA; 16], SIG_METHOD_ED25519);
+        let protected = detached_signature_protected_header(-8, &[0xAA; 16], SIG_METHOD_ED25519);
         let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
 
         let method_uri =
@@ -168,7 +147,8 @@ mod tests {
 
     #[test]
     fn protected_header_emits_receipt_method_uri() {
-        let protected = protected_header_bytes(-8, &[0xAA; 16], RECEIPT_METHOD_ED25519);
+        let protected =
+            detached_signature_protected_header(-8, &[0xAA; 16], RECEIPT_METHOD_ED25519);
         let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
 
         let method_uri =
@@ -193,7 +173,7 @@ mod tests {
     fn decode_rejects_wrong_method_uri_prefix() {
         // Build a header with a sig-method URI but ask the verifier to expect
         // the receipt-method prefix — cross-domain reuse must reject.
-        let protected = protected_header_bytes(-8, &[0xAA; 16], SIG_METHOD_ED25519);
+        let protected = detached_signature_protected_header(-8, &[0xAA; 16], SIG_METHOD_ED25519);
         let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
 
         let error = decode_cose_sign1_with_method_uri(&encoded, FORMSPEC_RECEIPT_METHOD_URI_PREFIX)
@@ -215,7 +195,8 @@ mod tests {
     fn decode_rejects_receipt_uri_when_response_signing_expected() {
         // Inverse cross-domain check: receipt envelope routed through the
         // response-signing path must reject.
-        let protected = protected_header_bytes(-8, &[0xAA; 16], RECEIPT_METHOD_ED25519);
+        let protected =
+            detached_signature_protected_header(-8, &[0xAA; 16], RECEIPT_METHOD_ED25519);
         let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
 
         let error = decode_cose_sign1_with_method_uri(&encoded, FORMSPEC_SIG_METHOD_URI_PREFIX)
@@ -318,7 +299,7 @@ mod tests {
                 other => panic!("unsupported expectedPrefix in {fixture_name}: {other}"),
             };
             let expected_reason = fixture["expectedReason"].as_str().expect("expectedReason");
-            let protected = protected_header_bytes(-8, &[0xAA; 16], method_uri);
+            let protected = detached_signature_protected_header(-8, &[0xAA; 16], method_uri);
             assert_eq!(
                 protected,
                 hex_to_bytes(
@@ -365,7 +346,7 @@ mod tests {
             suffix in "[a-z0-9][a-z0-9._@-]{0,48}"
         ) {
             let method_uri = format!("urn:example:sig-method:{suffix}");
-            let protected = protected_header_bytes(-8, &[0xAA; 16], &method_uri);
+            let protected = detached_signature_protected_header(-8, &[0xAA; 16], &method_uri);
             let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
 
             let error = decode_cose_sign1_with_method_uri(
@@ -388,7 +369,7 @@ mod tests {
             suffix in "[a-z0-9][a-z0-9._@-]{0,48}"
         ) {
             let method_uri = format!("{FORMSPEC_RECEIPT_METHOD_URI_PREFIX}{suffix}");
-            let protected = protected_header_bytes(-8, &[0xAA; 16], &method_uri);
+            let protected = detached_signature_protected_header(-8, &[0xAA; 16], &method_uri);
             let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
 
             let error = decode_cose_sign1_with_method_uri(
@@ -411,7 +392,7 @@ mod tests {
             suffix in "[a-z0-9][a-z0-9._@-]{0,48}"
         ) {
             let method_uri = format!("{FORMSPEC_SIG_METHOD_URI_PREFIX}{suffix}");
-            let protected = protected_header_bytes(-8, &[0xAA; 16], &method_uri);
+            let protected = detached_signature_protected_header(-8, &[0xAA; 16], &method_uri);
             let encoded = encode_cose_sign1(&protected, Some(b"payload"), &[0x01; 64]);
 
             let error = decode_cose_sign1_with_method_uri(

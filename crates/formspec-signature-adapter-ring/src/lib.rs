@@ -12,7 +12,7 @@ use formspec_signature_port::{
     ClockHandle, KeyResolverHandle, ReceiptSigner, ReceiptSignerError, ReceiptSignerHandle,
     SignatureMethodRegistry, VerificationReceipt, Verifier, VerifierError, VerifyRequest,
 };
-use ring::signature;
+use integrity_signature_ring::ring::signature;
 
 pub use integrity_signature_ring::RingVerifierConfig;
 
@@ -200,7 +200,7 @@ mod tests {
         AdapterInfo, FixedClock, KeyInfo, KeyRef, RegistryEntry, StaticKeyResolver,
         VerificationResult,
     };
-    use ring::signature::KeyPair;
+    use integrity_signature_ring::ring::signature::KeyPair;
     use std::sync::Arc;
 
     #[test]
@@ -211,7 +211,8 @@ mod tests {
         // Fixed test-only seed makes the signature fixture independent of system entropy.
         let key_pair = signature::Ed25519KeyPair::from_seed_unchecked(&[7; 32]).expect("test key");
         let signed_bytes = b"historical response".to_vec();
-        let protected = formspec_signature_cose::protected_header_bytes(-8, kid, METHOD);
+        let protected =
+            formspec_signature_cose::detached_signature_protected_header(-8, kid, METHOD);
         let signature = key_pair.sign(&formspec_signature_cose::sig_structure_bytes(
             &protected,
             &signed_bytes,

@@ -471,11 +471,11 @@ fn structured_receipt_rejects_detached_signature_over_different_body() {
 fn structured_receipt_rejects_embedded_payload_that_differs_from_body() {
     use base64::Engine;
     use formspec_signature_cose::{
-        FORMSPEC_RECEIPT_METHOD_URI_PREFIX, decode_cose_sign1_with_method_uri, encode_cose_sign1,
-        protected_header_bytes,
+        FORMSPEC_RECEIPT_METHOD_URI_PREFIX, decode_cose_sign1_with_method_uri,
+        detached_signature_protected_header, encode_cose_sign1,
     };
 
-    let protected = protected_header_bytes(
+    let protected = detached_signature_protected_header(
         -8,
         b"receipt-kid",
         "urn:formspec:receipt-method:ed25519-cose-sign1@1",
