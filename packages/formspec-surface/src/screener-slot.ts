@@ -26,7 +26,7 @@ export function admitScreenerPresentation(document: ScreenerDocument): ScreenerA
   }
   const paths = new Set<string>();
   for (const bind of document.binds ?? []) {
-    if (!keys.has(bind.path) || paths.has(bind.path) || Object.keys(bind).some(k => !['path', 'required'].includes(k)) ||
+    if (!keys.has(bind.path) || paths.has(bind.path) || Object.keys(bind).some(k => !['path', 'required', 'x-generation'].includes(k)) ||
         (bind.required !== undefined && bind.required !== 'true' && bind.required !== 'false')) return unavailable('bind-unsupported');
     paths.add(bind.path);
   }

@@ -6,6 +6,20 @@ const resolve = (r:any) => resolveScreenerDetermination({document,allowedTargets
 describe('native Screener admission',()=>{
  it('admits canonical flat boolean fields and literal requiredness',()=>expect(admitScreenerPresentation(document).status).toBe('ready'));
  it.each([{...document,binds:[{path:'eligible',required:true}]},{...document,binds:[{path:'eligible',required:'$other'}]},{...document,binds:[{path:'eligible',readonly:'true'}]},{...document,items:[{...document.items[0],required:true}]},{...document,items:[{type:'group',key:'g',children:document.items}]}])('refuses unsupported presentation %j',d=>expect(admitScreenerPresentation(d).status).toBe('unavailable'));
+ it('admits canonical Bind generation metadata without changing routing or authored metadata',()=>{
+  const annotated={...document,binds:[{...document.binds[0],'x-generation':{anchors:['need:d1-r13@1']}}]};
+  const before=JSON.stringify(annotated);
+  expect(admitScreenerPresentation(annotated)).toEqual({status:'ready'});
+  expect(resolveScreenerDetermination({document:annotated,allowedTargets:['surface:apply','surface:paper'],determination:record(),answers:{eligible:false},evaluationTime:'2026-10-09T00:00:00Z',nowIso:'2026-10-09T00:00:01Z'})).toEqual(resolve(record()));
+  expect(JSON.stringify(annotated)).toBe(before);
+ });
+ it.each([
+  [{path:'eligible',required:'true',readonly:'true','x-generation':{anchors:['need:d1-r13@1']}}],
+  [{path:'eligible',required:'$other','x-generation':{anchors:['need:d1-r13@1']}}],
+  [{path:'foreign',required:'true','x-generation':{anchors:['need:d1-r13@1']}}],
+  [{path:'eligible',required:'true','x-generation':{anchors:['need:d1-r13@1']}},{path:'eligible',required:'true'}],
+  [{path:'eligible',required:'true',unknownSemantic:true,'x-generation':{anchors:['need:d1-r13@1']}}],
+ ].map(binds=>({binds})))('keeps unsupported Bind semantics refused with generation metadata %j',({binds})=>expect(admitScreenerPresentation({...document,binds})).toEqual({status:'unavailable',reason:'bind-unsupported'}));
  it('routes deliberate false through the actual record',()=>expect(resolve(record())).toEqual({status:'ready',target:'surface:paper'}));
  it.each(['partial','expired','unavailable'])('refuses %s',status=>expect(resolve({...record(),status}).status).toBe('refused'));
  it('checks every match rather than filtering a disallowed target',()=>{const r=record();r.overrides.matched=[{target:'surface:foreign'}];expect(resolve(r).status).toBe('refused');});
