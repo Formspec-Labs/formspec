@@ -344,7 +344,7 @@ fn presented_items(document: &Value) -> Result<&Vec<Value>, ScreenerQualificatio
                 || !paths.insert(path)
                 || object
                     .keys()
-                    .any(|key| !["path", "required"].contains(&key.as_str()))
+                    .any(|key| !["path", "required", "x-generation"].contains(&key.as_str()))
                 || bind
                     .get("required")
                     .is_some_and(|required| !matches!(required.as_str(), Some("true" | "false")))

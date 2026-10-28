@@ -192,3 +192,79 @@ fn startup_admission_reuses_supported_profile_without_evaluation() {
         );
     }
 }
+
+#[test]
+fn canonical_bind_generation_metadata_is_inert() {
+    use formspec_eval::admit_screener_qualification_profile;
+    let fixtures: Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/screener-qualification.json"
+    ))
+    .unwrap();
+    let baseline = &fixtures["base"]["document"];
+    let mut annotated = baseline.clone();
+    annotated["binds"][0]["x-generation"] = json!({"anchors": ["need:gate@1"]});
+    let before = serde_json::to_vec(&annotated).unwrap();
+    assert_eq!(admit_screener_qualification_profile(&annotated), Ok(()));
+    assert_eq!(serde_json::to_vec(&annotated).unwrap(), before);
+
+    let time = "2026-10-09T12:00:00Z";
+    let targets = vec!["surface:apply".to_owned(), "surface:paper".to_owned()];
+    for (answer, target) in [(true, "surface:apply"), (false, "surface:paper")] {
+        let answers = HashMap::from([(
+            "eligible".to_owned(),
+            AnswerInput {
+                value: json!(answer),
+                state: AnswerState::Answered,
+            },
+        )]);
+        let record = evaluate_screener_document(&annotated, &answers, Some(time), None);
+        let original = evaluate_screener_document(baseline, &answers, Some(time), None);
+        let record_before = serde_json::to_vec(&record).unwrap();
+        assert_eq!(record_before, serde_json::to_vec(&original).unwrap());
+        assert_eq!(
+            serde_json::to_value(qualify_screener_determination(
+                &annotated, &record, &answers, time, time, &targets,
+            ))
+            .unwrap(),
+            json!({"status": "ready", "target": target})
+        );
+        assert_eq!(serde_json::to_vec(&record).unwrap(), record_before);
+        assert_eq!(serde_json::to_vec(&annotated).unwrap(), before);
+    }
+}
+
+#[test]
+fn annotated_binds_preserve_bounded_semantic_refusals() {
+    use formspec_eval::{admit_screener_qualification_profile, ScreenerQualificationRefusal};
+    let fixtures: Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/screener-qualification.json"
+    ))
+    .unwrap();
+    let mut document = fixtures["base"]["document"].clone();
+    document["binds"][0]["x-generation"] = json!({"anchors": ["need:gate@1"]});
+    for (key, value) in [
+        ("required", json!("$other")),
+        ("required", json!(true)),
+        ("readonly", json!("true")),
+        ("calculate", json!("true")),
+        ("unknown", json!(true)),
+        ("x-other", json!({})),
+        ("path", json!("foreign")),
+    ] {
+        let mut candidate = document.clone();
+        candidate["binds"][0][key] = value;
+        let before = serde_json::to_vec(&candidate).unwrap();
+        assert_eq!(
+            admit_screener_qualification_profile(&candidate),
+            Err(ScreenerQualificationRefusal::BindUnsupported),
+            "{key}"
+        );
+        assert_eq!(serde_json::to_vec(&candidate).unwrap(), before);
+    }
+    let bind = document["binds"][0].clone();
+    document["binds"].as_array_mut().unwrap().push(bind);
+    assert_eq!(
+        admit_screener_qualification_profile(&document),
+        Err(ScreenerQualificationRefusal::BindUnsupported)
+    );
+}
