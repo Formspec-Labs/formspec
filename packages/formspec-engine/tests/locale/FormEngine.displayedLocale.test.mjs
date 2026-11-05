@@ -75,7 +75,7 @@ test('FormEngine pins locale and version when the active document declares no ur
 
 test('displayedLocale enters the signed-payload JCS preimage — the digest changes with it', () => {
   // Pin `now` so `authored` is identical across both engines; the only permitted variable is displayedLocale.
-  const options = { now: '2026-01-01T00:00:00Z' };
+  const options = { runtimeContext: { now: '2026-01-01T00:00:00Z' } };
   const engineEs = new FormEngine(DEFINITION, options);
   engineEs.loadLocale(makeLocale('en', { url: 'https://example.org/locales/en.json' }));
   engineEs.loadLocale(makeLocale('es', { url: 'https://example.org/locales/es.json' }));
