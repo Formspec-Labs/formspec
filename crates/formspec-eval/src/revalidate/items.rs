@@ -6,13 +6,14 @@ use std::collections::HashMap;
 use chrono::NaiveDate;
 use fancy_regex::Regex;
 use formspec_core::registry_client::version_satisfies;
+use rust_decimal::prelude::ToPrimitive;
 use serde_json::Value;
 use url::Url;
 
 use fel_core::{FormspecEnvironment, parse};
 
 use crate::convert::resolve_value_by_path;
-use crate::fel_json::json_to_runtime_fel_typed;
+use crate::fel_json::{json_to_runtime_fel_typed, runtime_number};
 use crate::interpolation::interpolate_fel;
 use crate::rebuild::detect_repeat_count;
 use crate::recalculate::repeats::InstanceScope;
@@ -103,12 +104,10 @@ impl Validation<'_> {
                 "integer" => {
                     !(val.is_i64()
                         || val.is_u64()
-                        || val.is_f64() && {
-                            let f = val.as_f64().unwrap();
-                            f.fract() == 0.0
-                        })
+                        || val.as_f64().is_some_and(|number| number.fract() == 0.0)
+                        || runtime_number(&val).is_some_and(|number| number.fract().is_zero()))
                 }
-                "number" | "decimal" => !val.is_number(),
+                "number" | "decimal" => !val.is_number() && runtime_number(&val).is_none(),
 
                 "boolean" => !val.is_boolean(),
 
@@ -501,7 +500,10 @@ fn validate_extension_constraints(
 
         // Minimum constraint (numeric values)
         if let Some(min) = constraint.minimum {
-            if let Some(n) = val.as_f64() {
+            if let Some(n) = val
+                .as_f64()
+                .or_else(|| runtime_number(val).and_then(|n| n.to_f64()))
+            {
                 if n < min {
                     results.push(ValidationResult {
                         path: item.path.clone(),
@@ -520,7 +522,10 @@ fn validate_extension_constraints(
 
         // Maximum constraint (numeric values)
         if let Some(max) = constraint.maximum {
-            if let Some(n) = val.as_f64() {
+            if let Some(n) = val
+                .as_f64()
+                .or_else(|| runtime_number(val).and_then(|n| n.to_f64()))
+            {
                 if n > max {
                     results.push(ValidationResult {
                         path: item.path.clone(),

@@ -6,7 +6,7 @@ use fel_core::FormspecEnvironment;
 use serde_json::Value;
 
 use crate::fel_eval::Fel;
-use crate::fel_json::json_to_runtime_fel;
+use crate::fel_json::{fel_to_runtime_json, json_to_runtime_fel};
 use crate::types::ItemInfo;
 
 /// Seed initial values for fields that are missing from data (9e).
@@ -85,7 +85,7 @@ fn seed_items(
                 Value::String(s) if s.starts_with('=') => {
                     if let Ok(parsed) = fel_core::parse(&s[1..]) {
                         let result = fel.evaluate(&parsed, env.get(data));
-                        data.insert(item.path.clone(), fel_core::fel_to_json(&result.value));
+                        data.insert(item.path.clone(), fel_to_runtime_json(&result.value));
                         env.seeded(&item.path);
                     }
                 }

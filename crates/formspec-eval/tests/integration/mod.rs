@@ -1,5 +1,6 @@
 //! Integration tests for the evaluation pipeline (end-to-end `evaluate_*`).
 
+mod calculated_decimals;
 mod datetime_values;
 mod evaluate_pipeline;
 mod evaluation_errors;

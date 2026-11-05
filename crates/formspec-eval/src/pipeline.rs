@@ -2,9 +2,11 @@
 
 use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
+use crate::fel_json::runtime_to_ui_json;
 use crate::nrb::apply_nrb;
 use crate::output_data::build_output_data;
 use crate::rebuild;
+use crate::rebuild_item_tree;
 use crate::recalculate::recalculate_phase;
 use crate::revalidate::revalidate;
 use crate::runtime_seed::{
@@ -12,7 +14,6 @@ use crate::runtime_seed::{
     seed_repeat_from_instances,
 };
 use crate::types::{self, EvaluationResult, ValidationResult};
-use crate::rebuild_item_tree;
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -117,6 +118,12 @@ pub fn evaluate(
         .unwrap_or("remove");
     apply_nrb(&mut values, &items, default_nrb);
 
+    // Keep the numeric wire type through constraints, shapes, and repeat aggregates.
+    // Host-facing values retain the existing lossless number-or-string encoding.
+    let values = values
+        .into_iter()
+        .map(|(path, value)| (path, runtime_to_ui_json(value)))
+        .collect();
     let data = build_output_data(&items, &values, default_nrb);
 
     let variables = var_values

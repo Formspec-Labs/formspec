@@ -5,8 +5,71 @@
 //! values, not raw JSON strings.
 #![allow(clippy::missing_docs_in_private_items)]
 
-use fel_core::{Value, json_to_fel};
+use fel_core::{Value, fel_to_ui_json, fel_to_wire_json, json_to_fel};
+use rust_decimal::Decimal;
 use serde_json::{Value as JsonValue, json};
+
+/// Keep exact numbers typed while values move between evaluation phases.
+///
+/// The UI encoder falls back to text for decimals that cannot round-trip through
+/// a JSON number. Use fel-core's numeric wire representation for those values;
+/// rebuilding an environment from untagged text would change their FEL type.
+pub(crate) fn fel_to_runtime_json(value: &Value) -> JsonValue {
+    match value {
+        Value::Number(_) => {
+            let ui = fel_to_ui_json(value);
+            if ui.is_number() {
+                ui
+            } else {
+                fel_to_wire_json(value)
+            }
+        }
+        Value::Array(values) => JsonValue::Array(values.iter().map(fel_to_runtime_json).collect()),
+        Value::Object(values) => JsonValue::Object(
+            values
+                .iter()
+                .map(|(key, value)| (key.clone(), fel_to_runtime_json(value)))
+                .collect(),
+        ),
+        _ => fel_to_ui_json(value),
+    }
+}
+
+/// Read a numeric runtime value without treating ordinary strings as numbers.
+pub(crate) fn runtime_number(value: &JsonValue) -> Option<Decimal> {
+    let is_tagged_number = value.as_object().is_some_and(|object| {
+        object.len() == 2
+            && object.get("$type").and_then(JsonValue::as_str) == Some("number")
+            && object.contains_key("value")
+    });
+    if value.is_number() || is_tagged_number {
+        json_to_fel(value).as_number()
+    } else {
+        None
+    }
+}
+
+/// Remove internal numeric tags only after evaluation and validation finish.
+pub(crate) fn runtime_to_ui_json(value: JsonValue) -> JsonValue {
+    match value {
+        JsonValue::Object(ref object)
+            if object.get("$type").and_then(JsonValue::as_str) == Some("number")
+                && runtime_number(&value).is_some() =>
+        {
+            fel_to_ui_json(&json_to_fel(&value))
+        }
+        JsonValue::Array(values) => {
+            JsonValue::Array(values.into_iter().map(runtime_to_ui_json).collect())
+        }
+        JsonValue::Object(object) => JsonValue::Object(
+            object
+                .into_iter()
+                .map(|(key, value)| (key, runtime_to_ui_json(value)))
+                .collect(),
+        ),
+        _ => value,
+    }
+}
 
 fn normalize_money_like_json(value: &JsonValue) -> JsonValue {
     match value {

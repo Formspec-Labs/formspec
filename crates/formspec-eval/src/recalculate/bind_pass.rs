@@ -2,13 +2,13 @@
 
 use std::collections::{HashMap, HashSet};
 
-use fel_core::{FormspecEnvironment, MipState, Value, fel_to_ui_json, parse};
+use fel_core::{FormspecEnvironment, MipState, Value, parse};
 use serde_json::Value as JsonValue;
 
 use super::json_fel::{coerce_calculated_value, json_to_runtime_fel_typed};
 use super::walk::{Visit, Walk};
 use crate::fel_eval::Fel;
-use crate::fel_json::is_date_data_type;
+use crate::fel_json::{fel_to_runtime_json, is_date_data_type};
 use crate::types::{ItemInfo, WhitespaceMode, resolve_qualified_repeat_refs};
 
 /// Apply whitespace normalization to all items that have a whitespace bind.
@@ -90,7 +90,7 @@ impl Visit for BindPass<'_> {
                     if let Ok(parsed) = parse(&normalized_expr) {
                         let result = fel.evaluate(&parsed, env);
                         let coerced = coerce_calculated_value(item, result.value);
-                        let json_val = fel_to_ui_json(&coerced);
+                        let json_val = fel_to_runtime_json(&coerced);
                         values.insert(item.path.clone(), json_val.clone());
                         env.set_field(&item.path, coerced);
                     }
@@ -103,7 +103,7 @@ impl Visit for BindPass<'_> {
                     let json_val = if is_date_data_type(data_type) {
                         default_val.clone()
                     } else {
-                        fel_to_ui_json(&coerced)
+                        fel_to_runtime_json(&coerced)
                     };
                     values.insert(item.path.clone(), json_val);
                     env.set_field(&item.path, coerced);
@@ -111,7 +111,8 @@ impl Visit for BindPass<'_> {
             }
         }
 
-        if !item.mip.relevant && item.excluded_value == Some(crate::types::ExcludedValueMode::Null) {
+        if !item.mip.relevant && item.excluded_value == Some(crate::types::ExcludedValueMode::Null)
+        {
             env.set_field(&item.path, Value::Null);
         }
 
@@ -142,7 +143,7 @@ impl Visit for BindPass<'_> {
             if let Ok(parsed) = parse(&normalized_expr) {
                 let result = fel.evaluate(&parsed, env);
                 let coerced = coerce_calculated_value(item, result.value);
-                let json_val = fel_to_ui_json(&coerced);
+                let json_val = fel_to_runtime_json(&coerced);
                 values.insert(item.path.clone(), json_val.clone());
                 item.value = json_val.clone();
                 env.set_field(&item.path, coerced);
