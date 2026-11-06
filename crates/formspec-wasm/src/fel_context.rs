@@ -8,14 +8,14 @@
 //! Every method mirrors a free function in [`crate::fel`] — same envelopes, same rules — so a host
 //! can use either path. Behavior lives in `formspec-eval`; this module is JSON in, JSON out.
 
-use fel_core::{ExtensionFunctions, fel_diagnostics_to_json_value, fel_to_ui_json};
+use fel_core::exact_json::Value;
+use fel_core::{ExtensionFunctions, fel_diagnostics_to_json_value};
 use formspec_eval::HostFelContext;
-use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
 use crate::extensions::FelExtensionHost;
 use crate::fel::{fel_eval_envelope_json, interpolated_json};
-use crate::json_host::{parse_value_str, to_json_string};
+use crate::json_host::{parse_json_as, to_json_string};
 
 /// One form's FEL state, resident across calls.
 ///
@@ -31,7 +31,7 @@ pub struct FelContextHandle {
 fn object_arg<'a>(
     json: &'a Value,
     label: &str,
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+) -> Result<&'a fel_core::exact_json::Map<String, Value>, String> {
     json.as_object()
         .ok_or_else(|| format!("{label} must be a JSON object"))
 }
@@ -121,14 +121,15 @@ impl FelContextHandle {
 
 impl FelContextHandle {
     pub(crate) fn new_inner(schema_json: &str) -> Result<FelContextHandle, String> {
-        let schema: Value = parse_value_str(schema_json, "FelContext schema JSON")?;
+        let schema: Value = parse_json_as(schema_json, "FelContext schema JSON")?;
         Ok(FelContextHandle {
             inner: HostFelContext::from_schema_json(object_arg(&schema, "FelContext schema")?),
         })
     }
 
     pub(crate) fn load_inner(&mut self, snapshot_json: &str) -> Result<(), String> {
-        let snapshot: Value = parse_value_str(snapshot_json, "FelContext snapshot JSON")?;
+        let snapshot: Value = parse_json_as(snapshot_json, "FelContext snapshot JSON")?;
+        fel_core::exact_json::check_decimal_range(&snapshot)?;
         self.inner
             .load(object_arg(&snapshot, "FelContext snapshot")?)
     }
@@ -164,12 +165,13 @@ impl FelContextHandle {
             extensions,
         )?;
         fel_core::reject_undefined_functions(&result.diagnostics)?;
-        to_json_string(&serde_json::json!({
-            "value": fel_to_ui_json(&result.value),
+        let mut payload = fel_core::exact_json::Value::from(serde_json::json!({
             "hasErrorDiagnostics": fel_core::has_error_diagnostics(&result.diagnostics),
             "diagnostics": fel_diagnostics_to_json_value(&result.diagnostics),
             "trace": trace.steps,
-        }))
+        }));
+        payload["value"] = fel_core::exact_json::from_fel(&result.value);
+        to_json_string(&payload)
     }
 
     pub(crate) fn interpolate_inner(

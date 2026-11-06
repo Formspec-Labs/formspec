@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use crate::types::determination::{
     AnswerInput, AnswerState, DeterminationStatus, InputEntry, PhaseResult, PhaseStatus,

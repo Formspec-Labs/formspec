@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use serde_json::{Map, Value, json};
+use fel_core::exact_json::{Map, Value, native_json as json};
 
 use formspec_core::JsonWireStyle;
 use formspec_core::json_object_to_string_map;
@@ -37,7 +37,10 @@ pub fn evaluation_result_to_json_value_styled(
         .collect();
 
     let mut root = Map::new();
-    root.insert("values".into(), json!(result.values));
+    root.insert(
+        "values".into(),
+        fel_core::exact_json::to_value(&result.values).expect("evaluation values serialize"),
+    );
     root.insert("data".into(), result.data.clone());
     root.insert("validations".into(), Value::Array(validations));
     root.insert(
@@ -51,7 +54,10 @@ pub fn evaluation_result_to_json_value_styled(
         ),
     );
     root.insert(nr_key.into(), json!(result.non_relevant));
-    root.insert("variables".into(), json!(result.variables));
+    root.insert(
+        "variables".into(),
+        fel_core::exact_json::to_value(&result.variables).expect("variables serialize"),
+    );
     root.insert("required".into(), json!(result.required));
     root.insert("readonly".into(), json!(result.readonly));
     if let Some(item_text) = &result.item_text {
@@ -112,7 +118,10 @@ fn validation_result_to_json_object(
         m.insert(shape_id_key.into(), json!(sid));
     }
     if let Some(ref ctx) = v.context {
-        m.insert("context".into(), json!(ctx));
+        m.insert(
+            "context".into(),
+            fel_core::exact_json::to_value(ctx).expect("shape context serializes"),
+        );
     }
     Value::Object(m)
 }

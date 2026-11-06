@@ -3,8 +3,8 @@
 //! A `date`/`dateTime` field is FEL type `date` wherever FEL reads it: sibling
 //! aliases (`$rd`), the repeat-context current row, and the group array (`$r`).
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{EvalOptions, evaluate};
-use serde_json::{Value, json};
 use std::collections::HashMap;
 
 fn repeat_date_definition(binds: Value) -> Value {

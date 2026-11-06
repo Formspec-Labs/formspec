@@ -18,7 +18,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, NaiveDate};
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use crate::types::determination::{
     AnswerInput, DeterminationRecord, DeterminationStatus, OverrideBlock, ScreenerRef,

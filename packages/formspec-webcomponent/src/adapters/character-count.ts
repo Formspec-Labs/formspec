@@ -6,7 +6,7 @@ import {
     characterCountStatus,
     type ChromeStringKey,
 } from '@formspec-org/layout';
-import type { IFormEngine } from '@formspec-org/engine/render';
+import { jsonValueText, type IFormEngine } from '@formspec-org/engine/render';
 import type { FieldBehavior } from '../behaviors/types';
 
 export interface CharacterCountConfig {
@@ -93,7 +93,7 @@ export function createCharacterCount(config: CharacterCountConfig): CharacterCou
         srTimer = setTimeout(() => { srStatus.textContent = text; }, CHARACTER_COUNT_ANNOUNCE_DELAY_MS);
     };
     const stopWatching = vm
-        ? effect(() => update(String(vm.value.value ?? '').length))
+        ? effect(() => update(jsonValueText(vm.value.value).length))
         : (() => {
             const onInput = () => update(field.value.length);
             field.addEventListener('input', onInput);

@@ -7,7 +7,7 @@
 //! (`fel_core::call_extension`); `checkFELExtensionName` keeps the built-in and
 //! reserved-word rule in `fel-core` for registration.
 
-use fel_core::{ExtensionFunctions, Value, check_extension_name, fel_to_json, json_to_fel};
+use fel_core::{ExtensionFunctions, Value, check_extension_name};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 
@@ -55,16 +55,23 @@ impl ExtensionFunctions for FelExtensionHost {
     }
 
     fn invoke(&self, name: &str, args: &[Value]) -> Result<Value, String> {
-        let args_json = serde_json::Value::Array(args.iter().map(fel_to_json).collect());
+        let args_json = fel_core::exact_json::Value::Array(
+            args.iter().map(fel_core::exact_json::from_fel).collect(),
+        );
         let result = self
             .js_invoke(name, &args_json.to_string())
             .map_err(|thrown| thrown_message(&thrown))?;
         let result_json = result
             .as_string()
             .ok_or("extension host must return a JSON string")?;
-        serde_json::from_str(&result_json)
-            .map(|json| json_to_fel(&json))
+        fel_core::exact_json::from_str(&result_json)
             .map_err(|e| format!("extension result is not JSON: {e}"))
+            .and_then(|json| {
+                fel_core::exact_json::check_decimal_range(&json)?;
+                // Extension results use the explicit host protocol, which admits
+                // typed money/date returns. Ordinary form data never uses this adapter.
+                Ok(fel_core::exact_json::to_fel_wire(&json))
+            })
     }
 }
 

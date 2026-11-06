@@ -12,5 +12,9 @@ fn main() {
     let _ = fel_core::tokenize("");
     let _ = formspec_core::detect_document_type(&doc);
     let data = HashMap::new();
-    let _ = formspec_eval::evaluate(&doc, &data, &formspec_eval::EvalOptions::default());
+    let _ = formspec_eval::evaluate(
+        &doc.clone().into(),
+        &data,
+        &formspec_eval::EvalOptions::default(),
+    );
 }

@@ -1,3 +1,4 @@
+import { clampJsonNumber, stepJsonNumber, jsonValueText } from '@formspec-org/engine';
 /** @filedesc NumberInput behavior hook — extracts reactive state for numeric fields. */
 import { effect } from '@preact/signals-core';
 import type { NumberInputBehavior, FieldRefs, BehaviorContext } from './types';
@@ -55,6 +56,11 @@ export function useNumberInput(ctx: BehaviorContext, comp: any): NumberInputBeha
             ctx.engine.setValue(fieldPath, val);
         },
 
+        stepBy(direction: -1 | 1): void {
+            const next = stepJsonNumber(ctx.engine.signals[fieldPath]?.value, comp.step, direction, comp.min, comp.max);
+            if (next !== undefined) ctx.engine.setValue(fieldPath, next);
+        },
+
         touch: () => markFieldTouched(ctx, fieldPath),
 
         bind(refs: FieldRefs): () => void {
@@ -68,7 +74,7 @@ export function useNumberInput(ctx: BehaviorContext, comp: any): NumberInputBeha
                 if (!sig) return;
                 const val = sig.value;
                 if (document.activeElement !== bindableInput) {
-                    (bindableInput as HTMLInputElement).value = val == null ? '' : String(val);
+                    (bindableInput as HTMLInputElement).value = jsonValueText(val);
                 }
             }));
 
@@ -79,24 +85,20 @@ export function useNumberInput(ctx: BehaviorContext, comp: any): NumberInputBeha
                 const stepVal = comp.step ?? 1;
                 disposers.push(effect(() => {
                     const sig = ctx.engine.signals[fieldPath];
-                    const val = Number(sig?.value ?? 0);
+                    const val = sig?.value ?? 0;
                     const isReadonly = ctx.engine.readonlySignals[fieldPath]?.value ?? false;
-                    decBtn.disabled = isReadonly || (comp.min != null && val - stepVal < comp.min);
-                    incBtn.disabled = isReadonly || (comp.max != null && val + stepVal > comp.max);
+                    decBtn.disabled = isReadonly || stepJsonNumber(val, stepVal, -1, comp.min, comp.max) === undefined;
+                    incBtn.disabled = isReadonly || stepJsonNumber(val, stepVal, 1, comp.min, comp.max) === undefined;
                 }));
             }
 
             // Value sync: DOM → engine
             bindableInput.addEventListener('input', (e) => {
                 const target = e.target as HTMLInputElement;
-                let val: number | null = target.value === '' ? null : Number(target.value);
-                if (val !== null && !isNaN(val)) {
-                    if (comp.min !== undefined && val < Number(comp.min)) val = Number(comp.min);
-                    if (comp.max !== undefined && val > Number(comp.max)) val = Number(comp.max);
-                }
-                if (String(val) !== target.value) {
-                    target.value = val === null ? '' : String(val);
-                }
+                let val: any = target.value === '' ? null : target.value;
+                try { if (val !== null) val = clampJsonNumber(val, comp.min, comp.max); }
+                catch { /* Keep invalid text in the model so validation blocks completion. */ }
+                target.value = jsonValueText(val);
                 ctx.engine.setValue(fieldPath, val);
             });
 

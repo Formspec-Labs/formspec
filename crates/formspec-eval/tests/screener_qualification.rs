@@ -1,11 +1,11 @@
 //! Shared Rust/JavaScript result qualification and native empty-input regression.
 use std::collections::HashMap;
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{
-    evaluate_screener_document, qualify_screener_determination, AnswerInput, AnswerState,
-    DeterminationRecord,
+    AnswerInput, AnswerState, DeterminationRecord, evaluate_screener_document,
+    qualify_screener_determination,
 };
-use serde_json::{json, Value};
 
 #[test]
 fn shared_javascript_qualification_cases() {
@@ -25,7 +25,7 @@ fn shared_javascript_qualification_cases() {
                 .insert(key.to_owned(), patch["value"].clone());
         }
         let record: DeterminationRecord =
-            serde_json::from_value(input["determination"].clone()).unwrap();
+            fel_core::exact_json::from_value(input["determination"].clone()).unwrap();
         let answers: HashMap<String, AnswerInput> = input["answers"]
             .as_object()
             .unwrap()
@@ -39,12 +39,13 @@ fn shared_javascript_qualification_cases() {
                     key.clone(),
                     AnswerInput {
                         value: value.clone(),
-                        state: serde_json::from_value(state).unwrap(),
+                        state: fel_core::exact_json::from_value(state).unwrap(),
                     },
                 )
             })
             .collect();
-        let targets: Vec<String> = serde_json::from_value(input["allowedTargets"].clone()).unwrap();
+        let targets: Vec<String> =
+            fel_core::exact_json::from_value(input["allowedTargets"].clone()).unwrap();
         let before = serde_json::to_value(&record).unwrap();
         let result = qualify_screener_determination(
             &input["document"],
@@ -74,7 +75,7 @@ fn actual_native_completed_without_answers_does_not_authorize_navigation() {
     let time = "2026-10-09T12:00:00Z";
     let allowed = vec!["surface:apply".to_owned(), "surface:paper".to_owned()];
     let empty = HashMap::new();
-    let record = evaluate_screener_document(document, &empty, Some(time), None);
+    let record = evaluate_screener_document(document, &empty, Some(time), None).unwrap();
     assert_eq!(record.status, "completed");
     assert_eq!(
         serde_json::to_value(qualify_screener_determination(
@@ -91,9 +92,9 @@ fn actual_native_completed_without_answers_does_not_authorize_navigation() {
                 state: AnswerState::Answered,
             },
         )]);
-        let record = evaluate_screener_document(document, &answers, Some(time), None);
+        let record = evaluate_screener_document(document, &answers, Some(time), None).unwrap();
         let wire = serde_json::to_value(&record).unwrap();
-        let reopened: DeterminationRecord = serde_json::from_value(wire.clone()).unwrap();
+        let reopened: DeterminationRecord = fel_core::exact_json::from_value(wire.clone()).unwrap();
         assert_eq!(serde_json::to_value(&reopened).unwrap(), wire);
         assert_eq!(
             serde_json::to_value(qualify_screener_determination(
@@ -127,19 +128,19 @@ fn retained_record_decoder_refuses_unknown_invalid_and_missing_fields() {
             .unwrap()
             .insert("unknown".into(), json!(true));
         assert!(
-            serde_json::from_value::<DeterminationRecord>(wire).is_err(),
+            fel_core::exact_json::from_value::<DeterminationRecord>(wire).is_err(),
             "{pointer}"
         );
     }
     let mut validity = base.clone();
     validity["validity"] =
         json!({"validUntil":"2026-10-09T13:00:00Z","resultValidity":"PT1H","unknown":true});
-    assert!(serde_json::from_value::<DeterminationRecord>(validity).is_err());
+    assert!(fel_core::exact_json::from_value::<DeterminationRecord>(validity).is_err());
     for pointer in ["/status", "/phases/0/status", "/inputs/eligible/state"] {
         let mut wire = base.clone();
         *wire.pointer_mut(pointer).unwrap() = json!("unknown");
         assert!(
-            serde_json::from_value::<DeterminationRecord>(wire).is_err(),
+            fel_core::exact_json::from_value::<DeterminationRecord>(wire).is_err(),
             "{pointer}"
         );
     }
@@ -154,14 +155,14 @@ fn retained_record_decoder_refuses_unknown_invalid_and_missing_fields() {
         let mut wire = base.clone();
         wire.as_object_mut().unwrap().remove(key);
         assert!(
-            serde_json::from_value::<DeterminationRecord>(wire).is_err(),
+            fel_core::exact_json::from_value::<DeterminationRecord>(wire).is_err(),
             "{key}"
         );
     }
     let mut extended = base.clone();
     extended["extensions"] = json!({"host":{"unknown":"preserved"}});
     extended["phases"][0]["matched"][0]["metadata"] = json!({"arbitrary":[1,false,"yes"]});
-    let reopened: DeterminationRecord = serde_json::from_value(extended.clone()).unwrap();
+    let reopened: DeterminationRecord = fel_core::exact_json::from_value(extended.clone()).unwrap();
     assert_eq!(serde_json::to_value(reopened).unwrap(), extended);
 }
 
@@ -217,8 +218,8 @@ fn canonical_bind_generation_metadata_is_inert() {
                 state: AnswerState::Answered,
             },
         )]);
-        let record = evaluate_screener_document(&annotated, &answers, Some(time), None);
-        let original = evaluate_screener_document(baseline, &answers, Some(time), None);
+        let record = evaluate_screener_document(&annotated, &answers, Some(time), None).unwrap();
+        let original = evaluate_screener_document(baseline, &answers, Some(time), None).unwrap();
         let record_before = serde_json::to_vec(&record).unwrap();
         assert_eq!(record_before, serde_json::to_vec(&original).unwrap());
         assert_eq!(
@@ -235,7 +236,7 @@ fn canonical_bind_generation_metadata_is_inert() {
 
 #[test]
 fn annotated_binds_preserve_bounded_semantic_refusals() {
-    use formspec_eval::{admit_screener_qualification_profile, ScreenerQualificationRefusal};
+    use formspec_eval::{ScreenerQualificationRefusal, admit_screener_qualification_profile};
     let fixtures: Value = serde_json::from_str(include_str!(
         "../../../tests/fixtures/screener-qualification.json"
     ))

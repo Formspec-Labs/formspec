@@ -1,3 +1,4 @@
+import { jsonValueText } from '@formspec-org/engine';
 /** @filedesc Default DOM for display components — Heading through ValidationSummary. */
 import { effect } from '@preact/signals-core';
 import type { AdapterContext } from '../types';
@@ -28,7 +29,7 @@ export function renderDefaultHeading(behavior: DisplayComponentBehavior, parent:
             effect(() => {
                 const sig = host.engine.signals[itemFullName] ?? host.engine.variableSignals?.[`#:${comp.bind}`];
                 const v = sig?.value;
-                el.textContent = v != null ? String(v) : '';
+                el.textContent = v != null ? jsonValueText(v) : '';
             })
         );
     } else {
@@ -59,9 +60,9 @@ export function renderDefaultText(behavior: DisplayComponentBehavior, parent: HT
                 if (v != null && typeof v === 'object' && 'amount' in v) {
                     el.textContent = formatMoney(v as any);
                 } else if (isMarkdown && v != null) {
-                    el.innerHTML = renderMarkdown(String(v));
+                    el.innerHTML = renderMarkdown(jsonValueText(v));
                 } else {
-                    el.textContent = v != null ? String(v) : '';
+                    el.textContent = v != null ? jsonValueText(v) : '';
                 }
             })
         );
@@ -134,7 +135,7 @@ export function renderDefaultAlert(behavior: DisplayComponentBehavior, parent: H
             effect(() => {
                 const sig = host.engine.signals[itemFullName] ?? host.engine.variableSignals?.[`#:${comp.bind}`];
                 const v = sig?.value;
-                textSpan.textContent = v != null ? String(v) : '';
+                textSpan.textContent = v != null ? jsonValueText(v) : '';
             })
         );
     } else {
@@ -182,7 +183,7 @@ export function renderDefaultProgressBar(behavior: DisplayComponentBehavior, par
         host.cleanupFns.push(
             effect(() => {
                 const sig = host.engine.signals[fullName];
-                const val = Number(sig?.value ?? comp.value ?? 0);
+                const val = Number(jsonValueText(sig?.value ?? comp.value ?? 0));
                 progressEl.value = val;
                 if (comp.showPercent) {
                     percentLabel.textContent = `${Math.round((val / maxVal) * 100)}%`;
@@ -239,10 +240,10 @@ export function renderDefaultSummary(behavior: DisplayComponentBehavior, parent:
                             const opts: Array<{ value: string; label: string }> = Array.isArray(entry)
                                 ? entry
                                 : (entry?.options ?? []);
-                            const match = opts.find((o: any) => o.value === String(v));
-                            dd.textContent = match ? match.label : String(v);
+                            const match = opts.find((o: any) => o.value === jsonValueText(v));
+                            dd.textContent = match ? match.label : jsonValueText(v);
                         } else {
-                            dd.textContent = v != null ? String(v) : '\u2014';
+                            dd.textContent = v != null ? jsonValueText(v) : '\u2014';
                         }
                     })
                 );

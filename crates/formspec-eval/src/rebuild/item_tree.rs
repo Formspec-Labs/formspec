@@ -25,10 +25,10 @@
 //! it does not relax the normative spec for published definitions.
 #![allow(clippy::missing_docs_in_private_items)]
 
+use fel_core::exact_json::Value;
 use formspec_core::{
     DefinitionItemKeyPolicy, DefinitionItemVisitCtx, visit_definition_items_json_shallow,
 };
-use serde_json::Value;
 
 use crate::types::{ExcludedValueMode, ItemInfo, MipState, NrbMode, VariableDef, WhitespaceMode};
 use formspec_core::BindTargets;
@@ -80,7 +80,7 @@ pub fn parse_variables(definition: &Value) -> Vec<VariableDef> {
 
 fn rebuild_items_slice(
     items: &[Value],
-    binds: &BindTargets<'_>,
+    binds: &BindTargets<'_, Value>,
     parent_dotted: Option<&str>,
     default_currency: Option<&str>,
     json_array_parent: &str,
@@ -99,8 +99,8 @@ fn rebuild_items_slice(
 }
 
 fn build_item_info_from_ctx(
-    ctx: &DefinitionItemVisitCtx<'_>,
-    binds: &BindTargets<'_>,
+    ctx: &DefinitionItemVisitCtx<'_, Value>,
+    binds: &BindTargets<'_, Value>,
     default_currency: Option<&str>,
 ) -> ItemInfo {
     let item = ctx.item;
@@ -131,7 +131,7 @@ fn build_item_info_from_ctx(
     // Inline Item properties first, then every Bind targeting the Item in document
     // order, later values winning (Core §4.3.1). A Definition with no Bind for the
     // full path falls back to Binds addressed by the bare key.
-    let mut bind = serde_json::Map::new();
+    let mut bind = fel_core::exact_json::Map::new();
     for field in [
         "calculate",
         "constraint",
@@ -287,7 +287,7 @@ fn build_item_info_from_ctx(
 mod tests {
     use super::*;
     use crate::types::{ExcludedValueMode, NrbMode, WhitespaceMode};
-    use serde_json::json;
+    use fel_core::exact_json::native_json as json;
 
     #[test]
     fn item_tree_parses_whitespace_nrb_and_excluded_value_modes() {

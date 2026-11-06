@@ -29,18 +29,18 @@ for (const [name, served, actual, expected] of [
   test(`${name} decimal validates through batch and reactive APIs without rounding`, () => {
     const def = definition();
     const batch = evaluateDefinition(def, { served, actual });
-    assert.equal(batch.values.ratio, expected);
+    assert.equal(JSON.stringify(batch.values.ratio), String(expected));
     assert.deepEqual(batch.validations, []);
     assert.deepEqual(batch.diagnostics, []);
 
     const engine = new FormEngine(def);
     engine.setValue('served', served);
     engine.setValue('actual', actual);
-    assert.equal(engine.signals.ratio.value, expected);
+    assert.equal(JSON.stringify(engine.signals.ratio.value), String(expected));
     assert.equal(engine.getValidationReport().valid, true);
     assert.deepEqual(engine.getDiagnosticsSnapshot().evaluationDiagnostics, []);
     const response = engine.getResponse({ profile: 'on-submit' });
-    assert.equal(response.data.ratio, expected);
+    assert.equal(JSON.stringify(response.data.ratio), String(expected));
     assert.equal(response.status, 'completed');
     assert.deepEqual(response.validationResults, []);
   });
@@ -55,7 +55,7 @@ test('recurring decimals remain numbers in bind constraints and shapes', () => {
     message: 'Ratio must retain decimal precision',
   }];
   const result = evaluateDefinition(def, { served: 3, actual: 1 });
-  assert.equal(result.values.ratio, third);
+  assert.equal(JSON.stringify(result.values.ratio), third);
   assert.deepEqual(result.validations, []);
   assert.deepEqual(result.diagnostics, []);
 });
@@ -79,9 +79,9 @@ test('repeat calculations and aggregates retain numeric precision', () => {
   const result = evaluateDefinition(def, {
     rows: [{ served: 3, actual: 1 }, { served: 3, actual: 1 }],
   });
-  assert.equal(result.values['rows[0].ratio'], third);
-  assert.equal(result.values['rows[1].ratio'], third);
-  assert.equal(result.values.total, '0.6666666666666666666666666666');
+  assert.equal(JSON.stringify(result.values['rows[0].ratio']), third);
+  assert.equal(JSON.stringify(result.values['rows[1].ratio']), third);
+  assert.equal(JSON.stringify(result.values.total), '0.6666666666666666666666666666');
   assert.deepEqual(result.validations, []);
   assert.deepEqual(result.diagnostics, []);
 });

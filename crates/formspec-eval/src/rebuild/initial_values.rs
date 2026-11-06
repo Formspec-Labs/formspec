@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use fel_core::FormspecEnvironment;
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use crate::fel_eval::Fel;
 use crate::fel_json::{fel_to_runtime_json, json_to_runtime_fel};

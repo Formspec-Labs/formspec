@@ -2,8 +2,8 @@
 //! rows. The evaluator takes it nested or flat and answers the same: `values` flat by path, `data`
 //! nested, with `nonRelevantBehavior` applied to both.
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{EvalOptions, EvaluationResult, evaluate};
-use serde_json::{Value, json};
 use std::collections::HashMap;
 
 fn definition() -> Value {
@@ -75,10 +75,17 @@ fn nested_value_wins_over_initial_value_seeding() {
 
 #[test]
 fn non_relevant_group_fields_are_pruned_from_values_and_data() {
-    let nested = eval(json!({ "project": { "hasSubawards": false, "note": "x", "detail": { "reason": "r" } } }));
-    let flat = eval(json!({ "project.hasSubawards": false, "project.note": "x", "project.detail.reason": "r" }));
+    let nested = eval(
+        json!({ "project": { "hasSubawards": false, "note": "x", "detail": { "reason": "r" } } }),
+    );
+    let flat = eval(
+        json!({ "project.hasSubawards": false, "project.note": "x", "project.detail.reason": "r" }),
+    );
     assert!(!nested.values.contains_key("project.note"));
-    assert!(!nested.values.contains_key("project"), "the group object is consumed, not echoed beside its leaves");
+    assert!(
+        !nested.values.contains_key("project"),
+        "the group object is consumed, not echoed beside its leaves"
+    );
     assert!(nested.data["project"].get("note").is_none());
     assert!(nested.data["project"].get("detail").is_none());
     same(&nested, &flat);
@@ -96,9 +103,15 @@ fn repeat_rows_and_groups_in_rows_flatten_and_nest_back_identically() {
     }));
     assert_eq!(nested.values.get("rows[0].addr.flag"), Some(&json!(false)));
     assert_eq!(nested.values.get("rows[1].addr.city"), Some(&json!("Y")));
-    assert!(!nested.values.contains_key("rows"), "the row array is consumed, not echoed");
+    assert!(
+        !nested.values.contains_key("rows"),
+        "the row array is consumed, not echoed"
+    );
     assert!(!nested.values.contains_key("rows[0].addr"));
-    assert_eq!(nested.data["rows"][0]["addr"], json!({ "city": "X", "flag": false }));
+    assert_eq!(
+        nested.data["rows"][0]["addr"],
+        json!({ "city": "X", "flag": false })
+    );
     assert_eq!(nested.data["rows"][1]["name"], json!("b"));
     same(&nested, &flat);
 }
@@ -122,7 +135,11 @@ fn a_repeat_row_with_no_answered_field_still_counts() {
 #[test]
 fn a_flat_repeat_seeds_no_template_path() {
     let flat = eval(json!({ "rows[0].name": "a" }));
-    assert!(flat.values.keys().all(|k| !k.starts_with("rows.")), "no template-path seed: {:?}", flat.values.keys());
+    assert!(
+        flat.values.keys().all(|k| !k.starts_with("rows.")),
+        "no template-path seed: {:?}",
+        flat.values.keys()
+    );
 }
 
 #[test]
@@ -133,7 +150,10 @@ fn money_and_attachments_stay_whole_and_unknown_keys_survive() {
         "rows": [{ "docs": attachment }],
         "x-extra": { "kept": true }
     }));
-    assert_eq!(nested.values.get("project.amount"), Some(&json!({ "amount": "5", "currency": "USD" })));
+    assert_eq!(
+        nested.values.get("project.amount"),
+        Some(&json!({ "amount": "5", "currency": "USD" }))
+    );
     assert_eq!(nested.values.get("rows[0].docs"), Some(&attachment));
     assert!(!nested.values.contains_key("rows[0].docs[0]"));
     assert_eq!(nested.data["project"]["mystery"], json!(7));
@@ -143,7 +163,8 @@ fn money_and_attachments_stay_whole_and_unknown_keys_survive() {
 
 #[test]
 fn a_field_supplied_flat_and_nested_is_refused() {
-    let result = eval(json!({ "project": { "hasSubawards": true }, "project.hasSubawards": false }));
+    let result =
+        eval(json!({ "project": { "hasSubawards": true }, "project.hasSubawards": false }));
     assert!(result.values.is_empty());
     assert_eq!(result.validations.len(), 1);
     assert_eq!(result.validations[0].path, "project.hasSubawards");

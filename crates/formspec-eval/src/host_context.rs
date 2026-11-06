@@ -9,6 +9,7 @@
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+use fel_core::exact_json::{Map, Value as JsonValue};
 use fel_core::{
     Date, Environment, EvalResult, EvaluatorOptions, ExtensionFunctions, MipState,
     MissingTimezoneContextError, RepeatAliases, Trace, Value, evaluate_with, parse,
@@ -16,10 +17,9 @@ use fel_core::{
 };
 use formspec_core::path_utils::{Path, PathSegment};
 use rust_decimal::Decimal;
-use serde_json::{Map, Value as JsonValue};
 
 use crate::fel_eval::Fel;
-use crate::fel_json::{json_to_runtime_fel, json_to_runtime_fel_typed, typed_json_leaf};
+use crate::fel_json::{json_to_runtime_fel, json_to_runtime_fel_typed, json_tree_to_runtime_fel};
 use crate::interpolation::{Interpolated, interpolate_fel};
 use crate::recalculate::repeats::set_nested_json_path;
 
@@ -93,6 +93,9 @@ impl HostFelContext {
     /// path lists; unlisted paths are default), `repeatCounts`, `variables` (scope → name →
     /// value), `locale`, `meta`, and `instances`, which is replaced only when present.
     pub fn load(&mut self, snapshot: &Map<String, JsonValue>) -> Result<(), String> {
+        for value in snapshot.values() {
+            fel_core::exact_json::check_decimal_range(value)?;
+        }
         let supplied = snapshot
             .get("values")
             .map(|values| values.as_object().ok_or("values must be a JSON object"))
@@ -300,14 +303,9 @@ impl HostFelContext {
         }
         let mut tree = JsonValue::Null;
         for (relative, value) in self.children(prefix) {
-            let path = format!("{prefix}{relative}");
-            set_nested_json_path(
-                &mut tree,
-                relative,
-                typed_json_leaf(value, self.data_type(&path)),
-            );
+            set_nested_json_path(&mut tree, relative, value.clone());
         }
-        let built = json_to_runtime_fel(&tree);
+        let built = json_tree_to_runtime_fel(&tree, prefix, &|path| self.data_type(path));
         self.nested
             .borrow_mut()
             .insert(prefix.to_string(), built.clone());
@@ -324,14 +322,9 @@ impl HostFelContext {
             if relative.contains('[') {
                 continue;
             }
-            let path = format!("{prefix}.{relative}");
-            set_nested_json_path(
-                &mut tree,
-                relative,
-                typed_json_leaf(value, self.data_type(&path)),
-            );
+            set_nested_json_path(&mut tree, relative, value.clone());
         }
-        json_to_runtime_fel(&tree)
+        json_tree_to_runtime_fel(&tree, prefix, &|path| self.data_type(path))
     }
 
     /// `group.field` across every row of a repeat: the projection `FormspecEnvironment` applies to flat rows.
@@ -684,8 +677,8 @@ impl Environment for ScopedEnv<'_> {
 mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
-    use fel_core::fel_to_ui_json;
-    use serde_json::json;
+    use fel_core::exact_json::from_fel as fel_to_ui_json;
+    use fel_core::exact_json::native_json as json;
 
     fn context() -> HostFelContext {
         let schema = json!({

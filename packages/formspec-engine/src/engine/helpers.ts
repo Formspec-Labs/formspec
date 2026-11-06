@@ -1,5 +1,8 @@
 /** @filedesc Internal helpers shared by FormEngine (paths, coercion, validation shaping, FEL path rewriting). */
 
+import { cloneValue, deepEqual, isJsonRecord, isRawJson, jsonNumberText } from '../json-values.js';
+export { cloneValue, deepEqual, isJsonRecord } from '../json-values.js';
+import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import type { EngineSignal } from '../reactivity/types.js';
 import type {
     FormBind,
@@ -22,6 +25,7 @@ import type {
 import {
     wasmAnalyzeFel,
     wasmCoerceFieldValue,
+    wasmEvalFel,
     wasmGetFelDependencies,
     wasmNormalizeIndexedPath,
 } from '../wasm-bridge-runtime.js';
@@ -126,22 +130,13 @@ export function emptyValueForItem(item: FormItem): FormFieldValue {
     }
 }
 
-export function coerceInitialValue(item: FormItem, value: FormFieldValue): FormFieldValue {
+export function coerceInitialValue(item: FormItem, value: FormFieldValue, definition: FormDefinition): FormFieldValue {
+    if (item.dataType === 'money') return coerceFieldValue(item, undefined, definition, value);
     if (item.dataType === 'boolean' && value === '') {
         return false;
     }
     if (['integer', 'decimal'].includes(item.dataType ?? '') && value === '') {
         return null;
-    }
-    if (item.dataType === 'money' && typeof value === 'number') {
-        return { amount: value, currency: item.currency ?? '' };
-    }
-    if (item.dataType === 'money' && isJsonRecord(value) && typeof value.amount === 'string') {
-        const parsed = value.amount === '' ? null : Number(value.amount);
-        return {
-            ...value,
-            amount: parsed === null || !Number.isNaN(parsed) ? parsed : value.amount,
-        };
     }
     return cloneValue(value);
 }
@@ -162,7 +157,7 @@ export function coerceFieldValue(
         JSON.stringify(definition),
         JSON.stringify(value),
     );
-    return JSON.parse(out) as FormFieldValue;
+    return parseJsonExact(out) as FormFieldValue;
 }
 
 export function validateDataType(value: FormFieldValue, dataType: string): boolean {
@@ -172,38 +167,22 @@ export function validateDataType(value: FormFieldValue, dataType: string): boole
         case 'boolean':
             return typeof value === 'boolean';
         case 'integer':
-            return typeof value === 'number' && Number.isInteger(value);
+            return jsonNumberText(value) !== undefined && wasmEvalFel('floor($value) = $value', { value }) === true;
         case 'decimal':
-            return typeof value === 'number' && !Number.isNaN(value);
+            return jsonNumberText(value) !== undefined;
         case 'money':
-            return isJsonRecord(value) && typeof value.amount === 'number';
+            return isJsonRecord(value) && typeof value.amount === 'string' && typeof value.currency === 'string';
         case 'array':
             return Array.isArray(value);
         case 'object':
-            return value !== null && typeof value === 'object' && !Array.isArray(value);
+            return isJsonRecord(value);
         default:
             return true;
     }
 }
 
-export function cloneValue<T>(value: T): T {
-    if (value === null || value === undefined || typeof value !== 'object') {
-        return value;
-    }
-    const copier = (
-        globalThis as typeof globalThis & { structuredClone?: <T>(value: T) => T }
-    ).structuredClone;
-    if (typeof copier === 'function') {
-        return copier(value);
-    }
-    return JSON.parse(JSON.stringify(value));
-}
-
-export function isJsonRecord(value: unknown): value is JsonRecord {
-    return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 export function normalizeWasmValue<T>(value: T): T {
+    if (isRawJson(value)) return value;
     if (Array.isArray(value)) {
         return value.map((entry) => normalizeWasmValue(entry)) as T;
     }
@@ -221,25 +200,6 @@ export function normalizeWasmValue<T>(value: T): T {
         ) as T;
     }
     return cloneValue(value);
-}
-
-export function deepEqual(left: unknown, right: unknown): boolean {
-    if (Object.is(left, right)) {
-        return true;
-    }
-    if (Array.isArray(left) && Array.isArray(right)) {
-        return left.length === right.length && left.every((entry, index) => deepEqual(entry, right[index]));
-    }
-    if (left && right && typeof left === 'object' && typeof right === 'object') {
-        const leftKeys = Object.keys(left as Record<string, unknown>).sort();
-        const rightKeys = Object.keys(right as Record<string, unknown>).sort();
-        if (!deepEqual(leftKeys, rightKeys)) {
-            return false;
-        }
-        return leftKeys.every((key) =>
-            deepEqual((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key]));
-    }
-    return false;
 }
 
 export function resolveNowProvider(now: FormEngineRuntimeContext['now']): () => Date {
@@ -392,51 +352,6 @@ export function setNestedPathValue(target: JsonRecord, path: string, value: Form
         current[last.index] = value;
     } else {
         current[last.key] = value;
-    }
-}
-
-export function setResponsePathValue(target: JsonRecord, path: string, value: FormFieldValue): void {
-    const tokens = path.match(/[^.[\]]+|\[(\d+)\]/g) ?? [];
-    if (tokens.length === 0) {
-        return;
-    }
-
-    let current: MutableJsonPath = target;
-    for (let index = 0; index < tokens.length - 1; index += 1) {
-        const token = tokens[index];
-        const next = tokens[index + 1];
-
-        if (token.startsWith('[')) {
-            const arrayIndex = Number(token.slice(1, -1));
-            const existing = current[arrayIndex];
-            if (existing !== undefined && (existing === null || typeof existing !== 'object')) {
-                const fallbackPath = tokens.slice(index + 1).join('.');
-                setResponsePathValue(target, fallbackPath, value);
-                return;
-            }
-            current[arrayIndex] ??= next?.startsWith('[') ? [] : {};
-            current = current[arrayIndex] as MutableJsonPath;
-            continue;
-        }
-
-        const existing = current[token];
-        if (existing !== undefined && (existing === null || typeof existing !== 'object')) {
-            const fallbackPath = tokens
-                .slice(0, index)
-                .concat(tokens.slice(index + 1))
-                .join('.');
-            setResponsePathValue(target, fallbackPath, value);
-            return;
-        }
-        current[token] ??= next?.startsWith('[') ? [] : {};
-        current = current[token] as MutableJsonPath;
-    }
-
-    const last = tokens[tokens.length - 1];
-    if (last.startsWith('[')) {
-        current[Number(last.slice(1, -1))] = value;
-    } else {
-        current[last] = value;
     }
 }
 

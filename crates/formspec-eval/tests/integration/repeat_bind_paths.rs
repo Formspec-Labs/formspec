@@ -1,7 +1,7 @@
 //! Bind paths with `[*]` (Core §4.3.3 path syntax) resolve to every concrete repeat instance.
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{EvalOptions, evaluate};
-use serde_json::{Value, json};
 use std::collections::HashMap;
 
 fn jobs_definition(binds: Value) -> Value {

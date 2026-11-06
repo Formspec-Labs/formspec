@@ -1,7 +1,7 @@
 //! Full `evaluate_*` pipeline integration tests.
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{EvalContext, EvalOptions, EvalTrigger, ValidationResult, evaluate};
-use serde_json::{Value, json};
 use std::collections::HashMap;
 
 #[test]
@@ -73,7 +73,7 @@ fn calculated_money_field_wraps_as_money_object() {
     let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("total"),
-        Some(&json!({ "amount": 99.95, "currency": "USD" })),
+        Some(&json!({ "amount": "99.95", "currency": "USD" })),
     );
 }
 
@@ -929,6 +929,7 @@ fn array_style_binds_required_validation() {
 
 #[test]
 fn round_trip_null() {
+    use serde_json::json;
     let json_val = json!(null);
     let fel_val = fel_core::json_to_fel(&json_val);
     let back = fel_core::fel_to_json(&fel_val);
@@ -937,6 +938,7 @@ fn round_trip_null() {
 
 #[test]
 fn round_trip_boolean_true() {
+    use serde_json::json;
     let json_val = json!(true);
     let fel_val = fel_core::json_to_fel(&json_val);
     let back = fel_core::fel_to_json(&fel_val);
@@ -945,6 +947,7 @@ fn round_trip_boolean_true() {
 
 #[test]
 fn round_trip_boolean_false() {
+    use serde_json::json;
     let json_val = json!(false);
     let fel_val = fel_core::json_to_fel(&json_val);
     let back = fel_core::fel_to_json(&fel_val);
@@ -953,6 +956,7 @@ fn round_trip_boolean_false() {
 
 #[test]
 fn round_trip_string() {
+    use serde_json::json;
     let json_val = json!("hello world");
     let fel_val = fel_core::json_to_fel(&json_val);
     let back = fel_core::fel_to_json(&fel_val);
@@ -961,6 +965,7 @@ fn round_trip_string() {
 
 #[test]
 fn round_trip_number_integer() {
+    use serde_json::json;
     let json_val = json!(42);
     let fel_val = fel_core::json_to_fel(&json_val);
     let back = fel_core::fel_to_json(&fel_val);
@@ -969,6 +974,7 @@ fn round_trip_number_integer() {
 
 #[test]
 fn round_trip_number_decimal() {
+    use serde_json::json;
     let json_val = json!(12.34);
     let fel_val = fel_core::json_to_fel(&json_val);
     let back = fel_core::fel_to_json(&fel_val);
@@ -981,6 +987,7 @@ fn round_trip_number_decimal() {
 
 #[test]
 fn round_trip_array() {
+    use serde_json::json;
     let json_val = json!([1, "two", true, null]);
     let fel_val = fel_core::json_to_fel(&json_val);
     let back = fel_core::fel_to_json(&fel_val);
@@ -993,6 +1000,7 @@ fn round_trip_array() {
 
 #[test]
 fn round_trip_object() {
+    use serde_json::json;
     let json_val = json!({"name": "Alice", "age": 30});
     let fel_val = fel_core::json_to_fel(&json_val);
     let back = fel_core::fel_to_json(&fel_val);
@@ -1004,6 +1012,7 @@ fn round_trip_object() {
 fn round_trip_money() {
     use rust_decimal::Decimal;
     use rust_decimal::prelude::FromPrimitive;
+    use serde_json::json;
     let money = fel_core::Value::Money(fel_core::Money {
         amount: Decimal::from_f64(99.99).unwrap(),
         currency: fel_core::CurrencyCode::parse("USD").expect("USD"),
@@ -1027,6 +1036,7 @@ fn round_trip_money() {
 
 #[test]
 fn round_trip_date() {
+    use serde_json::json;
     let date = fel_core::Value::Date(fel_core::Date::Date {
         year: 2025,
         month: 6,
@@ -2295,7 +2305,7 @@ fn calculated_field_reacts_to_final_global_variable_values() {
     let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("budget.budgetDeviation"),
-        Some(&json!({ "amount": 200, "currency": "USD" })),
+        Some(&json!({ "amount": "200", "currency": "USD" })),
     );
 }
 
@@ -2822,7 +2832,7 @@ fn shape_constraints_handle_plain_money_field_values() {
         .collect();
     assert_eq!(
         result.variables.get("grandTotal"),
-        Some(&json!({ "amount": 100, "currency": "USD" }))
+        Some(&json!({ "amount": "100", "currency": "USD" }))
     );
     assert_eq!(
         shape_errors.len(),
@@ -2864,7 +2874,7 @@ fn calculated_money_sum_uses_plain_money_field_values() {
     let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values.get("total"),
-        Some(&json!({ "amount": 105000, "currency": "USD" }))
+        Some(&json!({ "amount": "105000", "currency": "USD" }))
     );
 }
 
@@ -3630,8 +3640,8 @@ fn money_literal_default_coerces_string_amount_on_relevance_transition() {
     let amount = result2.values.get("amount").expect("amount default");
     assert_eq!(
         amount.get("amount"),
-        Some(&json!(0)),
-        "money bind default amount string should coerce to JSON number"
+        Some(&json!("0")),
+        "money bind defaults retain the schema string amount"
     );
     assert_eq!(amount.get("currency"), Some(&json!("USD")));
 }

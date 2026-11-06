@@ -5,8 +5,8 @@
 //! `constraint_scaling` puts a Bind constraint on every field of every row, so
 //! per-constraint work that reads every value shows up as O(rows^2).
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{EvalOptions, evaluate};
-use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 

@@ -2,6 +2,7 @@
 'use client';
 import { optionMatchesComboboxQuery } from '@formspec-org/engine';
 import { useChromeText } from '../../../use-chrome-text';
+import { jsonValueText } from '@formspec-org/engine';
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import type { CommonInputProps } from '../field-control-types';
 import { needTraceAttrs } from '../../../projection-metadata.js';
@@ -26,20 +27,20 @@ export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonI
     const selectedValues = useMemo(() => {
         if (!multiple) return [];
         const v = field.value;
-        if (Array.isArray(v)) return v.map(String);
+        if (Array.isArray(v)) return v.map(jsonValueText);
         if (v == null || v === '') return [];
-        return [String(v)];
+        return [jsonValueText(v)];
     }, [field.value, multiple]);
 
     const selectedSingle = multiple ? undefined : field.value;
     const selectedSingleOption = useMemo(
-        () => field.options.find((option) => option.value === String(selectedSingle ?? '')),
+        () => field.options.find((option) => option.value === jsonValueText(selectedSingle ?? '')),
         [field.options, selectedSingle],
     );
 
     const selectedLabel = useMemo(() => {
         if (multiple || selectedSingle == null || selectedSingle === '') return '';
-        const s = String(selectedSingle);
+        const s = jsonValueText(selectedSingle);
         return field.options.find((o) => o.value === s)?.label ?? s;
     }, [field.options, multiple, selectedSingle]);
 
@@ -269,7 +270,7 @@ export function ComboboxSelect({ field, node, common, isReadonly }: Pick<CommonI
                         const isHighlighted = index === highlightedIndex;
                         const isChosen = multiple
                             ? selectedValues.includes(opt.value)
-                            : String(selectedSingle ?? '') === opt.value;
+                            : jsonValueText(selectedSingle ?? '') === opt.value;
                         return (
                             <li
                                 key={opt.value}

@@ -1,4 +1,5 @@
 'use client';
+import { jsonValueText, parseJsonNumber } from '@formspec-org/engine';
 
 /** @filedesc FormspecScreener — standalone eligibility gate component. */
 import { NativeSelectControl } from '../defaults/fields/controls/native-select';
@@ -182,7 +183,7 @@ function ScreenerField({
             <NativeSelectControl
               disabled={disabled}
               id={id}
-              value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
+              value={typeof value === 'string' || typeof value === 'number' ? jsonValueText(value) : ''}
               onChange={(e) => onChange(e.target.value)}
               aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
             >
@@ -210,8 +211,8 @@ function ScreenerField({
               id={id}
               type="number"
               step={dt === 'decimal' ? 'any' : '1'}
-              value={value === null || value === undefined ? '' : Number(value)}
-              onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+              value={jsonValueText(value)}
+              onChange={(e) => onChange(e.target.value === '' ? null : parseJsonNumber(e.target.value))}
               aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
             />
           </>
@@ -235,9 +236,9 @@ function ScreenerField({
                 inputMode="decimal"
                 value={
                   typeof value === 'object' && value !== null && !Array.isArray(value)
-                    ? String((value as { amount?: number }).amount ?? '')
+                    ? jsonValueText((value as { amount?: unknown }).amount)
                     : typeof value === 'string' || typeof value === 'number'
-                      ? String(value)
+                      ? jsonValueText(value)
                       : ''
                 }
                 onChange={(e) => {
@@ -245,7 +246,7 @@ function ScreenerField({
                   onChange(
                     raw === ''
                       ? null
-                      : { amount: Number(raw), currency: moneyItem.currency || 'USD' },
+                      : { amount: raw, currency: moneyItem.currency || 'USD' },
                   );
                 }}
                 aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}

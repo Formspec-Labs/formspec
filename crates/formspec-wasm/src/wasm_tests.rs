@@ -207,7 +207,10 @@ mod tests {
         let data = json!({"g": {"a": "x"}, "rows": [{"n": "p"}, {"n": "q"}]}).to_string();
         let result = evaluate_definition_inner(&def, &data, None, None).unwrap();
         let val: Value = serde_json::from_str(&result).unwrap();
-        assert_eq!(val["data"], json!({"g": {"a": "x"}, "rows": [{"n": "p"}, {"n": "q"}]}));
+        assert_eq!(
+            val["data"],
+            json!({"g": {"a": "x"}, "rows": [{"n": "p"}, {"n": "q"}]})
+        );
         assert_eq!(val["values"]["g.a"], json!("x"));
         assert_eq!(val["values"]["rows[1].n"], json!("q"));
     }
@@ -405,7 +408,7 @@ mod tests {
         let out =
             coerce_field_value_inner(&item.to_string(), "", &def.to_string(), "42.26").unwrap();
         let v: Value = serde_json::from_str(&out).unwrap();
-        assert_eq!(v["amount"], json!(42.26));
+        assert_eq!(v["amount"], json!("42.26"));
         assert_eq!(v["currency"], json!("USD"));
     }
 

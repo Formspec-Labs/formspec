@@ -23,7 +23,7 @@ test('should compute taskCost from hours × hourlyRate in a nested repeat', () =
   engine.setValue('projectPhases[0].phaseTasks[0].hours', 10);
   engine.setValue('projectPhases[0].phaseTasks[0].hourlyRate', { amount: 50, currency: 'USD' });
 
-  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTasks[0].taskCost'), { amount: 500, currency: 'USD' });
+  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTasks[0].taskCost'), { amount: '500', currency: 'USD' });
 });
 
 test('should aggregate phaseTotal from all tasks in a phase', () => {
@@ -38,7 +38,7 @@ test('should aggregate phaseTotal from all tasks in a phase', () => {
   engine.setValue('projectPhases[0].phaseTasks[1].hours', 5);
   engine.setValue('projectPhases[0].phaseTasks[1].hourlyRate', { amount: 100, currency: 'USD' });
 
-  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTotal'), { amount: 1000, currency: 'USD' });
+  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTotal'), { amount: '1000', currency: 'USD' });
 });
 
 test('should aggregate @projectPhasesTotal across multiple phases', () => {
@@ -54,7 +54,7 @@ test('should aggregate @projectPhasesTotal across multiple phases', () => {
   engine.setValue('projectPhases[1].phaseTasks[0].hours', 5);
   engine.setValue('projectPhases[1].phaseTasks[0].hourlyRate', { amount: 200, currency: 'USD' });
 
-  assert.deepEqual(engineVariable(engine, 'projectPhasesTotal'), { amount: 2000, currency: 'USD' });
+  assert.deepEqual(engineVariable(engine, 'projectPhasesTotal'), { amount: '2000', currency: 'USD' });
 });
 
 test('should update phaseTotal when a task is removed', () => {
@@ -69,11 +69,11 @@ test('should update phaseTotal when a task is removed', () => {
   engine.setValue('projectPhases[0].phaseTasks[1].hours', 5);
   engine.setValue('projectPhases[0].phaseTasks[1].hourlyRate', { amount: 100, currency: 'USD' });
 
-  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTotal'), { amount: 1500, currency: 'USD' });
+  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTotal'), { amount: '1500', currency: 'USD' });
 
   removeRepeatInstance(engine, 'projectPhases[0].phaseTasks', 0);
 
-  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTotal'), { amount: 500, currency: 'USD' });
+  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTotal'), { amount: '500', currency: 'USD' });
 });
 
 test('should include nested phase data in continuous response', () => {
@@ -90,5 +90,5 @@ test('should include nested phase data in continuous response', () => {
 
   assert.equal(response.data?.projectPhases?.[0]?.phaseName, 'Design');
   assert.equal(response.data?.projectPhases?.[0]?.phaseTasks?.[0]?.taskName, 'Wireframes');
-  assert.deepEqual(response.data?.projectPhases?.[0]?.phaseTasks?.[0]?.taskCost, { amount: 600, currency: 'USD' });
+  assert.deepEqual(response.data?.projectPhases?.[0]?.phaseTasks?.[0]?.taskCost, { amount: '600', currency: 'USD' });
 });

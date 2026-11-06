@@ -1,6 +1,6 @@
 //! Build [`ExtensionConstraint`](crate::ExtensionConstraint) vectors from registry JSON documents.
 
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use crate::ExtensionConstraint;
 
@@ -61,11 +61,11 @@ pub fn extension_constraints_from_registry_documents(docs: &[Value]) -> Vec<Exte
 
             let minimum = constraint_obj
                 .and_then(|c| c.get("minimum"))
-                .and_then(|v| v.as_f64());
+                .and_then(|v| v.as_decimal());
 
             let maximum = constraint_obj
                 .and_then(|c| c.get("maximum"))
-                .and_then(|v| v.as_f64());
+                .and_then(|v| v.as_decimal());
 
             constraints.push(ExtensionConstraint {
                 name,

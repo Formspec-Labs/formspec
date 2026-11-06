@@ -65,7 +65,7 @@ for (const path of fixturePaths) {
     const remote = { priorAwardAmount: 310000, performanceRating: 'excellent' };
     const fetch = t.mock.method(globalThis, 'fetch', async url => {
       assert.equal(url, source);
-      return { ok: true, json: async () => remote };
+      return { ok: true, json: async () => remote, text: async () => JSON.stringify(remote) };
     });
     const first = new FormEngine(definition, { registryEntries });
     t.after(() => first.dispose());

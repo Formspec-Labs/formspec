@@ -1,4 +1,9 @@
 /** @filedesc Runtime WASM — init, accessors, and wrappers that use only the runtime `formspec_wasm_runtime` module. */
+import { parseJsonExact } from '@formspec-org/integrity-canonical';
+
+/** Decode the maintained WASM protocol without rounding its numeric leaves. */
+function parseWasmJson<T = any>(text: string): T { return parseJsonExact(text) as T; }
+
 
 /** Parsed JSON from `fel_analysis_to_json_value` (Rust) — pass through to {@link normalizeFelAnalysisError}. */
 export type WasmFelAnalysisResultJson = {
@@ -116,7 +121,7 @@ export interface FelEvalResult {
 }
 
 function parseFelEvalEnvelope(resultJson: string): FelEvalResult {
-    const parsed = JSON.parse(resultJson) as FelEvalResult;
+    const parsed = parseWasmJson(resultJson) as FelEvalResult;
     if (
         parsed &&
         typeof parsed === 'object' &&
@@ -257,7 +262,7 @@ export function wasmEvalFelWithTrace(
 ): FelTraceResult {
     const fn = wasm().evalFelWithTrace;
     const resultJson = fn(expression, JSON.stringify(fields));
-    return JSON.parse(resultJson);
+    return parseWasmJson(resultJson);
 }
 
 /** Evaluate a FEL expression against full FormspecEnvironment context and trace each step. */
@@ -268,7 +273,7 @@ export function wasmEvalFelWithContextTrace(
 ): FelTraceResult {
     const fn = wasm().evalFelWithContextTrace;
     const resultJson = fn(expression, JSON.stringify(context), extensions);
-    return JSON.parse(resultJson);
+    return parseWasmJson(resultJson);
 }
 
 /** Interpolation result from Rust: resolved text plus one warning per expression left literal. */
@@ -284,7 +289,7 @@ export function wasmInterpolateFelTemplate(
     extensions?: FelExtensionHost,
 ): WasmInterpolated {
     const fn = wasm().interpolateFelTemplate;
-    return JSON.parse(fn(template, JSON.stringify(context), extensions));
+    return parseWasmJson(fn(template, JSON.stringify(context), extensions));
 }
 
 /**
@@ -295,7 +300,7 @@ export function wasmInterpolateTemplate(
     template: string,
     evaluate: (expression: string) => string,
 ): WasmInterpolated {
-    return JSON.parse(wasm().interpolateTemplate(template, evaluate));
+    return parseWasmJson(wasm().interpolateTemplate(template, evaluate));
 }
 
 /** Normalize FEL source before evaluation (bare `$`, repeat qualifiers, repeat aliases). */
@@ -347,7 +352,7 @@ export function wasmCoerceFieldValue(
 /** Extract field path dependencies from a FEL expression. Returns an array of path strings. */
 export function wasmGetFelDependencies(expression: string): string[] {
     const resultJson = wasm().getFelDependencies(expression);
-    return JSON.parse(resultJson);
+    return parseWasmJson(resultJson);
 }
 
 /** Normalize a dotted path by stripping repeat indices. */
@@ -358,7 +363,7 @@ export function wasmNormalizeIndexedPath(path: string): string {
 /** Resolve an item in a nested item tree by dotted path. */
 export function wasmItemAtPath<T = any>(items: unknown[], path: string): T | undefined {
     const resultJson = wasm().itemAtPath(JSON.stringify(items), path);
-    const result = JSON.parse(resultJson);
+    const result = parseWasmJson(resultJson);
     return result === null ? undefined : result;
 }
 
@@ -368,7 +373,7 @@ export function wasmItemLocationAtPath<T = any>(
     path: string,
 ): { parentPath: string; index: number; item: T } | undefined {
     const resultJson = wasm().itemLocationAtPath(JSON.stringify(items), path);
-    const result = JSON.parse(resultJson);
+    const result = parseWasmJson(resultJson);
     return result === null ? undefined : result;
 }
 
@@ -430,7 +435,7 @@ export function wasmEvaluateDefinition(
         context ? JSON.stringify(context) : undefined,
         extensions,
     );
-    return JSON.parse(resultJson);
+    return parseWasmJson(resultJson);
 }
 
 /**
@@ -452,13 +457,13 @@ export function wasmEvaluateScreenerDocument(
         context ? JSON.stringify(context) : undefined,
         extensions,
     );
-    return JSON.parse(resultJson);
+    return parseWasmJson(resultJson);
 }
 
 /** Analyze a FEL expression and return structural info. */
 export function wasmAnalyzeFel(expression: string): WasmFelAnalysisResultJson {
     const resultJson = wasm().analyzeFel(expression);
-    return JSON.parse(resultJson) as WasmFelAnalysisResultJson;
+    return parseWasmJson(resultJson) as WasmFelAnalysisResultJson;
 }
 
 /** Analyze a FEL expression with field data type context for type-mismatch warnings. */
@@ -470,7 +475,7 @@ export function wasmAnalyzeFelWithFieldTypes(
         expression,
         JSON.stringify(fieldTypes),
     );
-    return JSON.parse(resultJson) as WasmFelAnalysisResultJson;
+    return parseWasmJson(resultJson) as WasmFelAnalysisResultJson;
 }
 
 /** Check if a string is a valid FEL identifier. */
@@ -486,5 +491,5 @@ export function wasmSanitizeFelIdentifier(s: string): string {
 /** Compute dependency groups from recorded changeset entries (JSON round-trip to Rust). */
 export function wasmComputeDependencyGroups(entriesJson: string): Array<{ entries: number[]; reason: string }> {
     const resultJson = wasm().computeDependencyGroups(entriesJson);
-    return JSON.parse(resultJson);
+    return parseWasmJson(resultJson);
 }

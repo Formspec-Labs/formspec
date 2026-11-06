@@ -3,8 +3,8 @@
 
 use std::collections::{HashMap, HashSet};
 
-use fel_core::{FormspecEnvironment, Value, fel_to_json};
-use serde_json::Value as JsonValue;
+use fel_core::exact_json::Value as JsonValue;
+use fel_core::{FormspecEnvironment, Value};
 
 use crate::fel_eval::Fel;
 use crate::fel_json::json_to_runtime_fel_typed;
@@ -262,7 +262,7 @@ fn evaluate_shape_context(
                 let expression = wildcard
                     .map(|(base, index)| instantiate_wildcard_expr(expr, base, index))
                     .unwrap_or_else(|| expr.to_string());
-                fel_to_json(&fel.evaluate_source(&expression, env).value)
+                fel_core::exact_json::from_fel(&fel.evaluate_source(&expression, env).value)
             }
             None => raw_expr.clone(),
         };

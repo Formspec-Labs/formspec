@@ -1,10 +1,10 @@
 //! WASM binding for inbound field coercion (`coerceFieldValue`).
 
+use fel_core::exact_json::Value;
 use formspec_core::coerce_field_value;
-use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
-use crate::json_host::{parse_value_str, to_json_string};
+use crate::json_host::{parse_json_as, to_json_string};
 
 /// Coerce a field value using item + bind + definition metadata (JSON in/out).
 ///
@@ -26,15 +26,15 @@ pub(crate) fn coerce_field_value_inner(
     definition_json: &str,
     value_json: &str,
 ) -> Result<String, String> {
-    let item: Value = parse_value_str(item_json, "item JSON")?;
-    let definition: Value = parse_value_str(definition_json, "definition JSON")?;
-    let value: Value = parse_value_str(value_json, "value JSON")?;
+    let item: Value = parse_json_as(item_json, "item JSON")?;
+    let definition: Value = parse_json_as(definition_json, "definition JSON")?;
+    let value: Value = parse_json_as(value_json, "value JSON")?;
     let bind_owned = {
         let t = bind_json.trim();
         if t.is_empty() || t == "null" {
             None
         } else {
-            let b: Value = parse_value_str(bind_json, "bind JSON")?;
+            let b: Value = parse_json_as(bind_json, "bind JSON")?;
             if b.is_null() { None } else { Some(b) }
         }
     };

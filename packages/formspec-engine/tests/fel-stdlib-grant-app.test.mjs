@@ -62,7 +62,7 @@ test('abs() — budgetDeviation is absolute difference between requested and gra
   engine.setValue('budget.requestedAmount', { amount: 800, currency: 'USD' });
 
   const deviation = engineValue(engine, 'budget.budgetDeviation');
-  assert.deepEqual(deviation, { amount: 200, currency: 'USD' });
+  assert.deepEqual(deviation, { amount: '200', currency: 'USD' });
 });
 
 // ── Date Functions ───────────────────────────────────────────────────
@@ -108,7 +108,7 @@ test('sum() (money) — @totalDirect aggregates line item subtotals', () => {
   engine.setValue('budget.lineItems[1].unitCost', 200);
 
   const total = engineVariable(engine, 'totalDirect');
-  assert.deepEqual(total, { amount: 1600, currency: 'USD' }); // 1000 + 600
+  assert.deepEqual(total, { amount: '1600', currency: 'USD' }); // 1000 + 600
 });
 
 // ── Arithmetic Operators ─────────────────────────────────────────────
@@ -132,6 +132,6 @@ test('add-then-multiply — @grandTotal = totalDirect + indirectCosts', () => {
 
   const indirect = engineVariable(engine, 'indirectCosts');
   const grand = engineVariable(engine, 'grandTotal');
-  assert.deepEqual(indirect, { amount: 100, currency: 'USD' });
-  assert.deepEqual(grand, { amount: 1100, currency: 'USD' });
+  assert.deepEqual(indirect, { amount: '100', currency: 'USD' });
+  assert.deepEqual(grand, { amount: '1100', currency: 'USD' });
 });

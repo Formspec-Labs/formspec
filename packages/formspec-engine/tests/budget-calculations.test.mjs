@@ -40,7 +40,7 @@ test('should aggregate subtotals into @totalDirect variable', () => {
   engine.setValue('budget.lineItems[0].unitCost', 500);
 
   const totalDirect = engineVariable(engine, 'totalDirect');
-  assert.deepEqual(totalDirect, { amount: 1000, currency: 'USD' });
+  assert.deepEqual(totalDirect, { amount: '1000', currency: 'USD' });
 });
 
 test('should compute @indirectCosts from indirectRate percentage of @totalDirect', () => {
@@ -51,7 +51,7 @@ test('should compute @indirectCosts from indirectRate percentage of @totalDirect
   engine.setValue('projectNarrative.indirectRate', 10);
 
   const indirect = engineVariable(engine, 'indirectCosts');
-  assert.deepEqual(indirect, { amount: 1000, currency: 'USD' });
+  assert.deepEqual(indirect, { amount: '1000', currency: 'USD' });
 });
 
 test('should compute @grandTotal as moneyAdd(@totalDirect, @indirectCosts)', () => {
@@ -62,7 +62,7 @@ test('should compute @grandTotal as moneyAdd(@totalDirect, @indirectCosts)', () 
   engine.setValue('projectNarrative.indirectRate', 10);
 
   const grand = engineVariable(engine, 'grandTotal');
-  assert.deepEqual(grand, { amount: 11000, currency: 'USD' });
+  assert.deepEqual(grand, { amount: '11000', currency: 'USD' });
 });
 
 test('should set @indirectCosts to money(0, USD) when orgType switches to government', () => {
@@ -76,10 +76,10 @@ test('should set @indirectCosts to money(0, USD) when orgType switches to govern
   engine.setValue('applicantInfo.orgType', 'government');
 
   const indirect = engineVariable(engine, 'indirectCosts');
-  assert.deepEqual(indirect, { amount: 0, currency: 'USD' });
+  assert.deepEqual(indirect, { amount: '0', currency: 'USD' });
 
   const grand = engineVariable(engine, 'grandTotal');
-  assert.deepEqual(grand, { amount: 10000, currency: 'USD' });
+  assert.deepEqual(grand, { amount: '10000', currency: 'USD' });
 });
 
 test('should increment structureVersion when a line item is added', () => {
@@ -157,7 +157,7 @@ test('should update @totalDirect when a second line item is added and filled', (
   engine.setValue('budget.lineItems[1].unitCost', 500);
 
   const totalDirect = engineVariable(engine, 'totalDirect');
-  assert.deepEqual(totalDirect, { amount: 2000, currency: 'USD' });
+  assert.deepEqual(totalDirect, { amount: '2000', currency: 'USD' });
 });
 
 test('should compute subtotal=200 when quantity=2 and unitCost=100 on lineItems[0]', () => {

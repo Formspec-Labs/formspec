@@ -2,8 +2,8 @@
 
 use std::collections::{HashMap, HashSet};
 
+use fel_core::exact_json::Value as JsonValue;
 use fel_core::{FormspecEnvironment, MipState, Value, parse};
-use serde_json::Value as JsonValue;
 
 use super::json_fel::{coerce_calculated_value, json_to_runtime_fel_typed};
 use super::walk::{Visit, Walk};

@@ -1,3 +1,4 @@
+import { jsonValueText, clampJsonNumber } from '@formspec-org/engine';
 /** @filedesc Default DOM for special components — ConditionalGroup and DataTable. */
 import { effect } from '@preact/signals-core';
 import type { AdapterContext } from '../types';
@@ -78,25 +79,15 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
     const coerceInputValue = (raw: string, dataType: string | undefined, fieldDef?: any, col?: any): any => {
         const trimmed = raw.trim();
         if (trimmed === '') return null;
-        let val: any;
-        if (dataType === 'integer') {
-            const parsed = Number.parseInt(trimmed, 10);
-            val = Number.isFinite(parsed) ? parsed : null;
-        } else if (dataType === 'decimal' || dataType === 'money') {
-            const parsed = Number.parseFloat(trimmed);
-            val = Number.isFinite(parsed) ? parsed : null;
-        } else {
-            val = raw;
-        }
-
-        if (typeof val === 'number' && col) {
-            if (col.min !== undefined && val < col.min) val = col.min;
-            if (col.max !== undefined && val > col.max) val = col.max;
+        let val: any = raw;
+        if (['integer', 'decimal', 'number', 'money'].includes(dataType ?? '')) {
+            try { val = clampJsonNumber(trimmed, col?.min, col?.max); }
+            catch { /* Preserve invalid numeric text for field validation. */ }
         }
 
         if (dataType === 'money' && val !== null) {
             const currency = fieldDef?.currency || defaultCurrency;
-            return { amount: val, currency };
+            return { amount: jsonValueText(val), currency };
         }
         return val;
     };
@@ -207,9 +198,9 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                                 dataType === 'integer' || dataType === 'decimal' || dataType === 'money' ? 'number' : 'text';
                             if (input.type === 'number') {
                                 const step = col.step ?? (dataType === 'integer' ? 1 : null);
-                                input.step = step != null ? String(step) : dataType === 'integer' ? '1' : 'any';
-                                if (col.min != null) input.min = String(col.min);
-                                if (col.max != null) input.max = String(col.max);
+                                input.step = step != null ? jsonValueText(step) : dataType === 'integer' ? '1' : 'any';
+                                if (col.min != null) input.min = jsonValueText(col.min);
+                                if (col.max != null) input.max = jsonValueText(col.max);
                             }
                             input.addEventListener('input', () => {
                                 const nextValue = coerceInputValue(input.value, dataType, fieldDef, col);
@@ -219,7 +210,7 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                                         nextValue && typeof nextValue === 'object' && 'amount' in nextValue
                                             ? nextValue.amount
                                             : nextValue;
-                                    const sVal = displayVal === null ? '' : String(displayVal);
+                                    const sVal = displayVal === null ? '' : jsonValueText(displayVal);
                                     if (sVal !== input.value) {
                                         input.value = sVal;
                                     }
@@ -262,12 +253,12 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                             if (document.activeElement !== inputEl) {
                                 if (value !== null && value !== undefined && typeof value === 'object' && 'amount' in value) {
                                     (inputEl as HTMLInputElement).value =
-                                        value.amount !== null ? String(value.amount) : '';
+                                        value.amount !== null ? jsonValueText(value.amount) : '';
                                 } else {
                                     inputEl.value =
                                         value === null || value === undefined || (typeof value === 'number' && isNaN(value))
                                             ? ''
-                                            : String(value);
+                                            : jsonValueText(value);
                                 }
                             }
                             inputEl.disabled = readonly;

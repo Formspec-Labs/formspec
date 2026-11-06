@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use crate::types::ItemInfo;
 
@@ -69,7 +69,11 @@ fn expand_repeat_instances_inner(
                         rebase_item_paths(&mut concrete, &original_path, &indexed_path);
                         concrete.parent_path = Some(format!("{}[{}]", item.path, i));
                         // Recursively expand nested repeatables
-                        expand_repeat_instances_inner(std::slice::from_mut(&mut concrete), data, counts);
+                        expand_repeat_instances_inner(
+                            std::slice::from_mut(&mut concrete),
+                            data,
+                            counts,
+                        );
                         expanded.push(concrete);
                     }
                 }

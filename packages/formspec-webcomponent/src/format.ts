@@ -1,3 +1,4 @@
+import { jsonValueText } from '@formspec-org/engine';
 /**
  * Format a Formspec money value `{amount, currency}` as a localized currency string.
  * Returns `''` when the amount is missing or not a finite number.
@@ -7,12 +8,12 @@ export function formatMoney(
     locale = 'en-US',
 ): string {
     if (moneyVal == null || moneyVal.amount == null) return '';
-    const n = typeof moneyVal.amount === 'number' ? moneyVal.amount : parseFloat(moneyVal.amount);
-    if (!isFinite(n)) return '';
+    const n = jsonValueText(moneyVal.amount);
+    if (!Number.isFinite(Number(n))) return '';
     return new Intl.NumberFormat(locale, {
         style: 'currency',
         currency: moneyVal.currency || 'USD',
-    }).format(n);
+    }).format(n as unknown as number); // Intl preserves decimal strings; TypeScript still declares number.
 }
 
 /** Format a byte count into a human-readable string (KB, MB, GB). */

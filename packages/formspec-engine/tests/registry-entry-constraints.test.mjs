@@ -401,10 +401,10 @@ test('x-formspec-url: maxLength 2048 enforced', () => {
 // ── Range-based dataType entries ─────────────────────────────────────
 
 // ── x-formspec-percentage ───────────────────────────────────────────
-test('x-formspec-percentage: random values 0-100 pass', () => {
+test('x-formspec-percentage: representable decimal values 0-100 pass', () => {
   const engine = makeEngine('x-formspec-percentage', 'decimal');
   fc.assert(fc.property(
-    fc.double({ min: 0, max: 100, noNaN: true }),
+    fc.integer({ min: 0, max: 1000000 }).map(n => n / 10000),
     (val) => {
       engine.setValue('v', val);
       return !hasCode(engine, 'RANGE_UNDERFLOW') && !hasCode(engine, 'RANGE_OVERFLOW');
@@ -435,10 +435,10 @@ test('x-formspec-percentage: values above 100 fail', () => {
 });
 
 // ── x-formspec-currency-usd ─────────────────────────────────────────
-test('x-formspec-currency-usd: random non-negative values pass', () => {
+test('x-formspec-currency-usd: representable non-negative decimals pass', () => {
   const engine = makeEngine('x-formspec-currency-usd', 'decimal');
   fc.assert(fc.property(
-    fc.double({ min: 0, max: 1e9, noNaN: true }),
+    fc.integer({ min: 0, max: 1000000000 }).map(n => n / 100),
     (val) => {
       engine.setValue('v', val);
       return !hasCode(engine, 'RANGE_UNDERFLOW');

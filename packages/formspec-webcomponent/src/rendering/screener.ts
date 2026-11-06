@@ -1,3 +1,4 @@
+import { jsonValueText, jsonNumberText, parseJsonNumber } from '@formspec-org/engine';
 import type { IFormEngine } from '@formspec-org/engine/render';
 import { wasmEvaluateScreenerDocument } from '@formspec-org/engine';
 import { FormDefinition, ScreenerDocument, FormItem, ScreenerBind, DeterminationRecord, PhaseResult } from '@formspec-org/types';
@@ -75,19 +76,12 @@ export function screenerAnswersSatisfyRequired(screener: ScreenerDocument, answe
     });
 }
 
-function normalizeMoneySeed(raw: unknown, defaultCurrency: string): { amount: number; currency: string } | null {
+function normalizeMoneySeed(raw: unknown, defaultCurrency: string): { amount: string; currency: string } | null {
     if (raw == null) return null;
-    if (typeof raw === 'number' && !Number.isNaN(raw)) {
-        return { amount: raw, currency: defaultCurrency };
-    }
-    if (typeof raw === 'object' && raw !== null && 'amount' in raw) {
-        const r = raw as { amount: unknown; currency?: unknown };
-        const n = typeof r.amount === 'string' ? parseFloat(r.amount) : Number(r.amount);
-        if (Number.isNaN(n)) return null;
-        return {
-            amount: n,
-            currency: typeof r.currency === 'string' ? r.currency : defaultCurrency,
-        };
+    if (jsonNumberText(raw) !== undefined) return { amount: jsonValueText(raw), currency: defaultCurrency };
+    if (typeof raw === 'object' && 'amount' in raw) {
+        const value = raw as { amount: unknown; currency?: unknown };
+        return { amount: jsonValueText(value.amount), currency: typeof value.currency === 'string' ? value.currency : defaultCurrency };
     }
     return null;
 }
@@ -100,15 +94,9 @@ export function normalizeScreenerSeedForItem(item: FormItem, raw: unknown, defau
     if (raw === undefined) return undefined;
     if (item.dataType === 'boolean') return !!raw;
     if (item.dataType === 'money') return normalizeMoneySeed(raw, defaultCurrency);
-    if (item.dataType === 'integer') {
+    if (item.dataType === 'integer' || item.dataType === 'decimal') {
         if (raw === null || raw === '') return null;
-        const n = typeof raw === 'string' ? parseInt(raw, 10) : Number(raw);
-        return Number.isNaN(n) ? null : n;
-    }
-    if (item.dataType === 'decimal') {
-        if (raw === null || raw === '') return null;
-        const n = typeof raw === 'string' ? parseFloat(raw) : Number(raw);
-        return Number.isNaN(n) ? null : n;
+        try { return parseJsonNumber(jsonValueText(raw)); } catch { return raw; }
     }
     return raw === null ? null : raw;
 }
@@ -247,7 +235,7 @@ export function renderScreener(host: ScreenerHost, container: HTMLElement): void
             }
             const seededChoice = answers[item.key];
             if (seededChoice != null && seededChoice !== '') {
-                select.value = String(seededChoice);
+                select.value = jsonValueText(seededChoice);
             }
             select.addEventListener('change', () => {
                 answers[item.key] = select.value || null;
@@ -274,12 +262,12 @@ export function renderScreener(host: ScreenerHost, container: HTMLElement): void
             input.placeholder = screenerUiText(host.engine, 'money.amount');
             if (item.hint) input.setAttribute('aria-describedby', hintId);
             const moneySeed = answers[item.key];
-            if (moneySeed && typeof moneySeed.amount === 'number' && !Number.isNaN(moneySeed.amount)) {
-                input.value = String(moneySeed.amount);
+            if (moneySeed) {
+                input.value = jsonValueText(moneySeed.amount);
             }
             input.addEventListener('input', () => {
-                const val = parseFloat(input.value);
-                answers[item.key] = isNaN(val) ? null : { amount: val, currency: host._definition.formPresentation?.defaultCurrency || 'USD' };
+                const val = input.value;
+                answers[item.key] = val === '' ? null : { amount: val, currency: host._definition.formPresentation?.defaultCurrency || 'USD' };
                 clearFieldError();
             });
             fieldWrapper.appendChild(input);
@@ -291,14 +279,14 @@ export function renderScreener(host: ScreenerHost, container: HTMLElement): void
             if (item.hint) input.setAttribute('aria-describedby', hintId);
             const v = answers[item.key];
             if (v != null && v !== '') {
-                input.value = String(v);
+                input.value = jsonValueText(v);
             }
             input.addEventListener('input', () => {
                 const val = input.value;
                 if (item.dataType === 'integer') {
-                    answers[item.key] = val ? parseInt(val, 10) : null;
+                    answers[item.key] = val ? parseJsonNumber(val) : null;
                 } else if (item.dataType === 'decimal') {
-                    answers[item.key] = val ? parseFloat(val) : null;
+                    answers[item.key] = val ? parseJsonNumber(val) : null;
                 } else {
                     answers[item.key] = val || null;
                 }

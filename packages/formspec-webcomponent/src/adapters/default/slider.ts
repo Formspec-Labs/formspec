@@ -1,3 +1,4 @@
+import { jsonValueText } from '@formspec-org/engine';
 /** @filedesc Default adapter for Slider — range input with track container and value display. */
 import type { SliderBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
@@ -17,18 +18,23 @@ export const renderSlider: AdapterRenderFn<SliderBehavior> = (
     input.className = 'formspec-input';
     input.name = behavior.fieldPath;
     input.id = behavior.id;
-    if (behavior.min != null) input.min = String(behavior.min);
-    if (behavior.max != null) input.max = String(behavior.max);
-    if (behavior.step != null) input.step = String(behavior.step);
-    input.value = String(behavior.min ?? 0);
+    if (behavior.min != null) input.min = jsonValueText(behavior.min);
+    if (behavior.max != null) input.max = jsonValueText(behavior.max);
+    if (behavior.step != null) input.step = jsonValueText(behavior.step);
+    input.value = jsonValueText(behavior.min ?? 0);
 
     if (behavior.showTicks && behavior.min != null && behavior.max != null && behavior.step != null) {
-        const tickCount = Math.floor((behavior.max - behavior.min) / behavior.step) + 1;
+        // Tick positions are graphical approximations; response values remain exact.
+        const min = Number(jsonValueText(behavior.min));
+        const max = Number(jsonValueText(behavior.max));
+        const step = Number(jsonValueText(behavior.step));
+        const tickCount = step > 0 ? Math.floor((max - min) / step) + 1 : 0;
         if (tickCount > 0 && tickCount <= 200) {
             const listId = `formspec-ticks-${behavior.fieldPath.replace(/\./g, '-')}`;
             const datalist = document.createElement('datalist');
             datalist.id = listId;
-            for (let v = behavior.min; v <= behavior.max; v += behavior.step) {
+            for (let index = 0; index < tickCount; index++) {
+                const v = min + index * step;
                 const opt = document.createElement('option');
                 opt.value = String(v);
                 datalist.appendChild(opt);

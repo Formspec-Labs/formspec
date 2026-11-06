@@ -14,8 +14,8 @@ mod tests;
 
 use std::collections::HashMap;
 
+use fel_core::exact_json::Value;
 use fel_core::{ExtensionFunctions, FormspecEnvironment};
-use serde_json::Value;
 
 use crate::fel_eval::Fel;
 use crate::fel_json::json_to_runtime_fel;
@@ -45,7 +45,24 @@ use validity::build_validity;
 /// `extensions` resolves host extension functions (Core §3.12) in every route `condition`,
 /// `score`, and phase `activeWhen`. Without them such a call is a definition error
 /// (Core §3.10.1): the route is eliminated for an expression error and the phase warns.
+/// # Errors
+/// Refuses numeric inputs outside the evaluator's decimal precision or range.
 pub fn evaluate_screener_document(
+    screener: &Value,
+    answers: &HashMap<String, AnswerInput>,
+    now_iso: Option<&str>,
+    extensions: Option<&dyn ExtensionFunctions>,
+) -> Result<DeterminationRecord, String> {
+    fel_core::exact_json::check_decimal_range(screener)?;
+    for answer in answers.values() {
+        fel_core::exact_json::check_decimal_range(&answer.value)?;
+    }
+    Ok(evaluate_admitted_screener(
+        screener, answers, now_iso, extensions,
+    ))
+}
+
+fn evaluate_admitted_screener(
     screener: &Value,
     answers: &HashMap<String, AnswerInput>,
     now_iso: Option<&str>,

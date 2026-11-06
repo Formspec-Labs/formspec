@@ -1,6 +1,6 @@
 //! Shared predicates for “is this value empty?” across bind validation (required vs constraint rules differ).
 
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 /// `required` bind: empty means null, whitespace-only string, or empty array.
 pub(crate) fn is_empty_for_required_bind(val: &Value) -> bool {
@@ -26,7 +26,7 @@ pub(crate) fn value_skips_optional_bind_checks(val: &Value) -> bool {
 mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
-    use serde_json::json;
+    use fel_core::exact_json::native_json as json;
 
     #[test]
     fn required_trims_string_whitespace_only() {

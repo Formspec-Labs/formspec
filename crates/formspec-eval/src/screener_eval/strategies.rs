@@ -1,7 +1,7 @@
 //! Phase strategy implementations (first-match, fan-out, score-threshold).
 
 use fel_core::FormspecEnvironment;
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use crate::fel_eval::Fel;
 use crate::types::determination::{EliminationReason, PhaseResult, PhaseStatus, PhaseStrategy};

@@ -6,8 +6,8 @@
 use std::collections::{BTreeSet, HashMap};
 
 use fel_core::FormspecEnvironment;
+use fel_core::exact_json::Value as JsonValue;
 use formspec_core::{DefinitionItemKeyPolicy, visit_definition_items_json_with_policy};
-use serde_json::Value as JsonValue;
 
 use super::walk::{Visit, Walk};
 use crate::interpolation::interpolate_fel;

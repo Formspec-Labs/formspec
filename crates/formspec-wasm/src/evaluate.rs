@@ -3,16 +3,16 @@
 use std::collections::HashMap;
 
 use fel_core::ExtensionFunctions;
+use fel_core::exact_json::Value;
 use formspec_core::json_object_to_string_map;
 use formspec_eval::{
     AnswerInput, AnswerState, EvalOptions, eval_host_context_from_json_map, evaluate,
     evaluate_screener_document, evaluation_result_to_json_value, parse_answer_state,
 };
-use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
 use crate::extensions::FelExtensionHost;
-use crate::json_host::{parse_value_str, to_json_string};
+use crate::json_host::{parse_json_as, to_json_string};
 
 // ── Definition Evaluation ───────────────────────────────────────
 
@@ -42,14 +42,17 @@ pub(crate) fn evaluate_definition_inner(
     context_json: Option<String>,
     extensions: Option<&dyn ExtensionFunctions>,
 ) -> Result<String, String> {
-    let definition: Value = parse_value_str(definition_json, "definition JSON")?;
-    let data_val: Value = parse_value_str(data_json, "data JSON")?;
+    let definition: Value = parse_json_as(definition_json, "definition JSON")?;
+    let data_val: Value = parse_json_as(data_json, "data JSON")?;
 
+    fel_core::exact_json::check_decimal_range(&definition)?;
+    fel_core::exact_json::check_decimal_range(&data_val)?;
     let data = json_object_to_string_map(&data_val);
 
     let options = match context_json {
         Some(context_json) => {
-            let ctx: Value = parse_value_str(&context_json, "context JSON")?;
+            let ctx: Value = parse_json_as(&context_json, "context JSON")?;
+            fel_core::exact_json::check_decimal_range(&ctx)?;
             let ctx_obj = ctx.as_object().ok_or("context must be a JSON object")?;
             let bundle = eval_host_context_from_json_map(ctx_obj)?;
             EvalOptions {
@@ -107,15 +110,15 @@ pub(crate) fn evaluate_screener_document_inner(
     context_json: Option<String>,
     extensions: Option<&dyn ExtensionFunctions>,
 ) -> Result<String, String> {
-    let screener: Value = parse_value_str(screener_json, "screener JSON")?;
-    let answers_val: Value = parse_value_str(answers_json, "answers JSON")?;
+    let screener: Value = parse_json_as(screener_json, "screener JSON")?;
+    let answers_val: Value = parse_json_as(answers_json, "answers JSON")?;
 
     let raw_answers = json_object_to_string_map(&answers_val);
 
     // Parse context for answerStates and nowIso
     let (answer_states, now_iso) = match &context_json {
         Some(ctx_str) => {
-            let ctx: Value = parse_value_str(ctx_str, "context JSON")?;
+            let ctx: Value = parse_json_as(ctx_str, "context JSON")?;
             let states = ctx.get("answerStates").and_then(Value::as_object).cloned();
             let now = ctx.get("nowIso").and_then(Value::as_str).map(String::from);
             (states, now)
@@ -156,7 +159,7 @@ pub(crate) fn evaluate_screener_document_inner(
         }
     }
 
-    let record = evaluate_screener_document(&screener, &answers, now_iso.as_deref(), extensions);
+    let record = evaluate_screener_document(&screener, &answers, now_iso.as_deref(), extensions)?;
 
     serde_json::to_string(&record).map_err(|e| format!("serialization error: {e}"))
 }

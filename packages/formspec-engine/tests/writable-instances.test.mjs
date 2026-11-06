@@ -163,7 +163,7 @@ test('a relative instance source resolves against the page base, like any relati
   const hadDocument = 'document' in globalThis;
   const fetched = [];
   globalThis.document = { baseURI: 'https://agency.example/forms/v2/index.html' };
-  globalThis.fetch = async (url) => { fetched.push(String(url)); return { ok: true, json: async () => ({ employers: ['ACME'] }) }; };
+  globalThis.fetch = async (url) => { fetched.push(String(url)); return { ok: true, json: async () => ({ employers: ['ACME'] }), text: async () => JSON.stringify(({ employers: ['ACME'] })) }; };
   try {
     const engine = new FormEngine({
       $formspec: '1.0', url: 'https://test.example/form', version: '1.0.0', status: 'active', title: 'Test', name: 'test',
@@ -182,7 +182,7 @@ test('a relative instance source resolves against the page base, like any relati
 test('a relative instance source with no page to resolve against is left to its fallback', async () => {
   const realFetch = globalThis.fetch;
   let fetches = 0;
-  globalThis.fetch = async () => { fetches += 1; return { ok: true, json: async () => ({}) }; };
+  globalThis.fetch = async () => { fetches += 1; return { ok: true, json: async () => ({}), text: async () => JSON.stringify(({})) }; };
   try {
     const engine = new FormEngine({
       $formspec: '1.0', url: 'https://test.example/form', version: '1.0.0', status: 'active', title: 'Test', name: 'test',
@@ -274,7 +274,7 @@ test('non-fetchable source (formspec-fn:) does not call fetch or log errors', as
 
   const origFetch = globalThis.fetch;
   let fetchCalled = false;
-  globalThis.fetch = async () => { fetchCalled = true; return { ok: false, status: 404, json: async () => ({}) }; };
+  globalThis.fetch = async () => { fetchCalled = true; return { ok: false, status: 404, json: async () => ({}), text: async () => JSON.stringify(({})) }; };
 
   try {
     const def = {
@@ -316,7 +316,7 @@ test('absolute-path source (/) triggers fetch', async () => {
   let fetchedUrl = null;
   globalThis.fetch = async (url) => {
     fetchedUrl = url;
-    return { ok: true, json: async () => ({ val: 42 }) };
+    return { ok: true, json: async () => ({ val: 42 }), text: async () => JSON.stringify(({ val: 42 })) };
   };
 
   try {
@@ -352,7 +352,7 @@ test('https source triggers fetch', async () => {
   let fetchedUrl = null;
   globalThis.fetch = async (url) => {
     fetchedUrl = url;
-    return { ok: true, json: async () => ({ val: 99 }) };
+    return { ok: true, json: async () => ({ val: 99 }), text: async () => JSON.stringify(({ val: 99 })) };
   };
 
   try {

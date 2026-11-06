@@ -1,7 +1,7 @@
 //! Repeat-instance counting and wildcard expansion over flat indexed keys.
 #![allow(clippy::missing_docs_in_private_items)]
 
-use serde_json::Value;
+use fel_core::exact_json::Value;
 use std::collections::HashMap;
 
 /// Expand wildcard paths against actual repeat data.

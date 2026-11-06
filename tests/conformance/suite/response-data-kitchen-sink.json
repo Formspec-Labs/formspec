@@ -39,7 +39,7 @@
       "size": 2048
     },
     "salary": {
-      "amount": 1234.56,
+      "amount": "1234.56",
       "currency": "USD"
     }
   },
@@ -103,7 +103,7 @@
         "size": 2048
       },
       "salary": {
-        "amount": 1234.56,
+        "amount": "1234.56",
         "currency": "USD"
       }
     }

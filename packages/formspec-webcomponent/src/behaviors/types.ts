@@ -134,6 +134,7 @@ export interface TextInputBehavior extends FieldBehavior {
 }
 
 export interface NumberInputBehavior extends FieldBehavior {
+    stepBy(direction: -1 | 1): void;
     min?: number;
     max?: number;
     step?: number;

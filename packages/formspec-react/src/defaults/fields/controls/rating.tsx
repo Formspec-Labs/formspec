@@ -1,6 +1,7 @@
 /** @filedesc Rating stars/hearts with keyboard and half-step support. */
 'use client';
 import React from 'react';
+import { jsonValueText } from '@formspec-org/engine';
 import type { FieldComponentProps } from '../../../component-map';
 
 const RATING_ICON_MAP: Record<string, [string, string]> = {
@@ -32,8 +33,8 @@ export function RatingControl({
     const iconName = node.props?.icon as string | undefined;
     const [selectedIcon, unselectedIcon] = resolveRatingIcons(iconName);
     const isInteger = node.fieldItem?.dataType === 'integer';
-    const raw = field.value;
-    const currentValue = typeof raw === 'number' && !Number.isNaN(raw) ? raw : 0;
+    const raw = Number(jsonValueText(field.value));
+    const currentValue = Number.isFinite(raw) ? raw : 0;
 
     const setRating = (v: number) => {
         let next = Math.max(0, Math.min(v, maxRating));

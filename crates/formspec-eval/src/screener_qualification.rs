@@ -8,8 +8,8 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::{DateTime, Timelike};
+use fel_core::exact_json::Value;
 use serde::Serialize;
-use serde_json::Value;
 
 use crate::types::determination::{
     AnswerInput, AnswerState, DeterminationRecord, DeterminationStatus, PhaseStatus, PhaseStrategy,
@@ -359,14 +359,14 @@ fn presented_items(document: &Value) -> Result<&Vec<Value>, ScreenerQualificatio
 /// Check the same supported primitive values as the JavaScript presenter.
 fn answer_matches(item: &Value, value: &Value) -> bool {
     // Number.isSafeInteger's inclusive bound preserves browser/Rust value agreement.
-    const MAX_JS_SAFE_INTEGER: f64 = 9_007_199_254_740_991.0;
+    const MAX_JS_SAFE_INTEGER: i64 = 9_007_199_254_740_991;
     match item["dataType"].as_str() {
         Some("boolean") => value.is_boolean(),
         Some("string") => value.is_string(),
-        Some("integer") => value.as_f64().is_some_and(|number| {
-            number.is_finite() && number.fract() == 0.0 && number.abs() <= MAX_JS_SAFE_INTEGER
+        Some("integer") => value.as_decimal().is_some_and(|number| {
+            number.fract().is_zero() && number.abs() <= MAX_JS_SAFE_INTEGER.into()
         }),
-        Some("decimal") => value.as_f64().is_some_and(f64::is_finite),
+        Some("decimal") => value.as_decimal().is_some(),
         Some("choice") => {
             value.is_string()
                 && item["options"]
@@ -377,11 +377,41 @@ fn answer_matches(item: &Value, value: &Value) -> bool {
     }
 }
 
-/// Compare JSON numeric spellings as the JavaScript primitive number type does.
+/// Compare numeric values without collapsing adjacent exact decimal answers.
 fn same_answer(left: &Value, right: &Value) -> bool {
     if left.is_number() && right.is_number() {
-        left.as_f64() == right.as_f64()
+        matches!((left.as_decimal(), right.as_decimal()), (Some(left), Some(right)) if left == right)
     } else {
         left == right
+    }
+}
+
+#[cfg(test)]
+mod exact_answer_tests {
+    use super::*;
+    use fel_core::exact_json::{from_str, native_json as json};
+
+    #[test]
+    fn adjacent_decimals_are_different_qualifying_answers() {
+        let first = from_str("0.3333333333333333333333333333").unwrap();
+        let second = from_str("0.3333333333333333333333333334").unwrap();
+        assert!(!same_answer(&first, &second));
+        assert!(same_answer(
+            &from_str("1.0").unwrap(),
+            &from_str("1e0").unwrap()
+        ));
+    }
+
+    #[test]
+    fn integer_admission_does_not_round_a_fraction_into_an_integer() {
+        let item = json!({"dataType": "integer"});
+        assert!(!answer_matches(
+            &item,
+            &from_str("9007199254740990.1").unwrap()
+        ));
+        assert!(answer_matches(
+            &item,
+            &from_str("9007199254740990").unwrap()
+        ));
     }
 }

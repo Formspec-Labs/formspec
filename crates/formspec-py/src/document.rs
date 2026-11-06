@@ -20,9 +20,7 @@ use formspec_eval::{
 use formspec_lint::{LintMode, LintOptions, lint_result_to_json_value, lint_with_options};
 
 use crate::PyObject;
-use crate::convert::{
-    depythonize_json, json_object_to_string_map, json_to_python, normalize_wire_json_for_python,
-};
+use crate::convert::{depythonize_json, json_object_to_string_map, json_to_python};
 use crate::extensions::PyExtensionFunctions;
 
 // ── Document Type Detection ─────────────────────────────────────
@@ -199,8 +197,8 @@ pub fn evaluate_def(
     context: Option<&Bound<'_, PyAny>>,
     extension_functions: Option<&Bound<'_, PyDict>>,
 ) -> PyResult<PyObject> {
-    let definition: Value = depythonize_json(definition)?;
-    let data_val: Value = depythonize_json(data)?;
+    let definition: fel_core::exact_json::Value = crate::convert::depythonize_exact(definition)?;
+    let data_val: fel_core::exact_json::Value = crate::convert::depythonize_exact(data)?;
 
     let data = json_object_to_string_map(&data_val);
 
@@ -210,22 +208,22 @@ pub fn evaluate_def(
         Some(docs) => {
             let mut raw = Vec::new();
             for item in docs.iter() {
-                raw.push(depythonize_json(&item)?);
+                raw.push(crate::convert::depythonize_exact(&item)?);
             }
             extension_constraints_from_registry_documents(&raw)
         }
         None => Vec::new(),
     };
 
-    let instances_map: HashMap<String, Value> = match instances {
-        Some(inst) => json_object_to_string_map(&depythonize_json(inst)?),
+    let instances_map: HashMap<String, fel_core::exact_json::Value> = match instances {
+        Some(inst) => json_object_to_string_map(&crate::convert::depythonize_exact(inst)?),
         None => HashMap::new(),
     };
 
     let (eval_context, item_text) = match context {
         None => (EvalContext::default(), None),
         Some(ctx_any) => {
-            let ctx_val: Value = depythonize_json(ctx_any)?;
+            let ctx_val: fel_core::exact_json::Value = crate::convert::depythonize_exact(ctx_any)?;
             let map = ctx_val
                 .as_object()
                 .ok_or_else(|| pyo3::exceptions::PyTypeError::new_err("context must be a dict"))?;
@@ -256,8 +254,7 @@ pub fn evaluate_def(
 
     // Match TypeScript/WASM and Python tests: validation results use constraintKind / shapeId (see schemas).
     let json = evaluation_result_to_json_value_styled(&result, JsonWireStyle::JsCamel);
-    let normalized = normalize_wire_json_for_python(&json);
-    json_to_python(py, &normalized)
+    crate::convert::exact_json_to_python(py, &json)
 }
 
 // ── Field coercion ──────────────────────────────────────────────
@@ -277,18 +274,18 @@ pub fn coerce_field_value(
     value: &Bound<'_, PyAny>,
     bind: Option<&Bound<'_, PyAny>>,
 ) -> PyResult<PyObject> {
-    let item_v: Value = depythonize_json(item)?;
-    let def_v: Value = depythonize_json(definition)?;
-    let val_v: Value = depythonize_json(value)?;
+    let item_v: fel_core::exact_json::Value = crate::convert::depythonize_exact(item)?;
+    let def_v: fel_core::exact_json::Value = crate::convert::depythonize_exact(definition)?;
+    let val_v: fel_core::exact_json::Value = crate::convert::depythonize_exact(value)?;
     let bind_v = match bind {
         None => None,
         Some(b) => {
-            let v: Value = depythonize_json(b)?;
+            let v: fel_core::exact_json::Value = crate::convert::depythonize_exact(b)?;
             if v.is_null() { None } else { Some(v) }
         }
     };
     let out = coerce_field_value_core(&item_v, bind_v.as_ref(), &def_v, val_v);
-    json_to_python(py, &out)
+    crate::convert::exact_json_to_python(py, &out)
 }
 
 /// Inline `optionSet` references from `optionSets` on a definition dict (mutates a copy).
@@ -297,9 +294,9 @@ pub fn resolve_option_sets_on_definition(
     py: Python,
     definition: &Bound<'_, PyAny>,
 ) -> PyResult<PyObject> {
-    let mut v: Value = depythonize_json(definition)?;
+    let mut v: fel_core::exact_json::Value = crate::convert::depythonize_exact(definition)?;
     resolve_option_sets_on_definition_core(&mut v);
-    json_to_python(py, &v)
+    crate::convert::exact_json_to_python(py, &v)
 }
 
 /// Apply definition `migrations` to flat response field data (FEL `transform` in Rust).
@@ -311,10 +308,10 @@ pub fn apply_migrations_to_response_data(
     from_version: &str,
     now_iso: &str,
 ) -> PyResult<PyObject> {
-    let def_v: Value = depythonize_json(definition)?;
-    let data_v: Value = depythonize_json(data)?;
+    let def_v: fel_core::exact_json::Value = crate::convert::depythonize_exact(definition)?;
+    let data_v: fel_core::exact_json::Value = crate::convert::depythonize_exact(data)?;
     let out = apply_migrations_to_response_data_core(&def_v, data_v, from_version, now_iso);
-    json_to_python(py, &out)
+    crate::convert::exact_json_to_python(py, &out)
 }
 
 // ── Standalone Screener Document Evaluation ────────────────────
@@ -338,20 +335,20 @@ pub fn evaluate_screener_document_py(
     context: Option<&Bound<'_, PyAny>>,
     extension_functions: Option<&Bound<'_, PyDict>>,
 ) -> PyResult<PyObject> {
-    let screener_val: Value = depythonize_json(screener)?;
-    let raw_answers = json_object_to_string_map(&depythonize_json(answers)?);
+    let screener_val: fel_core::exact_json::Value = crate::convert::depythonize_exact(screener)?;
+    let raw_answers = json_object_to_string_map(&crate::convert::depythonize_exact(answers)?);
 
     // Parse context for answerStates and nowIso
     let (answer_states, now_iso) = match context {
         Some(ctx) => {
-            let ctx_val: Value = depythonize_json(ctx)?;
+            let ctx_val: fel_core::exact_json::Value = crate::convert::depythonize_exact(ctx)?;
             let states = ctx_val
                 .get("answerStates")
-                .and_then(Value::as_object)
+                .and_then(fel_core::exact_json::Value::as_object)
                 .cloned();
             let now = ctx_val
                 .get("nowIso")
-                .and_then(Value::as_str)
+                .and_then(fel_core::exact_json::Value::as_str)
                 .map(String::from);
             (states, now)
         }
@@ -365,7 +362,7 @@ pub fn evaluate_screener_document_py(
             let state = answer_states
                 .as_ref()
                 .and_then(|s| s.get(&key))
-                .and_then(Value::as_str)
+                .and_then(fel_core::exact_json::Value::as_str)
                 .map(parse_answer_state)
                 .unwrap_or(AnswerState::Answered);
             (key, AnswerInput { value, state })
@@ -383,7 +380,7 @@ pub fn evaluate_screener_document_py(
                 answer_inputs.insert(
                     key.clone(),
                     AnswerInput {
-                        value: Value::Null,
+                        value: fel_core::exact_json::Value::Null,
                         state,
                     },
                 );
@@ -401,8 +398,9 @@ pub fn evaluate_screener_document_py(
         extensions
             .as_ref()
             .map(|e| e as &dyn fel_core::ExtensionFunctions),
-    );
-    let json = serde_json::to_value(&record)
+    )
+    .map_err(pyo3::exceptions::PyValueError::new_err)?;
+    let json = fel_core::exact_json::to_value(&record)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("serialization: {e}")))?;
-    json_to_python(py, &json)
+    crate::convert::exact_json_to_python(py, &json)
 }

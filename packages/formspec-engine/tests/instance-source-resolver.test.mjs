@@ -155,7 +155,7 @@ test('rejected callback settles unavailable and inline instances never invoke it
 
 test('configured resolver refuses HTTP exclusively; default HTTP cache revalidates current schema', async t => {
   let calls = 0;
-  t.mock.method(globalThis, 'fetch', async () => { calls++; return { ok: true, json: async () => ({ mode: 'http fixture' }) }; });
+  t.mock.method(globalThis, 'fetch', async () => { calls++; return { ok: true, json: async () => ({ mode: 'http fixture' }), text: async () => JSON.stringify(({ mode: 'http fixture' })) }; });
   const source = 'https://example.org/resolver-unique-cache-test';
   const custom = createFormEngine(definition({ source }), { instanceSourceResolver: () => ({ status: 'unavailable' }) });
   assert.equal((await custom.waitForInstanceSources()).context.status, 'unavailable');

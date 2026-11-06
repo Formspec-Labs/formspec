@@ -120,9 +120,8 @@ export function submit(
 
     touchAllFields(host);
 
-    const response = host.engine.getResponse({ profile: responseProfileForTuple(options?.validationTuple) });
-    const validationReport = host.engine.getValidationReport({ profile });
-    const detail = { response, validationReport };
+    const detail = host.engine.getResponseSnapshot({ profile: responseProfileForTuple(options?.validationTuple) }, profile);
+    const { validationReport } = detail;
     host._latestSubmitDetailSignal.value = detail;
 
     if (emitEvent) {

@@ -1,7 +1,7 @@
 //! Value resolution helpers for dotted paths and nested objects.
 
+use fel_core::exact_json::Value;
 use formspec_core::path_utils::{Path, PathSegment};
-use serde_json::Value;
 use std::collections::HashMap;
 
 /// Resolve a value from a flat HashMap by dotted path, walking nested objects if needed.
@@ -43,7 +43,7 @@ pub fn resolve_value_by_path(values: &HashMap<String, Value>, path: &str) -> Val
 mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
-    use serde_json::json;
+    use fel_core::exact_json::native_json as json;
 
     #[test]
     fn resolve_value_by_path_empty_path() {

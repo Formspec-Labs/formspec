@@ -20,14 +20,14 @@ test('should accept numeric input and store requestedAmount as money object', ()
   const engine = createGrantEngine();
   engine.setValue('budget.requestedAmount', 50000);
 
-  assert.deepEqual(engineValue(engine, 'budget.requestedAmount'), { amount: 50000, currency: 'USD' });
+  assert.deepEqual(engineValue(engine, 'budget.requestedAmount'), { amount: '50000', currency: 'USD' });
 });
 
 test('should accept a money object directly for requestedAmount', () => {
   const engine = createGrantEngine();
   engine.setValue('budget.requestedAmount', { amount: 75000, currency: 'USD' });
 
-  assert.deepEqual(engineValue(engine, 'budget.requestedAmount'), { amount: 75000, currency: 'USD' });
+  assert.deepEqual(engineValue(engine, 'budget.requestedAmount'), { amount: '75000', currency: 'USD' });
 });
 
 test('should set projectNarrative.focusAreas to multiple values and reflect in engine', () => {

@@ -1,7 +1,7 @@
 //! Result validity (`resultValidity`) and ISO 8601 duration parsing.
 
 use chrono::{DateTime, Days, FixedOffset, Months, TimeDelta};
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use crate::types::determination::ValidityBlock;
 

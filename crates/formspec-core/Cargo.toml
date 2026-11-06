@@ -8,6 +8,7 @@ repository = "https://github.com/Formspec-Labs/formspec"
 
 [dependencies]
 fel-core = { version = "0.3.0", path = "../../../fel-core" }
+rust_decimal = "~1.41"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 

@@ -1,9 +1,9 @@
 //! Core §3.12: host extension functions reach every expression site through `EvalOptions`.
 
+use fel_core::exact_json::{Value, native_json as json};
 use fel_core::{ExtensionRegistry, Value as FelValue};
 use formspec_eval::{EvalOptions, EvalTrigger, evaluate};
 use rust_decimal::Decimal;
-use serde_json::{Value, json};
 use std::collections::HashMap;
 
 /// `double(n)` = `2 * n`; `shout(s)` = upper-cased `s`.

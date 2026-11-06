@@ -2,12 +2,12 @@
 
 use std::collections::HashMap;
 
-use serde_json::json;
+use fel_core::exact_json::native_json as json;
 
 use crate::types::find_item_by_path;
 
 use super::{
-    detect_repeat_count, flatten_response_data, expand_repeat_instances, expand_wildcard_path,
+    detect_repeat_count, expand_repeat_instances, expand_wildcard_path, flatten_response_data,
     instantiate_wildcard_expr, parse_variables, rebuild_item_tree,
 };
 

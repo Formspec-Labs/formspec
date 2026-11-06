@@ -1,3 +1,4 @@
+import { jsonValueText } from '@formspec-org/engine';
 /** @filedesc Default adapter for NumberInput — renders a numeric input element, with optional stepper buttons. */
 import type { NumberInputBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
@@ -15,15 +16,14 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
     input.name = behavior.fieldPath;
     input.id = behavior.id;
     if (behavior.placeholder) input.placeholder = behavior.placeholder;
-    if (behavior.step != null) input.step = String(behavior.step);
-    if (behavior.min != null) input.min = String(behavior.min);
-    if (behavior.max != null) input.max = String(behavior.max);
+    input.step = behavior.step != null ? jsonValueText(behavior.step) : behavior.dataType === 'integer' ? '1' : 'any';
+    if (behavior.min != null) input.min = jsonValueText(behavior.min);
+    if (behavior.max != null) input.max = jsonValueText(behavior.max);
 
     // Prefix/suffix hug the input; stepper buttons sit outside them.
     const adorned = wrapInputAdornments(input, behavior);
     let control: HTMLElement;
     if (behavior.showStepper) {
-        const stepVal = behavior.step ?? 1;
         const wrapper = document.createElement('div');
         wrapper.className = 'formspec-stepper';
 
@@ -39,21 +39,8 @@ export const renderNumberInput: AdapterRenderFn<NumberInputBehavior> = (
         incBtn.textContent = '+';
         incBtn.setAttribute('aria-label', `Increase ${behavior.label}`);
 
-        decBtn.addEventListener('click', () => {
-            const current = Number(input.value) || 0;
-            const next = current - stepVal;
-            if (behavior.min != null && next < behavior.min) return;
-            input.value = String(next);
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-        });
-
-        incBtn.addEventListener('click', () => {
-            const current = Number(input.value) || 0;
-            const next = current + stepVal;
-            if (behavior.max != null && next > behavior.max) return;
-            input.value = String(next);
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-        });
+        decBtn.addEventListener('click', () => behavior.stepBy(-1));
+        incBtn.addEventListener('click', () => behavior.stepBy(1));
 
         wrapper.append(decBtn, adorned, incBtn);
         control = wrapper;

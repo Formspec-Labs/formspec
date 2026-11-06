@@ -1,3 +1,4 @@
+import { parseJsonExact } from '@formspec-org/integrity-canonical';
 /** @filedesc Definition constructor helpers: option-set inlining and static FEL cycle detection. */
 
 import type { FormVariable } from '@formspec-org/types';
@@ -16,7 +17,7 @@ import {
 } from './helpers.js';
 
 export function resolveOptionSetsOnDefinition(definition: FormDefinition): FormDefinition {
-    return JSON.parse(
+    return parseJsonExact(
         wasmResolveOptionSetsOnDefinition(JSON.stringify(definition)),
     ) as FormDefinition;
 }

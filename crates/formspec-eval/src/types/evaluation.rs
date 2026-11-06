@@ -1,7 +1,7 @@
 //! Evaluation trigger, context, and output types.
 
 use super::taxonomy::{ConstraintKind, Severity, ValidationCode, ValidationSource};
-use serde_json::Value;
+use fel_core::exact_json::Value;
 use std::collections::HashMap;
 
 /// Validation result for a single field.

@@ -5,8 +5,8 @@
 
 use std::borrow::Cow;
 
+use fel_core::exact_json::Value;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_json::Value;
 use std::collections::HashMap;
 
 /// Top-level determination status on the wire.
@@ -416,7 +416,7 @@ pub struct AnswerInput {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use fel_core::exact_json::native_json as json;
 
     #[test]
     fn determination_status_serde_round_trip() {

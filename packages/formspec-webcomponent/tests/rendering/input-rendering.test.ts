@@ -428,20 +428,20 @@ describe('input rendering — compatibility warning', () => {
     });
 });
 
-describe('input rendering — money display rounding', () => {
+describe('input rendering — money edit precision', () => {
     afterEach(() => {
         document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
     });
 
-    it('rounds displayed money amount to 2 decimal places', () => {
+    it('preserves the stored decimal string in the editable control', () => {
         const tree = { component: 'MoneyInput', bind: 'name' };
         const el = renderField({ dataType: 'money' }, tree);
         const engine = el.getEngine();
-        engine.setValue('name', { amount: 8333.333333333334, currency: 'USD' });
+        engine.setValue('name', { amount: '8333.333333333333333333333333', currency: 'USD' });
         el.render();
         const amountInput = el.querySelector('.formspec-money input.formspec-money-amount') as HTMLInputElement;
         expect(amountInput).not.toBeNull();
-        expect(amountInput.value).toBe('8333.33');
+        expect(amountInput.value).toBe('8333.333333333333333333333333');
     });
 
     it('displays exact value when it has 2 or fewer decimals', () => {

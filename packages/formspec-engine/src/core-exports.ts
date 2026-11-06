@@ -183,3 +183,10 @@ export { createFormEngine } from './engine/init.js';
 
 export { resolveAuthoredSigningContent, signingContentBytes, hashSigningContent } from './signing-content.js';
 export type { ResolveAuthoredSigningContentInput, SigningContentValidator } from './signing-content.js';
+
+export { jsonNumberText, parseJsonNumber, jsonValueText } from './json-values.js';
+export type { ExactJsonNumber } from './json-values.js';
+
+export { clampJsonNumber, stepJsonNumber } from './numeric-input.js';
+
+export { cloneValue as cloneJsonValue } from './json-values.js';

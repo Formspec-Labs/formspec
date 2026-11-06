@@ -28,6 +28,7 @@
 //! walking JSON before or aside from full schema validation: skip ill-formed nodes vs coerce and
 //! keep descending.
 
+use fel_core::exact_json::JsonTree;
 use serde_json::Value;
 
 /// How to interpret `item["key"]` when walking definition `items` / `children`.
@@ -46,9 +47,9 @@ pub enum DefinitionItemKeyPolicy {
 
 /// One definition item with canonical paths for diagnostics and binds.
 #[derive(Debug, Clone)]
-pub struct DefinitionItemVisitCtx<'a> {
+pub struct DefinitionItemVisitCtx<'a, V = Value> {
     /// Raw JSON object for this definition item.
-    pub item: &'a Value,
+    pub item: &'a V,
     /// Resolved key segment (may be `""` when policy coerces).
     pub key: &'a str,
     /// Index of this node within its parent's `items` or `children` array.
@@ -63,17 +64,20 @@ pub struct DefinitionItemVisitCtx<'a> {
 
 /// Key segment for runtime item-tree rebuild: missing or non-string `key` → `""`.
 #[inline]
-pub fn coerce_definition_item_key_segment(item: &Value) -> &str {
-    item.get("key").and_then(Value::as_str).unwrap_or("")
+pub fn coerce_definition_item_key_segment<V: JsonTree>(item: &V) -> &str {
+    item.get("key").and_then(V::as_str).unwrap_or("")
 }
 
 /// Resolve the key segment for `item` under `policy`.
 ///
 /// Returns `None` only for [`DefinitionItemKeyPolicy::RequireStringKey`] when `key` is not a JSON
 /// string.
-pub fn definition_item_key_segment(item: &Value, policy: DefinitionItemKeyPolicy) -> Option<&str> {
+pub fn definition_item_key_segment<V: JsonTree>(
+    item: &V,
+    policy: DefinitionItemKeyPolicy,
+) -> Option<&str> {
     match policy {
-        DefinitionItemKeyPolicy::RequireStringKey => item.get("key").and_then(Value::as_str),
+        DefinitionItemKeyPolicy::RequireStringKey => item.get("key").and_then(V::as_str),
         DefinitionItemKeyPolicy::CoerceNonStringKeyToEmpty => {
             Some(coerce_definition_item_key_segment(item))
         }
@@ -115,12 +119,12 @@ pub fn extension_item_diagnostic_path_from_dotted(dotted: &str) -> String {
 /// Used by `formspec-eval` to rebuild the eval `ItemInfo` tree: recurse by walking
 /// `ctx.item["children"]` and calling this again with `json_array_parent =
 /// format!("{}.children", ctx.json_path)`.
-pub fn visit_definition_items_json_shallow(
-    items: &[Value],
+pub fn visit_definition_items_json_shallow<V: JsonTree>(
+    items: &[V],
     json_array_parent: &str,
     parent_dotted: Option<&str>,
     policy: DefinitionItemKeyPolicy,
-    visitor: &mut impl FnMut(&DefinitionItemVisitCtx<'_>),
+    visitor: &mut impl FnMut(&DefinitionItemVisitCtx<'_, V>),
 ) {
     for (i, item) in items.iter().enumerate() {
         if let Some(ctx) =
@@ -132,13 +136,13 @@ pub fn visit_definition_items_json_shallow(
 }
 
 /// Build a visit context for array index `i` or return `None` when the key policy skips the node.
-fn definition_item_visit_ctx_at<'a>(
+fn definition_item_visit_ctx_at<'a, V: JsonTree>(
     i: usize,
-    item: &'a Value,
+    item: &'a V,
     json_array_parent: &str,
     parent_dotted: Option<&str>,
     policy: DefinitionItemKeyPolicy,
-) -> Option<DefinitionItemVisitCtx<'a>> {
+) -> Option<DefinitionItemVisitCtx<'a, V>> {
     let key_str = definition_item_key_segment(item, policy)?;
     let json_path = format!("{json_array_parent}[{i}]");
     let dotted_path = definition_item_dotted_path(parent_dotted, key_str);
@@ -156,12 +160,12 @@ fn definition_item_visit_ctx_at<'a>(
 ///
 /// `json_array_parent` is the path to the **array** (no `[i]` suffix), e.g. `$.items` or
 /// `$.items[0].children`.
-pub fn visit_definition_items_json_with_policy(
-    items: &[Value],
+pub fn visit_definition_items_json_with_policy<V: JsonTree>(
+    items: &[V],
     json_array_parent: &str,
     parent_dotted: Option<&str>,
     policy: DefinitionItemKeyPolicy,
-    visitor: &mut impl FnMut(&DefinitionItemVisitCtx<'_>),
+    visitor: &mut impl FnMut(&DefinitionItemVisitCtx<'_, V>),
 ) {
     for (i, item) in items.iter().enumerate() {
         if let Some(ctx) =
@@ -169,7 +173,7 @@ pub fn visit_definition_items_json_with_policy(
         {
             let dotted_for_children = ctx.dotted_path.clone();
             visitor(&ctx);
-            if let Some(children) = ctx.item.get("children").and_then(Value::as_array) {
+            if let Some(children) = ctx.item.get("children").and_then(V::as_array) {
                 let child_parent = format!("{}.children", ctx.json_path);
                 visit_definition_items_json_with_policy(
                     children,
@@ -184,11 +188,11 @@ pub fn visit_definition_items_json_with_policy(
 }
 
 /// Visit every object with a string `key` under `items`, depth-first ([`DefinitionItemKeyPolicy::RequireStringKey`]).
-pub fn visit_definition_items_json(
-    items: &[Value],
+pub fn visit_definition_items_json<V: JsonTree>(
+    items: &[V],
     json_array_parent: &str,
     parent_dotted: Option<&str>,
-    visitor: &mut impl FnMut(&DefinitionItemVisitCtx<'_>),
+    visitor: &mut impl FnMut(&DefinitionItemVisitCtx<'_, V>),
 ) {
     visit_definition_items_json_with_policy(
         items,
@@ -200,11 +204,11 @@ pub fn visit_definition_items_json(
 }
 
 /// Walk `document["items"]` when present; no-op if missing or not an array.
-pub fn visit_definition_items_from_document(
-    document: &Value,
-    visitor: &mut impl FnMut(&DefinitionItemVisitCtx<'_>),
+pub fn visit_definition_items_from_document<V: JsonTree>(
+    document: &V,
+    visitor: &mut impl FnMut(&DefinitionItemVisitCtx<'_, V>),
 ) {
-    let Some(items) = document.get("items").and_then(Value::as_array) else {
+    let Some(items) = document.get("items").and_then(V::as_array) else {
         return;
     };
     visit_definition_items_json(items, "$.items", None, visitor);

@@ -42,11 +42,14 @@ mod pipeline;
 mod registry_constraints;
 mod runtime_seed;
 
+/// Exact JSON values for text-based evaluator input and output.
+pub use fel_core::exact_json;
+
 pub use convert::resolve_value_by_path;
 pub use eval_json::{
-    eval_context_from_json_object, eval_host_context_from_json_map,
+    EvalHostContextBundle, eval_context_from_json_object, eval_host_context_from_json_map,
     evaluation_result_to_json_value, evaluation_result_to_json_value_styled,
-    item_text_request_from_json_object, EvalHostContextBundle,
+    item_text_request_from_json_object,
 };
 pub use eval_options::EvalOptions;
 pub use host_context::HostFelContext;
@@ -60,12 +63,12 @@ pub use revalidate::revalidate;
 pub use screener_eval::evaluate_screener_document;
 #[doc(inline)]
 pub use screener_qualification::{
-    admit_screener_qualification_profile, qualify_screener_determination,
     ScreenerDeterminationQualification, ScreenerQualificationRefusal,
+    admit_screener_qualification_profile, qualify_screener_determination,
 };
 pub use types::{
-    parse_answer_state, AnswerInput, AnswerState, DeterminationRecord, EvalContext, EvalDiagnostic,
-    EvalTrigger, EvaluationResult, ExtensionConstraint, InputEntry, ItemInfo, ItemText,
-    ItemTextRequest, NrbMode, OverrideBlock, PhaseResult, RouteResult, ScreenerRef,
-    ValidationResult, ValidityBlock, VariableDef, WhitespaceMode,
+    AnswerInput, AnswerState, DeterminationRecord, EvalContext, EvalDiagnostic, EvalTrigger,
+    EvaluationResult, ExtensionConstraint, InputEntry, ItemInfo, ItemText, ItemTextRequest,
+    NrbMode, OverrideBlock, PhaseResult, RouteResult, ScreenerRef, ValidationResult, ValidityBlock,
+    VariableDef, WhitespaceMode, parse_answer_state,
 };

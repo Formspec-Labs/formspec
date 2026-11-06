@@ -4,8 +4,8 @@
 //! recorded as an author diagnostic on `EvaluationResult.diagnostics`, never as
 //! a `ValidationResult`.
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{EvalOptions, evaluate, evaluation_result_to_json_value};
-use serde_json::{Value, json};
 use std::collections::HashMap;
 
 fn definition(binds: Value, shapes: Value) -> Value {

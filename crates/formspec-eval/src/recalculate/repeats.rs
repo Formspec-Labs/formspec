@@ -7,11 +7,11 @@
 
 use std::collections::{HashMap, HashSet};
 
+use fel_core::exact_json::Value as JsonValue;
 use fel_core::{FormspecEnvironment, Value};
-use serde_json::Value as JsonValue;
 
-use super::json_fel::{json_to_runtime_fel, json_to_runtime_fel_typed};
-use crate::fel_json::typed_json_leaf;
+use super::json_fel::json_to_runtime_fel_typed;
+use crate::fel_json::json_tree_to_runtime_fel;
 use crate::types::{ItemInfo, collect_data_types};
 
 use formspec_core::path_utils::{Path, PathSegment};
@@ -119,7 +119,11 @@ impl RepeatIndex {
         values: &HashMap<String, JsonValue>,
         data_types: &HashMap<String, String>,
     ) -> Value {
-        json_to_runtime_fel(&self.json_row(group, index, values, data_types))
+        json_tree_to_runtime_fel(
+            &self.json_row(group, index, values),
+            &format!("{group}[{index}]"),
+            &|path| data_type_of(data_types, path),
+        )
     }
 
     fn json_row(
@@ -127,17 +131,12 @@ impl RepeatIndex {
         group: &str,
         index: usize,
         values: &HashMap<String, JsonValue>,
-        data_types: &HashMap<String, String>,
     ) -> JsonValue {
         let prefix = format!("{group}[{index}].");
-        let mut row = JsonValue::Object(serde_json::Map::new());
+        let mut row = JsonValue::Object(fel_core::exact_json::Map::new());
         for path in self.instance_paths(group, index) {
             if let Some(value) = values.get(path) {
-                set_nested_json_path(
-                    &mut row,
-                    &path[prefix.len()..],
-                    typed_json_leaf(value, data_type_of(data_types, path)),
-                );
+                set_nested_json_path(&mut row, &path[prefix.len()..], value.clone());
             }
         }
         row
@@ -464,14 +463,14 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
         match &segments[i] {
             PathSegment::Exact(key) => {
                 if !current.is_object() {
-                    *current = JsonValue::Object(serde_json::Map::new());
+                    *current = JsonValue::Object(fel_core::exact_json::Map::new());
                 }
                 let map = current.as_object_mut().expect("object ensured above");
                 current = map.entry(key.clone()).or_insert_with(|| {
                     if next_is_index {
                         JsonValue::Array(vec![])
                     } else {
-                        JsonValue::Object(serde_json::Map::new())
+                        JsonValue::Object(fel_core::exact_json::Map::new())
                     }
                 });
             }
@@ -487,7 +486,7 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
                     array[*array_index] = if next_is_index {
                         JsonValue::Array(vec![])
                     } else {
-                        JsonValue::Object(serde_json::Map::new())
+                        JsonValue::Object(fel_core::exact_json::Map::new())
                     };
                 }
                 current = &mut array[*array_index];
@@ -499,7 +498,7 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
     match &segments[segments.len() - 1] {
         PathSegment::Exact(key) => {
             if !current.is_object() {
-                *current = JsonValue::Object(serde_json::Map::new());
+                *current = JsonValue::Object(fel_core::exact_json::Map::new());
             }
             current
                 .as_object_mut()
@@ -524,7 +523,7 @@ pub(crate) fn set_nested_json_path(target: &mut JsonValue, path: &str, value: Js
 mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
-    use serde_json::json;
+    use fel_core::exact_json::native_json as json;
 
     #[test]
     fn set_nested_json_path_object() {

@@ -1,3 +1,4 @@
+import { clampJsonNumber, jsonValueText } from '@formspec-org/engine';
 /** @filedesc MoneyInput behavior hook — extracts reactive state for compound money (amount + currency) fields. */
 import { effect } from '@preact/signals-core';
 import type { MoneyInputBehavior, FieldRefs, BehaviorContext } from './types';
@@ -97,18 +98,16 @@ export function useMoneyInput(ctx: BehaviorContext, comp: any): MoneyInputBehavi
             const amountInput = refs.control.querySelector('input.formspec-money-amount') as HTMLInputElement | null;
             const currencyInput = refs.root.querySelector('.formspec-money-currency-input') as HTMLInputElement | null;
             const getCurrency = (): string => {
-                if (resolvedCurrency) return resolvedCurrency;
+                if (typeof rawResolvedCurrency === 'string') return rawResolvedCurrency;
                 return currencyInput?.value || '';
             };
 
             // Amount input: DOM → engine
             if (amountInput) {
                 const updateMoney = () => {
-                    let amount = amountInput.value === '' ? null : Number(amountInput.value);
-                    if (amount !== null && !isNaN(amount)) {
-                        if (comp.min !== undefined && amount < Number(comp.min)) amount = Number(comp.min);
-                        if (comp.max !== undefined && amount > Number(comp.max)) amount = Number(comp.max);
-                    }
+                    let amount = amountInput.value === '' ? null : amountInput.value;
+                    try { if (amount !== null) amount = jsonValueText(clampJsonNumber(amount, comp.min, comp.max)); }
+                    catch { /* Preserve invalid text for native money validation. */ }
                     ctx.engine.setValue(fieldPath, { amount, currency: getCurrency() });
                 };
                 amountInput.addEventListener('input', updateMoney);
@@ -122,10 +121,10 @@ export function useMoneyInput(ctx: BehaviorContext, comp: any): MoneyInputBehavi
                         if (v !== null && v !== undefined && typeof v === 'object' && 'amount' in v) {
                             const a = (v as any).amount;
                             amountInput.value = a !== null && a !== undefined
-                                ? String(Math.round(a * 100) / 100)
+                                ? jsonValueText(a)
                                 : '';
-                        } else if (typeof v === 'number') {
-                            amountInput.value = String(Math.round(v * 100) / 100);
+                        } else {
+                            amountInput.value = jsonValueText(v);
                         }
                     }
                 }));
@@ -134,7 +133,7 @@ export function useMoneyInput(ctx: BehaviorContext, comp: any): MoneyInputBehavi
             // Currency input: DOM → engine (only when editable)
             if (currencyInput) {
                 currencyInput.addEventListener('input', () => {
-                    const amount = amountInput ? (amountInput.value === '' ? null : Number(amountInput.value)) : null;
+                    const amount = amountInput ? (amountInput.value === '' ? null : amountInput.value) : null;
                     ctx.engine.setValue(fieldPath, { amount, currency: currencyInput.value });
                 });
 

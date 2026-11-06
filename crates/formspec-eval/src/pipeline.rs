@@ -2,7 +2,7 @@
 
 use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
-use crate::fel_json::runtime_to_ui_json;
+
 use crate::nrb::apply_nrb;
 use crate::output_data::build_output_data;
 use crate::rebuild;
@@ -14,7 +14,7 @@ use crate::runtime_seed::{
     seed_repeat_from_instances,
 };
 use crate::types::{self, EvaluationResult, ValidationResult};
-use serde_json::Value;
+use fel_core::exact_json::Value;
 use std::collections::HashMap;
 
 /// Evaluate a definition through the full four-phase pipeline.
@@ -25,6 +25,19 @@ pub fn evaluate(
 ) -> EvaluationResult {
     let mut options = options.clone();
     hydrate_inline_instances(definition, &mut options.instances);
+    for (path, value) in std::iter::once(("#definition", definition))
+        .chain(data.iter().map(|(path, value)| (path.as_str(), value)))
+        .chain(
+            options
+                .instances
+                .iter()
+                .map(|(path, value)| (path.as_str(), value)),
+        )
+    {
+        if let Err(message) = fel_core::exact_json::check_decimal_range(value) {
+            return refuse_input(vec![type_error(path, message)]);
+        }
+    }
     let mut items = rebuild_item_tree(definition);
     let flat = match rebuild::flatten_response_data(&items, data) {
         Ok(flat) => flat,
@@ -118,17 +131,11 @@ pub fn evaluate(
         .unwrap_or("remove");
     apply_nrb(&mut values, &items, default_nrb);
 
-    // Keep the numeric wire type through constraints, shapes, and repeat aggregates.
-    // Host-facing values retain the existing lossless number-or-string encoding.
-    let values = values
-        .into_iter()
-        .map(|(path, value)| (path, runtime_to_ui_json(value)))
-        .collect();
     let data = build_output_data(&items, &values, default_nrb);
 
     let variables = var_values
         .iter()
-        .map(|(name, value)| (name.clone(), fel_core::fel_to_json(value)))
+        .map(|(name, value)| (name.clone(), fel_core::exact_json::from_fel(value)))
         .collect();
 
     EvaluationResult {
@@ -144,27 +151,32 @@ pub fn evaluate(
     }
 }
 
-/// The input gave a field twice (flat and nested). Nothing is evaluated: a Type error per path, no values.
+fn type_error(path: &str, message: String) -> ValidationResult {
+    ValidationResult {
+        path: path.to_string(),
+        severity: types::Severity::Error,
+        constraint_kind: types::ConstraintKind::Type,
+        code: types::ValidationCode::TypeMismatch,
+        message,
+        constraint: None,
+        source: types::ValidationSource::Bind,
+        shape_id: None,
+        context: None,
+    }
+}
+
+/// Refuse ambiguous flat and nested input before any evaluation takes place.
 fn refuse_ambiguous_input(paths: &[String]) -> EvaluationResult {
+    refuse_input(paths.iter().map(|path| type_error(path, format!(
+        "`{path}` is supplied both as a flat dotted key and inside its group object; supply it once"
+    ))).collect())
+}
+
+fn refuse_input(validations: Vec<ValidationResult>) -> EvaluationResult {
     EvaluationResult {
         values: HashMap::new(),
         data: Value::Object(Default::default()),
-        validations: paths
-            .iter()
-            .map(|path| ValidationResult {
-                path: path.clone(),
-                severity: types::Severity::Error,
-                constraint_kind: types::ConstraintKind::Type,
-                code: types::ValidationCode::TypeMismatch,
-                message: format!(
-                    "`{path}` is supplied both as a flat dotted key and inside its group object; supply it once"
-                ),
-                constraint: None,
-                source: types::ValidationSource::Bind,
-                shape_id: None,
-                context: None,
-            })
-            .collect(),
+        validations,
         diagnostics: Vec::new(),
         non_relevant: Vec::new(),
         variables: HashMap::new(),

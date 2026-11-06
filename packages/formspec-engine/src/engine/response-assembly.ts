@@ -1,3 +1,4 @@
+import { parseJsonExact } from '@formspec-org/integrity-canonical';
 /** @filedesc Response envelope, validation report, changelog migration, and pinned-definition resolution. */
 
 import type { FormDefinition } from '@formspec-org/types';
@@ -442,7 +443,7 @@ export function migrateResponseData(
     if (!definition.migrations?.from?.[fromVersion]) {
         return responseData;
     }
-    return JSON.parse(
+    return parseJsonExact(
         wasmApplyMigrationsToResponseData(
             JSON.stringify(definition),
             JSON.stringify(responseData),

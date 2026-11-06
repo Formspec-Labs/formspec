@@ -3,7 +3,7 @@
 
 use crate::rebuild::detect_repeat_count;
 use crate::types::ItemInfo;
-use serde_json::Value;
+use fel_core::exact_json::Value;
 use std::collections::HashMap;
 
 /// Copy `definition.instances.*.data` into the instance map when the host omitted that name.
@@ -90,7 +90,10 @@ fn apply_group_seed_from(
     };
     let array = get_by_dotted_path(instance_data, array_path);
     let n = array.as_array().map(|a| a.len()).unwrap_or(0);
-    let max_repeat = group.get("maxRepeat").and_then(Value::as_u64).map(|m| m as usize);
+    let max_repeat = group
+        .get("maxRepeat")
+        .and_then(Value::as_u64)
+        .map(|m| m as usize);
     let mut target = n.max(min_repeat);
     if let Some(max) = max_repeat {
         target = target.min(max);
@@ -136,7 +139,13 @@ fn seed_row_children(
             }
         }
         if let Some(grandchildren) = child.get("children").and_then(Value::as_array) {
-            seed_row_children(grandchildren, &child_path, seed_instance, seed_element, values);
+            seed_row_children(
+                grandchildren,
+                &child_path,
+                seed_instance,
+                seed_element,
+                values,
+            );
         }
     }
 }
@@ -157,11 +166,7 @@ fn repeat_has_host_data(
     }
     let prefix = format!("{group_path}[");
     values.keys().any(|key| {
-        key.starts_with(&prefix)
-            && values
-                .get(key)
-                .map(|v| !v.is_null())
-                .unwrap_or(false)
+        key.starts_with(&prefix) && values.get(key).map(|v| !v.is_null()).unwrap_or(false)
     })
 }
 
@@ -230,7 +235,7 @@ fn get_by_dotted_path(val: &Value, path: &str) -> Value {
 #[cfg(test)]
 mod seed_from_tests {
     use super::*;
-    use serde_json::json;
+    use fel_core::exact_json::native_json as json;
     use std::collections::HashMap;
 
     fn rows_seed_items() -> Value {
@@ -286,7 +291,8 @@ mod seed_from_tests {
 
     #[test]
     fn evaluate_skips_seed_when_apply_creation_seeds_is_false() {
-        let definition = rows_seed_definition_with_record(json!([{ "name": "A" }, { "name": "B" }]));
+        let definition =
+            rows_seed_definition_with_record(json!([{ "name": "A" }, { "name": "B" }]));
         let result = crate::evaluate(
             &definition,
             &HashMap::new(),
@@ -297,7 +303,8 @@ mod seed_from_tests {
 
     #[test]
     fn evaluate_seeds_from_inline_definition_instances() {
-        let definition = rows_seed_definition_with_record(json!([{ "name": "A" }, { "name": "B" }]));
+        let definition =
+            rows_seed_definition_with_record(json!([{ "name": "A" }, { "name": "B" }]));
         let result = crate::evaluate(&definition, &HashMap::new(), &crate::EvalOptions::default());
         assert_eq!(result.values.get("rows[0].name"), Some(&json!("A")));
         assert_eq!(result.values.get("rows[1].name"), Some(&json!("B")));

@@ -1,6 +1,7 @@
 /** @filedesc MoneyInput amount + currency adornment. */
 'use client';
 import React from 'react';
+import { jsonValueText } from '@formspec-org/engine';
 import { useChromeText } from '../../../use-chrome-text';
 import type { CommonInputProps } from '../field-control-types';
 
@@ -22,10 +23,7 @@ function toCurrencySymbol(code: string): string {
 
 /** Round-trip display for money amount input (matches web component bind sync). */
 function formatMoneyAmountForInput(amount: unknown): string {
-    if (amount === null || amount === undefined) return '';
-    const n = typeof amount === 'number' ? amount : Number(amount);
-    if (!Number.isFinite(n)) return '';
-    return String(Math.round(n * 100) / 100);
+    return jsonValueText(amount);
 }
 
 export function MoneyInputControl({
@@ -38,9 +36,9 @@ export function MoneyInputControl({
     const chrome = useChromeText();
     const currencyCode = ((node.props?.currency as string) || 'USD').toUpperCase();
     const currency = toCurrencySymbol(currencyCode);
-    const min = node.props?.min != null ? String(node.props.min) : undefined;
-    const max = node.props?.max != null ? String(node.props.max) : undefined;
-    const step = node.props?.step != null ? String(node.props.step) : undefined;
+    const min = node.props?.min != null ? jsonValueText(node.props.min) : undefined;
+    const max = node.props?.max != null ? jsonValueText(node.props.max) : undefined;
+    const step = node.props?.step != null ? jsonValueText(node.props.step) : undefined;
     const placeholder = resolvedPlaceholder || chrome('money.amount');
 
     const currencyId = `${field.id}-currency`;
@@ -57,9 +55,9 @@ export function MoneyInputControl({
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
-        const num = raw === '' ? null : Number(raw);
+        const amount = raw === '' ? null : raw;
         field.setValue({
-            amount: num !== null && Number.isFinite(num) ? num : null,
+            amount,
             currency: currencyCode,
         });
     };

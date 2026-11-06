@@ -3,8 +3,8 @@
 
 use std::collections::HashMap;
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{EvalOptions, ExtensionConstraint, evaluate};
-use serde_json::{Value, json};
 
 const THIRD: &str = "0.3333333333333333333333333333";
 
@@ -20,13 +20,16 @@ fn definition(expression: &str, data_type: &str) -> Value {
 #[test]
 fn calculated_decimals_validate_without_losing_digits() {
     for (expression, expected) in [
-        ("1 / 3", json!(THIRD)),
-        ("-1 / 3", json!(format!("-{THIRD}"))),
+        ("1 / 3", fel_core::exact_json::from_str(THIRD).unwrap()),
+        (
+            "-1 / 3",
+            fel_core::exact_json::from_str(&format!("-{THIRD}")).unwrap(),
+        ),
         ("2 / 5", json!(0.4)),
         ("0 / 3", json!(0)),
         (
             "0.1234567890123456789012345678",
-            json!("0.1234567890123456789012345678"),
+            fel_core::exact_json::from_str("0.1234567890123456789012345678").unwrap(),
         ),
     ] {
         let result = evaluate(
@@ -98,7 +101,7 @@ fn recurring_repeat_values_are_included_in_aggregates() {
     let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(
         result.values["total"],
-        json!("0.6666666666666666666666666666")
+        fel_core::exact_json::from_str("0.6666666666666666666666666666").unwrap()
     );
     assert!(result.validations.is_empty(), "{:?}", result.validations);
     assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
@@ -109,8 +112,18 @@ fn exact_decimals_still_enforce_registry_numeric_limits() {
     let mut def = definition("1 / 3", "decimal");
     def["items"][0]["extensions"] = json!({ "x-ratio-limit": true });
     for (minimum, maximum, expected_code) in [
-        (Some(0.5), None, "RANGE_UNDERFLOW"),
-        (None, Some(0.2), "RANGE_OVERFLOW"),
+        (Some("0.5".parse().unwrap()), None, "RANGE_UNDERFLOW"),
+        (None, Some("0.2".parse().unwrap()), "RANGE_OVERFLOW"),
+        (
+            Some("0.3333333333333333333333333334".parse().unwrap()),
+            None,
+            "RANGE_UNDERFLOW",
+        ),
+        (
+            None,
+            Some("0.3333333333333333333333333332".parse().unwrap()),
+            "RANGE_OVERFLOW",
+        ),
     ] {
         let options = EvalOptions::default().extension_constraints(vec![ExtensionConstraint {
             name: "x-ratio-limit".to_string(),

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use fel_core::ExtensionFunctions;
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use crate::types::{EvalContext, EvalTrigger, ExtensionConstraint, ItemTextRequest};
 

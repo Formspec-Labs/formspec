@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 
+use fel_core::exact_json::Value;
 use fel_core::{FormspecEnvironment, parse};
-use serde_json::Value;
 
 use super::json_fel::coerce_calculated_value;
 use super::walk::{Visit, Walk};

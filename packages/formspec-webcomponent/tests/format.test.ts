@@ -10,6 +10,11 @@ describe('formatMoney', () => {
         expect(formatMoney({ amount: '500' })).toBe('$500.00');
     });
 
+    it('preserves units and cents beyond binary floating point precision', () => {
+        expect(formatMoney({ amount: '1234567890123456789012345.67', currency: 'USD' }))
+            .toBe('$1,234,567,890,123,456,789,012,345.67');
+    });
+
     it('uses the currency from the money value', () => {
         const result = formatMoney({ amount: 100, currency: 'EUR' });
         // Intl formats vary by runtime, but should contain "100"

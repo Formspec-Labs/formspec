@@ -1,6 +1,7 @@
 /** @filedesc Standard (non-group) field control switch — dispatches by component type. */
 'use client';
 import React from 'react';
+import { jsonValueText, stepJsonNumber } from '@formspec-org/engine';
 import { useChromeText } from '../../use-chrome-text';
 import type { FieldComponentProps } from '../../component-map';
 import type { ExtensionAttrs } from './field-control-types';
@@ -108,7 +109,7 @@ export function renderControl(
                 <input
                     {...common}
                     type={inputType}
-                    value={value ?? ''}
+                    value={jsonValueText(value)}
                     readOnly={isReadonly}
                     placeholder={placeholder}
                     min={minDate}
@@ -119,9 +120,9 @@ export function renderControl(
         }
 
         case 'NumberInput': {
-            const min = node.props?.min != null ? Number(node.props.min) : undefined;
-            const max = node.props?.max != null ? Number(node.props.max) : undefined;
-            const step = node.props?.step != null ? Number(node.props.step) : undefined;
+            const min = node.props?.min;
+            const max = node.props?.max;
+            const step = node.props?.step;
             const showStepper = node.props?.showStepper as boolean | undefined;
             const placeholder = resolvePlaceholder(node.props?.placeholder as string | undefined);
 
@@ -131,16 +132,16 @@ export function renderControl(
                     {...common}
                     aria-describedby={adornedDescribedBy(describedBy, id, itemAdornments)}
                     type="number"
-                    value={value ?? ''}
+                    value={jsonValueText(value)}
                     readOnly={isReadonly}
                     placeholder={placeholder}
-                    min={min != null ? String(min) : undefined}
-                    max={max != null ? String(max) : undefined}
-                    step={step != null ? String(step) : undefined}
+                    min={min != null ? jsonValueText(min) : undefined}
+                    max={max != null ? jsonValueText(max) : undefined}
+                    step={step != null ? jsonValueText(step) : dataType === 'integer' ? '1' : 'any'}
                     onChange={
                         isReadonly
                             ? undefined
-                            : (e) => field.setValue(e.target.value === '' ? null : Number(e.target.value))
+                            : (e) => field.setValue(e.target.value === '' ? null : e.target.value)
                     }
                 />,
                 id,
@@ -149,7 +150,8 @@ export function renderControl(
 
             if (showStepper) {
                 const stepVal = step ?? 1;
-                const numVal = typeof value === 'number' ? value : 0;
+                const decrement = stepJsonNumber(value, stepVal, -1, min, max);
+                const increment = stepJsonNumber(value, stepVal, 1, min, max);
                 return (
                     <div className="formspec-stepper">
                         <button
@@ -157,8 +159,8 @@ export function renderControl(
                             className="formspec-stepper-decrement"
                             // Item 26: include field label for screen reader context
                             aria-label={`Decrease ${field.label}`}
-                            disabled={isReadonly || (min != null && numVal - stepVal < min)}
-                            onClick={() => { field.setValue(numVal - stepVal); field.touch(); }}
+                            disabled={isReadonly || decrement === undefined}
+                            onClick={() => { field.setValue(decrement); field.touch(); }}
                         >
                             −
                         </button>
@@ -168,8 +170,8 @@ export function renderControl(
                             className="formspec-stepper-increment"
                             // Item 26: include field label for screen reader context
                             aria-label={`Increase ${field.label}`}
-                            disabled={isReadonly || (max != null && numVal + stepVal > max)}
-                            onClick={() => { field.setValue(numVal + stepVal); field.touch(); }}
+                            disabled={isReadonly || increment === undefined}
+                            onClick={() => { field.setValue(increment); field.touch(); }}
                         >
                             +
                         </button>
@@ -219,7 +221,7 @@ export function renderControl(
             // Theme widgetConfig.maxLength is a count display, not a cap; a registry constraint stays a native cap.
             const countLimit = widgetMaxLength(node);
             const maxLength = countLimit === undefined ? extensionAttrs.maxLength : undefined;
-            const length = String(value ?? '').length;
+            const length = jsonValueText(value).length;
             // Component prop wins; else the definition item's prefix/suffix.
             const adornments: InputAdornments = {
                 prefix: (node.props?.prefix as string | undefined) ?? itemAdornments.prefix,
@@ -242,7 +244,7 @@ export function renderControl(
                     {...controlProps}
                     rows={maxLines}
                     placeholder={resolvePlaceholder(placeholder)}
-                    value={value ?? ''}
+                    value={jsonValueText(value)}
                     readOnly={isReadonly}
                     maxLength={maxLength}
                     onChange={(e) => field.setValue(e.target.value)}
@@ -251,7 +253,7 @@ export function renderControl(
                 <input
                     {...controlProps}
                     type={extensionAttrs.type || 'text'}
-                    value={value ?? ''}
+                    value={jsonValueText(value)}
                     readOnly={isReadonly}
                     placeholder={resolvePlaceholder(placeholder)}
                     inputMode={(extensionAttrs.inputMode || inputMode) as React.HTMLAttributes<HTMLInputElement>['inputMode']}
@@ -290,7 +292,7 @@ function NativeSelect({ field, common, value, isReadonly, clearable, placeholder
     return (
         <NativeSelectControl
             {...common}
-            value={(value as string | number | undefined) ?? ''}
+            value={jsonValueText(value)}
             onChange={isReadonly ? undefined : (e) => field.setValue(e.target.value)}
             disabled={isReadonly}
             afterControl={clearable && value != null && value !== '' && !isReadonly && (

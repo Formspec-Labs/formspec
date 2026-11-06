@@ -3,8 +3,8 @@
 
 use std::collections::HashMap;
 
-use fel_core::{FormspecEnvironment, Value as EnvVal, json_to_fel};
-use serde_json::Value;
+use fel_core::exact_json::Value;
+use fel_core::{FormspecEnvironment, Value as EnvVal};
 
 use formspec_core::path_utils::{Path, PathSegment};
 
@@ -15,7 +15,8 @@ use crate::types::ItemInfo;
 /// Apply excludedValue="null" to the FEL environment for non-relevant items (9a).
 pub(super) fn apply_excluded_values_to_env(items: &[ItemInfo], env: &mut FormspecEnvironment) {
     for item in items {
-        if !item.mip.relevant && item.excluded_value == Some(crate::types::ExcludedValueMode::Null) {
+        if !item.mip.relevant && item.excluded_value == Some(crate::types::ExcludedValueMode::Null)
+        {
             env.set_field(&item.path, EnvVal::Null);
         }
         apply_excluded_values_to_env(&item.children, env);
@@ -38,7 +39,7 @@ pub(crate) fn build_validation_env_typed(
     }
     env.variables.clone_from(variables);
     for (name, value) in instances {
-        env.set_instance(name, json_to_fel(value));
+        env.set_instance(name, crate::fel_json::json_to_runtime_fel(value));
     }
     env
 }

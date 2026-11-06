@@ -1,8 +1,8 @@
 //! Repeat context while walking a group (FEL §4.3): `@index`, `@count`, `prev()`, `next()`,
 //! and nested-group aliases, including values calculated earlier in the same walk.
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{EvalOptions, evaluate};
-use serde_json::{Value, json};
 use std::collections::HashMap;
 
 fn evaluate_rows(binds: Value, data: HashMap<String, Value>) -> formspec_eval::EvaluationResult {

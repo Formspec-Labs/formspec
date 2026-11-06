@@ -7,9 +7,9 @@
 
 use std::collections::HashMap;
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::screener_eval::evaluate_screener_document;
 use formspec_eval::types::AnswerInput;
-use serde_json::{Value, json};
 
 fn empty_answers() -> HashMap<String, AnswerInput> {
     HashMap::new()
@@ -53,7 +53,8 @@ fn no_result_validity_means_no_block() {
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     assert!(det.validity.is_none());
 }
 
@@ -64,7 +65,8 @@ fn zero_duration_yields_now_as_valid_until() {
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.expect("validity block");
     assert_eq!(v.result_validity, "P0D");
     // RFC 3339 round-trip — `Z` in input becomes `+00:00` in chrono output.
@@ -78,7 +80,8 @@ fn days_duration_adds_to_now() {
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2026-04-15T10:00:00+00:00");
 }
@@ -90,7 +93,8 @@ fn one_year_duration_adds_one_year() {
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2027-04-01T10:00:00+00:00");
 }
@@ -103,7 +107,8 @@ fn leap_year_p1y_clamps_to_feb_28() {
         &empty_answers(),
         Some("2024-02-29T12:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2025-02-28T12:00:00+00:00");
 }
@@ -115,7 +120,8 @@ fn timezone_offset_preserved_across_day_addition() {
         &empty_answers(),
         Some("2026-01-01T00:00:00-05:00"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.unwrap();
     // Offset preserved; calendar day rolls forward.
     assert_eq!(v.valid_until, "2026-01-02T00:00:00-05:00");
@@ -128,7 +134,8 @@ fn weeks_duration_adds_seven_days_per_week() {
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2026-04-15T10:00:00+00:00");
 }
@@ -140,7 +147,8 @@ fn time_only_duration_works() {
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2026-04-01T11:30:00+00:00");
 }
@@ -156,7 +164,8 @@ fn composite_duration_combines_calendar_and_time_units() {
         &empty_answers(),
         Some("2026-01-01T00:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2027-03-04T04:05:00+00:00");
 }
@@ -186,7 +195,8 @@ fn malformed_duration_drops_validity_block() {
             &empty_answers(),
             Some("2026-04-01T10:00:00Z"),
             None,
-        );
+        )
+        .unwrap();
         assert!(
             det.validity.is_none(),
             "expected None for malformed duration {bad:?}, got {:?}",
@@ -206,7 +216,8 @@ fn p1m_from_jan31_clamps_to_february() {
         &empty_answers(),
         Some("2024-01-31T00:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.unwrap();
     // 2024 is a leap year → Feb 29.
     assert_eq!(v.valid_until, "2024-02-29T00:00:00+00:00");
@@ -216,7 +227,8 @@ fn p1m_from_jan31_clamps_to_february() {
         &empty_answers(),
         Some("2025-01-31T00:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.unwrap();
     // 2025 non-leap → Feb 28.
     assert_eq!(v.valid_until, "2025-02-28T00:00:00+00:00");
@@ -231,7 +243,8 @@ fn pt_seconds_branch_adds_exact_duration() {
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2026-04-01T10:00:30+00:00");
 
@@ -241,7 +254,8 @@ fn pt_seconds_branch_adds_exact_duration() {
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let v = det.validity.unwrap();
     assert_eq!(v.valid_until, "2026-04-01T11:02:03+00:00");
 }
@@ -255,7 +269,8 @@ fn malformed_now_drops_validity_block() {
         &empty_answers(),
         Some("2026-04-01"),
         None,
-    );
+    )
+    .unwrap();
     assert!(det.validity.is_none());
 }
 
@@ -266,7 +281,8 @@ fn no_now_drops_validity_block() {
         &empty_answers(),
         None,
         None,
-    );
+    )
+    .unwrap();
     assert!(det.validity.is_none());
 }
 
@@ -277,7 +293,8 @@ fn serialized_validity_uses_camel_case() {
         &empty_answers(),
         Some("2026-04-01T10:00:00Z"),
         None,
-    );
+    )
+    .unwrap();
     let serialized = serde_json::to_value(&det).expect("serialize");
     let v = &serialized["validity"];
     assert!(v.get("validUntil").is_some(), "camelCase key required");

@@ -7,8 +7,8 @@
 
 use std::collections::HashMap;
 
+use fel_core::exact_json::Value as JsonValue;
 use fel_core::{FormspecEnvironment, Value};
-use serde_json::Value as JsonValue;
 
 use super::repeats::{InstanceScope, ResponseIndex};
 use super::variables::visible_variables;

@@ -1,3 +1,4 @@
+import { jsonValueText } from '@formspec-org/engine';
 /** @filedesc Bind logic for Select combobox mode (searchable and/or multiple). */
 import { optionMatchesComboboxQuery } from '@formspec-org/engine';
 import { effect } from '@preact/signals-core';
@@ -62,9 +63,9 @@ export function bindSelectCombobox(
 
     function selectedArray(val: unknown): string[] {
         if (!multiple) return [];
-        if (Array.isArray(val)) return val.map(String);
+        if (Array.isArray(val)) return val.map(jsonValueText);
         if (val == null || val === '') return [];
-        return [String(val)];
+        return [jsonValueText(val)];
     }
 
     function getFiltered(): { value: string; label: string; keywords?: string[] }[] {
@@ -115,13 +116,13 @@ export function bindSelectCombobox(
         } else {
             if (val == null || val === '') closedDisplay = placeholder;
             else {
-                const s = String(val);
+                const s = jsonValueText(val);
                 closedDisplay = getOptions().find((o) => o.value === s)?.label ?? s;
             }
         }
 
         const hasSingleSelection =
-            !multiple && val != null && val !== '' && String(val).length > 0;
+            !multiple && val != null && val !== '' && jsonValueText(val).length > 0;
         const displayReadOnly =
             ro ||
             (multiple && (!open || !searchable)) ||
@@ -156,7 +157,7 @@ export function bindSelectCombobox(
             li.setAttribute('role', 'option');
             const isChosen = multiple
                 ? selMulti.includes(opt.value)
-                : String(sigVal ?? '') === opt.value;
+                : jsonValueText(sigVal ?? '') === opt.value;
             if (multiple) {
                 const cb = document.createElement('input');
                 cb.type = 'checkbox';
@@ -185,7 +186,7 @@ export function bindSelectCombobox(
                 } else {
                     let v: string | number | null = opt.value;
                     if (['integer', 'decimal', 'number'].includes(dataType)) {
-                        v = opt.value === '' ? null : Number(opt.value);
+                        v = opt.value === '' ? null : opt.value;
                     }
                     ctx.engine.setValue(fieldPath, v);
                     closeList();
@@ -214,7 +215,7 @@ export function bindSelectCombobox(
             const hi = i === highlightedIndex;
             const chosen = multiple
                 ? selM.includes(fid.value)
-                : String(sigVal ?? '') === fid.value;
+                : jsonValueText(sigVal ?? '') === fid.value;
             el.classList.toggle('formspec-option--highlighted', hi);
             el.setAttribute('aria-selected', multiple ? String(chosen) : String(hi));
         });
@@ -313,7 +314,7 @@ export function bindSelectCombobox(
                     } else {
                         let v: string | number | null = opt.value;
                         if (['integer', 'decimal', 'number'].includes(dataType)) {
-                            v = opt.value === '' ? null : Number(opt.value);
+                            v = opt.value === '' ? null : opt.value;
                         }
                         ctx.engine.setValue(fieldPath, v);
                         closeList();

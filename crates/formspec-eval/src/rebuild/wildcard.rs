@@ -1,7 +1,7 @@
 //! Wildcard bind paths (`[*]`) — match concrete items and instantiate FEL expressions.
 #![allow(clippy::missing_docs_in_private_items)]
 
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use crate::types::{ItemInfo, internal_path_to_fel_path, strip_indices};
 
@@ -39,7 +39,7 @@ pub(crate) fn apply_wildcard_binds(items: &mut [ItemInfo], binds: Option<&Value>
     instantiate_instance_expressions(items, &targets);
 }
 
-fn instantiate_instance_expressions(items: &mut [ItemInfo], targets: &BindTargets<'_>) {
+fn instantiate_instance_expressions(items: &mut [ItemInfo], targets: &BindTargets<'_, Value>) {
     for item in items.iter_mut() {
         let template = strip_indices(&item.path);
         if template != item.path {

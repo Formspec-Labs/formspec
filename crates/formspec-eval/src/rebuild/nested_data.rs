@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use crate::types::ItemInfo;
 
@@ -44,7 +44,10 @@ pub(crate) fn flatten_response_data(
         walk.place(items, key, value, "");
     }
     if walk.conflicts.is_empty() {
-        Ok(FlatInput { values: walk.out, repeat_counts: walk.counts })
+        Ok(FlatInput {
+            values: walk.out,
+            repeat_counts: walk.counts,
+        })
     } else {
         walk.conflicts.sort();
         walk.conflicts.dedup();
@@ -60,7 +63,10 @@ struct Walk {
 
 /// `name` and its `[i]` row index, when the segment has one.
 fn split_index(segment: &str) -> (&str, Option<usize>) {
-    if let Some(open) = segment.strip_suffix(']').and_then(|s| s.rfind('[').map(|o| (s, o))) {
+    if let Some(open) = segment
+        .strip_suffix(']')
+        .and_then(|s| s.rfind('[').map(|o| (s, o)))
+    {
         let (s, o) = open;
         if let Ok(i) = s[o + 1..].parse::<usize>() {
             return (&s[..o], Some(i));
@@ -90,7 +96,24 @@ impl Walk {
             None => (key, None),
         };
         let (name, index) = split_index(segment);
-        let item = siblings.iter().find(|i| i.key == name && i.item_type == "group");
+        // Dependent fields share their scalar parent's object in Response data. Restore
+        // their declared parent path before evaluation; flat declared paths still work.
+        if !siblings.iter().any(|item| item.key == name) {
+            for parent in siblings.iter().filter(|item| item.item_type == "field") {
+                if has_dependent_key(&parent.children, name) {
+                    self.place(
+                        &parent.children,
+                        key,
+                        value,
+                        &format!("{prefix}{}.", parent.key),
+                    );
+                    return;
+                }
+            }
+        }
+        let item = siblings
+            .iter()
+            .find(|i| i.key == name && i.item_type == "group");
         match (item, index, rest) {
             // `rows[i].rest`: a flat path into row i.
             (Some(group), Some(i), Some(rest)) if group.repeatable => {
@@ -141,4 +164,10 @@ impl Walk {
             }
         }
     }
+}
+
+fn has_dependent_key(items: &[ItemInfo], key: &str) -> bool {
+    items.iter().any(|item| {
+        item.key == key || (item.item_type == "field" && has_dependent_key(&item.children, key))
+    })
 }

@@ -13,9 +13,9 @@ pub struct ExtensionConstraint {
     /// Maximum string length.
     pub max_length: Option<u64>,
     /// Minimum numeric value.
-    pub minimum: Option<f64>,
+    pub minimum: Option<rust_decimal::Decimal>,
     /// Maximum numeric value.
-    pub maximum: Option<f64>,
+    pub maximum: Option<rust_decimal::Decimal>,
     /// Base data type this extension expects (e.g. "string", "decimal").
     pub base_type: Option<String>,
     /// Lifecycle status: "stable", "deprecated", "retired", "draft".

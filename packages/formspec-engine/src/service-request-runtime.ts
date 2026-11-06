@@ -1,3 +1,4 @@
+import { jsonNumberText } from './json-values.js';
 /** @filedesc Pure planning and output extraction for host-admitted Response Action service requests. */
 
 import type {
@@ -177,6 +178,8 @@ export function resolveRuntimeValueSelector(
 function scalar(value: JsonValue, label: string): JsonScalar {
     if (typeof value === 'string' || typeof value === 'boolean') return value;
     if (typeof value === 'number' && Number.isFinite(value)) return value;
+    const exact = jsonNumberText(value);
+    if (exact !== undefined) return exact;
     return fail(`${label} must resolve to a scalar string, number, or boolean`);
 }
 

@@ -1,7 +1,7 @@
 //! Phase 4: NRB (Non-Relevant Behavior) application.
 #![allow(clippy::missing_docs_in_private_items)]
 
-use serde_json::Value;
+use fel_core::exact_json::Value;
 use std::collections::HashMap;
 
 use crate::types::{

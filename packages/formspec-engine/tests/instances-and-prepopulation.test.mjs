@@ -238,7 +238,7 @@ test('should seed repeat rows after async instance source fetch', async () => {
   const realFetch = globalThis.fetch;
   globalThis.fetch = async () => ({
     ok: true,
-    json: async () => ({ items: [{ name: 'ACME CORP' }, { name: 'WIDGETS INC' }] }),
+    json: async () => ({ items: [{ name: 'ACME CORP' }, { name: 'WIDGETS INC' }] }), text: async () => JSON.stringify(({ items: [{ name: 'ACME CORP' }, { name: 'WIDGETS INC' }] })),
   });
   try {
     const engine = new FormEngine(seedFromRowsDefinition({

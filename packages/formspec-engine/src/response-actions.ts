@@ -1,5 +1,6 @@
 /** @filedesc Response Actions resolution helpers for renderers and hosts. */
 
+import { cloneValue } from './json-values.js';
 import type {
     Action as ResponseAction,
     ActionInvocationStatus,
@@ -295,7 +296,7 @@ export interface ResponseActionInvocationPorts<TDetail> {
 }
 
 function immutableSnapshot<T>(value: T): T {
-    const snapshot = structuredClone(value);
+    const snapshot = cloneValue(value);
     const seen = new WeakSet<object>();
     const freeze = (item: unknown): void => {
         if (!item || typeof item !== 'object' || seen.has(item)) return;

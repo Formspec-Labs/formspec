@@ -1,3 +1,4 @@
+import { jsonValueText } from '@formspec-org/engine';
 /** @filedesc Default adapter for MoneyInput — renders a compound amount + currency input. */
 import type { MoneyInputBehavior } from '../../behaviors/types';
 import type { AdapterRenderFn } from '../types';
@@ -26,9 +27,9 @@ export const renderMoneyInput: AdapterRenderFn<MoneyInputBehavior> = (
     }
     amountInput.name = `${behavior.fieldPath}__amount`;
     amountInput.id = behavior.id;
-    if (behavior.step != null) amountInput.step = String(behavior.step);
-    if (behavior.min != null) amountInput.min = String(behavior.min);
-    if (behavior.max != null) amountInput.max = String(behavior.max);
+    if (behavior.step != null) amountInput.step = jsonValueText(behavior.step);
+    if (behavior.min != null) amountInput.min = jsonValueText(behavior.min);
+    if (behavior.max != null) amountInput.max = jsonValueText(behavior.max);
 
     if (behavior.resolvedCurrency) {
         const currencyId = `${behavior.id}-currency`;

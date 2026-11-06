@@ -1,3 +1,4 @@
+import { jsonValueText } from '@formspec-org/engine';
 /** @filedesc TextInput behavior hook — extracts reactive state for text/textarea fields. */
 import { effect } from '@preact/signals-core';
 import type { WidthStop } from '@formspec-org/types';
@@ -103,7 +104,7 @@ export function useTextInput(ctx: BehaviorContext, comp: TextInputComp): TextInp
                 if (!sig) return;
                 const val = sig.value;
                 if (document.activeElement !== inputEl) {
-                    (inputEl as HTMLInputElement).value = val == null ? '' : String(val);
+                    (inputEl as HTMLInputElement).value = val == null ? '' : jsonValueText(val);
                 }
             }));
 

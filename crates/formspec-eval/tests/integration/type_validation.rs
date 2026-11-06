@@ -8,8 +8,8 @@
 //! - Invalid values that MUST produce TYPE_MISMATCH
 //! - Edge cases at type boundaries
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{EvalOptions, EvalTrigger, ExtensionConstraint, evaluate};
-use serde_json::{Value, json};
 use std::collections::HashMap;
 
 /// Helper: build a minimal definition with one field of the given dataType.

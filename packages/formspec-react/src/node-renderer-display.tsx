@@ -1,6 +1,7 @@
 'use client';
 
 /** @filedesc Display-category LayoutNode rendering (Text, DataTable, Summary, etc.). */
+import { jsonValueText, clampJsonNumber } from '@formspec-org/engine';
 import React, { useCallback, useMemo, useState } from 'react';
 import { computed, signal as createSignal } from '@preact/signals-core';
 import { useChromeText } from './use-chrome-text';
@@ -240,7 +241,7 @@ function BoundText({ bind }: { bind: string }) {
     const { engine } = useFormspecContext();
     const sig = engine.signals[bind] ?? NO_VALUE;
     const rawValue = useSignal(sig);
-    return <>{rawValue != null ? String(rawValue) : ''}</>;
+    return <>{rawValue != null ? jsonValueText(rawValue) : ''}</>;
 }
 
 function BoundProgressBar({ bind, max, showPercent, progressLabel, cssClass, style, metadataAttrs }: {
@@ -255,7 +256,7 @@ function BoundProgressBar({ bind, max, showPercent, progressLabel, cssClass, sty
     const { engine } = useFormspecContext();
     const sig = engine.signals[bind] ?? NO_VALUE;
     const rawValue = useSignal(sig);
-    const value = typeof rawValue === 'number' ? rawValue : 0;
+    const value = Number(jsonValueText(rawValue)) || 0; // Display-only progress approximation.
     const pct = Math.round((value / max) * 100);
     return (
         <div className={`formspec-progress-bar${cssClass ? ' ' + cssClass : ''}`} style={style} {...metadataAttrs}>
@@ -309,12 +310,12 @@ function formatMoney(value: unknown, locale = 'en-US'): string {
             return new Intl.NumberFormat(locale, {
                 style: 'currency',
                 currency: money.currency || 'USD',
-            }).format(Number(money.amount));
+            }).format(jsonValueText(money.amount) as unknown as number);
         } catch {
-            return String(money.amount);
+            return jsonValueText(money.amount);
         }
     }
-    return String(value);
+    return jsonValueText(value);
 }
 
 function SummaryItem({
@@ -331,7 +332,7 @@ function SummaryItem({
     const displayValue = rawValue != null
         ? (typeof rawValue === 'object' && rawValue !== null && 'amount' in (rawValue as object)
             ? formatMoney(rawValue)
-            : String(rawValue))
+            : jsonValueText(rawValue))
         : '\u2014';
 
     return (
@@ -398,14 +399,14 @@ function DataTableCell({
     };
 
     if (!isEditable) {
-        let displayValue = rawValue != null ? String(rawValue) : '';
+        let displayValue = rawValue != null ? jsonValueText(rawValue) : '';
         if (dataType === 'money' && rawValue != null && typeof rawValue === 'object') {
             try {
                 const money = rawValue as { amount?: unknown; currency?: string };
                 displayValue = new Intl.NumberFormat('en-US', {
                     style: 'currency',
                     currency: money.currency || fieldDef?.currency || column.currency || defaultCurrency,
-                }).format(Number(money.amount ?? rawValue));
+                }).format(jsonValueText(money.amount ?? rawValue) as unknown as number);
             } catch { /* fall through */ }
         } else if ((dataType === 'choice' || dataType === 'select') && choices.length > 0) {
             const match = choices.find((c) => c.value === rawValue);
@@ -435,7 +436,7 @@ function DataTableCell({
                 <select
                     className="formspec-datatable-input"
                     name={signalPath}
-                    value={rawValue != null ? String(rawValue) : ''}
+                    value={rawValue != null ? jsonValueText(rawValue) : ''}
                     aria-label={column.header}
                     disabled={readonly}
                     onChange={(e) => engine.setValue(signalPath, e.target.value || null)}
@@ -453,16 +454,16 @@ function DataTableCell({
         const moneyValue = rawValue != null && typeof rawValue === 'object' && 'amount' in (rawValue as object)
             ? (rawValue as { amount?: string | number }).amount
             : undefined;
-        const numericDisplay = moneyValue ?? (typeof rawValue === 'number' || typeof rawValue === 'string' ? rawValue : '');
+        const numericDisplay = jsonValueText(moneyValue ?? rawValue);
         return (
             <td {...metadataAttrs}>{wrapControl(
                 <input
                     className="formspec-datatable-input"
                     name={signalPath}
                     type="number"
-                    step={column.step != null ? String(column.step) : (dataType === 'integer' ? '1' : 'any')}
-                    min={column.min != null ? String(column.min) : undefined}
-                    max={column.max != null ? String(column.max) : undefined}
+                    step={column.step != null ? jsonValueText(column.step) : (dataType === 'integer' ? '1' : 'any')}
+                    min={column.min != null ? jsonValueText(column.min) : undefined}
+                    max={column.max != null ? jsonValueText(column.max) : undefined}
                     value={numericDisplay}
                     aria-label={column.header}
                     disabled={readonly}
@@ -472,15 +473,12 @@ function DataTableCell({
                             engine.setValue(signalPath, null);
                             return;
                         }
-                        const parsed = dataType === 'integer' ? Number.parseInt(value, 10) : Number.parseFloat(value);
-                        let next: number | null = Number.isFinite(parsed) ? parsed : null;
-                        if (typeof next === 'number') {
-                            if (column.min != null && next < column.min) next = column.min;
-                            if (column.max != null && next > column.max) next = column.max;
-                        }
+                        let next: any = value;
+                        try { next = clampJsonNumber(value, column.min, column.max); }
+                        catch { /* Preserve invalid text for the native field validator. */ }
                         if (dataType === 'money' && next != null) {
                             engine.setValue(signalPath, {
-                                amount: next,
+                                amount: jsonValueText(next),
                                 currency: fieldDef?.currency || column.currency || defaultCurrency,
                             });
                         } else {
@@ -499,7 +497,7 @@ function DataTableCell({
                     className="formspec-datatable-input"
                     name={signalPath}
                     type="date"
-                    value={rawValue != null ? String(rawValue) : ''}
+                    value={rawValue != null ? jsonValueText(rawValue) : ''}
                     aria-label={column.header}
                     disabled={readonly}
                     onChange={(e) => engine.setValue(signalPath, e.target.value)}
@@ -514,7 +512,7 @@ function DataTableCell({
                 className="formspec-datatable-input"
                 name={signalPath}
                 type="text"
-                value={rawValue != null ? String(rawValue) : ''}
+                value={rawValue != null ? jsonValueText(rawValue) : ''}
                 aria-label={column.header}
                 disabled={readonly}
                 onChange={(e) => engine.setValue(signalPath, e.target.value)}

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use pyo3::prelude::*;
-use pyo3::types::{PyBool, PyDict, PyList};
+use pyo3::types::{PyBool, PyDict, PyInt, PyList};
 use pythonize::depythonize;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::{FromPrimitive, ToPrimitive};
@@ -22,6 +22,30 @@ pub(crate) use formspec_core::json_object_to_string_map;
 /// Deserialize a Python object into `T` (typically `serde_json::Value`), mapping errors to `PyValueError`.
 pub(crate) fn depythonize_json<T: DeserializeOwned>(obj: &Bound<'_, PyAny>) -> PyResult<T> {
     depythonize(obj).map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))
+}
+
+/// Decode JSON-compatible Python data through the maintained exact JSON writer.
+pub(crate) fn depythonize_exact(obj: &Bound<'_, PyAny>) -> PyResult<fel_core::exact_json::Value> {
+    let text: String = obj
+        .py()
+        .import("formspec.json")?
+        .getattr("dumps")?
+        .call1((obj,))?
+        .extract()?;
+    fel_core::exact_json::from_str(&text)
+        .map_err(|error| pyo3::exceptions::PyValueError::new_err(error.to_string()))
+}
+
+/// Return Python Decimal values for fractional JSON numbers.
+pub(crate) fn exact_json_to_python(
+    py: Python,
+    value: &fel_core::exact_json::Value,
+) -> PyResult<PyObject> {
+    Ok(py
+        .import("formspec.json")?
+        .getattr("loads")?
+        .call1((value.to_string(),))?
+        .unbind())
 }
 
 /// Parse a FEL source string into an AST; maps [`fel_core::Error`] to `PyValueError`.
@@ -124,8 +148,12 @@ pub(crate) fn python_to_fel(py: Python, obj: &Bound<'_, PyAny>) -> PyResult<Valu
     if let Ok(b) = obj.extract::<bool>() {
         return Ok(Value::Boolean(b));
     }
-    if let Ok(i) = obj.extract::<i64>() {
-        return Ok(Value::Number(Decimal::from(i)));
+    if obj.is_instance_of::<PyInt>()
+        || obj.is_instance(&py.import("decimal")?.getattr("Decimal")?)?
+    {
+        let json = depythonize_exact(obj)?;
+        return fel_core::exact_json::to_fel(&json)
+            .map_err(pyo3::exceptions::PyValueError::new_err);
     }
     if let Ok(f) = obj.extract::<f64>() {
         return Ok(match Decimal::from_f64(f) {
@@ -203,15 +231,10 @@ pub(crate) fn python_to_fel(py: Python, obj: &Bound<'_, PyAny>) -> PyResult<Valu
         if let Some(currency) = currency
             && let Some(amount_obj) = dict.get_item("amount")?
         {
-            // Try numeric extraction first (int → Decimal, float → Decimal)
-            let maybe_decimal = if let Ok(i) = amount_obj.extract::<i64>() {
-                Some(Decimal::from(i))
-            } else if let Ok(f) = amount_obj.extract::<f64>() {
-                Decimal::from_f64(f)
-            } else if let Ok(s) = amount_obj.extract::<String>() {
-                Decimal::from_str_exact(&s).ok()
-            } else {
-                None
+            let maybe_decimal = match python_to_fel(py, &amount_obj)? {
+                Value::Number(number) => Some(number),
+                Value::String(text) => Decimal::from_str_exact(&text).ok(),
+                _ => None,
             };
             if let Some(amount) = maybe_decimal {
                 if let Some(cc) = fel_core::CurrencyCode::parse(&currency) {
@@ -241,18 +264,7 @@ pub(crate) fn fel_to_python(py: Python, val: &Value) -> PyResult<PyObject> {
     match val {
         Value::Null => Ok(py.None()),
         Value::Boolean(b) => Ok(PyBool::new(py, *b).to_owned().into_any().unbind()),
-        Value::Number(n) => {
-            if n.fract().is_zero()
-                && let Some(i) = n.to_i64()
-            {
-                return Ok(i.into_pyobject(py)?.into_any().unbind());
-            }
-            if let Some(f) = n.to_f64() {
-                Ok(f.into_pyobject(py)?.into_any().unbind())
-            } else {
-                Ok(py.None())
-            }
-        }
+        Value::Number(_) => exact_json_to_python(py, &fel_core::exact_json::from_fel(val)),
         Value::String(s) => Ok(s.into_pyobject(py)?.into_any().unbind()),
         Value::Date(d) => Ok(d.format_iso().into_pyobject(py)?.into_any().unbind()),
         Value::Array(arr) => {
@@ -271,7 +283,7 @@ pub(crate) fn fel_to_python(py: Python, val: &Value) -> PyResult<PyObject> {
         }
         Value::Money(m) => {
             let dict = PyDict::new(py);
-            dict.set_item("amount", fel_to_python(py, &Value::Number(m.amount))?)?;
+            dict.set_item("amount", m.amount.to_string())?;
             dict.set_item("currency", m.currency.as_str())?;
             Ok(dict.into())
         }

@@ -2,39 +2,42 @@
 
 use std::collections::HashMap;
 
-use serde_json::{Map, Value};
+use fel_core::exact_json::JsonTree;
+use serde_json::Value;
 
 /// One Bind entry: its `path` spelling and its properties.
-pub type BindEntry<'a> = (&'a str, &'a Map<String, Value>);
+pub type BindEntry<'a, V = Value> = (&'a str, &'a V);
 
 /// Bind entries by target Item path, each list in document order.
 ///
 /// Core §4.3.3: a `[*]` path targets the Item whose path is the Bind path with every
 /// `[*]` removed, so `jobs[*].hours` and `jobs.hours` share one list. Array-style and
 /// object-style `binds` are both read; object keys keep document order.
-pub struct BindTargets<'a> {
+pub struct BindTargets<'a, V = Value> {
     /// `[*]`-stripped Bind path to its entries.
-    by_item: HashMap<String, Vec<BindEntry<'a>>>,
+    by_item: HashMap<String, Vec<BindEntry<'a, V>>>,
 }
 
-impl<'a> BindTargets<'a> {
+impl<'a, V: JsonTree> BindTargets<'a, V> {
     /// Group the Definition's `binds` value by target Item path.
-    pub fn new(binds: Option<&'a Value>) -> Self {
-        let entries: Vec<BindEntry<'a>> = match binds {
-            Some(Value::Array(binds)) => binds
+    pub fn new(binds: Option<&'a V>) -> Self {
+        let entries: Vec<BindEntry<'a, V>> = match binds {
+            Some(binds) if binds.as_array().is_some() => binds
+                .as_array()
+                .unwrap()
                 .iter()
                 .filter_map(|bind| {
                     let path = bind.get("path")?.as_str()?;
-                    Some((path, bind.as_object()?))
+                    bind.is_object().then_some((path, bind))
                 })
                 .collect(),
-            Some(Value::Object(binds)) => binds
-                .iter()
-                .filter_map(|(path, bind)| Some((path.as_str(), bind.as_object()?)))
+            Some(binds) if binds.is_object() => binds
+                .members()
+                .filter_map(|(path, bind)| bind.is_object().then_some((path.as_str(), bind)))
                 .collect(),
             _ => Vec::new(),
         };
-        let mut by_item: HashMap<String, Vec<BindEntry<'a>>> = HashMap::new();
+        let mut by_item: HashMap<String, Vec<BindEntry<'a, V>>> = HashMap::new();
         for entry in entries {
             by_item
                 .entry(entry.0.replace("[*]", ""))
@@ -45,15 +48,18 @@ impl<'a> BindTargets<'a> {
     }
 
     /// Entries targeting the Item at `item_path`, in document order.
-    pub fn entries(&self, item_path: &str) -> &[BindEntry<'a>] {
+    pub fn entries(&self, item_path: &str) -> &[BindEntry<'a, V>] {
         self.by_item.get(item_path).map_or(&[], Vec::as_slice)
     }
 
     /// The effective Bind: properties merged in document order, later values winning.
-    pub fn merged(&self, item_path: &str) -> Map<String, Value> {
-        let mut merged = Map::new();
+    pub fn merged(&self, item_path: &str) -> V::Object {
+        let mut merged = V::Object::default();
         for (_, bind) in self.entries(item_path) {
-            merged.extend(bind.iter().map(|(key, value)| (key.clone(), value.clone())));
+            merged.extend(
+                bind.members()
+                    .map(|(key, value)| (key.clone(), value.clone())),
+            );
         }
         merged
     }
@@ -63,7 +69,7 @@ impl<'a> BindTargets<'a> {
         self.entries(item_path)
             .iter()
             .rev()
-            .find(|(_, bind)| bind.contains_key(property))
+            .find(|(_, bind)| bind.get(property).is_some())
             .map(|(path, _)| *path)
     }
 }

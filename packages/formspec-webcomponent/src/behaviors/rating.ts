@@ -1,3 +1,4 @@
+import { jsonValueText } from '@formspec-org/engine';
 /** @filedesc Rating behavior hook — extracts reactive state for icon-rating fields. */
 import { effect } from '@preact/signals-core';
 import type { RatingBehavior, FieldRefs, BehaviorContext } from './types';
@@ -67,7 +68,7 @@ export function useRating(ctx: BehaviorContext, comp: any): RatingBehavior {
             disposers.push(effect(() => {
                 const sig = ctx.engine.signals[fieldPath];
                 const rawValue = sig?.value;
-                const value = typeof rawValue === 'number' ? rawValue : Number(rawValue ?? 0);
+                const value = typeof rawValue === 'number' ? rawValue : Number(jsonValueText(rawValue ?? 0));
                 const ratingValue = Number.isFinite(value) ? value : 0;
                 stars.forEach((star, idx) => {
                     const fullValue = idx + 1;

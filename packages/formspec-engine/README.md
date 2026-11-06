@@ -2,6 +2,11 @@
 
 Core form state engine for Formspec. Manages field values, relevance, required state, readonly state, validation results, and repeat group counts via a reactive signal graph.
 
+Decimal responses serialize as exact JSON numbers. Use `parseJsonExact` to reload
+them, `cloneJsonValue` to copy them, and `jsonNumberText` to display numeric values.
+See [exact JSON numbers](../../docs/exact-json-numbers.md) for JavaScript, Python,
+Rust, supported precision, and migration guidance.
+
 **Where spec logic runs:** **Normative** FEL (parse, dependency lists, analysis, prepare, eval), validation, coercion, migrations, batch definition eval, etc. is implemented in **Rust** and exposed through **WASM** (`wasm-pkg-runtime` / `wasm-pkg-tools`). TypeScript is **orchestration**: Preact signals, `FormEngine`, and **thin** `src/fel/` modules (`fel-api-runtime.ts`, `fel-api-tools.ts`) that call the bridges — not a second in-tree FEL parser. See **`CLAUDE.md`** / **`AGENTS.md`** → **Architecture** → **Logic ownership (Rust / WASM first)**.
 
 **Runtime dependencies:** `@preact/signals-core ^1.6.0`, `formspec-types` (workspace)

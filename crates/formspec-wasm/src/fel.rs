@@ -11,8 +11,8 @@
 
 use fel_core::{
     EvaluatorOptions, ExtensionFunctions, Trace, evaluate, evaluate_with,
-    fel_diagnostics_to_json_value, fel_to_ui_json, field_map_from_json_str,
-    formspec_environment_from_json_map, has_error_diagnostics, host_options_from_json, parse,
+    fel_diagnostics_to_json_value, field_map_from_json_str,
+    formspec_environment_from_exact_json_map, has_error_diagnostics, host_options_from_json, parse,
     prepare, reject_undefined_functions,
 };
 #[cfg(feature = "fel-authoring")]
@@ -38,7 +38,6 @@ use wasm_bindgen::prelude::*;
 
 use crate::extensions::FelExtensionHost;
 use crate::json_host::{parse_json_as, parse_value_str, to_json_string};
-use fel_core::json_to_fel;
 use formspec_eval::interpolation::{
     Interpolated, interpolate_fel_template as interpolate_fel_template_core, interpolate_template,
     interpolation_text,
@@ -53,10 +52,10 @@ pub(crate) fn fel_eval_envelope_json(
     value: &fel_core::Value,
     diagnostics: &[fel_core::Diagnostic],
 ) -> Result<String, String> {
-    let payload = serde_json::json!({
-        "value": fel_to_ui_json(value),
+    let mut payload = fel_core::exact_json::Value::from(serde_json::json!({
         "hasErrorDiagnostics": has_error_diagnostics(diagnostics),
-    });
+    }));
+    payload["value"] = fel_core::exact_json::from_fel(value);
     to_json_string(&payload)
 }
 
@@ -103,12 +102,12 @@ pub(crate) fn eval_fel_with_trace_inner(
             ..EvaluatorOptions::default()
         },
     );
-    let payload = serde_json::json!({
-        "value": fel_to_ui_json(&result.value),
+    let mut payload = fel_core::exact_json::Value::from(serde_json::json!({
         "hasErrorDiagnostics": has_error_diagnostics(&result.diagnostics),
         "diagnostics": fel_diagnostics_to_json_value(&result.diagnostics),
         "trace": trace.steps,
-    });
+    }));
+    payload["value"] = fel_core::exact_json::from_fel(&result.value);
     to_json_string(&payload)
 }
 
@@ -135,9 +134,10 @@ pub(crate) fn eval_fel_with_context_trace_inner(
     extensions: Option<&dyn ExtensionFunctions>,
 ) -> Result<String, String> {
     let expr = parse_fel_source(expression)?;
-    let ctx: Value = parse_value_str(context_json, "context JSON")?;
+    let ctx: fel_core::exact_json::Value = parse_json_as(context_json, "context JSON")?;
+    fel_core::exact_json::check_decimal_range(&ctx)?;
     let ctx_obj = ctx.as_object().ok_or("context must be a JSON object")?;
-    let env = formspec_environment_from_json_map(ctx_obj);
+    let env = formspec_environment_from_exact_json_map(ctx_obj);
     let mut trace = Trace::new();
     let result = evaluate_with(
         &expr,
@@ -149,12 +149,12 @@ pub(crate) fn eval_fel_with_context_trace_inner(
         },
     );
     reject_undefined_functions(&result.diagnostics)?;
-    let payload = serde_json::json!({
-        "value": fel_to_ui_json(&result.value),
+    let mut payload = fel_core::exact_json::Value::from(serde_json::json!({
         "hasErrorDiagnostics": has_error_diagnostics(&result.diagnostics),
         "diagnostics": fel_diagnostics_to_json_value(&result.diagnostics),
         "trace": trace.steps,
-    });
+    }));
+    payload["value"] = fel_core::exact_json::from_fel(&result.value);
     to_json_string(&payload)
 }
 
@@ -182,9 +182,10 @@ pub(crate) fn eval_fel_with_context_inner(
     extensions: Option<&dyn ExtensionFunctions>,
 ) -> Result<String, String> {
     let expr = parse_fel_source(expression)?;
-    let ctx: Value = parse_value_str(context_json, "context JSON")?;
+    let ctx: fel_core::exact_json::Value = parse_json_as(context_json, "context JSON")?;
+    fel_core::exact_json::check_decimal_range(&ctx)?;
     let ctx_obj = ctx.as_object().ok_or("context must be a JSON object")?;
-    let env = formspec_environment_from_json_map(ctx_obj);
+    let env = formspec_environment_from_exact_json_map(ctx_obj);
     let result = evaluate_with(
         &expr,
         &env,
@@ -235,9 +236,10 @@ pub(crate) fn interpolate_fel_template_inner(
     if !template.contains("{{") {
         return interpolated_json(&interpolate_template(template, |_| Ok(String::new())));
     }
-    let ctx: Value = parse_value_str(context_json, "context JSON")?;
+    let ctx: fel_core::exact_json::Value = parse_json_as(context_json, "context JSON")?;
+    fel_core::exact_json::check_decimal_range(&ctx)?;
     let ctx_obj = ctx.as_object().ok_or("context must be a JSON object")?;
-    let env = formspec_environment_from_json_map(ctx_obj);
+    let env = formspec_environment_from_exact_json_map(ctx_obj);
     interpolated_json(&interpolate_fel_template_core(template, &env, extensions))
 }
 
@@ -265,14 +267,18 @@ pub(crate) fn interpolate_template_inner(
     mut evaluate: impl FnMut(&str) -> Result<String, String>,
 ) -> Result<String, String> {
     interpolated_json(&interpolate_template(template, |expression| {
-        let envelope: Value = serde_json::from_str(&evaluate(expression)?)
+        let envelope: fel_core::exact_json::Value = serde_json::from_str(&evaluate(expression)?)
             .map_err(|e| format!("evaluator result is not JSON: {e}"))?;
         interpolation_text(
             expression,
-            &json_to_fel(envelope.get("value").unwrap_or(&Value::Null)),
+            &fel_core::exact_json::to_fel(
+                envelope
+                    .get("value")
+                    .unwrap_or(&fel_core::exact_json::Value::Null),
+            )?,
             envelope
                 .get("hasErrorDiagnostics")
-                .and_then(Value::as_bool)
+                .and_then(fel_core::exact_json::Value::as_bool)
                 .unwrap_or(false),
         )
     }))

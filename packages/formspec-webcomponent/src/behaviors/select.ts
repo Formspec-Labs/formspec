@@ -1,3 +1,4 @@
+import { jsonValueText } from '@formspec-org/engine';
 /** @filedesc Select behavior hook — extracts reactive state for dropdown select fields. */
 import { effect } from '@preact/signals-core';
 import type { SelectBehavior, FieldRefs, BehaviorContext } from './types';
@@ -92,7 +93,7 @@ export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
                 if (!sig) return;
                 const val = sig.value;
                 if (document.activeElement !== selectEl) {
-                    (selectEl as HTMLSelectElement).value = val == null ? '' : String(val);
+                    (selectEl as HTMLSelectElement).value = val == null ? '' : jsonValueText(val);
                 }
             }));
 
@@ -106,7 +107,7 @@ export function useSelect(ctx: BehaviorContext, comp: any): SelectBehavior {
                 }
                 let val: any = raw;
                 if (['integer', 'decimal', 'number'].includes(dataType)) {
-                    val = raw === '' ? null : Number(raw);
+                    val = raw === '' ? null : raw;
                 }
                 ctx.engine.setValue(fieldPath, val);
             });

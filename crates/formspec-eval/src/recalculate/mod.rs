@@ -14,8 +14,8 @@ mod walk;
 
 use std::collections::{HashMap, HashSet};
 
+use fel_core::exact_json::Value;
 use fel_core::{FormspecEnvironment, Value as FelValue};
-use serde_json::Value;
 
 use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
@@ -199,7 +199,7 @@ mod tests {
     use super::*;
     use crate::rebuild::rebuild_item_tree;
     use crate::types::find_item_by_path;
-    use serde_json::json;
+    use fel_core::exact_json::native_json as json;
 
     #[test]
     fn test_relevance_and_inheritance() {
@@ -405,16 +405,23 @@ mod tests {
         let mut items = rebuild_item_tree(&def);
         let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
 
-        assert!(!find_item_by_path(&items, "grandparent").unwrap().mip.relevant);
+        assert!(
+            !find_item_by_path(&items, "grandparent")
+                .unwrap()
+                .mip
+                .relevant
+        );
         assert!(
             !find_item_by_path(&items, "grandparent.parent")
                 .unwrap()
-                .mip.relevant
+                .mip
+                .relevant
         );
         assert!(
             !find_item_by_path(&items, "grandparent.parent.child")
                 .unwrap()
-                .mip.relevant,
+                .mip
+                .relevant,
             "grandchild should be non-relevant via AND inheritance from grandparent"
         );
     }
@@ -486,7 +493,10 @@ mod tests {
         assert!(!parent.mip.required, "parent should NOT inherit required");
 
         let child = find_item_by_path(&items, "grandparent.parent.child").unwrap();
-        assert!(!child.mip.required, "grandchild should NOT inherit required");
+        assert!(
+            !child.mip.required,
+            "grandchild should NOT inherit required"
+        );
     }
 
     #[test]

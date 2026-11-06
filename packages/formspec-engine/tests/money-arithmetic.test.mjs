@@ -29,7 +29,7 @@ function engineWithCalc(calculate, dataType = 'string', extraItems = [], extraBi
 test('money / number produces money with preserved currency', () => {
   const engine = engineWithCalc("money(100, 'USD') / 4");
   const result = engine.signals.result.value;
-  assert.deepEqual(result, { amount: 25, currency: 'USD' });
+  assert.deepEqual(result, { amount: '25', currency: 'USD' });
 });
 
 // ── money * number → money ────────────────────────────────────────────
@@ -37,7 +37,7 @@ test('money / number produces money with preserved currency', () => {
 test('money * number produces money with preserved currency', () => {
   const engine = engineWithCalc("money(50, 'EUR') * 3");
   const result = engine.signals.result.value;
-  assert.deepEqual(result, { amount: 150, currency: 'EUR' });
+  assert.deepEqual(result, { amount: '150', currency: 'EUR' });
 });
 
 // ── number * money → money ────────────────────────────────────────────
@@ -45,7 +45,7 @@ test('money * number produces money with preserved currency', () => {
 test('number * money produces money (commutative)', () => {
   const engine = engineWithCalc("3 * money(50, 'EUR')");
   const result = engine.signals.result.value;
-  assert.deepEqual(result, { amount: 150, currency: 'EUR' });
+  assert.deepEqual(result, { amount: '150', currency: 'EUR' });
 });
 
 // ── money + money → money (same currency) ─────────────────────────────
@@ -53,7 +53,7 @@ test('number * money produces money (commutative)', () => {
 test('money + money with same currency adds amounts', () => {
   const engine = engineWithCalc("money(100, 'USD') + money(50, 'USD')");
   const result = engine.signals.result.value;
-  assert.deepEqual(result, { amount: 150, currency: 'USD' });
+  assert.deepEqual(result, { amount: '150', currency: 'USD' });
 });
 
 // ── money - money → money (same currency) ─────────────────────────────
@@ -61,7 +61,7 @@ test('money + money with same currency adds amounts', () => {
 test('money - money with same currency subtracts amounts', () => {
   const engine = engineWithCalc("money(100, 'USD') - money(30, 'USD')");
   const result = engine.signals.result.value;
-  assert.deepEqual(result, { amount: 70, currency: 'USD' });
+  assert.deepEqual(result, { amount: '70', currency: 'USD' });
 });
 
 // ── money + number → money ────────────────────────────────────────────
@@ -69,7 +69,7 @@ test('money - money with same currency subtracts amounts', () => {
 test('money + number adds to amount, preserves currency', () => {
   const engine = engineWithCalc("money(100, 'USD') + 25");
   const result = engine.signals.result.value;
-  assert.deepEqual(result, { amount: 125, currency: 'USD' });
+  assert.deepEqual(result, { amount: '125', currency: 'USD' });
 });
 
 // ── money - number → money ────────────────────────────────────────────
@@ -77,7 +77,7 @@ test('money + number adds to amount, preserves currency', () => {
 test('money - number subtracts from amount, preserves currency', () => {
   const engine = engineWithCalc("money(100, 'USD') - 25");
   const result = engine.signals.result.value;
-  assert.deepEqual(result, { amount: 75, currency: 'USD' });
+  assert.deepEqual(result, { amount: '75', currency: 'USD' });
 });
 
 // ── money % number → money ────────────────────────────────────────────
@@ -85,7 +85,7 @@ test('money - number subtracts from amount, preserves currency', () => {
 test('money % number applies modulo to amount, preserves currency', () => {
   const engine = engineWithCalc("money(105, 'USD') % 10");
   const result = engine.signals.result.value;
-  assert.deepEqual(result, { amount: 5, currency: 'USD' });
+  assert.deepEqual(result, { amount: '5', currency: 'USD' });
 });
 
 // ── money / money → number (unit cancellation) ───────────────────────
@@ -167,16 +167,16 @@ test('money field divided by number field produces money result', () => {
 test('money array * scalar broadcasts element-wise', () => {
   const engine = engineWithCalc("[money(10, 'USD'), money(20, 'USD')] * 2");
   assert.deepEqual(engine.signals.result.value, [
-    { amount: 20, currency: 'USD' },
-    { amount: 40, currency: 'USD' },
+    { amount: '20', currency: 'USD' },
+    { amount: '40', currency: 'USD' },
   ]);
 });
 
 test('scalar * money array broadcasts element-wise', () => {
   const engine = engineWithCalc("2 * [money(10, 'USD'), money(20, 'USD')]");
   assert.deepEqual(engine.signals.result.value, [
-    { amount: 20, currency: 'USD' },
-    { amount: 40, currency: 'USD' },
+    { amount: '20', currency: 'USD' },
+    { amount: '40', currency: 'USD' },
   ]);
 });
 

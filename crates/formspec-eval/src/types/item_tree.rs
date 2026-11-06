@@ -1,6 +1,6 @@
 //! Item tree nodes built from the definition.
 
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use super::modes::{ExcludedValueMode, NrbMode, WhitespaceMode};
 
@@ -129,4 +129,3 @@ impl Default for ItemInfo {
         }
     }
 }
-

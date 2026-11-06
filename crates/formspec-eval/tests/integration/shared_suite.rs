@@ -6,11 +6,11 @@
 //! kind), the listed `ITEM_TEXT` cases, comparing resolved Item text exactly, and every
 //! `ENGINE_PROCESSING` case's Response `data`.
 
+use fel_core::exact_json::Value;
 use formspec_eval::{
     EvalOptions, EvalTrigger, ItemTextRequest, evaluate, evaluation_result_to_json_value,
     extension_constraints_from_registry_documents,
 };
-use serde_json::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 

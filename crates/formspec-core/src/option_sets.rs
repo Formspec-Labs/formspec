@@ -1,6 +1,6 @@
 //! Resolve `options` from `optionSets` in a Formspec Definition.
 
-use serde_json::{Map, Value};
+use fel_core::exact_json::{Map, Value};
 
 fn options_from_set_entry(entry: &Value) -> Value {
     match entry {
@@ -53,7 +53,7 @@ pub fn resolve_option_sets_on_definition(definition: &mut Value) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use fel_core::exact_json::native_json as json;
 
     #[test]
     fn test_resolve_option_sets() {

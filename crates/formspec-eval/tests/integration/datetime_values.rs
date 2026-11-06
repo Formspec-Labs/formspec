@@ -1,7 +1,7 @@
 //! Core §2.1.3 `date`/`dateTime` response values: authored text survives, FEL sees `date`.
 
+use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{EvalContext, EvalOptions, evaluate};
-use serde_json::{Value, json};
 use std::collections::HashMap;
 
 fn defaulted_datetime_definition(default: &str) -> Value {

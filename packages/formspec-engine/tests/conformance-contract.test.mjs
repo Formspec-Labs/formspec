@@ -53,7 +53,7 @@ test('should accept mixed field types and reflect them in engine signals', () =>
   const focusAreas = engineValue(engine, 'projectNarrative.focusAreas');
   assert.ok(focusAreas.includes('health'));
   const amount = engineValue(engine, 'budget.requestedAmount');
-  assert.deepEqual(amount, { amount: 50000, currency: 'USD' });
+  assert.deepEqual(amount, { amount: '50000', currency: 'USD' });
 });
 
 // ── Relevant fields in response ──────────────────────────────────────

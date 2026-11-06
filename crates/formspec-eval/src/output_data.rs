@@ -8,7 +8,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use serde_json::{Map, Value};
+use fel_core::exact_json::{Map, Value};
 
 use crate::types::{ItemInfo, NrbMode};
 
@@ -23,7 +23,10 @@ pub(crate) fn build_output_data(
     let inherited = NrbMode::from_str_lossy(default_nrb);
     emit(items, values, inherited, &mut covered, &mut root);
     // Keys no Item names (additional properties the input carried) keep their place: dotted paths nest.
-    let mut extras: Vec<&String> = values.keys().filter(|path| !covered.contains(path.as_str())).collect();
+    let mut extras: Vec<&String> = values
+        .keys()
+        .filter(|path| !covered.contains(path.as_str()))
+        .collect();
     extras.sort();
     for path in extras {
         insert_extra(&mut root, path, values[path].clone());
@@ -43,7 +46,9 @@ fn emit(
     for item in items {
         let mode = item.nrb.unwrap_or(inherited);
         match (item.item_type.as_str(), item.repeatable) {
-            ("display", _) => {}
+            ("display", _) => {
+                covered.insert(item.path.clone());
+            }
             ("group", false) => {
                 // A group's own path is never an answer: `empty` nulls it in `values`, and that null
                 // must not replace the group's object.
@@ -76,7 +81,11 @@ fn emit(
                 }
                 into.insert(
                     item.key.clone(),
-                    Value::Array(rows.into_iter().map(|(_, row)| Value::Object(row)).collect()),
+                    Value::Array(
+                        rows.into_iter()
+                            .map(|(_, row)| Value::Object(row))
+                            .collect(),
+                    ),
                 );
             }
             _ => {
@@ -84,6 +93,8 @@ fn emit(
                 if let Some(value) = values.get(&item.path) {
                     into.insert(item.key.clone(), value.clone());
                 }
+                // Dependent questions share the parent's object because a scalar cannot contain children.
+                emit(&item.children, values, mode, covered, into);
             }
         }
     }

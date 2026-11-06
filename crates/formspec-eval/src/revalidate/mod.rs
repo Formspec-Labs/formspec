@@ -8,7 +8,7 @@ mod shapes;
 
 use std::collections::{HashMap, HashSet};
 
-use serde_json::Value;
+use fel_core::exact_json::Value;
 
 use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
@@ -173,7 +173,7 @@ mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
     use crate::types::MipState;
-    use serde_json::json;
+    use fel_core::exact_json::native_json as json;
 
     #[test]
     fn revalidate_with_hand_built_items() {

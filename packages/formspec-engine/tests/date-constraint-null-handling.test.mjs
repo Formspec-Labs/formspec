@@ -103,6 +103,6 @@ test('should compute taskCost from hours and hourlyRate', () => {
   engine.setValue('projectPhases[0].phaseTasks[0].hours', 10);
   engine.setValue('projectPhases[0].phaseTasks[0].hourlyRate', { amount: 50, currency: 'USD' });
 
-  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTasks[0].hourlyRate'), { amount: 50, currency: 'USD' });
-  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTasks[0].taskCost'), { amount: 500, currency: 'USD' });
+  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTasks[0].hourlyRate'), { amount: '50', currency: 'USD' });
+  assert.deepEqual(engineValue(engine, 'projectPhases[0].phaseTasks[0].taskCost'), { amount: '500', currency: 'USD' });
 });

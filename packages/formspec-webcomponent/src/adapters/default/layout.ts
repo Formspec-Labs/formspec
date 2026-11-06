@@ -1,3 +1,4 @@
+import { jsonValueText } from '@formspec-org/engine';
 /** @filedesc Default DOM for layout components — used by default adapter and as reference for design-system adapters. */
 import { effect } from '@preact/signals-core';
 import {
@@ -504,7 +505,7 @@ export function renderPopover(behavior: PopoverLayoutBehavior, parent: HTMLEleme
             const val = triggerSignal.value;
             triggerBtn.textContent = val === undefined || val === null || val === ''
                 ? triggerLabelFallback.value
-                : String(val);
+                : jsonValueText(val);
         }));
     } else {
         watchText(actx, triggerLabelFallback, (text) => { triggerBtn.textContent = text; });
