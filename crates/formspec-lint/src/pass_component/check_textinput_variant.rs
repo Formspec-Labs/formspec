@@ -29,7 +29,8 @@ pub(crate) fn check(
     let Some(ref field_lookup) = state.field_lookup else {
         return;
     };
-    let Some(field_info) = field_lookup.get(bind) else {
+    let Some(field_info) = super::field_lookup::resolve(field_lookup, state.repeat_group(), bind)
+    else {
         return;
     };
     let is_string = field_info

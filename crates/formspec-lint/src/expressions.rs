@@ -2,8 +2,10 @@
 //! producing `CompiledExpression` structs for downstream dependency analysis (pass 5)
 //! and E400 diagnostics for parse errors.
 //!
-//! `walk_*` helpers traverse binds, shapes, variables, and screener slots.
+//! `walk_*` helpers traverse binds, shapes, and variables.
 #![allow(clippy::missing_docs_in_private_items)]
+
+use std::collections::HashMap;
 
 use serde_json::Value;
 
@@ -47,11 +49,22 @@ pub struct BindSlot {
     pub property: BindProperty,
 }
 
+/// A variable declaration's lexical identity (Core §4.5.1).
+#[derive(Debug, Clone)]
+pub struct VariableSlot {
+    /// The name used by `@name` references.
+    pub name: String,
+    /// Item key defining visibility; `"#"` means definition-wide.
+    pub scope: String,
+}
+
 /// A successfully parsed FEL expression with its location metadata.
 #[derive(Debug, Clone)]
 pub struct CompiledExpression {
     /// The original FEL source text.
     pub expression: String,
+    /// Reuse the successful parse in dependency analysis instead of parsing twice.
+    pub(crate) parsed: fel_core::Expr,
     /// JSONPath to the expression slot, e.g. `$.binds.name.calculate`.
     pub expression_path: String,
     /// The Bind slot holding this expression; `None` for Shapes, variables and routes.
@@ -59,16 +72,25 @@ pub struct CompiledExpression {
     /// The `target` of the Shape whose validity this expression decides (`constraint`,
     /// `activeWhen` and composed members); `None` everywhere else, Shape `context` included.
     pub shape_target: Option<String>,
+    /// Index of the Shape owning this validity-deciding expression.
+    pub shape_index: Option<usize>,
+    /// Variable declaration computed by this expression, if any.
+    pub variable: Option<VariableSlot>,
 }
 
 /// What an expression belongs to, as recorded on [`CompiledExpression`].
 enum Owner {
-    /// Variables, routes, Shape `context` values.
+    /// Routes and Shape `context` values.
     None,
     /// A Bind property.
     Bind(BindSlot),
     /// A validity-deciding slot of the Shape with this `target`.
-    Shape(String),
+    Shape {
+        index: usize,
+        target: Option<String>,
+    },
+    /// A scoped variable declaration.
+    Variable(VariableSlot),
 }
 
 /// Result of compiling all FEL expression slots in a definition document.
@@ -89,7 +111,6 @@ pub fn compile_expressions(document: &Value) -> ExpressionCompilationResult {
     walk_binds(document.get("binds"), "$", &mut compiled, &mut diagnostics);
     walk_shapes(document.get("shapes"), &mut compiled, &mut diagnostics);
     walk_variables(document.get("variables"), &mut compiled, &mut diagnostics);
-    walk_screener(document.get("screener"), &mut compiled, &mut diagnostics);
 
     ExpressionCompilationResult {
         compiled,
@@ -182,7 +203,7 @@ fn walk_binds_array(
 
 /// Parse every expression-bearing property of one Bind, recording its path and property.
 ///
-/// The object-form walk, the array-form walk and screener-scoped Binds all route through
+/// The object-form walk, the array-form walk and standalone Screener Binds all route through
 /// here, so the property list and the `=`-prefixed `default` rule have one owner.
 fn walk_bind(
     bind: &serde_json::Map<String, Value>,
@@ -227,6 +248,50 @@ fn walk_bind(
 
 // ── Shapes ──────────────────────────────────────────────────────
 
+/// A composition member resolved according to Core §5.2.2.
+pub(crate) enum ShapeMember<'a> {
+    Reference(usize),
+    Expression {
+        operator: &'static str,
+        index: Option<usize>,
+        source: &'a str,
+    },
+}
+
+/// Resolve composition members as Shape ids first, otherwise inline FEL.
+pub(crate) fn shape_members<'a>(
+    shape: &'a Value,
+    ids: &'a HashMap<&'a str, usize>,
+) -> impl Iterator<Item = ShapeMember<'a>> {
+    ["and", "or", "xone"]
+        .into_iter()
+        .flat_map(move |op| {
+            shape
+                .get(op)
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .enumerate()
+                .filter_map(move |(index, value)| {
+                    value.as_str().map(|source| (op, Some(index), source))
+                })
+        })
+        .chain(
+            shape
+                .get("not")
+                .and_then(Value::as_str)
+                .map(|source| ("not", None, source)),
+        )
+        .map(|(op, index, source)| match ids.get(source) {
+            Some(&index) => ShapeMember::Reference(index),
+            None => ShapeMember::Expression {
+                operator: op,
+                index,
+                source,
+            },
+        })
+}
+
 fn walk_shapes(
     shapes: Option<&Value>,
     compiled: &mut Vec<CompiledExpression>,
@@ -237,9 +302,17 @@ fn walk_shapes(
         None => return,
     };
 
+    let shape_ids: HashMap<&str, usize> = shapes
+        .iter()
+        .enumerate()
+        .filter_map(|(index, shape)| Some((shape.get("id")?.as_str()?, index)))
+        .collect();
     for (i, shape) in shapes.iter().enumerate() {
         let target = shape.get("target").and_then(Value::as_str);
-        let owner = || target.map_or(Owner::None, |target| Owner::Shape(target.to_string()));
+        let owner = || Owner::Shape {
+            index: i,
+            target: target.map(str::to_owned),
+        };
 
         // Direct expression slots
         for &slot in &["constraint", "activeWhen"] {
@@ -265,21 +338,19 @@ fn walk_shapes(
             }
         }
 
-        // Composed operators: and[], or[], xone[] (arrays of FEL strings), not (single string)
-        for &array_op in &["and", "or", "xone"] {
-            if let Some(arr) = shape.get(array_op).and_then(|v| v.as_array()) {
-                for (j, item) in arr.iter().enumerate() {
-                    if let Some(expr_str) = item.as_str() {
-                        let expression_path = format!("$.shapes[{i}].{array_op}[{j}]");
-                        try_parse(expr_str, expression_path, owner(), compiled, diagnostics);
-                    }
-                }
+        for member in shape_members(shape, &shape_ids) {
+            if let ShapeMember::Expression {
+                operator,
+                index,
+                source,
+            } = member
+            {
+                let expression_path = match index {
+                    Some(index) => format!("$.shapes[{i}].{operator}[{index}]"),
+                    None => format!("$.shapes[{i}].{operator}"),
+                };
+                try_parse(source, expression_path, owner(), compiled, diagnostics);
             }
-        }
-
-        if let Some(not_str) = shape.get("not").and_then(|v| v.as_str()) {
-            let expression_path = format!("$.shapes[{i}].not");
-            try_parse(not_str, expression_path, owner(), compiled, diagnostics);
         }
     }
 }
@@ -302,44 +373,23 @@ fn walk_variables(
             try_parse(
                 expr_str,
                 expression_path,
-                Owner::None,
+                var.get("name")
+                    .and_then(Value::as_str)
+                    .map_or(Owner::None, |name| {
+                        Owner::Variable(VariableSlot {
+                            name: name.to_owned(),
+                            scope: var
+                                .get("scope")
+                                .and_then(Value::as_str)
+                                .unwrap_or("#")
+                                .to_owned(),
+                        })
+                    }),
                 compiled,
                 diagnostics,
             );
         }
     }
-}
-
-// ── Screener ────────────────────────────────────────────────────
-
-fn walk_screener(
-    screener: Option<&Value>,
-    compiled: &mut Vec<CompiledExpression>,
-    diagnostics: &mut Vec<LintDiagnostic>,
-) {
-    let screener = match screener.and_then(|v| v.as_object()) {
-        Some(obj) => obj,
-        None => return,
-    };
-
-    // Route conditions
-    if let Some(routes) = screener.get("routes").and_then(|v| v.as_array()) {
-        for (i, route) in routes.iter().enumerate() {
-            if let Some(expr_str) = route.get("condition").and_then(|v| v.as_str()) {
-                let expression_path = format!("$.screener.routes[{i}].condition");
-                try_parse(
-                    expr_str,
-                    expression_path,
-                    Owner::None,
-                    compiled,
-                    diagnostics,
-                );
-            }
-        }
-    }
-
-    // Screener binds (same slots as top-level binds)
-    walk_binds(screener.get("binds"), "$.screener", compiled, diagnostics);
 }
 
 // ── Standalone Screener Document ────────────────────────────────
@@ -395,17 +445,21 @@ fn try_parse(
     diagnostics: &mut Vec<LintDiagnostic>,
 ) {
     match fel_core::parse(source) {
-        Ok(_) => {
-            let (bind, shape_target) = match owner {
-                Owner::None => (None, None),
-                Owner::Bind(slot) => (Some(slot), None),
-                Owner::Shape(target) => (None, Some(target)),
+        Ok(parsed) => {
+            let (bind, shape_target, shape_index, variable) = match owner {
+                Owner::None => (None, None, None, None),
+                Owner::Bind(slot) => (Some(slot), None, None, None),
+                Owner::Shape { index, target } => (None, target, Some(index), None),
+                Owner::Variable(slot) => (None, None, None, Some(slot)),
             };
             compiled.push(CompiledExpression {
                 expression: source.to_string(),
+                parsed,
                 expression_path,
                 bind,
                 shape_target,
+                shape_index,
+                variable,
             });
         }
         Err(e) => diagnostics.push(parse_error(&expression_path, &e)),
@@ -628,54 +682,6 @@ mod tests {
     }
 
     #[test]
-    fn screener_route_conditions_parsed() {
-        let doc = json!({
-            "screener": {
-                "routes": [
-                    { "condition": "$age >= 18", "target": "adult" },
-                    { "condition": "$age < 18", "target": "minor" }
-                ]
-            }
-        });
-        let result = compile_expressions(&doc);
-
-        assert!(result.diagnostics.is_empty());
-        assert_eq!(result.compiled.len(), 2);
-        assert_eq!(
-            result.compiled[0].expression_path,
-            "$.screener.routes[0].condition"
-        );
-        assert_eq!(
-            result.compiled[1].expression_path,
-            "$.screener.routes[1].condition"
-        );
-    }
-
-    #[test]
-    fn screener_binds_parsed() {
-        let doc = json!({
-            "screener": {
-                "binds": {
-                    "q1": { "required": "true", "constraint": "$ != ''" }
-                },
-                "routes": []
-            }
-        });
-        let result = compile_expressions(&doc);
-
-        assert!(result.diagnostics.is_empty());
-        assert_eq!(result.compiled.len(), 2);
-
-        let paths: Vec<&str> = result
-            .compiled
-            .iter()
-            .map(|e| e.expression_path.as_str())
-            .collect();
-        assert!(paths.contains(&"$.screener.binds.q1.required"));
-        assert!(paths.contains(&"$.screener.binds.q1.constraint"));
-    }
-
-    #[test]
     fn variables_expression_parsed() {
         let doc = json!({
             "variables": [
@@ -895,33 +901,6 @@ mod tests {
         assert_eq!(result.diagnostics[0].path, "$.binds.b.calculate");
     }
 
-    // ── Screener binds in array format ──────────────────────────
-
-    /// Spec: spec.md §9.2 — screener binds can use array format like top-level binds
-    #[test]
-    fn screener_binds_array_format_parsed() {
-        let doc = json!({
-            "screener": {
-                "binds": [
-                    { "path": "q1", "required": "true", "constraint": "$ != ''" }
-                ],
-                "routes": []
-            }
-        });
-        let result = compile_expressions(&doc);
-
-        assert!(result.diagnostics.is_empty());
-        assert_eq!(result.compiled.len(), 2);
-
-        let paths: Vec<&str> = result
-            .compiled
-            .iter()
-            .map(|e| e.expression_path.as_str())
-            .collect();
-        assert!(paths.contains(&"$.screener.binds[0].required"));
-        assert!(paths.contains(&"$.screener.binds[0].constraint"));
-    }
-
     // ── Shape with both constraint and composed operator ────────
 
     /// Spec: spec.md §6.3 — shapes can have both constraint and composed operators simultaneously
@@ -971,23 +950,6 @@ mod tests {
             result.compiled[0].expression_path,
             "$.variables[1].expression"
         );
-    }
-
-    #[test]
-    fn invalid_screener_route_condition() {
-        let doc = json!({
-            "screener": {
-                "routes": [
-                    { "condition": "$age >= 18" },
-                    { "condition": "bad ++" }
-                ]
-            }
-        });
-        let result = compile_expressions(&doc);
-
-        assert_eq!(result.compiled.len(), 1);
-        assert_eq!(result.diagnostics.len(), 1);
-        assert_eq!(result.diagnostics[0].path, "$.screener.routes[1].condition");
     }
 
     // ── Standalone Screener Document walker ────────────────────────

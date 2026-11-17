@@ -936,6 +936,7 @@ export const UI_POLICY = {
     "customTokenPrefixes": [
       "x-"
     ],
+    "unregisteredTokenDiagnostic": "W708",
     "unknownNonExtensionDiagnostic": "W710",
     "platformDefaultDiagnostic": "W709"
   }

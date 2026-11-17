@@ -260,7 +260,7 @@ fn lint_definition(
         diagnostics.extend(dependencies::analyze_dependencies(
             &compilation.compiled,
             &tree_index,
-            doc.get("binds"),
+            doc,
         ));
     }
 
@@ -277,7 +277,7 @@ fn lint_screener(doc: &Value, options: &LintOptions, diagnostics: &mut Vec<LintD
         diagnostics.extend(dependencies::analyze_dependencies(
             &compilation.compiled,
             &tree::build_item_index(doc),
-            doc.get("binds"),
+            doc,
         ));
     }
 }
@@ -750,59 +750,6 @@ mod tests {
                 .filter(|d| d.code == crate::LintCode::W300)
                 .count(),
             0
-        );
-    }
-
-    /// Spec: spec.md §9 — screener integration spans passes 3+4
-    #[test]
-    fn screener_integration_spans_passes() {
-        let def = json!({
-            "$formspec": "1.0",
-            "url": DEF_URL, "version": DEF_VER, "status": "draft", "title": "T",
-            "items": [{ "key": "age", "type": "field", "label": "Age", "dataType": "integer" }],
-            "screener": {
-                "items": [{ "key": "age", "type": "field", "label": "Age", "dataType": "integer" }],
-                "routes": [
-                    { "condition": "$age >= 18", "target": "adult" },
-                    { "condition": "invalid ++ expr", "target": "error" }
-                ]
-            }
-        });
-        let result = lint(&def);
-        let e400 = result
-            .diagnostics
-            .iter()
-            .filter(|d| d.code == crate::LintCode::E400 && d.path.contains("screener"))
-            .collect::<Vec<_>>();
-        assert_eq!(e400.len(), 1);
-        assert!(e400[0].path.contains("routes[1]"));
-    }
-
-    /// Spec: extension-registry.md §3 — extension resolution via registry documents
-    #[test]
-    fn extension_resolution_cross_pass_integration() {
-        let def = json!({
-            "$formspec": "1.0",
-            "url": DEF_URL, "version": DEF_VER, "status": "draft", "title": "T",
-            "items": [
-                { "key": "age", "type": "field", "label": "Age", "dataType": "integer" }
-            ],
-            "screener": {
-                "items": [{ "key": "screening_age", "type": "field", "label": "Age", "dataType": "integer" }],
-                "routes": [
-                    { "condition": "$age >= 18", "target": "adult" }
-                ]
-            }
-        });
-        let result = lint(&def);
-        let screener_errors = result
-            .diagnostics
-            .iter()
-            .filter(|d| d.path.contains("screener") && d.code != crate::LintCode::E101)
-            .count();
-        assert_eq!(
-            screener_errors, 0,
-            "Valid screener expressions should not produce errors"
         );
     }
 

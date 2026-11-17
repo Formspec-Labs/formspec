@@ -255,3 +255,85 @@ fn relative_paths_inside_a_repeat_template_resolve_against_the_group() {
         vec!["$.tree.children[1]".to_string()]
     );
 }
+
+#[test]
+fn option_sources_and_text_variants_are_checked_inside_repeat_templates() {
+    let definition = json!({
+        "$formspec": "1.0", "url": "urn:test:authoring", "version": "1.0.0", "status": "draft",
+        "items": [{ "key": "rows", "type": "group", "label": "Rows", "repeatable": true,
+            "children": [{ "key": "details", "type": "group", "label": "Details", "children": [
+                { "key": "choice", "type": "field", "dataType": "choice", "label": "Choice" },
+                { "key": "amount", "type": "field", "dataType": "decimal", "label": "Amount" }
+            ] }] }]
+    });
+    for container in ["DataTable", "Accordion"] {
+        let document = component(
+            json!([{ "component": container, "bind": "rows", "children": [
+            { "component": "Select", "bind": "details.choice" },
+            { "component": "TextInput", "bind": "details.amount", "variant": "markdown" }
+        ] }]),
+        );
+        let result = lint_with_options(
+            &document,
+            &LintOptions {
+                definition_document: Some(definition.clone()),
+                ..Default::default()
+            },
+        );
+        assert_eq!(
+            coded(&result.diagnostics, LintCode::E803),
+            vec!["$.tree.children[0].children[0]"],
+            "{container}: {:?}",
+            result.diagnostics
+        );
+        assert_eq!(
+            coded(&result.diagnostics, LintCode::E804),
+            vec!["$.tree.children[0].children[1]"],
+            "{container}: {:?}",
+            result.diagnostics
+        );
+    }
+}
+
+fn unregistered_diagnostic_hooks(value: &Value) -> Vec<String> {
+    let mut invalid = Vec::new();
+    match value {
+        Value::Object(object) => {
+            for (key, value) in object {
+                if key.ends_with("Diagnostic")
+                    && value.as_str().and_then(LintCode::parse_wire).is_none()
+                {
+                    invalid.push(format!("{key}: {value}"));
+                }
+                invalid.extend(unregistered_diagnostic_hooks(value));
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                invalid.extend(unregistered_diagnostic_hooks(value));
+            }
+        }
+        _ => {}
+    }
+    invalid
+}
+
+#[test]
+fn every_ui_policy_diagnostic_hook_names_a_registered_lint_code() {
+    let policy: Value =
+        serde_json::from_str(include_str!("../../../specs/ui-policy.json")).unwrap();
+    let invalid = unregistered_diagnostic_hooks(&policy);
+    assert!(
+        invalid.is_empty(),
+        "unregistered diagnostic hooks: {invalid:?}"
+    );
+}
+
+#[test]
+fn diagnostic_hook_check_rejects_unregistered_codes_and_non_string_values() {
+    let policy = json!({ "nested": [{
+        "unknownDiagnostic": "W999999", "missingDiagnostic": null,
+        "registeredDiagnostic": "W708", "unrelated": "not a lint code"
+    }] });
+    assert_eq!(unregistered_diagnostic_hooks(&policy).len(), 2);
+}

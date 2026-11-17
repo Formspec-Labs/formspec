@@ -1,6 +1,6 @@
 //! Pass 5: dependency analysis — E500 for every cycle in the Core §3.6.1 dependency graph.
 //!
-//! The graph has one vertex per Item value and one per Bind expression (§3.6.1).
+//! The graph has vertices for Item values, Bind/variable expressions, and Shape validity.
 //!
 //! - An expression depends on every value it references, and on what each MIP query
 //!   function reads of the queried Item X (§4.3.2 inheritance, §5.6):
@@ -17,8 +17,8 @@
 //!     what other expressions read;
 //!   - `required`, `readonly` and `constraint` write nothing.
 //!
-//! Only Bind expressions, and the Shape expressions a `valid()` query reaches, are parsed:
-//! nothing reads a variable, route or Shape vertex otherwise, so it cannot be on a cycle.
+//! Variables resolve lexically (Core §4.5.1); Shape composition follows ids before FEL
+//! (§5.2.2). Routes cannot feed values or validity, so they do not enter the graph.
 //!
 //! Paths resolve to Item keys, which E200 makes unique before this pass runs. A path that
 //! names no Item is its own vertex, which nothing writes. One E500 is emitted per distinct
@@ -31,50 +31,81 @@ use fel_core::{Expr, extract_dependencies};
 use formspec_core::BindTargets;
 use serde_json::Value;
 
-use crate::expressions::{BindProperty, CompiledExpression};
+use crate::expressions::{BindProperty, CompiledExpression, ShapeMember, shape_members};
 use crate::tree::{ItemRef, ItemTreeIndex};
 use crate::types::LintDiagnostic;
 
 /// Report every dependency cycle among `compiled` as one E500 per distinct cycle.
 ///
-/// `items` resolves expression and Bind paths to Item keys and ancestors; `binds` is the
-/// document's `binds` value, read for each Item's effective `excludedValue` and `default`.
+/// `items` resolves paths to Item keys and ancestors. `document` supplies effective Binds
+/// and Shape composition references.
 pub fn analyze_dependencies(
     compiled: &[CompiledExpression],
     items: &ItemTreeIndex,
-    binds: Option<&Value>,
+    document: &Value,
 ) -> Vec<LintDiagnostic> {
-    let graph = build_graph(compiled, items, binds);
+    let graph = build_graph(compiled, items, document);
     let cycles = detect_cycles(&graph);
-    emit_diagnostics(&cycles, compiled, items)
+    emit_diagnostics(&cycles, compiled, items, document)
 }
 
-/// A vertex of the Core §3.6.1 graph: an Item value or one compiled expression.
+/// A Core §3.6.1 vertex: an Item value, compiled expression, or Shape validity.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Vertex {
     /// The value of the Item with this key (or of an unknown path).
     Value(String),
     /// The expression at this index of the compiled list.
     Expression(usize),
+    /// Aggregate validity of the Shape at this document index, including composition.
+    Shape(usize),
 }
 
 /// Vertex to the vertices it depends on. Ordered, so cycle discovery is deterministic.
 type Graph = BTreeMap<Vertex, BTreeSet<Vertex>>;
 
-fn build_graph(
-    compiled: &[CompiledExpression],
-    items: &ItemTreeIndex,
-    binds: Option<&Value>,
-) -> Graph {
+fn build_graph(compiled: &[CompiledExpression], items: &ItemTreeIndex, document: &Value) -> Graph {
     let mut by_slot: HashMap<(String, BindProperty), Vec<usize>> = HashMap::new();
     let mut shapes: HashMap<String, Vec<usize>> = HashMap::new();
+    let mut variables: HashMap<(&str, String), usize> = HashMap::new();
     let mut writers: BTreeMap<String, BTreeSet<usize>> = BTreeMap::new();
+    let mut graph = Graph::new();
+
+    let declarations = document.get("shapes").and_then(Value::as_array);
+    let mut shape_expressions = vec![Vec::new(); declarations.map_or(0, Vec::len)];
+    if let Some(declarations) = declarations {
+        let ids: HashMap<&str, usize> = declarations
+            .iter()
+            .enumerate()
+            .filter_map(|(index, shape)| Some((shape.get("id")?.as_str()?, index)))
+            .collect();
+        for (index, shape) in declarations.iter().enumerate() {
+            if let Some(target) = shape.get("target").and_then(Value::as_str) {
+                shapes
+                    .entry(item_key(target, items))
+                    .or_default()
+                    .push(index);
+            }
+            // References remain graph edges even when a Shape has no FEL expression.
+            let reads: BTreeSet<Vertex> = shape_members(shape, &ids)
+                .filter_map(|member| match member {
+                    ShapeMember::Reference(reference) => Some(Vertex::Shape(reference)),
+                    ShapeMember::Expression { .. } => None,
+                })
+                .collect();
+            if !reads.is_empty() {
+                graph.insert(Vertex::Shape(index), reads);
+            }
+        }
+    }
+
     for (index, expression) in compiled.iter().enumerate() {
-        if let Some(target) = &expression.shape_target {
-            shapes
-                .entry(item_key(target, items))
-                .or_default()
-                .push(index);
+        if let Some(shape) = expression.shape_index
+            && let Some(expressions) = shape_expressions.get_mut(shape)
+        {
+            expressions.push(index);
+        }
+        if let Some(variable) = &expression.variable {
+            variables.insert((&variable.name, item_key(&variable.scope, items)), index);
         }
         let Some(bind) = &expression.bind else {
             continue;
@@ -89,10 +120,8 @@ fn build_graph(
         by_slot.entry((key, bind.property)).or_default().push(index);
     }
 
-    // A `relevant` expression writes each Item it governs whose value relevance changes:
-    // its own Item and every descendant, since a non-relevant ancestor makes the
-    // descendant non-relevant.
-    for item in relevance_written_items(items, binds) {
+    // Relevance inherits; only effective Binds that change a value create writers.
+    for item in relevance_written_items(items, document.get("binds")) {
         for governing in self_and_ancestors(item, items) {
             if let Some(relevant) = by_slot.get(&(governing, BindProperty::Relevant)) {
                 writers
@@ -102,8 +131,6 @@ fn build_graph(
             }
         }
     }
-
-    let mut graph = Graph::new();
     for (key, expressions) in writers {
         graph.insert(
             Vertex::Value(key),
@@ -111,40 +138,126 @@ fn build_graph(
         );
     }
 
-    // Bind expressions first; a Shape expression joins only when a `valid()` reaches it.
-    let mut pending: Vec<usize> = (0..compiled.len())
-        .filter(|index| compiled[*index].bind.is_some())
+    // Bind/variable expressions always participate. Shape queries must seed themselves
+    // (they can cycle without Binds); other Shape expressions are needed only when a
+    // valid() query reaches their Shape. Reference-only cycles already exist above.
+    let mut pending: Vec<Vertex> = compiled
+        .iter()
+        .enumerate()
+        .filter_map(|(index, expression)| {
+            if expression.bind.is_some() || expression.variable.is_some() {
+                return Some(Vertex::Expression(index));
+            }
+            if expression.shape_index.is_some() {
+                let mut queries = Vec::new();
+                collect_mip_queries(&expression.parsed, &mut queries);
+                if !queries.is_empty() {
+                    return Some(Vertex::Expression(index));
+                }
+            }
+            None
+        })
         .collect();
-    let mut parsed_once: HashSet<usize> = HashSet::new();
-    while let Some(index) = pending.pop() {
-        if !parsed_once.insert(index) {
+    let mut expanded = HashSet::new();
+    while let Some(vertex) = pending.pop() {
+        if !expanded.insert(vertex.clone()) {
             continue;
         }
-        let Ok(parsed) = fel_core::parse(&compiled[index].expression) else {
-            continue;
+        let index = match vertex {
+            Vertex::Expression(index) => index,
+            Vertex::Shape(shape) => {
+                let reads = graph.entry(Vertex::Shape(shape)).or_default();
+                reads.extend(
+                    shape_expressions[shape]
+                        .iter()
+                        .copied()
+                        .map(Vertex::Expression),
+                );
+                pending.extend(reads.iter().cloned());
+                continue;
+            }
+            Vertex::Value(_) => continue,
         };
-        let mut reads: BTreeSet<Vertex> = extract_dependencies(&parsed)
+        let expression = &compiled[index];
+        let parsed = &expression.parsed;
+        let dependencies = extract_dependencies(parsed);
+        let mut reads: BTreeSet<Vertex> = dependencies
             .fields
             .iter()
             .map(|field| Vertex::Value(item_key(field, items)))
             .collect();
-        let mut queries = Vec::new();
-        collect_mip_queries(&parsed, &mut queries);
-        for (function, path) in queries {
-            for vertex in mip_query_reads(&function, &path, items, &by_slot, &shapes) {
-                if let Vertex::Expression(read) = vertex
-                    && compiled[read].bind.is_none()
-                {
-                    pending.push(read);
-                }
-                reads.insert(vertex);
+        for reference in &dependencies.context_refs {
+            if let Some(field) = reference.strip_prefix("@current.") {
+                reads.insert(Vertex::Value(item_key(field, items)));
+            } else if let Some(variable) = variable_read(reference, expression, items, &variables) {
+                reads.insert(Vertex::Expression(variable));
             }
         }
+        if dependencies.has_self_ref
+            && let Some(target) = expression
+                .bind
+                .as_ref()
+                .map(|bind| bind.path.as_str())
+                .or(expression.shape_target.as_deref())
+                .or_else(|| {
+                    expression
+                        .variable
+                        .as_ref()
+                        .map(|variable| variable.scope.as_str())
+                        .filter(|scope| *scope != "#")
+                })
+        {
+            reads.insert(Vertex::Value(item_key(target, items)));
+        }
+        let mut queries = Vec::new();
+        collect_mip_queries(parsed, &mut queries);
+        for (function, path) in queries {
+            reads.extend(mip_query_reads(&function, &path, items, &by_slot, &shapes));
+        }
+        pending.extend(
+            reads
+                .iter()
+                .filter(|vertex| matches!(vertex, Vertex::Shape(_)))
+                .cloned(),
+        );
         if !reads.is_empty() {
             graph.insert(Vertex::Expression(index), reads);
         }
     }
     graph
+}
+
+/// Resolve `@name` (including members of its value) in the nearest visible scope.
+fn variable_read(
+    reference: &str,
+    expression: &CompiledExpression,
+    items: &ItemTreeIndex,
+    variables: &HashMap<(&str, String), usize>,
+) -> Option<usize> {
+    let name = reference.strip_prefix('@')?.split('.').next()?;
+    // FEL grammar reserves these names for repeat/external-instance context.
+    if matches!(name, "current" | "index" | "count" | "instance") {
+        return None;
+    }
+    let target = expression
+        .bind
+        .as_ref()
+        .map(|bind| bind.path.as_str())
+        .or(expression.shape_target.as_deref())
+        .or_else(|| {
+            expression
+                .variable
+                .as_ref()
+                .map(|variable| variable.scope.as_str())
+        });
+    if let Some(item) = target.and_then(|target| items.by_key.get(&item_key(target, items))) {
+        for scope in self_and_ancestors(item, items) {
+            if let Some(&index) = variables.get(&(name, scope)) {
+                return Some(index);
+            }
+        }
+    }
+    variables.get(&(name, "#".to_owned())).copied()
 }
 
 /// The Item key a path names (keys are unique, E200).
@@ -300,7 +413,7 @@ fn mip_query_reads(
                 .into_iter()
                 .flatten()
                 .copied()
-                .map(Vertex::Expression)
+                .map(Vertex::Shape)
                 .collect::<Vec<_>>();
             [
                 vec![Vertex::Value(key.clone())],
@@ -449,13 +562,49 @@ fn vertex_key(
     vertex: &Vertex,
     compiled: &[CompiledExpression],
     items: &ItemTreeIndex,
+    document: &Value,
 ) -> Option<String> {
     match vertex {
         Vertex::Value(key) => Some(key.clone()),
-        Vertex::Expression(index) => compiled[*index]
-            .bind
-            .as_ref()
-            .map(|bind| item_key(&bind.path, items)),
+        Vertex::Expression(index) => {
+            let expression = &compiled[*index];
+            expression
+                .bind
+                .as_ref()
+                .map(|bind| item_key(&bind.path, items))
+                .or_else(|| {
+                    expression.shape_index.and_then(|index| {
+                        vertex_key(&Vertex::Shape(index), compiled, items, document)
+                    })
+                })
+                .or_else(|| {
+                    expression
+                        .shape_target
+                        .as_deref()
+                        .map(|target| item_key(target, items))
+                })
+                .or_else(|| {
+                    expression.variable.as_ref().map(|variable| {
+                        if variable.scope == "#" {
+                            format!("@{}", variable.name)
+                        } else {
+                            format!(
+                                "@{} (scope: {})",
+                                variable.name,
+                                item_key(&variable.scope, items)
+                            )
+                        }
+                    })
+                })
+        }
+        Vertex::Shape(index) => {
+            let shape = document.get("shapes")?.get(*index)?;
+            let target = item_key(shape.get("target")?.as_str()?, items);
+            Some(match shape.get("id").and_then(Value::as_str) {
+                Some(id) => format!("{target} (Shape: {id})"),
+                None => target,
+            })
+        }
     }
 }
 
@@ -464,11 +613,12 @@ fn key_cycle(
     cycle: &[Vertex],
     compiled: &[CompiledExpression],
     items: &ItemTreeIndex,
+    document: &Value,
 ) -> Vec<String> {
     let mut keys: Vec<String> = Vec::new();
     for key in cycle
         .iter()
-        .filter_map(|vertex| vertex_key(vertex, compiled, items))
+        .filter_map(|vertex| vertex_key(vertex, compiled, items, document))
     {
         if keys.last() != Some(&key) {
             keys.push(key);
@@ -504,16 +654,20 @@ fn cycle_path(
     first_key: &str,
     compiled: &[CompiledExpression],
     items: &ItemTreeIndex,
+    document: &Value,
 ) -> String {
     let start = cycle
         .iter()
-        .position(|vertex| vertex_key(vertex, compiled, items).as_deref() == Some(first_key))
+        .position(|vertex| {
+            vertex_key(vertex, compiled, items, document).as_deref() == Some(first_key)
+        })
         .unwrap_or(0);
     cycle[start..]
         .iter()
         .chain(&cycle[..start])
         .find_map(|vertex| match vertex {
             Vertex::Expression(index) => Some(compiled[*index].expression_path.clone()),
+            Vertex::Shape(index) => Some(format!("$.shapes[{index}]")),
             Vertex::Value(_) => None,
         })
         .unwrap_or_else(|| format!("$.binds.{first_key}"))
@@ -523,15 +677,16 @@ fn emit_diagnostics(
     cycles: &[Vec<Vertex>],
     compiled: &[CompiledExpression],
     items: &ItemTreeIndex,
+    document: &Value,
 ) -> Vec<LintDiagnostic> {
     let mut seen: HashSet<Vec<String>> = HashSet::new();
     let mut diagnostics = Vec::new();
     for cycle in cycles {
-        let keys = key_cycle(cycle, compiled, items);
+        let keys = key_cycle(cycle, compiled, items, document);
         if keys.is_empty() || !seen.insert(keys.clone()) {
             continue;
         }
-        let path = cycle_path(cycle, &keys[0], compiled, items);
+        let path = cycle_path(cycle, &keys[0], compiled, items, document);
         let chain: Vec<&str> = keys.iter().map(String::as_str).collect();
         let message = format!(
             "Dependency cycle detected: {} \u{2192} {}",
@@ -569,12 +724,15 @@ mod tests {
         };
         CompiledExpression {
             expression: expression.to_string(),
+            parsed: fel_core::parse(expression).expect("valid test expression"),
             expression_path: format!("$.binds.{path}.{name}"),
             bind: Some(BindSlot {
                 path: path.to_string(),
                 property,
             }),
             shape_target: None,
+            shape_index: None,
+            variable: None,
         }
     }
 
@@ -588,17 +746,21 @@ mod tests {
 
     /// Analyze with no Item tree and no Binds: every path is its own vertex.
     fn analyze(compiled: &[CompiledExpression]) -> Vec<LintDiagnostic> {
-        analyze_dependencies(compiled, &build_item_index(&json!({})), None)
+        analyze_dependencies(compiled, &build_item_index(&json!({})), &json!({}))
     }
 
     /// Analyze a whole document: its Binds, its Item tree, and its `excludedValue` settings.
     fn analyze_document(document: &Value) -> Vec<LintDiagnostic> {
         let compilation = compile_expressions(document);
-        analyze_dependencies(
-            &compilation.compiled,
-            &build_item_index(document),
-            document.get("binds"),
-        )
+        analyze_dependencies(&compilation.compiled, &build_item_index(document), document)
+    }
+
+    #[test]
+    fn compiled_shapes_from_a_different_document_do_not_panic() {
+        let compilation = compile_expressions(&json!({
+            "shapes": [{ "id": "rule", "target": "a", "constraint": "true" }]
+        }));
+        assert!(analyze(&compilation.compiled).is_empty());
     }
 
     #[test]
