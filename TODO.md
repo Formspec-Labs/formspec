@@ -409,13 +409,9 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
 
 - **FORMSPEC-PR-LINT-002 — Unify component registry + lint boy-scout** · `fs-m21w` · P2
 
-   **High.** Component categorization duplicated:
-   - crates/formspec-lint/src/pass_component.rs:24-90 — LAYOUT_ROOTS, LAYOUT_NO_BIND, CONTAINER_NO_BIND, ALL_BUILTINS (34 names)
-   - component_matrix.rs:29 — INPUT_COMPONENTS
+   **Remaining:** Component classification is still duplicated by `LAYOUT_ROOTS` and `ALL_BUILTINS` in `crates/formspec-lint/src/pass_component/classification.rs`. The input compatibility matrix and whether a component can bind now come from `specs/ui-policy.json` (fs-0ksc); the forbidden-bind constants have been removed.
 
-   A spec change adding a component requires updating two arrays + the matrix. Drift inevitable.
-
-   **Fix:** Single component registry: enum BuiltinComponent with methods is_layout_root, is_input, can_bind, requires_options. Drive from spec. Parameterized test asserts matrix completeness.
+   **Fix:** Finish deriving component classification from the shared UI policy and assert registry/matrix completeness. Own the repeatable-group component set still hand-coded in `pass_component/check_input_compat.rs`, `packages/formspec-core/src/component-export.ts` (`SELF_MANAGED_GROUP_BINDS`), and `packages/formspec-layout/src/planner-component-tree.ts` (`SELF_MANAGED_GROUP_COMPONENTS`).
 
    **Plus:**
    - crates/formspec-lint/src/metadata.rs:40-44,55 — load_registry panics on shape errors at module init (3 expects parsing embedded lint-codes.json). Either total registry loading (return Result, surface at first lint() call) or compile-time test asserting every entry has required fields.

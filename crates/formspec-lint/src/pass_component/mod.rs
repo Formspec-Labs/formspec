@@ -2,8 +2,8 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 mod check_duplicate_bind;
+mod check_forbidden_bind;
 mod check_input_compat;
-mod check_layout_bind;
 mod check_options_source;
 mod check_params;
 mod check_responsive;

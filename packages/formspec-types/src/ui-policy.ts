@@ -18,7 +18,8 @@ export const UI_POLICY = {
       "widgets": [
         "Section"
       ],
-      "category": "layout"
+      "category": "layout",
+      "bind": "forbidden"
     },
     {
       "name": "Stack",
@@ -26,7 +27,8 @@ export const UI_POLICY = {
       "widgets": [
         "Stack"
       ],
-      "category": "layout"
+      "category": "layout",
+      "bind": "forbidden"
     },
     {
       "name": "Grid",
@@ -34,7 +36,8 @@ export const UI_POLICY = {
       "widgets": [
         "Grid"
       ],
-      "category": "layout"
+      "category": "layout",
+      "bind": "forbidden"
     },
     {
       "name": "TextInput",
@@ -42,7 +45,8 @@ export const UI_POLICY = {
       "widgets": [
         "TextInput"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "NumberInput",
@@ -50,7 +54,8 @@ export const UI_POLICY = {
       "widgets": [
         "NumberInput"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "DatePicker",
@@ -58,7 +63,8 @@ export const UI_POLICY = {
       "widgets": [
         "DatePicker"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "Select",
@@ -66,7 +72,8 @@ export const UI_POLICY = {
       "widgets": [
         "Select"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "CheckboxGroup",
@@ -74,7 +81,8 @@ export const UI_POLICY = {
       "widgets": [
         "CheckboxGroup"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "Toggle",
@@ -82,7 +90,8 @@ export const UI_POLICY = {
       "widgets": [
         "Toggle"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "FileUpload",
@@ -90,7 +99,8 @@ export const UI_POLICY = {
       "widgets": [
         "FileUpload"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "Heading",
@@ -98,7 +108,8 @@ export const UI_POLICY = {
       "widgets": [
         "Heading"
       ],
-      "category": "display"
+      "category": "display",
+      "bind": "forbidden"
     },
     {
       "name": "Text",
@@ -106,7 +117,8 @@ export const UI_POLICY = {
       "widgets": [
         "Text"
       ],
-      "category": "display"
+      "category": "display",
+      "bind": "optional"
     },
     {
       "name": "Divider",
@@ -114,7 +126,8 @@ export const UI_POLICY = {
       "widgets": [
         "Divider"
       ],
-      "category": "display"
+      "category": "display",
+      "bind": "forbidden"
     },
     {
       "name": "Card",
@@ -122,7 +135,8 @@ export const UI_POLICY = {
       "widgets": [
         "Card"
       ],
-      "category": "container"
+      "category": "container",
+      "bind": "forbidden"
     },
     {
       "name": "Collapsible",
@@ -130,7 +144,8 @@ export const UI_POLICY = {
       "widgets": [
         "Collapsible"
       ],
-      "category": "container"
+      "category": "container",
+      "bind": "forbidden"
     },
     {
       "name": "ConditionalGroup",
@@ -138,7 +153,8 @@ export const UI_POLICY = {
       "widgets": [
         "ConditionalGroup"
       ],
-      "category": "container"
+      "category": "container",
+      "bind": "forbidden"
     },
     {
       "name": "Tabs",
@@ -146,7 +162,8 @@ export const UI_POLICY = {
       "widgets": [
         "Tabs"
       ],
-      "category": "layout"
+      "category": "layout",
+      "bind": "forbidden"
     },
     {
       "name": "ActionButton",
@@ -154,7 +171,8 @@ export const UI_POLICY = {
       "widgets": [
         "ActionButton"
       ],
-      "category": "display"
+      "category": "display",
+      "bind": "forbidden"
     },
     {
       "name": "Accordion",
@@ -162,7 +180,8 @@ export const UI_POLICY = {
       "widgets": [
         "Accordion"
       ],
-      "category": "layout"
+      "category": "layout",
+      "bind": "optional"
     },
     {
       "name": "RadioGroup",
@@ -170,7 +189,8 @@ export const UI_POLICY = {
       "widgets": [
         "RadioGroup"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "MoneyInput",
@@ -178,7 +198,8 @@ export const UI_POLICY = {
       "widgets": [
         "MoneyInput"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "Slider",
@@ -186,7 +207,8 @@ export const UI_POLICY = {
       "widgets": [
         "Slider"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "Rating",
@@ -194,7 +216,8 @@ export const UI_POLICY = {
       "widgets": [
         "Rating"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "Signature",
@@ -202,7 +225,8 @@ export const UI_POLICY = {
       "widgets": [
         "Signature"
       ],
-      "category": "input"
+      "category": "input",
+      "bind": "required"
     },
     {
       "name": "Alert",
@@ -210,7 +234,8 @@ export const UI_POLICY = {
       "widgets": [
         "Alert"
       ],
-      "category": "display"
+      "category": "display",
+      "bind": "forbidden"
     },
     {
       "name": "Badge",
@@ -218,7 +243,8 @@ export const UI_POLICY = {
       "widgets": [
         "Badge"
       ],
-      "category": "display"
+      "category": "display",
+      "bind": "forbidden"
     },
     {
       "name": "ProgressBar",
@@ -226,7 +252,8 @@ export const UI_POLICY = {
       "widgets": [
         "ProgressBar"
       ],
-      "category": "display"
+      "category": "display",
+      "bind": "optional"
     },
     {
       "name": "Summary",
@@ -234,7 +261,8 @@ export const UI_POLICY = {
       "widgets": [
         "Summary"
       ],
-      "category": "display"
+      "category": "display",
+      "bind": "forbidden"
     },
     {
       "name": "ValidationSummary",
@@ -242,7 +270,8 @@ export const UI_POLICY = {
       "widgets": [
         "ValidationSummary"
       ],
-      "category": "display"
+      "category": "display",
+      "bind": "forbidden"
     },
     {
       "name": "DataTable",
@@ -250,7 +279,8 @@ export const UI_POLICY = {
       "widgets": [
         "DataTable"
       ],
-      "category": "display"
+      "category": "display",
+      "bind": "optional"
     },
     {
       "name": "Panel",
@@ -258,7 +288,8 @@ export const UI_POLICY = {
       "widgets": [
         "Panel"
       ],
-      "category": "container"
+      "category": "container",
+      "bind": "forbidden"
     },
     {
       "name": "Modal",
@@ -266,7 +297,8 @@ export const UI_POLICY = {
       "widgets": [
         "Modal"
       ],
-      "category": "container"
+      "category": "container",
+      "bind": "forbidden"
     },
     {
       "name": "Popover",
@@ -274,7 +306,8 @@ export const UI_POLICY = {
       "widgets": [
         "Popover"
       ],
-      "category": "container"
+      "category": "container",
+      "bind": "forbidden"
     }
   ],
   "retiredComponentNames": [

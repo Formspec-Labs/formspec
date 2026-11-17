@@ -1,6 +1,6 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
-use super::classification::{CONTAINER_NO_BIND, LAYOUT_NO_BIND, LAYOUT_ROOTS};
+use super::classification::LAYOUT_ROOTS;
 use super::{PASS, lint_component, lint_component_with_context};
 use crate::types::LintDiagnostic;
 use serde_json::json;
@@ -586,7 +586,7 @@ fn display_and_input_same_bind_no_w803() {
 /// Spec: component-spec.md §4.2 — layout components should not declare a bind.
 #[test]
 fn w801_all_layout_no_bind_components() {
-    for comp_type in LAYOUT_NO_BIND {
+    for comp_type in ["Section", "Stack", "Grid", "Tabs"] {
         let comp = json!({
             "tree": {
                 "component": "Stack",
@@ -612,7 +612,14 @@ fn w801_all_layout_no_bind_components() {
 /// exceptions emit W801.
 #[test]
 fn w801_all_container_no_bind_components() {
-    for comp_type in CONTAINER_NO_BIND {
+    for comp_type in [
+        "Card",
+        "Collapsible",
+        "ConditionalGroup",
+        "Panel",
+        "Modal",
+        "Popover",
+    ] {
         let comp = json!({
             "tree": {
                 "component": "Stack",
@@ -986,9 +993,9 @@ fn action_button_is_recognized_builtin() {
     );
 }
 
-/// Spec: component-spec.md §7.33 — ActionButton should not declare a bind (it's not an input).
+/// Component §5.19 forbids bind even though ActionButton belongs to the Display category.
 #[test]
-fn action_button_with_bind_not_input_component() {
+fn action_button_with_bind_emits_w801() {
     let comp = json!({
         "tree": {
             "component": "Stack",
@@ -998,12 +1005,11 @@ fn action_button_with_bind_not_input_component() {
         }
     });
     let diags = lint_component(&comp, None);
-    // ActionButton is not in LAYOUT_NO_BIND or CONTAINER_NO_BIND, and it's not an input component.
-    // So W801 should NOT fire (it's not a layout/container), and W803 should NOT fire (it's not input).
-    // But W804 duplicate bind tracking still applies.
-    assert!(
-        with_code(&diags, "W801").is_empty(),
-        "ActionButton is not layout/container, so no W801"
+    // The previous category-only expectation missed the component's explicit prohibition.
+    assert_eq!(
+        with_code(&diags, "W801").len(),
+        1,
+        "ActionButton's own Bind clause forbids this property"
     );
 }
 

@@ -15,17 +15,6 @@ pub(crate) const LAYOUT_ROOTS: &[&str] = &[
     "Popover",
 ];
 
-pub(crate) const LAYOUT_NO_BIND: &[&str] = &["Section", "Stack", "Grid", "Tabs"];
-
-pub(crate) const CONTAINER_NO_BIND: &[&str] = &[
-    "Card",
-    "Collapsible",
-    "ConditionalGroup",
-    "Panel",
-    "Modal",
-    "Popover",
-];
-
 const ALL_BUILTINS: &[&str] = &[
     "Section",
     "Stack",
@@ -64,8 +53,4 @@ const ALL_BUILTINS: &[&str] = &[
 
 pub(crate) fn is_builtin(name: &str) -> bool {
     ALL_BUILTINS.contains(&name)
-}
-
-pub(crate) fn should_not_bind(name: &str) -> bool {
-    LAYOUT_NO_BIND.contains(&name) || CONTAINER_NO_BIND.contains(&name)
 }

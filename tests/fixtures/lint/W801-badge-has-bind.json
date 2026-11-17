@@ -1,0 +1,32 @@
+{
+  "$formspecComponent": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "urn:test:w801"
+  },
+  "tree": {
+    "component": "Stack",
+    "children": [
+      {
+        "component": "Badge",
+        "text": "Draft",
+        "bind": "name"
+      }
+    ]
+  },
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "urn:test:w801",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "W801 paired",
+    "items": [
+      {
+        "key": "name",
+        "type": "field",
+        "label": "Name",
+        "dataType": "string"
+      }
+    ]
+  }
+}

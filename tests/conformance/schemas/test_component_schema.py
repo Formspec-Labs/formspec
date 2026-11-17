@@ -426,6 +426,14 @@ def test_component_compatibility_metadata_points_to_ui_policy():
             == f"specs/ui-policy.json#/inputComponents/{component_name}"
         )
 
+@pytest.mark.parametrize("policy", UI_POLICY["components"], ids=lambda policy: policy["name"])
+def test_component_bind_policy_matches_schema(policy):
+    definition = SCHEMA["$defs"][policy["name"]]
+    bind = policy["bind"]
+    assert definition["x-lm"]["bind"] == bind
+    assert ("bind" in definition["properties"]) == (bind != "forbidden")
+    assert ("bind" in definition.get("required", [])) == (bind == "required")
+
 def test_custom_component_ref_reserved_names_match_ui_policy():
     reserved = (
         {component["name"] for component in UI_POLICY["components"]}

@@ -23,6 +23,16 @@ pub(crate) struct ComponentPolicy {
     pub name: String,
     /// Component spec category: `layout`, `input`, `display` or `container`.
     pub category: String,
+    /// The component's own Bind clause, which can narrow its category's default.
+    pub bind: BindPolicy,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum BindPolicy {
+    Forbidden,
+    Optional,
+    Required,
 }
 
 #[derive(Debug, Deserialize)]
@@ -60,6 +70,14 @@ pub(crate) fn component_category(component: &str) -> Option<&'static str> {
         .iter()
         .find(|policy| policy.name == component)
         .map(|policy| policy.category.as_str())
+}
+
+/// Whether the built-in component's own Bind clause forbids the property.
+pub(crate) fn component_forbids_bind(component: &str) -> bool {
+    ui_policy()
+        .components
+        .iter()
+        .any(|policy| policy.name == component && policy.bind == BindPolicy::Forbidden)
 }
 
 #[allow(dead_code)]

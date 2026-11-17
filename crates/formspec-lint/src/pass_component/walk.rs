@@ -9,7 +9,7 @@ use crate::types::LintDiagnostic;
 
 use super::field_lookup::{self, FieldInfo, ItemKind};
 use super::{
-    check_duplicate_bind, check_input_compat, check_layout_bind, check_options_source,
+    check_duplicate_bind, check_forbidden_bind, check_input_compat, check_options_source,
     check_params, check_responsive, check_textinput_variant, check_unknown, check_when,
 };
 
@@ -77,7 +77,7 @@ impl<'a> WalkState<'a> {
             return;
         };
 
-        check_layout_bind::check(self, path, comp_type);
+        check_forbidden_bind::check(self, path, comp_type);
         check_duplicate_bind::check_tree_duplicate(self, path, bind);
         check_input_compat::check(self, node, path, comp_type, bind);
         self.open_repeat_scope(path, comp_type, bind);

@@ -3,12 +3,12 @@
 //!
 //! Component §4.2: an Input component binds a field; a Display component binds a field, a
 //! display item, or nothing; DataTable and Accordion bind a repeatable group (§6.14, §6.3).
-//! Layout and other container binds are W801's.
+//! Components whose own Bind clause forbids the property are W801's.
 
 use crate::component_matrix::{Compatibility, classify_compatibility, is_input_component};
 use crate::metadata;
 use crate::types::LintDiagnostic;
-use crate::ui_policy::component_category;
+use crate::ui_policy::{component_category, component_forbids_bind};
 use serde_json::Value;
 
 use super::PASS;
@@ -24,6 +24,9 @@ enum Accepts {
 }
 
 fn accepts(comp_type: &str) -> Option<Accepts> {
+    if component_forbids_bind(comp_type) {
+        return None;
+    }
     match comp_type {
         "DataTable" | "Accordion" => Some(Accepts::RepeatableGroup),
         _ if is_input_component(comp_type) => Some(Accepts::Field),

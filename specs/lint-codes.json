@@ -639,11 +639,18 @@
       "code": "W801",
       "pass": 7,
       "severity": "warning",
-      "title": "Layout/container component should not declare a bind",
+      "title": "Component declares a forbidden bind",
       "specRef": "specs/component/component-spec.md#42-bind-resolution-rules",
-      "suggestedFix": "remove `bind` from layout/container components \u2014 only input components bind to fields",
+      "suggestedFix": "remove the component's `bind` property when its Bind clause forbids it; Text and ProgressBar allow optional binds, and DataTable and Accordion allow repeatable-group binds",
       "fixtures": [
-        "tests/fixtures/lint/W801-layout-has-bind.json"
+        "tests/fixtures/lint/W801-layout-has-bind.json",
+        "tests/fixtures/lint/W801-heading-has-bind.json",
+        "tests/fixtures/lint/W801-divider-has-bind.json",
+        "tests/fixtures/lint/W801-action-button-has-bind.json",
+        "tests/fixtures/lint/W801-alert-has-bind.json",
+        "tests/fixtures/lint/W801-badge-has-bind.json",
+        "tests/fixtures/lint/W801-summary-has-bind.json",
+        "tests/fixtures/lint/W801-validation-summary-has-bind.json"
       ],
       "state": "tested"
     },
