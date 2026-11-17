@@ -69,7 +69,7 @@ test('should apply remove empty and keep modes when generating responses for non
   assert.equal(response.data.keptField, 'val3');
 });
 
-test('should resolve item options from optionSets when optionSet is referenced', () => {
+test('should resolve display options from optionSets while preserving the authored item', () => {
   const engine = new FormEngine({
     $formspec: '1.0',
     url: 'http://example.org/test',
@@ -88,9 +88,13 @@ test('should resolve item options from optionSets when optionSet is referenced',
   });
 
   const [country] = engine.getDefinition().items;
-  assert.equal(country.options.length, 3);
-  assert.equal(country.options[0].label, 'United States');
-  assert.equal(country.options[0].value, 'us');
+  // fs-6q36: getDefinition() now preserves authored items; resolved choices belong to option signals.
+  assert.equal(country.optionSet, 'countries');
+  assert.equal(country.options, undefined);
+  const options = engine.getOptions('country');
+  assert.equal(options.length, 3);
+  assert.equal(options[0].label, 'United States');
+  assert.equal(options[0].value, 'us');
 });
 
 test('should return the configured disabledDisplay mode when querying field display behavior', () => {

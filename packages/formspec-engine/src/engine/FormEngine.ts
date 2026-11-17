@@ -159,7 +159,6 @@ export class FormEngine implements IFormEngine {
     private readonly _groupItems = new Map<string, FormItem>();
     private readonly _shapeTiming = new Map<string, 'continuous' | 'submit' | 'demand'>();
     private readonly _displaySignalPaths = new Set<string>();
-    private readonly _prePopulateReadonly = new Set<string>();
     private readonly _seedFromGroups: SeedFromGroup[];
     private readonly _seedFromResolvedPaths = new Set<string>();
     private readonly _calculatedFields = new Set<string>();
@@ -255,7 +254,6 @@ export class FormEngine implements IFormEngine {
             this._registryDocuments = [{ entries: registryEntries }];
         }
 
-        this.definition = resolveOptionSetsOnDefinition(this.definition);
         this._seedFromGroups = collectSeedFromGroups(this.definition.items);
         this.initializeOptionSignals();
         this.initializeInstances();
@@ -1203,7 +1201,8 @@ export class FormEngine implements IFormEngine {
                 }
             }
         };
-        visit(this.definition.items);
+        // Resolve a display-only copy; evaluation always receives the authored Definition.
+        visit(resolveOptionSetsOnDefinition(this.definition).items);
     }
 
     private initializeInstances(): void {
@@ -1504,7 +1503,6 @@ export class FormEngine implements IFormEngine {
 
     private resolveInitialFieldValue(path: string, item: FormItem): FormFieldValue {
         const prePopulate = item.prePopulate;
-        if (prePopulate?.editable === false) this._prePopulateReadonly.add(path);
         if (prePopulate && !this._pendingInstanceSources.has(prePopulate.instance)) {
             const resolved = resolvePrePopulateFromInstance(
                 item,
@@ -1514,13 +1512,7 @@ export class FormEngine implements IFormEngine {
                 (instanceName) => this.instanceData[instanceName],
             );
             if (resolved !== undefined) {
-                if (prePopulate.editable === false) {
-                    this._prePopulateReadonly.add(path);
-                }
                 return cloneValue(resolved);
-            }
-            if (prePopulate.editable === false) {
-                this._prePopulateReadonly.add(path);
             }
         }
 
@@ -1926,7 +1918,6 @@ export class FormEngine implements IFormEngine {
                 shapeResults: this.shapeResults,
                 variableSignals: this.variableSignals,
                 variableSignalKeys: this._variableSignalKeys,
-                prePopulateReadonly: this._prePopulateReadonly,
             });
             patchErrorSignalsFromWasm(this._rx, {
                 validationResults: this.validationResults,

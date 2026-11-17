@@ -68,7 +68,6 @@ export function patchDeltaSignalsFromWasm(
         shapeResults: Record<string, EngineSignal<ValidationResult[]>>;
         variableSignals: Record<string, EngineSignal<any>>;
         variableSignalKeys: Map<string, string[]>;
-        prePopulateReadonly: Set<string>;
     },
 ): void {
     for (const [path, relevant] of Object.entries(delta.relevant)) {
@@ -81,7 +80,7 @@ export function patchDeltaSignalsFromWasm(
     }
     for (const [path, readonly] of Object.entries(delta.readonly)) {
         options.readonlySignals[path] ??= rx.signal(false);
-        options.readonlySignals[path].value = readonly || options.prePopulateReadonly.has(path);
+        options.readonlySignals[path].value = readonly;
     }
     for (const [path, results] of Object.entries(delta.validations)) {
         options.validationResults[path] ??= rx.signal([]);

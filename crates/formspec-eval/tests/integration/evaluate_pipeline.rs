@@ -4,6 +4,79 @@ use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::{EvalContext, EvalOptions, EvalTrigger, ValidationResult, evaluate};
 use std::collections::HashMap;
 
+/// Core §4.2.3: named sets take precedence over inline options, including inside repeats.
+#[test]
+fn authored_definition_resolves_named_option_sets() {
+    let def = json!({
+        "items": [
+            {"key": "state", "type": "field", "dataType": "choice", "optionSet": "states",
+             "options": [{"value": "ZZ", "label": "Wrong inline"}]},
+            {"key": "rows", "type": "group", "repeatable": true, "children": [
+                {"key": "picks", "type": "field", "dataType": "multiChoice", "optionSet": "colors"}
+            ]}
+        ],
+        "optionSets": {
+            "states": {"options": [{"value": "NJ", "label": "New Jersey"}]},
+            "colors": [{"value": "red", "label": "Red"}]
+        }
+    });
+    let authored = def.clone();
+    for (state, picks, expected_paths) in [
+        ("ZZ", json!(["red", "teal"]), vec!["rows[0].picks", "state"]),
+        ("NJ", json!(["red"]), vec![]),
+    ] {
+        let data = HashMap::from([
+            ("state".into(), json!(state)),
+            ("rows".into(), json!([{"picks": picks}])),
+        ]);
+        let result = evaluate(&def, &data, &EvalOptions::default());
+        let mut paths: Vec<_> = result.validations.iter().map(|v| v.path.as_str()).collect();
+        paths.sort();
+        assert_eq!(paths, expected_paths);
+        assert!(
+            result
+                .validations
+                .iter()
+                .all(|v| v.code.as_wire_str() == "TYPE_MISMATCH")
+        );
+        assert_eq!(
+            def, authored,
+            "evaluation must preserve the authored Definition"
+        );
+    }
+}
+
+/// Core §4.2.3: the pre-fill lock applies even without a resolved value or with readonly:false.
+#[test]
+fn authored_definition_prepopulate_lock_reaches_readonly_and_fel() {
+    let def = json!({
+        "items": [
+            {"key": "name", "type": "field", "dataType": "string",
+             "prePopulate": {"instance": "org", "path": "name", "editable": false}},
+            {"key": "editable", "type": "field", "dataType": "string",
+             "prePopulate": {"instance": "org", "path": "name"}},
+            {"key": "rows", "type": "group", "repeatable": true, "children": [
+                {"key": "name", "type": "field", "dataType": "string",
+                 "prePopulate": {"instance": "org", "path": "name", "editable": false}}
+            ]},
+            {"key": "locked", "type": "field", "dataType": "boolean"}
+        ],
+        "binds": [
+            {"path": "name", "readonly": "false"},
+            {"path": "rows[*].name", "readonly": "false"},
+            {"path": "locked", "calculate": "readonly($name)"}
+        ]
+    });
+    // No instance is supplied: readonly comes from the declaration, not successful prefill.
+    let data = HashMap::from([("rows".into(), json!([{}, {}]))]);
+    let result = evaluate(&def, &data, &EvalOptions::default());
+    assert_eq!(result.readonly.get("name"), Some(&true));
+    assert_eq!(result.readonly.get("editable"), Some(&false));
+    assert_eq!(result.readonly.get("rows[0].name"), Some(&true));
+    assert_eq!(result.readonly.get("rows[1].name"), Some(&true));
+    assert_eq!(result.values.get("locked"), Some(&json!(true)));
+}
+
 #[test]
 fn test_evaluate_calculate() {
     let def = json!({

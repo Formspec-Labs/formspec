@@ -535,48 +535,6 @@
         }
       }
     },
-    "parity.option-set-named-out-of-list": {
-      "ts": {
-        "F": {
-          "ticket": "fs-6q36",
-          "why": "FormEngine inlines named optionSets before evaluating (FormEngine.ts:258); evaluate reads only item.options (item_tree.rs:244-252) and accepts any value (F1)",
-          "problems": [
-            "FormEngine live vs P results only here {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Invalid multiChoice\",\"path\":\"picks\",\"severity\":\"error\",\"source\":\"bind\"}",
-            "FormEngine live vs P results only here {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Invalid choice\",\"path\":\"state\",\"severity\":\"error\",\"source\":\"bind\"}"
-          ]
-        },
-        "S": {
-          "ticket": "fs-6q36",
-          "why": "evaluate never resolves named optionSets, so out-of-list values pass the recheck (F1)",
-          "problems": [
-            "valid true, expected false",
-            "counts {\"error\":0,\"info\":0,\"warning\":0}, expected {\"error\":2,\"info\":0,\"warning\":0}",
-            "expected result missing {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"path\":\"picks\",\"severity\":\"error\"}",
-            "expected result missing {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"path\":\"state\",\"severity\":\"error\"}"
-          ]
-        },
-        "F_submit": {
-          "ticket": "fs-6q36",
-          "why": "FormEngine refuses out-of-list values the server verdict accepts (F1)",
-          "problems": [
-            "FormEngine submit vs S results only here {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Invalid multiChoice\",\"path\":\"picks\",\"severity\":\"error\",\"source\":\"bind\"}",
-            "FormEngine submit vs S results only here {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Invalid choice\",\"path\":\"state\",\"severity\":\"error\",\"source\":\"bind\"}"
-          ]
-        }
-      },
-      "rust": {
-        "S": {
-          "ticket": "fs-6q36",
-          "why": "evaluate never resolves named optionSets, so out-of-list values pass the recheck (F1)",
-          "problems": [
-            "valid true, expected false",
-            "error count 0, expected 2",
-            "expected result missing {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"path\":\"picks\",\"severity\":\"error\"}",
-            "expected result missing {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"path\":\"state\",\"severity\":\"error\"}"
-          ]
-        }
-      }
-    },
     "parity.padded-rows-calculated-child": {
       "ts": {
         "P": {
@@ -697,14 +655,6 @@
     },
     "parity.prepopulate-locked-readonly": {
       "ts": {
-        "P": {
-          "ticket": "fs-6q36",
-          "why": "prePopulate.editable:false never reaches the evaluator's readonly state (item_tree.rs:272-281, bind_pass.rs:119-125), so readonly($name) is false; FormEngine's overlay is signal-only (F22)",
-          "problems": [
-            "data locked: false vs true (actual vs expected)",
-            "round trip of expected.data locked: false vs true"
-          ]
-        },
         "noInvention": {
           "ticket": "fs-i731",
           "why": "origin new: the pre-fill is created inside evaluate — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
@@ -714,14 +664,6 @@
         }
       },
       "rust": {
-        "P": {
-          "ticket": "fs-6q36",
-          "why": "prePopulate.editable:false never reaches the evaluator's readonly state (item_tree.rs:272-281, bind_pass.rs:119-125), so readonly($name) is false; FormEngine's overlay is signal-only (F22)",
-          "problems": [
-            "data locked: false vs true (actual vs expected)",
-            "round trip of expected.data locked: false vs true"
-          ]
-        },
         "noInvention": {
           "ticket": "fs-i731",
           "why": "origin new: the pre-fill is created inside evaluate — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",

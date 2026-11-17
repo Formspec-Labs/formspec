@@ -279,6 +279,11 @@ fn build_item_info_from_ctx(
             .and_then(|pp| pp.get("path"))
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
+        pre_populate_locked: item
+            .get("prePopulate")
+            .and_then(|pp| pp.get("editable"))
+            .and_then(Value::as_bool)
+            == Some(false),
         children,
     }
 }

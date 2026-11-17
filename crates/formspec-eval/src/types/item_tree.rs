@@ -89,6 +89,8 @@ pub struct ItemInfo {
     pub pre_populate_instance: Option<String>,
     /// Pre-populate path within the instance (e.g. "contactEmail").
     pub pre_populate_path: Option<String>,
+    /// Whether `prePopulate.editable: false` locks this field.
+    pub pre_populate_locked: bool,
     /// Child items.
     pub children: Vec<ItemInfo>,
 }
@@ -125,6 +127,7 @@ impl Default for ItemInfo {
             extensions: Vec::new(),
             pre_populate_instance: None,
             pre_populate_path: None,
+            pre_populate_locked: false,
             children: Vec::new(),
         }
     }

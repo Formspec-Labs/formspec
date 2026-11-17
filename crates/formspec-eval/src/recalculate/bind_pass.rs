@@ -123,7 +123,7 @@ impl Visit for BindPass<'_> {
         } else {
             item.calculate.is_some()
         };
-        item.mip.readonly = own_readonly || parent.readonly;
+        item.mip.readonly = own_readonly || item.pre_populate_locked || parent.readonly;
 
         if item.mip.relevant {
             if let Some(ref expr) = item.required_expr {

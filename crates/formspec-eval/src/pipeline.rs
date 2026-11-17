@@ -38,7 +38,11 @@ pub fn evaluate(
             return refuse_input(vec![type_error(path, message)]);
         }
     }
-    let mut items = rebuild_item_tree(definition);
+    let mut items = {
+        let mut resolved = definition.clone();
+        formspec_core::resolve_option_sets_on_definition(&mut resolved);
+        rebuild_item_tree(&resolved)
+    };
     let flat = match rebuild::flatten_response_data(&items, data) {
         Ok(flat) => flat,
         Err(conflicts) => return refuse_ambiguous_input(&conflicts),
