@@ -256,7 +256,11 @@ fn lint_definition(
     if !options.no_fel {
         let compilation = expressions::compile_expressions(doc);
         diagnostics.extend(compilation.diagnostics);
-        diagnostics.extend(dependencies::analyze_dependencies(&compilation.compiled));
+        diagnostics.extend(dependencies::analyze_dependencies(
+            &compilation.compiled,
+            &tree_index,
+            doc.get("binds"),
+        ));
     }
 
     diagnostics.extend(bind_consistency::check_bind_consistency(doc));
@@ -269,7 +273,11 @@ fn lint_screener(doc: &Value, options: &LintOptions, diagnostics: &mut Vec<LintD
     if !options.no_fel {
         let compilation = expressions::compile_screener_expressions(doc);
         diagnostics.extend(compilation.diagnostics);
-        diagnostics.extend(dependencies::analyze_dependencies(&compilation.compiled));
+        diagnostics.extend(dependencies::analyze_dependencies(
+            &compilation.compiled,
+            &tree::build_item_index(doc),
+            doc.get("binds"),
+        ));
     }
 }
 

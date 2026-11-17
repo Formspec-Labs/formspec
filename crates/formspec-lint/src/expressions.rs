@@ -9,6 +9,44 @@ use serde_json::Value;
 
 use crate::types::LintDiagnostic;
 
+/// A Bind property that holds a FEL expression.
+///
+/// Which of these write the targeted Item's value is a dependency-graph question
+/// (Core §3.6.1), answered in [`crate::dependencies`], not here.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum BindProperty {
+    /// `calculate`: computes the Item's value.
+    Calculate,
+    /// `relevant`: decides whether the Item is relevant.
+    Relevant,
+    /// `required`: decides whether the Item needs an answer.
+    Required,
+    /// `readonly`: decides whether the Item can be edited.
+    Readonly,
+    /// `constraint`: validates the Item's value.
+    Constraint,
+    /// `default` written as `=expr`: the value restored when the Item becomes relevant again.
+    Default,
+}
+
+/// The expression-bearing Bind properties, in the order they are walked.
+const BIND_EXPRESSION_PROPERTIES: &[(&str, BindProperty)] = &[
+    ("calculate", BindProperty::Calculate),
+    ("relevant", BindProperty::Relevant),
+    ("required", BindProperty::Required),
+    ("readonly", BindProperty::Readonly),
+    ("constraint", BindProperty::Constraint),
+];
+
+/// The Bind an expression belongs to: its `path` spelling and property.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BindSlot {
+    /// The Bind's target path as written (`name`, `group.name`, `rows[*].amount`).
+    pub path: String,
+    /// The Bind property holding the expression.
+    pub property: BindProperty,
+}
+
 /// A successfully parsed FEL expression with its location metadata.
 #[derive(Debug, Clone)]
 pub struct CompiledExpression {
@@ -16,10 +54,21 @@ pub struct CompiledExpression {
     pub expression: String,
     /// JSONPath to the expression slot, e.g. `$.binds.name.calculate`.
     pub expression_path: String,
-    /// The bind key this expression targets for dependency graph edges.
-    /// `Some` for dataflow slots (calculate, relevant, readonly, required).
-    /// `None` for constraint (allows self-reference without creating a dataflow edge).
-    pub bind_target: Option<String>,
+    /// The Bind slot holding this expression; `None` for Shapes, variables and routes.
+    pub bind: Option<BindSlot>,
+    /// The `target` of the Shape whose validity this expression decides (`constraint`,
+    /// `activeWhen` and composed members); `None` everywhere else, Shape `context` included.
+    pub shape_target: Option<String>,
+}
+
+/// What an expression belongs to, as recorded on [`CompiledExpression`].
+enum Owner {
+    /// Variables, routes, Shape `context` values.
+    None,
+    /// A Bind property.
+    Bind(BindSlot),
+    /// A validity-deciding slot of the Shape with this `target`.
+    Shape(String),
 }
 
 /// Result of compiling all FEL expression slots in a definition document.
@@ -50,15 +99,6 @@ pub fn compile_expressions(document: &Value) -> ExpressionCompilationResult {
 
 // ── Binds ────────────────────────────────────────────────────────
 
-/// All expression slots on a bind object.
-const ALL_BIND_SLOTS: &[&str] = &[
-    "calculate",
-    "relevant",
-    "required",
-    "readonly",
-    "constraint",
-];
-
 /// Dispatch to object or array format handler.
 fn walk_binds(
     binds: Option<&Value>,
@@ -85,42 +125,9 @@ fn walk_binds_object(
     };
 
     for (bind_key, bind_val) in binds {
-        let obj = match bind_val.as_object() {
-            Some(o) => o,
-            None => continue,
-        };
-
-        // Standard expression slots
-        for &slot in ALL_BIND_SLOTS {
-            if let Some(expr_str) = obj.get(slot).and_then(|v| v.as_str()) {
-                let expression_path = format!("{path_prefix}.binds.{bind_key}.{slot}");
-                let bind_target = if slot == "constraint" {
-                    None
-                } else {
-                    Some(bind_key.clone())
-                };
-                try_parse(
-                    expr_str,
-                    expression_path,
-                    bind_target,
-                    compiled,
-                    diagnostics,
-                );
-            }
-        }
-
-        // `default` — only when the value starts with `=` (FEL heuristic)
-        if let Some(default_str) = obj.get("default").and_then(|v| v.as_str())
-            && let Some(fel_source) = default_str.strip_prefix('=')
-        {
-            let expression_path = format!("{path_prefix}.binds.{bind_key}.default");
-            try_parse(
-                fel_source,
-                expression_path,
-                Some(bind_key.clone()),
-                compiled,
-                diagnostics,
-            );
+        if let Some(bind) = bind_val.as_object() {
+            let bind_json_path = format!("{path_prefix}.binds.{bind_key}");
+            walk_bind(bind, bind_key, &bind_json_path, compiled, diagnostics);
         }
     }
 }
@@ -142,36 +149,53 @@ fn walk_binds_array(
             None => continue,
         };
 
-        for &slot in ALL_BIND_SLOTS {
-            if let Some(expr_str) = obj.get(slot).and_then(|v| v.as_str()) {
-                let expression_path = format!("{path_prefix}.binds[{i}].{slot}");
-                let bind_target = if slot == "constraint" {
-                    None
-                } else {
-                    Some(bind_key.to_string())
-                };
-                try_parse(
-                    expr_str,
-                    expression_path,
-                    bind_target,
-                    compiled,
-                    diagnostics,
-                );
-            }
-        }
+        let bind_json_path = format!("{path_prefix}.binds[{i}]");
+        walk_bind(obj, bind_key, &bind_json_path, compiled, diagnostics);
+    }
+}
 
-        if let Some(default_str) = obj.get("default").and_then(|v| v.as_str())
-            && let Some(fel_source) = default_str.strip_prefix('=')
-        {
-            let expression_path = format!("{path_prefix}.binds[{i}].default");
+/// Parse every expression-bearing property of one Bind, recording its path and property.
+///
+/// The object-form walk, the array-form walk and screener-scoped Binds all route through
+/// here, so the property list and the `=`-prefixed `default` rule have one owner.
+fn walk_bind(
+    bind: &serde_json::Map<String, Value>,
+    bind_path: &str,
+    bind_json_path: &str,
+    compiled: &mut Vec<CompiledExpression>,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) {
+    let slot = |property| {
+        Owner::Bind(BindSlot {
+            path: bind_path.to_string(),
+            property,
+        })
+    };
+    for &(name, property) in BIND_EXPRESSION_PROPERTIES {
+        if let Some(expr_str) = bind.get(name).and_then(Value::as_str) {
+            let expression_path = format!("{bind_json_path}.{name}");
             try_parse(
-                fel_source,
+                expr_str,
                 expression_path,
-                Some(bind_key.to_string()),
+                slot(property),
                 compiled,
                 diagnostics,
             );
         }
+    }
+
+    // `default` — only when the value starts with `=` (FEL heuristic)
+    if let Some(default_str) = bind.get("default").and_then(Value::as_str)
+        && let Some(fel_source) = default_str.strip_prefix('=')
+    {
+        let expression_path = format!("{bind_json_path}.default");
+        try_parse(
+            fel_source,
+            expression_path,
+            slot(BindProperty::Default),
+            compiled,
+            diagnostics,
+        );
     }
 }
 
@@ -188,11 +212,14 @@ fn walk_shapes(
     };
 
     for (i, shape) in shapes.iter().enumerate() {
+        let target = shape.get("target").and_then(Value::as_str);
+        let owner = || target.map_or(Owner::None, |target| Owner::Shape(target.to_string()));
+
         // Direct expression slots
         for &slot in &["constraint", "activeWhen"] {
             if let Some(expr_str) = shape.get(slot).and_then(|v| v.as_str()) {
                 let expression_path = format!("$.shapes[{i}].{slot}");
-                try_parse(expr_str, expression_path, None, compiled, diagnostics);
+                try_parse(expr_str, expression_path, owner(), compiled, diagnostics);
             }
         }
 
@@ -201,7 +228,13 @@ fn walk_shapes(
             for (ctx_key, ctx_val) in ctx {
                 if let Some(expr_str) = ctx_val.as_str() {
                     let expression_path = format!("$.shapes[{i}].context.{ctx_key}");
-                    try_parse(expr_str, expression_path, None, compiled, diagnostics);
+                    try_parse(
+                        expr_str,
+                        expression_path,
+                        Owner::None,
+                        compiled,
+                        diagnostics,
+                    );
                 }
             }
         }
@@ -212,7 +245,7 @@ fn walk_shapes(
                 for (j, item) in arr.iter().enumerate() {
                     if let Some(expr_str) = item.as_str() {
                         let expression_path = format!("$.shapes[{i}].{array_op}[{j}]");
-                        try_parse(expr_str, expression_path, None, compiled, diagnostics);
+                        try_parse(expr_str, expression_path, owner(), compiled, diagnostics);
                     }
                 }
             }
@@ -220,7 +253,7 @@ fn walk_shapes(
 
         if let Some(not_str) = shape.get("not").and_then(|v| v.as_str()) {
             let expression_path = format!("$.shapes[{i}].not");
-            try_parse(not_str, expression_path, None, compiled, diagnostics);
+            try_parse(not_str, expression_path, owner(), compiled, diagnostics);
         }
     }
 }
@@ -240,7 +273,13 @@ fn walk_variables(
     for (i, var) in variables.iter().enumerate() {
         if let Some(expr_str) = var.get("expression").and_then(|v| v.as_str()) {
             let expression_path = format!("$.variables[{i}].expression");
-            try_parse(expr_str, expression_path, None, compiled, diagnostics);
+            try_parse(
+                expr_str,
+                expression_path,
+                Owner::None,
+                compiled,
+                diagnostics,
+            );
         }
     }
 }
@@ -262,7 +301,13 @@ fn walk_screener(
         for (i, route) in routes.iter().enumerate() {
             if let Some(expr_str) = route.get("condition").and_then(|v| v.as_str()) {
                 let expression_path = format!("$.screener.routes[{i}].condition");
-                try_parse(expr_str, expression_path, None, compiled, diagnostics);
+                try_parse(
+                    expr_str,
+                    expression_path,
+                    Owner::None,
+                    compiled,
+                    diagnostics,
+                );
             }
         }
     }
@@ -289,7 +334,7 @@ pub fn compile_screener_expressions(document: &Value) -> ExpressionCompilationRe
             // Phase activeWhen
             if let Some(expr_str) = phase.get("activeWhen").and_then(Value::as_str) {
                 let path = format!("$.evaluation[{i}].activeWhen");
-                try_parse(expr_str, path, None, &mut compiled, &mut diagnostics);
+                try_parse(expr_str, path, Owner::None, &mut compiled, &mut diagnostics);
             }
 
             // Routes: condition and score expressions
@@ -297,11 +342,11 @@ pub fn compile_screener_expressions(document: &Value) -> ExpressionCompilationRe
                 for (j, route) in routes.iter().enumerate() {
                     if let Some(expr_str) = route.get("condition").and_then(Value::as_str) {
                         let path = format!("$.evaluation[{i}].routes[{j}].condition");
-                        try_parse(expr_str, path, None, &mut compiled, &mut diagnostics);
+                        try_parse(expr_str, path, Owner::None, &mut compiled, &mut diagnostics);
                     }
                     if let Some(expr_str) = route.get("score").and_then(Value::as_str) {
                         let path = format!("$.evaluation[{i}].routes[{j}].score");
-                        try_parse(expr_str, path, None, &mut compiled, &mut diagnostics);
+                        try_parse(expr_str, path, Owner::None, &mut compiled, &mut diagnostics);
                     }
                 }
             }
@@ -319,27 +364,36 @@ pub fn compile_screener_expressions(document: &Value) -> ExpressionCompilationRe
 fn try_parse(
     source: &str,
     expression_path: String,
-    bind_target: Option<String>,
+    owner: Owner,
     compiled: &mut Vec<CompiledExpression>,
     diagnostics: &mut Vec<LintDiagnostic>,
 ) {
     match fel_core::parse(source) {
         Ok(_) => {
+            let (bind, shape_target) = match owner {
+                Owner::None => (None, None),
+                Owner::Bind(slot) => (Some(slot), None),
+                Owner::Shape(target) => (None, Some(target)),
+            };
             compiled.push(CompiledExpression {
                 expression: source.to_string(),
                 expression_path,
-                bind_target,
+                bind,
+                shape_target,
             });
         }
-        Err(e) => {
-            diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
-                crate::LintCode::E400,
-                4,
-                &expression_path,
-                format!("FEL parse error: {e}"),
-            )));
-        }
+        Err(e) => diagnostics.push(parse_error(&expression_path, &e)),
     }
+}
+
+/// The E400 finding for a FEL expression at `expression_path` that failed to parse.
+pub(crate) fn parse_error(expression_path: &str, error: &fel_core::Error) -> LintDiagnostic {
+    crate::metadata::with_metadata(LintDiagnostic::error(
+        crate::LintCode::E400,
+        4,
+        expression_path,
+        format!("FEL parse error: {error}"),
+    ))
 }
 
 // ── Tests ───────────────────────────────────────────────────────
@@ -350,8 +404,15 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    fn slot(path: &str, property: BindProperty) -> Option<BindSlot> {
+        Some(BindSlot {
+            path: path.to_string(),
+            property,
+        })
+    }
+
     #[test]
-    fn valid_bind_calculate_compiles_with_bind_target() {
+    fn valid_bind_calculate_compiles_with_its_bind_slot() {
         let doc = json!({
             "binds": {
                 "total": { "calculate": "$a + $b" }
@@ -365,7 +426,7 @@ mod tests {
         let expr = &result.compiled[0];
         assert_eq!(expr.expression, "$a + $b");
         assert_eq!(expr.expression_path, "$.binds.total.calculate");
-        assert_eq!(expr.bind_target, Some("total".to_string()));
+        assert_eq!(expr.bind, slot("total", BindProperty::Calculate));
     }
 
     #[test]
@@ -387,8 +448,11 @@ mod tests {
         assert!(diag.message.contains("FEL parse error"));
     }
 
+    // Before Core §3.6.1 vertices, `constraint` carried no target and every other property
+    // was a write; the record now names each expression's Bind slot, and the dependency
+    // pass decides which slots write a value.
     #[test]
-    fn constraint_has_no_bind_target() {
+    fn constraint_records_its_bind_slot() {
         let doc = json!({
             "binds": {
                 "age": { "constraint": "$ >= 0" }
@@ -398,12 +462,15 @@ mod tests {
 
         assert!(result.diagnostics.is_empty());
         assert_eq!(result.compiled.len(), 1);
-        assert_eq!(result.compiled[0].bind_target, None);
+        assert_eq!(
+            result.compiled[0].bind,
+            slot("age", BindProperty::Constraint)
+        );
         assert_eq!(result.compiled[0].expression_path, "$.binds.age.constraint");
     }
 
     #[test]
-    fn dataflow_slots_have_bind_target() {
+    fn every_bind_expression_records_its_property() {
         let doc = json!({
             "binds": {
                 "x": {
@@ -417,15 +484,20 @@ mod tests {
         let result = compile_expressions(&doc);
 
         assert!(result.diagnostics.is_empty());
-        assert_eq!(result.compiled.len(), 4);
-        for expr in &result.compiled {
-            assert_eq!(
-                expr.bind_target,
-                Some("x".to_string()),
-                "slot {} should have bind_target",
-                expr.expression_path
-            );
-        }
+        let recorded: Vec<(&str, Option<BindSlot>)> = result
+            .compiled
+            .iter()
+            .map(|expr| (expr.expression_path.as_str(), expr.bind.clone()))
+            .collect();
+        assert_eq!(
+            recorded,
+            vec![
+                ("$.binds.x.calculate", slot("x", BindProperty::Calculate)),
+                ("$.binds.x.relevant", slot("x", BindProperty::Relevant)),
+                ("$.binds.x.required", slot("x", BindProperty::Required)),
+                ("$.binds.x.readonly", slot("x", BindProperty::Readonly)),
+            ]
+        );
     }
 
     #[test]
@@ -451,9 +523,9 @@ mod tests {
         assert!(paths.contains(&"$.shapes[0].constraint"));
         assert!(paths.contains(&"$.shapes[0].activeWhen"));
 
-        // Shape expressions have no bind_target
+        // Shape expressions belong to no Bind
         for expr in &result.compiled {
-            assert_eq!(expr.bind_target, None);
+            assert_eq!(expr.bind, None);
         }
     }
 
@@ -590,7 +662,7 @@ mod tests {
         let expr = &result.compiled[0];
         assert_eq!(expr.expression, "concat($first, ' ', $last)");
         assert_eq!(expr.expression_path, "$.binds.name.default");
-        assert_eq!(expr.bind_target, Some("name".to_string()));
+        assert_eq!(expr.bind, slot("name", BindProperty::Default));
     }
 
     #[test]
@@ -635,19 +707,25 @@ mod tests {
         let result = compile_expressions(&doc);
         assert!(result.diagnostics.is_empty());
         assert_eq!(result.compiled.len(), 1);
-        assert_eq!(result.compiled[0].bind_target, Some("total".to_string()));
+        assert_eq!(
+            result.compiled[0].bind,
+            slot("total", BindProperty::Calculate)
+        );
         assert_eq!(result.compiled[0].expression_path, "$.binds[0].calculate");
     }
 
     #[test]
-    fn array_format_binds_constraint_no_bind_target() {
+    fn array_format_binds_constraint_records_its_bind_slot() {
         let doc = json!({
             "binds": [{ "path": "age", "constraint": "$ >= 0" }]
         });
         let result = compile_expressions(&doc);
         assert!(result.diagnostics.is_empty());
         assert_eq!(result.compiled.len(), 1);
-        assert_eq!(result.compiled[0].bind_target, None);
+        assert_eq!(
+            result.compiled[0].bind,
+            slot("age", BindProperty::Constraint)
+        );
         assert_eq!(result.compiled[0].expression_path, "$.binds[0].constraint");
     }
 
@@ -666,7 +744,7 @@ mod tests {
         assert!(result.diagnostics.is_empty());
         assert_eq!(result.compiled.len(), 4);
         for expr in &result.compiled {
-            assert_eq!(expr.bind_target, Some("x".to_string()));
+            assert_eq!(expr.bind.as_ref().map(|bind| bind.path.as_str()), Some("x"));
         }
     }
 
@@ -680,7 +758,7 @@ mod tests {
         assert_eq!(result.compiled.len(), 1);
         assert_eq!(result.compiled[0].expression, "concat($first, ' ', $last)");
         assert_eq!(result.compiled[0].expression_path, "$.binds[0].default");
-        assert_eq!(result.compiled[0].bind_target, Some("name".to_string()));
+        assert_eq!(result.compiled[0].bind, slot("name", BindProperty::Default));
     }
 
     #[test]
@@ -748,7 +826,10 @@ mod tests {
             1,
             "Only bind with path should be compiled"
         );
-        assert_eq!(result.compiled[0].bind_target, Some("valid".to_string()));
+        assert_eq!(
+            result.compiled[0].bind,
+            slot("valid", BindProperty::Calculate)
+        );
         assert!(result.diagnostics.is_empty());
     }
 
