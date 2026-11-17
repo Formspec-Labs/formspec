@@ -12,7 +12,6 @@ const POLICY_JSON: &str = include_str!("../specs/ui-policy.json");
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct UiPolicy {
-    #[allow(dead_code)]
     pub components: Vec<ComponentPolicy>,
     pub input_components: BTreeMap<String, InputComponentPolicy>,
     pub responsive: ResponsivePolicy,
@@ -21,8 +20,9 @@ pub(crate) struct UiPolicy {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ComponentPolicy {
-    #[allow(dead_code)]
     pub name: String,
+    /// Component spec category: `layout`, `input`, `display` or `container`.
+    pub category: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -51,6 +51,15 @@ pub(crate) fn ui_policy() -> &'static UiPolicy {
 
 pub(crate) fn input_component_policy(component: &str) -> Option<&'static InputComponentPolicy> {
     ui_policy().input_components.get(component)
+}
+
+/// The Component spec category the shared UI policy assigns to a built-in component.
+pub(crate) fn component_category(component: &str) -> Option<&'static str> {
+    ui_policy()
+        .components
+        .iter()
+        .find(|policy| policy.name == component)
+        .map(|policy| policy.category.as_str())
 }
 
 #[allow(dead_code)]

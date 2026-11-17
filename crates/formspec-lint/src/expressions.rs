@@ -97,6 +97,32 @@ pub fn compile_expressions(document: &Value) -> ExpressionCompilationResult {
     }
 }
 
+// ── Item initialValue ───────────────────────────────────────────
+
+/// E400 for each Item `initialValue` written as `=expr` that fails to parse (Core §4.2.3).
+///
+/// Kept out of [`compile_expressions`]: an `initialValue` is a creation seed, evaluated
+/// once, so it is neither a dependency-graph vertex (Core §3.6.1) nor part of the
+/// evaluation-time expression census callers such as wos-server read from `compiled`.
+pub(crate) fn initial_value_parse_errors(document: &Value) -> Vec<LintDiagnostic> {
+    let mut diagnostics = Vec::new();
+    formspec_core::visit_definition_items_from_document(document, &mut |ctx| {
+        if let Some(fel_source) = ctx
+            .item
+            .get("initialValue")
+            .and_then(Value::as_str)
+            .and_then(|value| value.strip_prefix('='))
+            && let Err(error) = fel_core::parse(fel_source)
+        {
+            diagnostics.push(parse_error(
+                &format!("{}.initialValue", ctx.json_path),
+                &error,
+            ));
+        }
+    });
+    diagnostics
+}
+
 // ── Binds ────────────────────────────────────────────────────────
 
 /// Dispatch to object or array format handler.
@@ -427,6 +453,26 @@ mod tests {
         assert_eq!(expr.expression, "$a + $b");
         assert_eq!(expr.expression_path, "$.binds.total.calculate");
         assert_eq!(expr.bind, slot("total", BindProperty::Calculate));
+    }
+
+    // wos-server admits task Definitions from `compiled`, whose census excludes creation
+    // seeds; `initialValue` is parse-checked separately and never joins it.
+    #[test]
+    fn initial_values_are_checked_outside_the_expression_census() {
+        let item = |initial: &str| {
+            let field =
+                json!({ "key": "d", "type": "field", "dataType": "date", "initialValue": initial });
+            json!({ "items": [field] })
+        };
+        let well_formed = item("=today()");
+        assert!(compile_expressions(&well_formed).compiled.is_empty());
+        assert!(initial_value_parse_errors(&well_formed).is_empty());
+
+        let broken = item("=today( +");
+        let malformed = initial_value_parse_errors(&broken);
+        assert_eq!(malformed.len(), 1);
+        assert_eq!(malformed[0].path, "$.items[0].initialValue");
+        assert!(compile_expressions(&broken).diagnostics.is_empty());
     }
 
     #[test]

@@ -1,0 +1,50 @@
+{
+  "$formspecComponent": "1.0",
+  "version": "1.0.0",
+  "targetDefinition": {
+    "url": "https://example.com/forms/w800-category"
+  },
+  "tree": {
+    "component": "Stack",
+    "children": [
+      {
+        "component": "DataTable",
+        "bind": "applicant",
+        "columns": [
+          {
+            "header": "First",
+            "bind": "first"
+          }
+        ]
+      }
+    ]
+  },
+  "_pairedDefinition": {
+    "$formspec": "1.0",
+    "url": "https://example.com/forms/w800-category",
+    "version": "1.0.0",
+    "status": "draft",
+    "title": "W800 category fixture paired definition",
+    "items": [
+      {
+        "key": "name",
+        "type": "field",
+        "label": "Name",
+        "dataType": "string"
+      },
+      {
+        "key": "applicant",
+        "type": "group",
+        "label": "Applicant",
+        "children": [
+          {
+            "key": "first",
+            "type": "field",
+            "label": "First",
+            "dataType": "string"
+          }
+        ]
+      }
+    ]
+  }
+}

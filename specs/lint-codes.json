@@ -120,7 +120,9 @@
       "specRef": "../fel-core/specs/fel/fel-grammar.md#4-expression-grammar",
       "suggestedFix": "fix the FEL syntax to match the grammar \u2014 check operators, quotes, and path references",
       "fixtures": [
-        "tests/fixtures/lint/E400-fel-parse-error.json"
+        "tests/fixtures/lint/E400-fel-parse-error.json",
+        "tests/fixtures/lint/E400-initial-value-parse-error.json",
+        "tests/fixtures/lint/E400-component-when-parse-error.json"
       ],
       "state": "tested"
     },
@@ -404,11 +406,11 @@
       "code": "W708",
       "pass": 6,
       "severity": "warning",
-      "title": "Unknown non-extension token",
-      "specRef": "specs/theme/theme-spec.md#31-token-structure",
-      "suggestedFix": "rename the token to a known category, or namespace custom tokens under an `x-` prefix",
+      "title": "Unregistered token under a registry-owned category (THEME-TOKEN-UNREGISTERED)",
+      "specRef": "specs/theme/token-registry-spec.md#53-validators",
+      "suggestedFix": "use a key the Token Registry declares, or move the token to the `x-` extension namespace",
       "fixtures": [
-        "tests/fixtures/lint/W708-unknown-non-extension-token.json"
+        "tests/fixtures/lint/W708-unregistered-token.json"
       ],
       "state": "tested"
     },
@@ -416,11 +418,23 @@
       "code": "W709",
       "pass": 6,
       "severity": "info",
-      "title": "Platform token not declared",
+      "title": "Platform tokens not declared",
       "specRef": "specs/theme/theme-spec.md#31-token-structure",
-      "suggestedFix": "declare this token under `tokens` to set a project-specific default; otherwise the platform default applies \u2014 no action required",
+      "suggestedFix": "declare any listed token under `tokens` to set a project-specific value; otherwise the platform or adapter default applies \u2014 no action required",
       "fixtures": [
         "tests/fixtures/lint/W709-platform-token-not-declared.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W710",
+      "pass": 6,
+      "severity": "warning",
+      "title": "Theme token outside every Theme category",
+      "specRef": "specs/theme/theme-spec.md#32-token-categories",
+      "suggestedFix": "use a Theme category prefix (`color.`, `spacing.`, `font.`, `radius.`, `typography.`, `border.`, `elevation.`) or move the token to the `x-` extension namespace",
+      "fixtures": [
+        "tests/fixtures/lint/W710-uncategorized-token.json"
       ],
       "state": "tested"
     },
@@ -610,11 +624,14 @@
       "code": "W800",
       "pass": 7,
       "severity": "warning",
-      "title": "Component bind does not resolve to a field",
+      "title": "Component bind does not resolve to an item its category accepts",
       "specRef": "specs/component/component-spec.md#42-bind-resolution-rules",
-      "suggestedFix": "point bind at an existing field key, or add that field to the definition",
+      "suggestedFix": "bind an Input component to a field, a Display component to a field or display item, and a DataTable or Accordion to a repeatable group \u2014 or add the missing item to the definition",
       "fixtures": [
-        "tests/fixtures/lint/W800-component-bind-unresolved.json"
+        "tests/fixtures/lint/W800-component-bind-unresolved.json",
+        "tests/fixtures/lint/W800-input-bound-to-group.json",
+        "tests/fixtures/lint/W800-display-bound-to-missing-item.json",
+        "tests/fixtures/lint/W800-datatable-bound-to-non-repeatable-group.json"
       ],
       "state": "tested"
     },

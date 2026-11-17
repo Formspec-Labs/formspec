@@ -1,0 +1,16 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.com/forms/e400-initial-value",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "E400 fixture: initialValue expression that does not parse",
+  "items": [
+    {
+      "key": "started",
+      "type": "field",
+      "label": "Started",
+      "dataType": "date",
+      "initialValue": "=today( +"
+    }
+  ]
+}

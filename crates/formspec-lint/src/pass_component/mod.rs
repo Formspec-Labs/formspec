@@ -1,4 +1,4 @@
-//! Pass 7: Component document semantic checks (E800-E807, W800-W807).
+//! Pass 7: Component document semantic checks (E800-E807, W800-W807), and E400 for `when`.
 #![allow(clippy::missing_docs_in_private_items)]
 
 mod check_duplicate_bind;
@@ -10,6 +10,7 @@ mod check_responsive;
 mod check_textinput_variant;
 mod check_theme_alignment;
 mod check_unknown;
+mod check_when;
 mod classification;
 mod custom_cycles;
 mod field_lookup;
@@ -72,10 +73,12 @@ pub(crate) fn lint_component_with_context(
         field_lookup,
         all_binds: HashSet::new(),
         editable_binds: HashSet::new(),
+        repeat_scopes: Vec::new(),
         diags,
     };
 
     state.walk_node(tree, "$.tree");
+    check_when::check_templates(state.custom_defs, &mut state.diags);
     if let Some(theme) = theme {
         check_theme_alignment::check(component, theme, definition, &mut state.diags);
     }

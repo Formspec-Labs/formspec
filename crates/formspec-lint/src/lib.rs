@@ -256,6 +256,7 @@ fn lint_definition(
     if !options.no_fel {
         let compilation = expressions::compile_expressions(doc);
         diagnostics.extend(compilation.diagnostics);
+        diagnostics.extend(expressions::initial_value_parse_errors(doc));
         diagnostics.extend(dependencies::analyze_dependencies(
             &compilation.compiled,
             &tree_index,

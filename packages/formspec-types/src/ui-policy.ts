@@ -903,7 +903,7 @@ export const UI_POLICY = {
     "customTokenPrefixes": [
       "x-"
     ],
-    "unknownNonExtensionDiagnostic": "W708",
+    "unknownNonExtensionDiagnostic": "W710",
     "platformDefaultDiagnostic": "W709"
   }
 } as const;

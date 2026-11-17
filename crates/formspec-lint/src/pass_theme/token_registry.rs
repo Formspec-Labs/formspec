@@ -1,4 +1,4 @@
-//! Embedded platform token registry and declared-token validation (W700–W703, W708–W709).
+//! Embedded platform token registry and declared-token validation (W700–W703, W708–W710).
 
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
@@ -130,6 +130,21 @@ impl TokenRegistry {
         self.all_keys.contains(key)
     }
 
+    /// Whether `key` sits under a category prefix the registry owns (`color.`, `spacing.`, …).
+    ///
+    /// Inside an owned prefix the registry's key set is closed, so an undeclared key names
+    /// nothing. Theme §3.2 categories the registry does not carry (`typography.`,
+    /// `border.`, `elevation.`) stay open, so their keys are not unregistered tokens.
+    fn owns_category_of(&self, key: &str) -> bool {
+        key.split_once('.').is_some_and(|(prefix, _)| {
+            self.all_keys.iter().any(|declared| {
+                declared
+                    .split_once('.')
+                    .is_some_and(|(owned, _)| owned == prefix)
+            })
+        })
+    }
+
     fn all_keys(&self) -> &HashSet<String> {
         &self.all_keys
     }
@@ -229,7 +244,61 @@ const BRAND_LOOKALIKES: [&str; 6] = [
     "color.dark.highlight",
 ];
 
-/// Validate `$.tokens` declarations against the platform registry (W700–W703, W708–W709).
+/// The token category prefixes Theme §3.2 recommends (its table, `x-` aside).
+///
+/// The Token Registry owns some of them (`color.`, `spacing.`, `font.`, `radius.`); the
+/// rest (`typography.`, `border.`, `elevation.`) are valid Theme vocabulary the registry
+/// deliberately does not carry, so their keys are neither unregistered nor uncategorized.
+/// The spec table is prose, so this list mirrors it; extend both together.
+const THEME_CATEGORY_PREFIXES: [&str; 7] = [
+    "color",
+    "spacing",
+    "font",
+    "radius",
+    "typography",
+    "border",
+    "elevation",
+];
+
+/// The finding for a declared token the registry does not cover, or `None`.
+///
+/// W708: a key under a registry-owned category that the registry does not declare names
+/// nothing (THEME-TOKEN-UNREGISTERED, token-registry-spec §5.3). W710: a key outside every
+/// Theme §3.2 category that does not use the `x-` prefix breaks that section's SHOULD.
+fn unregistered_token_finding(
+    registry: &TokenRegistry,
+    name: &str,
+) -> Option<(crate::LintCode, String)> {
+    if registry.contains(name) || name.starts_with("x-") {
+        return None;
+    }
+    if registry.owns_category_of(name) {
+        let hint = if BRAND_LOOKALIKES.contains(&name) {
+            format!(
+                " — the brand token is '{BRAND_TOKEN}', and nothing aliases '{name}' onto it, so this value is emitted as a CSS custom property no stylesheet reads"
+            )
+        } else {
+            String::new()
+        };
+        return Some((
+            crate::LintCode::W708,
+            format!(
+                "Token '{name}' sits under a Token Registry category but the registry does not declare it (THEME-TOKEN-UNREGISTERED){hint}"
+            ),
+        ));
+    }
+    let prefix = name.split_once('.').map_or(name, |(prefix, _)| prefix);
+    (!THEME_CATEGORY_PREFIXES.contains(&prefix)).then(|| {
+        (
+            crate::LintCode::W710,
+            format!(
+                "Token '{name}' uses no Theme §3.2 category prefix and not the 'x-' extension prefix"
+            ),
+        )
+    })
+}
+
+/// Validate `$.tokens` declarations against the platform registry (W700–W703, W708–W710).
 pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic>) {
     let registry = token_registry();
     let Some(tokens) = theme.get("tokens").and_then(|v| v.as_object()) else {
@@ -239,21 +308,9 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
     for (name, value) in tokens {
         let path = format!("$.tokens.{name}");
 
-        if !registry.contains(name) && !name.starts_with("x-") {
-            let hint = if BRAND_LOOKALIKES.contains(&name.as_str()) {
-                format!(
-                    " — the brand token is '{BRAND_TOKEN}', and nothing aliases '{name}' onto it, so this value is emitted as a CSS custom property no stylesheet reads"
-                )
-            } else {
-                String::new()
-            };
+        if let Some((code, message)) = unregistered_token_finding(registry, name) {
             diags.push(metadata::with_metadata(LintDiagnostic::warning(
-                crate::LintCode::W708,
-                PASS,
-                &path,
-                format!(
-                    "Token '{name}' is not a recognized platform token and does not use the 'x-' extension prefix{hint}"
-                ),
+                code, PASS, &path, message,
             )));
         }
 
@@ -332,19 +389,43 @@ pub(crate) fn lint_declared_tokens(theme: &Value, diags: &mut Vec<LintDiagnostic
         }
     }
 
+    let mut platform_defaults: Vec<&str> = Vec::new();
+    let mut adapter_defaults: Vec<&str> = Vec::new();
     for key in registry.all_keys() {
         if !tokens.contains_key(key.as_str()) {
-            let source = if registry.is_adapter_default(key) {
-                "the adapter's own value will be used"
+            if registry.is_adapter_default(key) {
+                adapter_defaults.push(key);
             } else {
-                "platform default will be used"
-            };
-            diags.push(metadata::with_metadata(LintDiagnostic::info(
-                crate::LintCode::W709,
-                PASS,
-                "$.tokens",
-                format!("Platform token '{key}' not declared in theme ({source})"),
-            )));
+                platform_defaults.push(key);
+            }
         }
     }
+    if platform_defaults.is_empty() && adapter_defaults.is_empty() {
+        return;
+    }
+    platform_defaults.sort_unstable();
+    adapter_defaults.sort_unstable();
+    let mut sources = Vec::new();
+    if !platform_defaults.is_empty() {
+        sources.push(format!(
+            "platform defaults for {}",
+            platform_defaults.join(", ")
+        ));
+    }
+    if !adapter_defaults.is_empty() {
+        sources.push(format!(
+            "the adapter's own values for {}",
+            adapter_defaults.join(", ")
+        ));
+    }
+    diags.push(metadata::with_metadata(LintDiagnostic::info(
+        crate::LintCode::W709,
+        PASS,
+        "$.tokens",
+        format!(
+            "{} platform tokens are not declared in this theme; it uses {}",
+            platform_defaults.len() + adapter_defaults.len(),
+            sources.join(", and ")
+        ),
+    )));
 }

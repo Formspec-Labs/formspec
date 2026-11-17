@@ -2,8 +2,10 @@
   "$formspecTheme": "1.0",
   "url": "https://example.com/themes/w708",
   "version": "1.0.0",
-  "targetDefinition": { "url": "https://example.com/forms/w708" },
+  "targetDefinition": {
+    "url": "https://example.com/forms/w708"
+  },
   "tokens": {
-    "madeUpCategory.weird": "value"
+    "color.accnt": "#0057B7"
   }
 }

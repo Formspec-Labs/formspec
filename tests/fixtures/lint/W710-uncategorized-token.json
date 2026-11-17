@@ -1,0 +1,9 @@
+{
+  "$formspecTheme": "1.0",
+  "url": "https://example.com/themes/w710",
+  "version": "1.0.0",
+  "targetDefinition": { "url": "https://example.com/forms/w710" },
+  "tokens": {
+    "madeUpCategory.weird": "value"
+  }
+}

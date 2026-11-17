@@ -26,7 +26,7 @@ fn empty_theme_produces_no_diagnostics() {
 
 #[test]
 fn minimal_theme_with_empty_tokens_only_emits_w709() {
-    // An empty tokens object causes W709 (info) for every platform token
+    // An empty tokens object causes one W709 (info) listing every platform token
     let theme = json!({ "tokens": {} });
     let diags = lint_theme(&theme, None);
     // All diagnostics should be W709 (info severity)
@@ -42,26 +42,21 @@ fn minimal_theme_with_empty_tokens_only_emits_w709() {
 #[test]
 fn w709_says_the_adapter_supplies_a_rhythm_token_the_platform_theme_never_carries() {
     let diags = lint_theme(&json!({ "tokens": {} }), None);
-    let message = |key: &str| {
-        with_code(&diags, "W709")
-            .into_iter()
-            .find(|d| d.message.contains(key))
-            .map(|d| d.message.clone())
-            .unwrap_or_default()
-    };
+    // W709 is one finding per theme (it used to be one per token); the §2.5 split between
+    // platform-default and adapter-default tokens is kept inside that finding.
+    let w709 = with_code(&diags, "W709");
+    assert_eq!(w709.len(), 1, "{w709:?}");
+    let (platform, adapter) = w709[0]
+        .message
+        .split_once("the adapter's own values for")
+        .expect("adapter-default tokens are named");
 
     // token-registry-spec §2.5: an adapter-default token has no platform value to fall back to.
-    assert!(
-        message("spacing.field").contains("adapter"),
-        "got: {}",
-        message("spacing.field")
-    );
-    assert!(
-        !message("spacing.section").contains("platform default"),
-        "got: {}",
-        message("spacing.section")
-    );
-    assert!(message("spacing.md").contains("platform default"));
+    let message = &w709[0].message;
+    assert!(adapter.contains("spacing.field"), "got: {message}");
+    assert!(adapter.contains("spacing.section"), "got: {message}");
+    assert!(!platform.contains("spacing.section"), "got: {message}");
+    assert!(platform.contains("spacing.md"), "got: {message}");
 }
 
 // ── 2. Valid hex color — no W700 ────────────────────────────

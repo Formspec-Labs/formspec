@@ -44,6 +44,16 @@ pub struct ItemTreeIndex {
     pub diagnostics: Vec<LintDiagnostic>,
 }
 
+/// Whether a Definition item is a repeatable group.
+///
+/// `"repeatable": true` is canonical; the legacy `"repeat": {…}` object also counts.
+pub(crate) fn is_repeatable(item: &Value) -> bool {
+    item.get("repeatable")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+        || item.get("repeat").is_some()
+}
+
 /// Build an `ItemTreeIndex` from a definition document.
 ///
 /// Walks `document["items"]` recursively. Items without a `key` field are skipped.
@@ -62,12 +72,7 @@ pub fn build_item_index(document: &Value) -> ItemTreeIndex {
             .get("dataType")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
-        let is_repeatable = ctx
-            .item
-            .get("repeatable")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false)
-            || ctx.item.get("repeat").is_some();
+        let is_repeatable = is_repeatable(ctx.item);
 
         let item_ref = ItemRef {
             key: ctx.key.to_string(),
