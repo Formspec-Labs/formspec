@@ -129,6 +129,7 @@ export {
   type AppGraphDocumentLinter,
   type AppGraphLintDiagnostic,
   type AppGraphDocumentLintContext,
+  type AppGraphDocumentLintValidatorOptions,
 } from './document-lint.js';
 export {
   validateScreenerSurfaceTargets,

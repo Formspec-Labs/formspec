@@ -14,6 +14,8 @@ import { handlesByKind, ownProp, record, stringProp } from './surface-widgets.js
 /** Context keys match the engine's `lintDocument` options; this package has no engine dependency. */
 export interface AppGraphDocumentLintContext {
   definitionDocument?: unknown;
+  /** Host JSON Schema and the dotted path to the paired Definition's data within it. */
+  mappingSourceContext?: { schema: unknown; dataPath: string };
   screenerDocument?: unknown;
   themeDocument?: unknown;
   componentDocuments?: unknown[];
@@ -35,6 +37,14 @@ export type AppGraphDocumentLinter = (
   document: unknown,
   context: AppGraphDocumentLintContext,
 ) => { diagnostics?: readonly AppGraphLintDiagnostic[] };
+
+export interface AppGraphDocumentLintValidatorOptions {
+  /** Resolve the host input for a loaded Mapping, or return undefined for ordinary Mapping lint. */
+  resolveMappingSourceContext?: (
+    mapping: ResolvedArtifactHandle,
+    context: AppGraphContext,
+  ) => AppGraphDocumentLintContext['mappingSourceContext'];
+}
 
 /** Lint findings keep their canonical codes under this origin. */
 export const DOCUMENT_LINT_ORIGIN = 'x-formspec-lint' as const;
@@ -155,8 +165,18 @@ const LINTED_KINDS: ReadonlySet<string> = new Set([
 ]);
 
 /** Lint every supported loaded document, even when its declared target cannot be resolved. */
-export function documentLintValidator(lint: AppGraphDocumentLinter): AppGraphCrossArtifactValidator {
+export function documentLintValidator(
+  lint: AppGraphDocumentLinter,
+  { resolveMappingSourceContext }: AppGraphDocumentLintValidatorOptions = {},
+): AppGraphCrossArtifactValidator {
   return (context) => context.handles
     .filter((handle) => handle.status === 'loaded' && LINTED_KINDS.has(handle.artifactKind))
-    .flatMap((handle) => documentLintDiagnostics(lint, handle, lintContextFor(context, handle)));
+    .flatMap((handle) => {
+      const lintContext = lintContextFor(context, handle);
+      if (handle.artifactKind === 'mapping') {
+        const sourceContext = resolveMappingSourceContext?.(handle, context);
+        if (sourceContext !== undefined) lintContext.mappingSourceContext = sourceContext;
+      }
+      return documentLintDiagnostics(lint, handle, lintContext);
+    });
 }

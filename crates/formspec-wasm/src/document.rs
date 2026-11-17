@@ -6,7 +6,9 @@ use formspec_core::{
     DocumentType, detect_document_type, json_pointer_to_jsonpath, schema_validation_plan,
 };
 #[cfg(feature = "lint")]
-use formspec_lint::{LintMode, LintOptions, lint_result_to_json_value, lint_with_options};
+use formspec_lint::{
+    LintMode, LintOptions, MappingSourceContext, lint_result_to_json_value, lint_with_options,
+};
 use serde::Deserialize;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -50,6 +52,14 @@ pub fn plan_schema_validation_wasm(
 // ── Linting (`feature = "lint"` — tools WASM only) ──────────────
 
 #[cfg(feature = "lint")]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MappingSourceContextWasmOptions {
+    schema: Value,
+    data_path: String,
+}
+
+#[cfg(feature = "lint")]
 #[derive(Debug, Default, Deserialize)]
 struct LintDocumentWasmOptions {
     #[serde(default, alias = "registryDocuments")]
@@ -57,6 +67,8 @@ struct LintDocumentWasmOptions {
     mode: Option<String>,
     #[serde(default, alias = "definitionDocument")]
     definition_document: Option<Value>,
+    #[serde(rename = "mappingSourceContext")]
+    mapping_source_context: Option<MappingSourceContextWasmOptions>,
     #[serde(default, alias = "screenerDocument")]
     screener_document: Option<Value>,
     #[serde(default, alias = "themeDocument")]
@@ -96,7 +108,12 @@ fn lint_options_from_wasm_json(options_json: Option<&str>) -> Result<LintOptions
         mode: LintMode::from_host_option_str(parsed.mode.as_deref()),
         registry_documents: parsed.registry_documents,
         definition_document: parsed.definition_document,
-        mapping_source_context: None,
+        mapping_source_context: parsed
+            .mapping_source_context
+            .map(|context| MappingSourceContext {
+                schema: context.schema,
+                data_path: context.data_path,
+            }),
         screener_document: parsed.screener_document,
         theme_document: parsed.theme_document,
         component_documents: parsed.component_documents,
@@ -136,6 +153,10 @@ mod tests {
                 "mode": "strict",
                 "registryDocuments": [{"$formspecRegistry": "1.1"}],
                 "definitionDocument": {"$formspec": "1.0"},
+                "mappingSourceContext": {
+                    "schema": {"type": "object"},
+                    "dataPath": "response.data"
+                },
                 "screenerDocument": {"$formspecScreener": "1.0"},
                 "themeDocument": {"$formspecTheme": "1.0"},
                 "componentDocuments": [{"$formspecComponent": "1.0"}],
@@ -172,6 +193,11 @@ mod tests {
             options.definition_document,
             Some(json!({"$formspec": "1.0"}))
         );
+        let mapping_source_context = options
+            .mapping_source_context
+            .expect("host Mapping context");
+        assert_eq!(mapping_source_context.schema, json!({"type": "object"}));
+        assert_eq!(mapping_source_context.data_path, "response.data");
         assert_eq!(
             options.theme_document,
             Some(json!({"$formspecTheme": "1.0"}))

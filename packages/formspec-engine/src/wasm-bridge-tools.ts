@@ -270,6 +270,13 @@ export interface WasmLintDocumentOptions {
     registryDocuments?: unknown[];
     mode?: string;
     definitionDocument?: unknown;
+    /** Host input for a Definition-associated Mapping. Requires the paired Definition. */
+    mappingSourceContext?: {
+        /** JSON Schema for the host metadata and the Definition data root. */
+        schema: unknown;
+        /** Dotted path to the Definition data object within the host input. */
+        dataPath: string;
+    };
     /** Exact paired freestanding Screener for Locale 2.1 item and target checks. */
     screenerDocument?: unknown;
     themeDocument?: unknown;

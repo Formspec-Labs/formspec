@@ -40,6 +40,29 @@ const locale = {
 
 const theme = { $formspecTheme: '1.0', url: themeUrl, version: '1.0.0', targetDefinition: { url: definitionUrl } };
 
+const hostMapping = {
+  $formspecMapping: '1.0',
+  version: '1.0.0',
+  definitionRef: definitionUrl,
+  definitionVersion: '1.0.0',
+  targetSchema: { format: 'json' },
+  rules: [
+    { sourcePath: 'handoff.responseRef', targetPath: 'reference', transform: 'preserve' },
+    { sourcePath: 'response.data.name', targetPath: 'name', transform: 'preserve' },
+  ],
+};
+
+const mappingSourceContext = {
+  dataPath: 'response.data',
+  schema: {
+    type: 'object',
+    properties: {
+      handoff: { type: 'object', properties: { responseRef: { type: 'string' } } },
+      response: { type: 'object', properties: { data: { type: 'object' } } },
+    },
+  },
+};
+
 function bundle(def: unknown, extra: { needs?: unknown; locale?: boolean } = {}) {
   return {
     manifest: {
@@ -260,6 +283,30 @@ describe('document lint mapping and context', () => {
     expect(seen?.definitionDocument).toEqual(definition());
   });
 
+  it('asks the host only about loaded Mappings and uses each context on that Mapping alone', () => {
+    const host = handle('mapping', hostMapping, 'mappings[0]');
+    const ordinary = handle('mapping', { ...hostMapping }, 'mappings[1]');
+    const context = graph([
+      ...companionHandles(), host, ordinary, { ...host, slot: 'mappings[2]', status: 'missing' },
+    ]);
+    const resolved: ResolvedArtifactHandle[] = [];
+    const seen = new Map<unknown, AppGraphDocumentLintContext>();
+    documentLintValidator((document, lintContext) => {
+      seen.set(document, lintContext);
+      return { diagnostics: [] };
+    }, {
+      resolveMappingSourceContext: (mapping, graphContext) => {
+        expect(graphContext).toBe(context);
+        resolved.push(mapping);
+        return mapping === host ? mappingSourceContext : undefined;
+      },
+    })(context);
+    expect(resolved).toEqual([host, ordinary]);
+    expect(seen.get(host.document)).toMatchObject({ definitionDocument: definition(), mappingSourceContext });
+    expect(seen.get(ordinary.document)).not.toHaveProperty('mappingSourceContext');
+    expect(seen.get(theme)).not.toHaveProperty('mappingSourceContext');
+  });
+
   it.each(['screener', 'app'] as const)('supplies same-target peer Locales for a %s Locale', (kind) => {
     const url = `https://example.gov/${kind}/intake`;
     const target = { kind, url };
@@ -279,6 +326,30 @@ describe('document lint mapping and context', () => {
 
 describe('document lint through the real engine', () => {
   beforeAll(async () => { await initFormspecEngine(); await initFormspecEngineTools(); });
+
+  it('qualifies host metadata and Definition paths without hiding stale paths', () => {
+    const paired = handle('definition', { ...definition(), status: 'draft' });
+    const validate = documentLintValidator(lintDocument, {
+      resolveMappingSourceContext: () => mappingSourceContext,
+    });
+    const mappingHandle = handle('mapping', hostMapping, 'mappings[0]');
+    expect(documentLintValidator(lintDocument)(graph([paired, mappingHandle]))
+      .filter((diagnostic) => diagnostic.code === 'E1110')).toHaveLength(2);
+    expect(validate(graph([paired, mappingHandle])).filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
+
+    const invalid = {
+      ...hostMapping,
+      rules: [
+        { ...hostMapping.rules[0], sourcePath: 'handoff.missing' },
+        { ...hostMapping.rules[1], sourcePath: 'response.data.missing' },
+      ],
+    };
+    expect(validate(graph([paired, { ...mappingHandle, document: invalid }]))
+      .filter((diagnostic) => diagnostic.code === 'E1110')
+      .map((diagnostic) => diagnostic.primarySource?.jsonPointer))
+      .toEqual(['/rules/0/sourcePath', '/rules/1/sourcePath']);
+    expect(validate(graph([mappingHandle]))).toContainEqual(expect.objectContaining({ code: 'E1100' }));
+  });
 
   it('refuses Definition E302 and Response Action E1805 in a bundle report', async () => {
     const def = definition();
