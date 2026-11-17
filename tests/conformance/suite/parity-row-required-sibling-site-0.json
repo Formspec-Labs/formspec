@@ -1,0 +1,26 @@
+{
+  "id": "parity.row-required-sibling-site-0",
+  "kind": "FEL_EVALUATION",
+  "specRefs": [
+    "Core §3.2.1 (S5: every expression site)",
+    "Component §8 when"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-row-required.definition.json",
+  "origin": "saved",
+  "inputData": {
+    "rows": [
+      {
+        "kind": "x"
+      },
+      {
+        "kind": "y"
+      }
+    ]
+  },
+  "site": "rows[0].detail",
+  "expression": "$kind = 'x'",
+  "comparator": "exact",
+  "expected": {
+    "value": true
+  }
+}

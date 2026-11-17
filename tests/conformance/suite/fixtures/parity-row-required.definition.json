@@ -1,0 +1,45 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:row-required",
+  "version": "1.0.0",
+  "title": "Row-conditional required",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "kind",
+          "type": "field",
+          "dataType": "string",
+          "label": "Kind"
+        },
+        {
+          "key": "detail",
+          "type": "field",
+          "dataType": "string",
+          "label": "Detail for {{$kind}}"
+        },
+        {
+          "key": "detail2",
+          "type": "field",
+          "dataType": "string",
+          "label": "Detail 2"
+        }
+      ],
+      "repeatable": true
+    }
+  ],
+  "binds": [
+    {
+      "path": "rows[*].detail",
+      "required": "$kind = 'x'"
+    },
+    {
+      "path": "rows[*].detail2",
+      "required": "@current.kind = 'x'"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "id": "parity.undeclared-keys-kept-in-place",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Owner ruling Q1 / Core §2.1.6 (S3): undeclared keys are kept where they arrived and reported"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-undeclared.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "a": "x",
+    "bogus": "kept",
+    "rows": [
+      {
+        "a2": "r",
+        "legacy": "old"
+      }
+    ]
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "a": "x",
+      "bogus": "kept",
+      "rows": [
+        {
+          "a2": "r",
+          "legacy": "old"
+        }
+      ]
+    },
+    "undeclaredDataPaths": [
+      "bogus",
+      "rows[0].legacy"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "parity.row-nested-group-sibling-site",
+  "kind": "FEL_EVALUATION",
+  "specRefs": [
+    "Core §3.2.1 (S5)"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-row-nested.definition.json",
+  "origin": "saved",
+  "inputData": {
+    "rows": [
+      {
+        "body": {
+          "a": "hello"
+        }
+      }
+    ]
+  },
+  "site": "rows[0].body.copy",
+  "expression": "$a",
+  "comparator": "exact",
+  "expected": {
+    "value": "hello"
+  }
+}

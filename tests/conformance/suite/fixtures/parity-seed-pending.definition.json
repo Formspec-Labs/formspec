@@ -1,0 +1,47 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:seed-pending",
+  "version": "1.0.0",
+  "title": "Seed from a failed source",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "name",
+          "type": "field",
+          "dataType": "string",
+          "label": "Name",
+          "prePopulate": {
+            "instance": "remote",
+            "path": "name"
+          }
+        }
+      ],
+      "repeatable": true,
+      "minRepeat": 1,
+      "seedFrom": {
+        "instance": "remote",
+        "path": "items"
+      }
+    }
+  ],
+  "instances": {
+    "remote": {
+      "source": "https://conformance.invalid/parity/seed.json",
+      "data": {
+        "items": [
+          {
+            "name": "ACME"
+          },
+          {
+            "name": "WIDGETS"
+          }
+        ]
+      }
+    }
+  }
+}

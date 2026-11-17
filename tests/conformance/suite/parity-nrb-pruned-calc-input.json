@@ -1,0 +1,38 @@
+{
+  "id": "parity.nrb-pruned-calc-input",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §5.6 Non-Relevant Field Handling (remove is the default)",
+    "Owner ruling Q6: re-evaluating a submitted Response sees pruned fields as null and recomputes"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-nrb.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "show": false,
+    "x": 5,
+    "y": 6
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "y",
+        "code": "CONSTRAINT_FAILED",
+        "severity": "error",
+        "constraintKind": "constraint",
+        "message": "y must equal c"
+      }
+    ],
+    "data": {
+      "show": false,
+      "c": null,
+      "y": 6
+    }
+  }
+}

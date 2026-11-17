@@ -1,0 +1,27 @@
+{
+  "id": "parity.row-star-is-all-rows-text",
+  "kind": "ITEM_TEXT",
+  "specRefs": [
+    "Core §4.2.1",
+    "Core §3.2.2"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-row-star.definition.json",
+  "inputData": {
+    "rows": [
+      {
+        "amt": 1
+      },
+      {
+        "amt": 3
+      }
+    ]
+  },
+  "expected": {
+    "rows[0].share": {
+      "label": "1 of 4"
+    },
+    "rows[1].share": {
+      "label": "3 of 4"
+    }
+  }
+}

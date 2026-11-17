@@ -1,0 +1,39 @@
+{
+  "id": "parity.prepopulate-cleared-stays-cleared",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.2.3 prePopulate applies at creation (one-shot)",
+    "Core §2.4 (no creation on re-evaluation)",
+    "Core §4.3.1 required"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-prepopulate-editable.definition.json",
+  "origin": "new",
+  "mode": "submit",
+  "inputData": {},
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "name",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      }
+    ],
+    "data": {
+      "name": null
+    }
+  },
+  "operations": [
+    {
+      "op": "setValue",
+      "path": "name",
+      "value": null
+    }
+  ]
+}

@@ -1,6 +1,11 @@
 {
   "id": "response-data.non-relevant-remove-keep",
   "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §5.6 remove (default) omits; keep retains the last value",
+    "Core §4.3.1 per-path nonRelevantBehavior"
+  ],
+  "origin": "saved",
   "definitionPath": "tests/conformance/suite/fixtures/response-data.definition.json",
   "inputData": {
     "show": false,
@@ -51,11 +56,5 @@
         "members": []
       }
     }
-  },
-  "legacyCoverage": [
-    {
-      "path": "crates/formspec-eval/tests/integration/shared_suite.rs",
-      "check": "engine_processing_data_is_the_response_and_round_trips"
-    }
-  ]
+  }
 }

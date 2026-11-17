@@ -1,6 +1,9 @@
 {
   "id": "fel.arith_basic",
   "kind": "FEL_EVALUATION",
+  "specRefs": [
+    "Core §3.3 arithmetic operators"
+  ],
   "expression": "1 + 2",
   "comparator": "tolerant-decimal",
   "fields": [],

@@ -1,11 +1,23 @@
 {
   "id": "fel.field_math",
   "kind": "FEL_EVALUATION",
-  "expression": "budget + grandTotal",
+  "specRefs": [
+    "Core §3.3 arithmetic on field values",
+    "FEL grammar §6 (fel-grammar.md:329): a field reference is `$` + identifier"
+  ],
+  "expression": "$budget + $grandTotal",
   "comparator": "tolerant-decimal",
   "fields": [
-    { "key": "budget", "dataType": "decimal", "value": 100 },
-    { "key": "grandTotal", "dataType": "decimal", "value": 250 }
+    {
+      "key": "budget",
+      "dataType": "decimal",
+      "value": 100
+    },
+    {
+      "key": "grandTotal",
+      "dataType": "decimal",
+      "value": 250
+    }
   ],
   "inputData": {},
   "expected": {

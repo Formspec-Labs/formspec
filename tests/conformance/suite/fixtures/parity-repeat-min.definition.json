@@ -1,0 +1,30 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:repeat-min",
+  "version": "1.0.0",
+  "title": "Repeat with minRepeat 2",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "a",
+          "type": "field",
+          "dataType": "string",
+          "label": "A"
+        }
+      ],
+      "repeatable": true,
+      "minRepeat": 2
+    }
+  ],
+  "binds": [
+    {
+      "path": "rows[*].a",
+      "required": "true"
+    }
+  ]
+}

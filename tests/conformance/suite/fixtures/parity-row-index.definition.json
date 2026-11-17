@@ -1,0 +1,55 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:row-index",
+  "version": "1.0.0",
+  "title": "Explicit row index",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "lo",
+          "type": "field",
+          "dataType": "integer",
+          "label": "Lo"
+        }
+      ],
+      "repeatable": true
+    },
+    {
+      "key": "first",
+      "type": "field",
+      "dataType": "integer",
+      "label": "First"
+    },
+    {
+      "key": "probe",
+      "type": "field",
+      "dataType": "integer",
+      "label": "Probe"
+    }
+  ],
+  "binds": [
+    {
+      "path": "first",
+      "calculate": "$rows[1].lo"
+    },
+    {
+      "path": "probe",
+      "constraint": "$rows[1].lo = 1",
+      "constraintMessage": "constraint saw another first row"
+    }
+  ],
+  "shapes": [
+    {
+      "id": "first-row",
+      "target": "probe",
+      "severity": "error",
+      "constraint": "$rows[1].lo = 1",
+      "message": "shape saw another first row"
+    }
+  ]
+}

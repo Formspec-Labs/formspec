@@ -1,6 +1,13 @@
 {
   "id": "all-codes.validation-report",
   "kind": "VALIDATION_REPORT",
+  "specRefs": [
+    "Core §2.5.1 reserved codes (REQUIRED, TYPE_MISMATCH, MIN_REPEAT, MAX_REPEAT, CONSTRAINT_FAILED, SHAPE_FAILED)",
+    "Core §4.2.2 minRepeat/maxRepeat (no padding of a present [])",
+    "Registry §7 Conformance (unresolved = error; compatibility mismatch and retired = warning; deprecated = info)",
+    "Registry §3.2 constraint categories (pattern, maxLength, range)"
+  ],
+  "origin": "saved",
   "definitionPath": "tests/conformance/suite/fixtures/all-codes.definition.json",
   "registryPaths": [
     "tests/conformance/suite/fixtures/all-codes.registry.json"
@@ -41,16 +48,13 @@
     },
     "results": [
       {
-        "$formspecValidationResult": "1.0",
         "code": "EXTENSION_COMPATIBILITY_MISMATCH",
         "constraintKind": "constraint",
-        "message": "Extension 'x-test-compat' requires formspec version >=99.0.0",
         "path": "compat_field",
         "severity": "warning",
         "source": "external"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "CONSTRAINT_FAILED",
         "constraint": "$ > 0",
         "constraintKind": "constraint",
@@ -60,86 +64,67 @@
         "source": "bind"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "EXTENSION_DEPRECATED",
         "constraintKind": "constraint",
-        "message": "Extension 'x-test-deprecated' is deprecated",
         "path": "deprecated_field",
         "severity": "info",
         "source": "external"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "MAX_REPEAT",
         "constraintKind": "cardinality",
-        "message": "Maximum 1 entries allowed",
         "path": "max_group",
         "severity": "error"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "MAX_LENGTH_EXCEEDED",
         "constraintKind": "constraint",
-        "message": "Short Code must be at most 5 characters",
         "path": "maxlen_field",
         "severity": "error",
         "source": "external"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "MIN_REPEAT",
         "constraintKind": "cardinality",
-        "message": "Minimum 2 entries required",
         "path": "min_group",
         "severity": "error"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "PATTERN_MISMATCH",
         "constraintKind": "constraint",
-        "message": "Must be a valid Test Pattern",
         "path": "patterned_field",
         "severity": "error",
         "source": "external"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "RANGE_OVERFLOW",
         "constraintKind": "constraint",
-        "message": "Ranged Value must be at most 100",
         "path": "range_high_field",
         "severity": "error",
         "source": "external"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "RANGE_UNDERFLOW",
         "constraintKind": "constraint",
-        "message": "Ranged Value must be at least 10",
         "path": "range_low_field",
         "severity": "error",
         "source": "external"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "REQUIRED",
         "constraintKind": "required",
-        "message": "Required",
         "path": "required_field",
         "severity": "error",
         "source": "bind"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "EXTENSION_RETIRED",
         "constraintKind": "constraint",
-        "message": "Extension 'x-test-retired' is retired",
         "path": "retired_field",
         "severity": "warning",
         "source": "external"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "SHAPE_FAILED",
         "constraint": "$ > 50",
         "constraintKind": "shape",
@@ -150,19 +135,15 @@
         "source": "shape"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "TYPE_MISMATCH",
         "constraintKind": "type",
-        "message": "Invalid integer",
         "path": "typed_field",
         "severity": "error",
         "source": "bind"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "UNRESOLVED_EXTENSION",
         "constraintKind": "constraint",
-        "message": "Unresolved extension 'x-nonexistent': no matching registry entry loaded",
         "path": "unresolved_ext_field",
         "severity": "error",
         "source": "external"
@@ -173,10 +154,6 @@
     {
       "path": "tests/unit/test_definition_evaluator.py",
       "check": "TestBindValidation::test_type_validation_string"
-    },
-    {
-      "path": "packages/formspec-engine/tests/shared-suite.test.mjs",
-      "check": "all-codes-validation-report"
     }
   ]
 }

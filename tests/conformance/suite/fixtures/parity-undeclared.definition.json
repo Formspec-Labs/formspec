@@ -1,0 +1,29 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:undeclared",
+  "version": "1.0.0",
+  "title": "Undeclared keys",
+  "status": "active",
+  "items": [
+    {
+      "key": "a",
+      "type": "field",
+      "dataType": "string",
+      "label": "A"
+    },
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "a2",
+          "type": "field",
+          "dataType": "string",
+          "label": "A2"
+        }
+      ],
+      "repeatable": true
+    }
+  ]
+}

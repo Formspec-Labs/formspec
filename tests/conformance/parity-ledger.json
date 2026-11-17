@@ -1,0 +1,1528 @@
+{
+  "description": "Known browser/server divergences in the shared conformance suite (tests/conformance/suite), per case, runner (ts = FormEngine + WASM evaluator, rust = native formspec-eval) and leg (P, S, F, F_submit, FR, noInvention, value, text), with the exact problem lines the leg reports. A listed leg must fail with exactly its recorded problems and an unlisted leg must pass; each fix deletes its entries, and epic fs-p4kg closes when this file is deleted. See formspec/thoughts/plans/evaluator-parity.md §2.7.",
+  "entries": {
+    "all-codes.validation-report": {
+      "ts": {
+        "F": {
+          "ticket": "fs-pod9",
+          "why": "both FormEngine and P report MIN_REPEAT and MAX_REPEAT; every line is the cardinality `source` difference: FormEngine strips `source` from cardinality results (response-assembly.ts:398-410) while the evaluator emits source 'bind'",
+          "problems": [
+            "FormEngine live vs P results only here {\"code\":\"MAX_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Maximum 1 entries allowed\",\"path\":\"max_group\",\"severity\":\"error\"}",
+            "FormEngine live vs P results only here {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"min_group\",\"severity\":\"error\"}",
+            "FormEngine live vs P results only there {\"code\":\"MAX_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Maximum 1 entries allowed\",\"path\":\"max_group\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine live vs P results only there {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"min_group\",\"severity\":\"error\",\"source\":\"bind\"}"
+          ]
+        },
+        "S": {
+          "ticket": "fs-20e3",
+          "why": "the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them); also the filed bytes carry min_group [{},{}], so MIN_REPEAT is missing (F2, fs-i731)",
+          "problems": [
+            "counts {\"error\":13,\"info\":0,\"warning\":0}, expected {\"error\":11,\"info\":1,\"warning\":2}",
+            "expected result missing {\"code\":\"EXTENSION_COMPATIBILITY_MISMATCH\",\"constraintKind\":\"constraint\",\"path\":\"compat_field\",\"severity\":\"warning\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"EXTENSION_DEPRECATED\",\"constraintKind\":\"constraint\",\"path\":\"deprecated_field\",\"severity\":\"info\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"MAX_LENGTH_EXCEEDED\",\"constraintKind\":\"constraint\",\"path\":\"maxlen_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"path\":\"min_group\",\"severity\":\"error\"}",
+            "expected result missing {\"code\":\"PATTERN_MISMATCH\",\"constraintKind\":\"constraint\",\"path\":\"patterned_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"RANGE_OVERFLOW\",\"constraintKind\":\"constraint\",\"path\":\"range_high_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"RANGE_UNDERFLOW\",\"constraintKind\":\"constraint\",\"path\":\"range_low_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"EXTENSION_RETIRED\",\"constraintKind\":\"constraint\",\"path\":\"retired_field\",\"severity\":\"warning\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-compat': no matching registry entry loaded\",\"path\":\"compat_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-deprecated': no matching registry entry loaded\",\"path\":\"deprecated_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-maxlen': no matching registry entry loaded\",\"path\":\"maxlen_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-pattern': no matching registry entry loaded\",\"path\":\"patterned_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-range': no matching registry entry loaded\",\"path\":\"range_high_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-range': no matching registry entry loaded\",\"path\":\"range_low_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-retired': no matching registry entry loaded\",\"path\":\"retired_field\",\"severity\":\"error\",\"source\":\"external\"}"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-20e3",
+          "why": "FormEngine's submit report (with registries) vs the server verdict (without): the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them); also MIN_REPEAT (F2, fs-i731) and cardinality `source` (fs-pod9)",
+          "problems": [
+            "FormEngine submit vs S results only here {\"code\":\"EXTENSION_COMPATIBILITY_MISMATCH\",\"constraintKind\":\"constraint\",\"message\":\"Extension 'x-test-compat' requires formspec version >=99.0.0\",\"path\":\"compat_field\",\"severity\":\"warning\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only here {\"code\":\"EXTENSION_DEPRECATED\",\"constraintKind\":\"constraint\",\"message\":\"Extension 'x-test-deprecated' is deprecated\",\"path\":\"deprecated_field\",\"severity\":\"info\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only here {\"code\":\"MAX_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Maximum 1 entries allowed\",\"path\":\"max_group\",\"severity\":\"error\"}",
+            "FormEngine submit vs S results only here {\"code\":\"MAX_LENGTH_EXCEEDED\",\"constraintKind\":\"constraint\",\"message\":\"Short Code must be at most 5 characters\",\"path\":\"maxlen_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only here {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"min_group\",\"severity\":\"error\"}",
+            "FormEngine submit vs S results only here {\"code\":\"PATTERN_MISMATCH\",\"constraintKind\":\"constraint\",\"message\":\"Must be a valid Test Pattern\",\"path\":\"patterned_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only here {\"code\":\"RANGE_OVERFLOW\",\"constraintKind\":\"constraint\",\"message\":\"Ranged Value must be at most 100\",\"path\":\"range_high_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only here {\"code\":\"RANGE_UNDERFLOW\",\"constraintKind\":\"constraint\",\"message\":\"Ranged Value must be at least 10\",\"path\":\"range_low_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only here {\"code\":\"EXTENSION_RETIRED\",\"constraintKind\":\"constraint\",\"message\":\"Extension 'x-test-retired' is retired\",\"path\":\"retired_field\",\"severity\":\"warning\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-compat': no matching registry entry loaded\",\"path\":\"compat_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-deprecated': no matching registry entry loaded\",\"path\":\"deprecated_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"MAX_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Maximum 1 entries allowed\",\"path\":\"max_group\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-maxlen': no matching registry entry loaded\",\"path\":\"maxlen_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-pattern': no matching registry entry loaded\",\"path\":\"patterned_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-range': no matching registry entry loaded\",\"path\":\"range_high_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-range': no matching registry entry loaded\",\"path\":\"range_low_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-retired': no matching registry entry loaded\",\"path\":\"retired_field\",\"severity\":\"error\",\"source\":\"external\"}"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate adds min_group[0], min_group[1] = {} to a present [] — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added min_group[0] = {}",
+            "P(continuous): added min_group[1] = {}",
+            "P(submit): added min_group[0] = {}",
+            "P(submit): added min_group[1] = {}"
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-20e3",
+          "why": "the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them); also the filed bytes carry min_group [{},{}], so MIN_REPEAT is missing (F2, fs-i731)",
+          "problems": [
+            "error count 13, expected 11",
+            "warning count 0, expected 2",
+            "info count 0, expected 1",
+            "expected result missing {\"code\":\"EXTENSION_COMPATIBILITY_MISMATCH\",\"constraintKind\":\"constraint\",\"path\":\"compat_field\",\"severity\":\"warning\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"EXTENSION_DEPRECATED\",\"constraintKind\":\"constraint\",\"path\":\"deprecated_field\",\"severity\":\"info\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"MAX_LENGTH_EXCEEDED\",\"constraintKind\":\"constraint\",\"path\":\"maxlen_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"path\":\"min_group\",\"severity\":\"error\"}",
+            "expected result missing {\"code\":\"PATTERN_MISMATCH\",\"constraintKind\":\"constraint\",\"path\":\"patterned_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"RANGE_OVERFLOW\",\"constraintKind\":\"constraint\",\"path\":\"range_high_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"RANGE_UNDERFLOW\",\"constraintKind\":\"constraint\",\"path\":\"range_low_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "expected result missing {\"code\":\"EXTENSION_RETIRED\",\"constraintKind\":\"constraint\",\"path\":\"retired_field\",\"severity\":\"warning\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-compat': no matching registry entry loaded\",\"path\":\"compat_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-deprecated': no matching registry entry loaded\",\"path\":\"deprecated_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-maxlen': no matching registry entry loaded\",\"path\":\"maxlen_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-pattern': no matching registry entry loaded\",\"path\":\"patterned_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-range': no matching registry entry loaded\",\"path\":\"range_high_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-range': no matching registry entry loaded\",\"path\":\"range_low_field\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-retired': no matching registry entry loaded\",\"path\":\"retired_field\",\"severity\":\"error\",\"source\":\"external\"}"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate adds min_group[0], min_group[1] = {} to a present [] — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added min_group[0] = {}",
+            "P(continuous): added min_group[1] = {}",
+            "P(submit): added min_group[0] = {}",
+            "P(submit): added min_group[1] = {}"
+          ]
+        }
+      }
+    },
+    "clinical-intake.submit-valid": {
+      "ts": {
+        "F": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine drops the undeclared keys currentVisit.appointmentDate and patient.insuranceId on load (F28: FormEngine.ts:451-453) that the evaluator keeps; also untouched fields filed as ''/null by FormEngine (F12, fs-i731)",
+          "problems": [
+            "FormEngine live vs P data patient.insuranceCard: null vs absent",
+            "FormEngine live vs P data currentVisit.otherSymptoms: \"\" vs absent",
+            "FormEngine live vs P data currentVisit.onsetTime: null vs absent",
+            "FormEngine live vs P data currentVisit.appointmentDateTime: null vs absent",
+            "FormEngine live vs P data currentVisit.provider: null vs absent",
+            "FormEngine live vs P data medicalHistory.allergies: \"\" vs absent",
+            "FormEngine live vs P data patient.insuranceId: absent vs \"INS-5544332\"",
+            "FormEngine live vs P data currentVisit.appointmentDate: absent vs \"2026-03-04\""
+          ]
+        },
+        "S": {
+          "ticket": "fs-20e3",
+          "why": "the example filing is valid with its registry; the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them)",
+          "problems": [
+            "valid false, expected true",
+            "counts {\"error\":2,\"info\":0,\"warning\":0}, expected {\"error\":0,\"info\":0,\"warning\":0}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"patient.email\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"patient.phone\",\"severity\":\"error\",\"source\":\"external\"}"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine drops the undeclared keys currentVisit.appointmentDate and patient.insuranceId (F28); also registry findings differ from the server verdict (fs-20e3) and untouched fields filed as ''/null by FormEngine (F12, fs-i731)",
+          "problems": [
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"patient.email\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"patient.phone\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S data patient.insuranceCard: null vs absent",
+            "FormEngine submit vs S data currentVisit.otherSymptoms: \"\" vs absent",
+            "FormEngine submit vs S data currentVisit.onsetTime: null vs absent",
+            "FormEngine submit vs S data currentVisit.appointmentDateTime: null vs absent",
+            "FormEngine submit vs S data currentVisit.provider: null vs absent",
+            "FormEngine submit vs S data medicalHistory.allergies: \"\" vs absent",
+            "FormEngine submit vs S data patient.insuranceId: absent vs \"INS-5544332\"",
+            "FormEngine submit vs S data currentVisit.appointmentDate: absent vs \"2026-03-04\""
+          ]
+        },
+        "FR": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine's filed bytes lack the undeclared keys currentVisit.appointmentDate and patient.insuranceId (F28); also untouched fields filed as ''/null by FormEngine (F12, fs-i731)",
+          "problems": [
+            "recheck of FormEngine submit data vs S data patient.insuranceCard: null vs absent",
+            "recheck of FormEngine submit data vs S data currentVisit.otherSymptoms: \"\" vs absent",
+            "recheck of FormEngine submit data vs S data currentVisit.onsetTime: null vs absent",
+            "recheck of FormEngine submit data vs S data currentVisit.appointmentDateTime: null vs absent",
+            "recheck of FormEngine submit data vs S data currentVisit.provider: null vs absent",
+            "recheck of FormEngine submit data vs S data medicalHistory.allergies: \"\" vs absent",
+            "recheck of FormEngine submit data vs S data patient.insuranceId: absent vs \"INS-5544332\"",
+            "recheck of FormEngine submit data vs S data currentVisit.appointmentDate: absent vs \"2026-03-04\""
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate adds patient.sex/phone/email/insuranceMemberId to a saved Response — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added patient.sex = \"female\"",
+            "P(continuous): added patient.phone = \"(202) 555-0199\"",
+            "P(continuous): added patient.email = \"jamie.rivera@example.test\"",
+            "P(continuous): added patient.insuranceMemberId = \"ABC1234567\"",
+            "P(submit): added patient.sex = \"female\"",
+            "P(submit): added patient.phone = \"(202) 555-0199\"",
+            "P(submit): added patient.email = \"jamie.rivera@example.test\"",
+            "P(submit): added patient.insuranceMemberId = \"ABC1234567\""
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-20e3",
+          "why": "the example filing is valid with its registry; the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them)",
+          "problems": [
+            "valid false, expected true",
+            "error count 2, expected 0",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"patient.email\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"patient.phone\",\"severity\":\"error\",\"source\":\"external\"}"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate adds patient.sex/phone/email/insuranceMemberId to a saved Response — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added patient.email = \"jamie.rivera@example.test\"",
+            "P(continuous): added patient.insuranceMemberId = \"ABC1234567\"",
+            "P(continuous): added patient.phone = \"(202) 555-0199\"",
+            "P(continuous): added patient.sex = \"female\"",
+            "P(submit): added patient.email = \"jamie.rivera@example.test\"",
+            "P(submit): added patient.insuranceMemberId = \"ABC1234567\"",
+            "P(submit): added patient.phone = \"(202) 555-0199\"",
+            "P(submit): added patient.sex = \"female\""
+          ]
+        }
+      }
+    },
+    "core.bind-merge-document-order": {
+      "ts": {
+        "F": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503)",
+          "problems": [
+            "FormEngine live vs P data jobs[0].hours: null vs absent",
+            "FormEngine live vs P data jobs[0].note: \"\" vs absent"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503)",
+          "problems": [
+            "FormEngine submit vs S data jobs[0].hours: null vs absent",
+            "FormEngine submit vs S data jobs[0].note: \"\" vs absent"
+          ]
+        },
+        "FR": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503)",
+          "problems": [
+            "recheck of FormEngine submit data vs S data jobs[0].hours: null vs absent",
+            "recheck of FormEngine submit data vs S data jobs[0].note: \"\" vs absent"
+          ]
+        }
+      }
+    },
+    "grant-application.submit-valid": {
+      "ts": {
+        "F": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine drops undeclared keys (applicantType, isReturning, requestedAmount: F28/F31, FormEngine.ts:451-453) and FormEngine canonicalises money amounts on resume ('150.00' -> '150'); the recheck validates the bytes as given (F29, owner ruling Q2: FormEngine.ts:595-612 on the load path); also FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503) (fs-i731)",
+          "problems": [
+            "FormEngine live vs P data applicantInfo.orgSubType: \"\" vs absent",
+            "FormEngine live vs P data budget.requestedAmount.amount: \"126000\" vs \"126000.00\"",
+            "FormEngine live vs P data projectPhases[0].phaseTasks[0].hourlyRate.amount: \"75\" vs \"75.00\"",
+            "FormEngine live vs P data projectPhases[0].phaseTasks[1].hourlyRate.amount: \"100\" vs \"100.00\"",
+            "FormEngine live vs P data projectPhases[1].phaseTasks[0].hourlyRate.amount: \"100\" vs \"100.00\"",
+            "FormEngine live vs P data attachments.approverSignature: null vs absent",
+            "FormEngine live vs P data applicantType: absent vs \"nonprofit\"",
+            "FormEngine live vs P data isReturning: absent vs false",
+            "FormEngine live vs P data requestedAmount.amount: absent vs \"126000.00\"",
+            "FormEngine live vs P data requestedAmount.currency: absent vs \"USD\""
+          ]
+        },
+        "S": {
+          "ticket": "fs-20e3",
+          "why": "the example filing is valid with its registry; the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them)",
+          "problems": [
+            "valid false, expected true",
+            "counts {\"error\":3,\"info\":0,\"warning\":0}, expected {\"error\":0,\"info\":0,\"warning\":0}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"applicantInfo.contactEmail\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"applicantInfo.contactPhone\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-ein': no matching registry entry loaded\",\"path\":\"applicantInfo.ein\",\"severity\":\"error\",\"source\":\"external\"}"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-8xnt",
+          "why": "undeclared keys dropped and money canonicalised by FormEngine (F28, F29); also registry findings differ from the server verdict (fs-20e3) and untouched fields filed as ''/null (fs-i731)",
+          "problems": [
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"applicantInfo.contactEmail\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"applicantInfo.contactPhone\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-ein': no matching registry entry loaded\",\"path\":\"applicantInfo.ein\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S data applicantInfo.orgSubType: \"\" vs absent",
+            "FormEngine submit vs S data budget.requestedAmount.amount: \"126000\" vs \"126000.00\"",
+            "FormEngine submit vs S data projectPhases[0].phaseTasks[0].hourlyRate.amount: \"75\" vs \"75.00\"",
+            "FormEngine submit vs S data projectPhases[0].phaseTasks[1].hourlyRate.amount: \"100\" vs \"100.00\"",
+            "FormEngine submit vs S data projectPhases[1].phaseTasks[0].hourlyRate.amount: \"100\" vs \"100.00\"",
+            "FormEngine submit vs S data attachments.approverSignature: null vs absent",
+            "FormEngine submit vs S data applicantType: absent vs \"nonprofit\"",
+            "FormEngine submit vs S data isReturning: absent vs false",
+            "FormEngine submit vs S data requestedAmount.amount: absent vs \"126000.00\"",
+            "FormEngine submit vs S data requestedAmount.currency: absent vs \"USD\""
+          ]
+        },
+        "FR": {
+          "ticket": "fs-8xnt",
+          "why": "undeclared keys dropped and money canonicalised by FormEngine (F28, F29); also FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503) (fs-i731)",
+          "problems": [
+            "recheck of FormEngine submit data vs S data applicantInfo.orgSubType: \"\" vs absent",
+            "recheck of FormEngine submit data vs S data budget.requestedAmount.amount: \"126000\" vs \"126000.00\"",
+            "recheck of FormEngine submit data vs S data projectPhases[0].phaseTasks[0].hourlyRate.amount: \"75\" vs \"75.00\"",
+            "recheck of FormEngine submit data vs S data projectPhases[0].phaseTasks[1].hourlyRate.amount: \"100\" vs \"100.00\"",
+            "recheck of FormEngine submit data vs S data projectPhases[1].phaseTasks[0].hourlyRate.amount: \"100\" vs \"100.00\"",
+            "recheck of FormEngine submit data vs S data attachments.approverSignature: null vs absent",
+            "recheck of FormEngine submit data vs S data applicantType: absent vs \"nonprofit\"",
+            "recheck of FormEngine submit data vs S data isReturning: absent vs false",
+            "recheck of FormEngine submit data vs S data requestedAmount.amount: absent vs \"126000.00\"",
+            "recheck of FormEngine submit data vs S data requestedAmount.currency: absent vs \"USD\""
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-20e3",
+          "why": "the example filing is valid with its registry; the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them)",
+          "problems": [
+            "valid false, expected true",
+            "error count 3, expected 0",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"applicantInfo.contactEmail\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"applicantInfo.contactPhone\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-ein': no matching registry entry loaded\",\"path\":\"applicantInfo.ein\",\"severity\":\"error\",\"source\":\"external\"}"
+          ]
+        }
+      }
+    },
+    "grant-report.short-submit-valid": {
+      "ts": {
+        "F": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine canonicalises money amounts on resume ('150.00' -> '150'); the recheck validates the bytes as given (F29, owner ruling Q2: FormEngine.ts:595-612 on the load path)",
+          "problems": [
+            "FormEngine live vs P data expenditures.employment.amount: \"45000\" vs \"45000.00\"",
+            "FormEngine live vs P data expenditures.childcare.amount: \"0\" vs \"0.00\"",
+            "FormEngine live vs P data expenditures.assetBuilding.amount: \"0\" vs \"0.00\"",
+            "FormEngine live vs P data expenditures.housing.amount: \"32000\" vs \"32000.00\"",
+            "FormEngine live vs P data expenditures.health.amount: \"28000\" vs \"28000.00\"",
+            "FormEngine live vs P data expenditures.civic.amount: \"0\" vs \"0.00\"",
+            "FormEngine live vs P data expenditures.transportation.amount: \"0\" vs \"0.00\"",
+            "FormEngine live vs P data expenditures.partnerships.amount: \"0\" vs \"0.00\"",
+            "FormEngine live vs P data expenditures.other.amount: \"0\" vs \"0.00\"",
+            "FormEngine live vs P data expenditures.administrationExpenditure.amount: \"8500\" vs \"8500.00\""
+          ]
+        },
+        "S": {
+          "ticket": "fs-20e3",
+          "why": "the example filing is valid with its registry; the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them)",
+          "problems": [
+            "valid false, expected true",
+            "counts {\"error\":7,\"info\":0,\"warning\":0}, expected {\"error\":0,\"info\":0,\"warning\":0}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"basicInfo.email\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"basicInfo.phone\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.administrationExpenditure\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.employment\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.health\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.housing\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.total\",\"severity\":\"error\",\"source\":\"external\"}"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine canonicalises money amounts on resume (F29, Q2); also registry findings differ from the server verdict (fs-20e3)",
+          "problems": [
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"basicInfo.email\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"basicInfo.phone\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.administrationExpenditure\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.employment\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.health\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.housing\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.total\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S data expenditures.employment.amount: \"45000\" vs \"45000.00\"",
+            "FormEngine submit vs S data expenditures.childcare.amount: \"0\" vs \"0.00\"",
+            "FormEngine submit vs S data expenditures.assetBuilding.amount: \"0\" vs \"0.00\"",
+            "FormEngine submit vs S data expenditures.housing.amount: \"32000\" vs \"32000.00\"",
+            "FormEngine submit vs S data expenditures.health.amount: \"28000\" vs \"28000.00\"",
+            "FormEngine submit vs S data expenditures.civic.amount: \"0\" vs \"0.00\"",
+            "FormEngine submit vs S data expenditures.transportation.amount: \"0\" vs \"0.00\"",
+            "FormEngine submit vs S data expenditures.partnerships.amount: \"0\" vs \"0.00\"",
+            "FormEngine submit vs S data expenditures.other.amount: \"0\" vs \"0.00\"",
+            "FormEngine submit vs S data expenditures.administrationExpenditure.amount: \"8500\" vs \"8500.00\""
+          ]
+        },
+        "FR": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine canonicalises money amounts on resume ('150.00' -> '150'); the recheck validates the bytes as given (F29, owner ruling Q2: FormEngine.ts:595-612 on the load path)",
+          "problems": [
+            "recheck of FormEngine submit data vs S data expenditures.employment.amount: \"45000\" vs \"45000.00\"",
+            "recheck of FormEngine submit data vs S data expenditures.childcare.amount: \"0\" vs \"0.00\"",
+            "recheck of FormEngine submit data vs S data expenditures.assetBuilding.amount: \"0\" vs \"0.00\"",
+            "recheck of FormEngine submit data vs S data expenditures.housing.amount: \"32000\" vs \"32000.00\"",
+            "recheck of FormEngine submit data vs S data expenditures.health.amount: \"28000\" vs \"28000.00\"",
+            "recheck of FormEngine submit data vs S data expenditures.civic.amount: \"0\" vs \"0.00\"",
+            "recheck of FormEngine submit data vs S data expenditures.transportation.amount: \"0\" vs \"0.00\"",
+            "recheck of FormEngine submit data vs S data expenditures.partnerships.amount: \"0\" vs \"0.00\"",
+            "recheck of FormEngine submit data vs S data expenditures.other.amount: \"0\" vs \"0.00\"",
+            "recheck of FormEngine submit data vs S data expenditures.administrationExpenditure.amount: \"8500\" vs \"8500.00\""
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-20e3",
+          "why": "the example filing is valid with its registry; the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them)",
+          "problems": [
+            "valid false, expected true",
+            "error count 7, expected 0",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"basicInfo.email\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"basicInfo.phone\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.administrationExpenditure\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.employment\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.health\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.housing\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-currency-usd': no matching registry entry loaded\",\"path\":\"expenditures.total\",\"severity\":\"error\",\"source\":\"external\"}"
+          ]
+        }
+      }
+    },
+    "invoice.single-submit-valid": {
+      "ts": {
+        "F": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine canonicalises money amounts on resume ('150.00' -> '150'); the recheck validates the bytes as given (F29, owner ruling Q2: FormEngine.ts:595-612 on the load path)",
+          "problems": [
+            "FormEngine live vs P data lineItems[0].unitPrice.amount: \"150\" vs \"150.00\""
+          ]
+        },
+        "S": {
+          "ticket": "fs-20e3",
+          "why": "the example filing is valid with its registry; the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them)",
+          "problems": [
+            "valid false, expected true",
+            "counts {\"error\":3,\"info\":0,\"warning\":0}, expected {\"error\":0,\"info\":0,\"warning\":0}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"header.customerEmail\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-percentage': no matching registry entry loaded\",\"path\":\"totals.discountPercent\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-percentage': no matching registry entry loaded\",\"path\":\"totals.taxRate\",\"severity\":\"error\",\"source\":\"external\"}"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine canonicalises money amounts on resume (F29, Q2); also registry findings differ from the server verdict (fs-20e3)",
+          "problems": [
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"header.customerEmail\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-percentage': no matching registry entry loaded\",\"path\":\"totals.discountPercent\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-percentage': no matching registry entry loaded\",\"path\":\"totals.taxRate\",\"severity\":\"error\",\"source\":\"external\"}",
+            "FormEngine submit vs S data lineItems[0].unitPrice.amount: \"150\" vs \"150.00\""
+          ]
+        },
+        "FR": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine canonicalises money amounts on resume ('150.00' -> '150'); the recheck validates the bytes as given (F29, owner ruling Q2: FormEngine.ts:595-612 on the load path)",
+          "problems": [
+            "recheck of FormEngine submit data vs S data lineItems[0].unitPrice.amount: \"150\" vs \"150.00\""
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-20e3",
+          "why": "the example filing is valid with its registry; the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them)",
+          "problems": [
+            "valid false, expected true",
+            "error count 3, expected 0",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"header.customerEmail\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-percentage': no matching registry entry loaded\",\"path\":\"totals.discountPercent\",\"severity\":\"error\",\"source\":\"external\"}",
+            "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-percentage': no matching registry entry loaded\",\"path\":\"totals.taxRate\",\"severity\":\"error\",\"source\":\"external\"}"
+          ]
+        }
+      }
+    },
+    "parity.initial-value-non-relevant-keep": {
+      "ts": {
+        "P": {
+          "ticket": "fs-i731",
+          "why": "evaluate applies initialValue to a key the saved Response lacks (initial_values.rs:74-101, N5); keep has no last value to retain, so x is invented",
+          "problems": [
+            "data x: \"invented\" vs absent (actual vs expected)",
+            "round trip of expected.data x: \"invented\" vs absent"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate applies initialValue to a key the saved Response lacks (initial_values.rs:74-101, N5); keep has no last value to retain, so x is invented",
+          "problems": [
+            "P(continuous): added x = \"invented\"",
+            "P(round trip): added x = \"invented\""
+          ]
+        }
+      },
+      "rust": {
+        "P": {
+          "ticket": "fs-i731",
+          "why": "evaluate applies initialValue to a key the saved Response lacks (initial_values.rs:74-101, N5); keep has no last value to retain, so x is invented",
+          "problems": [
+            "data x: \"invented\" vs absent (actual vs expected)",
+            "round trip of expected.data x: \"invented\" vs absent"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate applies initialValue to a key the saved Response lacks (initial_values.rs:74-101, N5); keep has no last value to retain, so x is invented",
+          "problems": [
+            "P(continuous): added x = \"invented\"",
+            "P(round trip): added x = \"invented\""
+          ]
+        }
+      }
+    },
+    "parity.non-canonical-decimal-string": {
+      "ts": {
+        "F": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine canonicalises '12.5' to 12.5 on resume (FormEngine.ts:595-612); the recheck validates it as given (Q2: TYPE_MISMATCH, t null)",
+          "problems": [
+            "FormEngine live vs P results only there {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Invalid decimal\",\"path\":\"d\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine live vs P data d: 12.5 vs \"12.5\"",
+            "FormEngine live vs P data t: 13.5 vs null"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine canonicalises '12.5' on resume, so its submit report and data differ from the verdict on the given bytes (Q2)",
+          "problems": [
+            "FormEngine submit vs S results only there {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Invalid decimal\",\"path\":\"d\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine submit vs S data d: 12.5 vs \"12.5\"",
+            "FormEngine submit vs S data t: 13.5 vs null"
+          ]
+        },
+        "FR": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine files 12.5 for a given '12.5'; the recheck of its bytes differs from the verdict on the given bytes (Q2)",
+          "problems": [
+            "recheck of FormEngine submit data vs S results only there {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Invalid decimal\",\"path\":\"d\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "recheck of FormEngine submit data vs S data d: 12.5 vs \"12.5\"",
+            "recheck of FormEngine submit data vs S data t: 13.5 vs null"
+          ]
+        }
+      }
+    },
+    "parity.nrb-pruned-calc-input": {
+      "ts": {
+        "F_submit": {
+          "ticket": "fs-6be9",
+          "why": "FormEngine's submit report evaluates in-session data (x preserved, c 6, valid) instead of the filed bytes (x pruned, c null, y CONSTRAINT_FAILED) (N10, owner ruling Q6)",
+          "problems": [
+            "FormEngine submit vs S results only there {\"code\":\"CONSTRAINT_FAILED\",\"constraint\":\"$ = $c\",\"constraintKind\":\"constraint\",\"message\":\"y must equal c\",\"path\":\"y\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine submit vs S data c: 6 vs null"
+          ]
+        }
+      }
+    },
+    "parity.option-set-named-out-of-list": {
+      "ts": {
+        "F": {
+          "ticket": "fs-6q36",
+          "why": "FormEngine inlines named optionSets before evaluating (FormEngine.ts:258); evaluate reads only item.options (item_tree.rs:244-252) and accepts any value (F1)",
+          "problems": [
+            "FormEngine live vs P results only here {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Invalid multiChoice\",\"path\":\"picks\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine live vs P results only here {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Invalid choice\",\"path\":\"state\",\"severity\":\"error\",\"source\":\"bind\"}"
+          ]
+        },
+        "S": {
+          "ticket": "fs-6q36",
+          "why": "evaluate never resolves named optionSets, so out-of-list values pass the recheck (F1)",
+          "problems": [
+            "valid true, expected false",
+            "counts {\"error\":0,\"info\":0,\"warning\":0}, expected {\"error\":2,\"info\":0,\"warning\":0}",
+            "expected result missing {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"path\":\"picks\",\"severity\":\"error\"}",
+            "expected result missing {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"path\":\"state\",\"severity\":\"error\"}"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-6q36",
+          "why": "FormEngine refuses out-of-list values the server verdict accepts (F1)",
+          "problems": [
+            "FormEngine submit vs S results only here {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Invalid multiChoice\",\"path\":\"picks\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine submit vs S results only here {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Invalid choice\",\"path\":\"state\",\"severity\":\"error\",\"source\":\"bind\"}"
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-6q36",
+          "why": "evaluate never resolves named optionSets, so out-of-list values pass the recheck (F1)",
+          "problems": [
+            "valid true, expected false",
+            "error count 0, expected 2",
+            "expected result missing {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"path\":\"picks\",\"severity\":\"error\"}",
+            "expected result missing {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"path\":\"state\",\"severity\":\"error\"}"
+          ]
+        }
+      }
+    },
+    "parity.padded-rows-calculated-child": {
+      "ts": {
+        "P": {
+          "ticket": "fs-i731",
+          "why": "evaluate pads a present rows: [] to minRepeat inside the processing cycle (repeat_expand.rs:57-59); the calculated child must not hide the invented rows (F2, S1)",
+          "problems": [
+            "data rows[0].one: 1 vs absent (actual vs expected)",
+            "data rows[1].one: 1 vs absent (actual vs expected)",
+            "data rows: absent vs [] (actual vs expected)",
+            "round trip of expected.data rows[0].one: 1 vs absent",
+            "round trip of expected.data rows[1].one: 1 vs absent",
+            "round trip of expected.data rows: absent vs []"
+          ]
+        },
+        "F": {
+          "ticket": "fs-pod9",
+          "why": "both FormEngine and P report MIN_REPEAT; the only difference is the cardinality `source`: FormEngine strips `source` from cardinality results (response-assembly.ts:398-410) while the evaluator emits source 'bind'",
+          "problems": [
+            "FormEngine live vs P results only here {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\"}",
+            "FormEngine live vs P results only there {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\",\"source\":\"bind\"}"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate pads a present rows: [] to minRepeat inside the processing cycle (repeat_expand.rs:57-59); the calculated child must not hide the invented rows (F2, S1)",
+          "problems": [
+            "P(continuous): added rows[0].one = 1",
+            "P(continuous): added rows[1].one = 1",
+            "P(round trip): added rows[0].one = 1",
+            "P(round trip): added rows[1].one = 1"
+          ]
+        }
+      },
+      "rust": {
+        "P": {
+          "ticket": "fs-i731",
+          "why": "evaluate pads a present rows: [] to minRepeat inside the processing cycle (repeat_expand.rs:57-59); the calculated child must not hide the invented rows (F2, S1)",
+          "problems": [
+            "data rows: absent vs [] (actual vs expected)",
+            "data rows[0].one: 1 vs absent (actual vs expected)",
+            "data rows[1].one: 1 vs absent (actual vs expected)",
+            "round trip of expected.data rows: absent vs []",
+            "round trip of expected.data rows[0].one: 1 vs absent",
+            "round trip of expected.data rows[1].one: 1 vs absent"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate pads a present rows: [] to minRepeat inside the processing cycle (repeat_expand.rs:57-59); the calculated child must not hide the invented rows (F2, S1)",
+          "problems": [
+            "P(continuous): added rows[0].one = 1",
+            "P(continuous): added rows[1].one = 1",
+            "P(round trip): added rows[0].one = 1",
+            "P(round trip): added rows[1].one = 1"
+          ]
+        }
+      }
+    },
+    "parity.prepopulate-cleared-stays-cleared": {
+      "ts": {
+        "S": {
+          "ticket": "fs-i731",
+          "why": "evaluate re-fills a cleared (null) prePopulate field from the instance on every run (runtime_seed.rs:184-222, pipeline.rs:59), so REQUIRED never fires (N1)",
+          "problems": [
+            "valid true, expected false",
+            "counts {\"error\":0,\"info\":0,\"warning\":0}, expected {\"error\":1,\"info\":0,\"warning\":0}",
+            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"name\",\"severity\":\"error\"}",
+            "data name: \"Acme\" vs null (actual vs expected)"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-i731",
+          "why": "the field shows empty but FormEngine's submit report and Response carry 'Acme' re-filled by evaluate (N1)",
+          "problems": [
+            "valid true, expected false",
+            "counts {\"error\":0,\"info\":0,\"warning\":0}, expected {\"error\":1,\"info\":0,\"warning\":0}",
+            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"name\",\"severity\":\"error\"}",
+            "data name: \"Acme\" vs null (actual vs expected)"
+          ]
+        },
+        "FR": {
+          "ticket": "fs-i731",
+          "why": "the recheck of FormEngine's filed bytes sees 'Acme' re-filled by evaluate (N1)",
+          "problems": [
+            "valid true, expected false",
+            "counts {\"error\":0,\"info\":0,\"warning\":0}, expected {\"error\":1,\"info\":0,\"warning\":0}",
+            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"name\",\"severity\":\"error\"}",
+            "data name: \"Acme\" vs null (actual vs expected)"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate changes name null -> 'Acme' — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "S(expected.data): changed name: null -> \"Acme\""
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-i731",
+          "why": "evaluate re-fills a cleared (null) prePopulate field from the instance on every run (runtime_seed.rs:184-222, pipeline.rs:59), so REQUIRED never fires (N1)",
+          "problems": [
+            "valid true, expected false",
+            "error count 0, expected 1",
+            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"name\",\"severity\":\"error\"}",
+            "data name: \"Acme\" vs null (actual vs expected)"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate changes name null -> 'Acme' — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "S(expected.data): changed name: null -> \"Acme\""
+          ]
+        }
+      }
+    },
+    "parity.prepopulate-locked-readonly": {
+      "ts": {
+        "P": {
+          "ticket": "fs-6q36",
+          "why": "prePopulate.editable:false never reaches the evaluator's readonly state (item_tree.rs:272-281, bind_pass.rs:119-125), so readonly($name) is false; FormEngine's overlay is signal-only (F22)",
+          "problems": [
+            "data locked: false vs true (actual vs expected)",
+            "round trip of expected.data locked: false vs true"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "origin new: the pre-fill is created inside evaluate — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added name = \"Acme\""
+          ]
+        }
+      },
+      "rust": {
+        "P": {
+          "ticket": "fs-6q36",
+          "why": "prePopulate.editable:false never reaches the evaluator's readonly state (item_tree.rs:272-281, bind_pass.rs:119-125), so readonly($name) is false; FormEngine's overlay is signal-only (F22)",
+          "problems": [
+            "data locked: false vs true (actual vs expected)",
+            "round trip of expected.data locked: false vs true"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "origin new: the pre-fill is created inside evaluate — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added name = \"Acme\""
+          ]
+        }
+      }
+    },
+    "parity.repeat-empty-array-below-min": {
+      "ts": {
+        "F": {
+          "ticket": "fs-i731",
+          "why": "evaluate pads rows: [] to two phantom rows (REQUIRED x2, F2); FormEngine reports MIN_REPEAT; also FormEngine strips `source` from cardinality results (response-assembly.ts:398-410) while the evaluator emits source 'bind' (fs-pod9)",
+          "problems": [
+            "FormEngine live vs P results only here {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\"}",
+            "FormEngine live vs P results only there {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"message\":\"Required\",\"path\":\"rows[0].a\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine live vs P results only there {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"message\":\"Required\",\"path\":\"rows[1].a\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine live vs P results only there {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\",\"source\":\"bind\"}"
+          ]
+        },
+        "S": {
+          "ticket": "fs-i731",
+          "why": "the verdict reports phantom REQUIRED rows instead of MIN_REPEAT and files [{},{}] for [] (F2)",
+          "problems": [
+            "counts {\"error\":2,\"info\":0,\"warning\":0}, expected {\"error\":1,\"info\":0,\"warning\":0}",
+            "expected result missing {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"path\":\"rows\",\"severity\":\"error\"}",
+            "unexpected result {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"message\":\"Required\",\"path\":\"rows[0].a\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "unexpected result {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"message\":\"Required\",\"path\":\"rows[1].a\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "data rows[0]: {} vs absent (actual vs expected)",
+            "data rows[1]: {} vs absent (actual vs expected)",
+            "data rows: absent vs [] (actual vs expected)"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-i731",
+          "why": "FormEngine's MIN_REPEAT vs the verdict's phantom REQUIRED rows (F2)",
+          "problems": [
+            "FormEngine submit vs S results only here {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\"}",
+            "FormEngine submit vs S results only there {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"message\":\"Required\",\"path\":\"rows[0].a\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine submit vs S results only there {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"message\":\"Required\",\"path\":\"rows[1].a\",\"severity\":\"error\",\"source\":\"bind\"}"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate adds rows[0], rows[1] = {} to a present [] — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added rows[0] = {}",
+            "P(continuous): added rows[1] = {}",
+            "P(submit): added rows[0] = {}",
+            "P(submit): added rows[1] = {}"
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-i731",
+          "why": "the verdict reports phantom REQUIRED rows instead of MIN_REPEAT and files [{},{}] for [] (F2)",
+          "problems": [
+            "error count 2, expected 1",
+            "expected result missing {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"path\":\"rows\",\"severity\":\"error\"}",
+            "unexpected result {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"message\":\"Required\",\"path\":\"rows[0].a\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "unexpected result {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"message\":\"Required\",\"path\":\"rows[1].a\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "data rows: absent vs [] (actual vs expected)",
+            "data rows[0]: {} vs absent (actual vs expected)",
+            "data rows[1]: {} vs absent (actual vs expected)"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate adds rows[0], rows[1] = {} to a present [] — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added rows[0] = {}",
+            "P(continuous): added rows[1] = {}",
+            "P(submit): added rows[0] = {}",
+            "P(submit): added rows[1] = {}"
+          ]
+        }
+      }
+    },
+    "parity.repeat-empty-rows-count": {
+      "ts": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "FEL row arrays count rows only up to the last row holding a value (repeats.rs:100-109), so {} rows vanish: count($rows[*]) = 1 (F26c)",
+          "problems": [
+            "data m: 1 vs 3 (actual vs expected)",
+            "data n: 1 vs 3 (actual vs expected)",
+            "round trip of expected.data m: 1 vs 3",
+            "round trip of expected.data n: 1 vs 3"
+          ]
+        },
+        "F": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503), so FormEngine counts '' rows (k = 3; the F21 'browser counts rows lacking the field'); P also undercounts until fs-rxih",
+          "problems": [
+            "FormEngine live vs P data rows[1].a: \"\" vs absent",
+            "FormEngine live vs P data rows[2].a: \"\" vs absent",
+            "FormEngine live vs P data m: 3 vs 1",
+            "FormEngine live vs P data k: 3 vs 1",
+            "FormEngine live vs P data n: 3 vs 1",
+            "FormEngine live vs P data rows[1]: absent vs {}",
+            "FormEngine live vs P data rows[2]: absent vs {}"
+          ]
+        }
+      },
+      "rust": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "FEL row arrays count rows only up to the last row holding a value (repeats.rs:100-109), so {} rows vanish: count($rows[*]) = 1 (F26c)",
+          "problems": [
+            "data m: 1 vs 3 (actual vs expected)",
+            "data n: 1 vs 3 (actual vs expected)",
+            "round trip of expected.data m: 1 vs 3",
+            "round trip of expected.data n: 1 vs 3"
+          ]
+        }
+      }
+    },
+    "parity.repeat-new-response-padding": {
+      "ts": {
+        "F": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503); and P (creation inside evaluate) reports MIN_REPEAT beside its padded rows (F2)",
+          "problems": [
+            "FormEngine live vs P results only there {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine live vs P data rows[0].a: \"\" vs absent",
+            "FormEngine live vs P data rows[1].a: \"\" vs absent",
+            "FormEngine live vs P data rows[0]: absent vs {}",
+            "FormEngine live vs P data rows[1]: absent vs {}"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503)",
+          "problems": [
+            "FormEngine submit vs S data rows[0].a: \"\" vs absent",
+            "FormEngine submit vs S data rows[1].a: \"\" vs absent",
+            "FormEngine submit vs S data rows[0]: absent vs {}",
+            "FormEngine submit vs S data rows[1]: absent vs {}"
+          ]
+        },
+        "FR": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503)",
+          "problems": [
+            "recheck of FormEngine submit data vs S data rows[0].a: \"\" vs absent",
+            "recheck of FormEngine submit data vs S data rows[1].a: \"\" vs absent",
+            "recheck of FormEngine submit data vs S data rows[0]: absent vs {}",
+            "recheck of FormEngine submit data vs S data rows[1]: absent vs {}"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "origin new: padding happens inside evaluate — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added rows[0] = {}",
+            "P(continuous): added rows[1] = {}",
+            "P(submit): added rows[0] = {}",
+            "P(submit): added rows[1] = {}"
+          ]
+        }
+      },
+      "rust": {
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "origin new: padding happens inside evaluate — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added rows[0] = {}",
+            "P(continuous): added rows[1] = {}",
+            "P(submit): added rows[0] = {}",
+            "P(submit): added rows[1] = {}"
+          ]
+        }
+      }
+    },
+    "parity.repeat-zero-rows-aggregates": {
+      "ts": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "zero rows leave $rows unbound (repeats.rs:158-166), so count and sum are null instead of 0 (F21)",
+          "problems": [
+            "data m: null vs 0 (actual vs expected)",
+            "data total: null vs 0 (actual vs expected)",
+            "round trip of expected.data m: null vs 0",
+            "round trip of expected.data total: null vs 0"
+          ]
+        }
+      },
+      "rust": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "zero rows leave $rows unbound (repeats.rs:158-166), so count and sum are null instead of 0 (F21)",
+          "problems": [
+            "data m: null vs 0 (actual vs expected)",
+            "data total: null vs 0 (actual vs expected)",
+            "round trip of expected.data m: null vs 0",
+            "round trip of expected.data total: null vs 0"
+          ]
+        }
+      }
+    },
+    "parity.row-explicit-index-1-based": {
+      "ts": {
+        "S": {
+          "ticket": "fs-rxih",
+          "why": "a Bind constraint reads $rows[1] as the second row: its env has no row arrays (revalidate/env.rs:26-45) and fel-core's flat-key fallback (core.rs:990-1010) uses the 1-based index against 0-based keys (N3)",
+          "problems": [
+            "valid false, expected true",
+            "counts {\"error\":1,\"info\":0,\"warning\":0}, expected {\"error\":0,\"info\":0,\"warning\":0}",
+            "unexpected result {\"code\":\"CONSTRAINT_FAILED\",\"constraint\":\"$rows[1].lo = 1\",\"constraintKind\":\"constraint\",\"message\":\"constraint saw another first row\",\"path\":\"probe\",\"severity\":\"error\",\"source\":\"bind\"}"
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-rxih",
+          "why": "a Bind constraint reads $rows[1] as the second row: its env has no row arrays (revalidate/env.rs:26-45) and fel-core's flat-key fallback (core.rs:990-1010) uses the 1-based index against 0-based keys (N3)",
+          "problems": [
+            "valid false, expected true",
+            "error count 1, expected 0",
+            "unexpected result {\"code\":\"CONSTRAINT_FAILED\",\"constraint\":\"$rows[1].lo = 1\",\"constraintKind\":\"constraint\",\"message\":\"constraint saw another first row\",\"path\":\"probe\",\"severity\":\"error\",\"source\":\"bind\"}"
+          ]
+        }
+      }
+    },
+    "parity.row-explicit-index-1-based-site-root": {
+      "rust": {
+        "value": {
+          "ticket": "fs-rxih",
+          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
+          "problems": [
+            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
+          ]
+        }
+      }
+    },
+    "parity.row-explicit-index-1-based-site-row": {
+      "rust": {
+        "value": {
+          "ticket": "fs-rxih",
+          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
+          "problems": [
+            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
+          ]
+        }
+      }
+    },
+    "parity.row-nested-group-sibling": {
+      "ts": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "bind_aliases aliases only direct row leaves (repeats.rs:298-336), so $a in a group nested in a row is null (F18)",
+          "problems": [
+            "data rows[0].body.copy: null vs \"hello\" (actual vs expected)",
+            "round trip of expected.data rows[0].body.copy: null vs \"hello\""
+          ]
+        }
+      },
+      "rust": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "bind_aliases aliases only direct row leaves (repeats.rs:298-336), so $a in a group nested in a row is null (F18)",
+          "problems": [
+            "data rows[0].body.copy: null vs \"hello\" (actual vs expected)",
+            "round trip of expected.data rows[0].body.copy: null vs \"hello\""
+          ]
+        }
+      }
+    },
+    "parity.row-nested-group-sibling-site": {
+      "rust": {
+        "value": {
+          "ticket": "fs-rxih",
+          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
+          "problems": [
+            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
+          ]
+        }
+      }
+    },
+    "parity.row-nested-group-sibling-text": {
+      "rust": {
+        "text": {
+          "ticket": "fs-rxih",
+          "why": "the evaluator's text pass resolves $a in a group nested in a row to null ('Copy of '), the F18 alias gap (repeats.rs:298-336); the browser's HostFelContext resolves it (N8: two engines)",
+          "problems": [
+            "rows[0].body.copy: {\"label\":\"Copy of \"} vs {\"label\":\"Copy of hello\"}"
+          ]
+        }
+      }
+    },
+    "parity.row-required-sibling": {
+      "ts": {
+        "F": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503)",
+          "problems": [
+            "FormEngine live vs P data rows[0].detail: \"\" vs absent",
+            "FormEngine live vs P data rows[0].detail2: \"\" vs absent",
+            "FormEngine live vs P data rows[1].detail: \"\" vs absent",
+            "FormEngine live vs P data rows[1].detail2: \"\" vs absent"
+          ]
+        },
+        "S": {
+          "ticket": "fs-rxih",
+          "why": "refresh_required_state re-evaluates required without the row scope and overwrites the walk's result (bind_pass.rs:179-207, mod.rs:176) (F13)",
+          "problems": [
+            "valid true, expected false",
+            "counts {\"error\":0,\"info\":0,\"warning\":0}, expected {\"error\":2,\"info\":0,\"warning\":0}",
+            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"rows[0].detail\",\"severity\":\"error\"}",
+            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"rows[0].detail2\",\"severity\":\"error\"}"
+          ]
+        },
+        "F_submit": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503)",
+          "problems": [
+            "FormEngine submit vs S data rows[0].detail: \"\" vs absent",
+            "FormEngine submit vs S data rows[0].detail2: \"\" vs absent",
+            "FormEngine submit vs S data rows[1].detail: \"\" vs absent",
+            "FormEngine submit vs S data rows[1].detail2: \"\" vs absent"
+          ]
+        },
+        "FR": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503)",
+          "problems": [
+            "recheck of FormEngine submit data vs S data rows[0].detail: \"\" vs absent",
+            "recheck of FormEngine submit data vs S data rows[0].detail2: \"\" vs absent",
+            "recheck of FormEngine submit data vs S data rows[1].detail: \"\" vs absent",
+            "recheck of FormEngine submit data vs S data rows[1].detail2: \"\" vs absent"
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-rxih",
+          "why": "refresh_required_state re-evaluates required without the row scope and overwrites the walk's result (bind_pass.rs:179-207, mod.rs:176) (F13)",
+          "problems": [
+            "valid true, expected false",
+            "error count 0, expected 2",
+            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"rows[0].detail2\",\"severity\":\"error\"}",
+            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"rows[0].detail\",\"severity\":\"error\"}"
+          ]
+        }
+      }
+    },
+    "parity.row-required-sibling-site-0": {
+      "rust": {
+        "value": {
+          "ticket": "fs-rxih",
+          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
+          "problems": [
+            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
+          ]
+        }
+      }
+    },
+    "parity.row-required-sibling-site-1": {
+      "rust": {
+        "value": {
+          "ticket": "fs-rxih",
+          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
+          "problems": [
+            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
+          ]
+        }
+      }
+    },
+    "parity.row-sibling-absent-is-null": {
+      "ts": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "a row with no `kind` reads the outer field: aliases are bound only for present values (repeats.rs:298-336) (N2)",
+          "problems": [
+            "data rows[1].echo: \"TOP\" vs null (actual vs expected)",
+            "round trip of expected.data rows[1].echo: \"TOP\" vs null"
+          ]
+        },
+        "F": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503); P also leaks the outer value until fs-rxih (N2)",
+          "problems": [
+            "FormEngine live vs P data rows[1].kind: \"\" vs absent",
+            "FormEngine live vs P data rows[1].echo: \"\" vs \"TOP\""
+          ]
+        }
+      },
+      "rust": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "a row with no `kind` reads the outer field: aliases are bound only for present values (repeats.rs:298-336) (N2)",
+          "problems": [
+            "data rows[1].echo: \"TOP\" vs null (actual vs expected)",
+            "round trip of expected.data rows[1].echo: \"TOP\" vs null"
+          ]
+        }
+      }
+    },
+    "parity.row-sibling-absent-is-null-site": {
+      "ts": {
+        "value": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503) (isNull('') is false); once absent, HostFelContext falls outward to the outer `kind` (host_context.rs:543-570, N8) until fs-rxih",
+          "problems": [
+            "value false, expected true (exact)"
+          ]
+        }
+      },
+      "rust": {
+        "value": {
+          "ticket": "fs-rxih",
+          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
+          "problems": [
+            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
+          ]
+        }
+      }
+    },
+    "parity.row-sibling-absent-is-null-text": {
+      "ts": {
+        "text": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503) (coalesce('', 'none') is ''); once absent, HostFelContext falls outward (N8) until fs-rxih",
+          "problems": [
+            "text {\"rows[0].echo\":{\"label\":\"Kind row0\"},\"rows[1].echo\":{\"label\":\"Kind \"}}, expected {\"rows[0].echo\":{\"label\":\"Kind row0\"},\"rows[1].echo\":{\"label\":\"Kind none\"}}"
+          ]
+        }
+      },
+      "rust": {
+        "text": {
+          "ticket": "fs-rxih",
+          "why": "the evaluator's text pass reads the outer `kind` for a row without one ('Kind TOP', N2); the browser shows 'Kind ' (F12) — two engines, two wrong answers",
+          "problems": [
+            "rows[1].echo: {\"label\":\"Kind TOP\"} vs {\"label\":\"Kind none\"}"
+          ]
+        }
+      }
+    },
+    "parity.row-star-is-all-rows": {
+      "ts": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "wildcard.rs:37-84 rewrites $rows[*] to the current row inside a rows[*] bind, so sum() sees one number and the share is null (F21); Core §3.2.2 says all rows",
+          "problems": [
+            "data rows[0].share: null vs 0.25 (actual vs expected)",
+            "data rows[1].share: null vs 0.75 (actual vs expected)",
+            "round trip of expected.data rows[0].share: null vs 0.25",
+            "round trip of expected.data rows[1].share: null vs 0.75"
+          ]
+        }
+      },
+      "rust": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "wildcard.rs:37-84 rewrites $rows[*] to the current row inside a rows[*] bind, so sum() sees one number and the share is null (F21); Core §3.2.2 says all rows",
+          "problems": [
+            "data rows[0].share: null vs 0.25 (actual vs expected)",
+            "data rows[1].share: null vs 0.75 (actual vs expected)",
+            "round trip of expected.data rows[0].share: null vs 0.25",
+            "round trip of expected.data rows[1].share: null vs 0.75"
+          ]
+        }
+      }
+    },
+    "parity.row-star-is-all-rows-site": {
+      "rust": {
+        "value": {
+          "ticket": "fs-rxih",
+          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
+          "problems": [
+            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
+          ]
+        }
+      }
+    },
+    "parity.row-target-shape-non-relevant": {
+      "ts": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "a shape on rows[*] finds no item node for rows[0] (shapes.rs:149) and ignores the non-relevant repeat (F26b)",
+          "problems": [
+            "valid false, expected true",
+            "counts {\"error\":1,\"info\":0,\"warning\":0}, expected {\"error\":0,\"info\":0,\"warning\":0}",
+            "unexpected result {\"code\":\"SHAPE_FAILED\",\"constraint\":\"false\",\"constraintKind\":\"shape\",\"message\":\"row rule\",\"path\":\"rows[0]\",\"severity\":\"error\",\"shapeId\":\"row-rule\",\"source\":\"shape\"}"
+          ]
+        }
+      },
+      "rust": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "a shape on rows[*] finds no item node for rows[0] (shapes.rs:149) and ignores the non-relevant repeat (F26b)",
+          "problems": [
+            "valid false, expected true",
+            "error count 1, expected 0",
+            "unexpected result {\"code\":\"SHAPE_FAILED\",\"constraint\":\"false\",\"constraintKind\":\"shape\",\"message\":\"row rule\",\"path\":\"rows[0]\",\"severity\":\"error\",\"shapeId\":\"row-rule\",\"source\":\"shape\"}"
+          ]
+        }
+      }
+    },
+    "parity.row-unsubscripted-repeat-ref": {
+      "ts": {
+        "S": {
+          "ticket": "fs-rxih",
+          "why": "$rows.lo is rewritten to the current row and then read 0-based (N3); owner ruling Q3 makes it a definition error (CONSTRAINT_PARSE_ERROR per site)",
+          "problems": [
+            "counts {\"error\":1,\"info\":0,\"warning\":0}, expected {\"error\":2,\"info\":0,\"warning\":0}",
+            "expected result missing {\"code\":\"CONSTRAINT_PARSE_ERROR\",\"constraintKind\":\"constraint\",\"path\":\"rows[0].hi\",\"severity\":\"error\"}",
+            "expected result missing {\"code\":\"CONSTRAINT_PARSE_ERROR\",\"constraintKind\":\"constraint\",\"path\":\"rows[1].hi\",\"severity\":\"error\"}",
+            "unexpected result {\"code\":\"CONSTRAINT_FAILED\",\"constraint\":\"$ >= $rows.lo\",\"constraintKind\":\"constraint\",\"message\":\"Constraint failed: $ >= $rows.lo\",\"path\":\"rows[0].hi\",\"severity\":\"error\",\"source\":\"bind\"}"
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-rxih",
+          "why": "$rows.lo is rewritten to the current row and then read 0-based (N3); owner ruling Q3 makes it a definition error (CONSTRAINT_PARSE_ERROR per site)",
+          "problems": [
+            "error count 1, expected 2",
+            "expected result missing {\"code\":\"CONSTRAINT_PARSE_ERROR\",\"constraintKind\":\"constraint\",\"path\":\"rows[0].hi\",\"severity\":\"error\"}",
+            "expected result missing {\"code\":\"CONSTRAINT_PARSE_ERROR\",\"constraintKind\":\"constraint\",\"path\":\"rows[1].hi\",\"severity\":\"error\"}",
+            "unexpected result {\"code\":\"CONSTRAINT_FAILED\",\"constraint\":\"$ >= $rows.lo\",\"constraintKind\":\"constraint\",\"message\":\"Constraint failed: $ >= $rows.lo\",\"path\":\"rows[0].hi\",\"severity\":\"error\",\"source\":\"bind\"}"
+          ]
+        }
+      }
+    },
+    "parity.saved-response-not-created-again": {
+      "ts": {
+        "S": {
+          "ticket": "fs-i731",
+          "why": "evaluate creates on a saved Response: status gets initialValue 'draft' and rows are seeded from the instance, hiding MIN_REPEAT (N5)",
+          "problems": [
+            "valid true, expected false",
+            "counts {\"error\":0,\"info\":0,\"warning\":0}, expected {\"error\":1,\"info\":0,\"warning\":0}",
+            "expected result missing {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"path\":\"rows\",\"severity\":\"error\"}",
+            "data status: \"draft\" vs absent (actual vs expected)",
+            "data rows[0].name: \"A\" vs absent (actual vs expected)",
+            "data rows: absent vs [] (actual vs expected)"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate adds status and rows[0].name to a saved Response — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added status = \"draft\"",
+            "P(continuous): added rows[0].name = \"A\"",
+            "P(submit): added status = \"draft\"",
+            "P(submit): added rows[0].name = \"A\""
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-i731",
+          "why": "evaluate creates on a saved Response: status gets initialValue 'draft' and rows are seeded from the instance, hiding MIN_REPEAT (N5)",
+          "problems": [
+            "valid true, expected false",
+            "error count 0, expected 1",
+            "expected result missing {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"path\":\"rows\",\"severity\":\"error\"}",
+            "data rows: absent vs [] (actual vs expected)",
+            "data rows[0].name: \"A\" vs absent (actual vs expected)",
+            "data status: \"draft\" vs absent (actual vs expected)"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "evaluate adds status and rows[0].name to a saved Response — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added rows[0].name = \"A\"",
+            "P(continuous): added status = \"draft\"",
+            "P(submit): added rows[0].name = \"A\"",
+            "P(submit): added status = \"draft\""
+          ]
+        }
+      }
+    },
+    "parity.seed-pending-source": {
+      "ts": {
+        "F": {
+          "ticket": "fs-i731",
+          "why": "FormEngine seeds a pending-source repeat wrongly on fallback (rows[1].name missing): seeding on source failure lives in TS (_seedFromResolvedPaths, runInstanceDependentSeeding)",
+          "problems": [
+            "FormEngine live vs P data rows[1].name: absent vs \"WIDGETS\""
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "origin new: seeding happens inside evaluate — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added rows[0].name = \"ACME\"",
+            "P(continuous): added rows[1].name = \"WIDGETS\""
+          ]
+        }
+      },
+      "rust": {
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "origin new: seeding happens inside evaluate — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added rows[0].name = \"ACME\"",
+            "P(continuous): added rows[1].name = \"WIDGETS\""
+          ]
+        }
+      }
+    },
+    "parity.seed-remove-then-add": {
+      "ts": {
+        "F": {
+          "ticket": "fs-i731",
+          "why": "the added row is pre-filled 'GLOBEX' by live row index (appendRepeatRow, F32); also FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503)",
+          "problems": [
+            "data rows[0].note: \"\" vs absent (actual vs expected)",
+            "data rows[1].note: \"\" vs absent (actual vs expected)",
+            "data rows[2].name: \"GLOBEX\" vs absent (actual vs expected)",
+            "data rows[2].note: \"\" vs absent (actual vs expected)",
+            "data rows[2]: absent vs {} (actual vs expected)"
+          ]
+        },
+        "FR": {
+          "ticket": "fs-i731",
+          "why": "FormEngine's filed bytes carry the F32 pre-fill and '' notes; also FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503)",
+          "problems": [
+            "data rows[0].note: \"\" vs absent (actual vs expected)",
+            "data rows[1].note: \"\" vs absent (actual vs expected)",
+            "data rows[2].name: \"GLOBEX\" vs absent (actual vs expected)",
+            "data rows[2].note: \"\" vs absent (actual vs expected)",
+            "data rows[2]: absent vs {} (actual vs expected)"
+          ]
+        }
+      }
+    },
+    "parity.seed-reopen-blank-cell": {
+      "ts": {
+        "F": {
+          "ticket": "fs-i731",
+          "why": "FormEngine fills a blank cell of a saved row from another seed element by live index (FormEngine.ts:1575-1593, F14)",
+          "problems": [
+            "FormEngine live vs P data rows[1].name: \"WIDGETS\" vs absent"
+          ]
+        }
+      }
+    },
+    "parity.undeclared-keys-kept-in-place": {
+      "ts": {
+        "P": {
+          "ticket": "fs-8xnt",
+          "why": "evaluate re-emits an in-row undeclared key as a flat top-level key \"rows[0].legacy\" (output_data.rs:26-32, N4) and reports no undeclaredDataPaths (Q1)",
+          "problems": [
+            "data \"rows[0].legacy\": \"old\" vs absent (actual vs expected)",
+            "data rows[0].legacy: absent vs \"old\" (actual vs expected)",
+            "undeclaredDataPaths null, expected [\"bogus\",\"rows[0].legacy\"]",
+            "round trip of expected.data \"rows[0].legacy\": \"old\" vs absent",
+            "round trip of expected.data rows[0].legacy: absent vs \"old\""
+          ]
+        },
+        "F": {
+          "ticket": "fs-8xnt",
+          "why": "FormEngine drops undeclared keys on load (FormEngine.ts:451-453, F28/F31)",
+          "problems": [
+            "FormEngine live vs P data bogus: absent vs \"kept\"",
+            "FormEngine live vs P data \"rows[0].legacy\": absent vs \"old\""
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-8xnt",
+          "why": "the in-row undeclared key moves to a flat top-level key (N4)",
+          "problems": [
+            "P(continuous): added \"rows[0].legacy\" = \"old\"",
+            "P(continuous): removed rows[0].legacy = \"old\"",
+            "P(round trip): added \"rows[0].legacy\" = \"old\"",
+            "P(round trip): removed rows[0].legacy = \"old\""
+          ]
+        }
+      },
+      "rust": {
+        "P": {
+          "ticket": "fs-8xnt",
+          "why": "evaluate re-emits an in-row undeclared key as a flat top-level key \"rows[0].legacy\" (output_data.rs:26-32, N4) and reports no undeclaredDataPaths (Q1)",
+          "problems": [
+            "data rows[0].legacy: absent vs \"old\" (actual vs expected)",
+            "data \"rows[0].legacy\": \"old\" vs absent (actual vs expected)",
+            "undeclaredDataPaths None, expected [\"bogus\",\"rows[0].legacy\"]",
+            "round trip of expected.data rows[0].legacy: absent vs \"old\"",
+            "round trip of expected.data \"rows[0].legacy\": \"old\" vs absent"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-8xnt",
+          "why": "the in-row undeclared key moves to a flat top-level key (N4)",
+          "problems": [
+            "P(continuous): added \"rows[0].legacy\" = \"old\"",
+            "P(continuous): removed rows[0].legacy = \"old\"",
+            "P(round trip): added \"rows[0].legacy\" = \"old\"",
+            "P(round trip): removed rows[0].legacy = \"old\""
+          ]
+        }
+      }
+    },
+    "parity.untouched-text-is-null": {
+      "ts": {
+        "F": {
+          "ticket": "fs-i731",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503), so copy is '' and isNull($src) is false in the browser",
+          "problems": [
+            "FormEngine live vs P data src: \"\" vs absent",
+            "FormEngine live vs P data copy: \"\" vs null",
+            "FormEngine live vs P data srcIsNull: false vs true"
+          ]
+        }
+      }
+    },
+    "parity.variable-scoped-per-row": {
+      "ts": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "a variable scoped to a repeat gets no row scope (variables.rs:112-152 aliases only 'rows.' keys, never 'rows[0].x'), so @rowDouble is null (N9)",
+          "problems": [
+            "data rows[0].d: null vs 2 (actual vs expected)",
+            "data rows[1].d: null vs 6 (actual vs expected)",
+            "round trip of expected.data rows[0].d: null vs 2",
+            "round trip of expected.data rows[1].d: null vs 6"
+          ]
+        }
+      },
+      "rust": {
+        "P": {
+          "ticket": "fs-rxih",
+          "why": "a variable scoped to a repeat gets no row scope (variables.rs:112-152 aliases only 'rows.' keys, never 'rows[0].x'), so @rowDouble is null (N9)",
+          "problems": [
+            "data rows[0].d: null vs 2 (actual vs expected)",
+            "data rows[1].d: null vs 6 (actual vs expected)",
+            "round trip of expected.data rows[0].d: null vs 2",
+            "round trip of expected.data rows[1].d: null vs 6"
+          ]
+        }
+      }
+    },
+    "response-data.kitchen-sink": {
+      "ts": {
+        "S": {
+          "ticket": "fs-8xnt",
+          "why": "evaluate applies whitespace trim/normalize to data it is given (recalculate/mod.rs:105, bind_pass.rs:15-29); Core §4.3.1 applies whitespace before the value is stored, and owner ruling Q2 puts it at typing/import",
+          "problems": [
+            "data fullName: \"Shelley Agent\" vs \"  Shelley Agent  \" (actual vs expected)",
+            "data notes: \"alpha beta\" vs \"alpha    beta\" (actual vs expected)"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-8xnt",
+          "why": "evaluate changes fullName and notes (whitespace) in the data it is given; canonicalisation belongs at input (Q2)",
+          "problems": [
+            "P(continuous): changed fullName: \"  Shelley Agent  \" -> \"Shelley Agent\"",
+            "P(continuous): changed notes: \"alpha    beta\" -> \"alpha beta\"",
+            "P(submit): changed fullName: \"  Shelley Agent  \" -> \"Shelley Agent\"",
+            "P(submit): changed notes: \"alpha    beta\" -> \"alpha beta\""
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-8xnt",
+          "why": "evaluate applies whitespace trim/normalize to data it is given (recalculate/mod.rs:105, bind_pass.rs:15-29); Core §4.3.1 applies whitespace before the value is stored, and owner ruling Q2 puts it at typing/import",
+          "problems": [
+            "data fullName: \"Shelley Agent\" vs \"  Shelley Agent  \" (actual vs expected)",
+            "data notes: \"alpha beta\" vs \"alpha    beta\" (actual vs expected)"
+          ]
+        },
+        "noInvention": {
+          "ticket": "fs-8xnt",
+          "why": "evaluate changes fullName and notes (whitespace) in the data it is given; canonicalisation belongs at input (Q2)",
+          "problems": [
+            "P(continuous): changed fullName: \"  Shelley Agent  \" -> \"Shelley Agent\"",
+            "P(continuous): changed notes: \"alpha    beta\" -> \"alpha beta\"",
+            "P(submit): changed fullName: \"  Shelley Agent  \" -> \"Shelley Agent\"",
+            "P(submit): changed notes: \"alpha    beta\" -> \"alpha beta\""
+          ]
+        }
+      }
+    },
+    "seed-from.repeat-prepopulate": {
+      "ts": {
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "origin new: the rows are created inside evaluate instead of by create_response — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added employersOnRecord[0].payerName = \"ACME CORP\"",
+            "P(continuous): added employersOnRecord[1].payerName = \"WIDGETS INC\""
+          ]
+        }
+      },
+      "rust": {
+        "noInvention": {
+          "ticket": "fs-i731",
+          "why": "origin new: the rows are created inside evaluate instead of by create_response — evaluate applies creation steps to the data it is given (seedFrom, prePopulate, initialValue, minRepeat padding: pipeline.rs:55-66, repeat_expand.rs:57-59; F2, N1, N5)",
+          "problems": [
+            "P(continuous): added employersOnRecord[0].payerName = \"ACME CORP\"",
+            "P(continuous): added employersOnRecord[1].payerName = \"WIDGETS INC\""
+          ]
+        }
+      }
+    }
+  }
+}

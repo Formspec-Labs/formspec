@@ -1,0 +1,45 @@
+{
+  "id": "parity.row-unsubscripted-repeat-ref",
+  "kind": "VALIDATION_REPORT",
+  "specRefs": [
+    "Owner ruling Q3 / Core §3.2.2 and §3.10.1 (S6): $repeat.field without a subscript is a definition error",
+    "Core §2.5.1 CONSTRAINT_PARSE_ERROR"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-row-unsubscripted.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "rows": [
+      {
+        "lo": 1,
+        "hi": 5
+      },
+      {
+        "lo": 9,
+        "hi": 2
+      }
+    ]
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 2,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "rows[0].hi",
+        "code": "CONSTRAINT_PARSE_ERROR",
+        "severity": "error",
+        "constraintKind": "constraint"
+      },
+      {
+        "path": "rows[1].hi",
+        "code": "CONSTRAINT_PARSE_ERROR",
+        "severity": "error",
+        "constraintKind": "constraint"
+      }
+    ]
+  }
+}

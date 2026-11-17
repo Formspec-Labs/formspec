@@ -1,0 +1,55 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:seed",
+  "version": "1.0.0",
+  "title": "Seeded rows",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "name",
+          "type": "field",
+          "dataType": "string",
+          "label": "Name",
+          "prePopulate": {
+            "instance": "record",
+            "path": "name"
+          }
+        },
+        {
+          "key": "note",
+          "type": "field",
+          "dataType": "string",
+          "label": "Note"
+        }
+      ],
+      "repeatable": true,
+      "minRepeat": 0,
+      "seedFrom": {
+        "instance": "record",
+        "path": "items"
+      }
+    }
+  ],
+  "instances": {
+    "record": {
+      "data": {
+        "items": [
+          {
+            "name": "ACME"
+          },
+          {
+            "name": "WIDGETS"
+          },
+          {
+            "name": "GLOBEX"
+          }
+        ]
+      }
+    }
+  }
+}

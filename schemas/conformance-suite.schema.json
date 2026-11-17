@@ -2,8 +2,33 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/conformance-suite/1.0",
   "title": "Formspec Shared Conformance Suite Case",
-  "description": "Canonical shared-case contract for cross-runtime conformance checks executed by both Python and TypeScript runners.",
+  "description": "Canonical shared-case contract for the cross-runtime parity guard. Every case runs in the TypeScript runner (FormEngine and the WASM evaluator) and the native Rust runner (formspec-eval, built as the server builds it); Python binds the same Rust evaluator. Known divergences are listed per case, leg and runner in tests/conformance/parity-ledger.json.",
   "$defs": {
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error", "warning", "info"],
+      "properties": {
+        "error": { "type": "integer", "minimum": 0 },
+        "warning": { "type": "integer", "minimum": 0 },
+        "info": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "expectedResult": {
+      "type": "object",
+      "required": ["path", "code", "severity", "constraintKind"],
+      "description": "A ValidationResult compared on the fields it lists. Omit processor-generated messages; list authored ones (constraintMessage, Shape message)."
+    },
+    "expectedReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["valid", "counts", "results"],
+      "properties": {
+        "valid": { "type": "boolean" },
+        "counts": { "$ref": "#/$defs/counts" },
+        "results": { "type": "array", "items": { "$ref": "#/$defs/expectedResult" } }
+      }
+    },
     "standardValidationCode": {
       "type": "string",
       "enum": [
@@ -24,12 +49,12 @@
         "EXTENSION_RETIRED",
         "EXTENSION_DEPRECATED"
       ],
-      "description": "Standard validation result codes that both Python and TypeScript runtimes MUST emit identically. The leading codes are the RESERVED built-in codes (core spec §2.5.1), as in validation-result.schema.json: REQUIRED, TYPE_MISMATCH, MIN_REPEAT, MAX_REPEAT, CONSTRAINT_FAILED, CONSTRAINT_PARSE_ERROR, SHAPE_FAILED, EXTERNAL_FAILED. The remaining are registry extension codes. Shape-level and external codes (e.g., 'BUDGET_SUM_MISMATCH', 'EIN_NOT_FOUND') are user-defined and not constrained here."
+      "description": "Standard validation result codes that every runtime MUST emit identically. The leading codes are the RESERVED built-in codes (core spec §2.5.1), as in validation-result.schema.json: REQUIRED, TYPE_MISMATCH, MIN_REPEAT, MAX_REPEAT, CONSTRAINT_FAILED, CONSTRAINT_PARSE_ERROR, SHAPE_FAILED, EXTERNAL_FAILED. The remaining are registry extension codes. Shape-level and external codes (e.g., 'BUDGET_SUM_MISMATCH', 'EIN_NOT_FOUND') are user-defined and not constrained here."
     }
   },
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "kind", "expected", "legacyCoverage"],
+  "required": ["id", "kind", "expected", "specRefs"],
   "properties": {
     "id": {
       "type": "string",
@@ -71,6 +96,37 @@
     },
     "inputData": {
       "description": "Inline input payload."
+    },
+    "specRefs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "The spec sections (or owner rulings) `expected` is derived from, e.g. 'Core §4.2.2 minRepeat'. Expected values are derived from these by hand, never by running an engine."
+    },
+    "origin": {
+      "type": "string",
+      "enum": ["new", "saved"],
+      "description": "How the payload enters a session. 'new': a new Response is created with the payload as host prefill (Core §4.2.2.1: host data wins key by key). 'saved': a saved Response resumes as given, with no creation."
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["op", "path"],
+        "properties": {
+          "op": { "type": "string", "enum": ["setValue", "addRow", "removeRow"] },
+          "path": { "type": "string", "minLength": 1 },
+          "value": {},
+          "index": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "description": "Live-session steps the TypeScript runner replays on FormEngine after loading the payload; `expected` is the state after the last step. The Rust runner evaluates `expected.data` (the filed record) instead."
+    },
+    "site": {
+      "type": "string",
+      "description": "FEL_EVALUATION with a Definition: the instance path the expression is evaluated at, as a component `when` or compileExpression would (empty string for the form root)."
     },
     "mode": {
       "type": "string",
@@ -133,7 +189,7 @@
           }
         }
       },
-      "description": "Explicit mapping of this shared case to replaced legacy checks."
+      "description": "Optional mapping of this shared case to the legacy checks it replaced."
     }
   },
   "allOf": [
@@ -151,6 +207,21 @@
     },
     {
       "if": {
+        "properties": { "kind": { "const": "FEL_EVALUATION" } },
+        "required": ["kind", "definitionPath"]
+      },
+      "then": { "required": ["inputData", "origin", "site"], "not": { "required": ["fields"] } }
+    },
+    {
+      "if": {
+        "properties": { "kind": { "enum": ["ENGINE_PROCESSING", "VALIDATION_REPORT", "RESPONSE_VALIDATION"] } },
+        "required": ["kind"]
+      },
+      "then": { "required": ["origin", "mode"] },
+      "else": { "not": { "anyOf": [{ "required": ["operations"] }, { "required": ["mode"] }] } }
+    },
+    {
+      "if": {
         "properties": { "kind": { "enum": ["ENGINE_PROCESSING", "VALIDATION_REPORT", "RESPONSE_VALIDATION", "ITEM_TEXT"] } },
         "required": ["kind"]
       },
@@ -160,6 +231,61 @@
           { "required": ["payloadPath"] },
           { "required": ["inputData"] }
         ]
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "VALIDATION_REPORT" } }, "required": ["kind"] },
+      "then": { "properties": { "expected": { "$ref": "#/$defs/expectedReport" } } }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "ENGINE_PROCESSING" } }, "required": ["kind"] },
+      "then": {
+        "properties": {
+          "expected": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["valid", "counts", "results", "data"],
+            "properties": {
+              "valid": { "type": "boolean" },
+              "counts": { "$ref": "#/$defs/counts" },
+              "results": { "type": "array", "items": { "$ref": "#/$defs/expectedResult" } },
+              "data": { "type": "object" },
+              "undeclaredDataPaths": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "RESPONSE_VALIDATION" } }, "required": ["kind"] },
+      "then": {
+        "properties": {
+          "expected": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["report", "response"],
+            "properties": {
+              "report": { "$ref": "#/$defs/expectedReport" },
+              "response": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["validationResults"],
+                "properties": {
+                  "validationResults": { "type": "array", "items": { "$ref": "#/$defs/expectedResult" } },
+                  "data": { "type": "object" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "FEL_EVALUATION" } }, "required": ["kind"] },
+      "then": {
+        "properties": {
+          "expected": { "type": "object", "additionalProperties": false, "required": ["value"], "properties": { "value": {} } }
+        }
       }
     },
     {

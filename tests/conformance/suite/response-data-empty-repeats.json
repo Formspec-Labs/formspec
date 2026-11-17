@@ -1,6 +1,11 @@
 {
   "id": "response-data.empty-repeats",
   "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §2.1.2 Instance mirrors the Item tree (a repeatable group is an array)",
+    "Core §2.1.6 data"
+  ],
+  "origin": "saved",
   "definitionPath": "tests/conformance/suite/fixtures/response-data.definition.json",
   "inputData": {
     "show": true,
@@ -30,11 +35,5 @@
       },
       "kept": []
     }
-  },
-  "legacyCoverage": [
-    {
-      "path": "crates/formspec-eval/tests/integration/shared_suite.rs",
-      "check": "engine_processing_data_is_the_response_and_round_trips"
-    }
-  ]
+  }
 }

@@ -1,0 +1,42 @@
+{
+  "id": "parity.row-explicit-index-1-based",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §3.2.2 $repeat[index] is 1-based, in every expression kind"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-row-index.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "rows": [
+      {
+        "lo": 1
+      },
+      {
+        "lo": 9
+      }
+    ],
+    "probe": 0
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "rows": [
+        {
+          "lo": 1
+        },
+        {
+          "lo": 9
+        }
+      ],
+      "first": 1,
+      "probe": 0
+    }
+  }
+}

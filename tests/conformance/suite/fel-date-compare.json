@@ -1,11 +1,23 @@
 {
   "id": "fel.date_compare",
   "kind": "FEL_EVALUATION",
-  "expression": "endDate >= startDate",
+  "specRefs": [
+    "Core §3.3 comparison of dates is chronological",
+    "FEL grammar §6 (fel-grammar.md:329): a field reference is `$` + identifier"
+  ],
+  "expression": "$endDate >= $startDate",
   "comparator": "exact",
   "fields": [
-    { "key": "startDate", "dataType": "date", "value": "2026-01-01" },
-    { "key": "endDate", "dataType": "date", "value": "2026-01-15" }
+    {
+      "key": "startDate",
+      "dataType": "date",
+      "value": "2026-01-01"
+    },
+    {
+      "key": "endDate",
+      "dataType": "date",
+      "value": "2026-01-15"
+    }
   ],
   "inputData": {},
   "expected": {

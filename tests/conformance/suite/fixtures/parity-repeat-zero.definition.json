@@ -1,0 +1,45 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:repeat-zero",
+  "version": "1.0.0",
+  "title": "Zero rows",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "amt",
+          "type": "field",
+          "dataType": "decimal",
+          "label": "Amount"
+        }
+      ],
+      "repeatable": true
+    },
+    {
+      "key": "m",
+      "type": "field",
+      "dataType": "integer",
+      "label": "M"
+    },
+    {
+      "key": "total",
+      "type": "field",
+      "dataType": "decimal",
+      "label": "Total"
+    }
+  ],
+  "binds": [
+    {
+      "path": "m",
+      "calculate": "count($rows[*])"
+    },
+    {
+      "path": "total",
+      "calculate": "sum($rows[*].amt)"
+    }
+  ]
+}

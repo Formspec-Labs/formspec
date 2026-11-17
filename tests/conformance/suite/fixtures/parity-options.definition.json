@@ -1,0 +1,49 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:options",
+  "version": "1.0.0",
+  "title": "Named option sets",
+  "status": "active",
+  "items": [
+    {
+      "key": "state",
+      "type": "field",
+      "dataType": "choice",
+      "label": "State",
+      "optionSet": "states"
+    },
+    {
+      "key": "picks",
+      "type": "field",
+      "dataType": "multiChoice",
+      "label": "Colors",
+      "optionSet": "colors"
+    }
+  ],
+  "optionSets": {
+    "states": {
+      "options": [
+        {
+          "value": "NJ",
+          "label": "New Jersey"
+        },
+        {
+          "value": "NY",
+          "label": "New York"
+        }
+      ]
+    },
+    "colors": {
+      "options": [
+        {
+          "value": "red",
+          "label": "Red"
+        },
+        {
+          "value": "blue",
+          "label": "Blue"
+        }
+      ]
+    }
+  }
+}

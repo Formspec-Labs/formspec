@@ -1,0 +1,37 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:untouched",
+  "version": "1.0.0",
+  "title": "Untouched text",
+  "status": "active",
+  "items": [
+    {
+      "key": "src",
+      "type": "field",
+      "dataType": "string",
+      "label": "Source"
+    },
+    {
+      "key": "copy",
+      "type": "field",
+      "dataType": "string",
+      "label": "Copy"
+    },
+    {
+      "key": "srcIsNull",
+      "type": "field",
+      "dataType": "boolean",
+      "label": "Source is null"
+    }
+  ],
+  "binds": [
+    {
+      "path": "copy",
+      "calculate": "$src"
+    },
+    {
+      "path": "srcIsNull",
+      "calculate": "isNull($src)"
+    }
+  ]
+}

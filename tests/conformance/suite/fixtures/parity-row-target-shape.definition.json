@@ -1,0 +1,38 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:row-target-shape",
+  "version": "1.0.0",
+  "title": "Row-target shape on a non-relevant repeat",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "x",
+          "type": "field",
+          "dataType": "string",
+          "label": "X"
+        }
+      ],
+      "repeatable": true
+    }
+  ],
+  "binds": [
+    {
+      "path": "rows",
+      "relevant": "false"
+    }
+  ],
+  "shapes": [
+    {
+      "id": "row-rule",
+      "target": "rows[*]",
+      "severity": "error",
+      "constraint": "false",
+      "message": "row rule"
+    }
+  ]
+}

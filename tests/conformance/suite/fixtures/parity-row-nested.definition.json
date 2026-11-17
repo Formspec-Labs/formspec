@@ -1,0 +1,42 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:row-nested",
+  "version": "1.0.0",
+  "title": "Nested group in a row",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "body",
+          "type": "group",
+          "label": "Body",
+          "children": [
+            {
+              "key": "a",
+              "type": "field",
+              "dataType": "string",
+              "label": "A"
+            },
+            {
+              "key": "copy",
+              "type": "field",
+              "dataType": "string",
+              "label": "Copy of {{$a}}"
+            }
+          ]
+        }
+      ],
+      "repeatable": true
+    }
+  ],
+  "binds": [
+    {
+      "path": "rows[*].body.copy",
+      "calculate": "$a"
+    }
+  ]
+}

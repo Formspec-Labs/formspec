@@ -1,0 +1,39 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:prepopulate-locked",
+  "version": "1.0.0",
+  "title": "Locked pre-fill",
+  "status": "active",
+  "items": [
+    {
+      "key": "name",
+      "type": "field",
+      "dataType": "string",
+      "label": "Name",
+      "prePopulate": {
+        "instance": "org",
+        "path": "name",
+        "editable": false
+      }
+    },
+    {
+      "key": "locked",
+      "type": "field",
+      "dataType": "boolean",
+      "label": "Locked"
+    }
+  ],
+  "instances": {
+    "org": {
+      "data": {
+        "name": "Acme"
+      }
+    }
+  },
+  "binds": [
+    {
+      "path": "locked",
+      "calculate": "readonly($name)"
+    }
+  ]
+}

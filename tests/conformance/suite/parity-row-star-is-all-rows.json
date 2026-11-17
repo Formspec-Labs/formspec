@@ -1,0 +1,41 @@
+{
+  "id": "parity.row-star-is-all-rows",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §3.2.2 $repeat[*].field is every instance (spec.md:1877)"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-row-star.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "rows": [
+      {
+        "amt": 1
+      },
+      {
+        "amt": 3
+      }
+    ]
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "rows": [
+        {
+          "amt": 1,
+          "share": 0.25
+        },
+        {
+          "amt": 3,
+          "share": 0.75
+        }
+      ]
+    }
+  }
+}

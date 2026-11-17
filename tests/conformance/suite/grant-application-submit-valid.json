@@ -1,6 +1,12 @@
 {
   "id": "grant-application.submit-valid",
   "kind": "RESPONSE_VALIDATION",
+  "specRefs": [
+    "Core §2.1.6 Response",
+    "Core §5.4 Validation Report",
+    "The example Response is a complete, valid filing of its example Definition (not re-derived rule by rule)"
+  ],
+  "origin": "saved",
   "definitionPath": "examples/grant-application/definition.json",
   "registryPaths": [
     "registries/formspec-common.registry.json"

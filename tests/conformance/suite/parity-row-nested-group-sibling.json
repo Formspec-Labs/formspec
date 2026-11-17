@@ -1,0 +1,38 @@
+{
+  "id": "parity.row-nested-group-sibling",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §3.2.1 nearest enclosing scope that declares the key (S5)"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-row-nested.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "rows": [
+      {
+        "body": {
+          "a": "hello"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "rows": [
+        {
+          "body": {
+            "a": "hello",
+            "copy": "hello"
+          }
+        }
+      ]
+    }
+  }
+}

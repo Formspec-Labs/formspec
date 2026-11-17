@@ -56,12 +56,17 @@ def test_non_fel_case_requires_payload_or_input_data(conformance_suite_schema: d
     invalid_case = {
         "id": "invalid.no_payload",
         "kind": "VALIDATION_REPORT",
+        "specRefs": ["Core §5.4 Validation Report"],
+        "origin": "saved",
+        "mode": "submit",
         "definitionPath": "examples/grant-application/definition.json",
         "expected": {"valid": True, "counts": {"error": 0, "warning": 0, "info": 0}, "results": []},
         "legacyCoverage": [{"path": "tests/example.py", "check": "X"}],
     }
     with pytest.raises(ValidationError):
         validator.validate(invalid_case)
+    # The payload rule is the only reason: the same case with inline input data is valid.
+    validator.validate({**invalid_case, "inputData": {}})
 
 
 def test_standard_validation_codes_include_core_reserved_codes(conformance_suite_schema: dict) -> None:

@@ -1,0 +1,48 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:nrb",
+  "version": "1.0.0",
+  "title": "Pruned calculation input",
+  "status": "active",
+  "items": [
+    {
+      "key": "show",
+      "type": "field",
+      "dataType": "boolean",
+      "label": "Show"
+    },
+    {
+      "key": "x",
+      "type": "field",
+      "dataType": "integer",
+      "label": "X"
+    },
+    {
+      "key": "c",
+      "type": "field",
+      "dataType": "integer",
+      "label": "C"
+    },
+    {
+      "key": "y",
+      "type": "field",
+      "dataType": "integer",
+      "label": "Y"
+    }
+  ],
+  "binds": [
+    {
+      "path": "x",
+      "relevant": "$show"
+    },
+    {
+      "path": "c",
+      "calculate": "$x + 1"
+    },
+    {
+      "path": "y",
+      "constraint": "$ = $c",
+      "constraintMessage": "y must equal c"
+    }
+  ]
+}

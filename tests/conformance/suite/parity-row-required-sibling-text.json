@@ -1,0 +1,27 @@
+{
+  "id": "parity.row-required-sibling-text",
+  "kind": "ITEM_TEXT",
+  "specRefs": [
+    "Core §4.2.1 Item text interpolation",
+    "Core §3.2.1 (S5)"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-row-required.definition.json",
+  "inputData": {
+    "rows": [
+      {
+        "kind": "x"
+      },
+      {
+        "kind": "y"
+      }
+    ]
+  },
+  "expected": {
+    "rows[0].detail": {
+      "label": "Detail for x"
+    },
+    "rows[1].detail": {
+      "label": "Detail for y"
+    }
+  }
+}

@@ -1,10 +1,21 @@
 {
   "id": "fel.membership",
   "kind": "FEL_EVALUATION",
-  "expression": "'priority' in tags",
+  "specRefs": [
+    "Core §3.3 in (membership)",
+    "FEL grammar §6 (fel-grammar.md:329): a field reference is `$` + identifier"
+  ],
+  "expression": "'priority' in $tags",
   "comparator": "exact",
   "fields": [
-    { "key": "tags", "dataType": "multiChoice", "value": ["new", "priority"] }
+    {
+      "key": "tags",
+      "dataType": "multiChoice",
+      "value": [
+        "new",
+        "priority"
+      ]
+    }
   ],
   "inputData": {},
   "expected": {

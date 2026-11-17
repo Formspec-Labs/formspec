@@ -1,6 +1,10 @@
 {
   "id": "seed-from.empty-host-array",
   "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.2.2.1 a present [] is host data (zero rows); seedFrom does not apply"
+  ],
+  "origin": "new",
   "definitionPath": "tests/fixtures/fixture-seed-from-repeat.json",
   "inputData": {
     "employersOnRecord": []

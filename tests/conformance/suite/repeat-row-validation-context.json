@@ -1,6 +1,12 @@
 {
   "id": "core.repeat-row-validation-context",
   "kind": "VALIDATION_REPORT",
+  "specRefs": [
+    "Core §3.2.2 @index and @count in a row",
+    "Core §4.3.1 constraintMessage",
+    "Core §5.2 Shape message in the target context"
+  ],
+  "origin": "saved",
   "definitionPath": "tests/conformance/suite/fixtures/repeat-row-context.definition.json",
   "inputData": {
     "rows": [
@@ -22,7 +28,6 @@
     },
     "results": [
       {
-        "$formspecValidationResult": "1.0",
         "code": "CONSTRAINT_FAILED",
         "constraint": "$ = @index and @count = 2",
         "constraintKind": "constraint",
@@ -32,7 +37,6 @@
         "source": "bind"
       },
       {
-        "$formspecValidationResult": "1.0",
         "code": "SHAPE_FAILED",
         "constraint": "$ <= @count",
         "constraintKind": "shape",
@@ -43,15 +47,5 @@
         "source": "shape"
       }
     ]
-  },
-  "legacyCoverage": [
-    {
-      "path": "crates/formspec-eval/tests/integration/shared_suite.rs",
-      "check": "repeat_row_validation_context"
-    },
-    {
-      "path": "packages/formspec-engine/tests/shared-suite.test.mjs",
-      "check": "core.repeat-row-validation-context"
-    }
-  ]
+  }
 }

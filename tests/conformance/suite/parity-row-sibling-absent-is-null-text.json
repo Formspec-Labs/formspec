@@ -1,0 +1,26 @@
+{
+  "id": "parity.row-sibling-absent-is-null-text",
+  "kind": "ITEM_TEXT",
+  "specRefs": [
+    "Core §4.2.1",
+    "Core §3.8.3"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-row-absent.definition.json",
+  "inputData": {
+    "kind": "TOP",
+    "rows": [
+      {
+        "kind": "row0"
+      },
+      {}
+    ]
+  },
+  "expected": {
+    "rows[0].echo": {
+      "label": "Kind row0"
+    },
+    "rows[1].echo": {
+      "label": "Kind none"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "id": "parity.padded-rows-calculated-child",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.2.2 minRepeat (padding only when a new Response is created)",
+    "Core §2.4 (S1: no creation on re-evaluation)",
+    "Core §2.5.1 MIN_REPEAT"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-padded-calculated.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "rows": []
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "rows",
+        "code": "MIN_REPEAT",
+        "severity": "error",
+        "constraintKind": "cardinality"
+      }
+    ],
+    "data": {
+      "rows": []
+    }
+  }
+}

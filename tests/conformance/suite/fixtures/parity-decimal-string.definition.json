@@ -1,0 +1,27 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:decimal-string",
+  "version": "1.0.0",
+  "title": "Non-canonical decimal",
+  "status": "active",
+  "items": [
+    {
+      "key": "d",
+      "type": "field",
+      "dataType": "decimal",
+      "label": "D"
+    },
+    {
+      "key": "t",
+      "type": "field",
+      "dataType": "decimal",
+      "label": "T"
+    }
+  ],
+  "binds": [
+    {
+      "path": "t",
+      "calculate": "$d + 1"
+    }
+  ]
+}

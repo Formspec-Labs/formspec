@@ -1,0 +1,35 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:row-unsubscripted",
+  "version": "1.0.0",
+  "title": "Unsubscripted repeat path",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "lo",
+          "type": "field",
+          "dataType": "integer",
+          "label": "Lo"
+        },
+        {
+          "key": "hi",
+          "type": "field",
+          "dataType": "integer",
+          "label": "Hi"
+        }
+      ],
+      "repeatable": true
+    }
+  ],
+  "binds": [
+    {
+      "path": "rows[*].hi",
+      "constraint": "$ >= $rows.lo"
+    }
+  ]
+}

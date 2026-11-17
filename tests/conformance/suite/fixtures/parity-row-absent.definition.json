@@ -1,0 +1,41 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:row-absent",
+  "version": "1.0.0",
+  "title": "Absent sibling",
+  "status": "active",
+  "items": [
+    {
+      "key": "kind",
+      "type": "field",
+      "dataType": "string",
+      "label": "Outer kind"
+    },
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "kind",
+          "type": "field",
+          "dataType": "string",
+          "label": "Kind"
+        },
+        {
+          "key": "echo",
+          "type": "field",
+          "dataType": "string",
+          "label": "Kind {{coalesce($kind, 'none')}}"
+        }
+      ],
+      "repeatable": true
+    }
+  ],
+  "binds": [
+    {
+      "path": "rows[*].echo",
+      "calculate": "$kind"
+    }
+  ]
+}

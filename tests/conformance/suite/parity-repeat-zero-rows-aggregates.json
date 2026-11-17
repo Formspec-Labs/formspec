@@ -1,0 +1,28 @@
+{
+  "id": "parity.repeat-zero-rows-aggregates",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §3.5.1 sum([]) is 0, count([]) is 0",
+    "Core §3.2.2 $repeat[*] over zero instances is []"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-repeat-zero.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "rows": []
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "rows": [],
+      "m": 0,
+      "total": 0
+    }
+  }
+}

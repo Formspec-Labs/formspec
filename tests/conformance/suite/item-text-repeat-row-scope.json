@@ -1,6 +1,10 @@
 {
   "id": "core.item-text-repeat-row-scope",
   "kind": "ITEM_TEXT",
+  "specRefs": [
+    "Core §4.2.1",
+    "Locale §3.3.2 repeat children interpolate in their instance scope"
+  ],
   "definitionPath": "tests/conformance/suite/fixtures/item-text.definition.json",
   "inputData": {
     "qty": 3,
@@ -30,15 +34,5 @@
     "rows[1].summary": {
       "label": "Row 2: Beta"
     }
-  },
-  "legacyCoverage": [
-    {
-      "path": "crates/formspec-eval/tests/integration/shared_suite.rs",
-      "check": "item_text_repeat_row_scope"
-    },
-    {
-      "path": "packages/formspec-engine/tests/shared-suite.test.mjs",
-      "check": "core.item-text-repeat-row-scope"
-    }
-  ]
+  }
 }

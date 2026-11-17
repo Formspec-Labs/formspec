@@ -1,10 +1,18 @@
 {
   "id": "fel.coalesce_function",
   "kind": "FEL_EVALUATION",
-  "expression": "coalesce(null, vipCode, 'NONE')",
+  "specRefs": [
+    "Core §3.5 coalesce returns the first non-null argument",
+    "FEL grammar §6 (fel-grammar.md:329): a field reference is `$` + identifier"
+  ],
+  "expression": "coalesce(null, $vipCode, 'NONE')",
   "comparator": "exact",
   "fields": [
-    { "key": "vipCode", "dataType": "string", "value": "VIP-42" }
+    {
+      "key": "vipCode",
+      "dataType": "string",
+      "value": "VIP-42"
+    }
   ],
   "inputData": {},
   "expected": {

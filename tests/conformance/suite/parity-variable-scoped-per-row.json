@@ -1,0 +1,41 @@
+{
+  "id": "parity.variable-scoped-per-row",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.5.1 variable scope; S8 (a variable scoped inside a repeat is evaluated per instance)"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-variable-row.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "rows": [
+      {
+        "amt": 1
+      },
+      {
+        "amt": 3
+      }
+    ]
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "rows": [
+        {
+          "amt": 1,
+          "d": 2
+        },
+        {
+          "amt": 3,
+          "d": 6
+        }
+      ]
+    }
+  }
+}

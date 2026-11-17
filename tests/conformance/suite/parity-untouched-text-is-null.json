@@ -1,0 +1,26 @@
+{
+  "id": "parity.untouched-text-is-null",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §3.4 null means never set; empty string means set to empty",
+    "Core §3.8.3 absent or null resolves to null",
+    "Core §2.1.6 data (calculated fields included)"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-untouched.definition.json",
+  "origin": "new",
+  "mode": "continuous",
+  "inputData": {},
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "copy": null,
+      "srcIsNull": true
+    }
+  }
+}

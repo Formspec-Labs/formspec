@@ -1,10 +1,18 @@
 {
   "id": "fel.if_function",
   "kind": "FEL_EVALUATION",
-  "expression": "if(agreed, 'yes', 'no')",
+  "specRefs": [
+    "Core §3.5 if(condition, then, else)",
+    "FEL grammar §6 (fel-grammar.md:329): a field reference is `$` + identifier"
+  ],
+  "expression": "if($agreed, 'yes', 'no')",
   "comparator": "exact",
   "fields": [
-    { "key": "agreed", "dataType": "boolean", "value": true }
+    {
+      "key": "agreed",
+      "dataType": "boolean",
+      "value": true
+    }
   ],
   "inputData": {},
   "expected": {

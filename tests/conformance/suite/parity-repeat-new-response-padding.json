@@ -1,0 +1,41 @@
+{
+  "id": "parity.repeat-new-response-padding",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.2.2 minRepeat (new Response gets minRepeat empty rows)",
+    "Core §4.3.1 required",
+    "Core §3.4 null means never set"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-repeat-min.definition.json",
+  "origin": "new",
+  "mode": "submit",
+  "inputData": {},
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 2,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "rows[0].a",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      },
+      {
+        "path": "rows[1].a",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      }
+    ],
+    "data": {
+      "rows": [
+        {},
+        {}
+      ]
+    }
+  }
+}

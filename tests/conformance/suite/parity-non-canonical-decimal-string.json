@@ -1,0 +1,35 @@
+{
+  "id": "parity.non-canonical-decimal-string",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Owner ruling Q2: the recheck validates data exactly as given",
+    "Core §2.5.1 TYPE_MISMATCH",
+    "Core §3.3 arithmetic on a non-number is a type error (null)"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-decimal-string.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "d": "12.5"
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "d",
+        "code": "TYPE_MISMATCH",
+        "severity": "error",
+        "constraintKind": "type"
+      }
+    ],
+    "data": {
+      "d": "12.5",
+      "t": null
+    }
+  }
+}

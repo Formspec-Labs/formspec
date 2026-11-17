@@ -1,0 +1,41 @@
+{
+  "id": "parity.seed-reopen-blank-cell",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.2.2.1 host data wins; seedFrom and relative prePopulate are one-shot at creation"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-seed.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "rows": [
+      {
+        "name": "ACME",
+        "note": "a"
+      },
+      {
+        "note": "b"
+      }
+    ]
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "rows": [
+        {
+          "name": "ACME",
+          "note": "a"
+        },
+        {
+          "note": "b"
+        }
+      ]
+    }
+  }
+}

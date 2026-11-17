@@ -1,0 +1,27 @@
+{
+  "id": "parity.initial-value-non-relevant-keep",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.2.3 initialValue (applied when a new Response is created)",
+    "Core §2.4 (S1: no creation on re-evaluation)",
+    "Core §5.6 keep retains the last value (a saved Response without x has none)"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-initial-non-relevant-keep.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "show": false
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "show": false
+    }
+  }
+}

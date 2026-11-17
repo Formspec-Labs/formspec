@@ -1,0 +1,26 @@
+{
+  "id": "parity.prepopulate-locked-readonly",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.2.3 prePopulate (editable: false locks the field)",
+    "Core §3.5 readonly($path)",
+    "Core §2.1.6 data (calculated fields included)"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-prepopulate-locked.definition.json",
+  "origin": "new",
+  "mode": "continuous",
+  "inputData": {},
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "name": "Acme",
+      "locked": true
+    }
+  }
+}

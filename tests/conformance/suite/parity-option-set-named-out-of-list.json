@@ -1,0 +1,41 @@
+{
+  "id": "parity.option-set-named-out-of-list",
+  "kind": "VALIDATION_REPORT",
+  "specRefs": [
+    "Core §4.6 Option Sets",
+    "Core §4.2.3 optionSet (takes precedence over options)",
+    "Core §2.5.1 TYPE_MISMATCH"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-options.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "state": "ZZ",
+    "picks": [
+      "red",
+      "teal"
+    ]
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 2,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "picks",
+        "code": "TYPE_MISMATCH",
+        "severity": "error",
+        "constraintKind": "type"
+      },
+      {
+        "path": "state",
+        "code": "TYPE_MISMATCH",
+        "severity": "error",
+        "constraintKind": "type"
+      }
+    ]
+  }
+}

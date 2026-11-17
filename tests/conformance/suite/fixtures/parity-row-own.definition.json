@@ -1,0 +1,62 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:row-own",
+  "version": "1.0.0",
+  "title": "Own-row sibling constraints",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "lo",
+          "type": "field",
+          "dataType": "integer",
+          "label": "Lo"
+        },
+        {
+          "key": "hi",
+          "type": "field",
+          "dataType": "integer",
+          "label": "Hi"
+        },
+        {
+          "key": "hi2",
+          "type": "field",
+          "dataType": "integer",
+          "label": "Hi 2"
+        },
+        {
+          "key": "hi3",
+          "type": "field",
+          "dataType": "integer",
+          "label": "Hi 3"
+        }
+      ],
+      "repeatable": true
+    }
+  ],
+  "binds": [
+    {
+      "path": "rows[*].hi",
+      "constraint": "$ >= $lo",
+      "constraintMessage": "hi below lo"
+    },
+    {
+      "path": "rows[*].hi2",
+      "constraint": "$ >= @current.lo",
+      "constraintMessage": "hi2 below lo"
+    }
+  ],
+  "shapes": [
+    {
+      "id": "hi3-order",
+      "target": "rows[*].hi3",
+      "severity": "error",
+      "constraint": "$ >= $lo",
+      "message": "hi3 below lo"
+    }
+  ]
+}

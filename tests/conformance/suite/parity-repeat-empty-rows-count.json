@@ -1,0 +1,42 @@
+{
+  "id": "parity.repeat-empty-rows-count",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §3.5.1 count counts non-null elements",
+    "Core §3.2.2 $repeat[*] is every instance",
+    "Core §3.2.2 bare $repeat is $repeat[*] (S6)"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-repeat-counts.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "rows": [
+      {
+        "a": "x"
+      },
+      {},
+      {}
+    ]
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "rows": [
+        {
+          "a": "x"
+        },
+        {},
+        {}
+      ],
+      "m": 3,
+      "k": 1,
+      "n": 3
+    }
+  }
+}

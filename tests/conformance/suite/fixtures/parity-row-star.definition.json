@@ -1,0 +1,35 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:row-star",
+  "version": "1.0.0",
+  "title": "All rows from inside a row",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "amt",
+          "type": "field",
+          "dataType": "decimal",
+          "label": "Amount"
+        },
+        {
+          "key": "share",
+          "type": "field",
+          "dataType": "decimal",
+          "label": "{{$amt}} of {{sum($rows[*].amt)}}"
+        }
+      ],
+      "repeatable": true
+    }
+  ],
+  "binds": [
+    {
+      "path": "rows[*].share",
+      "calculate": "$amt / sum($rows[*].amt)"
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 {
   "id": "core.item-text-locale-over-inline",
   "kind": "ITEM_TEXT",
+  "specRefs": [
+    "Locale §3.1.1-§3.1.2 Locale strings replace inline text and interpolate in the same scope"
+  ],
   "definitionPath": "tests/conformance/suite/fixtures/item-text.definition.json",
   "localePath": "tests/conformance/suite/fixtures/item-text.fr.locale.json",
   "inputData": {
@@ -28,15 +31,5 @@
     "rows[0].summary": {
       "label": "Ligne 1 : Alpha"
     }
-  },
-  "legacyCoverage": [
-    {
-      "path": "crates/formspec-eval/tests/integration/shared_suite.rs",
-      "check": "item_text_locale_over_inline"
-    },
-    {
-      "path": "packages/formspec-engine/tests/shared-suite.test.mjs",
-      "check": "core.item-text-locale-over-inline"
-    }
-  ]
+  }
 }

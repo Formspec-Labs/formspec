@@ -1,0 +1,36 @@
+{
+  "id": "parity.saved-response-not-created-again",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §2.4 Processing Model (creation is not part of the cycle)",
+    "Core §4.2.3 initialValue (applied when a new Response is created)",
+    "Core §4.2.2.1 seedFrom (new Response creation only)",
+    "Core §2.5.1 MIN_REPEAT"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-saved-not-created.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "note": "x"
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "rows",
+        "code": "MIN_REPEAT",
+        "severity": "error",
+        "constraintKind": "cardinality"
+      }
+    ],
+    "data": {
+      "note": "x",
+      "rows": []
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:saved-not-created",
+  "version": "1.0.0",
+  "title": "Saved Response is not created again",
+  "status": "active",
+  "items": [
+    {
+      "key": "status",
+      "type": "field",
+      "dataType": "string",
+      "label": "Status",
+      "initialValue": "draft"
+    },
+    {
+      "key": "note",
+      "type": "field",
+      "dataType": "string",
+      "label": "Note"
+    },
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "name",
+          "type": "field",
+          "dataType": "string",
+          "label": "Name",
+          "prePopulate": {
+            "instance": "record",
+            "path": "name"
+          }
+        }
+      ],
+      "repeatable": true,
+      "minRepeat": 1,
+      "seedFrom": {
+        "instance": "record",
+        "path": "items"
+      }
+    }
+  ],
+  "instances": {
+    "record": {
+      "data": {
+        "items": [
+          {
+            "name": "A"
+          }
+        ]
+      }
+    }
+  }
+}

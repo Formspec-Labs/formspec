@@ -1,0 +1,43 @@
+{
+  "id": "parity.seed-remove-then-add",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.2.2.1 a live engine MUST NOT re-apply seedFrom; a relative miss stays empty",
+    "Planned Core S2 (fs-i731): a repeat instance added after creation is not a seeded row, so relative prePopulate never applies to it"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-seed.definition.json",
+  "origin": "new",
+  "mode": "continuous",
+  "inputData": {},
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "rows": [
+        {
+          "name": "WIDGETS"
+        },
+        {
+          "name": "GLOBEX"
+        },
+        {}
+      ]
+    }
+  },
+  "operations": [
+    {
+      "op": "removeRow",
+      "path": "rows",
+      "index": 0
+    },
+    {
+      "op": "addRow",
+      "path": "rows"
+    }
+  ]
+}

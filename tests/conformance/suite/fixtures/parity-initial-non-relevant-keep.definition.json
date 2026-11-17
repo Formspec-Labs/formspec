@@ -1,0 +1,29 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:initial-non-relevant-keep",
+  "version": "1.0.0",
+  "title": "initialValue under a kept non-relevant field",
+  "status": "active",
+  "items": [
+    {
+      "key": "show",
+      "type": "field",
+      "dataType": "boolean",
+      "label": "Show"
+    },
+    {
+      "key": "x",
+      "type": "field",
+      "dataType": "string",
+      "label": "X",
+      "initialValue": "invented"
+    }
+  ],
+  "binds": [
+    {
+      "path": "x",
+      "relevant": "$show",
+      "nonRelevantBehavior": "keep"
+    }
+  ]
+}

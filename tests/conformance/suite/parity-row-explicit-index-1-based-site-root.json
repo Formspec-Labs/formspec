@@ -1,0 +1,26 @@
+{
+  "id": "parity.row-explicit-index-1-based-site-root",
+  "kind": "FEL_EVALUATION",
+  "specRefs": [
+    "Core §3.2.2"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-row-index.definition.json",
+  "origin": "saved",
+  "inputData": {
+    "rows": [
+      {
+        "lo": 1
+      },
+      {
+        "lo": 9
+      }
+    ],
+    "probe": 0
+  },
+  "site": "",
+  "expression": "$rows[1].lo",
+  "comparator": "exact",
+  "expected": {
+    "value": 1
+  }
+}

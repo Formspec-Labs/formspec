@@ -1,6 +1,15 @@
 {
   "id": "response-data.kitchen-sink",
   "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.3.1 whitespace is applied before the value is stored in the Instance (input, not re-evaluation)",
+    "Owner ruling Q2: the recheck validates data exactly as given",
+    "Core §5.6 remove/keep/empty",
+    "Core §4.3.1 calculate",
+    "Core §5.2 Shapes and §5.5 timing (demand shapes skipped at submit)",
+    "Note: the fixture writes FEL without `$` (fel-core parser.rs bare identifiers) and `sum(lineItems.lineSubtotal)`, which Q3 makes a definition error; fs-rxih migrates it to `sum($lineItems[*].lineSubtotal)` with the same value"
+  ],
+  "origin": "saved",
   "definitionPath": "tests/e2e/fixtures/kitchen-sink-holistic/definition.v1.json",
   "inputData": {
     "fullName": "  Shelley Agent  ",
@@ -60,13 +69,12 @@
         "message": "Budget is close to grand total",
         "source": "shape",
         "constraint": "budget > grandTotal + 100",
-        "shapeId": "budget_warning",
-        "$formspecValidationResult": "1.0"
+        "shapeId": "budget_warning"
       }
     ],
     "data": {
-      "fullName": "Shelley Agent",
-      "notes": "alpha beta",
+      "fullName": "  Shelley Agent  ",
+      "notes": "alpha    beta",
       "website": "https://valid.example",
       "agreed": true,
       "profileMode": "basic",
@@ -112,10 +120,6 @@
     {
       "path": "packages/formspec-engine/tests/kitchen-sink-runtime-rehomed.test.mjs",
       "check": "kitchen-sink runtime: non-relevant behavior in submit response"
-    },
-    {
-      "path": "crates/formspec-eval/tests/integration/shared_suite.rs",
-      "check": "engine_processing_data_is_the_response_and_round_trips"
     }
   ]
 }

@@ -1,6 +1,10 @@
 {
   "id": "seed-from.repeat-prepopulate",
   "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.2.2.1 seedFrom opens one row per seed element at new Response creation; relative prePopulate"
+  ],
+  "origin": "new",
   "definitionPath": "tests/fixtures/fixture-seed-from-repeat.json",
   "inputData": {},
   "mode": "continuous",
@@ -14,8 +18,12 @@
     "results": [],
     "data": {
       "employersOnRecord": [
-        { "payerName": "ACME CORP" },
-        { "payerName": "WIDGETS INC" }
+        {
+          "payerName": "ACME CORP"
+        },
+        {
+          "payerName": "WIDGETS INC"
+        }
       ]
     }
   },

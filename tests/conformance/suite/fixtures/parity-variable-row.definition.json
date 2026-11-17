@@ -1,0 +1,42 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:variable-row",
+  "version": "1.0.0",
+  "title": "Row-scoped variable",
+  "status": "active",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "children": [
+        {
+          "key": "amt",
+          "type": "field",
+          "dataType": "decimal",
+          "label": "Amount"
+        },
+        {
+          "key": "d",
+          "type": "field",
+          "dataType": "decimal",
+          "label": "Double"
+        }
+      ],
+      "repeatable": true
+    }
+  ],
+  "variables": [
+    {
+      "name": "rowDouble",
+      "expression": "$amt * 2",
+      "scope": "rows"
+    }
+  ],
+  "binds": [
+    {
+      "path": "rows[*].d",
+      "calculate": "@rowDouble"
+    }
+  ]
+}
