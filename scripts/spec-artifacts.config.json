@@ -169,13 +169,13 @@
         "Top-level lifecycle fields (status, version, versionAlgorithm) determine publication and compatibility semantics across versions.",
         "Definition-level defaults and options (for example formPresentation and nonRelevantBehavior) establish baseline processing and rendering behavior.",
         "Behavioral logic remains declarative through binds and shapes and is evaluated by conformant processors at runtime.",
-        "Treat x-generation on each Bind and Shape as authoring provenance only; strict data-only authoring requires each object to carry its own direct current adopted Need anchor."
+        "Treat x-generation on each Bind and Shape as authoring provenance only; strict data-only authoring may inherit a current adopted Need trace from the target item(s) per Needs S10.3 and the App Graph owner table."
       ],
       "conformanceEssentials": [
         "A conforming definition must include $formspec, url, version, status, title, and items.",
         "Processors must reject definitions that violate structural constraints or unsupported $formspec versions.",
         "The (url, version) pair must be treated as immutable identity for definition pinning and response validation.",
-        "Strict data-only authoring must require every Bind and Shape to carry a direct x-generation anchor that resolves unambiguously to an adopted Need at its current revision."
+        "Strict data-only authoring must require every Bind and Shape to have a current adopted Need trace, direct or inherited per Needs S10.3; the Definition root retains its own direct anchor."
       ]
     },
     {
@@ -454,6 +454,7 @@
         "Resolve every bundle Experience needRefs[].id against the caller-paired Needs Document; when no document is paired, resolution and coverage are inapplicable and emit nothing.",
         "Evaluate needRefs[].completion only in the optional usable-outcome advisor: match the closed shape against current directly Need-traced, mounted, structurally resolved output while leaving ordinary Needs coverage unchanged.",
         "Compute the coverage predicate over the paired (Needs Document, bundle) pair: an adopted Need is served by at least one needRefs citation or one need: anchor at any revision; a Unit is justified by at least one needRefs entry.",
+        "At publication, nodes inside a Definition or Screener may inherit a current adopted Need trace through the closed App Graph owner table; direct traces override owners. Generators stamp trace roots and overrides and SHOULD NOT stamp inherited traces.",
         "Report coverage findings without blocking validation, submission, generation, or any Core operation, and never write served-ness back into the Needs Document.",
         "Compare a need: anchor's pinned revision to the Need's current revision only to decide staleness; v1 processors record the condition and MUST NOT emit the reserved NEED-STALE-001 / NEED-ORPHAN-001 codes."
       ],
@@ -474,13 +475,13 @@
         "Each Bound Reference targets a specific item path (or '#' for form-level); references do not inherit from parent groups to children.",
         "The type and rel properties are open strings for forward compatibility — processors SHOULD warn on unrecognized values but MUST NOT reject the document.",
         "Multiple References Documents may target the same Definition; their references are merged additively with document-internal order preserved.",
-        "Human and both audience references may render as customer help; strict rendered-Need validation inventories each bound entry independently and never inherits a parent or referenceDefs Need anchor."
+        "Human and both audience references may render as customer help; strict rendered-Need validation inventories each bound entry independently and permits its direct anchor or its target item's trace per the App Graph owner table (Needs §10.3). References Document and referenceDefs anchors do not count."
       ],
       "conformanceEssentials": [
         "A conforming references document must include $formspecReferences=1.0, version, targetDefinition, and references.",
         "Extended processors must verify targetDefinition.url matches the loaded Definition and resolve all $ref pointers at load time.",
         "Extended processors must validate referenceDefs id-key matching and should warn on target paths that don't correspond to definition items.",
-        "Each manifested human or both audience references[] entry in the strict rendered-Need profile must carry its own direct current adopted Need x-generation anchor; agent-only entries are excluded."
+        "Each manifested human or both audience references[] entry in the strict rendered-Need profile MUST carry its own direct current adopted Need x-generation anchor or inherit its target item's trace per the App Graph owner table (Needs §10.3); References Document and reusable-definition anchors do not count. Agent-only entries are excluded."
       ]
     },
     {

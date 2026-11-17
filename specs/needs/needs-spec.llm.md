@@ -11,7 +11,7 @@ Source schema: `schemas/needs.schema.json`
 - A Need is born `proposed` or `adopted`, is superseded rather than erased, and carries an integer `revision` over its statement and grounding. An AI may file a `proposed` Need; only a human may carry an `ai-proposed` Need to `adopted`.
 - Experience Units cite Needs through `needRefs[]` (deliberately unpinned); GENERATION anchors cite them as `need:<id>@<revision>` (deliberately pinned). Human intent tracks the Need; machine provenance tracks the revision.
 - A Needs Coverage checker computes which adopted Needs no artifact serves (`NEED-COVERAGE-001`) and which Units serve no Need (`NEED-COVERAGE-002`). Coverage is reportable, never blocking.
-- A publication that pairs a Needs Document or carries Need traces publishes only when every rendered element traces directly to an adopted, current Need (S10.3); one with neither publishes unchanged. Adoption is publisher-attested until signed adoption records exist.
+- A publication that pairs a Needs Document or carries Need traces publishes only when every rendered element has a direct or, inside a Definition or Screener, inherited trace to an adopted, current Need (S10.3); one with neither publishes unchanged. Generators stamp trace roots and overrides and SHOULD NOT stamp inherited traces. Adoption is publisher-attested until signed adoption records exist.
 - Needs MUST NOT affect data capture, validation, or the processing model. The Needs Document is upstream of every other Formspec artifact and is cited by them, never the reverse; this BLUF is governed by `schemas/needs.schema.json`, the canonical structural contract.
 
 ## Critical Schema Fields
@@ -37,6 +37,7 @@ Source schema: `schemas/needs.schema.json`
 - Resolve every bundle Experience needRefs[].id against the caller-paired Needs Document; when no document is paired, resolution and coverage are inapplicable and emit nothing.
 - Evaluate needRefs[].completion only in the optional usable-outcome advisor: match the closed shape against current directly Need-traced, mounted, structurally resolved output while leaving ordinary Needs coverage unchanged.
 - Compute the coverage predicate over the paired (Needs Document, bundle) pair: an adopted Need is served by at least one needRefs citation or one need: anchor at any revision; a Unit is justified by at least one needRefs entry.
+- At publication, nodes inside a Definition or Screener may inherit a current adopted Need trace through the closed App Graph owner table; direct traces override owners. Generators stamp trace roots and overrides and SHOULD NOT stamp inherited traces.
 - Report coverage findings without blocking validation, submission, generation, or any Core operation, and never write served-ness back into the Needs Document.
 - Compare a need: anchor's pinned revision to the Need's current revision only to decide staleness; v1 processors record the condition and MUST NOT emit the reserved NEED-STALE-001 / NEED-ORPHAN-001 codes.
 

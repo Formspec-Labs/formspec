@@ -469,6 +469,13 @@ export type AuthoredSignature =
   }
 
   if (moduleName === 'app-graph-validation-report') {
+    // Conditional validation does not open these additionalProperties: false objects.
+    for (const name of ['Diagnostic', 'RenderedNeedTraceRecord']) {
+      result = result.replace(
+        new RegExp(`export type ${name} = \\{\\s*\\[k: string\\]: unknown;\\s*\\} & (\\{[\\s\\S]*?\\n\\});`, 'm'),
+        `export type ${name} = $1;`,
+      );
+    }
     result = result.replace(
       /export type Origin =[\s\S]*?\n\s*\|\s*string;/m,
       "export type Origin =\n  | ('app-graph-validator' | 'artifact-resolver' | 'module-resolver' | 'surface-local-lint' | 'schema-validator' | 'ui-graph-policy')\n  | `x-${string}`;",

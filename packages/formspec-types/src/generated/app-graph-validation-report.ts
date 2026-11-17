@@ -13,6 +13,28 @@
 export type SchemaResultStatus = 'completed' | 'not-run';
 /**
  * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "Diagnostic".
+ */
+export type Diagnostic = {
+  /**
+   * Stable machine-readable diagnostic code. Native AppGraphValidator codes SHOULD use APP-GRAPH-* unless a sibling spec owns the code. APP-GRAPH-RENDERED-NEED-REDUNDANT warns when a direct trace equals the trace the node would inherit.
+   */
+  code: string;
+  severity: Severity;
+  phase: Phase;
+  origin: Origin;
+  message: string;
+  primarySource?: SourcePointer;
+  relatedSources?: SourcePointer[];
+  /**
+   * Stable machine-readable diagnostic details. Details MUST NOT contain executable code, credentials, fetched payloads, rendered output, or local fixture-path identity.
+   */
+  details?: {
+    [k: string]: unknown;
+  };
+};
+/**
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
  * via the `definition` "Severity".
  */
 export type Severity = 'error' | 'warning' | 'info';
@@ -41,12 +63,36 @@ export type Origin =
  */
 export type PhaseStatusValue = 'completed' | 'skipped' | 'not-run';
 /**
+ * Record of the strict rendered-Need trace (Needs spec S10.3), present only when the caller requested it and the cross-artifact phase completed. `completed`: the trace rule ran over the loaded graph and its findings are in `diagnostics`. `not-applicable`: the caller requested it only when declared, and the graph pairs no Needs Document and carries no Need trace. `definitions` lists each loaded Definition the run covered, bound to its content by canonical digest together with the Locales and Components that target it; a server checks a published version's documents against these digests instead of re-running the rule.
+ *
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "RenderedNeedTraceRecord".
+ */
+export type RenderedNeedTraceRecord = {
+  status: 'completed' | 'not-applicable';
+  definitions: TracedDefinition[];
+  /**
+   * Inventory with each node's effective publication trace per the App Graph owner table. Nodes MUST be sorted by source.artifactSlot, then source.jsonPointer (the pair is unique per inventoried node), in ascending Unicode code point order. Empty when status is not-applicable. This is trace evidence, not Need satisfaction or runtime authorization.
+   */
+  nodes: RenderedNeedTraceNode[];
+};
+/**
  * SHA-256 over the document's RFC 8785 (JCS) canonical bytes, written sha256:<hex>: the hash Source computes for a published Definition.
  *
  * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
  * via the `definition` "CanonicalDigest".
  */
 export type CanonicalDigest = string;
+/**
+ * Node identity used by both inventory sources and contributing direct trace-bearing sources: a required artifact slot and document-local JSON Pointer. The empty pointer identifies the document root; other SourcePointer evidence is preserved.
+ *
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "RenderedNeedTraceSourcePointer".
+ */
+export type RenderedNeedTraceSourcePointer = SourcePointer & {
+  artifactSlot: string;
+  jsonPointer: string;
+};
 
 /**
  * Deterministic AppGraphValidator output report. This schema covers the report envelope emitted by @formspec-org/app-graph after artifact-resolution, schema, module-resolution, surface-local, cross-artifact, authorization-boundary, and unsupported-feature phases. It is a data contract only: it does not schema validator requests, resolver implementations, runtime execution, rendered output, credentials, fetched payloads, or host cache contents.
@@ -105,28 +151,6 @@ export interface SchemaResult {
   reason?: string;
   ok: boolean;
   diagnostics: Diagnostic[];
-}
-/**
- * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
- * via the `definition` "Diagnostic".
- */
-export interface Diagnostic {
-  /**
-   * Stable machine-readable diagnostic code. Native AppGraphValidator codes SHOULD use APP-GRAPH-* unless a sibling spec owns the code.
-   */
-  code: string;
-  severity: Severity;
-  phase: Phase;
-  origin: Origin;
-  message: string;
-  primarySource?: SourcePointer;
-  relatedSources?: SourcePointer[];
-  /**
-   * Stable machine-readable diagnostic details. Details MUST NOT contain executable code, credentials, fetched payloads, rendered output, or local fixture-path identity.
-   */
-  details?: {
-    [k: string]: unknown;
-  };
 }
 /**
  * Diagnostic pointer to source evidence. The source string is for reporting only; local paths, filenames, fixture names, and URL suffixes are not production identity.
@@ -223,16 +247,6 @@ export interface SupportProfile {
   featureFlags?: string[];
 }
 /**
- * Record of the strict rendered-Need trace (Needs spec S10.3), present only when the caller requested it and the cross-artifact phase completed. `completed`: the trace rule ran over the loaded graph and its findings are in `diagnostics`. `not-applicable`: the caller requested it only when declared, and the graph pairs no Needs Document and carries no Need trace. `definitions` lists each loaded Definition the run covered, bound to its content by canonical digest together with the Locales and Components that target it; a server checks a published version's documents against these digests instead of re-running the rule.
- *
- * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
- * via the `definition` "RenderedNeedTraceRecord".
- */
-export interface RenderedNeedTraceRecord {
-  status: 'completed' | 'not-applicable';
-  definitions: TracedDefinition[];
-}
-/**
  * A Definition the trace covered, with the Locales and Components targeting it that the run also covered.
  *
  * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
@@ -254,4 +268,29 @@ export interface TracedDefinition {
 export interface CoveredDocument {
   url: string;
   sha256: CanonicalDigest;
+}
+/**
+ * One inventoried node with its effective trace. Direct traces override owners; otherwise the closed App Graph owner table supplies the union of the owners' effective traces.
+ *
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "RenderedNeedTraceNode".
+ */
+export interface RenderedNeedTraceNode {
+  source: RenderedNeedTraceSourcePointer;
+  kind: string;
+  label: string;
+  effective: EffectiveNeedTrace;
+}
+/**
+ * Effective trace identity and provenance, including unresolved, non-adopted, or stale Need ids. Findings determine admission separately. Missing traces have empty arrays. needIds MUST be deduplicated and sorted lexicographically in ascending Unicode code point order. via MUST be deduplicated by (artifactSlot, jsonPointer) and sorted by artifactSlot, then jsonPointer, in the same order; optional document evidence does not create another node identity.
+ *
+ * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
+ * via the `definition` "EffectiveNeedTrace".
+ */
+export interface EffectiveNeedTrace {
+  needIds: string[];
+  /**
+   * Source pointers, including document identity and jsonPointer, to the nearest direct trace-bearing nodes. Direct traces point to self; inherited traces point to the contributing trace-bearing owners; missing traces have no sources.
+   */
+  via: RenderedNeedTraceSourcePointer[];
 }

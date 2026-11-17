@@ -8,8 +8,10 @@ conditionals, property sets) match what the spec documents claim.
 Naming convention: test_s{section}__{assertion}
 """
 import json
+from copy import deepcopy
 
 import pytest
+from jsonschema import Draft202012Validator
 
 from tests.unit.support.schema_fixtures import (
     ROOT_DIR, SCHEMA_DIR, SPEC_DIR, build_schema_registry,
@@ -35,6 +37,7 @@ REFS_S = _load("references.schema.json")
 LOCALE_S = _load("locale.schema.json")
 ISSUER_S = _load("issuer.schema.json")
 ONT_S = _load("ontology.schema.json")
+APP_GRAPH_S = _load("app-graph-validation-report.schema.json")
 
 ALL_SCHEMAS = {
     "definition": DEF_S,
@@ -1377,3 +1380,213 @@ class TestBucket1SchemaStructure:
             f"component-spec.md §3.1 table is missing base properties: {sorted(missing)}. "
             "Add them to the table in §3.1 to prevent schema/spec drift."
         )
+
+
+# ---------------------------------------------------------------------------
+# ADR 0174 effective trace contracts (fs-kz81; keep separate from fs-87gs).
+# ---------------------------------------------------------------------------
+class TestEffectiveNeedTraceContracts:
+    """ADR 0174 publication semantics and report shape; execution belongs to fs-00rv."""
+
+    def test_generators_stamp_roots_and_overrides_without_redundant_anchors(self):
+        spec = (SPEC_DIR / "needs/needs-spec.md").read_text()
+        generation = spec.split("## 8.", 1)[1].split("## 9.", 1)[0]
+        assert "every trace root" in generation
+        assert "every override" in generation
+        assert "SHOULD NOT" in generation
+        assert "would inherit" in generation
+
+    def test_publication_allows_only_definition_and_screener_inheritance(self):
+        spec = (SPEC_DIR / "needs/needs-spec.md").read_text()
+        publication = spec.split("### 10.3 Publication Trace", 1)[1].split("## 11.", 1)[0]
+        assert "inside a Definition or Screener" in publication
+        assert "App Graph owner table" in publication
+        assert "A parent's trace never covers a child" not in publication
+        assert "own direct trace" in publication
+        bluf = (SPEC_DIR / "needs/needs-spec.bluf.md").read_text()
+        assert "inherited" in bluf
+
+    @pytest.mark.parametrize("row", [
+        "| inline option | its field |",
+        "| optionSet option | every field that names the set; if none, the Definition root |",
+        "| bind | the item(s) its `path` resolves to |",
+        "| Shape | the item(s) its `target` resolves to; `#` means the Definition root |",
+        "| References entry | its target item; `#` means the Definition root |",
+        "| child item | its parent item |",
+        "| top-level item | Definition root |",
+        "| Component node with `bind` | the bound item |",
+        "| Locale string localizing a node above, or the Definition's own text (Locale §3.1.5 Form-Level Strings) | that node |",
+        "| Screener nodes | the same rows, ending at the Screener root |",
+    ])
+    def test_closed_owner_table(self, row):
+        spec = (SPEC_DIR / "app-graph/app-graph-validator-spec.md").read_text()
+        assert row in spec
+
+    def test_effective_trace_provenance_and_findings_are_specified(self):
+        spec = (SPEC_DIR / "app-graph/app-graph-validator-spec.md").read_text()
+        assert "once per trace root" in spec
+        assert "once per offending anchor" in spec
+        assert "APP-GRAPH-RENDERED-NEED-REDUNDANT` | warning" in spec
+        assert "renderedNeedTrace.nodes[]" in spec
+        assert "nearest direct trace-bearing nodes" in spec
+        assert "pinned revisions" in spec
+        # The usable-outcome advisor deliberately retains its direct-only rule.
+        advisor = spec.split("**Normative rule `rendered-node.direct-need-trace`.**", 1)[1]
+        advisor = advisor.split("###", 1)[0]
+        assert "candidate carries a direct `need:<id>@<revision>` anchor" in advisor
+
+    @pytest.mark.parametrize("schema,definition", [
+        (DEF_S, "Item"), (DEF_S, "Bind"), (DEF_S, "Shape"),
+        (DEF_S, "OptionEntry"), (COMP_S, "ComponentBase"),
+    ])
+    def test_inheriting_generation_descriptions(self, schema, definition):
+        description = schema["$defs"][definition]["properties"]["x-generation"]["description"]
+        assert "MAY inherit per Needs §10.3" in description
+
+    def test_locale_description_distinguishes_definition_strings_and_trace_roots(self):
+        description = LOCALE_S["properties"]["stringGeneration"]["description"]
+        assert "MAY inherit per Needs §10.3" in description
+        assert "Definition or Screener node" in description
+        assert "bound Component node" in description
+        assert "Other strings MUST carry" in description
+        assert "direct current adopted Need anchor" in description
+        root = DEF_S["properties"]["x-generation"]["description"]
+        assert "require a direct current adopted Need anchor" in root
+
+    @staticmethod
+    def _report():
+        source = {"artifactSlot": "definitions[0]", "jsonPointer": "/items/0", "ref": {
+            "url": "https://example.test/form", "version": "1.0.0",
+        }}
+        return {
+            "ok": True,
+            "summary": {name: 0 for name in APP_GRAPH_S["$defs"]["Summary"]["required"]},
+            "schemaResults": [], "evidenceResults": [], "diagnostics": [], "phases": [],
+            "renderedNeedTrace": {
+                "status": "completed", "definitions": [],
+                "nodes": [{"source": source, "kind": "definition-item",
+                           "label": "Name", "effective": {"needIds": ["apply"], "via": [deepcopy(source)]}}],
+            },
+        }
+
+    def test_report_accepts_effective_trace_and_missing_trace_evidence(self):
+        validator = Draft202012Validator(APP_GRAPH_S)
+        report = self._report()
+        assert not list(validator.iter_errors(report))
+        report["renderedNeedTrace"]["nodes"][0]["effective"] = {"needIds": [], "via": []}
+        assert not list(validator.iter_errors(report))
+        report["renderedNeedTrace"] = {"status": "not-applicable", "definitions": [], "nodes": []}
+        assert not list(validator.iter_errors(report))
+
+    def test_not_applicable_trace_has_no_inventory(self):
+        report = self._report()
+        report["renderedNeedTrace"]["status"] = "not-applicable"
+        assert list(Draft202012Validator(APP_GRAPH_S).iter_errors(report))
+
+    @pytest.mark.parametrize("mutation", [
+        "missing-nodes", "missing-effective", "missing-needIds", "missing-via",
+        "duplicate-needIds", "duplicate-via", "empty-needId", "string-via", "extra-effective",
+    ])
+    def test_report_rejects_incomplete_or_malformed_effective_trace(self, mutation):
+        report = deepcopy(self._report())
+        trace = report["renderedNeedTrace"]
+        node = trace["nodes"][0]
+        effective = node["effective"]
+        if mutation == "missing-nodes":
+            del trace["nodes"]
+        elif mutation == "missing-effective":
+            del node["effective"]
+        elif mutation.startswith("missing-"):
+            del effective[mutation.removeprefix("missing-")]
+        elif mutation == "duplicate-needIds":
+            effective["needIds"] *= 2
+        elif mutation == "duplicate-via":
+            effective["via"] *= 2
+        elif mutation == "empty-needId":
+            effective["needIds"] = [""]
+        elif mutation == "string-via":
+            effective["via"] = ["/items/0"]
+        elif mutation == "extra-effective":
+            effective["inherited"] = True
+        assert list(Draft202012Validator(APP_GRAPH_S).iter_errors(report))
+
+    @pytest.mark.parametrize("mutation", [
+        "empty-source", "empty-via", "via-without-artifactSlot", "via-without-jsonPointer",
+        "invalid-node-pointer", "invalid-via-pointer", "invalid-pointer-escape",
+    ])
+    def test_trace_sources_identify_the_document_and_node(self, mutation):
+        report = self._report()
+        node = report["renderedNeedTrace"]["nodes"][0]
+        via = node["effective"]["via"][0]
+        if mutation == "empty-source":
+            node["source"] = {}
+        elif mutation == "empty-via":
+            node["effective"]["via"] = [{}]
+        elif mutation.startswith("via-without-"):
+            del via[mutation.removeprefix("via-without-")]
+        elif mutation == "invalid-node-pointer":
+            node["source"]["jsonPointer"] = "items/0"
+        elif mutation == "invalid-via-pointer":
+            via["jsonPointer"] = "items/0"
+        else:
+            via["jsonPointer"] = "/items/~2"
+        assert list(Draft202012Validator(APP_GRAPH_S).iter_errors(report))
+
+    @pytest.mark.parametrize("severity,valid", [("warning", True), ("error", False), ("info", False)])
+    def test_redundant_anchor_is_a_warning(self, severity, valid):
+        diagnostic = {
+            "code": "APP-GRAPH-RENDERED-NEED-REDUNDANT", "severity": severity,
+            "phase": "cross-artifact", "origin": "app-graph-validator", "message": "Same trace as owner.",
+        }
+        schema = {"$ref": "#/$defs/Diagnostic", "$defs": APP_GRAPH_S["$defs"]}
+        assert Draft202012Validator(schema).is_valid(diagnostic) is valid
+
+    def test_inventory_and_via_share_one_required_node_identity(self):
+        node = APP_GRAPH_S["$defs"]["RenderedNeedTraceNode"]
+        via = APP_GRAPH_S["$defs"]["EffectiveNeedTrace"]["properties"]["via"]["items"]
+        assert node["properties"]["source"] == via
+        assert "pointer" not in node["properties"]
+        for site in ("source", "via"):
+            for key in ("artifactSlot", "jsonPointer"):
+                report = self._report()
+                record = report["renderedNeedTrace"]["nodes"][0]
+                pointer = record["source"] if site == "source" else record["effective"]["via"][0]
+                del pointer[key]
+                assert not Draft202012Validator(APP_GRAPH_S).is_valid(report)
+
+    def test_trace_roots_cover_every_node_without_a_resolved_owner(self):
+        spec = (SPEC_DIR / "app-graph/app-graph-validator-spec.md").read_text()
+        assert "every inventoried node with no owner under this table" in spec
+        assert "including a node whose owner does not resolve" in spec
+        assert "every Locale string that localizes no node in this table" in spec
+        assert "A node serving a\ndifferent Need from its owner is an override; Needs §8 rule 1 requires its anchor." in spec
+
+    def test_effective_trace_order_is_portable(self):
+        spec = (SPEC_DIR / "app-graph/app-graph-validator-spec.md").read_text()
+        assert "Unicode code point order" in spec
+        assert "`source.artifactSlot`, then `source.jsonPointer` (the pair is unique per inventoried node)" in spec
+        assert "`needIds` lexicographically" in spec
+        assert "`via` by `artifactSlot`, then `jsonPointer`" in spec
+
+    def test_screener_and_needs_summary_keep_publication_boundaries(self):
+        screener = (SPEC_DIR / "screener/screener-spec.md").read_text()
+        assert "as on each rendered Item" not in screener
+        bluf = (SPEC_DIR / "needs/needs-spec.bluf.md").read_text()
+        assert "one with neither publishes unchanged" in bluf
+
+    @pytest.mark.parametrize("definition,subject", [("Bind", "it"), ("Shape", "it"), ("OptionEntry", "the option")])
+    def test_generation_profiles_allow_nodes_to_inherit(self, definition, subject):
+        description = DEF_S["$defs"][definition]["properties"]["x-generation"]["description"]
+        assert f"{subject} MAY inherit per Needs §10.3" in description
+        assert "override MUST resolve" in description
+        assert "profiles may inherit" not in description
+
+    def test_references_use_only_direct_or_target_item_traces(self):
+        spec = (SPEC_DIR / "core/references-spec.md").read_text()
+        assert "inherit its target item's trace per the App Graph owner table" in spec
+        assert "or its target item's inherited trace" in spec
+        assert "References Document and reusable-definition anchors do not count" in spec
+        for name in ("Reference", "BoundReference"):
+            description = REFS_S["$defs"][name]["properties"]["x-generation"]["description"]
+            assert "MUST carry its own direct anchor or inherit its target item's trace" in description
+            assert "App Graph owner table (Needs §10.3)" in description

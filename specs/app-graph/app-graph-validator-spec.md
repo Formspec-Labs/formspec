@@ -341,6 +341,97 @@ Need, and the candidate is mounted through resolved graph relationships. The
 validator MUST keep this static result separate from runtime authorization,
 applicability, precondition, effect, and Need-satisfaction conclusions.
 
+#### Effective publication trace
+
+The strict rendered-Need publication profile implements [Needs §10.3](../needs/needs-spec.md#103-publication-trace).
+Its node inventory MUST export an effective trace for every inventoried node.
+A **direct trace** is a pinned `need:<id>@<revision>` anchor, or a typed
+`needRefs[]` citation where the profile already credits it. For a node `n`:
+
+```text
+effective(n) = direct(n)                          if n carries a direct trace
+             = union(effective(o) for o in owners(n)) if owners(n) is non-empty
+             = empty                              otherwise
+```
+
+A node's direct trace takes precedence over every owner. Otherwise the nearest
+direct traces supply its effective trace; several owners contribute their
+union. An explicit unresolved, non-adopted, stale, or malformed trace MUST NOT
+be replaced by an owner's trace to avoid a finding. The validator MUST resolve
+ownership only through this closed table, within one Definition or Screener:
+
+| Node | Owner |
+|---|---|
+| inline option | its field |
+| optionSet option | every field that names the set; if none, the Definition root |
+| bind | the item(s) its `path` resolves to |
+| Shape | the item(s) its `target` resolves to; `#` means the Definition root |
+| References entry | its target item; `#` means the Definition root |
+| child item | its parent item |
+| top-level item | Definition root |
+| Component node with `bind` | the bound item |
+| Locale string localizing a node above, or the Definition's own text (Locale §3.1.5 Form-Level Strings) | that node |
+| Screener nodes | the same rows, ending at the Screener root |
+
+Trace roots are every inventoried node with no owner under this table,
+including a node whose owner does not resolve; each MUST carry its own direct trace. They include:
+
+- Definition and Screener roots;
+- every Surface node;
+- every Experience unit title;
+- every action and every source;
+- the App Manifest title and the Theme document;
+- every Component node without `bind`; and
+- every Locale string that localizes no node in this table.
+
+The Definition root MUST NOT inherit from a Surface slot that mounts it.
+Experience unit `itemRefs` MUST NOT supply item traces. A node serving a
+different Need from its owner is an override; Needs §8 rule 1 requires its anchor. Ownership
+resolution failure MUST NOT grant a trace from an unrelated node or document.
+
+The validator MUST report defects at their cause, rather than repeating them
+on nodes that inherit the same trace:
+
+| Code | Severity | Fires |
+|---|---|---|
+| `APP-GRAPH-RENDERED-NEED-MISSING` | error | once per trace root with an empty effective trace, listing its dependent descendants in `relatedSources`. |
+| `APP-GRAPH-RENDERED-NEED-UNRESOLVED` | error | once per offending anchor or typed citation that does not resolve to exactly one paired Need. |
+| `APP-GRAPH-RENDERED-NEED-NON-ADOPTED` | error | once per offending anchor or typed citation whose Need is not adopted. |
+| `APP-GRAPH-RENDERED-NEED-STALE` | error | once per offending anchor whose pinned revision is not the Need's current revision. |
+| `APP-GRAPH-RENDERED-NEED-REDUNDANT` | warning | A node's direct trace equals the trace it would inherit, comparing complete traces including pinned revisions. |
+
+An override is checked independently. `REDUNDANT` does not block publication;
+generators SHOULD NOT write redundant anchors (Needs §8). The existing
+`APP-GRAPH-RENDERED-NAVIGATION-IMPLICIT` rule and Surface strict profile remain
+unchanged. The usable-outcome rule `rendered-node.direct-need-trace` above
+continues to credit direct traces only.
+
+The completed report MUST include `renderedNeedTrace.nodes[]`. Each record
+contains the node's `source` (including its `artifactSlot` and document-local
+`jsonPointer`), `kind`, `label`, and `effective: {needIds, via}`. The node's
+`source` and each `via` entry use the same source-pointer shape; the empty
+`jsonPointer` identifies the document root:
+
+- `needIds` is the deduplicated set of effective Need identifiers. It records
+  trace identity even when a Need is unresolved, non-adopted, or stale; it is
+  not an admission or satisfaction result.
+- `via` is a deduplicated array of source pointers to the nearest direct trace-bearing nodes
+  that contribute the effective trace. Each pointer includes that node's
+  `artifactSlot` and document-local `jsonPointer`, plus any resolved document
+  identity evidence. A direct trace points to the node
+  itself; an inherited trace points to its contributing owners' trace-bearing
+  nodes; a missing trace has empty `needIds` and `via` arrays.
+
+The inventory, `needIds`, and `via` MUST use ascending Unicode code point order:
+sort nodes by `source.artifactSlot`, then `source.jsonPointer` (the pair is unique per inventoried node);
+sort `needIds` lexicographically; and sort `via` by `artifactSlot`, then `jsonPointer`.
+Source-pointer identity for deduplication is the pair (`artifactSlot`, `jsonPointer`);
+optional document evidence does not create a second node identity. A
+`not-applicable` record contains `nodes: []`. Consumers MUST read this
+effective trace rather than compute a second inheritance implementation.
+The existing `definitions`, `locales`, and `components` canonical digest
+bindings and the server proof in Needs §10.3 rule 4 remain unchanged.
+
 ### 7.1 vNext Surface graph diagnostics
 
 The built-in vNext checks use these stable diagnostic families:

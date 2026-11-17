@@ -68,7 +68,7 @@ export type LocaleDocument = {
     [k: string]: string;
   };
   /**
-   * Generation provenance keyed exactly like strings. Strict data-only authoring profiles require every authored localized string to have a same-key direct current adopted Need anchor.
+   * Generation provenance keyed exactly like strings. In strict data-only authoring profiles, strings localizing a Definition or Screener node, a bound Component node, or the Definition's own text MAY inherit per Needs §10.3 from the localized node. Other strings MUST carry a same-key direct current adopted Need anchor.
    */
   stringGeneration?: {
     [k: string]: Generation;

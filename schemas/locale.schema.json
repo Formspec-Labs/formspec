@@ -547,7 +547,7 @@
       "propertyNames": {
         "pattern": "^(\\$form\\.|\\$shape\\.|\\$page\\.|\\$optionSet\\.|\\$component\\.|\\$module\\.x-|\\$ui\\.|\\$action\\.|[a-zA-Z])[a-zA-Z0-9_@.\\\\\\[\\]\\-]*$"
       },
-      "description": "Generation provenance keyed exactly like strings. Strict data-only authoring profiles require every authored localized string to have a same-key direct current adopted Need anchor."
+      "description": "Generation provenance keyed exactly like strings. In strict data-only authoring profiles, strings localizing a Definition or Screener node, a bound Component node, or the Definition's own text MAY inherit per Needs §10.3 from the localized node. Other strings MUST carry a same-key direct current adopted Need anchor."
     },
     "extensions": {
       "type": "object",

@@ -151,7 +151,7 @@
         "code": {
           "type": "string",
           "minLength": 1,
-          "description": "Stable machine-readable diagnostic code. Native AppGraphValidator codes SHOULD use APP-GRAPH-* unless a sibling spec owns the code."
+          "description": "Stable machine-readable diagnostic code. Native AppGraphValidator codes SHOULD use APP-GRAPH-* unless a sibling spec owns the code. APP-GRAPH-RENDERED-NEED-REDUNDANT warns when a direct trace equals the trace the node would inherit."
         },
         "severity": {
           "$ref": "#/$defs/Severity"
@@ -178,7 +178,16 @@
           "additionalProperties": true,
           "description": "Stable machine-readable diagnostic details. Details MUST NOT contain executable code, credentials, fetched payloads, rendered output, or local fixture-path identity."
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "code": { "const": "APP-GRAPH-RENDERED-NEED-REDUNDANT" } },
+            "required": ["code"]
+          },
+          "then": { "properties": { "severity": { "const": "warning" } } }
+        }
+      ]
     },
     "EvidenceDiagnostic": {
       "type": "object",
@@ -332,15 +341,74 @@
     "RenderedNeedTraceRecord": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "definitions"],
+      "required": ["status", "definitions", "nodes"],
       "description": "Record of the strict rendered-Need trace (Needs spec S10.3), present only when the caller requested it and the cross-artifact phase completed. `completed`: the trace rule ran over the loaded graph and its findings are in `diagnostics`. `not-applicable`: the caller requested it only when declared, and the graph pairs no Needs Document and carries no Need trace. `definitions` lists each loaded Definition the run covered, bound to its content by canonical digest together with the Locales and Components that target it; a server checks a published version's documents against these digests instead of re-running the rule.",
       "properties": {
         "status": { "enum": ["completed", "not-applicable"] },
         "definitions": {
           "type": "array",
           "items": { "$ref": "#/$defs/TracedDefinition" }
+        },
+        "nodes": {
+          "type": "array",
+          "description": "Inventory with each node's effective publication trace per the App Graph owner table. Nodes MUST be sorted by source.artifactSlot, then source.jsonPointer (the pair is unique per inventoried node), in ascending Unicode code point order. Empty when status is not-applicable. This is trace evidence, not Need satisfaction or runtime authorization.",
+          "items": { "$ref": "#/$defs/RenderedNeedTraceNode" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "not-applicable" } }, "required": ["status"] },
+          "then": { "properties": { "nodes": { "type": "array", "maxItems": 0 } } }
+        }
+      ]
+    },
+    "RenderedNeedTraceNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "kind", "label", "effective"],
+      "description": "One inventoried node with its effective trace. Direct traces override owners; otherwise the closed App Graph owner table supplies the union of the owners' effective traces.",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/RenderedNeedTraceSourcePointer"
+        },
+        "kind": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "effective": { "$ref": "#/$defs/EffectiveNeedTrace" }
+      }
+    },
+    "EffectiveNeedTrace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["needIds", "via"],
+      "description": "Effective trace identity and provenance, including unresolved, non-adopted, or stale Need ids. Findings determine admission separately. Missing traces have empty arrays. needIds MUST be deduplicated and sorted lexicographically in ascending Unicode code point order. via MUST be deduplicated by (artifactSlot, jsonPointer) and sorted by artifactSlot, then jsonPointer, in the same order; optional document evidence does not create another node identity.",
+      "properties": {
+        "needIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "via": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Source pointers, including document identity and jsonPointer, to the nearest direct trace-bearing nodes. Direct traces point to self; inherited traces point to the contributing trace-bearing owners; missing traces have no sources.",
+          "items": { "$ref": "#/$defs/RenderedNeedTraceSourcePointer" }
         }
       }
+    },
+    "RenderedNeedTraceSourcePointer": {
+      "type": "object",
+      "description": "Node identity used by both inventory sources and contributing direct trace-bearing sources: a required artifact slot and document-local JSON Pointer. The empty pointer identifies the document root; other SourcePointer evidence is preserved.",
+      "allOf": [
+        { "$ref": "#/$defs/SourcePointer" },
+        {
+          "type": "object",
+          "required": ["artifactSlot", "jsonPointer"],
+          "properties": {
+            "artifactSlot": { "type": "string", "minLength": 1 },
+            "jsonPointer": { "type": "string", "pattern": "^(?:/(?:[^~/]|~[01])*)*$" }
+          }
+        }
+      ]
     },
     "TracedDefinition": {
       "type": "object",

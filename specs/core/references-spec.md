@@ -649,10 +649,11 @@ title as text rather than becoming a link.
 `Reference` and `BoundReference` MAY carry common `x-generation` provenance.
 Under the strict rendered-Need trace profile, every manifested `references[]`
 entry whose resolved audience is `human` or `both` is one independently
-reviewable rendered node. That bound entry MUST carry its own direct
-`need:<id>@<revision>` anchor resolving to an adopted Need at its current
-revision. A References Document anchor, a `referenceDefs` entry anchor, the
-target Definition, or another bound reference MUST NOT satisfy that requirement.
+reviewable rendered node. That bound entry MUST carry its own direct anchor
+or inherit its target item's trace per the App Graph owner table (Needs §10.3).
+A direct `need:<id>@<revision>` anchor MUST resolve to an adopted Need at its
+current revision. A References Document anchor, a `referenceDefs` entry anchor,
+or another bound reference MUST NOT supply it.
 Agent-only entries do not enter the rendered inventory.
 
 ## 8. Conformance
@@ -674,7 +675,7 @@ This specification defines conformance requirements for References Document hand
 - An Extended processor MUST validate that `referenceDefs` entries with an explicit `id` have that `id` match the entry's key (§4.6.1). A mismatch is a document error.
 - An Extended processor SHOULD validate that `target` paths in Bound References correspond to items that exist in the target Definition. A `target` pointing to a nonexistent item SHOULD emit a warning but MUST NOT cause document rejection.
 - An Extended processor that supports references SHOULD surface human-audience references in the UI.
-- A processor applying strict rendered-Need validation MUST inventory each manifested human or both audience bound reference and require that entry's own direct current adopted Need anchor. Parent or reusable-definition anchors do not count.
+- A processor applying strict rendered-Need validation MUST inventory each manifested human or both audience bound reference and require that entry's own direct current adopted Need anchor or its target item's inherited trace; References Document and reusable-definition anchors do not count.
 - An Extended processor that supports agent integration SHOULD make agent-audience references available to companion agents via a documented API.
 - An Extended processor that encounters a reference with an unrecognized `type` (non-`x-`-prefixed) SHOULD emit a warning and MAY skip the reference, but MUST NOT reject the document.
 
@@ -732,7 +733,7 @@ The normative JSON Schema for References Documents is defined in `schemas/refere
 | `#/$defs/BoundReference/properties/title` | `title` | <code>string</code> | no | — | — |
 | `#/$defs/BoundReference/properties/type` | `type` | <code>string</code> | no | — | — |
 | `#/$defs/BoundReference/properties/uri` | `uri` | <code>string</code> | no | — | — |
-| `#/$defs/BoundReference/properties/x-generation` | `x-generation` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Generation</code> | Direct authoring provenance for this bound reference entry. Strict rendered-Need validation requires a human or both audience entry that can render as customer help to carry its own current adopted Need anchor; document-level or referenceDefs provenance does not substitute. |
+| `#/$defs/BoundReference/properties/x-generation` | `x-generation` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Generation</code> | Authoring provenance for this bound reference entry. Under strict rendered-Need validation, a human or both audience entry that can render as customer help MUST carry its own direct anchor or inherit its target item's trace per the App Graph owner table (Needs §10.3). A direct anchor MUST resolve to a current adopted Need. A References Document anchor, a referenceDefs entry anchor, or another bound reference MUST NOT supply it. |
 | `#/$defs/Reference/properties/audience` | `audience` | <code>string</code> | yes | enum: <code>"human"</code>, <code>"agent"</code>, <code>"both"</code>; critical | Who consumes this reference. 'human': rendered in the UI (help panels, links, tooltips). 'agent': consumed programmatically by AI agents (not rendered). 'both': available to both rendering and agent pipelines. |
 | `#/$defs/Reference/properties/content` | `content` | <code>composite</code> | no | — | Inline content of the reference. REQUIRED unless 'uri' is provided. May be a plain text string, markdown, or structured JSON object. |
 | `#/$defs/Reference/properties/description` | `description` | <code>string</code> | no | — | Longer explanation of what this reference provides and why it is relevant. |
@@ -747,7 +748,7 @@ The normative JSON Schema for References Documents is defined in `schemas/refere
 | `#/$defs/Reference/properties/title` | `title` | <code>string</code> | no | — | Human-readable label for this reference. RECOMMENDED. |
 | `#/$defs/Reference/properties/type` | `type` | <code>string</code> | yes | critical | Classification of the referenced resource. Human-oriented: 'documentation', 'example'. Shared: 'regulation', 'policy', 'glossary', 'schema'. Agent-oriented: 'vector-store', 'knowledge-base', 'retrieval', 'tool', 'api', 'context'. Custom types MUST be prefixed with 'x-'. Unrecognized non-'x-' types: processor SHOULD warn and MAY skip. |
 | `#/$defs/Reference/properties/uri` | `uri` | <code>string</code> | no | — | URI of the referenced resource. REQUIRED unless 'content' is provided. Supports https:, vectorstore:, kb:, formspec-fn:, and urn: schemes. |
-| `#/$defs/Reference/properties/x-generation` | `x-generation` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Generation</code> | Direct authoring provenance for this Reference object. When the object is bound into references[] for human or both audiences, the rendered binding must carry its own current adopted Need anchor. |
+| `#/$defs/Reference/properties/x-generation` | `x-generation` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Generation</code> | Authoring provenance for this Reference object. When the object is bound into references[] for human or both audiences, the rendered binding MUST carry its own direct anchor or inherit its target item's trace per the App Graph owner table (Needs §10.3). A direct anchor MUST resolve to a current adopted Need. A References Document anchor, a referenceDefs entry anchor, or another bound reference MUST NOT supply it. |
 | `#/$defs/ReferenceOrRef` | `(self)` | <code>composite</code> | — | — | Either a full inline Reference object, or a $ref pointer to a referenceDefs entry with optional property overrides. When $ref is present, the base object is shallow-merged with sibling properties (overrides win). The 'id' property MUST NOT appear alongside $ref — the referenceDefs key becomes the resolved id. MAINTENANCE NOTE: The $ref branch explicitly lists override properties — if a property is added to Reference, it must also be added to the $ref branch or overrides for that property will be silently rejected. |
 | `#/$defs/ReferenceDefs` | `(self)` | <code>object</code> | — | — | Registry of reusable Reference objects keyed by identifier. Entries MUST NOT use $ref to other entries (no recursion). The key becomes the resolved reference's 'id' — if the entry also declares 'id', it MUST match the key (processing-time validation, not schema-enforceable). Broken $ref pointers are document errors. |
 <!-- schema-ref:end -->

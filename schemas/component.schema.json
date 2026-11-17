@@ -376,7 +376,7 @@
         },
         "x-generation": {
           "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
-          "description": "Optional generation provenance metadata. Renderers MUST ignore this object for default runtime output.",
+          "description": "Optional generation provenance metadata. In strict data-only authoring profiles, Component nodes with bind MAY inherit per Needs §10.3 from the bound item; nodes without bind MUST carry a direct current adopted Need anchor. Renderers MUST ignore this object for default runtime output.",
           "examples": [
             {
               "source": "unit:identity",

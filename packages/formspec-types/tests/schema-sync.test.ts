@@ -185,6 +185,22 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 describe('generated types — tightness against permissive intersections', () => {
+  it('App Graph conditional report types retain closed object shapes', () => {
+    const src = readFileSync(resolve(__dirname, '../src/generated/app-graph-validation-report.ts'), 'utf-8');
+    for (const name of ['Diagnostic', 'RenderedNeedTraceRecord']) {
+      expect(src).not.toMatch(new RegExp(`export type ${name} = \\{\\s*\\[k: string\\]: unknown;\\s*\\} &`, 'm'));
+    }
+  });
+
+  it('App Graph inventory and via use the same required source pointer', () => {
+    const src = readFileSync(resolve(__dirname, '../src/generated/app-graph-validation-report.ts'), 'utf-8');
+    expect(src).toContain('source: RenderedNeedTraceSourcePointer;');
+    expect(src).toContain('via: RenderedNeedTraceSourcePointer[];');
+    expect(src).not.toContain('SourcePointer1');
+    const node = src.match(/export interface RenderedNeedTraceNode \{[\s\S]*?\n\}/)?.[0] ?? '';
+    expect(node).not.toMatch(/\n  pointer:/);
+  });
+
   it('Action and ValidationOverride do NOT carry [k: string]: unknown intersections', () => {
     // Schemas response-actions.schema.json declare additionalProperties: false
     // on Action and ValidationOverride. The generated TS types must NOT

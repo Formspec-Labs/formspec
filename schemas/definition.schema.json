@@ -1047,7 +1047,7 @@
         },
         "x-generation": {
           "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
-          "description": "Generation provenance for this rendered Item. Strict data-only authoring profiles require every group, field, and display Item to carry a direct need:<id>@<revision> anchor resolving to an adopted Need at its current revision."
+          "description": "Generation provenance for this rendered Item. In strict data-only authoring profiles, groups, fields, and display Items MAY inherit per Needs §10.3 and the App Graph owner table. A direct override MUST resolve to a current adopted Need."
         }
       },
       "allOf": [
@@ -1543,7 +1543,7 @@
         },
         "x-generation": {
           "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
-          "description": "Generation provenance for this authored Bind. Strict data-only authoring profiles require a direct current adopted Need anchor."
+          "description": "Generation provenance for this authored Bind. In strict data-only authoring profiles, it MAY inherit per Needs §10.3 from the item(s) its path resolves to. A direct override MUST resolve to a current adopted Need."
         },
         "extensions": {
           "type": "object",
@@ -1704,7 +1704,7 @@
         },
         "x-generation": {
           "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
-          "description": "Generation provenance for this authored Shape. Strict data-only authoring profiles require a direct current adopted Need anchor."
+          "description": "Generation provenance for this authored Shape. In strict data-only authoring profiles, it MAY inherit per Needs §10.3 from the item(s) its target resolves to, or the Definition root for '#'. A direct override MUST resolve to a current adopted Need."
         },
         "extensions": {
           "type": "object",
@@ -2005,7 +2005,7 @@
         },
         "x-generation": {
           "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
-          "description": "Generation provenance for this rendered option label. Strict data-only authoring profiles require each option to carry its own direct current adopted Need anchor."
+          "description": "Generation provenance for this rendered option label. In strict data-only authoring profiles, the option MAY inherit per Needs §10.3 from its field, or for an optionSet option from every field naming the set (the Definition root if none). A direct override MUST resolve to a current adopted Need."
         }
       },
       "additionalProperties": false

@@ -1247,7 +1247,7 @@ human display).</li>
 Properties</h2>
 <p>References complement but do not replace existing Item
 properties:</p>
-<table style="width:100%;">
+<table style="width:99%;">
 <colgroup>
 <col style="width: 26%" />
 <col style="width: 23%" />
@@ -1342,11 +1342,13 @@ common <code>x-generation</code> provenance. Under the strict
 rendered-Need trace profile, every manifested <code>references[]</code>
 entry whose resolved audience is <code>human</code> or <code>both</code>
 is one independently reviewable rendered node. That bound entry MUST
-carry its own direct <code>need:&lt;id&gt;@&lt;revision&gt;</code>
-anchor resolving to an adopted Need at its current revision. A
-References Document anchor, a <code>referenceDefs</code> entry anchor,
-the target Definition, or another bound reference MUST NOT satisfy that
-requirement. Agent-only entries do not enter the rendered inventory.</p>
+carry its own direct anchor or inherit its target item’s trace per the
+App Graph owner table (Needs §10.3). A direct
+<code>need:&lt;id&gt;@&lt;revision&gt;</code> anchor MUST resolve to an
+adopted Need at its current revision. A References Document anchor, a
+<code>referenceDefs</code> entry anchor, or another bound reference MUST
+NOT supply it. Agent-only entries do not enter the rendered
+inventory.</p>
 <h2 id="conformance">8. Conformance</h2>
 <p>This specification defines conformance requirements for References
 Document handling.</p>
@@ -1385,8 +1387,9 @@ emit a warning but MUST NOT cause document rejection.</li>
 human-audience references in the UI.</li>
 <li>A processor applying strict rendered-Need validation MUST inventory
 each manifested human or both audience bound reference and require that
-entry’s own direct current adopted Need anchor. Parent or
-reusable-definition anchors do not count.</li>
+entry’s own direct current adopted Need anchor or its target item’s
+inherited trace; References Document and reusable-definition anchors do
+not count.</li>
 <li>An Extended processor that supports agent integration SHOULD make
 agent-audience references available to companion agents via a documented
 API.</li>
@@ -1436,7 +1439,7 @@ document model. The <code>TargetDefinition</code> type is shared with
 the Component schema via <code>$ref</code>.</p>
 <!-- schema-ref:start schema=schemas/references.schema.json pointers=#/properties/$formspecReferences,#/properties/targetDefinition,#/properties/references,#/$defs/BoundReference,#/$defs/Reference,#/$defs/ReferenceOrRef,#/$defs/ReferenceDefs -->
 <!-- generated:schema-ref id= -->
-<table style="width:100%;">
+<table style="width:99%;">
 <colgroup>
 <col style="width: 16%" />
 <col style="width: 16%" />
@@ -1485,9 +1488,8 @@ range.</td>
 entry specifies a target path (item key or ‘#’ for form-level) and a
 reference or <span class="math inline">$ref pointer. References are
 static and resolved at load time. |
-| `#/$</span>defs/BoundReference/properties/<span
-class="math inline">$ref` |
-`$</span>ref<code>| &lt;code&gt;string&lt;/code&gt; | no | pattern: &lt;code&gt;^#/referenceDefs/[a-zA-Z][a-zA-Z0-9_-]*&amp;#36;&lt;/code&gt; | JSON Pointer (RFC 6901) to a referenceDefs entry. Resolved at load time. | |</code>#/<span
+|
+`#/$</span>defs/BoundReference/properties/<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mi>e</mi><mi>f</mi><mtext mathvariant="normal">‘</mtext><mo stretchy="false" form="prefix">|</mo><mtext mathvariant="normal">‘</mtext></mrow><annotation encoding="application/x-tex">ref` | `</annotation></semantics></math>ref<code>| &lt;code&gt;string&lt;/code&gt; | no | pattern: &lt;code&gt;^#/referenceDefs/[a-zA-Z][a-zA-Z0-9_-]*&amp;#36;&lt;/code&gt; | JSON Pointer (RFC 6901) to a referenceDefs entry. Resolved at load time. | |</code>#/<span
 class="math inline">$defs/BoundReference/properties/audience` |
 `audience` | &lt;code&gt;string&lt;/code&gt; | no | enum:
 &lt;code&gt;"human"&lt;/code&gt;, &lt;code&gt;"agent"&lt;/code&gt;,
@@ -1522,7 +1524,7 @@ class="math inline">$defs/BoundReference/properties/title` | `title` |
 class="math inline">$defs/BoundReference/properties/uri` | `uri` |
 &lt;code&gt;string&lt;/code&gt; | no | — | — |
 |
-`#/$</span>defs/BoundReference/properties/x-generation<code>|</code>x-generation<code>| &lt;code&gt;&amp;#36;ref&lt;/code&gt; | no | &lt;code&gt;&amp;#36;ref&lt;/code&gt;: &lt;code&gt;https://formspec.org/schemas/common/1.0#/&amp;#36;defs/Generation&lt;/code&gt; | Direct authoring provenance for this bound reference entry. Strict rendered-Need validation requires a human or both audience entry that can render as customer help to carry its own current adopted Need anchor; document-level or referenceDefs provenance does not substitute. | |</code>#/<span
+`#/$</span>defs/BoundReference/properties/x-generation<code>|</code>x-generation<code>| &lt;code&gt;&amp;#36;ref&lt;/code&gt; | no | &lt;code&gt;&amp;#36;ref&lt;/code&gt;: &lt;code&gt;https://formspec.org/schemas/common/1.0#/&amp;#36;defs/Generation&lt;/code&gt; | Authoring provenance for this bound reference entry. Under strict rendered-Need validation, a human or both audience entry that can render as customer help MUST carry its own direct anchor or inherit its target item's trace per the App Graph owner table (Needs §10.3). A direct anchor MUST resolve to a current adopted Need. A References Document anchor, a referenceDefs entry anchor, or another bound reference MUST NOT supply it. | |</code>#/<span
 class="math inline">$defs/Reference/properties/audience` | `audience` |
 &lt;code&gt;string&lt;/code&gt; | yes | enum:
 &lt;code&gt;"human"&lt;/code&gt;, &lt;code&gt;"agent"&lt;/code&gt;,
@@ -1577,9 +1579,13 @@ class="math inline">$defs/Reference/properties/x-generation` |
 `x-generation` | &lt;code&gt;&amp;#36;ref&lt;/code&gt; | no |
 &lt;code&gt;&amp;#36;ref&lt;/code&gt;:
 &lt;code&gt;https://formspec.org/schemas/common/1.0#/&amp;#36;defs/Generation&lt;/code&gt;
-| Direct authoring provenance for this Reference object. When the object
-is bound into references[] for human or both audiences, the rendered
-binding must carry its own current adopted Need anchor. |
+| Authoring provenance for this Reference object. When the object is
+bound into references[] for human or both audiences, the rendered
+binding MUST carry its own direct anchor or inherit its target item's
+trace per the App Graph owner table (Needs §10.3). A direct anchor MUST
+resolve to a current adopted Need. A References Document anchor, a
+referenceDefs entry anchor, or another bound reference MUST NOT supply
+it. |
 |
 `#/$</span>defs/ReferenceOrRef<code>|</code>(self)<code>| &lt;code&gt;composite&lt;/code&gt; | — | — | Either a full inline Reference object, or a $ref pointer to a referenceDefs entry with optional property overrides. When $ref is present, the base object is shallow-merged with sibling properties (overrides win). The 'id' property MUST NOT appear alongside $ref — the referenceDefs key becomes the resolved id. MAINTENANCE NOTE: The $ref branch explicitly lists override properties — if a property is added to Reference, it must also be added to the $ref branch or overrides for that property will be silently rejected. | |</code>#/$defs/ReferenceDefs<code>|</code>(self)`</td>
 </tr>

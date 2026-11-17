@@ -435,7 +435,7 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="
 <h3 id="top-level-properties">2.1 Top-Level Properties</h3>
 <!-- schema-ref:start id=locale-top-level schema=schemas/locale.schema.json pointers=# -->
 <!-- generated:schema-ref id=locale-top-level -->
-<table style="width:100%;">
+<table style="width:99%;">
 <colgroup>
 <col style="width: 16%" />
 <col style="width: 16%" />
@@ -551,9 +551,11 @@ family for app-targeted shell text.</td>
 <td><code>object</code></td>
 <td>no</td>
 <td>—</td>
-<td>Generation provenance keyed exactly like strings. Strict data-only
-authoring profiles require every authored localized string to have a
-same-key direct current adopted Need anchor.</td>
+<td>Generation provenance keyed exactly like strings. In strict
+data-only authoring profiles, strings localizing a Definition or
+Screener node, a bound Component node, or the Definition’s own text MAY
+inherit per Needs §10.3 from the localized node. Other strings MUST
+carry a same-key direct current adopted Need anchor.</td>
 </tr>
 <tr>
 <td><code>#/properties/strings</code></td>
