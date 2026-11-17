@@ -104,7 +104,7 @@ impl Validation<'_> {
                     .get("constraint")
                     .and_then(|v| v.as_str())
                     .map(str::to_string),
-                source: ValidationSource::Shape,
+                source: Some(ValidationSource::Shape),
                 shape_id: sid.clone(),
                 context: evaluate_shape_context(shape, env, None, fel),
             });
@@ -230,7 +230,7 @@ impl Validation<'_> {
                     code: ValidationCode::from_wire(scode),
                     message: interpolate_fel(message, env, fel, str::to_string).text,
                     constraint: constraint_expr.clone(),
-                    source: ValidationSource::Shape,
+                    source: Some(ValidationSource::Shape),
                     shape_id: sid.clone(),
                     context: evaluate_shape_context(shape, env, Some((&base, index)), fel),
                 });

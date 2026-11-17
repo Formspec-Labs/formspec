@@ -1,6 +1,7 @@
 /** @filedesc Bridge tests for wasmEvaluateDefinition context threading. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { FormEngine } from '../dist/index.js';
 
 import {
   wasmApplyMigrationsToResponseData,
@@ -10,6 +11,35 @@ import {
   wasmResolveOptionSetsOnDefinition,
 } from '../dist/wasm-bridge-runtime.js';
 import { wasmRewriteFelForAssembly, wasmTokenizeFel } from '../dist/wasm-bridge-tools.js';
+
+test('cardinality sources agree between WASM and FormEngine reports', () => {
+  const definition = {
+    $formspec: '1.0', url: 'https://example.org/cardinality-source', version: '1.0.0',
+    title: 'Cardinality source',
+    items: [{
+      key: 'rows', type: 'group', repeatable: true, minRepeat: 2, maxRepeat: 2,
+      children: [{ key: 'a', type: 'field', dataType: 'string', label: 'A' }],
+    }],
+  };
+  for (const [rows, code] of [[[], 'MIN_REPEAT'], [[{ a: 'x' }, { a: 'y' }, { a: 'z' }], 'MAX_REPEAT']]) {
+    const engine = new FormEngine(definition);
+    engine.loadResponseData({ rows });
+    for (const trigger of ['continuous', 'submit']) {
+      const evaluated = wasmEvaluateDefinition(definition, { rows }, { trigger });
+      const raw = evaluated.validations.find((result) => result.code === code);
+      assert.ok(raw, `${trigger}: ${code}`);
+      assert.equal(Object.hasOwn(raw, 'source'), false);
+      const report = engine.getValidationReport({ profile: trigger === 'submit' ? 'on-submit' : 'live' });
+      const reported = report.results.find((result) => result.code === code);
+      assert.deepEqual(reported, { ...raw, $formspecValidationResult: '1.0' });
+      assert.equal(Object.hasOwn(reported, 'source'), false);
+      // The evaluator must accept its own source-less findings on the next cycle.
+      assert.doesNotThrow(() => wasmEvaluateDefinition(definition, { rows }, {
+        trigger, previousValidations: evaluated.validations,
+      }));
+    }
+  }
+});
 
 test('wasmEvaluateDefinition forwards previousValidations to the batch evaluator', () => {
   const definition = {

@@ -19,8 +19,8 @@ pub struct ValidationResult {
     pub message: String,
     /// Original constraint expression when available.
     pub constraint: Option<String>,
-    /// Source of the validation: bind, shape, definition.
-    pub source: ValidationSource,
+    /// Origin category, absent for Item cardinality checks (validation-result.schema.json `source`).
+    pub source: Option<ValidationSource>,
     /// Shape ID (for shape validations only).
     pub shape_id: Option<String>,
     /// Evaluated shape failure context values.

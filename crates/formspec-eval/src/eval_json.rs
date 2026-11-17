@@ -110,7 +110,9 @@ fn validation_result_to_json_object(
     );
     m.insert("code".into(), json!(v.code.as_wire_str()));
     m.insert("message".into(), json!(v.message));
-    m.insert("source".into(), json!(v.source.as_wire_str()));
+    if let Some(source) = v.source {
+        m.insert("source".into(), json!(source.as_wire_str()));
+    }
     if let Some(ref c) = v.constraint {
         m.insert("constraint".into(), json!(c));
     }
@@ -314,7 +316,18 @@ fn parse_validation_result(value: &Value) -> Result<ValidationResult, String> {
     let severity = required_string_field(obj, "severity")?;
     let constraint_kind = required_string_field_either(obj, "constraintKind", "constraint_kind")?;
     let code = required_string_field(obj, "code")?;
-    let source = required_string_field(obj, "source")?;
+    let source = match obj.get("source") {
+        None => None,
+        Some(value) => {
+            let source = value
+                .as_str()
+                .ok_or("validation source must be a string when present")?;
+            Some(
+                ValidationSource::parse_wire(source)
+                    .ok_or_else(|| format!("unknown source: {source}"))?,
+            )
+        }
+    };
 
     Ok(ValidationResult {
         path: required_string_field(obj, "path")?,
@@ -325,8 +338,7 @@ fn parse_validation_result(value: &Value) -> Result<ValidationResult, String> {
         code: ValidationCode::from_wire(&code),
         message: required_string_field(obj, "message")?,
         constraint: optional_string_field_either(obj, "constraint", "constraint"),
-        source: ValidationSource::parse_wire(&source)
-            .ok_or_else(|| format!("unknown source: {source}"))?,
+        source,
         shape_id: optional_string_field_either(obj, "shapeId", "shape_id"),
         context: match obj.get("context") {
             Some(ctx) => {

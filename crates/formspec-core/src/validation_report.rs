@@ -1,6 +1,6 @@
 //! Assemble validation-report candidates from qualified public findings.
 //!
-//! This pure helper mirrors the JavaScript `buildValidationReportEnvelope` algorithm.
+//! This pure helper assembles metadata and counts without rewriting findings.
 //! Callers own evaluation, result tagging, clocks, Definition pins, and canonical
 //! schema admission. An assembled candidate must pass that admission before use.
 
@@ -54,8 +54,7 @@ impl Error for ValidationReportAssemblyError {}
 /// Assemble a validation-report candidate without evaluating or admitting it.
 ///
 /// `results` contains qualified, tagged public ValidationResult objects. Findings
-/// retain their order and values; only cardinality findings lose `source`, matching
-/// the maintained JavaScript assembler. The caller supplies `timestamp` and pins.
+/// retain their order and values. The caller supplies `timestamp` and pins.
 /// Empty optional pins are omitted, also matching JavaScript.
 ///
 /// `Ok` is not canonical schema admission. The caller must validate the candidate
@@ -89,7 +88,7 @@ pub fn build_validation_report(
     let (mut errors, mut warnings, mut information) = (0_usize, 0_usize, 0_usize);
     let mut findings = Vec::with_capacity(results.len());
     for (index, result) in results.iter().enumerate() {
-        let mut finding = result
+        let finding = result
             .as_object()
             .cloned()
             .ok_or_else(|| ValidationReportAssemblyError::new(index, "$"))?;
@@ -110,9 +109,6 @@ pub fn build_validation_report(
             _ => return Err(ValidationReportAssemblyError::new(index, "severity")),
         };
         *count += 1;
-        if finding.get("constraintKind").and_then(Value::as_str) == Some("cardinality") {
-            finding.remove("source");
-        }
         findings.push(Value::Object(finding));
     }
     let mut report = json!({
@@ -235,6 +231,22 @@ mod tests {
         assert_eq!(report["valid"], false);
         assert_eq!(report["counts"]["error"], 1);
         // This remains a candidate: maintained schema admission rejects this finding.
+    }
+
+    #[test]
+    fn preserves_cardinality_findings_without_rewriting_source() {
+        let mut finding = json!({
+            "$formspecValidationResult": "1.0", "path": "rows", "severity": "error",
+            "constraintKind": "cardinality", "code": "MIN_REPEAT",
+            "message": "Minimum 2 entries required"
+        });
+        for source in [None, Some("bind"), Some("external")] {
+            if let Some(source) = source {
+                finding["source"] = json!(source);
+            }
+            let report = build_validation_report(&[finding.clone()], "fixed", None, None).unwrap();
+            assert_eq!(report["results"][0], finding);
+        }
     }
 
     #[test]

@@ -1,8 +1,72 @@
 //! Full `evaluate_*` pipeline integration tests.
 
 use fel_core::exact_json::{Value, native_json as json};
+use formspec_eval::types::ValidationSource;
 use formspec_eval::{EvalContext, EvalOptions, EvalTrigger, ValidationResult, evaluate};
 use std::collections::HashMap;
+
+// validation-result.schema.json `source`: Item cardinality has no source category.
+#[test]
+fn cardinality_results_omit_source_in_both_json_styles() {
+    let def = json!({"items": [
+        {"key": "under", "type": "group", "repeatable": true, "minRepeat": 2,
+         "children": [{"key": "a", "type": "field", "dataType": "string"}]},
+        {"key": "over", "type": "group", "repeatable": true, "maxRepeat": 1,
+         "children": [{"key": "a", "type": "field", "dataType": "string"}]},
+        {"key": "name", "type": "field", "dataType": "string"}
+    ], "binds": [{"path": "name", "required": "true"}]});
+    let data = HashMap::from([
+        ("under".into(), json!([])),
+        ("over".into(), json!([{"a": "x"}, {"a": "y"}])),
+    ]);
+    for trigger in [EvalTrigger::Continuous, EvalTrigger::Submit] {
+        let result = evaluate(&def, &data, &EvalOptions::default().trigger(trigger));
+        for style in [
+            formspec_core::JsonWireStyle::JsCamel,
+            formspec_core::JsonWireStyle::PythonSnake,
+        ] {
+            let wire = formspec_eval::evaluation_result_to_json_value_styled(&result, style);
+            let findings = wire["validations"].as_array().unwrap();
+            for (path, code) in [("under", "MIN_REPEAT"), ("over", "MAX_REPEAT")] {
+                let finding = findings.iter().find(|v| v["code"] == code).unwrap();
+                assert_eq!(finding["path"], json!(path));
+                assert!(finding.get("source").is_none(), "{code}: {finding}");
+            }
+            let required = findings.iter().find(|v| v["code"] == "REQUIRED").unwrap();
+            assert_eq!(required["source"], json!("bind"));
+            let context = json!({"previousValidations": findings});
+            let parsed = formspec_eval::eval_context_from_json_object(context.as_object().unwrap())
+                .expect("both JSON styles must round-trip source-less findings");
+            assert_eq!(parsed.previous_validations.unwrap(), result.validations);
+        }
+    }
+}
+
+#[test]
+fn previous_cardinality_results_accept_absent_source() {
+    let context = json!({"previousValidations": [{
+        "path": "rows", "severity": "error", "constraintKind": "cardinality",
+        "code": "MIN_REPEAT", "message": "Minimum 2 entries required"
+    }]});
+    let parsed = formspec_eval::eval_context_from_json_object(context.as_object().unwrap())
+        .expect("source is optional in ValidationResult");
+    let findings = parsed.previous_validations.unwrap();
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].source, None);
+}
+
+#[test]
+fn previous_validation_results_reject_nonstring_source_when_present() {
+    for source in [json!(null), json!(false), json!(7), json!([]), json!({})] {
+        let context = json!({"previousValidations": [{
+            "path": "rows", "severity": "error", "constraintKind": "cardinality",
+            "code": "MIN_REPEAT", "message": "Minimum 2 entries required", "source": source
+        }]});
+        let error =
+            formspec_eval::eval_context_from_json_object(context.as_object().unwrap()).unwrap_err();
+        assert_eq!(error, "validation source must be a string when present");
+    }
+}
 
 /// Core §4.2.3: named sets take precedence over inline options, including inside repeats.
 #[test]
@@ -2451,7 +2515,7 @@ fn bare_dollar_resolves_nested_group_path() {
     let errors: Vec<_> = result
         .validations
         .iter()
-        .filter(|v| v.source == "bind" && v.message.contains("negative"))
+        .filter(|v| v.source == Some(ValidationSource::Bind) && v.message.contains("negative"))
         .collect();
     assert!(errors.is_empty(), "positive value should pass constraint");
 
@@ -2461,7 +2525,7 @@ fn bare_dollar_resolves_nested_group_path() {
     let errors2: Vec<_> = result2
         .validations
         .iter()
-        .filter(|v| v.source == "bind" && v.message.contains("negative"))
+        .filter(|v| v.source == Some(ValidationSource::Bind) && v.message.contains("negative"))
         .collect();
     assert_eq!(errors2.len(), 1, "negative value should fail constraint");
 }
@@ -2598,7 +2662,7 @@ fn wildcard_bind_per_instance_constraint() {
     let errors: Vec<_> = result
         .validations
         .iter()
-        .filter(|v| v.source == "bind" && v.message.contains("non-negative"))
+        .filter(|v| v.source == Some(ValidationSource::Bind) && v.message.contains("non-negative"))
         .collect();
     assert_eq!(errors.len(), 1, "only instance 1 should fail");
     assert_eq!(errors[0].path, "rows[1].amount");

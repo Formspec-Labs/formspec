@@ -3,16 +3,6 @@
   "entries": {
     "all-codes.validation-report": {
       "ts": {
-        "F": {
-          "ticket": "fs-pod9",
-          "why": "both FormEngine and P report MIN_REPEAT and MAX_REPEAT; every line is the cardinality `source` difference: FormEngine strips `source` from cardinality results (response-assembly.ts:398-410) while the evaluator emits source 'bind'",
-          "problems": [
-            "FormEngine live vs P results only here {\"code\":\"MAX_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Maximum 1 entries allowed\",\"path\":\"max_group\",\"severity\":\"error\"}",
-            "FormEngine live vs P results only here {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"min_group\",\"severity\":\"error\"}",
-            "FormEngine live vs P results only there {\"code\":\"MAX_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Maximum 1 entries allowed\",\"path\":\"max_group\",\"severity\":\"error\",\"source\":\"bind\"}",
-            "FormEngine live vs P results only there {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"min_group\",\"severity\":\"error\",\"source\":\"bind\"}"
-          ]
-        },
         "S": {
           "ticket": "fs-20e3",
           "why": "the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them); also the filed bytes carry min_group [{},{}], so MIN_REPEAT is missing (F2, fs-i731)",
@@ -37,11 +27,10 @@
         },
         "F_submit": {
           "ticket": "fs-20e3",
-          "why": "FormEngine's submit report (with registries) vs the server verdict (without): the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them); also MIN_REPEAT (F2, fs-i731) and cardinality `source` (fs-pod9)",
+          "why": "FormEngine's submit report (with registries) vs the server verdict (without): the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them); also MIN_REPEAT (F2, fs-i731)",
           "problems": [
             "FormEngine submit vs S results only here {\"code\":\"EXTENSION_COMPATIBILITY_MISMATCH\",\"constraintKind\":\"constraint\",\"message\":\"Extension 'x-test-compat' requires formspec version >=99.0.0\",\"path\":\"compat_field\",\"severity\":\"warning\",\"source\":\"external\"}",
             "FormEngine submit vs S results only here {\"code\":\"EXTENSION_DEPRECATED\",\"constraintKind\":\"constraint\",\"message\":\"Extension 'x-test-deprecated' is deprecated\",\"path\":\"deprecated_field\",\"severity\":\"info\",\"source\":\"external\"}",
-            "FormEngine submit vs S results only here {\"code\":\"MAX_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Maximum 1 entries allowed\",\"path\":\"max_group\",\"severity\":\"error\"}",
             "FormEngine submit vs S results only here {\"code\":\"MAX_LENGTH_EXCEEDED\",\"constraintKind\":\"constraint\",\"message\":\"Short Code must be at most 5 characters\",\"path\":\"maxlen_field\",\"severity\":\"error\",\"source\":\"external\"}",
             "FormEngine submit vs S results only here {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"min_group\",\"severity\":\"error\"}",
             "FormEngine submit vs S results only here {\"code\":\"PATTERN_MISMATCH\",\"constraintKind\":\"constraint\",\"message\":\"Must be a valid Test Pattern\",\"path\":\"patterned_field\",\"severity\":\"error\",\"source\":\"external\"}",
@@ -50,7 +39,6 @@
             "FormEngine submit vs S results only here {\"code\":\"EXTENSION_RETIRED\",\"constraintKind\":\"constraint\",\"message\":\"Extension 'x-test-retired' is retired\",\"path\":\"retired_field\",\"severity\":\"warning\",\"source\":\"external\"}",
             "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-compat': no matching registry entry loaded\",\"path\":\"compat_field\",\"severity\":\"error\",\"source\":\"external\"}",
             "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-deprecated': no matching registry entry loaded\",\"path\":\"deprecated_field\",\"severity\":\"error\",\"source\":\"external\"}",
-            "FormEngine submit vs S results only there {\"code\":\"MAX_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Maximum 1 entries allowed\",\"path\":\"max_group\",\"severity\":\"error\",\"source\":\"bind\"}",
             "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-maxlen': no matching registry entry loaded\",\"path\":\"maxlen_field\",\"severity\":\"error\",\"source\":\"external\"}",
             "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-pattern': no matching registry entry loaded\",\"path\":\"patterned_field\",\"severity\":\"error\",\"source\":\"external\"}",
             "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-test-range': no matching registry entry loaded\",\"path\":\"range_high_field\",\"severity\":\"error\",\"source\":\"external\"}",
@@ -549,14 +537,6 @@
             "round trip of expected.data rows: absent vs []"
           ]
         },
-        "F": {
-          "ticket": "fs-pod9",
-          "why": "both FormEngine and P report MIN_REPEAT; the only difference is the cardinality `source`: FormEngine strips `source` from cardinality results (response-assembly.ts:398-410) while the evaluator emits source 'bind'",
-          "problems": [
-            "FormEngine live vs P results only here {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\"}",
-            "FormEngine live vs P results only there {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\",\"source\":\"bind\"}"
-          ]
-        },
         "noInvention": {
           "ticket": "fs-i731",
           "why": "evaluate pads a present rows: [] to minRepeat inside the processing cycle (repeat_expand.rs:57-59); the calculated child must not hide the invented rows (F2, S1)",
@@ -677,12 +657,10 @@
       "ts": {
         "F": {
           "ticket": "fs-i731",
-          "why": "evaluate pads rows: [] to two phantom rows (REQUIRED x2, F2); FormEngine reports MIN_REPEAT; also FormEngine strips `source` from cardinality results (response-assembly.ts:398-410) while the evaluator emits source 'bind' (fs-pod9)",
+          "why": "evaluate pads rows: [] to two phantom rows (REQUIRED x2, F2); FormEngine reports MIN_REPEAT",
           "problems": [
-            "FormEngine live vs P results only here {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\"}",
             "FormEngine live vs P results only there {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"message\":\"Required\",\"path\":\"rows[0].a\",\"severity\":\"error\",\"source\":\"bind\"}",
-            "FormEngine live vs P results only there {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"message\":\"Required\",\"path\":\"rows[1].a\",\"severity\":\"error\",\"source\":\"bind\"}",
-            "FormEngine live vs P results only there {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\",\"source\":\"bind\"}"
+            "FormEngine live vs P results only there {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"message\":\"Required\",\"path\":\"rows[1].a\",\"severity\":\"error\",\"source\":\"bind\"}"
           ]
         },
         "S": {
@@ -789,7 +767,7 @@
           "ticket": "fs-i731",
           "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503); and P (creation inside evaluate) reports MIN_REPEAT beside its padded rows (F2)",
           "problems": [
-            "FormEngine live vs P results only there {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\",\"source\":\"bind\"}",
+            "FormEngine live vs P results only there {\"code\":\"MIN_REPEAT\",\"constraintKind\":\"cardinality\",\"message\":\"Minimum 2 entries required\",\"path\":\"rows\",\"severity\":\"error\"}",
             "FormEngine live vs P data rows[0].a: \"\" vs absent",
             "FormEngine live vs P data rows[1].a: \"\" vs absent",
             "FormEngine live vs P data rows[0]: absent vs {}",

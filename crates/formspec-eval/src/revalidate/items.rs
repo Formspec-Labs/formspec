@@ -80,7 +80,7 @@ impl Validation<'_> {
                 code: ValidationCode::Required,
                 message: "Required".to_string(),
                 constraint: None,
-                source: ValidationSource::Bind,
+                source: Some(ValidationSource::Bind),
                 shape_id: None,
                 context: None,
             });
@@ -188,7 +188,7 @@ impl Validation<'_> {
                     code: ValidationCode::TypeMismatch,
                     message: format!("Invalid {dt}"),
                     constraint: None,
-                    source: ValidationSource::Bind,
+                    source: Some(ValidationSource::Bind),
                     shape_id: None,
                     context: None,
                 });
@@ -256,7 +256,7 @@ impl Validation<'_> {
                     code,
                     message,
                     constraint: Some(expr.clone()),
-                    source: ValidationSource::Bind,
+                    source: Some(ValidationSource::Bind),
                     shape_id: None,
                     context: None,
                 });
@@ -296,7 +296,7 @@ impl Validation<'_> {
                     code: ValidationCode::MinRepeat,
                     message: format!("Minimum {min} entries required"),
                     constraint: None,
-                    source: ValidationSource::Bind,
+                    source: None,
                     shape_id: None,
                     context: None,
                 });
@@ -311,7 +311,7 @@ impl Validation<'_> {
                     code: ValidationCode::MaxRepeat,
                     message: format!("Maximum {max} entries allowed"),
                     constraint: None,
-                    source: ValidationSource::Bind,
+                    source: None,
                     shape_id: None,
                     context: None,
                 });
@@ -383,7 +383,7 @@ fn validate_extension_constraints(
                     "Unresolved extension '{ext_name}': no matching registry entry loaded"
                 ),
                 constraint: None,
-                source: ValidationSource::External,
+                source: Some(ValidationSource::External),
                 shape_id: None,
                 context: None,
             });
@@ -400,7 +400,7 @@ fn validate_extension_constraints(
                     code: ValidationCode::ExtensionRetired,
                     message: format!("Extension '{ext_name}' is retired"),
                     constraint: None,
-                    source: ValidationSource::External,
+                    source: Some(ValidationSource::External),
                     shape_id: None,
                     context: None,
                 });
@@ -417,7 +417,7 @@ fn validate_extension_constraints(
                     code: ValidationCode::ExtensionDeprecated,
                     message,
                     constraint: None,
-                    source: ValidationSource::External,
+                    source: Some(ValidationSource::External),
                     shape_id: None,
                     context: None,
                 });
@@ -437,7 +437,7 @@ fn validate_extension_constraints(
                         "Extension '{ext_name}' requires formspec version {compat_range}"
                     ),
                     constraint: None,
-                    source: ValidationSource::External,
+                    source: Some(ValidationSource::External),
                     shape_id: None,
                     context: None,
                 });
@@ -466,7 +466,7 @@ fn validate_extension_constraints(
                             code: ValidationCode::PatternMismatch,
                             message: format!("Must be a valid {label}"),
                             constraint: None,
-                            source: ValidationSource::External,
+                            source: Some(ValidationSource::External),
                             shape_id: None,
                             context: None,
                         });
@@ -486,7 +486,7 @@ fn validate_extension_constraints(
                         code: ValidationCode::MaxLengthExceeded,
                         message: format!("{label} must be at most {max_len} characters"),
                         constraint: None,
-                        source: ValidationSource::External,
+                        source: Some(ValidationSource::External),
                         shape_id: None,
                         context: None,
                     });
@@ -505,7 +505,7 @@ fn validate_extension_constraints(
                         code: ValidationCode::RangeUnderflow,
                         message: format!("{label} must be at least {min}"),
                         constraint: None,
-                        source: ValidationSource::External,
+                        source: Some(ValidationSource::External),
                         shape_id: None,
                         context: None,
                     });
@@ -524,7 +524,7 @@ fn validate_extension_constraints(
                         code: ValidationCode::RangeOverflow,
                         message: format!("{label} must be at most {max}"),
                         constraint: None,
-                        source: ValidationSource::External,
+                        source: Some(ValidationSource::External),
                         shape_id: None,
                         context: None,
                     });

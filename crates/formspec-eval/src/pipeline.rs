@@ -116,7 +116,7 @@ pub fn evaluate(
             code: types::ValidationCode::CircularDependency,
             message: cycle_msg,
             constraint: None,
-            source: types::ValidationSource::Definition,
+            source: Some(types::ValidationSource::Definition),
             shape_id: None,
             context: None,
         });
@@ -163,7 +163,7 @@ fn type_error(path: &str, message: String) -> ValidationResult {
         code: types::ValidationCode::TypeMismatch,
         message,
         constraint: None,
-        source: types::ValidationSource::Bind,
+        source: Some(types::ValidationSource::Bind),
         shape_id: None,
         context: None,
     }

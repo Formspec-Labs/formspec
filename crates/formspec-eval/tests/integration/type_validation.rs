@@ -1023,7 +1023,8 @@ fn extension_results_use_spec_valid_constraint_kind_and_source() {
             "constraintKind must NOT be 'extension' — use a spec-valid enum value"
         );
         assert_ne!(
-            r.source, "extension",
+            r.source.map(|source| source.as_wire_str()),
+            Some("extension"),
             "source must NOT be 'extension' — use a spec-valid enum value"
         );
         assert_eq!(
@@ -1031,7 +1032,8 @@ fn extension_results_use_spec_valid_constraint_kind_and_source() {
             "extension field constraints should use constraintKind 'constraint'"
         );
         assert_eq!(
-            r.source, "external",
+            r.source.map(|source| source.as_wire_str()),
+            Some("external"),
             "extension constraints should use source 'external'"
         );
     }

@@ -40,7 +40,6 @@
         "severity": "error",
         "constraintKind": "cardinality",
         "message": "error finding",
-        "source": "bind",
         "code": "MIN_REPEAT_NOT_MET"
       },
       {
