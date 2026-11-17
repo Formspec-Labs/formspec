@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
-import { singleFieldDef, minimalComponentDoc, minimalTheme } from '../helpers/engine-fixtures';
+import { singleFieldDef, multiFieldDef, minimalComponentDoc, minimalTheme } from '../helpers/engine-fixtures';
 
 let FormspecRender: any;
 const originalMatchMedia = window.matchMedia;
@@ -180,6 +180,50 @@ describe('input rendering — reactive signals', () => {
         input.dispatchEvent(new Event('focusout', { bubbles: true }));
         expect(input.getAttribute('aria-invalid')).toBe('true');
         expect(errorEl.textContent).toBe('Bad value');
+    });
+});
+
+// Parity: formspec-react tests/default-field-inputs.test.tsx "Read-only field — focusing and leaving it".
+describe('input rendering — read-only interaction', () => {
+    afterEach(() => {
+        document.body.querySelectorAll('formspec-render').forEach(el => el.remove());
+    });
+
+    /** A required `total` with `bind`, beside an editable `income`. */
+    function renderTotal(bind: Record<string, string>) {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        el.definition = {
+            ...multiFieldDef([{ key: 'income' }, { key: 'total' }]),
+            binds: [{ path: 'total', required: 'true', ...bind }],
+        };
+        el.render();
+        const field = el.querySelector('[data-name="total"]') as HTMLElement;
+        const input = field.querySelector('input') as HTMLInputElement;
+        const error = () => field.querySelector('.formspec-error')?.textContent ?? '';
+        const visit = () => { input.focus(); input.blur(); };
+        return { el, input, error, visit };
+    }
+
+    it.each([
+        ['read-only bind', { readonly: 'true' }],
+        ['calculate bind', { calculate: '$income' }],
+    ])('keeps a required, empty field with a %s quiet, then shows its error on the all-fields pass', (_, bind) => {
+        const { el, input, error, visit } = renderTotal(bind);
+        expect(input.readOnly).toBe(true);
+        visit();
+        expect(el.touchedFields.has('total')).toBe(false);
+        expect(error()).toBe('');
+        expect(input.getAttribute('aria-invalid')).toBe('false');
+        el.touchAllFields();
+        expect(error()).not.toBe('');
+        expect(input.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('still shows an editable required field\'s error once it is focused and left', () => {
+        const { error, visit } = renderTotal({});
+        visit();
+        expect(error()).not.toBe('');
     });
 });
 

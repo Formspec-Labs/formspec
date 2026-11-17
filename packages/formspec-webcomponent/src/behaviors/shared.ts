@@ -153,8 +153,15 @@ export function warnIfIncompatible(
     }
 }
 
-/** Mark `fieldPath` touched once: its validation shows from now on (see the touched-tracking note in {@link bindSharedFieldEffects}). */
+/**
+ * Mark `fieldPath` touched once by the respondent's interaction: its validation shows from now on (see the
+ * touched-tracking note in {@link bindSharedFieldEffects}). Does nothing for a field the respondent cannot
+ * change: read-only, including calculated (read-only through its `calculate` bind). Its validation shows after an
+ * explicit pass over all fields: submit, a wizard step (Core §5.5). Protected needs no case: a non-relevant field
+ * renders inert here and cannot take focus.
+ */
 export function markFieldTouched(ctx: BehaviorContext, fieldPath: string): void {
+    if (ctx.engine.readonlySignals[fieldPath]?.value) return;
     if (!ctx.touchedFields.has(fieldPath)) {
         ctx.touchedFields.add(fieldPath);
         ctx.touchedVersion.value += 1;
@@ -404,11 +411,12 @@ export function bindSharedFieldEffects(
         }
     }));
 
-    // Touched tracking: a field is touched when its value changes or focus leaves it. Focus moving between the
-    // field's own controls (checkbox to checkbox, date input to its calendar button) has not left it. Focus
-    // leaving because of a press — on a label, a button, anywhere — is a departure, but its error waits for the
-    // release: shown between press and release it moves the layout, and the click then misses what was pressed
-    // (fs-us1l). That holds whichever field the press is in, so the press is tracked once per document.
+    // Touched tracking: a field is touched when its value changes or focus leaves it, unless it is read-only (see
+    // markFieldTouched). Focus moving between the field's own controls (checkbox to checkbox, date input to its
+    // calendar button) has not left it. Focus leaving because of a press — on a label, a button, anywhere — is a
+    // departure, but its error waits for the release: shown between press and release it moves the layout, and the
+    // click then misses what was pressed (fs-us1l). That holds whichever field the press is in, so the press is
+    // tracked once per document.
     const markTouched = () => markFieldTouched(ctx, fieldPath);
     const press = pressTracker(refs.root.ownerDocument);
     const onFocusOut = (event: FocusEvent) => {

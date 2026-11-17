@@ -4237,7 +4237,10 @@ submission action requires `valid = true` (i.e., zero error-level results).
 
 Implementations MAY offer a `"continuous-soft"` variant where validation runs
 continuously but results are displayed only after the user has interacted with
-(blurred) the relevant field. This is a presentation-layer concern and does
+(blurred) the relevant field. A field the user cannot change (read-only,
+calculated, or protected) is not interacted with by focusing or leaving it; its
+results are displayed after an explicit pass over all fields, such as save,
+submit, or page navigation. This is a presentation-layer concern and does
 not constitute a distinct validation mode.
 
 **Per-Shape Timing Interaction:** Individual Shapes MAY declare a `timing`

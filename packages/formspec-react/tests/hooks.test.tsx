@@ -755,7 +755,15 @@ describe('useField touched tracking', () => {
     it('inputProps.onBlur marks field as touched', () => {
         const { result } = renderHookWithProvider(testDefinition, () => useField('name'));
         expect(result.current.touched).toBe(false);
-        expect(typeof result.current.inputProps.onBlur).toBe('function');
+        flushSync(() => result.current.inputProps.onBlur());
+        expect(result.current.touched).toBe(true);
+    });
+
+    it('leaving or touching a read-only field leaves it untouched', () => {
+        const readonlyDefinition = { ...testDefinition, binds: [{ path: 'name', required: 'true', readonly: 'true' }] };
+        const { result } = renderHookWithProvider(readonlyDefinition, () => useField('name'));
+        flushSync(() => { result.current.inputProps.onBlur(); result.current.touch(); });
+        expect(result.current.touched).toBe(false);
     });
 
     it('field becomes touched after touchField is called', () => {

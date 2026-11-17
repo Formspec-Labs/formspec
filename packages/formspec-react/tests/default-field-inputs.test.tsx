@@ -6,7 +6,7 @@ import { flushSync } from 'react-dom';
 import { initFormspecEngine, createFormEngine } from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
 import { FormspecNode } from '../src/node-renderer';
-import { FormspecProvider } from '../src/context';
+import { FormspecProvider, useFormspecContext } from '../src/context';
 
 beforeAll(async () => {
     await initFormspecEngine();
@@ -1401,6 +1401,73 @@ describe('Readonly required field — indicator suppression', () => {
         const fieldEl = container.querySelector('.formspec-field') as HTMLElement;
         expect(fieldEl.classList.contains('formspec-field--readonly')).toBe(true);
         expect(container.querySelector('.formspec-required')).toBeNull();
+    });
+});
+
+// Parity: formspec-webcomponent tests/rendering/input-rendering.test.ts "read-only interaction".
+describe('Read-only field — focusing and leaving it does not reveal its errors', () => {
+    /** One TextInput bound to `path`; `touchAll` is the all-fields pass Save, Submit and the wizard run. */
+    function renderTextInput(items: any[], binds: any[], path: string) {
+        const def = baseDef(items);
+        def.binds = binds;
+        const engine = createFormEngine(def);
+        const pass = { touchAll: () => {} };
+        function Pass() { pass.touchAll = useFormspecContext().touchAllFields; return null; }
+        const node: LayoutNode = {
+            id: `${path}-field`, component: 'TextInput', category: 'field',
+            props: {}, cssClasses: [], children: [], bindPath: path,
+        };
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        actSync(() => {
+            createRoot(container).render(
+                <FormspecProvider engine={engine}>
+                    <Pass />
+                    <FormspecNode node={{ id: 'root', component: 'Stack', category: 'layout', props: {}, cssClasses: [], children: [node] }} />
+                </FormspecProvider>
+            );
+        });
+        const input = container.querySelector(`input[name="${path}"]`) as HTMLInputElement;
+        const visit = () => actSync(() => { input.focus(); input.blur(); });
+        const error = () => container.querySelector('.formspec-error')?.textContent ?? '';
+        return { engine, input, visit, error, touchAll: () => actSync(() => pass.touchAll()) };
+    }
+    const items = [
+        { key: 'income', type: 'field', dataType: 'string', label: 'Income' },
+        { key: 'total', type: 'field', dataType: 'string', label: 'Total' },
+    ];
+
+    it.each([
+        ['read-only bind', { readonly: 'true' }],
+        ['calculate bind', { calculate: '$income' }],
+    ])('keeps a required, empty field with a %s quiet, then shows its error on the all-fields pass', (_, bind) => {
+        const { input, visit, error, touchAll } = renderTextInput(items, [{ path: 'total', required: 'true', ...bind }], 'total');
+        expect(input.readOnly).toBe(true);
+        visit();
+        expect(error()).toBe('');
+        expect(input.getAttribute('aria-invalid')).toBe('false');
+        touchAll();
+        expect(error()).not.toBe('');
+        expect(input.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('still shows an editable required field\'s error once it is focused and left', () => {
+        const { visit, error } = renderTextInput(items, [{ path: 'total', required: 'true' }], 'total');
+        visit();
+        expect(error()).not.toBe('');
+    });
+
+    it('does not touch a protected field, so it stays quiet when it becomes relevant', () => {
+        const { engine, input, visit, error } = renderTextInput(
+            [{ key: 'show', type: 'field', dataType: 'boolean', label: 'Show' }, items[1]],
+            [{ path: 'total', required: 'true', relevant: '$show', disabledDisplay: 'protected' }],
+            'total',
+        );
+        actSync(() => engine.setValue('show', false));
+        expect(input.readOnly).toBe(true);
+        visit();
+        actSync(() => engine.setValue('show', true));
+        expect(error()).toBe('');
     });
 });
 

@@ -8326,9 +8326,12 @@ submission action requires <code>valid = true</code> (i.e., zero
 error-level results).</p>
 <p>Implementations MAY offer a <code>"continuous-soft"</code> variant
 where validation runs continuously but results are displayed only after
-the user has interacted with (blurred) the relevant field. This is a
-presentation-layer concern and does not constitute a distinct validation
-mode.</p>
+the user has interacted with (blurred) the relevant field. A field the
+user cannot change (read-only, calculated, or protected) is not
+interacted with by focusing or leaving it; its results are displayed
+after an explicit pass over all fields, such as save, submit, or page
+navigation. This is a presentation-layer concern and does not constitute
+a distinct validation mode.</p>
 <p><strong>Per-Shape Timing Interaction:</strong> Individual Shapes MAY
 declare a <code>timing</code> property (§5.2.1) that controls when they
 fire (<code>"continuous"</code>, <code>"submit"</code>,

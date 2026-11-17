@@ -41,7 +41,11 @@ export interface UseFieldResult {
 
     // Write
     setValue(value: any): void;
-    /** Mark this field as touched (e.g., on blur). */
+    /**
+     * Mark this field as touched by the filer's interaction (e.g., on blur), so its errors show. Does nothing
+     * for a field the filer cannot change: read-only, calculated (read-only through its `calculate` bind), or
+     * protected. Its errors show after an explicit pass over all fields: Save, Submit, a wizard step (Core §5.5).
+     */
     touch(): void;
 
     // Props spread helper — spread onto any <input>-like component
@@ -97,7 +101,11 @@ export function useField(path: string): UseFieldResult {
     const _touchedVersion = useSignal(touchedVersion);
     const touched = isTouched(vm.instancePath);
 
-    const touch = useMemo(() => () => touchField(vm.instancePath), [touchField, vm]);
+    // Read-only, calculated and protected fields stay untouched (see UseFieldResult.touch).
+    const touch = useMemo(() => () => {
+        if (vm.readonly.value || (!vm.visible.value && vm.disabledDisplay === 'protected')) return;
+        touchField(vm.instancePath);
+    }, [touchField, vm]);
     const setValue = useMemo(
         () => (nextValue: any) => {
             vm.setValue(nextValue);
@@ -111,12 +119,12 @@ export function useField(path: string): UseFieldResult {
         name: vm.instancePath,
         value: value ?? '',
         onChange: (e: { target: { value: any } }) => setValue(e.target.value),
-        onBlur: () => touchField(vm.instancePath),
+        onBlur: touch,
         required,
         readOnly: readonly,
         'aria-invalid': !!firstError,
         'aria-required': required,
-    }), [vm, value, required, readonly, firstError, touchField, setValue]);
+    }), [vm, value, required, readonly, firstError, touch, setValue]);
 
     return {
         id: vm.id,
