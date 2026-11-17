@@ -43,7 +43,7 @@
   line-height: 1.5;
   letter-spacing: 0.002em;
   color: var(--formspec-default-text);
-  background: color-mix(in srgb, var(--formspec-default-surface) 92%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface) 92%, var(--formspec-default-tint-base));
   outline: none;
   transition: var(--formspec-default-transition-fast);
 }
@@ -337,7 +337,8 @@ h6.formspec-heading {
 
 .formspec-error {
   min-height: 1.25rem;
-  margin-top: 0.25rem;
+  min-height: 1lh; /* exactly the line a message fills, whatever the container's line-height */
+  margin: 0.25rem 0 0;
   font-size: calc(0.8125rem * var(--formspec-size-scale, 1));
   font-weight: 500;
   color: var(--formspec-default-danger);
@@ -347,9 +348,35 @@ h6.formspec-heading {
   display: none;
 }
 
-.formspec-field--toggle > .formspec-error:empty {
+/* A field's message line keeps its height while empty, so a message appearing moves nothing.
+ * Collapsed, each one pushed every later question down by its line plus the UA <p> margin
+ * (41px), and an action that touches every field (Save draft) moved the whole form. */
+.formspec-field:not(.formspec-field--readonly) > .formspec-error:empty,
+.formspec-fieldset:not(.formspec-field--readonly) > .formspec-error:empty {
   display: block;
   visibility: hidden;
+}
+
+/* The line ending a stacked question sits flush under its control (it takes back the field's `spacing.xs`).
+ * Inline and toggle fields keep it in their row or box; a file-size message above it never moves. */
+:is(.formspec-field:not(.formspec-field--inline), .formspec-fieldset):not(.formspec-field--readonly) > .formspec-error:last-child {
+  margin-top: calc(-1 * var(--formspec-spacing-xs, 0.25rem));
+}
+
+/* Where a visible question or item follows in a column whose gap is this skin's `spacing.field`, that line IS
+ * the gap: it hangs into it instead of adding to it. Reserved on top of the gap, it stood questions 41px apart.
+ * `spacing.field` stays the floor: a Theme that sets it above one line gets that gap, the message at its top.
+ * The hang assumes that gap, so it skips every container whose real gap may differ: an authored gap (renderers
+ * write it inline; a 0 gap put a message 12px into the next question), grid cells, the form root. Fields drawn
+ * as boxes (read-only, assistant-filled) keep the line inside the box. Where it does not hang, the line stays in
+ * its field and the container's own gap or padding follows. A host stylesheet that re-gaps a listed container
+ * by class is not seen. */
+:is(.formspec-stack:not(.grid-row):not(.formspec-stack--horizontal), .formspec-group, .formspec-section,
+  .formspec-repeat-instance, .formspec-card-body, .formspec-collapsible-content, .formspec-wizard-panel):not([style*="gap"])
+  > :is(.formspec-field:not(.formspec-field--inline), .formspec-fieldset):not(.formspec-field--readonly, [data-formspec-agent-filled]):has(~ :not(.formspec-hidden, [hidden]))
+  > .formspec-error:last-child {
+  min-height: max(1lh, var(--formspec-spacing-field, 0.75rem));
+  margin-bottom: calc(-1 * var(--formspec-spacing-field, 0.75rem));
 }
 
 .formspec-required {
@@ -395,7 +422,7 @@ h6.formspec-heading {
   border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
   overflow: hidden;
-  background: color-mix(in srgb, var(--formspec-default-surface) 92%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface) 92%, var(--formspec-default-tint-base));
   transition: var(--formspec-default-transition-fast);
 }
 
@@ -416,7 +443,7 @@ h6.formspec-heading {
   padding: 0 0.7rem;
   font-size: calc(0.875rem * var(--formspec-size-scale, 1));
   color: var(--formspec-default-text-subtle);
-  background: color-mix(in srgb, var(--formspec-default-surface-muted) 68%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface-muted) 68%, var(--formspec-default-tint-base));
 }
 
 .formspec-prefix,

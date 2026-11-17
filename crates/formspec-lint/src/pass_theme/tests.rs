@@ -1339,15 +1339,45 @@ fn valid_hsl_color_is_evaluated_without_a_false_positive() {
     assert!(with_code(&diags, "W714").is_empty());
 }
 
+/// Both appearances fill with the saturated light colors and label them with
+/// `color.primaryForeground` (default.tokens.css), so the light label pairs cover
+/// dark mode too. Pairing `color.dark.primaryForeground` with those fills reported
+/// E1903 on a host theme for labels no stylesheet draws.
 #[test]
-fn dark_primary_label_pair_matches_the_rendered_saturated_fill() {
-    let pair = token_registry()
-        .contrast_pairs()
-        .iter()
-        .find(|pair| pair.id == "dark-primary-label-on-saturated-primary")
-        .expect("dark primary label relationship must be declared");
-    assert_eq!(pair.foreground_token, "color.dark.primaryForeground");
-    assert_eq!(pair.background_token, "color.primary");
+fn fill_label_pairs_name_the_foreground_both_appearances_draw() {
+    let tokens_css =
+        include_str!("../../../../packages/formspec-layout/src/styles/default.tokens.css");
+    assert!(!tokens_css.contains("var(--formspec-color-dark-primaryForeground"));
+
+    let pairs = token_registry().contrast_pairs();
+    for (id, fill) in [
+        ("primary-label-on-primary", "color.primary"),
+        ("success-label-on-success", "color.success"),
+        ("danger-label-on-danger", "color.error"),
+    ] {
+        let pair = pairs
+            .iter()
+            .find(|pair| pair.id == id)
+            .unwrap_or_else(|| panic!("fill label pair {id} must be declared"));
+        assert_eq!(pair.foreground_token, "color.primaryForeground");
+        assert_eq!(pair.background_token, fill);
+    }
+    assert!(
+        pairs
+            .iter()
+            .all(|pair| pair.foreground_token != "color.dark.primaryForeground")
+    );
+
+    // A private app's filing theme's values: a dark label chosen for its light
+    // `color.dark.primary` tint measured 2.02:1 on the saturated primary fill.
+    let theme = json!({
+        "tokens": {
+            "color.primary": "#1D3FAE",
+            "color.dark.primaryForeground": "#0E1826"
+        }
+    });
+    let diags = lint_theme(&theme, None);
+    assert!(with_code(&diags, "E1903").is_empty(), "{diags:?}");
 }
 
 #[test]

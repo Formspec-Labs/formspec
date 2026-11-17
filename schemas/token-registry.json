@@ -153,24 +153,6 @@
       "usage": "normalText"
     },
     {
-      "id": "dark-primary-label-on-saturated-primary",
-      "foregroundToken": "color.dark.primaryForeground",
-      "backgroundToken": "color.primary",
-      "usage": "normalText"
-    },
-    {
-      "id": "dark-success-label-on-saturated-success",
-      "foregroundToken": "color.dark.primaryForeground",
-      "backgroundToken": "color.success",
-      "usage": "normalText"
-    },
-    {
-      "id": "dark-danger-label-on-saturated-danger",
-      "foregroundToken": "color.dark.primaryForeground",
-      "backgroundToken": "color.error",
-      "usage": "normalText"
-    },
-    {
       "id": "dark-error-text-on-page",
       "foregroundToken": "color.dark.error",
       "backgroundToken": "color.dark.background",
@@ -219,7 +201,7 @@
           "dark": "#8bb8ac"
         },
         "color.primaryForeground": {
-          "description": "Text color on primary backgrounds",
+          "description": "Label color on the saturated fills color.primary, color.success and color.error. Dark mode keeps those light fills, so the default skin draws this light value on them in both appearances and the primary-, success- and danger-label pairs cover both. No platform stylesheet reads color.dark.primaryForeground.",
           "default": "#ffffff",
           "dark": "#ffffff"
         },

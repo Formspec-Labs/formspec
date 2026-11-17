@@ -6,7 +6,7 @@
   border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
   overflow: hidden;
-  background: color-mix(in srgb, var(--formspec-default-surface) 92%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface) 92%, var(--formspec-default-tint-base));
   transition: var(--formspec-default-transition-fast);
 }
 
@@ -160,7 +160,7 @@
   align-items: stretch;
   border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
-  background: color-mix(in srgb, var(--formspec-default-surface) 92%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface) 92%, var(--formspec-default-tint-base));
   transition: var(--formspec-default-transition-fast);
 }
 
@@ -276,7 +276,7 @@
   padding: 0.3rem 0.58rem;
   border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-pill);
-  background: color-mix(in srgb, var(--formspec-default-primary) 6%, white);
+  background: color-mix(in srgb, var(--formspec-default-primary) 6%, var(--formspec-default-tint-base));
   font-size: calc(0.8rem * var(--formspec-size-scale, 1));
   font-weight: 500;
   line-height: 1.3;
@@ -417,7 +417,7 @@
 
 .formspec-combobox-option:hover,
 .formspec-combobox-option.formspec-option--highlighted {
-  background: color-mix(in srgb, var(--formspec-default-surface-muted) 72%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface-muted) 72%, var(--formspec-default-tint-base));
 }
 
 .formspec-combobox-option.formspec-option--selected {
@@ -440,7 +440,7 @@
   font-size: calc(0.875rem * var(--formspec-size-scale, 1));
   font-weight: 600;
   color: var(--formspec-default-text-subtle);
-  background: color-mix(in srgb, var(--formspec-default-surface-muted) 72%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface-muted) 72%, var(--formspec-default-tint-base));
 }
 
 .formspec-money .formspec-input,
@@ -531,7 +531,7 @@
 .formspec-stepper-decrement:hover:not(:disabled),
 .formspec-stepper-increment:hover:not(:disabled) {
   color: var(--formspec-default-primary);
-  background: color-mix(in srgb, var(--formspec-default-surface-muted) 72%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface-muted) 72%, var(--formspec-default-tint-base));
 }
 
 .formspec-stepper-decrement:active:not(:disabled),
@@ -643,16 +643,16 @@
   width: 100%;
   padding: 1.4rem 1.35rem;
   box-sizing: border-box;
-  border: 1px dashed color-mix(in srgb, var(--formspec-default-border-control) 92%, white);
+  border: 1px dashed var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-md);
   text-align: left;
-  background: color-mix(in srgb, var(--formspec-default-surface) 80%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface) 80%, var(--formspec-default-tint-base));
   transition: var(--formspec-default-transition-fast);
 }
 
 .formspec-file-drop-zone--active {
   border-color: var(--formspec-default-primary);
-  background: color-mix(in srgb, var(--formspec-default-primary) 6%, white);
+  background: color-mix(in srgb, var(--formspec-default-primary) 6%, var(--formspec-default-tint-base));
 }
 
 .formspec-file-drop-content {
@@ -689,9 +689,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.45rem 0.6rem;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 84%, white);
+  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 84%, var(--formspec-default-tint-base));
   border-radius: var(--formspec-default-radius-sm);
-  background: color-mix(in srgb, var(--formspec-default-surface-quiet) 80%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface-quiet) 80%, var(--formspec-default-tint-base));
   font-size: calc(0.875rem * var(--formspec-size-scale, 1));
 }
 
@@ -750,7 +750,7 @@
 .formspec-signature-canvas {
   display: block;
   max-width: 100%;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 74%, white);
+  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 74%, var(--formspec-default-tint-base));
   border-radius: var(--formspec-default-radius-md);
   background:
     linear-gradient(180deg, color-mix(in srgb, white 92%, var(--formspec-default-surface)) 0%, color-mix(in srgb, white 66%, var(--formspec-default-surface)) 100%);
@@ -762,9 +762,9 @@
 .formspec-signature-clear {
   margin-top: 0;
   padding: 0.45rem 0.85rem;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-control) 86%, white);
+  border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
-  background: color-mix(in srgb, var(--formspec-default-surface) 78%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface) 78%, var(--formspec-default-tint-base));
   color: var(--formspec-default-text-subtle);
   font-size: calc(0.84rem * var(--formspec-size-scale, 1));
   font-weight: 560;

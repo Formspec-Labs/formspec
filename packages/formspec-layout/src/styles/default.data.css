@@ -11,7 +11,7 @@
   border-spacing: 0;
   font-size: calc(0.875rem * var(--formspec-size-scale, 1));
   line-height: 1.45;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 82%, white);
+  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 82%, var(--formspec-default-tint-base));
   border-radius: var(--formspec-default-radius-md);
   overflow: hidden;
   background: var(--formspec-default-surface);
@@ -24,7 +24,7 @@
 }
 
 .formspec-data-table th {
-  background: color-mix(in srgb, var(--formspec-default-surface-muted) 62%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface-muted) 62%, var(--formspec-default-tint-base));
   color: var(--formspec-default-text-strong);
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -34,7 +34,6 @@
   width: 100%;
   min-width: 4rem;
   padding: 0.5rem 0.625rem;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-control) 82%, white);
   border-radius: var(--formspec-default-radius-sm);
   font: inherit;
   font-size: calc(0.875rem * var(--formspec-size-scale, 1));
@@ -114,7 +113,7 @@
   flex-direction: column;
   gap: 0;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-danger) 22%, white);
+  border: 1px solid color-mix(in srgb, var(--formspec-default-danger) 22%, var(--formspec-default-tint-base));
   border-radius: var(--formspec-default-radius-md);
   background: var(--formspec-default-surface);
 }
@@ -123,7 +122,7 @@
 .formspec-validation-summary-title {
   margin: 0;
   padding: 0.875rem 1rem 0.75rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--formspec-default-danger) 22%, white);
+  border-bottom: 1px solid color-mix(in srgb, var(--formspec-default-danger) 22%, var(--formspec-default-tint-base));
   background: var(--formspec-default-danger-surface-soft);
   color: var(--formspec-default-danger-text);
   font-size: 0.9375rem;

@@ -49,8 +49,12 @@ describe('Primary action button parity', () => {
     });
 
     it('keeps primary action text on the light foreground token in dark mode', () => {
-        expect(layoutCSS).toContain('--formspec-default-text-inverse: var(--formspec-color-dark-primaryForeground, #ffffff)');
+        // Dark fills keep the light-mode primary, so their text is the light-mode foreground.
+        // A theme's color.dark.primaryForeground is picked for the light color.dark.primary tint,
+        // so it is often dark: #0E1826 on #1D3FAE measured 2.0:1. No stylesheet reads it.
         expect(layoutCSS).toContain('--formspec-default-primary-fill: var(--formspec-color-primary, #27594f)');
+        expect(layoutCSS).not.toContain('--formspec-default-text-inverse: var(--formspec-color-dark-primaryForeground');
+        expect(layoutCSS.match(/--formspec-default-text-inverse: var\(--formspec-color-primaryForeground, #ffffff\)/g)).toHaveLength(2);
     });
 
     it('lets the file upload browse button inherit the shared secondary button colors', () => {

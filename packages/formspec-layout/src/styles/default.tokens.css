@@ -14,6 +14,8 @@
   --formspec-default-text-subtle: var(--formspec-color-mutedForeground, #736c62);
   --formspec-default-text-faint: var(--formspec-color-foreground-muted, #746c61);
   --formspec-default-text-inverse: var(--formspec-color-primaryForeground, #ffffff);
+  /* What a colour is lightened toward in mixes. White suits only the light appearance. */
+  --formspec-default-tint-base: white;
   --formspec-default-bg: var(--formspec-color-background, #f6f0e6);
   --formspec-default-surface: var(--formspec-color-card, #fdfaf4);
   --formspec-default-surface-muted: var(--formspec-color-surface, #f2ece2);
@@ -24,7 +26,7 @@
   --formspec-default-border-input: var(--formspec-color-input, #8b8175);
   --formspec-default-border: var(--formspec-color-border, #d1c8ba);
   --formspec-default-border-strong: color-mix(in srgb, var(--formspec-default-border) 82%, #5b5448);
-  --formspec-default-border-subtle: color-mix(in srgb, var(--formspec-default-border) 52%, white);
+  --formspec-default-border-subtle: color-mix(in srgb, var(--formspec-default-border) 52%, var(--formspec-default-tint-base));
   --formspec-default-border-muted: #e7e0d5;
   --formspec-default-border-control: #cdc3b5;
   /* token-registry-spec §2.4 — the brand fan-out. `color.primary` is the ONE
@@ -68,7 +70,7 @@
   --formspec-default-readonly-input-bg: var(--formspec-readonly-input-bg, #f6f1ea);
   --formspec-default-readonly-input-border: var(--formspec-readonly-input-border, #d8d0c3);
   --formspec-default-readonly-input-text: var(--formspec-readonly-input-text, #4f473d);
-  --formspec-default-danger-surface: color-mix(in srgb, var(--formspec-default-danger) 10%, white);
+  --formspec-default-danger-surface: color-mix(in srgb, var(--formspec-default-danger) 10%, var(--formspec-default-tint-base));
   --formspec-default-error-surface: var(--formspec-default-danger-surface);
   --formspec-default-danger-surface-soft: #fdf1ef;
   --formspec-default-success-surface: #ebf5ef;
@@ -100,12 +102,17 @@
   --formspec-default-text-muted: var(--formspec-color-dark-muted, #c4b8a7);
   --formspec-default-text-subtle: var(--formspec-color-dark-mutedForeground, #ad9f8d);
   --formspec-default-text-faint: #948676;
-  --formspec-default-text-inverse: var(--formspec-color-dark-primaryForeground, #ffffff);
+  /* Text on fills. The dark fills below keep the saturated light-mode colours, so their label is
+   * the light-mode foreground, which the registry's primary/success/danger label pairs check.
+   * Nothing reads color.dark.primaryForeground: a theme's dark label, picked for the light
+   * color.dark.primary tint, measured 2.0:1 on these fills. */
+  --formspec-default-text-inverse: var(--formspec-color-primaryForeground, #ffffff);
 
   /* Surfaces — base tokens via color.dark.* Layer A */
   --formspec-default-bg: var(--formspec-color-dark-background, #161311);
   --formspec-default-surface: var(--formspec-color-dark-card, #211c19);
   --formspec-default-surface-muted: var(--formspec-color-dark-surface, #2a241f);
+  --formspec-default-tint-base: var(--formspec-default-surface);
   --formspec-default-surface-subtle: #322b25;
   --formspec-default-surface-soft: #2c2621;
   --formspec-default-surface-quiet: #1b1714;

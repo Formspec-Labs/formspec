@@ -110,16 +110,28 @@ describe('Field spacing token ownership', () => {
         )).toBe('minmax(0, 1fr) auto');
         expect(layoutCSS).toMatch(/\.formspec-field--toggle\s*>\s*:is\(/);
         expect(layoutCSS).toContain('grid-column: 1 / -1;');
+        // A toggle's message line is reserved like every answerable field's.
         expect(extractRuleProp(
             layoutCSS,
-            '.formspec-field--toggle > .formspec-error:empty',
+            '.formspec-field:not(.formspec-field--readonly) > .formspec-error:empty',
             'display',
         )).toBe('block');
         expect(extractRuleProp(
             layoutCSS,
-            '.formspec-field--toggle > .formspec-error:empty',
+            '.formspec-field:not(.formspec-field--readonly) > .formspec-error:empty',
             'visibility',
         )).toBe('hidden');
+    });
+
+    it('reserves each answerable field\'s message line so a message appearing moves nothing', () => {
+        // Collapsed, each message inserted its line plus the UA <p> bottom margin: 41px per
+        // message, and Save draft (which touches every field) moved the whole form.
+        expect(layoutCSS).toMatch(/\.formspec-error \{\s*min-height: 1\.25rem;\s*min-height: 1lh;[^\n]*\n\s*margin: 0\.25rem 0 0;/);
+        for (const wrapper of ['.formspec-field', '.formspec-fieldset']) {
+            const selector = `${wrapper}:not(.formspec-field--readonly) > .formspec-error:empty`;
+            expect(extractRuleProp(layoutCSS, selector, 'display')).toBe('block');
+            expect(extractRuleProp(layoutCSS, selector, 'visibility')).toBe('hidden');
+        }
     });
 
     it('neutralizes native fieldset and legend chrome so grouped controls match across renderers', () => {

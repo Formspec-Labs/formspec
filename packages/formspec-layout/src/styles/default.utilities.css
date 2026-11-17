@@ -59,11 +59,11 @@
   align-items: center;
   justify-content: center;
   padding: 0.72rem 1.05rem;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-control) 84%, white);
+  border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
   appearance: none;
   -webkit-appearance: none;
-  background: color-mix(in srgb, var(--formspec-default-surface) 78%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface) 78%, var(--formspec-default-tint-base));
   color: var(--formspec-default-text);
   font: inherit;
   font-size: 0.875rem;

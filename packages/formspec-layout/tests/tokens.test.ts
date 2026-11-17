@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolveToken, emitMergedThemeCssVars } from '../src/index';
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -194,16 +194,32 @@ describe('default theme contrast', () => {
     it('keeps primary labels readable on the fills each appearance renders', () => {
         const primary = readThemeToken('color.primary');
         const primaryForeground = readThemeToken('color.primaryForeground');
-        const darkPrimaryForeground = readThemeToken('color.dark.primaryForeground');
         const tokenCss = readFileSync(
             new URL('../src/styles/default.tokens.css', import.meta.url),
             'utf8',
         );
 
+        // Both appearances fill with color.primary, so both put color.primaryForeground on it.
+        // No stylesheet reads color.dark.primaryForeground (see its registry description).
         expect(contrastRatio(primaryForeground, primary)).toBeGreaterThanOrEqual(4.5);
-        expect(contrastRatio(darkPrimaryForeground, primary)).toBeGreaterThanOrEqual(4.5);
         expect(tokenCss).toMatch(
             /\.formspec-container\.formspec-appearance-dark[\s\S]*--formspec-default-primary-fill:\s*var\(--formspec-color-primary,/,
+        );
+        expect(tokenCss).toMatch(
+            /\.formspec-container\.formspec-appearance-dark[\s\S]*--formspec-default-text-inverse:\s*var\(--formspec-color-primaryForeground,/,
+        );
+    });
+
+    it('lightens toward a per-appearance tint base, never literal white', () => {
+        // Mixed with white, dark-appearance adornments, drop zones and secondary buttons turned
+        // mid-grey under light text (2.2:1 measured on a % suffix).
+        const dir = new URL('../src/styles/', import.meta.url);
+        for (const file of readdirSync(dir).filter((name) => name.endsWith('.css'))) {
+            expect(readFileSync(new URL(file, dir), 'utf8'), file).not.toMatch(/color-mix\([^;]*,\s*white\)/);
+        }
+        const tokenCss = readFileSync(new URL('default.tokens.css', dir), 'utf8');
+        expect(tokenCss).toMatch(
+            /\.formspec-container\.formspec-appearance-dark[\s\S]*--formspec-default-tint-base:\s*var\(--formspec-default-surface\)/,
         );
     });
 
@@ -212,16 +228,31 @@ describe('default theme contrast', () => {
         const darkInput = readThemeToken('color.dark.input');
         const lightCard = readThemeToken('color.card');
         const darkCard = readThemeToken('color.dark.card');
-        const inputCss = readFileSync(
-            new URL('../src/styles/default.inputs.css', import.meta.url),
-            'utf8',
-        );
+        const dir = new URL('../src/styles/', import.meta.url);
+        const css = (file: string) => readFileSync(new URL(file, dir), 'utf8');
+        const inputCss = css('default.inputs.css');
 
         expect(contrastRatio(lightInput, lightCard)).toBeGreaterThanOrEqual(3);
         expect(contrastRatio(darkInput, darkCard)).toBeGreaterThanOrEqual(3);
         expect(inputCss).toContain(
             '--formspec-toggle-track-off: var(--formspec-default-border-input)',
         );
+        // These controls fill with the card, so their border is their only edge: soft mixes of the
+        // control border measured 1.5:1 light and 2.1-2.3:1 dark. They draw the input boundary in both,
+        // the table input through the base input rule.
+        const rule = (file: string, selector: string) =>
+            css(file).match(new RegExp(`\\n${selector.replace('.', '\\.')} \\{[^}]*\\}`))?.[0] ?? '';
+        expect(rule('default.data.css', '.formspec-datatable-input')).not.toMatch(/\n\s*border:/);
+        expect(css('default.base.css')).toMatch(
+            /:where\(select\) \{[^}]*\n\s*border: 1px solid var\(--formspec-default-border-input\);/,
+        );
+        for (const [file, selector] of [
+            ['default.inputs.css', '.formspec-file-drop-zone'],
+            ['default.inputs.css', '.formspec-signature-clear'],
+            ['default.utilities.css', '.formspec-button-secondary'],
+        ]) {
+            expect(rule(file, selector), selector).toMatch(/\n\s*border: 1px \w+ var\(--formspec-default-border-input\);/);
+        }
         expect(inputCss).not.toMatch(
             /color-mix\([^;]*--formspec-default-border-input[^;]*white/,
         );

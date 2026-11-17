@@ -19,9 +19,9 @@
 
 .formspec-repeat-add {
   padding: 0.72rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-control) 88%, white);
+  border: 1px solid color-mix(in srgb, var(--formspec-default-border-control) 88%, var(--formspec-default-tint-base));
   border-radius: var(--formspec-default-radius-sm);
-  background: color-mix(in srgb, var(--formspec-default-surface) 84%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface) 84%, var(--formspec-default-tint-base));
   font: inherit;
   font-size: 0.875rem;
   font-weight: 600;
@@ -179,7 +179,7 @@
   border-radius: var(--formspec-default-radius-sm);
   appearance: none;
   -webkit-appearance: none;
-  background: color-mix(in srgb, var(--formspec-default-primary) 6%, white);
+  background: color-mix(in srgb, var(--formspec-default-primary) 6%, var(--formspec-default-tint-base));
   color: var(--formspec-default-primary);
   font: inherit;
   font-size: 0.875rem;
@@ -227,9 +227,9 @@
   gap: 2px;
   margin-bottom: 1rem;
   padding: 0.22rem;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 82%, white);
+  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 82%, var(--formspec-default-tint-base));
   border-radius: var(--formspec-default-radius-pill);
-  background: color-mix(in srgb, var(--formspec-default-surface-muted) 76%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface-muted) 76%, var(--formspec-default-tint-base));
 }
 
 .formspec-tab {
@@ -251,7 +251,7 @@
 .formspec-tab:hover,
 .formspec-tab:focus-visible {
   color: var(--formspec-default-text);
-  background: color-mix(in srgb, var(--formspec-default-surface) 82%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface) 82%, var(--formspec-default-tint-base));
 }
 
 .formspec-tab--active {
@@ -300,9 +300,9 @@
   max-width: 860px;
   margin: 0 auto;
   padding: 1.5rem 1.6rem;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 70%, white);
+  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 70%, var(--formspec-default-tint-base));
   border-radius: var(--formspec-default-radius-md);
-  background: color-mix(in srgb, var(--formspec-default-surface) 62%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface) 62%, var(--formspec-default-tint-base));
   box-shadow: 0 8px 18px rgba(68, 56, 37, 0.03);
 }
 
@@ -359,13 +359,13 @@
   flex-direction: column;
   gap: var(--formspec-spacing-md, 1rem);
   padding: var(--formspec-spacing-lg, 1.5rem);
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 68%, white);
+  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 68%, var(--formspec-default-tint-base));
   border-radius: var(--formspec-default-radius-md);
-  background: color-mix(in srgb, var(--formspec-default-surface) 68%, white);
+  background: color-mix(in srgb, var(--formspec-default-surface) 68%, var(--formspec-default-tint-base));
 }
 
 .formspec-wizard--with-sidenav {
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 82%, white);
+  border: 1px solid color-mix(in srgb, var(--formspec-default-border-subtle) 82%, var(--formspec-default-tint-base));
   border-radius: var(--formspec-default-radius-md);
   background: var(--formspec-default-surface);
   box-shadow: var(--formspec-default-shadow-sm);
