@@ -37,8 +37,20 @@ LINT_HARNESS_KEYS = {
     "_themeDocument",
 }
 KNOWN_SCHEMA_INVALID_COMPONENT_IDS = {
-    # Negative lint fixture: W801 intentionally puts `bind` on a Stack.
-    "tests/fixtures/lint/W801-layout-has-bind.json#",
+    # Negative lint fixtures: W801 intentionally puts `bind` on a component
+    # whose Component spec section says "Bind: Forbidden" (a Stack, and each
+    # Display component fs-0ksc covers), so the schema rejects them too (E101).
+    f"tests/fixtures/lint/W801-{name}-has-bind.json#"
+    for name in (
+        "layout",
+        "action-button",
+        "alert",
+        "badge",
+        "divider",
+        "heading",
+        "summary",
+        "validation-summary",
+    )
 }
 AJV_COMPONENT_VALIDATION_SCRIPT = r"""
 import { readFileSync } from 'node:fs';
