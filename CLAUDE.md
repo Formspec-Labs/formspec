@@ -67,7 +67,7 @@ Frame lives in `formspec-stack/DEVELOPMENT-PHILOSOPHY.md`. Formspec additions:
 
 - **`packages/formspec-engine/`** — TypeScript form state. FormEngine class, Preact Signals reactivity, thin FEL bridge to WASM.
 - **`packages/formspec-webcomponent/`** — `<formspec-render>` custom element. Component registry for extensibility.
-- **`src/formspec/`** — Python reference implementation: standalone FEL parser/AST/evaluator (`fel/`), [Mapping spec](specs/mapping/) adapters for JSON/XML/CSV (`adapters/`), static linter (`validator/`). Powers the Python conformance suite and server-side validation.
+- **`src/formspec/`** — Python reference implementation: standalone FEL parser/AST/evaluator (`fel/`), [Mapping spec](specs/mapping/) adapters for JSON/XML/CSV (`adapters/`), static linter (`validate/`). Powers the Python conformance suite and server-side validation.
 - **`crates/`**, **`fel-core/`**, **`formspec-wasm/`** — Rust crates. Source of truth for FEL grammar, evaluator, validation semantics, coercion, migrations, mapping execution, lint rules. Exposed via WASM (browser) and Python (server).
 - **`schemas/`** — JSON Schemas (definition, response, intake-handoff, validationReport, mapping, theme, component, registry).
 - **`specs/`** — Markdown spec sources (`*.md`), BLUF summaries (`*.bluf.md`), generated LLM artifacts (`*.llm.md`). Generated files MUST NOT be hand-edited. Prefer `*.llm.md` for context. Use `formspec-specs` skill for authoritative lookup.
@@ -210,15 +210,15 @@ Test locations:
 **Use a worktree only when** parallel agents would conflict on the same working tree.
 
 ```bash
-git worktree add .claude/worktrees/<name> -b <branch>
-cd .claude/worktrees/<name> && npm install && npm run build
+git worktree add ../formspec-<name> -b <branch>
+cd ../formspec-<name> && npm install && npm run build
 # ... work, run tests, commit ...
 # from main worktree:
-git worktree remove .claude/worktrees/<name>
+git worktree remove ../formspec-<name>
 git branch -d <branch>   # if merged
 ```
 
-`.claude/worktrees/` is gitignored. **Commit before exiting** — uncommitted worktree changes vanish on removal. Verify a clean test baseline before starting work.
+Place the worktree beside `formspec/` at the stack root: crate path dependencies (`path = "../../../fel-core"`) and the WASM image's sibling lookup resolve only from there. **Commit before exiting** — uncommitted worktree changes vanish on removal. Verify a clean test baseline before starting work.
 
 ## Commit convention
 
