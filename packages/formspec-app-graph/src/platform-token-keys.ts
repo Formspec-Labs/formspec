@@ -4,11 +4,10 @@
 
 /**
  * Every token key the platform Token Registry declares, light keys plus the
- * `darkPrefix`-derived dark keys. A Theme token outside this set and outside the
- * `x-` extension namespace names nothing: no stylesheet reads it, no
- * `tokenMeta` describes it, and emitting it produces a CSS custom property with
- * no consumer. That is what THEME-TOKEN-UNREGISTERED reports
- * (token-registry-spec §5.3).
+ * `darkPrefix`-derived dark keys. Authoring tools can use this vocabulary
+ * without loading a registry at runtime (token-registry-spec §2.4).
+ * Rust lint owns W708 (THEME-TOKEN-UNREGISTERED); hosts opt in through
+ * `documentLintValidator(lintDocument)` (token-registry-spec §5.3).
  */
 export const PLATFORM_TOKEN_KEYS: ReadonlySet<string> = new Set([
   'color.background',

@@ -452,9 +452,9 @@ carrying an unregistered token is still a renderable theme. E1903 is the
 exception to "advisory": a lint error that gates publishing (ADR 0166), never
 a reason for a renderer to refuse the theme.
 
-Conforming implementations of the required diagnostic:
-`formspec-lint` W708 (`pass_theme`) and `@formspec-org/app-graph`
-`THEME-TOKEN-UNREGISTERED` (`validateThemeTokenRegistry`).
+The reference implementation of the required diagnostic is `formspec-lint`
+W708 (`THEME-TOKEN-UNREGISTERED`, `pass_theme`). App-graph publication gates
+include it through `documentLintValidator`.
 
 ## 6. Conformance
 

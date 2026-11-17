@@ -127,7 +127,8 @@ export interface ThemeAuthorityInput {
    * This is a host compatibility seam, not platform vocabulary. It is empty by
    * default. Token registration belongs to validation-time tooling:
    * token-registry-spec §5.2 forbids a renderer from depending on the registry
-   * at runtime, and AppGraphValidator reports `THEME-TOKEN-UNREGISTERED`.
+   * at runtime. Hosts receive W708 (`THEME-TOKEN-UNREGISTERED`) by injecting
+   * `documentLintValidator(lintDocument)` into AppGraph validation.
    */
   tokenAliases?: Readonly<Record<string, readonly string[]>> | undefined;
 }

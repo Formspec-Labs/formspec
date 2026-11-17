@@ -21,8 +21,8 @@
  *      set, as a TS module. app-graph is layer 1 alongside formspec-layout, so it
  *      cannot import the registry through that package (same-layer dep); and it
  *      ships `files: ["dist"]` with no JSON copy step, so a generated .ts is the
- *      only shape that survives publishing. Backs THEME-TOKEN-UNREGISTERED
- *      (token-registry-spec §5.3).
+ *      only shape that survives publishing. Exports platform token vocabulary
+ *      for authoring tools (token-registry-spec §2.4).
  *
  * Usage:
  *   node scripts/generate-theme-from-registry.mjs          # write all outputs
@@ -116,11 +116,10 @@ function generatePlatformTokenKeys(tokens) {
 
 /**
  * Every token key the platform Token Registry declares, light keys plus the
- * \`darkPrefix\`-derived dark keys. A Theme token outside this set and outside the
- * \`x-\` extension namespace names nothing: no stylesheet reads it, no
- * \`tokenMeta\` describes it, and emitting it produces a CSS custom property with
- * no consumer. That is what THEME-TOKEN-UNREGISTERED reports
- * (token-registry-spec §5.3).
+ * \`darkPrefix\`-derived dark keys. Authoring tools can use this vocabulary
+ * without loading a registry at runtime (token-registry-spec §2.4).
+ * Rust lint owns W708 (THEME-TOKEN-UNREGISTERED); hosts opt in through
+ * \`documentLintValidator(lintDocument)\` (token-registry-spec §5.3).
  */
 export const PLATFORM_TOKEN_KEYS: ReadonlySet<string> = new Set([
 ${lines}
@@ -199,8 +198,8 @@ const registry = JSON.parse(readFileSync(REGISTRY_PATH, 'utf8'));
 const registryRaw = readFileSync(REGISTRY_PATH, 'utf8');
 const existingCss = readFileSync(TOKENS_CSS_PATH, 'utf8');
 
-// Declared keys — everything a Theme MAY set, derived tokens included. Backs
-// the CSS fallback map and app-graph's THEME-TOKEN-UNREGISTERED key set.
+// Declared platform keys, derived tokens included. Supplies the CSS fallback
+// map and app-graph's exported platform vocabulary.
 const declaredTokens = extractTokens(registry, true);
 // Emitted keys — what the platform Theme actually carries. Derived tokens are
 // omitted so their CSS chain can resolve through the token they derive from, and

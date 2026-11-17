@@ -48,7 +48,6 @@ import { validateSurfaceExperienceUnits } from './surface-experience-units.js';
 import { validateSurfaceResponseActionTriggers } from './surface-response-action-triggers.js';
 import { validateSurfaceWidgetActions } from './surface-widget-actions.js';
 import { validateStructuredPanelContracts } from './structured-panel-contracts.js';
-import { validateThemeTokenRegistry } from './theme-token-registry.js';
 import { validateUiGraphPolicy } from './ui-graph-policy.js';
 import { validateUxAuthoringQuality } from './ux-authoring-quality.js';
 import { validateUxTitleDuplicates } from './ux-title-duplicates.js';
@@ -349,7 +348,6 @@ function runCrossArtifactValidators(
     validateSurfaceResponseActionTriggers,
     validateSurfaceWidgetActions,
     validateStructuredPanelContracts,
-    validateThemeTokenRegistry,
     validateUiGraphPolicy,
     validateUxAuthoringQuality,
     validateUxTitleDuplicates,

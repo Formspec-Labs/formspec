@@ -122,13 +122,14 @@ export {
   type RenderedNeedTraceTypedNeedRef,
 } from './rendered-need-trace.js';
 export {
-  LOCALE_LINT_ORIGIN,
+  DOCUMENT_LINT_ORIGIN,
   lintPathToJsonPointer,
-  localeLintValidator,
+  documentLintDiagnostics,
+  documentLintValidator,
   type AppGraphDocumentLinter,
   type AppGraphLintDiagnostic,
-  type AppGraphLocaleLintContext,
-} from './locale-lint.js';
+  type AppGraphDocumentLintContext,
+} from './document-lint.js';
 export {
   validateScreenerSurfaceTargets,
 } from './screener-surface-targets.js';
@@ -161,9 +162,6 @@ export {
   UX_TITLE_DUPLICATE_CODE,
   validateUxTitleDuplicates,
 } from './ux-title-duplicates.js';
-export {
-  validateThemeTokenRegistry,
-} from './theme-token-registry.js';
 export {
   PLATFORM_BRAND_TOKEN_KEY,
   PLATFORM_TOKEN_KEYS,

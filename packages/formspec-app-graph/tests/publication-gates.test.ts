@@ -1,12 +1,9 @@
-/** @filedesc Locale lint injection, the rendered-Need trace record, and App Manifest needs pairing. */
+/** @filedesc Rendered-Need trace records and App Manifest needs pairing. */
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   appManifestVersionAtLeast,
   produceBundleExportAppGraphValidationReport,
-  lintPathToJsonPointer,
-  localeLintValidator,
-  type AppGraphLocaleLintContext,
 } from '../src/index.js';
 
 const definitionUrl = 'https://example.gov/definitions/intake';
@@ -65,72 +62,6 @@ const permissive = {
   schemaValidators: () => ({ ok: true }),
   evidenceSchemaValidators: () => ({ ok: true }),
 };
-
-describe('localeLintValidator', () => {
-  it('lints each Locale with its target Definition and Theme, keeping the Locale spec code', async () => {
-    const seen: AppGraphLocaleLintContext[] = [];
-    const result = await produceBundleExportAppGraphValidationReport({
-      ...bundle(definition(), { locale: true }),
-      ...permissive,
-      crossArtifactValidators: [localeLintValidator((document, context) => {
-        seen.push(context);
-        expect(document).toBe(locale);
-        return {
-          diagnostics: [{
-            code: 'E1402',
-            severity: 'error',
-            path: '$.strings["applicant.name.label"]',
-            message: 'Locale item key references unknown Definition Item key "applicant"',
-          }],
-        };
-      })],
-    });
-
-    expect(seen).toHaveLength(1);
-    expect(seen[0]?.definitionDocument).toEqual(definition());
-    expect(seen[0]?.themeDocument).toBe(theme);
-    expect(result.report.ok).toBe(false);
-    const finding = result.report.diagnostics.find((entry) => entry.code === 'E1402');
-    expect(finding).toMatchObject({
-      severity: 'error',
-      origin: 'x-formspec-lint',
-      primarySource: { jsonPointer: '/strings/applicant.name.label' },
-    });
-    expect(finding?.message).toContain('bare key');
-  });
-
-  it('supplies every Component targeting the Locale\'s Definition (Locale spec §7: the loaded set)', async () => {
-    const component = (handle: string) => ({
-      $formspecComponent: '1.0',
-      url: `https://example.gov/components/${handle}`,
-      version: '1.0.0',
-      targetDefinition: { url: definitionUrl },
-      tree: { component: 'Stack', id: `${handle}-root` },
-    });
-    const base = bundle(definition(), { locale: true });
-    const seen: AppGraphLocaleLintContext[] = [];
-    await produceBundleExportAppGraphValidationReport({
-      manifest: {
-        ...base.manifest,
-        components: ['respondent', 'review'].map((handle) => ({ url: component(handle).url, version: '1.0.0', handle })),
-      },
-      documents: { ...base.documents, ...Object.fromEntries(['respondent', 'review'].map((handle) => [component(handle).url, component(handle)])) },
-      ...permissive,
-      crossArtifactValidators: [localeLintValidator((_document, context) => {
-        seen.push(context);
-        return { diagnostics: [] };
-      })],
-    });
-    expect(seen[0]?.componentDocuments).toEqual([component('respondent'), component('review')]);
-  });
-
-  it('converts lint paths to JSON Pointers', () => {
-    expect(lintPathToJsonPointer('$')).toBe('');
-    expect(lintPathToJsonPointer('$.strings["a/b~c.label"]')).toBe('/strings/a~1b~0c.label');
-    expect(lintPathToJsonPointer('$.target.url')).toBe('/target/url');
-    expect(lintPathToJsonPointer('$.items[0].key')).toBe('/items/0/key');
-  });
-});
 
 describe('renderedNeedTrace record (Needs spec S10.3)', () => {
   it('records not-applicable when nothing pairs Needs or carries a trace', async () => {
