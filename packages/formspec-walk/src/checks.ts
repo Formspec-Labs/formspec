@@ -1,5 +1,6 @@
 /** @filedesc One check per thing the documents promise, on a rendered form: names, required, hints, options, Tab order, reading order, repeats, reveals, the submit summary. */
 import type { Locator, Page } from '@playwright/test';
+import type { IFormEngine } from '@formspec-org/engine';
 import { UI_STRINGS } from '@formspec-org/layout';
 import { expected, matches, type ExpectedText } from './plan.js';
 import { needsHostData, revealSearch, type RecipeStep } from './reveal.js';
@@ -9,6 +10,17 @@ import { stepWizard } from './wizard.js';
 /** A string as the documents write it, or one already turned into an expectation. */
 export type Text = string | ExpectedText;
 const want = (t: Text): ExpectedText => (typeof t === 'string' ? expected(t) : t);
+
+/** Compare option spellings exactly, without loading the engine or rounding through Number. */
+function numericChoiceKey(text: string): string | undefined {
+    const match = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(text.trim());
+    if (!match || !(match[2] || match[3])) return undefined;
+    const digits = (match[2] + (match[3] ?? '')).replace(/^0+/, '');
+    if (!digits) return '0';
+    const significant = digits.replace(/0+$/, '');
+    const exponent = BigInt(match[4] ?? '0') - BigInt(match[3]?.length ?? 0) + BigInt(digits.length - significant.length);
+    return `${match[1] === '-' ? '-' : ''}${significant}e${exponent}`;
+}
 
 export interface FieldWant {
     /** Bind-style or live (indexed) path; the walk tries the live one, then the first instance. */
@@ -137,6 +149,8 @@ declare global {
     interface Window {
         /** Elements the Tab walk has already stopped on, by identity. */
         __formspecWalkSeen?: Set<Element>;
+        /** Captured before a host can rerender; retain the original value in-page for exact restoration. */
+        __formspecWalkChoice?: { chosen: { value: string; label: string } | null; previous: unknown; listener: (e: Event) => void };
     }
 }
 
@@ -170,7 +184,7 @@ export class Walk {
         const rootSelector = options.root ?? DEFAULT_WALK_ROOT_SELECTOR;
         if (options.url) await page.goto(options.url);
         if (options.mount) await options.mount(page);
-        await page.waitForSelector(`${rootSelector} [data-name]`);
+        await page.waitForSelector(`${rootSelector} :is([data-name], .formspec-repeat)`);
         if (options.locale) {
             await page.evaluate(({ selector, code }) => { (document.querySelector(selector) as any).locale = code; }, { selector: rootSelector, code: options.locale });
             await page.waitForTimeout(150);
@@ -236,6 +250,26 @@ export class Walk {
     async live(path: string): Promise<LiveField | undefined> {
         const all = await this.state();
         return all.find((f) => f.path === path) ?? all.filter((f) => baseOf(f.path) === path).sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))[0];
+    }
+
+    /** Materialize the first instance of an empty enclosing repeat for a field check. */
+    private async withRows(path: string): Promise<LiveField | undefined> {
+        const added = await this.page.evaluate(({ selector, path }) => {
+            const engine = (document.querySelector(selector) as any).engine;
+            let prefix = '';
+            let added = false;
+            for (const key of path.split('.').slice(0, -1)) {
+                prefix = prefix ? `${prefix}.${key}` : key;
+                const count = engine.repeats?.[prefix];
+                if (!count) continue;
+                if (count.value === 0) { engine.addRepeatInstance(prefix); added = true; }
+                prefix += '[0]';
+            }
+            return added;
+        }, { selector: this.rootSelector, path });
+        if (!added) return undefined;
+        await this.page.waitForTimeout(100);
+        return this.live(path);
     }
 
     /** Bring the step that holds `path` into view — forward through a wizard, then from its first step; whether it is visible now. */
@@ -347,7 +381,7 @@ export class Walk {
      * every option. Brings its wizard step into view first.
      */
     async field(pathOrBase: string, w: FieldWant, stop?: Stop, live?: LiveField): Promise<void> {
-        const f = live ?? await this.live(pathOrBase);
+        const f = live ?? await this.live(pathOrBase) ?? await this.withRows(pathOrBase);
         if (!f) { this.found(`${pathOrBase}: the engine has no such field`); return; }
         if (!(await this.show(f.path))) { this.found(`${f.path}: never shown on any step`); return; }
         const label = want(w.label);
@@ -413,6 +447,70 @@ export class Walk {
             const names = all.filter((c) => ['option', 'radio', 'checkbox', 'menuitemradio'].includes(c.role)).map((c) => c.name);
             for (const o of w.options.map(want))
                 if (!names.some((n) => nameIs(n, o))) this.found(`${f.path}: option "${o.text}" is not offered; saw ${JSON.stringify(names)}`);
+        }
+        if (!f.readonly) await this.choice(f.path, fieldRoot);
+    }
+
+    /** One native keyboard action must persist in the DOM, field state, and exported Response. */
+    async choice(path: string, fieldRoot = this.root.locator(`[data-name="${path}"]`).filter({ visible: true })): Promise<void> {
+        const select = fieldRoot.locator('select:not([multiple])').filter({ visible: true });
+        if (await select.count() !== 1 || !await select.isEnabled()) return;
+        const key = await select.evaluate((el: HTMLSelectElement) => {
+            const next = [...el.options].find(o => !o.disabled && !o.hidden && !o.parentElement?.matches('optgroup:disabled') &&
+                o.value && o.value !== '__formspec_clear__' && o.value !== el.value && /^[\x21-\x7e]/.test(o.label.trim()));
+            return next ? [...next.label.trim()][0] : null;
+        });
+        if (!key) { this.uncover(`${path}: no different enabled option with a key supported by Playwright native typeahead; choice persistence was not checked`); return; }
+        await this.page.evaluate(({ selector, path }) => {
+            const root = document.querySelector(selector) as any;
+            const el = root.querySelector(`[data-name="${path}"] select`)! as HTMLSelectElement;
+            const state = window.__formspecWalkChoice = {
+                chosen: null as { value: string; label: string } | null,
+                previous: root.engine.getFieldVM(path)?.value.value,
+                listener: (e: Event) => { if (e.target === el) state.chosen ??= { value: el.value, label: el.selectedOptions[0]?.label ?? '' }; },
+            };
+            window.addEventListener('input', state.listener, true);
+        }, { selector: this.rootSelector, path });
+        try {
+            await select.focus();
+            // selectOption() dispatches both events in one script and masks the host rerender race.
+            await this.page.keyboard.type(key);
+            await this.page.waitForTimeout(100);
+            const result = await this.page.evaluate(({ selector, path }) => {
+                const root = document.querySelector(selector) as HTMLElement & { engine: IFormEngine };
+                const vm = root.engine.getFieldVM(path);
+                const data = root.engine.getResponse().data;
+                const saved = path.replace(/\[(\d+)\]/g, '.$1').split('.').reduce((at: any, key) => at?.[key], data);
+                const scalar = (v: any) => v && typeof v === 'object' && typeof v.rawJSON === 'string' ? v.rawJSON : v;
+                return { chosen: window.__formspecWalkChoice!.chosen, shown: (root.querySelector(`[data-name="${path}"] select`) as HTMLSelectElement | null)?.value,
+                    value: scalar(vm?.value.value), saved: scalar(saved), numeric: ['integer', 'decimal', 'number'].includes(vm?.dataType ?? '') };
+            }, { selector: this.rootSelector, path });
+            const { chosen } = result;
+            const keeps = (value: unknown) => {
+                if (!chosen || value === null || value === undefined || value === '') return false;
+                if (String(value) === chosen.value) return true;
+                if (!result.numeric) return false;
+                const actual = numericChoiceKey(String(value));
+                return actual !== undefined && actual === numericChoiceKey(chosen.value);
+            };
+            if (!chosen) this.found(`${path}: typing "${key}" chose no option; the choice was not checked`);
+            else {
+                const choice = `${path}: chose "${chosen.label}" with one keyboard action`;
+                if (!keeps(result.value)) this.found(`${choice}, but the field kept ${JSON.stringify(result.value ?? null)}`);
+                if (!keeps(result.saved)) this.found(`${choice}, but the response kept ${JSON.stringify(result.saved ?? null)}`);
+                if (result.shown !== chosen.value) this.found(`${choice}, but the control shows ${JSON.stringify(result.shown ?? null)}`);
+            }
+        } finally {
+            await this.page.evaluate(({ selector, path }) => {
+                const state = window.__formspecWalkChoice;
+                if (!state) return;
+                window.removeEventListener('input', state.listener, true);
+                delete window.__formspecWalkChoice;
+                const root = document.querySelector(selector) as any;
+                (root?.querySelector(`[data-name="${path}"] select`) as HTMLSelectElement | null)?.blur();
+                root?.engine.setValue(path, state.previous);
+            }, { selector: this.rootSelector, path });
+            await this.page.waitForTimeout(30);
         }
     }
 

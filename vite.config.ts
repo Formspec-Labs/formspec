@@ -5,10 +5,16 @@ import { FORMSPEC_E2E_HEALTH_PATH, FORMSPEC_E2E_PORT } from './tests/e2e/harness
 
 export default defineConfig({
   root: 'tests/e2e/fixtures',
+  cacheDir: process.env.FORMSPEC_E2E_CACHE_DIR || path.resolve(__dirname, 'test-results/.vite'),
   server: {
     host: '127.0.0.1',
     port: FORMSPEC_E2E_PORT,
     strictPort: true,
+    fs: {
+      // Worktrees reuse installed packages; permit their WASM assets without serving the stack parent.
+      allow: [__dirname, ...['wasm-pkg-runtime', 'wasm-pkg-tools'].map(dir =>
+        path.join(fs.realpathSync(path.resolve(__dirname, 'node_modules/@formspec-org/engine')), dir))],
+    },
   },
   build: {
     target: 'esnext',

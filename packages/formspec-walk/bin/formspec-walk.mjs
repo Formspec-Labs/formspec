@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-/** @filedesc `formspec-walk`: emit a readable Playwright spec from a form's documents, check the reference renderer with axe (`a11y`), or serve that check over HTTP (`serve`). */
+/** @filedesc Definition Walk CLI: emit specs, run them, or check renderer accessibility. */
+import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,6 +10,7 @@ import { derivePlan, deriveRecipes, emitSpec } from '@formspec-org/walk';
 
 const USAGE = `usage: formspec-walk emit (--docs <dir> | --manifest <package-manifest.json>) [--form <formId>] --url <page url> [--locale <code>] [--out <file>] [--from <package>]
        formspec-walk a11y (--docs <dir> | --manifest <package-manifest.json>) [--form <formId>] [--locale <code>] [--timeout-ms <ms>] [--out <file>]
+       formspec-walk test [Playwright test arguments]
        formspec-walk serve [--port <n>] [--host <addr>] [--timeout-ms <ms>]
 
   --docs      a directory holding the form's documents: the Definition, its Locale(s), its Theme (any *.json), or a package directory containing package-manifest.json
@@ -18,6 +21,10 @@ const USAGE = `usage: formspec-walk emit (--docs <dir> | --manifest <package-man
   --out       write here instead of stdout
   --from      the package the spec imports the walk from (default @formspec-org/walk)
 
+  test   runs installed Playwright with an execution reporter: no executed tests (including all skipped) fails.
+         Listing tests and shards with no assigned tests do not require execution.
+         Other Playwright failures retain their exit status. CLI --reporter values are retained; config reporters are replaced.
+         To retain configured reporters and their options, add @formspec-org/walk/reporter to your config and use your existing runner.
   a11y   runs axe (WCAG A/AA) on every page of the form and again with validation errors shown, in the
          reference web renderer, and prints the report as JSON. Exit 0: axe ran and found nothing; 1: it
          found violations; 3: it could not finish (timeout, browser failure) — never a pass.
@@ -116,6 +123,23 @@ if (isMain) {
   const args = process.argv.slice(2);
   const flag = (name) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : undefined; };
   const command = args[0];
+  if (command === 'test') {
+    const require = createRequire(import.meta.url);
+    const forwarded = [];
+    const reporters = [];
+    const testArgs = args.slice(1);
+    for (let i = 0; i < testArgs.length; i += 1) {
+      const arg = testArgs[i];
+      if (arg === '--reporter') reporters.push(testArgs[++i] ?? 'list');
+      else if (arg.startsWith('--reporter=')) reporters.push(arg.slice('--reporter='.length));
+      else forwarded.push(arg);
+    }
+    const gate = fileURLToPath(new URL('../dist/reporter.js', import.meta.url));
+    const result = spawnSync(process.execPath, [require.resolve('@playwright/test/cli'), 'test',
+      '--reporter', [...(reporters.length ? reporters : ['list']), gate].join(','), ...forwarded], { stdio: 'inherit' });
+    if (result.error) console.error(result.error.message);
+    process.exit(result.status ?? 1);
+  }
   if (!['emit', 'a11y', 'serve'].includes(command)) failCli(USAGE);
 
   const resolveForms = ({ requireSingle = false } = {}) => {

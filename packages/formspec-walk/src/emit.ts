@@ -23,6 +23,18 @@ const baseOf = (path: string) => path.replace(/\[\d+\]/g, '');
 /** A title that fits one line of a test report. */
 const short = (s: string, max = 90) => (s.length <= max ? s : `${s.slice(0, max - 1).trimEnd()}…`);
 
+/** Keep authored wording when possible; paths distinguish duplicates, including truncated labels. */
+function distinct(items: Array<{ title: string; path: string }>): string[] {
+    const used = new Set<string>();
+    return items.map(({ title, path }) => {
+        const base = items.filter(item => item.title === title).length > 1 ? `${title} (${path})` : title;
+        let result = base;
+        for (let n = 2; used.has(result); n += 1) result = `${base} (${n})`;
+        used.add(result);
+        return result;
+    });
+}
+
 /** The literal a field check takes, as source; `extra` rides along in the same object. */
 function fieldWantSource(f: PlanField, extra: string[] = []): string {
     const parts = [`label: ${text(f.label)}`];
@@ -65,6 +77,7 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
     push(' *');
     push(' * Every test states what the documents promise; the walk checks the rendered form keeps it, by keyboard');
     push(' * and screen reader (Guidepup\'s virtual reader in the page; FORMSPEC_WALK_SR=os for the OS\'s own).');
+    push(' * Run with formspec-walk test <this-file> (or configure @formspec-org/walk/reporter): zero executed tests fail.');
     push(' * A failure reads as a list of what contradicted the documents.');
     push(' */');
     push("import { test } from '@playwright/test';");
@@ -113,13 +126,11 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
         at.fields.push(f);
     }
     const emitNode = (node: Node, indent: string) => {
-        const seen = new Map<string, number>();
-        for (const f of node.fields) {
+        const titles = distinct(node.fields.map(f => ({ path: f.path,
+            title: `${short(f.label.text)} — ${fieldFacts(f, recipes.get(f.path), labelOf)}` })));
+        for (const [i, f] of node.fields.entries()) {
             const recipe = recipes.get(f.path);
-            // Two fields of one group may share a label ("Hours"); the key tells them apart in the title.
-            const n = (seen.get(f.label.text) ?? 0) + 1;
-            seen.set(f.label.text, n);
-            const title = `${short(f.label.text)}${node.fields.filter((o) => o.label.text === f.label.text).length > 1 ? ` (${f.key})` : ''} — ${fieldFacts(f, recipe, labelOf)}`;
+            const title = titles[i];
             push(`${indent}test(${q(title)}, async ({ page }) => {`);
             push(`${indent}    const walk = await open(page);`);
             if (f.conditional) {
@@ -131,8 +142,10 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
             push(`${indent}    walk.expectClean();`);
             push(`${indent}});`);
         }
-        for (const [, g] of node.groups) {
-            push(`${indent}test.describe(${q(short(g.label))}, () => {`);
+        const groups = [...node.groups].map(([path, group]) => ({ path, ...group }));
+        const groupTitles = distinct(groups.map(g => ({ path: g.path, title: short(g.label) })));
+        for (const [i, g] of groups.entries()) {
+            push(`${indent}test.describe(${q(groupTitles[i])}, () => {`);
             emitNode(g.node, `${indent}    `);
             push(`${indent}});`);
         }
@@ -141,9 +154,11 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
     push();
 
     // Repeats.
-    for (const g of plan.groups.filter((g) => g.repeat?.addLabel)) {
+    const repeats = plan.groups.filter(g => g.repeat?.addLabel);
+    const repeatTitles = distinct(repeats.map(g => ({ path: g.path, title: short(g.label.text) })));
+    for (const [i, g] of repeats.entries()) {
         const r = g.repeat!;
-        push(`    test(${q(`${short(g.label.text)} — ${r.addLabel!.text}, focus lands in the new row${r.removeLabel ? `, ${r.removeLabel.text}` : ''}`)}, async ({ page }) => {`);
+        push(`    test(${q(`${repeatTitles[i]} — ${r.addLabel!.text}, focus lands in the new row${r.removeLabel ? `, ${r.removeLabel.text}` : ''}`)}, async ({ page }) => {`);
         push('        const walk = await open(page);');
         const firstField = plan.fields.find((f) => f.repeatOf === g.path);
         const recipe = firstField ? recipes.get(firstField.path) : undefined;

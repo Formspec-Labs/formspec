@@ -9,6 +9,7 @@ import type { LayoutNode, ValidationSummaryComp } from '@formspec-org/layout';
 import type { FormItem } from '@formspec-org/types';
 import { useFormspecContext, findItemByKey } from './context.js';
 import { useSignal } from './use-signal';
+import { useNativeSelect } from './use-native-select';
 import { useRepeatAffordances } from './use-repeat-affordances';
 import { ValidationSummary } from './validation-summary';
 import { DividerLayout } from './defaults/layout/default-layout';
@@ -372,6 +373,7 @@ function DataTableCell({
     const { engine } = useFormspecContext();
     const rawValue = useSignal(engine.signals[signalPath] ?? NO_VALUE);
     const readonly = useSignal(engine.readonlySignals[signalPath] ?? NO_READONLY);
+    const select = useNativeSelect(value => engine.setValue(signalPath, value || null));
 
     const isEditable = column.editable !== false;
     const dataType = fieldDef?.dataType || column.type;
@@ -439,7 +441,7 @@ function DataTableCell({
                     value={rawValue != null ? jsonValueText(rawValue) : ''}
                     aria-label={column.header}
                     disabled={readonly}
-                    onChange={(e) => engine.setValue(signalPath, e.target.value || null)}
+                    {...select}
                 >
                     <option value=""></option>
                     {choices.map((c) => (

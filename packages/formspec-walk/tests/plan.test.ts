@@ -235,6 +235,26 @@ describe('plan derivation', () => {
         expect(spec).not.toContain('undefined');
     });
 
+    it('keeps sibling groups and truncated or naturally suffixed labels distinct', () => {
+        const long = 'A very long question '.repeat(8);
+        const f = (key: string, label: string) => ({ key, type: 'field', dataType: 'string', label });
+        const definition = { $formspec: '1.0', url: 'urn:test:duplicate-titles', version: '1.0.0', title: 'Alike', items: [
+            { key: 'a', type: 'group', label: 'Indicators', children: [f('comments', 'Comments')] },
+            { key: 'b', type: 'group', label: 'Indicators', children: [f('comments', 'Comments')] },
+            { key: 'c', type: 'group', label: 'Indicators (b)', children: [f('comments', 'Comments')] },
+            f('x', `${long}first`), f('y', `${long}second`),
+            { key: 'u', type: 'group', children: [f('same', 'Shared')] },
+            { key: 'v', type: 'group', children: [f('same', 'Shared')] },
+        ] } as FormDefinition;
+        const spec = emitSpec(derivePlan(definition), definition, { url: 'http://127.0.0.1:1', source: 'alike', command: 'emit' });
+        const describes = [...spec.matchAll(/test\.describe\('([^']*)'/g)].map(m => m[1]);
+        expect(new Set(describes).size).toBe(describes.length);
+        const titles = [...spec.matchAll(/test\('([^']*)'/g)].map(m => m[1]);
+        const top = titles.filter(t => t.startsWith('A very') || t.startsWith('Shared'));
+        expect(top).toHaveLength(4);
+        expect(new Set(top).size).toBe(4);
+    });
+
     it('a label is text once rendered; an interpolated one is a pattern of its literal parts', () => {
         expect(stripMarkdown('Enter the amount **before any deductions** and [read the rule](https://x.y).')).toBe('Enter the amount before any deductions and read the rule.');
         const want = expected('Any change in what you receive from {{$payerName}}?');

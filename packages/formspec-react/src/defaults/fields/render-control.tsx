@@ -1,7 +1,7 @@
 /** @filedesc Standard (non-group) field control switch — dispatches by component type. */
 'use client';
 import React from 'react';
-import { jsonValueText, stepJsonNumber } from '@formspec-org/engine';
+import { jsonValueText, parseJsonNumber, stepJsonNumber } from '@formspec-org/engine';
 import { useChromeText } from '../../use-chrome-text';
 import type { FieldComponentProps } from '../../component-map';
 import type { ExtensionAttrs } from './field-control-types';
@@ -289,11 +289,19 @@ function NativeSelect({ field, common, value, isReadonly, clearable, placeholder
     placeholder?: string;
 }) {
     const chrome = useChromeText();
+    let selected = jsonValueText(value);
+    if (value != null && ['integer', 'decimal', 'number'].includes(field.dataType)) {
+        // Preserve the authored option spelling when the engine canonicalizes its numeric answer.
+        selected = field.options.find(option => {
+            try { return jsonValueText(parseJsonNumber(option.value)) === jsonValueText(value); }
+            catch { return false; }
+        })?.value ?? selected;
+    }
     return (
         <NativeSelectControl
             {...common}
-            value={jsonValueText(value)}
-            onChange={isReadonly ? undefined : (e) => field.setValue(e.target.value)}
+            value={selected}
+            onValueChange={isReadonly ? undefined : (value) => field.setValue(value)}
             disabled={isReadonly}
             afterControl={clearable && value != null && value !== '' && !isReadonly && (
                 <button type="button" className="formspec-select-clear"

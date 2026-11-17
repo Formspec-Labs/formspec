@@ -154,7 +154,7 @@ function ScreenerField({
         if (explicitBoolean) return <>
           <label className="formspec-label" htmlFor={id}>{label}{required && <span className="formspec-required" aria-hidden="true">*</span>}</label>
           <NativeSelectControl disabled={disabled} id={id} value={value === true ? 'yes' : value === false ? 'no' : ''} aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
-            onChange={e => onChange(e.target.value === '' ? undefined : e.target.value === 'yes')}>
+            onValueChange={value => onChange(value === '' ? undefined : value === 'yes')}>
             <option value="">{chrome('select.placeholder')}</option><option value="yes">{chrome('screener.yes')}</option><option value="no">{chrome('screener.no')}</option>
           </NativeSelectControl>
         </>;
@@ -184,7 +184,7 @@ function ScreenerField({
               disabled={disabled}
               id={id}
               value={typeof value === 'string' || typeof value === 'number' ? jsonValueText(value) : ''}
-              onChange={(e) => onChange(e.target.value)}
+              onValueChange={onChange}
               aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
             >
               <option value="" disabled hidden>{chrome('select.placeholder')}</option>
