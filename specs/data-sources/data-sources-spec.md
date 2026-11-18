@@ -292,7 +292,7 @@ widget binding, or related source anchor does not cover it.
 
 It answers only which boundary must admit the source before exposure. It does not express actor allowlists, field policy, route policy, widget policy, operation policy, or per-source ACLs. Such fine-grained fields MUST be rejected — permanently, not pending a contract. ADR 0152 (accepted) is not that contract and declines this axis explicitly — §4.3 keeps read/disclosure authority out of scope, and §6 scores this document's `authorizationBoundary` as no coverage. A catalog that grew per-source ACLs would be reimplementing the engine in an authored artifact.
 
-Amended 2026-11-18 by [ADR 0176](../../../thoughts/adr/0176-authorization-engine-and-deployment-model.md) §7. The reference server delegates fine-grained runtime data-access decisions to the shared authorization coordinator.
+Amended 2026-11-18 by [ADR 0176](../../../thoughts/adr/0176-authorization-engine-and-deployment-model.md) §7. The shared authorization coordinator owns fine-grained runtime data-access decisions in the reference deployment.
 
 ## 9. App Manifest Integration
 
