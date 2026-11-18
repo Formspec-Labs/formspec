@@ -117,6 +117,11 @@ const bundle = dereferenceBundleExport(walkRoutes ? surfaceWalkExport : {
             { key: 'contact', type: 'field', dataType: 'string', label: 'Contact name' },
             { key: 'kind', type: 'field', dataType: 'choice', label: 'Filing type',
               options: [{ value: 'initial', label: 'Initial' }, { value: 'revision', label: 'Revision' }] },
+            ...(fixtureOptions.has('accessibleFields') ? [
+              { key: 'approved', type: 'field', dataType: 'boolean', label: 'Approved', initialValue: true },
+              { key: 'evidence', type: 'field', dataType: 'attachment', label: 'Evidence', hint: 'Attach a receipt' },
+              { key: 'due', type: 'field', dataType: 'date', label: 'Due date' },
+            ] : []),
             ...(fixtureOptions.has('emptyRepeat') ? [
               { key: 'otherRows', type: 'group', repeatable: true, minRepeat: 0, label: 'Rows', children: [
                 { key: 'otherEntry', type: 'field', dataType: 'string', label: 'Other entry' },
@@ -130,7 +135,14 @@ const bundle = dereferenceBundleExport(walkRoutes ? surfaceWalkExport : {
             ] },
           ] },
         ],
-        binds: [{ path: 'details.notes', required: 'true' }],
+        binds: [
+          { path: 'details.notes', required: 'true' },
+          ...(fixtureOptions.has('accessibleFields') ? [
+            { path: 'intro.approved', readonly: 'true' },
+            { path: 'intro.evidence', required: 'true' },
+            { path: 'intro.due', required: 'true' },
+          ] : []),
+        ],
       } : {
         description: 'Submit the annual filing and certify the information provided.',
         items: showsTracker ? [{ key: 'details', type: 'group', label: 'Details', children: [contact, ...supplemental] }] : [contact],

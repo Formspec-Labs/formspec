@@ -5,7 +5,7 @@ import React, { useMemo } from 'react';
 import type { FieldComponentProps } from '../../component-map';
 import { useFormspecContext, findItemByKey } from '../../context';
 import type { ExtensionAttrs } from './field-control-types';
-import { GroupControl } from './group-control';
+import { blockReadonlyChange, GroupControl } from './group-control';
 import { renderControl, type InputAdornments } from './render-control';
 import { needTraceAttrs, projectionMetadataAttrs } from '../../projection-metadata.js';
 import { useSemanticFieldControl } from '../../use-semantic-field-control.js';
@@ -153,7 +153,10 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 checked={!!field.value}
                 onChange={isReadonly ? undefined : (e) => field.setValue(e.target.checked)}
                 onBlur={() => field.touch()}
-                disabled={isReadonly}
+                disabled={isProtected}
+                readOnly={isReadonly}
+                aria-readonly={isReadonly || undefined}
+                onClickCapture={isReadonly ? blockReadonlyChange : undefined}
                 aria-invalid={showError}
                 aria-required={field.required || undefined}
                 {...(describedBy ? { 'aria-describedby': describedBy } : {})}
@@ -205,11 +208,15 @@ export function DefaultField({ field, node }: FieldComponentProps) {
         );
     }
 
-    if (node.component === 'RadioGroup' || node.component === 'CheckboxGroup') {
+    const renderFieldControl = () => renderControl(
+        field, node, describedBy, isProtected, extensionAttrs, resolvePlaceholder, itemAdornments(engine, field.path),
+    );
+    const fileUpload = node.component === 'FileUpload';
+    if (node.component === 'RadioGroup' || node.component === 'CheckboxGroup' || fileUpload) {
         const labelId = `${field.id}-label`;
         const labelHidden = node.labelPosition === 'hidden';
-        // A checkbox `group` has no aria-required (WAI-ARIA 1.2): the legend says "required" in place of the asterisk.
-        const legendRequiredNode = node.component === 'CheckboxGroup' && field.required && !isReadonly ? (
+        // A generic `group` has no aria-required (WAI-ARIA 1.2): the legend says "required" in place of the asterisk.
+        const legendRequiredNode = node.component !== 'RadioGroup' && field.required && !isReadonly ? (
             <>
                 <abbr className="formspec-required usa-label--required" title="required" aria-hidden="true"> *</abbr>
                 <span className="formspec-sr-only usa-sr-only"> required</span>
@@ -218,7 +225,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
 
         return (
             <fieldset
-                className={[`formspec-fieldset`, isReadonly ? 'formspec-field--readonly' : '', isProtected ? 'formspec-protected' : '', themeClass].filter(Boolean).join(' ').trim()}
+                className={['formspec-fieldset', fileUpload ? 'formspec-file-upload' : '', isReadonly ? 'formspec-field--readonly' : '', isProtected ? 'formspec-protected' : '', themeClass].filter(Boolean).join(' ').trim()}
                 style={node.style as React.CSSProperties | undefined}
                 data-name={field.path}
                 {...graphAttrs}
@@ -234,14 +241,16 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 {descriptionNode}
                 {hintNode}
                 {helpNode}
-                <GroupControl
-                    field={field}
-                    node={node}
-                    isReadonly={isReadonly}
-                    invalid={showError}
-                    labelId={labelId}
-                    describedBy={describedBy}
-                />
+                {fileUpload ? renderFieldControl() : (
+                    <GroupControl
+                        field={field}
+                        node={node}
+                        isReadonly={isReadonly}
+                        invalid={showError}
+                        labelId={labelId}
+                        describedBy={describedBy}
+                    />
+                )}
                 {errorNode}
             </fieldset>
         );
@@ -250,7 +259,6 @@ export function DefaultField({ field, node }: FieldComponentProps) {
     const controlSurfaceClass =
         node.component === 'Slider' ? 'formspec-slider'
             : node.component === 'Rating' ? 'formspec-rating'
-            : node.component === 'FileUpload' ? 'formspec-file-upload'
             : '';
 
     return (
@@ -276,7 +284,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
             {hintNode}
             {helpNode}
 
-            {renderControl(field, node, describedBy, isProtected, extensionAttrs, resolvePlaceholder, itemAdornments(engine, field.path))}
+            {renderFieldControl()}
 
             {errorNode}
         </div>

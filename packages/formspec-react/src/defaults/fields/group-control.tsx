@@ -10,7 +10,7 @@ import { useChromeText } from '../../use-chrome-text';
  * fires from that click) ignores it: options stay enabled, focusable, and announced read-only, but the value cannot
  * change (core §4.3 Bind `readonly`). Same guard as webcomponent bindSharedFieldEffects.
  */
-function blockReadonlyChange(event: React.MouseEvent<HTMLElement>): void {
+export function blockReadonlyChange(event: React.MouseEvent<HTMLElement>): void {
     const target = event.target;
     if (target instanceof HTMLInputElement && (target.type === 'radio' || target.type === 'checkbox')) {
         event.preventDefault();

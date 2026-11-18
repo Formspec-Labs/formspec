@@ -866,6 +866,24 @@ describe('Theme widgetConfig.maxLength (theme §4.2 TextInput)', () => {
 // ── Toggle role="switch" ───────────────────────────────────────────
 
 describe('Toggle — role switch', () => {
+    it.each([true, false])('keeps a readonly value of %s focusable and immutable', (value) => {
+        const def = {
+            ...baseDef([{ key: 'active', type: 'field', dataType: 'boolean', label: 'Active', initialValue: value }]),
+            binds: [{ path: 'active', readonly: 'true' }],
+        };
+        const container = renderField(def, {
+            id: 'active', component: 'Toggle', category: 'field', props: {},
+            cssClasses: [], children: [], bindPath: 'active',
+        });
+        const control = container.querySelector<HTMLInputElement>('[role=switch]')!;
+        control.focus();
+        expect(document.activeElement).toBe(control);
+        expect(control.getAttribute('aria-readonly')).toBe('true');
+        expect(control.checked).toBe(value);
+        actSync(() => control.click());
+        expect(control.checked).toBe(value);
+    });
+
     it('Toggle checkbox has role="switch"', () => {
         const def = baseDef([{ key: 'enabled', type: 'field', dataType: 'boolean', label: 'Enabled' }]);
         const node: LayoutNode = {
@@ -1927,7 +1945,24 @@ describe('Select — clear button icon aria-hidden', () => {
 // ── FileUpload drop zone accessibility ─────────────────────────────
 
 describe('FileUpload — drop zone accessibility (axe, WCAG A/AA)', () => {
-    it('the drop zone is a group around one Browse button, with no violations', async () => {
+    it.each([true, false])('names and describes the upload keyboard control (dragDrop %s)', (dragDrop) => {
+        const def = {
+            ...baseDef([{ key: 'doc', type: 'field', dataType: 'attachment', label: 'Evidence', hint: 'Attach a receipt' }]),
+            binds: [{ path: 'doc', required: 'true' }],
+        };
+        const container = renderField(def, {
+            id: 'doc', component: 'FileUpload', category: 'field', props: { dragDrop },
+            cssClasses: [], children: [], bindPath: 'doc',
+        });
+        const button = container.querySelector('button')!;
+        const referencedText = (attr: string) => (button.getAttribute(attr) ?? '').split(/\s+/)
+            .map(id => document.getElementById(id)?.textContent?.trim()).join(' ');
+        expect(referencedText('aria-labelledby')).toMatch(/Evidence.*required.*Upload a file/);
+        expect(referencedText('aria-describedby')).toContain('Attach a receipt');
+        expect(container.querySelector('input[type=file]')?.hasAttribute('hidden')).toBe(true);
+    });
+
+    it('the upload field groups one Browse button with no violations', async () => {
         const axePkg = 'axe-core';
         const axe = await import(/* @vite-ignore */ axePkg).then((m) => m.default).catch(() => null);
         const def = baseDef([{ key: 'doc', type: 'field', dataType: 'string', label: 'Doc' }]);
@@ -1938,7 +1973,8 @@ describe('FileUpload — drop zone accessibility (axe, WCAG A/AA)', () => {
         const container = renderField(def, node);
         document.body.appendChild(container);
         const zone = container.querySelector('.formspec-file-drop-zone')!;
-        expect(zone.getAttribute('role')).toBe('group');
+        // The fieldset names the upload in both modes; the pointer drop zone needs no second group.
+        expect(zone.closest('fieldset')?.querySelector('legend')?.textContent).toBe('Doc');
         expect(zone.hasAttribute('tabindex')).toBe(false);
         expect(zone.querySelectorAll('button')).toHaveLength(1);
 

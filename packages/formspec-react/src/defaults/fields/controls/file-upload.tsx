@@ -109,7 +109,9 @@ export function FileUploadControl({ field, node, common, isReadonly }: CommonInp
             {...common}
             ref={fileInputRef}
             type="file"
-            className="formspec-file-input-hidden"
+            id={`${field.id}-picker`}
+            aria-labelledby={`${field.id}-label`}
+            hidden
             disabled={isReadonly}
             accept={accept}
             multiple={multiple}
@@ -149,34 +151,26 @@ export function FileUploadControl({ field, node, common, isReadonly }: CommonInp
         <p className="formspec-file-size-error formspec-error">{sizeError}</p>
     );
 
-    const browseBtnClass = 'formspec-file-browse-btn formspec-focus-ring formspec-button-secondary';
-
-    if (!dragDrop) {
-        // Siblings only — formspec-file-upload lives on the field root (parity with default web component adapter).
-        return (
-            <>
-                {hiddenInput}
-                <button
-                    type="button"
-                    className={browseBtnClass}
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isReadonly}
-                >
-                    {chrome(multiple ? 'fileUpload.browseMultiple' : 'fileUpload.browse')}
-                </button>
-                {fileList}
-                {errorEl}
-            </>
-        );
-    }
+    const browseButton = (
+        <button
+            id={field.id}
+            type="button"
+            className="formspec-file-browse-btn formspec-focus-ring formspec-button-secondary"
+            aria-labelledby={`${field.id}-label ${field.id}`}
+            aria-describedby={common['aria-describedby']}
+            aria-invalid={common['aria-invalid']}
+            onBlur={common.onBlur}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isReadonly}
+        >
+            {chrome(multiple ? 'fileUpload.browseMultiple' : 'fileUpload.browse')}
+        </button>
+    );
 
     return (
         <>
-            <div
+            {dragDrop ? <div
                 className={`formspec-file-drop-zone formspec-focus-ring${isDragOver ? ' formspec-file-drop-zone--active' : ''}`}
-                // Not an interactive role: the Browse button inside is the one keyboard control (WCAG 4.1.2).
-                role="group"
-                aria-labelledby={`${field.id}-label`}
                 onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                 onDragLeave={() => setIsDragOver(false)}
                 onDrop={(e) => {
@@ -192,16 +186,9 @@ export function FileUploadControl({ field, node, common, isReadonly }: CommonInp
                             ? chrome(multiple ? 'fileUpload.dropzoneMultiple' : 'fileUpload.dropzone')
                             : `${files.length} file${files.length !== 1 ? 's' : ''} selected`}
                     </span>
-                    <button
-                        type="button"
-                        className={browseBtnClass}
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isReadonly}
-                    >
-                        {chrome(multiple ? 'fileUpload.browseMultiple' : 'fileUpload.browse')}
-                    </button>
+                    {browseButton}
                 </div>
-            </div>
+            </div> : browseButton}
             {hiddenInput}
             {fileList}
             {errorEl}
