@@ -73,6 +73,124 @@ test('removeRepeatInstance compacts rows and preserves shifted calculated state'
   assert.equal(engine.signals['rows[2].total'], undefined);
 });
 
+function conditionalRepeatEngine() {
+  return new FormEngine({
+    $formspec: '1.0',
+    url: 'https://example.org/conditional-repeat',
+    version: '1.0.0',
+    title: 'Conditional Repeat',
+    items: [
+      { key: 'confirmation', type: 'field', dataType: 'string' },
+      { key: 'rows', type: 'group', repeatable: true, children: [
+        { key: 'show', type: 'field', dataType: 'boolean', initialValue: false },
+        { key: 'detail', type: 'field', dataType: 'string' },
+        { key: 'answer', type: 'field', dataType: 'string' },
+        { key: 'reference', type: 'field', dataType: 'string' },
+      ] },
+    ],
+    binds: [
+      { path: 'rows.detail', relevant: '$show = true' },
+      { path: 'rows.answer', required: 'true' },
+      { path: 'rows.reference', readonly: '$show = false' },
+      { path: 'confirmation', required: 'count($rows[*].show) = 3' },
+    ],
+    shapes: [{ id: 'threeRows', target: '#', severity: 'error', constraint: 'count($rows[*].show) < 3', message: 'Too many rows' }],
+  }, { responseData: { rows: [
+    { show: false, detail: 'First detail', answer: 'First answer' },
+    { show: true, detail: 'Middle detail', answer: '' },
+    { show: false, detail: 'Last detail', answer: 'Last answer' },
+  ] } });
+}
+
+function assertConditionalRowSignals(engine, visibleRows) {
+  const { nonRelevant, required, readonly } = engine._fullResult;
+  assert.equal(engine.repeats.rows.value, visibleRows.length);
+  for (const [index, visible] of visibleRows.entries()) {
+    const detail = `rows[${index}].detail`;
+    const answer = `rows[${index}].answer`;
+    const reference = `rows[${index}].reference`;
+    const evaluated = [!nonRelevant.includes(detail), required[answer], readonly[reference]];
+    assert.deepEqual(evaluated, [visible, true, !visible], `evaluator for row ${index}`);
+    assert.deepEqual([
+      engine.isPathRelevant(detail), engine.requiredSignals[answer].value, engine.readonlySignals[reference].value,
+    ], evaluated, `signals for row ${index}`);
+  }
+}
+
+for (const [index, position, remaining, findings] of [
+  [0, 'first', [true, false], [['rows[0].answer', 'REQUIRED']]],
+  [1, 'middle', [false, false], []],
+  [2, 'last', [false, true], [['rows[1].answer', 'REQUIRED']]],
+]) {
+  test(`removing the ${position} row keeps surviving bind signals in sync with the evaluator`, (t) => {
+    const engine = conditionalRepeatEngine();
+    t.after(() => engine.dispose());
+    assertConditionalRowSignals(engine, [false, true, false]);
+    assert.equal(engine.validationResults.confirmation.value[0]?.code, 'REQUIRED');
+    assert.equal(engine.shapeResults.threeRows.value.length, 1);
+
+    const liveEvaluation = t.mock.method(engine, '_evaluate');
+    engine.removeRepeatInstance('rows', index);
+
+    assert.equal(liveEvaluation.mock.callCount(), 1);
+    assertConditionalRowSignals(engine, remaining);
+    assert.equal(engine.relevantSignals['rows[2].detail'], undefined);
+    assert.deepEqual(engine.validationResults.confirmation.value, []);
+    assert.deepEqual(engine.shapeResults.threeRows.value, []);
+    assert.deepEqual(engine.getValidationReport().results.map(({ path, code }) => [path, code]), findings);
+  });
+}
+
+test('removing a row below minRepeat keeps findings and signals limited to real rows', (t) => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'https://example.org/repeat-min-removal',
+    version: '1.0.0',
+    title: 'Repeat Minimum',
+    items: [{ key: 'rows', type: 'group', repeatable: true, minRepeat: 2, children: [
+      { key: 'answer', type: 'field', dataType: 'string' },
+      { key: 'detail', type: 'field', dataType: 'string' },
+      { key: 'reference', type: 'field', dataType: 'string' },
+    ] }],
+    binds: [
+      { path: 'rows.answer', required: 'true' },
+      { path: 'rows.detail', relevant: 'false' },
+      { path: 'rows.reference', readonly: 'true' },
+    ],
+  });
+  t.after(() => engine.dispose());
+
+  engine.removeRepeatInstance('rows', 1);
+
+  assert.equal(engine.repeats.rows.value, 1);
+  assert.deepEqual(engine.getValidationReport().results.map(({ path, code }) => `${code}@${path}`).sort(), [
+    'MIN_REPEAT@rows',
+    'REQUIRED@rows[0].answer',
+  ]);
+  for (const name of ['signals', 'relevantSignals', 'requiredSignals', 'readonlySignals', 'validationResults', 'errorSignals']) {
+    assert.deepEqual(Object.keys(engine[name]).filter(path => path.startsWith('rows[1].')), [], name);
+  }
+});
+
+test('appending a repeat row projects bind results and ordinary edits evaluate once', (t) => {
+  const engine = conditionalRepeatEngine();
+  t.after(() => engine.dispose());
+  const liveEvaluation = t.mock.method(engine, '_evaluate');
+  const timedEvaluation = t.mock.method(engine, 'evaluateResultForTrigger');
+
+  assert.equal(engine.addRepeatInstance('rows'), 3);
+  assert.equal(liveEvaluation.mock.callCount(), 1);
+  assertConditionalRowSignals(engine, [false, true, false, false]);
+
+  engine.setValue('rows[3].show', true);
+  engine.getEvaluatedFormState();
+  const editEvaluations = liveEvaluation.mock.callCount() - 1;
+  t.diagnostic(`Ordinary edit and progress read: ${editEvaluations} live evaluations, ${timedEvaluation.mock.callCount()} timed evaluations`);
+  assert.equal(editEvaluations, 1);
+  assert.equal(timedEvaluation.mock.callCount(), 0);
+  assertConditionalRowSignals(engine, [false, true, false, true]);
+});
+
 function cardinalityEngine(group) {
   return new FormEngine({
     $formspec: '1.0',

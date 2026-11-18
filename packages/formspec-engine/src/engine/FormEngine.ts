@@ -583,6 +583,26 @@ export class FormEngine implements IFormEngine {
                     if (preserveSourceSeed) this._sourceSeedPreservedFields.add(fieldPath);
                 }
             }
+
+            // The rebuilt signals need their evaluated state even when it matches the old index.
+            const previous = this._previousEvalResult;
+            if (previous) {
+                const prefix = `${path}[`;
+                // The evaluator pads phantom rows below minRepeat (fs-i731). Keep their prior state.
+                const keepPath = (fieldPath: string) => !(
+                    fieldPath.startsWith(prefix) && Object.prototype.hasOwnProperty.call(this.requiredSignals, fieldPath)
+                );
+                const keepFlags = (flags: Record<string, boolean>) =>
+                    Object.fromEntries(Object.entries(flags).filter(([fieldPath]) => keepPath(fieldPath)));
+                this._previousEvalResult = {
+                    ...previous,
+                    nonRelevant: previous.nonRelevant.filter(keepPath),
+                    required: keepFlags(previous.required),
+                    readonly: keepFlags(previous.readonly),
+                    validations: previous.validations.filter(({ path: resultPath, shapeId }) =>
+                        shapeId || keepPath(resultPath)),
+                };
+            }
             this.structureVersion.value += 1;
         });
     }

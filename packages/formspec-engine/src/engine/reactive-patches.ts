@@ -71,8 +71,13 @@ export function patchDeltaSignalsFromWasm(
     },
 ): void {
     for (const [path, relevant] of Object.entries(delta.relevant)) {
-        options.relevantSignals[path] ??= rx.signal(true);
-        options.relevantSignals[path].value = relevant;
+        const existing = options.relevantSignals[path];
+        if (existing) {
+            existing.value = relevant;
+        } else if (!relevant) {
+            // A removed path may leave the non-relevant set. Only create a signal for a false value.
+            options.relevantSignals[path] = rx.signal(false);
+        }
     }
     for (const [path, required] of Object.entries(delta.required)) {
         options.requiredSignals[path] ??= rx.signal(false);

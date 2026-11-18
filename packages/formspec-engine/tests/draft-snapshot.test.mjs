@@ -128,8 +128,13 @@ test('resuming with fewer repeat rows preserves the evaluated state of the remai
     items: [{ key: 'entries', type: 'group', label: 'Entries', repeatable: true, children: [
       { key: 'hidden', type: 'field', dataType: 'string', label: 'Hidden' },
       { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+      { key: 'reference', type: 'field', dataType: 'string', label: 'Reference' },
     ] }],
-    binds: [{ path: 'entries.hidden', relevant: 'false' }, { path: 'entries.name', required: 'true' }],
+    binds: [
+      { path: 'entries.hidden', relevant: 'false' },
+      { path: 'entries.name', required: 'true' },
+      { path: 'entries.reference', readonly: 'true' },
+    ],
   };
   const saved = createFormEngine(form, { responseData: { entries: [{ hidden: 'answer', name: '' }] } });
   const resumed = createFormEngine(form, { responseData: { entries: [{ hidden: 'answer', name: '' }, {}] } });
@@ -138,8 +143,10 @@ test('resuming with fewer repeat rows preserves the evaluated state of the remai
     assert.equal(resumed.repeats.entries.value, 1);
     assert.equal(resumed.relevantSignals['entries[0].hidden'].value, false);
     assert.equal(resumed.requiredSignals['entries[0].name'].value, true);
+    assert.equal(resumed.readonlySignals['entries[0].reference'].value, true);
     assert.equal(resumed.validationResults['entries[0].name'].value[0]?.code, 'REQUIRED');
     assert.equal(resumed.signals['entries[1].name'], undefined);
+    assert.equal(resumed.relevantSignals['entries[1].hidden'], undefined);
   } finally {
     saved.dispose();
     resumed.dispose();
