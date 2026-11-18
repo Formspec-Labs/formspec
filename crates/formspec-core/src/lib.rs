@@ -11,12 +11,14 @@ pub mod assembler;
 pub mod assembly_fel_rewrite;
 pub mod bind_targets;
 pub mod changelog;
+mod compatible_versions;
 pub mod component_tree;
 pub mod definition_items;
 pub mod extension_analysis;
 pub mod fel_analysis;
 pub mod fel_condition_group_lift;
 pub mod fel_rewrite_exact;
+pub mod instance_projection;
 pub mod json_artifacts;
 pub mod json_util;
 pub mod jsonld_context;
@@ -40,6 +42,8 @@ pub use assembly_fel_rewrite::{
     AssemblyFelRewriteMap, assembly_fel_rewrite_map_from_value, rewrite_fel_for_assembly,
 };
 pub use bind_targets::{BindEntry, BindTargets};
+#[doc(inline)]
+pub use compatible_versions::compatible_version_satisfied;
 pub use component_tree::visit_component_subtree;
 pub use definition_items::{
     DefinitionItemKeyPolicy, DefinitionItemVisitCtx, coerce_definition_item_key_segment,
@@ -62,6 +66,10 @@ pub use fel_analysis::{
 };
 pub use fel_condition_group_lift::try_lift_condition_group;
 pub use fel_rewrite_exact::{rewrite_fel_source_references, rewrite_message_template};
+#[doc(inline)]
+pub use instance_projection::{
+    InstanceProjectionCode, InstanceProjectionDiagnostic, check_instance_projection,
+};
 pub use json_artifacts::{changelog_to_json_value, extension_usage_issues_to_json_value};
 pub use json_util::json_object_to_string_map;
 pub use jsonld_context::{

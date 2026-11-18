@@ -492,6 +492,7 @@ dependencies = [
  "fel-core",
  "proptest",
  "rust_decimal",
+ "semver_rs",
  "serde",
  "serde_json",
 ]
@@ -531,7 +532,6 @@ dependencies = [
  "fel-core",
  "formspec-core",
  "jsonschema",
- "semver_rs",
  "serde",
  "serde_json",
  "sha2 0.10.9",

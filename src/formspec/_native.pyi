@@ -74,6 +74,12 @@ def coerce_field_value(
 
 def resolve_option_sets_on_definition(definition: dict[str, Any]) -> dict[str, Any]: ...
 
+def check_instance_projection(
+    instance: dict[str, Any],
+    consumer_subject: dict[str, Any] | None,
+    upstream_definitions: list[dict[str, Any]],
+) -> list[dict[str, str | None]]: ...
+
 def apply_migrations_to_response_data(
     definition: dict[str, Any],
     data: dict[str, Any],

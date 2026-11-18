@@ -4,6 +4,7 @@
 
 use std::collections::{HashMap, HashSet};
 
+use formspec_core::compatible_version_satisfied;
 use serde_json::Value;
 
 use crate::semantic_helpers::{
@@ -104,9 +105,7 @@ pub(crate) fn analyze_mapping_with_context(
             let compatible = mapping["definitionVersion"]
                 .as_str()
                 .zip(definition["version"].as_str())
-                .and_then(|(range, version)| {
-                    crate::semantic_helpers::compatible_version_satisfied(range, version)
-                });
+                .and_then(|(range, version)| compatible_version_satisfied(range, version));
             if compatible != Some(true) {
                 analyzer.diagnostics.push(error(crate::LintCode::E1100, PASS, "$.definitionVersion",
                     "Host source context Definition version does not satisfy the Mapping association"));

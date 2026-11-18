@@ -8,6 +8,8 @@ mod tests {
 
     #[cfg(feature = "changelog-api")]
     use crate::changelog::generate_changelog_inner;
+    #[cfg(feature = "document-api")]
+    use crate::definition::check_instance_projection_wasm;
     use crate::definition::{
         apply_migrations_to_response_data_wasm, resolve_option_sets_on_definition_wasm,
     };
@@ -45,6 +47,37 @@ mod tests {
                 { "key": "name", "label": "Name", "dataType": "string" }
             ]
         })
+    }
+
+    #[cfg(feature = "document-api")]
+    #[test]
+    fn instance_projection_wasm_returns_core_diagnostic() {
+        let instance = json!({
+            "response": {
+                "definition": {"url": "urn:example:report", "compatibleVersions": "^1.0.0"},
+                "subject": [], "status": "completed", "cardinality": "latest", "pin": "none"
+            },
+            "schema": {"oldName": "string"}
+        });
+        let first = json!({
+            "url": "urn:example:report", "version": "1.0.0",
+            "subject": {"type": "urn:example:singleton", "keys": {}},
+            "items": [{"type": "field", "key": "oldName", "dataType": "string"}]
+        });
+        let mut second = first.clone();
+        second["version"] = json!("1.1.0");
+        second["items"][0]["key"] = json!("newName");
+        let raw = check_instance_projection_wasm(
+            &instance.to_string(),
+            "null",
+            &json!([first, second]).to_string(),
+        )
+        .unwrap();
+        let findings: Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(findings.as_array().unwrap().len(), 1);
+        assert_eq!(findings[0]["code"], "INSTANCE-PROJECTION-PATH-MISSING");
+        assert_eq!(findings[0]["jsonPointer"], "/schema/oldName");
+        assert_eq!(findings[0]["upstreamVersion"], "1.1.0");
     }
 
     #[cfg(feature = "registry-api")]

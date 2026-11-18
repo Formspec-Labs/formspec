@@ -26,14 +26,23 @@ pub(crate) fn depythonize_json<T: DeserializeOwned>(obj: &Bound<'_, PyAny>) -> P
 
 /// Decode JSON-compatible Python data through the maintained exact JSON writer.
 pub(crate) fn depythonize_exact(obj: &Bound<'_, PyAny>) -> PyResult<fel_core::exact_json::Value> {
-    let text: String = obj
-        .py()
+    fel_core::exact_json::from_str(&python_json_text(obj)?)
+        .map_err(|error| pyo3::exceptions::PyValueError::new_err(error.to_string()))
+}
+
+/// Deserialize Python data through the JSON writer, including documents with Decimal values.
+pub(crate) fn depythonize_via_json<T: DeserializeOwned>(obj: &Bound<'_, PyAny>) -> PyResult<T> {
+    serde_json::from_str(&python_json_text(obj)?)
+        .map_err(|error| pyo3::exceptions::PyValueError::new_err(error.to_string()))
+}
+
+/// Encode a Python value with Formspec's JSON writer.
+fn python_json_text(obj: &Bound<'_, PyAny>) -> PyResult<String> {
+    obj.py()
         .import("formspec.json")?
         .getattr("dumps")?
         .call1((obj,))?
-        .extract()?;
-    fel_core::exact_json::from_str(&text)
-        .map_err(|error| pyo3::exceptions::PyValueError::new_err(error.to_string()))
+        .extract()
 }
 
 /// Return Python Decimal values for fractional JSON numbers.

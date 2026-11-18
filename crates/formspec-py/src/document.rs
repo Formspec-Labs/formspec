@@ -8,6 +8,7 @@ use serde_json::Value;
 
 use formspec_core::{
     JsonWireStyle, apply_migrations_to_response_data as apply_migrations_to_response_data_core,
+    check_instance_projection as check_instance_projection_core,
     coerce_field_value as coerce_field_value_core, detect_document_type,
     resolve_option_sets_on_definition as resolve_option_sets_on_definition_core,
 };
@@ -20,7 +21,9 @@ use formspec_eval::{
 use formspec_lint::{LintMode, LintOptions, lint_result_to_json_value, lint_with_options};
 
 use crate::PyObject;
-use crate::convert::{depythonize_json, json_object_to_string_map, json_to_python};
+use crate::convert::{
+    depythonize_json, depythonize_via_json, json_object_to_string_map, json_to_python,
+};
 use crate::extensions::PyExtensionFunctions;
 
 // ── Document Type Detection ─────────────────────────────────────
@@ -297,6 +300,29 @@ pub fn resolve_option_sets_on_definition(
     let mut v: fel_core::exact_json::Value = crate::convert::depythonize_exact(definition)?;
     resolve_option_sets_on_definition_core(&mut v);
     crate::convert::exact_json_to_python(py, &v)
+}
+
+/// Check a response instance against every eligible published upstream Definition version.
+///
+/// Pass the consuming Definition's subject declaration, or `None` for catalog
+/// route parameters. Supply all published Definitions for the upstream URL.
+///
+/// # Errors
+///
+/// Returns a Python exception when an input cannot be decoded in the required JSON shape.
+#[pyfunction(signature = (instance, consumer_subject, upstream_definitions))]
+pub fn check_instance_projection(
+    py: Python,
+    instance: &Bound<'_, PyAny>,
+    consumer_subject: Option<&Bound<'_, PyAny>>,
+    upstream_definitions: &Bound<'_, PyAny>,
+) -> PyResult<PyObject> {
+    let instance = depythonize_via_json(instance)?;
+    let upstream_definitions: Vec<Value> = depythonize_via_json(upstream_definitions)?;
+    let consumer_subject = consumer_subject.map(depythonize_via_json).transpose()?;
+    let diagnostics =
+        check_instance_projection_core(&instance, consumer_subject.as_ref(), &upstream_definitions);
+    Ok(pythonize::pythonize(py, &diagnostics)?.unbind())
 }
 
 /// Apply definition `migrations` to flat response field data (FEL `transform` in Rust).

@@ -3,12 +3,12 @@
 
 use std::collections::{HashMap, HashSet};
 
-use formspec_core::visit_definition_items_from_document;
+use formspec_core::{compatible_version_satisfied, visit_definition_items_from_document};
 use serde_json::Value;
 
 use crate::semantic_helpers::{
-    compatible_version_satisfied, definition_url, definition_version, error,
-    target_definition_compatible_versions, target_definition_url, warning,
+    definition_url, definition_version, error, target_definition_compatible_versions,
+    target_definition_url, warning,
 };
 use crate::tree;
 use crate::types::LintDiagnostic;

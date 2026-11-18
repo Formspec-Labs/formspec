@@ -9,7 +9,8 @@
 //! - `fel_context` — `FelContext`: one form's FEL state resident across ad-hoc reads (no per-call context JSON)
 //! - `evaluate` — batch definition evaluation, screener (always in runtime WASM)
 //! - `extensions` — `FelExtensionHost`: JS-backed FEL extension functions (Core §3.12)
-//! - `definition` — always: option sets + migrations; `definition-assembly`: `assembleDefinition`
+//! - `definition` — option sets and migrations. Tools add `assembleDefinition` and
+//!   `checkInstanceProjection` through `definition-assembly` and `document-api`.
 //! - `value_coerce` — `coerceFieldValue` (always)
 //! - `changeset` — changeset dependency analysis (key extraction, connected components)
 //! - `document` — `document-api`: detect type, schema plan; `lint`: `lintDocument*`

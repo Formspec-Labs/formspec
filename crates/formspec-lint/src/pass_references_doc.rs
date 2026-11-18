@@ -3,11 +3,12 @@
 
 use std::collections::{HashMap, HashSet};
 
+use formspec_core::compatible_version_satisfied;
 use serde_json::Value;
 
 use crate::semantic_helpers::{
-    compatible_version_satisfied, definition_url, definition_version, error, json_path_member,
-    normalized_segments, parse_form_path, resolve_item_path, target_definition_compatible_versions,
+    definition_url, definition_version, error, json_path_member, normalized_segments,
+    parse_form_path, resolve_item_path, target_definition_compatible_versions,
     target_definition_url, warning,
 };
 use crate::tree;

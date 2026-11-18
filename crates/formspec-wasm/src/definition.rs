@@ -1,14 +1,19 @@
-//! Definition helpers for `wasm_bindgen` — option sets + migrations always; `$ref` assembly behind `definition-assembly`.
+//! Definition helpers for WASM, including authoring checks in the tools build.
 
+#[cfg(feature = "document-api")]
+use formspec_core::check_instance_projection;
 #[cfg(feature = "definition-assembly")]
 use formspec_core::{
     JsonWireStyle, MapResolver, assemble_definition, assembly_result_to_json_value,
 };
 use formspec_core::{apply_migrations_to_response_data, resolve_option_sets_on_definition};
+#[cfg(any(feature = "definition-assembly", feature = "document-api"))]
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
 
-use crate::json_host::{parse_json_as, parse_value_str, to_json_string};
+#[cfg(any(feature = "definition-assembly", feature = "document-api"))]
+use crate::json_host::parse_value_str;
+use crate::json_host::{parse_json_as, to_json_string};
 
 #[cfg(feature = "definition-assembly")]
 #[wasm_bindgen(js_name = "assembleDefinition")]
@@ -27,6 +32,33 @@ pub fn assemble_definition_wasm(
     let result = assemble_definition(&definition, &resolver);
     let json = assembly_result_to_json_value(&result, JsonWireStyle::JsCamel);
     to_json_string(&json).map_err(|e| JsError::new(&e))
+}
+
+/// Return projection diagnostics for every eligible published upstream Definition version.
+///
+/// Pass the consuming Definition's subject as JSON, or `null` for catalog route
+/// parameters. Pass all published Definitions for the upstream URL as a JSON array.
+///
+/// # Errors
+///
+/// Returns a JavaScript error on invalid input JSON.
+#[cfg(feature = "document-api")]
+#[wasm_bindgen(js_name = "checkInstanceProjection")]
+pub fn check_instance_projection_wasm(
+    instance_json: &str,
+    consumer_subject_json: &str,
+    upstream_definitions_json: &str,
+) -> Result<String, JsError> {
+    let instance = parse_value_str(instance_json, "instance JSON").map_err(|e| JsError::new(&e))?;
+    let consumer_subject: Option<Value> =
+        parse_json_as(consumer_subject_json, "consuming subject JSON")
+            .map_err(|e| JsError::new(&e))?;
+    let upstream_definitions: Vec<Value> =
+        parse_json_as(upstream_definitions_json, "upstream Definitions JSON")
+            .map_err(|e| JsError::new(&e))?;
+    let diagnostics =
+        check_instance_projection(&instance, consumer_subject.as_ref(), &upstream_definitions);
+    to_json_string(&diagnostics).map_err(|e| JsError::new(&e))
 }
 
 /// Copy `optionSets` entries onto fields that reference `optionSet` (mutates a JSON clone).

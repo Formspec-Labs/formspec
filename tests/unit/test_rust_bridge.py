@@ -1,6 +1,7 @@
 """Tests for the _rust bridge module — verifies Python↔Rust boundary."""
 
 import inspect
+from decimal import Decimal
 
 import pytest
 from formspec import _native as formspec_rust
@@ -78,6 +79,50 @@ def test_formspec_rust_exports_expected_contract():
         "apply_migrations_to_response_data",
     ):
         assert hasattr(formspec_rust, name), f"missing formspec_rust export: {name}"
+
+
+def test_check_instance_projection_reports_consumer_subject_key_type():
+    instance = {
+        "response": {
+            "definition": {"url": "urn:example:report"},
+            "subject": [{"key": "year", "op": "eq", "from": {"subject": "period"}}],
+            "status": "completed",
+            "cardinality": "latest",
+            "pin": "none",
+        },
+        "schema": {},
+    }
+    upstream = {
+        "url": "urn:example:report",
+        "version": "1.0.0",
+        "items": [
+            {"type": "field", "key": "rate", "dataType": "decimal", "initialValue": Decimal("0.1")}
+        ],
+        "subject": {
+            "type": "urn:example:annual-report",
+            "keys": {"year": {"dataType": "integer"}},
+        },
+    }
+    consumer_subject = {
+        "type": "urn:example:program-period",
+        "keys": {"period": {"dataType": "string"}},
+    }
+    findings = formspec_rust.check_instance_projection(
+        instance, consumer_subject, [upstream]
+    )
+    assert len(findings) == 1
+    assert findings[0]["code"] == "INSTANCE-PROJECTION-SUBJECT-KEY-TYPE-MISMATCH"
+    assert findings[0]["jsonPointer"] == "/response/subject/0/from/subject"
+    assert findings[0]["upstreamVersion"] == "1.0.0"
+
+    with pytest.raises(TypeError):
+        formspec_rust.check_instance_projection(instance, upstream_definitions=[upstream])
+
+    instance["response"]["definition"]["compatibleVersions"] = "^2.0.0"
+    findings = formspec_rust.check_instance_projection(instance, consumer_subject, [upstream])
+    assert len(findings) == 1
+    assert findings[0]["code"] == "INSTANCE-PROJECTION-NO-ELIGIBLE-VERSION"
+    assert findings[0]["upstreamVersion"] is None
 
 
 # ── FEL parse ────────────────────────────────────────────────────

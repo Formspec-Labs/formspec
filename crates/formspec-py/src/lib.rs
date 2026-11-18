@@ -46,6 +46,7 @@ fn formspec_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(document::lint_document, m)?)?;
     m.add_function(wrap_pyfunction!(document::evaluate_def, m)?)?;
     m.add_function(wrap_pyfunction!(document::coerce_field_value, m)?)?;
+    m.add_function(wrap_pyfunction!(document::check_instance_projection, m)?)?;
     m.add_function(wrap_pyfunction!(
         document::resolve_option_sets_on_definition,
         m

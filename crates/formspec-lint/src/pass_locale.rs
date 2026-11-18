@@ -4,13 +4,13 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
-use formspec_core::visit_component_subtree;
+use formspec_core::{compatible_version_satisfied, visit_component_subtree};
 use serde_json::Value;
 
 use crate::semantic_helpers::{
-    compatible_version_satisfied, component_node_ids, definition_shape_ids, definition_url,
-    definition_version, error, item_option_values, json_path_member, option_set_values,
-    scan_interpolations, theme_page_ids, warning,
+    component_node_ids, definition_shape_ids, definition_url, definition_version, error,
+    item_option_values, json_path_member, option_set_values, scan_interpolations, theme_page_ids,
+    warning,
 };
 use crate::tree;
 use crate::types::{LintDiagnostic, LintOptions};
