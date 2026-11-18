@@ -31,26 +31,30 @@ it('refuses supplied minted keys, incomplete parents, wrong scope and a refused 
   expect((await restricted.drafts.start({ ...input, attemptId: 'three' })).status).toBe('denied');
 });
 
-it('opens two new units on their own URLs and resumes both through browser navigation', async () => {
-  const store = createMemoryFilingStore({ scope: input.scope, definitions });
-  const load = vi.spyOn(store.drafts, 'load');
-  const start = vi.spyOn(store.drafts, 'start');
-  const beforeLeave = vi.fn(() => true).mockReturnValueOnce(false);
+function projectBundle(form: FormDefinition, upstream: FormDefinition[] = []) {
   const surface = 'urn:test:surface';
-  const bundle = dereferenceBundleExport({
+  return dereferenceBundleExport({
     manifest: { $formspecBundle: '2.4', id: 'urn:test:app', entrySurface: surface,
-      definitions: [{ url: definition.url }], surfaces: [{ url: surface }] },
-    documents: { [definition.url]: definition, [surface]: {
+      definitions: [{ url: form.url }, ...upstream.map(document => ({ url: document.url }))], surfaces: [{ url: surface }] },
+    documents: { ...Object.fromEntries(upstream.map(document => [document.url, document])), [form.url]: form, [surface]: {
       $formspecSurface: '0.4', id: 'projects', entry: 'list', routes: [
         { id: 'list', path: '/list/{year}', params: [{ name: 'year', type: 'string' }], slots: [
           { id: 'start', slotType: 'draft-start', binding: { label: 'Create project', routeRef: 'project', slotRef: 'form' } },
         ] },
         { id: 'project', path: '/edit/{year}/{unit}', params: [{ name: 'year', type: 'string' }, { name: 'unit', type: 'string' }], slots: [
-          { id: 'form', slotType: 'definition-form', binding: { definitionRef: definition.url, subjectKeys: { year: 'year', unit: 'unit' } } },
+          { id: 'form', slotType: 'definition-form', binding: { definitionRef: form.url, subjectKeys: { year: 'year', unit: 'unit' } } },
         ] },
       ],
     } },
   });
+}
+
+it('opens two new units on their own URLs and resumes both through browser navigation', async () => {
+  const store = createMemoryFilingStore({ scope: input.scope, definitions });
+  const load = vi.spyOn(store.drafts, 'load');
+  const start = vi.spyOn(store.drafts, 'start');
+  const beforeLeave = vi.fn(() => true).mockReturnValueOnce(false);
+  const bundle = projectBundle(definition);
   const original = window.location.href;
   function visit(path: string) {
     act(() => {
@@ -60,7 +64,9 @@ it('opens two new units on their own URLs and resumes both through browser navig
   }
   try {
     visit('/list/2025');
-    const host = render(<BrowserSurfaceApp beforeLeave={beforeLeave} bundle={bundle} draftStorage={{ scope: input.scope, port: store.drafts }} />);
+    const host = render(<BrowserSurfaceApp bundle={bundle} adapters={{
+      beforeLeave, draftStorage: { scope: input.scope, port: store.drafts }, responses: store.responses,
+    }} />);
     const addresses = [];
     for (let i = 0; i < 2; ++i) {
       await vi.waitFor(() => expect([...host.querySelectorAll('button')].some(node => node.textContent === 'Create project')).toBe(true));
@@ -139,4 +145,33 @@ it('refuses a missing required pin, then records a valid empty pin at explicit c
   const opened = await store.load({ ...input, subject: created.subject }, definition.version);
   expect(opened).toMatchObject({ status: 'initialized', pins: { previous: { none: true, pinned: true, records: [] } } });
   expect(await store.start({ ...command, subject: { ...input.subject, keys: { year: 2026 } } })).toEqual({ status: 'conflict' });
+});
+
+it('hydrates the initialized editor from the exact stored opening pin', async () => {
+  const upstream = { ...definition, url: 'urn:test:previous', subject: { type: 'urn:test:previous', keys: {} } };
+  const form: FormDefinition = {
+    ...definition,
+    instances: { previous: { schema: { value: 'string' }, response: {
+      definition: { url: upstream.url }, subject: [], status: 'completed', cardinality: 'latest', pin: 'at-open', whenNone: 'empty',
+    } } },
+  };
+  const store = createMemoryFilingStore({
+    scope: input.scope, definitions: new Map([[form.url, form], [upstream.url, upstream]]),
+  });
+  const started = await store.drafts.start({ ...input, attemptId: 'pin-at-open' });
+  if (started.status !== 'started') throw new Error('start failed');
+  const select = vi.spyOn(store.responses, 'select');
+  const original = window.location.href;
+  try {
+    window.history.replaceState(null, '', `/edit/2025/${started.subject.keys.unit}`);
+    const host = render(<BrowserSurfaceApp bundle={projectBundle(form, [upstream])} adapters={{
+      draftStorage: { scope: input.scope, port: store.drafts }, responses: store.responses,
+    }} />);
+    await vi.waitFor(() => expect(host.querySelector('[data-name="answer"] input')).not.toBeNull());
+    expect(select).toHaveBeenCalledWith([
+      expect.objectContaining({ key: 'previous', pin: expect.objectContaining({ none: true, pinned: true, records: [] }) }),
+    ], expect.any(AbortSignal));
+  } finally {
+    window.history.replaceState(null, '', original);
+  }
 });

@@ -115,7 +115,8 @@ export function createDraftSession(
           if (!draft && seed.draftSeed) return { status: seed.draftSeed };
           const response = draft && parseJsonExact(draft.responseJson) as FormResponse;
           const draftSnapshot = draft && parseJsonExact(draft.snapshotJson) as FormDraftSnapshot;
-          const requests = definitionResponseRequests(definition, key, draft?.pins);
+          const pins = loaded.status === 'initialized' ? loaded.pins : draft?.pins;
+          const requests = definitionResponseRequests(definition, key, pins);
           const resolutions = await resolveDefinitionReads(storage.responses, requests, lifetime.signal);
           const engine = createFormEngine(definition, {
             responseInstanceResolutions: resolutions,
