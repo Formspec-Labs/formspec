@@ -46,6 +46,13 @@ describe('defaultComponentType', () => {
     expect(defaultComponentType({ type: 'field', dataType: 'multiChoice' } as any)).toBe('CheckboxGroup');
   });
 
+  it.each([{ options: [{ value: 'am', label: 'Morning' }] }, { optionSet: 'sessions' }])(
+    'keeps the multiChoice default with %j',
+    choices => {
+      expect(defaultComponentType({ key: 'sessions', type: 'field', dataType: 'multiChoice', ...choices })).toBe('CheckboxGroup');
+    },
+  );
+
   it('maps group to Stack', () => {
     expect(defaultComponentType({ type: 'group' } as any)).toBe('Stack');
   });

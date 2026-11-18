@@ -50,10 +50,10 @@ const CONTAINER_COMPONENTS = new Set([
 export function defaultComponentType(item: FormItem): string {
   switch (item.type) {
     case 'field':
+      if (item.dataType === 'multiChoice') return 'CheckboxGroup';
       if (item.optionSet || Array.isArray(item.options)) return 'Select';
       switch (item.dataType) {
         case 'choice': return 'Select';
-        case 'multiChoice': return 'CheckboxGroup';
         case 'boolean': return 'Toggle';
         case 'integer':
         case 'decimal': return 'NumberInput';
