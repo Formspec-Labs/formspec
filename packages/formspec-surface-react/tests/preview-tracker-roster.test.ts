@@ -146,9 +146,9 @@ it('keeps the fixed band row on Help when the direct draft producer needs a miss
   const session = createDraftSession({ port: store.drafts, scope });
   const loader = vi.fn<DataSourceLoader>(request => readSessionDraft(session, bundle.definitions, request));
   const validate = new Ajv().compile(schema);
-  async function groupsOn(routeId: string, params: Record<string, string>) {
+  async function groupsOn(routeId: string, params: Record<string, string>, catalogs = dataSources) {
     const handle = app.routes.find(route => route.routeId === routeId)!;
-    const band = planMatchedRoute({ handle, app, params, definitions: bundle.definitions, dataSources, experiences: [],
+    const band = planMatchedRoute({ handle, app, params, definitions: bundle.definitions, dataSources: catalogs, experiences: [],
       widgets: createWidgetRegistry(), registryEntries: [], themeAuthority: createThemeAuthority() }).bands?.[0]?.slot.tracker;
     const plan = band?.status === 'roster' ? await band.load({ loader, authorize: () => ({ status: 'authorized' }),
       validatePayload: ({ value }) => validate(value) ? { valid: true } : { valid: false } }) : band;
@@ -166,6 +166,22 @@ it('keeps the fixed band row on Help when the direct draft producer needs a miss
       { id: 'reports', unavailable: true, rows: [] },
     ]);
     expect(loader).toHaveBeenCalledTimes(1);
+    // A structurally valid delivery can still contain a blank display label.
+    loader.mockImplementationOnce(async request => {
+      const result = await readSessionDraft(session, bundle.definitions, request);
+      return result.status !== 'loaded' ? result : { ...result, value: { units: [
+        { id: 'n', name: 'Northern unit' }, { id: 'bad', name: '  ' },
+      ] } };
+    });
+    expect(await groupsOn('home', keys)).toMatchObject([
+      { id: 'fixed', rows: [{ href: '/report/common?slot=form' }] },
+      { id: 'reports', unavailable: true, rows: [] },
+    ]);
+    expect(await groupsOn('home', keys, [])).toMatchObject([
+      { id: 'fixed', rows: [{ href: '/report/common?slot=form' }] },
+      { id: 'reports', unavailable: true, rows: [] },
+    ]);
+    expect(loader).toHaveBeenCalledTimes(2);
   } finally {
     session.dispose();
   }
