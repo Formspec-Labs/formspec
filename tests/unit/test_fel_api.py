@@ -72,7 +72,13 @@ class TestDependencies:
 
     def test_instance_ref(self):
         deps = extract_dependencies("@instance('prior').income")
-        assert "prior" in deps.instance_refs
+        # A named read now carries its full instance-relative path.
+        assert deps.instance_reads == {"prior": ["income"]}
+
+    def test_instance_predicate_columns(self):
+        deps = extract_dependencies("some(@instance('list').rows, $.group = $group)")
+        assert deps.fields == {"group"}
+        assert deps.instance_reads == {"list": ["rows", "rows[*].group"]}
 
     def test_self_ref(self):
         deps = extract_dependencies("$ > 0")

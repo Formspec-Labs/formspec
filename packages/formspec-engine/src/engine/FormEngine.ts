@@ -2020,7 +2020,7 @@ export class FormEngine implements IFormEngine {
     ): Set<string> {
         const dependencies = new Set<string>();
         try {
-            for (const dependency of getFELDependencies(expression)
+            for (const dependency of getFELDependencies(expression).fields
                 .map(FormEngine.normalizeDependencyPath)
                 .filter((dependency) => dependency.length > 0)) {
                 dependencies.add(dependency);

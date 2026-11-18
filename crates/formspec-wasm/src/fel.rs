@@ -10,14 +10,14 @@
 #![allow(deprecated)]
 
 use fel_core::{
-    EvaluatorOptions, ExtensionFunctions, Trace, evaluate, evaluate_with,
+    EvaluatorOptions, ExtensionFunctions, Trace, dependencies_to_json_value, evaluate, evaluate_with,
     fel_diagnostics_to_json_value, field_map_from_json_str,
     formspec_environment_from_exact_json_map, has_error_diagnostics, parse,
     reject_undefined_functions,
 };
 #[cfg(feature = "fel-authoring")]
 use fel_core::{
-    builtin_function_catalog_json_value, dependencies_to_json_value, extract_dependencies,
+    builtin_function_catalog_json_value, extract_dependencies,
     print_expr, tokenize_to_json_value,
 };
 #[cfg(feature = "fel-authoring")]
@@ -319,12 +319,11 @@ pub fn try_lift_condition_group_wasm(expression: &str) -> Result<String, JsError
     to_json_string(&json).map_err(|e| JsError::new(&e))
 }
 
-/// Extract field dependencies from a FEL expression.
+/// Extract static dependencies from a FEL expression.
 #[wasm_bindgen(js_name = "getFelDependencies")]
 pub fn get_fel_deps(expression: &str) -> Result<String, JsError> {
     let deps = get_fel_dependencies(expression);
-    let arr: Vec<&str> = deps.iter().map(|s| s.as_str()).collect();
-    to_json_string(&arr).map_err(|e| JsError::new(&e))
+    to_json_string(&dependencies_to_json_value(&deps)).map_err(|e| JsError::new(&e))
 }
 
 /// Extract full dependency info from a FEL expression.

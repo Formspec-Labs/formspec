@@ -28,7 +28,14 @@ test('analyzeFEL reports parse errors with location metadata', () => {
 test('getFELDependencies ignores references inside strings and comments', () => {
   const expression = "$price + 1 /* $ignored */ + concat('$literal', $qty)";
   const deps = getFELDependencies(expression);
-  assert.deepEqual(deps.sort(), ['price', 'qty']);
+  // The structured result distinguishes form fields from named instance paths.
+  assert.deepEqual(deps.fields.sort(), ['price', 'qty']);
+});
+
+test('row predicates keep instance paths separate from ambient fields', () => {
+  const deps = getFELDependencies("some(@instance('list').rows, $.group = $group)");
+  assert.deepEqual(deps.fields, ['group']);
+  assert.deepEqual(deps.instanceReads, { list: ['rows', 'rows[*].group'] });
 });
 
 test('rewriteFELReferences rewrites only parsed references', () => {

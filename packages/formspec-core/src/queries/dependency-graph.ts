@@ -31,7 +31,7 @@ export function fieldDependents(state: ProjectState, fieldPath: string): FieldDe
   const def = state.definition;
   const target = normalizeIndexedPath(fieldPath);
   const expressionReferencesField = (expression: string): boolean => {
-    const refs = getFELDependencies(expression).map(ref => normalizeIndexedPath(ref));
+    const refs = getFELDependencies(expression).fields.map(ref => normalizeIndexedPath(ref));
     return refs.includes(target);
   };
 

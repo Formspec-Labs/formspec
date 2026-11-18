@@ -38,7 +38,7 @@ test('keyed row lookup reports duplicate keys and records field paths through WA
 
   const dependencies = wasmExtractDependencies(expression);
   assert.deepEqual(dependencies.fields.sort(), ['rows', 'rows[*].id', 'rows[*].name', 'selection']);
-  assert.deepEqual(wasmExtractDependencies(subjectDefinition.binds[0].calculate).instanceRefs, ['agencies']);
+  assert.deepEqual(wasmExtractDependencies(subjectDefinition.binds[0].calculate).instanceReads, { agencies: ['rows', 'rows[*].id', 'rows[*].name'] });
 });
 
 test('the Studio rewrite callback receives the keyed row paths through WASM', () => {

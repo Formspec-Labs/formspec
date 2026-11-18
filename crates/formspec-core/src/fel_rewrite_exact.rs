@@ -355,7 +355,7 @@ mod tests {
             .map(String::from)
             .into();
         assert_eq!(targets.field_paths, expected);
-        assert_eq!(crate::get_fel_dependencies(expression), expected);
+        assert_eq!(crate::get_fel_dependencies(expression).fields, expected);
 
         let options = RewriteOptions {
             rewrite_field_path: Some(Box::new(|path| match path {

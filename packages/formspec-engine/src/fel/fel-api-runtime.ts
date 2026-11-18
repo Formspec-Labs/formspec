@@ -90,9 +90,7 @@ export function itemLocationAtPath<T extends TreeItemLike<T>>(items: T[], path: 
     return { parent: currentItems, index, item: currentItems[index] };
 }
 
-export function getFELDependencies(expression: string): string[] {
-    return wasmGetFelDependencies(expression);
-}
+export const getFELDependencies = wasmGetFelDependencies;
 
 /**
  * Evaluate a FEL expression and return a structured trace of evaluation steps.

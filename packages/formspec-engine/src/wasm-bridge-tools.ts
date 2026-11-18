@@ -6,7 +6,7 @@ import {
     nodeFsModuleName,
     resolveWasmAssetPathForNode,
 } from './wasm-bridge-shared.js';
-import { getWasmModule, isWasmReady } from './wasm-bridge-runtime.js';
+import { getWasmModule, isWasmReady, type FELDependencies } from './wasm-bridge-runtime.js';
 import type { FELConditionGroupLiftResult } from './interfaces.js';
 
 export type WasmToolsModule = typeof import('../wasm-pkg-tools/formspec_wasm_tools.js');
@@ -237,15 +237,7 @@ export function wasmTokenizeFel(expression: string): Array<{
 }
 
 /** Extract full dependency info from a FEL expression. */
-export function wasmExtractDependencies(expression: string): {
-    fields: string[];
-    contextRefs: string[];
-    instanceRefs: string[];
-    mipDeps: string[];
-    hasSelfRef: boolean;
-    hasWildcard: boolean;
-    usesPrevNext: boolean;
-} {
+export function wasmExtractDependencies(expression: string): FELDependencies {
     assertWasmToolsReadySync();
     const resultJson = wasmTools().extractDependencies(expression);
     return JSON.parse(resultJson);

@@ -83,7 +83,7 @@ Every FEL value remains a frozen Python dataclass wrapper. `from_python()` and `
 @dataclass
 class DependencySet:
     fields: set[str]
-    instance_refs: set[str]
+    instance_reads: dict[str, list[str]]
     context_refs: set[str]
     mip_deps: set[str]
     has_self_ref: bool

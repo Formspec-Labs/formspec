@@ -346,8 +346,18 @@ export function wasmCoerceFieldValue(
     return wasm().coerceFieldValue(itemJson, bindJson, definitionJson, valueJson);
 }
 
-/** Extract field path dependencies from a FEL expression. Returns an array of path strings. */
-export function wasmGetFelDependencies(expression: string): string[] {
+/** Static FEL reads from Rust, with paths relative to each named instance. */
+export interface FELDependencies {
+    fields: string[];
+    contextRefs: string[];
+    instanceReads: Record<string, string[]>;
+    mipDeps: string[];
+    hasSelfRef: boolean;
+    hasWildcard: boolean;
+    usesPrevNext: boolean;
+}
+
+export function wasmGetFelDependencies(expression: string): FELDependencies {
     const resultJson = wasm().getFelDependencies(expression);
     return parseWasmJson(resultJson);
 }

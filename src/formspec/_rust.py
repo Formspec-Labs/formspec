@@ -209,7 +209,7 @@ class EvalResult(msgspec.Struct, frozen=True):
 
 class DependencySet(msgspec.Struct, frozen=True):
     fields: set[str]
-    instance_refs: set[str]
+    instance_reads: dict[str, list[str]]
     context_refs: set[str]
     mip_deps: set[str]
     has_self_ref: bool
@@ -442,7 +442,7 @@ def extract_dependencies(source: str) -> DependencySet:
     raw = formspec_rust.extract_deps(source)
     return DependencySet(
         fields={field.replace("[*]", "") for field in raw.get("fields", [])},
-        instance_refs=set(raw.get("instance_refs", [])),
+        instance_reads=raw["instance_reads"],
         context_refs={_normalize_context_ref(r) for r in raw.get("context_refs", [])},
         mip_deps=set(raw.get("mip_deps", [])),
         has_self_ref=bool(raw.get("has_self_ref", False)),

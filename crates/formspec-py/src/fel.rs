@@ -300,12 +300,12 @@ pub fn parse_fel(expression: &str) -> Option<String> {
 /// Returns a list of field path strings.
 #[pyfunction]
 pub fn get_dependencies(expression: &str) -> Vec<String> {
-    get_fel_dependencies(expression).into_iter().collect()
+    get_fel_dependencies(expression).fields.into_iter().collect()
 }
 
 /// Extract full dependency info from a FEL expression.
 ///
-/// Returns a dict with: fields, context_refs, instance_refs, mip_deps,
+/// Returns a dict with: fields, context_refs, instance_reads, mip_deps,
 /// has_self_ref, has_wildcard, uses_prev_next.
 #[pyfunction]
 pub fn extract_deps(py: Python, expression: &str) -> PyResult<PyObject> {

@@ -80,19 +80,12 @@ pub struct NavigationTarget {
 pub fn analyze_fel(expression: &str) -> FelAnalysis {
     match parse(expression) {
         Ok(expr) => {
-            let mut references = HashSet::new();
-            let mut variables = HashSet::new();
-            let mut functions = HashSet::new();
-            let mut function_calls: Vec<(String, usize)> = Vec::new();
-            collect_info(
-                &expr,
-                &mut references,
-                &mut variables,
-                &mut functions,
-                &mut function_calls,
-            );
-
-            let mut warnings = check_function_arity(&function_calls);
+            let dependencies = extract_dependencies(&expr);
+            let functions = dependencies.functions().map(str::to_owned).collect();
+            let variables = dependencies.context_names()
+                .filter(|name| !RESERVED_CONTEXT_NAMES.contains(name))
+                .map(str::to_owned).collect();
+            let mut warnings = check_function_arity(&dependencies.function_calls);
             let empty_field_types: HashMap<String, String> = HashMap::new();
             check_parameter_types(&expr, &empty_field_types, &mut warnings);
 
@@ -100,7 +93,7 @@ pub fn analyze_fel(expression: &str) -> FelAnalysis {
                 valid: true,
                 errors: vec![],
                 warnings,
-                references,
+                references: dependencies.fields,
                 variables,
                 functions,
             }
@@ -585,157 +578,21 @@ pub fn analyze_fel_with_field_types(
     result
 }
 
-/// Extract field dependencies from an expression (safe on parse failure).
-pub fn get_fel_dependencies(expression: &str) -> HashSet<String> {
-    match parse(expression) {
-        Ok(expr) => {
-            let mut refs = HashSet::new();
-            let mut vars = HashSet::new();
-            let mut fns = HashSet::new();
-            let mut calls = Vec::new();
-            collect_info(&expr, &mut refs, &mut vars, &mut fns, &mut calls);
-            refs
-        }
-        Err(_) => HashSet::new(),
-    }
+/// Extract static dependencies, returning an empty set for unparsable runtime expressions.
+pub fn get_fel_dependencies(expression: &str) -> fel_core::Dependencies {
+    parse(expression).map(|expr| extract_dependencies(&expr)).unwrap_or_default()
 }
 
 // ── AST walking ─────────────────────────────────────────────────
 
-pub(crate) const RESERVED_CONTEXT_NAMES: &[&str] = &["current", "index", "count", "instance"];
+/// Context names supplied by FEL rather than Definition variable declarations.
+pub const RESERVED_CONTEXT_NAMES: &[&str] = &["current", "index", "count", "instance"];
 
 fn postfix_base(mut expr: &Expr) -> &Expr {
     while let Expr::PostfixAccess { expr: inner, .. } = expr {
         expr = inner;
     }
     expr
-}
-
-fn collect_info(
-    expr: &Expr,
-    references: &mut HashSet<String>,
-    variables: &mut HashSet<String>,
-    functions: &mut HashSet<String>,
-    function_calls: &mut Vec<(String, usize)>,
-) {
-    match expr {
-        Expr::FieldRef { name, path } => {
-            let mut segments = Vec::new();
-            if let Some(n) = name {
-                segments.push(n.clone());
-            }
-            for seg in path {
-                match seg {
-                    PathSegment::Dot(s) => segments.push(s.clone()),
-                    PathSegment::Index(i) => segments.push(format!("[{i}]")),
-                    PathSegment::Wildcard => segments.push("[*]".to_string()),
-                }
-            }
-            if !segments.is_empty() {
-                references.insert(segments.join(".").replace(".[", "["));
-            }
-        }
-        Expr::VarRef { name, path } => {
-            let mut segments = vec![name.clone()];
-            for seg in path {
-                match seg {
-                    PathSegment::Dot(s) => segments.push(s.clone()),
-                    PathSegment::Index(i) => segments.push(format!("[{i}]")),
-                    PathSegment::Wildcard => segments.push("[*]".to_string()),
-                }
-            }
-            references.insert(segments.join(".").replace(".[", "["));
-        }
-        Expr::ContextRef {
-            name,
-            arg: _,
-            tail: _,
-            called: _,
-        } => {
-            if !RESERVED_CONTEXT_NAMES.contains(&name.as_str()) {
-                variables.insert(name.clone());
-            }
-        }
-        Expr::FunctionCall { name, args } => {
-            functions.insert(name.clone());
-            function_calls.push((name.clone(), args.len()));
-            for arg in args {
-                collect_info(arg, references, variables, functions, function_calls);
-            }
-        }
-        Expr::UnaryOp { operand, .. } => {
-            collect_info(operand, references, variables, functions, function_calls);
-        }
-        Expr::BinaryOp { left, right, .. } => {
-            collect_info(left, references, variables, functions, function_calls);
-            collect_info(right, references, variables, functions, function_calls);
-        }
-        Expr::Ternary {
-            condition,
-            then_branch,
-            else_branch,
-        }
-        | Expr::IfThenElse {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            collect_info(condition, references, variables, functions, function_calls);
-            collect_info(
-                then_branch,
-                references,
-                variables,
-                functions,
-                function_calls,
-            );
-            collect_info(
-                else_branch,
-                references,
-                variables,
-                functions,
-                function_calls,
-            );
-        }
-        Expr::Membership {
-            value, container, ..
-        } => {
-            collect_info(value, references, variables, functions, function_calls);
-            collect_info(container, references, variables, functions, function_calls);
-        }
-        Expr::NullCoalesce { left, right } => {
-            collect_info(left, references, variables, functions, function_calls);
-            collect_info(right, references, variables, functions, function_calls);
-        }
-        Expr::LetBinding { value, body, .. } => {
-            collect_info(value, references, variables, functions, function_calls);
-            collect_info(body, references, variables, functions, function_calls);
-        }
-        Expr::Array(elems) => {
-            for e in elems {
-                collect_info(e, references, variables, functions, function_calls);
-            }
-        }
-        Expr::Object(entries) => {
-            for (_, v) in entries {
-                collect_info(v, references, variables, functions, function_calls);
-            }
-        }
-        Expr::RowLookup { .. } | Expr::PostfixAccess { .. } => match postfix_base(expr) {
-            Expr::RowLookup { source, key, .. } => {
-                references.extend(extract_dependencies(expr).fields);
-                collect_info(source, references, variables, functions, function_calls);
-                collect_info(key, references, variables, functions, function_calls);
-            }
-            base => collect_info(base, references, variables, functions, function_calls),
-        },
-        // Literals — no references
-        Expr::Null
-        | Expr::Boolean(_)
-        | Expr::Number(_)
-        | Expr::String(_)
-        | Expr::DateLiteral(_)
-        | Expr::DateTimeLiteral(_) => {}
-    }
 }
 
 // ── Expression rewriting ────────────────────────────────────────
@@ -918,14 +775,14 @@ mod tests {
     #[test]
     fn test_get_dependencies() {
         let refs = get_fel_dependencies("if $age >= 18 then $category else 'minor'");
-        assert!(refs.contains("age"));
-        assert!(refs.contains("category"));
+        assert!(refs.fields.contains("age"));
+        assert!(refs.fields.contains("category"));
     }
 
     #[test]
     fn test_get_dependencies_on_parse_error() {
         let refs = get_fel_dependencies("invalid ++ expr");
-        assert!(refs.is_empty());
+        assert!(refs.fields.is_empty());
     }
 
     #[test]

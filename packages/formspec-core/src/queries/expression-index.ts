@@ -468,5 +468,5 @@ export function allExpressions(state: ProjectState): ExpressionLocation[] {
  * List all field paths that a FEL expression references.
  */
 export function expressionDependencies(_state: ProjectState, expression: string): string[] {
-  return getFELDependencies(expression);
+  return getFELDependencies(expression).fields;
 }

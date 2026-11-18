@@ -808,7 +808,7 @@ async function loadDependencies() {
         const expr = bind[exprKey];
         if (!expr || typeof expr !== 'string') continue;
         try {
-          const deps = getFELDependencies(expr);
+          const deps = getFELDependencies(expr).fields;
           const key = exprKey === 'calculate' ? path : `${path}.${exprKey}`;
           graph[key] = { depends_on: [...deps].sort(), expression: expr };
         } catch {
