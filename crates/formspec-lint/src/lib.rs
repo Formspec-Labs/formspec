@@ -67,6 +67,7 @@ pub mod pass_response;
 pub mod pass_theme;
 pub mod references;
 mod definition_expression_checks;
+mod expression_semantics;
 mod repeat_references;
 mod response_instances;
 pub mod tree;
@@ -279,6 +280,7 @@ fn lint_definition(
             doc,
             &tree_index,
             &compilation.compiled,
+            &options.registry_documents,
             diagnostics,
         );
         diagnostics.extend(dependencies::analyze_dependencies(

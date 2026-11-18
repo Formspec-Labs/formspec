@@ -1,12 +1,14 @@
 //! Definition-wide checks for reactive expressions, seeds, text, fees and migrations.
 
 use crate::LintDiagnostic;
+use crate::expression_semantics::ExpressionSemantics;
 use crate::expressions::CompiledExpression;
 use crate::repeat_references::check_expression;
 use crate::tree::ItemTreeIndex;
 use formspec_core::definition_expressions::{
     AdditionalExpressionSite, visit_additional_expressions,
 };
+use formspec_core::definition_instance_reads::visit_creation_instance_reads;
 use formspec_core::repeat_references::variable_target;
 use serde_json::Value;
 
@@ -15,8 +17,13 @@ pub(crate) fn check_definition(
     document: &Value,
     items: &ItemTreeIndex,
     compiled: &[CompiledExpression],
+    registries: &[Value],
     diagnostics: &mut Vec<LintDiagnostic>,
 ) {
+    let semantics = ExpressionSemantics::new(document, items, registries);
+    visit_creation_instance_reads(document, |name, read, path| {
+        semantics.check_instance_read(name, read, path, diagnostics);
+    });
     for expression in compiled {
         let variable_scope = expression.variable.as_ref().and_then(|variable| {
             variable_target(
@@ -32,6 +39,13 @@ pub(crate) fn check_definition(
             .or(expression.shape_target.as_deref())
             .or(expression.shape_context_target.as_deref())
             .or(variable_scope.as_deref());
+        semantics.check(
+            &expression.parsed,
+            &expression.expression_path,
+            target,
+            false,
+            diagnostics,
+        );
         check_expression(
             items,
             target,
@@ -58,7 +72,9 @@ pub(crate) fn check_definition(
         match crate::expressions::parse_fel(source, &path, diagnostics) {
             Ok(parsed) => {
                 // Migration transforms read a different version's Response (Core §6.7.1).
-                if site != AdditionalExpressionSite::Migration {
+                let migration = site == AdditionalExpressionSite::Migration;
+                semantics.check(&parsed, &path, target, migration, diagnostics);
+                if !migration {
                     check_expression(items, target, &path, &parsed, diagnostics);
                 }
             }
