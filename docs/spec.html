@@ -5502,6 +5502,13 @@ operand.</td>
 recorded.</td>
 </tr>
 <tr>
+<td><strong>Aggregate overflow</strong></td>
+<td>The running numeric or monetary total in an aggregate exceeds the
+supported decimal range (§3.4).</td>
+<td>The aggregate MUST return <code>null</code> and record
+<code>FEL_ARITHMETIC_OVERFLOW</code>.</td>
+</tr>
+<tr>
 <td><strong>Index out of bounds</strong></td>
 <td>An explicit repeat index (<code>$repeat[n].field</code>) references
 a position that does not exist.</td>

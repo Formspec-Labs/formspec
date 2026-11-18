@@ -282,3 +282,25 @@ test('an identity-line calculate distinguishes one matching row from ambiguous d
     engine.dispose();
   }
 });
+
+test('an acyclic overflowing aggregate keeps its diagnostic through both evaluation APIs', () => {
+  const definition = {
+    $formspec: '1.0', url: 'urn:test:aggregate-overflow', version: '1.0.0', title: 'Aggregate overflow',
+    items: [{ key: 'total', type: 'field', label: 'Total', dataType: 'decimal' }],
+    binds: [{ path: 'total', calculate: 'sum([79228162514264337593543950335, 1])' }],
+  };
+  const batch = evaluateDefinition(definition, {});
+  const engine = new FormEngine(definition);
+  try {
+    const snapshot = engine.getDiagnosticsSnapshot();
+    for (const [values, diagnostics] of [
+      [batch.values, batch.diagnostics],
+      [snapshot.values, snapshot.evaluationDiagnostics],
+    ]) {
+      assert.equal(values.total, null);
+      assert.deepEqual(diagnostics.map(d => [d.path, d.code]), [['total', 'FEL_ARITHMETIC_OVERFLOW']]);
+    }
+  } finally {
+    engine.dispose();
+  }
+});
