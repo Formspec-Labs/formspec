@@ -83,10 +83,10 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
     if (!relevant) return null;
 
     return (
-        <div className="formspec-repeat" data-bind={repeatPath} ref={containerRef}>
+        <div className="formspec-repeat" data-bind={node.repeatGroup} data-repeat-path={repeatPath} ref={containerRef}>
             <div className="formspec-repeat-list">
                 {instances.map((children, idx) => (
-                    <div key={idx} className="formspec-repeat-instance"
+                    <div key={idx} className="formspec-repeat-instance" data-repeat-path={`${repeatPath}[${idx}]`}
                          role="group"
                          aria-label={chromeText(engine, 'repeat.rowOf', { label: title, index: idx + 1, total: count })}>
                         <div className="formspec-repeat-instance-header">
@@ -215,12 +215,12 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
     if (!relevant) return null;
 
     return (
-        <div className="formspec-repeat formspec-repeat--accordion" data-bind={bindKey} ref={containerRef}>
+        <div className="formspec-repeat formspec-repeat--accordion" data-bind={bindKey} data-repeat-path={bindKey} ref={containerRef}>
             <div className="formspec-accordion formspec-accordion--repeat">
                 {Array.from({ length: count }, (_, i) => {
                     const isOpen = allowMultiple ? openIndices.has(i) : openIndex === i;
                     return (
-                        <details key={i} className="formspec-accordion-item" open={isOpen}>
+                        <details key={i} className="formspec-accordion-item" open={isOpen} data-repeat-path={`${bindKey}[${i}]`}>
                             <summary
                                 className="formspec-focus-ring"
                                 onClick={(event) => {

@@ -566,14 +566,14 @@ function DataTableDisplay({
 
     if (!bindKey || columns.length === 0) {
         return (
-            <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style} data-bind={bindKey} {...metadataAttrs}>
+            <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style} data-bind={bindKey} data-repeat-path={bindKey} {...metadataAttrs}>
                 <table className="formspec-data-table" />
             </div>
         );
     }
 
     return (
-        <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style} data-bind={bindKey} {...metadataAttrs}>
+        <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style} data-bind={bindKey} data-repeat-path={bindKey} {...metadataAttrs}>
             <table className="formspec-data-table">
                 {(node.props?.title as string) && (
                     <caption>{node.props?.title as string}</caption>
@@ -597,7 +597,7 @@ function DataTableDisplay({
                 </thead>
                 <tbody>
                     {Array.from({ length: count }, (_, i) => (
-                        <tr key={i}>
+                        <tr key={i} data-repeat-path={`${bindKey}[${i}]`}>
                             {showRowNumbers && <td className="formspec-row-number">{i + 1}</td>}
                             {columns.map((col, ci) => (
                                 <DataTableCell

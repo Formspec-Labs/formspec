@@ -41,6 +41,7 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
     const { comp, host, fullName, repeatCount, relevant, canAdd, canRemove, addInstance, removeInstance } = behavior;
     const wrapper = document.createElement('div');
     wrapper.className = 'formspec-data-table-wrapper';
+    wrapper.dataset.repeatPath = fullName;
     parent.appendChild(wrapper);
     host.cleanupFns.push(effect(() => {
         wrapper.classList.toggle('formspec-hidden', !relevant.value);
@@ -143,6 +144,7 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
             tbody.innerHTML = '';
             for (let i = 0; i < count; i++) {
                 const tr = document.createElement('tr');
+                tr.dataset.repeatPath = `${fullName}[${i}]`;
                 if (showRowNumbers) {
                     const td = document.createElement('td');
                     td.textContent = String(i + 1);

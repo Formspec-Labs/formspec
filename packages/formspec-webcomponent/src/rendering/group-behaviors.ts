@@ -239,6 +239,8 @@ export function buildRepeatGroupBehavior(
 
         bind(refs: RepeatGroupRefs): () => void {
             bound = refs;
+            refs.root.dataset.repeatPath = path;
+            refs.list.dataset.repeatRows = path;
             const disposers = [effect(() => {
                 refs.root.classList.toggle('formspec-hidden', !relevant.value);
             })];

@@ -53,6 +53,7 @@ export function renderUSWDSAccordion(
         wrapper.appendChild(el);
         el.classList.add('formspec-accordion--repeat');
         const fullName = host.prefix ? `${host.prefix}.${bindKey}` : bindKey;
+        wrapper.dataset.repeatPath = fullName;
 
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
@@ -105,6 +106,7 @@ export function renderUSWDSAccordion(
                 content.hidden = !shouldOpen;
 
                 const instancePrefix = `${fullName}[${i}]`;
+                content.dataset.repeatPath = instancePrefix;
                 for (const child of comp.children || []) {
                     rows.renderComponent(child, content, instancePrefix);
                 }

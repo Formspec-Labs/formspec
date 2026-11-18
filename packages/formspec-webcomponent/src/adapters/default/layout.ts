@@ -269,6 +269,7 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
         wrapper.appendChild(el);
         el.classList.add('formspec-accordion--repeat');
         const fullName = host.prefix ? `${host.prefix}.${bindKey}` : bindKey;
+        wrapper.dataset.repeatPath = fullName;
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'formspec-repeat-add formspec-focus-ring';
@@ -310,6 +311,7 @@ export function renderAccordion(behavior: AccordionLayoutBehavior, parent: HTMLE
                 const content = document.createElement('div');
                 content.className = 'formspec-accordion-content formspec-accordion-content--repeat';
                 const instancePrefix = `${fullName}[${i}]`;
+                details.dataset.repeatPath = instancePrefix;
                 for (const child of comp.children || []) {
                     rows.renderComponent(child, content, instancePrefix);
                 }

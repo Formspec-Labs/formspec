@@ -62,21 +62,24 @@ export async function walkDefinition(page: Page, plan: Plan, options: OpenOption
             const hidden = instances.filter(f => !f.relevant).map(f => f.path);
             if (!instances.length) hidden.push(field.path);
             for (const path of hidden) {
-                await walk.reveal(path, fieldWant(field));
-                covered.add(field.path);
-                report.revealed += 1;
+                const result = await walk.reveal(path, fieldWant(field));
+                if (result) {
+                    covered.add(field.path);
+                    if (result === 'revealed') report.revealed += 1;
+                    else report.fields += 1;
+                }
             }
         } else if (!instances.length && field.repeatOf) {
-            await walk.field(field.path, fieldWant(field));
-            covered.add(field.path);
-            report.fields += 1;
+            if (await walk.field(field.path, fieldWant(field))) {
+                covered.add(field.path);
+                report.fields += 1;
+            }
         }
     }
 
     for (const g of plan.groups.filter(g => g.repeat?.addLabel)) {
         const r = g.repeat!;
-        await walk.repeat(g.path, { rowName: r.rowName, addLabel: r.addLabel, removeLabel: r.removeLabel, maxRepeat: r.maxRepeat, shownBy: 'engine' });
-        report.repeats += 1;
+        if (await walk.repeat(g.path, { rowName: r.rowName, addLabel: r.addLabel, removeLabel: r.removeLabel, maxRepeat: r.maxRepeat })) report.repeats += 1;
     }
 
     // One row per live field the walk saw — every instance of a repeat answers for itself.
@@ -84,7 +87,7 @@ export async function walkDefinition(page: Page, plan: Plan, options: OpenOption
         const f = byBase.get(baseOf(path))!;
         return { path, label: f.label, message: f.requiredMessage };
     }));
-    for (const f of plan.fields) if (!covered.has(f.path) && !walk.uncovered.some((u) => u.startsWith(`${f.path}:`))) walk.found(`${f.path}: never rendered on any step`);
+    for (const f of plan.fields) if (!covered.has(f.path) && ![...walk.uncovered, ...walk.findings].some(message => baseOf(message).startsWith(`${f.path}:`))) walk.found(`${f.path}: never rendered on any step`);
     return report;
 }
 

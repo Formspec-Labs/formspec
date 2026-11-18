@@ -152,6 +152,7 @@ export const DEFAULT_WALK_ROOT_SELECTOR =
  */
 export class Walk {
     readonly findings: string[] = [];
+    private findingCount = 0;
     readonly uncovered: string[] = [];
     readonly root: Locator;
     /** The Tab-walk starting point, before the form. */
@@ -198,6 +199,7 @@ export class Walk {
     }
 
     found(finding: string): void {
+        this.findingCount += 1;
         if (!this.findings.includes(finding)) this.findings.push(finding);
     }
 
@@ -242,7 +244,7 @@ export class Walk {
     }
 
     /** Check one concrete path, creating and then removing only its missing parent rows. */
-    private async withRows<T>(path: string, check: (path: string) => Promise<T>): Promise<T> {
+    private async withRows<T>(path: string, check: (path: string) => Promise<T>): Promise<T | false> {
         const sample = await this.page.evaluate(({ selector, path }) => {
             const engine = (document.querySelector(selector) as any).engine;
             const added: string[] = [];
@@ -253,12 +255,19 @@ export class Walk {
                 if (i === parts.length - 1) break;
                 const count = engine.repeats?.[concrete];
                 if (!count) continue;
-                if (!count.value && engine.addRepeatInstance(concrete) !== undefined) added.push(concrete);
+                if (!count.value) {
+                    if (engine.addRepeatInstance(concrete) === undefined) return { concrete, added, blocked: true };
+                    added.push(concrete);
+                }
                 concrete += '[0]';
             }
-            return { concrete, added };
+            return { concrete, added, blocked: false };
         }, { selector: this.rootSelector, path });
         try {
+            if (sample.blocked) {
+                this.uncover(`${path}: repeat ${sample.concrete} cannot take a sample row`);
+                return false;
+            }
             if (sample.added.length) await this.page.waitForTimeout(100);
             return await check(sample.concrete);
         } finally {
@@ -382,26 +391,28 @@ export class Walk {
      * widget), heard that way with its required state when focused, described by its hint, offering
      * every option. Brings its wizard step into view first.
      */
-    async field(pathOrBase: string, w: FieldWant, stop?: Stop, live?: LiveField): Promise<void> {
+    async field(pathOrBase: string, w: FieldWant, stop?: Stop, live?: LiveField): Promise<boolean> {
         const existing = live ?? await this.live(pathOrBase);
         if (existing) return this.checkField(existing, w, stop);
-        await this.withRows(pathOrBase, async path => {
+        return this.withRows(pathOrBase, async path => {
             const f = await this.live(path);
-            if (f) await this.checkField(f, w, stop);
-            else this.found(`${pathOrBase}: the engine has no such field`);
+            if (f) return this.checkField(f, w, stop);
+            this.found(`${pathOrBase}: the engine has no such field`);
+            return false;
         });
     }
 
-    private async checkField(f: LiveField, w: FieldWant, stop?: Stop): Promise<void> {
-        if (!(await this.show(f.path))) { this.found(`${f.path}: never shown on any step`); return; }
+    private async checkField(f: LiveField, w: FieldWant, stop?: Stop): Promise<boolean> {
+        const before = this.findingCount;
+        if (!(await this.show(f.path))) { this.found(`${f.path}: never shown on any step`); return false; }
         const label = want(w.label);
         const fieldRoot = this.root.locator(`[data-name="${f.path}"]`).filter({ visible: true });
-        if ((await fieldRoot.count()) !== 1) { this.found(`${f.path}: expected one visible field root, got ${await fieldRoot.count()}`); return; }
+        if ((await fieldRoot.count()) !== 1) { this.found(`${f.path}: expected one visible field root, got ${await fieldRoot.count()}`); return false; }
         const required = w.required === 'engine' || w.required === undefined ? f.required : w.required;
         const actionable = [...INPUT_ROLES, 'radio', 'button'] as const;
         const controls = this.byRoles(fieldRoot, actionable);
         const count = await controls.count();
-        if (!count) { this.found(`${f.path}: no control with a role inside the field`); return; }
+        if (!count) { this.found(`${f.path}: no control with a role inside the field`); return false; }
         // Only a group around the principal control can name the field. An optgroup
         // or a sibling help panel does not change a single input into a composite.
         const owners = controls.first().locator('xpath=ancestor::*');
@@ -460,6 +471,7 @@ export class Walk {
             }
         }
         if (!f.readonly) await this.choice(f.path, fieldRoot);
+        return this.findingCount === before;
     }
 
     /** One native keyboard action must persist in the DOM, field state, and exported Response. */
@@ -587,29 +599,33 @@ export class Walk {
     }
 
     /** Check a conditional field in the section where the respondent can reach it. */
-    async reveal(pathOrBase: string, w: RevealWant, options: { stay?: boolean } = {}): Promise<boolean> {
-        return this.withRows(pathOrBase, async path => {
+    async reveal(pathOrBase: string, w: RevealWant, options: { stay?: boolean } = {}): Promise<'revealed' | 'visible' | false> {
+        return this.withRows<'revealed' | 'visible' | false>(pathOrBase, async path => {
             const f = await this.live(path);
-            if (!f) { this.found(`${path}: the engine has no such field`); return true; }
+            if (!f) { this.found(`${path}: the engine has no such field`); return false; }
             const recipe = f.relevant ? [] : await this.applyRecipe(f.path, w.shownBy ?? 'engine');
-            if (!recipe) return true;
+            if (!recipe) return false;
             const fieldRoot = this.root.locator(`[data-name="${f.path}"]`);
             try {
                 if (options.stay && !(await fieldRoot.waitFor({ state: 'visible', timeout: 300 }).then(() => true, () => false))) return false;
                 if (!(await this.show(f.path))) {
                     this.found(`${f.path}: never shown on any step`);
-                    return true;
+                    return false;
                 }
                 const reached = (await this.tabWalk(f.path)).find(stop => stop.path === f.path);
-                if (!reached) this.found(`${f.path}: not reachable by Tab in its section`);
-                await this.field(f.path, w, reached);
+                if (!reached) {
+                    this.found(`${f.path}: not reachable by Tab in its section`);
+                    return false;
+                }
+                if (!await this.field(f.path, w, reached)) return false;
             } finally {
                 if (recipe.length) await this.restore(recipe);
             }
             if (!f.relevant && !(await fieldRoot.waitFor({ state: 'hidden', timeout: 1500 }).then(() => true, () => false))) {
                 this.found(`${f.path}: still shown after its driver was reset`);
+                return false;
             }
-            return true;
+            return f.relevant ? 'visible' : 'revealed';
         });
     }
 
@@ -634,27 +650,43 @@ export class Walk {
     }
 
     /** Add names a control, adds a row the focus lands in, names the row and its Remove control, which removes it. */
-    async repeat(groupPath: string, w: RepeatWant): Promise<void> {
-        if (!w.addLabel) return;
+    async repeat(groupPath: string, w: RepeatWant): Promise<boolean> {
+        if (!w.addLabel) return false;
         const addLabel = want(w.addLabel);
-        await this.withRows(groupPath, async concrete => {
-            const scope = await this.root.locator('.formspec-workspace').count()
-                ? this.root.locator(`:is(.formspec-repeat, .formspec-data-table-wrapper)[data-bind="${concrete}"]`)
-                : this.root;
+        return this.withRows(groupPath, async concrete => {
+            const scope = this.root.locator(`[data-repeat-path="${concrete}"]`);
             const add = scope.getByRole('button', { name: asRegex(addLabel) });
-            // The group may be empty. Its own relevance and Add control do not depend on its first child.
+            const before = await this.repeatCount(concrete);
+            if (w.maxRepeat !== undefined && before >= w.maxRepeat) {
+                this.uncover(`${concrete}: already at maxRepeat; Add was not exercised`);
+                return false;
+            }
             const relevant = await this.page.evaluate(({ selector, path }) =>
                 (document.querySelector(selector) as any).engine.isPathRelevant(path), { selector: this.rootSelector, path: concrete });
             const recipe = relevant ? [] : await this.applyRecipe(concrete, w.shownBy ?? 'engine');
-            if (!recipe) return;
+            if (!recipe) return false;
             try {
-                if (w.maxRepeat !== undefined && await this.repeatCount(concrete) >= w.maxRepeat) return;
-                if (!await this.showControl(add.first())) this.found(`${concrete}: never shown on any step`);
-                else await this.repeatShown(concrete, w, scope, add, addLabel);
+                if (!await this.showControl(scope)) {
+                    this.found(`${concrete}: never shown on any step`);
+                    return false;
+                }
+                // A nested repeat can have the same accessible Add label. Only operate controls owned by this group.
+                const owned = await this.ownedButton(add, [concrete]);
+                if (!owned) {
+                    this.found(`${concrete}: expected one Add control named "${addLabel.text}"`);
+                    return false;
+                }
+                return await this.repeatShown(concrete, before, w, scope, owned);
             } finally {
                 if (recipe.length) await this.restore(recipe);
             }
         });
+    }
+
+    private async ownedButton(buttons: Locator, paths: string[]): Promise<Locator | undefined> {
+        const indices = await buttons.evaluateAll((nodes, paths) => nodes.flatMap((node, i) =>
+            paths.includes(node.closest('[data-repeat-path]')?.getAttribute('data-repeat-path') ?? '') ? [i] : []), paths);
+        return indices.length === 1 ? buttons.nth(indices[0]) : undefined;
     }
 
     private repeatCount(path: string): Promise<number> {
@@ -662,40 +694,58 @@ export class Walk {
             (document.querySelector(selector) as any).engine.repeats[path]?.value ?? 0, { selector: this.rootSelector, path });
     }
 
-    private async repeatShown(groupPath: string, w: RepeatWant, scope: Locator, add: Locator, addLabel: ExpectedText): Promise<void> {
-        const rows = () => this.repeatCount(groupPath);
-        if (!(await add.count())) { this.found(`${groupPath}: no Add control named "${addLabel.text}"`); return; }
-        const before = await rows();
-        await this.sr.clearSpokenPhraseLog();
-        await add.first().click();
-        await this.page.waitForTimeout(50);
-        const after = await rows();
-        if (after !== before + 1) { this.found(`${groupPath}: Add went from ${before} to ${after} rows`); return; }
-        const rowPrefix = `[data-name^="${groupPath}[${after - 1}]"]`;
-        const rowState = await add.first().evaluate((button, { rowPrefix, after }) => {
-            const container = button.closest('.formspec-repeat');
-            const row = container?.querySelectorAll(':scope > .formspec-repeat-list > .formspec-repeat-instance')[after - 1];
-            const field = document.querySelector(rowPrefix);
-            const owner = row ?? field?.parentElement?.closest('fieldset, [aria-label], [aria-labelledby]');
-            if (!owner) return null;
-            const legend = owner.querySelector(':scope > legend');
-            const labelled = (owner.getAttribute('aria-labelledby') ?? '').split(/\s+/).map(id => document.getElementById(id)?.textContent ?? '').join(' ').trim();
-            return { focused: owner.contains(document.activeElement), name: legend?.textContent ?? owner.getAttribute('aria-label') ?? labelled };
-        }, { rowPrefix, after });
-        if (!rowState?.focused) this.found(`${groupPath}: focus did not move into the new row after Add`);
-        const rowName = rowState?.name;
-        const rowWant = want(w.rowName);
-        if (!rowName || !nameOpensWith(rowName, rowWant)) this.found(`${groupPath}: new row named "${rowName}", expected "${rowWant.text}"`);
-        if (w.removeLabel) {
-            const removeLabel = want(w.removeLabel);
-            const remove = scope.getByRole('button', { name: asRegex(removeLabel) });
-            if (!(await remove.count())) this.found(`${groupPath}: no Remove control named "${removeLabel.text}"`);
-            else {
-                await remove.last().click();
-                await this.page.waitForTimeout(50);
-                if ((await rows()) !== before) this.found(`${groupPath}: Remove left ${await rows()} rows, expected ${before}`);
+    private async repeatShown(path: string, before: number, w: RepeatWant, scope: Locator, add: Locator): Promise<boolean> {
+        const findingsBefore = this.findingCount;
+        // A faulty Add/Remove handler can mutate a different row, even when its button is in the right place.
+        const snapshot = await this.page.evaluateHandle(sel => (document.querySelector(sel) as any).engine.getDraftSnapshot(), this.rootSelector);
+        try {
+            await this.sr.clearSpokenPhraseLog();
+            await add.click();
+            await this.page.waitForTimeout(50);
+            const after = await this.repeatCount(path);
+            if (after !== before + 1) {
+                this.found(`${path}: Add went from ${before} to ${after} rows`);
+                return false;
             }
+            const index = after - 1;
+            const row = scope.locator(`[data-repeat-path="${path}[${index}]"], [data-repeat-rows="${path}"] > :nth-child(${after})`);
+            if (await row.count() !== 1) {
+                this.found(`${path}: cannot identify new row ${index + 1}`);
+                return false;
+            }
+            const state = await row.evaluate(el => {
+                const legend = el.querySelector(':scope > legend, :scope > summary');
+                const labelled = (el.getAttribute('aria-labelledby') ?? '').split(/\s+/)
+                    .map(id => el.ownerDocument.getElementById(id)?.textContent ?? '').join(' ').trim();
+                return { focused: el.contains(el.ownerDocument.activeElement), name: legend?.textContent ?? el.getAttribute('aria-label') ?? labelled };
+            });
+            if (!state.focused) this.found(`${path}: focus did not move into the new row after Add`);
+            const rowWant = want(w.rowName);
+            if (!state.name || !nameOpensWith(state.name, rowWant)) this.found(`${path}: new row named "${state.name}", expected "${rowWant.text}"`);
+            if (w.removeLabel) {
+                const name = want(w.removeLabel);
+                const remove = row.getByRole('button', { name: asRegex(name) });
+                const owned = await this.ownedButton(remove, [path, `${path}[${index}]`]);
+                if (!owned) this.found(`${path}: no Remove control named "${name.text}" uniquely identifies the new row`);
+                else {
+                    await owned.click();
+                    await this.page.waitForTimeout(50);
+                    if (await this.repeatCount(path) !== before) this.found(`${path}: Remove did not restore the original row count`);
+                }
+            }
+        } finally {
+            const changed = await this.page.evaluate(({ sel, path, before, snapshot }) => {
+                const engine = (document.querySelector(sel) as any).engine;
+                // Prefer deleting precisely the sample. Reload only if the control changed other draft data.
+                const count = engine.repeats[path]?.value;
+                if (count === before + 1) engine.removeRepeatInstance(path, before);
+                if (JSON.stringify(engine.getDraftSnapshot().data) === JSON.stringify(snapshot.data)) return false;
+                engine.loadDraftSnapshot(snapshot);
+                return true;
+            }, { sel: this.rootSelector, path, before, snapshot }).finally(() => snapshot.dispose());
+            if (changed) this.found(`${path}: repeat controls changed pre-existing draft data`);
         }
+        return this.findingCount === findingsBefore;
     }
 
     /**
