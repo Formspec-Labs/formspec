@@ -405,7 +405,13 @@ fn select_available(
     }
 
     if let (Pin::AtOpen, Some(pin)) = (selection.pin, &context.pin) {
-        return retained(pin, &matching, &winners, selection);
+        return retained(
+            pin,
+            &matching,
+            &winners,
+            selection,
+            context.mapping.as_ref().map(|resolved| &resolved.reference),
+        );
     }
     let delivered = deliver(&winners, selection, context)?;
     Some(SelectionOutcome::Available {
@@ -423,6 +429,7 @@ fn retained(
     matching: &[Candidate],
     winners: &[&Candidate],
     selection: &ResponseSelection,
+    current_mapping: Option<&MappingReference>,
 ) -> Option<SelectionOutcome> {
     if !pin.pinned
         || pin.none != pin.records.is_empty()
@@ -430,6 +437,10 @@ fn retained(
         || (pin.none && pin.mapping.is_some())
         || (!pin.none
             && pin.mapping.as_ref().map(|mapping| &mapping.url) != selection.mapping.as_ref())
+        || pin
+            .mapping
+            .as_ref()
+            .is_some_and(|used| Some(used) != current_mapping)
         || value_digest(&pin.value)? != pin.value_digest
     {
         return None;

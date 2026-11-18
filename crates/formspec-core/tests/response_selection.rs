@@ -102,3 +102,38 @@ fn subject_id_refuses_unsafe_integers() {
         );
     }
 }
+
+#[test]
+fn retained_mapping_requires_the_current_verified_digest() {
+    let suite: Value = serde_json::from_str(CASES).unwrap();
+    let case = suite["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["name"] == "mapping receives the whole projected array once")
+        .unwrap();
+    let records: Vec<_> = case["records"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|name| &suite["records"][name.as_str().unwrap()])
+        .collect();
+    let records = serde_json::to_string(&records).unwrap();
+    let mut selection = case["selection"].clone();
+    selection["pin"] = "at-open".into();
+    let selection = merged(&suite["selection"], &selection);
+    let mut context: Value =
+        serde_json::from_str(&merged(&suite["context"], &case["context"])).unwrap();
+    let run = |context: &Value| -> Value {
+        let outcome = select_json(&records, &selection, &context.to_string()).unwrap();
+        serde_json::from_str(&outcome).unwrap()
+    };
+    let opened = run(&context);
+    assert_eq!(opened["status"], "available");
+    context["pin"] = opened;
+    assert_eq!(run(&context)["status"], "available");
+    context["mapping"]["reference"]["digest"] = format!("sha256:{}", "b".repeat(64)).into();
+    assert_eq!(run(&context)["status"], "unavailable");
+    context.as_object_mut().unwrap().remove("mapping");
+    assert_eq!(run(&context)["status"], "unavailable");
+}
