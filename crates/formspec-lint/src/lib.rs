@@ -85,8 +85,6 @@ pub use pass_accessibility::{
     AccessibilityChecks, AccessibilityFinding, AccessibilityOutcome, AccessibilityRuleResult, check_accessibility,
 };
 pub use schema_validation::{validate_mapping_source, validate_mapping_source_association};
-#[doc(inline)]
-pub use formspec_core::compatible_version_satisfied;
 pub use types::{
     LintDiagnostic, LintMode, LintOptions, LintResult, LintSeverity, MappingSourceContext,
     sort_diagnostics,
