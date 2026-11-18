@@ -32,6 +32,7 @@
 mod access_classes;
 pub mod app_graph_report;
 mod bind_consistency;
+mod definition_version;
 mod document_declarations;
 mod response_documents;
 mod generated;
@@ -251,6 +252,7 @@ fn lint_definition(
         ));
     }
 
+    diagnostics.extend(definition_version::check(doc));
     diagnostics.extend(references::check_references(doc, &tree_index));
     diagnostics.extend(document_declarations::lint_documents(doc));
     diagnostics.extend(response_instances::lint_definition(doc));

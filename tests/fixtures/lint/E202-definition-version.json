@@ -1,0 +1,9 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:version-check",
+  "versionAlgorithm": "integer",
+  "version": "0.1.0",
+  "status": "draft",
+  "title": "Version format",
+  "items": [{ "key": "answer", "type": "field", "dataType": "string", "label": "Answer" }]
+}

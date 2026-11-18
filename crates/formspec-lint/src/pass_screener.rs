@@ -5,7 +5,9 @@ use std::collections::HashSet;
 
 use serde_json::Value;
 
-use crate::semantic_helpers::{error, parse_form_path, resolve_item_path, scan_interpolations};
+use crate::semantic_helpers::{
+    error, parse_calendar_date, parse_form_path, resolve_item_path, scan_interpolations,
+};
 use crate::tree;
 use crate::types::LintDiagnostic;
 
@@ -156,7 +158,7 @@ fn check_lifecycle(doc: &Value, diagnostics: &mut Vec<LintDiagnostic>) {
             return;
         }
         if let Some(version) = doc.get("version").and_then(Value::as_str)
-            && !is_semver(version)
+            && !crate::definition_version::is_semver(version)
         {
             diagnostics.push(error(
                 crate::LintCode::E1505,
@@ -174,8 +176,8 @@ fn check_availability(doc: &Value, diagnostics: &mut Vec<LintDiagnostic>) {
     };
     let from = availability.get("from").and_then(Value::as_str);
     let until = availability.get("until").and_then(Value::as_str);
-    let parsed_from = from.and_then(parse_iso_date);
-    let parsed_until = until.and_then(parse_iso_date);
+    let parsed_from = from.and_then(|date| parse_calendar_date(date, b'-'));
+    let parsed_until = until.and_then(|date| parse_calendar_date(date, b'-'));
     if from.is_some() && parsed_from.is_none() {
         diagnostics.push(error(
             crate::LintCode::E1505,
@@ -264,51 +266,6 @@ fn check_determination_validity(
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct CalendarDate {
-    year: i32,
-    month: u8,
-    day: u8,
-}
-
-fn parse_iso_date(value: &str) -> Option<CalendarDate> {
-    let bytes = value.as_bytes();
-    if bytes.len() != 10 || bytes[4] != b'-' || bytes[7] != b'-' {
-        return None;
-    }
-    let year = parse_ascii_digits(&bytes[0..4])? as i32;
-    let month = parse_ascii_digits(&bytes[5..7])? as u8;
-    let day = parse_ascii_digits(&bytes[8..10])? as u8;
-    let max_day = days_in_month(year, month)?;
-    if day == 0 || day > max_day {
-        return None;
-    }
-    Some(CalendarDate { year, month, day })
-}
-
-fn parse_ascii_digits(bytes: &[u8]) -> Option<u32> {
-    if bytes.is_empty() || !bytes.iter().all(|byte| byte.is_ascii_digit()) {
-        return None;
-    }
-    bytes.iter().try_fold(0_u32, |value, byte| {
-        value.checked_mul(10)?.checked_add(u32::from(byte - b'0'))
-    })
-}
-
-fn days_in_month(year: i32, month: u8) -> Option<u8> {
-    match month {
-        1 | 3 | 5 | 7 | 8 | 10 | 12 => Some(31),
-        4 | 6 | 9 | 11 => Some(30),
-        2 if is_leap_year(year) => Some(29),
-        2 => Some(28),
-        _ => None,
-    }
-}
-
-fn is_leap_year(year: i32) -> bool {
-    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
-}
-
 fn is_valid_iso_duration(value: &str) -> bool {
     let Some(mut rest) = value.strip_prefix('P') else {
         return false;
@@ -334,7 +291,7 @@ fn is_valid_iso_duration(value: &str) -> bool {
             return false;
         }
         let (number, remainder) = rest.split_at(digit_count);
-        if parse_ascii_digits(number.as_bytes()).is_none() {
+        if number.parse::<u32>().is_err() {
             return false;
         }
         let Some(unit) = remainder.chars().next() else {
@@ -358,37 +315,7 @@ fn valid_until_has_valid_date(value: &str) -> bool {
     let Some((date, time)) = value.split_once('T') else {
         return false;
     };
-    !time.is_empty() && parse_iso_date(date).is_some()
-}
-
-fn is_semver(value: &str) -> bool {
-    let (without_build, build) = value.split_once('+').unwrap_or((value, ""));
-    if value.contains('+') && (build.is_empty() || !is_semver_identifier_list(build)) {
-        return false;
-    }
-    let (core, pre_release) = without_build.split_once('-').unwrap_or((without_build, ""));
-    if without_build.contains('-')
-        && (pre_release.is_empty() || !is_semver_identifier_list(pre_release))
-    {
-        return false;
-    }
-    let parts = core.split('.').collect::<Vec<_>>();
-    parts.len() == 3 && parts.iter().all(|part| is_semver_numeric_identifier(part))
-}
-
-fn is_semver_numeric_identifier(value: &str) -> bool {
-    !value.is_empty()
-        && value.bytes().all(|byte| byte.is_ascii_digit())
-        && (value == "0" || !value.starts_with('0'))
-}
-
-fn is_semver_identifier_list(value: &str) -> bool {
-    value.split('.').all(|part| {
-        !part.is_empty()
-            && part
-                .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
-    })
+    !time.is_empty() && parse_calendar_date(date, b'-').is_some()
 }
 
 fn check_evaluation(

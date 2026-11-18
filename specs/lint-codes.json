@@ -52,6 +52,18 @@
       "state": "tested"
     },
     {
+      "code": "E202",
+      "pass": 2,
+      "severity": "error",
+      "title": "Definition version does not match its algorithm",
+      "specRef": "specs/core/spec.md#62-version-algorithms",
+      "suggestedFix": "use a version string in the declared format, or declare the intended versionAlgorithm",
+      "fixtures": [
+        "tests/fixtures/lint/E202-definition-version.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "E300",
       "pass": 3,
       "severity": "error",

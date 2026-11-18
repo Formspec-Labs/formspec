@@ -50,6 +50,42 @@ pub(crate) fn warning(
     metadata::with_metadata(LintDiagnostic::warning(code, pass, path, message))
 }
 
+/// A proleptic Gregorian calendar date, ordered chronologically.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct CalendarDate {
+    year: u32,
+    month: u32,
+    day: u32,
+}
+
+/// Parse `YYYY<sep>MM<sep>DD`, rejecting dates the calendar does not have.
+pub(crate) fn parse_calendar_date(value: &str, separator: u8) -> Option<CalendarDate> {
+    let bytes = value.as_bytes();
+    if bytes.len() != 10 || bytes[4] != separator || bytes[7] != separator {
+        return None;
+    }
+    let number = |range: std::ops::Range<usize>| {
+        let digits = &bytes[range];
+        digits.iter().all(u8::is_ascii_digit).then(|| {
+            digits
+                .iter()
+                .fold(0, |value, digit| value * 10 + u32::from(digit - b'0'))
+        })
+    };
+    let (year, month, day) = (number(0..4)?, number(5..7)?, number(8..10)?);
+    let leap = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+    let days = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return None,
+    };
+    (1..=days)
+        .contains(&day)
+        .then_some(CalendarDate { year, month, day })
+}
+
 pub(crate) fn parse_form_path(
     path: &str,
     allow_root: bool,
