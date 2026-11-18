@@ -27,7 +27,6 @@ import type { NativeScreenerSlotProps, SurfaceScreenerCompletionPolicy } from '.
  */
 import { selectDataSourceRevisions, type DataSourceRevisionSelector } from './data-source-revision.js';
 import {
-  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -39,9 +38,12 @@ import {
 import {
   createFormEngine,
   createMappingEngine,
+  initFormspecEngineTools,
+  isFormspecEngineToolsInitialized,
   resolveResponseActionValidationTuple,
-  type IFormEngine,
+  responseSubjectId,
   type FormEngineOptions,
+  type IFormEngine,
 } from '@formspec-org/engine';
 import { FormspecForm } from '@formspec-org/react';
 import type {
@@ -155,6 +157,10 @@ export interface SurfaceDefinitionFormRenderInput {
   plan: ResolvedDefinitionFormPlan;
   grant: ThemeGrant;
   route: SurfaceWidgetRouteContext;
+  /** Resolved shell strings for the active locale. */
+  strings: SurfaceStrings;
+  /** The filing-unit type and typed keys, with the ID derived by Core. */
+  responseSubject?: FormEngineOptions['responseSubject'];
   responseActionsDocument: ReactResponseActionsDocument | undefined;
   referencesDocuments: readonly ReferencesDocument[];
   ontologyDocuments: readonly OntologyDocument[];
@@ -170,7 +176,6 @@ export interface SurfaceDefinitionFormRenderInput {
   /** A new form still needs its authored seed. An existing draft has its own data. */
   draftSeed?: 'loading' | 'unavailable' | undefined;
   draftStrings?: SurfaceStrings | undefined;
-  responseSubject?: FormEngineOptions['responseSubject'];
   /** Report committed saves and failed writes to the single shell live region. */
   reportSave?: ((notice: SurfaceSaveNotice) => void) | undefined;
   activeSection?: string | undefined;
@@ -585,6 +590,7 @@ export function SurfaceSlot({
         },
         grant,
         route,
+        strings,
         responseActionsDocument,
         componentDocument: plan.componentDocument,
         referencesDocuments: referencesDocuments ?? [],
@@ -620,11 +626,12 @@ export function SurfaceSlot({
       }
       if (plan.initialData && plan.initialData.status !== 'ready') {
         if (!renderInput.draftSession) return <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
-        const input = { ...renderInput, draftSeed: 'unavailable' as const };
-        return <Fragment key={subjectKey}>
-          {renderDefinitionForm ? renderDefinitionForm(input) :
-            <DefaultDefinitionFormSlot input={input} semanticOutputScope={slotSemanticOutputScope} />}
-        </Fragment>;
+        return <DefinitionFormSlot
+          key={subjectKey}
+          input={{ ...renderInput, draftSeed: 'unavailable' }}
+          renderDefinitionForm={renderDefinitionForm}
+          semanticOutputScope={slotSemanticOutputScope}
+        />;
       }
       if (plan.initialData?.status === 'ready') {
         return (
@@ -632,7 +639,6 @@ export function SurfaceSlot({
             key={subjectKey}
             input={renderInput}
             initialDataPlan={plan.initialData}
-            strings={strings}
             dataSourceLoader={dataSourceLoader}
             dataSourceRevision={dataSourceRevision}
             authorizeDataSource={authorizeDataSource}
@@ -647,14 +653,12 @@ export function SurfaceSlot({
         );
       }
       return (
-        <Fragment key={subjectKey}>
-          {renderDefinitionForm ? renderDefinitionForm(renderInput) : (
-            <DefaultDefinitionFormSlot
-              input={renderInput}
-              semanticOutputScope={slotSemanticOutputScope}
-            />
-          )}
-        </Fragment>
+        <DefinitionFormSlot
+          key={subjectKey}
+          input={renderInput}
+          renderDefinitionForm={renderDefinitionForm}
+          semanticOutputScope={slotSemanticOutputScope}
+        />
       );
     }
 
@@ -896,14 +900,7 @@ function SurfaceStaticContent({
 }
 
 export function renderDefaultDefinitionForm(input: SurfaceDefinitionFormRenderInput): ReactNode {
-  if (input.draftSession) {
-    const key = JSON.stringify([input.plan.definition.url, input.plan.definition.version,
-      input.plan.subject?.type, input.plan.subject?.keys]);
-    return <DraftDefinitionForm key={key} input={input} session={input.draftSession}>
-      {(engine, writer) => <DefaultSurfaceDefinitionForm {...input} draftEngine={engine} draftWriter={writer} />}
-    </DraftDefinitionForm>;
-  }
-  return <DefaultSurfaceDefinitionForm {...input} />;
+  return <DefaultDefinitionFormSlot input={input} />;
 }
 
 type EffectDataSourcePorts = {
@@ -973,7 +970,6 @@ function executeDefinitionFormMapping({
 function DefinitionFormDataSlot({
   input,
   initialDataPlan,
-  strings,
   dataSourceLoader,
   dataSourceRevision,
   authorizeDataSource,
@@ -985,7 +981,6 @@ function DefinitionFormDataSlot({
 }: {
   input: SurfaceDefinitionFormRenderInput;
   initialDataPlan: ReadyDefinitionFormInitialDataPlan;
-  strings: SurfaceStrings;
   dataSourceLoader?: DataSourceLoader | undefined;
   /** Pure per-source scheduling hints; evaluated on host renders, never authority. */
   dataSourceRevision?: DataSourceRevisionSelector | undefined;
@@ -998,6 +993,7 @@ function DefinitionFormDataSlot({
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   semanticOutputScope: SurfaceSemanticOutputPublisherScope | undefined;
 }): ReactNode {
+  const { strings } = input;
   const [delivery, setDelivery] = useState<DefinitionFormDataState>({
     status: 'loading',
   });
@@ -1099,17 +1095,7 @@ function DefinitionFormDataSlot({
 
   if (!input.draftSession) {
     if (delivery.status === 'loading') {
-      return (
-        <p
-          className="fs-surface-loading"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-          data-probe="definition-form-loading"
-        >
-          {strings('transitionPending')}
-        </p>
-      );
+      return <DefinitionFormLoading>{strings('transitionPending')}</DefinitionFormLoading>;
     }
     if (delivery.status === 'unavailable') {
       return <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
@@ -1137,16 +1123,70 @@ function DefinitionFormDataSlot({
         dirty.current = true;
       }}
     >
-      {renderDefinitionForm
-        ? renderDefinitionForm(hydratedInput)
-        : (
-            <DefaultDefinitionFormSlot
-              input={hydratedInput}
-              semanticOutputScope={semanticOutputScope}
-            />
-          )}
+      <DefinitionFormSlot
+        input={hydratedInput}
+        renderDefinitionForm={renderDefinitionForm}
+        semanticOutputScope={semanticOutputScope}
+      />
     </div>
   );
+}
+
+function DefinitionFormLoading({ children }: { children: ReactNode }) {
+  return (
+    <p
+      className="fs-surface-loading"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      data-probe="definition-form-loading"
+    >
+      {children}
+    </p>
+  );
+}
+
+function DefinitionFormSlot({
+  input,
+  renderDefinitionForm,
+  semanticOutputScope,
+}: {
+  input: SurfaceDefinitionFormRenderInput;
+  renderDefinitionForm: SurfaceDefinitionFormRenderer | undefined;
+  semanticOutputScope: SurfaceSemanticOutputPublisherScope | undefined;
+}): ReactNode {
+  const { plan: { subject }, strings } = input;
+  const needsSubject = subject !== undefined;
+  const [toolsStatus, setToolsStatus] = useState<'ready' | 'loading' | 'unavailable'>(() =>
+    isFormspecEngineToolsInitialized() ? 'ready' : 'loading',
+  );
+  useEffect(() => {
+    if (!needsSubject || toolsStatus !== 'loading') return;
+    let current = true;
+    void initFormspecEngineTools().then(
+      () => { if (current) setToolsStatus('ready'); },
+      () => { if (current) setToolsStatus('unavailable'); },
+    );
+    return () => { current = false; };
+  }, [needsSubject, toolsStatus]);
+
+  const responseSubject = useMemo(() => {
+    if (!subject || toolsStatus !== 'ready') return undefined;
+    try {
+      return { ...subject, id: responseSubjectId(subject.type, subject.keys) };
+    } catch {
+      return undefined;
+    }
+  }, [subject, toolsStatus]);
+  if (needsSubject && !responseSubject) {
+    return toolsStatus === 'loading'
+      ? <DefinitionFormLoading>{strings('transitionPending')}</DefinitionFormLoading>
+      : <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
+  }
+  const resolvedInput = { ...input, responseSubject };
+  return renderDefinitionForm
+    ? renderDefinitionForm(resolvedInput)
+    : <DefaultDefinitionFormSlot input={resolvedInput} semanticOutputScope={semanticOutputScope} />;
 }
 
 function DefaultDefinitionFormSlot({
@@ -1154,23 +1194,31 @@ function DefaultDefinitionFormSlot({
   semanticOutputScope,
 }: {
   input: SurfaceDefinitionFormRenderInput;
-  semanticOutputScope: SurfaceSemanticOutputPublisherScope | undefined;
+  semanticOutputScope?: SurfaceSemanticOutputPublisherScope | undefined;
 }): ReactNode {
-  useSurfaceSemanticOutputs(
-    semanticOutputScope,
-    semanticOutputScope
-      ? [{ subjectRef: semanticOutputScope.subjectPrefix }]
-      : [],
-  );
-  return renderDefaultDefinitionForm(input);
+  if (input.draftSession) {
+    const key = JSON.stringify([input.plan.definition.url, input.plan.definition.version,
+      input.plan.subject?.type, input.plan.subject?.keys]);
+    return <DraftDefinitionForm key={key} input={input} session={input.draftSession}>
+      {(engine, writer) => <DefaultSurfaceDefinitionForm
+        {...input} draftEngine={engine} draftWriter={writer} semanticOutputScope={semanticOutputScope}
+      />}
+    </DraftDefinitionForm>;
+  }
+  return <DefaultSurfaceDefinitionForm {...input} semanticOutputScope={semanticOutputScope} />;
 }
 
 function DefaultSurfaceDefinitionForm(
-  input: SurfaceDefinitionFormRenderInput & { draftEngine?: IFormEngine; draftWriter?: DraftWriter },
+  input: SurfaceDefinitionFormRenderInput & {
+    draftEngine?: IFormEngine;
+    draftWriter?: DraftWriter;
+    semanticOutputScope?: SurfaceSemanticOutputPublisherScope | undefined;
+  },
 ): ReactNode {
   const {
     plan,
     grant,
+    strings,
     initialData,
     referencesDocuments,
     responseActionsDocument,
@@ -1185,6 +1233,7 @@ function DefaultSurfaceDefinitionForm(
     responseSubject,
     draftEngine,
     draftWriter,
+    semanticOutputScope,
     activeSection,
     sectionNavigationActive,
     hrefForSection,
@@ -1193,7 +1242,13 @@ function DefaultSurfaceDefinitionForm(
   } = input;
   const engine = useMemo(() => {
     if (draftEngine) return draftEngine;
-    const created = createFormEngine(plan.definition, responseSubject && { responseSubject });
+    let created: IFormEngine;
+    try {
+      created = createFormEngine(plan.definition, responseSubject && { responseSubject });
+    } catch (error) {
+      console.warn('Formspec Surface could not create the form engine.', error);
+      return undefined;
+    }
     if (initialData?.data !== undefined) {
       // Before any field component subscribes; keeps every saved repeat row.
       created.loadResponseData(
@@ -1201,8 +1256,9 @@ function DefaultSurfaceDefinitionForm(
       );
     }
     return created;
+    // Core's subject id covers both type and keys, even when a replan allocates a new object.
   }, [draftEngine, initialData?.data, plan.definition, responseSubject?.id]);
-  useEffect(() => () => { if (!draftEngine) engine.dispose(); }, [draftEngine, engine]);
+  useEffect(() => () => { if (!draftEngine) engine?.dispose(); }, [draftEngine, engine]);
   const formVisit = useRef<object | undefined>(undefined);
   const visit = useMemo(() => ({}), [engine]);
   useLayoutEffect(() => {
@@ -1210,6 +1266,7 @@ function DefaultSurfaceDefinitionForm(
     return () => { formVisit.current = undefined; };
   }, [visit]);
   useLayoutEffect(() => {
+    if (!engine) return;
     for (const locale of localeDocuments ?? []) {
       if (locale.target.kind === 'definition' && targetDefinitionMatches(locale.target, plan.definition)) {
         engine.loadLocale(locale);
@@ -1217,6 +1274,11 @@ function DefaultSurfaceDefinitionForm(
     }
     if (activeLocale !== undefined) engine.setLocale(activeLocale);
   }, [engine, localeDocuments, activeLocale, plan.definition]);
+  const renderedScope = engine ? semanticOutputScope : undefined;
+  useSurfaceSemanticOutputs(
+    renderedScope,
+    renderedScope ? [{ subjectRef: renderedScope.subjectPrefix }] : [],
+  );
 
   // Human help is References-spec resolution alone: this form never renders
   // agent-audience entries or Ontology concepts.
@@ -1259,6 +1321,9 @@ function DefaultSurfaceDefinitionForm(
     [references],
   );
 
+  if (!engine) {
+    return <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
+  }
   return (
     <FormspecForm
       {...(appearance && { className: `formspec-appearance-${appearance}` })}

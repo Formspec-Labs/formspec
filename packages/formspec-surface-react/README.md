@@ -205,9 +205,14 @@ its semantic output; app-graph reports
 
 Hosts that need their existing draft/submit runtime use
 `renderDefinitionForm`. Its single input contains the resolved form slot plan,
-route theme grant, route context, and the one Response Actions document
-targeting that Definition. Without the callback, the package renders the same
-`FormspecForm` as before.
+route theme grant, route context, localized `strings`, and the Response Actions
+document targeting that Definition. The callback receives any loaded `initialData`
+and the resolved filing unit as `responseSubject`, with its type, typed keys, and
+Core-derived ID. Pass `responseSubject` to `createFormEngine` before the first
+evaluation so `subject()` can read the keys and the Response carries the same
+identity. Singletons have `keys: {}`. A Definition without a subject receives
+`undefined`. `renderDefaultDefinitionForm(input)` uses that same input to render
+`FormspecForm`.
 
 `CeremonyFrame` is the sharp one: it lands on a `ceremony` route, where tenant
 chrome is refused, and it renders unbranded without carrying a rule of its own —

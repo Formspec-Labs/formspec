@@ -1,10 +1,14 @@
 # v12 Playwright review
 
-Reviewed input digest: `sha256:bcc7448d49ba67dee8df3923179bbb58d0d8af59e8d4d49ee3f560e0d5bc5e79`
+Reviewed input digest: `sha256:e98d38610e882a0baa0dba3a36b8cc74dac1c5152c3e9afae3a5c8fcd9ad067b`
 
 ## November 18, 2026 projection check
 
 Chromium rendered 15 routes across five profiles and tested the loaded views at desktop and mobile widths. Blank onboarding stayed on the form. A valid submission reached the dashboard, and Administration read all three saved values through the filed Response catalog. Invalid public input stayed on the form, valid input reached the receipt, and the same host rendered the independent bundle.
+
+## November 18, 2026 subject handoff
+
+Chromium repeated the route, profile, viewport, and outcome checks after Surface began passing filing-unit subjects to its engine. Administration showed the saved onboarding values with the preview helper removed. The receipt download completed without action failure feedback.
 
 ## November 17, 2026 recapture
 

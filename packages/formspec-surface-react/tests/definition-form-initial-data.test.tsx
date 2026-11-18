@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   initFormspecEngine,
   initFormspecEngineTools,
+  responseSubjectId,
 } from '@formspec-org/engine';
 import type {
   DataSource,
@@ -285,7 +286,8 @@ describe('definition-form initial data rendering', () => {
     }
   });
 
-  it('announces loading, mounts afterward, and passes separate record metadata', async () => {
+  it('announces loading and delivers the filing subject with data and separate record metadata', async () => {
+    const subject = { type: 'urn:example:profile', keys: {} };
     const pending = deferred<DataSourceLoadResult>();
     const renderer = vi.fn<SurfaceDefinitionFormRenderer>(({ initialData }) => (
       <div
@@ -303,7 +305,7 @@ describe('definition-form initial data rendering', () => {
     act(() => {
       root.render(
         <SurfaceApp
-          bundle={bundle()}
+          bundle={bundle(undefined, { ...definition, subject })}
           location="/edit"
           sessionGeneration="session-7"
           onNavigate={() => {}}
@@ -342,6 +344,10 @@ describe('definition-form initial data rendering', () => {
       '[data-probe="hydrated-custom-form"]',
     );
     expect(custom?.dataset.generation).toContain('session-7');
+    expect(renderer.mock.lastCall?.[0]).toMatchObject({
+      initialData: { data: { displayName: 'Ada' } },
+      responseSubject: { ...subject, id: responseSubjectId(subject.type, subject.keys) },
+    });
   });
 
   it('restores saved data after navigating away and revisiting the route', async () => {
