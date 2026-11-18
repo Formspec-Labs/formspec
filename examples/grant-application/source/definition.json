@@ -1,0 +1,992 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/forms/grant-application",
+  "version": "1.0.0",
+  "versionAlgorithm": "semver",
+  "status": "active",
+  "title": "Federal Grant Application",
+  "description": "Standard federal grant application demonstrating the full Formspec feature set.",
+  "date": "2026-02-25",
+  "name": "grant-application",
+  "derivedFrom": {
+    "url": "https://example.gov/forms/generic-application-template",
+    "version": "2.0.0"
+  },
+  "nonRelevantBehavior": "remove",
+  "extensions": {
+    "x-formspec-common": {
+      "registryUrl": "https://formspec.org/registries/formspec-common.registry.json",
+      "version": "1.0.0"
+    },
+    "x-agency": "DOH",
+    "x-program-code": "RHI-2026"
+  },
+  "formPresentation": {
+    "pageMode": "wizard",
+    "sidenav": true,
+    "labelPosition": "top",
+    "density": "comfortable",
+    "defaultCurrency": "USD"
+  },
+  "instances": {
+    "agencyData": {
+      "description": "Agency-provided reference data injected at form load",
+      "readonly": true,
+      "data": {
+        "maxAward": 500000,
+        "fiscalYear": "FY2026",
+        "ein": "47-1234567"
+      }
+    },
+    "scratchPad": {
+      "description": "Host-written session state, never submitted: the budget total at the last save and working budget notes. The host writes it through the engine API; expressions read it via @instance('scratchPad').",
+      "readonly": false,
+      "data": {
+        "lastSavedTotal": 0,
+        "budgetNotes": ""
+      },
+      "schema": {
+        "lastSavedTotal": "decimal",
+        "budgetNotes": "string"
+      },
+      "extensions": {
+        "x-purpose": "host-session-state"
+      }
+    },
+    "priorYearData": {
+      "description": "Prior-year performance data (inline static data for standalone example)",
+      "readonly": true,
+      "data": {
+        "priorAwardAmount": 250000,
+        "performanceRating": "satisfactory"
+      },
+      "schema": {
+        "priorAwardAmount": "integer",
+        "performanceRating": "string"
+      },
+      "source": "https://api.example.gov/responses/2024/example-grantee",
+      "static": true
+    }
+  },
+  "migrations": {
+    "from": {
+      "0.9.0": {
+        "description": "Renamed contact channels, removed legacy outreach field, and normalized requested amount storage.",
+        "fieldMap": [
+          {
+            "source": "applicantInfo.contactName",
+            "target": "applicantInfo.contactName",
+            "transform": "preserve"
+          },
+          {
+            "source": "applicantInfo.faxNumber",
+            "target": null,
+            "transform": "drop"
+          },
+          {
+            "source": "budget.requestedAmountRaw",
+            "target": "budget.requestedAmount.amount",
+            "transform": "expression",
+            "expression": "string(round(number($), 2))"
+          }
+        ],
+        "defaults": {
+          "budget.requestedAmount.currency": "USD",
+          "projectNarrative.selfAssessment": 3
+        }
+      }
+    }
+  },
+  "optionSets": {
+    "budgetCategories": {
+      "options": [
+        {
+          "value": "personnel",
+          "label": "Personnel"
+        },
+        {
+          "value": "fringe",
+          "label": "Fringe Benefits"
+        },
+        {
+          "value": "travel",
+          "label": "Travel"
+        },
+        {
+          "value": "equipment",
+          "label": "Equipment"
+        },
+        {
+          "value": "supplies",
+          "label": "Supplies"
+        },
+        {
+          "value": "contractual",
+          "label": "Contractual"
+        },
+        {
+          "value": "other",
+          "label": "Other Direct Costs"
+        }
+      ]
+    },
+    "orgTypes": {
+      "options": [
+        {
+          "value": "nonprofit",
+          "label": "Nonprofit Organization"
+        },
+        {
+          "value": "university",
+          "label": "University / Research Institution"
+        },
+        {
+          "value": "government",
+          "label": "State / Local Government"
+        },
+        {
+          "value": "forprofit",
+          "label": "For-Profit Entity"
+        }
+      ]
+    }
+  },
+  "variables": [
+    {
+      "name": "totalDirect",
+      "expression": "money(sum($budget.lineItems[*].subtotal), 'USD')"
+    },
+    {
+      "name": "budgetHasLineItems",
+      "expression": "not isNull($lineItems[1].category)",
+      "scope": "budget"
+    },
+    {
+      "name": "indirectCosts",
+      "expression": "if $applicantInfo.orgType = 'government' then money(0, 'USD') else money(moneyAmount(@totalDirect) * ($projectNarrative.indirectRate ?? 0) / 100, moneyCurrency(@totalDirect))"
+    },
+    {
+      "name": "narrativeHasDateRange",
+      "expression": "not empty($startDate) and not empty($endDate)",
+      "scope": "projectNarrative"
+    },
+    {
+      "name": "grandTotal",
+      "expression": "moneyAdd(@totalDirect, @indirectCosts)"
+    },
+    {
+      "name": "projectPhasesTotal",
+      "expression": "moneySum($projectPhases[*].phaseTotal)"
+    }
+  ],
+  "items": [
+    {
+      "type": "group",
+      "key": "applicantInfo",
+      "label": "Applicant Information",
+      "presentation": {
+        "layout": {
+        }
+      },
+      "children": [
+        {
+          "type": "field",
+          "key": "orgName",
+          "label": "Organization Name",
+          "dataType": "string",
+          "description": "The full legal name of the organization applying for the grant, as registered with the IRS.",
+          "hint": "Legal name of the applying organization.",
+          "labels": {
+            "short": "Org",
+            "aria": "Applying Organization Full Legal Name",
+            "pdf": "Applicant Organization Name",
+            "csv": "applicant_org_name"
+          },
+          "prePopulate": {
+            "instance": "agencyData",
+            "path": "orgName",
+            "editable": true
+          }
+        },
+        {
+          "type": "field",
+          "key": "ein",
+          "label": "Employer Identification Number (EIN)",
+          "dataType": "string",
+          "description": "The 9-digit federal tax identification number assigned by the IRS.",
+          "hint": "Format: XX-XXXXXXX",
+          "labels": {
+            "pdf": "Applicant EIN",
+            "csv": "applicant_ein"
+          },
+          "extensions": {
+            "x-formspec-ein": true
+          },
+          "prePopulate": {
+            "instance": "agencyData",
+            "path": "ein",
+            "editable": false
+          }
+        },
+        {
+          "type": "field",
+          "key": "projectWebsite",
+          "label": "Project Website",
+          "dataType": "uri",
+          "description": "URL for the project's public website or information page.",
+          "hint": "e.g. https://example.org/project"
+        },
+        {
+          "type": "field",
+          "key": "orgType",
+          "label": "Organization Type",
+          "dataType": "choice",
+          "optionSet": "orgTypes",
+          "initialValue": "nonprofit",
+          "children": [
+            {
+              "type": "field",
+              "key": "orgSubType",
+              "label": "Organization Sub-Type",
+              "dataType": "string",
+              "hint": "Specify sub-category if applicable (e.g., 501(c)(3), 501(c)(4))."
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "key": "alternateContact",
+          "label": "Alternate Contact",
+          "$ref": "https://example.gov/forms/fragments/contact-fragment#contactCore",
+          "keyPrefix": "altContact"
+        },
+        {
+          "type": "field",
+          "key": "contactName",
+          "label": "Primary Contact Name",
+          "dataType": "string"
+        },
+        {
+          "type": "field",
+          "key": "contactEmail",
+          "label": "Contact Email",
+          "dataType": "string",
+          "semanticType": "email",
+          "extensions": {
+            "x-formspec-email": true
+          }
+        },
+        {
+          "type": "field",
+          "key": "contactPhone",
+          "label": "Contact Phone",
+          "dataType": "string",
+          "semanticType": "phone",
+          "extensions": {
+            "x-formspec-phone-nanp": true
+          },
+          "initialValue": "(202) 555-0100"
+        },
+        {
+          "type": "display",
+          "key": "nonprofitPhoneHint",
+          "label": "Include area code for nonprofit reporting requirements (e.g. (202) 555-0100)."
+        },
+        {
+          "type": "field",
+          "key": "orgNameUpper",
+          "dataType": "string",
+          "label": "Org Name (uppercase)"
+        },
+        {
+          "type": "field",
+          "key": "contactPhoneFallback",
+          "dataType": "string",
+          "label": "Contact Phone (or N/A)"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "key": "projectNarrative",
+      "label": "Project Narrative",
+      "presentation": {
+        "layout": {
+        }
+      },
+      "children": [
+        {
+          "type": "field",
+          "key": "projectTitle",
+          "label": "Project Title",
+          "dataType": "string",
+          "description": "A concise title that clearly identifies the proposed project.",
+          "labels": {
+            "pdf": "Proposed Project Title",
+            "csv": "project_title"
+          }
+        },
+        {
+          "type": "field",
+          "key": "submissionDeadline",
+          "label": "Submission Deadline",
+          "dataType": "dateTime",
+          "hint": "Date and time by which this application must be submitted."
+        },
+        {
+          "type": "field",
+          "key": "meetingTime",
+          "label": "Preferred Meeting Time",
+          "dataType": "time",
+          "hint": "Your preferred time for the review panel meeting (HH:MM)."
+        },
+        {
+          "type": "field",
+          "key": "abstract",
+          "label": "Project Abstract",
+          "dataType": "text",
+          "hint": "Summarize your project in 500 words or fewer."
+        },
+        {
+          "type": "field",
+          "key": "startDate",
+          "label": "Project Start Date",
+          "dataType": "date",
+          "initialValue": "=today()"
+        },
+        {
+          "type": "field",
+          "key": "endDate",
+          "label": "Project End Date",
+          "dataType": "date"
+        },
+        {
+          "type": "field",
+          "key": "duration",
+          "label": "Duration (months)",
+          "dataType": "integer"
+        },
+        {
+          "type": "field",
+          "key": "indirectRate",
+          "label": "Indirect Cost Rate",
+          "dataType": "decimal",
+          "suffix": "%",
+          "hint": "Enter your organization's negotiated indirect cost rate. Government entities are not eligible.",
+          "presentation": {
+            "widgetHint": "Slider"
+          }
+        },
+        {
+          "type": "field",
+          "key": "focusAreas",
+          "label": "Program Focus Areas",
+          "dataType": "multiChoice",
+          "hint": "Select all that apply.",
+          "options": [
+            {
+              "value": "health",
+              "label": "Health & Human Services"
+            },
+            {
+              "value": "education",
+              "label": "Education & Workforce"
+            },
+            {
+              "value": "environment",
+              "label": "Environment & Climate"
+            },
+            {
+              "value": "infrastructure",
+              "label": "Infrastructure & Housing"
+            },
+            {
+              "value": "equity",
+              "label": "Equity & Civil Rights"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "key": "indirectRateRounded",
+          "dataType": "integer",
+          "label": "Indirect Rate (rounded)"
+        },
+        {
+          "type": "field",
+          "key": "projectYear",
+          "dataType": "integer",
+          "label": "Project Start Year"
+        },
+        {
+          "type": "field",
+          "key": "projectedEndDate",
+          "label": "Projected End Date",
+          "dataType": "date"
+        },
+        {
+          "type": "field",
+          "key": "selfAssessment",
+          "label": "Proposal Confidence",
+          "dataType": "integer",
+          "hint": "Rate your confidence in this proposal from 1 (low) to 5 (high)."
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "key": "budget",
+      "label": "Budget",
+      "presentation": {
+        "layout": {
+          "flow": "grid",
+          "columns": 2,
+          "collapsible": true,
+          "collapsedByDefault": false
+        },
+        "styleHints": {
+          "emphasis": "primary",
+          "size": "default"
+        },
+        "accessibility": {
+          "role": "region",
+          "description": "Budget entry section for grant line items",
+          "liveRegion": "polite"
+        }
+      },
+      "children": [
+        {
+          "type": "group",
+          "key": "lineItems",
+          "label": "Budget Line Items",
+          "repeatable": true,
+          "minRepeat": 1,
+          "maxRepeat": 20,
+          "children": [
+            {
+              "type": "field",
+              "key": "category",
+              "label": "Category",
+              "dataType": "choice",
+              "optionSet": "budgetCategories"
+            },
+            {
+              "type": "field",
+              "key": "description",
+              "label": "Description",
+              "dataType": "string"
+            },
+            {
+              "type": "field",
+              "key": "quantity",
+              "label": "Qty",
+              "dataType": "integer"
+            },
+            {
+              "type": "field",
+              "key": "unitCost",
+              "label": "Unit Cost",
+              "dataType": "decimal",
+              "prefix": "$",
+              "precision": 2
+            },
+            {
+              "type": "field",
+              "key": "subtotal",
+              "label": "Subtotal",
+              "dataType": "decimal",
+              "precision": 2
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "key": "requestedAmount",
+          "label": "Total Requested Amount",
+          "dataType": "money",
+          "hint": "Must match the calculated grand total.",
+          "presentation": {
+            "layout": {
+              "grid": { "span": 2 }
+            }
+          }
+        },
+        {
+          "type": "field",
+          "key": "usesSubcontractors",
+          "label": "Does this project use subcontractors?",
+          "dataType": "boolean"
+        },
+        {
+          "type": "field",
+          "key": "budgetDeviation",
+          "label": "Budget Deviation",
+          "dataType": "money"
+        },
+        {
+          "type": "field",
+          "key": "hasLineItems",
+          "dataType": "string",
+          "label": "Has line items"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "key": "projectPhases",
+      "label": "Project Phases",
+      "presentation": {
+        "layout": {
+        }
+      },
+      "repeatable": true,
+      "minRepeat": 1,
+      "maxRepeat": 10,
+      "children": [
+        {
+          "type": "field",
+          "key": "phaseName",
+          "label": "Phase Name",
+          "dataType": "string"
+        },
+        {
+          "type": "group",
+          "key": "phaseTasks",
+          "label": "Phase Tasks",
+          "repeatable": true,
+          "minRepeat": 1,
+          "maxRepeat": 20,
+          "children": [
+            {
+              "type": "field",
+              "key": "taskName",
+              "label": "Task Name",
+              "dataType": "string"
+            },
+            {
+              "type": "field",
+              "key": "hours",
+              "label": "Hours",
+              "dataType": "decimal",
+              "precision": 2
+            },
+            {
+              "type": "field",
+              "key": "hourlyRate",
+              "label": "Hourly Rate",
+              "dataType": "money"
+            },
+            {
+              "type": "field",
+              "key": "taskCost",
+              "label": "Task Cost",
+              "dataType": "money"
+            }
+          ]
+        },
+        {
+          "type": "field",
+          "key": "phaseTotal",
+          "label": "Phase Total",
+          "dataType": "money"
+        },
+        {
+          "type": "display",
+          "key": "projectPhasesTotal",
+          "label": "Total Phases Cost"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "key": "subcontractors",
+      "label": "Subcontractors",
+      "presentation": {
+        "layout": {
+        }
+      },
+      "repeatable": true,
+      "minRepeat": 1,
+      "maxRepeat": 10,
+      "children": [
+        {
+          "type": "field",
+          "key": "subName",
+          "label": "Contact Name",
+          "dataType": "string"
+        },
+        {
+          "type": "field",
+          "key": "subOrg",
+          "label": "Organization",
+          "dataType": "string"
+        },
+        {
+          "type": "field",
+          "key": "subAmount",
+          "label": "Contracted Amount",
+          "dataType": "decimal"
+        },
+        {
+          "type": "field",
+          "key": "subScope",
+          "label": "Scope of Work",
+          "dataType": "text"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "key": "attachments",
+      "label": "Supporting Documents",
+      "presentation": {
+        "layout": {
+        }
+      },
+      "children": [
+        {
+          "type": "field",
+          "key": "narrativeDoc",
+          "label": "Project Narrative Document",
+          "dataType": "attachment",
+          "hint": "Upload a PDF or Word document with full project narrative (max 10 MB)."
+        },
+        {
+          "type": "field",
+          "key": "budgetJustification",
+          "label": "Budget Justification",
+          "dataType": "attachment",
+          "hint": "Upload a spreadsheet or PDF with budget detail (max 5 MB)."
+        },
+        {
+          "type": "field",
+          "key": "approverSignature",
+          "label": "Authorizing Official Signature",
+          "dataType": "attachment",
+          "hint": "Draw your signature to certify this application."
+        }
+      ]
+    }
+  ],
+  "binds": [
+    {
+      "path": "applicantInfo.nonprofitPhoneHint",
+      "relevant": "$applicantInfo.orgType = 'nonprofit'"
+    },
+    {
+      "path": "applicantInfo.ein",
+      "whitespace": "normalize",
+      "constraintMessage": "EIN must be in XX-XXXXXXX format."
+    },
+    {
+      "path": "applicantInfo.contactEmail",
+      "whitespace": "trim",
+      "constraintMessage": "Please enter a valid email address."
+    },
+    {
+      "path": "applicantInfo.contactPhone",
+      "whitespace": "normalize"
+    },
+    {
+      "path": "applicantInfo.projectWebsite",
+      "whitespace": "trim"
+    },
+    {
+      "path": "projectNarrative.endDate",
+      "constraint": "empty($projectNarrative.endDate) or empty($projectNarrative.startDate) or $projectNarrative.endDate > $projectNarrative.startDate",
+      "constraintMessage": "End date must be after start date."
+    },
+    {
+      "path": "projectNarrative.duration",
+      "calculate": "if not @narrativeHasDateRange or $projectNarrative.endDate <= $projectNarrative.startDate then null else dateDiff($projectNarrative.endDate, $projectNarrative.startDate, 'months')",
+      "readonly": "true",
+      "disabledDisplay": "protected"
+    },
+    {
+      "path": "projectNarrative.indirectRate",
+      "relevant": "$applicantInfo.orgType != 'government'"
+    },
+    {
+      "path": "projectNarrative.indirectRate",
+      "constraint": "$ = null or ($ >= 0 and $ <= 100)",
+      "constraintMessage": "Indirect cost rate must be between 0 and 100."
+    },
+    {
+      "path": "projectNarrative.selfAssessment",
+      "constraint": "$ = null or ($ >= 1 and $ <= 5)",
+      "constraintMessage": "Proposal confidence must be between 1 and 5."
+    },
+    {
+      "path": "budget.lineItems[*].quantity",
+      "constraint": "$quantity = null or $quantity >= 0",
+      "constraintMessage": "Quantity must not be negative."
+    },
+    {
+      "path": "budget.lineItems[*].unitCost",
+      "constraint": "$unitCost = null or $unitCost >= 0",
+      "constraintMessage": "Unit cost must not be negative."
+    },
+    {
+      "path": "projectPhases[*].phaseTasks[*].hours",
+      "constraint": "$hours = null or $hours >= 0",
+      "constraintMessage": "Hours must not be negative."
+    },
+    {
+      "path": "projectPhases[*].phaseTasks[*].hourlyRate",
+      "constraint": "$hourlyRate = null or moneyAmount($hourlyRate) >= 0",
+      "constraintMessage": "Hourly rate must not be negative."
+    },
+    {
+      "path": "budget.lineItems[*].subtotal",
+      "calculate": "$unitCost * $quantity",
+      "readonly": "true"
+    },
+    {
+      "path": "subcontractors[*].subAmount",
+      "constraint": "$subAmount = null or $subAmount >= 0",
+      "constraintMessage": "Amount must not be negative."
+    },
+    {
+      "path": "projectPhases[*].phaseTasks[*].taskCost",
+      "calculate": "money($hours * moneyAmount($hourlyRate), moneyCurrency($hourlyRate ?? money(0, 'USD')))",
+      "readonly": "true"
+    },
+    {
+      "path": "projectPhases[*].phaseTotal",
+      "calculate": "moneySum($phaseTasks[*].taskCost)",
+      "readonly": "true"
+    },
+    {
+      "path": "budget.requestedAmount",
+      "required": "true",
+      "default": "money(0, 'USD')",
+      "excludedValue": "null"
+    },
+    {
+      "path": "subcontractors",
+      "relevant": "$budget.usesSubcontractors",
+      "nonRelevantBehavior": "keep"
+    },
+    {
+      "path": "applicantInfo.orgNameUpper",
+      "calculate": "upper($applicantInfo.orgName)"
+    },
+    {
+      "path": "applicantInfo.contactPhoneFallback",
+      "calculate": "coalesce($applicantInfo.contactPhone, 'N/A')"
+    },
+    {
+      "path": "projectNarrative.indirectRateRounded",
+      "calculate": "round($projectNarrative.indirectRate, 0)"
+    },
+    {
+      "path": "projectNarrative.projectYear",
+      "calculate": "year($projectNarrative.startDate)"
+    },
+    {
+      "path": "projectNarrative.projectedEndDate",
+      "calculate": "dateAdd($projectNarrative.startDate, $projectNarrative.duration, 'months')",
+      "readonly": "true"
+    },
+    {
+      "path": "budget.budgetDeviation",
+      "calculate": "money(abs(moneyAmount($budget.requestedAmount) - moneyAmount(@grandTotal)), 'USD')",
+      "readonly": "true"
+    },
+    {
+      "path": "budget.hasLineItems",
+      "calculate": "string(@budgetHasLineItems)"
+    },
+    {
+      "path": "applicantInfo.orgName",
+      "required": "true"
+    },
+    {
+      "path": "applicantInfo.ein",
+      "required": "true"
+    },
+    {
+      "path": "applicantInfo.orgType",
+      "required": "true",
+      "default": "nonprofit"
+    },
+    {
+      "path": "applicantInfo.contactName",
+      "required": "true"
+    },
+    {
+      "path": "applicantInfo.contactEmail",
+      "required": "true"
+    },
+    {
+      "path": "projectNarrative.projectTitle",
+      "required": "true"
+    },
+    {
+      "path": "projectNarrative.abstract",
+      "required": "true"
+    },
+    {
+      "path": "projectNarrative.startDate",
+      "required": "true"
+    },
+    {
+      "path": "projectNarrative.endDate",
+      "required": "true"
+    },
+    {
+      "path": "projectNarrative.focusAreas",
+      "required": "true"
+    },
+    {
+      "path": "applicantInfo.projectWebsite",
+      "required": "$applicantInfo.orgType = 'university'",
+      "extensions": {
+        "x-validation-group": "contact"
+      }
+    },
+    {
+      "path": "projectNarrative.submissionDeadline",
+      "readonly": "$projectNarrative.startDate != null and $projectNarrative.endDate != null"
+    },
+    {
+      "path": "applicantInfo.orgType.orgSubType",
+      "whitespace": "remove"
+    },
+    {
+      "path": "applicantInfo.nonprofitPhoneHint",
+      "nonRelevantBehavior": "empty"
+    }
+  ],
+  "shapes": [
+    {
+      "id": "abstractLength",
+      "target": "projectNarrative.abstract",
+      "severity": "info",
+      "timing": "continuous",
+      "constraint": "length($projectNarrative.abstract) <= 3000",
+      "message": "Abstract is approaching the 500-word / 3,000-character limit.",
+      "code": "ABSTRACT_NEAR_LIMIT"
+    },
+    {
+      "id": "budgetMatch",
+      "target": "budget.requestedAmount",
+      "severity": "error",
+      "constraint": "abs(moneyAmount($budget.requestedAmount) - moneyAmount(@grandTotal)) < 1",
+      "message": "Requested amount must match the calculated grand total (within $1). Check your line items.",
+      "code": "BUDGET_MISMATCH",
+      "context": {
+        "grandTotal": "string(moneyAmount(@grandTotal))",
+        "requested": "string(moneyAmount($budget.requestedAmount))",
+        "difference": "string(abs(moneyAmount($budget.requestedAmount) - moneyAmount(@grandTotal)))"
+      }
+    },
+    {
+      "id": "budgetReasonable",
+      "target": "#",
+      "severity": "warning",
+      "constraint": "moneyAmount(@grandTotal) < 500000",
+      "message": "Projects over $500,000 require additional narrative justification in the abstract.",
+      "code": "BUDGET_OVER_THRESHOLD"
+    },
+    {
+      "id": "subcontractorCap",
+      "target": "#",
+      "severity": "error",
+      "activeWhen": "$budget.usesSubcontractors",
+      "constraint": "sum($subcontractors[*].subAmount) <= moneyAmount(@grandTotal) * 0.49",
+      "message": "Subcontractor costs may not exceed 49% of the total project budget (federal requirement).",
+      "code": "SUBCONTRACTOR_CAP_EXCEEDED"
+    },
+    {
+      "id": "narrativeDocRequired",
+      "target": "attachments.narrativeDoc",
+      "severity": "error",
+      "timing": "submit",
+      "constraint": "present($attachments.narrativeDoc)",
+      "message": "A project narrative document must be uploaded before submission.",
+      "code": "NARRATIVE_DOC_REQUIRED"
+    },
+    {
+      "id": "contactProvided",
+      "target": "applicantInfo.contactEmail",
+      "severity": "warning",
+      "message": "At least one contact method (email or phone) should be provided.",
+      "code": "CONTACT_METHOD_MISSING",
+      "or": [
+        "present($applicantInfo.contactEmail)",
+        "present($applicantInfo.contactPhone)"
+      ]
+    },
+    {
+      "id": "abstractNotPlaceholder",
+      "target": "projectNarrative.abstract",
+      "severity": "warning",
+      "message": "Abstract appears to contain placeholder text. Replace 'TBD' with actual content.",
+      "code": "ABSTRACT_PLACEHOLDER",
+      "not": "contains(lower($projectNarrative.abstract), 'tbd')"
+    },
+    {
+      "id": "subcontractorEntryRequired",
+      "target": "#",
+      "severity": "error",
+      "activeWhen": "$budget.usesSubcontractors",
+      "message": "At least one subcontractor entry is required when subcontractors are enabled.",
+      "code": "SUBCONTRACTOR_ENTRY_MISSING",
+      "and": [
+        "$budget.usesSubcontractors",
+        "count($subcontractors[*].subName) >= 1"
+      ]
+    },
+    {
+      "id": "shapeRefCoverageAlwaysTrueA",
+      "target": "#",
+      "severity": "info",
+      "constraint": "true",
+      "message": "Shape reference coverage helper A.",
+      "code": "SHAPE_REF_COVERAGE_A"
+    },
+    {
+      "id": "shapeRefCoverageAlwaysTrueB",
+      "target": "#",
+      "severity": "info",
+      "constraint": "true",
+      "message": "Shape reference coverage helper B.",
+      "code": "SHAPE_REF_COVERAGE_B"
+    },
+    {
+      "id": "shapeRefCompositionCoverage",
+      "target": "#",
+      "severity": "info",
+      "message": "Shape composition via shape-id references is supported.",
+      "code": "SHAPE_REF_COMPOSITION",
+      "and": [
+        "shapeRefCoverageAlwaysTrueA",
+        "shapeRefCoverageAlwaysTrueB"
+      ]
+    },
+    {
+      "id": "budgetMethodExclusive",
+      "target": "#",
+      "severity": "warning",
+      "message": "Project must use either line items or subcontractors as primary budget method, not both equally.",
+      "code": "BUDGET_METHOD_EXCLUSIVE",
+      "xone": [
+        "count($budget.lineItems[*].category) > count($subcontractors[*].subName)",
+        "count($subcontractors[*].subName) > count($budget.lineItems[*].category)"
+      ]
+    },
+    {
+      "id": "websiteFormat",
+      "target": "applicantInfo.projectWebsite",
+      "severity": "info",
+      "timing": "demand",
+      "constraint": "empty($applicantInfo.projectWebsite) or matches($applicantInfo.projectWebsite, '^https?://')",
+      "message": "Project website should start with http:// or https://. Current value: {{$applicantInfo.projectWebsite}}",
+      "code": "WEBSITE_FORMAT",
+      "extensions": {
+        "x-help-link": "https://example.gov/help/uri-format"
+      }
+    }
+  ]
+}

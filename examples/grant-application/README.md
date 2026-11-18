@@ -17,11 +17,16 @@ Validate artifacts:
 PYTHONPATH=src python3 examples/grant-application/validate.py
 ```
 
+Edit `source/definition.json` to change the authored form. After building the
+engine, run `node examples/grant-application/assemble.mjs` from the repository
+root to expand the contact group and refresh the runtime copies.
+
 ## What's in this directory
 
 | File | Spec | Purpose |
 |---|---|---|
-| `definition.json` | Core | 6-page grant application: items, binds, variables, shapes, screener, instances, migrations |
+| `source/definition.json` | Core | Authored grant application with a reference to the contact fragment |
+| `definition.json` | Core | Assembled grant application for rendering and evaluation |
 | `contact-fragment.json` | Core | Reusable contact group (`$ref` target for modular composition) |
 | `component.json` | Component | 118-node wizard layout across 36 distinct component types, including 2 custom components |
 | `theme.json` | Theme | USWDS-flavored web theme: tokens, cascade selectors, per-page grid regions |

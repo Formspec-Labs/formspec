@@ -185,8 +185,7 @@
       "key": "applicantInfo",
       "label": "Applicant Information",
       "presentation": {
-        "layout": {
-        }
+        "layout": {}
       },
       "children": [
         {
@@ -257,8 +256,35 @@
           "type": "group",
           "key": "alternateContact",
           "label": "Alternate Contact",
-          "$ref": "https://example.gov/forms/fragments/contact-fragment#contactCore",
-          "keyPrefix": "altContact"
+          "children": [
+            {
+              "type": "group",
+              "key": "altContactcontactCore",
+              "label": "Contact Core",
+              "children": [
+                {
+                  "type": "field",
+                  "key": "altContactname",
+                  "label": "Contact Name",
+                  "dataType": "string"
+                },
+                {
+                  "type": "field",
+                  "key": "altContactemail",
+                  "label": "Contact Email",
+                  "dataType": "string",
+                  "semanticType": "email"
+                },
+                {
+                  "type": "field",
+                  "key": "altContactphone",
+                  "label": "Contact Phone",
+                  "dataType": "string",
+                  "semanticType": "phone"
+                }
+              ]
+            }
+          ]
         },
         {
           "type": "field",
@@ -311,8 +337,7 @@
       "key": "projectNarrative",
       "label": "Project Narrative",
       "presentation": {
-        "layout": {
-        }
+        "layout": {}
       },
       "children": [
         {
@@ -507,7 +532,9 @@
           "hint": "Must match the calculated grand total.",
           "presentation": {
             "layout": {
-              "grid": { "span": 2 }
+              "grid": {
+                "span": 2
+              }
             }
           }
         },
@@ -536,8 +563,7 @@
       "key": "projectPhases",
       "label": "Project Phases",
       "presentation": {
-        "layout": {
-        }
+        "layout": {}
       },
       "repeatable": true,
       "minRepeat": 1,
@@ -602,8 +628,7 @@
       "key": "subcontractors",
       "label": "Subcontractors",
       "presentation": {
-        "layout": {
-        }
+        "layout": {}
       },
       "repeatable": true,
       "minRepeat": 1,
@@ -640,8 +665,7 @@
       "key": "attachments",
       "label": "Supporting Documents",
       "presentation": {
-        "layout": {
-        }
+        "layout": {}
       },
       "children": [
         {

@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { FormEngine } from '../dist/index.js';
+import { assembleDefinitionSync, FormEngine } from '../dist/index.js';
 
 const root = new URL('../../../', import.meta.url);
 const fixturePaths = [
@@ -17,6 +17,13 @@ const submission = JSON.parse(read('examples/grant-application/fixtures/sample-s
 // Equality protects convergence; the execution controls below protect its meaning.
 test('grant definitions are identical for example, benchmark, and engine consumers', () => {
   for (const path of fixturePaths.slice(1)) assert.equal(read(path), read(fixturePaths[0]), path);
+});
+
+test('grant runtime definition matches assembly of the authored source', () => {
+  const source = JSON.parse(read('examples/grant-application/source/definition.json'));
+  const shared = JSON.parse(read('examples/grant-application/contact-fragment.json'));
+  const { definition } = assembleDefinitionSync(source, { [shared.url]: shared });
+  assert.deepEqual(JSON.parse(read(fixturePaths[0])), definition);
 });
 
 for (const path of fixturePaths) {

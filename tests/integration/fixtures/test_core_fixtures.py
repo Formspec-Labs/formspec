@@ -270,6 +270,7 @@ def test_common_registry_runtime_module_metadata() -> None:
     assert info.validation_issues == []
 
 DEFINITION_PATH = GRANT_APP_DIR / "definition.json"
+AUTHORED_DEFINITION_PATH = GRANT_APP_DIR / "source" / "definition.json"
 CONTACT_FRAGMENT_PATH = GRANT_APP_DIR / "contact-fragment.json"
 
 EXPECTED_PAGE_NAMES = {
@@ -301,6 +302,7 @@ def _iter_items(items: list[dict]) -> list[dict]:
 # byte-identical (packages/formspec-engine/tests/grant-app-convergence.test.mjs).
 GRANT_DEFINITION_DOCUMENTS = (
     DEFINITION_PATH,
+    AUTHORED_DEFINITION_PATH,
     REPO_ROOT / "benchmarks" / "tasks" / "grant-application" / "reference" / "definition.json",
     REPO_ROOT / "packages" / "formspec-engine" / "tests" / "fixtures" / "grant-app-definition.json",
     CONTACT_FRAGMENT_PATH,
@@ -320,7 +322,8 @@ def test_grant_definition_documents_are_schema_valid(
     assert errors == []
 
 def test_grant_definition_exercises_ref_keyprefix_and_migration_coverage() -> None:
-    definition = _load_json(DEFINITION_PATH)
+    # Composition is authored in the source; runtime consumers use the expanded copy.
+    definition = _load_json(AUTHORED_DEFINITION_PATH)
     all_items = _iter_items(definition["items"])
 
     ref_groups = [
