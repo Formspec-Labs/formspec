@@ -31,7 +31,7 @@ describe('native Screener Surface slot',()=>{
    fixture.unmount();
    window.history.replaceState(null, '', '/screen');
    const beforeLeave = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
-   const container = render(<BrowserSurfaceApp bundle={fixture.bundle} beforeLeave={beforeLeave} />);
+   const container = render(<BrowserSurfaceApp bundle={fixture.bundle} adapters={{ beforeLeave }} />);
    const change = (select: HTMLSelectElement, value: string) => act(() => {
      select.value = value; select.dispatchEvent(new Event('change', { bubbles: true }));
    });

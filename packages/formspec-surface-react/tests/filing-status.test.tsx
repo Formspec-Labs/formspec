@@ -141,7 +141,8 @@ it('keeps denied and stale results distinct from confirmed absence', async () =>
 it('opens a tracker section through the maintained hash navigation', () => {
   window.history.replaceState(null, '', '/preview/index.html#/');
   const renderForm = vi.fn(input => <output data-active-section>{input.activeSection}</output>);
-  const dom = render(<BrowserSurfaceApp bundle={filingBundle()} mode="hash" renderDefinitionForm={renderForm} />);
+  const dom = render(<BrowserSurfaceApp bundle={filingBundle()} adapters={{ mode: "hash",
+        renderDefinitionForm: renderForm }} />);
   const href = '#/application?slot=form&section=details';
   const link = dom.querySelector<HTMLAnchorElement>(`a[href="${href}"]`)!;
   expect(link).not.toBeNull();
@@ -177,8 +178,9 @@ it('uses the same admitted Component for tracker sections and the form', () => {
     }] },
   };
   const renderForm = vi.fn(() => <output>Form mounted</output>);
-  const dom = render(<BrowserSurfaceApp bundle={filingBundle()} mode="hash" renderDefinitionForm={renderForm}
-    resolveDefinitionComponent={({ definition: target }) => target.url === definition.url ? component : undefined} />);
+  const dom = render(<BrowserSurfaceApp bundle={filingBundle()} adapters={{ mode: "hash",
+        renderDefinitionForm: renderForm,
+        resolveDefinitionComponent: ({ definition: target }) => target.url === definition.url ? component : undefined }} />);
   const link = dom.querySelector<HTMLAnchorElement>('details a[href="#/application?slot=form&section=component-section"]')!;
   expect(link?.textContent).toBe('Component section');
   expect(dom.querySelector('a[href="#/application?slot=form&section=details"]')).toBeNull();
@@ -225,7 +227,8 @@ it.each([['old dialect', { version: '0.3' }, 'surface-version-unsupported'], ['d
 it('uses the active app and Definition Locales for tracker text', async () => {
   await initFormspecEngine();
   window.history.replaceState(null, '', '/preview/index.html#/');
-  const dom = render(<BrowserSurfaceApp bundle={filingBundle()} mode="hash" localeDocuments={[
+  const dom = render(<BrowserSurfaceApp bundle={filingBundle()} adapters={{ mode: "hash",
+        localeDocuments: [
     { $formspecLocale: '2.1', locale: 'fr', version: '1.0.0', target: { kind: 'definition', url: definition.url },
       strings: { 'details.label': 'Renseignements', '$form.description': 'Saisissez les totaux annuels.' } },
     { $formspecLocale: '2.1', locale: 'fr', version: '1.0.0', target: { kind: 'app', url: 'urn:filing-app' },
@@ -233,7 +236,7 @@ it('uses the active app and Definition Locales for tracker text', async () => {
         '$module.x-formspec-surface.shell.filingLegendCaption': 'Chaque bande représente un formulaire.',
         '$module.x-formspec-surface.shell.filingSections': 'Rubriques ({{$count}})',
       } },
-  ]} />);
+  ] }} />);
   const application = dom.querySelector('details a[href="#/application?slot=form&section=details"]');
   const report = dom.querySelector('details a[href="#/report?slot=form&section=details"]');
   expect(application?.textContent).toBe('Renseignements');

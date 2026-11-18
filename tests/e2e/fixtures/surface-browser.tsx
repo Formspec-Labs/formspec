@@ -159,11 +159,13 @@ await initFormspecEngine();
 
 const mode = location.pathname.startsWith('/surface-browser-history') ? 'history' : 'hash';
 createRoot(document.getElementById('root')!).render(
-  <BrowserSurfaceApp bundle={bundle} mode={mode} basePath="/surface-browser-history" routeParams={{ state: 'ny' }}
-    readSummaries={showsTracker ? readTracker : undefined}
-    resolveDefinitionComponent={({ definition: target }) => !workspace && !alternatingMode && target.url === definition ? componentDocument : undefined}
-    definitionActionInvoker={({ document, actionRef, nodeId, ports }) => invokeResponseAction(document, actionRef, ports, nodeId)}
-    renderDefinitionForm={fixtureOptions.has('displayFirst') ? input => renderDefaultDefinitionForm({
+  <BrowserSurfaceApp bundle={bundle} adapters={{ mode,
+        basePath: "/surface-browser-history",
+        routeParams: { state: 'ny' },
+        readSummaries: showsTracker ? readTracker : undefined,
+        resolveDefinitionComponent: ({ definition: target }) => !workspace && !alternatingMode && target.url === definition ? componentDocument : undefined,
+        definitionActionInvoker: ({ document, actionRef, nodeId, ports }) => invokeResponseAction(document, actionRef, ports, nodeId),
+        renderDefinitionForm: fixtureOptions.has('displayFirst') ? input => renderDefaultDefinitionForm({
       ...input,
       componentDocument: { ...componentDocument, tree: { component: 'Stack', children: [
         { component: 'Section', id: 'instructions', title: 'Instructions', children: [
@@ -185,6 +187,5 @@ createRoot(document.getElementById('root')!).render(
         <p id="fixture-anchor" tabIndex={-1}>Report controls</p>
       </>}
       {renderDefaultDefinitionForm(input)}
-    </>}
-  />,
+    </> }} />,
 );

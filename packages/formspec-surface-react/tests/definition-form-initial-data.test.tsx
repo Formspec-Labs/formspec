@@ -258,10 +258,10 @@ describe('definition-form initial data rendering', () => {
     try {
       if (useDraftStorage) window.history.replaceState(null, '', '/edit');
       await act(async () => {
-        root.render(useDraftStorage ? <BrowserSurfaceApp {...props}
-          draftStorage={{ scope: 'test', port: {
+        root.render(useDraftStorage ? <BrowserSurfaceApp bundle={props.bundle} adapters={{ ...props,
+        draftStorage: { scope: 'test', port: {
             load: async () => ({ status: 'absent' }), save: vi.fn(), readSummaries: vi.fn(),
-          } }} /> : <SurfaceApp {...props} location="/edit" onNavigate={() => {}} />);
+          } } }} /> : <SurfaceApp {...props} location="/edit" onNavigate={() => {}} />);
         await flush();
       });
       expect(profileInput(container).value).toBe('A');
@@ -696,8 +696,7 @@ it('resumes the saved snapshot when the original seed is unavailable', async () 
   const root = createRoot(container);
   try {
     await act(async () => {
-      root.render(<BrowserSurfaceApp bundle={bundle()}
-        draftStorage={{
+      root.render(<BrowserSurfaceApp bundle={bundle()} adapters={{ draftStorage: {
           scope: 'edition',
           port: {
             async load() {
@@ -709,10 +708,9 @@ it('resumes the saved snapshot when the original seed is unavailable', async () 
             },
             save: vi.fn(), readSummaries: vi.fn(),
           },
-        }}
-        authorizeDataSource={() => ({ status: 'authorized' })}
-        dataSourceLoader={() => ({ status: 'unavailable', reason: 'the seed was removed' })}
-      />);
+        },
+        authorizeDataSource: () => ({ status: 'authorized' }),
+        dataSourceLoader: () => ({ status: 'unavailable', reason: 'the seed was removed' }) }} />);
       await flush();
     });
     expect(profileInput(container).value).toBe('Saved name');
@@ -731,12 +729,10 @@ it('opens an absent draft with the seed that arrives during a slower lookup', as
   const pending = deferred<{ status: 'absent' }>();
   try {
     await act(async () => {
-      root.render(<BrowserSurfaceApp bundle={bundle()}
-        draftStorage={{ scope: 'edition', port: { load: () => pending.promise, save: vi.fn(), readSummaries: vi.fn() } }}
-        authorizeDataSource={() => ({ status: 'authorized' })}
-        dataSourceLoader={() => loaded('Seed arrived first')}
-        validateDataSourcePayload={() => ({ valid: true })}
-      />);
+      root.render(<BrowserSurfaceApp bundle={bundle()} adapters={{ draftStorage: { scope: 'edition', port: { load: () => pending.promise, save: vi.fn(), readSummaries: vi.fn() } },
+        authorizeDataSource: () => ({ status: 'authorized' }),
+        dataSourceLoader: () => loaded('Seed arrived first'),
+        validateDataSourcePayload: () => ({ valid: true }) }} />);
       await flush();
     });
     expect(container.querySelector('input')).toBeNull();

@@ -69,8 +69,9 @@ function mount(load: DraftPort['load'], path = '/review/2026', {
   const widget = vi.fn<SurfaceWidget>(props => useNativeReview ? <NativeReview {...props} /> : <output>Review delivered</output>);
   const readSummaries = vi.fn();
   const dataSourceLoader = vi.fn();
-  const container = render(<BrowserSurfaceApp bundle={bundle} draftStorage={{ scope: 'edition', port: { load, save, readSummaries } }}
-    dataSourceLoader={dataSourceLoader} widgetModules={[{ ...module, widgets: { ResponseReview: widget } }]} />);
+  const container = render(<BrowserSurfaceApp bundle={bundle} adapters={{ draftStorage: { scope: 'edition', port: { load, save, readSummaries } },
+        dataSourceLoader,
+        widgetModules: [{ ...module, widgets: { ResponseReview: widget } }] }} />);
   return { widget, container, save, readSummaries, dataSourceLoader };
 }
 

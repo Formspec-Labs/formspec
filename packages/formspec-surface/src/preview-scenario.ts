@@ -685,7 +685,9 @@ export function deriveSurfacePreviewScenario(bundle: ResolvedBundle): SurfacePre
   const app = composeSurfaceApp(bundle.surfaces, { entrySurface: bundle.entrySurface });
   if (!app.entry) throw new Error('The preview bundle has no resolved entry route.');
   const route = routeHref(app.entry);
-  if (route.refusal) throw new Error(route.diagnostics.map(issue => issue.message).join('\n'));
+  if (route.refusal) throw new Error([
+    `The preview entry is unavailable (${route.refusal}).`, ...route.diagnostics.map(issue => issue.message),
+  ].join('\n'));
   return {
     $formspecSurfaceScenario: '0.1', version: '1.0.0', initialPath: route.href,
     defaultProfile: 'local',

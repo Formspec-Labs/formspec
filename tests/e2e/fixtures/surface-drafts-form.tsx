@@ -91,9 +91,19 @@ if (query.has('form')) {
   await initFormspecEngine();
   const root = createRoot(document.getElementById('root')!);
   const reads = hydration ? await hydrationStorage(bundle.definitions) : undefined;
-  const invoker = submit ? previewFilingInvoker(createBrowserFilingStore({
-    scope: 'edition', definitions: bundle.definitions,
-  }).submit) : undefined;
+  function edition(scope: string) {
+    const store = createBrowserFilingStore({ scope, definitions: bundle.definitions, catalogs: bundle.dataSources });
+    return { scope, bundle, initialPath: keyed ? '/filing/2025' : '/filing', adapters: {
+      draftStorage: { scope, port: reads?.storage.port ?? store.drafts },
+      responses: reads?.storage.responses ?? store.responses,
+      definitionActionInvoker: submit ? previewFilingInvoker(store.submit) : undefined,
+      routeParams: keyed ? { year: "2025" } : undefined,
+      widgetModules: review ? [starterWidgetModule(reviewModule)] : undefined,
+      resolveDefinitionComponent: () => component,
+    } };
+  }
+  const first = edition('edition');
+  const editions = submit ? [first, edition('edition-b')] as const : [first] as const;
   const mount = (visit: number) => root.render(<>
     <span hidden data-fixture-render={visit} />
     {reads && <button onClick={async event => {
@@ -101,14 +111,7 @@ if (query.has('form')) {
       await reads.fileNewer();
       button.textContent = 'Updated filing stored';
     }}>File updated directory</button>}
-    <BrowserSurfaceApp
-      draftStorage={reads?.storage}
-      previewEditions={submit ? [{ scope: 'edition', bundle }, { scope: 'edition-b', bundle }] : [{ scope: 'edition', bundle }]}
-      definitionActionInvoker={invoker}
-      mode="hash" routeParams={keyed ? { year: "2025" } : undefined}
-      widgetModules={review ? [starterWidgetModule(reviewModule)] : undefined}
-      resolveDefinitionComponent={() => component}
-    />
+    <BrowserSurfaceApp previewEditions={editions} />
   </>);
   mount(0);
   window.addEventListener('rerender-draft-fixture', () => mount(1), { once: true });

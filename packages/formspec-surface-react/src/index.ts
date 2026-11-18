@@ -22,6 +22,7 @@ export {
 } from './SurfaceApp.js';
 export {
   BrowserSurfaceApp,
+  type SurfaceHostAdapters,
   type BrowserSurfaceAppProps,
   type SurfaceBrowserVisit,
   type SurfacePreviewEdition,

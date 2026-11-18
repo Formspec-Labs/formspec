@@ -1,6 +1,6 @@
 /** @filedesc Mount an admitted Surface with browser navigation, Locale, and a shared masthead. */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { composeSurfaceApp, matchRoute, responseSourceLoader, routeHref, type ResolvedBundle } from '@formspec-org/surface';
+import { matchRoute, responseSourceLoader, routeHref, type ResolvedBundle } from '@formspec-org/surface';
 import { SurfaceAppView, useSurfaceApp, type SurfaceAppProps } from './SurfaceApp.js';
 import {
   pushBrowserAddress, splitSurfaceLocation, surfaceBrowserLocation, useSurfaceBrowserAddress,
@@ -8,7 +8,8 @@ import {
 } from './browser-location.js';
 import { useBrowserAppearance } from './browser-appearance.js';
 import { resolveBrowserLocale } from './browser-locale.js';
-import { createBrowserFilingStore } from './browser-draft-port.js';
+import type { BrowserDraftPort } from '@formspec-org/surface';
+import type { ResponseSelector } from '@formspec-org/types';
 import { createDraftSession, type DraftSession, type SurfaceDraftStorage } from './draft-session.js';
 import { fenceDraftWidgetActions } from './draft-widget-action.js';
 import type { DraftCheckpointPorts } from './draft-writer.js';
@@ -20,6 +21,8 @@ export interface SurfacePreviewEdition {
   /** Stable browser draft scope, unique to this edition on the hosting origin. */
   scope: string;
   bundle: ResolvedBundle;
+  adapters: SurfaceHostAdapters;
+  initialPath: string;
 }
 
 export interface SurfaceBrowserVisit {
@@ -27,12 +30,14 @@ export interface SurfaceBrowserVisit {
   previewScope: string | undefined;
 }
 
-type BrowserSurfaceOptions = Omit<SurfaceAppProps,
+export type SurfaceHostAdapters = Omit<SurfaceAppProps,
   'bundle' | 'location' | 'onNavigate' | 'resolveNavigationHref' | 'activeLocale' |
   'header' | 'appTitle' | 'strings' | 'resolveRouteTitle' | 'navigationLabel'> & {
   mode?: SurfaceBrowserMode;
-  /** Authorized host storage. Preview editions otherwise use browser IndexedDB. */
-  draftStorage?: SurfaceDraftStorage | undefined;
+  responses?: ResponseSelector;
+  withResponseLoader?: (readResponse: DataSourceLoader) => DataSourceLoader;
+  /** Storage selected by this composition. */
+  draftStorage?: Omit<SurfaceDraftStorage, 'responses'> | undefined;
   /** Host preconditions and unrelated effects for actions that checkpoint a draft. */
   checkpointPorts?: DraftCheckpointPorts | undefined;
   /** Absolute mount pathname in history mode. Serve the app at deep paths under it. */
@@ -41,42 +46,39 @@ type BrowserSurfaceOptions = Omit<SurfaceAppProps,
   beforeLeave?: ((visit: SurfaceBrowserVisit) => boolean | Promise<boolean>) | undefined;
 };
 
-export type BrowserSurfaceAppProps = BrowserSurfaceOptions & (
-  | { bundle: ResolvedBundle; previewEditions?: never }
-  | { bundle?: never; previewEditions: readonly [SurfacePreviewEdition, ...SurfacePreviewEdition[]] }
-);
+type PreviewEditions = readonly [SurfacePreviewEdition, ...SurfacePreviewEdition[]];
 
-export function BrowserSurfaceApp({
-  mode = 'history', basePath = '/', beforeLeave, previewEditions, draftStorage, checkpointPorts, ...props
-}: BrowserSurfaceAppProps) {
+export type BrowserSurfaceAppProps =
+  | { bundle: ResolvedBundle; adapters: SurfaceHostAdapters; previewEditions?: never }
+  | { previewEditions: PreviewEditions; adapters?: Pick<SurfaceHostAdapters, 'mode'>; bundle?: never };
+
+function isBrowserPort(port: SurfaceDraftStorage['port'] | undefined): port is BrowserDraftPort {
+  return !!port && 'subscribe' in port && 'restart' in port;
+}
+
+export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
+  const previewEditions = input.previewEditions;
+  if (previewEditions && (!previewEditions.length || new Set(previewEditions.map(entry => entry.scope)).size !== previewEditions.length ||
+    previewEditions.some(entry => !entry.scope))) throw new Error('Preview editions require distinct, non-empty draft scopes.');
+  const mode = input.adapters?.mode ?? (previewEditions ? 'hash' : 'history');
+  const basePath = input.bundle ? input.adapters.basePath ?? '/' : '/';
   const browser = surfaceBrowserLocation(mode, basePath);
   const { address, routeAddress, anchor, currentRouteAddress } = useSurfaceBrowserAddress(mode);
   const location = browser.read(routeAddress);
   const query = location?.query ?? new URLSearchParams();
   const requestedScope = previewEditions ? query.get('edition') : null;
   const edition = previewEditions?.find(option => option.scope === requestedScope) ?? previewEditions?.[0];
-  const bundle = edition?.bundle ?? props.bundle!;
+  const bundle = edition?.bundle ?? input.bundle!;
+  const props: SurfaceHostAdapters = edition?.adapters ?? input.adapters ?? {};
+  const { beforeLeave, draftStorage, checkpointPorts, responses, withResponseLoader } = props;
   const previewScope = edition?.scope;
-  // A host can recreate the list while an editor still holds unsaved answers.
-  const [storeEditions, setStoreEditions] = useState(previewEditions);
-  if (storeEditions !== previewEditions && (
-    storeEditions?.length !== previewEditions?.length ||
-    storeEditions?.some(loaded => !previewEditions?.some(candidate =>
-      candidate.scope === loaded.scope && candidate.bundle === loaded.bundle))
-  )) {
-    setStoreEditions(previewEditions);
-  }
-  const localStores = useMemo(() => new Map(storeEditions?.map(({ scope, bundle }) =>
-    [scope, createBrowserFilingStore({ scope, definitions: bundle.definitions, catalogs: bundle.dataSources })])), [storeEditions]);
-  const localStore = !draftStorage && previewScope ? localStores.get(previewScope) : undefined;
-  const localPort = localStore?.drafts;
-  const port = draftStorage?.port ?? localPort;
-  const responses = draftStorage?.responses ?? localStore?.responses;
+  const port = draftStorage?.port;
+  const localPort = isBrowserPort(port) ? port : undefined;
   const author = draftStorage?.author;
   const checkpoint = useRef(checkpointPorts);
   useLayoutEffect(() => { checkpoint.current = checkpointPorts; }, [checkpointPorts]);
   const sessions = useMemo(() => new Map<string, DraftSession>(),
-    [draftStorage?.port, draftStorage?.responses, localStores, props.sessionGeneration, author?.id, author?.name]);
+    [port, responses, props.sessionGeneration, author?.id, author?.name]);
   const scope = draftStorage?.scope ?? previewScope;
   const drafts = useMemo(() => {
     if (!scope || !port) return undefined;
@@ -100,21 +102,22 @@ export function BrowserSurfaceApp({
   const [draftRevision, setDraftRevision] = useState(0);
   useEffect(() => localPort?.subscribe(() => setDraftRevision(revision => revision + 1)), [localPort]);
   const dataSourceLoader = useMemo<DataSourceLoader | undefined>(() => {
-    if (!drafts) return props.dataSourceLoader;
+    if (!drafts && !responses && !withResponseLoader) return props.dataSourceLoader;
     const baseline: DataSourceLoader = props.dataSourceLoader ?? (() => ({ status: 'unavailable', reason: 'Data source unavailable' }));
-    const readResponse = localStore ? responseSourceLoader(localStore.responses) : undefined;
-    return request => {
-      if (request.descriptor.source.runtime.delivery === 'draft') return readSessionDraft(drafts, bundle.definitions, request);
+    const readResponse = responses && responseSourceLoader(responses);
+    const load: DataSourceLoader = request => {
+      if (drafts && request.descriptor.source.runtime.delivery === 'draft') return readSessionDraft(drafts, bundle.definitions, request);
       return readResponse && request.responseSelection ? readResponse(request) : baseline(request);
     };
-  }, [drafts, localStore, bundle.definitions, props.dataSourceLoader]);
+    return withResponseLoader ? withResponseLoader(load) : load;
+  }, [drafts, responses, withResponseLoader, bundle.definitions, props.dataSourceLoader]);
   const model = useSurfaceApp({ ...props, bundle });
   const entry = model.app.entry ? routeHref(model.app.entry, props.routeParams) : undefined;
   const entryPath = entry?.refusal === undefined ? entry?.href : undefined;
   const atEntry = location?.path === '' ||
     (location?.path === '/' && matchRoute(model.app, '/').refusal === 'unmatched');
   const path = requestedScope === null || requestedScope === previewScope
-    ? atEntry ? entryPath : location?.path
+    ? atEntry ? edition?.initialPath ?? entryPath : location?.path
     : undefined;
   const localeDocuments = props.localeDocuments ?? bundle.localeDocuments;
   const locale = useMemo(() => resolveBrowserLocale(bundle, localeDocuments), [bundle, localeDocuments]);
@@ -165,9 +168,7 @@ export function BrowserSurfaceApp({
   function switchEdition(scope: string) {
     const selected = previewEditions?.find(option => option.scope === scope);
     if (!selected || scope === previewScope) return;
-    const { entry } = composeSurfaceApp(selected.bundle.surfaces, { entrySurface: selected.bundle.entrySurface });
-    const target = entry ? routeHref(entry, props.routeParams) : undefined;
-    if (target && !target.refusal) navigate(target.href, scope);
+    navigate(selected.initialPath, scope);
   }
 
   function sectionDestination(slot: string, section: string) {
@@ -177,11 +178,6 @@ export function BrowserSurfaceApp({
     return `${path}?${search}`;
   }
 
-  if (previewEditions && (new Set(previewEditions.map(option => option.scope)).size !== previewEditions.length ||
-    previewEditions.some(option => !option.scope))) {
-    throw new Error('Preview editions require distinct, non-empty draft scopes.');
-  }
-
   return <SurfaceAppView
     {...props} bundle={bundle} model={model} location={path ?? ''}
     dataSourceLoader={dataSourceLoader}
@@ -189,7 +185,7 @@ export function BrowserSurfaceApp({
     dataSourceRevision={request => {
       const ownerRevision = props.dataSourceRevision?.(request);
       const tracksDraft = drafts && (request.descriptor.source.runtime.delivery === 'draft' ||
-        (localStore && request.responseSelection !== undefined));
+        (responses && request.responseSelection !== undefined));
       if (!tracksDraft) return ownerRevision;
       if (ownerRevision === undefined) return draftRevision;
       return typeof ownerRevision === 'string' || Number.isFinite(ownerRevision)

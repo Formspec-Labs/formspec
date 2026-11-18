@@ -151,8 +151,10 @@ describe('BrowserSurfaceApp', () => {
     ['hash', '/filing/index.html#', '#/overview', '#/forms/new%20york'],
   ] as const)('opens authored entry and formats authored navigation in %s mode', (mode, bare, home, form) => {
     address(bare);
-    const container = render(<BrowserSurfaceApp bundle={bundle()} mode={mode} basePath="/filing/"
-      routeParams={{ state: 'new york' }} renderDefinitionForm={workspace()} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ mode,
+        basePath: "/filing/",
+        routeParams: { state: 'new york' },
+        renderDefinitionForm: workspace() }} />);
 
     expect(route(container)).toBe('home');
     const masthead = container.querySelector('header a')!;
@@ -175,8 +177,9 @@ describe('BrowserSurfaceApp', () => {
     const path = `${prefix}/forms/new%20york`;
     const load = vi.fn();
     address(`${path}?slot=report&section=staff%20%26%20costs&state=forged`);
-    const container = render(<BrowserSurfaceApp bundle={bundle()} mode={mode} basePath="/filing/"
-      renderDefinitionForm={workspace(load)} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ mode,
+        basePath: "/filing/",
+        renderDefinitionForm: workspace(load) }} />);
     const heading = () => container.querySelector('h2')?.textContent;
     expect(heading()).toBe('staff & costs');
     expect(container.querySelector('[data-params]')?.textContent).toBe('{"state":"new york"}');
@@ -198,7 +201,7 @@ describe('BrowserSurfaceApp', () => {
 
   it('addresses one exact form slot and leaves other forms at their default', () => {
     address('/forms/mi?slot=report&section=staff%20%26%20costs');
-    const container = render(<BrowserSurfaceApp bundle={bundle('FY25 Filing', true)} renderDefinitionForm={workspace()} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle('FY25 Filing', true)} adapters={{ renderDefinitionForm: workspace() }} />);
     const headings = () => [...container.querySelectorAll('h2')].map(el => el.textContent);
     expect(headings()).toEqual(['intro', 'staff & costs']);
     pop('/forms/mi?slot=removed&section=staff%20%26%20costs');
@@ -208,10 +211,10 @@ describe('BrowserSurfaceApp', () => {
   it('ignores a section callback retained by an earlier visit', () => {
     address('/forms/mi');
     let jump: SurfaceDefinitionFormRenderInput['onActiveSectionChange'];
-    const container = render(<BrowserSurfaceApp bundle={bundle()} renderDefinitionForm={input => {
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ renderDefinitionForm: input => {
       jump = input.onActiveSectionChange;
       return null;
-    }} />);
+    } }} />);
     pop('/overview');
     act(() => { jump?.('staff & costs'); });
     expect(route(container)).toBe('home');
@@ -220,7 +223,7 @@ describe('BrowserSurfaceApp', () => {
 
   it('leaves paths outside the mount and unmatched deep links unavailable', () => {
     address('/filing-other/overview');
-    const container = render(<BrowserSurfaceApp bundle={bundle()} basePath="/filing" />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ basePath: "/filing" }} />);
     expect(route(container)).toBeUndefined();
     pop('/filing/unknown');
     expect(route(container)).toBeUndefined();
@@ -230,12 +233,12 @@ describe('BrowserSurfaceApp', () => {
 
   it.each(['/', '/portal/'])('distinguishes the bare history mount %s from its authored root route', mount => {
     address(mount);
-    const container = render(<BrowserSurfaceApp bundle={bundle('FY25 Filing', false, true)} basePath={mount} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle('FY25 Filing', false, true)} adapters={{ basePath: mount }} />);
     expect(route(container)).toBe('home');
     const rootLink = container.querySelector<HTMLAnchorElement>('a[data-nav-route="root"]')!;
     click(rootLink);
     expect(route(container)).toBe('root');
-    const reopened = render(<BrowserSurfaceApp bundle={bundle('FY25 Filing', false, true)} basePath={mount} />);
+    const reopened = render(<BrowserSurfaceApp bundle={bundle('FY25 Filing', false, true)} adapters={{ basePath: mount }} />);
     expect(route(reopened)).toBe('root');
     pop(mount);
     expect(route(container)).toBe('home');
@@ -252,13 +255,15 @@ describe('BrowserSurfaceApp', () => {
     ['hash', '/', '/index.html#/'],
   ] as const)('opens the authored entry in %s mode at %s for %s when no root route exists', (mode, basePath, url) => {
     address(url);
-    const container = render(<BrowserSurfaceApp bundle={bundle()} mode={mode} basePath={basePath} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ mode,
+        basePath }} />);
     expect(route(container)).toBe('home');
   });
 
   it('keeps route, parameters, section and focus when the hash changes to an in-page anchor', () => {
     address('/index.html#/forms/mi?slot=report&section=staff%20%26%20costs');
-    const container = render(<BrowserSurfaceApp bundle={bundle()} mode="hash" renderDefinitionForm={workspace()} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ mode: "hash",
+        renderDefinitionForm: workspace() }} />);
     const input = container.querySelector('input')!;
     input.focus();
     pop('/index.html#main-content', 'hashchange');
@@ -273,7 +278,8 @@ describe('BrowserSurfaceApp', () => {
 
   it('focuses the route heading after navigation and Back, leaving first load and section focus alone', () => {
     address('/overview');
-    const container = render(<BrowserSurfaceApp bundle={bundle()} routeParams={{ state: 'mi' }} renderDefinitionForm={workspace()} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ routeParams: { state: 'mi' },
+        renderDefinitionForm: workspace() }} />);
     const main = container.querySelector('main')!;
     expect(main.contains(document.activeElement)).toBe(false);
     click(formLink(container));
@@ -291,7 +297,8 @@ describe('BrowserSurfaceApp', () => {
 
   it('focuses the main landmark when the new route has no heading', () => {
     address('/overview');
-    const container = render(<BrowserSurfaceApp bundle={bundle()} headingBaseLevel={1} routeParams={{ state: 'mi' }} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ headingBaseLevel: 1,
+        routeParams: { state: 'mi' } }} />);
     click(formLink(container));
     const main = container.querySelector('main')!;
     expect(main.getAttribute('tabindex')).toBe('-1');
@@ -301,8 +308,12 @@ describe('BrowserSurfaceApp', () => {
   it('uses per-edition scopes, preserves native history and asks the writer before leaving', async () => {
     address('/forms/mi?edition=fy25');
     const beforeLeave = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
-    const editions = [{ scope: 'fy25', bundle: bundle() }, { scope: 'fy28', bundle: bundle('FY28 Filing') }] as const;
-    const container = render(<BrowserSurfaceApp previewEditions={editions} beforeLeave={beforeLeave} renderDefinitionForm={workspace()} />);
+    const adapters = { beforeLeave, renderDefinitionForm: workspace() };
+    const editions = [
+      { scope: 'fy25', bundle: bundle(), adapters, initialPath: '/overview' },
+      { scope: 'fy28', bundle: bundle('FY28 Filing'), adapters, initialPath: '/start' },
+    ] as const;
+    const container = render(<BrowserSurfaceApp previewEditions={editions} adapters={{ mode: "history" }} />);
     const picker = container.querySelector<HTMLSelectElement>('select[data-surface-edition]')!;
     expect([...picker.options].map(option => option.textContent)).toEqual(['FY25 Filing', 'FY28 Filing']);
     expect(container.querySelector('[data-scope]')?.textContent).toBe('fy25');
@@ -324,12 +335,12 @@ describe('BrowserSurfaceApp', () => {
   it('negotiates an offered language, cascades shell and Definition copy, and falls back to the app default', () => {
     address('/forms/mi');
     vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['fr-CA']);
-    const container = render(<BrowserSurfaceApp bundle={bundle()} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{  }} />);
     expect(container.querySelector('label:has(select[data-surface-appearance])')?.textContent).toContain('Affichage');
     expect(container.querySelector('.formspec-container')?.textContent).toContain('Nom');
 
     vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['de', 'ja']);
-    const fallback = render(<BrowserSurfaceApp bundle={bundle()} />);
+    const fallback = render(<BrowserSurfaceApp bundle={bundle()} adapters={{  }} />);
     expect(fallback.querySelector('label:has(select[data-surface-appearance])')?.textContent).toContain('Display');
     expect(fallback.querySelector('.formspec-container')?.textContent).toContain('Name');
     expect(fallback.querySelector('.formspec-container')?.textContent).not.toContain('Name auf Deutsch');
@@ -340,9 +351,9 @@ describe('BrowserSurfaceApp', () => {
     const media = new EventTarget() as MediaQueryList;
     Object.defineProperty(media, 'matches', { value: true, writable: true });
     vi.spyOn(window, 'matchMedia').mockReturnValue(media);
-    const container = render(<BrowserSurfaceApp bundle={bundle()} platformTheme={{
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ platformTheme: {
       tokens: { 'color.primary': '#234567' },
-    } as never} />);
+    } as never }} />);
     const root = container.querySelector<HTMLElement>('.fs-surface-app')!;
     const form = container.querySelector('.formspec-container')!;
     const chooser = container.querySelector<HTMLSelectElement>('select[data-surface-appearance]')!;
@@ -372,11 +383,11 @@ describe('BrowserSurfaceApp', () => {
     address('/forms/mi');
     const app = bundle();
     const picker = (container: HTMLElement) => container.querySelector<HTMLSelectElement>('[data-surface-appearance]')!;
-    const first = render(<BrowserSurfaceApp bundle={app} />);
+    const first = render(<BrowserSurfaceApp bundle={app} adapters={{  }} />);
     expect(picker(first).value).toBe('system');
     select(picker(first), 'dark');
     expect(window.localStorage.getItem(appearanceKey)).toBe('dark');
-    const reopened = render(<BrowserSurfaceApp bundle={app} />);
+    const reopened = render(<BrowserSurfaceApp bundle={app} adapters={{  }} />);
     expect(picker(reopened).value).toBe('dark');
     expect(reopened.querySelector('.formspec-container')?.classList.contains('formspec-appearance-dark')).toBe(true);
   });
@@ -384,7 +395,7 @@ describe('BrowserSurfaceApp', () => {
   it('renders system appearance when storage is refused and still applies a new choice for this visit', () => {
     address('/forms/mi');
     const storage = vi.spyOn(window, 'localStorage', 'get').mockClear().mockImplementation(() => { throw new Error('Storage refused'); });
-    const container = render(<BrowserSurfaceApp bundle={bundle()} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{  }} />);
     const picker = container.querySelector<HTMLSelectElement>('[data-surface-appearance]')!;
     expect(picker.value).toBe('system');
     select(picker, 'dark');
@@ -397,7 +408,7 @@ describe('BrowserSurfaceApp', () => {
     window.localStorage.setItem(appearanceKey, 'light');
     document.documentElement.setAttribute('data-fs-appearance', 'light');
     document.body.setAttribute('data-fs-appearance', 'dark');
-    const container = render(<BrowserSurfaceApp bundle={bundle()} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{  }} />);
     const shell = container.querySelector('.fs-surface-app')!;
     expect(shell.getAttribute('data-fs-appearance')).toBe('dark');
     expect(container.querySelector('.formspec-container')?.classList.contains('formspec-appearance-dark')).toBe(true);
@@ -438,7 +449,8 @@ describe('BrowserSurfaceApp', () => {
     function Host() {
       const [, setGeneration] = useState(0);
       rerender = () => setGeneration(value => value + 1);
-      return <BrowserSurfaceApp bundle={app} draftStorage={draftStorage} checkpointPorts={({ ports }) => ports} />;
+      return <BrowserSurfaceApp bundle={app} adapters={{ draftStorage,
+        checkpointPorts: ({ ports }) => ports }} />;
     }
     const container = render(<Host />);
     await act(async () => {});
@@ -459,9 +471,8 @@ describe('BrowserSurfaceApp', () => {
       $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definitionUrl },
       tree: { component: 'ActionButton', actionRef: 'save', label: { literal: 'Save draft' } },
     };
-    const container = render(<BrowserSurfaceApp bundle={bundle()}
-      definitionActionInvoker={({ document, actionRef, nodeId, ports }) => invokeResponseAction(document, actionRef, ports, nodeId)}
-      renderDefinitionForm={input => renderDefaultDefinitionForm({ ...input, componentDocument })} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ definitionActionInvoker: ({ document, actionRef, nodeId, ports }) => invokeResponseAction(document, actionRef, ports, nodeId),
+        renderDefinitionForm: input => renderDefaultDefinitionForm({ ...input, componentDocument }) }} />);
     const button = [...container.querySelectorAll('button')].find(el => el.textContent === 'Save draft')!;
     await act(async () => { click(button); });
     const notices = [...container.querySelectorAll('[role="status"], [aria-live="polite"]')]
@@ -471,7 +482,7 @@ describe('BrowserSurfaceApp', () => {
 
   it('keeps one polite save region mounted as the route changes', () => {
     address('/forms/mi');
-    const container = render(<BrowserSurfaceApp bundle={bundle()} renderDefinitionForm={workspace()} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ renderDefinitionForm: workspace() }} />);
     const live = container.querySelectorAll('[role="status"], [aria-live="polite"]');
     expect(live).toHaveLength(1);
     expect(live[0]?.textContent).toBe('');
@@ -488,4 +499,10 @@ it.each([['mi', 'page'], ['ny', null]])('marks the controlled link for %s curren
   const container = render(<SurfaceApp bundle={bundle()} location="/forms/m%69"
     routeParams={{ state, extra: 'ignored' }} onNavigate={() => {}} />);
   expect(formLink(container).getAttribute('aria-current')).toBe(current);
+});
+
+it('mounts using the supplied browser adapter settings', () => {
+  address('/unrelated#/forms/mi');
+  const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ mode: 'hash' }} />);
+  expect(route(container)).toBe('form');
 });
