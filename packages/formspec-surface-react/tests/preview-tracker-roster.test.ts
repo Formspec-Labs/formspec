@@ -1,8 +1,11 @@
 /** @filedesc A keyed roster draft and its filing feed the same preview tracker through the real selector. */
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import Ajv from 'ajv';
+import type { FilingStatusBinding } from '@formspec-org/types';
+import { createDraftSession } from '../src/draft-session.js';
+import { readSessionDraft } from '../src/draft-data-source.js';
 import { composeSurfaceApp, createThemeAuthority, createWidgetRegistry, dereferenceBundleExport,
-  planMatchedRoute, responseSourceLoader } from '@formspec-org/surface';
+  planMatchedRoute, responseSourceLoader, type DataSourceLoader } from '@formspec-org/surface';
 import { createMemoryFilingStore, previewResponseRecordTools } from '../src/browser-draft-port.js';
 
 const scope = 'preview-edition';
@@ -106,4 +109,64 @@ it('loads the authorized roster from its keyed draft and then its filed Response
   expect((await load('other')).map(g => g.member?.label)).toEqual(['Gamma']);
   allowOther = false;
   expect(await load('other')).toMatchObject([{ unavailable: true, rows: [] }]);
+});
+
+it('keeps the fixed band row on Help when the direct draft producer needs a missing route parameter', async () => {
+  const document = structuredClone(bundle.surfaces[0]!);
+  const home = document.routes[0]!;
+  const binding = home.slots[0]!.binding as FilingStatusBinding;
+  binding.placement = 'band';
+  binding.groups.unshift({ id: 'fixed', label: 'Common', forms: [
+    { routeRef: 'report', slotRef: 'form', params: { unit: { value: 'common' } } },
+  ] });
+  home.slots.push({ id: 'producer', slotType: 'definition-form', binding: {
+    definitionRef: list, subjectKeys: { region: 'region' },
+  } });
+  document.routes.push({ id: 'help', path: '/help', slots: [] });
+  const dataSources = structuredClone(bundle.dataSources!);
+  const source = dataSources[0]!.document.sources[0]!;
+  delete source.responseSelection;
+  source.definitionRef = list;
+  source.runtime.delivery = 'draft';
+  source.runtime.cache.mode = 'draft';
+
+  const tools = await previewResponseRecordTools();
+  const keys = { region: 'north' };
+  const subject = { type: list, keys, id: tools.subjectId(list, keys) };
+  const key = { scope, definitionUrl: list, subject };
+  const data = { units: [{ id: 'n', name: 'Northern unit' }] };
+  const store = createMemoryFilingStore({ scope, definitions: bundle.definitions });
+  const saved = await store.drafts.save({ key, expectedRevision: null, definitionVersion: version, summary: null,
+    snapshotJson: JSON.stringify({ definitionUrl: list, definitionVersion: version, data }),
+    responseJson: JSON.stringify({ $formspecResponse: '1.0', definitionUrl: list, definitionVersion: version,
+      id: 'urn:test:north', status: 'in-progress', authored: '2026-01-01T00:00:00Z', subject, data }) });
+  expect(saved.status).toBe('saved');
+
+  const app = composeSurfaceApp([document]);
+  const session = createDraftSession({ port: store.drafts, scope });
+  const loader = vi.fn<DataSourceLoader>(request => readSessionDraft(session, bundle.definitions, request));
+  const validate = new Ajv().compile(schema);
+  async function groupsOn(routeId: string, params: Record<string, string>) {
+    const handle = app.routes.find(route => route.routeId === routeId)!;
+    const band = planMatchedRoute({ handle, app, params, definitions: bundle.definitions, dataSources, experiences: [],
+      widgets: createWidgetRegistry(), registryEntries: [], themeAuthority: createThemeAuthority() }).bands?.[0]?.slot.tracker;
+    const plan = band?.status === 'roster' ? await band.load({ loader, authorize: () => ({ status: 'authorized' }),
+      validatePayload: ({ value }) => validate(value) ? { valid: true } : { valid: false } }) : band;
+    if (plan?.status !== 'ready') throw new Error(JSON.stringify(plan));
+    return plan.groups;
+  }
+  try {
+    expect(await groupsOn('home', keys)).toMatchObject([
+      { id: 'fixed', rows: [{ href: '/report/common?slot=form' }] },
+      { member: { label: 'Northern unit' }, rows: [{ href: '/report/n?slot=form' }] },
+    ]);
+    expect(loader).toHaveBeenCalledTimes(1);
+    expect(await groupsOn('help', {})).toMatchObject([
+      { id: 'fixed', rows: [{ href: '/report/common?slot=form' }] },
+      { id: 'reports', unavailable: true, rows: [] },
+    ]);
+    expect(loader).toHaveBeenCalledTimes(1);
+  } finally {
+    session.dispose();
+  }
 });
