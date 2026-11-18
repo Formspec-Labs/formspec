@@ -35,37 +35,39 @@ fn try_rewrite_source(
 fn replacement(kind: SiteKind, original: &str, options: &RewriteOptions) -> Option<String> {
     let quote = || char::from(original.as_bytes()[0]);
     match kind {
-        SiteKind::Field { path } => options.rewrite_field_path.as_ref()?(&path)
+        SiteKind::Field { path, .. } => options.rewrite_field_path.as_ref()?(&path)
             .filter(|new| *new != path)
             .map(|new| format!("${new}")),
-        SiteKind::ContextName { name } if !RESERVED_CONTEXT_NAMES.contains(&name.as_str()) => {
+        SiteKind::ContextName { name, .. } if !RESERVED_CONTEXT_NAMES.contains(&name.as_str()) => {
             options.rewrite_variable.as_ref()?(&name).filter(|new| *new != name)
         }
         // `@instance('name')` and the function form `instance('name', path)` name one instance.
         SiteKind::ContextArgument {
             context: name,
             value,
+            ..
         }
         | SiteKind::FirstStringArgument {
             function: name,
             value,
+            ..
         } if name == "instance" => options.rewrite_instance_name.as_ref()?(&value)
             .filter(|new| *new != value)
             .map(|new| quote_string_literal(&new, quote())),
-        SiteKind::ContextTail { context, path } if context == "current" => {
+        SiteKind::ContextTail { context, path, .. } if context == "current" => {
             options.rewrite_current_path.as_ref()?(&path).filter(|new| *new != path)
         }
-        SiteKind::FirstStringArgument { function, value }
-            if matches!(function.as_str(), "prev" | "next" | "parent") =>
-        {
+        SiteKind::FirstStringArgument {
+            function, value, ..
+        } if matches!(function.as_str(), "prev" | "next" | "parent") => {
             options.rewrite_navigation_target.as_ref()?(&value, &function)
                 .filter(|new| *new != value)
                 .map(|new| quote_string_literal(&new, quote()))
         }
-        SiteKind::RowKey { rows, key } => rewrite_row_tail(options, &rows, &format!(".{key}"))?
+        SiteKind::RowKey { rows, key, .. } => rewrite_row_tail(options, &rows, &format!(".{key}"))?
             .strip_prefix('.')
             .map(str::to_owned),
-        SiteKind::RowTail { rows, tail } => rewrite_row_tail(options, &rows, &tail),
+        SiteKind::RowTail { rows, tail, .. } => rewrite_row_tail(options, &rows, &tail),
         _ => None,
     }
 }
@@ -265,8 +267,12 @@ mod tests {
             rewrite_fel_source_references("($rows)[id = $sel].name", &options),
             "($rows)[rowId = $sel].label"
         );
-        let local = "let rows = $other in rows[id = $sel].name";
-        assert_eq!(rewrite_fel_source_references(local, &options), local);
+        for local in [
+            "let rows = $other in rows[id = $sel].name",
+            "let rows = $other in $rows[id = $sel].name",
+        ] {
+            assert_eq!(rewrite_fel_source_references(local, &options), local);
+        }
         let key_rename = RewriteOptions {
             rewrite_field_path: Some(Box::new(|path| {
                 (path == "rows[*].id").then(|| "rows[*].rowId".into())
@@ -276,6 +282,44 @@ mod tests {
         assert_eq!(
             rewrite_fel_source_references(expression, &key_rename),
             "$rows[rowId = $sel].name"
+        );
+    }
+
+    #[test]
+    fn nested_lookups_rename_the_segment_after_their_own_wildcard() {
+        let rename = |from: &'static str, to: &'static str| RewriteOptions {
+            rewrite_field_path: Some(Box::new(move |path| (path == from).then(|| to.into()))),
+            ..NO_REWRITES
+        };
+        let source = "$a[k = 1].b[j = 2].c";
+        for (from, to, expected) in [
+            ("a[*].b", "a[*].items", "$a[k = 1].items[j = 2].c"),
+            ("a[*].b[*].j", "a[*].b[*].id", "$a[k = 1].b[id = 2].c"),
+            ("a[*].b[*].c", "a[*].b[*].d", "$a[k = 1].b[j = 2].d"),
+        ] {
+            assert_eq!(
+                rewrite_fel_source_references(source, &rename(from, to)),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn a_let_bound_dollar_name_is_not_the_field_it_shadows() {
+        let options = RewriteOptions {
+            rewrite_field_path: Some(Box::new(|path| match path {
+                "lines" => Some("rows".into()),
+                "lines[*].amt" => Some("rows[*].amount".into()),
+                _ => None,
+            })),
+            ..NO_REWRITES
+        };
+        assert_eq!(
+            rewrite_fel_source_references(
+                "sum($lines[*].amt) + (let lines = [{amt: 1}] in sum($lines[*].amt))",
+                &options
+            ),
+            "sum($rows[*].amount) + (let lines = [{amt: 1}] in sum($lines[*].amt))"
         );
     }
 
@@ -344,8 +388,8 @@ mod tests {
                 let source = format!("{expression}\n + $probe");
                 let paths = fel_core::extract_dependencies(&expr).fields.into_iter();
                 for path in paths.chain(["probe".to_owned()]) {
-                    // Row paths are covered by the keyed-lookup tests above. A bare name
-                    // is not a field reference in the normative grammar, only in the parser.
+                    // Paths with `[n]` or `[*]` (indexed and keyed) are covered by the tests
+                    // above. A bare name is not a field reference in the normative grammar.
                     if path.contains('[') || !mentions(&source, &path) {
                         continue;
                     }
