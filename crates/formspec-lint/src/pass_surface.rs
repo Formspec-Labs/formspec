@@ -413,12 +413,27 @@ fn is_route_param_name(name: &str) -> bool {
     chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-')
 }
 
-fn filing_targets(slot: &Value) -> impl Iterator<Item = &str> {
+fn is_filing_band(slot: &Value) -> bool {
+    slot["slotType"] == "filing-status" && slot["binding"]["placement"] == "band"
+}
+
+fn filing_targets<'a, 'b>(
+    slot: &'a Value,
+    host_params: &'b [&'b str],
+) -> impl Iterator<Item = &'a str> + use<'a, 'b> {
     slot["binding"]["groups"]
         .as_array()
         .into_iter()
         .flatten()
         .flat_map(|group| group["forms"].as_array().into_iter().flatten())
+        .filter(move |entry| {
+            entry["params"]
+                .as_object()
+                .into_iter()
+                .flat_map(|params| params.values())
+                .filter_map(|source| source["routeParam"].as_str())
+                .all(|param| host_params.contains(&param))
+        })
         .filter_map(|entry| entry["routeRef"].as_str())
 }
 
@@ -449,20 +464,15 @@ fn check_route_reachability(
     queue.push_back(entry_id.to_string());
     visited.insert(entry_id.to_string());
 
-    // Each persistent band renders on the entry page, regardless of its declaring route.
-    if dialect == Some("0.4") {
-        let bands = routes
+    let bands: Vec<_> = if dialect == Some("0.4") {
+        routes
             .iter()
             .flat_map(|route| route["slots"].as_array().into_iter().flatten())
-            .filter(|slot| {
-                slot["slotType"] == "filing-status" && slot["binding"]["placement"] == "band"
-            });
-        for target in bands.flat_map(filing_targets) {
-            if route_ids.contains(target) && visited.insert(target.to_string()) {
-                queue.push_back(target.to_string());
-            }
-        }
-    }
+            .filter(|slot| is_filing_band(slot))
+            .collect()
+    } else {
+        Vec::new()
+    };
 
     while let Some(cur) = queue.pop_front() {
         let Some(route) = routes
@@ -483,18 +493,23 @@ fn check_route_reachability(
             }
         }
 
+        let host_params = declared_route_params(route);
         for slot in route
             .get("slots")
             .and_then(Value::as_array)
             .into_iter()
             .flatten()
+            .filter(|slot| !is_filing_band(slot))
+            .chain(bands.iter().copied())
         {
             let targets = match slot.get("slotType").and_then(Value::as_str) {
                 Some("embed-route") => slot["binding"]["routeRef"].as_str().into_iter().collect(),
                 Some("screener") if matches!(dialect, Some("0.3" | "0.4")) => {
                     screener_targets(slot).map(|(_, target)| target).collect()
                 }
-                Some("filing-status") if dialect == Some("0.4") => filing_targets(slot).collect(),
+                Some("filing-status") if dialect == Some("0.4") => {
+                    filing_targets(slot, &host_params).collect()
+                }
                 _ => Vec::new(),
             };
             for target in targets {
@@ -604,6 +619,34 @@ mod tests {
             .unwrap()
             .remove("placement");
         assert!(!reachable(&doc));
+    }
+
+    #[test]
+    fn tracker_band_cannot_supply_a_parameter_from_an_unreachable_route() {
+        let mut doc = serde_json::json!({
+            "$formspecSurface": "0.4", "id": "app", "entry": "home",
+            "routes": [
+                {"id": "home", "path": "/", "slots": []},
+                {"id": "overview", "path": "/overview/{member}", "params": [{"name": "member", "type": "string"}],
+                 "slots": [{"id": "tracker", "slotType": "filing-status", "binding": {
+                    "placement": "band", "groups": [{"id": "annual", "label": "Forms", "forms": [
+                        {"routeRef": "form", "slotRef": "editor", "params": {"member": {"routeParam": "member"}}}
+                    ]}]
+                 }}]},
+                {"id": "form", "path": "/form/{member}", "params": [{"name": "member", "type": "string"}],
+                 "slots": [{"id": "editor", "slotType": "definition-form", "binding": {"definitionRef": "urn:form"}}]}
+            ]
+        });
+        let unreachable = |doc: &Value| {
+            lint_surface(doc)
+                .iter()
+                .filter(|d| d.code == crate::LintCode::E606)
+                .count()
+        };
+        assert_eq!(unreachable(&doc), 2);
+        doc["routes"][0]["transitions"] =
+            serde_json::json!([{"to": "overview", "params": {"member": "north"}}]);
+        assert_eq!(unreachable(&doc), 0);
     }
 
     #[test]

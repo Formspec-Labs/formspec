@@ -101,7 +101,10 @@ Every route declared in `routes[]` MUST be reachable from the document's
 - from Surface 0.3, each reachable native `screener` slot's
   `binding.allowedTargets` entry using `surface:<route-id>`, when it names a
   route in the same Surface, and
-- in Surface 0.4, each reachable `filing-status` entry’s `routeRef`. A band appears on the entry route, so its links participate regardless of which route declares the slot.
+- in Surface 0.4, each reachable `filing-status` entry’s `routeRef`. A band's
+  links participate on every reachable route whose parameters supply the entry's
+  `routeParam` references. This walk checks possible destinations. A repeated
+  link also depends on an authorized roster delivery at runtime.
 
 A route that is not reached by this walk is invalid and MUST be reported as
 `E606` (`SURFACE-ROUTE-UNREACHABLE`). Producers SHOULD either add a transition
@@ -327,7 +330,12 @@ are outside this Surface-local rule.
 
 ### Filing-status binding
 
-Surface 0.4 adds `filing-status`. An optional `binding.placement: "band"` places the tracker above the route content on every page of the declaring Surface. Omission retains inline placement. Each band appears once, including on its declaring route and pages that embed it. Route-parameter inputs come from the currently matched route. A parameter unavailable there leaves its destination unavailable. The closed binding contains ordered
+Surface 0.4 adds `filing-status`. An optional `binding.placement: "band"` places
+the tracker above the route content on every page of the declaring Surface.
+Omission retains inline placement. Each band appears once, including on its
+declaring route and pages that embed it. The declaring route MUST declare each
+referenced `routeParam`. A band takes the value from the active route. If that
+value is unavailable, the destination is unavailable. The closed binding contains ordered
 `groups[]`. Each group has an `id` unique within the slot, a `label`, and
 ordered `forms[]`. Each entry has `routeRef`, `slotRef`, and an optional
 authored `hint`. Both references MUST resolve exactly once within this Surface,
