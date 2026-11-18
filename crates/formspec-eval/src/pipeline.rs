@@ -8,11 +8,8 @@ use crate::rebuild;
 use crate::rebuild_item_tree;
 use crate::recalculate::recalculate_phase;
 use crate::revalidate::revalidate_scoped;
-use crate::runtime_seed::{
-    apply_previous_non_relevant, hydrate_inline_instances, seed_prepopulate_tree,
-    seed_repeat_from_instances,
-};
-use crate::scope::{AggregateMemo, LegacyPadding, ScopeIndex, count_flat_rows};
+use crate::runtime_context::{apply_previous_non_relevant, hydrate_inline_instances};
+use crate::scope::{AggregateMemo, ScopeIndex};
 use crate::types::{self, EvalSubject, EvaluationResult, ValidationResult};
 use fel_core::Value as FelValue;
 use fel_core::exact_json::Value;
@@ -140,35 +137,14 @@ fn evaluate_prepared(
         Ok(flat) => flat,
         Err(conflicts) => return refuse_ambiguous_input(&conflicts),
     };
-    // The host can supply empty rows alongside its flat signals. Answered
-    // rows and the empty rows read from nested data still count.
     let mut counts = flat.repeat_counts;
-    if let Some(host) = &options.context.repeat_counts {
-        for (path, count) in host {
-            let supplied = counts.entry(path.clone()).or_default();
-            *supplied = (*supplied).max(*count);
-        }
+    rebuild::expand_repeat_instances_counted(&mut items, &mut counts);
+    let mut index = ScopeIndex::new(&items, counts);
+    for path in flat.values.keys() {
+        index.add_value_path(path);
     }
     let options = &options;
     let context = &options.context;
-
-    let mut seeded_data = flat.values;
-    if options.apply_creation_seeds {
-        seed_repeat_from_instances(definition, &mut seeded_data, &options.instances, &counts);
-    }
-    seed_prepopulate_tree(&items, &mut seeded_data, &options.instances);
-
-    if options.apply_creation_seeds {
-        count_flat_rows(seeded_data.keys(), &mut counts);
-    }
-    let mut padding = LegacyPadding::new();
-    rebuild::expand_repeat_instances_counted(&mut items, &mut counts, &mut padding);
-    let mut index = ScopeIndex::new(&items, counts);
-    index.legacy_padding = padding;
-    for path in seeded_data.keys() {
-        index.add_value_path(path);
-    }
-    rebuild::seed_initial_values(&items, &mut seeded_data, &index, options);
 
     if let Some(ref prev_nr) = context.previous_non_relevant {
         apply_previous_non_relevant(&mut items, prev_nr);
@@ -178,7 +154,7 @@ fn evaluate_prepared(
     let first = recalculate_phase(
         &mut items,
         &index,
-        &seeded_data,
+        &flat.values,
         definition,
         context.previous_validations.as_deref(),
         options,
@@ -203,7 +179,7 @@ fn evaluate_prepared(
     let next = recalculate_phase(
         &mut items,
         &index,
-        &seeded_data,
+        &flat.values,
         definition,
         Some(&validations),
         options,

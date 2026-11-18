@@ -30,13 +30,15 @@ Formspec Definition Evaluator — 4-phase batch processor.
 
 ## Layout
 The main path is [`pipeline::evaluate`] with [`EvalOptions`]:
-1. [`mod@rebuild`] — definition → item tree, initial values and repeat expansion
+1. [`mod@rebuild`] — definition → item tree and repeat expansion for existing rows
 2. [`mod@recalculate`] — relevance, required, readonly, variables, calculate ([`recalculate()`])
 3. [`mod@revalidate`] — required/type/constraint, extensions, shapes ([`revalidate()`])
 4. [`mod@nrb`] — output shaping for non-relevant fields
 
 Cross-cutting: [`mod@convert`] (path resolution), private `fel_json` (money-aware JSON→`Value` for env fields),
-private `runtime_seed` (prePopulate / previous non-relevant). [`mod@screener_eval`] evaluates standalone screener documents.
+private `runtime_context` (inline instances and previous non-relevant paths).
+[`mod@screener_eval`] evaluates standalone screener documents. The optional `create`
+feature provides separate entry points for new Responses and repeat rows.
 [`HostFelContext`] holds one form's FEL state so a host evaluates ad-hoc expressions by Item path without
 re-serializing the form per call.
 
@@ -50,7 +52,7 @@ re-serializing the form per call.
 
 ### [`formspec_eval`](formspec_eval.md)
 
-*10 modules*
+*1 constant, 10 modules*
 
 ### [`convert`](convert.md)
 
@@ -171,7 +173,19 @@ re-serializing the form per call.
 - [`screener_qualification`](#screener_qualification) - Qualify a native Screener result before selecting a bounded Surface destination.
 - [`types`](#types) - Core types for the Formspec evaluator.
 
+**Constants**
+
+- [`CREATION_COMPILED`](#creation_compiled) - Whether new-Response creation is available in this build.
+
 ---
+
+## formspec_eval::CREATION_COMPILED
+
+*Constant*: `bool`
+
+Whether new-Response creation is available in this build.
+
+
 
 ## Module: convert
 
@@ -304,7 +318,7 @@ fn resolve_value_by_path(values: &std::collections::HashMap<String, fel_core::ex
 
 **Functions**
 
-- [`eval_context_from_json_object`](#eval_context_from_json_object) - Parses [`EvalContext`] fields from a host JSON object (clock, prior validations, `repeatCounts`, …).
+- [`eval_context_from_json_object`](#eval_context_from_json_object) - Parses [`EvalContext`] fields from a host JSON object (clock, prior validations, …).
 - [`eval_host_context_from_json_map`](#eval_host_context_from_json_map) - Parse the optional JSON context object passed to `evaluateDefinition` from JavaScript.
 - [`evaluation_result_to_host_snapshot_json_value`](#evaluation_result_to_host_snapshot_json_value) - Serialize the browser's editing snapshot alongside the camelCase evaluation report.
 - [`evaluation_result_to_json_value`](#evaluation_result_to_json_value) - Serialize the batch evaluation report with camelCase keys.
@@ -325,7 +339,6 @@ Parsed WASM / JSON evaluation context bundle.
 - `instances: std::collections::HashMap<String, fel_core::exact_json::Value>` - Named instance payloads merged into the FEL environment.
 - `constraints: Vec<crate::types::ExtensionConstraint>` - Extension constraints derived from optional registry documents in the context object.
 - `item_text: Option<crate::types::ItemTextRequest>` - Item text request from `itemText: { localeStrings? }`, when present.
-- `apply_creation_seeds: bool` - Whether this batch should apply creation-time `seedFrom`.
 
 
 
@@ -333,7 +346,7 @@ Parsed WASM / JSON evaluation context bundle.
 
 *Function*
 
-Parses [`EvalContext`] fields from a host JSON object (clock, prior validations, `repeatCounts`, …).
+Parses [`EvalContext`] fields from a host JSON object (clock, prior validations, …).
 
 Trigger, `instances`, and registry documents are not read; use [`eval_host_context_from_json_map`] for the full bundle.
 
@@ -433,9 +446,8 @@ Options for a single definition evaluation ([`crate::pipeline::evaluate`]).
 **Fields:**
 - `trigger: crate::types::EvalTrigger` - When to evaluate shape rules.
 - `extension_constraints: Vec<crate::types::ExtensionConstraint>` - Extension constraints resolved from registry documents.
-- `instances: std::collections::HashMap<String, fel_core::exact_json::Value>` - Named instance payloads for pre-populate and `@instance()`.
-- `apply_creation_seeds: bool` - When true (default), apply creation-time `seedFrom`. False when live FormEngine sends `repeatCounts`.
-- `context: crate::types::EvalContext` - Runtime context (now, prior validations, repeat counts).
+- `instances: std::collections::HashMap<String, fel_core::exact_json::Value>` - Named instance payloads for `@instance()`.
+- `context: crate::types::EvalContext` - Runtime context (clock and prior processing state).
 - `extensions: Option<&'a dyn ExtensionFunctions>` - Host extension functions (Core §3.12) for every Definition expression.
 - `item_text: Option<crate::types::ItemTextRequest>` - Resolve Item text too ([`crate::EvaluationResult::item_text`]); `None` skips the text pass.
 
@@ -445,7 +457,6 @@ Options for a single definition evaluation ([`crate::pipeline::evaluate`]).
 - `fn trigger(self: Self, trigger: EvalTrigger) -> Self` - Set shape evaluation timing.
 - `fn extension_constraints(self: Self, constraints: Vec<ExtensionConstraint>) -> Self` - Replace extension constraints from registries.
 - `fn instances(self: Self, instances: HashMap<String, Value>) -> Self` - Set named instance payloads.
-- `fn apply_creation_seeds(self: Self, apply: bool) -> Self` - Apply `seedFrom` on this evaluation. False for live-engine Rebuilds.
 - `fn context(self: Self, context: EvalContext) -> Self` - Set runtime evaluation context.
 - `fn item_text(self: Self, request: ItemTextRequest) -> Self` - Resolve Item text for every Item instance alongside evaluation (Core §4.2.1).
 - `fn extensions(self: Self, extensions: &'a dyn ExtensionFunctions) -> Self` - Resolve extension function calls through the host's `extensions` (Core §3.12).
@@ -1041,14 +1052,14 @@ A bounded qualification finding, using the JavaScript qualifier's wire names.
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> ScreenerQualificationRefusal`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **PartialEq**
   - `fn eq(self: &Self, other: &ScreenerQualificationRefusal) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> ScreenerQualificationRefusal`
 
 
 
@@ -1146,10 +1157,10 @@ A definition variable with optional scope.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> VariableDef`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 ---
 
@@ -1224,16 +1235,16 @@ Answer state for a screener item input.
 
 **Trait Implementations:**
 
+- **PartialEq**
+  - `fn eq(self: &Self, other: &AnswerState) -> bool`
+- **Clone**
+  - `fn clone(self: &Self) -> AnswerState`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &AnswerState) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> AnswerState`
 
 
 
@@ -1257,14 +1268,14 @@ The complete evaluation output of a Screener Document.
 
 **Trait Implementations:**
 
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> DeterminationRecord`
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1285,10 +1296,16 @@ Top-level determination status on the wire.
 - `fn as_wire_str(self: Self) -> &'static str` - Serialize to the determination schema string.
 - `fn parse_wire(s: &str) -> Option<Self>` - Parse a determination schema status string.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
+- **PartialEq**
+  - `fn eq(self: &Self, other: &str) -> bool`
+- **Hash**
+  - `fn hash<__H>(self: &Self, state: & mut __H)`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &DeterminationStatus) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> DeterminationStatus`
 - **Serialize**
@@ -1299,12 +1316,6 @@ Top-level determination status on the wire.
   - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &str) -> bool`
-- **Hash**
-  - `fn hash<__H>(self: &Self, state: & mut __H)`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &DeterminationStatus) -> bool`
 
 
 
@@ -1330,6 +1341,8 @@ Why an eliminated route did not match.
 
 **Trait Implementations:**
 
+- **Serialize**
+  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
 - **PartialEq**
   - `fn eq(self: &Self, other: &EliminationReason) -> bool`
 - **Clone**
@@ -1344,8 +1357,6 @@ Why an eliminated route did not match.
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &str) -> bool`
-- **Serialize**
-  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
 
 
 
@@ -1411,14 +1422,14 @@ Result of evaluating a single phase.
 
 **Trait Implementations:**
 
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> PhaseResult`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 
 
 
@@ -1482,6 +1493,10 @@ Phase evaluation strategy (built-ins + screener-declared extensions).
 
 **Trait Implementations:**
 
+- **PartialEq**
+  - `fn eq(self: &Self, other: &str) -> bool`
+- **Serialize**
+  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> PhaseStrategy`
 - **PartialEq**
@@ -1494,10 +1509,6 @@ Phase evaluation strategy (built-ins + screener-declared extensions).
   - `fn hash<__H>(self: &Self, state: & mut __H)`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &str) -> bool`
-- **Serialize**
-  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
 
 
 
@@ -1517,14 +1528,14 @@ A single route's evaluation outcome.
 
 **Trait Implementations:**
 
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
-- **Clone**
-  - `fn clone(self: &Self) -> RouteResult`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Deserialize**
+  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
+- **Clone**
+  - `fn clone(self: &Self) -> RouteResult`
 
 
 
@@ -1540,14 +1551,14 @@ Reference to the screener that produced a Determination Record.
 
 **Trait Implementations:**
 
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> ScreenerRef`
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1623,16 +1634,15 @@ Optional runtime context injected into a single evaluation cycle.
 - `now_iso: Option<String>` - Wall-clock instant for FEL `now()` / date helpers (ISO-8601 string).
 - `previous_validations: Option<Vec<ValidationResult>>` - Prior cycle validation results (e.g. for host-driven revalidation hints).
 - `previous_non_relevant: Option<Vec<String>>` - Paths that were non-relevant in the prior evaluation cycle.
-- `repeat_counts: Option<std::collections::HashMap<String, u64>>` - Authoritative repeat row counts by **group base path** (e.g. `items`), when the host
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> EvalContext`
 - **Default**
   - `fn default() -> EvalContext`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> EvalContext`
 
 
 
@@ -1657,14 +1667,14 @@ be shown to end users as a validation error, so it never enters
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> EvalDiagnostic`
 - **PartialEq**
   - `fn eq(self: &Self, other: &EvalDiagnostic) -> bool`
 - **Hash**
   - `fn hash<__H>(self: &Self, state: & mut __H)`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Clone**
-  - `fn clone(self: &Self) -> EvalDiagnostic`
 
 
 
@@ -1683,12 +1693,12 @@ Use string keys for larger identifiers.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> EvalSubject`
 - **Default**
   - `fn default() -> EvalSubject`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> EvalSubject`
 
 
 
@@ -1712,12 +1722,12 @@ When to evaluate shape rules.
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> EvalTrigger`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &EvalTrigger) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> EvalTrigger`
 
 
 
@@ -1742,10 +1752,10 @@ Result of the full evaluation cycle.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> EvaluationResult`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> EvaluationResult`
 
 
 
@@ -1773,14 +1783,14 @@ resolution is [`ItemText::label`] / `description` / `hint`; per-context results 
 
 **Trait Implementations:**
 
-- **Default**
-  - `fn default() -> ItemText`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &ItemText) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> ItemText`
+- **Default**
+  - `fn default() -> ItemText`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1795,12 +1805,12 @@ Request to resolve Item text in the same evaluation (Core §4.2.1 text interpola
 
 **Trait Implementations:**
 
-- **Default**
-  - `fn default() -> ItemTextRequest`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> ItemTextRequest`
+- **Default**
+  - `fn default() -> ItemTextRequest`
 
 
 
@@ -1823,12 +1833,12 @@ Validation result for a single field.
 
 **Trait Implementations:**
 
+- **PartialEq**
+  - `fn eq(self: &Self, other: &ValidationResult) -> bool`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> ValidationResult`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &ValidationResult) -> bool`
 
 ---
 
@@ -1867,10 +1877,10 @@ Passed into the evaluator from the PyO3 layer — no registry parsing here.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> ExtensionConstraint`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> ExtensionConstraint`
 
 ---
 
@@ -1930,12 +1940,12 @@ A node in the evaluation item tree.
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> ItemInfo`
 - **Default**
   - `fn default() -> Self`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Clone**
-  - `fn clone(self: &Self) -> ItemInfo`
 
 
 
@@ -1955,14 +1965,14 @@ Relevance, requirement, and readonly evaluation state (MIP).
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &MipState) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> MipState`
 - **Default**
   - `fn default() -> Self`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 ---
 
@@ -2001,12 +2011,12 @@ Excluded-value behavior when a field is non-relevant.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &ExcludedValueMode) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> ExcludedValueMode`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -2025,12 +2035,12 @@ NRB (Non-Relevant Behavior) mode.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &NrbMode) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> NrbMode`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -2050,12 +2060,12 @@ Whitespace normalization mode.
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &WhitespaceMode) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> WhitespaceMode`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 ---
 
@@ -2100,14 +2110,6 @@ What kind of rule produced the validation.
 **Trait Implementations:**
 
 - **PartialEq**
-  - `fn eq(self: &Self, other: &&str) -> bool`
-- **Deserialize**
-  - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
-- **Hash**
-  - `fn hash<__H>(self: &Self, state: & mut __H)`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
   - `fn eq(self: &Self, other: &str) -> bool`
 - **Serialize**
   - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
@@ -2115,6 +2117,14 @@ What kind of rule produced the validation.
   - `fn eq(self: &Self, other: &ConstraintKind) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> ConstraintKind`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &&str) -> bool`
+- **Deserialize**
+  - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
+- **Hash**
+  - `fn hash<__H>(self: &Self, state: & mut __H)`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -2138,6 +2148,12 @@ Validation severity on the wire (`error` / `warning` / `info`).
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &str) -> bool`
+- **Serialize**
+  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
 - **PartialEq**
   - `fn eq(self: &Self, other: &Severity) -> bool`
 - **Clone**
@@ -2148,12 +2164,6 @@ Validation severity on the wire (`error` / `warning` / `info`).
   - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
 - **Hash**
   - `fn hash<__H>(self: &Self, state: & mut __H)`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &str) -> bool`
-- **Serialize**
-  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
 
 
 
@@ -2192,16 +2202,6 @@ Machine validation code (known codes + definition-authored shape codes).
 **Trait Implementations:**
 
 - **PartialEq**
-  - `fn eq(self: &Self, other: &ValidationCode) -> bool`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &str) -> bool`
-- **Serialize**
-  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
-- **Hash**
-  - `fn hash<__H>(self: &Self, state: & mut __H)`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
   - `fn eq(self: &Self, other: &&str) -> bool`
 - **FromStr**
   - `fn from_str(s: &str) -> Result<Self, <Self as >::Err>`
@@ -2211,6 +2211,16 @@ Machine validation code (known codes + definition-authored shape codes).
   - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> ValidationCode`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &ValidationCode) -> bool`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &str) -> bool`
+- **Serialize**
+  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
+- **Hash**
+  - `fn hash<__H>(self: &Self, state: & mut __H)`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -2235,6 +2245,12 @@ Origin layer for a validation result.
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &str) -> bool`
+- **Serialize**
+  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
 - **PartialEq**
   - `fn eq(self: &Self, other: &ValidationSource) -> bool`
 - **Clone**
@@ -2245,11 +2261,5 @@ Origin layer for a validation result.
   - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
 - **Hash**
   - `fn hash<__H>(self: &Self, state: & mut __H)`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &str) -> bool`
-- **Serialize**
-  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
 
 ---

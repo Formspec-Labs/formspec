@@ -43,7 +43,8 @@ test('bind referencing a path that does not exist in items', () => {
   // Engine should not crash. The bind should be inert.
   assert.ok(engine);
   assert.equal(engine.signals.phantom, undefined);
-  assert.equal(engine.signals.name?.value, '');
+  // Unanswered text has a null editing signal.
+  assert.equal(engine.signals.name?.value, null);
 });
 
 test('bind with relevant expression referencing non-existent field', () => {

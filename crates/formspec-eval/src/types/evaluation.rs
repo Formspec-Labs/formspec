@@ -80,10 +80,6 @@ pub struct EvalContext {
     pub previous_validations: Option<Vec<ValidationResult>>,
     /// Paths that were non-relevant in the prior evaluation cycle.
     pub previous_non_relevant: Option<Vec<String>>,
-    /// Authoritative repeat row counts by **group base path** (e.g. `items`), when the host
-    /// keeps counts outside flat `values` keys (browser signals). When `None`, cardinality falls
-    /// back to repeat-count detection from `values` only.
-    pub repeat_counts: Option<HashMap<String, u64>>,
 }
 
 /// The parts of `Response.subject` that the evaluator checks and reads.

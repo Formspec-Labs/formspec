@@ -31,7 +31,7 @@ pub fn revalidate(
     definition: &Value,
     options: &EvalOptions,
 ) -> (Vec<ValidationResult>, Vec<EvalDiagnostic>) {
-    let index = ScopeIndex::for_flat(items, values.keys(), options.context.repeat_counts.as_ref());
+    let index = ScopeIndex::for_flat(items, values.keys());
     let variables = HashMap::from([("#".to_owned(), variables.clone())]);
     revalidate_scoped(
         items,

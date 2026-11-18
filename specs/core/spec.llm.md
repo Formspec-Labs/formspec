@@ -139,6 +139,8 @@ When host override is active, renderers walk only the host-injected Issuer's `pa
 
 ## Processing Model (4 phases, in order)
 
+Creation-time values are outside this cycle. Re-evaluating a Response MUST NOT pad repeats or apply `seedFrom`, `prePopulate`, or `initialValue`.
+
 ### Phase 1: Rebuild
 **Trigger**: Structural change (repeat added/removed, definition replaced).
 **Action**: Re-index items, reconstruct dependency DAG, validate acyclic. If cycle detected → error, stop.
@@ -305,7 +307,9 @@ Optional: `versionAlgorithm` ("semver"/"date"/"integer"/"natural", default "semv
 
 **Group-specific**: `children` (REQUIRED), `repeatable` (default false), `minRepeat` (default 0), `maxRepeat` (positive int or absent for unbounded).
 
-**Field-specific**: `dataType` (REQUIRED), `precision`, `prefix`/`suffix` (display only), `options` (array of `{value, label}` or URI), `optionSet` (reference to top-level named set), `initialValue` (literal or `=expression`, evaluated once), `semanticType` (metadata annotation), `prePopulate` (shorthand for initialValue + readonly bind), `children` (for dependent sub-questions).
+Creation runs once for a new Response. Host prefill wins key by key, including `null` fields and `[]` groups. Resume uses saved data as given. A pending `seedFrom` repeat stays absent until arrival or failure. A pending `prePopulate` field waits before considering `initialValue`. On failure, use the authored fallback. Without a fallback, `seedFrom` uses zero source rows and the processor SHOULD emit a diagnostic. Person edits win throughout.
+
+**Field-specific**: `dataType` (REQUIRED), `precision`, `prefix`/`suffix` (display only), `options` (array of `{value, label}` or URI), `optionSet` (reference to top-level named set), `initialValue` (literal or `=expression`, evaluated once), `semanticType` (metadata annotation), `prePopulate` (creation-time source value with an optional readonly lock), `children` (for dependent sub-questions).
 
 **Extended dataTypes** (beyond conceptual model): `string`, `text`, `integer`, `decimal`, `boolean`, `date`, `dateTime`, `time`, `uri`, `attachment`, `choice`, `multiChoice`, `money`.
 

@@ -26,8 +26,6 @@ export function wasmEvaluateDefinitionPayload(options: {
     registryDocuments: unknown[];
     subjectType?: string | null;
     subjectKeys?: ResponseSubjectKeys;
-    /** Authoritative repeat row counts by group base path (matches engine repeat signals). */
-    repeatCounts: Record<string, number>;
 }): {
     nowIso: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
@@ -37,7 +35,6 @@ export function wasmEvaluateDefinitionPayload(options: {
     registryDocuments: unknown[];
     subjectType?: string | null;
     subjectKeys?: ResponseSubjectKeys;
-    repeatCounts: Record<string, number>;
 } {
     return {
         nowIso: options.nowIso,
@@ -48,7 +45,6 @@ export function wasmEvaluateDefinitionPayload(options: {
         registryDocuments: options.registryDocuments,
         subjectType: options.subjectType,
         subjectKeys: options.subjectKeys,
-        repeatCounts: options.repeatCounts,
     };
 }
 

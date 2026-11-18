@@ -6,6 +6,9 @@ license.workspace = true
 description = "Formspec definition batch evaluator: rebuild, recalculate, revalidate, and NRB output shaping"
 repository = "https://github.com/Formspec-Labs/formspec"
 
+[features]
+create = []
+
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 fancy-regex = "0.14"
@@ -19,6 +22,7 @@ url = "2"
 
 # Integration tests call `fel_core` directly (round-trip checks); keep this explicit.
 [dev-dependencies]
+formspec-eval = { path = ".", features = ["create"] }
 fel-core = { version = "0.3.0", path = "../../../fel-core" }
 
 [[test]]

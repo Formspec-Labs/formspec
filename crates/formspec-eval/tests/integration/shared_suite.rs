@@ -5,7 +5,7 @@
 //! cases through FormEngine and the WASM build. This runner covers the legs that need no browser
 //! engine (`formspec/thoughts/plans/evaluator-parity.md` §2.7):
 //!
-//! - `P`: `evaluate(def, payload)` in the case mode; for continuous cases it equals `expected`.
+//! - `P`: evaluate the created data for a new Response, or the payload for a saved Response; for continuous cases it equals `expected`.
 //! - `S`: `evaluate(def, P.data, submit)`, the verdict on the filed bytes; for submit cases it
 //!   equals `expected` and is a fixpoint.
 //! - `noInvention`: no evaluate call adds a key or changes a value, except calculated fields, the
@@ -23,8 +23,8 @@ use std::path::{Path, PathBuf};
 
 use fel_core::exact_json::Value;
 use formspec_eval::{
-    EvalOptions, EvalTrigger, HostFelContext, ItemTextRequest, evaluate,
-    evaluation_result_to_json_value, extension_constraints_from_registry_documents,
+    CreateOptions, EvalOptions, EvalTrigger, HostFelContext, ItemTextRequest, create_response,
+    evaluate, evaluation_result_to_json_value, extension_constraints_from_registry_documents,
     filed_response_data_matches,
 };
 
@@ -707,7 +707,19 @@ fn run_processing(case: &Value, legs: &mut Legs) {
             legs.insert("P".to_string(), problems);
         }
     } else {
-        let payload = input_payload(case);
+        let mut payload = input_payload(case);
+        if case["origin"] == "new" {
+            // Fixture URL sources fail, so use their authored fallback on the session leg.
+            payload = create_response(
+                &definition,
+                payload,
+                &CreateOptions {
+                    now_iso: Some(NOW.to_owned()),
+                    ..CreateOptions::default()
+                },
+            )
+            .data;
+        }
         let live = evaluator.run(
             "P(continuous)",
             &payload,

@@ -53,7 +53,7 @@ fn data(rows: usize) -> HashMap<String, Value> {
     data
 }
 
-/// Best of `runs` evaluations, to damp scheduler noise.
+/// Best of `runs` creations, to damp scheduler noise.
 fn best_time(rows: usize, runs: usize) -> Duration {
     best_time_for(&definition(), rows, runs)
 }
@@ -264,15 +264,17 @@ fn initial_value_seed_scaling() {
 /// Best of `runs` evaluations of `n` seeded fields against `n` rows of data.
 fn best_seed_time(n: usize, runs: usize) -> Duration {
     let def = seeded_definition(n);
-    let data: HashMap<String, Value> = (0..n)
-        .map(|row| (format!("rows[{row}].v"), json!(row)))
-        .collect();
+    let data = json!({"rows": (0..n).map(|row| json!({"v": row})).collect::<Vec<_>>()});
     (0..runs)
         .map(|_| {
             let start = Instant::now();
-            let result = evaluate(&def, &data, &EvalOptions::default());
+            let result = formspec_eval::create_response(
+                &def,
+                data.clone(),
+                &formspec_eval::CreateOptions::default(),
+            );
             let elapsed = start.elapsed();
-            assert_eq!(result.values["f1"], json!(2));
+            assert_eq!(result.data["f1"], json!(2));
             elapsed
         })
         .min()

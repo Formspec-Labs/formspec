@@ -287,9 +287,11 @@ export interface FormEngineOptions {
     reactiveRuntime?: import('./reactivity/types.js').EngineReactiveRuntime;
     issuerFetcher?: IssuerFetcher;
     issuerOverride?: IssuerSource;
-    /** Host primary Response data installed before seedFrom. */
+    /** Host prefill for a new Response. Present values win over creation defaults. */
     responseData?: JsonRecord;
-    /** Resume an editable snapshot before the first evaluation. Mutually exclusive with responseData. */
+    /** Resume saved Response data without applying creation defaults. */
+    savedResponseData?: JsonRecord;
+    /** Resume an editable snapshot with a Definition pin. Supply only one data input. */
     draftSnapshot?: FormDraftSnapshot;
     /** Host-supplied Response identity, available to FEL from the first evaluation. */
     responseSubject?: Omit<NonNullable<FormResponse['subject']>, 'keys'> & { keys?: ResponseSubjectKeys };
@@ -495,7 +497,7 @@ export interface IFormEngine {
     /** Appends a row; `undefined` when not repeatable or already at `maxRepeat`. */
     addRepeatInstance(itemName: string): number | undefined;
     removeRepeatInstance(itemName: string, index: number): void;
-    /** Loads Response `data` in one evaluation, one row per loaded array entry regardless of min/maxRepeat. */
+    /** Resumes saved Response `data`, replacing the current data without creation or repeat padding. */
     loadResponseData(data: JsonRecord): void;
     /** Restores editable data from a draft pinned to this Definition. */
     loadDraftSnapshot(snapshot: FormDraftSnapshot): void;

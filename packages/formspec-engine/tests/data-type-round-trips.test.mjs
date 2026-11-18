@@ -88,15 +88,12 @@ test('should initialize contactPhone with initialValue of (202) 555-0100', () =>
 
 test('should render orgSubType child field and include value in response', () => {
   const engine = createGrantEngine();
-  engine.setValue('applicantInfo.orgSubType', '501(c)(3)');
+  // Dependent fields are edited at their declared path.
+  engine.setValue('applicantInfo.orgType.orgSubType', '501(c)(3)');
 
   const response = getResponse(engine);
   const applicant = response.data?.applicantInfo;
-  const inResponse =
-    applicant?.orgSubType !== undefined ||
-    applicant?.orgType?.orgSubType !== undefined;
-
-  assert.equal(inResponse, true);
+  assert.equal(applicant.orgSubType, '501(c)(3)');
 });
 
 test('should store orgSubType value in engine signal', () => {

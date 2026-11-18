@@ -43,7 +43,7 @@ pub fn recalculate(
     HashMap<String, FelValue>,
     Option<String>,
 ) {
-    let index = ScopeIndex::for_flat(items, data.keys(), options.context.repeat_counts.as_ref());
+    let index = ScopeIndex::for_flat(items, data.keys());
     let recalculated = recalculate_phase(
         items,
         &index,

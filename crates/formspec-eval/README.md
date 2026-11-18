@@ -14,7 +14,7 @@ For interactive, signal-driven UI state, use the TypeScript engine instead.
 
 | Phase | Module(s) | Role |
 |-------|-----------|------|
-| 1 | `rebuild` | Parse `items` / `binds`, seed `initialValue`, expand repeats, wildcard binds. |
+| 1 | `rebuild` | Read `items` and `binds`, expand the repeat rows present in the input. |
 | 2 | `recalculate` | Relevance, required, readonly, whitespace, variables, calculated fields (fixpoint). |
 | 3 | `revalidate` | Required / type / bind constraints, registry extension checks, shape rules. |
 | 4 | `nrb` | Non-relevant behavior on output values (remove / empty / keep). |
@@ -23,7 +23,7 @@ Cross-cutting:
 
 - **`convert`** — Resolve values by dotted paths (flat map + nested objects).
 - **Private `fel_json`** — Money-shaped JSON normalization before `json_to_fel`.
-- **Private `runtime_seed`** — `prePopulate` and previous non-relevant hints from `EvalContext`.
+- **Private `runtime_context`** — Hydrates inline instances and reads previous non-relevant paths from `EvalContext`.
 - **`screener`** — Optional; evaluates `screener.routes` in an isolated FEL environment.
 
 ## Architecture
@@ -40,7 +40,8 @@ The main orchestrator is [`pipeline::evaluate`](src/pipeline.rs) with [`EvalOpti
 |------|----------------|
 | `lib.rs` | Crate docs, re-exports, `#![warn(missing_docs)]` + private clippy doc lint. |
 | `pipeline.rs` | `evaluate_*` orchestration (rebuild → recalculate → revalidate → NRB). |
-| `rebuild/` | Item tree, initial values, repeat expansion, wildcard binds. |
+| `rebuild/` | Item tree and repeat expansion for existing rows. |
+| `create.rs` | Initial values, pre-population, and seeded or minimum repeat rows for new data. Requires the `create` feature. |
 | `recalculate/` | Environment-backed recalculation; `recalculate()`, `topo_sort_variables`. |
 | `revalidate/` | Validation env, bind/item checks, shape composition. |
 | `nrb.rs` | `resolve_nrb`, `apply_nrb`. |
@@ -49,7 +50,7 @@ The main orchestrator is [`pipeline::evaluate`](src/pipeline.rs) with [`EvalOpti
 | `types/` | `EvaluationResult`, `ItemInfo`, `EvalContext`, path helpers (`pub(crate)`). |
 | `eval_json.rs` | WASM-shaped JSON: `evaluation_result_to_json_value`, `eval_host_context_from_json_map`. |
 | `registry_constraints.rs` | `extension_constraints_from_registry_documents`. |
-| `fel_json.rs`, `value_predicate.rs`, `runtime_seed.rs` | Internal shared helpers. |
+| `fel_json.rs`, `value_predicate.rs`, `runtime_context.rs` | Internal shared helpers. |
 
 ### Monorepo consumers
 
@@ -104,7 +105,7 @@ This writes `target/doc-md-formspec-eval/`, bundles to `docs/rustdoc-md/API.md`,
 
 ## Internal (private) documentation
 
-`src/lib.rs` enables **`missing_docs`** and **`clippy::missing_docs_in_private_items`**. Large implementation areas (`rebuild/*`, `revalidate/*`, `fel_json`, `nrb`, `runtime_seed`, `types/paths`, `recalculate` internals) use module-level `#![allow(clippy::missing_docs_in_private_items)]` and `//!` overviews instead of per-helper `///` noise. `eval_json` documents the public `EvalHostContextBundle` and allows private parsers.
+`src/lib.rs` enables **`missing_docs`** and **`clippy::missing_docs_in_private_items`**. Large implementation areas (`rebuild/*`, `revalidate/*`, `fel_json`, `nrb`, `runtime_context`, `types/paths`, `recalculate` internals) use module-level `#![allow(clippy::missing_docs_in_private_items)]` and `//!` overviews instead of per-helper `///` noise. `eval_json` documents the public `EvalHostContextBundle` and allows private parsers.
 
 Strict check (this crate only):
 

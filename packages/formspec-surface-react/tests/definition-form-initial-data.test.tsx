@@ -233,6 +233,48 @@ function profileInput(container: HTMLElement): HTMLInputElement {
 }
 
 describe('definition-form initial data rendering', () => {
+  it.each([false, true])('keeps defaults and minimum repeat rows with prefill (draft storage: %s)', async (useDraftStorage) => {
+    const candidate = bundle(undefined, {
+      ...definition,
+      items: [
+        ...definition.items,
+        { key: 'b', type: 'field', label: 'Default', dataType: 'string', initialValue: 'B' },
+        { key: 'rows', type: 'group', label: 'Rows', repeatable: true, minRepeat: 2, children: [
+          { key: 'entry', type: 'field', label: 'Entry', dataType: 'string' },
+        ] },
+      ],
+    });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const address = window.location.href;
+    const props = {
+      bundle: candidate,
+      authorizeDataSource: () => ({ status: 'authorized' } as const),
+      dataSourceLoader: async () => loaded('A'),
+      validateDataSourcePayload: () => ({ valid: true } as const),
+      setDocumentTitle: false,
+    };
+    try {
+      if (useDraftStorage) window.history.replaceState(null, '', '/edit');
+      await act(async () => {
+        root.render(useDraftStorage ? <BrowserSurfaceApp {...props}
+          draftStorage={{ scope: 'test', port: {
+            load: async () => ({ status: 'absent' }), save: vi.fn(), readSummaries: vi.fn(),
+          } }} /> : <SurfaceApp {...props} location="/edit" onNavigate={() => {}} />);
+        await flush();
+      });
+      expect(profileInput(container).value).toBe('A');
+      expect(container.querySelector<HTMLInputElement>('input[name="b"]')?.value).toBe('B');
+      expect(container.querySelector('input[name="rows[0].entry"]')).not.toBeNull();
+      expect(container.querySelector('input[name="rows[1].entry"]')).not.toBeNull();
+    } finally {
+      act(() => root.unmount());
+      if (useDraftStorage) window.history.replaceState(null, '', address);
+      container.remove();
+    }
+  });
+
   it.each([true, false])('isolates answers by filing unit on the same route (prefill: %s)', async (withPrefill) => {
     const candidate = bundle(undefined, {
       ...definition,

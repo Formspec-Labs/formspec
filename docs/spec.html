@@ -3053,6 +3053,10 @@ XForms processing model, that governs how changes in Instance data
 propagate through Binds and Shapes. A conformant processor MUST
 implement these four phases and MUST execute them in the specified
 order.</p>
+<p>Creation-time values (<code>minRepeat</code> padding,
+<code>seedFrom</code>, <code>prePopulate</code>, and
+<code>initialValue</code>) are outside this cycle. A processor
+re-evaluating an existing Response MUST NOT apply them.</p>
 <h4 id="phase-1-rebuild">Phase 1: Rebuild</h4>
 <p><strong>Trigger:</strong> The structural shape of the Instance has
 changed — specifically, a repeat instance has been added or removed, or
@@ -6727,8 +6731,9 @@ collection. Each repetition creates an independent copy of the Group’s
 <td>Minimum number of repetitions. Applicable only when
 <code>repeatable</code> is <code>true</code>. MUST be a non-negative
 integer. Default: <code>0</code>. If <code>minRepeat</code> is greater
-than zero, the implementation MUST pre-populate that many empty
-repetitions when a new Response is created.</td>
+than zero, creation MUST open at least that many repetitions for an
+absent Group. The processor MUST preserve the count of a Group supplied
+by the host or in a saved Response.</td>
 </tr>
 <tr>
 <td><code>maxRepeat</code></td>
@@ -6802,23 +6807,22 @@ element <code>i</code>’s <code>name</code>) and MUST NOT be rewritten as
 no row context. Absolute instance-root lookups remain available via
 <code>initialValue</code>. A relative miss (index ≥ <code>N</code>)
 stays empty; the processor MUST NOT fall back to the instance root.</p>
-<p><strong>Host data wins; hydrate then seed; one-shot.</strong> If the
-primary instance already has Response data for the Group (constructor
-<code>responseData</code>, <code>loadResponseData</code>, or a saved
-Response), the processor MUST NOT apply <code>seedFrom</code>. A present
-<code>[]</code> is host data (zero rows); an absent key is not. Host
-primary data MUST be installed before <code>seedFrom</code>. A live
-engine MUST NOT re-apply <code>seedFrom</code> on later Rebuild,
-including after every seeded row is removed. URL <code>source</code> MAY
-arrive after the first Rebuild (§2.1.7): apply <code>seedFrom</code> and
-deferred <code>prePopulate</code> when the instance first materializes;
-without a fallback, fetch failure uses <code>N = 0</code> plus a
-diagnostic. Later refresh MUST NOT restomp person edits (FH-064). A
-processor MAY defer source-dependent creation-time seeding while a
-source is loading, even when inline fallback data is visible to FEL. If
-loading fails, apply pending seeding using that fallback; without a
-fallback use <code>N = 0</code>. Host Response data and person edits
-still win.</p>
+<p><strong>Host data wins; creation is one-shot.</strong> Install host
+prefill before creating values for a new Response. Every present key
+wins, including a present <code>null</code> field or a present
+<code>[]</code> Group (zero rows). Creation fills only absent keys. A
+processor MUST NOT apply creation again when resuming a saved Response
+or after a later Rebuild, including when the person removes all seeded
+rows.</p>
+<p>A repeat whose <code>seedFrom</code> source is pending MUST stay
+absent until loading succeeds or fails. A field whose
+<code>prePopulate</code> source is pending MUST NOT receive
+<code>initialValue</code> while it waits. A processor MAY use authored
+fallback data for FEL while loading. On success, apply still-pending
+values from the loaded data. On failure, apply them from authored
+fallback data when present. Without fallback data, <code>seedFrom</code>
+uses <code>N = 0</code> and the processor SHOULD emit a diagnostic. Host
+data and person edits still win (FH-064).</p>
 <h4 id="field-items">4.2.3 Field Items</h4>
 <p>A <strong>Field</strong> Item represents a single data-entry point.
 Each Field produces exactly one value in the Response data (or one value
@@ -6917,9 +6921,10 @@ precedence.</td>
 <td><code>initialValue</code></td>
 <td>any | string</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
-<td>Initial value assigned when a new Response is created or a new
-repeat instance is added. May be a <strong>literal value</strong> (any
-JSON value conforming to the field’s <code>dataType</code>) or an
+<td>Initial value assigned to an absent field when a new Response is
+created or a new repeat instance is added, after any applicable
+pre-population. May be a <strong>literal value</strong> (any JSON value
+conforming to the field’s <code>dataType</code>) or an
 <strong>expression string</strong> prefixed with <code>=</code> (e.g.,
 <code>"=today()"</code>, <code>"=@instance('entity').name"</code>). An
 expression-based <code>initialValue</code> is evaluated
@@ -6952,8 +6957,9 @@ interoperability mapping.</td>
 <td>Pre-population declaration (<code>instance</code>,
 <code>path</code>, <code>editable</code> default <code>true</code>;
 <code>editable: false</code> locks the field). Takes precedence over
-<code>initialValue</code>. Absolute <code>path</code> is instance-root
-(MAY be <code>initialValue: "=@instance('name').path"</code>). Relative
+<code>initialValue</code>, including while its source is pending.
+Absolute <code>path</code> is instance-root (MAY be
+<code>initialValue: "=@instance('name').path"</code>). Relative
 <code>path</code> under matching <code>seedFrom</code> is
 element-relative and MUST NOT be rewritten as <code>initialValue</code>
 (§4.2.2.1).</td>

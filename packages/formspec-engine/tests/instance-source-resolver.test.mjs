@@ -33,7 +33,8 @@ test('public resolver loads a readonly host source and drives binds and deferred
     instanceSourceResolver: (r, options) => { request = r; signal = options.signal; return pending.promise; },
   });
   assert.equal(engine.signals.mode.value, 'initial');
-  assert.equal(engine.signals.name.value, '');
+  // A pending field stays unset until its source has settled.
+  assert.equal(engine.signals.name.value, null);
   assert.equal(engine.repeats.people.value, 0);
   pending.resolve({ status: 'loaded', value: loaded });
   const outcomes = await engine.waitForInstanceSources();
@@ -63,6 +64,58 @@ test('person edits and supplied Response data win over late source seeding', asy
   await engine.waitForInstanceSources();
   assert.equal(engine.signals.name.value, 'Person edit');
   assert.equal(engine.repeats.people.value, 0);
+  engine.dispose();
+});
+
+test('saving during source loading omits pending repeats and leaves active creation intact', async () => {
+  const source = deferred();
+  const def = definition();
+  def.items[2].minRepeat = 1;
+  def.items.push({
+    key: 'section', type: 'group', children: [
+      { ...def.items[2], key: 'nestedPeople' },
+      { ...def.items[2], key: 'empty' },
+    ],
+  });
+  const engine = createFormEngine(def, {
+    instanceSourceResolver: () => source.promise,
+    responseData: { section: { empty: [] } },
+  });
+  const saved = engine.getResponse({ profile: 'off' }).data;
+  assert.equal(Object.hasOwn(saved, 'people'), false);
+  assert.deepEqual(saved.section, { empty: [] });
+  assert.equal(engine.getValidationReport().results.some(result => result.code === 'MIN_REPEAT'), true);
+
+  const resumed = createFormEngine(def, {
+    savedResponseData: saved, instanceSourceResolver: () => source.promise,
+  });
+  source.resolve({ status: 'loaded', value: loaded });
+  await Promise.all([engine.waitForInstanceSources(), resumed.waitForInstanceSources()]);
+  assert.deepEqual(engine.getResponse().data.people, loaded.people);
+  assert.deepEqual(engine.getResponse().data.section, { nestedPeople: loaded.people, empty: [] });
+  assert.deepEqual(resumed.getResponse().data.people, []);
+  engine.dispose();
+  resumed.dispose();
+});
+
+test('removing a row reindexes pending creation in later rows', async () => {
+  const source = deferred();
+  const def = definition();
+  def.items = [{
+    key: 'rows', type: 'group', repeatable: true, children: [{
+      key: 'name', type: 'field', dataType: 'string',
+      prePopulate: { instance: 'context', path: '.name' },
+    }],
+  }];
+  def.binds = [];
+  const engine = createFormEngine(def, {
+    responseData: { rows: [{}, { name: 'Keep' }, {}, { name: null }] },
+    instanceSourceResolver: () => source.promise,
+  });
+  engine.removeRepeatInstance('rows', 0);
+  source.resolve({ status: 'loaded', value: loaded });
+  await engine.waitForInstanceSources();
+  assert.deepEqual(engine.getResponse().data.rows, [{ name: 'Keep' }, { name: loaded.name }, { name: null }]);
   engine.dispose();
 });
 
@@ -170,7 +223,7 @@ test('configured resolver refuses HTTP exclusively; default HTTP cache revalidat
 
 test('application failure settles distinctly and disposes the engine', async t => {
   const engine = createFormEngine(definition(), { instanceSourceResolver: () => ({ status: 'loaded', value: loaded }) });
-  t.mock.method(engine, 'runInstanceDependentSeeding', () => { throw Error('seed application fixture failure'); });
+  t.mock.method(engine, 'createResponseData', () => { throw Error('seed application fixture failure'); });
   const outcomes = await Promise.race([
     engine.waitForInstanceSources(),
     new Promise((_, reject) => setTimeout(() => reject(Error('application failure left wait pending')), 100)),

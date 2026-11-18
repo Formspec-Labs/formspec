@@ -175,7 +175,7 @@ describe('WebMCP binding', () => {
     const result = await pending;
     expect(result.isError).toBe(true);
     expect(JSON.parse(result.content[0].text)).toEqual({ code: 'x-cancelled', message: expect.any(String), retryable: false });
-    expect(engine.getFieldVM('organization.ein')?.value.value).toBe('');
+    expect(engine.getFieldVM('organization.ein')?.value.value).toBeNull();
   });
 
   it('rejects an already-aborted invocation before touching the form', async () => {
@@ -185,7 +185,7 @@ describe('WebMCP binding', () => {
     controller.abort();
     const result = await provider.invokeTool('formspec.field.set', { path: 'contactEmail', value: 'a@b.c' }, { signal: controller.signal });
     expect(JSON.parse(result.content[0].text).code).toBe('x-cancelled');
-    expect(engine.getFieldVM('contactEmail')?.value.value).toBe('');
+    expect(engine.getFieldVM('contactEmail')?.value.value).toBeNull();
   });
 
   it('a WebMCP caller that aborts sees its own reason, and the form stays untouched', async () => {
@@ -207,7 +207,7 @@ describe('WebMCP binding', () => {
     controller.abort(new Error('AbortError'));
     release(true);
     await expect(pending).rejects.toThrow('AbortError');
-    expect(engine.getFieldVM('organization.ein')?.value.value).toBe('');
+    expect(engine.getFieldVM('organization.ein')?.value.value).toBeNull();
   });
 
   it('ready resolves when the provider is detached before the host acknowledges registration', async () => {

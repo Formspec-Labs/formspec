@@ -7,7 +7,7 @@ use fel_core::exact_json::Value;
 
 use crate::types::ItemInfo;
 
-use crate::scope::{LegacyPadding, RowCounts, count_flat_rows};
+use crate::scope::{RowCounts, count_flat_rows};
 
 /// Expand repeatable groups into concrete indexed instances based on data.
 ///
@@ -16,7 +16,7 @@ use crate::scope::{LegacyPadding, RowCounts, count_flat_rows};
 pub fn expand_repeat_instances(items: &mut [ItemInfo], data: &HashMap<String, Value>) {
     let mut counts = RowCounts::new();
     count_flat_rows(data.keys(), &mut counts);
-    expand_repeat_instances_counted(items, &mut counts, &mut LegacyPadding::new());
+    expand_repeat_instances_counted(items, &mut counts);
 }
 
 fn rebase_item_paths(item: &mut ItemInfo, from: &str, to: &str) {
@@ -39,21 +39,11 @@ fn rebase_item_paths(item: &mut ItemInfo, from: &str, to: &str) {
     }
 }
 
-/// Expand rows from the flatten pass and record any legacy minRepeat padding.
-pub(crate) fn expand_repeat_instances_counted(
-    items: &mut [ItemInfo],
-    counts: &mut RowCounts,
-    padding: &mut LegacyPadding,
-) {
+/// Expand rows from the flatten pass.
+pub(crate) fn expand_repeat_instances_counted(items: &mut [ItemInfo], counts: &mut RowCounts) {
     for item in items.iter_mut() {
         if item.repeatable {
-            let supplied = counts.get(&item.path).copied();
-            let count = supplied.unwrap_or(0).max(item.repeat_min.unwrap_or(0));
-            if count > supplied.unwrap_or(0) {
-                padding.insert(item.path.clone(), supplied);
-            }
-            counts.insert(item.path.clone(), count);
-            let count = count as usize;
+            let count = *counts.entry(item.path.clone()).or_default() as usize;
             if count > 0 {
                 // Clone template children into concrete indexed instances
                 let template_children = item.children.clone();
@@ -69,7 +59,6 @@ pub(crate) fn expand_repeat_instances_counted(
                         expand_repeat_instances_counted(
                             std::slice::from_mut(&mut concrete),
                             counts,
-                            padding,
                         );
                         expanded.push(concrete);
                     }
@@ -84,7 +73,7 @@ pub(crate) fn expand_repeat_instances_counted(
             }
         } else {
             // Recurse into non-repeatable groups
-            expand_repeat_instances_counted(&mut item.children, counts, padding);
+            expand_repeat_instances_counted(&mut item.children, counts);
         }
     }
 }

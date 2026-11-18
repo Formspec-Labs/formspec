@@ -179,14 +179,9 @@ removeRepeatInstance(itemName: string, index: number): void
 
 **Populating a form**
 
-Two sources of values, then a loader. Definition `initialValue`, `prePopulate`, and repeatable `seedFrom` (Core §4.2.2.1, §4.2.3) apply at new Response creation. Host primary data is constructor `responseData` (hydrate-then-seed) or `loadResponseData` for a later saved tree — `<formspec-render>` `initialData` and React `FormspecProvider` `initialData` use the constructor. Loaded data wins over defaults for every key it carries, including a present empty array and `prePopulate` with `editable: false` (the lock guards respondent edits, not the record); keys it omits keep their default.
+Pass `responseData` to the constructor as prefill for a new Response. Rust applies `minRepeat`, `seedFrom`, `prePopulate`, and `initialValue` to absent keys. Supplied values, including `null` fields and empty repeat arrays, win. Creation waits for pending sources before filling the values that depend on them. The Web Component and React `initialData` props use this path.
 
-```typescript
-loadResponseData(data: JsonRecord): void
-// Hydrates a saved Response `data` tree in one evaluation. Each repeatable group in `data` gets one row
-// per array entry, even past maxRepeat or below minRepeat, so loaded data reports MAX_REPEAT/MIN_REPEAT
-// instead of dropping rows. Absent keys keep their state; calculated and undeclared keys are ignored.
-```
+Pass `savedResponseData` to the constructor to resume a saved Response, or use `loadResponseData(data)` to resume in an existing engine. Loading replaces the editable answers and repeat counts. Rows outside their defined limits report `MAX_REPEAT` or `MIN_REPEAT`. Evaluation computes calculated fields from the loaded answers. Untouched fields have a null editing signal and are absent from Response data.
 
 **Saving and resuming an editable draft**
 

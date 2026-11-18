@@ -63,7 +63,7 @@ fel-authoring = []
 fel-core = { path = "../../../fel-core" }
 formspec-changeset = { path = "../formspec-changeset" }
 formspec-core = { path = "../formspec-core", default-features = false }
-formspec-eval = { path = "../formspec-eval" }
+formspec-eval = { path = "../formspec-eval", features = ["create"] }
 formspec-lint = { path = "../formspec-lint", optional = true }
 serde = "1"
 serde_json = "1"

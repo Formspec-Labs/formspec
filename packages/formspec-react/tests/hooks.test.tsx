@@ -204,8 +204,8 @@ describe('useField', () => {
         expect(result.current.hint).toBe('Enter your full name.');
         expect(result.current.dataType).toBe('string');
         expect(result.current.required).toBe(true);
-        // Engine initializes string fields to '' (empty string)
-        expect(result.current.value).toBe('');
+        // An untouched field has a null editing value.
+        expect(result.current.value).toBeNull();
         expect(result.current.visible).toBe(true);
         expect(result.current.readonly).toBe(false);
     });
@@ -246,7 +246,7 @@ describe('useField', () => {
             );
         });
 
-        expect(result.current.value).toBe('');
+        expect(result.current.value).toBeNull();
 
         flushSync(() => { engine.setValue('name', 'Alice'); });
         expect(result.current.value).toBe('Alice');
@@ -258,8 +258,8 @@ describe('useField', () => {
 describe('useFieldValue', () => {
     it('returns value and setValue', () => {
         const { result } = renderHookWithProvider(testDefinition, () => useFieldValue('name'));
-        // Engine initializes string fields to '' (empty string)
-        expect(result.current.value).toBe('');
+        // An untouched field has a null editing value.
+        expect(result.current.value).toBeNull();
         expect(typeof result.current.setValue).toBe('function');
     });
 
@@ -283,7 +283,7 @@ describe('useFieldValue', () => {
             );
         });
 
-        expect(result.current.value).toBe('');
+        expect(result.current.value).toBeNull();
 
         flushSync(() => { engine.setValue('name', 'Changed'); });
         expect(result.current.value).toBe('Changed');

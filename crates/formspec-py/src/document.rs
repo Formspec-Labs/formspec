@@ -177,7 +177,7 @@ pub fn lint_document(
 ///     trigger: Optional shape timing mode ("continuous", "submit", "disabled")
 ///     registry_documents: Optional list of registry document dicts
 ///     instances: Optional dict of named instance payloads
-///     context: Optional dict with now_iso / previous_validations / repeat_counts / itemText
+///     context: Optional dict with now_iso / previous_validations / itemText
 ///         (snake or camel keys), and subjectType and subjectKeys from the Response subject
 ///     extension_functions: Optional dict of FEL extension name → callable (Core §3.12)
 ///

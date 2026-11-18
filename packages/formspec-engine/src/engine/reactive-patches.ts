@@ -3,7 +3,6 @@
 import type { EvalDelta } from '../diff.js';
 import type { EngineReactiveRuntime, EngineSignal } from '../reactivity/types.js';
 import type { ValidationResult } from '@formspec-org/types';
-import type { FormItem } from '@formspec-org/types';
 import type { EngineBindConfig } from './helpers.js';
 import {
     cloneValue,
@@ -18,7 +17,6 @@ export function patchValueSignalsFromWasm(options: {
     values: Record<string, unknown>;
     signals: Record<string, EngineSignal<any>>;
     data: Record<string, any>;
-    fieldItems: Map<string, FormItem>;
     bindConfigs: Record<string, EngineBindConfig>;
     calculatedFields: Set<string>;
 }): void {
@@ -27,21 +25,14 @@ export function patchValueSignalsFromWasm(options: {
         // Native output can omit non-relevant fields. Their editing values still belong to the primary instance.
         if (!Object.prototype.hasOwnProperty.call(options.values, path)) {
             if (!options.calculatedFields.has(basePath)) {
-                sig.value = normalizeWasmValue(options.data[path]);
+                sig.value = normalizeWasmValue(options.data[path] ?? null);
             }
             continue;
         }
         const value = options.values[path];
-        const item = options.fieldItems.get(basePath);
         const normalizedValue = normalizeWasmValue(value);
-        const hasExpressionInitial = typeof item?.initialValue === 'string' && item.initialValue.startsWith('=');
         if (!options.calculatedFields.has(basePath)
-            && hasExpressionInitial
-            && !(path in options.data)) {
-            options.data[path] = cloneValue(normalizedValue);
-        } else if (!options.calculatedFields.has(basePath)
             && options.bindConfigs[basePath]?.default !== undefined
-            && path in options.data
             && isEmptyValue(options.data[path])
             && !deepEqual(options.data[path], normalizedValue)) {
             options.data[path] = cloneValue(normalizedValue);
@@ -53,7 +44,7 @@ export function patchValueSignalsFromWasm(options: {
         } else {
             rawValue = normalizedValue;
         }
-        sig.value = normalizeWasmValue(rawValue);
+        sig.value = normalizeWasmValue(rawValue ?? null);
     }
 }
 

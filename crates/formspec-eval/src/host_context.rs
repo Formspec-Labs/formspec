@@ -218,7 +218,7 @@ impl HostFelContext {
             result.host_values.keys().cloned(),
         );
         let mut options = options.clone();
-        crate::runtime_seed::hydrate_inline_instances(definition, &mut options.instances);
+        crate::runtime_context::hydrate_inline_instances(definition, &mut options.instances);
         let mut state = ScopeData::for_values(&index, &result.host_values, &options);
         state.variables.clone_from(&result.scoped_variables);
         for finding in &result.validations {

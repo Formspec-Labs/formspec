@@ -22,9 +22,10 @@ for (const nonRelevantBehavior of ['remove', 'empty', 'keep']) {
         assert.equal(engine.signals.hidden.value, 'changed');
         engine.setValue('show', false);
         engine.setValue('hidden', undefined);
-        assert.equal(engine.signals.hidden.value, undefined);
+        // The missing value renders as null in both relevance states.
+        assert.equal(engine.signals.hidden.value, null);
         engine.setValue('show', true);
-        assert.equal(engine.signals.hidden.value, undefined);
+        assert.equal(engine.signals.hidden.value, null);
       } finally { engine.dispose(); }
     });
   }
@@ -70,15 +71,15 @@ test('outer removal preserves nested zero/above-max shape, values and write attr
     assert.equal(engine.getFieldPaths().includes('rows[0].children[1].flag'), false);
   } finally { engine.dispose(); }
 });
-test('load truncation preserves omitted nested groups on retained rows', () => {
+test('resuming a shorter saved tree clears omitted nested groups', () => {
   const engine = createFormEngine(repeatDefinition());
   try {
     engine.loadResponseData({ rows });
     engine.loadResponseData({ rows: [{ name: 'first updated' }] });
     assert.equal(engine.repeats.rows.value, 1);
-    assert.equal(engine.repeats['rows[0].children'].value, 2);
-    assert.equal(engine.repeats['rows[0].children[0].details.leaves'].value, 2);
-    assert.equal(engine.signals['rows[0].children[0].flag'].value, false);
+    // A resume replaces prior answers and rows with the saved tree.
+    assert.equal(engine.repeats['rows[0].children'].value, 0);
+    assert.equal(engine.signals['rows[0].children[0].flag'], undefined);
     assert.equal(engine.getFieldPaths().includes('rows[1].name'), false);
   } finally { engine.dispose(); }
 });

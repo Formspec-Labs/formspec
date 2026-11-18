@@ -184,8 +184,8 @@ test('getFieldVM hint resolves from loaded locale', () => {
 test('getFieldVM value reflects engine signal', () => {
   const engine = new FormEngine(minDef());
   const vm = engine.getFieldVM('name');
-  // Default value is empty for string fields
-  assert.equal(vm.value.value, '');
+  // An untouched text signal is null.
+  assert.equal(vm.value.value, null);
   // Set value on engine and check VM
   engine.setValue('name', 'Alice');
   assert.equal(vm.value.value, 'Alice');

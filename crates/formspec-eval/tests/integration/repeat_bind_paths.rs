@@ -67,7 +67,7 @@ fn wildcard_bind_paths_apply_to_every_instance() {
 
         let empty = evaluate(
             &jobs_definition(binds.clone()),
-            &HashMap::new(),
+            &HashMap::from([("jobs".to_owned(), json!([{}]))]),
             &EvalOptions::default(),
         );
         let failures: Vec<(&str, String)> = empty

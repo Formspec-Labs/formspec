@@ -198,8 +198,6 @@ pub struct EvalHostContextBundle {
     pub constraints: Vec<ExtensionConstraint>,
     /// Item text request from `itemText: { localeStrings? }`, when present.
     pub item_text: Option<ItemTextRequest>,
-    /// Whether this batch should apply creation-time `seedFrom`.
-    pub apply_creation_seeds: bool,
 }
 
 /// Parse the optional JSON context object passed to `evaluateDefinition` from JavaScript.
@@ -212,7 +210,6 @@ pub fn eval_host_context_from_json_map(
         instances: parse_instances(ctx_obj),
         constraints: parse_registry_documents(ctx_obj),
         item_text: item_text_request_from_json_object(ctx_obj),
-        apply_creation_seeds: parse_apply_creation_seeds(ctx_obj),
     })
 }
 
@@ -275,7 +272,6 @@ fn parse_eval_context(ctx_obj: &Map<String, Value>) -> Result<EvalContext, Strin
             .map(str::to_string),
         previous_validations,
         previous_non_relevant,
-        repeat_counts: parse_repeat_counts(ctx_obj),
     })
 }
 
@@ -310,40 +306,11 @@ pub(crate) fn subject_keys_from_json_object(
     ))
 }
 
-/// Parses [`EvalContext`] fields from a host JSON object (clock, prior validations, `repeatCounts`, …).
+/// Parses [`EvalContext`] fields from a host JSON object (clock, prior validations, …).
 ///
 /// Trigger, `instances`, and registry documents are not read; use [`eval_host_context_from_json_map`] for the full bundle.
 pub fn eval_context_from_json_object(ctx_obj: &Map<String, Value>) -> Result<EvalContext, String> {
     parse_eval_context(ctx_obj)
-}
-
-/// Live FormEngine sends `repeatCounts` and must not re-run `seedFrom`; batch evals omit it.
-fn parse_apply_creation_seeds(ctx_obj: &Map<String, Value>) -> bool {
-    if let Some(flag) = ctx_obj
-        .get("applyCreationSeeds")
-        .or_else(|| ctx_obj.get("apply_creation_seeds"))
-        .and_then(Value::as_bool)
-    {
-        return flag;
-    }
-    !ctx_obj.contains_key("repeatCounts") && !ctx_obj.contains_key("repeat_counts")
-}
-
-fn parse_repeat_counts(ctx_obj: &Map<String, Value>) -> Option<HashMap<String, u64>> {
-    let obj = ctx_obj
-        .get("repeatCounts")
-        .or_else(|| ctx_obj.get("repeat_counts"))
-        .and_then(|v| v.as_object())?;
-    let mut out = HashMap::new();
-    for (k, v) in obj.iter() {
-        if let Some(n) = v
-            .as_u64()
-            .or_else(|| v.as_i64().filter(|&i| i >= 0).map(|i| i as u64))
-        {
-            out.insert(k.clone(), n);
-        }
-    }
-    Some(out)
 }
 
 fn parse_eval_trigger(ctx_obj: &Map<String, Value>) -> Result<EvalTrigger, String> {

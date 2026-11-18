@@ -4,11 +4,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FormEngine, evaluateDefinition } from '../dist/index.js';
+import { FormEngine, createResponse, evaluateDefinition } from '../dist/index.js';
 
 // The guard (tests/conformance/suite, schema schemas/conformance-suite.schema.json) runs each case through
 // legs that must agree (thoughts/plans/evaluator-parity.md §2.7):
-//   P        evaluate(def, payload) in the case mode; for continuous cases it must equal `expected`.
+//   P        evaluate created data for a new Response, or the payload for a saved Response; for continuous cases it must equal `expected`.
 //   S        evaluate(def, P.data, submit): the verdict on the filed bytes; for submit cases it must equal
 //            `expected` and be a fixpoint.
 //   F        FormEngine's live report and data must equal P in the continuous trigger (every case).
@@ -291,12 +291,9 @@ async function openEngine(caseDoc, definition, payload) {
   const options = { registryEntries, runtimeContext: { now: NOW } };
   const engine = caseDoc.origin === 'new'
     ? new FormEngine(clone(definition), { ...options, responseData: clone(payload) })
-    : new FormEngine(clone(definition), options);
+    : new FormEngine(clone(definition), { ...options, savedResponseData: clone(payload) });
   if (caseDoc.skipScreener && typeof engine.skipScreener === 'function') {
     engine.skipScreener();
-  }
-  if (caseDoc.origin !== 'new') {
-    engine.loadResponseData(clone(payload));
   }
   await engine.waitForInstanceSources();
   for (const step of caseDoc.operations ?? []) {
@@ -355,7 +352,11 @@ async function runProcessingCase(caseDoc, legs) {
     const filed = engineOutcome(engine, submit ? 'on-submit' : 'live').data;
     legs.set('FR', againstExpected(evaluate('FR', filed, submit ? 'submit' : 'continuous', { server: true }), expected));
   } else {
-    const live = evaluate('P(continuous)', payload, 'continuous');
+    // Fixture URL sources fail, so use their authored fallback on the session leg.
+    const sessionInput = caseDoc.origin === 'new'
+      ? createResponse(definition, payload, { nowIso: NOW }).data
+      : payload;
+    const live = evaluate('P(continuous)', sessionInput, 'continuous');
     if (!submit) {
       legs.set('P', [...againstExpected(live, expected), ...('data' in expected ? roundTrip(expected.data) : [])]);
     }
@@ -365,7 +366,7 @@ async function runProcessingCase(caseDoc, legs) {
     }
     legs.set('F', liveProblems);
     if (submit) {
-      const inSession = evaluate('P(submit)', payload, 'submit');
+      const inSession = evaluate('P(submit)', sessionInput, 'submit');
       const verdict = evaluate('S', inSession.data, 'submit', { server: true });
       const again = evaluate('S(fixpoint)', verdict.data, 'submit', { server: true });
       legs.set('S', [...againstExpected(verdict, expected), ...betweenLegs('fixpoint', again, verdict)]);
@@ -427,13 +428,12 @@ async function runFelCase(caseDoc, legs) {
  */
 async function runItemTextCase(caseDoc, legs) {
   const definition = readJson(path.join(repoRoot, caseDoc.definitionPath));
-  const engine = new FormEngine(clone(definition), { runtimeContext: { now: NOW } });
+  const engine = new FormEngine(clone(definition), { runtimeContext: { now: NOW }, savedResponseData: loadInputPayload(caseDoc) });
   if (caseDoc.localePath) {
     const locale = readJson(path.join(repoRoot, caseDoc.localePath));
     engine.loadLocale(locale);
     engine.setLocale(locale.locale);
   }
-  engine.loadResponseData(loadInputPayload(caseDoc));
   const readers = {
     label: (p) => engine.getItemLabelSignal(p).value,
     hint: (p) => engine.getItemHintSignal(p)?.value,

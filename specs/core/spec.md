@@ -1804,6 +1804,10 @@ processing model, that governs how changes in Instance data propagate through
 Binds and Shapes. A conformant processor MUST implement these four phases and
 MUST execute them in the specified order.
 
+Creation-time values (`minRepeat` padding, `seedFrom`, `prePopulate`, and
+`initialValue`) are outside this cycle. A processor re-evaluating an existing
+Response MUST NOT apply them.
+
 #### Phase 1: Rebuild
 
 **Trigger:** The structural shape of the Instance has changed — specifically,
@@ -3547,7 +3551,7 @@ Group-specific properties:
 |---|---|---|---|
 | `children` | array of Item | **1..1** (REQUIRED) | Ordered list of child Items. MAY be empty. Defines the sub-tree rooted at this Group. |
 | `repeatable` | boolean | **0..1** (OPTIONAL) | When `true`, this Group represents a one-to-many collection. Each repetition creates an independent copy of the Group's `children` in the Response data. Default: `false`. |
-| `minRepeat` | integer | **0..1** (OPTIONAL) | Minimum number of repetitions. Applicable only when `repeatable` is `true`. MUST be a non-negative integer. Default: `0`. If `minRepeat` is greater than zero, the implementation MUST pre-populate that many empty repetitions when a new Response is created. |
+| `minRepeat` | integer | **0..1** (OPTIONAL) | Minimum number of repetitions. Applicable only when `repeatable` is `true`. MUST be a non-negative integer. Default: `0`. If `minRepeat` is greater than zero, creation MUST open at least that many repetitions for an absent Group. The processor MUST preserve the count of a Group supplied by the host or in a saved Response. |
 | `maxRepeat` | integer | **0..1** (OPTIONAL) | Maximum number of repetitions. Applicable only when `repeatable` is `true`. MUST be a positive integer, or absent for unbounded. If present, MUST be greater than or equal to `minRepeat`. Implementations MUST prevent the user from adding repetitions beyond this limit. |
 | `seedFrom` | object | **0..1** (OPTIONAL) | Applicable only when `repeatable` is `true`. One new-Response repetition per JSON array element on a named secondary instance (`instance`, `path`). Normative rules in §4.2.2.1. |
 
@@ -3599,19 +3603,20 @@ expression has no row context. Absolute instance-root lookups remain available
 via `initialValue`. A relative miss (index ≥ `N`) stays empty; the processor
 MUST NOT fall back to the instance root.
 
-**Host data wins; hydrate then seed; one-shot.** If the primary instance already
-has Response data for the Group (constructor `responseData`, `loadResponseData`,
-or a saved Response), the processor MUST NOT apply `seedFrom`. A present `[]` is
-host data (zero rows); an absent key is not. Host primary data MUST be installed
-before `seedFrom`. A live engine MUST NOT re-apply `seedFrom` on later Rebuild,
-including after every seeded row is removed. URL `source` MAY arrive after the
-first Rebuild (§2.1.7): apply `seedFrom` and deferred `prePopulate` when the
-instance first materializes; without a fallback, fetch failure uses `N = 0`
-plus a diagnostic. Later
-refresh MUST NOT restomp person edits (FH-064). A processor MAY defer source-dependent
-creation-time seeding while a source is loading, even when inline fallback data
-is visible to FEL. If loading fails, apply pending seeding using that fallback;
-without a fallback use `N = 0`. Host Response data and person edits still win.
+**Host data wins; creation is one-shot.** Install host prefill before
+creating values for a new Response. Every present key wins, including a
+present `null` field or a present `[]` Group (zero rows). Creation fills
+only absent keys. A processor MUST NOT apply creation again when resuming
+a saved Response or after a later Rebuild, including when the person removes
+all seeded rows.
+
+A repeat whose `seedFrom` source is pending MUST stay absent until loading
+succeeds or fails. A field whose `prePopulate` source is pending MUST NOT
+receive `initialValue` while it waits. A processor MAY use authored fallback
+data for FEL while loading. On success, apply still-pending values from the
+loaded data. On failure, apply them from authored fallback data when present.
+Without fallback data, `seedFrom` uses `N = 0` and the processor SHOULD
+emit a diagnostic. Host data and person edits still win (FH-064).
 
 #### 4.2.3 Field Items
 
@@ -3643,9 +3648,9 @@ Field-specific properties:
 | `suffix` | string | **0..1** (OPTIONAL) | Display suffix rendered after the input (e.g., `"%"`). This is a presentation hint only; the suffix MUST NOT appear in the stored data value. |
 | `options` | array \| string (URI) | **0..1** (OPTIONAL) | Applicable when `dataType` is `"choice"` or `"multiChoice"`. If an array, each element MUST be an object with at least `value` (string, REQUIRED) and `label` (string, REQUIRED) properties. If a string, it MUST be a URI referencing an external option set. |
 | `optionSet` | string | **0..1** (OPTIONAL) | Name of a top-level option set declared in `optionSets` (§4.6). Applicable when `dataType` is `"choice"` or `"multiChoice"`. When both `options` and `optionSet` are present, `optionSet` takes precedence. |
-| `initialValue` | any \| string | **0..1** (OPTIONAL) | Initial value assigned when a new Response is created or a new repeat instance is added. May be a **literal value** (any JSON value conforming to the field's `dataType`) or an **expression string** prefixed with `=` (e.g., `"=today()"`, `"=@instance('entity').name"`). An expression-based `initialValue` is evaluated **once** at creation time and is NOT re-evaluated when dependencies change (use `calculate` on a Bind for continuous recalculation). Distinct from the Bind `default` property (see §4.3). |
+| `initialValue` | any \| string | **0..1** (OPTIONAL) | Initial value assigned to an absent field when a new Response is created or a new repeat instance is added, after any applicable pre-population. May be a **literal value** (any JSON value conforming to the field's `dataType`) or an **expression string** prefixed with `=` (e.g., `"=today()"`, `"=@instance('entity').name"`). An expression-based `initialValue` is evaluated **once** at creation time and is NOT re-evaluated when dependencies change (use `calculate` on a Bind for continuous recalculation). Distinct from the Bind `default` property (see §4.3). |
 | `semanticType` | string | **0..1** (OPTIONAL) | Domain meaning annotation. Purely metadata — MUST NOT affect validation, calculation, or any behavioral semantics. The value MAY be a freeform namespaced identifier (e.g., `"us-gov:ein"`), a URI (e.g., `"https://schema.org/birthDate"`), or the name of a loaded registry entry with `category: "concept"` (e.g., `"x-onto-ein"`). When the value matches a loaded concept registry entry, processors SHOULD resolve it to the entry's concept metadata (URI, equivalents, display name). Unresolved values are not errors — `semanticType` remains a freeform string for processors that do not support concept resolution. Supports intelligent widget selection, data classification, cross-form alignment, and interoperability mapping. |
-| `prePopulate` | object | **0..1** (OPTIONAL) | Pre-population declaration (`instance`, `path`, `editable` default `true`; `editable: false` locks the field). Takes precedence over `initialValue`. Absolute `path` is instance-root (MAY be `initialValue: "=@instance('name').path"`). Relative `path` under matching `seedFrom` is element-relative and MUST NOT be rewritten as `initialValue` (§4.2.2.1). |
+| `prePopulate` | object | **0..1** (OPTIONAL) | Pre-population declaration (`instance`, `path`, `editable` default `true`; `editable: false` locks the field). Takes precedence over `initialValue`, including while its source is pending. Absolute `path` is instance-root (MAY be `initialValue: "=@instance('name').path"`). Relative `path` under matching `seedFrom` is element-relative and MUST NOT be rewritten as `initialValue` (§4.2.2.1). |
 | `children` | array of Item | **0..1** (OPTIONAL) | Child items. Fields MAY contain children to model dependent sub-questions. When present, the children are contextually tied to the Field's value. |
 | `attests` | array of string | **0..1** (OPTIONAL) | Nonempty, unique references to the containing Definition's declared documents (§4.1.3). Declares the Field's attestation scope; it does not establish a signing act. |
 

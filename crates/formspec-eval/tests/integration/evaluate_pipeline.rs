@@ -3,11 +3,48 @@
 use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::types::ValidationSource;
 use formspec_eval::{
-    EvalContext, EvalOptions, EvalSubject, EvalTrigger, ValidationResult, evaluate,
+    CreateOptions, EvalContext, EvalOptions, EvalSubject, EvalTrigger, ValidationResult,
+    create_response, evaluate,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+
+#[test]
+fn evaluating_saved_data_never_applies_creation_values() {
+    let definition = json!({
+        "instances": { "record": { "data": { "name": "Root", "people": [{"name": "A"}] } } },
+        "items": [
+            { "key": "note", "type": "field", "dataType": "string", "initialValue": "New" },
+            { "key": "name", "type": "field", "dataType": "string",
+              "prePopulate": { "instance": "record", "path": "name" } },
+            { "key": "rows", "type": "group", "repeatable": true, "minRepeat": 2,
+              "seedFrom": { "instance": "record", "path": "people" }, "children": [
+                  { "key": "name", "type": "field", "dataType": "string" }
+              ] }
+        ],
+        "binds": [{ "path": "name", "required": "true" }]
+    });
+    let options = EvalOptions::new().trigger(EvalTrigger::Submit);
+    for input in [json!({"name": null}), json!({"name": null, "rows": []})] {
+        let data = input.as_object().unwrap().clone().into_iter().collect();
+        let result = evaluate(&definition, &data, &options);
+        assert_eq!(result.data, json!({"name": null, "rows": []}));
+        assert_eq!(result.validations.len(), 2);
+        assert!(
+            result
+                .validations
+                .iter()
+                .any(|finding| finding.path == "name")
+        );
+        assert!(
+            result
+                .validations
+                .iter()
+                .any(|finding| finding.path == "rows")
+        );
+    }
+}
 
 #[test]
 fn default_evaluation_json_matches_main_for_removed_answers_and_repeats() {
@@ -146,11 +183,22 @@ fn subject_keys_feed_seed_calculate_and_validation() {
     let wire = json!({"subjectType": "urn:example:agency-year",
         "subjectKeys": {"uei": "00123", "serial": 9_007_199_254_740_991_i64}, "meta": {"uei": "other"}});
     let context = formspec_eval::eval_context_from_json_object(wire.as_object().unwrap()).unwrap();
-    let evaluation = evaluate(
+    let created = create_response(
         &definition,
-        &HashMap::new(),
-        &EvalOptions::new().context(context),
+        json!({}),
+        &CreateOptions {
+            subject: context.subject.clone(),
+            ..CreateOptions::default()
+        },
     );
+    let data = created
+        .data
+        .as_object()
+        .unwrap()
+        .clone()
+        .into_iter()
+        .collect();
+    let evaluation = evaluate(&definition, &data, &EvalOptions::new().context(context));
     assert_eq!(
         evaluation.data,
         json!({"seeded": "00123", "year": 9_007_199_254_740_991_i64})
@@ -2184,7 +2232,11 @@ fn calculated_field_is_readonly_unless_readonly_is_explicit() {
         ],
     });
 
-    let data = HashMap::from([("qty".to_string(), json!(2))]);
+    // Repeat rows must be supplied by the caller of evaluate.
+    let data = HashMap::from([
+        ("qty".to_string(), json!(2)),
+        ("rows".to_string(), json!([{}])),
+    ]);
     let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.readonly.get("qty"), Some(&false));
     assert_eq!(result.readonly.get("total"), Some(&true));
@@ -2441,7 +2493,11 @@ fn repeat_calculate_has_access_to_index_and_count() {
         ]
     });
 
-    let result = evaluate(&def, &HashMap::new(), &EvalOptions::default());
+    let result = evaluate(
+        &def,
+        &HashMap::from([("items".to_string(), json!([{}, {}]))]),
+        &EvalOptions::default(),
+    );
     assert_eq!(
         result.values.get("items[0].position"),
         Some(&json!("1 of 2"))
@@ -2453,7 +2509,7 @@ fn repeat_calculate_has_access_to_index_and_count() {
 }
 
 #[test]
-fn host_repeat_counts_satisfy_min_repeat_with_sparse_flat_values() {
+fn supplied_empty_rows_satisfy_min_repeat() {
     let def = json!({
         "$formspec": "1.0",
         "url": "test",
@@ -2470,23 +2526,9 @@ fn host_repeat_counts_satisfy_min_repeat_with_sparse_flat_values() {
         }],
     });
 
-    let data = HashMap::new();
-    let mut rc = HashMap::new();
-    rc.insert("items".to_string(), 2u64);
-
-    let ctx = EvalContext {
-        repeat_counts: Some(rc),
-        ..EvalContext::default()
-    };
-
-    let result = evaluate(
-        &def,
-        &data,
-        &EvalOptions::default()
-            .trigger(EvalTrigger::Continuous)
-            .instances(HashMap::new())
-            .context(ctx.clone()),
-    );
+    // Empty rows are supplied in Response data, as required after removing host row counts.
+    let data = HashMap::from([("items".to_owned(), json!([{}, {}]))]);
+    let result = evaluate(&def, &data, &EvalOptions::default());
 
     let min_repeat = result
         .validations
@@ -2861,9 +2903,9 @@ fn initial_value_literal_seeds_missing_field() {
         ]
     });
 
-    let data = HashMap::new();
-    let result = evaluate(&def, &data, &EvalOptions::default());
-    assert_eq!(result.values.get("status"), Some(&json!("draft")));
+    // Initial values now belong to creation, before evaluating a Response.
+    let result = create_response(&def, json!({}), &CreateOptions::default());
+    assert_eq!(result.data.get("status"), Some(&json!("draft")));
 }
 
 #[test]
@@ -2889,10 +2931,8 @@ fn initial_value_fel_expression() {
         ]
     });
 
-    let mut data = HashMap::new();
-    data.insert("base".to_string(), json!(10));
-    let result = evaluate(&def, &data, &EvalOptions::default());
-    assert_eq!(result.values.get("doubled"), Some(&json!(20)));
+    let result = create_response(&def, json!({"base": 10}), &CreateOptions::default());
+    assert_eq!(result.data.get("doubled"), Some(&json!(20)));
 }
 
 #[test]
@@ -2903,15 +2943,15 @@ fn initial_value_fel_expression_uses_context_now() {
         ]
     });
 
-    let result = evaluate(
+    let result = create_response(
         &def,
-        &HashMap::new(),
-        &EvalOptions::default().context(EvalContext {
+        json!({}),
+        &CreateOptions {
             now_iso: Some("2026-03-22T12:00:00.000Z".to_string()),
-            ..EvalContext::default()
-        }),
+            ..CreateOptions::default()
+        },
     );
-    assert_eq!(result.values.get("startDate"), Some(&json!("2026-03-22")));
+    assert_eq!(result.data.get("startDate"), Some(&json!("2026-03-22")));
 }
 
 // ── Wildcard bind paths + per-instance eval ──────────────────
@@ -3390,7 +3430,11 @@ fn scoped_variable_expression_can_reference_fields_in_scope() {
         ]
     });
 
-    let data = HashMap::new();
+    // The scoped variable reads answers, regardless of when they were created.
+    let data = HashMap::from([
+        ("rate".to_string(), json!(0.1)),
+        ("order".to_string(), json!({"amount": 200})),
+    ]);
     let result = evaluate(&def, &data, &EvalOptions::default());
     assert_eq!(result.variables.get("globalRate"), Some(&json!(0.1)));
     assert_eq!(result.variables.get("localTax"), Some(&json!(20)));
@@ -4756,12 +4800,7 @@ fn host_snapshot_agrees_on_declared_fields_preserved_values_and_row_counts() {
             json!([{"own": 10, "rate": 999}, {"own": 20}]),
         ),
     ]);
-    let options = EvalOptions::default()
-        .apply_creation_seeds(false)
-        .context(EvalContext {
-            repeat_counts: Some(HashMap::from([("rows".to_owned(), 1)])),
-            ..EvalContext::default()
-        });
+    let options = EvalOptions::default();
     let result = evaluate(&def, &data, &options);
     assert_eq!(result.row_counts["rows"], 2);
     assert_eq!(result.values["rows[0].copy"], json!(12));

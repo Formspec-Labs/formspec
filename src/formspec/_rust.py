@@ -622,7 +622,9 @@ def evaluate_definition(
     context: dict | None = None,
     extension_functions: Mapping[str, Callable[..., Any]] | None = None,
 ) -> ProcessingResult:
-    """Evaluate a definition against data using the Rust batch evaluator.
+    """Evaluate existing Response data using the Rust batch evaluator.
+
+    Creation-time values are applied when a new Response or repeat row is created.
 
     Args:
         definition: The Formspec definition dict.
@@ -630,9 +632,9 @@ def evaluate_definition(
         mode: Shape timing mode — "continuous" (default), "submit", or "disabled".
         registry_documents: Optional list of registry document dicts for extension
             constraint enforcement. Pass an empty list to disable registry loading.
-        instances: Optional dict of named instance data for prePopulate seeding.
+        instances: Optional dict of named instance data used by FEL expressions.
             Keys are instance names, values are dicts of field data.
-        context: Optional evaluator context (e.g. now_iso, repeat_counts, previous_validations).
+        context: Optional evaluator context such as now_iso and previous_validations.
             ``subjectType`` and ``subjectKeys`` take the current Response's ``subject.type``
             and ``subject.keys``. Evaluation checks them against the Definition before FEL runs.
             ``itemText: {"localeStrings": {...}}`` also resolves Item text into

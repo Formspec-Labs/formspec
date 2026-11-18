@@ -107,40 +107,6 @@ export function toRuntimeMappingResult(result: {
     };
 }
 
-export function emptyValueForItem(item: FormItem): FormFieldValue {
-    if (item.type !== 'field') {
-        return null;
-    }
-    switch (item.dataType) {
-        case 'integer':
-        case 'decimal':
-        case 'money':
-        case 'date':
-        case 'dateTime':
-        case 'time':
-        case 'attachment':
-        case 'uri':
-        case 'choice':
-        case 'boolean':
-            return null;
-        case 'multiChoice':
-            return [];
-        default:
-            return '';
-    }
-}
-
-export function coerceInitialValue(item: FormItem, value: FormFieldValue, definition: FormDefinition): FormFieldValue {
-    if (item.dataType === 'money') return coerceFieldValue(item, undefined, definition, value);
-    if (item.dataType === 'boolean' && value === '') {
-        return false;
-    }
-    if (['integer', 'decimal'].includes(item.dataType ?? '') && value === '') {
-        return null;
-    }
-    return cloneValue(value);
-}
-
 export function coerceFieldValue(
     item: FormItem,
     bind: EngineBindConfig | undefined,

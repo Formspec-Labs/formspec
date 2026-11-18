@@ -68,7 +68,6 @@ pub(crate) fn evaluate_definition_inner(
                 context: bundle.context,
                 extensions,
                 item_text: bundle.item_text,
-                apply_creation_seeds: bundle.apply_creation_seeds,
             }
         }
         None => EvalOptions {
@@ -168,4 +167,87 @@ pub(crate) fn evaluate_screener_document_inner(
     let record = evaluate_screener_document(&screener, &answers, now_iso.as_deref(), extensions)?;
 
     serde_json::to_string(&record).map_err(|e| format!("serialization error: {e}"))
+}
+
+/// Create a new Response from host prefill and available sources.
+#[wasm_bindgen(js_name = "createResponse")]
+pub fn create_response_wasm(
+    definition_json: &str,
+    prefill_json: &str,
+    context_json: Option<String>,
+    extensions: Option<FelExtensionHost>,
+) -> Result<String, JsError> {
+    create_inner(
+        definition_json,
+        prefill_json,
+        None,
+        context_json.as_deref(),
+        extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
+    )
+    .map_err(|error| JsError::new(&error))
+}
+
+/// Initialize one added repeat row in its Response context.
+#[wasm_bindgen(js_name = "createRepeatRow")]
+pub fn create_repeat_row_wasm(
+    definition_json: &str,
+    data_json: &str,
+    group_path: &str,
+    context_json: Option<String>,
+    extensions: Option<FelExtensionHost>,
+) -> Result<String, JsError> {
+    create_inner(
+        definition_json,
+        data_json,
+        Some(group_path),
+        context_json.as_deref(),
+        extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
+    )
+    .map_err(|error| JsError::new(&error))
+}
+
+fn create_inner(
+    definition_json: &str,
+    data_json: &str,
+    group_path: Option<&str>,
+    context_json: Option<&str>,
+    extensions: Option<&dyn ExtensionFunctions>,
+) -> Result<String, String> {
+    let definition: Value = parse_json_as(definition_json, "definition JSON")?;
+    let data: Value = parse_json_as(data_json, "response data JSON")?;
+    if !data.is_object() {
+        return Err("response data must be a JSON object".into());
+    }
+    let context: Value = parse_json_as(context_json.unwrap_or("{}"), "creation context JSON")?;
+    for value in [&definition, &data, &context] {
+        fel_core::exact_json::check_decimal_range(value)?;
+    }
+    let context = context
+        .as_object()
+        .ok_or("creation context must be a JSON object")?;
+    let bundle = eval_host_context_from_json_map(context)?;
+    let strings = |key: &str| {
+        context.get(key).and_then(Value::as_array).map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect()
+        })
+    };
+    let options = formspec_eval::CreateOptions {
+        instances: bundle.instances,
+        pending_instances: strings("pendingInstances").unwrap_or_default(),
+        pending_paths: strings("pendingPaths"),
+        now_iso: bundle.context.now_iso,
+        subject: bundle.context.subject,
+        extensions,
+    };
+    let created = match group_path {
+        Some(group_path) => {
+            formspec_eval::create_repeat_row(&definition, data, group_path, &options)
+        }
+        None => Some(formspec_eval::create_response(&definition, data, &options)),
+    };
+    to_json_string(&created)
 }

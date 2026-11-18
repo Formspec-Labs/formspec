@@ -17,14 +17,12 @@ use crate::fel_json::{json_to_runtime_fel, json_to_runtime_fel_typed};
 use crate::types::{ItemInfo, strip_indices};
 
 pub(crate) type RowCounts = HashMap<String, u64>;
-pub(crate) type LegacyPadding = HashMap<String, Option<u64>>;
 pub(crate) type ScopedVariables = HashMap<String, HashMap<String, Value>>;
 
 /// Structure and declarations shared by all expression sites in one response.
 #[derive(Debug, Default)]
 pub(crate) struct ScopeIndex {
     pub(crate) counts: RowCounts,
-    pub(crate) legacy_padding: LegacyPadding,
     children: HashMap<String, BTreeSet<String>>,
     declarations: HashSet<String>,
     instances: HashMap<String, Vec<String>>,
@@ -64,9 +62,8 @@ impl ScopeIndex {
     pub(crate) fn for_flat<'a>(
         items: &[ItemInfo],
         paths: impl Iterator<Item = &'a String> + Clone,
-        supplied: Option<&RowCounts>,
     ) -> Self {
-        let mut counts = supplied.cloned().unwrap_or_default();
+        let mut counts = RowCounts::new();
         count_flat_rows(paths.clone(), &mut counts);
         let mut index = Self::new(items, counts);
         for path in paths {
@@ -200,40 +197,6 @@ impl ScopeIndex {
         let mut paths = Vec::new();
         expand(self, "", target, &mut paths);
         paths
-    }
-
-    /// Legacy creation can add rows for minRepeat before cardinality checks.
-    pub(crate) fn cardinality(
-        &self,
-        item: &ItemInfo,
-        values: &HashMap<String, fel_core::exact_json::Value>,
-    ) -> u64 {
-        let Some(supplied) = self.legacy_padding.get(&item.path) else {
-            return self.count(&item.path) as u64;
-        };
-        if let Some(supplied) = supplied {
-            return *supplied;
-        }
-        fn has_value(
-            item: &ItemInfo,
-            values: &HashMap<String, fel_core::exact_json::Value>,
-        ) -> bool {
-            values.contains_key(&item.path)
-                || item.children.iter().any(|child| has_value(child, values))
-        }
-        item.children
-            .iter()
-            .rev()
-            .find(|child| has_value(child, values))
-            .and_then(|child| {
-                child
-                    .parent_path
-                    .as_deref()?
-                    .strip_suffix(']')?
-                    .rsplit_once('[')
-            })
-            .and_then(|(_, index)| index.parse::<u64>().ok())
-            .map_or(0, |row| row.saturating_add(1))
     }
 
     fn declares(&self, path: &str) -> bool {

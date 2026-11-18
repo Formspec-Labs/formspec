@@ -15,11 +15,9 @@ pub struct EvalOptions<'a> {
     pub trigger: EvalTrigger,
     /// Extension constraints resolved from registry documents.
     pub extension_constraints: Vec<ExtensionConstraint>,
-    /// Named instance payloads for pre-populate and `@instance()`.
+    /// Named instance payloads for `@instance()`.
     pub instances: HashMap<String, Value>,
-    /// When true (default), apply creation-time `seedFrom`. False when live FormEngine sends `repeatCounts`.
-    pub apply_creation_seeds: bool,
-    /// Runtime context (now, prior validations, repeat counts).
+    /// Runtime context (clock and prior processing state).
     pub context: EvalContext,
     /// Host extension functions (Core §3.12) for every Definition expression.
     ///
@@ -36,7 +34,6 @@ impl Default for EvalOptions<'_> {
             trigger: EvalTrigger::Continuous,
             extension_constraints: Vec::new(),
             instances: HashMap::new(),
-            apply_creation_seeds: true,
             context: EvalContext::default(),
             extensions: None,
             item_text: None,
@@ -50,7 +47,6 @@ impl fmt::Debug for EvalOptions<'_> {
             .field("trigger", &self.trigger)
             .field("extension_constraints", &self.extension_constraints)
             .field("instances", &self.instances)
-            .field("apply_creation_seeds", &self.apply_creation_seeds)
             .field("context", &self.context)
             .field(
                 "extensions",
@@ -82,12 +78,6 @@ impl<'a> EvalOptions<'a> {
     /// Set named instance payloads.
     pub fn instances(mut self, instances: HashMap<String, Value>) -> Self {
         self.instances = instances;
-        self
-    }
-
-    /// Apply `seedFrom` on this evaluation. False for live-engine Rebuilds.
-    pub fn apply_creation_seeds(mut self, apply: bool) -> Self {
-        self.apply_creation_seeds = apply;
         self
     }
 

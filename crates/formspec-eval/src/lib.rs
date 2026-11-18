@@ -2,13 +2,15 @@
 //!
 //! ## Layout
 //! The main path is [`pipeline::evaluate`] with [`EvalOptions`]:
-//! 1. [`mod@rebuild`] — definition → item tree, initial values and repeat expansion
+//! 1. [`mod@rebuild`] — definition → item tree and repeat expansion for existing rows
 //! 2. [`mod@recalculate`] — relevance, required, readonly, variables, calculate ([`recalculate()`])
 //! 3. [`mod@revalidate`] — required/type/constraint, extensions, shapes ([`revalidate()`])
 //! 4. [`mod@nrb`] — output shaping for non-relevant fields
 //!
 //! Cross-cutting: [`mod@convert`] (path resolution), private `fel_json` (money-aware JSON→`Value` for env fields),
-//! private `runtime_seed` (prePopulate / previous non-relevant). [`mod@screener_eval`] evaluates standalone screener documents.
+//! private `runtime_context` (inline instances and previous non-relevant paths).
+//! [`mod@screener_eval`] evaluates standalone screener documents. The optional `create`
+//! feature provides separate entry points for new Responses and repeat rows.
 //! [`HostFelContext`] holds one form's FEL state so a host evaluates ad-hoc expressions by Item path without
 //! re-serializing the form per call.
 //!
@@ -35,16 +37,24 @@ pub mod screener_eval;
 pub mod screener_qualification;
 pub mod types;
 
+#[cfg(feature = "create")]
+mod create;
 mod eval_json;
 mod eval_options;
 mod output_data;
 mod pipeline;
 mod registry_constraints;
-mod runtime_seed;
+mod runtime_context;
 mod scope;
 
 /// Exact JSON values for text-based evaluator input and output.
 pub use fel_core::exact_json;
+
+/// Whether new-Response creation is available in this build.
+pub const CREATION_COMPILED: bool = cfg!(feature = "create");
+
+#[cfg(feature = "create")]
+pub use create::{CreateOptions, CreateResult, create_repeat_row, create_response};
 
 pub use convert::resolve_value_by_path;
 pub use eval_json::{

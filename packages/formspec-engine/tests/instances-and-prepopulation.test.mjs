@@ -87,7 +87,8 @@ test('should pre-populate initial values when prePopulate instance mapping is co
 
   assert.equal(engine.signals.patientName.value, 'Jane Smith');
   assert.equal(engine.signals.dob.value, '1985-03-20');
-  assert.equal(engine.signals.notes.value, '');
+  // An untouched signal is null; widgets render it as empty text.
+  assert.equal(engine.signals.notes.value, null);
   assert.equal(engine.readonlySignals.dob.value, true);
   assert.equal(engine.readonlySignals.patientName.value, false);
 });
@@ -297,4 +298,41 @@ test('seedFrom respects maxRepeat cap and minRepeat padding with empty extra row
   assert.equal(padded.signals['rows[0].name'].value, 'A');
   assert.ok(padded.signals['rows[1].name'].value === '' || padded.signals['rows[1].name'].value == null);
   assert.ok(padded.signals['rows[2].name'].value === '' || padded.signals['rows[2].name'].value == null);
+});
+
+test('a saved response preserves blank cells and zero rows on resume', () => {
+  const definition = seedFromRowsDefinition({
+    minRepeat: 2,
+    recordItems: [{ name: 'A' }, { name: 'B' }],
+  });
+  for (const data of [{ rows: [] }, { rows: [{}] }]) {
+    const engine = new FormEngine(definition, { responseData: data });
+    engine.loadResponseData(data);
+    assert.deepEqual(engine.getResponse().data, data);
+    if (data.rows.length) assert.equal(engine.signals['rows[0].name'].value, null);
+  }
+});
+
+test('a pending source leaves its repeat absent and cannot restore a cleared answer', async () => {
+  const realFetch = globalThis.fetch;
+  let finish;
+  globalThis.fetch = () => new Promise(resolve => { finish = resolve; });
+  try {
+    const definition = seedFromRowsDefinition({
+      minRepeat: 1,
+      instances: { record: { source: 'https://example.invalid/record', data: { items: [{ name: 'A' }] } } },
+    });
+    definition.items.push({ key: 'name', type: 'field', dataType: 'string', initialValue: 'Default',
+      prePopulate: { instance: 'record', path: 'name' } });
+    const engine = new FormEngine(definition);
+    assert.equal(engine.getDraftSnapshot().data.rows, undefined);
+    assert.equal(engine.signals.name.value, null);
+    engine.setValue('name', null);
+    await Promise.resolve();
+    finish({ ok: false, status: 503 });
+    await engine.waitForInstanceSources();
+    assert.deepEqual(engine.getResponse().data, { name: null, rows: [{ name: 'A' }] });
+  } finally {
+    globalThis.fetch = realFetch;
+  }
 });

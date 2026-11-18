@@ -1247,23 +1247,22 @@ class TestNonRelevantBehavior:
 
 
 class TestCreationTimeInitializers:
-    def test_initial_value_literal_applied_when_field_missing(self):
-        """initialValue seeds a missing field with a literal value."""
+    def test_evaluation_does_not_apply_initial_value_to_a_missing_field(self):
+        """Native Python evaluation reads saved data. Creation runs in the browser."""
         defn = {
             'items': [
                 {'key': 'status', 'type': 'field', 'dataType': 'string', 'initialValue': 'draft'},
             ],
         }
-        # Field missing from data → seeded with initialValue
         result = evaluate_definition(defn, {})
-        assert result.data.get('status') == 'draft'
+        assert 'status' not in result.data
 
-        # Field already present → initialValue not applied
+        # An answer already present stays as given.
         result2 = evaluate_definition(defn, {'status': 'final'})
         assert result2.data.get('status') == 'final'
 
-    def test_prepopulate_reads_from_instance_when_field_missing(self):
-        """prePopulate seeds a missing field from a named instance."""
+    def test_evaluation_does_not_apply_prepopulate_to_a_missing_field(self):
+        """The evaluator receives instance data for FEL, outside the creation lifecycle."""
         defn = {
             '$formspec': '1.0',
             'url': 'test://prepopulate',
@@ -1294,11 +1293,12 @@ class TestCreationTimeInitializers:
             }
         }
 
-        # Field missing → prePopulate fills it
         result = evaluate_definition(defn, {}, instances=instances)
-        assert result.data.get('email') == 'alice@example.com'
+        assert 'email' not in result.data
 
-        # Field present → prePopulate does NOT override
+        # Both a saved answer and a cleared answer stay as given.
+        cleared = evaluate_definition(defn, {'email': None}, instances=instances)
+        assert cleared.data['email'] is None
         result2 = evaluate_definition(defn, {'email': 'bob@example.com'}, instances=instances)
         assert result2.data.get('email') == 'bob@example.com'
 
@@ -1322,16 +1322,18 @@ class TestCreationTimeInitializers:
             return {'items': items, 'instances': {'record': {'data': payload}}}
         return {'items': items}, {'record': payload}
 
-    def test_seed_from_expands_repeat_with_relative_prepopulate(self):
+    def test_evaluation_does_not_seed_repeats_from_host_instances(self):
         defn, instances = self._seed_from_rows()
         result = evaluate_definition(defn, {}, instances=instances)
-        assert result.values.get('rows[0].name') == 'ACME CORP'
-        assert result.values.get('rows[1].name') == 'WIDGETS INC'
+        assert result.data['rows'] == []
+        assert 'rows[0].name' not in result.values
+        assert 'rows[1].name' not in result.values
 
-    def test_seed_from_reads_inline_definition_instances_without_side_channel(self):
+    def test_evaluation_does_not_seed_repeats_from_inline_instances(self):
         result = evaluate_definition(self._seed_from_rows(inline=True), {})
-        assert result.values.get('rows[0].name') == 'ACME CORP'
-        assert result.values.get('rows[1].name') == 'WIDGETS INC'
+        assert result.data['rows'] == []
+        assert 'rows[0].name' not in result.values
+        assert 'rows[1].name' not in result.values
 
     def test_seed_from_does_not_reopen_present_empty_array(self):
         defn, instances = self._seed_from_rows()

@@ -47,7 +47,6 @@ export function clearRepeatIndexedSubtree(options: {
 interface RepeatFieldState {
     value: FormFieldValue;
     writeSource: WriteSource | null;
-    preserveSourceSeed: boolean;
 }
 
 export interface RepeatRowSnapshot {

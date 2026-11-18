@@ -68,7 +68,19 @@ fn registered_extensions_evaluate_at_every_expression_site() {
         .trigger(EvalTrigger::Submit)
         .extensions(&registry);
 
-    let result = evaluate(&definition(), &data(), &options);
+    // The extension in initialValue runs at creation; the other sites run in evaluate.
+    let definition = definition();
+    let seeded = formspec_eval::create_response(
+        &definition,
+        json!({}),
+        &formspec_eval::CreateOptions {
+            extensions: Some(&registry),
+            ..formspec_eval::CreateOptions::default()
+        },
+    );
+    let mut data = data();
+    data.insert("seeded".to_owned(), seeded.data["seeded"].clone());
+    let result = evaluate(&definition, &data, &options);
 
     assert_eq!(
         result.values.get("seeded"),

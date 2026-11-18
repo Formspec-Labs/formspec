@@ -289,5 +289,6 @@ test('loadResponseData keeps every loaded row so over- and under-limit data repo
   assert.equal(engine.repeats.orders.value, 1);
   assert.equal(engine.signals['orders[0].ref'].value, 'only');
   assert.equal(engine.signals['orders[1].ref'], undefined);
-  assert.equal(engine.repeats['orders[0].lines'].value, 1, 'rows kept from before load keep their nested state');
+  // A resumed row uses its saved children, even if the old session had more.
+  assert.equal(engine.repeats['orders[0].lines'].value, 0);
 });

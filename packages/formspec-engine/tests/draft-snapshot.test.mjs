@@ -91,7 +91,9 @@ test('a full draft restores dependent answers and an explicitly cleared initial 
 
     resumed.loadDraftSnapshot(parseJsonExact(JSON.stringify(saved)));
     assert.equal(resumed.signals['parent.detail'].value, 'Dependent answer');
-    assert.equal(resumed.signals.name.value, undefined);
+    // Missing saved data has a null signal and stays absent from the draft.
+    assert.equal(resumed.signals.name.value, null);
+    assert.equal(Object.hasOwn(resumed.getDraftSnapshot().data, 'name'), false);
     assert.equal(resumed.signals.parent.value, false);
   } finally {
     original.dispose();
@@ -115,7 +117,9 @@ test('resuming a draft does not apply a relevance default from the prior form st
     assert.equal(resumed.isPathRelevant('name'), false);
     resumed.loadDraftSnapshot(saved);
     assert.equal(resumed.isPathRelevant('name'), true);
-    assert.equal(resumed.signals.name.value, undefined);
+    // Missing saved data has a null signal and stays absent from the draft.
+    assert.equal(resumed.signals.name.value, null);
+    assert.equal(Object.hasOwn(resumed.getDraftSnapshot().data, 'name'), false);
   } finally {
     original.dispose();
     resumed.dispose();
@@ -232,8 +236,9 @@ test('a resumed draft keeps a cleared answer after its HTTP prefill arrives', as
 });
 
 for (const { index, expected } of [
-  { index: 1, expected: ['One', 'Two'] },
-  { index: 0, expected: ['', 'Two'] },
+  // Replacement rows have no relative source element, even if they reuse a row index.
+  { index: 1, expected: ['One', undefined] },
+  { index: 0, expected: ['', undefined] },
 ]) {
   test(`replacing draft row ${index + 1} gives the same answers before or after prefill loads`, async () => {
     const form = {
@@ -271,7 +276,7 @@ for (const { index, expected } of [
       for (const engine of [loadedFirst, pending]) {
         const rows = engine.getDraftSnapshot().data.people;
         assert.deepEqual(rows.map(row => row.name), expected);
-        assert.deepEqual(rows.map(row => row.nickname), [index === 1 ? 'Edited' : '', 'Second']);
+        assert.deepEqual(rows.map(row => row.nickname), [index === 1 ? 'Edited' : '', undefined]);
       }
     } finally {
       pending.dispose();

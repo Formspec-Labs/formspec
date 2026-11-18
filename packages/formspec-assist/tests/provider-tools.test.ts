@@ -493,7 +493,7 @@ describe('Assist provider tools', () => {
     const blocked = await provider.invokeTool('formspec.profile.apply', { paths: ['organization.ein'], confirm: true });
     expect(blocked.isError).toBe(true);
     expect(JSON.parse(blocked.content[0].text).code).toBe('x-confirmation-required');
-    expect(engine.getFieldVM('organization.ein')?.value.value).toBe('');
+    expect(engine.getFieldVM('organization.ein')?.value.value).toBeNull();
 
     const seen: Array<{ path: string; value: unknown }> = [];
     const confirmedProvider = createAssistProvider({

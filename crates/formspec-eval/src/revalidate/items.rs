@@ -232,7 +232,7 @@ impl Validation<'_> {
 
         // Cardinality check for repeatable groups
         if item.repeatable {
-            let count = self.index.cardinality(item, values);
+            let count = self.index.count(&item.path) as u64;
             if let Some(min) = item.repeat_min
                 && count < min
             {

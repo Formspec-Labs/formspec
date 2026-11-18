@@ -64,7 +64,7 @@ test('wasmEvaluateDefinition forwards previousValidations to the batch evaluator
   assert.equal(second.values.ageStatus, 'invalid');
 });
 
-test('wasmEvaluateDefinition uses repeatCounts for minRepeat when flat values are sparse', () => {
+test('wasmEvaluateDefinition counts empty rows from Response data for minRepeat', () => {
   const definition = {
     $formspec: '1.0',
     url: 'http://example.org/wasm-repeat',
@@ -83,15 +83,15 @@ test('wasmEvaluateDefinition uses repeatCounts for minRepeat when flat values ar
     ],
   };
 
-  const withoutCounts = wasmEvaluateDefinition(definition, {});
+  const omitted = wasmEvaluateDefinition(definition, {});
   assert.ok(
-    withoutCounts.validations.some((v) => v.code === 'MIN_REPEAT'),
-    'expected MIN_REPEAT when repeatCounts omitted and data empty',
+    omitted.validations.some((v) => v.code === 'MIN_REPEAT'),
+    'expected MIN_REPEAT when the Response omits the repeat',
   );
 
-  const withCounts = wasmEvaluateDefinition(definition, {}, { repeatCounts: { rows: 2 } });
+  const supplied = wasmEvaluateDefinition(definition, { rows: [{}, {}] });
   assert.equal(
-    withCounts.validations.filter((v) => v.code === 'MIN_REPEAT').length,
+    supplied.validations.filter((v) => v.code === 'MIN_REPEAT').length,
     0,
   );
 });

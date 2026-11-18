@@ -519,6 +519,7 @@ dependencies = [
  "fancy-regex 0.14.0",
  "fel-core",
  "formspec-core",
+ "formspec-eval",
  "rust_decimal",
  "semver_rs",
  "serde",

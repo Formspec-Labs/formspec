@@ -6,7 +6,7 @@ import type { JsonRecord, JsonValue } from '../interfaces.js';
 export function captureDraftData(
     items: FormItem[],
     fieldValue: (path: string) => JsonValue | undefined,
-    repeatCount: (path: string) => number,
+    repeatCount: (path: string) => number | undefined,
 ): JsonRecord {
     function capture(items: FormItem[], prefix: string): JsonRecord {
         const entries: Array<[string, JsonValue]> = [];
@@ -23,7 +23,9 @@ export function captureDraftData(
                 if (value !== undefined) into.push([item.key, value]);
                 appendItems(children, path, into);
             } else if (item.type === 'group' && item.repeatable) {
-                const rows = Array.from({ length: repeatCount(path) }, (_, index) => capture(children, `${path}[${index}]`));
+                const count = repeatCount(path);
+                if (count === undefined) continue;
+                const rows = Array.from({ length: count }, (_, index) => capture(children, `${path}[${index}]`));
                 into.push([item.key, rows]);
             } else if (item.type === 'group') {
                 const group = capture(children, path);
