@@ -141,8 +141,10 @@ pub(crate) fn recalculate_phase(
         };
     let mut diagnostics = settle(items, &mut state, &mut values);
     if !var_defs.is_empty() {
+        bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel);
         variables.evaluate(&mut state, index, fel);
         diagnostics = settle(items, &mut state, &mut values);
+        bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel);
     }
     let (final_var_values, _) = variables.evaluate(&mut state, index, fel);
 
@@ -329,6 +331,26 @@ mod tests {
         });
         let data = HashMap::from([("t".into(), json!(4))]);
         let result = crate::evaluate(&def, &data, &EvalOptions::default());
+        assert_eq!(result.values["vc"], json!(1));
+    }
+
+    #[test]
+    fn variable_reads_required_when_its_calculation_comes_later() {
+        let def = json!({
+            "variables": [{"name": "v", "expression": "required($x)"}],
+            "items": [
+                {"key": "x", "dataType": "string", "required": "$c > 5"},
+                {"key": "c", "dataType": "integer", "calculate": "$t * 2"},
+                {"key": "t", "dataType": "integer"},
+                {"key": "vc", "dataType": "integer", "calculate": "if(@v, 1, 0)"}
+            ]
+        });
+        let result = crate::evaluate(
+            &def,
+            &HashMap::from([("t".into(), json!(4))]),
+            &EvalOptions::default(),
+        );
+        assert!(result.required["x"]);
         assert_eq!(result.values["vc"], json!(1));
     }
 

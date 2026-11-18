@@ -67,9 +67,7 @@ impl CalculateOrder {
         }
 
         let mut checked = HashSet::new();
-        let mut reads_required = variables
-            .iter()
-            .any(|variable| calls_required(&variable.expression));
+        let mut reads_required = false;
         let mut required_reads_calculate = false;
         for item in items_in_order {
             if item.calculate.is_none() && concrete_paths.contains(item.path.as_str()) {
@@ -114,8 +112,8 @@ impl CalculateOrder {
                 )
                 .is_none_or(|reads| reads_calculate(&reads));
             }
-            // Required is refreshed after calculates. Variables and early Binds can
-            // read the state set by the first Bind walk before that refresh.
+            // Early Binds can read the state set by the first Bind walk before
+            // required is refreshed. Variables are reevaluated after the refresh.
             if reads_required && required_reads_calculate {
                 return None;
             }
