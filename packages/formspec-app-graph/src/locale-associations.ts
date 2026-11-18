@@ -148,7 +148,7 @@ function targetArtifact(
   };
 }
 
-function compatibleVersionFailure(
+export function compatibleVersionFailure(
   compatibleVersions: string | undefined,
   targetVersion: string | undefined,
 ): string | undefined {

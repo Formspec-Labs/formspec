@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   collectRenderedNeedTraceNodes,
   RENDERED_NEED_TRACE_CODES,
+  runRenderedNeedTrace,
   validateRenderedNeedTrace,
   type AppGraphContext,
   type ResolvedArtifactHandle,
@@ -109,6 +110,277 @@ function context(
       }),
   };
 }
+
+describe('ADR 0174 effective publication trace', () => {
+  const formUrl = `${APP_URL}/effective`;
+  const needs = [
+    { id: 'current', status: 'adopted', revision: 2 },
+    { id: 'details', status: 'adopted', revision: 1 },
+    { id: 'candidate', status: 'proposed', revision: 1 },
+  ];
+  const current = generation('need:current@2');
+  const details = generation('need:details@1');
+  const form = (body: Record<string, unknown>) => handle('effective', 'definition', {
+    url: formUrl, version: '1.0.0', title: 'Intake', ...body,
+  });
+  const graph = (...handles: ResolvedArtifactHandle[]) => context(handles, needs);
+  const at = (artifactSlot: string, jsonPointer: string) => expect.objectContaining({ artifactSlot, jsonPointer });
+  const inventory = (ctx: AppGraphContext) => runRenderedNeedTrace(ctx, {
+    mode: 'required', digest: () => `sha256:${'0'.repeat(64)}`,
+  }).record.nodes;
+
+  it('(a, b) inherits through groups, and from the target item into options, binds and Shapes', () => {
+    const ctx = graph(form({
+      ...current,
+      items: [{ key: 'group', type: 'group', repeatable: true, children: [
+        { key: 'name', type: 'field' },
+        { key: 'choice', type: 'field', ...details, options: [{ value: 'a', label: 'A' }] },
+      ] }],
+      binds: [{ path: 'group[*].choice' }],
+      shapes: [{ id: 'choice-check', target: 'group[*].choice' }, { id: 'form-check', target: '#' }],
+    }));
+    const nodes = collectRenderedNeedTraceNodes(ctx);
+    for (const [pointer, needId, owner] of [
+      ['/items/0', 'current', ''],
+      ['/items/0/children/0', 'current', ''],
+      ['/items/0/children/1/options/0', 'details', '/items/0/children/1'],
+      ['/binds/0', 'details', '/items/0/children/1'],
+      ['/shapes/0', 'details', '/items/0/children/1'],
+      ['/shapes/1', 'current', ''],
+    ]) {
+      expect(nodes.find((node) => node.pointer === pointer)?.effective)
+        .toEqual({ needIds: [needId], via: [at('effective', owner!)] });
+    }
+    expect(validateRenderedNeedTrace(ctx)).toEqual([]);
+  });
+
+  it('(c) reports bad overrides once each under a current adopted root', () => {
+    const ctx = graph(form({
+      ...current,
+      items: [{ key: 'group', type: 'group', children: [
+        { key: 'first', type: 'field', ...generation('need:candidate@1'), options: [{ value: 'a' }] },
+        { key: 'second', type: 'field' },
+        { key: 'third', type: 'field', ...generation('need:unknown@1'), options: [{ value: 'b' }] },
+        { key: 'fourth', type: 'field', ...generation('need:malformed'), options: [{ value: 'c' }] },
+      ] }],
+    }));
+    expect(validateRenderedNeedTrace(ctx).map(({ code, primarySource }) => [code, primarySource?.jsonPointer])).toEqual([
+      [RENDERED_NEED_TRACE_CODES.nonAdopted, '/items/0/children/0/x-generation/anchors/0'],
+      [RENDERED_NEED_TRACE_CODES.unresolved, '/items/0/children/2/x-generation/anchors/0'],
+      [RENDERED_NEED_TRACE_CODES.unresolved, '/items/0/children/3/x-generation/anchors/0'],
+    ]);
+    const nodes = collectRenderedNeedTraceNodes(ctx);
+    expect(nodes.find((node) => node.pointer === '/items/0/children/2/options/0')?.effective)
+      .toEqual({ needIds: ['unknown'], via: [at('effective', '/items/0/children/2')] });
+    expect(nodes.find((node) => node.pointer === '/items/0/children/3/options/0')?.effective)
+      .toEqual({ needIds: [], via: [at('effective', '/items/0/children/3')] });
+  });
+
+  it('(e) reports a stale root once for all nodes that inherit its pin', () => {
+    const ctx = graph(form({
+      ...generation('need:current@1'),
+      items: [{ key: 'group', type: 'group', children: [{ key: 'field', type: 'field' }] }],
+      binds: [{ path: 'group.field' }],
+    }));
+    expect(validateRenderedNeedTrace(ctx)).toEqual([expect.objectContaining({
+      code: RENDERED_NEED_TRACE_CODES.stale,
+      primarySource: at('effective', '/x-generation/anchors/0'),
+    })]);
+  });
+
+  it('(d) reports a missing root once and lists only descendants that depend on it', () => {
+    const ctx = graph(form({
+      items: [{ key: 'group', type: 'group', children: [
+        { key: 'plain', type: 'field', optionSet: 'shared' },
+        { key: 'override', type: 'field', optionSet: 'shared', ...current, options: [{ value: 'b' }] },
+      ] }],
+      optionSets: { shared: { options: [{ value: 'a' }] } },
+      binds: [{ path: 'group.plain' }],
+    }));
+    expect(validateRenderedNeedTrace(ctx)).toEqual([expect.objectContaining({
+      code: RENDERED_NEED_TRACE_CODES.missing,
+      primarySource: at('effective', ''),
+      relatedSources: [
+        at('effective', '/binds/0'), at('effective', '/items/0'),
+        at('effective', '/items/0/children/0'), at('effective', '/optionSets/shared/options/0'),
+      ],
+    })]);
+  });
+
+  it('(f) warns for a redundant set of pins without treating a different revision as redundant', () => {
+    const ctx = graph(form({
+      ...current,
+      items: [
+        { key: 'redundant', type: 'field', ...current, options: [{ value: 'a' }] },
+        { key: 'stale', type: 'field', ...generation('need:current@1') },
+      ],
+    }));
+    expect(validateRenderedNeedTrace(ctx)).toEqual([
+      expect.objectContaining({ code: 'APP-GRAPH-RENDERED-NEED-REDUNDANT', severity: 'warning', primarySource: at('effective', '/items/0') }),
+      expect.objectContaining({ code: RENDERED_NEED_TRACE_CODES.stale, severity: 'error', primarySource: at('effective', '/items/1/x-generation/anchors/0') }),
+    ]);
+    expect(inventory(ctx)?.find((node) => node.source.jsonPointer === '/items/0/options/0')?.effective)
+      .toEqual({ needIds: ['current'], via: [at('effective', '/items/0')] });
+  });
+
+  it('(g, h) follows a localized Shape override and still requires unbound Component and Surface traces', () => {
+    const ctx = graph(form({
+      ...current,
+      items: [{ key: 'subject', type: 'field' }],
+      shapes: [{ id: 'required', target: 'subject', ...details }],
+    }), handle('locale', 'locale', {
+      target: { kind: 'definition', url: formUrl },
+      strings: { '$shape.required.message': 'Obligatoire' },
+    }), handle('component', 'component', {
+      targetDefinition: { url: formUrl },
+      tree: { component: 'Stack', ...current, children: [
+        { component: 'TextInput', bind: 'subject' }, { component: 'Text', text: 'Unbound' },
+      ] },
+    }), handle('surface', 'surface', {
+      ...current,
+      routes: [{ ...current, navigation: { label: 'Home', ...current }, slots: [{ id: 'form' }] }],
+    }));
+    expect(validateRenderedNeedTrace(ctx)).toEqual([
+      expect.objectContaining({ code: RENDERED_NEED_TRACE_CODES.missing, primarySource: at('component', '/tree/children/1') }),
+      expect.objectContaining({ code: RENDERED_NEED_TRACE_CODES.missing, primarySource: at('surface', '/routes/0/slots/0') }),
+    ]);
+    expect(inventory(ctx)?.find((node) => node.source.artifactSlot === 'locale')?.effective)
+      .toEqual({ needIds: ['details'], via: [at('effective', '/shapes/0')] });
+    expect(inventory(ctx)?.find((node) => node.source.jsonPointer === '/tree/children/0')?.effective)
+      .toEqual({ needIds: ['current'], via: [at('effective', '')] });
+  });
+
+  it('unions shared options, deduplicates contributing sources and sorts by Unicode code point', () => {
+    const ctx = graph(handle('\u{10000}', 'theme', current), form({
+      ...current,
+      items: [
+        { key: 'first', type: 'field', optionSet: 'shared' },
+        { key: 'second', type: 'field', optionSet: 'shared', ...details },
+        { key: 'third', type: 'field', optionSet: 'shared' },
+      ],
+      optionSets: {
+        shared: { options: [{ value: 'a' }] },
+        unused: { options: [{ value: 'b' }] },
+      },
+    }), handle('\uE000', 'theme', current));
+    const nodes = inventory(ctx);
+    expect(nodes.slice(-2).map((node) => node.source.artifactSlot)).toEqual(['\uE000', '\u{10000}']);
+    expect(nodes.find((node) => node.source.jsonPointer === '/optionSets/shared/options/0')?.effective)
+      .toEqual({ needIds: ['current', 'details'], via: [at('effective', ''), at('effective', '/items/1')] });
+    expect(nodes.find((node) => node.source.jsonPointer === '/optionSets/unused/options/0')?.effective)
+      .toEqual({ needIds: ['current'], via: [at('effective', '')] });
+  });
+
+  it('traces a field-level shared option label to that field and the set-level label to all its users', () => {
+    const ctx = graph(form({
+      ...current,
+      items: [
+        { key: 'first', type: 'field', optionSet: 'shared', ...details },
+        { key: 'second', type: 'field', optionSet: 'shared' },
+      ],
+      optionSets: { shared: { options: [{ value: 'a.b' }] } },
+    }), handle('locale', 'locale', {
+      target: { kind: 'definition', url: formUrl },
+      strings: {
+        'first.options.a\\.b.label': 'Choix local',
+        '$optionSet.shared.a\\.b.label': 'Choix partagé',
+        'first.options.unknown.label': 'Choix inconnu',
+      },
+    }));
+    const nodes = inventory(ctx);
+    expect(nodes.find((node) => node.label === 'first.options.a\\.b.label')?.effective)
+      .toEqual({ needIds: ['details'], via: [at('effective', '/items/0')] });
+    expect(nodes.find((node) => node.label === '$optionSet.shared.a\\.b.label')?.effective)
+      .toEqual({ needIds: ['current', 'details'], via: [at('effective', ''), at('effective', '/items/0')] });
+    expect(nodes.find((node) => node.label === 'first.options.unknown.label')?.effective)
+      .toEqual({ needIds: [], via: [] });
+  });
+
+  it('traces a localized constraint message to the union of the merged Binds', () => {
+    const ctx = graph(form({
+      ...current,
+      items: [{ key: 'subject', type: 'field' }, { key: 'unconstrained', type: 'field' }],
+      binds: [
+        { path: 'subject', constraint: 'true', ...details },
+        { path: 'subject', constraintMessage: 'Check the subject', ...current },
+        { path: 'subject', required: 'true', ...generation('need:required@1') },
+        { path: 'unconstrained', required: 'true' },
+      ],
+    }), handle('locale', 'locale', {
+      target: { kind: 'definition', url: formUrl },
+      strings: { 'subject.constraintMessage': 'Vérifiez le sujet', 'unconstrained.constraintMessage': 'Sans règle' },
+    }));
+    const nodes = inventory(ctx);
+    expect(nodes.find((node) => node.label === 'subject.constraintMessage')?.effective).toEqual({
+      needIds: ['current', 'details', 'required'],
+      via: [at('effective', '/binds/0'), at('effective', '/binds/1'), at('effective', '/binds/2')],
+    });
+    expect(nodes.find((node) => node.label === 'unconstrained.constraintMessage')?.effective)
+      .toEqual({ needIds: [], via: [] });
+  });
+
+  it('keeps Section titles outside Locale Component ownership even if an authored Section has a bind', () => {
+    const ctx = graph(form({ ...current, items: [{ key: 'subject', type: 'field' }] }),
+      handle('component', 'component', {
+        targetDefinition: { url: formUrl },
+        tree: { component: 'Section', id: 'details', bind: 'subject', title: 'Details' },
+      }), handle('locale', 'locale', {
+        target: { kind: 'definition', url: formUrl },
+        strings: { '$component.details.title': 'Détails' },
+      }));
+    expect(inventory(ctx).find((node) => node.label === '$component.details.title')?.effective)
+      .toEqual({ needIds: [], via: [] });
+  });
+
+  it('resolves exact companion targets, repeat-relative binds and escaped Locale option values', () => {
+    const ctx = graph(handle('locale', 'locale', {
+      target: { kind: 'definition', url: formUrl },
+      strings: {
+        '$form.title': 'Titre',
+        '$component.editor.suffix': 'Suffixe',
+        '$component.editor.bind': 'Unsupported',
+        'field.options.a\\.b.label': 'Choix',
+        'field.constraintMessage': 'Message',
+        '$ui.select.placeholder': 'Sélectionnez',
+      },
+    }), form({
+      ...current,
+      items: [{ key: 'rows', type: 'group', repeatable: true, children: [{
+        key: 'field', type: 'field', options: [{ value: 'a.b', ...details }],
+      }] }, { key: 'outside', type: 'field' }],
+      binds: [{ path: 'rows[@index = 1].field', constraintMessage: 'Message', ...details }],
+    }), handle('component', 'component', {
+      targetDefinition: { url: formUrl },
+      tree: { component: 'DataTable', bind: 'rows', children: [
+        { id: 'editor', component: 'TextInput', bind: 'field', ...details },
+        { component: 'TextInput', bind: 'outside' },
+        { component: 'TextInput', bind: 'rows.field' },
+        { component: 'TextInput', bind: 'rows[*].field' },
+      ] },
+    }), handle('wrong-version', 'locale', {
+      target: { kind: 'definition', url: formUrl, compatibleVersions: '^2.0.0' },
+      strings: { '$form.title': 'Mismatched target' },
+    }));
+    const nodes = inventory(ctx);
+    for (const [key, needId, slot, pointer] of [
+      ['$form.title', 'current', 'effective', ''],
+      ['$component.editor.suffix', 'details', 'component', '/tree/children/0'],
+      ['field.options.a\\.b.label', 'details', 'effective', '/items/0/children/0/options/0'],
+      ['field.constraintMessage', 'details', 'effective', '/binds/0'],
+    ]) {
+      expect(nodes.find((node) => node.label === key && node.source.artifactSlot === 'locale')?.effective)
+        .toEqual({ needIds: [needId], via: [at(slot!, pointer!)] });
+    }
+    expect(validateRenderedNeedTrace(ctx).map(({ code, primarySource }) => [code, primarySource?.artifactSlot, primarySource?.jsonPointer])).toEqual([
+      [RENDERED_NEED_TRACE_CODES.missing, 'locale', '/strings/$component.editor.bind'],
+      [RENDERED_NEED_TRACE_CODES.missing, 'locale', '/strings/$ui.select.placeholder'],
+      [RENDERED_NEED_TRACE_CODES.missing, 'component', '/tree/children/1'],
+      [RENDERED_NEED_TRACE_CODES.missing, 'component', '/tree/children/2'],
+      [RENDERED_NEED_TRACE_CODES.missing, 'component', '/tree/children/3'],
+      [RENDERED_NEED_TRACE_CODES.missing, 'wrong-version', '/strings/$form.title'],
+    ]);
+  });
+});
 
 describe('validateRenderedNeedTrace', () => {
   it('exposes the authoritative direct-anchor inventory for navigation, nested Definition options, and StructuredPanel children', () => {
@@ -433,8 +705,12 @@ describe('validateRenderedNeedTrace', () => {
     expect(validateRenderedNeedTrace(graph)).toEqual([]);
   });
 
-  it('inventories only customer-help References and requires each bound entry own direct Need anchor', () => {
+  it('inventories only customer-help References and inherits from the root or the target item', () => {
     const current = 'need:current@2';
+    const definition = handle('definition', 'definition', {
+      url: `${APP_URL}/definition`, version: '1.0.0', ...generation(current),
+      items: [{ key: 'contact', type: 'group', children: [{ key: 'email', type: 'field' }] }],
+    });
     const references = handle('references', 'references', {
       $formspecReferences: '1.0',
       version: '1.0.0',
@@ -465,7 +741,7 @@ describe('validateRenderedNeedTrace', () => {
         content: 'Agent-only context.',
       }],
     });
-    const graph = context([references]);
+    const graph = context([references, definition]);
 
     expect(collectRenderedNeedTraceNodes(graph)
       .filter((node) => node.kind === 'reference-entry')).toEqual([
@@ -473,6 +749,7 @@ describe('validateRenderedNeedTrace', () => {
         pointer: '/references/0',
         label: 'Reusable help',
         anchors: [],
+        effective: { needIds: ['current'], via: [expect.objectContaining({ artifactSlot: 'definition', jsonPointer: '' })] },
       }),
       expect.objectContaining({
         pointer: '/references/1',
@@ -483,16 +760,17 @@ describe('validateRenderedNeedTrace', () => {
         })],
       }),
     ]);
+    // ADR 0174 makes each entry inherit from its binding and warns about a repeated pin.
     expect(validateRenderedNeedTrace(graph)).toEqual([
       expect.objectContaining({
-        code: RENDERED_NEED_TRACE_CODES.missing,
+        code: RENDERED_NEED_TRACE_CODES.redundant,
         primarySource: expect.objectContaining({
           artifactSlot: 'references',
-          jsonPointer: '/references/0',
+          jsonPointer: '/references/1',
         }),
         details: expect.objectContaining({
           renderedNodeKind: 'reference-entry',
-          reason: 'direct-need-anchor-missing',
+          reason: 'direct-need-trace-repeats-inherited',
         }),
       }),
     ]);
@@ -792,6 +1070,7 @@ describe('validateRenderedNeedTrace', () => {
       },
     });
 
+    // ADR 0174 keeps current pins valid and warns where a Definition node repeats its owner.
     expect(validateRenderedNeedTrace(context([
       surface,
       widgetRegistry('x-example', 'x-card-list', [
@@ -801,10 +1080,16 @@ describe('validateRenderedNeedTrace', () => {
       definition,
       responseActions,
       component,
-    ]))).toEqual([]);
+    ]))).toEqual(['/items/0', '/items/0/children/0', '/items/0/children/0/children/0'].map((jsonPointer) =>
+      expect.objectContaining({
+        code: RENDERED_NEED_TRACE_CODES.redundant,
+        severity: 'warning',
+        primarySource: expect.objectContaining({ artifactSlot: 'definition', jsonPointer }),
+      }),
+    ));
   });
 
-  it('requires a direct anchor on every route, navigation object, slot, transition, Item, Action, and Component node', () => {
+  it('requires direct traces on independent roots and groups untraced Definition items at their root', () => {
     const surface = handle('surface', 'surface', {
       routes: [{
         id: 'home',
@@ -837,7 +1122,7 @@ describe('validateRenderedNeedTrace', () => {
       component,
     ]));
 
-    expect(diagnostics).toHaveLength(12);
+    expect(diagnostics).toHaveLength(10);
     expect(diagnostics.every((diagnostic) =>
       diagnostic.code === RENDERED_NEED_TRACE_CODES.missing
       && diagnostic.severity === 'error'
@@ -851,15 +1136,18 @@ describe('validateRenderedNeedTrace', () => {
       '/routes/0/slots/0/binding',
       '/routes/0/transitions/0',
       '',
-      '/items/0',
-      '/items/0/children/0',
       '/actions/0',
       '/tree',
       '/tree/children/0',
     ]);
+    // ADR 0174 reports the Definition's missing trace once, with both dependent items.
+    expect(diagnostics.find((entry) => entry.primarySource?.artifactSlot === 'definition')?.relatedSources)
+      .toEqual(['/items/0', '/items/0/children/0'].map((jsonPointer) =>
+        expect.objectContaining({ artifactSlot: 'definition', jsonPointer }),
+      ));
   });
 
-  it('requires direct traces for option labels, Component subnodes, and Locale strings', () => {
+  it('inherits option labels while Component subnodes and unassociated Locale strings require direct traces', () => {
     const current = 'need:current@2';
     const definition = handle('definition', 'definition', {
       title: 'Choices',
@@ -915,12 +1203,19 @@ describe('validateRenderedNeedTrace', () => {
       },
     });
 
+    // ADR 0174 inherits the unanchored option and warns on the two repeated pins.
     expect(validateRenderedNeedTrace(context([definition, component, locale])))
       .toEqual([
         expect.objectContaining({
-          code: RENDERED_NEED_TRACE_CODES.missing,
+          code: RENDERED_NEED_TRACE_CODES.redundant,
           primarySource: expect.objectContaining({
-            jsonPointer: '/items/0/options/1',
+            jsonPointer: '/items/0',
+          }),
+        }),
+        expect.objectContaining({
+          code: RENDERED_NEED_TRACE_CODES.redundant,
+          primarySource: expect.objectContaining({
+            jsonPointer: '/items/0/options/0',
           }),
         }),
         expect.objectContaining({
@@ -950,7 +1245,7 @@ describe('validateRenderedNeedTrace', () => {
       ]);
   });
 
-  it('requires a direct trace on each Definition bind and validation shape', () => {
+  it('requires direct traces for a Bind and Shape whose item targets do not resolve', () => {
     const current = 'need:current@2';
     const definition = handle('definition', 'definition', {
       title: 'Behavior',

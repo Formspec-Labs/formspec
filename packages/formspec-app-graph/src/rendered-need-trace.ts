@@ -1,6 +1,13 @@
 /** @filedesc Opt-in strict validation from every authored render node to an adopted, current Need. */
 
 import {
+  Path,
+  PathSegmentKind,
+  type EffectiveNeedTrace,
+  type RenderedNeedTraceNode as ReportTraceNode,
+  type RenderedNeedTraceSourcePointer,
+} from '@formspec-org/types';
+import {
   type AppGraphContext,
   type AppGraphDiagnostic,
   type AppGraphHostEvidenceDocument,
@@ -12,7 +19,7 @@ import {
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
 import { NEED_ANCHOR } from './needs-coverage.js';
-import { componentTargetUrl } from './locale-associations.js';
+import { compatibleVersionFailure, componentTargetUrl } from './locale-associations.js';
 import {
   registryWidgetEntries,
   resolvedWidgetContributionFromEntries,
@@ -31,6 +38,7 @@ export const RENDERED_NEED_TRACE_CODES = {
   unresolved: 'APP-GRAPH-RENDERED-NEED-UNRESOLVED',
   nonAdopted: 'APP-GRAPH-RENDERED-NEED-NON-ADOPTED',
   stale: 'APP-GRAPH-RENDERED-NEED-STALE',
+  redundant: 'APP-GRAPH-RENDERED-NEED-REDUNDANT',
   scopeUnknown: 'APP-GRAPH-RENDERED-NODE-SCOPE-UNKNOWN',
   inventoryInvalid: 'APP-GRAPH-RENDERED-NODE-INVENTORY-INVALID',
   navigationImplicit: 'APP-GRAPH-RENDERED-NAVIGATION-IMPLICIT',
@@ -82,16 +90,16 @@ export interface RenderedNeedTraceCollectionFailure {
  * `invalidAnchors` preserves explicit but malformed links for the strict
  * validator. Neither list includes a parent or sibling node's generation data.
  */
-export interface RenderedNeedTraceNode {
-  readonly source: AppGraphSourcePointer;
-  readonly kind: string;
+export interface RenderedNeedTraceNode extends ReportTraceNode {
   readonly pointer: string;
-  readonly label: string;
   readonly anchors: readonly RenderedNeedTraceAnchor[];
   readonly invalidAnchors: readonly RenderedNeedTraceInvalidAnchor[];
   readonly typedNeedRefs?: readonly RenderedNeedTraceTypedNeedRef[];
   readonly failure?: RenderedNeedTraceCollectionFailure;
 }
+
+type CollectedNode = Omit<RenderedNeedTraceNode, 'effective'>;
+type OwnerTable = Map<CollectedNode, readonly CollectedNode[]>;
 
 function record(value: unknown): JsonRecord | undefined {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -194,9 +202,10 @@ function directConfigAnchors(node: JsonRecord, pointer: string): AnchorCandidate
   return anchors;
 }
 
-function sourceIdentity(handle: ResolvedArtifactHandle): AppGraphSourcePointer {
+function sourceIdentity(handle: ResolvedArtifactHandle, jsonPointer: string): RenderedNeedTraceSourcePointer {
   return {
     artifactSlot: handle.slot,
+    jsonPointer,
     artifactKind: handle.artifactKind,
     source: handle.source,
     ref: handle.ref ? { ...handle.ref } : undefined,
@@ -257,12 +266,12 @@ function generationNode(
   pointer: string,
   node: JsonRecord,
   fallback: string,
-): RenderedNeedTraceNode {
+): CollectedNode {
   const { anchors, invalidAnchors } = classifiedAnchors(
     directGenerationAnchors(node, pointer),
   );
   return {
-    source: sourceIdentity(handle),
+    source: sourceIdentity(handle, pointer),
     kind,
     pointer,
     label: nodeLabel(node, fallback),
@@ -279,12 +288,12 @@ function siblingGenerationNode(
   fallback: string,
   generationValue: unknown,
   generationPointer: string,
-): RenderedNeedTraceNode {
+): CollectedNode {
   const { anchors, invalidAnchors } = classifiedAnchors(
     generationObjectAnchors(generationValue, generationPointer),
   );
   return {
-    source: sourceIdentity(handle),
+    source: sourceIdentity(handle, pointer),
     kind,
     pointer,
     label: nodeLabel(node, fallback),
@@ -310,9 +319,9 @@ function failedInventoryNode(
   reason: string,
   relatedSources: AppGraphSourcePointer[] = [],
   details: JsonRecord = {},
-): RenderedNeedTraceNode {
+): CollectedNode {
   return {
-    source: sourceIdentity(handle),
+    source: sourceIdentity(handle, pointer),
     kind,
     pointer,
     label,
@@ -390,7 +399,7 @@ function inventoriedConfigTraceNodes(
   config: JsonRecord,
   pointer: string,
   entries: readonly RegistryWidgetEntry[],
-): RenderedNeedTraceNode[] {
+): CollectedNode[] {
   const moduleId = stringProp(binding, 'moduleId');
   const widgetName = stringProp(binding, 'widgetName');
   const label = `${moduleId ?? '<missing-module>'}/${widgetName ?? '<missing-widget>'}`;
@@ -440,7 +449,7 @@ function inventoriedConfigTraceNodes(
     )];
   }
 
-  const out: RenderedNeedTraceNode[] = [];
+  const out: CollectedNode[] = [];
   const claimedPointers = new Map<string, string>();
   const patternCounts = new Map<string, number>();
   for (const rawEntry of inventory) {
@@ -508,7 +517,7 @@ function inventoriedConfigTraceNodes(
         directConfigAnchors(object, match.pointer),
       );
       out.push({
-        source: sourceIdentity(handle),
+        source: sourceIdentity(handle, match.pointer),
         kind,
         pointer: match.pointer,
         label: nodeLabel(object, match.pointer),
@@ -537,10 +546,10 @@ function inventoriedConfigTraceNodes(
 function surfaceNodes(
   handle: ResolvedArtifactHandle,
   entries: readonly RegistryWidgetEntry[],
-): RenderedNeedTraceNode[] {
+): CollectedNode[] {
   const document = record(handle.document);
   if (!document) return [];
-  const out: RenderedNeedTraceNode[] = [
+  const out: CollectedNode[] = [
     generationNode(
       handle,
       'surface-document',
@@ -657,7 +666,7 @@ function surfaceNodes(
   return out;
 }
 
-function appManifestNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
+function appManifestNodes(handle: ResolvedArtifactHandle): CollectedNode[] {
   const document = record(handle.document);
   if (!document || stringProp(document, 'title') === undefined) return [];
   return [generationNode(
@@ -669,79 +678,163 @@ function appManifestNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode
   )];
 }
 
+type FormFamily = 'definition' | 'screener';
+
+interface ItemTrace {
+  node: CollectedNode;
+  item: JsonRecord;
+  path: string;
+}
+
+interface FormTraceIndex {
+  root: CollectedNode;
+  nodes: CollectedNode[];
+  itemsByPath: Map<string, ItemTrace[]>;
+  itemsByKey: Map<string, ItemTrace[]>;
+  localizedNodes: Map<string, CollectedNode[]>;
+  constraintMessages: Map<string, CollectedNode[]>;
+  componentsById: Map<string, { node: CollectedNode; component: string }[]>;
+}
+
+function indexBy<T>(index: Map<string, T[]>, key: string, value: T): void {
+  const entries = index.get(key);
+  if (entries) entries.push(value);
+  else index.set(key, [value]);
+}
+
+function unique<T>(entries: readonly T[] | undefined): T | undefined {
+  return entries?.length === 1 ? entries[0] : undefined;
+}
+
+function optionLocaleKey(prefix: string, value: string): string {
+  return `${prefix}.${value.replace(/[.\\]/g, '\\$&')}.label`;
+}
+
 function collectDefinitionItems(
   handle: ResolvedArtifactHandle,
   items: unknown,
   pointer: string,
-  out: RenderedNeedTraceNode[],
+  form: FormTraceIndex,
   family: FormFamily,
+  owners: OwnerTable,
+  parent: CollectedNode,
+  parentPath: string,
+  setFields: Map<string, CollectedNode[]>,
 ): void {
   if (!Array.isArray(items)) return;
   items.forEach((rawItem, index) => {
     const item = record(rawItem);
     if (!item) return;
     const itemPointer = `${pointer}/${index}`;
-    out.push(generationNode(handle, `${family}-item`, itemPointer, item, `items[${index}]`));
+    const node = generationNode(handle, `${family}-item`, itemPointer, item, `items[${index}]`);
+    form.nodes.push(node);
+    owners.set(node, [parent]);
+    const key = stringProp(item, 'key');
+    const path = parentPath ? `${parentPath}.${key ?? ''}` : key ?? '';
+    if (key) {
+      const entry = { node, item, path };
+      indexBy(form.itemsByPath, path, entry);
+      indexBy(form.itemsByKey, key, entry);
+    }
+    const setName = stringProp(item, 'optionSet');
+    if (setName && item.type === 'field') indexBy(setFields, setName, node);
     if (Array.isArray(item.options)) {
       item.options.forEach((rawOption, optionIndex) => {
         const option = record(rawOption);
         if (!option) return;
-        out.push(generationNode(
+        const optionNode = generationNode(
           handle,
           `${family}-option`,
           `${itemPointer}/options/${optionIndex}`,
           option,
           `options[${optionIndex}]`,
-        ));
+        );
+        form.nodes.push(optionNode);
+        owners.set(optionNode, [node]);
+        const value = stringProp(option, 'value');
+        if (key && value !== undefined) {
+          indexBy(form.localizedNodes, optionLocaleKey(`${key}.options`, value), optionNode);
+        }
       });
     }
-    collectDefinitionItems(handle, item.children, `${itemPointer}/children`, out, family);
+    collectDefinitionItems(handle, item.children, `${itemPointer}/children`, form, family, owners, node, path, setFields);
   });
 }
 
-/**
- * A Definition or a Screener: both render Items, options, binds, and shapes, and a Screener's
- * respondent-facing items need their own traces exactly as a Definition's do.
- */
-type FormFamily = 'definition' | 'screener';
+function resolveItems(form: FormTraceIndex, path: string | undefined): readonly ItemTrace[] {
+  // Core §4.3.3 selectors address instances of the same authored item.
+  const segmentPattern = /^[a-zA-Z][a-zA-Z0-9_]*(?:\[\*\]|\[@index\s*=\s*[1-9]\d*\])?$/;
+  if (!path || !path.split('.').every((segment) => segmentPattern.test(segment))) return [];
+  const parsed = Path.parse(path);
+  let itemPath = '';
+  for (const segment of parsed.segments) {
+    if (segment.kind === PathSegmentKind.Exact) {
+      itemPath = itemPath ? `${itemPath}.${segment.key}` : segment.key;
+    } else if (!unique(form.itemsByPath.get(itemPath))?.item.repeatable) {
+      return [];
+    }
+  }
+  return form.itemsByPath.get(itemPath) ?? [];
+}
 
-function definitionNodes(handle: ResolvedArtifactHandle, family: FormFamily = 'definition'): RenderedNeedTraceNode[] {
+function targetedOwners(form: FormTraceIndex, path: string | undefined): readonly CollectedNode[] {
+  return path === '#' ? [form.root] : resolveItems(form, path).map(({ node }) => node);
+}
+
+function collectFormNodes(handle: ResolvedArtifactHandle, family: FormFamily, owners: OwnerTable): FormTraceIndex | undefined {
   const document = record(handle.document);
-  if (!document) return [];
-  const out: RenderedNeedTraceNode[] = [
-    generationNode(
-      handle,
-      `${family}-document`,
-      '',
-      document,
-      stringProp(document, 'title') ?? (family === 'screener' ? 'Screener' : 'Definition'),
-    ),
-  ];
-  collectDefinitionItems(handle, document.items, '/items', out, family);
+  if (!document) return undefined;
+  const root = generationNode(handle, `${family}-document`, '', document, family === 'screener' ? 'Screener' : 'Definition');
+  const form: FormTraceIndex = {
+    root, nodes: [root], itemsByPath: new Map(), itemsByKey: new Map(), localizedNodes: new Map(),
+    constraintMessages: new Map(), componentsById: new Map(),
+  };
+  const setFields = new Map<string, CollectedNode[]>();
+  collectDefinitionItems(handle, document.items, '/items', form, family, owners, root, '', setFields);
   if (Array.isArray(document.binds)) {
+    const bindsByItemPath = new Map<string, CollectedNode[]>();
+    const constraintPaths = new Set<string>();
     document.binds.forEach((rawBind, bindIndex) => {
       const bind = record(rawBind);
       if (!bind) return;
-      out.push(generationNode(
+      const path = stringProp(bind, 'path');
+      const node = generationNode(
         handle,
         `${family}-bind`,
         `/binds/${bindIndex}`,
         bind,
-        stringProp(bind, 'path') ?? `binds[${bindIndex}]`,
-      ));
+        path ?? `binds[${bindIndex}]`,
+      );
+      form.nodes.push(node);
+      const targets = resolveItems(form, path);
+      owners.set(node, targets.map((target) => target.node));
+      for (const target of targets) {
+        indexBy(bindsByItemPath, target.path, node);
+        if (typeof bind.constraint === 'string' || typeof bind.constraintMessage === 'string') {
+          constraintPaths.add(target.path);
+        }
+      }
     });
+    // Locale §3.1.4 addresses the effective Bind that Core §4.3.1 merges for the item.
+    for (const [path, binds] of bindsByItemPath) {
+      if (constraintPaths.has(path)) form.constraintMessages.set(path, binds);
+    }
   }
   if (Array.isArray(document.shapes)) {
     document.shapes.forEach((rawShape, shapeIndex) => {
       const shape = record(rawShape);
       if (!shape) return;
-      out.push(generationNode(
+      const node = generationNode(
         handle,
         `${family}-shape`,
         `/shapes/${shapeIndex}`,
         shape,
         `shapes[${shapeIndex}]`,
-      ));
+      );
+      form.nodes.push(node);
+      owners.set(node, targetedOwners(form, stringProp(shape, 'target')));
+      const id = stringProp(shape, 'id');
+      if (id) indexBy(form.localizedNodes, `$shape.${id}.message`, node);
     });
   }
   const optionSets = record(document.optionSets);
@@ -752,20 +845,24 @@ function definitionNodes(handle: ResolvedArtifactHandle, family: FormFamily = 'd
       optionSet.options.forEach((rawOption, optionIndex) => {
         const option = record(rawOption);
         if (!option) return;
-        out.push(generationNode(
+        const node = generationNode(
           handle,
           `${family}-option`,
           `/optionSets/${escapePointerSegment(setName)}/options/${optionIndex}`,
           option,
           `${setName}.options[${optionIndex}]`,
-        ));
+        );
+        form.nodes.push(node);
+        owners.set(node, setFields.get(setName) ?? [root]);
+        const value = stringProp(option, 'value');
+        if (value !== undefined) indexBy(form.localizedNodes, optionLocaleKey(`$optionSet.${setName}`, value), node);
       });
     }
   }
-  return out;
+  return form;
 }
 
-function themeNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
+function themeNodes(handle: ResolvedArtifactHandle): CollectedNode[] {
   const document = record(handle.document);
   if (!document) return [];
   return [generationNode(
@@ -777,8 +874,8 @@ function themeNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
   )];
 }
 
-function responseActionNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
-  const out: RenderedNeedTraceNode[] = [];
+function responseActionNodes(handle: ResolvedArtifactHandle): CollectedNode[] {
+  const out: CollectedNode[] = [];
   const actions = record(handle.document)?.actions;
   if (!Array.isArray(actions)) return out;
   actions.forEach((rawAction, actionIndex) => {
@@ -795,13 +892,13 @@ function responseActionNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceN
   return out;
 }
 
-function referenceNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
+function referenceNodes(handle: ResolvedArtifactHandle, form: FormTraceIndex | undefined, owners: OwnerTable): CollectedNode[] {
   const document = record(handle.document);
   const references = document?.references;
   const referenceDefs = record(document?.referenceDefs);
   if (!Array.isArray(references)) return [];
 
-  return references.flatMap((rawReference, referenceIndex): RenderedNeedTraceNode[] => {
+  return references.flatMap((rawReference, referenceIndex): CollectedNode[] => {
     const reference = record(rawReference);
     if (!reference) return [];
     const pointer = `/references/${referenceIndex}`;
@@ -815,21 +912,23 @@ function referenceNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[]
     const { anchors, invalidAnchors } = classifiedAnchors(
       directGenerationAnchors(reference, pointer),
     );
-    return [{
-      source: sourceIdentity(handle),
+    const node: CollectedNode = {
+      source: sourceIdentity(handle, pointer),
       kind: 'reference-entry',
       pointer,
       label: nodeLabel(resolved, `references[${referenceIndex}]`),
       anchors,
       invalidAnchors,
-    }];
+    };
+    if (form) owners.set(node, targetedOwners(form, stringProp(resolved, 'target')));
+    return [node];
   });
 }
 
-function dataSourceNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
+function dataSourceNodes(handle: ResolvedArtifactHandle): CollectedNode[] {
   const sources = record(handle.document)?.sources;
   if (!Array.isArray(sources)) return [];
-  return sources.flatMap((rawSource, sourceIndex): RenderedNeedTraceNode[] => {
+  return sources.flatMap((rawSource, sourceIndex): CollectedNode[] => {
     const source = record(rawSource);
     if (!source) return [];
     return [generationNode(
@@ -842,11 +941,11 @@ function dataSourceNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[
   });
 }
 
-function previewScenarioNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
+function previewScenarioNodes(handle: ResolvedArtifactHandle): CollectedNode[] {
   const document = record(handle.document);
   if (!document || document.$formspecSurfaceScenario !== '0.1') return [];
 
-  const out: RenderedNeedTraceNode[] = [
+  const out: CollectedNode[] = [
     generationNode(
       handle,
       'surface-preview-scenario',
@@ -926,17 +1025,37 @@ function collectComponentNodes(
   handle: ResolvedArtifactHandle,
   value: unknown,
   pointer: string,
-  out: RenderedNeedTraceNode[],
+  out: CollectedNode[],
+  form: FormTraceIndex | undefined,
+  owners: OwnerTable,
+  repeatPath?: string,
 ): void {
   if (Array.isArray(value)) {
-    value.forEach((child, index) => collectComponentNodes(handle, child, `${pointer}/${index}`, out));
+    value.forEach((child, index) => collectComponentNodes(handle, child, `${pointer}/${index}`, out, form, owners, repeatPath));
     return;
   }
   const object = record(value);
   if (!object) return;
 
   if (typeof object.component === 'string') {
-    out.push(generationNode(handle, 'component-node', pointer, object, object.component));
+    const node = generationNode(handle, 'component-node', pointer, object, object.component);
+    out.push(node);
+    if (form) {
+      const id = stringProp(object, 'id');
+      if (id) indexBy(form.componentsById, id, { node, component: object.component });
+      const bind = stringProp(object, 'bind');
+      if (bind) {
+        // Component §4.4 resolves child paths in the current repeat instance.
+        const path = repeatPath ? `${repeatPath}.${bind}` : bind;
+        const targets = bind.includes('[') ? [] : resolveItems(form, path);
+        owners.set(node, targets.map((target) => target.node));
+        const target = unique(targets);
+        if (target?.item.type === 'group' && target.item.repeatable === true
+            && (object.component === 'DataTable' || object.component === 'Accordion')) {
+          repeatPath = target.path;
+        }
+      }
+    }
     if (object.component === 'Summary' && Array.isArray(object.items)) {
       object.items.forEach((rawItem, index) => {
         const item = record(rawItem);
@@ -975,7 +1094,7 @@ function collectComponentNodes(
           ),
         );
         out.push({
-          source: sourceIdentity(handle),
+          source: sourceIdentity(handle, `${pointer}/tabLabels/${index}`),
           kind: 'component-tab-label',
           pointer: `${pointer}/tabLabels/${index}`,
           label: typeof rawLabel === 'string' ? rawLabel : `Tabs.tabLabels[${index}]`,
@@ -986,17 +1105,62 @@ function collectComponentNodes(
     }
   }
   for (const [key, child] of Object.entries(object)) {
-    collectComponentNodes(handle, child, `${pointer}/${escapePointerSegment(key)}`, out);
+    collectComponentNodes(handle, child, `${pointer}/${escapePointerSegment(key)}`, out, form, owners, repeatPath);
   }
 }
 
-function componentNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
-  const out: RenderedNeedTraceNode[] = [];
-  collectComponentNodes(handle, handle.document, '', out);
+function componentNodes(handle: ResolvedArtifactHandle, form: FormTraceIndex | undefined, owners: OwnerTable): CollectedNode[] {
+  const out: CollectedNode[] = [];
+  collectComponentNodes(handle, handle.document, '', out, form, owners);
   return out;
 }
 
-function localeNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
+// Locale §3.1.8 properties owned by a Component node itself.
+// Tabs labels, Summary entries and DataTable columns have independent inventory nodes.
+const COMPONENT_LOCALE_PROPERTIES = new Map<string, readonly string[]>([
+  ['Page', ['title', 'description']],
+  ['Heading', ['text']], ['Text', ['text']], ['Alert', ['text']], ['Badge', ['text']],
+  ['Divider', ['label']], ['ProgressBar', ['label']], ['Card', ['title', 'subtitle']],
+  ['Collapsible', ['title']], ['Panel', ['title']], ['ConditionalGroup', ['fallback']],
+  ['ActionButton', ['label', 'pendingLabel']], ['Modal', ['title', 'triggerLabel']], ['Popover', ['triggerLabel']],
+  ['Select', ['placeholder']], ['NumberInput', ['placeholder']], ['DatePicker', ['placeholder']],
+  ['MoneyInput', ['placeholder']], ['TextInput', ['placeholder', 'prefix', 'suffix']],
+]);
+
+function localizedOwners(form: FormTraceIndex, key: string, owners: OwnerTable): readonly CollectedNode[] | undefined {
+  if (/^\$form\.(title|description)(@[^.]+)?$/.test(key)) return [form.root];
+  if (key.startsWith('$shape.') || key.startsWith('$optionSet.')) {
+    const matches = form.localizedNodes.get(key);
+    return matches?.length === 1 ? matches : undefined;
+  }
+  const componentKey = /^\$component\.([^.]+)\.(\w+|labels\[\d+\])(?:@[^.]+)?$/.exec(key);
+  if (componentKey) {
+    const target = unique(form.componentsById.get(componentKey[1]!));
+    if (!target || !owners.has(target.node)) return undefined;
+    const property = componentKey[2]!;
+    const localizable = target.component === 'Accordion'
+      ? /^labels\[\d+\]$/.test(property)
+      : COMPONENT_LOCALE_PROPERTIES.get(target.component)?.includes(property);
+    return localizable ? [target.node] : undefined;
+  }
+  const itemKey = /^([a-zA-Z][a-zA-Z0-9_]*)\.(.+)$/.exec(key);
+  if (!itemKey) return undefined;
+  const [, bareKey, property] = itemKey;
+  const item = unique(form.itemsByKey.get(bareKey!));
+  if (!item || !property) return undefined;
+  if (property === 'constraintMessage') return form.constraintMessages.get(item.path);
+  if (/^(label|hint|description)(@[^.]+)?$|^(rowLabel|addLabel|removeLabel|helpLabel|requiredMessage)$|^errors\.[^.]+$/.test(property)) return [item.node];
+  if (property.startsWith('options.') && property.endsWith('.label')) {
+    const optionSet = stringProp(item.item, 'optionSet');
+    const optionKey = optionSet ? `$optionSet.${optionSet}.${property.slice('options.'.length)}` : key;
+    const matches = form.localizedNodes.get(optionKey);
+    if (matches?.length !== 1) return undefined;
+    return optionSet ? [item.node] : matches;
+  }
+  return undefined;
+}
+
+function localeNodes(handle: ResolvedArtifactHandle, form: FormTraceIndex | undefined, owners: OwnerTable): CollectedNode[] {
   const document = record(handle.document);
   const strings = record(document?.strings);
   const stringGeneration = record(document?.stringGeneration);
@@ -1004,18 +1168,22 @@ function localeNodes(handle: ResolvedArtifactHandle): RenderedNeedTraceNode[] {
   return Object.keys(strings).sort().map((key) => {
     const { anchors, invalidAnchors } = classifiedAnchors(
       generationObjectAnchors(
-      stringGeneration?.[key],
-      `/stringGeneration/${escapePointerSegment(key)}`,
+        stringGeneration?.[key],
+        `/stringGeneration/${escapePointerSegment(key)}`,
       ),
     );
-    return {
-      source: sourceIdentity(handle),
+    const pointer = `/strings/${escapePointerSegment(key)}`;
+    const node: CollectedNode = {
+      source: sourceIdentity(handle, pointer),
       kind: 'locale-string',
-      pointer: `/strings/${escapePointerSegment(key)}`,
+      pointer,
       label: key,
       anchors,
       invalidAnchors,
     };
+    const localized = form && localizedOwners(form, key, owners);
+    if (localized) owners.set(node, localized);
+    return node;
   });
 }
 
@@ -1067,11 +1235,11 @@ function mountedExperienceUnitIds(
 function experienceUnitTitleNodes(
   context: AppGraphContext,
   handle: ResolvedArtifactHandle,
-): RenderedNeedTraceNode[] {
+): CollectedNode[] {
   const units = record(handle.document)?.units;
   if (!Array.isArray(units)) return [];
   const mounted = mountedExperienceUnitIds(context, handle);
-  return units.flatMap((rawUnit, unitIndex): RenderedNeedTraceNode[] => {
+  return units.flatMap((rawUnit, unitIndex): CollectedNode[] => {
     const unit = record(rawUnit);
     const unitId = stringProp(unit, 'id');
     const title = stringProp(unit, 'title');
@@ -1090,7 +1258,7 @@ function experienceUnitTitleNodes(
         })
       : [];
     return [{
-      source: sourceIdentity(handle),
+      source: sourceIdentity(handle, `/units/${unitIndex}/title`),
       kind: 'experience-unit-title',
       pointer: `/units/${unitIndex}/title`,
       label: title,
@@ -1101,26 +1269,46 @@ function experienceUnitTitleNodes(
   });
 }
 
-/**
- * Enumerate every authored node that can render in the normal product.
- *
- * This is the authoritative inventory used by strict rendered-Need validation.
- * Consumers may inspect it for review or reporting, but must not infer anchors
- * from a parent, sibling, mounted slot, or related Experience unit.
- *
- * Preview scenarios are supplied separately because they are preview-only
- * inputs, not App Manifest members. Pass loaded handles whose documents use
- * `$formspecSurfaceScenario: "0.1"` to preserve exact source identity.
- */
-export function collectRenderedNeedTraceNodes(
+function collectTraceGraph(
   context: AppGraphContext,
-  previewScenarios: readonly ResolvedArtifactHandle[] = [],
-): readonly RenderedNeedTraceNode[] {
+  previewScenarios: readonly ResolvedArtifactHandle[],
+): { nodes: CollectedNode[]; owners: OwnerTable } {
   const registryEntries = registryWidgetEntries(context);
   const handles = context.handles.some((handle) => handle === context.manifest)
     ? context.handles
     : [context.manifest, ...context.handles];
-  const graphNodes = handles.flatMap((handle): RenderedNeedTraceNode[] => {
+  const owners: OwnerTable = new Map();
+  const forms = new Map<ResolvedArtifactHandle, FormTraceIndex>();
+  const formsByTarget = new Map<string, { form: FormTraceIndex; version?: string }[]>();
+  for (const handle of handles) {
+    const kind = handle.artifactKind;
+    if (handle.status !== 'loaded' || (kind !== 'definition' && kind !== 'screener')) continue;
+    const form = collectFormNodes(handle, kind, owners);
+    if (!form) continue;
+    forms.set(handle, form);
+    const document = record(handle.document);
+    const url = stringProp(document, 'url');
+    const version = stringProp(document, 'version');
+    if (url && (!handle.ref?.url || handle.ref.url === url)
+        && (!handle.ref?.version || handle.ref.version === version)) {
+      indexBy(formsByTarget, `${kind}:${url}`, { form, version });
+    }
+  }
+  const targetForm = (kind: string | undefined, url: string | undefined, target: JsonRecord | undefined) => {
+    if (!url || (kind !== 'definition' && kind !== 'screener')) return undefined;
+    const candidates = formsByTarget.get(`${kind}:${url}`);
+    const compatibleVersions = stringProp(target, 'compatibleVersions');
+    return unique(candidates?.filter(({ version }) => !compatibleVersionFailure(compatibleVersions, version)))?.form;
+  };
+  // Register Component nodes before Locales, regardless of manifest load order.
+  const components = new Map<ResolvedArtifactHandle, CollectedNode[]>();
+  for (const handle of handles) {
+    if (handle.status !== 'loaded' || handle.artifactKind !== 'component') continue;
+    const doc = record(handle.document);
+    const target = record(doc?.targetDefinition) ?? record(doc?.target);
+    components.set(handle, componentNodes(handle, targetForm('definition', componentTargetUrl(doc), target), owners));
+  }
+  const graphNodes = handles.flatMap((handle): CollectedNode[] => {
     if (handle.status !== 'loaded' || handle.document === undefined) return [];
     switch (handle.artifactKind) {
       case 'appManifest':
@@ -1128,38 +1316,146 @@ export function collectRenderedNeedTraceNodes(
       case 'surface':
         return surfaceNodes(handle, registryEntries);
       case 'definition':
-        return definitionNodes(handle);
       case 'screener':
-        return definitionNodes(handle, 'screener');
+        return forms.get(handle)?.nodes ?? [];
       case 'theme':
         return themeNodes(handle);
       case 'responseActions':
         return responseActionNodes(handle);
-      case 'references':
-        return referenceNodes(handle);
+      case 'references': {
+        const target = record(record(handle.document)?.targetDefinition);
+        return referenceNodes(handle, targetForm('definition', stringProp(target, 'url'), target), owners);
+      }
       case 'dataSources':
         return dataSourceNodes(handle);
       case 'component':
-        return componentNodes(handle);
-      case 'locale':
-        return localeNodes(handle);
+        return components.get(handle) ?? [];
+      case 'locale': {
+        const target = record(record(handle.document)?.target);
+        return localeNodes(handle, targetForm(stringProp(target, 'kind'), stringProp(target, 'url'), target), owners);
+      }
       case 'experience':
         return experienceUnitTitleNodes(context, handle);
       default:
         return [];
     }
   });
-  const scenarioNodes = previewScenarios.flatMap((handle): RenderedNeedTraceNode[] => {
+  const scenarioNodes = previewScenarios.flatMap((handle): CollectedNode[] => {
     if (handle.status !== 'loaded' || handle.document === undefined) return [];
     return previewScenarioNodes(handle);
   });
-  return [...graphNodes, ...scenarioNodes];
+  return { nodes: [...graphNodes, ...scenarioNodes], owners };
+}
+
+interface Trace {
+  pins: ReadonlyMap<string, string>;
+  via: ReadonlySet<CollectedNode>;
+  missingRoots: ReadonlySet<CollectedNode>;
+  malformed: boolean;
+}
+
+const EMPTY_TRACE: Trace = { pins: new Map(), via: new Set(), missingRoots: new Set(), malformed: false };
+
+function unionTraces(traces: readonly Trace[]): Trace {
+  const distinct = new Set(traces);
+  if (distinct.size <= 1) return traces[0] ?? EMPTY_TRACE;
+  const pins = new Map<string, string>();
+  const via = new Set<CollectedNode>();
+  const missingRoots = new Set<CollectedNode>();
+  let malformed = false;
+  for (const trace of distinct) {
+    for (const [pin, id] of trace.pins) pins.set(pin, id);
+    for (const node of trace.via) via.add(node);
+    for (const node of trace.missingRoots) missingRoots.add(node);
+    malformed ||= trace.malformed;
+  }
+  return { pins, via, missingRoots, malformed };
+}
+
+function compareCodePoints(left: string, right: string): number {
+  for (let index = 0; index < left.length && index < right.length;) {
+    const a = left.codePointAt(index)!;
+    const b = right.codePointAt(index)!;
+    if (a !== b) return a - b;
+    index += a > 0xffff ? 2 : 1;
+  }
+  return left.length - right.length;
+}
+
+function compareSources(left: RenderedNeedTraceSourcePointer, right: RenderedNeedTraceSourcePointer): number {
+  return compareCodePoints(left.artifactSlot, right.artifactSlot) || compareCodePoints(left.jsonPointer, right.jsonPointer);
+}
+
+function sourceKey(source: RenderedNeedTraceSourcePointer): string {
+  return JSON.stringify([source.artifactSlot, source.jsonPointer]);
+}
+
+function resolveTraces(nodes: readonly CollectedNode[], owners: OwnerTable) {
+  const traces = new Map<CollectedNode, Trace>();
+  const redundant = new Set<CollectedNode>();
+  const missingDependents = new Map<CollectedNode, RenderedNeedTraceSourcePointer[]>();
+  const effectiveByTrace = new Map<Trace, EffectiveNeedTrace>();
+
+  function resolve(node: CollectedNode): Trace {
+    const cached = traces.get(node);
+    if (cached) return cached;
+    const parents = owners.get(node) ?? [];
+    const inherited = unionTraces(parents.map(resolve));
+    let trace = inherited;
+    if (nodeCarriesTrace(node)) {
+      const pins = new Map(node.anchors.map((anchor) => [anchor.raw, anchor.needId]));
+      for (const ref of node.typedNeedRefs ?? []) pins.set(`need:${ref.needId}`, ref.needId);
+      const malformed = node.invalidAnchors.length > 0;
+      if (!malformed && !inherited.malformed && inherited.missingRoots.size === 0
+          && pins.size === inherited.pins.size && [...pins.keys()].every((pin) => inherited.pins.has(pin))) {
+        redundant.add(node);
+      }
+      trace = { ...EMPTY_TRACE, pins, via: new Set([node]), malformed };
+    } else if (parents.length === 0 && !node.failure) {
+      trace = { ...EMPTY_TRACE, missingRoots: new Set([node]) };
+    }
+    traces.set(node, trace);
+    return trace;
+  }
+
+  for (const node of nodes) {
+    for (const root of resolve(node).missingRoots) {
+      if (root === node) continue;
+      const dependents = missingDependents.get(root);
+      if (dependents) dependents.push(node.source);
+      else missingDependents.set(root, [node.source]);
+    }
+  }
+  function effective(node: CollectedNode): EffectiveNeedTrace {
+    const trace = resolve(node);
+    const cached = effectiveByTrace.get(trace);
+    if (cached) return cached;
+    const sources = new Map<string, RenderedNeedTraceSourcePointer>();
+    for (const { source } of trace.via) sources.set(sourceKey(source), source);
+    const result = {
+      needIds: [...new Set(trace.pins.values())].sort(compareCodePoints),
+      via: [...sources.values()].sort(compareSources),
+    };
+    effectiveByTrace.set(trace, result);
+    return result;
+  }
+  return { effective, redundant, missingDependents };
+}
+
+/** Each authored render node, its direct citations, and its effective publication trace. */
+export function collectRenderedNeedTraceNodes(
+  context: AppGraphContext,
+  previewScenarios: readonly ResolvedArtifactHandle[] = [],
+): readonly RenderedNeedTraceNode[] {
+  const { nodes, owners } = collectTraceGraph(context, previewScenarios);
+  const traces = resolveTraces(nodes, owners);
+  return nodes.map((node) => ({ ...node, effective: traces.effective(node) }));
 }
 
 function traceDiagnostic(
   code: string,
   message: string,
-  node: RenderedNeedTraceNode,
+  node: CollectedNode,
   jsonPointer: string,
   reason: string,
   details: JsonRecord,
@@ -1167,7 +1463,7 @@ function traceDiagnostic(
 ): AppGraphDiagnostic {
   return {
     code,
-    severity: 'error',
+    severity: code === RENDERED_NEED_TRACE_CODES.redundant ? 'warning' : 'error',
     phase: 'cross-artifact',
     origin: 'app-graph-validator',
     message,
@@ -1187,9 +1483,11 @@ function traceDiagnostic(
 }
 
 function validateNode(
-  node: RenderedNeedTraceNode,
+  node: CollectedNode,
   needsById: ReadonlyMap<string, PairedNeed[]>,
   needsRoots: AppGraphSourcePointer[],
+  owners: OwnerTable,
+  traces: ReturnType<typeof resolveTraces>,
 ): AppGraphDiagnostic[] {
   if (node.failure) {
     return [traceDiagnostic(
@@ -1202,11 +1500,8 @@ function validateNode(
       node.failure.relatedSources ?? [],
     )];
   }
-  if (
-    node.anchors.length === 0
-    && node.invalidAnchors.length === 0
-    && (node.typedNeedRefs?.length ?? 0) === 0
-  ) {
+  if (!nodeCarriesTrace(node)) {
+    if (owners.get(node)?.length) return [];
     return [traceDiagnostic(
       RENDERED_NEED_TRACE_CODES.missing,
       node.kind === 'experience-unit-title'
@@ -1218,7 +1513,7 @@ function validateNode(
         ? 'direct-typed-need-ref-missing'
         : 'direct-need-anchor-missing',
       {},
-      needsRoots,
+      (traces.missingDependents.get(node) ?? []).sort(compareSources),
     )];
   }
 
@@ -1337,16 +1632,26 @@ function validateNode(
       ));
     }
   }
+  if (traces.redundant.has(node)) {
+    diagnostics.push(traceDiagnostic(
+      RENDERED_NEED_TRACE_CODES.redundant,
+      `Rendered ${node.kind} '${node.label}' repeats the Need trace it inherits.`,
+      node,
+      node.pointer,
+      'direct-need-trace-repeats-inherited',
+      {},
+      [],
+    ));
+  }
   return diagnostics;
 }
 
 /**
  * Strict data-only authoring profile.
  *
- * The caller must pair at least one valid Needs 1.0 document, and every authored
- * node that directly controls product rendering must carry its own
- * `need:<id>@<revision>` trace. A parent node's anchor never covers a child.
- * The target must be unambiguous, adopted, and pinned to its current revision.
+ * Trace roots and overrides carry direct traces. Other Definition and Screener
+ * nodes inherit through the App Graph owner table. The caller pairs a Needs
+ * 1.0 document and each trace resolves to an unambiguous, adopted, current Need.
  *
  * This validator is intentionally not part of AppGraph's built-in set. General
  * Needs coverage remains report-only; callers opt into this error-severity
@@ -1356,14 +1661,12 @@ export function validateRenderedNeedTrace(
   context: AppGraphContext,
   previewScenarios: readonly ResolvedArtifactHandle[] = [],
 ): AppGraphDiagnostic[] {
-  return traceDiagnostics(
-    pairedNeedsDocuments(context),
-    collectRenderedNeedTraceNodes(context, previewScenarios),
-  );
+  const { nodes, owners } = collectTraceGraph(context, previewScenarios);
+  return traceDiagnostics(pairedNeedsDocuments(context), nodes, owners, resolveTraces(nodes, owners));
 }
 
 
-function nodeCarriesTrace(node: RenderedNeedTraceNode): boolean {
+function nodeCarriesTrace(node: CollectedNode): boolean {
   return node.anchors.length > 0
     || node.invalidAnchors.length > 0
     || (node.typedNeedRefs?.length ?? 0) > 0;
@@ -1379,7 +1682,7 @@ export function runRenderedNeedTrace(
   request: AppGraphRenderedNeedTraceRequest,
 ): { diagnostics: AppGraphDiagnostic[]; record: AppGraphRenderedNeedTraceRecord } {
   const paired = pairedNeedsDocuments(context);
-  const nodes = collectRenderedNeedTraceNodes(context);
+  const { nodes, owners } = collectTraceGraph(context, []);
   const applies = request.mode === 'required' || paired.length > 0 || nodes.some(nodeCarriesTrace);
   const loaded = (kind: string) => context.handles.filter((handle) => handle.artifactKind === kind && handle.status === 'loaded');
   const covered = (handle: ResolvedArtifactHandle) => {
@@ -1405,14 +1708,29 @@ export function runRenderedNeedTrace(
         .flatMap(covered),
     }];
   });
-  return applies
-    ? { diagnostics: traceDiagnostics(paired, nodes), record: { status: 'completed', definitions } }
-    : { diagnostics: [], record: { status: 'not-applicable', definitions } };
+  if (!applies) return { diagnostics: [], record: { status: 'not-applicable', definitions, nodes: [] } };
+  const traces = resolveTraces(nodes, owners);
+  const seen = new Set<string>();
+  const inventory = [...nodes].sort((left, right) =>
+    compareSources(left.source, right.source) || compareCodePoints(left.kind, right.kind),
+  ).flatMap((node): ReportTraceNode[] => {
+    const { source, kind, label } = node;
+    const identity = sourceKey(source);
+    if (seen.has(identity)) return [];
+    seen.add(identity);
+    return [{ source, kind, label, effective: traces.effective(node) }];
+  });
+  return {
+    diagnostics: traceDiagnostics(paired, nodes, owners, traces),
+    record: { status: 'completed', definitions, nodes: inventory },
+  };
 }
 
 function traceDiagnostics(
   paired: readonly AppGraphHostEvidenceDocument[],
-  nodes: readonly RenderedNeedTraceNode[],
+  nodes: readonly CollectedNode[],
+  owners: OwnerTable,
+  traces: ReturnType<typeof resolveTraces>,
 ): AppGraphDiagnostic[] {
   if (paired.length === 0) {
     const first = nodes[0];
@@ -1429,5 +1747,5 @@ function traceDiagnostics(
   }
 
   const { byId, roots } = pairedNeeds(paired);
-  return nodes.flatMap((node) => validateNode(node, byId, roots));
+  return nodes.flatMap((node) => validateNode(node, byId, roots, owners, traces));
 }

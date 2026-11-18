@@ -1,7 +1,7 @@
 /** @filedesc Shared AppGraphValidator interface and report types. */
 
 import type { HostWidgetContracts } from './widget-runtime-contract.js';
-import type { ModuleResolutionReport } from '@formspec-org/types';
+import type { ModuleResolutionReport, RenderedNeedTraceNode } from '@formspec-org/types';
 
 export const APP_GRAPH_PHASES = [
   'artifact-resolution',
@@ -235,6 +235,7 @@ export interface AppGraphTracedDefinition extends AppGraphCoveredDocument {
 export interface AppGraphRenderedNeedTraceRecord {
   status: 'completed' | 'not-applicable';
   definitions: AppGraphTracedDefinition[];
+  nodes: RenderedNeedTraceNode[];
 }
 
 export interface AppGraphSchemaResult {

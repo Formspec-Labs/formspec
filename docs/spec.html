@@ -7686,8 +7686,9 @@ but are rendered as disabled/greyed-out. Default: <code>"hidden"</code>.
 <td><a href="../../schemas/common.schema.json">Generation</a></td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
 <td>Authoring provenance for this Bind. A strict data-only authoring
-profile requires a direct current adopted Need anchor. It does not
-change Bind evaluation.</td>
+profile lets it inherit per Needs §10.3 from the item(s) its path
+resolves to; a direct override must resolve to a current adopted Need.
+It does not change Bind evaluation.</td>
 </tr>
 </tbody>
 </table>
@@ -8540,8 +8541,10 @@ their individual <code>timing</code>.</td>
 <td><a href="../../schemas/common.schema.json">Generation</a></td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
 <td>Authoring provenance for this Shape. A strict data-only authoring
-profile requires a direct current adopted Need anchor. It does not
-change Shape evaluation.</td>
+profile lets it inherit per Needs §10.3 from the item(s) its target
+resolves to, or the Definition root for #; a direct override must
+resolve to a current adopted Need.
+It does not change Shape evaluation.</td>
 </tr>
 </tbody>
 </table>

@@ -1,5 +1,7 @@
 /** @filedesc Rendered-Need trace records and App Manifest needs pairing. */
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import Ajv2020 from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 import {
   appManifestVersionAtLeast,
@@ -10,6 +12,8 @@ const definitionUrl = 'https://example.gov/definitions/intake';
 const localeUrl = 'https://example.gov/locales/intake-es';
 const themeUrl = 'https://example.gov/themes/intake';
 const needsUrl = 'https://example.gov/needs/intake';
+const reportSchema = JSON.parse(readFileSync(new URL('../../../schemas/app-graph-validation-report.schema.json', import.meta.url), 'utf8'));
+const validateReport = new Ajv2020({ strict: false, allErrors: true }).compile(reportSchema);
 
 function definition(anchor?: string) {
   const generation = anchor ? { 'x-generation': { anchors: [anchor] } } : {};
@@ -71,9 +75,11 @@ describe('renderedNeedTrace record (Needs spec S10.3)', () => {
       renderedNeedTrace: whenDeclared,
     });
     expect(result.report.ok).toBe(true);
+    expect(validateReport(JSON.parse(JSON.stringify(result.report))), validateReport.errors?.[0]?.message).toBe(true);
     expect(result.report.renderedNeedTrace).toEqual({
       status: 'not-applicable',
       definitions: [{ url: definitionUrl, version: '1.0.0', sha256: digest(definition()), locales: [], components: [] }],
+      nodes: [],
     });
   });
 
@@ -92,14 +98,33 @@ describe('renderedNeedTrace record (Needs spec S10.3)', () => {
     const needs = {
       $formspecNeeds: '1.0',
       version: '1.0.0',
-      needs: [{ id: 'collect-name', status: 'adopted', revision: 1 }],
+      needs: [{
+        id: 'collect-name', revision: 1, status: 'adopted', origin: 'human-authored',
+        statement: { who: 'applicant', want: 'enter a name', why: 'identify the application', done: 'name recorded' },
+        adoptedBy: { kind: 'human', id: 'reviewer' },
+        ungroundedReason: { code: 'not-yet-researched', explanation: 'Test fixture.' },
+      }],
     };
+    const traced = bundle(definition('need:collect-name@1'), { needs });
     const paired = await produceBundleExportAppGraphValidationReport({
-      ...bundle(definition('need:collect-name@1'), { needs }),
+      ...traced,
+      documents: { ...traced.documents, [themeUrl]: { ...theme, 'x-generation': { anchors: ['need:collect-name@1'] } } },
       ...permissive,
       renderedNeedTrace: whenDeclared,
     });
+    expect(paired.report.diagnostics.filter((entry) => entry.severity === 'error')).toEqual([]);
+    expect(paired.report.ok).toBe(true);
+    expect(paired.report.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'APP-GRAPH-RENDERED-NEED-REDUNDANT', severity: 'warning',
+    }));
+    expect(validateReport(JSON.parse(JSON.stringify(paired.report))), validateReport.errors?.[0]?.message).toBe(true);
     expect(paired.report.renderedNeedTrace?.status).toBe('completed');
+    expect(paired.report.renderedNeedTrace?.nodes).toContainEqual({
+      source: expect.objectContaining({ artifactSlot: 'definitions[0]', jsonPointer: '' }),
+      kind: 'definition-document',
+      label: 'Intake',
+      effective: { needIds: ['collect-name'], via: [expect.objectContaining({ artifactSlot: 'definitions[0]', jsonPointer: '' })] },
+    });
     expect(paired.report.diagnostics.map((entry) => entry.code))
       .not.toContain('APP-GRAPH-RENDERED-NEEDS-UNPAIRED');
     expect(paired.report.evidenceResults.map((entry) => entry.source)).toContain(needsUrl);
@@ -155,11 +180,11 @@ describe('renderedNeedTrace binds content', () => {
       items: [{ key: 'age', type: 'field', dataType: 'integer', label: 'Age', 'x-generation': { anchors: ['need:collect-name@1'] } }],
     };
     const needs = { $formspecNeeds: '1.0', version: '1.0.0', needs: [{ id: 'collect-name', status: 'adopted', revision: 1 }] };
-    const run = async (withNeeds: boolean) => {
+    const run = async (withNeeds: boolean, screenerDocument: unknown = screener) => {
       const base = bundle(definition(), withNeeds ? { needs } : {});
       return (await produceBundleExportAppGraphValidationReport({
         manifest: { ...base.manifest, screeners: [{ url: screenerUrl, version: '1.0.0' }] },
-        documents: { ...base.documents, [screenerUrl]: screener },
+        documents: { ...base.documents, [screenerUrl]: screenerDocument },
         ...permissive,
         renderedNeedTrace: whenDeclared,
       })).report;
@@ -171,8 +196,15 @@ describe('renderedNeedTrace binds content', () => {
       .filter((entry) => entry.primarySource?.artifactKind === 'screener')
       .map((entry) => [entry.code, entry.primarySource?.jsonPointer]);
     expect(screenerFindings).toEqual([['APP-GRAPH-RENDERED-NEED-MISSING', '']]);
-    // The Screener title takes its own anchor at the root (Screener spec §2.1 x-generation).
+    // ADR 0174 keeps the root anchor and makes the field's matching pin redundant.
     Object.assign(screener, { 'x-generation': { anchors: ['need:collect-name@1'] } });
-    expect((await run(true)).diagnostics.filter((entry) => entry.primarySource?.artifactKind === 'screener')).toEqual([]);
+    const traced = await run(true);
+    expect(traced.diagnostics.filter((entry) => entry.primarySource?.artifactKind === 'screener')).toEqual([
+      expect.objectContaining({ code: 'APP-GRAPH-RENDERED-NEED-REDUNDANT', severity: 'warning' }),
+    ]);
+    const { 'x-generation': _anchor, ...unanchoredItem } = screener.items[0]!;
+    const inherited = await run(true, { ...screener, items: [unanchoredItem] });
+    expect(inherited.renderedNeedTrace?.nodes.find((node) => node.kind === 'screener-item')?.effective)
+      .toEqual({ needIds: ['collect-name'], via: [expect.objectContaining({ artifactSlot: 'screeners[0]', jsonPointer: '' })] });
   });
 });
