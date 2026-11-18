@@ -110,7 +110,7 @@ export function buildToolDeclarations(): ToolDeclaration[] {
       description:
         'Show how far the form is: total, filled, required, and valid field counts, plus per-page counts when pages are known. '
         + 'Use it to report progress or decide where to go next. '
-        + 'Returns the counts, a complete flag, and a pages array when page structure exists.',
+        + 'Returns the counts, a ready flag, and a pages array when page structure exists.',
       inputSchema: { type: 'object', additionalProperties: false },
       annotations: READ_ONLY,
     },
@@ -229,7 +229,7 @@ export function buildToolDeclarations(): ToolDeclaration[] {
       name: 'formspec.form.pages',
       title: 'Show page progress',
       description:
-        'Show progress per page: field count, filled count, and whether the page is complete. '
+        'Show the editable field count, filled count, and whether all editable answers are filled on each page. '
         + 'Use it to summarize a multi-page form; form.progress already includes the same pages. '
         + 'Returns one entry per page, in order.',
       inputSchema: { type: 'object', additionalProperties: false },
@@ -239,9 +239,10 @@ export function buildToolDeclarations(): ToolDeclaration[] {
       name: 'formspec.form.nextIncomplete',
       title: 'Find next incomplete',
       description:
-        'Find the next field, or the next page, that still needs attention and why: required, invalid, or empty. '
+        'Find the next field or page that needs attention. Reasons include required, invalid, empty, and blocked-readonly. '
         + 'Use it to walk the person through the form in order. '
-        + 'Returns the path and label, or the page id and title, with the reason; reason is complete when nothing is left.',
+        + 'Returns the field path and label or the page ID and title. For a required read-only blank, use the field path with field.describe or field.help. '
+        + 'The reason is complete when no field or page in the requested scope needs attention.',
       inputSchema: {
         type: 'object',
         properties: {

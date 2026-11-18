@@ -238,7 +238,7 @@ bijection.
 | `formspec.field.list` | `{ filter?: "all" \| "required" \| "empty" \| "invalid" \| "relevant" }` | `FieldSummary[]` | Default filter is `"relevant"`. |
 | `formspec.field.describe` | `{ path: string }` | `FieldDescription` | Includes live state and resolved help, minimized at the §5.2 defaults (no `content`, 4096-byte cap). |
 | `formspec.field.help` | `{ path: string, audience?: "human" \| "agent" \| "both", includeContent?: boolean, maxBytes?: number }` | `FieldHelp` | Default audience is `"agent"`. Providers MAY allow consumers to override this default. `includeContent` defaults to `false`; `maxBytes` defaults to 4096, minimum 512 (§5.2). |
-| `formspec.form.progress` | `{}` | `FormProgress` | Progress summary across required and total fields. |
+| `formspec.form.progress` | `{}` | `FormProgress` | Counts active field instances using the current live evaluation (§4.4). |
 
 ### 3.3 Required Core Mutation Tools
 
@@ -273,8 +273,8 @@ The `value` property in `formspec.field.set` MAY be omitted. An omitted `value` 
 
 | Tool | Input | Output | Notes |
 |---|---|---|---|
-| `formspec.form.pages` | `{}` | `{ pages: PageProgress[] }` | Available when the provider knows page structure. `PageProgress` MUST be computed over the provider's current live field set for each page, including active repeat instances that exist at evaluation time. |
-| `formspec.form.nextIncomplete` | `{ scope?: "field" \| "page" }` | `NextIncompleteResult` | Default scope is `"field"`. For `scope: "page"`, the provider MUST select the next page containing an incomplete live field, including incomplete fields within active repeat instances. |
+| `formspec.form.pages` | `{}` | `{ pages: PageProgress[] }` | Reports identified sections in Core §4.1.2 page order, with counts for their live repeat instances (§4.4). |
+| `formspec.form.nextIncomplete` | `{ scope?: "field" \| "page" }` | `NextIncompleteResult` | Default scope is `"field"`. For `scope: "page"`, the provider MUST select the first page that needs attention in the shared section order (§4.4). |
 
 ## 4. Common Result, Error, and Data Contracts
 
@@ -412,10 +412,11 @@ A field is **valid** if it has no validation results with severity `"error"` for
 interface FormProgress {
   total: number;
   filled: number;
-  valid: number;
+  valid: number | null;
   required: number;
   requiredFilled: number;
-  complete: boolean;
+  missingReadonly: number;
+  ready: boolean;
   pages?: PageProgress[];
 }
 
@@ -426,7 +427,8 @@ interface PageProgress {
   title?: string;
   fieldCount: number;
   filledCount: number;
-  complete: boolean;
+  missingReadonly: number;
+  filled: boolean;
 }
 
 interface FieldDescription {
@@ -504,19 +506,38 @@ interface NextIncompleteResult {
   path?: string;
   pageId?: string;
   label: string;
-  reason: "empty" | "invalid" | "required" | "complete";
+  reason: "empty" | "invalid" | "required" | "blocked-readonly" | "complete";
 }
 ```
 
 `ValidationResult` and `ValidationReport` retain their meanings from the core
 Formspec specification and related schemas.
 
-For providers that expose page-scoped progress or navigation, `PageProgress`
-and page-scoped `NextIncompleteResult` are computed over the provider's
-current live, instance-expanded field set for each page. Page-level results
-identify the logical page, not an individual repeat instance. Providers MAY
-surface repeat-specific detail through field-scoped tools such as
-`formspec.field.describe`.
+`total` counts relevant editable field instances. `filled` counts the filled
+instances among them, including `0` and `false`. `valid` counts relevant
+editable instances with no error at their concrete field path. It is `null`
+when live validation is unavailable. `required` counts all relevant
+required instances, including read-only fields, and `requiredFilled` counts
+their filled subset. `missingReadonly` counts relevant required read-only
+blanks. `ready` requires an available live report, no live errors at any
+path and no relevant required blank.
+
+For page-scoped progress and navigation, use the shared section IDs, titles
+and order from Core §4.1.2. Count each concrete field instance in the first
+section that places it. `fieldCount` and `filledCount` follow the same
+editable field rules as the form counts. `PageProgress.filled` is true when
+every relevant editable answer on the page is filled. Page-scoped
+navigation checks for required editable blanks, unavailable live validation,
+owned errors and other editable blanks, in that order. Unavailable validation
+returns `ENGINE_ERROR`. When those checks pass and required read-only blanks
+remain, `NextIncompleteResult` gives the page ID and title with reason
+`blocked-readonly`.
+
+Field-scoped navigation checks filled read-only answers for validation errors.
+After checking for other field issues, it returns the first required read-only
+blank's path and label with reason `blocked-readonly`. Consumers can use that
+path with `formspec.field.describe` or `formspec.field.help`. An error without
+a section owner affects form readiness.
 
 ## 5. Field Help and Context Resolution
 

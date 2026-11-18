@@ -1,5 +1,5 @@
 /** @filedesc ValidationSummary rows every renderer draws: which results show, deduped, worded as the field shows them, linked to their control. */
-import type { ValidationResult } from '@formspec-org/types';
+import { validationResultIdentity, type ValidationResult } from '@formspec-org/types';
 import type { ChromeStringKey } from './ui-strings';
 
 /** The ValidationSummary component's own props (component spec), as the planner carries them. */
@@ -41,6 +41,7 @@ export interface ValidationSummarySource {
 }
 
 export interface ValidationSummaryRow {
+    identity: string;
     severity: string;
     /** The path the finding names; empty for a form-level finding. */
     path: string;
@@ -75,7 +76,7 @@ export function validationResultPath(result: ValidationResult): string {
 export function readValidationSummaryRows(
     comp: ValidationSummaryComp,
     source: ValidationSummarySource,
-    options: { showFieldErrorsByDefault: boolean },
+    options: { showFieldErrorsByDefault: boolean; path?: (result: ValidationResult) => string },
 ): ValidationSummaryRow[] {
     let results: ValidationResult[];
     if ((comp.source ?? 'live') === 'submit') {
@@ -95,7 +96,7 @@ export function readValidationSummaryRows(
     const rows: ValidationSummaryRow[] = [];
     for (const result of results) {
         if (!showFieldErrors && result.source !== 'shape' && result.constraintKind !== 'shape') continue;
-        const rawPath = validationResultPath(result);
+        const rawPath = (options.path ?? validationResultPath)(result);
         const formLevel = rawPath === '' || rawPath === '#';
         const path = formLevel ? '' : rawPath;
         const severity = result.severity || 'error';
@@ -110,6 +111,7 @@ export function readValidationSummaryRows(
         const cleanLabel = label === null ? null : label.replace(/\.$/, '');
         const canJump = jumpLinks && !formLevel && (source.jumpable ? source.jumpable(path) : field !== null);
         rows.push({
+            identity: validationResultIdentity(result),
             severity,
             path,
             formLevel,

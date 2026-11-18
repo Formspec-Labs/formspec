@@ -2,6 +2,7 @@
 
 import type { EngineSignal, ReadonlyEngineSignal } from './reactivity/types.js';
 import type {
+    EvaluatedFormState,
     FormDefinition,
     FormInstance,
     FormItem,
@@ -324,15 +325,6 @@ export interface PinnedResponseReference {
     definitionVersion: string;
 }
 
-export interface FormProgress {
-    total: number;
-    filled: number;
-    valid: number;
-    required: number;
-    requiredFilled: number;
-    complete: boolean;
-}
-
 export interface AuthoredSignatureIdentityBinding {
     method: string;
     assuranceLevel: 'none' | 'low' | 'standard' | 'high' | 'very-high';
@@ -522,7 +514,7 @@ export interface IFormEngine {
     getDerivationTree(path: string): FelTraceStep[];
     getDownstreamImpact(path: string): string[];
     getFieldPaths(): string[];
-    getProgress(): FormProgress;
+    getEvaluatedFormState(options?: ValidationReportOptions): EvaluatedFormState;
     getResponse(meta?: {
         id?: string;
         author?: { id: string; name?: string };

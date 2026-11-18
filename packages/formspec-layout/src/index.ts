@@ -66,7 +66,8 @@ export {
 } from './planner.js';
 export type { EnsureActionButtonOptions, NodeIdGenerator } from './planner.js';
 export { resolvePageSequence } from './page-sequence.js';
-export type { PageSequenceEntry } from './page-sequence.js';
+export type { PageSequenceEntry, PageSequenceOptions } from './page-sequence.js';
+export * from './form-progress.js';
 
 // Anchored overlays (Modal / Popover positioning)
 export {

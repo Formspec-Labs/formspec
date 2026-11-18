@@ -50,7 +50,9 @@ describe('grant web Theme layout', () => {
     });
 
     it('preserves the existing Component-owned navigation when both sidecars are loaded', () => {
-        expect(resolvePageSequence(definition, { theme, component }))
-            .toEqual(resolvePageSequence(definition, { component }));
+        // Theme can still style Component nodes. Its pages cannot change Component-owned order or fields.
+        const navigation = (plan: ReturnType<typeof resolvePageSequence>) => plan.map(({ id, title, fields }) => ({ id, title, fields }));
+        expect(navigation(resolvePageSequence(definition, { theme, component })))
+            .toEqual(navigation(resolvePageSequence(definition, { component })));
     });
 });

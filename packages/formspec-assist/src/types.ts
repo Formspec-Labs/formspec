@@ -1,7 +1,6 @@
 /** @filedesc Public type vocabulary for the formspec-assist package. */
 
 import type {
-  FormProgress as EngineFormProgress,
   IFormEngine,
   RegistryEntry,
 } from '@formspec-org/engine';
@@ -104,8 +103,22 @@ export interface FieldHelpOptions {
   maxBytes?: number;
 }
 
-export interface FormProgress extends EngineFormProgress {
-  pages?: Array<{ id: string; title?: string; fieldCount: number; filledCount: number; complete: boolean }>;
+export interface FormProgress {
+  total: number;
+  filled: number;
+  valid: number | null;
+  required: number;
+  requiredFilled: number;
+  missingReadonly: number;
+  ready: boolean;
+  pages?: Array<{
+    id: string;
+    title?: string;
+    fieldCount: number;
+    filledCount: number;
+    missingReadonly: number;
+    filled: boolean;
+  }>;
 }
 
 export interface ToolResult {

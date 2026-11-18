@@ -37,6 +37,7 @@ export function buildThemePageNodes(
     planRegionNode: (regionPath: string) => LayoutNode | null,
     items: FormItem[],
     ctx: PlanContext,
+    options: { preserveBinding?: boolean; retainHiddenRegions?: boolean; retainRegionlessPages?: boolean } = {},
 ): LayoutNode[] {
     const pages = Array.isArray(ctx.theme?.pages) ? ctx.theme.pages : [];
     const nodes: LayoutNode[] = [];
@@ -50,20 +51,20 @@ export function buildThemePageNodes(
             const plannedNode = planRegionNode(regionPath);
             if (!plannedNode) continue;
 
-            if (regionPath.includes('.') && plannedNode.props?.bind) {
+            if (!options.preserveBinding && regionPath.includes('.') && plannedNode.props?.bind) {
                 plannedNode.props.bind = regionPath;
                 if (plannedNode.bindPath && plannedNode.bindPath !== regionPath) {
                     plannedNode.bindPath = regionPath;
                 }
             }
 
-            const wrapped = wrapRegionNode(plannedNode, region, ctx.activeBreakpoint ?? null, nextId);
+            const wrapped = wrapRegionNode(plannedNode, region, ctx.activeBreakpoint ?? null, nextId, options.retainHiddenRegions);
             if (wrapped) {
                 regionNodes.push(wrapped);
             }
         }
 
-        if (regionNodes.length === 0) continue;
+        if (regionNodes.length === 0 && !(options.retainRegionlessPages && !page.regions?.length)) continue;
 
         nodes.push({
             id: nextId('page'),
@@ -75,7 +76,7 @@ export function buildThemePageNodes(
                 ...(page.description ? { description: page.description } : {}),
             },
             cssClasses: [],
-            children: [
+            children: regionNodes.length ? [
                 {
                     id: nextId('grid'),
                     component: 'Grid',
@@ -84,7 +85,7 @@ export function buildThemePageNodes(
                     cssClasses: [],
                     children: regionNodes,
                 },
-            ],
+            ] : [],
         });
     }
 
@@ -96,9 +97,10 @@ export function wrapRegionNode(
     region: Region,
     activeBreakpoint: string | null,
     nextId: PlanContext['nextId'],
+    retainHidden = false,
 ): LayoutNode | null {
     const resolved = resolveRegionPlacement(region, activeBreakpoint);
-    if (resolved.hidden) {
+    if (resolved.hidden && !retainHidden) {
         return null;
     }
 
@@ -106,6 +108,7 @@ export function wrapRegionNode(
         gridColumn: resolved.start !== undefined
             ? `${resolved.start} / span ${resolved.span}`
             : `span ${resolved.span}`,
+        ...(resolved.hidden ? { display: 'none' } : {}),
     };
 
     return {

@@ -1,8 +1,10 @@
 /** @filedesc Reactive FormEngine: field signals, WASM-backed FEL evaluation, validation, and response assembly. */
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
+import { validationResultIdentity } from '@formspec-org/types';
 
 
 import type {
+    EvaluatedFormState,
     FormDefinition,
     FormInstance,
     FormItem,
@@ -80,6 +82,7 @@ import {
 import {
     buildFormspecResponseEnvelope,
     buildValidationReportEnvelope,
+    collectRelevantValidationResults,
     collectTimedShapeValidationResults,
     migrateResponseData,
     resolvePinnedDefinition,
@@ -660,9 +663,10 @@ export class FormEngine implements IFormEngine {
     } {
         const results: ValidationResult[] = [];
         let diagnostics = this._fullResult?.diagnostics ?? [];
+        const timestamp = this.nowISO();
 
         if (trigger === 'demand') {
-            const demandResult = this.evaluateResultForTrigger('demand');
+            const demandResult = this.evaluateResultForTrigger('demand', timestamp);
             diagnostics = demandResult.diagnostics;
             results.push(...collectTimedShapeValidationResults(demandResult, this._shapeTiming, 'demand'));
         } else {
@@ -676,22 +680,37 @@ export class FormEngine implements IFormEngine {
                 results.push(...signalRef.value);
             }
 
-            if (trigger === 'submit') {
-                const submitResult = this.evaluateResultForTrigger('submit');
+            if (trigger === 'submit' && this.hasSubmitValidation()) {
+                const submitResult = this.evaluateResultForTrigger('submit', timestamp);
                 diagnostics = submitResult.diagnostics;
-                results.push(...collectTimedShapeValidationResults(submitResult, this._shapeTiming, 'submit'));
+                const seen = new Set(results.map(validationResultIdentity));
+                for (const result of collectRelevantValidationResults(submitResult)) {
+                    const identity = validationResultIdentity(result);
+                    if (seen.has(identity)) continue;
+                    seen.add(identity);
+                    results.push(result);
+                }
             }
         }
 
         return {
             report: buildValidationReportEnvelope(
                 results,
-                this.nowISO(),
+                timestamp,
                 this.definition.url,
                 this.definition.version,
             ),
             diagnostics: diagnostics.map((diagnostic) => ({ ...diagnostic })),
         };
+    }
+
+    private hasSubmitValidation(): boolean {
+        const { warningExplanation, shapes } = this.definition;
+        if (warningExplanation && warningExplanation !== 'none') {
+            return true;
+        }
+        return shapes?.some(({ timing, explanation }) => timing === 'submit'
+            || (explanation && explanation !== 'none')) ?? false;
     }
 
     public evaluateShape(shapeId: string): ValidationResult[] {
@@ -806,44 +825,18 @@ export class FormEngine implements IFormEngine {
         return Object.keys(this._fieldViewModels).sort();
     }
 
-    public getProgress(): import('../interfaces.js').FormProgress {
-        let total = 0;
-        let filled = 0;
-        let valid = 0;
-        let required = 0;
-        let requiredFilled = 0;
-
-        for (const path of this.getFieldPaths()) {
-            if (!this.isPathRelevant(path)) {
-                continue;
-            }
-            total += 1;
-            const fieldFilled = !isEmptyValue(this.signals[path]?.value);
-            const fieldValid = !(this.validationResults[path]?.value ?? []).some(
-                (result) => result.severity === 'error',
-            );
-            if (fieldFilled) {
-                filled += 1;
-            }
-            if (fieldValid) {
-                valid += 1;
-            }
-            if (this.requiredSignals[path]?.value) {
-                required += 1;
-                if (fieldFilled) {
-                    requiredFilled += 1;
-                }
-            }
-        }
-
-        return {
-            total,
-            filled,
-            valid,
-            required,
-            requiredFilled,
-            complete: required === requiredFilled && this.getValidationReport().valid,
-        };
+    /** Read the current field flags and the requested validation profile, which defaults to live. */
+    public getEvaluatedFormState(options: ValidationReportOptions = {}): EvaluatedFormState {
+        // A repeat can add or remove the only field signals between evaluations.
+        this._evaluationVersion.value;
+        const fields = Object.keys(this._fieldViewModels).map(path => ({
+            path,
+            relevant: this.isPathRelevant(path),
+            readonly: this.readonlySignals[path]?.value ?? false,
+            required: this.requiredSignals[path]?.value ?? false,
+            empty: isEmptyValue(this.signals[path]?.value),
+        }));
+        return { fields, report: this.getValidationReport(options) };
     }
 
     public getResponse(meta?: Parameters<FormEngine['getResponseSnapshot']>[0]): FormResponse {
@@ -868,7 +861,7 @@ export class FormEngine implements IFormEngine {
         const report = trigger === 'disabled' ? null : buildValidationReportEnvelope(
             (trigger === 'demand'
                 ? collectTimedShapeValidationResults(result, this._shapeTiming, 'demand')
-                : result.validations.filter(validation => validation.shapeId || !result.nonRelevant.some(path => validation.path === path || validation.path.startsWith(`${path}.`) || validation.path.startsWith(`${path}[`))).map(toValidationResult)),
+                : collectRelevantValidationResults(result)),
             timestamp,
             this.definition.url,
             this.definition.version,

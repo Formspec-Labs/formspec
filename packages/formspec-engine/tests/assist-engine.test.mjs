@@ -2,7 +2,7 @@
 import './setup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FormEngine } from '../dist/index.js';
+import { FormEngine, preactReactiveRuntime } from '../dist/index.js';
 
 function makeDefinition() {
   return {
@@ -39,29 +39,121 @@ test('getFieldPaths enumerates live field paths only', () => {
   ]);
 });
 
-test('getProgress reports required, filled, valid, and completion counts', () => {
+test('evaluated form state gives callers the live report and plain flags rather than engine-owned counts', () => {
+  // Layout now owns progress counts. The engine exposes only its evaluated inputs.
   const engine = new FormEngine(makeDefinition());
   engine.setValue('organization.name', 'Acme');
   engine.setValue('contactEmail', 'owner@example.org');
 
-  assert.deepEqual(engine.getProgress(), {
-    total: 5,
-    filled: 3,
-    valid: 4,
-    required: 3,
-    requiredFilled: 2,
-    complete: false,
+  const state = engine.getEvaluatedFormState();
+  assert.deepEqual(state.fields.find(field => field.path === 'derivedScore'), {
+    path: 'derivedScore', relevant: true, readonly: true, required: false, empty: false,
   });
+  assert.equal(state.fields.find(field => field.path === 'organization.ein').empty, true);
+  assert.equal(state.report.valid, false);
+  assert.equal('getProgress' in engine, false);
 
   engine.setValue('organization.ein', '12-3456789');
-  assert.deepEqual(engine.getProgress(), {
-    total: 5,
-    filled: 4,
-    valid: 5,
-    required: 3,
-    requiredFilled: 3,
-    complete: true,
+  assert.equal(engine.getEvaluatedFormState().report.valid, true);
+  assert.equal(state.report.valid, false);
+});
+
+test('a reactive evaluated snapshot notices the first blank repeat row', () => {
+  const engine = new FormEngine({ ...makeDefinition(), items: [{
+    key: 'rows', type: 'group', repeatable: true, minRepeat: 0,
+    children: [{ key: 'note', type: 'field', dataType: 'string' }],
+  }] });
+  const paths = preactReactiveRuntime.computed(() => engine.getEvaluatedFormState().fields.map(field => field.path));
+  assert.deepEqual(paths.value, []);
+  engine.addRepeatInstance('rows');
+  assert.deepEqual(paths.value, ['rows[0].note']);
+  engine.removeRepeatInstance('rows', 0);
+  assert.deepEqual(paths.value, []);
+});
+
+test('evaluated state adds no edit evaluation and includes submit-only findings in the on-submit profile', (t) => {
+  const definition = makeDefinition();
+  definition.items.push(
+    { key: 'zero', type: 'field', dataType: 'integer' },
+    { key: 'false', type: 'field', dataType: 'boolean' },
+    { key: 'hidden', type: 'field', dataType: 'string', relevant: 'false', initialValue: 'retained' },
+  );
+  definition.shapes = ['continuous', 'submit', 'demand'].map(timing => ({
+    id: timing, target: '#', severity: 'warning', constraint: 'false', message: `${timing} finding`, timing,
+  }));
+  const engine = new FormEngine(definition);
+  const liveEvaluation = t.mock.method(engine, '_evaluate');
+  const evaluateTimed = engine.evaluateResultForTrigger.bind(engine);
+  const timedEvaluation = t.mock.method(engine, 'evaluateResultForTrigger', (...args) => {
+    const evaluation = evaluateTimed(...args);
+    return { ...evaluation, validations: [...evaluation.validations, ...evaluation.validations] };
   });
+  engine.setValue('zero', 0);
+  engine.setValue('false', false);
+  const state = engine.getEvaluatedFormState();
+  assert.equal(liveEvaluation.mock.callCount(), 2);
+  assert.equal(timedEvaluation.mock.callCount(), 0);
+  assert.deepEqual(state.fields.filter(field => ['zero', 'false'].includes(field.path)).map(field => field.empty), [false, false]);
+  assert.equal(state.fields.find(field => field.path === 'hidden').relevant, false);
+  assert.deepEqual(state.report.results.filter(result => result.shapeId).map(result => result.shapeId), ['continuous']);
+
+  const saved = engine.getEvaluatedFormState({ profile: 'on-submit' });
+  assert.equal(timedEvaluation.mock.callCount(), 1);
+  assert.equal(timedEvaluation.mock.calls[0].arguments[0], 'submit');
+  assert.deepEqual(saved.report.results.filter(result => result.shapeId).map(result => result.shapeId), ['continuous', 'submit']);
+  assert.deepEqual(saved.fields, state.fields);
+
+  const noSubmit = new FormEngine({ ...definition, shapes: definition.shapes.filter(shape => shape.timing !== 'submit') });
+  const noSubmitCalls = t.mock.method(noSubmit, 'evaluateResultForTrigger');
+  assert.deepEqual(noSubmit.getEvaluatedFormState({ profile: 'on-submit' }).report.results.filter(result => result.shapeId).map(result => result.shapeId), ['continuous']);
+  assert.deepEqual(noSubmit.getValidationReport({ profile: 'on-submit' }).results, noSubmit.getValidationReport().results);
+  assert.equal(noSubmitCalls.mock.callCount(), 0);
+});
+
+for (const [source, definitionOptions, shapeOptions] of [
+  ['Definition', { warningExplanation: 'acknowledge' }, {}],
+  ['Shape', { warningExplanation: 'none' }, { explanation: 'acknowledge' }],
+]) {
+  test(`on-submit progress includes an acknowledgement error declared by the ${source} without a submit-timed Shape`, (t) => {
+    const engine = new FormEngine({
+      ...makeDefinition(), ...definitionOptions,
+      items: [{ key: 'answer', type: 'field', dataType: 'string', initialValue: 'draft' }],
+      shapes: [{ id: 'check', target: '#', code: 'CHECK', timing: 'continuous', severity: 'warning',
+        constraint: 'false', message: 'Check this answer', ...shapeOptions }],
+    });
+    // fs-g8fr supplies these evaluator results. Exercise the engine boundary with its Core §5.3.1 shape.
+    const explanation = {
+      path: '#', source: 'shape', severity: 'error', constraintKind: 'explanation',
+      code: 'EXPLANATION_REQUIRED', context: { code: 'CHECK' }, message: 'Acknowledge these findings',
+    };
+    const evaluate = engine.evaluateResultForTrigger.bind(engine);
+    const calls = t.mock.method(engine, 'evaluateResultForTrigger', (...args) => {
+      const evaluation = evaluate(...args);
+      return { ...evaluation, validations: [...evaluation.validations, explanation, explanation] };
+    });
+
+    assert.equal(engine.getEvaluatedFormState().report.valid, true);
+    assert.equal(calls.mock.callCount(), 0);
+    const saved = engine.getEvaluatedFormState({ profile: 'on-submit' }).report;
+    assert.equal(calls.mock.callCount(), 1);
+    assert.equal(saved.valid, false);
+    assert.deepEqual(saved.results.map(result => result.code), ['CHECK', 'EXPLANATION_REQUIRED']);
+    assert.deepEqual(saved.results, engine.getValidationReport({ profile: 'on-submit' }).results);
+    const submitted = engine.getResponseSnapshot({ profile: 'on-submit' });
+    assert.equal(submitted.response.status, 'in-progress');
+    assert.equal(submitted.validationReport.valid, false);
+  });
+}
+
+test('on-submit report skips evaluation when both explanation modes are none', (t) => {
+  const engine = new FormEngine({
+    ...makeDefinition(), warningExplanation: 'none',
+    shapes: [{ id: 'check', target: '#', explanation: 'none', severity: 'warning',
+      constraint: 'false', message: 'Check this answer' }],
+  });
+  const calls = t.mock.method(engine, 'evaluateResultForTrigger');
+  assert.deepEqual(engine.getValidationReport({ profile: 'on-submit' }).results, engine.getValidationReport().results);
+  assert.equal(calls.mock.callCount(), 0);
 });
 
 test('a write records who made it, so assist can guard a respondent\'s own typing', () => {

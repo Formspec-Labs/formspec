@@ -6,7 +6,6 @@ export type {
     FELConditionGroupLifted,
     FELConditionGroupLiftResult,
     FELConditionGroupUnlifted,
-    FormProgress,
 } from './interfaces.js';
 
 export type { ReadonlyEngineSignal } from './reactivity/types.js';

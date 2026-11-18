@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { resolvePageSequence } from '../src/index';
 
+// Renderable subtrees are verified in form-progress.test. Keep these assertions on page order and ownership.
+const describePages = (plan: ReturnType<typeof resolvePageSequence>) =>
+    plan.map(({ id, title, fields }) => ({ id, title, fields }));
+
 function makeDefinition() {
     return {
         $formspec: '1.0',
@@ -73,7 +77,7 @@ describe('resolvePageSequence', () => {
             } as any,
         });
 
-        expect(pages).toEqual([
+        expect(describePages(pages)).toEqual([
             { id: 'component-contact', title: 'Component Contact', fields: ['contactEmail'] },
             { id: 'component-org', title: 'Component Organization', fields: ['organization.name', 'organization.ein'] },
             { id: 'component-review', title: 'Review', fields: [] },
@@ -103,7 +107,7 @@ describe('resolvePageSequence', () => {
             } as any,
         });
 
-        expect(pages).toEqual([
+        expect(describePages(pages)).toEqual([
             { id: 'component-root', title: 'Component Root', fields: ['contactEmail'] },
         ]);
     });
@@ -141,8 +145,10 @@ describe('resolvePageSequence', () => {
             } as any,
         });
 
-        expect(pages).toEqual([
+        expect(describePages(pages)).toEqual([
             { id: 'lines-page', title: 'Line items', fields: ['lineItems[0].amount'] },
+            // An explicit row placement only owns that row. The loose template still renders other rows.
+            { id: 'lineItems', title: 'Additional items', fields: ['lineItems[*].amount'] },
         ]);
     });
 
@@ -159,11 +165,11 @@ describe('resolvePageSequence', () => {
             } as any,
         });
 
-        expect(pages).toEqual([
+        expect(describePages(pages)).toEqual([
             { id: 'theme-contact', title: 'Theme Contact', fields: ['contactEmail'] },
             { id: 'theme-details', title: 'Theme Details', fields: ['details.summary'] },
             {
-                id: expect.stringMatching(/^fallback-section-/),
+                id: 'organization',
                 title: 'Additional items',
                 fields: ['organization.name', 'organization.ein'],
             },
@@ -187,21 +193,24 @@ describe('resolvePageSequence', () => {
             } as any,
         });
 
-        expect(pages).toEqual([
+        expect(describePages(pages)).toEqual([
             { id: 'theme-contact', title: 'Theme Contact', fields: ['contactEmail'] },
+            // A single-mode Theme still leaves its unassigned Items in the shared section plan.
+            { id: 'organization', title: 'Additional items', fields: ['organization.name', 'organization.ein', 'details.summary'] },
         ]);
     });
 
     it('falls back to generated definition group sections when no component or theme pages exist', () => {
         const pages = resolvePageSequence(makeDefinition());
-        expect(pages).toEqual([
-            { id: 'organization', fields: ['organization.name', 'organization.ein'] },
-            { id: 'details', fields: ['details.summary'] },
-            { id: 'additional-items', fields: ['contactEmail'] },
+        expect(describePages(pages)).toEqual([
+            // Generated IDs are Item keys and loose Items stay in structural order.
+            { id: 'organization', title: 'organization', fields: ['organization.name', 'organization.ein'] },
+            { id: 'contactEmail', title: 'Additional items', fields: ['contactEmail'] },
+            { id: 'details', title: 'details', fields: ['details.summary'] },
         ]);
     });
 
-    it('uses generated wizard pages for unlabeled definition groups', () => {
+    it('keeps generated group IDs independent of their labels', () => {
         const definition = {
             ...makeDefinition(),
             items: [
@@ -224,9 +233,9 @@ describe('resolvePageSequence', () => {
             ],
         } as any;
 
-        expect(resolvePageSequence(definition)).toEqual([
-            { id: 'contact', fields: ['contact.email'] },
-            { id: 'project-details', fields: ['details.summary'] },
+        expect(describePages(resolvePageSequence(definition))).toEqual([
+            { id: 'contact', title: 'Contact', fields: ['contact.email'] },
+            { id: 'details', title: 'Project Details', fields: ['details.summary'] },
         ]);
     });
 
@@ -257,10 +266,10 @@ describe('resolvePageSequence', () => {
             } as any,
         });
 
-        expect(pages).toEqual([
+        expect(describePages(pages)).toEqual([
             { id: 'theme-org', title: 'Theme Org', fields: ['organization.name'] },
             {
-                id: expect.stringMatching(/^fallback-section-/),
+                id: 'contactEmail',
                 title: 'Additional items',
                 fields: ['contactEmail', 'details.summary'],
             },
@@ -295,7 +304,7 @@ describe('resolvePageSequence', () => {
             } as any,
         });
 
-        expect(pages).toEqual([
+        expect(describePages(pages)).toEqual([
             { id: 'component-only', title: 'Component Only', fields: ['contactEmail'] },
         ]);
     });
@@ -313,10 +322,10 @@ describe('resolvePageSequence', () => {
             } as any,
         });
 
-        expect(pages).toEqual([
+        expect(describePages(pages)).toEqual([
             { id: 'theme-details', title: 'Theme Details', fields: ['details.summary'] },
             {
-                id: expect.stringMatching(/^fallback-section-/),
+                id: 'organization',
                 title: 'Additional items',
                 fields: ['organization.name', 'organization.ein', 'contactEmail'],
             },

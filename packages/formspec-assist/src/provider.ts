@@ -40,8 +40,8 @@ function isToolResult(value: unknown): value is ToolResult {
 }
 
 function assertEngineCompatibility(engine: IFormEngine): void {
-  const candidate = engine as IFormEngine & { getFieldPaths?: unknown; getProgress?: unknown };
-  if (typeof candidate.getFieldPaths !== 'function' || typeof candidate.getProgress !== 'function') {
+  const candidate = engine as IFormEngine & { getFieldPaths?: unknown; getEvaluatedFormState?: unknown };
+  if (typeof candidate.getFieldPaths !== 'function' || typeof candidate.getEvaluatedFormState !== 'function') {
     throw new AssistError('UNSUPPORTED', 'Active engine does not expose the assist compatibility surface');
   }
 }
@@ -127,10 +127,7 @@ class AssistProviderImpl implements AssistProvider {
   }
 
   public getProgress(): FormProgress {
-    return {
-      ...this.engine.getProgress(),
-      pages: this.progress.getPageProgress(),
-    };
+    return this.progress.getProgress();
   }
 
   public matchProfile(profileRef?: string): ProfileMatch[] { return this.profiles.matchProfile(profileRef); }

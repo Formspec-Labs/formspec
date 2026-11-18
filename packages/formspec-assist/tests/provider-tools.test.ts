@@ -167,10 +167,12 @@ describe('Assist provider tools', () => {
     const provider = createFullProvider();
     const result = await parse(provider, 'formspec.form.pages', {});
     expect(result.pages.map((p: { id: string }) => p.id)).toEqual([
+      // The plan retains loose Items in order and uses Item keys independently of labels.
       'organization',
-      'project-details',
-      'budget-items',
-      'additional-items',
+      'contactEmail',
+      'details',
+      'budgetItems',
+      'derivedScore',
     ]);
   });
 
@@ -646,12 +648,12 @@ describe('Assist provider tools', () => {
     expect(themePages.pages.map((page: { id: string; title?: string }) => [page.id, page.title])).toEqual([
       ['theme-contact', 'Theme Contact'],
       ['theme-details', 'Theme Details'],
-      [expect.stringMatching(/^fallback-section-/), 'Additional items'],
+      ['organization', 'Additional items'],
     ]);
     expect(themePages.pages.map((page: { id: string; fieldCount: number }) => [page.id, page.fieldCount])).toEqual([
       ['theme-contact', 1],
       ['theme-details', 1],
-      [expect.stringMatching(/^fallback-section-/), 5],
+      ['organization', 4],
     ]);
 
     const definitionProvider = createAssistProvider({
@@ -660,10 +662,11 @@ describe('Assist provider tools', () => {
     });
     const definitionPages = await parse(definitionProvider, 'formspec.form.pages', {});
     expect(definitionPages.pages.map((page: { id: string; title?: string }) => [page.id, page.title])).toEqual([
-      ['organization', undefined],
-      ['project-details', undefined],
-      ['budget-items', undefined],
-      ['additional-items', undefined],
+      ['organization', 'Organization'],
+      ['contactEmail', 'Additional items'],
+      ['details', 'Project Details'],
+      ['budgetItems', 'Budget Items'],
+      ['derivedScore', 'Additional items'],
     ]);
   });
 
@@ -692,7 +695,7 @@ describe('Assist provider tools', () => {
     expect(invalidComponentPages.pages.map((page: { id: string }) => page.id)).toEqual([
       'theme-contact',
       'theme-details',
-      expect.stringMatching(/^fallback-section-/),
+      'organization',
     ]);
 
     const invalidThemeProvider = createAssistProvider({
@@ -706,10 +709,12 @@ describe('Assist provider tools', () => {
 
     const invalidThemePages = await parse(invalidThemeProvider, 'formspec.form.pages', {});
     expect(invalidThemePages.pages.map((page: { id: string }) => page.id)).toEqual([
+      // The plan retains loose Items in order and uses Item keys independently of labels.
       'organization',
-      'project-details',
-      'budget-items',
-      'additional-items',
+      'contactEmail',
+      'details',
+      'budgetItems',
+      'derivedScore',
     ]);
   });
 
@@ -750,14 +755,16 @@ describe('Assist provider tools', () => {
         title: 'Theme Org',
         fieldCount: 1,
         filledCount: 0,
-        complete: false,
+        missingReadonly: 0,
+        filled: false,
       },
       expect.objectContaining({
-        id: expect.stringMatching(/^fallback-section-/),
+        id: 'contactEmail',
         title: 'Additional items',
-        fieldCount: 5,
-        filledCount: 1,
-        complete: false,
+        // The derived read-only value is excluded from editable counts.
+        fieldCount: 4,
+        filledCount: 0,
+        filled: false,
       }),
     ]);
   });

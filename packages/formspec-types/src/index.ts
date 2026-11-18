@@ -11,6 +11,7 @@
 
 // Re-export everything from generated schemas
 export * from './generated/index.js';
+export * from './evaluated-form-state.js';
 
 // Widget vocabulary — canonical widget ↔ component mappings
 export {
@@ -152,6 +153,7 @@ type FormDefinitionKnownFields = Pick<
   | 'documents'
   | 'date'
   | 'metadata'
+  | 'warningExplanation'
   | 'shapes'
   | 'subject'
   | 'instances'

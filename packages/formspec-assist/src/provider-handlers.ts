@@ -41,15 +41,19 @@ export function buildToolHandler(
 ): ToolHandler {
   switch (name) {
     case 'formspec.form.describe':
-      return () => ({
-        title: fields.engine.getDefinition().title,
-        description: fields.engine.getDefinition().description,
-        url: fields.engine.getDefinition().url,
-        version: fields.engine.getDefinition().version,
-        fieldCount: fields.engine.getFieldPaths().length,
-        pageCount: progress.pageCount,
-        status: fields.engine.getProgress().complete ? 'complete' : 'in-progress',
-      });
+      return () => {
+        const definition = fields.engine.getDefinition();
+        const state = provider.getProgress();
+        return {
+          title: definition.title,
+          description: definition.description,
+          url: definition.url,
+          version: definition.version,
+          fieldCount: fields.engine.getFieldPaths().length,
+          pageCount: state.pages?.length ?? 0,
+          status: state.ready ? 'complete' : 'in-progress',
+        };
+      };
     case 'formspec.field.list':
       return (input) => fields.listFields(typeof input.filter === 'string' ? input.filter : 'relevant');
     case 'formspec.field.describe':
@@ -78,7 +82,7 @@ export function buildToolHandler(
       return (input) => profiles.learnProfile(typeof input.profileRef === 'string' ? input.profileRef : undefined);
     case 'formspec.form.pages':
       return () => ({
-        pages: progress.getPageProgress(),
+        pages: provider.getProgress().pages,
       });
     case 'formspec.form.nextIncomplete':
       return (input) => progress.nextIncomplete(readNextIncompleteScope(input));
