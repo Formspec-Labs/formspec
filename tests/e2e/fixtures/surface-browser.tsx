@@ -9,9 +9,11 @@ import { BrowserSurfaceApp, renderDefaultDefinitionForm } from '../../../package
 import '../../../packages/formspec-surface-react/src/formspec-surface.css';
 import '../../../packages/formspec-layout/src/formspec-default.css';
 import { scaleForms } from './surface-filing-scale';
+import { surfaceWalkExport } from './surface-walk-export';
 
 const fixtureOptions = new URLSearchParams(location.search);
-const workspace = fixtureOptions.has('workspace');
+const walkRoutes = fixtureOptions.has('walkRoutes');
+const workspace = fixtureOptions.has('workspace') || walkRoutes;
 const alternatingMode = fixtureOptions.get('alternating');
 const twoForms = fixtureOptions.has('twoForms');
 const id = 'https://example.test/filing';
@@ -64,7 +66,7 @@ const componentDocument: ComponentDocument = {
     { component: 'ActionButton', actionRef: 'save', label: { literal: 'Save draft' } },
   ] },
 };
-const bundle = dereferenceBundleExport({
+const bundle = dereferenceBundleExport(walkRoutes ? surfaceWalkExport : {
   manifest: {
     $formspecBundle: '2.4', id, title: 'Example filing', entrySurface: surface,
     definitions: [definition, ...(smallTracker ? [roster, report] : []), ...extraForms.map(({ url }) => url)].map(url => ({ url })),

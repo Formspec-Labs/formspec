@@ -4,8 +4,10 @@ import type { ExpectedText, Plan, PlanField } from './plan.js';
 import { revealSearch, type RevealEngine } from './reveal.js';
 
 export interface EmitOptions {
-    /** The page the spec opens; it must mount a `<formspec-render>`. */
+    /** The URL of the rendered form, including its Surface route when hosted in an app. */
     url: string;
+    /** Scope the walk to one renderer when the route has multiple form slots. */
+    root?: string;
     /** What the header says the spec was generated from, and the command that regenerates it. */
     source: string;
     command: string;
@@ -84,7 +86,7 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
     push(`import { Walk } from ${q(from)};`);
     push();
     push(`const PAGE = ${q(options.url)};`);
-    push(`const open = (page: import('@playwright/test').Page) => Walk.open(page, { url: PAGE${code ? `, locale: ${q(code)}` : ''}${Object.keys(chrome).length ? `, chrome: ${JSON.stringify(chrome, null, 4).replace(/\n/g, '\n    ')}` : ''} });`);
+    push(`const open = (page: import('@playwright/test').Page) => Walk.open(page, { url: PAGE${options.root ? `, root: ${q(options.root)}` : ''}${code ? `, locale: ${q(code)}` : ''}${Object.keys(chrome).length ? `, chrome: ${JSON.stringify(chrome, null, 4).replace(/\n/g, '\n    ')}` : ''} });`);
     push();
 
     // Order over every step.

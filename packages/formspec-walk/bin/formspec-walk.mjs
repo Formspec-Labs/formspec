@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { createFormEngine, initFormspecEngine } from '@formspec-org/engine';
 import { derivePlan, deriveRecipes, emitSpec } from '@formspec-org/walk';
 
-const USAGE = `usage: formspec-walk emit (--docs <dir> | --manifest <package-manifest.json>) [--form <formId>] --url <page url> [--locale <code>] [--out <file>] [--from <package>]
+const USAGE = `usage: formspec-walk emit (--docs <dir> | --manifest <package-manifest.json>) [--form <formId>] --url <page url> [--root <selector>] [--locale <code>] [--out <file>] [--from <package>]
        formspec-walk a11y (--docs <dir> | --manifest <package-manifest.json>) [--form <formId>] [--locale <code>] [--timeout-ms <ms>] [--out <file>]
        formspec-walk test [Playwright test arguments]
        formspec-walk serve [--port <n>] [--host <addr>] [--timeout-ms <ms>]
@@ -17,6 +17,7 @@ const USAGE = `usage: formspec-walk emit (--docs <dir> | --manifest <package-man
   --manifest  a package-manifest.json file describing one or more forms and their per-form Definition, Locale(s) and Theme files
   --form      the formId (or slug) to select from package-manifest.json (required for emit when the package has multiple forms)
   --url       the page the spec opens; it must mount a <formspec-render> or React <FormspecForm>
+  --root      selector for one renderer on a multi-form route (e.g. '[data-slot="filing"] [data-formspec-render-root]')
   --locale    the Locale to derive the wording from (default: the Definition's inline wording)
   --out       write here instead of stdout
   --from      the package the spec imports the walk from (default @formspec-org/walk)
@@ -226,15 +227,17 @@ if (isMain) {
     const plan = derivePlan(definition, { locale, theme });
     await initFormspecEngine();
     const recipes = deriveRecipes(createFormEngine(definition), plan);
+    const root = flag('root');
+    const rootFlag = root ? ` --root '${root.replaceAll("'", "'\\''")}'` : '';
     const sourceFlag = flag('manifest')
       ? `--manifest ${relative(process.cwd(), flag('manifest')) || basename(flag('manifest'))}`
       : `--docs ${relative(process.cwd(), flag('docs')) || '.'}`;
     const formFlag = formFilter ? ` --form ${formFilter}` : (manifestPath ? ` --form ${selectedForm.formId}` : '');
-    const command_ = `npx formspec-walk emit ${sourceFlag}${formFlag} --url ${flag('url')}${code ? ` --locale ${code}` : ''}${flag('out') ? ` --out ${relative(process.cwd(), flag('out'))}` : ''}`;
+    const command_ = `npx formspec-walk emit ${sourceFlag}${formFlag} --url ${flag('url')}${rootFlag}${code ? ` --locale ${code}` : ''}${flag('out') ? ` --out ${relative(process.cwd(), flag('out'))}` : ''}`;
     const source = manifestPath
       ? `${basename(dirname(manifestPath))}/${selectedForm.formId}${selectedForm.displayName ? ` (${selectedForm.displayName})` : ''}`
       : `${basename(flag('docs'))}/`;
-    const spec = emitSpec(plan, definition, { url: flag('url'), source, command: command_, locale, recipes, from: flag('from') });
+    const spec = emitSpec(plan, definition, { url: flag('url'), root, source, command: command_, locale, recipes, from: flag('from') });
     await writeOutput(flag('out'), spec);
   }
 }
