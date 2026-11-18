@@ -4,7 +4,7 @@ use std::collections::{BTreeSet, HashSet};
 
 use fel_core::{Expr, builtin_function_catalog, extract_dependencies};
 use formspec_core::fel_analysis::RESERVED_CONTEXT_NAMES;
-use formspec_core::path_utils::Path;
+use formspec_core::path_utils::{Path, PathSegment};
 use formspec_core::repeat_references::resolve_head;
 use serde_json::Value;
 
@@ -93,6 +93,19 @@ impl<'a> ExpressionSemantics<'a> {
                 ));
             }
         }
+        if !scope.is_empty() {
+            for read in &dependencies.self_reads {
+                if !self.item_members_exist(scope, &Path::parse(read).segments) {
+                    let separator = if read.starts_with('[') { "" } else { "." };
+                    diagnostics.push(error(
+                        LintCode::E402,
+                        4,
+                        path,
+                        format!("Unknown field reference ${separator}{read}"),
+                    ));
+                }
+            }
+        }
         let names: BTreeSet<_> = dependencies
             .context_names()
             .filter(|name| !RESERVED_CONTEXT_NAMES.contains(name))
@@ -120,31 +133,36 @@ impl<'a> ExpressionSemantics<'a> {
 
     /// Read a field by lexical scope, then follow only declared group members.
     fn field_exists(&self, scope: &str, field: &str) -> bool {
-        let parts = formspec_core::split_normalized_path(field);
-        let Some((head, tail)) = parts.split_first() else {
-            return true;
+        let parsed = Path::parse(field);
+        let Some((PathSegment::Exact(head), tail)) = parsed.segments.split_first() else {
+            return false;
         };
-        let Some(mut resolved) = resolve_head(
+        resolve_head(
             &|key| self.items.by_full_path.contains_key(key),
             scope,
             head,
-        ) else {
-            return false;
-        };
-        for part in tail {
-            // Object-valued fields expose their payload as FEL members.
-            if self.items.by_full_path.get(&resolved).is_some_and(|item| {
-                matches!(item.data_type.as_deref(), Some("money" | "attachment"))
-            }) {
-                return true;
-            }
-            resolved.push('.');
-            resolved.push_str(part);
-            if !self.items.by_full_path.contains_key(&resolved) {
+        )
+        .is_some_and(|item| self.item_members_exist(&item, tail))
+    }
+
+    /// Follow group children, then inspect the declared field value when reached.
+    fn item_members_exist(&self, path: &str, members: &[PathSegment]) -> bool {
+        let mut path = path.to_owned();
+        let mut members = members;
+        while let Some((next, tail)) = members.split_first() {
+            let Some(item) = self.items.by_full_path.get(&path) else {
                 return false;
+            };
+            if let Some(data_type) = &item.data_type {
+                return field_value_contains(data_type, members);
             }
+            if let PathSegment::Exact(key) = next {
+                path.push('.');
+                path.push_str(key);
+            }
+            members = tail;
         }
-        true
+        self.items.by_full_path.contains_key(&path)
     }
 
     /// A variable belongs to a scope Item (visible to descendants) or to the form.
@@ -197,9 +215,14 @@ impl<'a> ExpressionSemantics<'a> {
         };
         if column.is_some_and(|column| {
             column.is_empty()
-                || schema
-                    .keys()
-                    .any(|declared| path_prefix(column, declared) || path_prefix(declared, column))
+                || schema.iter().any(|(declared, data_type)| {
+                    path_prefix(column, declared)
+                        || path_prefix(declared, column)
+                            && data_type.as_str().is_some_and(|kind| {
+                                let members = Path::parse(&column[declared.len()..]);
+                                field_value_contains(kind, &members.segments)
+                            })
+                })
         }) {
             return;
         }
@@ -212,7 +235,22 @@ impl<'a> ExpressionSemantics<'a> {
     }
 }
 
-/// A declared leaf delivers the entire value. Its enclosing containers are also readable.
+/// Core §4.2.3 defines the compound field values. Attachments permit extra host metadata.
+fn field_value_contains(data_type: &str, members: &[PathSegment]) -> bool {
+    if members.is_empty() {
+        return true;
+    }
+    match (data_type, members) {
+        ("money", [PathSegment::Exact(key)]) => matches!(key.as_str(), "amount" | "currency"),
+        ("multiChoice", [PathSegment::Indexed(_) | PathSegment::Wildcard]) => true,
+        ("attachment", [PathSegment::Exact(key), tail @ ..]) => {
+            tail.is_empty() || !matches!(key.as_str(), "contentType" | "url" | "data" | "size")
+        }
+        _ => false,
+    }
+}
+
+/// Test a path prefix only at member or subscript boundaries.
 fn path_prefix(prefix: &str, path: &str) -> bool {
     path.strip_prefix(prefix)
         .is_some_and(|tail| tail.is_empty() || tail.starts_with(['.', '[']))

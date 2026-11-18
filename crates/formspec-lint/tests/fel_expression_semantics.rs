@@ -88,9 +88,24 @@ fn projected_paths_allow_containers_and_use_the_delivered_shape() {
         "../../../tests/fixtures/lint/E405-unprojected-path.json"
     ))
     .unwrap();
-    doc["instances"]["prior"]["schema"] = json!({"rows[*].code":"string"});
+    doc["instances"]["prior"]["schema"] =
+        json!({"rows[*].code":"string","fee":"money","tags":"multiChoice","file":"attachment"});
     for (cardinality, expression, expected) in [
         ("latest", "count(@instance('prior').rows)", false),
+        (
+            "latest",
+            "some(@instance('prior').rows, $.code.missing = 'A')",
+            true,
+        ),
+        ("latest", "@instance('prior').fee.amount", false),
+        ("latest", "@instance('prior').fee.missing", true),
+        (
+            "latest",
+            "@instance('prior').file.customMetadata.page",
+            false,
+        ),
+        ("latest", "@instance('prior').tags[1]", false),
+        ("latest", "@instance('prior').tags[1].missing", true),
         (
             "latest",
             "some(@instance('prior').rows, $.code = 'A')",
@@ -118,4 +133,20 @@ fn projected_paths_allow_containers_and_use_the_delivered_shape() {
     }
     doc["instances"]["prior"]["response"]["mapping"] = json!("urn:test:reshape");
     assert!(!lint(&doc).diagnostics.iter().any(|d| d.code == "E405"));
+}
+
+#[test]
+fn self_relative_fields_are_checked_at_the_target_instead_of_its_parent() {
+    let doc = json!({
+        "$formspec":"1.0","url":"urn:test:self","version":"1.0.0","status":"draft","title":"Check self",
+        "items":[{"key":"outer","type":"field","dataType":"integer","label":"Outer"},
+            {"key":"group","type":"group","label":"Group","children":[
+                {"key":"value","type":"field","dataType":"integer","label":"Value"}]}],
+        "shapes":[{"id":"members","target":"group","severity":"error","message":"Members",
+            "constraint":"$.value > 0 and $.outer > 0"}]
+    });
+    let diagnostics = lint(&doc).diagnostics;
+    let failures: Vec<_> = diagnostics.iter().filter(|d| d.code == "E402").collect();
+    assert_eq!(failures.len(), 1, "{diagnostics:?}");
+    assert!(failures[0].message.contains("$.outer"));
 }
