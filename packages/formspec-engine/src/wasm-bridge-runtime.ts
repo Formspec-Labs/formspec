@@ -350,7 +350,10 @@ export function wasmCoerceFieldValue(
 export interface FELDependencies {
     fields: string[];
     contextRefs: string[];
+    /** Known instance names and their sorted paths, with an empty path for a whole-instance read. */
     instanceReads: Record<string, string[]>;
+    /** Paths relative to the current field, with an empty path for the field itself. */
+    selfReads: string[];
     mipDeps: string[];
     hasSelfRef: boolean;
     hasWildcard: boolean;

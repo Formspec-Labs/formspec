@@ -23,7 +23,7 @@ print(to_python(result.value))  # Decimal('30')
 print(result.diagnostics)       # []
 
 deps = extract_dependencies("sum($items[*].cost) + $base")
-print(deps.fields)              # {'items.cost', 'base'}
+print(deps.fields)              # {'items[*].cost', 'base'}
 print(deps.has_wildcard)        # True
 ```
 
@@ -84,6 +84,7 @@ Every FEL value remains a frozen Python dataclass wrapper. `from_python()` and `
 class DependencySet:
     fields: set[str]
     instance_reads: dict[str, list[str]]
+    self_reads: list[str]
     context_refs: set[str]
     mip_deps: set[str]
     has_self_ref: bool
@@ -91,7 +92,13 @@ class DependencySet:
     uses_prev_next: bool
 ```
 
-`extract_dependencies()` returns the Rust-generated static dependency set used by the validator and evaluator.
+`extract_dependencies()` returns the same paths as the Rust and TypeScript APIs.
+`instance_reads` maps each statically named instance to its sorted paths. For
+`some(@instance('survey').rows, $.active)`, the paths are `rows` and
+`rows[*].active`. An empty path covers the whole instance, including a read
+whose path depends on runtime data. A computed instance name can only be
+resolved during evaluation. `self_reads` lists paths relative to the current
+field, with an empty path for the field itself.
 
 ---
 

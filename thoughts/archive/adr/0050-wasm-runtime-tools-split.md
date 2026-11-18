@@ -158,6 +158,13 @@ The decision is about module boundaries and loading behavior, not crate-count pr
 - Tooling flows (lint/schema/registry/changelog/mapping) still behave identically once tools module is loaded.
 - Registry-backed runtime extension checks continue to work with the current `registryDocuments` contract and any internal normalization layer.
 
+## Paired artifact versions
+
+Version `2` returns structured FEL dependencies from both modules. The runtime
+`getFelDependencies` export now returns an object containing `fields` and
+`instanceReads`. The tools `extractDependencies` export returns that same
+shape. Rebuild and distribute the pair together (fs-xe4t).
+
 ## Follow-up Work (Non-blocking)
 
 - ~~Replace `fancy-regex` with `regex` crate~~ — tried; no material size reduction.

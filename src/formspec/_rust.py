@@ -36,6 +36,7 @@ EXPECTED_PY_API_VERSION = 2
 _REQUIRED_EXPORTS = (
     "eval_fel_detailed",
     "extract_deps",
+    "definition_instance_reads",
     "detect_type",
     "lint_document",
     "evaluate_def",
@@ -210,6 +211,7 @@ class EvalResult(msgspec.Struct, frozen=True):
 class DependencySet(msgspec.Struct, frozen=True):
     fields: set[str]
     instance_reads: dict[str, list[str]]
+    self_reads: list[str]
     context_refs: set[str]
     mip_deps: set[str]
     has_self_ref: bool
@@ -261,13 +263,6 @@ def _parse_iso_date_like(value: object) -> object:
         return date.fromisoformat(value)
     except ValueError:
         return value
-
-
-def _normalize_context_ref(ref: str) -> str:
-    bare = ref.lstrip("@")
-    if "." in bare:
-        return bare.split(".", 1)[0]
-    return bare
 
 
 def _normalize_diagnostic_message(message: str) -> str:
@@ -441,9 +436,10 @@ def extract_dependencies(source: str) -> DependencySet:
     """Extract static dependencies from a FEL expression."""
     raw = formspec_rust.extract_deps(source)
     return DependencySet(
-        fields={field.replace("[*]", "") for field in raw.get("fields", [])},
+        fields=set(raw["fields"]),
         instance_reads=raw["instance_reads"],
-        context_refs={_normalize_context_ref(r) for r in raw.get("context_refs", [])},
+        self_reads=raw["self_reads"],
+        context_refs=set(raw["context_refs"]),
         mip_deps=set(raw.get("mip_deps", [])),
         has_self_ref=bool(raw.get("has_self_ref", False)),
         has_wildcard=bool(raw.get("has_wildcard", False)),

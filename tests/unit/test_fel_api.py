@@ -64,11 +64,13 @@ class TestDependencies:
     def test_wildcard_detected(self):
         deps = extract_dependencies("sum($items[*].amount)")
         assert deps.has_wildcard
-        assert "items.amount" in deps.fields
+        # Preserve the same wildcard path Rust and TypeScript report.
+        assert "items[*].amount" in deps.fields
 
     def test_context_ref(self):
         deps = extract_dependencies("@current.amount")
-        assert "current" in deps.context_refs
+        # Keep the full context path, including the FEL marker.
+        assert "@current.amount" in deps.context_refs
 
     def test_instance_ref(self):
         deps = extract_dependencies("@instance('prior').income")

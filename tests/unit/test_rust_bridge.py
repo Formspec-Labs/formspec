@@ -117,6 +117,7 @@ def test_formspec_rust_exports_expected_contract():
         "eval_fel_detailed",
         "eval_fel_with_trace",
         "extract_deps",
+        "definition_instance_reads",
         "detect_type",
         "lint_document",
         "evaluate_def",
@@ -302,7 +303,8 @@ def test_extract_dependencies_fields():
 
 def test_extract_dependencies_variables():
     deps = extract_dependencies("@myVar")
-    assert "myVar" in deps.context_refs
+    # Context reads retain FEL syntax across language bindings.
+    assert "@myVar" in deps.context_refs
 
 
 # ── Linting ──────────────────────────────────────────────────────
