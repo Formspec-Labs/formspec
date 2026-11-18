@@ -23,7 +23,6 @@ const USAGE = `usage: formspec-walk emit (--docs <dir> | --manifest <package-man
   --root      selector for one renderer on a multi-form route (e.g. '[data-slot="filing"] [data-formspec-render-root]')
   --locale    the Locale to derive the wording from (default: the Definition's inline wording)
   --out       write here instead of stdout
-  --root      scope walk navigation to the selected form on a multi-form host
   --all       emit every --manifest form to --out-dir <dir> using --url-template <url> with {formId} or {slug}
   --axe       include a host-page axe test in each emitted spec
   --summary   test --summary <file> writes per-form results, findings, axe reports and uncovered items
