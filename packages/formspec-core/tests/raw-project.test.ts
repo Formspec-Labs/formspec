@@ -125,6 +125,30 @@ describe('RawProject', () => {
   });
 
   describe('handler table', () => {
+    it('exports a Theme authored by a custom command and tracks it through undo', () => {
+      const project = createRawProject({
+        handlers: {
+          'custom.addAccent': (state) => {
+            state.theme.tokens = { 'color.accent': 'red' };
+            return { rebuildComponentTree: false };
+          },
+        },
+      });
+
+      project.dispatch({
+        type: 'project.import',
+        payload: { definitions: [{ ...project.definition, url: 'urn:test:theme-target' }] },
+      });
+      expect(project.export()).not.toHaveProperty('theme');
+      project.dispatch({ type: 'custom.addAccent', payload: {} });
+      expect(project.export().theme).toMatchObject({
+        targetDefinition: { url: 'urn:test:theme-target' },
+        tokens: { 'color.accent': 'red' },
+      });
+      project.undo();
+      expect(project.export()).not.toHaveProperty('theme');
+    });
+
     it('two instances have independent handler tables when custom handlers provided', () => {
       const customHandler = (_state: any, _payload: any) => ({
         rebuildComponentTree: false,

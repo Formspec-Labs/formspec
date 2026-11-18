@@ -1,5 +1,6 @@
 /** @filedesc Phase-aware command execution pipeline with middleware support. */
 import { deepEqual } from '@formspec-org/engine';
+import { builtinHandlers } from './handlers/index.js';
 import type { CommandHandler, ProjectState, AnyCommand, CommandResult, Middleware } from './types.js';
 
 /**
@@ -29,7 +30,10 @@ export class CommandPipeline {
         for (const cmd of phase) {
           const handler = this.handlers[cmd.type];
           if (!handler) throw new Error(`Unknown command type: ${cmd.type}`);
-          const previousTheme = !clone.themeDeclared && cmd.type.startsWith('theme.')
+          // Built-in commands outside theme.* only sync or clean up existing Theme state.
+          const builtin = builtinHandlers[cmd.type as keyof typeof builtinHandlers];
+          const mayAuthorTheme = cmd.type.startsWith('theme.') || handler !== builtin;
+          const previousTheme = !clone.themeDeclared && mayAuthorTheme
             ? structuredClone(clone.theme)
             : undefined;
           phaseResults.push(handler(clone, cmd.payload));
