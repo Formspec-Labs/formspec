@@ -2,7 +2,10 @@
 
 use fel_core::exact_json::{Map, Value};
 
-/// Return the effective inline option array or remote URI for an Item.
+static EMPTY_OPTIONS: Value = Value::Array(Vec::new());
+
+/// Return the Item's effective options, with a defined named set taking precedence.
+/// Remote named sets supply no inline options.
 pub fn effective_item_options<'a>(
     item: &'a Value,
     sets: Option<&'a Map<String, Value>>,
@@ -12,11 +15,14 @@ pub fn effective_item_options<'a>(
         .and_then(Value::as_str)
         .and_then(|name| sets?.get(name))
     {
-        return if entry.is_array() {
-            Some(entry)
+        return Some(if entry.is_array() {
+            entry
         } else {
-            entry.get("options").or_else(|| entry.get("source"))
-        };
+            entry
+                .get("options")
+                .filter(|options| options.is_array())
+                .unwrap_or(&EMPTY_OPTIONS)
+        });
     }
     item.get("options")
 }
@@ -107,6 +113,25 @@ mod tests {
 
         resolve_option_sets_on_definition(&mut def);
         assert_eq!(def["items"][0]["options"][0]["value"], "red");
+    }
+
+    #[test]
+    fn remote_named_set_still_resolves_to_empty_inline_options() {
+        let mut definition = json!({
+            "items": [{
+                "key": "code", "type": "field", "dataType": "choice", "optionSet": "codes",
+                "options": [{"value": "inline", "label": "Inline"}]
+            }],
+            "optionSets": {"codes": {
+                "source": "https://example.test/codes",
+                "valueField": "code",
+                "labelField": "name"
+            }}
+        });
+
+        resolve_option_sets_on_definition(&mut definition);
+
+        assert_eq!(definition["items"][0]["options"], json!([]));
     }
 
     #[test]
