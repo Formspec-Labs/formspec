@@ -6,7 +6,7 @@ use crate::nrb::apply_nrb;
 use crate::output_data::build_output_data;
 use crate::rebuild;
 use crate::rebuild_item_tree;
-use crate::recalculate::recalculate_phase;
+use crate::recalculate::{CalculateOrder, recalculate_phase};
 use crate::revalidate::revalidate_scoped;
 use crate::runtime_context::{apply_previous_non_relevant, hydrate_inline_instances};
 use crate::scope::{AggregateMemo, ScopeIndex};
@@ -24,6 +24,7 @@ pub struct PreparedDefinition {
     definition: Value,
     items: Vec<types::ItemInfo>,
     definition_errors: Vec<ValidationResult>,
+    calculate_order: Option<CalculateOrder>,
 }
 
 impl PreparedDefinition {
@@ -33,10 +34,16 @@ impl PreparedDefinition {
         formspec_core::resolve_option_sets_on_definition(&mut resolved);
         let items = rebuild_item_tree(&resolved);
         let definition_errors = rebuild::check_repeat_references(&definition, &items);
+        let calculate_order = if definition_errors.is_empty() {
+            CalculateOrder::for_definition(&items, &definition)
+        } else {
+            None
+        };
         Self {
             definition,
             items,
             definition_errors,
+            calculate_order,
         }
     }
 
@@ -231,6 +238,7 @@ fn evaluate_prepared(
         definition,
         context.previous_validations.as_deref(),
         options,
+        prepared.calculate_order.as_ref(),
         &mut aggregates,
         false,
     );
@@ -256,6 +264,7 @@ fn evaluate_prepared(
         definition,
         Some(&validations),
         options,
+        prepared.calculate_order.as_ref(),
         &mut aggregates,
         true,
     );
@@ -494,5 +503,35 @@ mod tests {
             evaluate(&second, &input, &options).values["rows[0].amount"],
             json!(1)
         );
+    }
+
+    #[test]
+    fn prepared_calculates_follow_nested_sites_across_repeat_sizes() {
+        let definition = json!({"items": [
+            {"key": "groups", "type": "group", "repeatable": true, "children": [
+                {"key": "rows", "type": "group", "repeatable": true, "children": [
+                    {"key": "share", "dataType": "decimal", "calculate":
+                        "@current.amt / sum($rows[*].amt)"},
+                    {"key": "amt", "dataType": "integer", "calculate": "$input * 2"},
+                    {"key": "input", "dataType": "integer"}
+                ]}
+            ]}
+        ]});
+        let prepared = prepared_definition(&definition);
+        assert!(prepared.calculate_order.is_some());
+        let options = EvalOptions::default();
+
+        let empty = prepared.evaluate(&HashMap::new(), &options);
+        assert_eq!(empty.data["groups"], json!([]));
+
+        let input = HashMap::from([(
+            "groups".to_owned(),
+            json!([{"rows": [{"input": 1}, {"input": 3}]}, {"rows": [{"input": 7}]}]),
+        )]);
+        let filled = prepared.evaluate(&input, &options);
+        assert_eq!(filled.values["groups[0].rows[0].share"], json!(0.25));
+        assert_eq!(filled.values["groups[0].rows[1].share"], json!(0.75));
+        assert_eq!(filled.values["groups[1].rows[0].share"], json!(1));
+        assert!(Rc::ptr_eq(&prepared, &prepared_definition(&definition)));
     }
 }

@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use fel_core::exact_json::Value;
-use fel_core::parse;
+use fel_core::{Expr, parse};
 
 use super::json_fel::coerce_calculated_value;
 use super::walk::{Visit, Walk};
@@ -30,6 +30,22 @@ pub(super) fn settle_calculated_values(
     }
 }
 
+/// Evaluate, coerce, and write one calculated value.
+pub(super) fn evaluate_calculate(
+    item: &ItemInfo,
+    expression: &Expr,
+    state: &mut ScopeData,
+    values: &mut HashMap<String, Value>,
+    walk: &Walk<'_>,
+) -> bool {
+    let result = walk
+        .fel
+        .evaluate(expression, &state.site(walk.index, &item.path));
+    let coerced = coerce_calculated_value(item, result.value);
+    values.insert(item.path.clone(), fel_to_runtime_json(&coerced));
+    state.set_field(&item.path, coerced)
+}
+
 /// One calculate pass over the tree.
 struct CalculatePass {
     /// Whether any calculated value differs from the previous pass.
@@ -54,15 +70,7 @@ impl Visit for CalculatePass {
             return;
         };
 
-        let result = walk
-            .fel
-            .evaluate(&parsed, &state.site(walk.index, &item.path));
-        let coerced = coerce_calculated_value(item, result.value);
-        let json_val = fel_to_runtime_json(&coerced);
-        self.changed |= values.get(&item.path) != Some(&json_val);
-
-        values.insert(item.path.clone(), json_val.clone());
-        item.value = json_val;
-        state.set_field(&item.path, coerced);
+        self.changed |= evaluate_calculate(item, &parsed, state, values, walk);
+        item.value.clone_from(&values[&item.path]);
     }
 }

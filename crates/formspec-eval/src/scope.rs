@@ -287,6 +287,19 @@ impl Aggregate {
 pub(crate) struct AggregateMemo {
     entries: HashMap<String, Vec<Aggregate>>,
     values: HashMap<String, Value>,
+    #[cfg(test)]
+    pub(crate) scans: usize,
+}
+
+impl AggregateMemo {
+    pub(crate) fn has_results(&self) -> bool {
+        !self.entries.is_empty()
+    }
+
+    /// The typed field value behind the memo saved by the previous phase.
+    pub(crate) fn previous_value(&self, path: &str) -> Option<&Value> {
+        self.values.get(path)
+    }
 }
 
 fn invalidate_aggregates(entries: &mut HashMap<String, Vec<Aggregate>>, path: &str) {
@@ -305,6 +318,8 @@ pub(crate) struct ScopeData {
     pub(crate) variables: ScopedVariables,
     objects: RefCell<HashMap<String, Value>>,
     aggregates: RefCell<HashMap<String, Vec<Aggregate>>>,
+    #[cfg(test)]
+    aggregate_scans: std::cell::Cell<usize>,
 }
 
 impl ScopeData {
@@ -359,6 +374,10 @@ impl ScopeData {
 
     /// Hand the memo and its typed inputs to the next phase.
     pub(crate) fn save_aggregates(self, memo: &mut AggregateMemo) {
+        #[cfg(test)]
+        {
+            memo.scans += self.aggregate_scans.get();
+        }
         memo.entries = self.aggregates.into_inner();
         // Empty buckets can remain after invalidation.
         memo.entries.retain(|_, calls| !calls.is_empty());
@@ -367,9 +386,10 @@ impl ScopeData {
         }
     }
 
-    pub(crate) fn set_field(&mut self, path: &str, value: Value) {
+    /// Write a typed field and report whether its FEL value changed.
+    pub(crate) fn set_field(&mut self, path: &str, value: Value) -> bool {
         if self.env.data.get(path) == Some(&value) {
-            return;
+            return false;
         }
         self.env.set_field(path, value);
         let objects = self.objects.get_mut();
@@ -378,6 +398,7 @@ impl ScopeData {
             objects.remove(&path[..offset]);
         }
         invalidate_aggregates(self.aggregates.get_mut(), path);
+        true
     }
 
     pub(crate) fn site<'a>(&'a self, index: &'a ScopeIndex, path: &'a str) -> Site<'a> {
@@ -419,7 +440,7 @@ impl Site<'_> {
         };
     }
 
-    fn head(&self, name: &str) -> String {
+    pub(crate) fn head(&self, name: &str) -> String {
         lexical_scopes(self.path)
             .filter(|scope| {
                 !scope.is_empty() && *scope != "#" && !self.index.counts.contains_key(*scope)
@@ -434,6 +455,11 @@ impl Site<'_> {
 
     fn row_path(row: &Row<'_>, index: usize) -> String {
         format!("{}[{index}]", row.group)
+    }
+
+    pub(crate) fn current_row_path(&self) -> Option<String> {
+        let row = self.index.repeat_rows(self.path).next_back()?;
+        Some(Self::row_path(&row, row.index))
     }
 
     fn object(&self, path: &str) -> Value {
@@ -660,6 +686,10 @@ impl Environment for Site<'_> {
         }) {
             return Some(value);
         }
+        #[cfg(test)]
+        self.data
+            .aggregate_scans
+            .set(self.data.aggregate_scans.get() + 1);
         let result = Fel::default().evaluate(
             expr,
             &Self {
@@ -694,10 +724,10 @@ impl Environment for Site<'_> {
         if name != "current" {
             return None;
         }
-        let row = self.index.repeat_rows(self.path).next_back();
-        Some(row.map_or(Ok(Value::Null), |row| {
-            self.read(Self::row_path(&row, row.index), path)
-        }))
+        Some(
+            self.current_row_path()
+                .map_or(Ok(Value::Null), |row| self.read(row, path)),
+        )
     }
 
     fn resolve_context(&self, name: &str, arg: Option<&str>, tail: &[String]) -> Value {

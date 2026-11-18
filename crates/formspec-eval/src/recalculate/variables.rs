@@ -1,12 +1,14 @@
 //! Order and evaluate Definition variables at their concrete item paths.
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 
 use fel_core::{Expr, Value, extract_dependencies};
 
 use crate::fel_eval::Fel;
 use crate::scope::{ScopeData, ScopeIndex};
 use crate::types::VariableDef;
+
+use super::topological_order;
 
 fn context_dependencies(ast: &Expr, known_vars: &HashSet<&str>) -> Vec<String> {
     let deps = extract_dependencies(ast);
@@ -48,13 +50,8 @@ impl<'a> Variables<'a> {
             let Some(expression) = expression else {
                 continue;
             };
-            let scope = definition.scope.as_deref().unwrap_or("#");
-            let sites = (scope == "#")
-                .then_some("#")
-                .into_iter()
-                .chain(index.variable_sites(scope));
             let name = definition.name.as_str();
-            for site in sites {
+            for site in variable_sites(index, definition) {
                 by_site.insert((site, name), bindings.len());
                 bindings.push(Binding {
                     name,
@@ -85,31 +82,14 @@ impl<'a> Variables<'a> {
                 }
             }
         }
-        let mut ready: VecDeque<_> = incoming
-            .iter()
-            .enumerate()
-            .filter_map(|(id, count)| (*count == 0).then_some(id))
-            .collect();
-        let mut order = Vec::with_capacity(bindings.len());
-        while let Some(id) = ready.pop_front() {
-            order.push(id);
-            for &dependent in &dependents[id] {
-                incoming[dependent] -= 1;
-                if incoming[dependent] == 0 {
-                    ready.push_back(dependent);
-                }
-            }
-        }
-        let order = if order.len() == bindings.len() {
-            Ok(order)
-        } else {
+        let order = topological_order(&mut incoming, &dependents).ok_or_else(|| {
             let cycle: Vec<_> = bindings
                 .iter()
                 .zip(incoming)
                 .filter_map(|(binding, count)| (count != 0).then_some(binding.name))
                 .collect();
-            Err(format!("Circular variable dependencies: {cycle:?}"))
-        };
+            format!("Circular variable dependencies: {cycle:?}")
+        });
         Self { bindings, order }
     }
 
@@ -140,6 +120,17 @@ impl<'a> Variables<'a> {
         }
         (result, None)
     }
+}
+
+pub(super) fn variable_sites<'a>(
+    index: &'a ScopeIndex,
+    definition: &'a VariableDef,
+) -> impl Iterator<Item = &'a str> {
+    let scope = definition.scope.as_deref().unwrap_or("#");
+    (scope == "#")
+        .then_some("#")
+        .into_iter()
+        .chain(index.variable_sites(scope))
 }
 
 #[cfg(test)]

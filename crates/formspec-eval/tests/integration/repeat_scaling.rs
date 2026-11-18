@@ -222,6 +222,64 @@ fn check_ratios(label: &str, sizes: &[usize], times: &[Duration], failures: &mut
     }
 }
 
+#[test]
+#[ignore = "timing benchmark; run explicitly with --run-ignored only"]
+fn calculated_column_aggregate_scaling() {
+    let def = json!({
+        "$formspec": "1.0", "url": "test", "version": "1.0.0", "title": "T",
+        "items": [{ "key": "rows", "type": "group", "repeatable": true, "children": [
+            { "key": "input", "type": "field", "dataType": "integer" },
+            { "key": "amt", "type": "field", "dataType": "integer" },
+            { "key": "share", "type": "field", "dataType": "decimal" }
+        ] }],
+        "binds": [
+            { "path": "rows[*].amt", "calculate": "$input * 2" },
+            { "path": "rows[*].share", "calculate": "$amt / sum($rows[*].amt)" }
+        ]
+    });
+    let sizes = std::env::var("FORMSPEC_REPEAT_ROWS").map_or_else(
+        |_| vec![200, 400, 800, 1600],
+        |rows| vec![rows.parse().expect("positive row count")],
+    );
+    let options = EvalOptions::default();
+    let times: Vec<_> = sizes
+        .iter()
+        .map(|&rows| {
+            let data = (0..rows)
+                .map(|row| {
+                    (
+                        format!("rows[{row}].input"),
+                        json!([1, 3].get(row).copied().unwrap_or(0)),
+                    )
+                })
+                .collect();
+            let samples: Vec<_> = (0..3)
+                .map(|_| {
+                    let start = Instant::now();
+                    let result = evaluate(&def, &data, &options);
+                    let elapsed = start.elapsed();
+                    assert!(result.validations.is_empty(), "{:?}", result.validations);
+                    for row in 0..rows {
+                        let amount = [2, 6].get(row).copied().unwrap_or(0);
+                        let share = [json!(0.25), json!(0.75)]
+                            .get(row)
+                            .cloned()
+                            .unwrap_or(json!(0));
+                        assert_eq!(result.values[&format!("rows[{row}].amt")], json!(amount));
+                        assert_eq!(result.values[&format!("rows[{row}].share")], share);
+                    }
+                    elapsed
+                })
+                .collect();
+            println!("{rows} rows: {samples:?}");
+            *samples.iter().min().unwrap()
+        })
+        .collect();
+    let mut failures = Vec::new();
+    check_ratios("calculated column", &sizes, &times, &mut failures);
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
 /// A definition whose only per-item work is the seed pass (9e): `n` plain fields, each with a FEL
 /// `initialValue`, beside a repeat group that carries `n` rows of data. The seed pass runs before
 /// repeat expansion, so it evaluates one expression per field against the whole flat data map.

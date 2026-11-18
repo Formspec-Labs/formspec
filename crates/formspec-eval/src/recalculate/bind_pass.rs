@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 use fel_core::exact_json::Value as JsonValue;
 use fel_core::{MipState, Value, parse};
 
+use super::calculate_pass::evaluate_calculate;
 use super::json_fel::{coerce_calculated_value, json_to_runtime_fel_typed};
 use super::walk::{Visit, Walk};
 use crate::fel_eval::Fel;
@@ -52,6 +53,8 @@ impl Parent {
 pub(super) struct BindPass<'a> {
     /// Paths with error-severity results in the prior cycle (`valid()` MIP state).
     pub(super) invalid_paths: &'a HashSet<String>,
+    /// Run calculates here when other binds can observe their document-order writes.
+    pub(super) calculate_in_document_order: bool,
 }
 
 impl Visit for BindPass<'_> {
@@ -134,15 +137,12 @@ impl Visit for BindPass<'_> {
             item.value = val.clone();
         }
 
-        if let Some(ref expr) = item.calculate {
-            if let Ok(parsed) = parse(expr) {
-                let result = fel.evaluate(&parsed, &state.site(walk.index, &item.path));
-                let coerced = coerce_calculated_value(item, result.value);
-                let json_val = fel_to_runtime_json(&coerced);
-                values.insert(item.path.clone(), json_val.clone());
-                item.value = json_val.clone();
-                state.set_field(&item.path, coerced);
-            }
+        if self.calculate_in_document_order
+            && let Some(expr) = &item.calculate
+            && let Ok(parsed) = parse(expr)
+        {
+            evaluate_calculate(item, &parsed, state, values, walk);
+            item.value.clone_from(&values[&item.path]);
         }
 
         state.env.set_mip(
