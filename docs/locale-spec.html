@@ -2650,8 +2650,11 @@ static literal.</p></li>
 <li><p>Expression results are coerced to strings (when not preserved by
 rules 2 or 3a). After rule 3a, remaining <code>null</code> values become
 the empty string <code>""</code>. Booleans become <code>"true"</code> or
-<code>"false"</code>. Numbers use their default string
-representation.</p></li>
+<code>"false"</code>. Numbers use their default string representation.
+For an array of strings, processors MUST join the strings in array order
+with a comma and a space. An empty array renders as empty text. For a
+<code>multiChoice</code> field this displays the selected option
+values.</p></li>
 <li><p>Expressions MUST NOT have side effects. They are evaluated in the
 same read-only context as <code>calculate</code> expressions.</p></li>
 <li><p>Interpolation is <strong>not recursive</strong> — the result of

@@ -1,0 +1,19 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:shape-selection-message",
+  "version": "1.0.0",
+  "title": "Selection message",
+  "status": "active",
+  "items": [
+    {
+      "key": "m", "type": "field", "label": "Items", "dataType": "multiChoice",
+      "options": [
+        {"value": "A", "label": "First"},
+        {"value": "B", "label": "Second"}
+      ]
+    }
+  ],
+  "shapes": [
+    {"id": "selection", "target": "m", "constraint": "false", "message": "X {{$m}}"}
+  ]
+}

@@ -382,7 +382,7 @@ Optional `screener` section with `items` (classification fields), optional `bind
 Required: `id` (unique), `target` (path or `"#"` for root), `message`.
 Optional: `severity` (default "error"), `constraint` (FEL boolean), `code`, `context` (additional data as FEL expressions), `activeWhen` (conditional evaluation), `timing` ("continuous"/"submit"/"demand").
 
-The Shape's target supplies the evaluation context for `constraint`, `activeWhen`, `message` interpolation, and `context` expressions.
+The Shape's target supplies the evaluation context for `constraint`, `activeWhen`, `message` interpolation, and `context` expressions. Message interpolation follows Locale §3.3.1. A `multiChoice` renders its selected values in response order, separated by a comma and a space.
 
 Composition: `and`/`or`/`not`/`xone` referencing other shape IDs. May nest. Circular references → definition error. If both `constraint` and composition present, combined with implicit AND.
 

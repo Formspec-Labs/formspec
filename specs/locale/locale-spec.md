@@ -1196,7 +1196,10 @@ Processors MUST apply the following rules:
 4. Expression results are coerced to strings (when not preserved by
    rules 2 or 3a). After rule 3a, remaining `null` values become the
    empty string `""`. Booleans become `"true"` or `"false"`. Numbers
-   use their default string representation.
+   use their default string representation. For an array of strings,
+   processors MUST join the strings in array order with a comma and a
+   space. An empty array renders as empty text. For a `multiChoice`
+   field this displays the selected option values.
 5. Expressions MUST NOT have side effects. They are evaluated in the
    same read-only context as `calculate` expressions.
 6. Interpolation is **not recursive** — the result of evaluating an

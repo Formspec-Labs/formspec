@@ -8639,8 +8639,9 @@ composition operators (<code>and</code>, <code>or</code>,
 <td><strong>1..1</strong> (REQUIRED)</td>
 <td>Human-readable failure message displayed when the Shape’s constraint
 evaluates to <code>false</code>. MAY contain <code>{{expression}}</code>
-interpolation sequences, where <code>expression</code> is a FEL
-expression evaluated in the Shape’s target context.</td>
+interpolation sequences, evaluated in the Shape’s target context and
+rendered under <a href="../locale/locale-spec.md">Locale
+§3.3.1</a>.</td>
 </tr>
 <tr>
 <td><code>code</code></td>

@@ -161,7 +161,13 @@ pub(crate) fn interpolate_fel(template: &str, env: &dyn Environment, fel: Fel<'_
 /// Display string for an interpolation result (Locale §3.3.1 rule 4).
 fn display_text(value: &Value) -> String {
     match value {
-        Value::Null | Value::Array(_) | Value::Object(_) => String::new(),
+        Value::Null | Value::Object(_) => String::new(),
+        Value::Array(values) => values
+            .iter()
+            .map(Value::as_string)
+            .collect::<Option<Vec<_>>>()
+            .map(|strings| strings.join(", "))
+            .unwrap_or_default(),
         Value::Boolean(b) => b.to_string(),
         Value::Number(n) => fel_core::types::format_number(*n),
         Value::String(s) => s.clone(),

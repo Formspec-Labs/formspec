@@ -1,0 +1,17 @@
+{
+  "id": "core.shape-selection-message",
+  "kind": "VALIDATION_REPORT",
+  "specRefs": ["Core §5.2 Shape message interpolation"],
+  "definitionPath": "tests/conformance/suite/fixtures/shape-selection-message.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {"m": ["B", "A"]},
+  "expected": {
+    "valid": false,
+    "counts": {"error": 1, "warning": 0, "info": 0},
+    "results": [
+      {"code": "SHAPE_FAILED", "path": "m", "severity": "error", "constraintKind": "shape",
+       "source": "shape", "shapeId": "selection", "constraint": "false", "message": "X B, A"}
+    ]
+  }
+}
