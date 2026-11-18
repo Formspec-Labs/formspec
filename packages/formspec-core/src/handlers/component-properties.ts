@@ -8,38 +8,13 @@
  *
  * @module handlers/component-properties
  */
-import type { CommandHandler } from '../types.js';
+import type { CommandHandler, ProjectState } from '../types.js';
 import { normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
-import { type TreeNode, ensureTree } from './tree-utils.js';
+import { type TreeNode, assertDisplayItemComponent, ensureTree, findTreeNode } from './tree-utils.js';
 
-/**
- * Locate a tree node by its NodeRef.
- *
- * Performs an iterative depth-first search matching on `nodeId` or `bind`.
- * Unlike the tree-handler variant, this returns only the node (no parent/index)
- * since property mutations do not need splice context.
- *
- * @param root - The tree root to search from.
- * @param ref - A NodeRef with `bind` or `nodeId`.
- * @returns The matched TreeNode, or `undefined` if not found.
- */
-function findNode(
-  root: TreeNode,
-  ref: { bind?: string; nodeId?: string },
-): TreeNode | undefined {
-  if (ref.nodeId && root.nodeId === ref.nodeId) return root;
-  if (ref.bind && root.bind === ref.bind) return root;
-
-  const stack: TreeNode[] = [root];
-  while (stack.length) {
-    const parent = stack.pop()!;
-    for (const child of parent.children ?? []) {
-      if (ref.nodeId && child.nodeId === ref.nodeId) return child;
-      if (ref.bind && child.bind === ref.bind) return child;
-      stack.push(child);
-    }
-  }
-  return undefined;
+function setComponentType(state: ProjectState, node: TreeNode, component: string, parentBindPath: string): void {
+  assertDisplayItemComponent(state, component, node.bind, parentBindPath, node.definitionItemPath);
+  node.component = component;
 }
 
 export const componentPropertiesHandlers = {
@@ -51,10 +26,19 @@ export const componentPropertiesHandlers = {
       node: { bind?: string; nodeId?: string }; property: string; value: unknown;
     };
     const root = ensureTree(state);
-    const node = findNode(root, ref);
-    if (!node) throw new Error('Node not found');
+    const match = findTreeNode(root, ref);
+    if (!match) throw new Error('Node not found');
+    const { node, parentBindPath } = match;
 
-    if (value === null) {
+    if (property === 'bind') {
+      assertDisplayItemComponent(state, node.component, value, parentBindPath);
+      // The reconciled path identifies the old Item after an explicit rebind.
+      if (value !== node.bind) delete node.definitionItemPath;
+    }
+
+    if (property === 'component' && typeof value === 'string') {
+      setComponentType(state, node, value, parentBindPath);
+    } else if (value === null) {
       delete node[property];
     } else {
       node[property] = value;
@@ -67,10 +51,10 @@ export const componentPropertiesHandlers = {
       node: { bind?: string; nodeId?: string }; component: string; preserveProps?: boolean;
     };
     const root = ensureTree(state);
-    const node = findNode(root, ref);
-    if (!node) throw new Error('Node not found');
+    const match = findTreeNode(root, ref);
+    if (!match) throw new Error('Node not found');
 
-    node.component = component;
+    setComponentType(state, match.node, component, match.parentBindPath);
     return { rebuildComponentTree: false };
   },
 
@@ -79,7 +63,7 @@ export const componentPropertiesHandlers = {
       node: { bind?: string; nodeId?: string }; property: string; value: unknown;
     };
     const root = ensureTree(state);
-    const node = findNode(root, ref);
+    const node = findTreeNode(root, ref)?.node;
     if (!node) throw new Error('Node not found');
 
     if (!node.style) node.style = {};
@@ -97,7 +81,7 @@ export const componentPropertiesHandlers = {
       node: { bind?: string; nodeId?: string }; property: string; value: unknown;
     };
     const root = ensureTree(state);
-    const node = findNode(root, ref);
+    const node = findTreeNode(root, ref)?.node;
     if (!node) throw new Error('Node not found');
 
     if (!node.accessibility) node.accessibility = {};
@@ -116,7 +100,7 @@ export const componentPropertiesHandlers = {
       property: string; index: number; deleteCount: number; insert?: unknown[];
     };
     const root = ensureTree(state);
-    const node = findNode(root, ref);
+    const node = findTreeNode(root, ref)?.node;
     if (!node) throw new Error('Node not found');
 
     const arr = node[property] as unknown[];
@@ -129,12 +113,12 @@ export const componentPropertiesHandlers = {
   'component.setFieldWidget': (state, payload) => {
     const { fieldKey, widget } = payload as { fieldKey: string; widget: string };
     const root = ensureTree(state);
-    const node = findNode(root, { bind: fieldKey });
-    if (!node) {
+    const match = findTreeNode(root, { bind: fieldKey });
+    if (!match) {
       return { rebuildComponentTree: false, nodeNotFound: true };
     }
 
-    node.component = widget;
+    setComponentType(state, match.node, widget, match.parentBindPath);
     return { rebuildComponentTree: false };
   },
 
@@ -143,7 +127,7 @@ export const componentPropertiesHandlers = {
       node: { bind?: string; nodeId?: string }; breakpoint: string; patch: unknown;
     };
     const root = ensureTree(state);
-    const node = findNode(root, ref);
+    const node = findTreeNode(root, ref)?.node;
     if (!node) throw new Error('Node not found');
 
     if (!node.responsive) node.responsive = {};
@@ -159,7 +143,7 @@ export const componentPropertiesHandlers = {
   'component.setGroupRepeatable': (state, payload) => {
     const { groupKey, repeatable } = payload as { groupKey: string; repeatable: boolean };
     const root = ensureTree(state);
-    const node = findNode(root, { bind: groupKey });
+    const node = findTreeNode(root, { bind: groupKey })?.node;
     if (!node) throw new Error(`No component node bound to group: ${groupKey}`);
 
     node.repeatable = repeatable;
@@ -169,7 +153,7 @@ export const componentPropertiesHandlers = {
   'component.setGroupDisplayMode': (state, payload) => {
     const { groupKey, mode } = payload as { groupKey: string; mode: string };
     const root = ensureTree(state);
-    const node = findNode(root, { bind: groupKey });
+    const node = findTreeNode(root, { bind: groupKey })?.node;
     if (!node) throw new Error(`No component node bound to group: ${groupKey}`);
 
     node.displayMode = mode;
@@ -179,7 +163,7 @@ export const componentPropertiesHandlers = {
   'component.setGroupDataTable': (state, payload) => {
     const { groupKey, config } = payload as { groupKey: string; config: unknown };
     const root = ensureTree(state);
-    const node = findNode(root, { bind: groupKey });
+    const node = findTreeNode(root, { bind: groupKey })?.node;
     if (!node) throw new Error(`No component node bound to group: ${groupKey}`);
 
     node.dataTableConfig = config;

@@ -163,6 +163,42 @@ describe('display Items — text', () => {
         expect(el.querySelector('.formspec-text--markdown b')).toBeNull();
     });
 
+    it('renders each bound Text label with its row’s calculated value and relevance', () => {
+        const el = renderTree(
+            {
+                component: 'Stack', children: [{
+                    component: 'Accordion', bind: 'rows', children: [
+                        { component: 'NumberInput', bind: 'quantity' },
+                        { component: 'Text', bind: 'total', text: 'Static fallback' },
+                    ],
+                }],
+            },
+            [{
+                key: 'rows', type: 'group', label: 'Rows', repeatable: true, minRepeat: 2,
+                children: [
+                    { key: 'quantity', type: 'field', dataType: 'integer', label: 'Quantity', initialValue: 0 },
+                    { key: 'amount', type: 'field', dataType: 'integer', label: 'Amount' },
+                    { key: 'total', type: 'display', label: 'Total {{$amount}}' },
+                ],
+            }],
+            { binds: [
+                { path: 'rows[*].amount', calculate: '$quantity * 2' },
+                { path: 'rows[*].total', relevant: '$quantity > 0' },
+            ] },
+        );
+        const engine = el.getEngine();
+        expect(visibleTexts(el)).toEqual([]);
+
+        engine.setValue('rows[1].quantity', 3);
+        expect(visibleTexts(el)).toEqual(['Total 6']);
+
+        engine.setValue('rows[0].quantity', 4);
+        expect(visibleTexts(el)).toEqual(['Total 8', 'Total 6']);
+
+        engine.setValue('rows[1].quantity', 0);
+        expect(visibleTexts(el)).toEqual(['Total 8']);
+    });
+
     it('resolves Heading display Items the same way', () => {
         const el = render(definition([
             { key: 'name', type: 'field', dataType: 'string', label: 'Name' },

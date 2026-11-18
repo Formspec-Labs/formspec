@@ -36,6 +36,87 @@ describe('component.setNodeType', () => {
     const tree = project.component.tree as any;
     expect(tree.children[0].component).toBe('Collapsible');
   });
+
+  it.each(['Heading', 'Divider', 'ActionButton', 'Alert', 'Badge', 'Summary', 'ValidationSummary'])(
+    'rejects %s for a bound display node addressed by nodeId', (component) => {
+      const project = createRawProject();
+      project.dispatch({
+        type: 'definition.addItem',
+        payload: { type: 'display', key: 'note', label: 'Keep this text' },
+      });
+
+      expect(() => project.dispatch({
+        type: 'component.setNodeType',
+        payload: { node: { nodeId: 'note' }, component },
+      })).toThrow(/Text/);
+      expect(project.componentFor('note')).toMatchObject({ component: 'Text', bind: 'note' });
+    },
+  );
+
+  it('uses the item path to protect a bound display inside a repeat', () => {
+    const project = createRawProject();
+    project.batch([
+      { type: 'definition.addItem', payload: { type: 'group', key: 'rows', repeatable: true } },
+      { type: 'definition.addItem', payload: { type: 'display', key: 'note', parentPath: 'rows' } },
+    ]);
+
+    expect(() => project.dispatch({
+      type: 'component.setNodeType',
+      payload: { node: { bind: 'note' }, component: 'Alert' },
+    })).toThrow(/Text/);
+    expect(project.component.tree!.children![0].children![0]).toMatchObject({ component: 'Text', bind: 'note' });
+  });
+
+  it.each([
+    { type: 'component.setFieldWidget', payload: { fieldKey: 'note', widget: 'Heading' } },
+    {
+      type: 'component.setNodeProperty',
+      payload: { node: { bind: 'note' }, property: 'component', value: 'Divider' },
+    },
+    {
+      type: 'component.addNode',
+      payload: { parent: { bind: 'rows' }, component: 'Heading', bind: 'detail' },
+    },
+    {
+      type: 'component.setNodeProperty',
+      payload: { node: { nodeId: 'standalone-divider' }, property: 'bind', value: 'detail' },
+    },
+  ] as const)('rejects an invalid display binding through $type ($payload)', (command) => {
+    const project = createRawProject();
+    project.batch([
+      { type: 'definition.addItem', payload: { type: 'display', key: 'note', label: 'Keep this text' } },
+      { type: 'definition.addItem', payload: { type: 'group', key: 'rows', repeatable: true } },
+      { type: 'definition.addItem', payload: { type: 'display', key: 'detail', parentPath: 'rows' } },
+    ]);
+    project.dispatch({
+      type: 'component.addNode',
+      payload: { parent: { bind: 'rows' }, component: 'Divider', props: { nodeId: 'standalone-divider' } },
+    });
+
+    const tree = structuredClone(project.component.tree);
+    expect(() => project.dispatch(command)).toThrow(/Text/);
+    expect(project.component.tree).toEqual(tree);
+    expect(project.componentFor('note')).toMatchObject({ component: 'Text', bind: 'note' });
+  });
+
+  it('guards a type switch against the current binding after rebinding', () => {
+    const project = createRawProject();
+    project.batch([
+      { type: 'definition.addItem', payload: { type: 'field', key: 'name' } },
+      { type: 'definition.addItem', payload: { type: 'display', key: 'note' } },
+    ]);
+    project.batch([
+      { type: 'component.deleteNode', payload: { node: { bind: 'note' } } },
+      { type: 'component.setNodeType', payload: { node: { bind: 'name' }, component: 'Text' } },
+      { type: 'component.setNodeProperty', payload: { node: { bind: 'name' }, property: 'bind', value: 'note' } },
+    ]);
+
+    expect(() => project.dispatch({
+      type: 'component.setNodeType',
+      payload: { node: { bind: 'note' }, component: 'Heading' },
+    })).toThrow(/Text/);
+    expect(project.componentFor('note')).toMatchObject({ component: 'Text', bind: 'note' });
+  });
 });
 
 describe('component.setNodeStyle', () => {

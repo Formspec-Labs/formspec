@@ -27,52 +27,9 @@ import type { CommandHandler } from '../types.js';
 import { normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
 import { reconcileComponentTree } from '../tree-reconciler.js';
 import { generateNodeId } from '../component-tree.js';
-import { type TreeNode, ensureTree } from './tree-utils.js';
-
-/**
- * Find a node in the tree by its NodeRef, returning the node together with its
- * parent and position index within the parent's children array.
- *
- * Uses an iterative depth-first search. Matching is performed by `nodeId`
- * (preferred) or `bind` key, reflecting the two addressing modes of NodeRef.
- *
- * When the root node itself matches, `index` is returned as `-1` and `parent`
- * points to the root. Callers that need to splice must check for `index === -1`
- * to avoid operating on the root (which cannot be removed or reordered).
- *
- * @param root - The tree root node to search from.
- * @param ref - A NodeRef identifying the target node by `bind` or `nodeId`.
- * @returns An object `{ parent, index, node }` if found, or `undefined`.
- */
-function findNode(
-  root: TreeNode,
-  ref: { bind?: string; nodeId?: string },
-): { parent: TreeNode; index: number; node: TreeNode } | undefined {
-  // Check if root itself matches
-  if (ref.nodeId && root.nodeId === ref.nodeId) {
-    return { parent: root, index: -1, node: root };
-  }
-  if (ref.bind && root.bind === ref.bind) {
-    return { parent: root, index: -1, node: root };
-  }
-
-  const stack: TreeNode[] = [root];
-  while (stack.length) {
-    const parent = stack.pop()!;
-    const children = parent.children ?? [];
-    for (let i = 0; i < children.length; i++) {
-      const child = children[i];
-      if (ref.nodeId && child.nodeId === ref.nodeId) {
-        return { parent, index: i, node: child };
-      }
-      if (ref.bind && child.bind === ref.bind) {
-        return { parent, index: i, node: child };
-      }
-      stack.push(child);
-    }
-  }
-  return undefined;
-}
+import {
+  type TreeNode, appendBindPath, assertDisplayItemComponent, ensureTree, findTreeNode as findNode,
+} from './tree-utils.js';
 
 /**
  * Find the parent node and index whose `children[index]` is the given `target`.
@@ -133,7 +90,6 @@ export const componentTreeHandlers = {
     if (!parentResult) throw new Error(`Parent node not found`);
 
     const parentNode = parentResult.node;
-    if (!parentNode.children) parentNode.children = [];
 
     const node: TreeNode = { component: p.component };
     if (p.bind) {
@@ -146,6 +102,10 @@ export const componentTreeHandlers = {
       Object.assign(node, p.props);
     }
 
+    const scope = appendBindPath(parentResult.parentBindPath, parentNode.bind);
+    assertDisplayItemComponent(state, node.component, node.bind, scope);
+
+    if (!parentNode.children) parentNode.children = [];
     if (p.insertIndex !== undefined) {
       parentNode.children.splice(p.insertIndex, 0, node);
     } else {

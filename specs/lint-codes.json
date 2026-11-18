@@ -640,7 +640,7 @@
       "pass": 7,
       "severity": "warning",
       "title": "Component declares a forbidden bind",
-      "specRef": "specs/component/component-spec.md#42-bind-resolution-rules",
+      "specRef": "specs/component/component-spec.md#category-and-per-component-bind-rules",
       "suggestedFix": "remove the component's `bind` property when its Bind clause forbids it; Text and ProgressBar allow optional binds, and DataTable and Accordion allow repeatable-group binds",
       "fixtures": [
         "tests/fixtures/lint/W801-layout-has-bind.json",

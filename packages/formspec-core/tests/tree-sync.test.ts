@@ -139,11 +139,10 @@ describe('component tree sync', () => {
       payload: { type: 'display', key: 'header', label: 'Welcome' },
     });
 
-    // Customize the display node (e.g. change component to Heading)
+    // Bound Heading was invalid. Exercise an authored Text prop across the rebuild.
     const tree1 = project.component.tree as any;
     const displayNode = tree1.children.find((c: any) => c.nodeId === 'header');
-    displayNode.component = 'Heading';
-    displayNode.level = 2;
+    displayNode.format = 'markdown';
 
     // Trigger rebuild by adding another item
     project.dispatch({
@@ -155,8 +154,8 @@ describe('component tree sync', () => {
     const tree2 = project.component.tree as any;
     const rebuilt = tree2.children.find((c: any) => c.nodeId === 'header');
     expect(rebuilt).toBeDefined();
-    expect(rebuilt!.component).toBe('Heading');
-    expect(rebuilt!.level).toBe(2);
+    expect(rebuilt!.component).toBe('Text');
+    expect(rebuilt!.format).toBe('markdown');
     expect(rebuilt!.text).toBe('Welcome');
   });
 
@@ -175,10 +174,9 @@ describe('component tree sync', () => {
     const groupADisplay = groupANode.children.find((c: any) => c.nodeId === 'header');
     const groupBDisplay = groupBNode.children.find((c: any) => c.nodeId === 'header');
 
-    groupADisplay.component = 'Alert';
-    groupADisplay.variant = 'warning';
-    groupBDisplay.component = 'Callout';
-    groupBDisplay.variant = 'info';
+    // Keep the duplicate-key coverage with valid bound Text customization.
+    groupADisplay.cssClass = 'alpha';
+    groupBDisplay.cssClass = 'beta';
 
     project.dispatch({
       type: 'definition.addItem',
@@ -191,10 +189,10 @@ describe('component tree sync', () => {
     const rebuiltAHeader = rebuiltGroupA.children.find((c: any) => c.text === 'Alpha Header');
     const rebuiltBHeader = rebuiltGroupB.children.find((c: any) => c.text === 'Beta Header');
 
-    expect(rebuiltAHeader.component).toBe('Alert');
-    expect(rebuiltAHeader.variant).toBe('warning');
-    expect(rebuiltBHeader.component).toBe('Callout');
-    expect(rebuiltBHeader.variant).toBe('info');
+    expect(rebuiltAHeader.component).toBe('Text');
+    expect(rebuiltAHeader.cssClass).toBe('alpha');
+    expect(rebuiltBHeader.component).toBe('Text');
+    expect(rebuiltBHeader.cssClass).toBe('beta');
   });
 
   it('handles batch with multiple structural changes', () => {

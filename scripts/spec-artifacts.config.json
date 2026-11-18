@@ -233,7 +233,7 @@
       "conformanceEssentials": [
         "Component 1.0/1.1 documents must include $formspecComponent, version, targetDefinition, and tree; Component 1.2 documents must include $formspecComponent, version, tree, and targetDefinition or targetSurfaceRoutes[].",
         "Processors must reject unsupported component-document versions and unknown non-x top-level properties.",
-        "Renderable trees must satisfy component-category constraints, bind compatibility, and declared structural limits.",
+        "Renderable trees must satisfy component-category constraints, bind compatibility, and declared structural limits. Each component's Bind clause takes precedence over its category rule.",
         "AppGraphValidator source conformance covers Component 1.2 route target resolution, duplicate claims, fake targetDefinition rejection, and URL-matched definition-form context for route-bound controls."
       ]
     },

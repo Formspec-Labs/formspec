@@ -1539,6 +1539,8 @@ to a nested item) in the target Definition. If the key does not resolve
 to any item in the Definition, the processor MUST emit a warning and
 SHOULD hide the component.</p>
 <h3 id="bind-resolution-rules">4.2 Bind Resolution Rules</h3>
+<h4 id="category-and-per-component-bind-rules">Category and
+per-component Bind rules</h4>
 <p>The meaning and requirement of <code>bind</code> varies by component
 category:</p>
 <table>
@@ -1565,29 +1567,36 @@ for the bound key MUST be displayed adjacent to this component.</td>
 </tr>
 <tr>
 <td><strong>Display</strong></td>
-<td>OPTIONAL</td>
+<td>OPTIONAL, subject to the component’s Bind clause</td>
 <td>Bound to a field Item, the component displays the Item’s current
 value as read-only content. Bound to a display Item (core §4.2.4), which
 has no value, it renders that Item’s resolved <code>label</code> and
-follows the Item’s Bind relevance (§5.14). When absent, the component
-renders its static <code>text</code> prop.</td>
+follows the Item’s Bind relevance (§5.14). Without a <code>bind</code>,
+the component follows its own rendering rules.</td>
 </tr>
 <tr>
 <td><strong>Layout</strong></td>
-<td>FORBIDDEN</td>
-<td>Layout components MUST NOT have a <code>bind</code> property. If
-present, processors MUST ignore it and emit a warning.</td>
+<td>FORBIDDEN, except Accordion</td>
+<td>Accordion (§6.3) MAY bind to a repeatable group (§4.4). Other Layout
+components MUST NOT have a <code>bind</code> property. If present,
+processors MUST ignore it and emit a warning.</td>
 </tr>
 <tr>
 <td><strong>Container</strong></td>
 <td>FORBIDDEN</td>
-<td>Container components MUST NOT have a <code>bind</code> property,
-with the exceptions of <strong>DataTable</strong> (§6.14) and
-<strong>Accordion</strong> (§6.3), which MAY bind to a repeatable
-group.</td>
+<td>Container components MUST NOT have a <code>bind</code>
+property.</td>
 </tr>
 </tbody>
 </table>
+<p>Each component’s Bind clause takes precedence over its category rule.
+Among Display components, Heading (§5.13), Divider (§5.15), ActionButton
+(§5.19), Alert (§6.9), Badge (§6.10), Summary (§6.12), and
+ValidationSummary (§6.13) MUST NOT declare <code>bind</code>. Text
+(§5.14) and ProgressBar (§6.11) allow optional <code>bind</code> under
+their respective rules. DataTable (§6.14) MAY bind to a repeatable group
+under §4.4.</p>
+<h4 id="bound-inputs">Bound inputs</h4>
 <p>When an Input component is bound to a field item:</p>
 <ol type="1">
 <li><strong>Label:</strong> The renderer MUST display the item’s

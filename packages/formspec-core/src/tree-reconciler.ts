@@ -222,23 +222,14 @@ export function reconcileComponentTree(
     let node: TreeNode;
 
     if (item.type === 'display') {
-      // Every display node binds its Item: renderers resolve the live label (Locale,
-      // `{{}}` interpolation) and Bind relevance through `bind`. Static displays also
-      // keep `nodeId` — the node ref Studio addresses them by. Nodes from trees saved
-      // before displays were bound sit in `existingDisplay` and are upgraded in place.
+      // Use Text so the binding can carry the Item's live label and relevance (§5.14).
+      // Static displays keep the nodeId Studio uses to address them.
+      // existingDisplay recovers authored props from legacy trees with unbound display nodes.
       const existing = existingBound.get(itemPath) ?? existingDisplay.get(itemPath);
       existingBound.delete(itemPath);
       existingDisplay.delete(itemPath);
-      if (existing) {
-        node = { ...existing, bind: item.key, text: item.label ?? '' };
-        // An imported static display has no node ref yet; generation gives it the key.
-        if (!node.nodeId && !calculatedDisplayPaths.has(itemPath)) node.nodeId = item.key;
-      } else if (calculatedDisplayPaths.has(itemPath)) {
-        const hintComponent = widgetTokenToComponent(item.presentation?.widgetHint);
-        node = { component: hintComponent ?? 'Text', bind: item.key, text: item.label ?? '' };
-      } else {
-        node = { component: 'Text', bind: item.key, nodeId: item.key, text: item.label ?? '' };
-      }
+      node = { ...existing, component: 'Text', bind: item.key, text: item.label ?? '' };
+      if (!node.nodeId && !calculatedDisplayPaths.has(itemPath)) node.nodeId = item.key;
     } else {
       const existing = existingBound.get(itemPath);
       const hintComponent = widgetTokenToComponent(item.presentation?.widgetHint);

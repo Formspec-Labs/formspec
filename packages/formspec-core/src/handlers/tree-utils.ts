@@ -2,8 +2,7 @@
  * Shared tree utilities for component handlers.
  *
  * Both component-properties.ts and component-tree.ts operate on the same
- * component tree structure. This module centralizes the shared TreeNode type,
- * tree initialization, and Studio-generated marking to avoid duplication.
+ * component tree structure. They share node lookup, binding checks, and tree initialization.
  *
  * @module handlers/tree-utils
  */
@@ -11,6 +10,7 @@ import type { ComponentState, ProjectState } from '../types.js';
 import {
   getEditableComponentDocument,
 } from '../component-documents.js';
+import { resolveItemLocation } from './helpers.js';
 
 /**
  * Internal representation of a component tree node.
@@ -44,6 +44,53 @@ export type TreeNode = {
   layout?: { grid?: { span?: number; start?: number; rowSpan?: number; rowStart?: number } };
   [key: string]: unknown;
 };
+
+type TreeNodeMatch = { parent: TreeNode; index: number; node: TreeNode; parentBindPath: string };
+
+export function appendBindPath(prefix: string, bind: string | undefined): string {
+  if (!bind) return prefix;
+  return prefix ? `${prefix}.${bind}` : bind;
+}
+
+/** Find a node by its ID or bind, with the enclosing definition path for relative binds. */
+export function findTreeNode(
+  root: TreeNode,
+  ref: { bind?: string; nodeId?: string },
+): TreeNodeMatch | undefined {
+  const matches = (node: TreeNode) =>
+    (ref.nodeId && node.nodeId === ref.nodeId) || (ref.bind && node.bind === ref.bind);
+
+  // The root has no siblings. Callers must check index before splicing.
+  if (matches(root)) return { parent: root, index: -1, node: root, parentBindPath: '' };
+
+  const stack = [{ parent: root, parentBindPath: appendBindPath('', root.bind) }];
+  while (stack.length) {
+    const { parent, parentBindPath } = stack.pop()!;
+    const children = parent.children ?? [];
+    for (let index = 0; index < children.length; index++) {
+      const node = children[index];
+      if (matches(node)) return { parent, index, node, parentBindPath };
+      stack.push({ parent: node, parentBindPath: appendBindPath(parentBindPath, node.bind) });
+    }
+  }
+  return undefined;
+}
+
+/** Authoring uses Text for display Items so the renderer follows their live label and relevance. */
+export function assertDisplayItemComponent(
+  state: ProjectState,
+  component: string,
+  bind: unknown,
+  parentBindPath: string,
+  definitionItemPath?: string,
+): void {
+  if (component === 'Text' || typeof bind !== 'string' || !bind) return;
+
+  const path = definitionItemPath ?? appendBindPath(parentBindPath, bind);
+  if (resolveItemLocation(state, path)?.item.type === 'display') {
+    throw new Error(`Bound display item '${path}' must use Text`);
+  }
+}
 
 /**
  * Ensure the component document has a root tree node.

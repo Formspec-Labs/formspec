@@ -10,6 +10,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { createRawProject, componentDocumentIsDerived } from '../src/index.js';
+import { lintDocument } from '@formspec-org/engine/fel-tools';
 import { widgetTokenToComponent, KNOWN_COMPONENT_TYPES, COMPATIBILITY_MATRIX } from '@formspec-org/types';
 
 /**
@@ -33,6 +34,56 @@ function treeShape(node: any): unknown {
     ...(node.children ? { children: node.children.map(treeShape) } : {}),
   };
 }
+
+it('exports bound display items as schema-valid Text, including inside a repeat', () => {
+  const project = createRawProject({
+    seed: {
+      definition: {
+        $formspec: '1.0', url: 'urn:test:bound-display-export', version: '1.0.0',
+        status: 'draft', title: 'Bound display export',
+        items: [
+          { type: 'display', key: 'intro', label: 'Introduction' },
+          {
+            type: 'group', key: 'rows', label: 'Rows', repeatable: true,
+            children: [
+              { type: 'display', key: 'rule', label: 'Separator' },
+              { type: 'display', key: 'notice', label: 'Notice' },
+            ],
+          },
+        ],
+      },
+      component: {
+        $formspecComponent: '1.0', version: '1.0.0',
+        targetDefinition: { url: 'urn:test:bound-display-export' },
+        tree: {
+          component: 'Stack', children: [
+            { component: 'Heading', bind: 'intro', text: 'Old intro', level: 2, cssClass: 'intro' },
+            {
+              component: 'Accordion', bind: 'rows', children: [
+                { component: 'Divider', bind: 'rule', label: 'Old separator' },
+                { component: 'Alert', bind: 'notice', text: 'Old notice', severity: 'warning' },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  });
+
+  const bundle = project.export();
+  const component = bundle.component!;
+  const { diagnostics } = lintDocument(component, { definitionDocument: bundle.definitions[0] });
+  expect(diagnostics.filter(({ code }) => code === 'E101' || code === 'W801')).toEqual([]);
+  expect(component.tree!.children).toEqual([
+    { component: 'Text', bind: 'intro', text: 'Introduction', cssClass: 'intro' },
+    {
+      component: 'Accordion', bind: 'rows', children: [
+        { component: 'Text', bind: 'rule', text: 'Separator' },
+        { component: 'Text', bind: 'notice', text: 'Notice' },
+      ],
+    },
+  ]);
+});
 
 // ── BUG-12: Default definition must include status ─────────────────
 

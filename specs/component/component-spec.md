@@ -692,14 +692,25 @@ the component.
 
 ### 4.2 Bind Resolution Rules
 
+#### Category and per-component Bind rules
+
 The meaning and requirement of `bind` varies by component category:
 
 | Category | `bind` | Behavior |
 |----------|--------|----------|
 | **Input** | REQUIRED | The component reads and writes the bound item's value. The renderer MUST propagate the item's `required`, `readOnly`, and `relevant` state to the input control. Validation errors for the bound key MUST be displayed adjacent to this component. |
-| **Display** | OPTIONAL | Bound to a field Item, the component displays the Item's current value as read-only content. Bound to a display Item (core §4.2.4), which has no value, it renders that Item's resolved `label` and follows the Item's Bind relevance (§5.14). When absent, the component renders its static `text` prop. |
-| **Layout** | FORBIDDEN | Layout components MUST NOT have a `bind` property. If present, processors MUST ignore it and emit a warning. |
-| **Container** | FORBIDDEN | Container components MUST NOT have a `bind` property, with the exceptions of **DataTable** (§6.14) and **Accordion** (§6.3), which MAY bind to a repeatable group. |
+| **Display** | OPTIONAL, subject to the component's Bind clause | Bound to a field Item, the component displays the Item's current value as read-only content. Bound to a display Item (core §4.2.4), which has no value, it renders that Item's resolved `label` and follows the Item's Bind relevance (§5.14). Without a `bind`, the component follows its own rendering rules. |
+| **Layout** | FORBIDDEN, except Accordion | Accordion (§6.3) MAY bind to a repeatable group (§4.4). Other Layout components MUST NOT have a `bind` property. If present, processors MUST ignore it and emit a warning. |
+| **Container** | FORBIDDEN | Container components MUST NOT have a `bind` property. |
+
+Each component's Bind clause takes precedence over its category rule.
+Among Display components, Heading (§5.13), Divider (§5.15), ActionButton
+(§5.19), Alert (§6.9), Badge (§6.10), Summary (§6.12), and
+ValidationSummary (§6.13) MUST NOT declare `bind`. Text (§5.14) and
+ProgressBar (§6.11) allow optional `bind` under their respective rules.
+DataTable (§6.14) MAY bind to a repeatable group under §4.4.
+
+#### Bound inputs
 
 When an Input component is bound to a field item:
 

@@ -534,7 +534,8 @@ describe('reconcileComponentTree', () => {
     expect(tree.children[0]).toMatchObject({ component: 'Text', bind: 'heading', nodeId: 'heading', text: 'Hello', format: 'markdown' });
   });
 
-  it('respects widgetHint on calculated display item', () => {
+  it('renders a display item with a calculate bind as Text even with a Heading hint', () => {
+    // This used to produce a bound Heading. Component §§4.2 and 5.13 forbid that bind.
     const definition = {
       items: [
         { key: 'total_heading', type: 'display', label: 'Total', presentation: { widgetHint: 'Heading' } },
@@ -545,8 +546,7 @@ describe('reconcileComponentTree', () => {
     } as any;
 
     const tree = reconcileComponentTree(definition, undefined);
-    expect(tree.children[0].component).toBe('Heading');
-    expect(tree.children[0].bind).toBe('total_heading');
+    expect(tree.children[0]).toMatchObject({ component: 'Text', bind: 'total_heading', text: 'Total' });
   });
 
   it('recognizes a calculated display inside a repeat by its [*] bind path', () => {
@@ -562,7 +562,7 @@ describe('reconcileComponentTree', () => {
     } as any;
 
     const total = reconcileComponentTree(definition, undefined).children[0].children[1];
-    expect(total).toMatchObject({ component: 'Heading', bind: 'total', definitionItemPath: 'jobs.total' });
+    expect(total).toMatchObject({ component: 'Text', bind: 'total', definitionItemPath: 'jobs.total' });
     expect(total.nodeId).toBeUndefined();
   });
 
