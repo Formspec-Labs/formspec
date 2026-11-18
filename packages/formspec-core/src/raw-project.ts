@@ -172,6 +172,7 @@ function createDefaultState(options?: ProjectOptions): ProjectState {
     definition,
     component: componentState ?? createComponentArtifact(url),
     theme,
+    themeDeclared: options?.seed?.themeDeclared ?? (options?.seed?.theme !== undefined),
     mappings,
     selectedMappingId,
     locales: options?.seed?.locales ?? {},
@@ -362,7 +363,7 @@ export class RawProject implements IProjectCore {
       }),
       // theme-spec §2.2.1: an absent targetDefinition is bundle scope and stays absent
       // (never `?? { url }`); the document's own key order is kept.
-      theme: withThemeEnvelope(this._state.theme),
+      ...(this._state.themeDeclared ? { theme: withThemeEnvelope(this._state.theme) } : {}),
       mappings: exportMappings,
     };
 

@@ -62,8 +62,10 @@ export const projectHandlers = {
     }
     if (p.theme) {
       state.theme = themeStateFromDocument(p.theme);
+      state.themeDeclared = true;
     } else if (replace) {
       state.theme = { targetDefinition: { url: state.definition.url } };
+      state.themeDeclared = false;
     }
 
     if (p.mappings || replace) {

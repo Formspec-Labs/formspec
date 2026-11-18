@@ -31,35 +31,43 @@ function ensureItemBlock(theme: ThemeState, itemKey: string): Record<string, any
   return items[itemKey];
 }
 
+function setItemProperty(theme: ThemeState, itemKey: string, section: string, property: string, value: unknown) {
+  if (value === null) {
+    const items = theme.items as Record<string, any> | undefined;
+    const block = items?.[itemKey]?.[section];
+    if (block) delete block[property];
+  } else {
+    const item = ensureItemBlock(theme, itemKey);
+    (item[section] ??= {})[property] = value;
+  }
+}
+
 export const themeHandlers = {
 
   // ── Tokens & Defaults ───────────────────────────────────────────
 
   'theme.setToken': (state, payload) => {
     const { key, value } = payload as { key: string; value: unknown };
-    if (!state.theme.tokens) state.theme.tokens = {};
     if (value === null) {
-      delete state.theme.tokens[key];
+      if (state.theme.tokens) delete state.theme.tokens[key];
     } else {
-      state.theme.tokens[key] = value;
+      (state.theme.tokens ??= {})[key] = value;
     }
     return { rebuildComponentTree: false };
   },
 
   'theme.setTokens': (state, payload) => {
     const { tokens } = payload as { tokens: Record<string, unknown> };
-    if (!state.theme.tokens) state.theme.tokens = {};
-    Object.assign(state.theme.tokens, tokens);
+    if (Object.keys(tokens).length) Object.assign(state.theme.tokens ??= {}, tokens);
     return { rebuildComponentTree: false };
   },
 
   'theme.setDefaults': (state, payload) => {
     const { property, value } = payload as { property: string; value: unknown };
-    if (!state.theme.defaults) state.theme.defaults = {};
     if (value === null) {
-      delete state.theme.defaults[property];
+      if (state.theme.defaults) delete state.theme.defaults[property];
     } else {
-      state.theme.defaults[property] = value;
+      (state.theme.defaults ??= {})[property] = value;
     }
     return { rebuildComponentTree: false };
   },
@@ -108,9 +116,9 @@ export const themeHandlers = {
 
   'theme.setItemOverride': (state, payload) => {
     const { itemKey, property, value } = payload as { itemKey: string; property: string; value: unknown };
-    const items = ensureItems(state.theme);
     if (value === null) {
-      if (items[itemKey]) {
+      const items = state.theme.items as Record<string, any> | undefined;
+      if (items?.[itemKey]) {
         delete items[itemKey][property];
         if (Object.keys(items[itemKey]).length === 0) delete items[itemKey];
       }
@@ -130,37 +138,19 @@ export const themeHandlers = {
 
   'theme.setItemStyle': (state, payload) => {
     const { itemKey, property, value } = payload as { itemKey: string; property: string; value: unknown };
-    const block = ensureItemBlock(state.theme, itemKey);
-    if (!block.style) block.style = {};
-    if (value === null) {
-      delete block.style[property];
-    } else {
-      block.style[property] = value;
-    }
+    setItemProperty(state.theme, itemKey, 'style', property, value);
     return { rebuildComponentTree: false };
   },
 
   'theme.setItemWidgetConfig': (state, payload) => {
     const { itemKey, property, value } = payload as { itemKey: string; property: string; value: unknown };
-    const block = ensureItemBlock(state.theme, itemKey);
-    if (!block.widgetConfig) block.widgetConfig = {};
-    if (value === null) {
-      delete block.widgetConfig[property];
-    } else {
-      block.widgetConfig[property] = value;
-    }
+    setItemProperty(state.theme, itemKey, 'widgetConfig', property, value);
     return { rebuildComponentTree: false };
   },
 
   'theme.setItemAccessibility': (state, payload) => {
     const { itemKey, property, value } = payload as { itemKey: string; property: string; value: unknown };
-    const block = ensureItemBlock(state.theme, itemKey);
-    if (!block.accessibility) block.accessibility = {};
-    if (value === null) {
-      delete block.accessibility[property];
-    } else {
-      block.accessibility[property] = value;
-    }
+    setItemProperty(state.theme, itemKey, 'accessibility', property, value);
     return { rebuildComponentTree: false };
   },
 
@@ -168,11 +158,10 @@ export const themeHandlers = {
 
   'theme.setBreakpoint': (state, payload) => {
     const { name, minWidth } = payload as { name: string; minWidth: number | null };
-    if (!state.theme.breakpoints) state.theme.breakpoints = {};
     if (minWidth === null) {
-      delete state.theme.breakpoints[name];
+      if (state.theme.breakpoints) delete state.theme.breakpoints[name];
     } else {
-      state.theme.breakpoints[name] = minWidth;
+      (state.theme.breakpoints ??= {})[name] = minWidth;
     }
     return { rebuildComponentTree: false };
   },
@@ -191,8 +180,7 @@ export const themeHandlers = {
 
   'theme.setExtension': (state, payload) => {
     const { key, value } = payload as { key: string; value: unknown };
-    if (!state.theme.extensions) state.theme.extensions = {};
-    setRecordProperty(state.theme.extensions, key, value);
+    if (state.theme.extensions || value != null) setRecordProperty(state.theme.extensions ??= {}, key, value);
     return { rebuildComponentTree: false };
   },
 

@@ -1436,7 +1436,7 @@ describe('previewChangelog', () => {
 });
 
 describe('export', () => {
-  it('serializes the definition, theme and mappings, and omits a derived component document', () => {
+  it('serializes the Definition and mappings without generating companion documents', () => {
     const project = createRawProject();
     project.dispatch({ type: 'definition.setFormTitle', payload: { title: 'Export Test' } });
 
@@ -1449,7 +1449,16 @@ describe('export', () => {
     expect(bundle.definitions[0].title).toBe('Export Test');
     // component-spec §1.2: a generated tree would override Theme widget selection.
     expect(bundle).not.toHaveProperty('component');
-    expect(bundle.theme).toBeDefined();
+    // Working defaults and deleting missing values leave the Theme absent.
+    project.dispatch({ type: 'theme.deleteSelector', payload: { index: 0 } });
+    project.dispatch({ type: 'theme.setToken', payload: { key: 'color.accent', value: null } });
+    expect(project.export()).not.toHaveProperty('theme');
+    project.dispatch({ type: 'theme.setToken', payload: { key: 'color.accent', value: 'red' } });
+    expect(project.export().theme?.tokens).toEqual({ 'color.accent': 'red' });
+    project.undo();
+    expect(project.export()).not.toHaveProperty('theme');
+    project.redo();
+    expect(project.export().theme?.tokens).toEqual({ 'color.accent': 'red' });
     expect(bundle.mappings).toBeDefined();
   });
 

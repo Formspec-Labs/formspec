@@ -167,6 +167,8 @@ export interface ProjectState {
   component: ComponentState;
   /** Visual presentation content: tokens, defaults, selectors, page layout. */
   theme: ThemeState;
+  /** True once a Theme has been supplied or authored. The editor always has working defaults. */
+  themeDeclared: boolean;
   /** Named mapping collection: rules, targetSchema, adapters, etc. keyed by unique ID. */
   mappings: Record<string, MappingState>;
   /** ID of the mapping currently being edited in the UI. */
