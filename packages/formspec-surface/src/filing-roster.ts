@@ -27,7 +27,7 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
   const authored = own(binding, 'groups');
   if (!Array.isArray(authored) || !authored.some(group => own(group, 'repeat') !== undefined)) return;
   const refuse = (reason: string): FilingStatusPlan => ({ status: 'unresolved', reason });
-  const template = resolveFilingStatusTargets(input.handle.surface.routes, input.bindingRoute, binding, input.params);
+  const template = resolveFilingStatusTargets(input.handle.surface.routes, input.bindingRoute, binding);
   if (template.issues.length) return refuse(template.issues[0]!.reason);
   const context = {
     surfaceId: input.handle.surfaceId, surfaceRef: input.surfaceRef, routeId: input.handle.routeId,
@@ -36,6 +36,10 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
   const inputs: { request: ReturnType<typeof dataSourceLoadRequest>; sourceInput: WidgetDataInputPlan }[] = [];
   for (const { group, targets } of template.groups) {
     if (!group.repeat) continue;
+    // The declaration is valid even on a band page without its route inputs.
+    // Skip this roster read. Its group will report unavailable alongside fixed groups.
+    if (group.forms.some(entry => Object.values(entry.params ?? {}).some(source =>
+      'routeParam' in source && !own(input.params, source.routeParam)))) continue;
     const descriptor = resolveDataSourceDescriptor(input.dataSources ?? [], group.repeat);
     const forms = targets.map(({ entry, slot }) => {
       const ref = own(slot.binding, 'definitionRef');
@@ -53,7 +57,7 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
         slot.slotType === 'definition-form' && own(slot.binding, 'definitionRef') === definition.url);
       const producer = slots.length === 1 ? slots[0]!.binding : {};
       subject = input.resolveSubject(definition, producer as Record<string, unknown>, input.bindingRoute, input.params);
-      if (!subject) return refuse('roster-subject-unavailable');
+      if (!subject) continue;
     }
     const request = dataSourceLoadRequest(descriptor, { ...context, ...(subject && { subject }) });
     const sourceInput: WidgetDataInputPlan = { status: 'ready' as const, required: true, name: group.id, descriptor };
