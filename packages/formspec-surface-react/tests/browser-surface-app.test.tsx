@@ -338,7 +338,7 @@ describe('BrowserSurfaceApp', () => {
     expect(() => render(<BrowserSurfaceApp previewEditions={[{
       scope: 'current', bundle: bundle(), initialPath: '/overview',
       adapters: { draftStorage: { scope: 'other', port } },
-    }]} />)).toThrow('Preview draft storage must match its edition scope.');
+    }]} />)).toThrow('Preview edition and storage scopes must match.');
   });
 
   it('keeps the active draft when another preview edition is replaced', async () => {

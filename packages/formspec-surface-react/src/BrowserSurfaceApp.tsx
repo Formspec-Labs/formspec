@@ -70,9 +70,6 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
   const previewEditions = input.previewEditions;
   if (previewEditions && (!previewEditions.length || new Set(previewEditions.map(entry => entry.scope)).size !== previewEditions.length ||
     previewEditions.some(entry => !entry.scope))) throw new Error('Preview editions require distinct, non-empty draft scopes.');
-  if (previewEditions?.some(({ scope, adapters }) => adapters.draftStorage && adapters.draftStorage.scope !== scope)) {
-    throw new Error('Preview draft storage must match its edition scope.');
-  }
   if (previewEditions?.some(({ scope, adapters }) => adapters.draftStorage && scope !== adapters.draftStorage.scope)) {
     throw new Error('Preview edition and storage scopes must match.');
   }
