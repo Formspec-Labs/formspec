@@ -2,8 +2,197 @@
 
 use fel_core::exact_json::{Value, native_json as json};
 use formspec_eval::types::ValidationSource;
-use formspec_eval::{EvalContext, EvalOptions, EvalTrigger, ValidationResult, evaluate};
+use formspec_eval::{
+    EvalContext, EvalOptions, EvalSubject, EvalTrigger, ValidationResult, evaluate,
+};
 use std::collections::HashMap;
+
+#[test]
+fn subject_keys_feed_seed_calculate_and_validation() {
+    let definition = json!({"subject": {"type": "urn:example:agency-year", "keys": {
+        "serial": {"dataType": "integer"}, "uei": {"dataType": "string"}
+    }}, "items": [
+        {"key": "seeded", "type": "field", "dataType": "string", "initialValue": "=subject('uei')"},
+        {"key": "year", "type": "field", "dataType": "integer"}
+    ], "binds": [{"path": "year", "calculate": "subject('serial')",
+                 "constraint": "subject('uei') = '00123'"}]});
+    let wire = json!({"subjectType": "urn:example:agency-year",
+        "subjectKeys": {"uei": "00123", "serial": 9_007_199_254_740_991_i64}, "meta": {"uei": "other"}});
+    let context = formspec_eval::eval_context_from_json_object(wire.as_object().unwrap()).unwrap();
+    let evaluation = evaluate(
+        &definition,
+        &HashMap::new(),
+        &EvalOptions::new().context(context),
+    );
+    assert_eq!(
+        evaluation.data,
+        json!({"seeded": "00123", "year": 9_007_199_254_740_991_i64})
+    );
+    assert!(
+        evaluation.validations.is_empty(),
+        "{:?}",
+        evaluation.validations
+    );
+    assert!(
+        evaluation.diagnostics.is_empty(),
+        "{:?}",
+        evaluation.diagnostics
+    );
+}
+
+#[test]
+fn subject_keys_reject_an_invalid_native_identity_value() {
+    let definition = json!({"subject": {"type": "urn:example:filing", "keys": {
+        "flag": {"dataType": "string"}
+    }}, "items": [
+        {"key": "flag", "type": "field", "dataType": "boolean"}
+    ], "binds": [{"path": "flag", "calculate": "subject('flag')"}]});
+    let context = EvalContext {
+        subject: Some(EvalSubject {
+            subject_type: Some("urn:example:filing".into()),
+            keys: Some(HashMap::from([(
+                "flag".into(),
+                fel_core::Value::Boolean(true),
+            )])),
+        }),
+        ..EvalContext::default()
+    };
+    let evaluation = evaluate(
+        &definition,
+        &HashMap::new(),
+        &EvalOptions::new().context(context),
+    );
+    assert_eq!(evaluation.data, json!({}));
+    assert_eq!(evaluation.validations[0].path, "#subjectKeys.flag");
+    assert_eq!(
+        evaluation.validations[0].code,
+        formspec_eval::types::ValidationCode::TypeMismatch
+    );
+}
+
+#[test]
+fn subject_inputs_match_the_definition_on_native_and_json_paths() {
+    let definition = json!({
+        "subject": {"type": "urn:example:agency-year", "keys": {
+            "ffy": {"dataType": "integer"}, "uei": {"dataType": "string"}
+        }},
+        "items": [{"key": "agency", "type": "field", "dataType": "string"}],
+        "binds": [{"path": "agency", "calculate": "subject('uei')"}]
+    });
+    let mut undeclared = definition.clone();
+    undeclared.as_object_mut().unwrap().remove("subject");
+    let matching_type = "urn:example:agency-year";
+    let cases = [
+        (
+            &undeclared,
+            matching_type,
+            json!({"uei": "A"}),
+            "#subjectKeys.uei",
+            "Subject key is not declared by the Definition",
+        ),
+        (
+            &definition,
+            matching_type,
+            json!({"ffy": "2026", "uei": "A"}),
+            "#subjectKeys.ffy",
+            "Subject key must be an integer",
+        ),
+        (
+            &definition,
+            "urn:example:other",
+            json!({"ffy": 2026, "uei": "A"}),
+            "#subjectType",
+            "Subject type must match the Definition's declaration (urn:example:agency-year)",
+        ),
+        (
+            &definition,
+            matching_type,
+            json!({"uei": "A"}),
+            "#subjectKeys.ffy",
+            "Declared subject key is missing",
+        ),
+        (
+            &definition,
+            matching_type,
+            json!({"extra": "B", "ffy": 2026, "uei": "A"}),
+            "#subjectKeys.extra",
+            "Subject key is not declared by the Definition",
+        ),
+        (
+            &definition,
+            matching_type,
+            json!({"ffy": 2026, "not a key": "B", "uei": "A"}),
+            "#subjectKeys.not a key",
+            "Invalid subject key name",
+        ),
+        (
+            &definition,
+            matching_type,
+            json!({"uei": false, "ffy": null}),
+            "#subjectKeys.ffy",
+            "Subject key must be an integer",
+        ),
+        (
+            &definition,
+            matching_type,
+            json!({"uei": "A", "ffy": 9_007_199_254_740_993_i64}),
+            "#subjectKeys.ffy",
+            "Integer subject key must be in the I-JSON range",
+        ),
+        (
+            &definition,
+            matching_type,
+            json!({"uei": "A", "ffy": -9_007_199_254_740_992_i64}),
+            "#subjectKeys.ffy",
+            "Integer subject key must be in the I-JSON range",
+        ),
+    ];
+    let mut observed = Vec::new();
+    let mut expected = Vec::new();
+    for (definition, subject_type, keys, path, message) in cases {
+        let context = EvalContext {
+            subject: Some(EvalSubject {
+                subject_type: Some(subject_type.to_string()),
+                keys: Some(
+                    keys.as_object()
+                        .unwrap()
+                        .iter()
+                        .map(|(key, value)| {
+                            (key.clone(), fel_core::exact_json::to_fel(value).unwrap())
+                        })
+                        .collect(),
+                ),
+            }),
+            ..Default::default()
+        };
+        let wire = json!({"subjectType": subject_type, "subjectKeys": keys});
+        let json_context = formspec_eval::eval_context_from_json_object(wire.as_object().unwrap());
+        let findings = |context| {
+            let evaluation = evaluate(
+                definition,
+                &HashMap::new(),
+                &EvalOptions::new().context(context),
+            );
+            let findings = evaluation
+                .validations
+                .into_iter()
+                .map(|finding| (finding.path, finding.code, finding.message))
+                .collect::<Vec<_>>();
+            (evaluation.data, findings)
+        };
+        observed.push((findings(context), json_context.map(findings)));
+        let refusal = (
+            json!({}),
+            vec![(
+                path.to_string(),
+                formspec_eval::types::ValidationCode::TypeMismatch,
+                message.to_string(),
+            )],
+        );
+        expected.push((refusal.clone(), Ok(refusal)));
+    }
+    assert_eq!(observed, expected);
+}
 
 // validation-result.schema.json `source`: Item cardinality has no source category.
 #[test]

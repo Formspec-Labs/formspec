@@ -2506,18 +2506,27 @@ the entire repeat collection for dependency tracking purposes.
 
 #### 3.5.11 Locale, Runtime Metadata, and Instance Lookup
 
-These functions support host-provided locale and metadata, programmatic access
-to secondary instance data, and plural selection aligned with Unicode CLDR
-cardinal plural rules.
+These functions support host-provided locale and metadata, Response identity,
+programmatic access to secondary instance data, and plural selection aligned
+with Unicode CLDR cardinal plural rules.
 
 | Function | Signature | Returns | Description |
 |----------|-----------|---------|-------------|
 | `instance` | `instance(string, string?) → any` | `any` | Reads a value from a named secondary instance (§3.2.3). The first argument is the instance name; the optional second argument is a dotted path within that instance (e.g., `instance('priorYear', 'totals.income')`). Returns `null` if the instance is undefined or the path does not resolve. For literal instance names and paths, `@instance('name').field` syntax is equivalent. |
 | `locale` | `locale() → string` | `string` | Returns the active BCP 47 locale tag from the evaluation context, or `null` if the host has not set a locale. |
 | `runtimeMeta` | `runtimeMeta(string) → any` | `any` | Returns the value for `key` from the host-supplied runtime metadata map, or `null` if absent. The key MUST be a string. |
+| `subject` | `subject(string) → any` | `any` | Returns the form's own key from `Response.subject.keys`, preserving its declared scalar type (§4.1), or `null` if the key or explicit subject is absent. The key MUST be a string. A non-string argument is a type error. |
 | `pluralCategory` | `pluralCategory(number, string?) → string` | `string` | Returns the CLDR cardinal plural category for the integer part of `count` (toward zero): one of `zero`, `one`, `two`, `few`, `many`, or `other`. If the optional locale argument is omitted, the active context locale (see `locale()`) is used; if no locale is available, returns `null`. Unsupported or unparseable locale tags SHOULD fall back to English cardinal rules. |
 | `formatNumber` | `formatNumber(number, string?) → string` | `string` | Formats a number using deterministic locale decimal and grouping conventions. If the optional locale argument is omitted, the active context locale is used. Unsupported or unparseable locale tags SHOULD fall back to English formatting. |
 | `formatDate` | `formatDate(any, string?, string?) → string` | `string` | Formats a FEL date value or ISO 8601 date string using the `short`, `medium`, `long`, or `full` pattern. The pattern defaults to `medium`; the optional locale argument defaults to the active context locale. Unsupported or unparseable locale tags SHOULD fall back to English formatting. |
+
+The processor reads `subject()` from Response identity (§2.1.6), independently
+of editable answers and runtime metadata.
+
+For example, `some(@instance('agencyList').agencies, $.uei = subject('uei'))`
+checks whether the delivered list contains a row matching the form's filing
+unit. The instance's declared projection is the data minimization boundary.
+The server authorizes and selects Responses before FEL reads the delivered rows.
 
 ### 3.6 Dependency Tracking
 
@@ -2768,6 +2777,7 @@ general propagation rule:
 | `selected(array, value)` | Returns `false` if the array argument is `null`. |
 | `isNull(value)` | Returns `true` if the argument is `null`. |
 | `typeOf(value)` | Returns `"null"` if the argument is `null`. |
+| `subject(key)` | A null key is a type error. It does not propagate. |
 | `count(array)` | Skips null elements in the array. |
 | `sum(array)` | Skips null elements. `sum([null, null])` → `0`. Arrays containing `money` MUST emit diagnostic code `FEL_SUM_REJECTS_MONEY` and return `null`. |
 | `avg(array)` | Skips null elements. `avg([null, 10, null, 20])` → `15`. |

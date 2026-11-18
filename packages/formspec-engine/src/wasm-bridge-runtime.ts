@@ -397,6 +397,10 @@ export function wasmEvaluateDefinition(
         previousNonRelevant?: string[];
         instances?: Record<string, unknown>;
         registryDocuments?: unknown[];
+        /** The current Response's subject type. Null means a subject was supplied without a type. */
+        subjectType?: string | null;
+        /** The current Response's filing-unit keys, available to `subject(key)`. */
+        subjectKeys?: import('./interfaces.js').ResponseSubjectKeys;
         /** Repeat row counts by group base path (authoritative for min/max repeat cardinality). */
         repeatCounts?: Record<string, number>;
         /** Ask for resolved Item text (Core §4.2.1); `localeStrings` are cascade-resolved Locale strings. */

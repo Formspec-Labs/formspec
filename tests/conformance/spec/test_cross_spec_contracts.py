@@ -1425,6 +1425,18 @@ class TestFelSpecContracts:
             f'Spec functions not in registry: {missing_from_registry}'
         )
 
+    def test_s3_5_11__subject_function(self):
+        content = (SPEC_DIR / "core/spec.md").read_text()
+        section = content.split("#### 3.5.11", 1)[1].split("### 3.6", 1)[0]
+        assert "`subject(string) → any`" in section
+        assert "Response.subject.keys" in section
+        assert "null" in section
+
+    def test_s3_8_2__subject_null_key_is_a_type_error(self):
+        content = (SPEC_DIR / "core/spec.md").read_text()
+        section = content.split("#### 3.8.2", 1)[1].split("#### 3.8.3", 1)[0]
+        assert "| `subject(key)` | A null key is a type error. It does not propagate. |" in section
+
     def test_s3_4_type_names_from_typeof(self):
         """typeOf returns only the type names defined in §3.4."""
         from formspec.fel import evaluate, FelString

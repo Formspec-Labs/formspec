@@ -13,9 +13,11 @@ use crate::runtime_seed::{
     apply_previous_non_relevant, hydrate_inline_instances, seed_prepopulate_tree,
     seed_repeat_from_instances,
 };
-use crate::types::{self, EvaluationResult, ValidationResult};
+use crate::types::{self, EvalSubject, EvaluationResult, ValidationResult};
+use fel_core::Value as FelValue;
 use fel_core::exact_json::Value;
-use std::collections::HashMap;
+use rust_decimal::Decimal;
+use std::collections::{BTreeSet, HashMap};
 
 /// Evaluate a definition through the full four-phase pipeline.
 pub fn evaluate(
@@ -23,6 +25,11 @@ pub fn evaluate(
     data: &HashMap<String, Value>,
     options: &EvalOptions,
 ) -> EvaluationResult {
+    if let Some(subject) = &options.context.subject
+        && let Err(refusal) = check_subject(definition, subject)
+    {
+        return refuse_input(vec![refusal]);
+    }
     let mut options = options.clone();
     hydrate_inline_instances(definition, &mut options.instances);
     for (path, value) in std::iter::once(("#definition", definition))
@@ -65,7 +72,7 @@ pub fn evaluate(
     rebuild::seed_initial_values(
         &items,
         &mut seeded_data,
-        context.now_iso.as_deref(),
+        context,
         Fel::new(options.extensions),
     );
 
@@ -153,6 +160,90 @@ pub fn evaluate(
         readonly,
         item_text,
     }
+}
+
+/// Check a supplied subject against Core §2.1.6 before any FEL expression runs.
+fn check_subject(definition: &Value, subject: &EvalSubject) -> Result<(), ValidationResult> {
+    let declared_keys = if let Some(declaration) = definition.get("subject") {
+        let declared_type = declaration
+            .get("type")
+            .and_then(Value::as_str)
+            .ok_or_else(|| {
+                type_error(
+                    "#subjectType",
+                    "Definition subject must declare a type".into(),
+                )
+            })?;
+        if subject.subject_type.as_deref() != Some(declared_type) {
+            return Err(type_error(
+                "#subjectType",
+                format!("Subject type must match the Definition's declaration ({declared_type})"),
+            ));
+        }
+        let declared_keys = declaration
+            .get("keys")
+            .and_then(Value::as_object)
+            .ok_or_else(|| {
+                type_error(
+                    "#subjectKeys",
+                    "Definition subject must declare a keys object".into(),
+                )
+            })?;
+        if subject.keys.is_none() {
+            return Err(type_error(
+                "#subjectKeys",
+                "Subject must supply a keys object".into(),
+            ));
+        }
+        Some(declared_keys)
+    } else {
+        None
+    };
+
+    let supplied_keys = subject.keys.as_ref();
+    let names: BTreeSet<_> = declared_keys
+        .into_iter()
+        .flat_map(|keys| keys.keys())
+        .chain(supplied_keys.into_iter().flat_map(|keys| keys.keys()))
+        .collect();
+    for name in names {
+        let error = |message: &str| type_error(&format!("#subjectKeys.{name}"), message.into());
+        // Match the key-name pattern in the Definition and Response schemas.
+        if !name.as_bytes().split_first().is_some_and(|(first, rest)| {
+            first.is_ascii_alphabetic()
+                && rest.iter().all(|c| c.is_ascii_alphanumeric() || *c == b'_')
+        }) {
+            return Err(error("Invalid subject key name"));
+        }
+        let declaration = declared_keys
+            .and_then(|keys| keys.get(name))
+            .ok_or_else(|| error("Subject key is not declared by the Definition"))?;
+        let value = supplied_keys
+            .and_then(|keys| keys.get(name))
+            .ok_or_else(|| error("Declared subject key is missing"))?;
+        match (declaration.get("dataType").and_then(Value::as_str), value) {
+            (Some("string"), FelValue::String(_)) => (),
+            (Some("integer"), FelValue::Number(number)) if number.is_integer() => {
+                if !subject_integer_in_range(number) {
+                    return Err(error("Integer subject key must be in the I-JSON range"));
+                }
+            }
+            (Some("string"), _) => return Err(error("Subject key must be a string")),
+            (Some("integer"), _) => return Err(error("Subject key must be an integer")),
+            _ => {
+                return Err(error(
+                    "Definition subject key must declare string or integer dataType",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Checks the inclusive I-JSON bounds for an integer subject key (RFC 7493 §2.2).
+pub(crate) fn subject_integer_in_range(number: &Decimal) -> bool {
+    let max = Decimal::from((1_i64 << 53) - 1);
+    (-max..=max).contains(number)
 }
 
 fn type_error(path: &str, message: String) -> ValidationResult {

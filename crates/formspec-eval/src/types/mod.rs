@@ -16,8 +16,8 @@ pub use determination::{
     ValidityBlock, parse_answer_state,
 };
 pub use evaluation::{
-    EvalContext, EvalDiagnostic, EvalTrigger, EvaluationResult, ItemText, ItemTextRequest,
-    ValidationResult,
+    EvalContext, EvalDiagnostic, EvalSubject, EvalTrigger, EvaluationResult, ItemText,
+    ItemTextRequest, ValidationResult,
 };
 pub use extensions::ExtensionConstraint;
 pub use item_tree::{ItemInfo, MipState};

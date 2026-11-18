@@ -46,6 +46,8 @@ pub struct HostFelContext {
     date_formats: HashMap<String, String>,
     /// Runtime metadata behind `runtimeMeta(key)`.
     meta: HashMap<String, Value>,
+    /// Response identity behind `subject(key)`.
+    subject_keys: HashMap<String, Value>,
     /// Repeat aliases (`rows.score`) inferred from the value paths, rebuilt per load.
     aliases: RepeatAliases,
     /// Nested values built from prefix scans (`rows`, `rows[3]`), cleared per load.
@@ -91,10 +93,33 @@ impl HostFelContext {
     /// `snapshot` keys: `values` (instance path → value; repeat group arrays are skipped, rows
     /// come from their flat paths), `mips` (`{ invalid, nonRelevant, readonly, required }`
     /// path lists; unlisted paths are default), `repeatCounts`, `variables` (scope → name →
-    /// value), `locale`, `meta`, and `instances`, which is replaced only when present.
+    /// value), `locale`, `meta`, `subjectKeys`, and `instances`, which is replaced only when present.
     pub fn load(&mut self, snapshot: &Map<String, JsonValue>) -> Result<(), String> {
-        for value in snapshot.values() {
-            fel_core::exact_json::check_decimal_range(value)?;
+        for (name, value) in snapshot {
+            if name != "subjectKeys" {
+                fel_core::exact_json::check_decimal_range(value)?;
+            }
+        }
+        let subject_keys =
+            crate::eval_json::subject_keys_from_json_object(snapshot)?.unwrap_or_default();
+        if let Some((key, requirement)) = subject_keys
+            .iter()
+            .filter_map(|(key, value)| {
+                let requirement = match value {
+                    Value::String(_) => return None,
+                    Value::Number(number) if number.is_integer() => {
+                        if crate::pipeline::subject_integer_in_range(number) {
+                            return None;
+                        }
+                        "an integer in the I-JSON range"
+                    }
+                    _ => "a string or integer",
+                };
+                Some((key, requirement))
+            })
+            .min()
+        {
+            return Err(format!("subjectKeys.{key} must be {requirement}"));
         }
         let supplied = snapshot
             .get("values")
@@ -169,6 +194,7 @@ impl HostFelContext {
             })
             .unwrap_or_default();
         self.meta = fel_map(snapshot.get("meta").and_then(JsonValue::as_object));
+        self.subject_keys = subject_keys;
         self.nested.borrow_mut().clear();
         Ok(())
     }
@@ -671,6 +697,14 @@ impl Environment for ScopedEnv<'_> {
     fn runtime_meta(&self, key: &str) -> Value {
         self.ctx.meta.get(key).cloned().unwrap_or(Value::Null)
     }
+
+    fn subject_key(&self, key: &str) -> Value {
+        self.ctx
+            .subject_keys
+            .get(key)
+            .cloned()
+            .unwrap_or(Value::Null)
+    }
 }
 
 #[cfg(test)]
@@ -739,6 +773,37 @@ mod tests {
             result.diagnostics
         );
         fel_to_ui_json(&result.value)
+    }
+
+    #[test]
+    fn resident_context_reads_exact_subject_keys() {
+        let mut ctx = context();
+        // ADR 0172 caps integer subject keys at the I-JSON limit.
+        let snapshot = json!({
+            "subjectKeys": {"uei": "00123", "serial": 9_007_199_254_740_991_i64},
+            "meta": {"uei": "metadata"}
+        });
+        ctx.load(snapshot.as_object().unwrap()).unwrap();
+        assert_eq!(eval(&ctx, "subject('uei')", ""), json!("00123"));
+        assert_eq!(
+            eval(&ctx, "subject('serial')", ""),
+            json!(9_007_199_254_740_991_i64)
+        );
+        assert_eq!(eval(&ctx, "subject('missing')", ""), json!(null));
+        ctx.load(json!({}).as_object().unwrap()).unwrap();
+        assert_eq!(eval(&ctx, "subject('uei')", ""), json!(null));
+    }
+
+    #[test]
+    fn resident_context_refuses_out_of_range_subject_keys() {
+        let mut ctx = context();
+        for serial in [9_007_199_254_740_993_i64, -9_007_199_254_740_992_i64] {
+            let snapshot = json!({"subjectKeys": {"serial": serial}});
+            assert_eq!(
+                ctx.load(snapshot.as_object().unwrap()),
+                Err("subjectKeys.serial must be an integer in the I-JSON range".into())
+            );
+        }
     }
 
     #[test]

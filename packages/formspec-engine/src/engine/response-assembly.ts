@@ -8,6 +8,7 @@ import type {
     AuthoredSignatureIdentityBinding,
     AuthoredSignatureInput,
     AuthoredSignatureSignedPayload,
+    FormEngineOptions,
     PinnedResponseReference,
 } from '../interfaces.js';
 import { wasmApplyMigrationsToResponseData } from '../wasm-bridge-runtime.js';
@@ -291,7 +292,6 @@ export function attachAuthoredSignature<T extends object>(
 function prepareAuthoredSignaturesSection(meta: {
     id?: string;
     author?: { id: string; name?: string };
-    subject?: { id: string; type?: string };
     authoredSignatures?: AuthoredSignatureInput[];
 } | undefined, responsePins: {
     definitionUrl: string;
@@ -330,10 +330,10 @@ export function buildFormspecResponseEnvelope(options: {
     timestamp: string;
     displayedIssuer?: { url: string; version: string };
     displayedLocale?: { url?: string; version: string; locale: string };
+    subject?: FormEngineOptions['responseSubject'];
     meta?: {
         id?: string;
         author?: { id: string; name?: string };
-        subject?: { id: string; type?: string };
         authoredSignatures?: AuthoredSignatureInput[];
     };
 }): Record<string, unknown> {
@@ -361,8 +361,8 @@ export function buildFormspecResponseEnvelope(options: {
     if (options.meta?.author) {
         response.author = options.meta.author;
     }
-    if (options.meta?.subject) {
-        response.subject = options.meta.subject;
+    if (options.subject) {
+        response.subject = options.subject;
     }
     if (options.displayedIssuer) {
         response.displayedIssuer = options.displayedIssuer;

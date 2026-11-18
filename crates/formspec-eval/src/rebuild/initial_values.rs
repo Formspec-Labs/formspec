@@ -7,7 +7,7 @@ use fel_core::exact_json::Value;
 
 use crate::fel_eval::Fel;
 use crate::fel_json::{fel_to_runtime_json, json_to_runtime_fel};
-use crate::types::ItemInfo;
+use crate::types::{EvalContext, ItemInfo};
 
 /// Seed initial values for fields that are missing from data (9e).
 /// If initialValue is a string starting with "=", evaluate as FEL expression.
@@ -15,11 +15,11 @@ use crate::types::ItemInfo;
 pub(crate) fn seed_initial_values(
     items: &[ItemInfo],
     data: &mut HashMap<String, Value>,
-    now_iso: Option<&str>,
+    context: &EvalContext,
     fel: Fel<'_>,
 ) {
     let mut env = SeedEnv {
-        now_iso,
+        context,
         env: None,
         dirty: Vec::new(),
     };
@@ -32,8 +32,8 @@ pub(crate) fn seed_initial_values(
 /// independent inputs. It is built on the first `=` value a pass meets (a definition with none pays
 /// nothing) and carries each seeded value forward, so the pass costs O(data + items) instead.
 struct SeedEnv<'a> {
-    /// Clock backing `now()` / `today()` in seeded expressions.
-    now_iso: Option<&'a str>,
+    /// Clock and Response identity for seeded expressions.
+    context: &'a EvalContext,
     /// The environment, once some `=` initial value has needed it.
     env: Option<FormspecEnvironment>,
     /// Paths seeded before the environment existed, folded in when it is built.
@@ -43,10 +43,13 @@ struct SeedEnv<'a> {
 impl SeedEnv<'_> {
     /// The environment reflecting every value currently in `data`.
     fn get(&mut self, data: &HashMap<String, Value>) -> &FormspecEnvironment {
-        let now_iso = self.now_iso;
+        let context = self.context;
         let env = self.env.get_or_insert_with(|| {
             let mut env = FormspecEnvironment::new();
-            if let Some(now_iso) = now_iso {
+            if let Some(keys) = context.subject_keys() {
+                env.subject_keys.clone_from(keys);
+            }
+            if let Some(now_iso) = &context.now_iso {
                 env.set_now_from_iso(now_iso);
             }
             for (path, value) in data {

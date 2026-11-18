@@ -4804,9 +4804,9 @@ depending on the entire repeat collection for dependency tracking
 purposes.</p>
 <h4 id="locale-runtime-metadata-and-instance-lookup">3.5.11 Locale,
 Runtime Metadata, and Instance Lookup</h4>
-<p>These functions support host-provided locale and metadata,
-programmatic access to secondary instance data, and plural selection
-aligned with Unicode CLDR cardinal plural rules.</p>
+<p>These functions support host-provided locale and metadata, Response
+identity, programmatic access to secondary instance data, and plural
+selection aligned with Unicode CLDR cardinal plural rules.</p>
 <table>
 <colgroup>
 <col style="width: 23%" />
@@ -4851,6 +4851,15 @@ runtime metadata map, or <code>null</code> if absent. The key MUST be a
 string.</td>
 </tr>
 <tr>
+<td><code>subject</code></td>
+<td><code>subject(string) → any</code></td>
+<td><code>any</code></td>
+<td>Returns the form’s own key from <code>Response.subject.keys</code>,
+preserving its declared scalar type (§4.1), or <code>null</code> if the
+key or explicit subject is absent. The key MUST be a string. A
+non-string argument is a type error.</td>
+</tr>
+<tr>
 <td><code>pluralCategory</code></td>
 <td><code>pluralCategory(number, string?) → string</code></td>
 <td><code>string</code></td>
@@ -4884,6 +4893,14 @@ formatting.</td>
 </tr>
 </tbody>
 </table>
+<p>The processor reads <code>subject()</code> from Response identity
+(§2.1.6), independently of editable answers and runtime metadata.</p>
+<p>For example,
+<code>some(@instance('agencyList').agencies, $.uei = subject('uei'))</code>
+checks whether the delivered list contains a row matching the form’s
+filing unit. The instance’s declared projection is the data minimization
+boundary. The server authorizes and selects Responses before FEL reads
+the delivered rows.</p>
 <h3 id="dependency-tracking">3.6 Dependency Tracking</h3>
 <p>FEL expressions are the source of all reactive behavior in Formspec.
 To support minimal recalculation (§2.4, Phase 2), a conformant processor
@@ -5204,6 +5221,10 @@ follow the general propagation rule:</p>
 <td><code>typeOf(value)</code></td>
 <td>Returns <code>"null"</code> if the argument is
 <code>null</code>.</td>
+</tr>
+<tr>
+<td><code>subject(key)</code></td>
+<td>A null key is a type error. It does not propagate.</td>
 </tr>
 <tr>
 <td><code>count(array)</code></td>

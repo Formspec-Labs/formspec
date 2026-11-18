@@ -83,6 +83,9 @@ pub(crate) fn recalculate_phase(
 ) -> Recalculated {
     let fel = Fel::new(options.extensions);
     let mut env = FormspecEnvironment::new();
+    if let Some(keys) = options.context.subject_keys() {
+        env.subject_keys.clone_from(keys);
+    }
     if let Some(now_iso) = options.context.now_iso.as_deref() {
         env.set_now_from_iso(now_iso);
     }

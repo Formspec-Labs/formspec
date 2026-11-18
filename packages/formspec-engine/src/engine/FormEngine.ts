@@ -19,7 +19,6 @@ import { FelExtensionFunctions, type FelExtensionFunctionRegistration } from '..
 import type {
     SetValueOptions,
     WriteSource,
-    AuthoredSignatureInput,
     EngineReplayApplyResult,
     EngineReplayEvent,
     EngineReplayResult,
@@ -167,6 +166,7 @@ export class FormEngine implements IFormEngine {
     private readonly _registryEntries = new Map<string, RegistryEntry>();
     /** Host FEL extension functions (Core §3.12), passed to every Rust evaluation. */
     private readonly _extensionFunctions = new FelExtensionFunctions();
+    private readonly _responseSubject: FormEngineOptions['responseSubject'];
     private _registryDocuments: unknown[] = [];
     private readonly _remoteOptionsTasks: Array<Promise<void>> = [];
     private readonly _instanceSourceResolver?: InstanceSourceResolver;
@@ -222,6 +222,7 @@ export class FormEngine implements IFormEngine {
             extensionFunctions,
         } = options;
         this._instanceSourceResolver = options.instanceSourceResolver;
+        this._responseSubject = cloneValue(options.responseSubject ?? undefined);
         this._rx = reactiveRuntime;
         this._issuerStore = new IssuerStore(issuerFetcher ?? new FetchIssuerFetcher());
         this._validationProfileResolver = new DefaultValidationProfileResolver();
@@ -274,8 +275,13 @@ export class FormEngine implements IFormEngine {
             this.loadItemsData(this.definition.items, options.responseData, '');
         }
         this.runInstanceDependentSeeding();
+        try {
+            this._evaluate();
+        } catch (error) {
+            this.dispose();
+            throw error;
+        }
         this.initializeRemoteOptions();
-        this._evaluate();
 
         // Create form-level view model (after first evaluate so validation is available)
         this._formViewModel = createFormViewModel({
@@ -845,14 +851,14 @@ export class FormEngine implements IFormEngine {
     }
 
     /** One evaluation and clock for response data and its requested validation report. */
-    public getResponseSnapshot(meta?: {
-        id?: string;
-        author?: { id: string; name?: string };
-        subject?: { id: string; type?: string };
-        authoredSignatures?: AuthoredSignatureInput[];
-        profile?: ValidationProfile;
-    }, validationProfile?: ValidationProfile): { response: FormResponse; validationReport: ValidationReport | null } {
+    public getResponseSnapshot(
+        meta?: Parameters<IFormEngine['getResponse']>[0],
+        validationProfile?: ValidationProfile,
+    ): { response: FormResponse; validationReport: ValidationReport | null } {
         this.assertNoRemovedModeOption(meta, 'getResponse');
+        if (meta?.subject && (this._responseSubject || 'keys' in meta.subject)) {
+            throw new Error('Supply filing-unit identity through the responseSubject constructor option');
+        }
         const profile = meta?.profile ?? 'live';
         const responseTrigger = this._validationProfileResolver.resolve(profile);
         const trigger = this._validationProfileResolver.resolve(validationProfile ?? profile);
@@ -875,6 +881,7 @@ export class FormEngine implements IFormEngine {
             timestamp,
             displayedIssuer: this.getDisplayedIssuerPin(),
             displayedLocale: this.getDisplayedLocalePin(),
+            subject: cloneValue(this._responseSubject ?? meta?.subject),
             meta,
         }) as unknown as FormResponse;
         return { response, validationReport: report };
@@ -1718,6 +1725,7 @@ export class FormEngine implements IFormEngine {
                 locale: this.felLocale(),
                 dateFormats: this._localeStore.dateFormats() ?? undefined,
                 meta: this._runtimeContext.meta,
+                subjectKeys: this._responseSubject?.keys,
             })));
             this._felContext.key = key;
         }
@@ -1913,9 +1921,18 @@ export class FormEngine implements IFormEngine {
                 instances: this.instanceData,
                 registryDocuments: this._registryDocuments,
                 repeatCounts: this.repeatCountsSnapshot(),
+                subjectType: this._responseSubject && (this._responseSubject.type ?? null),
+                subjectKeys: this._responseSubject?.keys,
             }),
             this._extensionFunctions,
         ) as EvalResult;
+        if (this._responseSubject) {
+            const refusal = baseResult.validations.find(({ path }) =>
+                path === '#subjectType' || path === '#subjectKeys' || path.startsWith('#subjectKeys.'));
+            if (refusal) {
+                throw new Error(`${refusal.path}: ${refusal.message}`);
+            }
+        }
         const evalResult = this.shapedEvalResult(baseResult);
         // Shape timing is enforced in Rust `revalidate` for the default continuous WASM eval;
         // no TS-side filter needed for parity with batch eval.
@@ -1961,6 +1978,8 @@ export class FormEngine implements IFormEngine {
                 instances: this.instanceData,
                 registryDocuments: this._registryDocuments,
                 repeatCounts: this.repeatCountsSnapshot(),
+                subjectType: this._responseSubject && (this._responseSubject.type ?? null),
+                subjectKeys: this._responseSubject?.keys,
             }),
             this._extensionFunctions,
         ) as EvalResult);

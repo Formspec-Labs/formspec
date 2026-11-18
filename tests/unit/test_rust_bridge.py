@@ -36,6 +36,47 @@ from formspec.fel.errors import FelSyntaxError, Severity
 from formspec.fel.types import FelNumber, FelString, is_null
 
 
+def test_evaluate_definition_preserves_response_subject_keys():
+    definition = {
+        "subject": {
+            "type": "urn:example:agency-year",
+            "keys": {"uei": {"dataType": "string"}, "serial": {"dataType": "integer"}},
+        },
+        "items": [
+            {"key": "uei", "type": "field", "dataType": "string"},
+            {"key": "year", "type": "field", "dataType": "integer"},
+        ],
+        "binds": [
+            {"path": "uei", "calculate": "subject('uei')"},
+            {"path": "year", "calculate": "subject('serial')"},
+        ],
+    }
+    subject = {"type": "urn:example:agency-year", "keys": {"uei": "00123", "serial": 9007199254740991}}
+    result = evaluate_definition(
+        definition, {}, context={"subjectType": subject["type"], "subjectKeys": subject["keys"]}
+    )
+    assert result.data == {"uei": "00123", "year": 9007199254740991}
+    assert type(result.data["year"]) is int
+    assert result.diagnostics == []
+
+    refused = evaluate_definition(
+        definition, {}, context={"subjectType": subject["type"], "subjectKeys": {"uei": False, "serial": "2026"}}
+    )
+    assert refused.data == {}
+    assert [(v["path"], v["code"], v["message"]) for v in refused.results] == [
+        ("#subjectKeys.serial", "TYPE_MISMATCH", "Subject key must be an integer")
+    ]
+
+    for serial in [9007199254740993, -9007199254740992]:
+        refused = evaluate_definition(
+            definition, {}, context={"subjectType": subject["type"], "subjectKeys": {"uei": "00123", "serial": serial}}
+        )
+        assert refused.data == {}
+        assert [(v["path"], v["code"], v["message"]) for v in refused.results] == [
+            ("#subjectKeys.serial", "TYPE_MISMATCH", "Integer subject key must be in the I-JSON range")
+        ]
+
+
 def test_formspec_rust_exports_expected_contract():
     assert getattr(formspec_rust, "PY_API_VERSION", None) == 1
 

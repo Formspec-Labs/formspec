@@ -633,6 +633,8 @@ def evaluate_definition(
         instances: Optional dict of named instance data for prePopulate seeding.
             Keys are instance names, values are dicts of field data.
         context: Optional evaluator context (e.g. now_iso, repeat_counts, previous_validations).
+            ``subjectType`` and ``subjectKeys`` take the current Response's ``subject.type``
+            and ``subject.keys``. Evaluation checks them against the Definition before FEL runs.
             ``itemText: {"localeStrings": {...}}`` also resolves Item text into
             ``ProcessingResult.item_text`` (Core §4.2.1); the caller applies the Locale
             fallback cascade (Locale §4) before passing the strings.

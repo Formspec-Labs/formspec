@@ -72,6 +72,8 @@ impl EvalTrigger {
 /// Optional runtime context injected into a single evaluation cycle.
 #[derive(Debug, Clone, Default)]
 pub struct EvalContext {
+    /// Current Response identity supplied by the host.
+    pub subject: Option<EvalSubject>,
     /// Wall-clock instant for FEL `now()` / date helpers (ISO-8601 string).
     pub now_iso: Option<String>,
     /// Prior cycle validation results (e.g. for host-driven revalidation hints).
@@ -82,6 +84,25 @@ pub struct EvalContext {
     /// keeps counts outside flat `values` keys (browser signals). When `None`, cardinality falls
     /// back to repeat-count detection from `values` only.
     pub repeat_counts: Option<HashMap<String, u64>>,
+}
+
+/// The parts of `Response.subject` that the evaluator checks and reads.
+///
+/// Integer keys must be within ±(2^53−1), inclusive, per RFC 7493 §2.2.
+/// Use string keys for larger identifiers.
+#[derive(Debug, Clone, Default)]
+pub struct EvalSubject {
+    /// Subject type from the Response.
+    pub subject_type: Option<String>,
+    /// Keys from the Response. An empty map is an explicit singleton key set.
+    pub keys: Option<HashMap<String, fel_core::Value>>,
+}
+
+impl EvalContext {
+    /// Keys available to FEL after the pipeline checks the supplied subject.
+    pub(crate) fn subject_keys(&self) -> Option<&HashMap<String, fel_core::Value>> {
+        self.subject.as_ref()?.keys.as_ref()
+    }
 }
 
 /// Request to resolve Item text in the same evaluation (Core §4.2.1 text interpolation).

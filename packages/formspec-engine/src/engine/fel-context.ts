@@ -3,7 +3,7 @@
 import type { FormVariable } from '@formspec-org/types';
 import type { ValidationResult } from '@formspec-org/types';
 import type { EvalResult } from '../diff.js';
-import type { JsonRecord } from '../interfaces.js';
+import type { JsonRecord, ResponseSubjectKeys } from '../interfaces.js';
 import type { EngineSignal } from '../reactivity/types.js';
 import type { EngineBindConfig } from './helpers.js';
 
@@ -31,6 +31,7 @@ export interface FelContextSnapshot {
     /** The active Locale document's `formats.date` patterns by `formatDate` style (Locale §2.4). */
     dateFormats?: Record<string, string>;
     meta?: Record<string, string | number | boolean>;
+    subjectKeys?: ResponseSubjectKeys;
 }
 
 export function felContextSchema(
@@ -67,6 +68,7 @@ export interface FelContextSnapshotInput {
     /** The active Locale document's `formats.date` patterns by `formatDate` style (Locale §2.4). */
     dateFormats?: Record<string, string>;
     meta?: Record<string, string | number | boolean>;
+    subjectKeys?: FelContextSnapshot['subjectKeys'];
 }
 
 /**
@@ -122,5 +124,6 @@ export function felContextSnapshot(options: FelContextSnapshotInput): FelContext
         locale: options.locale,
         dateFormats: options.dateFormats,
         meta: options.meta,
+        subjectKeys: options.subjectKeys,
     };
 }

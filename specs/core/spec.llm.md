@@ -257,6 +257,8 @@ Key rules: arithmetic requires `number` operands; `&` requires `string` operands
 
 **Repeat navigation**: `prev()`, `next()` (return adjacent rows or null), `parent()` (enclosing context). Must only be called within repeat context.
 
+`subject(string) → any` reads the form's own `Response.subject.keys`, returning null for absent keys/subject and rejecting a non-string argument.
+
 ### Element-Wise Array Operations
 
 When an operator is applied to two equal-length arrays, it operates element-wise. Scalar + array → broadcast scalar to each element. Different-length arrays → error.
@@ -270,6 +272,8 @@ General rule: null propagates (e.g., `null + 5` → `null`, `null < 5` → `null
 **Special handling in bind contexts**: `relevant` null → `true` (show field), `required` null → `false` (don't block), `readonly` null → `false` (editable), `constraint` null → `true` (passes). But `if()` condition null → evaluation error.
 
 Functions with special null handling: `coalesce`, `empty`, `present`, `isNull`, `typeOf`, aggregates (skip nulls), `??`, `string(null)` → `""`, `boolean(null)` → `false`, `length(null)` → `0`.
+
+`subject(null)` raises a type error (§3.8.2).
 
 Missing field (exists in definition but no value) → `null`. Field key not in definition → definition error (static check).
 

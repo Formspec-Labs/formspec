@@ -1849,6 +1849,28 @@
       ]
     },
     {
+      "name": "subject",
+      "category": "locale",
+      "parameters": [
+        {
+          "name": "key",
+          "type": "string",
+          "description": "Key in the current Response's subject identity."
+        }
+      ],
+      "returns": "any",
+      "returnDescription": "The key's string or integer value, or null if absent.",
+      "description": "Reads a key from Response.subject.keys without coercion.",
+      "nullHandling": "A missing key or subject returns null. A null argument is a type error.",
+      "deterministic": false,
+      "examples": [
+        {
+          "expression": "subject('uei')",
+          "result": "00123"
+        }
+      ]
+    },
+    {
       "name": "pluralCategory",
       "category": "locale",
       "parameters": [

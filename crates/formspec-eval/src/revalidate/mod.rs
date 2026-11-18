@@ -52,6 +52,9 @@ pub fn revalidate(
         &options.instances,
         data_types,
     );
+    if let Some(keys) = options.context.subject_keys() {
+        env.subject_keys.clone_from(keys);
+    }
 
     // 9a: Apply excludedValue — non-relevant fields with excludedValue="null" appear as null in FEL
     apply_excluded_values_to_env(items, &mut env);

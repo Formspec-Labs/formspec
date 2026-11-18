@@ -19,6 +19,7 @@ use crate::json_host::{parse_json_as, to_json_string};
 /// Evaluate a Formspec definition against provided data (4-phase batch processor).
 /// Returns JSON: { values, validations, nonRelevant, variables, required, readonly }
 ///
+/// `context_json.subjectType` and `context_json.subjectKeys` supply the current Response's subject.
 /// `extensions` resolves Definition calls to host extension functions (Core §3.12).
 #[wasm_bindgen(js_name = "evaluateDefinition")]
 pub fn evaluate_definition_wasm(
@@ -52,8 +53,13 @@ pub(crate) fn evaluate_definition_inner(
     let options = match context_json {
         Some(context_json) => {
             let ctx: Value = parse_json_as(&context_json, "context JSON")?;
-            fel_core::exact_json::check_decimal_range(&ctx)?;
             let ctx_obj = ctx.as_object().ok_or("context must be a JSON object")?;
+            for (name, value) in ctx_obj {
+                // The evaluator checks subject inputs in sorted key order on every host.
+                if !matches!(name.as_str(), "subjectType" | "subjectKeys") {
+                    fel_core::exact_json::check_decimal_range(value)?;
+                }
+            }
             let bundle = eval_host_context_from_json_map(ctx_obj)?;
             EvalOptions {
                 trigger: bundle.trigger,

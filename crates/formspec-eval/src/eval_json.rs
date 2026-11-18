@@ -5,7 +5,10 @@
 
 use std::collections::HashMap;
 
-use fel_core::exact_json::{Map, Value, native_json as json};
+use fel_core::{
+    Value as FelValue,
+    exact_json::{Map, Value, native_json as json},
+};
 
 use formspec_core::JsonWireStyle;
 use formspec_core::json_object_to_string_map;
@@ -13,7 +16,7 @@ use formspec_core::wire_keys::evaluation_batch_keys;
 
 use crate::extension_constraints_from_registry_documents;
 use crate::types::{
-    ConstraintKind, EvalContext, EvalDiagnostic, EvalTrigger, EvaluationResult,
+    ConstraintKind, EvalContext, EvalDiagnostic, EvalSubject, EvalTrigger, EvaluationResult,
     ExtensionConstraint, ItemText, ItemTextRequest, Severity, ValidationCode, ValidationResult,
     ValidationSource,
 };
@@ -208,7 +211,19 @@ fn parse_eval_context(ctx_obj: &Map<String, Value>) -> Result<EvalContext, Strin
                 .collect()
         });
 
+    let subject_type = ctx_obj.get("subjectType");
+    let keys = subject_keys_from_json_object(ctx_obj)?;
+    let subject = if subject_type.is_some() || keys.is_some() {
+        Some(EvalSubject {
+            subject_type: subject_type.and_then(Value::as_str).map(str::to_owned),
+            keys,
+        })
+    } else {
+        None
+    };
+
     Ok(EvalContext {
+        subject,
         now_iso: ctx_obj
             .get("nowIso")
             .or_else(|| ctx_obj.get("now_iso"))
@@ -218,6 +233,37 @@ fn parse_eval_context(ctx_obj: &Map<String, Value>) -> Result<EvalContext, Strin
         previous_non_relevant,
         repeat_counts: parse_repeat_counts(ctx_obj),
     })
+}
+
+/// Decode the host's `Response.subject.keys` for validation at evaluation time.
+///
+/// # Errors
+/// Returns an error if the key set is present and is not an object.
+pub(crate) fn subject_keys_from_json_object(
+    context: &Map<String, Value>,
+) -> Result<Option<HashMap<String, FelValue>>, String> {
+    let Some(keys) = context.get("subjectKeys") else {
+        return Ok(None);
+    };
+    let keys = keys
+        .as_object()
+        .ok_or("subjectKeys must be a JSON object")?;
+    Ok(Some(
+        keys.iter()
+            .map(|(name, value)| {
+                // Keep exact numbers for the shared subject-key range check. Preserve invalid
+                // keys as null values so they take part in the same sorted validation order.
+                let value = match value {
+                    Value::String(value) => FelValue::String(value.clone()),
+                    Value::Number(number) => {
+                        number.as_decimal().map_or(FelValue::Null, FelValue::Number)
+                    }
+                    _ => FelValue::Null,
+                };
+                (name.clone(), value)
+            })
+            .collect(),
+    ))
 }
 
 /// Parses [`EvalContext`] fields from a host JSON object (clock, prior validations, `repeatCounts`, …).

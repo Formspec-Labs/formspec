@@ -50,6 +50,117 @@ test('locale() can be used in conditional expressions', () => {
   assert.equal(fn(), 'Oui');
 });
 
+test('subject() reads the same response keys during live, submit, and ad-hoc evaluation', () => {
+  const type = 'urn:example:subject:agency-year';
+  const definition = minDef({
+    subject: { type, keys: { ffy: { dataType: 'integer' }, uei: { dataType: 'string' } } },
+    items: [
+      { key: 'uei', type: 'field', dataType: 'string' },
+      { key: 'year', type: 'field', dataType: 'integer' },
+    ],
+    binds: [{ path: 'year', calculate: "subject('ffy')" }],
+  });
+  const subject = { id: 'filing-unit', type, keys: { uei: '00123', ffy: 2026 } };
+  const engine = new FormEngine(definition, {
+    responseSubject: subject,
+    responseData: { uei: 'editable' },
+    runtimeContext: { meta: { uei: 'metadata' } },
+  });
+  subject.keys.uei = 'mutated by caller';
+  assert.equal(engine.signals.year.value, 2026);
+  assert.equal(engine.compileExpression("subject('uei')")(), '00123');
+  assert.equal(engine.compileExpression("subject('missing')")(), null);
+  assert.equal(engine.compileExpression("runtimeMeta('uei')")(), 'metadata');
+  const response = engine.getResponse({ profile: 'on-submit' });
+  assert.equal(response.status, 'completed');
+  assert.deepEqual(response.data, { uei: 'editable', year: 2026 });
+  assert.deepEqual(response.subject, { id: 'filing-unit', type, keys: { uei: '00123', ffy: 2026 } });
+});
+
+test('subject() round-trips the largest I-JSON integer', () => {
+  const type = 'urn:example:subject:sequence';
+  const definition = minDef({
+    subject: { type, keys: { serial: { dataType: 'integer' } } },
+    items: [{ key: 'sequence', type: 'field', dataType: 'integer' }],
+    binds: [{ path: 'sequence', calculate: "subject('serial')" }],
+  });
+  const keys = { serial: Number.MAX_SAFE_INTEGER };
+  const engine = new FormEngine(definition, { responseSubject: { id: 'filing-unit', type, keys } });
+  assert.equal(engine.compileExpression("subject('serial')")(), 9007199254740991);
+  const response = engine.getResponse();
+  assert.equal(response.data.sequence, 9007199254740991);
+  assert.equal(response.subject.keys.serial, 9007199254740991);
+});
+
+test('getResponse() requires filing-unit identity before evaluation', () => {
+  const type = 'urn:example:subject:agency';
+  const definition = minDef({ subject: { type, keys: { uei: { dataType: 'string' } } } });
+  const subject = { id: 'filing-unit', type, keys: { uei: '00123' } };
+  const unbound = new FormEngine(definition);
+  assert.equal(unbound.compileExpression("subject('uei')")(), null);
+  assert.throws(() => unbound.getResponse({ subject }), /responseSubject/);
+
+  const bound = new FormEngine(definition, { responseSubject: subject });
+  assert.throws(() => bound.getResponse({ subject: { id: 'different' } }), /responseSubject/);
+  assert.deepEqual(bound.getResponse().subject, subject);
+});
+
+test('FormEngine refuses invalid filing-unit identity at construction', async (t) => {
+  const type = 'urn:example:subject:agency-year';
+  const definition = minDef({ subject: { type, keys: { ffy: { dataType: 'integer' }, uei: { dataType: 'string' } } } });
+  const cases = [
+    ['undeclared subject keys', minDef(), { type, keys: { uei: 'A' } }, /#subjectKeys\.uei/],
+    ['wrong key type', definition, { type, keys: { ffy: '2026', uei: 'A' } }, /#subjectKeys\.ffy: Subject key must be an integer/],
+    ['wrong subject type', definition, { type: 'urn:example:other', keys: { ffy: 2026 } }, /#subjectType/],
+    ['missing key', definition, { type, keys: { ffy: 2026 } }, /#subjectKeys\.uei: Declared subject key is missing/],
+    ['extra key', definition, { type, keys: { extra: 'B', ffy: 2026, uei: 'A' } }, /#subjectKeys\.extra/],
+    ['invalid key name', definition, { type, keys: { ffy: 2026, 'not a key': 'B', uei: 'A' } }, /#subjectKeys\.not a key: Invalid subject key name/],
+    ['two invalid keys', definition, { type, keys: { uei: false, ffy: null } }, /#subjectKeys\.ffy: Subject key must be an integer/],
+    ['integer above the I-JSON range', definition, { type, keys: { ffy: JSON.rawJSON('9007199254740993'), uei: 'A' } }, /#subjectKeys\.ffy: Integer subject key must be in the I-JSON range/],
+    ['integer below the I-JSON range', definition, { type, keys: { ffy: -9007199254740992, uei: 'A' } }, /#subjectKeys\.ffy: Integer subject key must be in the I-JSON range/],
+    ['missing subject type and keys', definition, {}, /#subjectType/],
+    ['missing key set', definition, { type }, /#subjectKeys: Subject must supply a keys object/],
+  ];
+  for (const [name, form, subject, message] of cases) {
+    await t.test(name, () => {
+      assert.throws(() => new FormEngine(form, { responseSubject: { id: 'filing-unit', ...subject } }), message);
+    });
+  }
+});
+
+test('FormEngine accepts an explicit singleton and an unkeyed host entity', () => {
+  const type = 'urn:example:subject:singleton';
+  const subject = { id: 'filing-unit', type, keys: {} };
+  const singleton = new FormEngine(minDef({ subject: { type, keys: {} } }), { responseSubject: subject });
+  assert.deepEqual(singleton.getResponse().subject, subject);
+  assert.equal(singleton.compileExpression("subject('uei')")(), null);
+
+  const hostEntity = { id: 'host-entity', type: 'Grant' };
+  assert.deepEqual(new FormEngine(minDef()).getResponse({ subject: hostEntity }).subject, hostEntity);
+});
+
+test('FormEngine refusal prevents instance and remote option loads', async (t) => {
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async () => {
+    calls.push('remote options');
+    return { ok: true, json: async () => [] };
+  });
+  const definition = minDef({
+    instances: { sourceData: { source: 'formspec-fn:fixture' } },
+    binds: [{ path: 'name', remoteOptions: 'https://example.org/options' }],
+  });
+
+  assert.throws(() => new FormEngine(definition, {
+    responseSubject: { id: 'filing-unit', keys: { uei: 'A' } },
+    instanceSourceResolver: () => {
+      calls.push('instance source');
+      return { status: 'loaded', value: {} };
+    },
+  }), /#subjectKeys\.uei/);
+  await Promise.resolve();
+  assert.deepEqual(calls, []);
+});
+
 // ── runtimeMeta(key) ──────────────────────────────────────────────
 
 test('runtimeMeta() returns null for missing key', () => {

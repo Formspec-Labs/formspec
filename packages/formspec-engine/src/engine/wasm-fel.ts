@@ -2,6 +2,7 @@
 
 import type { FormVariable } from '@formspec-org/types';
 import type { EvalResult, EvalValidation } from '../diff.js';
+import type { ResponseSubjectKeys } from '../interfaces.js';
 import type { EngineSignal } from '../reactivity/types.js';
 import { getScopeAncestors, snapshotSignals } from './helpers.js';
 import { wasmPrepareFelExpression } from '../wasm-bridge-runtime.js';
@@ -27,6 +28,8 @@ export function wasmEvaluateDefinitionPayload(options: {
     previousResult: EvalResult | null;
     instances: Record<string, unknown>;
     registryDocuments: unknown[];
+    subjectType?: string | null;
+    subjectKeys?: ResponseSubjectKeys;
     /** Authoritative repeat row counts by group base path (matches engine repeat signals). */
     repeatCounts: Record<string, number>;
 }): {
@@ -36,6 +39,8 @@ export function wasmEvaluateDefinitionPayload(options: {
     previousNonRelevant: string[] | undefined;
     instances: Record<string, unknown>;
     registryDocuments: unknown[];
+    subjectType?: string | null;
+    subjectKeys?: ResponseSubjectKeys;
     repeatCounts: Record<string, number>;
 } {
     return {
@@ -45,6 +50,8 @@ export function wasmEvaluateDefinitionPayload(options: {
         previousNonRelevant: options.previousResult?.nonRelevant,
         instances: options.instances,
         registryDocuments: options.registryDocuments,
+        subjectType: options.subjectType,
+        subjectKeys: options.subjectKeys,
         repeatCounts: options.repeatCounts,
     };
 }
