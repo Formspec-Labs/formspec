@@ -60,6 +60,7 @@ export {
   type SurfaceRoute,
   type UnpinnedGrammar,
   type UnpinnedSegment,
+  serializeRoutePath,
 } from './route-path.js';
 
 export {

@@ -1,5 +1,5 @@
 /** @filedesc Derive Definition Walk targets from the routes of an exported static Surface preview. */
-import { composeSurfaceApp, createThemeAuthority, createWidgetRegistry, dereferenceBundleExport, flattenRegistryEntries, formHref, matchRoute, planMatchedRoute, routeHref } from '@formspec-org/surface';
+import { composeSurfaceApp, createThemeAuthority, createWidgetRegistry, dereferenceBundleExport, flattenRegistryEntries, formHref, matchRoute, planMatchedRoute, routeHref, serializeRoutePath } from '@formspec-org/surface';
 import { LocaleStore, preactReactiveRuntime } from '@formspec-org/engine';
 import { targetDefinitionMatches } from '@formspec-org/types';
 
@@ -52,7 +52,7 @@ export function surfaceWalkTargets(exported, { url, params = {}, locale }) {
     for (const handle of app.routes) {
         const routeId = `${handle.surfaceId}/${handle.routeId}`;
         const route = routeHref(handle, params);
-        const pathname = route.href;
+        const pathname = serializeRoutePath(route.href);
         const match = route.refusal ? undefined : matchRoute(app, pathname).match;
         const plan = planMatchedRoute({
             ...bundle, handle, app, params: { ...params, ...match?.params }, registryEntries: registry.entries, widgets,

@@ -1,5 +1,6 @@
 /** @filedesc Read and write Surface addresses through browser session history. */
 import { useCallback, useLayoutEffect, useRef, useSyncExternalStore, type MouseEvent } from 'react';
+import { serializeRoutePath } from '@formspec-org/surface';
 
 export type SurfaceBrowserMode = 'history' | 'hash';
 
@@ -74,16 +75,6 @@ export function splitSurfaceLocation(location: string): SurfaceLocation {
     : { path: location.slice(0, queryAt), query: new URLSearchParams(location.slice(queryAt + 1)) };
 }
 
-function serializeBrowserPath(path: string): string {
-  return path.split('/').map(segment => {
-    // A malformed escape is literal to matchRoute. Preserve its whole segment.
-    try { decodeURIComponent(segment); }
-    catch { segment = segment.replaceAll('%', '%25'); }
-    // Browsers treat raw backslashes as slashes and swallow some controls.
-    return segment.replace(/[\\#\u0000-\u0020\u007f]/g, encodeURIComponent);
-  }).join('/');
-}
-
 export function surfaceBrowserLocation(mode: SurfaceBrowserMode, basePath: string) {
   const base = basePath === '/' ? '' : basePath.replace(/\/+$/, '');
   return {
@@ -102,7 +93,7 @@ export function surfaceBrowserLocation(mode: SurfaceBrowserMode, basePath: strin
       return { path: url.pathname.slice(base.length), query: url.searchParams };
     },
     href(path: string, query: URLSearchParams): string | undefined {
-      const pathname = serializeBrowserPath(path.startsWith('/') ? path : `/${path}`);
+      const pathname = serializeRoutePath(path.startsWith('/') ? path : `/${path}`);
       // History URL parsing removes dot segments before a route can match them.
       if (mode === 'history' && /\/(?:\.|%2e){1,2}(?=\/|$)/i.test(pathname)) return undefined;
       const search = query.toString();

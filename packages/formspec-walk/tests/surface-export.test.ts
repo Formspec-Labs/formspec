@@ -33,6 +33,14 @@ it('walks mounted forms when the export also contains a supporting Definition', 
     expect(surfaceWalkTargets(bundle, options)).toHaveLength(3);
 });
 
+it('preserves a literal fragment character in an authored route', () => {
+    const bundle = structuredClone(surfaceWalkExport);
+    const surface = bundle.documents['urn:example:surface:registration'] as { routes: { path: string }[] };
+    surface.routes[0].path = '/contact#details';
+    const [contact] = surfaceWalkTargets(bundle, options);
+    expect(new URL(contact.url).hash).toBe('#/contact%23details?edition=sample&slot=details');
+});
+
 it('derives sparse regional wording and navigation from the engine Locale cascade', () => {
     const bundle = structuredClone(surfaceWalkExport);
     for (const form of ['contact', 'equipment']) {
