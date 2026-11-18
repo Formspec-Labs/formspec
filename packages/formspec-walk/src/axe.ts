@@ -5,7 +5,7 @@ import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
 import type { HostDocuments } from '@formspec-org/webcomponent/host';
 import { revealSearch, type RecipeStep } from './reveal.js';
 import { pagePosition } from './page-navigation.js';
-import { DEFAULT_WALK_ROOT_SELECTOR } from './checks.js';
+import { DEFAULT_WALK_ROOT_SELECTOR, WALK_FORM_CONTENT_SELECTOR } from './checks.js';
 
 /** axe rule tags the check runs: WCAG 2.0 A/AA, 2.1 A/AA and 2.2 AA. */
 export const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] as const;
@@ -540,8 +540,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
 
 /** The page after `open`: drawn, or a renderer failure with its reason. */
 async function waitForForm(page: Page, rootSelector: string): Promise<void> {
-    const ready = `:is([data-formspec-form], ${WORKSPACE}, ${WIZARD_PANEL}, ${TAB_PANEL})`;
-    await page.waitForSelector(`:is(${rootSelector}) ${ready}, html[data-formspec-host="error"]`, { state: 'attached' });
+    await page.waitForSelector(`:is(${rootSelector}) ${WALK_FORM_CONTENT_SELECTOR}, html[data-formspec-host="error"]`, { state: 'attached' });
     const error = await page.evaluate(() => (window as { __formspecHost?: { error?: string } }).__formspecHost?.error);
     if (error) throw new RendererError(error);
 }

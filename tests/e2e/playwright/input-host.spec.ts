@@ -1,6 +1,6 @@
 /** @filedesc Native keyboard choices survive a React host input rerender, including repeats. */
 import { expect, test } from '@playwright/test';
-import { Walk } from '../../../packages/formspec-walk/src/index.js';
+import { checkAccessibility, Walk } from '../../../packages/formspec-walk/src/index.js';
 
 test('one browser action keeps each native choice in DOM and response, including Add row', async ({ page }) => {
     await page.goto('/input-host.html');
@@ -28,6 +28,16 @@ test('Definition Walk detects the same one-action failure in the actual React ho
     await walk.field('state', { label: 'State', required: false, options: ['Alaska', 'California'] });
     walk.expectClean();
     await expect(page.locator('[data-edits]')).toHaveAttribute('data-edits', '1');
+});
+
+test('axe visits a single-page React form on its host', async ({ page }) => {
+    await page.goto('/input-host.html');
+    const root = '[data-formspec-render-root]';
+    await expect(page.getByLabel('State', { exact: true }).first()).toBeVisible();
+    const report = await checkAccessibility(page, {
+        open: page => Walk.openPage(page, { root }), root, scanWholePage: true, timeoutMs: 5_000,
+    });
+    expect(report, report.failure?.message).toMatchObject({ status: 'completed', pages: { kind: 'single', visited: 1 } });
 });
 
 for (const [key, shown, saved] of [['f', '1.0', 1], ['o', '1.50', 1.5], ['t', '02', 2]] as const) {

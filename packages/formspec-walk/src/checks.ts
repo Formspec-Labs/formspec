@@ -146,6 +146,8 @@ declare global {
 /** Default selector matching `<formspec-render>` or a React `<FormspecForm>` root container. */
 export const DEFAULT_WALK_ROOT_SELECTOR =
     ':is(formspec-render, [data-formspec-render-root], .formspec-container:not(formspec-render .formspec-container):has([data-formspec-form]))';
+export const WALK_FORM_CONTENT_SELECTOR =
+    ':is([data-formspec-form], [data-name], .formspec-repeat, .formspec-workspace, .formspec-wizard-panel, [role="tabpanel"])';
 
 /**
  * One rendered form under test. Each method checks one thing the documents promise and records what
@@ -175,9 +177,8 @@ export class Walk {
         if (options.url) await page.goto(options.url);
         if (options.mount) await options.mount(page);
         // A display-only pager can mount without fields. Hidden earlier tabs may already be in the DOM.
-        const ready = ':is([data-name], .formspec-repeat, .formspec-workspace, .formspec-wizard-panel, [role="tabpanel"]):visible';
         const root = options.root === undefined ? rootSelector : `:is(${rootSelector})`;
-        await page.waitForSelector(`${root} ${ready}`);
+        await page.waitForSelector(`${root} ${WALK_FORM_CONTENT_SELECTOR}:visible`);
         if (options.expectedDefinition) {
             const expected = options.expectedDefinition;
             const matches = await page.locator(rootSelector).evaluate((element, target) => {
