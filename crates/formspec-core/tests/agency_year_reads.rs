@@ -2,7 +2,7 @@
 #![cfg(feature = "response-selection")]
 
 use formspec_core::{
-    check_instance_projection,
+    ProjectionConsumer, check_instance_projection,
     response_selection::{SelectionRecordKind, select_json, subject_id_json},
 };
 use serde_json::{Value, json};
@@ -60,10 +60,14 @@ fn people_served_reads_the_current_sibling_and_previous_filing_for_the_same_agen
     let report: Value = serde_json::from_str(PEOPLE_SERVED).unwrap();
     let current = &report["instances"]["module_2"];
     let prior = &report["instances"]["prior_year"];
-    for (instance, upstream) in [(current, &module), (prior, &report)] {
+    for (name, upstream) in [("module_2", &module), ("prior_year", &report)] {
+        let consumer = ProjectionConsumer::Instance {
+            definition: report.clone(),
+            name: name.into(),
+        };
         let findings = check_instance_projection(
-            instance,
-            report.get("subject"),
+            &report["instances"][name],
+            Some(&consumer),
             std::slice::from_ref(upstream),
         );
         assert!(findings.is_empty(), "{findings:?}");
