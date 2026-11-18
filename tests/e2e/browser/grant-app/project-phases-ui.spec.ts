@@ -8,6 +8,7 @@ import {
   addRepeatInstance,
 } from '../helpers/grant-app';
 
+// Core §3.4.1 and ADR 0170 require money amounts to be decimal strings.
 test.describe('Grant App: Project Phases UI', () => {
   test.beforeEach(async ({ page }) => {
     await mountGrantApplication(page);
@@ -35,7 +36,7 @@ test.describe('Grant App: Project Phases UI', () => {
     await expect(phaseTotalText).toContainText('$1,000.00');
 
     const phaseTotal = await engineValue(page, 'projectPhases[0].phaseTotal');
-    expect(phaseTotal).toMatchObject({ amount: 1000, currency: 'USD' });
+    expect(phaseTotal).toMatchObject({ amount: '1000', currency: 'USD' });
   });
 
   test('should update phaseTotal when task data is entered via engine', async ({ page }) => {
@@ -60,7 +61,7 @@ test.describe('Grant App: Project Phases UI', () => {
     await expect(panel).toContainText('$1,200.00');
 
     const phaseTotal = await engineValue(page, 'projectPhases[0].phaseTotal');
-    expect(phaseTotal).toMatchObject({ amount: 1200, currency: 'USD' });
+    expect(phaseTotal).toMatchObject({ amount: '1200', currency: 'USD' });
   });
 
   test('should display non-zero projectPhasesTotal in the Phases Summary card', async ({ page }) => {
@@ -86,7 +87,7 @@ test.describe('Grant App: Project Phases UI', () => {
     await expect(summaryCard).toContainText('$1,500.00');
 
     const total = await engineVariable(page, 'projectPhasesTotal');
-    expect(total).toMatchObject({ amount: 1500, currency: 'USD' });
+    expect(total).toMatchObject({ amount: '1500', currency: 'USD' });
   });
 });
 

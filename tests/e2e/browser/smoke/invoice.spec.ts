@@ -17,6 +17,8 @@ import {
   getResponse,
 } from '../helpers/invoice';
 
+// All money expectations follow Core §3.4.1 and ADR 0170, which require a decimal string for the amount.
+
 test.describe('Smoke: Invoice Form', () => {
   test('should load form and render all key sections', async ({ page }) => {
     await mountInvoice(page);
@@ -164,11 +166,11 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('3');
     await priceInput.fill('100');
-    await waitForEngineValue(page, 'lineItems[0].lineTotal', { amount: 300, currency: 'USD' });
+    await waitForEngineValue(page, 'lineItems[0].lineTotal', { amount: '300', currency: 'USD' });
 
     // lineTotal[0] = 3 * 100 = 300
     const lineTotal = await engineValue(page, 'lineItems[0].lineTotal');
-    expect(lineTotal).toEqual({ amount: 300, currency: 'USD' });
+    expect(lineTotal).toEqual({ amount: '300', currency: 'USD' });
   });
 
   test('should update Subtotal reactively when line items change', async ({ page }) => {
@@ -179,10 +181,10 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     const priceInput0 = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput0.fill('2');
     await priceInput0.fill('50');
-    await waitForEngineValue(page, 'totals.subtotal', { amount: 100, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.subtotal', { amount: '100', currency: 'USD' });
 
     const subtotalAfterRow0 = await engineValue(page, 'totals.subtotal');
-    expect(subtotalAfterRow0).toEqual({ amount: 100, currency: 'USD' });
+    expect(subtotalAfterRow0).toEqual({ amount: '100', currency: 'USD' });
 
     // Add a second row: qty=1, price=75
     const addBtn = page.locator('button.formspec-datatable-add');
@@ -193,11 +195,11 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     const priceInput1 = page.locator('input.formspec-datatable-input[name="lineItems[1].unitPrice"]');
     await qtyInput1.fill('1');
     await priceInput1.fill('75');
-    await waitForEngineValue(page, 'totals.subtotal', { amount: 175, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.subtotal', { amount: '175', currency: 'USD' });
 
     // Subtotal = 100 + 75 = 175
     const subtotalAfterRow1 = await engineValue(page, 'totals.subtotal');
-    expect(subtotalAfterRow1).toEqual({ amount: 175, currency: 'USD' });
+    expect(subtotalAfterRow1).toEqual({ amount: '175', currency: 'USD' });
   });
 
   test('should compute Grand Total as subtotal with zero tax and zero discount', async ({ page }) => {
@@ -208,11 +210,11 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('4');
     await priceInput.fill('25');
-    await waitForEngineValue(page, 'totals.grandTotal', { amount: 100, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.grandTotal', { amount: '100', currency: 'USD' });
 
     // With taxRate=0 and discountPercent=0 (both initialValues), grand total = subtotal = 100
     const grandTotal = await engineValue(page, 'totals.grandTotal');
-    expect(grandTotal).toEqual({ amount: 100, currency: 'USD' });
+    expect(grandTotal).toEqual({ amount: '100', currency: 'USD' });
   });
 
   test('should compute Grand Total correctly with multiple line items, tax, and discount', async ({ page }) => {
@@ -223,7 +225,7 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     const priceInput0 = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput0.fill('5');
     await priceInput0.fill('200');
-    await waitForEngineValue(page, 'totals.subtotal', { amount: 1000, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.subtotal', { amount: '1000', currency: 'USD' });
 
     // subtotal = 1000, taxRate=10%, discountPercent=5%
     // taxAmount = 1000 * 10/100 = 100
@@ -231,19 +233,19 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
     // grandTotal = 1000 + 100 - 50 = 1050
     await engineSetValue(page, 'totals.taxRate', 10);
     await engineSetValue(page, 'totals.discountPercent', 5);
-    await waitForEngineValue(page, 'totals.grandTotal', { amount: 1050, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.grandTotal', { amount: '1050', currency: 'USD' });
 
     const subtotal = await engineValue(page, 'totals.subtotal');
-    expect(subtotal).toEqual({ amount: 1000, currency: 'USD' });
+    expect(subtotal).toEqual({ amount: '1000', currency: 'USD' });
 
     const taxAmount = await engineValue(page, 'totals.taxAmount');
-    expect(taxAmount).toEqual({ amount: 100, currency: 'USD' });
+    expect(taxAmount).toEqual({ amount: '100', currency: 'USD' });
 
     const discountAmount = await engineValue(page, 'totals.discountAmount');
-    expect(discountAmount).toEqual({ amount: 50, currency: 'USD' });
+    expect(discountAmount).toEqual({ amount: '50', currency: 'USD' });
 
     const grandTotal = await engineValue(page, 'totals.grandTotal');
-    expect(grandTotal).toEqual({ amount: 1050, currency: 'USD' });
+    expect(grandTotal).toEqual({ amount: '1050', currency: 'USD' });
   });
 
   test('should recalculate line total to null when unit price is cleared', async ({ page }) => {
@@ -254,11 +256,11 @@ test.describe('Calculations: Line Total, Subtotal, Grand Total', () => {
 
     await qtyInput.fill('3');
     await priceInput.fill('100');
-    await waitForEngineValue(page, 'lineItems[0].lineTotal', { amount: 300, currency: 'USD' });
+    await waitForEngineValue(page, 'lineItems[0].lineTotal', { amount: '300', currency: 'USD' });
 
     // Verify line total is set
     const beforeClear = await engineValue(page, 'lineItems[0].lineTotal');
-    expect(beforeClear).toEqual({ amount: 300, currency: 'USD' });
+    expect(beforeClear).toEqual({ amount: '300', currency: 'USD' });
 
     // Clear unit price — line total should revert to null
     await priceInput.fill('');
@@ -280,15 +282,15 @@ test.describe('Tax and Discount Calculations', () => {
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('10');
     await priceInput.fill('100');
-    await waitForEngineValue(page, 'totals.subtotal', { amount: 1000, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.subtotal', { amount: '1000', currency: 'USD' });
 
     // Set tax rate to 8%
     await engineSetValue(page, 'totals.taxRate', 8);
-    await waitForEngineValue(page, 'totals.taxAmount', { amount: 80, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.taxAmount', { amount: '80', currency: 'USD' });
 
     // taxAmount = 1000 * 8/100 = 80
     const taxAmount = await engineValue(page, 'totals.taxAmount');
-    expect(taxAmount).toEqual({ amount: 80, currency: 'USD' });
+    expect(taxAmount).toEqual({ amount: '80', currency: 'USD' });
   });
 
   test('should compute Discount Amount when discount percent is set', async ({ page }) => {
@@ -299,20 +301,20 @@ test.describe('Tax and Discount Calculations', () => {
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('2');
     await priceInput.fill('500');
-    await waitForEngineValue(page, 'totals.subtotal', { amount: 1000, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.subtotal', { amount: '1000', currency: 'USD' });
 
     // Set discount to 20%
     await engineSetValue(page, 'totals.discountPercent', 20);
-    await waitForEngineValue(page, 'totals.discountAmount', { amount: 200, currency: 'USD' });
-    await waitForEngineValue(page, 'totals.grandTotal', { amount: 800, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.discountAmount', { amount: '200', currency: 'USD' });
+    await waitForEngineValue(page, 'totals.grandTotal', { amount: '800', currency: 'USD' });
 
     // discountAmount = 1000 * 20/100 = 200
     const discountAmount = await engineValue(page, 'totals.discountAmount');
-    expect(discountAmount).toEqual({ amount: 200, currency: 'USD' });
+    expect(discountAmount).toEqual({ amount: '200', currency: 'USD' });
 
     // grandTotal = 1000 + 0 (no tax) - 200 = 800
     const grandTotal = await engineValue(page, 'totals.grandTotal');
-    expect(grandTotal).toEqual({ amount: 800, currency: 'USD' });
+    expect(grandTotal).toEqual({ amount: '800', currency: 'USD' });
   });
 
   test('should warn when grand total goes negative', async ({ page }) => {
@@ -338,7 +340,7 @@ test.describe('Tax and Discount Calculations', () => {
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('1');
     await priceInput.fill('10');
-    await waitForEngineValue(page, 'totals.subtotal', { amount: 10, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.subtotal', { amount: '10', currency: 'USD' });
 
     // Apply a huge discount: 200% of subtotal
     // discountAmount = 10 * 200/100 = 20
@@ -461,7 +463,7 @@ test.describe('Validation: Required Fields and Constraints', () => {
     const priceInput = page.locator('input.formspec-datatable-input[name="lineItems[0].unitPrice"]');
     await qtyInput.fill('1');
     await priceInput.fill('100');
-    await waitForEngineValue(page, 'totals.subtotal', { amount: 100, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.subtotal', { amount: '100', currency: 'USD' });
 
     // 200% discount → discountAmount = 200, subtotal = 100 → discountAmount > subtotal
     await engineSetValue(page, 'totals.discountPercent', 200);
@@ -492,7 +494,7 @@ test.describe('Response Contract', () => {
     await descInput.fill('Widget');
     await qtyInput.fill('2');
     await priceInput.fill('150');
-    await waitForEngineValue(page, 'totals.subtotal', { amount: 300, currency: 'USD' });
+    await waitForEngineValue(page, 'totals.subtotal', { amount: '300', currency: 'USD' });
 
     const response = await getResponse(page, 'continuous');
 
@@ -505,6 +507,6 @@ test.describe('Response Contract', () => {
     expect(response.data.lineItems[0].itemDescription).toBe('Widget');
     expect(response.data.lineItems[0].quantity).toBe(2);
     expect(response.data).toHaveProperty('totals');
-    expect(response.data.totals.subtotal).toEqual({ amount: 300, currency: 'USD' });
+    expect(response.data.totals.subtotal).toEqual({ amount: '300', currency: 'USD' });
   });
 });

@@ -353,6 +353,7 @@ test.describe('Screener: Rendering and Route Selection', () => {
     const detail = await routePromise;
     expect(detail.answers.applicantType).toBe('government');
     expect(detail.answers.isReturning).toBe(true);
-    expect(detail.answers.requestedAmount).toEqual({ amount: 75000, currency: 'USD' });
+    // Core §3.4.1 and ADR 0170 require money amounts to be decimal strings.
+    expect(detail.answers.requestedAmount).toEqual({ amount: '75000', currency: 'USD' });
   });
 });

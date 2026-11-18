@@ -47,7 +47,8 @@ test.describe('Grant App: No Negative Hourly Rate in Project Phases', () => {
 
     await expect(rateInput).toHaveValue('0');
     const value = await engineValue(page, 'projectPhases[0].phaseTasks[0].hourlyRate');
-    expect(value).toMatchObject({ amount: 0, currency: 'USD' });
+    // Core §3.4.1 and ADR 0170 require money amounts to be decimal strings.
+    expect(value).toMatchObject({ amount: '0', currency: 'USD' });
   });
 });
 

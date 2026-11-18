@@ -395,6 +395,7 @@ test.describe('Tribal Long: Shape Constraints', () => {
 // Expenditure total auto-calculation
 // ---------------------------------------------------------------------------
 
+// Core §3.4.1 and ADR 0170 require money amounts to be decimal strings.
 test.describe('Tribal Long: Expenditure Total Calculation', () => {
   test.beforeEach(async ({ page }) => {
     await mountTribalLong(page);
@@ -406,17 +407,8 @@ test.describe('Tribal Long: Expenditure Total Calculation', () => {
     await waitForRelevant(page, 'expenditures.housing', true);
     await engineSetValue(page, 'expenditures.employment', 45000);
     await engineSetValue(page, 'expenditures.housing', 32000);
-    await waitForEngineValue(page, 'expenditures.total', { amount: 77000, currency: 'USD' });
-
-    const total = await engineValue(page, 'expenditures.total');
-    // The calculate expression uses moneySum, which returns a money object {amount, currency}
-    // when any operand is already a money object (default bind applies { amount: "0", currency: "USD" }).
-    // Normalise: accept either a plain number or a money object.
-    const totalAmount =
-      total !== null && typeof total === 'object' && 'amount' in total
-        ? Number(total.amount)
-        : Number(total);
-    expect(totalAmount).toBe(77000);
+    await expect.poll(() => engineValue(page, 'expenditures.total'))
+      .toEqual({ amount: '77000', currency: 'USD' });
   });
 
   test('adding new topics after interaction does not trigger TYPE_MISMATCH on expenditure fields', async ({ page }) => {
@@ -424,7 +416,7 @@ test.describe('Tribal Long: Expenditure Total Calculation', () => {
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment']);
     await waitForRelevant(page, 'expenditures.employment', true);
     await engineSetValue(page, 'expenditures.employment', 45000);
-    await waitForEngineValue(page, 'expenditures.employment', { amount: 45000, currency: 'USD' });
+    await waitForEngineValue(page, 'expenditures.employment', { amount: '45000', currency: 'USD' });
 
     // Step 2: Add a second topic (housing becomes relevant, gets default)
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment', 'housing']);
@@ -438,17 +430,12 @@ test.describe('Tribal Long: Expenditure Total Calculation', () => {
     expect(typeMismatches).toHaveLength(0);
   });
 
-  test('money field defaults produce valid money objects (numeric amount)', async ({ page }) => {
-    // Selecting a topic makes its expenditure field relevant with default { amount: "0", currency: "USD" }
-    // The default amount is a string "0" — the engine should coerce it to numeric 0
+  test('money field defaults produce valid money objects with exact decimal strings', async ({ page }) => {
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment']);
     await waitForRelevant(page, 'expenditures.employment', true);
 
     const val = await engineValue(page, 'expenditures.employment');
-    // The amount must be a number (not string "0") for validateDataType to pass
-    if (val && typeof val === 'object' && 'amount' in val) {
-      expect(typeof val.amount).toBe('number');
-    }
+    expect(val).toEqual({ amount: '0', currency: 'USD' });
 
     // No TYPE_MISMATCH on the field
     const report = await getValidationReport(page, 'continuous');

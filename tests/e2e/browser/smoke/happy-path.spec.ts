@@ -40,8 +40,9 @@ test.describe('Smoke: Grant Application Happy Path', () => {
     await unitCostInput.fill('250');
     await expect(unitCostInput).toHaveValue('250');
 
-    // 7. Verify @totalDirect (a money object {amount, currency}) becomes non-zero
-    await expect.poll(async () => (await engineVariable(page, 'totalDirect'))?.amount).toBeGreaterThan(0);
+    // Core §3.4.1 and ADR 0170 require money amounts to be decimal strings.
+    await expect.poll(() => engineVariable(page, 'totalDirect'))
+      .toEqual({ amount: '1000', currency: 'USD' });
 
     // 8. Get the response and assert structural contract
     const response = await getResponse(page, 'continuous');

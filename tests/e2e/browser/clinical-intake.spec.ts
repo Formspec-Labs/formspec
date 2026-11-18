@@ -915,10 +915,20 @@ test.describe('Clinical Intake: Response Contract', () => {
     expect(response.data.patient.sex).toBe('female');
   });
 
-  test('response includes currentVisit and medicalHistory groups', async ({ page }) => {
+  test('response nests current visit and medical history answers under their groups', async ({ page }) => {
+    // Core §2.1.6 describes captured data. Response creation (fs-i731) leaves unanswered fields absent.
+    const blank = await getResponse(page, 'continuous');
+    expect(blank.data).not.toHaveProperty('currentVisit');
+    expect(blank.data.medicalHistory).toEqual({ conditions: [] });
+
+    await engineSetValue(page, 'currentVisit.symptoms', ['fever']);
+    await engineSetValue(page, 'medicalHistory.hasAllergies', false);
+
     const response = await getResponse(page, 'continuous');
-    expect(response.data).toHaveProperty('currentVisit');
-    expect(response.data).toHaveProperty('medicalHistory');
+    expect(response.data).toMatchObject({
+      currentVisit: { symptoms: ['fever'] },
+      medicalHistory: { hasAllergies: false },
+    });
     expect(response.data).toHaveProperty('assessment');
   });
 

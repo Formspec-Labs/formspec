@@ -72,7 +72,8 @@ test.describe('Grant Report: Default Bind Re-relevance', () => {
     // Set a value (setValue coerces numbers to money objects for money-typed fields)
     await engineSetValue(page, 'expenditures.employment', 45000);
     const setVal = await engineValue(page, 'expenditures.employment');
-    expect(setVal).toEqual(expect.objectContaining({ amount: 45000 }));
+    // Core §3.4.1 and ADR 0170 require money amounts to be decimal strings.
+    expect(setVal).toEqual({ amount: '45000', currency: 'USD' });
 
     // Deselect → non-relevant
     await engineSetValue(page, 'expenditures.applicableTopics', []);
@@ -85,9 +86,9 @@ test.describe('Grant Report: Default Bind Re-relevance', () => {
     await engineSetValue(page, 'expenditures.applicableTopics', ['employment']);
     await waitForRelevant(page, 'expenditures.employment', true);
 
-    // The default bind should set the value to money object with amount 0
+    // Core §5.6 reapplies the Bind default when the field becomes relevant again.
     const val = await engineValue(page, 'expenditures.employment');
-    expect(val).toEqual(expect.objectContaining({ amount: 0, currency: 'USD' }));
+    expect(val).toEqual({ amount: '0', currency: 'USD' });
   });
 
   test('no constraint errors for default value 0 with $ >= 0', async ({ page }) => {
@@ -114,18 +115,9 @@ test.describe('Grant Report: Calculate + Admin Gate', () => {
     await waitForRelevant(page, 'expenditures.employment', true);
     await engineSetValue(page, 'expenditures.employment', 45000);
     await engineSetValue(page, 'expenditures.housing', 32000);
-    await page.waitForFunction(() => {
-      const el: any = document.querySelector('formspec-render');
-      const v = el?.getEngine()?.signals['expenditures.total']?.value;
-      const amount = v && typeof v === 'object' && 'amount' in v ? Number(v.amount) : Number(v);
-      return amount === 77000;
-    });
-
-    const total = await engineValue(page, 'expenditures.total');
-    // moneySum returns a money object; verify amount
-    const totalAmount = total && typeof total === 'object' && 'amount' in total
-      ? Number(total.amount) : Number(total);
-    expect(totalAmount).toBe(77000);
+    // Core §3.4.1 and ADR 0170 require money amounts to be decimal strings.
+    await expect.poll(() => engineValue(page, 'expenditures.total'))
+      .toEqual({ amount: '77000', currency: 'USD' });
   });
 
   test('administration expenditure only relevant when hasAdministrationCosts is true', async ({ page }) => {
