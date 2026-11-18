@@ -27,6 +27,10 @@ fn expression_diagnostics_name_the_authored_slot_in_every_mode() {
             include_str!("../../../tests/fixtures/lint/E405-unprojected-path.json"),
         ),
         (
+            "E408",
+            include_str!("../../../tests/fixtures/lint/E408-builtin-arity-mismatch.json"),
+        ),
+        (
             "W405",
             include_str!("../../../tests/fixtures/lint/W405-informative-instance-path.json"),
         ),

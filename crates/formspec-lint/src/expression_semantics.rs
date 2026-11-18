@@ -59,6 +59,11 @@ impl<'a> ExpressionSemantics<'a> {
         migration: bool,
         diagnostics: &mut Vec<LintDiagnostic>,
     ) {
+        diagnostics.extend(
+            fel_core::builtin_arity_mismatches(parsed)
+                .into_iter()
+                .map(|mismatch| error(LintCode::E408, 4, path, mismatch.message)),
+        );
         self.check_reads(
             &extract_dependencies(parsed),
             path,

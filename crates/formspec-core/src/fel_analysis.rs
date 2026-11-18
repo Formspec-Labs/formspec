@@ -97,7 +97,7 @@ pub fn analyze_fel_with_dependencies(
                 .filter(|name| !RESERVED_CONTEXT_NAMES.contains(name))
                 .map(str::to_owned)
                 .collect();
-            let mut warnings = check_function_arity(&dependencies.function_calls);
+            let mut warnings = check_function_arity(&expr);
             if !field_types.is_empty() {
                 check_comparison_types(&expr, field_types, &mut warnings);
             }
@@ -126,43 +126,29 @@ pub fn analyze_fel_with_dependencies(
     }
 }
 
-/// Check function call arity against the builtin catalog.
-fn check_function_arity(calls: &[(String, usize)]) -> Vec<FelAnalysisWarning> {
-    let catalog: HashMap<&str, (usize, Option<usize>)> = builtin_function_catalog()
-        .iter()
-        .map(|entry| {
-            let min = entry
-                .parameters
-                .iter()
-                .filter(|p| p.required && !p.variadic)
-                .count();
-            let max = if entry.parameters.iter().any(|p| p.variadic) {
-                None
-            } else {
-                Some(entry.parameters.len())
+/// Preserve the editor's warning wording while using the evaluator's arity check.
+fn check_function_arity(expr: &Expr) -> Vec<FelAnalysisWarning> {
+    use fel_core::DiagnosticKind;
+    fel_core::builtin_arity_mismatches(expr)
+        .into_iter()
+        .filter_map(|diagnostic| {
+            let DiagnosticKind::ArityMismatch {
+                name,
+                min_args,
+                max_args,
+                got,
+            } = diagnostic.kind?
+            else {
+                return None;
             };
-            (entry.name, (min, max))
+            let message = if got < min_args {
+                format!("{name}() requires at least {min_args} arg(s), got {got}")
+            } else {
+                format!("{name}() accepts at most {} arg(s), got {got}", max_args?)
+            };
+            Some(FelAnalysisWarning { message })
         })
-        .collect();
-
-    let mut warnings = Vec::new();
-    for (name, arg_count) in calls {
-        let Some(&(min, max)) = catalog.get(name.as_str()) else {
-            continue; // unknown function — no arity to check
-        };
-        if *arg_count < min {
-            warnings.push(FelAnalysisWarning {
-                message: format!("{name}() requires at least {min} arg(s), got {arg_count}"),
-            });
-        } else if let Some(mx) = max {
-            if *arg_count > mx {
-                warnings.push(FelAnalysisWarning {
-                    message: format!("{name}() accepts at most {mx} arg(s), got {arg_count}"),
-                });
-            }
-        }
-    }
-    warnings
+        .collect()
 }
 
 // ── Operator type checking (ARCH-3) ────────────────────────────────────────
@@ -583,7 +569,9 @@ pub fn analyze_fel_with_field_types(
 
 /// Extract static dependencies, returning an empty set for unparsable runtime expressions.
 pub fn get_fel_dependencies(expression: &str) -> fel_core::Dependencies {
-    parse(expression).map(|expr| extract_dependencies(&expr)).unwrap_or_default()
+    parse(expression)
+        .map(|expr| extract_dependencies(&expr))
+        .unwrap_or_default()
 }
 
 // ── AST walking ─────────────────────────────────────────────────

@@ -1,0 +1,16 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:builtin-arity",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Builtin arity",
+  "items": [
+    {
+      "key": "day",
+      "type": "field",
+      "dataType": "date",
+      "label": "Day",
+      "initialValue": "=date(2027, 10, 1)"
+    }
+  ]
+}

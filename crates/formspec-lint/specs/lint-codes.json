@@ -403,6 +403,18 @@
       "state": "tested"
     },
     {
+      "code": "E408",
+      "pass": 4,
+      "severity": "error",
+      "title": "Built-in FEL function has the wrong argument count",
+      "specRef": "specs/core/spec.md#3101-definition-errors",
+      "suggestedFix": "use the argument count declared in the FEL function catalog",
+      "fixtures": [
+        "tests/fixtures/lint/E408-builtin-arity-mismatch.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "E500",
       "pass": 5,
       "severity": "error",
