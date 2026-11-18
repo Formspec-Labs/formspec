@@ -4,7 +4,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AddressInfo } from 'node:net';
 import { chromium, type Browser } from '@playwright/test';
 import { renderHostPage, type HostDocuments } from '@formspec-org/webcomponent/host';
-import { checkAccessibility, expectedPages, CHECK_VERSION, DEFAULT_TIMEOUT_MS, MANUAL_REVIEW, WCAG_TAGS, type CheckFailure, type RendererCheckReport } from './axe.js';
+import { checkAccessibility, CHECK_VERSION, DEFAULT_TIMEOUT_MS, MANUAL_REVIEW, WCAG_TAGS, type CheckFailure, type RendererCheckReport } from './axe.js';
 
 /** Largest request body accepted: a Definition with its Theme and Locales. */
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
@@ -100,7 +100,7 @@ export class AccessibilityServer {
                 const report = await checkAccessibility(page, {
                     open: async (p) => { await p.goto(hostUrl, { timeout: Math.max(1, this.timeoutMs - elapsed()) }); },
                     allow: (url) => url === hostUrl,
-                    expectedPages: expectedPages(documents.definition, documents.theme),
+                    documents,
                     timeoutMs: Math.max(1, this.timeoutMs - elapsed()),
                 });
                 return { ...report, totalMs: elapsed() };

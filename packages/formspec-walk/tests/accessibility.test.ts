@@ -219,6 +219,36 @@ describe('every page is visited, or the check fails', () => {
         expect(expectedPages(form('wizard', [group('one', []), group('two', [])]), themed)).toBe(2);
     });
 
+    it('counts workspace sections in the shared plan, including interleaved loose content', () => {
+        const definition = form('workspace', [
+            field('opening', 'Opening'), group('one', [field('a', 'A')]), field('between', 'Between'),
+            group('two', [field('b', 'B')]), field('closing', 'Closing'),
+        ]);
+        expect(expectedPages(definition)).toBe(5);
+        expect(expectedPages(definition, { pages: [
+            { id: 'instructions', title: 'Instructions' },
+            { id: 'answers', title: 'Answers', regions: [{ key: 'one', span: 12 }] },
+        ] })).toBe(3);
+    });
+
+    it('checks all rendered fields when the standalone host draws a workspace as one page', async () => {
+        // Core §4.1.2 requires a single-page fallback for unsupported page modes.
+        const res = await post({ definition: form('workspace', [
+            group('one', [field('a', 'A')]), group('two', [field('b', 'B')]), group('three', [unlabelled('c')]),
+        ]) });
+        const report = await res.json() as RendererCheckReport;
+        expect(res.status, JSON.stringify(report.failure)).toBe(200);
+        expect(report.status).toBe('completed');
+        expect(report.pages).toEqual({ kind: 'single', expectedMin: 1, drawn: 1, visited: 1, revealedFields: 0 });
+        expect(report.violations.filter(finding => finding.rule === 'label')).toEqual(['page-1', 'errors-1'].map(state =>
+            expect.objectContaining({ state, nodes: [expect.objectContaining({ html: expect.stringContaining('three.c') })] }),
+        ));
+        expect(report.needsReview.filter(finding => finding.rule === 'formspec-workspace-fallback')).toEqual([
+            expect.objectContaining({ help: 'The renderer drew this workspace form as one page; section navigation, search and findings were not checked' }),
+        ]);
+        expect(report.needsReview.some(finding => finding.rule === 'formspec-unreached-section')).toBe(false);
+    });
+
     it('a field hidden by relevance is shown by the value that reveals it, and checked', async () => {
         const definition = {
             $formspec: '1.0', url: 'urn:test:reveal', version: '1.0.0', status: 'draft', title: 'reveal',

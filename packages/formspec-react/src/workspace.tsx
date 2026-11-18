@@ -192,12 +192,12 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
         const current = page === active ? 'location' : undefined;
         const activate = () => navigate(page);
         return href ? (
-            <a href={href} aria-current={current} onClick={event => {
+            <a href={href} aria-current={current} data-formspec-section={page.id} onClick={event => {
                 if (event.defaultPrevented || event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
                 event.preventDefault();
                 activate();
             }}>{label}</a>
-        ) : <button type="button" aria-current={current} onClick={activate}>{label}</button>;
+        ) : <button type="button" aria-current={current} data-formspec-section={page.id} onClick={activate}>{label}</button>;
     };
     const renderShared = (node: LayoutNode) => <FormspecNode key={node.id} node={node} />;
 
@@ -225,7 +225,7 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
                         </li>)}
                     </ul>
                 </div>
-                <div className="formspec-workspace__content">
+                <div className="formspec-workspace__content" data-formspec-section={active?.id ?? ''}>
                     <Heading ref={heading} tabIndex={-1}>{titles[activeIndex] ?? formTitle}</Heading>
                     <p role="status">{notice}</p>
                     {root.children.filter(node => !content.has(node) && node.component === 'ValidationSummary').map(renderShared)}

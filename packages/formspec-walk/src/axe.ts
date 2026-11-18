@@ -1,5 +1,8 @@
-/** @filedesc The reference-renderer accessibility check: axe-core (WCAG A/AA) on each wizard page and again with validation errors shown, as a structured report. */
-import type { Page } from '@playwright/test';
+/** @filedesc Run axe on each form page and report coverage, violations, and items for review. */
+import type { Locator, Page } from '@playwright/test';
+import { mergeFormPresentationForPlanning, placementCovers, resolvePageSequence, workspaceSections, type ThemeDocument } from '@formspec-org/layout';
+import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
+import type { HostDocuments } from '@formspec-org/webcomponent/host';
 import { revealSearch, type RecipeStep } from './reveal.js';
 import { DEFAULT_WALK_ROOT_SELECTOR } from './checks.js';
 
@@ -7,7 +10,7 @@ import { DEFAULT_WALK_ROOT_SELECTOR } from './checks.js';
 export const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] as const;
 
 /** Version of this check's report shape and procedure; changes when what is run, or how, changes. */
-export const CHECK_VERSION = '1';
+export const CHECK_VERSION = '2';
 
 /** The 60 s cap on one whole check, browser start to report (ADR 0166 §3). */
 export const DEFAULT_TIMEOUT_MS = 60_000;
@@ -24,7 +27,7 @@ export interface AxeNodeFinding {
 
 /** One axe rule's result in one state of the form. */
 export interface AxeFinding {
-    /** The state it was found in: `page-<n>` or `errors-<n>`. */
+    /** The page, validation, or reveal state it was found in. */
     state: string;
     /** The axe rule id. */
     rule: string;
@@ -40,7 +43,7 @@ export interface AxeFinding {
 export interface AxeState {
     id: string;
     kind: 'page' | 'validation-errors';
-    /** 1-based wizard step; 1 for a form without a wizard. */
+    /** 1-based page or section in the form's checked order. */
     step: number;
     /** Milliseconds axe took on this state. */
     axeMs: number;
@@ -85,10 +88,10 @@ export interface CheckFailure {
 
 /** Pages the form has, how many were visited, and how the count was reached. */
 export interface PageCoverage {
-    kind: 'single' | 'wizard' | 'tabs';
-    /** Pages the Definition guarantees (conditional pages not counted); null when not derived. */
+    kind: 'single' | 'wizard' | 'tabs' | 'workspace';
+    /** Minimum expected pages for the rendered mode. Rendered workspaces count every planned section. */
     expectedMin: number | null;
-    /** Pages the renderer drew. */
+    /** Pages or navigation targets the renderer drew. */
     drawn: number;
     /** Pages axe ran on in the page state. */
     visited: number;
@@ -98,8 +101,8 @@ export interface PageCoverage {
 
 /**
  * The reference-renderer half of the accessibility report (ADR 0166 §3 `referenceRendererCheck`). There is
- * no `passed` field: `status: 'completed'` means axe ran on every page and every state, and `violations` says
- * what it found. `status: 'failed'` means it could not, and then `violations` is not a complete list.
+ * no `passed` field: `status: 'completed'` means axe covered the rendered pages, and `violations` says
+ * what it found. `status: 'failed'` means it could not cover them, and then `violations` is not a complete list.
  */
 export interface RendererCheckReport {
     checkVersion: string;
@@ -123,9 +126,11 @@ export interface RendererCheckReport {
 
 /** What an axe pass needs of the page under test. */
 export interface AxePassOptions {
-    /** Selector of the `<formspec-render>` under test. */
+    /** Selector of the rendered form under test. */
     root?: string;
-    /** Pages the Definition guarantees; fewer visited fails the check. */
+    /** Workspaces require the authored Definition and any Theme or Component used to render it. */
+    documents?: Pick<HostDocuments, 'definition' | 'theme' | 'component'>;
+    /** Minimum expected pages for this renderer. A workspace drawn as one page has a minimum of one. */
     expectedPages?: number | null;
     /** More pages than this fails the check instead of ending it early. Defaults to 200. */
     maxPages?: number;
@@ -201,7 +206,7 @@ export class RendererError extends Error {
 
 /** Thrown when the check visited fewer pages than the form has. */
 export class PageCoverageError extends Error {
-    constructor(message: string) {
+    constructor(message: string, readonly partial?: AxePassResult) {
         super(message);
         this.name = 'PageCoverageError';
     }
@@ -235,12 +240,19 @@ const hasKey = (items: unknown[] | undefined, key: string): boolean =>
     });
 
 /**
- * The pages a form is guaranteed to have, from the Definition alone (and the Theme's `pages`): the renderer
- * makes one page per top-level group and one more for loose top-level items, or one per Theme page that
- * names an item, plus the same extra. A page whose top-level group has a `relevant` bind may be absent, so
- * it is not counted. A form with no wizard or tabs has one page.
+ * Count pages for a renderer that supports the authored page mode. Wizard and tabs count top-level groups
+ * or Theme pages, plus a page for loose items. Definition groups with a `relevant` bind may be absent.
+ * For workspace, this returns the authored section count. A renderer that falls back to a continuous page
+ * has a minimum of one. Pass `documents` to the check to let it choose the minimum from the rendered mode.
  */
-export function expectedPages(definition: unknown, theme?: unknown): number {
+export function expectedPages(definition: unknown, theme?: unknown, component?: ComponentDocument | null): number {
+    const presentation = workspacePresentation(definition, component);
+    return presentation
+        ? Math.max(1, planWorkspace(definition, presentation, theme, component).length)
+        : expectedNonWorkspacePages(definition, theme);
+}
+
+function expectedNonWorkspacePages(definition: unknown, theme?: unknown): number {
     const d = definition as DefinitionLike;
     const mode = d.formPresentation?.pageMode;
     if (mode !== 'wizard' && mode !== 'tabs') return 1;
@@ -260,6 +272,20 @@ export function expectedPages(definition: unknown, theme?: unknown): number {
     return fixed.length + (loose ? 1 : 0);
 }
 
+function workspacePresentation(definition: unknown, component?: ComponentDocument | null) {
+    const componentPresentation = component && 'formPresentation' in component ? component.formPresentation : undefined;
+    const presentation = mergeFormPresentationForPlanning((definition as DefinitionLike).formPresentation, componentPresentation);
+    return presentation?.pageMode === 'workspace' ? presentation : undefined;
+}
+
+function planWorkspace(definition: unknown, presentation: Record<string, unknown>, theme?: unknown, component?: ComponentDocument | null) {
+    const d = definition as FormDefinition;
+    return workspaceSections(resolvePageSequence({ ...d, items: d.items ?? [], formPresentation: presentation }, {
+        component: component ?? undefined,
+        theme: (theme ?? undefined) as ThemeDocument | undefined,
+    }));
+}
+
 /** What an axe pass over a rendered form collected. */
 export interface AxePassResult {
     axeVersion: string | null;
@@ -270,15 +296,33 @@ export interface AxePassResult {
     needsReview: AxeFinding[];
 }
 
-type Mode = 'single' | 'wizard' | 'tabs';
-
 /** Pages are found by the renderer's own structure — panels, tab roles, button classes — never by translated words. */
 const WIZARD_PANEL = '.formspec-wizard-panel';
 const TAB_PANEL = '[role="tabpanel"]';
 const TAB = '[role="tab"]';
+const WORKSPACE = '.formspec-workspace';
+const WORKSPACE_NAV = '.formspec-workspace__navigation nav [data-formspec-section]';
+const WORKSPACE_CONTENT = '.formspec-workspace__content[data-formspec-section]';
+const SECTION_NAVIGATION_TIMEOUT_MS = 1_000;
+
+async function showWorkspaceSection(workspace: Locator, selector: string): Promise<boolean> {
+    const content = workspace.locator(`${WORKSPACE_CONTENT}${selector}`);
+    if (await content.count() === 1 && await content.isVisible()) return true;
+
+    const control = workspace.locator(`${WORKSPACE_NAV}${selector}`);
+    if (await control.count() !== 1 || !await control.isVisible() || !await control.isEnabled()) return false;
+    try {
+        await control.click({ timeout: SECTION_NAVIGATION_TIMEOUT_MS });
+        await content.waitFor({ state: 'visible', timeout: SECTION_NAVIGATION_TIMEOUT_MS });
+        return true;
+    } catch (error) {
+        if (error instanceof Error && error.name === 'TimeoutError') return false;
+        throw error;
+    }
+}
 
 /**
- * Run axe on `page`, which already shows a `<formspec-render>`: on every page of a wizard or tabs form,
+ * Run axe on the rendered form: on every wizard page, tab, or workspace section,
  * once more on every page after the form is submitted empty (each field's validation error), with one row
  * in every empty repeatable group, and on each field that relevance hides, shown by the values that reveal it. Fails (throws) when the pages
  * axe visited are fewer than the form has.
@@ -288,25 +332,63 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
     const rootSelector = options.root ?? DEFAULT_WALK_ROOT_SELECTOR;
     const maxPages = options.maxPages ?? 200;
     const maxReveals = options.maxReveals ?? 20;
-    const result: AxePassResult = {
-        axeVersion: null, adapter: null, pages: { kind: 'single', expectedMin: options.expectedPages ?? null, drawn: 1, visited: 0, revealedFields: 0 },
-        states: [], violations: [], needsReview: [],
-    };
-    result.adapter = await page.evaluate((sel) => (document.querySelector(sel) as any)?.resolvedAdapterName ?? null, rootSelector);
-
-    const mode: Mode = await page.evaluate(({ sel, wizard, tab }) => {
+    const documents = options.documents;
+    const mode: PageCoverage['kind'] = await page.evaluate(({ sel, wizard, tab, ws }) => {
         const root = document.querySelector(sel)!;
+        if (root.querySelector(ws)) return 'workspace';
         if (root.querySelector(wizard)) return 'wizard';
         if (root.querySelector(tab)) return 'tabs';
         return 'single';
-    }, { sel: rootSelector, wizard: WIZARD_PANEL, tab: TAB });
-    const panelSelector = mode === 'wizard' ? WIZARD_PANEL : mode === 'tabs' ? TAB_PANEL : null;
-    const drawn = panelSelector ? await page.locator(`${rootSelector} ${panelSelector}`).count() : 1;
-    result.pages = { ...result.pages, kind: mode, drawn };
-    if (drawn > maxPages) throw new PageCoverageError(`the form has ${drawn} pages, more than the ${maxPages} the check visits`);
-    if (options.expectedPages != null && drawn < options.expectedPages) {
-        throw new PageCoverageError(`the Definition has at least ${options.expectedPages} pages but the renderer drew ${drawn}`);
+    }, { sel: rootSelector, wizard: WIZARD_PANEL, tab: TAB, ws: WORKSPACE });
+    const presentation = documents && workspacePresentation(documents.definition, documents.component);
+    const workspaceFallback = mode === 'single' && presentation !== undefined;
+    const workspace = mode === 'workspace' && documents && presentation
+        ? planWorkspace(documents.definition, presentation, documents.theme, documents.component)
+        : undefined;
+    if (mode === 'workspace' && !workspace) {
+        throw new PageCoverageError('Workspace coverage requires the authored Definition and any Theme or Component used by the renderer');
     }
+    const sectionIds = workspace?.length ? workspace.map(section => section.id) : [undefined];
+    let expectedMin = options.expectedPages ?? null;
+    if (workspace) expectedMin = Math.max(expectedMin ?? 0, sectionIds.length);
+    else if (workspaceFallback) expectedMin = 1;
+    else if (expectedMin === null && documents && !presentation) expectedMin = expectedNonWorkspacePages(documents.definition, documents.theme);
+
+    const panelSelector = mode === 'wizard' ? WIZARD_PANEL : mode === 'tabs' ? TAB_PANEL : null;
+    const root = page.locator(rootSelector);
+    const workspaceRoot = root.locator(WORKSPACE);
+    const renderedIds = workspace ? await workspaceRoot.locator(WORKSPACE_NAV)
+        .evaluateAll(controls => controls.map(control => control.getAttribute('data-formspec-section')!)) : [];
+    const plannedIds = new Set(sectionIds);
+    const unexpected = new Set(renderedIds.filter(id => !plannedIds.has(id)));
+    const drawn = workspace
+        ? (sectionIds[0] === undefined && !renderedIds.length
+            ? await workspaceRoot.locator(WORKSPACE_CONTENT).count()
+            : renderedIds.length)
+        : panelSelector ? await root.locator(panelSelector).count() : 1;
+    const adapter = await page.evaluate((sel) => (document.querySelector(sel) as any)?.resolvedAdapterName ?? null, rootSelector);
+    const result: AxePassResult = {
+        axeVersion: null, adapter, pages: { kind: mode, expectedMin, drawn, visited: 0, revealedFields: 0 },
+        states: [], violations: [], needsReview: [],
+    };
+    if (workspaceFallback) {
+        result.needsReview.push(reviewFinding('page-load', 'formspec-workspace-fallback',
+            'The renderer drew this workspace form as one page; section navigation, search and findings were not checked', rootSelector));
+    }
+    const pageCount = workspace ? sectionIds.length : drawn;
+    const largestCount = Math.max(drawn, pageCount);
+    if (largestCount > maxPages) {
+        throw new PageCoverageError(`the form has ${largestCount} pages, more than the ${maxPages} the check visits`);
+    }
+    if (expectedMin != null && pageCount < expectedMin) {
+        const scope = workspace ? 'the section plan contains' : 'the renderer drew';
+        throw new PageCoverageError(`the Definition has at least ${expectedMin} pages but ${scope} ${pageCount}`);
+    }
+    if (workspace && plannedIds.size !== sectionIds.length) {
+        throw new PageCoverageError('The authored workspace section plan has duplicate IDs');
+    }
+    const sectionSelectors = workspace ? await page.evaluate(ids =>
+        ids.map(id => `[data-formspec-section="${CSS.escape(id ?? '')}"]`), sectionIds) : [];
 
     /** Index of the page showing now. */
     const active = (): Promise<number> => page.evaluate(({ sel, ps }) => {
@@ -373,28 +455,54 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         result.needsReview.push(...axe.incomplete.map((r) => toFinding(id, r)));
     };
 
-    try {
-        for (let i = 0; i < drawn; i += 1) {
-            await goTo(i);
-            await analyse(`page-${i + 1}`, 'page', i + 1);
-            result.pages.visited += 1;
+    const uncovered = new Map<number, string>();
+    const scanPages = async (kind: AxeState['kind']) => {
+        for (let i = 0; i < pageCount; i += 1) {
+            const state = `${kind === 'page' ? 'page' : 'errors'}-${i + 1}`;
+            if (workspace) {
+                if (!await showWorkspaceSection(workspaceRoot, sectionSelectors[i])) {
+                    if (!uncovered.has(i)) uncovered.set(i, state);
+                    continue;
+                }
+            } else {
+                await goTo(i);
+            }
+            await analyse(state, kind, i + 1);
+            if (kind === 'page') result.pages.visited += 1;
         }
-        await goTo(0);
+    };
+    const requireCoverage = () => {
+        if (!uncovered.size && !unexpected.size) return;
+        const sections: string[] = [];
+        for (const [index, state] of uncovered) {
+            const id = sectionIds[index] ?? 'continuous workspace';
+            sections.push(id);
+            result.needsReview.push(reviewFinding(state, 'formspec-unreached-section', `Section ${id} could not be reached for the axe check`, id));
+        }
+        for (const id of unexpected) {
+            sections.push(id);
+            result.needsReview.push(reviewFinding('page-load', 'formspec-unreached-section',
+                `Section ${id} appears in navigation but is missing from the authored section plan`, id));
+        }
+        throw new PageCoverageError(`Workspace sections uncovered by axe: ${sections.join(', ')}`, result);
+    };
+
+    try {
+        await scanPages('page');
+        if (!result.pages.visited) requireCoverage();
+        if (!workspace) await goTo(0);
         // Submitting shows every field's error, and a wizard may move to a page that has one: start over from the first.
         await page.evaluate((selector) => (document.querySelector(selector) as any).submit({ emitEvent: false }), rootSelector);
         await page.waitForTimeout(100);
-        await goTo(0);
-        for (let i = 0; i < drawn; i += 1) {
-            await goTo(i);
-            await analyse(`errors-${i + 1}`, 'validation-errors', i + 1);
-        }
+        if (!workspace) await goTo(0);
+        await scanPages('validation-errors');
 
         // Fields relevance hides: show each by the values that reveal it, check its page, put the values back.
-        const hidden: string[] = await page.evaluate((sel) => {
+        const hidden: string[] = await page.evaluate(({ sel, concrete }) => {
             const engine = (document.querySelector(sel) as any).engine;
-            const base = (p: string) => p.replace(/\[\d+\]/g, '');
-            return [...new Set((engine.getFieldPaths() as string[]).filter((p) => !engine.isPathRelevant(p)).map(base))];
-        }, rootSelector);
+            const paths = (engine.getFieldPaths() as string[]).filter(path => !engine.isPathRelevant(path));
+            return concrete ? paths : [...new Set(paths.map(path => path.replace(/\[\d+\]/g, '')))];
+        }, { sel: rootSelector, concrete: Boolean(workspace) });
         for (const [n, path] of hidden.entries()) {
             const id = `reveal-${path}`;
             if (n >= maxReveals) {
@@ -412,14 +520,26 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
             }
             try {
                 await page.waitForTimeout(100);
-                const pageIndex: number = await page.evaluate(({ sel, ps, p }) => {
-                    const root = document.querySelector(sel)!;
-                    const field = root.querySelector(`[data-name="${p}"]`);
-                    if (!field || !ps) return 0;
-                    return [...root.querySelectorAll(ps)].findIndex((panel) => panel.contains(field));
-                }, { sel: rootSelector, ps: panelSelector, p: path });
-                if (pageIndex < 0) throw new RendererError(`field ${path} was revealed but sits on no page`);
-                await goTo(pageIndex);
+                let pageIndex: number;
+                if (workspace) {
+                    pageIndex = workspace.findIndex(section => section.fields.some(placement => placementCovers(placement, path)));
+                    const shown = pageIndex >= 0 && await showWorkspaceSection(workspaceRoot, sectionSelectors[pageIndex]);
+                    const field = `[data-name=${JSON.stringify(path)}]:visible`;
+                    if (!shown || !await workspaceRoot.locator(`${WORKSPACE_CONTENT}${sectionSelectors[pageIndex]}`).locator(field).count()) {
+                        result.needsReview.push(reviewFinding(id, 'formspec-unreached-field',
+                            `Field ${path} could not be shown in its workspace section for the axe check`, path));
+                        continue;
+                    }
+                } else {
+                    pageIndex = await page.evaluate(({ sel, ps, p }) => {
+                        const root = document.querySelector(sel)!;
+                        const field = root.querySelector(`[data-name="${p}"]`);
+                        if (!field || !ps) return 0;
+                        return [...root.querySelectorAll(ps)].findIndex((panel) => panel.contains(field));
+                    }, { sel: rootSelector, ps: panelSelector, p: path });
+                    if (pageIndex < 0) throw new RendererError(`field ${path} was revealed but sits on no page`);
+                    await goTo(pageIndex);
+                }
                 await analyse(id, 'page', pageIndex + 1);
                 result.pages.revealedFields += 1;
             } finally {
@@ -429,6 +549,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
                 }, { sel: rootSelector, steps: recipe });
             }
         }
+        requireCoverage();
     } finally {
         await removeAdded().catch(() => undefined);
     }
@@ -437,7 +558,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
 
 /** The page after `open`: drawn, or a renderer failure with its reason. */
 async function waitForForm(page: Page, rootSelector: string): Promise<void> {
-    await page.waitForSelector(`${rootSelector} [data-formspec-form], html[data-formspec-host="error"]`, { state: 'attached' });
+    await page.waitForSelector(`${rootSelector} :is([data-formspec-form], ${WORKSPACE}), html[data-formspec-host="error"]`, { state: 'attached' });
     const error = await page.evaluate(() => (window as { __formspecHost?: { error?: string } }).__formspecHost?.error);
     if (error) throw new RendererError(error);
 }
@@ -495,10 +616,14 @@ export async function checkAccessibility(page: Page, options: AccessibilityCheck
     const work = (async () => {
         await options.open(page);
         await waitForForm(page, options.root ?? DEFAULT_WALK_ROOT_SELECTOR);
-        const pass = await runAxePass(page, options);
+        const pass = await runAxePass(page, options).catch((error: unknown) => {
+            if (error instanceof PageCoverageError && error.partial) return error;
+            throw error;
+        });
         // The page's own policy refuses what routing never saw (a fetch from the engine, a stylesheet link).
         const blocked: string[] = await page.evaluate(() => (window as { __formspecHost?: { blocked?: string[] } }).__formspecHost?.blocked ?? []);
         for (const url of blocked) refused.add(url);
+        if (pass instanceof PageCoverageError) throw pass;
         return pass;
     })();
     work.catch(() => undefined); // after a timeout the page closes under it; that rejection is already reported
@@ -509,9 +634,11 @@ export async function checkAccessibility(page: Page, options: AccessibilityCheck
         const pass = await Promise.race([work, deadline]);
         return { ...base, ...pass, needsReview: [...pass.needsReview, ...refusals()], status: 'completed', totalMs: Math.round(performance.now() - started) };
     } catch (error) {
+        const partial = error instanceof PageCoverageError ? error.partial : undefined;
         return {
-            ...base, axeVersion: null, adapter: null, pages: null, status: 'failed', failure: classify(error, timedOut),
-            states: [], violations: [], needsReview: refusals(), totalMs: Math.round(performance.now() - started),
+            ...base, axeVersion: null, adapter: null, pages: null, states: [], violations: [], ...partial,
+            status: 'failed', failure: classify(error, timedOut),
+            needsReview: [...(partial?.needsReview ?? []), ...refusals()], totalMs: Math.round(performance.now() - started),
         };
     } finally {
         clearTimeout(timer);
