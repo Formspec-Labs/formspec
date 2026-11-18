@@ -106,10 +106,6 @@ component document. Component document wins on key conflicts — layout
 documents can set `pageMode`, `showProgress`, etc. without duplicating the
 whole definition.
 
-## `workspaceSections(plan: readonly PageSequenceEntry[]): PageSequenceEntry[]`
-
-Attach unkeyed fragments to adjacent identified sections without changing their order.
-
 ## `summarizeFormProgress(sectionPlan: readonly PageSequenceEntry[], state: EvaluatedFormState): FormProgressSummary`
 
 ## `pageProgressIssue(counts: ProgressCounts): 'required' | 'unavailable' | 'invalid' | 'empty' | 'blocked-readonly' | undefined`
@@ -195,6 +191,8 @@ Whether one placement covers every instance of the other placement.
 #### interface `PageSequenceEntry`
 
 - **titleBind** (`string`): Item whose Locale-resolved label supplies the generated title.
+- **titleHeadingId** (`string`): Layout node ID of the Heading promoted to the page title.
+- **sharedNodes** (`LayoutNode[]`): Trailing instructions and controls shown on every page.
 - **container** (`LayoutNode`): The Component root to wrap the selected nodes in when the authored root is split.
 - **fields** (`string[]`): Unique field placement paths. A repeat template uses [*], an explicit index stays concrete.
 - **fieldTemplates** (`string[]`): Authored field templates assigned once across the plan, for fixed-width progress segments.
@@ -202,7 +200,7 @@ Whether one placement covers every instance of the other placement.
 #### interface `PageSequenceOptions`
 
 - **component?**: `ComponentDocument`
-- **theme?**: `ThemeDocument`
+- **theme?**: `PlanContext['theme']`
 - **context?**: `Pick<PlanContext, 'formPresentation' | 'componentGraph' | 'hostEvidence' | 'isComponentAvailable' | 'nextId' | 'activeBreakpoint'>`
 
 ## `interpolateParams(node: any, params: any): void`
