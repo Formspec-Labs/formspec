@@ -189,10 +189,11 @@ export function SurfaceRouteView({
   const draftScope = suppliedReader ? formSession?.previewScope : formSession?.drafts?.scope;
   const observedSlots = useMemo(() => plan.bands?.length
     ? [...plan.bands.map(band => band.slot), ...plan.slots] : plan.slots, [plan.bands, plan.slots]);
-  const observe = useFilingDraftObservations(
+  const filingReads = useFilingDraftObservations(
     observedSlots, readSummaries, draftScope, filingStatus?.revision, runtimeGeneration, formSession?.draftRevision,
+    { loader: dataSourceLoader, authorize: authorizeDataSource, validatePayload: validateDataSourcePayload }, dataSourceRevision,
   );
-  const filingStatusContext = filingStatus && { ...filingStatus, observe };
+  const filingStatusContext = { ...filingStatus, ...filingReads };
 
   useSurfaceThemeTokens(container, grant.themeDocument);
 

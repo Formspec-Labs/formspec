@@ -1,10 +1,12 @@
 /** @filedesc Presents an authored filing task list from a batch of draft observations. */
-import { useEffect, useId, useMemo, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
+import { Fragment, useEffect, useId, useMemo, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import {
   type FilingDraftQuery, type FilingProgressCounts, type FilingStatusObservation, type FilingStatusReader,
   type FilingStatusPlan, type HeadingLevel, type SlotPlan, type SurfaceStringKey, type SurfaceStrings,
 } from '@formspec-org/surface';
-import { Heading } from './heading.js';
+import { currentEffectDataSourcePorts, type EffectDataSourcePorts } from './data-source-effect.js';
+import { selectDataSourceRevisions, type DataSourceRevisionSelector } from './data-source-revision.js';
+import { Heading, nextLevel } from './heading.js';
 import { isPlainLinkClick } from './browser-location.js';
 import { needTraceAttributes } from './need-trace.js';
 import { presentedRouteLabel, type SurfaceRouteTitleResolver } from './title-presentation.js';
@@ -26,8 +28,9 @@ export interface FilingStatusOptions extends FilingStatusNavigation {
   revision?: string | number | undefined;
 }
 
-export interface FilingStatusViewContext extends FilingStatusNavigation {
+export interface FilingStatusViewContext extends Partial<FilingStatusNavigation> {
   observe: DraftReads;
+  rosters?: ReadonlyMap<FilingStatusPlan, FilingStatusPlan> | undefined;
 }
 
 export function useFilingDraftObservations(
@@ -37,22 +40,65 @@ export function useFilingDraftObservations(
   revision: string | number | undefined,
   generation: string | undefined,
   draftRevision: number | undefined,
-): DraftReads {
-  const queries = useMemo(() => {
-    const unique = new Map<string, FilingDraftQuery>();
-    function visit(plans: readonly SlotPlan<unknown>[]) {
-      for (const slot of plans) {
+  { loader, authorize, validatePayload }: EffectDataSourcePorts,
+  selectRevision: DataSourceRevisionSelector | undefined,
+) {
+  const trackers = useMemo(() => {
+    const plans = new Set<FilingStatusPlan>();
+    function visit(items: readonly SlotPlan<unknown>[]) {
+      for (const slot of items) {
         if (slot.slotType === 'embed-route') visit(slot.slots);
-        if (slot.slotType === 'filing-status' && slot.tracker.status === 'ready') {
-          for (const group of slot.tracker.groups) {
-            for (const row of group.rows) if (row.status === 'ready') unique.set(row.query.key, row.query);
-          }
-        }
+        if (slot.slotType === 'filing-status') plans.add(slot.tracker);
       }
     }
     visit(slots);
-    return [...unique.values()];
+    return [...plans];
   }, [slots]);
+
+  const rosters = useMemo(() => trackers.filter(plan => plan.status === 'roster'), [trackers]);
+  const revisions = rosters.map(plan => selectDataSourceRevisions(plan.requests.map(request => ({
+    ...request, context: { ...request.context, sessionGeneration: generation },
+  })), selectRevision));
+  const revisionKey = JSON.stringify(revisions.map(result => result.key));
+  const visit = useMemo(() => ({ rosters, failures: revisions.map(result => new Set(result.failures.map(request => request.descriptor))) }),
+    [rosters, revisionKey, generation, draftRevision, revision, previewScope, loader, authorize, validatePayload]);
+  const [delivery, setDelivery] = useState<{
+    visit: typeof visit; plans: ReadonlyMap<FilingStatusPlan, FilingStatusPlan>;
+  }>();
+  useEffect(() => {
+    if (!visit.rosters.length) return;
+    let current = true;
+    const ports = currentEffectDataSourcePorts(() => current, { loader, authorize, validatePayload });
+    const refused = { status: 'unresolved', reason: 'roster-unavailable' } as const;
+    void Promise.all(visit.rosters.map(async (plan, index) => {
+      try {
+        const failed = visit.failures[index];
+        const availablePorts = failed?.size && ports.loader ? {
+          ...ports,
+          loader: (request: Parameters<NonNullable<typeof loader>>[0]) => failed.has(request.descriptor)
+            ? { status: 'unavailable' as const, reason: 'The source revision is unavailable.' }
+            : ports.loader!(request),
+        } : ports;
+        return [plan, await plan.load(availablePorts, generation)] as const;
+      } catch {
+        return [plan, refused] as const;
+      }
+    })).then(entries => { if (current) setDelivery({ visit, plans: new Map(entries) }); });
+    return () => { current = false; };
+  }, [visit]);
+  const expanded = delivery?.visit === visit ? delivery.plans : undefined;
+  const queries = useMemo(() => {
+    const unique = new Map<string, FilingDraftQuery>();
+    if (rosters.length && !expanded) return [];
+    for (const tracker of trackers) {
+      const plan = expanded?.get(tracker) ?? tracker;
+      if (plan.status !== 'ready') continue;
+      for (const group of plan.groups) {
+        for (const row of group.rows) if (row.status === 'ready') unique.set(row.query.key, row.query);
+      }
+    }
+    return [...unique.values()];
+  }, [trackers, rosters, expanded]);
 
   const request = useMemo(() => ({ queries, readSummaries, previewScope }),
     [queries, readSummaries, previewScope, revision, generation, draftRevision]);
@@ -76,30 +122,31 @@ export function useFilingDraftObservations(
     return () => controller.abort();
   }, [request]);
 
-  return (query) => {
+  const observe: DraftReads = (query) => {
     if (!readSummaries) return unavailable;
     if (completed?.request !== request) return { ...unavailable, draft: { status: 'loading' } };
     return completed.observations.get(query.key) ?? unavailable;
   };
+  return { observe, rosters: expanded };
 }
 
-function filingLinkFor(destination: string, navigation: FilingStatusNavigation | undefined) {
+function filingLinkFor(destination: string, navigation: Partial<FilingStatusNavigation> | undefined) {
   const href = navigation?.formatHref ? navigation.formatHref(destination) : destination;
   return href === undefined ? undefined : { href, destination };
 }
 
 function FilingLink({ link, navigation, describedBy, className, style, children, ...anchorProps }: {
   link: ReturnType<typeof filingLinkFor>;
-  navigation: FilingStatusNavigation | undefined;
+  navigation: Partial<FilingStatusNavigation> | undefined;
   describedBy?: string;
   children: ReactNode;
 } & Pick<ComponentPropsWithoutRef<'a'>, 'className' | 'style' | 'tabIndex' | 'title' | 'onMouseDown'>) {
   if (!link) return <span className={className} style={style} role="link" aria-disabled="true" aria-describedby={describedBy}>{children}</span>;
-  return <a {...anchorProps} className={className} style={style} href={link.href} aria-describedby={describedBy} onClick={navigation && (event => {
-    if (!isPlainLinkClick(event)) return;
+  return <a {...anchorProps} className={className} style={style} href={link.href} aria-describedby={describedBy} onClick={event => {
+    if (!navigation?.navigate || !isPlainLinkClick(event)) return;
     event.preventDefault();
     navigation.navigate(link.destination);
-  })}>{children}</a>;
+  }}>{children}</a>;
 }
 
 function filingFillCount({ filled, total }: FilingProgressCounts, text: SurfaceStrings) {
@@ -239,17 +286,19 @@ const legend = [
   { key: 'filingHasCheck', finding: 'check' },
 ] as const;
 
-export function FilingStatus({ plan, context, level, text }: {
+export function FilingStatus({ plan: originalPlan, context, level, text }: {
   plan: FilingStatusPlan;
   context?: FilingStatusViewContext | undefined;
   level: HeadingLevel;
   text: SurfaceStrings;
 }) {
+  const plan = context?.rosters?.get(originalPlan) ?? originalPlan;
+  if (plan.status === 'roster') return <p>{text('filingLoading')}</p>;
   if (plan.status === 'unresolved') return <p>{text('filingUnavailable')}</p>;
   const seen = new Set<string>();
   const totals = { filled: 0, total: 0, toFix: null as number | null, toCheck: null as number | null };
   let known = 0;
-  let partial = false;
+  let partial = plan.groups.some(group => group.unavailable);
   let largest = 0;
   const groups = plan.groups.map(group => ({ ...group, rows: group.rows.map(row => {
     const observation: Observation = row.status === 'ready'
@@ -275,6 +324,18 @@ export function FilingStatus({ plan, context, level, text }: {
     }
     return { row, observation };
   }) }));
+  type AuthoredGroup = { entries: typeof groups; waiting: string[] };
+  const authoredGroups = new Map<string, AuthoredGroup>();
+  for (const group of groups) {
+    const id = group.member?.groupId ?? group.id;
+    const section: AuthoredGroup = authoredGroups.get(id) ?? { entries: [], waiting: [] };
+    section.entries.push(group);
+    if (group.member && group.rows.some(({ row, observation: { draft, filing } }) => row.status === 'ready'
+      && filing.status === 'none' && (draft.status === 'absent' || draft.status === 'current'))) {
+      section.waiting.push(group.member.label);
+    }
+    authoredGroups.set(id, section);
+  }
   return <div className="fs-surface-filing" {...needTraceAttributes(plan.needAnchors)}>
     {known > 0 && <div className="fs-surface-filing__totals">
       <dl>
@@ -294,15 +355,24 @@ export function FilingStatus({ plan, context, level, text }: {
       {partial && <p>{text('filingSomeProgressUnavailable')}</p>}
       {(totals.toFix === null || totals.toCheck === null) && <p>{text('filingChecksUnavailable')}</p>}
     </div>}
-    {groups.map(group => (
-      <div key={group.id} className="fs-surface-filing__group" {...needTraceAttributes(group.needAnchors)}>
-        <Heading level={level}>{group.label}</Heading>
-        <ul className="fs-surface-filing__tasks" role="list">
-          {group.rows.map(({ row, observation }) => <FilingRow key={row.key} row={row} observation={observation}
-            largest={largest} context={context} text={text} />)}
-        </ul>
-      </div>
-    ))}
+    {[...authoredGroups].map(([id, { entries, waiting }]) => {
+      const first = entries[0]!;
+      return <div key={id} className="fs-surface-filing__group" {...needTraceAttributes(first.needAnchors)}>
+        <Heading level={level}>{first.label}</Heading>
+        {first.member && waiting.length > 0 && <div data-state="waiting-on-named-members">
+          <p>{first.member.waitingLabel}</p>
+          <ul aria-label={first.member.waitingLabel}>{waiting.map((name, index) => <li key={index}>{name}</li>)}</ul>
+        </div>}
+        {entries.map(group => <Fragment key={group.id}>
+          {group.member && <Heading level={nextLevel(level)}>{group.member.label}</Heading>}
+          {group.unavailable && <p>{text('filingUnavailable')}</p>}
+          {group.rows.length > 0 && <ul className="fs-surface-filing__tasks" role="list">
+            {group.rows.map(({ row, observation }) => <FilingRow key={row.key} row={row} observation={observation}
+              largest={largest} context={context} text={text} />)}
+          </ul>}
+        </Fragment>)}
+      </div>;
+    })}
     {largest > 0 && <div className="fs-surface-filing__key">
       <ul className="fs-surface-filing__legend" role="list">
         {legend.map(item => <li key={item.key}>

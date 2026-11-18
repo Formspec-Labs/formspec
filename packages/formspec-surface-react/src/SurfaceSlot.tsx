@@ -25,6 +25,7 @@ import type { NativeScreenerSlotProps, SurfaceScreenerCompletionPolicy } from '.
  * embedded title sat at the same rank as its host while its content sat one
  * deeper. {@link SurfaceSlotFrame} is both paths now.
  */
+import { currentEffectDataSourcePorts } from './data-source-effect.js';
 import { selectDataSourceRevisions, type DataSourceRevisionSelector } from './data-source-revision.js';
 import {
   useCallback,
@@ -905,36 +906,6 @@ function SurfaceStaticContent({
 
 export function renderDefaultDefinitionForm(input: SurfaceDefinitionFormRenderInput): ReactNode {
   return <DefaultDefinitionFormSlot input={input} />;
-}
-
-type EffectDataSourcePorts = {
-  loader?: DataSourceLoader | undefined;
-  authorize?: DataSourceAuthorizer | undefined;
-  validatePayload?: DataSourcePayloadValidator | undefined;
-};
-
-/** Stop later owner phases when this effect retires; host authority stays in the ports. */
-function currentEffectDataSourcePorts(
-  isCurrent: () => boolean,
-  { loader, authorize, validatePayload }: EffectDataSourcePorts,
-): EffectDataSourcePorts {
-  const check = () => {
-    if (!isCurrent()) throw new Error('Surface data load effect retired');
-  };
-  const invoke = <T,>(dispatch: () => T | Promise<T>): T | Promise<T> => {
-    check();
-    const result = dispatch();
-    const complete = (value: T): T => { check(); return value; };
-    // Preserve synchronous ports; only asynchronous results need a continuation.
-    return typeof (result as Promise<T>)?.then === 'function'
-      ? Promise.resolve(result).then(complete)
-      : complete(result as T);
-  };
-  return {
-    loader: loader ? request => invoke(() => loader(request)) : undefined,
-    authorize: authorize ? request => invoke(() => authorize(request)) : undefined,
-    validatePayload: validatePayload ? request => invoke(() => validatePayload(request)) : undefined,
-  };
 }
 
 type ReadyDefinitionFormInitialDataPlan = Extract<
