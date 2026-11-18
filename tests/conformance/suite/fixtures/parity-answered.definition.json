@@ -1,0 +1,191 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:answered",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Answered values by field type",
+  "items": [
+    {
+      "key": "letters",
+      "type": "field",
+      "dataType": "string",
+      "label": "letters"
+    },
+    {
+      "key": "notes",
+      "type": "field",
+      "dataType": "text",
+      "label": "notes"
+    },
+    {
+      "key": "counted",
+      "type": "field",
+      "dataType": "integer",
+      "label": "counted"
+    },
+    {
+      "key": "rate",
+      "type": "field",
+      "dataType": "decimal",
+      "label": "rate"
+    },
+    {
+      "key": "enabled",
+      "type": "field",
+      "dataType": "boolean",
+      "label": "enabled"
+    },
+    {
+      "key": "day",
+      "type": "field",
+      "dataType": "date",
+      "label": "day"
+    },
+    {
+      "key": "instant",
+      "type": "field",
+      "dataType": "dateTime",
+      "label": "instant"
+    },
+    {
+      "key": "hour",
+      "type": "field",
+      "dataType": "time",
+      "label": "hour"
+    },
+    {
+      "key": "location",
+      "type": "field",
+      "dataType": "uri",
+      "label": "location"
+    },
+    {
+      "key": "upload",
+      "type": "field",
+      "dataType": "attachment",
+      "label": "upload"
+    },
+    {
+      "key": "pick",
+      "type": "field",
+      "dataType": "choice",
+      "label": "pick",
+      "options": [
+        {
+          "value": "ready",
+          "label": "ready"
+        },
+        {
+          "value": "other",
+          "label": "other"
+        }
+      ]
+    },
+    {
+      "key": "picks",
+      "type": "field",
+      "dataType": "multiChoice",
+      "label": "picks",
+      "options": [
+        {
+          "value": "ready",
+          "label": "ready"
+        },
+        {
+          "value": "other",
+          "label": "other"
+        }
+      ]
+    },
+    {
+      "key": "price",
+      "type": "field",
+      "dataType": "money",
+      "label": "price"
+    },
+    {
+      "key": "spacing",
+      "type": "field",
+      "dataType": "string",
+      "label": "spacing"
+    },
+    {
+      "key": "emptyChecks",
+      "type": "field",
+      "dataType": "boolean",
+      "label": "emptyChecks"
+    },
+    {
+      "key": "answeredChecks",
+      "type": "field",
+      "dataType": "boolean",
+      "label": "answeredChecks"
+    }
+  ],
+  "binds": [
+    {
+      "path": "letters",
+      "required": "true"
+    },
+    {
+      "path": "notes",
+      "required": "true"
+    },
+    {
+      "path": "counted",
+      "required": "true"
+    },
+    {
+      "path": "rate",
+      "required": "true"
+    },
+    {
+      "path": "enabled",
+      "required": "true"
+    },
+    {
+      "path": "day",
+      "required": "true"
+    },
+    {
+      "path": "instant",
+      "required": "true"
+    },
+    {
+      "path": "hour",
+      "required": "true"
+    },
+    {
+      "path": "location",
+      "required": "true"
+    },
+    {
+      "path": "upload",
+      "required": "true"
+    },
+    {
+      "path": "pick",
+      "required": "true"
+    },
+    {
+      "path": "picks",
+      "required": "true"
+    },
+    {
+      "path": "price",
+      "required": "true"
+    },
+    {
+      "path": "spacing",
+      "required": "true"
+    },
+    {
+      "path": "emptyChecks",
+      "calculate": "(empty($letters) and not present($letters)) and (empty($notes) and not present($notes)) and (empty($day) and not present($day)) and (empty($instant) and not present($instant)) and (empty($hour) and not present($hour)) and (empty($location) and not present($location)) and (empty($upload) and not present($upload)) and (empty($pick) and not present($pick)) and (empty($picks) and not present($picks))"
+    },
+    {
+      "path": "answeredChecks",
+      "calculate": "(present($counted) and not empty($counted)) and (present($rate) and not empty($rate)) and (present($enabled) and not empty($enabled)) and (present($price) and not empty($price)) and (present($spacing) and not empty($spacing))"
+    }
+  ]
+}

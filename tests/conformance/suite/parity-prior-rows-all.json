@@ -1,0 +1,32 @@
+{
+  "id": "parity.prior-rows-all",
+  "kind": "ENGINE_PROCESSING",
+  "origin": "saved",
+  "mode": "continuous",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-prior-rows.definition.json",
+  "specRefs": [
+    "Core §4.4.1 Response instance fallback data",
+    "Core §3.5 every and selected; predicate $ binds each row"
+  ],
+  "inputData": {
+    "rows": [],
+    "tag": "ready"
+  },
+  "subject": {
+    "type": "urn:test:subject:batch",
+    "keys": {
+      "cycle": 2
+    }
+  },
+  "expected": {
+    "valid": true,
+    "counts": { "error": 0, "warning": 0, "info": 0 },
+    "results": [],
+    "data": {
+      "rows": [],
+      "tag": "ready",
+      "priorCount": 2,
+      "everyRowHasTag": true
+    }
+  }
+}

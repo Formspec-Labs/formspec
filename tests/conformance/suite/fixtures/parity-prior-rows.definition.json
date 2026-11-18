@@ -1,0 +1,119 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:prior-rows",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Batch review",
+  "subject": {
+    "type": "urn:test:subject:batch",
+    "keys": {
+      "cycle": {
+        "dataType": "integer"
+      }
+    }
+  },
+  "instances": {
+    "prior": {
+      "response": {
+        "definition": {
+          "url": "urn:test:conformance:prior-rows"
+        },
+        "subject": [
+          {
+            "key": "cycle",
+            "op": "eq",
+            "from": {
+              "subject": "cycle"
+            },
+            "offset": -1
+          }
+        ],
+        "status": "completed",
+        "cardinality": "latest",
+        "pin": "none",
+        "whenNone": "empty"
+      },
+      "schema": {
+        "rows[*].tags": "multiChoice"
+      },
+      "data": {
+        "rows": [
+          {
+            "tags": [
+              "other",
+              "ready"
+            ]
+          },
+          {
+            "tags": [
+              "ready"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "repeatable": true,
+      "children": [
+        {
+          "key": "tags",
+          "type": "field",
+          "dataType": "multiChoice",
+          "label": "tags",
+          "options": [
+            {
+              "value": "ready",
+              "label": "ready"
+            },
+            {
+              "value": "other",
+              "label": "other"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "tag",
+      "type": "field",
+      "dataType": "string",
+      "label": "Required tag"
+    },
+    {
+      "key": "priorCount",
+      "type": "field",
+      "dataType": "integer",
+      "label": "priorCount"
+    },
+    {
+      "key": "everyRowHasTag",
+      "type": "field",
+      "dataType": "boolean",
+      "label": "Every prior row has the required tag"
+    }
+  ],
+  "binds": [
+    {
+      "path": "priorCount",
+      "calculate": "count(@instance('prior').rows)"
+    },
+    {
+      "path": "everyRowHasTag",
+      "calculate": "every(@instance('prior').rows, selected($.tags, $tag))"
+    }
+  ],
+  "shapes": [
+    {
+      "id": "prior-tag",
+      "target": "everyRowHasTag",
+      "constraint": "$everyRowHasTag",
+      "severity": "error",
+      "message": "Every prior row must have the required tag"
+    }
+  ]
+}

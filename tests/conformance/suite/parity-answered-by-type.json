@@ -1,0 +1,118 @@
+{
+  "id": "parity.answered-by-type",
+  "kind": "ENGINE_PROCESSING",
+  "origin": "saved",
+  "mode": "continuous",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-answered.definition.json",
+  "specRefs": [
+    "Core §4.2.3 field data types and money amount",
+    "Core §4.3.1 required (null, empty string or empty array)",
+    "Core §3.5 empty and present"
+  ],
+  "inputData": {
+    "letters": "",
+    "notes": null,
+    "counted": 0,
+    "rate": 0,
+    "enabled": false,
+    "day": null,
+    "hour": "",
+    "location": "",
+    "pick": "",
+    "picks": [],
+    "price": {
+      "amount": null,
+      "currency": "USD"
+    },
+    "spacing": "   "
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 10,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "letters",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      },
+      {
+        "path": "notes",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      },
+      {
+        "path": "day",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      },
+      {
+        "path": "instant",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      },
+      {
+        "path": "hour",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      },
+      {
+        "path": "location",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      },
+      {
+        "path": "upload",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      },
+      {
+        "path": "pick",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      },
+      {
+        "path": "picks",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      },
+      {
+        "path": "price",
+        "code": "TYPE_MISMATCH",
+        "severity": "error",
+        "constraintKind": "type"
+      }
+    ],
+    "data": {
+      "letters": "",
+      "notes": null,
+      "counted": 0,
+      "rate": 0,
+      "enabled": false,
+      "day": null,
+      "hour": "",
+      "location": "",
+      "pick": "",
+      "picks": [],
+      "price": {
+        "amount": null,
+        "currency": "USD"
+      },
+      "spacing": "   ",
+      "emptyChecks": true,
+      "answeredChecks": true
+    }
+  }
+}

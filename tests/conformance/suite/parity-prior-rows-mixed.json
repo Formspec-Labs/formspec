@@ -1,0 +1,41 @@
+{
+  "id": "parity.prior-rows-mixed",
+  "kind": "ENGINE_PROCESSING",
+  "origin": "saved",
+  "mode": "continuous",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-prior-rows.definition.json",
+  "specRefs": [
+    "Core §4.4.1 Response instance fallback data",
+    "Core §3.5 every and selected; predicate $ binds each row"
+  ],
+  "inputData": {
+    "rows": [],
+    "tag": "other"
+  },
+  "subject": {
+    "type": "urn:test:subject:batch",
+    "keys": {
+      "cycle": 2
+    }
+  },
+  "expected": {
+    "valid": false,
+    "counts": { "error": 1, "warning": 0, "info": 0 },
+    "results": [
+      {
+        "path": "everyRowHasTag",
+        "shapeId": "prior-tag",
+        "severity": "error",
+        "constraintKind": "shape",
+        "code": "SHAPE_FAILED",
+        "message": "Every prior row must have the required tag"
+      }
+    ],
+    "data": {
+      "rows": [],
+      "tag": "other",
+      "priorCount": 2,
+      "everyRowHasTag": false
+    }
+  }
+}
