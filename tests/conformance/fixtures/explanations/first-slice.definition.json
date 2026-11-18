@@ -1,0 +1,41 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.org/forms/community-workshop",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Community Workshop Report",
+  "items": [
+    { "type": "field", "key": "venue", "dataType": "string", "label": "Venue" },
+    { "type": "field", "key": "topic", "dataType": "string", "label": "Topic" },
+    { "type": "field", "key": "outcome", "dataType": "string", "label": "Outcome" },
+    { "type": "field", "key": "partner", "dataType": "string", "label": "Partner" },
+    { "type": "field", "key": "attendance", "dataType": "integer", "label": "Attendance" }
+  ],
+  "shapes": [
+    {
+      "id": "venueBlank", "target": "venue", "constraint": "present($)",
+      "code": "CSBG_NOT_ANSWERED", "severity": "warning", "timing": "submit",
+      "explanation": "acknowledge", "message": "Venue was left blank."
+    },
+    {
+      "id": "topicBlank", "target": "topic", "constraint": "present($)",
+      "code": "CSBG_NOT_ANSWERED", "severity": "warning", "timing": "submit",
+      "explanation": "acknowledge", "message": "Topic was left blank."
+    },
+    {
+      "id": "outcomeBlank", "target": "outcome", "constraint": "present($)",
+      "code": "CSBG_NOT_ANSWERED", "severity": "warning", "timing": "submit",
+      "explanation": "acknowledge", "message": "Outcome was left blank."
+    },
+    {
+      "id": "partnerBlank", "target": "partner", "constraint": "present($)",
+      "code": "CSBG_NOT_ANSWERED", "severity": "warning", "timing": "submit",
+      "explanation": "acknowledge", "message": "Partner was left blank."
+    },
+    {
+      "id": "largeEvent", "target": "attendance", "constraint": "$ <= 100",
+      "code": "HIGH_ATTENDANCE", "severity": "warning", "timing": "submit",
+      "explanation": "explain", "message": "Attendance exceeded 100."
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "description": "Saved synthetic entries. Each basis uses the Core domain, one NUL byte and canonical JSON of the workshop inputs.",
+  "entries": {
+    "originalGroup": {
+      "code": "CSBG_NOT_ANSWERED",
+      "group": true,
+      "paths": [
+        "outcome",
+        "topic",
+        "venue"
+      ],
+      "basis": "sha256:2c9c2648f5091235dab4d5f8fc45af1403dacb90927b8daaf05ec433fef71c8f",
+      "author": {
+        "id": "workshop-preparer"
+      },
+      "recorded": "2026-01-20T12:00:00Z"
+    },
+    "changedGroup": {
+      "code": "CSBG_NOT_ANSWERED",
+      "group": true,
+      "paths": [
+        "outcome",
+        "partner",
+        "topic"
+      ],
+      "basis": "sha256:f431540dcd7dc151f42bc101ffd3b4349dc7d50d49ea208516fbe9ac90985289",
+      "author": {
+        "id": "workshop-preparer"
+      },
+      "recorded": "2026-01-20T12:00:00Z"
+    },
+    "valueExplanation": {
+      "shapeId": "largeEvent",
+      "path": "attendance",
+      "basis": "sha256:6069d3472800158b45172e20905064bdc872e653b6a0676191f83ae0e2240656",
+      "text": "The workshop included a second session.",
+      "author": {
+        "id": "workshop-preparer"
+      },
+      "recorded": "2026-01-20T12:00:00Z"
+    }
+  }
+}
