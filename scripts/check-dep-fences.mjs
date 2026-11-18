@@ -15,7 +15,7 @@ const LAYERS = {
   '@formspec/signature-adapter-webcrypto': 1,
   '@formspec-org/types':    0,
   '@formspec-org/outcome-verification': 1,
-  '@formspec-org/app-graph': 1,
+  '@formspec-org/app-graph': 1.5,
   '@formspec-org/surface-bundle-signing': 1,
   '@formspec-org/engine':   1,
   '@formspec-org/layout':   1,

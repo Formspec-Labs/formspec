@@ -32,7 +32,7 @@ export interface PageSequenceEntry {
 export interface PageSequenceOptions {
     component?: ComponentDocument;
     theme?: PlanContext['theme'];
-    context?: Pick<PlanContext, 'formPresentation' | 'componentGraph' | 'hostEvidence' | 'isComponentAvailable' | 'nextId' | 'activeBreakpoint'>;
+    context?: Partial<Pick<PlanContext, 'formPresentation' | 'componentGraph' | 'hostEvidence' | 'isComponentAvailable' | 'nextId' | 'activeBreakpoint'>>;
 }
 
 type Section = Omit<PageSequenceEntry, 'fields' | 'fieldTemplates' | 'groups'> & { loose?: true; themeRemainder?: true };
@@ -383,4 +383,49 @@ export function resolvePageSequence(definition: FormDefinition, options: PageSeq
     const last = pages.at(-1);
     if (last && painted.sharedNodes.length) last.sharedNodes = painted.sharedNodes;
     return pages;
+}
+
+/** Title source for an explicit Wizard child, shared by the renderer and authoring checks. */
+export function describeWizardStep(node: LayoutNode, index: number) {
+    const id = stringProp(node.props.id);
+    const title = stringProp(node.props.title);
+    return {
+        id,
+        authoredSection: node.component === 'Section',
+        title: title ?? node.fieldItem?.label,
+        titleBind: stringProp(node.props.titleBind),
+        titleLocaleKey: stringProp(node.props.titleLocaleKey) ?? (id && title ? `$component.${id}.title` : undefined),
+        titleIndex: index + 1,
+    };
+}
+
+export function findAuthoredPageSection(page: PageSequenceEntry): LayoutNode | undefined {
+    return page.nodes.find(node => node.component === 'Section' && node.props.id === page.id);
+}
+
+export function hasWizardSections(pages: readonly PageSequenceEntry[]): boolean {
+    return pages.some(page => page.id || findAuthoredPageSection(page) !== undefined);
+}
+
+/** Section titles from the same planner inputs the respondent view uses. */
+export function resolveSectionTitlePlan(definition: FormDefinition, options: PageSequenceOptions = {}) {
+    const component = options.component;
+    const componentPresentation = component && 'formPresentation' in component ? component.formPresentation : undefined;
+    const presentation = mergeFormPresentationForPlanning(definition.formPresentation, componentPresentation);
+    if (component?.tree.component === 'Wizard' && presentation?.pageMode !== 'workspace') {
+        const root = planComponentTree(component.tree as ComponentTreeNode, preparePlanContext({
+            ...options.context,
+            items: definition.items,
+            findItem: path => findItemAtPath(definition.items, path),
+            componentDocument: component,
+            theme: options.theme,
+            formPresentation: presentation,
+        }));
+        return root.children.map(describeWizardStep);
+    }
+    if (presentation?.pageMode !== 'workspace' && presentation?.pageMode !== 'wizard') return [];
+    if (presentation.pageMode === 'wizard' && component?.tree.component === 'Tabs') return [];
+    const pages = resolvePageSequence(definition, options);
+    if (presentation.pageMode === 'wizard' && !hasWizardSections(pages)) return [];
+    return pages.map((page, index) => ({ ...page, titleIndex: index + 1 }));
 }

@@ -65,7 +65,7 @@ export {
     preparePlanContext,
 } from './planner.js';
 export type { EnsureActionButtonOptions, NodeIdGenerator } from './planner.js';
-export { placementCovers, placementKey, resolvePageSequence } from './page-sequence.js';
+export { describeWizardStep, findAuthoredPageSection, hasWizardSections, placementCovers, placementKey, resolvePageSequence, resolveSectionTitlePlan } from './page-sequence.js';
 export type { PageSequenceEntry, PageSequenceOptions } from './page-sequence.js';
 export * from './form-progress.js';
 

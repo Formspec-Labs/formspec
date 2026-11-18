@@ -20,6 +20,8 @@ import {
   type SurfaceWidgetSlot,
 } from './surface-widgets.js';
 
+import { normalizeUxTitle, validateSectionTitleDuplicates } from './section-title-duplicates.js';
+
 export const UX_TITLE_DUPLICATE_CODE = 'APP-GRAPH-UX-TITLE-DUPLICATE';
 
 const STRUCTURED_PANEL_DELIVERY_CONTRACT_ID =
@@ -32,20 +34,12 @@ interface TitleCandidate {
   title: string;
   normalizedTitle: string;
   kind: string;
+  componentId?: string;
 }
 
 interface TitleScope {
   kind: string;
   label: string;
-}
-
-/**
- * Title comparison deliberately does not fold case. AppGraph does not resolve
- * the display locale for these authored strings, so a locale-independent case
- * guess would create false positives.
- */
-export function normalizeUxTitle(value: string): string {
-  return value.normalize('NFC').trim().replace(/\s+/gu, ' ');
 }
 
 function titleCandidate(
@@ -63,6 +57,7 @@ function titleCandidate(
 function duplicateTitleDiagnostics(
   candidates: readonly TitleCandidate[],
   scope: TitleScope,
+  compare?: (first: TitleCandidate, second: TitleCandidate) => boolean,
 ): AppGraphDiagnostic[] {
   const firstByTitle = new Map<string, TitleCandidate>();
   const diagnostics: AppGraphDiagnostic[] = [];
@@ -74,6 +69,7 @@ function duplicateTitleDiagnostics(
       continue;
     }
 
+    if (compare?.(first, candidate) === false) continue;
     diagnostics.push({
       code: UX_TITLE_DUPLICATE_CODE,
       severity: 'warning',
@@ -208,18 +204,15 @@ function titledComponentCandidate(
 ): TitleCandidate | undefined {
   const component = stringProp(node, 'component');
   if (!component || !TITLED_COMPONENTS.has(component)) return undefined;
-  return titleCandidate(
-    handle,
-    `${pointer}/title`,
-    stringProp(node, 'title'),
-    `component-${component.toLowerCase()}`,
-  );
+  const candidate = titleCandidate(handle, `${pointer}/title`, stringProp(node, 'title'), `component-${component.toLowerCase()}`);
+  return candidate && { ...candidate, componentId: stringProp(node, 'id') };
 }
 
 function componentTreeDiagnostics(
   handle: ResolvedArtifactHandle,
   node: JsonRecord,
   pointer: string,
+  plannedSections?: ReadonlySet<string | undefined>,
 ): AppGraphDiagnostic[] {
   const diagnostics: AppGraphDiagnostic[] = [];
   const parent = titledComponentCandidate(handle, node, pointer);
@@ -236,7 +229,8 @@ function componentTreeDiagnostics(
   diagnostics.push(...duplicateTitleDiagnostics(titledChildren, {
     kind: 'component-siblings',
     label: `Component sibling scope '${pointer}'`,
-  }));
+  }, (first, second) => !(first.kind === 'component-section' && second.kind === 'component-section'
+    && plannedSections?.has(first.componentId) && plannedSections.has(second.componentId))));
 
   if (parent) {
     for (const child of titledChildren) {
@@ -261,9 +255,9 @@ function componentTreeDiagnostics(
   return diagnostics;
 }
 
-function componentDiagnostics(component: ResolvedArtifactHandle): AppGraphDiagnostic[] {
+function componentDiagnostics(component: ResolvedArtifactHandle, plannedSections: ReadonlySet<string | undefined> | undefined): AppGraphDiagnostic[] {
   const tree = record(ownProp(record(component.document), 'tree'));
-  return tree ? componentTreeDiagnostics(component, tree, '/tree') : [];
+  return tree ? componentTreeDiagnostics(component, tree, '/tree', plannedSections) : [];
 }
 
 const STRUCTURED_PANEL_DELIVERY_CONTRACT_IDS = new Set([
@@ -363,22 +357,13 @@ function structuredPanelDiagnostics(
   return diagnostics;
 }
 
-/**
- * Warn about duplicate visible titles only where the loaded graph proves a
- * shared display scope.
- *
- * This pass intentionally omits Theme pages and Definition-generated pages.
- * Determining whether those pages are active requires the layout planner's
- * Component > Theme > Definition selection, region resolution, and renderer
- * platform choice. AppGraph has no layout dependency, and comparing their raw
- * declarations would report inactive fallback titles. Top-level Component
- * Sections remain covered by the sibling rule because Component pages have
- * highest precedence and their authored headings share one tree.
- */
+/** Check titles within proven display scopes and resolved section plans. */
 export function validateUxTitleDuplicates(
   context: AppGraphContext,
 ): AppGraphDiagnostic[] {
+  const { diagnostics, plannedComponents } = validateSectionTitleDuplicates(context);
   return [
+    ...diagnostics,
     ...handlesByKind(context.handles, 'surface').flatMap((surface) => [
       ...navigationDiagnostics(surface),
       ...routeSlotRepetitionDiagnostics(surface),
@@ -386,7 +371,7 @@ export function validateUxTitleDuplicates(
     ...handlesByKind(context.handles, 'experience')
       .flatMap(experienceTaskDiagnostics),
     ...handlesByKind(context.handles, 'component')
-      .flatMap(componentDiagnostics),
+      .flatMap(component => componentDiagnostics(component, plannedComponents.get(component))),
     ...structuredPanelDiagnostics(context),
   ];
 }

@@ -1,6 +1,6 @@
 /** @filedesc Materialize React's page modes from the same section sequence as Assist. */
 import type { FormDefinition } from '@formspec-org/types';
-import { resolvePageSequence, type LayoutNode, type PageSequenceEntry, type PlanContext } from '@formspec-org/layout';
+import { findAuthoredPageSection, hasWizardSections, resolvePageSequence, type LayoutNode, type PageSequenceEntry, type PlanContext } from '@formspec-org/layout';
 
 export interface WorkspacePage extends PageSequenceEntry {
     content: LayoutNode;
@@ -17,10 +17,6 @@ function withoutTitle(node: LayoutNode): LayoutNode {
 
 function isSharedControl(node: LayoutNode): boolean {
     return node.component === 'ActionButton' || node.component === 'ValidationSummary';
-}
-
-function findAuthoredSection(page: PageSequenceEntry): LayoutNode | undefined {
-    return page.nodes.find(node => node.component === 'Section' && node.props.id === page.id);
 }
 
 function pageContent(page: PageSequenceEntry): LayoutNode[] {
@@ -52,7 +48,7 @@ export function planPageMode(definition: FormDefinition, ctx: PlanContext, mode:
     if (mode === 'workspace') {
         const controls = sequence.flatMap(page => page.nodes.filter(isSharedControl));
         const workspace = sequence.map(section => {
-            const authored = section.id === undefined ? undefined : findAuthoredSection(section);
+            const authored = section.id === undefined ? undefined : findAuthoredPageSection(section);
             const children = pageContent(section).map(node => node === authored ? withoutTitle(node) : node);
             const content = section.container
                 ? { ...section.container, id: ctx.nextId('workspace-page'), children }
@@ -63,13 +59,13 @@ export function planPageMode(definition: FormDefinition, ctx: PlanContext, mode:
     }
 
     // With no page authority, leave a flat form alone.
-    if (!sequence.some(page => page.id || findAuthoredSection(page))) return undefined;
+    if (!hasWizardSections(sequence)) return undefined;
     const container = sequence[0]?.container;
     const root = container?.component === 'Stack' ? { ...container } : stack(ctx.nextId('root'), []);
     root.pageMode = mode;
     root.children = sequence.flatMap((page, index) => {
         const controls = page.nodes.filter(isSharedControl);
-        const authored = findAuthoredSection(page);
+        const authored = findAuthoredPageSection(page);
         const content = pageContent(page);
         // A Section's condition and scope apply only to its authored descendants.
         const separate = authored && content.length > 1 && (authored.when || authored.scopeChange
