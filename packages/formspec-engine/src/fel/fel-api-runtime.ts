@@ -18,7 +18,7 @@ import {
     wasmSanitizeFelIdentifier,
 } from '../wasm-bridge-runtime.js';
 
-export type { FelTraceStep, FelTraceResult } from '../wasm-bridge-runtime.js';
+export type { FELDependencies, FelTraceStep, FelTraceResult } from '../wasm-bridge-runtime.js';
 
 import {
     lineColumnAtCharOffset,

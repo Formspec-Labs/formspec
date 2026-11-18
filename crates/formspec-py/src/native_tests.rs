@@ -641,7 +641,7 @@ mod tests {
     // pydict_to_field_map(py, dict) → HashMap<String, Value>
     //   TODO: Test mixed-type dict, empty dict, nested structures.
     //
-    // All #[pyfunction]s (eval_fel, parse_fel, get_dependencies, extract_deps,
+    // All #[pyfunction]s (eval_fel, parse_fel, extract_deps,
     // analyze_expression, detect_type, lint_document, evaluate_def,
     // parse_registry, find_registry_entry, validate_lifecycle, well_known_url,
     // generate_changelog, execute_mapping_doc):

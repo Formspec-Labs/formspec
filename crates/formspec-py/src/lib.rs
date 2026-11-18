@@ -38,7 +38,6 @@ fn formspec_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fel::eval_fel_with_trace, m)?)?;
     m.add_function(wrap_pyfunction!(fel::eval_fel_detailed, m)?)?;
     m.add_function(wrap_pyfunction!(fel::parse_fel, m)?)?;
-    m.add_function(wrap_pyfunction!(fel::get_dependencies, m)?)?;
     m.add_function(wrap_pyfunction!(fel::extract_deps, m)?)?;
     m.add_function(wrap_pyfunction!(fel::analyze_expression, m)?)?;
     m.add_function(wrap_pyfunction!(fel::list_builtin_functions, m)?)?;

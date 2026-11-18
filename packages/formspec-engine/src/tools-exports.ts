@@ -39,7 +39,7 @@ export {
     rewriteFEL,
 } from './fel/fel-api.js';
 
-export type { TreeItemLike, ItemLocation } from './fel/fel-api.js';
+export type { FELDependencies, TreeItemLike, ItemLocation } from './fel/fel-api.js';
 export { analyzeExpressionInDefinition, getDefinitionInstanceReads, checkInstanceProjection, type InstanceProjectionDiagnostic, type ProjectionConsumer } from './fel/fel-api-tools.js';
 
 export { createMappingEngine, RuntimeMappingEngine } from './mapping/RuntimeMappingEngine.js';

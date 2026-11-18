@@ -12,7 +12,7 @@ use fel_core::{
 };
 use formspec_core::{
     analyze_fel, assembly_fel_rewrite_map_from_value, fel_analysis_to_json_value,
-    get_fel_dependencies, rewrite_fel_for_assembly as rewrite_fel_for_assembly_core,
+    rewrite_fel_for_assembly as rewrite_fel_for_assembly_core,
 };
 use serde_json::Value;
 
@@ -293,14 +293,6 @@ pub fn parse_fel(expression: &str) -> Option<String> {
             }
         }
     }
-}
-
-/// Extract field dependencies from a FEL expression.
-///
-/// Returns a list of field path strings.
-#[pyfunction]
-pub fn get_dependencies(expression: &str) -> Vec<String> {
-    get_fel_dependencies(expression).fields.into_iter().collect()
 }
 
 /// Extract full dependency info from a FEL expression.

@@ -15,6 +15,7 @@ export {
     sanitizeFELIdentifier,
     splitNormalizedPath,
     type FELAnalysis,
+    type FELDependencies,
     type ItemLocation,
     type TreeItemLike,
     type WasmFelAnalysisErrorWire,
