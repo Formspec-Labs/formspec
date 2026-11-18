@@ -1151,6 +1151,17 @@ not establish assent, fetching, viewing or reading; declared-document
 assent uses the typed signed root commitment.</td>
 </tr>
 <tr>
+<td><code>#/properties/resolvedInstances</code></td>
+<td><code>resolvedInstances</code></td>
+<td><code>array</code></td>
+<td>no</td>
+<td>—</td>
+<td>What was read from response instances. assemble_candidate is the
+only writer; browser assembles before Sign and server re-runs at Sign
+and Submit, refusing differences. Evidence is inside the signed
+Response.</td>
+</tr>
+<tr>
 <td><code>#/properties/status</code></td>
 <td><code>status</code></td>
 <td><code>$ref</code></td>
@@ -1172,9 +1183,11 @@ never be blocked by validation status (VE-05) — only the transition to
 <td><code>object</code></td>
 <td>no</td>
 <td>—</td>
-<td>The entity this Response is about — the grant, patient, project, or
-other domain object the form data describes. Distinct from ‘author’ (who
-filled in the form).</td>
+<td>The entity this Response concerns, distinct from its author. For a
+subject-declaring Definition this is the filing unit: type and typed
+keys are required and id is derived canonically from (type, keys). An
+implicit respondent identity is server-only and is never serialized
+here.</td>
 </tr>
 <tr>
 <td><code>#/properties/validationResults</code></td>
@@ -1201,6 +1214,199 @@ schema alone cannot express.</p>
 <code>(definitionUrl, definitionVersion)</code>. A conformant processor
 MUST reject a Response whose <code>definitionVersion</code> does not
 match any known Definition at the given <code>definitionUrl</code>.</p>
+<h5 id="filing-unit-subject">Filing-unit Subject</h5>
+<p>When the Definition declares <code>subject</code> (§4.1), each
+Response MUST carry <code>subject: {id, type, keys}</code>.
+<code>type</code> MUST equal the declaration’s type, and
+<code>keys</code> MUST contain exactly the declared keys with values of
+their declared <code>string</code> or <code>integer</code> data types.
+Keys identify the filing unit independently of editable answers and of
+the person completing the form. For such a Definition,
+<code>subject.id</code> MUST be the lowercase hexadecimal SHA-256 of
+<code>{"type": T, "keys": K}</code>, encoded with
+<code>integrity-canonical-json-v1</code> using the integrity-stack
+domain-separated canonical bytes: the UTF-8 domain tag
+<code>formspec.subject.id.v1</code>, one NUL byte, then the canonical
+JSON bytes. The identifier is exactly 64 hex characters, with no prefix.
+Equal typed keys and type identify the same unit regardless of JSON
+property order. This is a meaning change from a host entity identifier
+to a filing-unit identifier. <code>Response.id</code> still identifies
+the individual Response; multiple Definitions and Responses MAY concern
+the same filing unit.</p>
+<p>The identifier is unique only together with its storage scope. Every
+index and authorization key MUST pair the identifier with that scope. A
+per-scope singleton MUST declare a subject with an empty key set
+(<code>keys: {}</code>); its id uses <code>K = {}</code>, and its
+relations attach through the scope parent.</p>
+<p>The storage scope MUST NOT be a subject key, and Response selection
+MUST NOT cross that scope. Declared authorization parents are derived
+from stored keys and the scope for each authorization check; parent
+relationships MUST NOT be stored as a second copy of those facts. A
+draft’s keys MAY be corrected only by an authorized re-key operation
+that refuses a collision with another unit. Completed Responses MUST NOT
+be re-keyed.</p>
+<p>A Definition without a subject declaration uses the server’s implicit
+“this respondent” identity for draft ownership. That implicit identity
+MUST NOT be written into <code>Response.subject</code>. An explicit
+subject on a Definition without the declaration retains its host-entity
+meaning.</p>
+<h5 id="response-selection">Response Selection</h5>
+<p><code>response.schema.json#/$defs/ResponseSelection</code> defines
+the shared selection used by Definition response instances (§4.4.1) and
+app-level Data Sources. It is a closed object with the following
+properties:</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Property</th>
+<th>Required</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>definition</code></td>
+<td>yes</td>
+<td>Common <code>TargetDefinition</code>: canonical upstream
+<code>url</code> and optional <code>compatibleVersions</code>
+range.</td>
+</tr>
+<tr>
+<td><code>subject</code></td>
+<td>yes</td>
+<td>Array of predicates <code>{key, op, from, offset?}</code>; an empty
+array imposes no key predicates.</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>yes</td>
+<td><code>completed</code> selects filed, immutable Responses;
+<code>current</code> selects each unit’s open draft, or its latest
+completed Response when no draft exists. This differs from a catalog’s
+<code>delivery: "draft"</code>, which reads the session’s own
+draft.</td>
+</tr>
+<tr>
+<td><code>disposition</code></td>
+<td>no</td>
+<td>URI naming a review outcome, resolved through
+<code>DispositionAuthority</code> by
+<code>{responseId, responseHash}</code>. It is not a Response status; an
+amendment does not inherit acceptance.</td>
+</tr>
+<tr>
+<td><code>whenNone</code></td>
+<td>no</td>
+<td><code>unavailable</code> (default) or <code>empty</code>.
+<code>empty</code> delivers the fallback and records that nothing
+matched.</td>
+</tr>
+<tr>
+<td><code>cardinality</code></td>
+<td>yes</td>
+<td><code>latest</code> selects one record;
+<code>latest-per-subject</code> selects the latest record for each
+distinct subject.</td>
+</tr>
+<tr>
+<td><code>pin</code></td>
+<td>yes</td>
+<td><code>none</code> or <code>at-open</code>.</td>
+</tr>
+<tr>
+<td><code>mapping</code></td>
+<td>no</td>
+<td>URL of a Mapping applied forward to selected data.</td>
+</tr>
+</tbody>
+</table>
+<p>Each predicate’s <code>op</code> MUST be <code>eq</code>,
+<code>le</code>, or <code>ge</code>, comparing the upstream key to the
+value named by <code>from</code>. <code>from</code> MUST contain exactly
+one of <code>subject</code> (a key of the consuming Response) or
+<code>routeParam</code> (a catalog’s route parameter). Definition
+instances MUST use <code>from.subject</code>; <code>routeParam</code> is
+allowed only in catalog sources. An integer <code>offset</code>, when
+present, is added to the referenced value before comparison and MUST be
+used only with integer keys. <code>le</code> and <code>ge</code> apply
+to integer keys only; <code>eq</code> preserves the declared key type. A
+route parameter for an integer key MUST match <code>^-?[0-9]+$</code>
+and be converted as an exact base-10 integer before comparison or
+offset. Whitespace, a fraction, an exponent, and a plus sign MUST be
+rejected; implementations MUST NOT round through a floating-point value.
+A malformed or unrepresentable integer makes the selection unavailable.
+String keys use the route parameter string unchanged.</p>
+<p>Authorization MUST precede the query. A reader needs
+<code>read</code> on the subject space named by the predicates, or on
+the whole scope for a list. List records MUST be checked in a batch.
+Authorization refusal MUST produce one undifferentiated
+<code>unavailable</code> result, even with
+<code>whenNone: "empty"</code>, without revealing whether any record
+exists. Authorized candidates MUST be in the same scope, match the
+Definition URL and compatible versions, match the upstream subject type
+and predicates, and satisfy status and disposition. Ordering is fixed:
+<code>authored</code> instant descending, then Response id ascending in
+unsigned UTF-8 byte order; cardinality is applied after that
+ordering.</p>
+<p>An unavailable response instance MUST block Sign and Submit and MUST
+NOT block Save (VE-05). A successful query with no match follows
+<code>whenNone</code>; an empty match MUST remain distinguishable from
+unavailability.</p>
+<h5 id="resolved-response-instances">Resolved Response Instances</h5>
+<p><code>Response.resolvedInstances[]</code> records what a form read
+from other Responses. Each entry has the shape
+<code>{instance, records: [{responseId, definitionVersion, responseHash?}], valueDigest, none, pinned, mapping?: {url, digest}}</code>.
+<code>instance</code> names the Definition instance; there MUST be at
+most one entry per instance. <code>records</code> identifies the
+selected records in selection order. <code>none: true</code> means a
+successful empty match and requires an empty <code>records</code> array;
+<code>none: false</code> requires selected records. <code>pinned</code>
+records whether the selection was pinned at open. When a Mapping is
+used, its URL and digest MUST be retained in <code>mapping</code>.</p>
+<p><code>assemble_candidate(definition, response, evaluation, resolution) → Response</code>
+is the only writer of <code>resolvedInstances</code>. It belongs to
+<code>formspec-eval</code>, outside the <code>create</code> feature
+fence; <code>evaluate</code> stays read-only and receives subject keys
+and instance values as inputs. FormEngine MUST call
+<code>assemble_candidate</code> before Sign. The server MUST re-run it
+at Sign and Submit and refuse on any difference from the submitted
+candidate. The assembled evidence is inside the signed Response and MUST
+NOT be edited after Sign.</p>
+<p><code>valueDigest</code> is the SHA-256 digest of the delivered
+value: the <code>Response.data</code> projection actually read, after
+any Mapping, encoded by <code>integrity-canonical-json-v1</code> under
+domain tag <code>formspec.instance.value.v1</code>. Digest strings use
+<code>sha256:</code> followed by lowercase hexadecimal SHA-256. Sign and
+Submit MUST compare this digest; upstream changes outside the projection
+MUST NOT cause refusal.</p>
+<p>For <code>latest</code>, the delivered value is the selected record’s
+projected <code>Response.data</code>, after any Mapping. For
+<code>latest-per-subject</code>, it is an array of each selected
+record’s projection in selection order; a Mapping, when declared, runs
+once on that whole array. With <code>none: true</code>, the delivered
+value is the instance’s <code>data</code> fallback, or <code>null</code>
+when no fallback is declared, for either cardinality. The fallback is
+already in the delivered shape and MUST NOT pass through the Mapping.
+<code>valueDigest</code> hashes that exact final value, including the
+ordered array, fallback or <code>null</code> as applicable.</p>
+<p><code>responseHash</code> MUST be present for completed records and
+MUST be absent for current drafts. It is
+<code>ResponseJson::handoff_hash()</code> from
+<code>integrity-canonical</code>: the
+<code>formspec.response.handoff.v1</code> hash of the complete Response,
+including authored signatures. It equals the record’s
+<code>IntakeHandoff.responseHash</code> because completed stored bytes
+MUST remain unchanged after handoff. It is not a task-transition digest
+or a signer-assented-payload digest. A <code>current</code> selection
+that falls back to a completed record includes that record’s hash. A
+current draft’s read value is cited by <code>valueDigest</code> and
+retained under that digest in the server evaluation receipt; no draft
+revision history is required.</p>
 <h5 id="response-instance-ownership">Response Instance Ownership</h5>
 <p>A live Response instance is owned by the Core Response contract. It
 is identified by its Response id when present, and is always pinned to
@@ -2351,6 +2557,14 @@ blocking load error. Later refresh MUST NOT restomp person edits
 (FH-064).</td>
 </tr>
 <tr>
+<td><strong>Filed Response</strong></td>
+<td><code>response</code> (<code>ResponseSelection</code>)</td>
+<td>Selects authorized Responses by Definition and subject keys in the
+same scope, including a current draft when requested. Requires a
+path-keyed <code>schema</code> and delivers the selected
+<code>Response.data</code> projection (§4.4.1).</td>
+</tr>
+<tr>
 <td><strong>Host function</strong></td>
 <td><code>source</code> (string, <code>formspec-fn:</code> URI)</td>
 <td>The data is supplied by the host environment via a named callback.
@@ -2362,11 +2576,13 @@ Definition.</td>
 </tr>
 </tbody>
 </table>
-<p>A Data Source MAY include a <code>schema</code> property describing
-the expected shape of the data (field names and types). This schema is
-informative — it aids tooling and documentation — but a conformant
-processor is NOT REQUIRED to validate Data Source contents against
-it.</p>
+<p>A Data Source MUST declare exactly one of <code>source</code>,
+<code>response</code>, or <code>data</code> alone; <code>data</code> MAY
+also back either external source as a fallback. A <code>response</code>
+source MUST include a <code>schema</code> declaring the exact paths and
+types to project (§4.4.1). For other sources, <code>schema</code> is
+OPTIONAL and informative; processors are not required to validate their
+contents against it.</p>
 <p>Secondary instances populated by Data Sources are
 <strong>read-only</strong> during form completion unless declared
 <code>readonly: false</code>, which admits host writes only (§4.4.1). No
@@ -2389,13 +2605,22 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href=
 <span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span></span>
 <span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
 <span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;priorYear&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;https://api.example.org/responses/2024/{{respondentId}}&quot;</span></span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;inventory&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;formspec-fn:loadInventoryData&quot;</span></span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;response&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;definition&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://example.org/forms/annual-report&quot;</span> <span class="fu">},</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;subject&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;year&quot;</span><span class="fu">,</span> <span class="dt">&quot;op&quot;</span><span class="fu">:</span> <span class="st">&quot;eq&quot;</span><span class="fu">,</span> <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;subject&quot;</span><span class="fu">:</span> <span class="st">&quot;year&quot;</span> <span class="fu">},</span> <span class="dt">&quot;offset&quot;</span><span class="fu">:</span> <span class="dv">-1</span> <span class="fu">}</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;completed&quot;</span><span class="fu">,</span> <span class="dt">&quot;whenNone&quot;</span><span class="fu">:</span> <span class="st">&quot;empty&quot;</span><span class="fu">,</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;cardinality&quot;</span><span class="fu">:</span> <span class="st">&quot;latest&quot;</span><span class="fu">,</span> <span class="dt">&quot;pin&quot;</span><span class="fu">:</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;schema&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;totalIncome&quot;</span><span class="fu">:</span> <span class="st">&quot;decimal&quot;</span> <span class="fu">},</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;data&quot;</span><span class="fu">:</span> <span class="fu">{}</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;inventory&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;formspec-fn:loadInventoryData&quot;</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>These data sources are then referenced in FEL expressions:</p>
 <pre><code>@instance(&#39;priorYear&#39;).totalIncome
 @instance(&#39;countryCodes&#39;)  </code></pre>
@@ -2468,6 +2693,16 @@ path</td>
 <td><code>VerificationReceipt.receiptBytes</code> (the signed receipt)
 when present, else receipt fields</td>
 <td>WOS <code>primitiveVerification</code>; admission record</td>
+</tr>
+<tr>
+<td>What was read</td>
+<td><code>Response.resolvedInstances</code></td>
+<td>Server evaluation receipt</td>
+</tr>
+<tr>
+<td>Review outcome</td>
+<td>WOS determination</td>
+<td><code>DispositionAuthority</code> answers</td>
 </tr>
 </tbody>
 </table>
@@ -5430,6 +5665,17 @@ immutable. ‘retired’: no longer used for new data collection, but
 existing Responses remain valid.</td>
 </tr>
 <tr>
+<td><code>#/properties/subject</code></td>
+<td><code>subject</code></td>
+<td><code>object</code></td>
+<td>no</td>
+<td>—</td>
+<td>Filing-unit subject declaration: a type URI and named string or
+integer keys; an empty key set declares a per-scope singleton.
+Authorization parents are derived from stored key values for each check,
+never persisted as duplicate relationships. Scope is not a key.</td>
+</tr>
+<tr>
 <td><code>#/properties/title</code></td>
 <td><code>title</code></td>
 <td><code>string</code></td>
@@ -5509,6 +5755,33 @@ unrecognized top-level properties unless the property name begins with
 <code>x-</code>. Processors MUST preserve <code>x-*</code> extension
 properties during round-tripping but MUST NOT assign core semantics to
 unrecognized extensions.</p>
+<h4 id="filing-unit-subject-declaration">Filing-unit Subject
+Declaration</h4>
+<p>The OPTIONAL top-level <code>subject</code> declares a filing-unit
+type URI and named keys. Each key MUST declare <code>dataType</code> as
+<code>string</code> or <code>integer</code>. A per-scope singleton
+declares <code>keys: {}</code> and takes relations through the scope
+parent (§2.1.6). The declaration has the shape:</p>
+<div class="sourceCode"><pre
+class="sourceCode json"><code class="sourceCode json"><span><span class="fu">{</span></span>
+<span>  <span class="dt">&quot;subject&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;urn:example:subject:agency-year&quot;</span><span class="fu">,</span></span>
+<span>    <span class="dt">&quot;keys&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span>      <span class="dt">&quot;ffy&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;integer&quot;</span> <span class="fu">},</span></span>
+<span>      <span class="dt">&quot;uei&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span> <span class="dt">&quot;authorizationParent&quot;</span><span class="fu">:</span> <span class="st">&quot;agency&quot;</span> <span class="fu">}</span></span>
+<span>    <span class="fu">}</span></span>
+<span>  <span class="fu">}</span></span>
+<span><span class="fu">}</span></span></code></pre></div>
+<p><code>authorizationParent</code>, when present, MUST be on a
+<code>string</code> key and names the authorization object type for that
+key’s value: the example derives <code>agency:&lt;uei&gt;</code> as a
+parent of the filing unit. The scope supplies its own parent and MUST
+NOT be declared as a key. An authorized route supplies keys at
+find-or-create; later checks derive parents from stored keys.
+Find-or-create MUST authorize before disclosing or creating a draft and
+MUST admit at most one open draft per
+<code>(scope, definitionUrl, subject)</code>. Correcting keys follows
+§2.1.6.</p>
 <h4 id="form-metadata-and-fees">Form Metadata and Fees</h4>
 <p>The OPTIONAL <code>metadata</code> object carries form-level
 explanation and policy annotations that do not create response data
@@ -7230,23 +7503,29 @@ instance’s identifier.</p>
 class="sourceCode json"><code class="sourceCode json"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;instances&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;priorYear&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;https://api.example.gov/responses/2024/{{entityId}}&quot;</span><span class="fu">,</span></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;static&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;schema&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;total_expenditures&quot;</span><span class="fu">:</span> <span class="st">&quot;decimal&quot;</span><span class="fu">,</span></span>
-<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;entity_name&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span></span>
-<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
-<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
-<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;stateCodes&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;https://api.example.gov/reference/states&quot;</span><span class="fu">,</span></span>
-<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;static&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
-<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;data&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;code&quot;</span><span class="fu">:</span> <span class="st">&quot;AL&quot;</span><span class="fu">,</span> <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;Alabama&quot;</span><span class="fu">}</span><span class="ot">,</span></span>
-<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;code&quot;</span><span class="fu">:</span> <span class="st">&quot;AK&quot;</span><span class="fu">,</span> <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;Alaska&quot;</span><span class="fu">}</span></span>
-<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span></span>
-<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
-<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;response&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;definition&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://example.gov/forms/annual-report&quot;</span> <span class="fu">},</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;subject&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;ffy&quot;</span><span class="fu">,</span> <span class="dt">&quot;op&quot;</span><span class="fu">:</span> <span class="st">&quot;eq&quot;</span><span class="fu">,</span> <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;subject&quot;</span><span class="fu">:</span> <span class="st">&quot;ffy&quot;</span> <span class="fu">},</span> <span class="dt">&quot;offset&quot;</span><span class="fu">:</span> <span class="dv">-1</span> <span class="fu">}</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span><span class="fu">,</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;completed&quot;</span><span class="fu">,</span> <span class="dt">&quot;whenNone&quot;</span><span class="fu">:</span> <span class="st">&quot;empty&quot;</span><span class="fu">,</span></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;cardinality&quot;</span><span class="fu">:</span> <span class="st">&quot;latest&quot;</span><span class="fu">,</span> <span class="dt">&quot;pin&quot;</span><span class="fu">:</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;schema&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;total_expenditures&quot;</span><span class="fu">:</span> <span class="st">&quot;decimal&quot;</span><span class="fu">,</span></span>
+<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;entity_name&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span></span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;stateCodes&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;https://api.example.gov/reference/states&quot;</span><span class="fu">,</span></span>
+<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;static&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;data&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb43-21"><a href="#cb43-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;code&quot;</span><span class="fu">:</span> <span class="st">&quot;AL&quot;</span><span class="fu">,</span> <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;Alabama&quot;</span><span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb43-22"><a href="#cb43-22" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span><span class="dt">&quot;code&quot;</span><span class="fu">:</span> <span class="st">&quot;AK&quot;</span><span class="fu">,</span> <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;Alaska&quot;</span><span class="fu">}</span></span>
+<span id="cb43-23"><a href="#cb43-23" aria-hidden="true" tabindex="-1"></a>      <span class="ot">]</span></span>
+<span id="cb43-24"><a href="#cb43-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb43-25"><a href="#cb43-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb43-26"><a href="#cb43-26" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h4 id="instance-properties">4.4.1 Instance Properties</h4>
 <table>
 <colgroup>
@@ -7268,10 +7547,15 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb43-1"><a href=
 <td><code>source</code></td>
 <td>string (URI)</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
-<td>URL from which to fetch the instance data at runtime. MAY contain
-<code>{{paramName}}</code> template variables that are resolved by the
-implementation at runtime. Template variable resolution is
-implementation-defined.</td>
+<td>Literal URI from which to fetch JSON instance data at runtime. URI
+templates are not allowed.</td>
+</tr>
+<tr>
+<td><code>response</code></td>
+<td><code>ResponseSelection</code></td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Shared subject-keyed Response selection (§2.1.6); mutually exclusive
+with <code>source</code>.</td>
 </tr>
 <tr>
 <td><code>static</code></td>
@@ -7285,19 +7569,19 @@ instance data aggressively. Default: <code>false</code>.</td>
 <td><code>data</code></td>
 <td>any</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
-<td>Inline instance data. If both <code>source</code> and
-<code>data</code> are present, <code>data</code> serves as the fallback
-when the <code>source</code> is unavailable. If only <code>data</code>
-is present, the instance is fully inline.</td>
+<td>Inline instance data, or fallback for <code>source</code> or
+<code>response</code>. For a response selection, successful no-match
+follows <code>whenNone</code>; fallback does not turn authorization
+refusal into an available result.</td>
 </tr>
 <tr>
 <td><code>schema</code></td>
 <td>object</td>
-<td><strong>0..1</strong> (OPTIONAL)</td>
-<td>Type declarations for the instance’s fields. Keys are field names;
-values are data type strings (using the same core data types defined in
-§4.2.3). Implementations SHOULD use the schema for type coercion and
-expression type-checking.</td>
+<td><strong>0..1</strong> (REQUIRED with <code>response</code>)</td>
+<td>Path-keyed type declarations using Core data types (§4.2.3). For a
+response instance, authoritative projection of
+<code>Response.data</code>; otherwise informative type/coercion
+guidance.</td>
 </tr>
 <tr>
 <td><code>readonly</code></td>
@@ -7313,9 +7597,45 @@ value (§4.3.3); intermediate values belong in Variables (§4.5).</td>
 </tr>
 </tbody>
 </table>
-<p>At least one of <code>source</code> or <code>data</code> MUST be
-present. An Instance with neither MUST be rejected as a Definition
-error.</p>
+<p>An Instance MUST declare exactly one of <code>source</code>,
+<code>response</code>, or <code>data</code> alone. <code>data</code> MAY
+also serve as fallback for either <code>source</code> or
+<code>response</code>. An Instance with both external sources, or with
+no content source, MUST be rejected.</p>
+<p>A response instance MUST declare <code>schema</code> keyed by
+FieldRef paths, using <code>[*]</code> for repeat traversal, for example
+<code>agencies[*].uei</code>. The delivered data MUST be upstream
+<code>Response.data</code> projected to exactly those paths, retaining
+the nested object and array structure. Unlisted upstream paths MUST NOT
+enter the Mapping or, without a Mapping, the delivered value. A declared
+Mapping is applied forward to that projection; <code>valueDigest</code>
+covers the final delivered value. For <code>latest-per-subject</code>,
+each record is projected separately, then the Mapping receives the whole
+array in selection order. A successful empty match delivers the
+<code>data</code> fallback, or <code>null</code> if absent, without
+Mapping; the digest covers that fallback value (§2.1.6). The schema
+limits columns, not rows.</p>
+<p>Definition-local selection MUST NOT use <code>from.routeParam</code>.
+Every <code>from.subject</code> key MUST be declared in the consuming
+Definition’s own <code>subject</code>. These are single-document lint
+rules. The shared Rust <code>check_instance_projection</code> operation
+MUST check projected paths and types against every upstream Definition
+version in range, upstream subject type and key compatibility, and
+<code>le</code>, <code>ge</code> and <code>offset</code> only on integer
+keys. App-graph authoring invokes this operation through its injected
+engine port with the upstream Definitions resolved by URL; the server
+MUST invoke it when either side publishes.</p>
+<p>For <code>pin: "at-open"</code>, the server MUST select and record a
+pin with <code>pinned: true</code> at draft open; an unavailable pin
+MUST refuse opening and name the missing filing. Browser creation
+receives the pinned value as an instance; the server does not use the
+<code>create</code> feature. Later loads MUST return exactly the pinned
+records and report <code>newer: {responseId, responseHash}</code> when a
+fresh selection would choose another completed record. Re-pin is an
+explicit, authorized draft operation through
+<code>assemble_candidate</code>; any offered refill uses the prefill
+Mapping only for the preparer’s selected fields. It MUST NOT edit a
+signed Response.</p>
 <h4 id="referencing-instances-in-expressions">4.4.2 Referencing
 Instances in Expressions</h4>
 <p>Instance data is accessed in FEL expressions via the
@@ -8943,7 +9263,7 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb60-1"><a href=
 <span id="cb60-10"><a href="#cb60-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
 <span id="cb60-11"><a href="#cb60-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;award&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb60-12"><a href="#cb60-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Pre-populated award data from grants management system&quot;</span><span class="fu">,</span></span>
-<span id="cb60-13"><a href="#cb60-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;https://api.grants.example.gov/awards/{awardId}&quot;</span><span class="fu">,</span></span>
+<span id="cb60-13"><a href="#cb60-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;https://api.grants.example.gov/awards/GR-2025-04817&quot;</span><span class="fu">,</span></span>
 <span id="cb60-14"><a href="#cb60-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;schema&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb60-15"><a href="#cb60-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;award_amount&quot;</span><span class="fu">:</span> <span class="st">&quot;decimal&quot;</span><span class="fu">,</span></span>
 <span id="cb60-16"><a href="#cb60-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;award_number&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span></span>
@@ -9520,7 +9840,7 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb69-1"><a href=
 <span id="cb69-10"><a href="#cb69-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
 <span id="cb69-11"><a href="#cb69-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;prior_year&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb69-12"><a href="#cb69-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;Prior-year actuals from financial system&quot;</span><span class="fu">,</span></span>
-<span id="cb69-13"><a href="#cb69-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;https://api.grants.example.gov/actuals/{awardId}/2024&quot;</span><span class="fu">,</span></span>
+<span id="cb69-13"><a href="#cb69-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;https://api.grants.example.gov/actuals/GR-2025-04817/2024&quot;</span><span class="fu">,</span></span>
 <span id="cb69-14"><a href="#cb69-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;schema&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb69-15"><a href="#cb69-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;total_expenditure&quot;</span><span class="fu">:</span>  <span class="st">&quot;decimal&quot;</span><span class="fu">,</span></span>
 <span id="cb69-16"><a href="#cb69-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;personnel_total&quot;</span><span class="fu">:</span>    <span class="st">&quot;decimal&quot;</span><span class="fu">,</span></span>

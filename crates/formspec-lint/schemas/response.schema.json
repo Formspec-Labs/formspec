@@ -120,6 +120,306 @@
       },
       "description": "Evidence of an explicit delegated signing act, retained inside the whole-Response signed bytes. issuer binds the signing service's scope and requires an independently configured expected issuer at admission. draftVersion is the unsigned saved revision supplied to the producer; it is not rewritten after the signed save. Server admission independently resolves content, identity, hash, mirrored outer fields, current revision and cryptographic evidence."
     },
+    "Sha256Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 digest encoded with the sha256: prefix and lowercase hexadecimal.",
+      "examples": [
+        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ]
+    },
+    "ResolvedInstanceRecord": {
+      "type": "object",
+      "required": [
+        "responseId",
+        "definitionVersion"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "responseId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identity of the selected Response."
+        },
+        "definitionVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exact upstream Definition version."
+        },
+        "responseHash": {
+          "$ref": "#/$defs/Sha256Digest",
+          "description": "Required for completed records and absent for current drafts. ResponseJson::handoff_hash() over the complete immutable Response under formspec.response.handoff.v1; equals its IntakeHandoff.responseHash."
+        }
+      }
+    },
+    "ResolvedInstance": {
+      "type": "object",
+      "required": [
+        "instance",
+        "records",
+        "valueDigest",
+        "none",
+        "pinned"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "instance": {
+          "type": "string",
+          "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+          "description": "Name of the Definition response instance; unique within resolvedInstances."
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResolvedInstanceRecord"
+          },
+          "description": "Selected records in selection order; empty exactly when none is true."
+        },
+        "valueDigest": {
+          "$ref": "#/$defs/Sha256Digest",
+          "description": "Digest of the final delivered value: latest projects one record; latest-per-subject projects each record into an array in selection order, then applies any Mapping once to the array. none true delivers data fallback or null without Mapping. Encoded by integrity-canonical-json-v1 under formspec.instance.value.v1. Sign and Submit compare this value, not unprojected upstream fields."
+        },
+        "none": {
+          "type": "boolean",
+          "description": "True only for a successful empty match, never for an unavailable or refused selection."
+        },
+        "pinned": {
+          "type": "boolean",
+          "description": "Whether the server pinned the selected value at draft open."
+        },
+        "mapping": {
+          "type": "object",
+          "required": [
+            "url",
+            "digest"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL of the forward Mapping used."
+            },
+            "digest": {
+              "$ref": "#/$defs/Sha256Digest",
+              "description": "Digest pin of the Mapping used."
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "none": {
+                "const": true
+              }
+            },
+            "required": [
+              "none"
+            ]
+          },
+          "then": {
+            "properties": {
+              "records": {
+                "maxItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "records": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ],
+      "examples": [
+        {
+          "instance": "priorYear",
+          "records": [
+            {
+              "responseId": "filed-report",
+              "definitionVersion": "1.0.0",
+              "responseHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ],
+          "valueDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "none": false,
+          "pinned": true,
+          "mapping": {
+            "url": "urn:example:mapping:carry",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "instance": "sibling",
+          "records": [
+            {
+              "responseId": "draft-report",
+              "definitionVersion": "1.0.0"
+            }
+          ],
+          "valueDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "none": false,
+          "pinned": false
+        }
+      ]
+    },
+    "SubjectPredicate": {
+      "type": "object",
+      "required": [
+        "key",
+        "op",
+        "from"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+          "description": "Upstream subject key to compare."
+        },
+        "op": {
+          "type": "string",
+          "enum": [
+            "eq",
+            "le",
+            "ge"
+          ],
+          "description": "Compare the upstream key with the referenced value plus any offset. le and ge are allowed only for integer keys; eq preserves the declared type."
+        },
+        "from": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "subject": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+              "description": "Key declared by the consuming Definition subject."
+            },
+            "routeParam": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Catalog route parameter; prohibited in Definition-local response instances. Integer keys require ^-?[0-9]+$ converted exactly in base 10 before comparison or offset; reject fractions, exponents, whitespace, plus signs and unrepresentable integers as unavailable. String keys use the string unchanged."
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "subject"
+              ]
+            },
+            {
+              "required": [
+                "routeParam"
+              ]
+            }
+          ]
+        },
+        "offset": {
+          "type": "integer",
+          "description": "Added to the referenced key before comparison; allowed only for integer keys."
+        }
+      }
+    },
+    "ResponseSelection": {
+      "type": "object",
+      "description": "Closed, same-scope Response selection shared by Definition instances and catalog sources. Authorize read before querying; order by authored instant descending then Response id ascending. Definition-local predicates use only from.subject; routeParam is catalog-only.",
+      "required": [
+        "definition",
+        "subject",
+        "status",
+        "cardinality",
+        "pin"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "definition": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/TargetDefinition"
+        },
+        "subject": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SubjectPredicate"
+          },
+          "description": "Predicates over upstream subject keys; empty means no key predicates."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "current"
+          ],
+          "description": "completed selects immutable filings. current selects the unit open draft, else latest completed; distinct from catalog delivery draft."
+        },
+        "disposition": {
+          "type": "string",
+          "format": "uri",
+          "description": "Review outcome resolved by DispositionAuthority using responseId and responseHash, never inherited by an amendment."
+        },
+        "whenNone": {
+          "type": "string",
+          "enum": [
+            "unavailable",
+            "empty"
+          ],
+          "default": "unavailable",
+          "description": "Successful no-match behavior. empty delivers fallback and records none; authorization refusal always remains unavailable."
+        },
+        "cardinality": {
+          "type": "string",
+          "enum": [
+            "latest",
+            "latest-per-subject"
+          ],
+          "description": "Select latest overall or latest per distinct subject after filtering and fixed ordering."
+        },
+        "pin": {
+          "type": "string",
+          "enum": [
+            "none",
+            "at-open"
+          ],
+          "description": "at-open selects and records a pin at draft open; later loads retain the pin and report newer."
+        },
+        "mapping": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of an optional Mapping applied forward."
+        }
+      },
+      "examples": [
+        {
+          "definition": {
+            "url": "urn:example:forms:report",
+            "compatibleVersions": ">=1.0.0 <2.0.0"
+          },
+          "subject": [
+            {
+              "key": "uei",
+              "op": "eq",
+              "from": {
+                "subject": "uei"
+              }
+            },
+            {
+              "key": "ffy",
+              "op": "eq",
+              "from": {
+                "subject": "ffy"
+              },
+              "offset": -1
+            }
+          ],
+          "status": "completed",
+          "whenNone": "empty",
+          "cardinality": "latest",
+          "pin": "none"
+        }
+      ]
+    },
     "ResponseStatus": {
       "type": "string",
       "enum": ["in-progress", "completed", "amended", "stopped"],
@@ -925,25 +1225,74 @@
     },
     "subject": {
       "type": "object",
-      "description": "The entity this Response is about — the grant, patient, project, or other domain object the form data describes. Distinct from 'author' (who filled in the form).",
-      "required": ["id"],
+      "description": "The entity this Response concerns, distinct from its author. For a subject-declaring Definition this is the filing unit: type and typed keys are required and id is derived canonically from (type, keys). An implicit respondent identity is server-only and is never serialized here.",
+      "required": [
+        "id"
+      ],
       "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier of the subject entity within the host system.",
-          "examples": ["grant-2025-04817", "patient-12345", "org-northwind"]
+          "description": "For a subject-declaring Definition, 64 lowercase hex SHA-256 characters with no prefix: integrity-canonical-json-v1 domain-separated bytes under formspec.subject.id.v1 of {type, keys}. Unique only together with the scope; every index and authorization key pairs them. Otherwise the host entity identifier. Distinct from Response.id.",
+          "examples": [
+            "grant-2025-04817",
+            "patient-12345",
+            "org-northwind"
+          ]
         },
         "type": {
           "type": "string",
-          "description": "The type of the subject entity. Implementations SHOULD use consistent type labels within a system.",
-          "examples": ["Grant", "Patient", "Organization", "Project"]
+          "description": "Filing-unit type URI matching the Definition subject declaration, or a host entity type when the Definition declares no subject.",
+          "examples": [
+            "Grant",
+            "Patient",
+            "Organization",
+            "Project"
+          ]
+        },
+        "keys": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          },
+          "description": "String or integer identity keys matching exactly the Definition subject declaration; an empty object identifies a per-scope singleton. Scope is not a key.",
+          "examples": [
+            {
+              "ffy": 2026,
+              "uei": "A"
+            }
+          ]
         }
       },
       "examples": [
-        { "id": "grant-2025-04817", "type": "Grant" },
-        { "id": "patient-12345", "type": "Patient" }
-      ]
+        {
+          "id": "grant-2025-04817",
+          "type": "Grant"
+        },
+        {
+          "id": "patient-12345",
+          "type": "Patient"
+        },
+        {
+          "id": "caa277818d95f7d8b3a85fb92be6d600536d7c66dfd11216a6c0bbaabecfa9e7",
+          "type": "urn:example:subject:agency-year",
+          "keys": {
+            "ffy": 2026,
+            "uei": "A"
+          }
+        }
+      ],
+      "dependentRequired": {
+        "keys": [
+          "type"
+        ]
+      }
     },
     "validationResults": {
       "type": "array",
@@ -982,6 +1331,46 @@
             "source": "shape",
             "shapeId": "yoy-variance-warning",
             "value": 280000.00
+          }
+        ]
+      ]
+    },
+    "resolvedInstances": {
+      "type": "array",
+      "description": "What was read from response instances. assemble_candidate is the only writer; browser assembles before Sign and server re-runs at Sign and Submit, refusing differences. Evidence is inside the signed Response.",
+      "items": {
+        "$ref": "#/$defs/ResolvedInstance"
+      },
+      "examples": [
+        [
+          {
+            "instance": "priorYear",
+            "records": [
+              {
+                "responseId": "filed-report",
+                "definitionVersion": "1.0.0",
+                "responseHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "valueDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "none": false,
+            "pinned": true,
+            "mapping": {
+              "url": "urn:example:mapping:carry",
+              "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          {
+            "instance": "sibling",
+            "records": [
+              {
+                "responseId": "draft-report",
+                "definitionVersion": "1.0.0"
+              }
+            ],
+            "valueDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "none": false,
+            "pinned": false
           }
         ]
       ]

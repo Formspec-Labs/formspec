@@ -497,8 +497,9 @@ The canonical structural contract for Response properties is generated from
 | `#/properties/id` | `id` | <code>string</code> | no | — | A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId. |
 | `#/properties/metadata` | `metadata` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseMetadata</code> | Optional response metadata envelope for per-field provenance, derivation traces, and disclosures shown. |
 | `#/properties/resolvedDocuments` | `resolvedDocuments` | <code>array</code> | no | — | Exact document variants resolved from the pinned Definition. Duplicate document/locale identities refuse. Passive selections alone do not establish assent, fetching, viewing or reading; declared-document assent uses the typed signed root commitment. |
+| `#/properties/resolvedInstances` | `resolvedInstances` | <code>array</code> | no | — | What was read from response instances. assemble_candidate is the only writer; browser assembles before Sign and server re-runs at Sign and Submit, refusing differences. Evidence is inside the signed Response. |
 | `#/properties/status` | `status` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseStatus</code>; critical | The current lifecycle status of this Response. 'in-progress': actively being edited, MAY contain validation errors. 'completed': all error-severity validation results resolved, form submitted — a Response with one or more error-severity results MUST NOT be marked completed. 'amended': previously completed, reopened for modification. 'stopped': abandoned before completion, data preserved for audit. Saving data MUST never be blocked by validation status (VE-05) — only the transition to 'completed' requires zero error-level results. |
-| `#/properties/subject` | `subject` | <code>object</code> | no | — | The entity this Response is about — the grant, patient, project, or other domain object the form data describes. Distinct from 'author' (who filled in the form). |
+| `#/properties/subject` | `subject` | <code>object</code> | no | — | The entity this Response concerns, distinct from its author. For a subject-declaring Definition this is the filing unit: type and typed keys are required and id is derived canonically from (type, keys). An implicit respondent identity is server-only and is never serialized here. |
 | `#/properties/validationResults` | `validationResults` | <code>array</code> | no | — | The most recent set of ValidationResult entries for this Response. Includes results from all sources: bind constraints, validation shapes, required checks, type checks, and external validation. Only error-severity results block the transition to 'completed' status. Warning and info results are advisory. Non-relevant fields MUST NOT produce results. When persisted alongside the Response, this array represents a snapshot — it may be stale if the data has changed since the last validation run. |
 <!-- schema-ref:end -->
 
@@ -510,6 +511,130 @@ A Response references exactly one Definition by the tuple
 `(definitionUrl, definitionVersion)`. A conformant processor MUST reject a
 Response whose `definitionVersion` does not match any known Definition at the
 given `definitionUrl`.
+
+##### Filing-unit Subject
+
+When the Definition declares `subject` (§4.1), each Response MUST carry
+`subject: {id, type, keys}`. `type` MUST equal the declaration's type, and
+`keys` MUST contain exactly the declared keys with values of their declared
+`string` or `integer` data types. Keys identify the filing unit independently of editable
+answers and of the person completing the form. For such a Definition,
+`subject.id` MUST be the lowercase hexadecimal SHA-256 of
+`{"type": T, "keys": K}`, encoded with `integrity-canonical-json-v1` using the
+integrity-stack domain-separated canonical bytes: the UTF-8 domain tag
+`formspec.subject.id.v1`, one NUL byte, then the canonical JSON bytes.
+The identifier is exactly 64 hex characters, with no prefix. Equal typed keys
+and type identify the same unit regardless of JSON property order. This is a
+meaning change from a host entity identifier to a filing-unit identifier.
+`Response.id` still identifies the individual Response; multiple Definitions
+and Responses MAY concern the same filing unit.
+
+The identifier is unique only together with its storage scope. Every index
+and authorization key MUST pair the identifier with that scope. A per-scope
+singleton MUST declare a subject with an empty key set (`keys: {}`); its id
+uses `K = {}`, and its relations attach through the scope parent.
+
+The storage scope MUST NOT be a subject key, and Response selection MUST NOT
+cross that scope. Declared authorization parents are derived from stored keys
+and the scope for each authorization check; parent relationships MUST NOT be
+stored as a second copy of those facts. A draft's keys MAY be corrected only by
+an authorized re-key operation that refuses a collision with another unit.
+Completed Responses MUST NOT be re-keyed.
+
+A Definition without a subject declaration uses the server's implicit
+"this respondent" identity for draft ownership. That implicit identity MUST
+NOT be written into `Response.subject`. An explicit subject on a Definition
+without the declaration retains its host-entity meaning.
+
+##### Response Selection
+
+`response.schema.json#/$defs/ResponseSelection` defines the shared selection
+used by Definition response instances (§4.4.1) and app-level Data Sources.
+It is a closed object with the following properties:
+
+| Property | Required | Meaning |
+|---|---|---|
+| `definition` | yes | Common `TargetDefinition`: canonical upstream `url` and optional `compatibleVersions` range. |
+| `subject` | yes | Array of predicates `{key, op, from, offset?}`; an empty array imposes no key predicates. |
+| `status` | yes | `completed` selects filed, immutable Responses; `current` selects each unit's open draft, or its latest completed Response when no draft exists. This differs from a catalog's `delivery: "draft"`, which reads the session's own draft. |
+| `disposition` | no | URI naming a review outcome, resolved through `DispositionAuthority` by `{responseId, responseHash}`. It is not a Response status; an amendment does not inherit acceptance. |
+| `whenNone` | no | `unavailable` (default) or `empty`. `empty` delivers the fallback and records that nothing matched. |
+| `cardinality` | yes | `latest` selects one record; `latest-per-subject` selects the latest record for each distinct subject. |
+| `pin` | yes | `none` or `at-open`. |
+| `mapping` | no | URL of a Mapping applied forward to selected data. |
+
+Each predicate's `op` MUST be `eq`, `le`, or `ge`, comparing the upstream key
+to the value named by `from`. `from` MUST contain exactly one of `subject`
+(a key of the consuming Response) or `routeParam` (a catalog's route parameter).
+Definition instances MUST use `from.subject`; `routeParam` is allowed only in
+catalog sources. An integer `offset`, when present, is added to the referenced
+value before comparison and MUST be used only with integer keys.
+`le` and `ge` apply to integer keys only; `eq` preserves the declared key type.
+A route parameter for an integer key MUST match `^-?[0-9]+$` and be converted
+as an exact base-10 integer before comparison or offset. Whitespace, a fraction,
+an exponent, and a plus sign MUST be rejected; implementations MUST NOT round
+through a floating-point value. A malformed or unrepresentable integer makes
+the selection unavailable. String keys use the route parameter string unchanged.
+
+Authorization MUST precede the query. A reader needs `read` on the subject
+space named by the predicates, or on the whole scope for a list. List records
+MUST be checked in a batch. Authorization refusal MUST produce one
+undifferentiated `unavailable` result, even with `whenNone: "empty"`, without
+revealing whether any record exists. Authorized candidates MUST be in the same
+scope, match the Definition URL and compatible versions, match the upstream
+subject type and predicates, and satisfy status and disposition. Ordering is
+fixed: `authored` instant descending, then Response id ascending in unsigned
+UTF-8 byte order; cardinality is applied after that ordering.
+
+An unavailable response instance MUST block Sign and Submit and MUST NOT block
+Save (VE-05). A successful query with no match follows `whenNone`; an empty
+match MUST remain distinguishable from unavailability.
+
+##### Resolved Response Instances
+
+`Response.resolvedInstances[]` records what a form read from other Responses.
+Each entry has the shape
+`{instance, records: [{responseId, definitionVersion, responseHash?}], valueDigest, none, pinned, mapping?: {url, digest}}`.
+`instance` names the Definition instance; there MUST be at most one entry per
+instance. `records` identifies the selected records in selection order.
+`none: true` means a successful empty match and requires an empty `records`
+array; `none: false` requires selected records. `pinned` records whether the
+selection was pinned at open. When a Mapping is used, its URL and digest MUST
+be retained in `mapping`.
+
+`assemble_candidate(definition, response, evaluation, resolution) → Response`
+is the only writer of `resolvedInstances`. It belongs to `formspec-eval`,
+outside the `create` feature fence; `evaluate` stays read-only and receives
+subject keys and instance values as inputs. FormEngine MUST call
+`assemble_candidate` before Sign. The server MUST re-run it at Sign and Submit
+and refuse on any difference from the submitted candidate. The assembled
+evidence is inside the signed Response and MUST NOT be edited after Sign.
+
+`valueDigest` is the SHA-256 digest of the delivered value: the `Response.data`
+projection actually read, after any Mapping, encoded by
+`integrity-canonical-json-v1` under domain tag `formspec.instance.value.v1`.
+Digest strings use `sha256:` followed by lowercase hexadecimal SHA-256.
+Sign and Submit MUST compare this digest; upstream changes outside the
+projection MUST NOT cause refusal.
+
+For `latest`, the delivered value is the selected record's projected
+`Response.data`, after any Mapping. For `latest-per-subject`, it is an array
+of each selected record's projection in selection order; a Mapping, when
+declared, runs once on that whole array. With `none: true`, the delivered
+value is the instance's `data` fallback, or `null` when no fallback is declared,
+for either cardinality. The fallback is already in the delivered shape and
+MUST NOT pass through the Mapping. `valueDigest` hashes that exact final value,
+including the ordered array, fallback or `null` as applicable.
+
+`responseHash` MUST be present for completed records and MUST be absent for
+current drafts. It is `ResponseJson::handoff_hash()` from `integrity-canonical`:
+the `formspec.response.handoff.v1` hash of the complete Response, including
+authored signatures. It equals the record's `IntakeHandoff.responseHash`
+because completed stored bytes MUST remain unchanged after handoff. It is not
+a task-transition digest or a signer-assented-payload digest. A `current`
+selection that falls back to a completed record includes that record's hash.
+A current draft's read value is cited by `valueDigest` and retained under that
+digest in the server evaluation receipt; no draft revision history is required.
 
 ##### Response Instance Ownership
 
@@ -1361,12 +1486,14 @@ mechanisms:
 |-----------|----------|-------------|
 | **Inline** | `data` (JSON object or array) | The data is embedded directly in the Definition document. Suitable for small, static lookup tables (e.g., country codes, status enums). |
 | **URL** | `source` (string, URI) | The data is fetched from an external endpoint at form-load time. The response MUST be a JSON document. The processor MAY complete the first Rebuild before the fetch returns. On success it MUST install the payload and apply any still-pending creation-time `seedFrom` / `prePopulate` (§4.2.2.1). On failure, authored `data` remains the fallback (§4.4); without a fallback, `@instance()` is null and `seedFrom` uses `N = 0`, and the processor SHOULD emit a diagnostic — not a blocking load error. Later refresh MUST NOT restomp person edits (FH-064). |
+| **Filed Response** | `response` (`ResponseSelection`) | Selects authorized Responses by Definition and subject keys in the same scope, including a current draft when requested. Requires a path-keyed `schema` and delivers the selected `Response.data` projection (§4.4.1). |
 | **Host function** | `source` (string, `formspec-fn:` URI) | The data is supplied by the host environment via a named callback. The URI scheme `formspec-fn:` identifies a host-registered function (e.g., `"formspec-fn:lookupPatient"`). The host maps the function name to a callback. This allows integration with application-specific data layers without embedding external URLs in the Definition. |
 
-A Data Source MAY include a `schema` property describing the expected shape of
-the data (field names and types). This schema is informative — it aids tooling
-and documentation — but a conformant processor is NOT REQUIRED to validate
-Data Source contents against it.
+A Data Source MUST declare exactly one of `source`, `response`, or `data`
+alone; `data` MAY also back either external source as a fallback. A `response`
+source MUST include a `schema` declaring the exact paths and types to project
+(§4.4.1). For other sources, `schema` is OPTIONAL and informative; processors
+are not required to validate their contents against it.
 
 Secondary instances populated by Data Sources are **read-only** during form
 completion unless declared `readonly: false`, which admits host writes only
@@ -1389,7 +1516,16 @@ Repeatable Groups MAY declare `seedFrom` to open `$primary` rows from a secondar
 >       ]
 >     },
 >     "priorYear": {
->       "source": "https://api.example.org/responses/2024/{{respondentId}}"
+>       "response": {
+>         "definition": { "url": "https://example.org/forms/annual-report" },
+>         "subject": [
+>           { "key": "year", "op": "eq", "from": { "subject": "year" }, "offset": -1 }
+>         ],
+>         "status": "completed", "whenNone": "empty",
+>         "cardinality": "latest", "pin": "none"
+>       },
+>       "schema": { "totalIncome": "decimal" },
+>       "data": {}
 >     },
 >     "inventory": {
 >       "source": "formspec-fn:loadInventoryData"
@@ -1423,6 +1559,8 @@ at admission.
 | Ceremony state | WOS workflow state machine | nothing |
 | Custody / integrity at rest | Trellis ledger envelope | nothing |
 | Verification result | `VerificationReceipt.receiptBytes` (the signed receipt) when present, else receipt fields | WOS `primitiveVerification`; admission record |
+| What was read | `Response.resolvedInstances` | Server evaluation receipt |
+| Review outcome | WOS determination | `DispositionAuthority` answers |
 
 The whole-Response canonicalization profile omits `authoredSignatures`.
 Consequently, nesting `signedAt`, `signingIntent`, or a document hash in that
@@ -2857,6 +2995,7 @@ generated from `schemas/definition.schema.json`:
 | `#/properties/parties` | `parties` | <code>array</code> | no | critical | EXT-28 / ADR-0155 §4: multi-party intake role-slot declarations. Each entry declares a stable party-role slot bound at Definition authoring time. Runtime binds identities to slots; runtime MUST NOT invent new role slots. The role-class taxonomy is closed (`coEqual` \| `asymmetricPrimary` \| `asymmetricSecondary` \| `guardianFor`); domain-specific party metadata uses `extensions`. See core spec §4.8. |
 | `#/properties/shapes` | `shapes` | <code>array</code> | no | — | Named, composable validation rule sets (inspired by W3C SHACL). Shapes provide cross-field and form-level validation beyond per-field Bind constraints. Each Shape targets a data path, evaluates a FEL constraint expression, and produces structured ValidationResult entries with severity, message, and code on failure. Shapes compose via 'and', 'or', 'not', 'xone' operators. Only error-severity results block submission; warnings and info are advisory. |
 | `#/properties/status` | `status` | <code>string</code> | yes | enum: <code>"draft"</code>, <code>"active"</code>, <code>"retired"</code>; critical | Definition lifecycle state. Transitions: draft → active → retired. Backward transitions are forbidden for the same version. 'draft': under development, not for production. 'active': in production, content is immutable. 'retired': no longer used for new data collection, but existing Responses remain valid. |
+| `#/properties/subject` | `subject` | <code>object</code> | no | — | Filing-unit subject declaration: a type URI and named string or integer keys; an empty key set declares a per-scope singleton. Authorization parents are derived from stored key values for each check, never persisted as duplicate relationships. Scope is not a key. |
 | `#/properties/title` | `title` | <code>string</code> | yes | critical | Human-readable definition title. Displayed by authoring tools and form renderers. |
 | `#/properties/url` | `url` | <code>string</code> | yes | critical | Canonical URI identifier of the logical form. Stable across versions — all versions of the same form share this URL. Combined with 'version' to form the immutable identity tuple. Referenced by Responses via definitionUrl. |
 | `#/properties/variables` | `variables` | <code>array</code> | no | — | Named computed values with lexical scoping, continuously recalculated when dependencies change. Variables provide intermediate calculations reusable across Binds, Shapes, and other expressions without repetition. Referenced in FEL expressions as @variableName. MUST NOT form circular dependencies. |
@@ -2872,6 +3011,34 @@ Definitions are closed by default. Processors MUST reject unrecognized
 top-level properties unless the property name begins with `x-`. Processors
 MUST preserve `x-*` extension properties during round-tripping but MUST NOT
 assign core semantics to unrecognized extensions.
+
+#### Filing-unit Subject Declaration
+
+The OPTIONAL top-level `subject` declares a filing-unit type URI and named
+keys. Each key MUST declare `dataType` as `string` or `integer`. A per-scope
+singleton declares `keys: {}` and takes relations through the scope parent
+(§2.1.6). The declaration has the shape:
+
+```json
+{
+  "subject": {
+    "type": "urn:example:subject:agency-year",
+    "keys": {
+      "ffy": { "dataType": "integer" },
+      "uei": { "dataType": "string", "authorizationParent": "agency" }
+    }
+  }
+}
+```
+
+`authorizationParent`, when present, MUST be on a `string` key and names the
+authorization object type for that key's value: the example derives
+`agency:<uei>` as a parent of the filing unit. The scope supplies its own
+parent and MUST NOT be declared as a key.
+An authorized route supplies keys at find-or-create; later checks derive
+parents from stored keys. Find-or-create MUST authorize before disclosing or
+creating a draft and MUST admit at most one open draft per
+`(scope, definitionUrl, subject)`. Correcting keys follows §2.1.6.
 
 #### Form Metadata and Fees
 
@@ -3684,8 +3851,14 @@ property name serves as the instance's identifier.
 {
   "instances": {
     "priorYear": {
-      "source": "https://api.example.gov/responses/2024/{{entityId}}",
-      "static": false,
+      "response": {
+        "definition": { "url": "https://example.gov/forms/annual-report" },
+        "subject": [
+          { "key": "ffy", "op": "eq", "from": { "subject": "ffy" }, "offset": -1 }
+        ],
+        "status": "completed", "whenNone": "empty",
+        "cardinality": "latest", "pin": "none"
+      },
       "schema": {
         "total_expenditures": "decimal",
         "entity_name": "string"
@@ -3707,14 +3880,46 @@ property name serves as the instance's identifier.
 
 | Property | Type | Cardinality | Description |
 |---|---|---|---|
-| `source` | string (URI) | **0..1** (OPTIONAL) | URL from which to fetch the instance data at runtime. MAY contain `{{paramName}}` template variables that are resolved by the implementation at runtime. Template variable resolution is implementation-defined. |
+| `source` | string (URI) | **0..1** (OPTIONAL) | Literal URI from which to fetch JSON instance data at runtime. URI templates are not allowed. |
+| `response` | `ResponseSelection` | **0..1** (OPTIONAL) | Shared subject-keyed Response selection (§2.1.6); mutually exclusive with `source`. |
 | `static` | boolean | **0..1** (OPTIONAL) | If `true`, the instance data does not change during the lifetime of a single form session. Implementations MAY cache static instance data aggressively. Default: `false`. |
-| `data` | any | **0..1** (OPTIONAL) | Inline instance data. If both `source` and `data` are present, `data` serves as the fallback when the `source` is unavailable. If only `data` is present, the instance is fully inline. |
-| `schema` | object | **0..1** (OPTIONAL) | Type declarations for the instance's fields. Keys are field names; values are data type strings (using the same core data types defined in §4.2.3). Implementations SHOULD use the schema for type coercion and expression type-checking. |
+| `data` | any | **0..1** (OPTIONAL) | Inline instance data, or fallback for `source` or `response`. For a response selection, successful no-match follows `whenNone`; fallback does not turn authorization refusal into an available result. |
+| `schema` | object | **0..1** (REQUIRED with `response`) | Path-keyed type declarations using Core data types (§4.2.3). For a response instance, authoritative projection of `Response.data`; otherwise informative type/coercion guidance. |
 | `readonly` | boolean | **0..1** (OPTIONAL) | If `true`, the instance data MUST NOT be modified during form execution. Default: `true`. If `false`, the host MAY modify the instance data during form execution through the processor's API (e.g. session state such as a last-saved snapshot); expressions read the new data on the next evaluation, and the data is never part of the Response. No Bind targets an instance under either value (§4.3.3); intermediate values belong in Variables (§4.5). |
 
-At least one of `source` or `data` MUST be present. An Instance with neither
-MUST be rejected as a Definition error.
+An Instance MUST declare exactly one of `source`, `response`, or `data` alone.
+`data` MAY also serve as fallback for either `source` or `response`. An Instance
+with both external sources, or with no content source, MUST be rejected.
+
+A response instance MUST declare `schema` keyed by FieldRef paths, using `[*]`
+for repeat traversal, for example `agencies[*].uei`. The delivered data MUST be
+upstream `Response.data` projected to exactly those paths, retaining the nested
+object and array structure. Unlisted upstream paths MUST NOT enter the Mapping
+or, without a Mapping, the delivered value. A declared Mapping is applied
+forward to that projection; `valueDigest` covers the final delivered value.
+For `latest-per-subject`, each record is projected separately, then the Mapping
+receives the whole array in selection order. A successful empty match delivers
+the `data` fallback, or `null` if absent, without Mapping; the digest covers
+that fallback value (§2.1.6). The schema limits columns, not rows.
+
+Definition-local selection MUST NOT use `from.routeParam`. Every `from.subject`
+key MUST be declared in the consuming Definition's own `subject`. These are
+single-document lint rules. The shared Rust `check_instance_projection`
+operation MUST check projected paths and types against every upstream
+Definition version in range, upstream subject type and key compatibility,
+and `le`, `ge` and `offset` only on integer keys. App-graph authoring invokes this operation
+through its injected engine port with the upstream Definitions resolved by URL;
+the server MUST invoke it when either side publishes.
+
+For `pin: "at-open"`, the server MUST select and record a pin with
+`pinned: true` at draft open; an unavailable pin MUST refuse opening and name
+the missing filing. Browser creation receives the pinned value as an instance;
+the server does not use the `create` feature. Later loads MUST return exactly
+the pinned records and report `newer: {responseId, responseHash}` when a fresh
+selection would choose another completed record. Re-pin is an explicit,
+authorized draft operation through `assemble_candidate`; any offered refill
+uses the prefill Mapping only for the preparer's selected fields. It MUST NOT
+edit a signed Response.
 
 #### 4.4.2 Referencing Instances in Expressions
 
@@ -4662,7 +4867,7 @@ the calculated total equals the award amount exactly.
     },
     "award": {
       "description": "Pre-populated award data from grants management system",
-      "source": "https://api.grants.example.gov/awards/{awardId}",
+      "source": "https://api.grants.example.gov/awards/GR-2025-04817",
       "schema": {
         "award_amount": "decimal",
         "award_number": "string",
@@ -5263,7 +5468,7 @@ interpolated values in the message.
     },
     "prior_year": {
       "description": "Prior-year actuals from financial system",
-      "source": "https://api.grants.example.gov/actuals/{awardId}/2024",
+      "source": "https://api.grants.example.gov/actuals/GR-2025-04817/2024",
       "schema": {
         "total_expenditure":  "decimal",
         "personnel_total":    "decimal",

@@ -40,7 +40,7 @@
     },
     "grantRules": {
       "description": "Program rule thresholds",
-      "source": "https://example.org/api/grants/rules/{programYear}",
+      "source": "https://example.org/api/grants/rules/2026",
       "static": true,
       "readonly": true,
       "data": {

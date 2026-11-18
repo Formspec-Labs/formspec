@@ -1,0 +1,20 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:report",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Agency report",
+  "subject": {
+    "type": "urn:example:subject:agency-year",
+    "keys": {
+      "ffy": {
+        "dataType": "integer"
+      },
+      "uei": {
+        "dataType": "string",
+        "authorizationParent": "agency"
+      }
+    }
+  },
+  "items": []
+}

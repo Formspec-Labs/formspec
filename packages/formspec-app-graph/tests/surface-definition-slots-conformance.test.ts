@@ -58,6 +58,9 @@ addFormats(ajv);
 ajv.addSchema(readJson(resolve(SCHEMAS_ROOT, 'common.schema.json')));
 ajv.addSchema(readJson(resolve(SCHEMAS_ROOT, 'validation-mapping.schema.json')));
 ajv.addSchema(readJson(resolve(SCHEMAS_ROOT, 'issuer.schema.json')));
+ajv.addSchema(readJson(resolve(SCHEMAS_ROOT, 'validation-result.schema.json')));
+ajv.addSchema(readJson(resolve(SCHEMAS_ROOT, 'verification-receipt.schema.json')));
+ajv.addSchema(readJson(resolve(SCHEMAS_ROOT, 'response.schema.json')));
 ajv.addSchema(readJson(resolve(SCHEMAS_ROOT, 'definition.schema.json')));
 
 const schemaValidators = {

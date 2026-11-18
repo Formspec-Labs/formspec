@@ -33,7 +33,7 @@ const originalConsoleError = console.error;
 const originalFetch = globalThis.fetch;
 // Instance sources in suite fixtures never resolve: the processor falls back to authored data (Core §4.4).
 globalThis.fetch = async (url, ...options) => (
-  String(url).startsWith('https://conformance.invalid/') || url === 'https://api.example.gov/responses/2024/{entityId}'
+  String(url).startsWith('https://conformance.invalid/') || url === 'https://api.example.gov/responses/2024/example-grantee'
     ? { ok: false, status: 503 }
     : originalFetch(url, ...options)
 );

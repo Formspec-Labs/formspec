@@ -1,0 +1,56 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:report",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Agency report",
+  "subject": {
+    "type": "urn:example:subject:agency-year",
+    "keys": {
+      "ffy": {
+        "dataType": "integer"
+      },
+      "uei": {
+        "dataType": "string",
+        "authorizationParent": "agency"
+      }
+    }
+  },
+  "items": [],
+  "instances": {
+    "priorYear": {
+      "response": {
+        "definition": {
+          "url": "urn:example:forms:report",
+          "compatibleVersions": ">=1.0.0 <2.0.0"
+        },
+        "subject": [
+          {
+            "key": "uei",
+            "op": "eq",
+            "from": {
+              "subject": "uei"
+            }
+          },
+          {
+            "key": "ffy",
+            "op": "eq",
+            "from": {
+              "subject": "ffy"
+            },
+            "offset": -1
+          }
+        ],
+        "status": "completed",
+        "whenNone": "empty",
+        "cardinality": "latest",
+        "pin": "none"
+      },
+      "schema": {
+        "expenditures.employment": "money",
+        "agencies[*].uei": "string"
+      },
+      "data": {}
+    }
+  }
+}

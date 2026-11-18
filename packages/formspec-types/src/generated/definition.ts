@@ -8,6 +8,7 @@
 /* eslint-disable */
 import type { ModuleRef, Generation, SigningContentCatalog, WidgetName, Extensions } from './common.js';
 import type { IssuerDocument as FormspecIssuerDocument } from './issuer.js';
+import type { ResponseSelection } from './response.js';
 export type { FormspecIssuerDocument };
 /**
  * Document-variant locale tag, using the Locale document grammar and case-insensitive comparison.
@@ -207,32 +208,35 @@ export type Shape1 = {
  */
 export type FELExpression = string;
 /**
- * A named secondary data source available to FEL expressions via @instance('name'). Provides lookup tables, prior-year data, configuration values, and external reference data. At least one of 'source' or 'data' MUST be present. When both exist, 'data' serves as the fallback when 'source' is unavailable. Secondary instances are read-only by default during form completion. No Bind targets an instance (Bind paths resolve to Items); a readonly: false instance is written only by the host, through the processor's API.
+ * A named secondary data source read by FEL via @instance('name'). Exactly one of source, response, or data alone is required; data may back source or response as fallback. Response instances require a path-keyed schema that projects upstream Response.data. Secondary instances are read-only by default; readonly: false permits host writes only, never Bind writes.
  *
  * This interface was referenced by `FormDefinition`'s JSON-Schema
  * via the `definition` "Instance".
  */
-export type Instance = Instance1 & {
+export type Instance = {
+  [k: string]: unknown;
+} & {
   /**
    * Human-readable description of this instance's purpose and contents.
    */
   description?: string;
   /**
-   * URL from which to fetch the instance data at runtime. The response MUST be JSON. MAY contain {{paramName}} template variables resolved by the implementation at runtime. The processor MAY complete the first Rebuild before loading completes; on success it installs the data and applies pending creation-time seeding. If loading fails and no 'data' fallback exists, @instance() returns null.
+   * Literal URI from which to fetch JSON instance data. URI templates are not allowed. On success the processor installs data and applies pending creation-time seeding; without a fallback, load failure makes @instance() null.
    */
   source?: string;
+  response?: ResponseSelection;
   /**
    * If true, the instance data does not change during a single form session. Implementations MAY cache static instance data aggressively.
    */
   static?: boolean;
   /**
-   * Inline instance data embedded directly in the Definition. Suitable for small, static lookup tables (country codes, status enums). If both 'source' and 'data' are present, 'data' is the fallback. If only 'data', the instance is fully inline.
+   * Inline instance data, or fallback for source or response. For response selections, whenNone determines successful no-match behavior; fallback never converts authorization refusal into an available result.
    */
   data?: {
     [k: string]: unknown;
   };
   /**
-   * Type declarations for the instance's fields. Keys are field names; values are dataType strings (same as Field dataTypes: string, decimal, integer, date, etc.). Informative — aids tooling and type-checking but processors are NOT required to validate instance data against it.
+   * Path-keyed Core data types. Required and authoritative for a response instance: only these Response.data paths are projected, using [*] for repeats. Other sources use it as informative tooling guidance.
    */
   schema?: {
     [k: string]: string;
@@ -245,7 +249,7 @@ export type Instance = Instance1 & {
    * Instance-level extension data. All keys MUST be prefixed with 'x-'.
    */
   extensions?: Extensions;
-};
+} & Instance1;
 export type Instance1 = {
   [k: string]: unknown;
 };
@@ -284,6 +288,24 @@ export type OptionSet1 = {
  * via the `definition` "AssuranceLevel".
  */
 export type AssuranceLevel = 'L1' | 'L2' | 'L3' | 'L4';
+/**
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "DataType".
+ */
+export type DataType =
+  | 'string'
+  | 'text'
+  | 'integer'
+  | 'decimal'
+  | 'boolean'
+  | 'date'
+  | 'dateTime'
+  | 'time'
+  | 'uri'
+  | 'attachment'
+  | 'choice'
+  | 'multiChoice'
+  | 'money';
 /**
  * Case-sensitive identifier of one declared document within this pinned Definition.
  *
@@ -373,6 +395,27 @@ export interface FormDefinition {
    */
   documents?: {
     [k: string]: AttestableDocument;
+  };
+  /**
+   * Filing-unit subject declaration: a type URI and named string or integer keys; an empty key set declares a per-scope singleton. Authorization parents are derived from stored key values for each check, never persisted as duplicate relationships. Scope is not a key.
+   */
+  subject?: {
+    /**
+     * Canonical URI of the filing-unit type.
+     */
+    type: string;
+    keys: {
+      [k: string]: {
+        /**
+         * Identity key type: string or integer only; not editable answer data.
+         */
+        dataType: 'string' | 'integer';
+        /**
+         * Authorization object type derived from this stored string key value, for example agency. Requires dataType string.
+         */
+        authorizationParent?: string;
+      };
+    };
   };
   /**
    * Root item tree defining the form's structural content. Items form a tree: each Item may have 'children' (groups) creating nested hierarchy. Three item types exist: 'field' (captures data), 'group' (structural container, optionally repeatable), 'display' (read-only presentational content). The item tree determines the shape of the Instance (form data).
@@ -886,6 +929,33 @@ export interface Bind {
    * Bind-level extension data. All keys MUST be prefixed with 'x-'. MUST NOT alter core semantics.
    */
   extensions?: Extensions;
+}
+export interface TargetDefinition {
+  /**
+   * Canonical URL of the target Definition.
+   */
+  url: string;
+  /**
+   * Semver range expression describing which Definition versions this document supports.
+   */
+  compatibleVersions?: string;
+}
+export interface SubjectPredicate {
+  /**
+   * Upstream subject key to compare.
+   */
+  key: string;
+  /**
+   * Compare the upstream key with the referenced value plus any offset. le and ge are allowed only for integer keys; eq preserves the declared type.
+   */
+  op: 'eq' | 'le' | 'ge';
+  from: {
+    [k: string]: unknown;
+  };
+  /**
+   * Added to the referenced key before comparison; allowed only for integer keys.
+   */
+  offset?: number;
 }
 /**
  * A named computed value with lexical scoping. Variables provide intermediate calculations reusable across multiple Binds, Shapes, and other expressions. Continuously recalculated when dependencies change (analogous to XForms calculate / FHIR SDC calculatedExpression). MUST NOT form circular dependencies. For one-time initialization, use Field initialValue instead.

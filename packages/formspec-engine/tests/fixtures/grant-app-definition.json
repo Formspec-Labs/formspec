@@ -64,7 +64,7 @@
         "priorAwardAmount": "integer",
         "performanceRating": "string"
       },
-      "source": "https://api.example.gov/responses/2024/{entityId}",
+      "source": "https://api.example.gov/responses/2024/example-grantee",
       "static": true
     }
   },

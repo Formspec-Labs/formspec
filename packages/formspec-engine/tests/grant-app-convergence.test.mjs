@@ -58,7 +58,7 @@ for (const path of fixturePaths) {
   test(`${path}: static source loads once and reuses the admitted value`, async t => {
     const definition = JSON.parse(read(path));
     const source = definition.instances.priorYearData.source;
-    assert.equal(source, 'https://api.example.gov/responses/2024/{entityId}');
+    assert.equal(source, 'https://api.example.gov/responses/2024/example-grantee');
     assert.equal(definition.instances.priorYearData.static, true);
     FormEngine.instanceSourceCache.delete(source);
     t.after(() => FormEngine.instanceSourceCache.delete(source));

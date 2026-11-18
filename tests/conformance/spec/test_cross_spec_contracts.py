@@ -8,6 +8,7 @@ conditionals, property sets) match what the spec documents claim.
 Naming convention: test_s{section}__{assertion}
 """
 import json
+import re
 from copy import deepcopy
 
 import pytest
@@ -226,7 +227,7 @@ class TestDefinitionTopLevel:
             "items", "binds", "shapes", "instances", "variables",
             "nonRelevantBehavior", "optionSets", "migrations", "issuer",
             "metadata", "fees", "extensions", "formPresentation",
-            "documents", "modules",
+            "documents", "modules", "subject",  # ADR 0172 filing-unit declaration.
             "parties", "multiParty",
             "x-generation",
         }
@@ -283,6 +284,9 @@ class TestDefinitionItem:
     def test_s4_2_3__datatype_enum_13_values(self):
         branch = _find_allof_branch(self.ITEM["allOf"], "type", "field")
         dt = branch["then"]["properties"]["dataType"]
+        # The shared DataType definition now owns the unchanged Core type vocabulary.
+        assert dt["$ref"] == "#/$defs/DataType"
+        dt = DEF_S["$defs"]["DataType"]
         expected = [
             "string", "text", "integer", "decimal", "boolean",
             "date", "dateTime", "time", "uri", "attachment",
@@ -452,17 +456,84 @@ class TestDefinitionInstance:
 
     INST = _def(DEF_S, "Instance")
 
-    def test_s4_4__anyof_requires_source_or_data(self):
-        reqs = [set(alt["required"]) for alt in self.INST["anyOf"]]
-        assert {"source"} in reqs
-        assert {"data"} in reqs
+    def test_s4_4__one_content_source(self):
+        # ADR 0172 replaces source-or-data with exclusive source/response/data-alone.
+        assert len(self.INST["oneOf"]) == 3
+        assert self.INST["properties"]["response"]["$ref"] == RESP_S["$id"] + "#/$defs/ResponseSelection"
 
-    def test_s4_4__source_format_uri_template(self):
-        assert self.INST["properties"]["source"]["format"] == "uri-template"
+    def test_s4_4__source_format_uri(self):
+        # ADR 0172 removes implementation-defined URI template resolution.
+        assert self.INST["properties"]["source"]["format"] == "uri"
 
     def test_s4_4__additional_properties_false(self):
         assert self.INST["additionalProperties"] is False
 
+
+class TestSubjectKeyedResponseSelection:
+    """ADR 0172's normative ownership, projection and selection guarantees."""
+
+    def test_s4_1__subject_declaration(self):
+        subject = DEF_S["properties"]["subject"]
+        assert subject["required"] == ["type", "keys"]
+        key = subject["properties"]["keys"]["additionalProperties"]
+        assert key["required"] == ["dataType"]
+        assert "authorizationParent" in key["properties"]
+
+    def test_s2_1_6__subject_identity_encoding_and_scope(self):
+        content = (SPEC_DIR / "core/spec.md").read_text()
+        section = content.split("##### Filing-unit Subject", 1)[1].split("##### ", 1)[0]
+        for term in ["formspec.subject.id.v1", "integrity-canonical-json-v1", "64",
+                     "lowercase", "empty key set", "scope", "index", "authorization"]:
+            assert term in section, term
+
+    def test_s2_1_6__integer_key_comparison_and_route_conversion(self):
+        content = (SPEC_DIR / "core/spec.md").read_text()
+        section = content.split("##### Response Selection", 1)[1].split("##### ", 1)[0]
+        for term in ["`le` and `ge`", "integer keys only", "base-10", "route parameter",
+                     "fraction", "unavailable"]:
+            assert term in section, term
+
+    def test_s2_1_6__delivered_value_cardinality_and_empty_fallback(self):
+        content = (SPEC_DIR / "core/spec.md").read_text()
+        section = content.split("##### Resolved Response Instances", 1)[1].split("##### ", 1)[0]
+        for term in ["latest-per-subject", "array", "selection order", "none: true", "fallback", "null"]:
+            assert term in section, term
+
+    def test_s2_1_6__shared_selection(self):
+        selection = RESP_S["$defs"]["ResponseSelection"]
+        assert selection["additionalProperties"] is False
+        props = selection["properties"]
+        assert props["definition"]["$ref"] == COMMON_S["$id"] + "#/$defs/TargetDefinition"
+        assert props["status"]["enum"] == ["completed", "current"]
+        assert props["whenNone"]["default"] == "unavailable"
+        assert props["cardinality"]["enum"] == ["latest", "latest-per-subject"]
+        assert props["pin"]["enum"] == ["none", "at-open"]
+
+    def test_s2_1_6__single_writer_and_read_identity(self):
+        content = (SPEC_DIR / "core/spec.md").read_text()
+        section = content.split("##### Resolved Response Instances", 1)[1].split("##### ", 1)[0]
+        for term in ["assemble_candidate", "only writer", "Sign and Submit", "refuse",
+                     "formspec.instance.value.v1", "integrity-canonical-json-v1",
+                     "ResponseJson::handoff_hash()", "completed", "current", "projection"]:
+            assert term in section, term
+
+    def test_s4_4__projection_and_predicate_checks(self):
+        content = (SPEC_DIR / "core/spec.md").read_text()
+        section = content.split("#### 4.4.1 Instance Properties", 1)[1].split("#### 4.4.2", 1)[0]
+        for term in ["Response.data", "[*]", "routeParam", "from.subject",
+                     "check_instance_projection", "integer", "whenNone", "newer"]:
+            assert term in section, term
+        assert "{{paramName}}" not in content
+        assert "{{respondentId}}" not in content
+        assert "{{entityId}}" not in content
+
+        for block in re.findall(r"```json\s*\n(.*?)```", content, re.DOTALL):
+            if '"instances"' not in block:
+                continue
+            example = json.loads(re.sub(r"^> ?", "", block, flags=re.MULTILINE))
+            for name, instance in example.get("instances", {}).items():
+                source = instance.get("source", "")
+                assert "{" not in source, f"Instance {name} must use a literal source URI: {source}"
 
 # ===========================================================================
 # Definition Schema — OptionSet / OptionEntry (§4.6)
@@ -580,7 +651,7 @@ class TestResponseSchema:
         expected = {
             "$formspecResponse", "definitionUrl", "definitionVersion", "status", "data",
             "authored", "displayedIssuer", "displayedLocale", "id", "author", "subject",
-            "authoredSignatures", "resolvedDocuments", "metadata", "validationResults", "extensions",
+            "authoredSignatures", "resolvedDocuments", "resolvedInstances", "metadata", "validationResults", "extensions",
         }
         assert _prop_keys(RESP_S) == expected
 

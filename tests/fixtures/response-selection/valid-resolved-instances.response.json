@@ -1,0 +1,47 @@
+{
+  "$formspecResponse": "1.0",
+  "definitionUrl": "urn:example:forms:report",
+  "definitionVersion": "1.0.0",
+  "status": "in-progress",
+  "authored": "2026-11-17T12:00:00Z",
+  "data": {},
+  "subject": {
+    "id": "caa277818d95f7d8b3a85fb92be6d600536d7c66dfd11216a6c0bbaabecfa9e7",
+    "type": "urn:example:subject:agency-year",
+    "keys": {
+      "ffy": 2026,
+      "uei": "A"
+    }
+  },
+  "resolvedInstances": [
+    {
+      "instance": "priorYear",
+      "records": [
+        {
+          "responseId": "filed-report",
+          "definitionVersion": "1.0.0",
+          "responseHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "valueDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "none": false,
+      "pinned": true,
+      "mapping": {
+        "url": "urn:example:mapping:carry",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "instance": "sibling",
+      "records": [
+        {
+          "responseId": "draft-report",
+          "definitionVersion": "1.0.0"
+        }
+      ],
+      "valueDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "none": false,
+      "pinned": false
+    }
+  ]
+}

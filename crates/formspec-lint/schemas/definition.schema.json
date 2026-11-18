@@ -182,6 +182,71 @@
       },
       "description": "Attestable documents keyed by Definition-local id. Declares source bytes and locale variants, not a completed signing act or proof of URL byte integrity."
     },
+    "subject": {
+      "type": "object",
+      "description": "Filing-unit subject declaration: a type URI and named string or integer keys; an empty key set declares a per-scope singleton. Authorization parents are derived from stored key values for each check, never persisted as duplicate relationships. Scope is not a key.",
+      "required": [
+        "type",
+        "keys"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical URI of the filing-unit type."
+        },
+        "keys": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "dataType"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "dataType": {
+                "type": "string",
+                "enum": [
+                  "string",
+                  "integer"
+                ],
+                "description": "Identity key type: string or integer only; not editable answer data."
+              },
+              "authorizationParent": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Authorization object type derived from this stored string key value, for example agency. Requires dataType string."
+              }
+            },
+            "dependentSchemas": {
+              "authorizationParent": {
+                "properties": {
+                  "dataType": { "const": "string" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "examples": [
+        {
+          "type": "urn:example:subject:agency-year",
+          "keys": {
+            "ffy": {
+              "dataType": "integer"
+            },
+            "uei": {
+              "dataType": "string",
+              "authorizationParent": "agency"
+            }
+          }
+        }
+      ]
+    },
     "items": {
       "type": "array",
       "items": {
@@ -261,13 +326,38 @@
       "examples": [
         {
           "priorYear": {
-            "source": "https://api.example.gov/responses/2024/{{entityId}}",
-            "schema": {
-              "totalExpenditure": "decimal"
+            "response": {
+              "definition": {
+                "url": "urn:example:forms:report",
+                "compatibleVersions": ">=1.0.0 <2.0.0"
+              },
+              "subject": [
+                {
+                  "key": "uei",
+                  "op": "eq",
+                  "from": {
+                    "subject": "uei"
+                  }
+                },
+                {
+                  "key": "ffy",
+                  "op": "eq",
+                  "from": {
+                    "subject": "ffy"
+                  },
+                  "offset": -1
+                }
+              ],
+              "status": "completed",
+              "whenNone": "empty",
+              "cardinality": "latest",
+              "pin": "none"
             },
-            "data": {
-              "totalExpenditure": 200000.00
-            }
+            "schema": {
+              "expenditures.employment": "money",
+              "agencies[*].uei": "string"
+            },
+            "data": {}
           }
         }
       ]
@@ -515,6 +605,24 @@
   },
   "additionalProperties": false,
   "$defs": {
+    "DataType": {
+      "type": "string",
+      "enum": [
+        "string",
+        "text",
+        "integer",
+        "decimal",
+        "boolean",
+        "date",
+        "dateTime",
+        "time",
+        "uri",
+        "attachment",
+        "choice",
+        "multiChoice",
+        "money"
+      ]
+    },
     "DocumentId": {
       "type": "string",
       "pattern": "^[A-Za-z][A-Za-z0-9_-]*$",
@@ -1199,23 +1307,8 @@
                 ]
               },
               "dataType": {
-                "type": "string",
+                "$ref": "#/$defs/DataType",
                 "description": "The value type of this Field. Determines JSON representation, FEL type, valid operations, and default widget. 'string': single-line text. 'text': multi-line text. 'integer': whole number (no fraction). 'decimal': number with optional fractional part (use 'precision' to control decimal places). 'boolean': true/false. 'date': ISO 8601 YYYY-MM-DD. 'dateTime': ISO 8601 date-time. 'time': ISO 8601 HH:MM:SS. 'uri': valid URI per RFC 3986. 'attachment': file reference object {contentType, url/data}. 'choice': single selection (stored as string value key). 'multiChoice': multiple selections (stored as array of string value keys). 'money': monetary value {amount: string, currency: string} — use money() FEL function to produce values.",
-                "enum": [
-                  "string",
-                  "text",
-                  "integer",
-                  "decimal",
-                  "boolean",
-                  "date",
-                  "dateTime",
-                  "time",
-                  "uri",
-                  "attachment",
-                  "choice",
-                  "multiChoice",
-                  "money"
-                ],
                 "examples": [
                   "string",
                   "decimal",
@@ -1781,7 +1874,7 @@
     },
     "Instance": {
       "type": "object",
-      "description": "A named secondary data source available to FEL expressions via @instance('name'). Provides lookup tables, prior-year data, configuration values, and external reference data. At least one of 'source' or 'data' MUST be present. When both exist, 'data' serves as the fallback when 'source' is unavailable. Secondary instances are read-only by default during form completion. No Bind targets an instance (Bind paths resolve to Items); a readonly: false instance is written only by the host, through the processor's API.",
+      "description": "A named secondary data source read by FEL via @instance('name'). Exactly one of source, response, or data alone is required; data may back source or response as fallback. Response instances require a path-keyed schema that projects upstream Response.data. Secondary instances are read-only by default; readonly: false permits host writes only, never Bind writes.",
       "properties": {
         "description": {
           "type": "string",
@@ -1789,11 +1882,45 @@
         },
         "source": {
           "type": "string",
-          "format": "uri-template",
-          "description": "URL from which to fetch the instance data at runtime. The response MUST be JSON. MAY contain {{paramName}} template variables resolved by the implementation at runtime. The processor MAY complete the first Rebuild before loading completes; on success it installs the data and applies pending creation-time seeding. If loading fails and no 'data' fallback exists, @instance() returns null.",
+          "format": "uri",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s{}]+$",
+          "description": "Literal URI from which to fetch JSON instance data. URI templates are not allowed. On success the processor installs data and applies pending creation-time seeding; without a fallback, load failure makes @instance() null.",
           "examples": [
-            "https://api.example.gov/responses/2024/{{entityId}}",
-            "https://api.example.gov/reference/states"
+            "https://api.example.gov/reference/states",
+            "formspec-fn:loadInventoryData"
+          ]
+        },
+        "response": {
+          "$ref": "https://formspec.org/schemas/response/1.0#/$defs/ResponseSelection",
+          "description": "Same-scope, subject-keyed Response selection. Requires schema; Definition-local predicates use only from.subject, never from.routeParam.",
+          "examples": [
+            {
+              "definition": {
+                "url": "urn:example:forms:report",
+                "compatibleVersions": ">=1.0.0 <2.0.0"
+              },
+              "subject": [
+                {
+                  "key": "uei",
+                  "op": "eq",
+                  "from": {
+                    "subject": "uei"
+                  }
+                },
+                {
+                  "key": "ffy",
+                  "op": "eq",
+                  "from": {
+                    "subject": "ffy"
+                  },
+                  "offset": -1
+                }
+              ],
+              "status": "completed",
+              "whenNone": "empty",
+              "cardinality": "latest",
+              "pin": "none"
+            }
           ]
         },
         "static": {
@@ -1802,7 +1929,7 @@
           "description": "If true, the instance data does not change during a single form session. Implementations MAY cache static instance data aggressively."
         },
         "data": {
-          "description": "Inline instance data embedded directly in the Definition. Suitable for small, static lookup tables (country codes, status enums). If both 'source' and 'data' are present, 'data' is the fallback. If only 'data', the instance is fully inline.",
+          "description": "Inline instance data, or fallback for source or response. For response selections, whenNone determines successful no-match behavior; fallback never converts authorization refusal into an available result.",
           "examples": [
             [
               {
@@ -1825,7 +1952,7 @@
           "additionalProperties": {
             "type": "string"
           },
-          "description": "Type declarations for the instance's fields. Keys are field names; values are dataType strings (same as Field dataTypes: string, decimal, integer, date, etc.). Informative — aids tooling and type-checking but processors are NOT required to validate instance data against it.",
+          "description": "Path-keyed Core data types. Required and authoritative for a response instance: only these Response.data paths are projected, using [*] for repeats. Other sources use it as informative tooling guidance.",
           "examples": [
             {
               "totalExpenditure": "decimal",
@@ -1846,19 +1973,70 @@
           "description": "Instance-level extension data. All keys MUST be prefixed with 'x-'."
         }
       },
-      "anyOf": [
+      "additionalProperties": false,
+      "oneOf": [
         {
           "required": [
             "source"
-          ]
+          ],
+          "not": {
+            "required": [
+              "response"
+            ]
+          }
+        },
+        {
+          "required": [
+            "response",
+            "schema"
+          ],
+          "not": {
+            "required": [
+              "source"
+            ]
+          }
         },
         {
           "required": [
             "data"
-          ]
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "source"
+                ]
+              },
+              {
+                "required": [
+                  "response"
+                ]
+              }
+            ]
+          }
         }
       ],
-      "additionalProperties": false
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "response"
+            ]
+          },
+          "then": {
+            "properties": {
+              "schema": {
+                "propertyNames": {
+                  "pattern": "^[a-zA-Z][a-zA-Z0-9_]*(\\[\\*\\])?(\\.[a-zA-Z][a-zA-Z0-9_]*(\\[\\*\\])?)*$"
+                },
+                "additionalProperties": {
+                  "$ref": "#/$defs/DataType"
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "Variable": {
       "type": "object",

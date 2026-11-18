@@ -6,7 +6,7 @@
  */
 
 /* eslint-disable */
-import type { SigningContent, ValueClass } from './common.js';
+import type { SigningContent, TargetDefinition, ValueClass } from './common.js';
 import type { VerificationReceipt as FormspecVerificationReceipt } from './verification-receipt.js';
 import type { ValidationResult as FormspecValidationResult } from './validation-result.js';
 export type { FormspecVerificationReceipt, FormspecValidationResult };
@@ -76,22 +76,32 @@ export type FormResponse = {
     name?: string;
   };
   /**
-   * The entity this Response is about — the grant, patient, project, or other domain object the form data describes. Distinct from 'author' (who filled in the form).
+   * The entity this Response concerns, distinct from its author. For a subject-declaring Definition this is the filing unit: type and typed keys are required and id is derived canonically from (type, keys). An implicit respondent identity is server-only and is never serialized here.
    */
   subject?: {
     /**
-     * Unique identifier of the subject entity within the host system.
+     * For a subject-declaring Definition, 64 lowercase hex SHA-256 characters with no prefix: integrity-canonical-json-v1 domain-separated bytes under formspec.subject.id.v1 of {type, keys}. Unique only together with the scope; every index and authorization key pairs them. Otherwise the host entity identifier. Distinct from Response.id.
      */
     id: string;
     /**
-     * The type of the subject entity. Implementations SHOULD use consistent type labels within a system.
+     * Filing-unit type URI matching the Definition subject declaration, or a host entity type when the Definition declares no subject.
      */
     type?: string;
+    /**
+     * String or integer identity keys matching exactly the Definition subject declaration; an empty object identifies a per-scope singleton. Scope is not a key.
+     */
+    keys?: {
+      [k: string]: string | number;
+    };
   };
   /**
    * The most recent set of ValidationResult entries for this Response. Includes results from all sources: bind constraints, validation shapes, required checks, type checks, and external validation. Only error-severity results block the transition to 'completed' status. Warning and info results are advisory. Non-relevant fields MUST NOT produce results. When persisted alongside the Response, this array represents a snapshot — it may be stale if the data has changed since the last validation run.
    */
   validationResults?: FormspecValidationResult[];
+  /**
+   * What was read from response instances. assemble_candidate is the only writer; browser assembles before Sign and server re-runs at Sign and Submit, refusing differences. Evidence is inside the signed Response.
+   */
+  resolvedInstances?: ResolvedInstance[];
   /**
    * Exact document variants resolved from the pinned Definition. Duplicate document/locale identities refuse. Passive selections alone do not establish assent, fetching, viewing or reading; declared-document assent uses the typed signed root commitment.
    *
@@ -121,6 +131,44 @@ export type ResponseMetadataPathKey = {
   [k: string]: unknown;
 };
 export type ResponseMetadataPathKey1 = string;
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ResolvedInstance".
+ */
+export type ResolvedInstance = {
+  [k: string]: unknown;
+} & {
+  /**
+   * Name of the Definition response instance; unique within resolvedInstances.
+   */
+  instance: string;
+  /**
+   * Selected records in selection order; empty exactly when none is true.
+   */
+  records: ResolvedInstanceRecord[];
+  /**
+   * Digest of the final delivered value: latest projects one record; latest-per-subject projects each record into an array in selection order, then applies any Mapping once to the array. none true delivers data fallback or null without Mapping. Encoded by integrity-canonical-json-v1 under formspec.instance.value.v1. Sign and Submit compare this value, not unprojected upstream fields.
+   */
+  valueDigest: string;
+  /**
+   * True only for a successful empty match, never for an unavailable or refused selection.
+   */
+  none: boolean;
+  /**
+   * Whether the server pinned the selected value at draft open.
+   */
+  pinned: boolean;
+  mapping?: {
+    /**
+     * URL of the forward Mapping used.
+     */
+    url: string;
+    /**
+     * Digest pin of the Mapping used.
+     */
+    digest: string;
+  };
+};
 /**
  * Lowercase SHA-256 hex under the existing trellis-presentation-artifact-v1 framing over bytes selected by the declared P12 adapter; the default selects exact source bytes. The maintained Integrity owner frames a u32 big-endian tag length, UTF-8 tag, u32 big-endian component length and component bytes. This is neither plain source hashing nor proof of display or reading. Formspec binds the supplied value without adding a renderer or alternate hash rule.
  *
@@ -247,6 +295,13 @@ export type AuthoredSignature =
  */
 export type ResolvedItemPath = string;
 /**
+ * SHA-256 digest encoded with the sha256: prefix and lowercase hexadecimal.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "Sha256Digest".
+ */
+export type Sha256Digest = string;
+/**
  * The current lifecycle status of a Response. A completed Response has no error-severity validation results; saving data remains allowed in every status.
  *
  * This interface was referenced by `undefined`'s JSON-Schema
@@ -355,6 +410,24 @@ export interface ResponseDisclosureShownEntry {
    * Renderer or channel that showed the disclosure, such as `web`, `paper`, `voice`, or an implementation-specific value.
    */
   channel?: string;
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ResolvedInstanceRecord".
+ */
+export interface ResolvedInstanceRecord {
+  /**
+   * Identity of the selected Response.
+   */
+  responseId: string;
+  /**
+   * Exact upstream Definition version.
+   */
+  definitionVersion: string;
+  /**
+   * Required for completed records and absent for current drafts. ResponseJson::handoff_hash() over the complete immutable Response under formspec.response.handoff.v1; equals its IntakeHandoff.responseHash.
+   */
+  responseHash?: string;
 }
 /**
  * One exact document variant selected from the Response-pinned Definition. Native validation checks the declaration/source/media/hash join and unique document/locale identity; URL validation never fetches content.
@@ -633,4 +706,62 @@ export interface DocumentAttestationSelection {
    * Explicit null for a non-witness act, otherwise the exact committed intrinsic Formspec principal selection.
    */
   witnessedSignatureRef: null | WitnessedSignatureReference;
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "SubjectPredicate".
+ */
+export interface SubjectPredicate {
+  /**
+   * Upstream subject key to compare.
+   */
+  key: string;
+  /**
+   * Compare the upstream key with the referenced value plus any offset. le and ge are allowed only for integer keys; eq preserves the declared type.
+   */
+  op: 'eq' | 'le' | 'ge';
+  from: {
+    [k: string]: unknown;
+  };
+  /**
+   * Added to the referenced key before comparison; allowed only for integer keys.
+   */
+  offset?: number;
+}
+/**
+ * Closed, same-scope Response selection shared by Definition instances and catalog sources. Authorize read before querying; order by authored instant descending then Response id ascending. Definition-local predicates use only from.subject; routeParam is catalog-only.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ResponseSelection".
+ */
+export interface ResponseSelection {
+  definition: TargetDefinition;
+  /**
+   * Predicates over upstream subject keys; empty means no key predicates.
+   */
+  subject: SubjectPredicate[];
+  /**
+   * completed selects immutable filings. current selects the unit open draft, else latest completed; distinct from catalog delivery draft.
+   */
+  status: 'completed' | 'current';
+  /**
+   * Review outcome resolved by DispositionAuthority using responseId and responseHash, never inherited by an amendment.
+   */
+  disposition?: string;
+  /**
+   * Successful no-match behavior. empty delivers fallback and records none; authorization refusal always remains unavailable.
+   */
+  whenNone?: 'unavailable' | 'empty';
+  /**
+   * Select latest overall or latest per distinct subject after filtering and fixed ordering.
+   */
+  cardinality: 'latest' | 'latest-per-subject';
+  /**
+   * at-open selects and records a pin at draft open; later loads retain the pin and report newer.
+   */
+  pin: 'none' | 'at-open';
+  /**
+   * URL of an optional Mapping applied forward.
+   */
+  mapping?: string;
 }

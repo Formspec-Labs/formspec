@@ -36,29 +36,28 @@ function loadSchemas() {
 
 const { byId, byFile } = loadSchemas();
 
-/**
- * Recursively inline cross-file $refs so the schema is self-contained.
- * Local (#/) refs are left for faker/ajv to handle natively.
- */
-/**
- * Resolve `#/$defs/X` refs within an object against a specific schema's $defs.
- * Used when inlining a definition from another schema whose local refs would
- * otherwise dangle in the target schema's context.
- */
-function resolveLocalDefsRefs(obj: any, sourceDefs: Record<string, any>): any {
-  if (!obj || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map((item: any) => resolveLocalDefsRefs(item, sourceDefs));
+/** Resolve a JSON Pointer fragment, including nested paths and RFC 6901 escapes. */
+function resolvePointer(schema: any, fragment: string): any {
+  return decodeURIComponent(fragment).slice(1).split('/').slice(1)
+    .reduce((value, token) => value?.[token.replace(/~1/g, '/').replace(/~0/g, '~')], schema);
+}
 
-  if (typeof obj.$ref === 'string' && obj.$ref.startsWith('#/$defs/')) {
-    const defName = obj.$ref.split('/').pop()!;
-    if (sourceDefs[defName]) {
-      return resolveLocalDefsRefs({ ...sourceDefs[defName] }, sourceDefs);
+/** Inline local refs against their original document before moving them across files. */
+function resolveLocalDefsRefs(obj: any, sourceSchema: Record<string, any>): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map((item: any) => resolveLocalDefsRefs(item, sourceSchema));
+
+  if (typeof obj.$ref === 'string' && obj.$ref.startsWith('#/')) {
+    const target = resolvePointer(sourceSchema, obj.$ref);
+    if (target !== undefined) {
+      const { $ref, ...siblings } = obj;
+      return resolveLocalDefsRefs({ ...target, ...siblings }, sourceSchema);
     }
   }
 
   const result: any = {};
   for (const [key, val] of Object.entries(obj)) {
-    result[key] = resolveLocalDefsRefs(val, sourceDefs);
+    result[key] = resolveLocalDefsRefs(val, sourceSchema);
   }
   return result;
 }
@@ -75,15 +74,15 @@ function resolveExternalRefs(obj: any): any {
       const fileName = filePart.replace(/^.*\//, '');
       const schema = byFile[fileName] || byId[filePart];
       if (schema) {
-        const defName = fragment.split('/').pop()!;
-        const inlined = resolveLocalDefsRefs({ ...schema.$defs[defName] }, schema.$defs || {});
+        const { $ref, ...siblings } = obj;
+        const inlined = resolveLocalDefsRefs({ ...resolvePointer(schema, '#' + fragment), ...siblings }, schema);
         return resolveExternalRefs(inlined);
       }
     }
 
     if (byId[ref]) {
       const { $id, ...rest } = byId[ref];
-      const inlined = resolveLocalDefsRefs({ ...rest }, byId[ref].$defs || {});
+      const inlined = resolveLocalDefsRefs({ ...rest }, byId[ref]);
       return resolveExternalRefs(inlined);
     }
   }
@@ -133,10 +132,21 @@ const MIN_VALID = 3;
 // can't reliably satisfy. These get more attempts and a lower bar.
 const HARD_SCHEMAS = new Set(['mapping', 'theme']);
 
-// Schemas with registry URI or base64 patterns that json-schema-faker does
-// not reliably synthesize from pattern alone. Their committed examples remain
-// subject to the normal validity threshold.
-const EXAMPLE_BACKED_SCHEMAS = new Set(['verification-receipt']);
+// json-schema-faker cannot reliably generate the verification receipt's
+// registry URI and base64 patterns or satisfy the Response schema's
+// conditionals. Their committed examples must meet the normal validity threshold.
+const EXAMPLE_BACKED_SCHEMAS = new Set(['verification-receipt', 'response']);
+
+test('inlined local refs resolve nested JSON pointers and escaped names', () => {
+  const schema = { $defs: { 'a/b': { properties: { '~key': { type: 'string', minLength: 1 } } } } };
+  expect(resolveLocalDefsRefs({ $ref: '#/$defs/a~1b/properties/~0key' }, schema))
+    .toEqual({ type: 'string', minLength: 1 });
+});
+
+test('external nested JSON pointers retain their referenced schema', () => {
+  expect(resolveExternalRefs({ $ref: 'https://formspec.org/schemas/response/1.0#/$defs/AuthoredSignature/properties/signingActId' }))
+    .toEqual(byFile['response.schema.json'].$defs.AuthoredSignature.properties.signingActId);
+});
 
 test('external refs beside a local $ref are still resolved', () => {
   const resolved = resolveExternalRefs({

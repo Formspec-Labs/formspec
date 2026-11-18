@@ -22,7 +22,6 @@
   "instances": {
     "patient": {
       "description": "Pre-populated patient demographics from EHR",
-      "source": "/examples/clinical-intake/instances/patient.instance.json",
       "static": false,
       "readonly": true,
       "data": {
@@ -46,7 +45,6 @@
     },
     "drugDatabase": {
       "description": "Common medications lookup table",
-      "source": "/examples/clinical-intake/instances/drug-database.instance.json",
       "static": true,
       "readonly": true,
       "data": [

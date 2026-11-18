@@ -18,7 +18,7 @@ from tests.unit.support.helpers import (
     minimal_field as _shared_minimal_field,
     minimal_group as _minimal_group,
 )
-from tests.unit.support.schema_fixtures import load_schema, build_schema_registry
+from tests.unit.support.schema_fixtures import ROOT_DIR, load_schema, build_schema_registry
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -37,6 +37,18 @@ def _validate(instance, schema):
     """Validate *instance* against *schema* using Draft 2020-12."""
     registry = build_schema_registry(COMMON_SCHEMA, schema)
     Draft202012Validator(schema, registry=registry).validate(instance)
+
+
+def _example_definitions():
+    for path in sorted((ROOT_DIR / "examples").rglob("*.json")):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(doc, dict) and "$formspec" in doc:
+            yield pytest.param(doc, id=path.relative_to(ROOT_DIR).as_posix())
+
+
+@pytest.mark.parametrize("doc", list(_example_definitions()))
+def test_example_definition_validates(schema, doc):
+    _validate(doc, schema)
 
 
 # ---------------------------------------------------------------------------
@@ -737,8 +749,9 @@ class TestInstance:
     """Instance object validation."""
 
     def test_valid_with_source(self, schema):
+        # ADR 0172 replaces URI templates with literal URIs for Instance.source.
         doc = _base_doc(instances={"lookup": {
-            "source": "https://api.example.com/data/{id}",
+            "source": "https://api.example.com/data/example-id",
         }})
         _validate(doc, schema)
 

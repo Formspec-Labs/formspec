@@ -1,0 +1,47 @@
+{
+  "domain": "formspec.subject.id.v1",
+  "vectors": [
+    {
+      "name": "agency-year",
+      "type": "urn:example:subject:agency-year",
+      "keys": {"ffy": 2026, "uei": "A"},
+      "id": "caa277818d95f7d8b3a85fb92be6d600536d7c66dfd11216a6c0bbaabecfa9e7"
+    },
+    {
+      "name": "reordered keys",
+      "type": "urn:example:subject:agency-year",
+      "keys": {"uei": "A", "ffy": 2026},
+      "id": "caa277818d95f7d8b3a85fb92be6d600536d7c66dfd11216a6c0bbaabecfa9e7"
+    },
+    {
+      "name": "string year is a different identity",
+      "type": "urn:example:subject:agency-year",
+      "keys": {"ffy": "2026", "uei": "A"},
+      "id": "f2baf45b6bd4877cd1945bd6c30c8ac1b0656a174ee2110b7ab809a72697d32c"
+    },
+    {
+      "name": "plan",
+      "type": "urn:example:subject:plan",
+      "keys": {"first_ffy": 2025, "last_ffy": 2028},
+      "id": "1b59609cc5e52a96cdd23343b65f1b0f7df528c13447956da76fc524a58e9e88"
+    },
+    {
+      "name": "per-scope singleton",
+      "type": "urn:example:subject:agency-list",
+      "keys": {},
+      "id": "c0fe209b9448cb7a8e25e6cd84aa5b363274fa3c7b6819f5c56fd49fa56c63ba"
+    },
+    {
+      "name": "Unicode string",
+      "type": "urn:example:subject:agency-year",
+      "keys": {"ffy": 2026, "uei": "Ä"},
+      "id": "9483554ee22c5bab32d6efd3728adfbefa7170c319a149ce8d130f15056c8812"
+    },
+    {
+      "name": "type separates identity",
+      "type": "urn:example:subject:agency-year",
+      "keys": {"ffy": 2026, "uei": "A"},
+      "id": "caa277818d95f7d8b3a85fb92be6d600536d7c66dfd11216a6c0bbaabecfa9e7"
+    }
+  ]
+}
