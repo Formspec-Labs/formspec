@@ -35,7 +35,7 @@ Section 12 defines how the runtime requests and qualifies a catalog value.
 - Route or slot availability MUST include a Surface URL because App Manifests may compose multiple Surfaces and route ids are not graph-global.
 - Snapshot and live `definition-response` sources use Core's subject-keyed `ResponseSelection` for prefill and widget inputs. A successful result carries data and separate record evidence.
 - The catalog never embeds local fixture paths, widget payload folklore, or runtime data. Cross-artifact resolution belongs to `ArtifactResolver` and `AppGraphValidator`.
-- Fine-grained actor, operation, route, widget, or field authorization stays fail-closed here by decision, not by deferral: runtime data-access authorization is server-side engine territory (ADR 0117, Zanzibar-lineage behind `AuthorizationPort`), and ADR 0152 (accepted) covers authoring-time write authority only.
+- The catalog rejects fine-grained authorization fields. The server decides runtime data access (§8). ADR 0152 governs authoring-time writes.
 - ADR 0153 gate 5 "Closed" is the catalog contract. The availability validator (`fs-r2od`) and runtime loader (`fs-9d5e`) are now implemented; their durable source and test evidence lives in the linked tracker records.
 <!-- bluf:end -->
 
@@ -57,7 +57,7 @@ In scope:
 - source-to-app, Definition, Surface, route, slot, or module availability,
 - subject-keyed Definition-response selection for app consumers,
 - delivery, cache, staleness, failure-mode, and provenance declarations, and
-- a coarse authorization boundary that fails closed, leaving fine-grained runtime data access to the server-side engine (ADR 0117).
+- a coarse authorization boundary that fails closed, leaving fine-grained runtime data access to the server (§8).
 
 Out of scope:
 
@@ -290,7 +290,9 @@ widget binding, or related source anchor does not cover it.
 - `formspec-session`
 - `module`
 
-It answers only which boundary must admit the source before exposure. It does not express actor allowlists, field policy, route policy, widget policy, operation policy, or per-source ACLs. Such fine-grained fields MUST be rejected — permanently, not pending a contract. Fine-grained _runtime data-access_ authorization belongs to the server-side engine: ADR 0117 commits Zanzibar-lineage (OpenFGA / Cedar / OPA as adapters) behind `AuthorizationPort`. ADR 0152 (accepted) is not that contract and declines this axis explicitly — §4.3 keeps read/disclosure authority out of scope, and §6 scores this document's `authorizationBoundary` as no coverage. A catalog that grew per-source ACLs would be reimplementing the engine in an authored artifact.
+It answers only which boundary must admit the source before exposure. It does not express actor allowlists, field policy, route policy, widget policy, operation policy, or per-source ACLs. Such fine-grained fields MUST be rejected — permanently, not pending a contract. ADR 0152 (accepted) is not that contract and declines this axis explicitly — §4.3 keeps read/disclosure authority out of scope, and §6 scores this document's `authorizationBoundary` as no coverage. A catalog that grew per-source ACLs would be reimplementing the engine in an authored artifact.
+
+Amended 2026-11-18 by [ADR 0176](../../../thoughts/adr/0176-authorization-engine-and-deployment-model.md) §7. The reference server delegates fine-grained runtime data-access decisions to the shared authorization coordinator.
 
 ## 9. App Manifest Integration
 
@@ -338,7 +340,7 @@ The normative fixture corpus lives at `tests/conformance/fixtures/data-sources/`
 | `provenance-kind-mismatch.json`      | negative | Provenance kind must match source kind.                                                                                     |
 | `surface-without-surface-ref.json`   | negative | Surface availability is ambiguous without a Surface URL.                                                                    |
 | `slot-without-surface-ref.json`      | negative | Slot availability is ambiguous without a Surface URL.                                                                       |
-| `fine-grained-auth.json`             | negative | Fine-grained authorization fields are rejected; runtime data access is ADR 0117 engine territory, not catalog surface (§8). |
+| `fine-grained-auth.json`             | negative | The catalog MUST reject fine-grained authorization fields (§8). |
 
 App Manifest v2.1 Data Sources references are covered in `tests/conformance/fixtures/bundle/app-with-data-sources-v2-1.json`; v2.0 rejection is covered in `invalid-data-sources-in-2-0.json`.
 
@@ -357,7 +359,7 @@ validation, and the reference runtime live in the named packages below.
 | Full cache, subscription, and draft-delivery enforcement            | **Open**                             | Later runtime work; not implied by the snapshot MVP                                            |
 | Definition instance reads and app catalog delivery                  | **Closed** (specification)           | Core §4.4.1 owns native instance selection. This catalog serves Surface prefill and widgets (§12.4). |
 | Renderer fallback / query language                                  | **Out of scope**                     | —                                                                                              |
-| Fine-grained runtime data-access authorization                      | **Out of this artifact by decision** | ADR 0117 (server-side engine behind `AuthorizationPort`); ADR 0152 §4.3 / §6 declines the axis |
+| Fine-grained runtime data-access authorization                      | **Out of this artifact by decision** | §8 (server authorization coordinator); ADR 0152 §4.3 / §6 declines the axis |
 
 **Cold-read index:** [`thoughts/2026-05-26-open-work-index.md`](../../../thoughts/2026-05-26-open-work-index.md).
 
