@@ -1,6 +1,7 @@
 /** @filedesc Runtime diagnostics and replay: event log capture, replay from log, and diagnostic introspection */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { FormEngine, evaluateDefinition } from '../dist/index.js';
 
 function buildReplayDefinition() {
@@ -251,6 +252,33 @@ test('a calculate reports its FEL error code once in both evaluators', () => {
       ]);
     }
   } finally {
+    engine.dispose();
+  }
+});
+
+// Uses the keyed lookup fixtures supplied by the required fs-vq42 prerequisite.
+test('an identity-line calculate distinguishes one matching row from ambiguous data', () => {
+  const suite = new URL('../../../tests/conformance/suite/', import.meta.url);
+  const readCase = name => JSON.parse(readFileSync(new URL(name, suite), 'utf8'));
+  const subject = { id: 'unit', type: 'urn:example:agency', keys: { id: 'A' } };
+  for (const [scenario, expectedCodes] of [
+    ['unique', []], ['duplicate', ['FEL_AMBIGUOUS_ROW_LOOKUP']],
+  ]) {
+    const definition = readCase('fixtures/fel-keyed-row-subject.definition.json');
+    const { inputData, expected } = readCase(`fel-keyed-row-${scenario}.json`);
+    definition.instances.agencies.data = { rows: inputData.rows };
+    const batch = evaluateDefinition(definition, {}, { subjectType: subject.type, subjectKeys: subject.keys });
+    const engine = new FormEngine(definition, { responseSubject: subject });
+    const snapshot = engine.getDiagnosticsSnapshot();
+    for (const [value, findings, diagnostics] of [
+      [batch.values.name, batch.validations, batch.diagnostics],
+      [snapshot.values.name, snapshot.validation.results, snapshot.evaluationDiagnostics],
+    ]) {
+      assert.equal(value, expected.value);
+      assert.deepEqual(findings, []);
+      assert.deepEqual(diagnostics.map(d => [d.path, d.expression, d.code]),
+        expectedCodes.map(code => ['name', definition.binds[0].calculate, code]));
+    }
     engine.dispose();
   }
 });
