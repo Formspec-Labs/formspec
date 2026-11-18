@@ -12,10 +12,6 @@ Bundled from [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md). Nested
 
 Generated markdown documentation for this project.
 
-## Dependencies (1)
-
-- [`formspec-core`](formspec_core/index.md)
-
 ---
 
 Generated with [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md)
@@ -108,7 +104,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`option_sets`](option_sets.md)
 
-*1 function*
+*2 functions*
 
 ### [`parser_recovery`](parser_recovery.md)
 
@@ -2541,9 +2537,23 @@ fn json_ld_derivation_to_json_value(derivation: &JsonLdDerivation) -> serde_json
 
 **Functions**
 
+- [`effective_item_options`](#effective_item_options) - Return the Item's effective options, with a defined named set taking precedence.
 - [`resolve_option_sets_on_definition`](#resolve_option_sets_on_definition) - Walk `definition.items` (recursively) and set `options` from `optionSets`.
 
 ---
+
+## formspec_core::option_sets::effective_item_options
+
+*Function*
+
+Return the Item's effective options, with a defined named set taking precedence.
+Remote named sets supply no inline options.
+
+```rust
+fn effective_item_options<'a>(item: &'a fel_core::exact_json::Value, sets: Option<&'a fel_core::exact_json::Map<String, fel_core::exact_json::Value>>) -> Option<&'a fel_core::exact_json::Value>
+```
+
+
 
 ## formspec_core::option_sets::resolve_option_sets_on_definition
 

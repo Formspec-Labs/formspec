@@ -2067,7 +2067,7 @@ A node in the evaluation item tree.
 - `repeatable: bool` - Whether this group is repeatable.
 - `repeat_min: Option<u64>` - Minimum repeat count (for repeatable groups).
 - `repeat_max: Option<u64>` - Maximum repeat count (for repeatable groups).
-- `option_values: Vec<String>` - Valid option values for choice/multiChoice fields.
+- `option_values: std::sync::Arc<std::collections::HashSet<String>>` - Valid option values for choice/multiChoice fields.
 - `accept_types: Vec<String>` - Accepted MIME types for attachment fields (e.g. ["image/*", "application/pdf"]).
 - `extensions: Vec<String>` - Extension names declared on this item (only enabled ones, value=true).
 - `pre_populate_instance: Option<String>` - Pre-populate instance name (e.g. "userProfile").
