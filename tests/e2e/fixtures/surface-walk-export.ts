@@ -30,7 +30,7 @@ export const surfaceWalkExport: BundleExport = {
             items: [section('person', 'Person', 'name', 'Full name'), section('address', 'Address', 'city', 'City')],
         },
         [equipment]: {
-            $formspec: '1.0', version: '1.0.0', url: equipment, title: 'Equipment', formPresentation: { pageMode: 'workspace' },
+            $formspec: '1.0', version: '1.0.0', url: equipment, title: 'Equipment', formPresentation: { pageMode: 'tabs', defaultTab: 1 },
             items: [section('device', 'Device', 'model', 'Model'), section('storage', 'Storage', 'room', 'Room')],
         },
     },

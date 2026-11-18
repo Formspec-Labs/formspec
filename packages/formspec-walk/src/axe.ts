@@ -4,6 +4,7 @@ import { hasWizardSections, mergeFormPresentationForPlanning, placementCovers, p
 import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
 import type { HostDocuments } from '@formspec-org/webcomponent/host';
 import { revealSearch, type RecipeStep } from './reveal.js';
+import { pagePosition } from './page-navigation.js';
 import { DEFAULT_WALK_ROOT_SELECTOR } from './checks.js';
 
 /** axe rule tags the check runs: WCAG 2.0 A/AA, 2.1 A/AA and 2.2 AA. */
@@ -337,13 +338,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         .evaluateAll(controls => controls.map(control => control.getAttribute('data-formspec-section')!)) : [];
     const plannedIds = new Set(sectionIds);
     const unexpected = new Set(renderedIds.filter(id => !plannedIds.has(id)));
-    // React mounts just the current wizard panel. Other pagers keep a panel per step.
-    const pager = () => root.locator(panelSelector!).evaluateAll(nodes => {
-        const panels = nodes as HTMLElement[];
-        const current = panels.findIndex(panel => !panel.hidden && !panel.classList.contains('formspec-hidden'));
-        const step = panels[current]?.dataset;
-        return { index: Number(step?.stepIndex ?? current), count: Number(step?.stepCount ?? panels.length) };
-    });
+    const pager = () => pagePosition(root.locator(panelSelector!));
     const drawn = workspace
         ? (sectionIds[0] === undefined && !renderedIds.length
             ? await workspaceRoot.locator(WORKSPACE_CONTENT).count()

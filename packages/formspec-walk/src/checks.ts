@@ -5,7 +5,7 @@ import { UI_STRINGS } from '@formspec-org/layout';
 import { expected, type ExpectedText } from './plan.js';
 import { needsHostData, revealSearch, type RecipeStep } from './reveal.js';
 import { virtualScreenReader, type ScreenReader } from './screen-reader.js';
-import { stepWizard } from './wizard.js';
+import { stepPage } from './page-navigation.js';
 
 /** A string as the documents write it, or one already turned into an expectation. */
 export type Text = string | ExpectedText;
@@ -285,27 +285,26 @@ export class Walk {
 
     private async showControl(control: Locator): Promise<boolean> {
         for (let pass = 0; pass < 2; pass += 1) {
-            for (let i = 0; i < 50; i += 1) {
+            do {
                 if (await control.isVisible()) return true;
-                if (!(await this.step('next'))) break;
-            }
+            } while (await this.step('next'));
             if (pass === 0) while (await this.step('previous')) { /* back to the first step */ }
         }
         return control.isVisible();
     }
 
-    /** Advance a wizard one step; false when there is no enabled Next. */
+    /** Advance to the next tab, wizard page, or workspace section. */
     nextStep(): Promise<boolean> {
         return this.step('next');
     }
 
-    /** Back one wizard step; false when there is no enabled Previous. */
+    /** Return to the previous tab, wizard page, or workspace section. */
     previousStep(): Promise<boolean> {
         return this.step('previous');
     }
 
     private step(direction: 'next' | 'previous'): Promise<boolean> {
-        return stepWizard(this.page, this.root, direction, (key) => this.chrome(key));
+        return stepPage(this.root, direction, (key) => this.chrome(key));
     }
 
     // ── focus and what is heard ────────────────────────────────────

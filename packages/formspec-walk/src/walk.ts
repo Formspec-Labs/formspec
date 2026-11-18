@@ -34,7 +34,8 @@ export async function walkDefinition(page: Page, plan: Plan, options: OpenOption
     const covered = new Set<string>();
     const everVisible = new Set<string>();
 
-    for (let step = 0; step < 50; step += 1) {
+    while (await walk.previousStep()) { /* A form can open on a later authored tab. */ }
+    do {
         report.steps += 1;
         // Plan order, instances by index — the engine lists paths alphabetically.
         const live = (await walk.state())
@@ -51,8 +52,7 @@ export async function walkDefinition(page: Page, plan: Plan, options: OpenOption
         await walk.tabOrder(visible.map((f) => f.path), Object.fromEntries(visible.map((f) => [f.path, fieldWant(byBase.get(baseOf(f.path))!)])));
         for (const f of visible) { covered.add(baseOf(f.path)); report.fields += 1; }
 
-        if (!(await walk.nextStep())) break;
-    }
+    } while (await walk.nextStep());
 
     // Check changed states after the baseline traversal. A reveal can navigate to any section.
     const live = await walk.state();

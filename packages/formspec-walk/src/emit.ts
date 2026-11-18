@@ -103,13 +103,13 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
         if (first) push(`            { label: ${text(g.label)}, firstField: ${q(first.path)} },`);
     }
     push('        ];');
-    push('        for (let step = 0; step < 50; step += 1) {');
+    push('        while (await walk.previousStep()) { /* Start at the first page. */ }');
+    push('        do {');
     push('            const live = await walk.state();');
     push("            const here = (p: string) => live.filter((f) => f.path.replace(/\\[\\d+\\]/g, '') === p).map((f) => f.path);");
     push('            await walk.readingOrder(fields.flatMap((f) => here(f.path).map((path) => ({ path, label: f.label }))), groups.flatMap((g) => here(g.firstField).slice(0, 1).map((firstField) => ({ label: g.label, firstField }))));');
     push('            await walk.tabOrder(fields.flatMap((f) => here(f.path)));');
-    push('            if (!(await walk.nextStep())) break;');
-    push('        }');
+    push('        } while (await walk.nextStep());');
     push('        walk.expectClean();');
     push('    });');
     push();
