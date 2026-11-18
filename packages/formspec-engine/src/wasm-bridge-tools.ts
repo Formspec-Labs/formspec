@@ -349,7 +349,7 @@ export function checkInstanceProjection(
     upstreamDefinitions: readonly unknown[],
 ): InstanceProjectionDiagnostic[] {
     assertWasmToolsReadySync();
-    return JSON.parse(wasmTools().checkInstanceProjection(
+    return JSON.parse(wasmTools().checkResponseProjection(
         JSON.stringify(source), JSON.stringify(projectionConsumer ?? null), JSON.stringify(upstreamDefinitions),
     ));
 }

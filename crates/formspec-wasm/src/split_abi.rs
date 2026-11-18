@@ -12,5 +12,6 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen(js_name = "formspecWasmSplitAbiVersion")]
 pub fn formspec_wasm_split_abi_version() -> String {
     // Magic: paired with formspec-engine bridge expectations; document bumps in ADR 0050.
-    "1".to_string()
+    // Version 2 passes a receiving Definition and binding to the projection checker.
+    "2".to_string()
 }

@@ -43,7 +43,7 @@ pub fn assemble_definition_wasm(
 ///
 /// Returns a JavaScript error on invalid input JSON.
 #[cfg(feature = "document-api")]
-#[wasm_bindgen(js_name = "checkInstanceProjection")]
+#[wasm_bindgen(js_name = "checkResponseProjection")]
 pub fn check_instance_projection_wasm(
     instance_json: &str,
     consumer_json: &str,

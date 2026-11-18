@@ -11,7 +11,7 @@
 //! - `candidate` — signing candidate assembly (always in runtime WASM)
 //! - `extensions` — `FelExtensionHost`: JS-backed FEL extension functions (Core §3.12)
 //! - `definition` — option sets and migrations. Tools add `assembleDefinition` and
-//!   `checkInstanceProjection` through `definition-assembly` and `document-api`.
+//!   `checkResponseProjection` through `definition-assembly` and `document-api`.
 //! - `value_coerce` — `coerceFieldValue` (always)
 //! - `changeset` — changeset dependency analysis (key extraction, connected components)
 //! - `document` — `document-api`: detect type, schema plan; `lint`: `lintDocument*`
