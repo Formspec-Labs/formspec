@@ -1,7 +1,7 @@
 //! Formspec Linter — static analysis and validation pipeline.
 //!
 //! Pass 1 (E100): Document type detection
-//! Pass 1b (E101; E305/E308/E309/E311 for specific Core requirements): JSON Schema validation against embedded schemas
+//! Pass 1b (E101; E305/E308/E309/E311/E312 for specific Core requirements): JSON Schema validation against embedded schemas
 //! Pass 2 (E200/E201): Tree indexing, duplicate key/path detection
 //! Pass 3 (E300/E301/E302/W300): Reference validation — bind paths, shape targets, optionSets
 //! Pass 3 (E306/E307): Definition response selection predicates

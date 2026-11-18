@@ -220,6 +220,11 @@
                 "type": "string",
                 "minLength": 1,
                 "description": "Authorization object type derived from this stored string key value, for example agency. Requires dataType string."
+              },
+              "minted": {
+                "type": "boolean",
+                "default": false,
+                "description": "When true, the draft store assigns this opaque scoped string identifier, which has no ordering or offset semantics. A fresh value carries no grant, so the key cannot declare authorizationParent. A supplied value can continue a unit minted in the same scope under the same authorization parents."
               }
             },
             "dependentSchemas": {
@@ -227,6 +232,16 @@
                 "properties": {
                   "dataType": { "const": "string" }
                 }
+              }
+            },
+            "if": {
+              "required": ["minted"],
+              "properties": { "minted": { "const": true } }
+            },
+            "then": {
+              "properties": {
+                "dataType": { "const": "string" },
+                "authorizationParent": false
               }
             }
           }

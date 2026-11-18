@@ -151,6 +151,37 @@ fn non_string_subject_key_data_type_reports_once() {
 }
 
 #[test]
+fn misdeclared_minted_keys_get_authored_diagnostics() {
+    let mut doc = definition();
+    for (key, message) in [
+        (
+            json!({"dataType":"integer","minted":true}),
+            "minted requires a string subject key",
+        ),
+        (
+            json!({"dataType":"string","minted":true,"authorizationParent":"agency"}),
+            "A minted subject key cannot declare authorizationParent",
+        ),
+        (
+            json!({"dataType":"string","minted":"true"}),
+            "minted must be a boolean",
+        ),
+    ] {
+        doc["subject"]["keys"]["ffy"] = key;
+        let result = lint(&doc);
+        assert_error(&doc, "E312", "$.subject.keys.ffy.minted");
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.message == message),
+            "{:#?}",
+            result.diagnostics
+        );
+    }
+}
+
+#[test]
 fn subject_type_uri_is_validated_by_the_schema() {
     let mut doc = definition();
     for subject_type in ["", "relative/type", "urn:example:bad type"] {

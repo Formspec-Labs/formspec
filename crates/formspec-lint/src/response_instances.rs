@@ -52,6 +52,25 @@ pub(crate) fn schema_diagnostic(doc: &Value, err: &ValidationError<'_>) -> Optio
                 "authorizationParent requires a string subject key",
             )
         }
+        "/properties/subject/properties/keys/additionalProperties/properties/minted/type" => (
+            LintCode::E312,
+            subject_key_path(pointer.strip_suffix("/minted")?, "minted")?,
+            "minted must be a boolean",
+        ),
+        "/properties/subject/properties/keys/additionalProperties/then/properties/dataType/const" => {
+            (
+                LintCode::E312,
+                subject_key_path(pointer.strip_suffix("/dataType")?, "minted")?,
+                "minted requires a string subject key",
+            )
+        }
+        "/properties/subject/properties/keys/additionalProperties/then/properties/authorizationParent" => {
+            (
+                LintCode::E312,
+                subject_key_path(pointer.strip_suffix("/authorizationParent")?, "minted")?,
+                "A minted subject key cannot declare authorizationParent",
+            )
+        }
         "/properties/subject/properties/keys/additionalProperties/properties/dataType/enum" => (
             LintCode::E311,
             subject_key_path(pointer.strip_suffix("/dataType")?, "dataType")?,

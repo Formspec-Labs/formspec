@@ -1,0 +1,17 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:report",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Invalid minted subject key",
+  "subject": {
+    "type": "urn:example:subject:initiative",
+    "keys": {
+      "initiative_id": {
+        "dataType": "integer",
+        "minted": true
+      }
+    }
+  },
+  "items": []
+}

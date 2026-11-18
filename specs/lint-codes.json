@@ -185,6 +185,18 @@
       "state": "tested"
     },
     {
+      "code": "E312",
+      "pass": 1,
+      "severity": "error",
+      "title": "Invalid minted subject key declaration",
+      "specRef": "specs/core/spec.md#filing-unit-subject-declaration",
+      "suggestedFix": "use a boolean for minted and, when true, declare a string key without authorizationParent",
+      "fixtures": [
+        "tests/fixtures/lint/E312-subject-key-invalid-minted.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W300",
       "pass": 3,
       "severity": "warning",

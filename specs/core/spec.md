@@ -546,7 +546,11 @@ cross that scope. Declared authorization parents are derived from stored keys
 and the scope for each authorization check; parent relationships MUST NOT be
 stored as a second copy of those facts. A draft's keys MAY be corrected only by
 an authorized re-key operation that refuses a collision with another unit.
-Completed Responses MUST NOT be re-keyed.
+Completed Responses MUST NOT be re-keyed. A minted subject key (§4.1)
+MUST retain its assigned value across a re-key or a new period for the same
+unit. Find-or-create MAY accept that value only when the same scope assigned
+it under the same authorization parents. A selection MAY match that value
+for equality and apply an offset to a separate integer period key.
 
 A Definition without a subject declaration uses the server's implicit
 "this respondent" identity for draft ownership. That implicit identity MUST
@@ -3167,28 +3171,49 @@ assign core semantics to unrecognized extensions.
 The OPTIONAL top-level `subject` declares a filing-unit type URI and named
 keys. Each key MUST declare `dataType` as `string` or `integer`. A per-scope
 singleton declares `keys: {}` and takes relations through the scope parent
-(§2.1.6). The declaration has the shape:
+(§2.1.6). The following Definition identifies a child unit within a parent
+and period:
 
 ```json
 {
   "subject": {
-    "type": "urn:example:subject:agency-year",
+    "type": "urn:example:subject:child-unit",
     "keys": {
-      "ffy": { "dataType": "integer" },
-      "uei": { "dataType": "string", "authorizationParent": "agency" }
+      "parent": { "dataType": "string", "authorizationParent": "agency" },
+      "year": { "dataType": "integer" },
+      "unit_id": { "dataType": "string", "minted": true }
     }
   }
 }
 ```
 
 `authorizationParent`, when present, MUST be on a `string` key and names the
-authorization object type for that key's value: the example derives
-`agency:<uei>` as a parent of the filing unit. The scope supplies its own
+authorization object type for that key's value. The example derives
+`agency:<parent>` as a parent of the filing unit. The scope supplies its own
 parent and MUST NOT be declared as a key.
-An authorized route supplies keys at find-or-create; later checks derive
-parents from stored keys. Find-or-create MUST authorize before disclosing or
-creating a draft and MUST admit at most one open draft per
-`(scope, definitionUrl, subject)`. Correcting keys follows §2.1.6.
+
+`minted: true` declares a key the draft store assigns. It MUST be a
+`string` because it is an opaque scoped identifier with no ordering or
+offset semantics. It MUST NOT declare `authorizationParent` because
+no one holds a grant on a fresh value. Omission or `false` indicates a
+route-supplied key.
+
+Find-or-create MUST check `open` through the scope and the declared parents
+before looking up or creating a draft. The caller MUST supply the non-minted
+keys. To start a new unit, the caller omits the minted keys. The store MUST
+allocate fresh scoped identifiers for omitted minted keys and return the
+complete subject. A retry of the same attempt MUST return the same keys and
+draft while it remains open. If the caller supplies minted values, the
+store MUST verify that the same scope previously assigned those values
+together for that subject type under the same authorization parents. The
+prior unit can be from any period. The store MUST refuse other supplied
+minted values.
+
+A route with the complete subject MAY request lookup only. It MUST pass
+the same `open` check. An authorized lookup with no open draft MUST report
+absence. Later checks derive parents from stored keys. Find-or-create MUST
+admit at most one open draft per `(scope, definitionUrl, subject)`.
+Correcting keys follows §2.1.6.
 
 #### Form Metadata and Fees
 

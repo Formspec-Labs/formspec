@@ -1262,7 +1262,11 @@ from stored keys and the scope for each authorization check; parent
 relationships MUST NOT be stored as a second copy of those facts. A
 draft’s keys MAY be corrected only by an authorized re-key operation
 that refuses a collision with another unit. Completed Responses MUST NOT
-be re-keyed.</p>
+be re-keyed. A minted subject key (§4.1) MUST retain its assigned value
+across a re-key or a new period for the same unit. Find-or-create MAY
+accept that value only when the same scope assigned it under the same
+authorization parents. A selection MAY match that value for equality and
+apply an offset to a separate integer period key.</p>
 <p>A Definition without a subject declaration uses the server’s implicit
 “this respondent” identity for draft ownership. That implicit identity
 MUST NOT be written into <code>Response.subject</code>. An explicit
@@ -6083,25 +6087,44 @@ Declaration</h4>
 type URI and named keys. Each key MUST declare <code>dataType</code> as
 <code>string</code> or <code>integer</code>. A per-scope singleton
 declares <code>keys: {}</code> and takes relations through the scope
-parent (§2.1.6). The declaration has the shape:</p>
+parent (§2.1.6). The following Definition identifies a child unit within
+a parent and period:</p>
 <div class="sourceCode"><pre
 class="sourceCode json"><code class="sourceCode json"><span><span class="fu">{</span></span>
 <span>  <span class="dt">&quot;subject&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;urn:example:subject:agency-year&quot;</span><span class="fu">,</span></span>
+<span>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;urn:example:subject:child-unit&quot;</span><span class="fu">,</span></span>
 <span>    <span class="dt">&quot;keys&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span>      <span class="dt">&quot;ffy&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;integer&quot;</span> <span class="fu">},</span></span>
-<span>      <span class="dt">&quot;uei&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span> <span class="dt">&quot;authorizationParent&quot;</span><span class="fu">:</span> <span class="st">&quot;agency&quot;</span> <span class="fu">}</span></span>
+<span>      <span class="dt">&quot;parent&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span> <span class="dt">&quot;authorizationParent&quot;</span><span class="fu">:</span> <span class="st">&quot;agency&quot;</span> <span class="fu">},</span></span>
+<span>      <span class="dt">&quot;year&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;integer&quot;</span> <span class="fu">},</span></span>
+<span>      <span class="dt">&quot;unit_id&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span> <span class="dt">&quot;minted&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">}</span></span>
 <span>    <span class="fu">}</span></span>
 <span>  <span class="fu">}</span></span>
 <span><span class="fu">}</span></span></code></pre></div>
 <p><code>authorizationParent</code>, when present, MUST be on a
 <code>string</code> key and names the authorization object type for that
-key’s value: the example derives <code>agency:&lt;uei&gt;</code> as a
+key’s value. The example derives <code>agency:&lt;parent&gt;</code> as a
 parent of the filing unit. The scope supplies its own parent and MUST
-NOT be declared as a key. An authorized route supplies keys at
-find-or-create; later checks derive parents from stored keys.
-Find-or-create MUST authorize before disclosing or creating a draft and
-MUST admit at most one open draft per
+NOT be declared as a key.</p>
+<p><code>minted: true</code> declares a key the draft store assigns. It
+MUST be a <code>string</code> because it is an opaque scoped identifier
+with no ordering or offset semantics. It MUST NOT declare
+<code>authorizationParent</code> because no one holds a grant on a fresh
+value. Omission or <code>false</code> indicates a route-supplied
+key.</p>
+<p>Find-or-create MUST check <code>open</code> through the scope and the
+declared parents before looking up or creating a draft. The caller MUST
+supply the non-minted keys. To start a new unit, the caller omits the
+minted keys. The store MUST allocate fresh scoped identifiers for
+omitted minted keys and return the complete subject. A retry of the same
+attempt MUST return the same keys and draft while it remains open. If
+the caller supplies minted values, the store MUST verify that the same
+scope previously assigned those values together for that subject type
+under the same authorization parents. The prior unit can be from any
+period. The store MUST refuse other supplied minted values.</p>
+<p>A route with the complete subject MAY request lookup only. It MUST
+pass the same <code>open</code> check. An authorized lookup with no open
+draft MUST report absence. Later checks derive parents from stored keys.
+Find-or-create MUST admit at most one open draft per
 <code>(scope, definitionUrl, subject)</code>. Correcting keys follows
 §2.1.6.</p>
 <h4 id="form-metadata-and-fees">Form Metadata and Fees</h4>

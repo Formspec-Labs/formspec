@@ -76,6 +76,18 @@ def test_authorization_parent_requires_a_string_key():
     assert _errors(DEFINITION, doc)
 
 
+@pytest.mark.parametrize("key, valid", [
+    ({"dataType": "string", "minted": True}, True),
+    ({"dataType": "integer", "minted": True}, False),
+    ({"dataType": "string", "minted": True, "authorizationParent": "agency"}, False),
+    ({"dataType": "string", "minted": "true"}, False),
+])
+def test_minted_subject_key_declaration(key, valid):
+    doc = _fixture("valid-subject.definition.json")
+    doc["subject"]["keys"]["unit_id"] = key
+    assert (not _errors(DEFINITION, doc)) is valid
+
+
 @pytest.mark.parametrize("schema,name", [
     (DEFINITION, "valid-subject.definition.json"),
     (RESPONSE, "valid-resolved-instances.response.json"),
