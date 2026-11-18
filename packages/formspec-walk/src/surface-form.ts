@@ -16,16 +16,9 @@ export interface SurfaceFormTarget {
 
 export async function checkSurfaceForm(page: Page, target: SurfaceFormTarget) {
     const { root, definition, theme, locale } = target;
-    await page.goto(target.url);
-    await page.locator(root).waitFor({ state: 'attached' });
-    const matches = await page.locator(root).evaluate((element, expected) => {
-        const document = (element as HTMLElement & { engine?: { getDefinition(): FormDefinition } }).engine?.getDefinition();
-        return document?.url === expected.url && document?.version === expected.version;
-    }, { url: definition.url, version: definition.version });
-    if (!matches) throw new Error(`${target.title}: the mounted form differs from ${definition.url} ${definition.version}`);
-
     const report = await walkDefinition(page, derivePlan(definition, { theme, locale }), {
-        root, locale: locale?.locale, chrome: locale?.strings as Record<string, string> | undefined,
+        url: target.url, root, expectedDefinition: { url: definition.url, version: definition.version },
+        locale: locale?.locale, chrome: locale?.strings as Record<string, string> | undefined,
     });
     expectClean(report);
     const axe = await runAxePass(page, { root, documents: { definition, theme } });
