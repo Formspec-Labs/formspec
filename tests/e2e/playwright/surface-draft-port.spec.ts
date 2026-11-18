@@ -138,6 +138,9 @@ test('preview confirms restart after a version change', async ({ page }) => {
   const restart = page.getByRole('button', { name: 'Discard draft and restart', exact: true });
   const confirm = page.getByRole('button', { name: 'Confirm discard and restart', exact: true });
   const mismatch = 'This draft was saved with a different version of the form.';
+  await expect(page.getByRole('group', { name: mismatch })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(restart).toBeFocused();
   await restart.press('Enter');
   await expect(confirm).toBeFocused();
   await expect(page.getByRole('group', { name: mismatch })).toBeVisible();

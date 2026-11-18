@@ -47,7 +47,8 @@ export function DraftDefinitionForm({
     return () => { live.current = false; };
   }, []);
   useLayoutEffect(() => {
-    if (conflict || canRestart) recoveryButton.current?.focus();
+    if (canRestart && !decision) recoveryGroup.current?.focus();
+    else if (conflict || canRestart) recoveryButton.current?.focus();
     else if (status === 'ready' && returnToForm.current) {
       returnToForm.current = false;
       form.current?.focus();
