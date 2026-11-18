@@ -12,6 +12,10 @@ Bundled from [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md). Nested
 
 Generated markdown documentation for this project.
 
+## Dependencies (1)
+
+- [`formspec-core`](formspec_core/index.md)
+
 ---
 
 Generated with [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md)
@@ -2547,7 +2551,7 @@ fn json_ld_derivation_to_json_value(derivation: &JsonLdDerivation) -> serde_json
 *Function*
 
 Return the Item's effective options, with a defined named set taking precedence.
-Remote named sets supply no inline options.
+Source-only named sets supply no inline options.
 
 ```rust
 fn effective_item_options<'a>(item: &'a fel_core::exact_json::Value, sets: Option<&'a fel_core::exact_json::Map<String, fel_core::exact_json::Value>>) -> Option<&'a fel_core::exact_json::Value>

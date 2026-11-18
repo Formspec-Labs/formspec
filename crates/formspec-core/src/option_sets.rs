@@ -5,7 +5,7 @@ use fel_core::exact_json::{Map, Value};
 static EMPTY_OPTIONS: Value = Value::Array(Vec::new());
 
 /// Return the Item's effective options, with a defined named set taking precedence.
-/// Remote named sets supply no inline options.
+/// Source-only named sets supply no inline options.
 pub fn effective_item_options<'a>(
     item: &'a Value,
     sets: Option<&'a Map<String, Value>>,
