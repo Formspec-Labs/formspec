@@ -32,6 +32,7 @@ export function useFilingDraftObservations(
   previewScope: string | undefined,
   revision: string | number | undefined,
   generation: string | undefined,
+  draftRevision: number | undefined,
 ): DraftReads {
   const queries = useMemo(() => {
     const unique = new Map<string, FilingDraftQuery>();
@@ -49,7 +50,8 @@ export function useFilingDraftObservations(
     return [...unique.values()];
   }, [slots]);
 
-  const request = useMemo(() => ({ queries, readSummaries, previewScope }), [queries, readSummaries, previewScope, revision, generation]);
+  const request = useMemo(() => ({ queries, readSummaries, previewScope }),
+    [queries, readSummaries, previewScope, revision, generation, draftRevision]);
   const [completed, setCompleted] = useState<{
     request: typeof request;
     observations: ReadonlyMap<string, FilingDraftObservation>;

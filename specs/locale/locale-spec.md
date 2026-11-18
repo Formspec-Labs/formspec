@@ -827,6 +827,20 @@ MUST contain these exact suffixes one-for-one:
 | `saved` | none |
 | `savedLocally` | none |
 | `saveFailed` | none |
+| `draftConflict` | none |
+| `draftLoadNewer` | none |
+| `draftKeepChanges` | none |
+| `draftDiscardPrompt` | none |
+| `draftOverwritePrompt` | none |
+| `draftConfirmDiscard` | none |
+| `draftConfirmOverwrite` | none |
+| `draftCancel` | none |
+| `draftLoaded` | none |
+| `draftUnavailable` | none |
+| `draftVersionMismatch` | none |
+| `draftRestart` | none |
+| `draftConfirmRestart` | none |
+| `draftKeep` | none |
 | `filingNotStarted` | none |
 | `filingNotStartedWithSize` | `count` |
 | `filingInProgress` | none |
@@ -860,7 +874,7 @@ processor. They carry strings only and expose no route table, navigation
 function, action executor, Response, or mutable host state. All ordinary FEL
 rules still apply.
 
-The preview edition, appearance, draft save, and filing-status keys require Locale 2.1.
+The preview edition, appearance, draft, and filing-status keys require Locale 2.1.
 
 These keys are valid only for `target.kind: "app"` and the
 `x-formspec-surface` module. A processor MUST reject an unknown shell suffix and

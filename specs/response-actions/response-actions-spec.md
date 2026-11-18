@@ -353,6 +353,12 @@ A `serviceRequest` effect names exactly one request in the same document's
 `x-formspec-runtime.requests` catalog. Request ids MUST be unique. A processor
 MUST reject an unresolved or ambiguous `requestRef` before invocation.
 
+A response-scoped signing request declares `operation: "prepare"` to
+prepare the filing candidate or `operation: "sign"` to sign it. An Action
+MUST reference at most one request marked with a signing operation. Processors
+use the resolved request's operation to apply the draft revision check.
+The effective validation tuple declares draft checkpoint persistence.
+
 <!-- schema-ref:start id=response-actions-service-requests schema=schemas/response-actions.schema.json pointers=#/$defs/ServiceRequestEffect,#/$defs/RuntimeRequestCatalog,#/$defs/RuntimeRequest,#/$defs/HttpJsonRequest,#/$defs/RuntimeValueSelector,#/$defs/RuntimeRequestOutput -->
 <!-- generated:schema-ref id=response-actions-service-requests -->
 | Pointer | Field | Type | Required | Notes | Description |
@@ -365,6 +371,7 @@ MUST reject an unresolved or ambiguous `requestRef` before invocation.
 | `#/$defs/RuntimeRequestCatalog/properties/version` | `version` | <code>const</code> | yes | const: <code>"1.0"</code> | Runtime request catalog version. |
 | `#/$defs/RuntimeRequest/properties/adapter` | `adapter` | <code>const</code> | yes | const: <code>"http-json"</code> | JSON-over-HTTP runtime adapter. |
 | `#/$defs/RuntimeRequest/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^[A-Za-z][A-Za-z0-9-]*&#36;</code> | Stable request id referenced by serviceRequest.requestRef. |
+| `#/$defs/RuntimeRequest/properties/operation` | `operation` | <code>string</code> | no | enum: <code>"prepare"</code>, <code>"sign"</code> | Optional signing-ceremony operation for response-scoped requests. |
 | `#/$defs/RuntimeRequest/properties/outputs` | `outputs` | <code>object</code> | no | — | Allowlisted names extracted from the parsed JSON response. Outputs default to invocation-private. `transition` outputs may enter route state; the host sends `session` outputs only to its private session store. |
 | `#/$defs/RuntimeRequest/properties/request` | `request` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/HttpJsonRequest</code> | — |
 | `#/$defs/RuntimeRequest/properties/successStatuses` | `successStatuses` | <code>array</code> | no | — | Optional exact successful HTTP status codes. Omission admits any 2xx response. |

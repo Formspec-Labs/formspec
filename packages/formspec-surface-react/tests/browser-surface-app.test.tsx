@@ -429,6 +429,30 @@ describe('BrowserSurfaceApp', () => {
     expect(() => apply(window, document)).not.toThrow();
   });
 
+  it('keeps typed edits when checkpointPorts gets a new function identity', async () => {
+    address('/forms/mi');
+    const app = bundle();
+    const load = vi.fn(async () => ({ status: 'absent' as const }));
+    const draftStorage = { scope: 'test', port: { load, save: vi.fn(), readSummaries: vi.fn() } };
+    let rerender!: () => void;
+    function Host() {
+      const [, setGeneration] = useState(0);
+      rerender = () => setGeneration(value => value + 1);
+      return <BrowserSurfaceApp bundle={app} draftStorage={draftStorage} checkpointPorts={({ ports }) => ports} />;
+    }
+    const container = render(<Host />);
+    await act(async () => {});
+    const input = container.querySelector('input')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'typed');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => { rerender(); });
+    expect(container.querySelector('input')).toBe(input);
+    expect(input.value).toBe('typed');
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
   it('announces exactly one result when a Definition action invoker handles Save draft', async () => {
     address('/forms/mi');
     const componentDocument: ComponentDocument = {

@@ -20,10 +20,13 @@ import { planTransitions } from '../src/transitions.js';
 import { respondentSurface } from './fixtures.js';
 
 describe('the string table', () => {
-  it('publishes the browser masthead labels and save notices in the closed Locale family', () => {
+  it('publishes the browser masthead labels and draft messages in the closed Locale family', () => {
     const schema = JSON.parse(readFileSync(new URL('../../../schemas/locale.schema.json', import.meta.url), 'utf8'));
     const keys = ['previewEditionLabel', 'appearanceLabel', 'appearanceSystem', 'appearanceLight',
-      'appearanceDark', 'saved', 'savedLocally', 'saveFailed'];
+      'appearanceDark', 'saved', 'savedLocally', 'saveFailed', 'draftConflict', 'draftUnavailable',
+      'draftVersionMismatch', 'draftRestart', 'draftConfirmRestart', 'draftKeep',
+      'draftLoadNewer', 'draftKeepChanges', 'draftDiscardPrompt', 'draftOverwritePrompt',
+      'draftConfirmDiscard', 'draftConfirmOverwrite', 'draftCancel', 'draftLoaded'];
     expect(SURFACE_STRING_KEYS).toEqual(expect.arrayContaining(keys));
     expect(schema.$defs.SurfaceShellStringKey.enum).toEqual(
       SURFACE_STRING_KEYS.map(key => `${SURFACE_LOCALE_KEY_PREFIX}${key}`),

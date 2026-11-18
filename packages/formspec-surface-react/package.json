@@ -40,6 +40,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@formspec-org/integrity-canonical": "^0.1.1",
     "canonicalize": "^3.0.0"
   },
   "peerDependencies": {

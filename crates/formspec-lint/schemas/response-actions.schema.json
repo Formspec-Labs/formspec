@@ -442,6 +442,11 @@
           "const": "http-json",
           "description": "JSON-over-HTTP runtime adapter."
         },
+        "operation": {
+          "type": "string",
+          "enum": ["prepare", "sign"],
+          "description": "Optional signing-ceremony operation for response-scoped requests."
+        },
         "request": { "$ref": "#/$defs/HttpJsonRequest" },
         "successStatuses": {
           "type": "array",

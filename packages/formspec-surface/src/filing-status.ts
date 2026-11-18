@@ -1,36 +1,16 @@
 /** @filedesc Plans exact filing-status destinations and section links without opening forms. */
 import { resolveFilingStatusTargets } from '@formspec-org/app-graph';
-import { resolvePageSequence, workspaceSections, type FormProgressSummary, type ProgressCounts } from '@formspec-org/layout';
+import { resolvePageSequence, workspaceSections } from '@formspec-org/layout';
 import type { FormDefinition } from '@formspec-org/types';
 import { matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
 import type { DataSourceSubject } from './data-source-loader.js';
+import type { FilingDraftQuery } from './draft-port.js';
 import { generationNeedAnchors } from './need-trace.js';
 import type { SurfaceDefinitionComponentResolver } from './slot-plan.js';
 import type { SurfaceRoute } from './route-path.js';
 import type { ThemeAuthority } from './theme-authority.js';
 
-export type FilingProgressCounts = Readonly<Pick<ProgressCounts, 'total' | 'filled' | 'toFix' | 'toCheck'>>;
 export type FilingSectionLocaleLookup = (definition: FormDefinition, key: string) => string | null;
-
-export interface FilingDraftQuery {
-  /** Correlates a result to this Definition, subject, and section plan within the batch. */
-  key: string;
-  definitionUrl: string;
-  definitionVersion: string;
-  subject?: DataSourceSubject;
-  /** Canonical section IDs and field placements in layout order. */
-  sections: readonly { id?: string; fields: readonly string[] }[];
-}
-
-export type FilingDraftObservation =
-  | { status: 'current'; form: FilingProgressCounts & Pick<FormProgressSummary['form'], 'ready'>; sections: Readonly<Record<string, FilingProgressCounts>> }
-  | { status: 'absent' | 'denied' | 'stale' | 'unavailable' };
-
-/** DraftPort.readSummaries reads authorized, revision-qualified progress. A missing result means unavailable. */
-export type FilingStatusReader = (
-  queries: readonly FilingDraftQuery[],
-  input: { previewScope: string | undefined; signal: AbortSignal },
-) => Promise<ReadonlyMap<string, FilingDraftObservation>>;
 
 export interface FilingStatusSectionPlan {
   id: string;

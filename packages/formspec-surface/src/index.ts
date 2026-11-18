@@ -170,6 +170,7 @@ export {
 } from './data-source-loader.js';
 
 export {
+  catalogResponseProjection,
   createPreviewDefinitionResponseStore,
   type DefinitionResponseRecordRefusalReason,
   type DefinitionResponseRecordResult,
@@ -270,4 +271,9 @@ export {
 
 export * from "./screener-slot.js";
 
-export type { FilingDraftObservation, FilingDraftQuery, FilingProgressCounts, FilingStatusPlan, FilingStatusReader } from './filing-status.js';
+export type { FilingStatusPlan } from './filing-status.js';
+export type {
+  BrowserDraftPort, CurrentDraftProgress, DraftKey, DraftLoadResult, DraftPort, DraftRecord,
+  DraftRestartResult, DraftSaveInput, DraftSaveResult, DraftSectionPlacement,
+  FilingDraftObservation, FilingDraftQuery, FilingProgressCounts, FilingStatusReader,
+} from './draft-port.js';

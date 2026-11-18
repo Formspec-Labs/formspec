@@ -41,12 +41,12 @@ import {
   createMappingEngine,
   resolveResponseActionValidationTuple,
   type IFormEngine,
+  type FormEngineOptions,
 } from '@formspec-org/engine';
 import { FormspecForm } from '@formspec-org/react';
 import type {
   ResponseAction,
   ResponseActionInvocationResult,
-  ResponseActionInvoker,
   ResponseActionsDocument as ReactResponseActionsDocument,
   SemanticArtifactIdentity,
   SemanticControlRegistry,
@@ -86,6 +86,9 @@ import {
   type ThemeGrant,
   type WidgetDataDelivery,
 } from '@formspec-org/surface';
+import { DraftDefinitionForm } from './DraftDefinitionForm.js';
+import type { DraftSession } from './draft-session.js';
+import type { DraftActionInvoker, DraftWriter } from './draft-writer.js';
 import { Heading, nextLevel } from './heading.js';
 import { FilingStatus, type FilingStatusViewContext } from './FilingStatus.js';
 import type {
@@ -131,11 +134,13 @@ export type ResolvedDefinitionFormPlan = Extract<
   >;
 };
 
-export type SurfaceSaveNotice = 'saved' | 'savedLocally' | 'saveFailed';
+export type SurfaceSaveNotice = 'saved' | 'savedLocally' | 'saveFailed' | 'draftConflict' | 'draftLoaded';
 
 export interface SurfaceFormSession {
   appearance: 'light' | 'dark';
   previewScope: string | undefined;
+  drafts?: DraftSession | undefined;
+  draftRevision?: number | undefined;
   reportSave: (notice: SurfaceSaveNotice) => void;
   workspace?: {
     slot: string | undefined;
@@ -161,6 +166,11 @@ export interface SurfaceDefinitionFormRenderInput {
   appearance?: 'light' | 'dark' | undefined;
   /** Exact local draft scope when the browser app is previewing an edition. */
   previewScope?: string | undefined;
+  draftSession?: DraftSession | undefined;
+  /** A new form still needs its authored seed. An existing draft has its own data. */
+  draftSeed?: 'loading' | 'unavailable' | undefined;
+  draftStrings?: SurfaceStrings | undefined;
+  responseSubject?: FormEngineOptions['responseSubject'];
   /** Report committed saves and failed writes to the single shell live region. */
   reportSave?: ((notice: SurfaceSaveNotice) => void) | undefined;
   activeSection?: string | undefined;
@@ -184,7 +194,7 @@ export interface SurfaceDefinitionFormRenderInput {
    * renderer still owns action resolution and submission; this port lets a
    * generic async Response Actions runtime perform declared durable effects.
    */
-  responseActionInvoker?: ResponseActionInvoker<SubmitResult> | undefined;
+  responseActionInvoker?: DraftActionInvoker | undefined;
   /** Preserve the shell's completed-action navigation boundary. */
   onActionCompleted?:
     | ((
@@ -322,7 +332,7 @@ export interface SurfaceSlotProps {
     | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
     | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
-  definitionActionInvoker?: ResponseActionInvoker<SubmitResult> | undefined;
+  definitionActionInvoker?: DraftActionInvoker | undefined;
   resolveSemanticControlScope?: SurfaceSemanticControlScopeResolver | undefined;
   /** Exact caller-paired identity used only by renderers that publish output. */
   semanticOutputScope?: SurfaceSemanticOutputScope | undefined;
@@ -589,6 +599,8 @@ export function SurfaceSlot({
         ...(formSession && {
           appearance: formSession.appearance,
           previewScope: formSession.previewScope,
+          draftSession: formSession.drafts,
+          draftStrings: strings,
           reportSave: formSession.reportSave,
         }),
         ...(workspace && {
@@ -607,11 +619,12 @@ export function SurfaceSlot({
         renderInput.semanticControlScope = semanticControlScope;
       }
       if (plan.initialData && plan.initialData.status !== 'ready') {
-        return (
-          <UnavailableSlot>
-            {strings('slotUnavailableWidgetData')}
-          </UnavailableSlot>
-        );
+        if (!renderInput.draftSession) return <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
+        const input = { ...renderInput, draftSeed: 'unavailable' as const };
+        return <Fragment key={subjectKey}>
+          {renderDefinitionForm ? renderDefinitionForm(input) :
+            <DefaultDefinitionFormSlot input={input} semanticOutputScope={slotSemanticOutputScope} />}
+        </Fragment>;
       }
       if (plan.initialData?.status === 'ready') {
         return (
@@ -883,6 +896,13 @@ function SurfaceStaticContent({
 }
 
 export function renderDefaultDefinitionForm(input: SurfaceDefinitionFormRenderInput): ReactNode {
+  if (input.draftSession) {
+    const key = JSON.stringify([input.plan.definition.url, input.plan.definition.version,
+      input.plan.subject?.type, input.plan.subject?.keys]);
+    return <DraftDefinitionForm key={key} input={input} session={input.draftSession}>
+      {(engine, writer) => <DefaultSurfaceDefinitionForm {...input} draftEngine={engine} draftWriter={writer} />}
+    </DraftDefinitionForm>;
+  }
   return <DefaultSurfaceDefinitionForm {...input} />;
 }
 
@@ -1077,45 +1097,36 @@ function DefinitionFormDataSlot({
     validateDataSourcePayload,
   ]);
 
-  if (delivery.status === 'loading') {
-    return (
-      <p
-        className="fs-surface-loading"
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-        data-probe="definition-form-loading"
-      >
-        {strings('transitionPending')}
-      </p>
-    );
-  }
-  if (delivery.status === 'unavailable') {
-    return (
-      <UnavailableSlot>
-        {strings('slotUnavailableWidgetData')}
-      </UnavailableSlot>
-    );
+  if (!input.draftSession) {
+    if (delivery.status === 'loading') {
+      return (
+        <p
+          className="fs-surface-loading"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+          data-probe="definition-form-loading"
+        >
+          {strings('transitionPending')}
+        </p>
+      );
+    }
+    if (delivery.status === 'unavailable') {
+      return <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
+    }
   }
 
-  const initialData: SurfaceDefinitionFormInitialData = {
-    ...(delivery.data === undefined ? {} : { data: delivery.data }),
-    ...(delivery.selection === undefined ? {} : { selection: delivery.selection }),
-    freshness: delivery.freshness,
-    ...(delivery.recordId === undefined
-      ? {}
-      : { recordId: delivery.recordId }),
-    ...(delivery.generation === undefined
-      ? {}
-      : { generation: delivery.generation }),
-    ...(delivery.revision === undefined
-      ? {}
-      : { revision: delivery.revision }),
-  };
-  const hydratedInput: SurfaceDefinitionFormRenderInput = {
+  const hydratedInput: SurfaceDefinitionFormRenderInput = delivery.status === 'ready' ? {
     ...input,
-    initialData,
-  };
+    initialData: {
+      ...(delivery.data === undefined ? {} : { data: delivery.data }),
+      ...(delivery.selection === undefined ? {} : { selection: delivery.selection }),
+      freshness: delivery.freshness,
+      ...(delivery.recordId === undefined ? {} : { recordId: delivery.recordId }),
+      ...(delivery.generation === undefined ? {} : { generation: delivery.generation }),
+      ...(delivery.revision === undefined ? {} : { revision: delivery.revision }),
+    },
+  } : { ...input, draftSeed: delivery.status };
   return (
     <div
       data-probe="definition-form-ready"
@@ -1154,7 +1165,9 @@ function DefaultDefinitionFormSlot({
   return renderDefaultDefinitionForm(input);
 }
 
-function DefaultSurfaceDefinitionForm(input: SurfaceDefinitionFormRenderInput): ReactNode {
+function DefaultSurfaceDefinitionForm(
+  input: SurfaceDefinitionFormRenderInput & { draftEngine?: IFormEngine; draftWriter?: DraftWriter },
+): ReactNode {
   const {
     plan,
     grant,
@@ -1169,6 +1182,9 @@ function DefaultSurfaceDefinitionForm(input: SurfaceDefinitionFormRenderInput): 
     localeDocuments,
     activeLocale,
     appearance,
+    responseSubject,
+    draftEngine,
+    draftWriter,
     activeSection,
     sectionNavigationActive,
     hrefForSection,
@@ -1176,7 +1192,8 @@ function DefaultSurfaceDefinitionForm(input: SurfaceDefinitionFormRenderInput): 
     onSectionTitleChange,
   } = input;
   const engine = useMemo(() => {
-    const created = createFormEngine(plan.definition);
+    if (draftEngine) return draftEngine;
+    const created = createFormEngine(plan.definition, responseSubject && { responseSubject });
     if (initialData?.data !== undefined) {
       // Before any field component subscribes; keeps every saved repeat row.
       created.loadResponseData(
@@ -1184,8 +1201,14 @@ function DefaultSurfaceDefinitionForm(input: SurfaceDefinitionFormRenderInput): 
       );
     }
     return created;
-  }, [initialData?.data, plan.definition]);
-  useEffect(() => () => engine.dispose(), [engine]);
+  }, [draftEngine, initialData?.data, plan.definition, responseSubject?.id]);
+  useEffect(() => () => { if (!draftEngine) engine.dispose(); }, [draftEngine, engine]);
+  const formVisit = useRef<object | undefined>(undefined);
+  const visit = useMemo(() => ({}), [engine]);
+  useLayoutEffect(() => {
+    formVisit.current = visit;
+    return () => { formVisit.current = undefined; };
+  }, [visit]);
   useLayoutEffect(() => {
     for (const locale of localeDocuments ?? []) {
       if (locale.target.kind === 'definition' && targetDefinitionMatches(locale.target, plan.definition)) {
@@ -1250,7 +1273,10 @@ function DefaultSurfaceDefinitionForm(input: SurfaceDefinitionFormRenderInput): 
       registryEntries={[...plan.registryEntries]}
       resolveFieldHelp={resolveFieldHelp}
       responseActionsDocument={responseActionsDocument ?? null}
-      responseActionInvoker={responseActionInvoker ?? null}
+      responseActionInvoker={draftWriter
+        ? input => draftWriter.invoke(input, { invoker: responseActionInvoker, current: () => formVisit.current === visit })
+        : responseActionInvoker ?? null}
+      draftSaveFeedback={draftWriter ? 'external' : undefined}
       {...(semanticControlScope ? { semanticControlScope } : {})}
       emitThemeTokens={false}
       {...(onActionCompleted || onDefinitionActionResult

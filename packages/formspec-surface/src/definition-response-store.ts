@@ -109,7 +109,7 @@ function sourceBucket(source: DataSource): SourceBucket | undefined {
   return { source, draft, selection, invocationFingerprints: new Map(), responses: [] };
 }
 
-function catalogProjection(
+export function catalogResponseProjection(
   schema: DataSource["schema"],
   cardinality: ResponseSelection["cardinality"],
 ): string[] | undefined {
@@ -170,7 +170,7 @@ export function createPreviewDefinitionResponseStore(
       const context = options.selectionContext(binding, selection, inputs);
       if (context?.upstreamSubject === undefined) return { status: "unavailable" };
       const { upstreamSubject, dispositions, pin } = context;
-      const projection = draft ? undefined : catalogProjection(source.schema, selection.cardinality);
+      const projection = draft ? undefined : catalogResponseProjection(source.schema, selection.cardinality);
       return options.selectResponses(responses, selection, {
         upstreamSubject,
         ...(dispositions !== undefined && { dispositions }),

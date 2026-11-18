@@ -1,5 +1,5 @@
 /** @filedesc Mount an admitted Surface with browser navigation, Locale, and a shared masthead. */
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { composeSurfaceApp, matchRoute, routeHref, type ResolvedBundle } from '@formspec-org/surface';
 import { SurfaceAppView, useSurfaceApp, type SurfaceAppProps } from './SurfaceApp.js';
 import {
@@ -8,6 +8,12 @@ import {
 } from './browser-location.js';
 import { useBrowserAppearance } from './browser-appearance.js';
 import { resolveBrowserLocale } from './browser-locale.js';
+import { createBrowserDraftPort } from './browser-draft-port.js';
+import { createDraftSession, type DraftSession, type SurfaceDraftStorage } from './draft-session.js';
+import { fenceDraftWidgetActions } from './draft-widget-action.js';
+import type { DraftCheckpointPorts } from './draft-writer.js';
+import { readCurrentDraft, readSessionDraft } from './draft-data-source.js';
+import type { DataSourceLoader } from '@formspec-org/surface';
 import type { SurfaceSaveNotice } from './SurfaceSlot.js';
 
 export interface SurfacePreviewEdition {
@@ -25,6 +31,10 @@ type BrowserSurfaceOptions = Omit<SurfaceAppProps,
   'bundle' | 'location' | 'onNavigate' | 'resolveNavigationHref' | 'activeLocale' |
   'header' | 'appTitle' | 'strings' | 'resolveRouteTitle' | 'navigationLabel'> & {
   mode?: SurfaceBrowserMode;
+  /** Authorized host storage. Preview editions otherwise use browser IndexedDB. */
+  draftStorage?: SurfaceDraftStorage | undefined;
+  /** Host preconditions and unrelated effects for actions that checkpoint a draft. */
+  checkpointPorts?: DraftCheckpointPorts | undefined;
   /** Absolute mount pathname in history mode. Serve the app at deep paths under it. */
   basePath?: string;
   /** Await the current draft writer before controlled route and edition changes. */
@@ -37,7 +47,7 @@ export type BrowserSurfaceAppProps = BrowserSurfaceOptions & (
 );
 
 export function BrowserSurfaceApp({
-  mode = 'history', basePath = '/', beforeLeave, previewEditions, ...props
+  mode = 'history', basePath = '/', beforeLeave, previewEditions, draftStorage, checkpointPorts, ...props
 }: BrowserSurfaceAppProps) {
   const browser = surfaceBrowserLocation(mode, basePath);
   const { address, routeAddress, anchor, currentRouteAddress } = useSurfaceBrowserAddress(mode);
@@ -47,6 +57,44 @@ export function BrowserSurfaceApp({
   const edition = previewEditions?.find(option => option.scope === requestedScope) ?? previewEditions?.[0];
   const bundle = edition?.bundle ?? props.bundle!;
   const previewScope = edition?.scope;
+  const localPreview = previewEditions !== undefined && draftStorage === undefined;
+  const localPort = useMemo(() => localPreview ? createBrowserDraftPort() : undefined, [localPreview]);
+  const port = draftStorage?.port ?? localPort;
+  const author = draftStorage?.author;
+  const checkpoint = useRef(checkpointPorts);
+  useLayoutEffect(() => { checkpoint.current = checkpointPorts; }, [checkpointPorts]);
+  const sessions = useMemo(() => new Map<string, DraftSession>(),
+    [port, props.sessionGeneration, author?.id, author?.name]);
+  const scope = draftStorage?.scope ?? previewScope;
+  const drafts = useMemo(() => {
+    if (!scope || !port) return undefined;
+    const retained = sessions.get(scope);
+    if (retained) return retained;
+    const session = createDraftSession({ scope, port, ...(author && { author }) }, localPort, input => checkpoint.current?.(input) ?? input.ports);
+    sessions.set(scope, session);
+    return session;
+  }, [scope, port, sessions, localPort, author?.id, author?.name]);
+  const attachedSessions = useRef(new Set<Map<string, DraftSession>>());
+  useEffect(() => {
+    const attached = attachedSessions.current;
+    attached.add(sessions);
+    return () => {
+      attached.delete(sessions);
+      queueMicrotask(() => {
+        if (!attached.has(sessions)) for (const session of sessions.values()) session.dispose();
+      });
+    };
+  }, [sessions]);
+  const [draftRevision, setDraftRevision] = useState(0);
+  useEffect(() => localPort?.subscribe(() => setDraftRevision(revision => revision + 1)), [localPort]);
+  const dataSourceLoader = useMemo<DataSourceLoader | undefined>(() => {
+    if (!drafts) return props.dataSourceLoader;
+    const baseline: DataSourceLoader = props.dataSourceLoader ?? (() => ({ status: 'unavailable', reason: 'Data source unavailable' }));
+    return request => {
+      if (request.descriptor.source.runtime.delivery === 'draft') return readSessionDraft(drafts, bundle.definitions, request);
+      return localPort ? readCurrentDraft(drafts, bundle.definitions, request, baseline) : baseline(request);
+    };
+  }, [drafts, localPort, bundle.definitions, props.dataSourceLoader]);
   const model = useSurfaceApp({ ...props, bundle });
   const entry = model.app.entry ? routeHref(model.app.entry, props.routeParams) : undefined;
   const entryPath = entry?.refusal === undefined ? entry?.href : undefined;
@@ -67,6 +115,11 @@ export function BrowserSurfaceApp({
     return () => { currentVisit.current = undefined; };
   }, [visit]);
 
+  const widgetActionExecutor = useMemo(() => drafts && props.widgetActionExecutor
+    ? fenceDraftWidgetActions(props.widgetActionExecutor, drafts, bundle.definitions,
+        () => currentVisit.current === visit && window.location.href === address)
+    : props.widgetActionExecutor, [drafts, props.widgetActionExecutor, bundle.definitions, visit, address]);
+
   function resolveHref(href: string, scope = previewScope): string | undefined {
     const { path, query } = splitSurfaceLocation(href);
     if (scope !== undefined) query.set('edition', scope);
@@ -82,10 +135,12 @@ export function BrowserSurfaceApp({
     const target = resolveHref(href, scope);
     if (target === undefined) return false;
     const attempt = ++request.current;
-    if (!leaving || !beforeLeave) return pushBrowserAddress(target, leaving);
+    if (!leaving || (!beforeLeave && !drafts)) return pushBrowserAddress(target, leaving);
     return (async () => {
       try {
-        return await beforeLeave({ path, previewScope }) &&
+        return (!beforeLeave || await beforeLeave({ path, previewScope })) &&
+          request.current === attempt && isCurrent() &&
+          (!drafts || await drafts.leave()) &&
           request.current === attempt && isCurrent() && pushBrowserAddress(target, true);
       } catch {
         // The writer reports the failed save. The current visit stays active.
@@ -116,6 +171,17 @@ export function BrowserSurfaceApp({
 
   return <SurfaceAppView
     {...props} bundle={bundle} model={model} location={path ?? ''}
+    dataSourceLoader={dataSourceLoader}
+    widgetActionExecutor={widgetActionExecutor}
+    dataSourceRevision={request => {
+      const ownerRevision = props.dataSourceRevision?.(request);
+      const tracksDraft = drafts && (request.descriptor.source.runtime.delivery === 'draft' ||
+        (localPort && request.responseSelection?.status === 'current'));
+      if (!tracksDraft) return ownerRevision;
+      if (ownerRevision === undefined) return draftRevision;
+      return typeof ownerRevision === 'string' || Number.isFinite(ownerRevision)
+        ? JSON.stringify([draftRevision, ownerRevision]) : ownerRevision;
+    }}
     onNavigate={navigate} resolveNavigationHref={resolveHref}
     activeLocale={locale.activeLocale || undefined} strings={locale.strings}
     browser={{
@@ -125,13 +191,18 @@ export function BrowserSurfaceApp({
       entryPath,
       anchor,
       previewScope,
+      drafts,
+      draftRevision,
       navigate,
       reportSave: notice => {
         // Ignore an old edition's result even when Back changes the address during a write.
         const currentScope = previewEditions
           ? browser.read(currentRouteAddress())?.query.get('edition') ?? previewEditions[0].scope
           : undefined;
-        if (currentScope === previewScope) setSave({ scope: previewScope, notice });
+        if (currentScope === previewScope && currentVisit.current === visit) {
+          setSave({ scope: previewScope, notice });
+          if (!localPort && drafts && notice === 'saved') setDraftRevision(revision => revision + 1);
+        }
       },
       workspace: {
         slot: query.get('slot') ?? undefined,

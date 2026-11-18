@@ -19,6 +19,7 @@ import type {
   ResolvedBundle,
 } from '@formspec-org/surface';
 import { SurfaceApp } from '../src/SurfaceApp.js';
+import { BrowserSurfaceApp } from '../src/BrowserSurfaceApp.js';
 import type {
   SurfaceDefinitionFormRenderer,
 } from '../src/SurfaceSlot.js';
@@ -637,4 +638,64 @@ it('makes initial form data unavailable when its revision selector fails before 
   expect(loader).not.toHaveBeenCalled();
   expect(authorize).not.toHaveBeenCalled();
   act(() => root.unmount());
+});
+
+it('resumes the saved snapshot when the original seed is unavailable', async () => {
+  const address = window.location.href;
+  window.history.replaceState(null, '', '/edit');
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      root.render(<BrowserSurfaceApp bundle={bundle()}
+        draftStorage={{
+          scope: 'edition',
+          port: {
+            async load() {
+              return { status: 'loaded', draft: {
+                revision: 'saved-revision',
+                snapshotJson: JSON.stringify({ definitionUrl: DEFINITION_REF, definitionVersion: '1.0.0', data: { displayName: 'Saved name' } }),
+                responseJson: JSON.stringify({ id: 'saved-response', data: {} }),
+              } };
+            },
+            save: vi.fn(), readSummaries: vi.fn(),
+          },
+        }}
+        authorizeDataSource={() => ({ status: 'authorized' })}
+        dataSourceLoader={() => ({ status: 'unavailable', reason: 'the seed was removed' })}
+      />);
+      await flush();
+    });
+    expect(profileInput(container).value).toBe('Saved name');
+  } finally {
+    act(() => root.unmount());
+    window.history.replaceState(null, '', address);
+  }
+});
+
+it('opens an absent draft with the seed that arrives during a slower lookup', async () => {
+  const address = window.location.href;
+  window.history.replaceState(null, '', '/edit');
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  const pending = deferred<{ status: 'absent' }>();
+  try {
+    await act(async () => {
+      root.render(<BrowserSurfaceApp bundle={bundle()}
+        draftStorage={{ scope: 'edition', port: { load: () => pending.promise, save: vi.fn(), readSummaries: vi.fn() } }}
+        authorizeDataSource={() => ({ status: 'authorized' })}
+        dataSourceLoader={() => loaded('Seed arrived first')}
+        validateDataSourcePayload={() => ({ valid: true })}
+      />);
+      await flush();
+    });
+    expect(container.querySelector('input')).toBeNull();
+    await act(async () => { pending.resolve({ status: 'absent' }); await flush(); });
+    expect(profileInput(container).value).toBe('Seed arrived first');
+  } finally {
+    act(() => root.unmount());
+    window.history.replaceState(null, '', address);
+  }
 });

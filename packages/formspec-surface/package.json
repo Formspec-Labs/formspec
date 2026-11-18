@@ -18,6 +18,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./draft-port-conformance": {
+      "types": "./dist/draft-port-conformance.d.ts",
+      "default": "./dist/draft-port-conformance.js"
     }
   },
   "sideEffects": false,

@@ -35,7 +35,7 @@ import type { NativeScreenerSlotProps, SurfaceScreenerCompletionPolicy } from '.
 import { presentedRouteTitle, type SurfaceRouteTitleResolver } from './title-presentation.js';
 import { activeWorkspaceSlot } from './workspace-navigation.js';
 import type { DataSourceRevisionSelector } from './data-source-revision.js';
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   generationNeedAnchors,
   resolveRouteTitleLevel,
@@ -181,8 +181,12 @@ export function SurfaceRouteView({
   const container = useRef<HTMLElement>(null);
   const { handle, grant, params } = plan;
   const text = strings ?? resolveSurfaceStrings();
+  const port = formSession?.drafts?.port;
+  const suppliedReader = filingStatus?.readSummaries;
+  const readSummaries = useMemo(() => suppliedReader ?? port?.readSummaries.bind(port), [suppliedReader, port]);
+  const draftScope = suppliedReader ? formSession?.previewScope : formSession?.drafts?.scope;
   const observe = useFilingDraftObservations(
-    plan.slots, filingStatus?.readSummaries, formSession?.previewScope, filingStatus?.revision, runtimeGeneration,
+    plan.slots, readSummaries, draftScope, filingStatus?.revision, runtimeGeneration, formSession?.draftRevision,
   );
   const filingStatusContext = filingStatus && { ...filingStatus, observe };
 

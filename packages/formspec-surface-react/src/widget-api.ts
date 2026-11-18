@@ -32,6 +32,7 @@
  * module-supplied widget navigating the app is a module deciding the app's
  * route graph, and transitions are the shell's (`transitions.ts`).
  */
+import type { DraftActionInvokerResult, SurfaceDraftFence } from './draft-writer.js';
 import type { ReactNode } from 'react';
 import type {
   HeadingLevel,
@@ -41,7 +42,6 @@ import type {
 } from '@formspec-org/surface';
 import type {
   ResponseActionInvocationResult,
-  ResponseActionInvokerResult,
   SubmitResult,
 } from '@formspec-org/react';
 import type { FormDefinition, FormResponse, ResponseActionsDocument } from '@formspec-org/types';
@@ -180,6 +180,8 @@ export interface SurfaceWidgetActionExecutorInput {
   input?: SurfaceWidgetActionInput | undefined;
   /** Shell-admitted immutable subject, separate from widget-selected input. */
   responseContext?: SurfaceWidgetResponseContext | undefined;
+  /** Exact revision for the durable filing operation to compare before committing. */
+  draftFence?: Readonly<SurfaceDraftFence> | undefined;
 }
 
 export interface SurfaceWidgetResponseContext {
@@ -197,8 +199,8 @@ export interface SurfaceWidgetResponseContext {
 export type SurfaceWidgetActionExecutor = (
   input: SurfaceWidgetActionExecutorInput,
 ) =>
-  | ResponseActionInvokerResult<SurfaceWidgetActionDetail>
-  | Promise<ResponseActionInvokerResult<SurfaceWidgetActionDetail>>;
+  | DraftActionInvokerResult<SurfaceWidgetActionDetail>
+  | Promise<DraftActionInvokerResult<SurfaceWidgetActionDetail>>;
 
 export interface SurfaceWidgetActionOutcomeKey {
   generation: string;

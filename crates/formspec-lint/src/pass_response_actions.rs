@@ -373,6 +373,15 @@ fn service_request_diagnostics(doc: &Value) -> Vec<LintDiagnostic> {
                 ));
             }
             prior.push(request_index);
+            if let Some(operation) = request.get("operation")
+                && (is_app_scope(doc) || !matches!(operation.as_str(), Some("prepare" | "sign")))
+            {
+                diagnostics.push(service_request_error(
+                    format!("$.x-formspec-runtime.requests[{request_index}].operation"),
+                    "A response-scoped signing request must declare operation prepare or sign."
+                        .to_owned(),
+                ));
+            }
             check_runtime_request(request, request_index, &mut diagnostics);
         }
     }
@@ -382,6 +391,7 @@ fn service_request_diagnostics(doc: &Value) -> Vec<LintDiagnostic> {
             let Some(effects) = action.get("effects").and_then(Value::as_array) else {
                 continue;
             };
+            let mut signing_operation_seen = false;
             for (effect_index, effect) in effects.iter().enumerate() {
                 if effect.get("type").and_then(Value::as_str) != Some("serviceRequest") {
                     continue;
@@ -395,7 +405,20 @@ fn service_request_diagnostics(doc: &Value) -> Vec<LintDiagnostic> {
                     continue;
                 };
                 match requests_by_id.get(request_ref).map(Vec::len) {
-                    Some(1) => {}
+                    Some(1) => {
+                        let request_index = requests_by_id[request_ref][0];
+                        if requests.and_then(|items| items[request_index].get("operation")).is_some()
+                        {
+                            if signing_operation_seen {
+                                diagnostics.push(service_request_error(
+                                    path,
+                                    "An Action may reference only one signing operation."
+                                        .to_owned(),
+                                ));
+                            }
+                            signing_operation_seen = true;
+                        }
+                    }
                     Some(count) => diagnostics.push(service_request_error(
                         path,
                         format!(
@@ -1062,6 +1085,41 @@ mod tests {
                 .any(|diagnostic| diagnostic.code == crate::LintCode::E1805),
             "valid service request produced E1805: {diagnostics:#?}"
         );
+    }
+
+    #[test]
+    fn signing_operation_is_closed_and_response_scoped() {
+        let mut doc = response_actions();
+        doc["scope"] = json!("response");
+        doc["actions"][0]["intent"] = json!("review");
+        doc["actions"][0]["effects"] = json!([{
+            "type": "serviceRequest",
+            "requestRef": "candidate",
+            "idempotencyKey": "@invocation.id"
+        }]);
+        doc["x-formspec-runtime"] = json!({
+            "version": "1.0",
+            "requests": [{
+                "id": "candidate",
+                "adapter": "http-json",
+                "operation": "prepare",
+                "request": { "method": "POST", "pathTemplate": "/candidate" }
+            }]
+        });
+        let has_operation_error = |doc: &serde_json::Value| {
+            lint_response_actions(doc, None, &[])
+                .iter()
+                .any(|diagnostic| {
+                    diagnostic.code == crate::LintCode::E1805
+                        && diagnostic.path.ends_with(".operation")
+                })
+        };
+        assert!(!has_operation_error(&doc));
+        doc["x-formspec-runtime"]["requests"][0]["operation"] = json!("unknown");
+        assert!(has_operation_error(&doc));
+        doc["x-formspec-runtime"]["requests"][0]["operation"] = json!("sign");
+        doc["scope"] = json!("app");
+        assert!(has_operation_error(&doc));
     }
 
     #[test]

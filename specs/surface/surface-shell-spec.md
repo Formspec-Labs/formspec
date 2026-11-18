@@ -519,8 +519,13 @@ route focus in place.
 A preview may offer several admitted editions. Its `edition` query value
 identifies the draft scope. Selecting an edition opens that edition's authored
 entry. The masthead uses the admitted bundle title for the entry link and
-edition labels. One polite region announces save outcomes when the draft
-writer reports them.
+edition labels. One polite region announces draft save outcomes. When another
+tab has committed a newer draft, the form keeps the current tab's edits and
+offers two choices. The respondent can confirm discarding those edits and
+loading the saved draft, or confirm saving those edits against the newer
+revision. If another write wins that comparison, the form keeps the edits
+and offers the choices again.
+
 Use the offered app Locale matching the browser language, or the first offered
 app Locale when none matches. Apply the current route's Theme grant and one
 system, light or dark preference to the app root. A host-pinned
@@ -584,6 +589,10 @@ exactly:
 `transitionNoExecutor`, `transitionSuppliedBySlot`, `transitionFireable`,
 `previewEditionLabel`, `appearanceLabel`, `appearanceSystem`,
 `appearanceLight`, `appearanceDark`, `saved`, `savedLocally`, `saveFailed`,
+`draftConflict`, `draftLoadNewer`, `draftKeepChanges`, `draftDiscardPrompt`,
+`draftOverwritePrompt`, `draftConfirmDiscard`, `draftConfirmOverwrite`,
+`draftCancel`, `draftLoaded`, `draftUnavailable`, `draftVersionMismatch`,
+`draftRestart`, `draftConfirmRestart`, `draftKeep`,
 `filingNotStarted`, `filingNotStartedWithSize`, `filingInProgress`, `filingReady`,
 `filingReadinessUnavailable`, `filingLoading`, `filingDenied`, `filingStale`,
 `filingUnavailable`, `filingAddressUnavailable`, `filingDefinitionUnavailable`,
@@ -592,7 +601,7 @@ exactly:
 `filingAnswered`, `filingStillToAnswer`, `filingHasFix`, `filingHasCheck`,
 `filingSummaryAnswered`, `filingSummaryToFix`, `filingSummaryToCheck`,
 `filingLegendCaption`, and `filingSections`.
-The preview edition, appearance, draft save, and filing-status keys require Locale 2.1.
+The preview edition, appearance, draft, and filing-status keys require Locale 2.1.
 
 The Locale schema and the runtime string inventory MUST contain the same set,
 one-for-one. No processor may add a free-form shell key or accept a compatibility
