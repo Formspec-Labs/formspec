@@ -997,6 +997,14 @@ Use the address query's reserved `slot` and `section` keys for links to a form
 slot and an identified section. Route parameters supply the existing
 `subjectKeys` resolution for that same form.
 
+For a repeated group the shell MUST authorize the catalog read at the active
+route, validate the fresh delivery against its schema, and expand members before
+reading summaries. A confirmed empty roster has zero members. An unavailable
+roster leaves the other groups visible with partial counts. The
+`waiting-on-named-members` state lists each authorized member once under the
+authored waiting label when a summary confirms an outstanding filing. A
+missing, denied, stale, or unavailable observation cannot establish a wait.
+
 Plan sections from the same admitted Component, Theme, and Definition as the
 form. Resolve its description and section labels through the active Definition Locale. Use shared
 evaluated progress to report counts. The shell MUST NOT open drafts or start

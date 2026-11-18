@@ -3,7 +3,8 @@ import { resolveFilingStatusTargets } from '@formspec-org/app-graph';
 import { fillUiParams, resolvePageSequence, UI_STRINGS } from '@formspec-org/layout';
 import type { FormDefinition } from '@formspec-org/types';
 import { matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
-import type { DataSourceSubject } from './data-source-loader.js';
+import { planFilingRoster } from './filing-roster.js';
+import type { DataSourceCatalogHandle, DataSourceLoadRequest, LoadWidgetDataInputsRequest, DataSourceSubject } from './data-source-loader.js';
 import type { FilingDraftQuery } from './draft-port.js';
 import { generationNeedAnchors } from './need-trace.js';
 import type { SurfaceDefinitionComponentResolver } from './slot-plan.js';
@@ -37,11 +38,15 @@ export interface FilingStatusGroupPlan {
   id: string;
   label: string;
   needAnchors: readonly string[];
+  unavailable?: boolean;
+  member?: { groupId: string; label: string; waitingLabel: string };
   rows: readonly FilingStatusRowPlan[];
 }
 
 export type FilingStatusPlan =
   | { status: 'ready'; groups: readonly FilingStatusGroupPlan[]; needAnchors: readonly string[] }
+  | { status: 'roster'; requests: readonly DataSourceLoadRequest[];
+      load(ports: Pick<LoadWidgetDataInputsRequest, 'loader' | 'authorize' | 'validatePayload'>, sessionGeneration?: string): Promise<FilingStatusPlan> }
   | { status: 'unresolved'; reason: string };
 
 function subjectIdentity(subject: DataSourceSubject | undefined): unknown {
@@ -54,7 +59,9 @@ function formHref(path: string, slot: string, section?: string): string {
   return `${path}?${query}`;
 }
 
-export function planFilingStatus(input: {
+export interface FilingPlanInput {
+  slotId: string;
+  dataSources?: readonly DataSourceCatalogHandle[] | undefined;
   app: SurfaceApp;
   handle: SurfaceRouteHandle;
   bindingRoute: SurfaceRoute;
@@ -69,16 +76,64 @@ export function planFilingStatus(input: {
     definition: FormDefinition, binding: Record<string, unknown>, route: SurfaceRoute,
     params: Readonly<Record<string, string>>,
   ) => DataSourceSubject | false | undefined;
-}): FilingStatusPlan {
+}
+
+export function planFilingStatus(input: FilingPlanInput): FilingStatusPlan {
+  if (input.handle.surface.$formspecSurface !== '0.4') return { status: 'unresolved', reason: 'surface-version-unsupported' };
+  return planFilingRoster(input, binding => planFixed({ ...input, binding })) ?? planFixed(input);
+}
+
+// Correlation IDs live only as long as their Definition. Interning the full placements
+// once gives equal section plans the same compact key without hash collisions.
+const placementIds = new WeakMap<FormDefinition, Map<string, number>>();
+let nextPlacement = 0;
+
+function placementId(definition: FormDefinition, sections: FilingDraftQuery['sections']) {
+  const ids = placementIds.get(definition) ?? new Map<string, number>();
+  placementIds.set(definition, ids);
+  const content = JSON.stringify(sections);
+  const existing = ids.get(content);
+  if (existing !== undefined) return existing;
+  const id = nextPlacement++;
+  ids.set(content, id);
+  return id;
+}
+
+function planFixed(input: FilingPlanInput): FilingStatusPlan {
   const { handle, app } = input;
   const unresolved = (reason: string): FilingStatusPlan => ({ status: 'unresolved', reason });
-  if (handle.surface.$formspecSurface !== '0.4') return unresolved('surface-version-unsupported');
   const result = resolveFilingStatusTargets(handle.surface.routes, input.bindingRoute, input.binding, input.params);
   const duplicate = result.issues.find(issue => issue.reason === 'duplicate-group' || issue.reason === 'duplicate-target');
   if (duplicate) return unresolved(duplicate.reason);
   if (!result.groups.length) return unresolved('invalid-binding');
   const issues = new Map(result.issues.map(issue => [issue.pointer, issue.reason]));
 
+  // One immutable placement per admitted destination in this plan. The batch key is
+  // process-local; DraftPort separately compares the actual saved section placement.
+  const layouts = new Map<SurfaceRouteHandle, Map<string, ReturnType<typeof layout>>>();
+  function layout(destination: SurfaceRouteHandle, slotId: string, definition: FormDefinition) {
+    const route = destination.route;
+    const theme = input.themeAuthority.grantFor(route, {
+      surfaceId: destination.surfaceId, routeId: destination.routeId,
+    }).themeDocument;
+    const component = input.resolveDefinitionComponent?.({
+      surfaceRef: input.surfaceRef, routeId: route.id, slotId, definition,
+    });
+    const sequence = resolvePageSequence(definition, {
+      ...(theme ? { theme } : {}), ...(component ? { component } : {}),
+    });
+    const sections = sequence.map(({ id, fields }) => ({ ...(id === undefined ? {} : { id }), fields }));
+    return { sequence, sections, id: placementId(definition, sections) };
+  }
+  function placementFor(route: SurfaceRouteHandle, slotId: string, definition: FormDefinition) {
+    const bySlot = layouts.get(route) ?? new Map<string, ReturnType<typeof layout>>();
+    layouts.set(route, bySlot);
+    const cached = bySlot.get(slotId);
+    if (cached) return cached;
+    const result = layout(route, slotId, definition);
+    bySlot.set(slotId, result);
+    return result;
+  }
   const groups: FilingStatusGroupPlan[] = [];
   for (const { group, pointer, targets } of result.groups) {
     const byPointer = new Map(targets.map(target => [target.pointer, target]));
@@ -111,17 +166,9 @@ export function planFilingStatus(input: {
       groupSubject ??= resolvedSubject;
       if (groupSubject !== resolvedSubject) return disabled('subject-unavailable', destination);
 
-      const theme = input.themeAuthority.grantFor(route, {
-        surfaceId: destination.surfaceId, routeId: destination.routeId,
-      }).themeDocument;
-      const component = input.resolveDefinitionComponent?.({
-        surfaceRef: input.surfaceRef, routeId: route.id, slotId: slot.id, definition,
-      });
-      const sequence = resolvePageSequence(definition, {
-        ...(theme ? { theme } : {}), ...(component ? { component } : {}),
-      });
-      const sections = sequence.map(({ id, fields }) => ({ ...(id === undefined ? {} : { id }), fields }));
-      const queryKey = JSON.stringify([definition.url, definition.version, identity, sections]);
+      const placement = placementFor(destination, slot.id, definition);
+      const { sequence, sections } = placement;
+      const queryKey = JSON.stringify([definition.url, definition.version, identity, placement.id]);
       const segments = sequence.flatMap(({ id, title, titleBind, titleLocaleKey, fieldTemplates }, index) => {
         if (id === undefined) return [];
         const localeKey = titleBind === undefined ? titleLocaleKey : `${titleBind}.label`;

@@ -288,6 +288,8 @@ export type WidgetDataDelivery =
     };
 
 export interface LoadWidgetDataInputsRequest {
+  /** A roster used to report outstanding work requires current membership. */
+  requireFresh?: boolean;
   inputs: readonly WidgetDataInputPlan[];
   context: DataSourceActiveContext;
   loader?: DataSourceLoader | undefined;
@@ -535,7 +537,7 @@ export async function loadWidgetDataInputs(
 
     if (
       loaded.freshness === "stale" &&
-      input.descriptor.source.runtime.failureMode !== "stale-ok"
+      (request.requireFresh || input.descriptor.source.runtime.failureMode !== "stale-ok")
     ) {
       const failure = runtimeFailure(
         input,
