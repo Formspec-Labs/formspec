@@ -46,9 +46,12 @@ const observations = new Map<string, FilingDraftObservation>([
     sections: Object.fromEntries(reportSections.map(([key, , size]) => [key, complete(size)])) }],
   ...extraForms.map(({ url, observation }) => [url, observation] as const),
 ]);
-const readTracker: FilingStatusReader = async queries => new Map(queries.map(query => [
-  query.key, observations.get(query.definitionUrl) ?? { status: 'unavailable' },
-]));
+const readTracker: FilingStatusReader = async queries => new Map(queries.map(query => {
+  const draft = observations.get(query.definitionUrl);
+  return [query.key, draft
+    ? { draft, filing: { status: 'none' } }
+    : { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } }];
+}));
 const contactControl = { component: 'TextInput', bind: showsTracker ? 'details.contact' : 'contact' };
 const componentDocument: ComponentDocument = {
   $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition },
