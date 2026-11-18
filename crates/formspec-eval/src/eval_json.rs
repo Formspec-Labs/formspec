@@ -179,6 +179,9 @@ fn eval_diagnostic_to_json_object(d: &EvalDiagnostic, shape_id_key: &str) -> Val
     let mut m = Map::new();
     m.insert("path".into(), json!(d.path));
     m.insert("expression".into(), json!(d.expression));
+    if let Some(code) = &d.code {
+        m.insert("code".into(), json!(code));
+    }
     m.insert("message".into(), json!(d.message));
     if let Some(ref sid) = d.shape_id {
         m.insert(shape_id_key.into(), json!(sid));

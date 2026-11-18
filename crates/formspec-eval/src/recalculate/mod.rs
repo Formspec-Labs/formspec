@@ -21,7 +21,7 @@ use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
 use crate::rebuild::parse_variables;
 use crate::scope::{AggregateMemo, ScopeData, ScopeIndex, ScopedVariables};
-use crate::types::{ItemInfo, ItemText, ValidationResult};
+use crate::types::{EvalDiagnostic, ItemInfo, ItemText, ValidationResult};
 
 use bind_pass::{BindPass, Parent};
 pub(crate) use calculate_order::CalculateOrder;
@@ -67,6 +67,8 @@ pub fn recalculate(
 
 /// Output of one recalculate phase.
 pub(crate) struct Recalculated {
+    /// Evaluation errors from the calculates that produced `values`.
+    pub(crate) diagnostics: Vec<EvalDiagnostic>,
     /// Response values.
     pub(crate) values: HashMap<String, Value>,
     /// Variable values as FEL values.
@@ -132,15 +134,15 @@ pub(crate) fn recalculate_phase(
     let settle =
         |items: &mut [ItemInfo], state: &mut ScopeData, values: &mut HashMap<String, Value>| {
             if let Some(order) = order {
-                order.evaluate(items, state, values, &walk);
+                order.evaluate(items, state, values, &walk)
             } else {
-                calculate_pass::settle_calculated_values(items, state, values, &walk);
+                calculate_pass::settle_calculated_values(items, state, values, &walk)
             }
         };
-    settle(items, &mut state, &mut values);
+    let mut diagnostics = settle(items, &mut state, &mut values);
     if !var_defs.is_empty() {
         variables.evaluate(&mut state, index, fel);
-        settle(items, &mut state, &mut values);
+        diagnostics = settle(items, &mut state, &mut values);
     }
     let (final_var_values, _) = variables.evaluate(&mut state, index, fel);
 
@@ -160,6 +162,7 @@ pub(crate) fn recalculate_phase(
     let scoped_variables = std::mem::take(&mut state.variables);
     state.save_aggregates(aggregates);
     Recalculated {
+        diagnostics,
         values,
         variables: final_var_values,
         scoped_variables,

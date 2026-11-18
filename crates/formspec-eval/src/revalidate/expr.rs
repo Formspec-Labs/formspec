@@ -1,7 +1,6 @@
 //! FEL expression evaluation for validation (shape and bind constraint truthiness).
 #![allow(clippy::missing_docs_in_private_items)]
 
-use fel_core::error::Severity;
 use fel_core::{Environment, EvalResult, Value, parse, undefined_function_names_from_diagnostics};
 
 use crate::fel_eval::Fel;
@@ -10,7 +9,7 @@ use crate::types::EvalDiagnostic;
 /// Whether a constraint-position value passes.
 ///
 /// `null` passes (Core §3.8.1), including `null` from an evaluation error
-/// (§3.10.2): those errors go to authors via [`ConstraintSite::record_eval_errors`],
+/// (§3.10.2): those errors go to authors via [`EvalDiagnostic::record`],
 /// never to end users as validation failures. Otherwise truthiness decides.
 pub(super) fn constraint_passes(value: &Value) -> bool {
     value.is_null() || value.is_truthy()
@@ -52,34 +51,13 @@ impl ConstraintSite<'_> {
         expression: &str,
         diagnostics: &mut Vec<EvalDiagnostic>,
     ) -> Result<Value, String> {
-        self.record_eval_errors(&result, expression, diagnostics);
+        EvalDiagnostic::record(diagnostics, &result, self.path, expression, self.shape_id);
         let undefined = undefined_function_names_from_diagnostics(&result.diagnostics);
         if undefined.is_empty() {
             Ok(result.value)
         } else {
             Err(format!("undefined function: {}", undefined.join(", ")))
         }
-    }
-
-    /// Record `result`'s error-severity diagnostics for authors (Core §3.10.2).
-    fn record_eval_errors(
-        &self,
-        result: &EvalResult,
-        expression: &str,
-        diagnostics: &mut Vec<EvalDiagnostic>,
-    ) {
-        diagnostics.extend(
-            result
-                .diagnostics
-                .iter()
-                .filter(|d| d.severity == Severity::Error)
-                .map(|d| EvalDiagnostic {
-                    path: self.path.to_string(),
-                    expression: expression.to_string(),
-                    shape_id: self.shape_id.map(str::to_string),
-                    message: d.message.clone(),
-                }),
-        );
     }
 }
 
@@ -112,13 +90,20 @@ mod tests {
             ],
         };
         let mut diagnostics = Vec::new();
-        site.record_eval_errors(&result, "bogusFunc($amount)", &mut diagnostics);
+        EvalDiagnostic::record(
+            &mut diagnostics,
+            &result,
+            site.path,
+            "bogusFunc($amount)",
+            site.shape_id,
+        );
         assert_eq!(
             diagnostics,
             vec![EvalDiagnostic {
                 path: "amount".to_string(),
                 expression: "bogusFunc($amount)".to_string(),
                 shape_id: Some("s1".to_string()),
+                code: None,
                 message: "undefined function: bogusFunc".to_string(),
             }]
         );

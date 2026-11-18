@@ -148,8 +148,9 @@ class ProcessingResult(msgspec.Struct, frozen=True):
     data: dict
     variables: dict
     non_relevant: list[str]
-    # Author-facing evaluation errors from constraint and shape expressions (Core §3.10.2):
-    # dicts with path, expression, message, and shapeId for shapes. Never validation results.
+    # Author-facing evaluation errors from calculate, constraint and shape expressions (Core §3.10.2):
+    # dicts with path, expression, message, the FEL code when it has one, and shapeId for shapes.
+    # Never validation results.
     diagnostics: list[dict] = msgspec.field(default_factory=list)
     # Resolved Item text by instance path (Core §4.2.1), `{{}}` interpolated in the Item's scope:
     # dicts with label and optional labels / description / hint, plus per-display-context

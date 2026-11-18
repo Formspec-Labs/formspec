@@ -456,7 +456,7 @@ type WasmEvaluation = {
     /** The Response projection of `values` after `nonRelevantBehavior`: groups are objects, repeats are arrays of row objects. */
     data: any;
     validations: any[];
-    diagnostics: Array<{ path: string; expression: string; shapeId?: string; message: string }>;
+    diagnostics: import('./diff.js').EvalDiagnostic[];
     nonRelevant: string[];
     variables: any;
     required: Record<string, boolean>;

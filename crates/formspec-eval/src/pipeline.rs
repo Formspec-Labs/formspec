@@ -295,6 +295,7 @@ fn evaluate_prepared(
         true,
     );
     let item_text = next.item_text;
+    let calculate_diagnostics = next.diagnostics;
     if next.values != values || next.scoped_variables != scoped_variables {
         values = next.values;
         var_values = next.variables;
@@ -352,7 +353,10 @@ fn evaluate_prepared(
         host_values,
         data,
         validations,
-        diagnostics,
+        diagnostics: calculate_diagnostics
+            .into_iter()
+            .chain(diagnostics)
+            .collect(),
         non_relevant,
         variables,
         scoped_variables,

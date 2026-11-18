@@ -12,7 +12,7 @@ use super::variables::variable_sites;
 use super::walk::Walk;
 use crate::rebuild::{expand_repeat_instances_counted, parse_variables};
 use crate::scope::{AggregateMemo, RowCounts, ScopeData, ScopeIndex, Site};
-use crate::types::{ItemInfo, VariableDef, strip_indices};
+use crate::types::{EvalDiagnostic, ItemInfo, VariableDef, strip_indices};
 
 /// A dependency order over declarations, with all concrete writes in each column together.
 #[derive(Debug)]
@@ -186,21 +186,32 @@ impl CalculateOrder {
     }
 
     /// Write every instance of each declaration before visiting its readers.
+    ///
+    /// Returns the calculates' evaluation errors.
     pub(super) fn evaluate(
         &self,
         items: &mut [ItemInfo],
         state: &mut ScopeData,
         values: &mut HashMap<String, Value>,
         walk: &Walk<'_>,
-    ) {
+    ) -> Vec<EvalDiagnostic> {
         let mut columns: Vec<_> = self.expressions.iter().map(|_| Vec::new()).collect();
         self.collect_writers(items, &mut columns);
+        let mut diagnostics = Vec::new();
         for &id in &self.order {
             for item in &columns[id] {
-                evaluate_calculate(item, &self.expressions[id], state, values, walk);
+                evaluate_calculate(
+                    item,
+                    &self.expressions[id],
+                    state,
+                    values,
+                    walk,
+                    &mut diagnostics,
+                );
             }
         }
         self.sync_item_values(items, values);
+        diagnostics
     }
 
     fn collect_writers<'a>(&self, items: &'a [ItemInfo], columns: &mut [Vec<&'a ItemInfo>]) {

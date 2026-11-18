@@ -141,7 +141,8 @@ impl Visit for BindPass<'_> {
             && let Some(expr) = &item.calculate
             && let Ok(parsed) = parse(expr)
         {
-            evaluate_calculate(item, &parsed, state, values, walk);
+            // The settling passes that follow report this calculate's errors.
+            evaluate_calculate(item, &parsed, state, values, walk, &mut Vec::new());
             item.value.clone_from(&values[&item.path]);
         }
 

@@ -235,3 +235,22 @@ test('a syntax error or arity mismatch refuses the Definition in both evaluators
     }
   }
 });
+
+test('a calculate reports its FEL error code once in both evaluators', () => {
+  const definition = {
+    $formspec: '1.0', url: 'urn:test:calculate-code', version: '1.0.0', title: 'Calculate code',
+    items: [{ key: 'total', type: 'field', label: 'Total', dataType: 'integer' }],
+    binds: [{ path: 'total', calculate: "sum([money(10, 'USD')])" }],
+  };
+  const batch = evaluateDefinition(definition, {});
+  const engine = new FormEngine(definition);
+  try {
+    for (const diagnostics of [batch.diagnostics, engine.getDiagnosticsSnapshot().evaluationDiagnostics]) {
+      assert.deepEqual(diagnostics.map(({ path, expression, code }) => ({ path, expression, code })), [
+        { path: 'total', expression: "sum([money(10, 'USD')])", code: 'FEL_SUM_REJECTS_MONEY' },
+      ]);
+    }
+  } finally {
+    engine.dispose();
+  }
+});

@@ -27,10 +27,10 @@ pub struct ValidationResult {
     pub context: Option<HashMap<String, Value>>,
 }
 
-/// Evaluation error from a constraint or shape expression (Core §3.10.2).
+/// Evaluation error from a calculate, constraint, or shape expression (Core §3.10.2).
 ///
-/// The expression evaluated to `null`, so the constraint passed (§3.8.1). The
-/// diagnostic is for Definition authors (debug consoles, previews) and MUST NOT
+/// The expression evaluated to `null`; in constraint position that passes (§3.8.1).
+/// The diagnostic is for Definition authors (debug consoles, previews) and MUST NOT
 /// be shown to end users as a validation error, so it never enters
 /// [`EvaluationResult::validations`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -41,8 +41,35 @@ pub struct EvalDiagnostic {
     pub expression: String,
     /// Shape ID when a shape expression raised the error.
     pub shape_id: Option<String>,
+    /// fel-core diagnostic code, such as `FEL_AMBIGUOUS_ROW_LOOKUP`, when it has one.
+    pub code: Option<String>,
     /// fel-core diagnostic message.
     pub message: String,
+}
+
+impl EvalDiagnostic {
+    /// Append `result`'s error-severity diagnostics for the expression at `path`.
+    pub(crate) fn record(
+        output: &mut Vec<Self>,
+        result: &fel_core::EvalResult,
+        path: &str,
+        expression: &str,
+        shape_id: Option<&str>,
+    ) {
+        output.extend(
+            result
+                .diagnostics
+                .iter()
+                .filter(|d| d.severity == fel_core::error::Severity::Error)
+                .map(|d| Self {
+                    path: path.to_owned(),
+                    expression: expression.to_owned(),
+                    shape_id: shape_id.map(str::to_owned),
+                    code: d.code.clone(),
+                    message: d.message.clone(),
+                }),
+        );
+    }
 }
 
 /// When to evaluate shape rules.
@@ -150,7 +177,7 @@ pub struct EvaluationResult {
     pub data: Value,
     /// Validation results.
     pub validations: Vec<ValidationResult>,
-    /// Author-facing evaluation errors from constraint and shape expressions.
+    /// Author-facing evaluation errors from calculate, constraint, and shape expressions.
     pub diagnostics: Vec<EvalDiagnostic>,
     /// Fields marked non-relevant.
     pub non_relevant: Vec<String>,

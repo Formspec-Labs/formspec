@@ -337,6 +337,76 @@ fn arity_mismatches_refuse_the_definition() {
     );
 }
 
+/// Each calculate reports the evaluation errors of the evaluation that produced its value,
+/// once per resolved row and with the FEL code, on both the document-order and the
+/// dependency-ordered calculation paths.
+#[test]
+fn calculate_records_one_coded_diagnostic_per_resolved_site() {
+    let document_order = definition(
+        json!([{ "path": "rows[*].note", "calculate": "sum([money(10, 'USD')])" }]),
+        json!([]),
+    );
+    let mut input = data();
+    input.insert("rows[1].note".into(), json!("y"));
+    let wire = evaluation_result_to_json_value(&evaluate(
+        &document_order,
+        &input,
+        &EvalOptions::default(),
+    ));
+    let sites: Vec<(&str, &str, &str)> = wire["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|d| {
+            (
+                d["path"].as_str().unwrap(),
+                d["expression"].as_str().unwrap(),
+                d["code"].as_str().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        sites,
+        [
+            (
+                "rows[0].note",
+                "sum([money(10, 'USD')])",
+                "FEL_SUM_REJECTS_MONEY"
+            ),
+            (
+                "rows[1].note",
+                "sum([money(10, 'USD')])",
+                "FEL_SUM_REJECTS_MONEY"
+            ),
+        ]
+    );
+
+    let ordered = json!({
+        "items": [
+            { "key": "total", "dataType": "decimal" },
+            { "key": "rows", "repeatable": true, "children": [
+                { "key": "input", "dataType": "integer" },
+                { "key": "amt", "dataType": "money" }
+            ] }
+        ],
+        "binds": [
+            { "path": "total", "calculate": "sum($rows[*].amt)" },
+            { "path": "rows[*].amt", "calculate": "money($input, 'USD')" }
+        ]
+    });
+    let rows = HashMap::from([
+        ("rows[0].input".into(), json!(1)),
+        ("rows[1].input".into(), json!(2)),
+    ]);
+    let result = evaluate(&ordered, &rows, &EvalOptions::default());
+    let sites: Vec<(&str, Option<&str>)> = result
+        .diagnostics
+        .iter()
+        .map(|d| (d.path.as_str(), d.code.as_deref()))
+        .collect();
+    assert_eq!(sites, [("total", Some("FEL_SUM_REJECTS_MONEY"))]);
+}
+
 #[test]
 fn diagnostics_serialize_beside_validations() {
     let def = definition(
