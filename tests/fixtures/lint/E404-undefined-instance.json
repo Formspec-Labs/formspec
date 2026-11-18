@@ -1,0 +1,16 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:undefined-instance",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Undefined instance",
+  "items": [
+    {
+      "key": "out",
+      "type": "field",
+      "label": "Output",
+      "dataType": "string",
+      "initialValue": "=@instance('missing').name"
+    }
+  ]
+}

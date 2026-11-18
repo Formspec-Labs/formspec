@@ -307,6 +307,78 @@
       "state": "tested"
     },
     {
+      "code": "E401",
+      "pass": 4,
+      "severity": "error",
+      "title": "Unknown FEL function",
+      "specRef": "specs/core/spec.md#35-built-in-functions",
+      "suggestedFix": "use a built-in or registered extension function",
+      "fixtures": [
+        "tests/fixtures/lint/E401-unknown-function.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E402",
+      "pass": 4,
+      "severity": "error",
+      "title": "Unknown field reference",
+      "specRef": "specs/core/spec.md#32-field-references",
+      "suggestedFix": "reference a field visible from this expression",
+      "fixtures": [
+        "tests/fixtures/lint/E402-undefined-field.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E403",
+      "pass": 4,
+      "severity": "error",
+      "title": "Unknown variable reference",
+      "specRef": "specs/core/spec.md#451-variable-properties",
+      "suggestedFix": "declare the variable in a visible scope or correct its name",
+      "fixtures": [
+        "tests/fixtures/lint/E403-undefined-variable.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E404",
+      "pass": 4,
+      "severity": "error",
+      "title": "Undeclared secondary instance",
+      "specRef": "specs/core/spec.md#44-instance-schema",
+      "suggestedFix": "declare the named instance or correct the reference",
+      "fixtures": [
+        "tests/fixtures/lint/E404-undefined-instance.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E405",
+      "pass": 4,
+      "severity": "error",
+      "title": "Read outside response instance projection",
+      "specRef": "specs/core/spec.md#441-instance-properties",
+      "suggestedFix": "use a path delivered by the declared projection",
+      "fixtures": [
+        "tests/fixtures/lint/E405-unprojected-path.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "W405",
+      "pass": 4,
+      "severity": "warning",
+      "title": "Read outside informative instance schema",
+      "specRef": "specs/core/spec.md#441-instance-properties",
+      "suggestedFix": "check the read against the schema description for this instance",
+      "fixtures": [
+        "tests/fixtures/lint/W405-informative-instance-path.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "E406",
       "pass": 4,
       "severity": "error",

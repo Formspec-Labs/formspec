@@ -1,0 +1,16 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:unknown-function",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Unknown function",
+  "items": [
+    {
+      "key": "out",
+      "type": "field",
+      "label": "Output",
+      "dataType": "string",
+      "initialValue": "=invented(1)"
+    }
+  ]
+}

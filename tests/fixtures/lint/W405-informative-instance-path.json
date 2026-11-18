@@ -1,0 +1,26 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:informative-instance-path",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Informative instance path",
+  "items": [
+    {
+      "key": "out",
+      "type": "field",
+      "label": "Output",
+      "dataType": "string",
+      "initialValue": "=@instance('prior').missing"
+    }
+  ],
+  "instances": {
+    "prior": {
+      "schema": {
+        "known": "string"
+      },
+      "data": {
+        "known": "value"
+      }
+    }
+  }
+}

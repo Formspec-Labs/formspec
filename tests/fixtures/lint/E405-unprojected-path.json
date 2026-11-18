@@ -1,0 +1,32 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:unprojected-path",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Unprojected path",
+  "items": [
+    {
+      "key": "out",
+      "type": "field",
+      "label": "Output",
+      "dataType": "string",
+      "initialValue": "=@instance('prior').missing"
+    }
+  ],
+  "instances": {
+    "prior": {
+      "schema": {
+        "known": "string"
+      },
+      "response": {
+        "definition": {
+          "url": "urn:example:source"
+        },
+        "subject": [],
+        "status": "completed",
+        "cardinality": "latest",
+        "pin": "none"
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:undefined-field",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Undefined field",
+  "items": [
+    {
+      "key": "out",
+      "type": "field",
+      "label": "Output",
+      "dataType": "string",
+      "initialValue": "=$group.missing"
+    },
+    {
+      "key": "group",
+      "type": "group",
+      "label": "Group",
+      "children": [
+        {
+          "key": "known",
+          "type": "field",
+          "label": "Known",
+          "dataType": "string"
+        }
+      ]
+    }
+  ]
+}

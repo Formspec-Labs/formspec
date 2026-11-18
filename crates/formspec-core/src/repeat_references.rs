@@ -109,7 +109,7 @@ fn enclosing_repeat<'a>(
 }
 
 /// Look up the first key from the expression's closest enclosing scope to the root.
-fn resolve_head(declares: &impl Fn(&str) -> bool, mut scope: &str, key: &str) -> Option<String> {
+pub fn resolve_head(declares: &impl Fn(&str) -> bool, mut scope: &str, key: &str) -> Option<String> {
     while !scope.is_empty() {
         let candidate = format!("{scope}.{key}");
         if declares(&candidate) {
