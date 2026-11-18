@@ -390,8 +390,23 @@ impl<'a> Creation<'a> {
         }
         let mut scope = ScopeData::for_values(&index, &flat.values, self.evaluation_options);
         let fel = Fel::new(self.options.extensions);
+        let definitions = crate::rebuild::parse_variables(definition);
+        let expressions: Vec<_> = definitions
+            .iter()
+            .map(|var| fel_core::parse(&var.expression).ok())
+            .collect();
+        let variables =
+            crate::recalculate::variables::Variables::new(&definitions, &index, &expressions);
+        let pending = variables.pending_sources(&self.options.pending_instances);
         for initial in &self.initials {
             if let Ok(parsed) = fel_core::parse(initial.expression) {
+                if pending.waits_for(&parsed, &initial.model) {
+                    self.result.pending.push(initial.model.clone());
+                    continue;
+                }
+                if !definitions.is_empty() {
+                    variables.evaluate(&mut scope, &index, fel);
+                }
                 let value = fel_to_runtime_json(
                     &fel.evaluate(&parsed, &scope.site(&index, &initial.model))
                         .value,

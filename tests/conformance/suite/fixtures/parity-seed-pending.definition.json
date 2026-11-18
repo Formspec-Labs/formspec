@@ -27,6 +27,13 @@
         "instance": "remote",
         "path": "items"
       }
+    },
+    {
+      "key": "initial",
+      "type": "field",
+      "label": "Initial amount",
+      "dataType": "integer",
+      "initialValue": "=@answer"
     }
   ],
   "instances": {
@@ -40,8 +47,15 @@
           {
             "name": "WIDGETS"
           }
-        ]
+        ],
+        "amount": 22
       }
     }
-  }
+  },
+  "variables": [
+    {
+      "name": "answer",
+      "expression": "@instance('remote').amount"
+    }
+  ]
 }

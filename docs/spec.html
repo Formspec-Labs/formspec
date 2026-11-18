@@ -6902,7 +6902,9 @@ rows.</p>
 <p>A repeat whose <code>seedFrom</code> source is pending MUST stay
 absent until loading succeeds or fails. A field whose
 <code>prePopulate</code> source is pending MUST NOT receive
-<code>initialValue</code> while it waits. A processor MAY use authored
+<code>initialValue</code> while it waits. An expression <code>initialValue</code> MUST remain
+pending while any instance it references directly or through a visible Definition
+variable is loading (§4.5.1). A processor MAY use authored
 fallback data for FEL while loading. On success, apply still-pending
 values from the loaded data. On failure, apply them from authored
 fallback data when present. Without fallback data, <code>seedFrom</code>

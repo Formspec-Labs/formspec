@@ -2,8 +2,8 @@
   "id": "parity.seed-pending-source",
   "kind": "ENGINE_PROCESSING",
   "specRefs": [
-    "Core §4.2.2.1 (spec.md:3270-3277) failed source seeds from the authored fallback",
-    "Core §4.4 Instance source and data fallback"
+    "Core \u00a74.2.2.1 (spec.md:3270-3277) failed source seeds from the authored fallback",
+    "Core \u00a74.4 Instance source and data fallback"
   ],
   "definitionPath": "tests/conformance/suite/fixtures/parity-seed-pending.definition.json",
   "origin": "new",
@@ -25,7 +25,8 @@
         {
           "name": "WIDGETS"
         }
-      ]
+      ],
+      "initial": 22
     }
   }
 }

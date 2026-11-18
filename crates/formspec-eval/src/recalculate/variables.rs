@@ -24,7 +24,7 @@ fn context_dependencies(ast: &Expr, known_vars: &HashSet<&str>) -> Vec<String> {
 }
 
 /// Parsed variable declarations and their concrete evaluation order.
-pub(super) struct Variables<'a> {
+pub(crate) struct Variables<'a> {
     bindings: Vec<Binding<'a>>,
     order: Result<Vec<usize>, String>,
 }
@@ -37,7 +37,7 @@ struct Binding<'a> {
 }
 
 impl<'a> Variables<'a> {
-    pub(super) fn new(
+    pub(crate) fn new(
         definitions: &'a [VariableDef],
         index: &'a ScopeIndex,
         expressions: &'a [Option<Expr>],
@@ -93,8 +93,34 @@ impl<'a> Variables<'a> {
         Self { bindings, order }
     }
 
+    /// Propagate outstanding instance dependencies in lexical binding order.
+    #[cfg(feature = "create")]
+    pub(crate) fn pending_sources<'b>(
+        &'b self,
+        instances: &'b HashSet<String>,
+    ) -> PendingSources<'b> {
+        let mut sources = PendingSources {
+            instances,
+            variables: HashMap::new(),
+        };
+        if !instances.is_empty()
+            && let Ok(order) = &self.order
+        {
+            for &id in order {
+                let binding = &self.bindings[id];
+                let pending = sources.waits_for(binding.expression, binding.site);
+                sources
+                    .variables
+                    .entry(binding.site)
+                    .or_default()
+                    .insert(binding.name, pending);
+            }
+        }
+        sources
+    }
+
     /// Read each declaration at its concrete site after its visible dependencies.
-    pub(super) fn evaluate(
+    pub(crate) fn evaluate(
         &self,
         state: &mut ScopeData,
         index: &ScopeIndex,
@@ -131,6 +157,35 @@ pub(super) fn variable_sites<'a>(
         .then_some("#")
         .into_iter()
         .chain(index.variable_sites(scope))
+}
+
+#[cfg(feature = "create")]
+pub(crate) struct PendingSources<'a> {
+    instances: &'a HashSet<String>,
+    variables: HashMap<&'a str, HashMap<&'a str, bool>>,
+}
+
+#[cfg(feature = "create")]
+impl PendingSources<'_> {
+    pub(crate) fn waits_for(&self, expr: &Expr, site: &str) -> bool {
+        if self.instances.is_empty() {
+            return false;
+        }
+        let deps = extract_dependencies(expr);
+        !deps.instance_refs.is_disjoint(self.instances)
+            || deps.context_refs.iter().any(|reference| {
+                let name = reference
+                    .trim_start_matches('@')
+                    .split(['.', '('])
+                    .next()
+                    .unwrap_or("");
+                crate::scope::lexical_scopes(site)
+                    .chain(std::iter::once("#"))
+                    .find_map(|scope| self.variables.get(scope)?.get(name))
+                    .copied()
+                    .unwrap_or(false)
+            })
+    }
 }
 
 #[cfg(test)]

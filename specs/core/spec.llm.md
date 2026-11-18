@@ -315,7 +315,7 @@ Optional: `versionAlgorithm` ("semver"/"date"/"integer"/"natural", default "semv
 
 **Group-specific**: `children` (REQUIRED), `repeatable` (default false), `minRepeat` (default 0), `maxRepeat` (positive int or absent for unbounded).
 
-Creation runs once for a new Response. Host prefill wins key by key, including `null` fields and `[]` groups. Resume uses saved data as given. A pending `seedFrom` repeat stays absent until arrival or failure. A pending `prePopulate` field waits before considering `initialValue`. On failure, use the authored fallback. Without a fallback, `seedFrom` uses zero source rows and the processor SHOULD emit a diagnostic. Person edits win throughout.
+Creation runs once for a new Response. Host prefill wins key by key, including `null` fields and `[]` groups. Resume uses saved data as given. A pending `seedFrom` repeat stays absent until arrival or failure. A pending `prePopulate` field waits before considering `initialValue`. An expression initial value waits for referenced instances, including references through visible variables. On failure, use the authored fallback. Without a fallback, `seedFrom` uses zero source rows and the processor SHOULD emit a diagnostic. Person edits win throughout.
 
 **Field-specific**: `dataType` (REQUIRED), `precision`, `prefix`/`suffix` (display only), `options` (array of `{value, label}` or URI), `optionSet` (reference to top-level named set), `initialValue` (literal or `=expression`, evaluated once), `semanticType` (metadata annotation), `prePopulate` (creation-time source value with an optional readonly lock), `children` (for dependent sub-questions).
 

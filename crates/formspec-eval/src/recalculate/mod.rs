@@ -9,7 +9,7 @@ mod calculate_order;
 mod calculate_pass;
 pub(crate) mod json_fel;
 mod text_pass;
-mod variables;
+pub(crate) mod variables;
 mod walk;
 
 use std::collections::{HashMap, HashSet, VecDeque};
