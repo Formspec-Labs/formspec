@@ -25,11 +25,13 @@ it('attributes a host-only axe violation to the visit form and keeps both formsâ
         await new Promise<void>(ready => host.listen(0, '127.0.0.1', ready));
         symlinkSync(resolve(__dirname, '../../../node_modules'), join(scratch, 'node_modules'), 'dir');
         writeFileSync(join(scratch, 'package.json'), '{"type":"module"}');
-        writeFileSync(join(scratch, 'playwright.config.mjs'), 'export default { testDir: "./specs", workers: 1 };');
+        // Allow the virtual reader's test instrumentation on the self-contained host fixture.
+        writeFileSync(join(scratch, 'playwright.config.mjs'),
+            'export default { testDir: "./specs", workers: 1, use: { bypassCSP: true } };');
         const cli = (...args: string[]) => promisify(execFile)(process.execPath,
             [resolve(__dirname, '../bin/formspec-walk.mjs'), ...args], { cwd: scratch });
         await cli('emit', '--manifest', join(fixture, 'package-manifest.json'), '--all', '--out-dir', 'specs',
-            '--url-template', `http://127.0.0.1:${(host.address() as AddressInfo).port}/{formId}`, '--axe',
+            '--url-template', `http://127.0.0.1:${(host.address() as AddressInfo).port}/{formId}`, '--root', 'formspec-render', '--axe',
             '--from', resolve(__dirname, '../dist/index.js'));
         await expect(cli('test', '--summary', 'summary.json')).rejects.toMatchObject({ code: 1 });
         const summary = JSON.parse(readFileSync(join(scratch, 'summary.json'), 'utf8'));
@@ -42,18 +44,24 @@ it('attributes a host-only axe violation to the visit form and keeps both formsâ
             expect(form.axe).toHaveLength(1);
             expect(form.axe[0].status).toBe('completed');
         }
-        expect(byId.get('contact').axe[0].violations.some((v: any) => v.rule === 'button-name')).toBe(false);
+        expect(byId.get('contact').axe[0].violations).toEqual([]);
         expect(byId.get('visit').axe[0].violations).toEqual(expect.arrayContaining([expect.objectContaining({ rule: 'button-name' })]));
+        for (const id of ['contact', 'visit']) {
+            const walks = byId.get(id).tests.filter((test: any) => !test.axeRequested);
+            expect(walks.map((test: any) => test.attempts[0].status), JSON.stringify(walks)).toEqual(['passed', 'passed', 'passed']);
+        }
         expect(byId.get('visit').uncovered).toEqual(expect.arrayContaining([expect.stringContaining('place: constraint')]));
 
         // A host fallback that serves the contact form at the visit URL must produce a failed scan.
         pages.set('visit', pages.get('contact')!);
-        await expect(cli('test', 'visit.spec.ts', '--grep', 'axe accessibility', '--summary', 'wrong-form.json'))
+        pages.set('contact', pages.get('contact')!.replaceAll('Contact name', 'Different label'));
+        await expect(cli('test', '--grep', 'axe accessibility|Contact name', '--summary', 'refused.json'))
             .rejects.toMatchObject({ code: 1 });
-        const refused = JSON.parse(readFileSync(join(scratch, 'wrong-form.json'), 'utf8'));
-        expect(refused.forms[0]).toMatchObject({ formId: 'visit', axe: [
+        const refused = JSON.parse(readFileSync(join(scratch, 'refused.json'), 'utf8'));
+        expect(refused.forms.find((form: any) => form.formId === 'visit')).toMatchObject({ axe: [
             { status: 'failed', failure: { message: expect.stringContaining('urn:example:visit') } },
         ] });
+        expect(refused.forms.find((form: any) => form.formId === 'contact').findings).toContainEqual(expect.stringContaining('Different label'));
     } finally {
         host.close();
         rmSync(scratch, { recursive: true, force: true });

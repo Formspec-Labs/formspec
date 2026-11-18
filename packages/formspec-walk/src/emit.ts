@@ -111,7 +111,7 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
     if (options.axe) {
         push("    test('axe accessibility on the host page', { annotation: { type: 'formspec-axe' } }, async ({ page }, info) => {");
         push('        if (info.timeout && info.timeout < 75_000) test.setTimeout(75_000);');
-        push(`        const report = await checkAccessibility(page, { open: page => Walk.openPage(page, ${openOptions})${rootOption},`);
+        push(`        const report = await checkAccessibility(page, { open: page => Walk.openPage(page, ${openOptions})${rootOption}, scanWholePage: true,`);
         push(`            documents: ${JSON.stringify({ definition, theme: options.theme })} });`);
         push("        await info.attach('formspec-axe', { contentType: 'application/json', body: JSON.stringify(report) });");
         push("        if (report.status === 'failed') throw new Error(report.failure?.message ?? 'axe could not finish');");

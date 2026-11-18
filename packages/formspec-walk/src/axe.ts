@@ -129,6 +129,8 @@ export interface RendererCheckReport {
 export interface AxePassOptions {
     /** Selector of the rendered form under test. */
     root?: string;
+    /** Scan the host document while using `root` to navigate the form's states. */
+    scanWholePage?: boolean;
     /** Workspaces require the authored Definition and any Theme or Component used to render it. */
     documents?: Pick<HostDocuments, 'definition' | 'theme' | 'component'>;
     /** Minimum expected pages for this renderer. A workspace drawn as one page has a minimum of one. */
@@ -428,7 +430,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
     const analyse = async (id: string, kind: AxeState['kind'], step: number) => {
         const started = performance.now();
         const scan = new AxeBuilder({ page }).withTags([...WCAG_TAGS]);
-        if (options.root) scan.include(options.root);
+        if (options.root && !options.scanWholePage) scan.include(options.root);
         const axe = await scan.analyze();
         result.axeVersion ??= axe.testEngine?.version ?? null;
         result.states.push({ id, kind, step, axeMs: Math.round(performance.now() - started) });
