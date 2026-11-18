@@ -60,6 +60,7 @@ export async function loadDraftReviewInputs(
       ...(key.subject && { responseSubject: key.subject }),
     });
     try {
+      if (engine.hasSubjectRefusal()) return unavailable('presentation-invalid', 'presentation');
       for (const locale of localeDocuments ?? []) {
         if (locale.target.kind === 'definition' && targetDefinitionMatches(locale.target, definition)) {
           engine.loadLocale(locale);

@@ -719,6 +719,12 @@ export class FormEngine implements IFormEngine {
         }
     }
 
+    /** Whether the evaluator refused the supplied Response subject. */
+    public hasSubjectRefusal(): boolean {
+        return this._fullResult?.refused === true && this._fullResult.validations.some(({ path }) =>
+            path === '#subjectType' || path === '#subjectKeys' || path.startsWith('#subjectKeys.'));
+    }
+
     public getValidationReport(): ValidationReport;
     public getValidationReport(options: { profile?: EnabledValidationProfile }): ValidationReport;
     public getValidationReport(options: { profile: 'off' }): null;
@@ -1879,11 +1885,6 @@ export class FormEngine implements IFormEngine {
 
     private isCalculationRefusal(code: unknown): boolean {
         return code === 'CIRCULAR_DEPENDENCY' || code === 'CALCULATE_TARGET_CONFLICT';
-    }
-
-    private hasSubjectRefusal(): boolean {
-        return this._fullResult?.refused === true && this._fullResult.validations.some(({ path }) =>
-            path === '#subjectType' || path === '#subjectKeys' || path.startsWith('#subjectKeys.'));
     }
 
     private _evaluate(

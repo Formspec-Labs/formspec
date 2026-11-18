@@ -1234,9 +1234,7 @@ function DefaultSurfaceDefinitionForm(
           responseData: initialData.data as Parameters<IFormEngine['loadResponseData']>[0],
         }),
       });
-      const subjectRefused = responseSubject && created.getValidationReport()?.results.some(({ path }) =>
-        path === '#subjectType' || path === '#subjectKeys' || path.startsWith('#subjectKeys.'));
-      if (subjectRefused) {
+      if (created.hasSubjectRefusal()) {
         created.dispose();
         return undefined;
       }

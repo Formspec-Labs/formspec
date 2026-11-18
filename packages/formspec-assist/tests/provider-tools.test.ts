@@ -231,9 +231,10 @@ describe('Assist provider tools', () => {
   });
 
   it('formspec.field.set returns NOT_RELEVANT for hidden field', async () => {
+    const authored = makeDefinition();
     const def = {
-      ...makeDefinition(),
-      binds: [{ path: 'contactEmail', relevant: 'false' }],
+      ...authored,
+      binds: [...authored.binds, { path: 'contactEmail', relevant: 'false' }],
       items: [
         ...makeDefinition().items.filter((i: { key: string }) => i.key !== 'contactEmail'),
         {

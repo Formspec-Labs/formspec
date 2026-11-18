@@ -126,6 +126,10 @@ export function createDraftSession(
               responseData: seed.initialData.data as Parameters<IFormEngine['loadResponseData']>[0],
             }),
           });
+          if (engine.hasSubjectRefusal()) {
+            engine.dispose();
+            return { status: 'unavailable' };
+          }
           try {
             const writer = createDraftWriter({
               engine, key, draft, port: storage.port,

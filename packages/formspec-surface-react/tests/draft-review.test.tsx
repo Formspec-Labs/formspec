@@ -26,7 +26,13 @@ const reviewSlot = {
     draftReview: { routeRef: 'form', slotRef: 'form' },
   },
 };
-function reviewBundle(language?: string, bundledDefinition = definition) {
+function reviewBundle(
+  language?: string,
+  bundledDefinition: Omit<typeof definition, 'subject'> & {
+    subject: { type: string; keys: Record<string, { dataType: string }> };
+  } = definition,
+  subjectKey = 'year',
+) {
   const locale = 'https://example.test/locale';
   return dereferenceBundleExport({
     manifest: { $formspecBundle: '2.4', id: 'https://example.test/app', entrySurface: surface,
@@ -46,7 +52,7 @@ function reviewBundle(language?: string, bundledDefinition = definition) {
       [surface]: { $formspecSurface: '0.4', id: 'reports', entry: 'review',
         modules: [{ id: reviewModule, version: '1.0.0' }], routes: [
           { id: 'form', path: '/form/{unit}', params, slots: [{ id: 'form', slotType: 'definition-form',
-            binding: { definitionRef: definition.url, subjectKeys: { year: 'unit' } } }] },
+            binding: { definitionRef: definition.url, subjectKeys: { [subjectKey]: 'unit' } } }] },
           { id: 'review', path: '/review/{unit}', params, slots: [reviewSlot] },
         ],
       },
@@ -203,4 +209,32 @@ it('refuses a noncanonical integer subject before requesting a draft', async () 
   const view = mount(load, '/review/02026');
   await vi.waitFor(() => expect(view.container.querySelector('[data-draft-review-reason="subject-keys-invalid"]')).not.toBeNull());
   expect(load).not.toHaveBeenCalled();
+});
+
+it.each(['/form/2026', '/review/2026'])('keeps a subject-refused draft unavailable on %s', async path => {
+  const subjectKey = 'ffy-year';
+  const bundle = reviewBundle(undefined, {
+    ...definition, subject: { ...definition.subject, keys: { [subjectKey]: { dataType: 'integer' } } },
+  }, subjectKey);
+  const data = { answer: 'Saved answer' };
+  const pin = { definitionUrl: definition.url, definitionVersion: definition.version, data };
+  const load = vi.fn<DraftPort['load']>(async key => ({ status: 'loaded', draft: {
+    revision: 'saved-revision',
+    snapshotJson: JSON.stringify(pin),
+    responseJson: JSON.stringify({
+      ...pin, $formspecResponse: '1.0', id: 'urn:test:response', status: 'in-progress',
+      authored: '2026-01-01T12:00:00Z', subject: key.subject,
+    }),
+  } }));
+  const view = mount(load, path, { bundle });
+  await act(async () => { await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1)); });
+  await vi.waitFor(() => {
+    if (path.startsWith('/form')) {
+      expect(view.container.textContent).toContain('This draft could not be opened.');
+    } else {
+      expect(view.container.querySelector('[data-probe="slot-unavailable"]')).not.toBeNull();
+    }
+  });
+  expect(view.widget).not.toHaveBeenCalled();
+  expect(view.save).not.toHaveBeenCalled();
 });
