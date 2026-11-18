@@ -1,0 +1,53 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:shape-hidden-answer",
+  "version": "1.0.0",
+  "title": "A root Shape can query a hidden answer",
+  "status": "active",
+  "nonRelevantBehavior": "keep",
+  "items": [
+    {
+      "key": "x",
+      "type": "field",
+      "label": "X",
+      "dataType": "string"
+    },
+    {
+      "key": "y",
+      "type": "field",
+      "label": "Y",
+      "dataType": "string"
+    }
+  ],
+  "binds": [
+    {
+      "path": "x",
+      "relevant": "false"
+    },
+    {
+      "path": "y",
+      "relevant": "false",
+      "excludedValue": "null"
+    }
+  ],
+  "shapes": [
+    {
+      "id": "hidden-answer",
+      "target": "#",
+      "constraint": "not(present($x) and not(relevant($x)))",
+      "message": "A hidden field retains an answer"
+    },
+    {
+      "id": "hidden-target",
+      "target": "x",
+      "constraint": "false",
+      "message": "A non-relevant target suppresses its Shape"
+    },
+    {
+      "id": "masked-answer",
+      "target": "#",
+      "constraint": "empty($y) and not(relevant($y))",
+      "message": "A masked answer is null to expressions"
+    }
+  ]
+}

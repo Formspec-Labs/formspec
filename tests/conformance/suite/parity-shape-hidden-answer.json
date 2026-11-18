@@ -1,0 +1,38 @@
+{
+  "id": "parity.shape-hidden-answer",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §5.2 root Shape target",
+    "Core §5.6 rules 1, 2 and 4: target suppression, keep, and excludedValue",
+    "Core §3.5.9 relevant($path) reads computed relevance"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-shape-hidden-answer.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "x": "preserved",
+    "y": "masked"
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "#",
+        "code": "SHAPE_FAILED",
+        "severity": "error",
+        "constraintKind": "shape",
+        "shapeId": "hidden-answer",
+        "message": "A hidden field retains an answer"
+      }
+    ],
+    "data": {
+      "x": "preserved",
+      "y": "masked"
+    }
+  }
+}
