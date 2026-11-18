@@ -212,7 +212,12 @@ export class PageCoverageError extends Error {
     }
 }
 
-type AxeBuilderCtor = new (options: { page: Page }) => { withTags(tags: string[]): { analyze(): Promise<AxeResultsLike> } };
+interface AxeScan {
+    include(selector: string): AxeScan;
+    withTags(tags: string[]): AxeScan;
+    analyze(): Promise<AxeResultsLike>;
+}
+type AxeBuilderCtor = new (options: { page: Page }) => AxeScan;
 
 async function loadAxe(): Promise<AxeBuilderCtor> {
     try {
@@ -419,7 +424,9 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
 
     const analyse = async (id: string, kind: AxeState['kind'], step: number) => {
         const started = performance.now();
-        const axe: AxeResultsLike = await new AxeBuilder({ page }).withTags([...WCAG_TAGS]).analyze();
+        const scan = new AxeBuilder({ page }).withTags([...WCAG_TAGS]);
+        if (options.root) scan.include(options.root);
+        const axe = await scan.analyze();
         result.axeVersion ??= axe.testEngine?.version ?? null;
         result.states.push({ id, kind, step, axeMs: Math.round(performance.now() - started) });
         result.violations.push(...axe.violations.map((r) => toFinding(id, r)));

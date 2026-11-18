@@ -1,6 +1,6 @@
 /** @filedesc Walk every form mount in an exported app through the same checks as the emitted suite. */
 import { expect, test } from '@playwright/test';
-import { checkSurfaceForm } from '../../../packages/formspec-walk/src/index';
+import { checkSurfaceForm, runAxePass } from '../../../packages/formspec-walk/src/index';
 import { surfaceWalkTargets } from '../../../packages/formspec-walk/bin/surface-walk.mjs';
 import { FORMSPEC_E2E_ORIGIN } from '../harness-server';
 import { surfaceWalkExport } from '../fixtures/surface-walk-export';
@@ -24,3 +24,21 @@ for (const target of targets) {
         expect(axe.states.map(state => state.id)).toEqual(['page-1', 'page-2', 'errors-1', 'errors-2']);
     });
 }
+
+test('a violation belongs to the form slot where it occurs', async ({ page }) => {
+    const [contact, inventory] = targets.filter(target => target.title.startsWith('registration/equipment/'));
+    await page.goto(inventory.url);
+    const inventorySlot = page.locator(inventory.root);
+    await inventorySlot.locator('[data-name]').first().waitFor();
+    await inventorySlot.evaluate(root => {
+        const input = document.createElement('input');
+        input.id = 'unlabelled-inventory-input';
+        root.appendChild(input);
+    });
+    const scan = async (target: typeof inventory) => {
+        const result = await runAxePass(page, { root: target.root, documents: target });
+        return result.violations.flatMap(rule => rule.nodes.map(node => node.html));
+    };
+    expect(await scan(contact)).not.toContainEqual(expect.stringContaining('unlabelled-inventory-input'));
+    expect(await scan(inventory)).toContainEqual(expect.stringContaining('unlabelled-inventory-input'));
+});
