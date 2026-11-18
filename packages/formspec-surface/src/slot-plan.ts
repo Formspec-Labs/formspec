@@ -213,16 +213,28 @@ export type DraftReviewPlan =
 export interface RoutePlan<TComponent> {
   handle: SurfaceRouteHandle;
   slots: readonly SlotPlan<TComponent>[];
+  bands?: readonly { routeId: string; slot: Extract<SlotPlan<TComponent>, { slotType: 'filing-status' }> }[];
   diagnostics: readonly SurfaceDiagnostic[];
+}
+
+function isTrackerBand(slot: SurfaceSlot): boolean {
+  return slot.slotType === 'filing-status' && ownRecord(slot, 'binding')?.placement === 'band';
 }
 
 export function planRoute<TComponent>(context: SlotPlanContext<TComponent>): RoutePlan<TComponent> {
   const diagnostics: SurfaceDiagnostic[] = [];
   const base = context.headingBaseLevel ?? 2;
-  const slots = context.handle.route.slots.map((slot) =>
-    planSlot(slot, context, base, new Set([context.handle.routeId]), diagnostics),
+  const visited = new Set([context.handle.routeId]);
+  const slots = context.handle.route.slots.filter(slot => !isTrackerBand(slot)).map(slot =>
+    planSlot(slot, context, base, visited, diagnostics),
   );
-  return { handle: context.handle, slots, diagnostics };
+  const bands = context.handle.surface.routes.flatMap(route =>
+    route.slots.filter(isTrackerBand).flatMap(slot => {
+      const planned = planSlot(slot, context, base, visited, diagnostics, route);
+      return planned.slotType === 'filing-status' ? [{ routeId: route.id, slot: planned }] : [];
+    }),
+  );
+  return { handle: context.handle, slots, bands, diagnostics };
 }
 
 function planSlot<TComponent>(
@@ -280,6 +292,8 @@ function planSlot<TComponent>(
     case 'filing-status': {
       const tracker: FilingStatusPlan = context.filingStatus ? planFilingStatus({
         ...context.filingStatus,
+        slotId: slot.id,
+        dataSources: context.dataSources,
         handle: context.handle,
         bindingRoute,
         binding,
@@ -293,7 +307,7 @@ function planSlot<TComponent>(
         'SLOT-BINDING-INCOMPLETE', 'The filing tracker cannot resolve its form links.', site,
         { reason: tracker.reason },
       ));
-      else for (const group of tracker.groups) for (const row of group.rows) {
+      else if (tracker.status === 'ready') for (const group of tracker.groups) for (const row of group.rows) {
         if (row.status === 'disabled') diagnostics.push(surfaceDiagnostic(
           'SLOT-BINDING-INCOMPLETE', 'A filing tracker form is unavailable.', site,
           { reason: row.reason, entry: row.key },
@@ -616,7 +630,7 @@ function planSlot<TComponent>(
         if (value !== undefined) params.push([target, value]);
       }
       const childContext = { ...context, params: Object.fromEntries(params) };
-      const slots = embedded.slots.map((child) =>
+      const slots = embedded.slots.filter(slot => !isTrackerBand(slot)).map((child) =>
         planSlot(child, childContext, nestedBase, nested, diagnostics, embedded),
       );
       return { ...plan, slots, status: 'ready' };

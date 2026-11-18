@@ -318,6 +318,8 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
   readSummaries?: FilingStatusOptions["readSummaries"];
   /** Change when a committed observation should be read again. */
   filingDraftRevision?: FilingStatusOptions["revision"];
+  /** Stable opaque viewer identity for browser preferences on a shared browser profile. */
+  viewerPreferenceKey?: string | undefined;
   /** Pure selection of an admitted Component for both the form and its tracker links. */
   resolveDefinitionComponent?: SurfaceDefinitionComponentResolver | undefined;
   /** Host form runtime seam; the current `FormspecForm` remains the default. */
@@ -778,6 +780,7 @@ export function SurfaceAppView(props: SurfaceAppProps & {
               key={browser ? runtimeGeneration : `${routePlan.handle.surfaceId}/${routePlan.handle.routeId}`}
               plan={routePlan}
               formSession={formSession}
+              bandPreferenceScope={JSON.stringify([bundle.manifest.id, props.viewerPreferenceKey, browser?.previewScope])}
               filingStatus={{
                 readSummaries: props.readSummaries,
                 revision: props.filingDraftRevision,

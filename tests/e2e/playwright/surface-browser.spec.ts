@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { runAxePass, Walk } from '@formspec-org/walk';
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { SURFACE_APPEARANCE_SCRIPT } from '../../../packages/formspec-surface-react/src/browser-appearance';
 
@@ -517,3 +518,25 @@ for (const [variant, formCount] of [['small', 3], ['large', 12]] as const) {
     }
   });
 }
+
+test('the authored tracker band follows navigation and remembers a viewer’s disclosure after reload', async ({ page }) => {
+  await page.goto('/surface-browser.html?tracker=band');
+  const band = page.locator('details[data-filing-band]');
+  await expect(band).toHaveCount(1);
+  await expect(page.locator('[data-slot-type="filing-status"]')).toHaveCount(1);
+  await band.getByRole('link', { name: 'Filing', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Filing', exact: true })).toBeVisible();
+  await expect(band).toHaveCount(1);
+  const task = band.getByRole('link', { name: 'Filing', exact: true });
+  await expect(task).toHaveAccessibleDescription('In progress');
+  await expect(band.locator('[aria-live], [role="status"]')).toHaveCount(0);
+  const audit = await new AxeBuilder({ page }).include('details[data-filing-band]').analyze();
+  expect(audit.violations).toEqual([]);
+  await band.locator(':scope > summary').press('Enter');
+  await expect(task).toBeHidden();
+  await page.reload();
+  await expect(band.locator(':scope > summary')).toHaveText('Filing map');
+  await expect(band).not.toHaveAttribute('open', '');
+  await page.goto('/surface-browser.html?tracker=band&viewer=second');
+  await expect(band).toHaveAttribute('open', '');
+});

@@ -30,7 +30,7 @@ import type { WidgetRegistry } from './registry.js';
 import type { DataSourceCatalogHandle } from './data-source-loader.js';
 import type { MappingDocumentHandle } from './definition-form-initial-data.js';
 import type { ExperienceDocumentHandle } from './experience-unit.js';
-import { planRoute, type SlotPlan, type SurfaceDefinitionComponentResolver } from './slot-plan.js';
+import { planRoute, type RoutePlan, type SlotPlan, type SurfaceDefinitionComponentResolver } from './slot-plan.js';
 import type { HeadingLevel, SurfaceStaticAssetResolver } from './static-content.js';
 import type { SurfaceStringOverrides, SurfaceStrings } from './strings.js';
 import type { ThemeAuthority, ThemeGrant } from './theme-authority.js';
@@ -85,6 +85,7 @@ export interface SurfaceRoutePlan<TComponent> {
   surfaceRef?: string | undefined;
   params: Readonly<Record<string, string>>;
   slots: readonly SlotPlan<TComponent>[];
+  bands?: RoutePlan<TComponent>['bands'];
   grant: ThemeGrant;
   transitions: readonly PlannedTransition[];
   headingBaseLevel: HeadingLevel;
@@ -143,6 +144,7 @@ export function planMatchedRoute<TComponent>(
     surfaceRef: input.surfaceRef,
     params: input.params ?? {},
     slots: route.slots,
+    bands: route.bands,
     grant,
     transitions: transitions.transitions,
     headingBaseLevel,

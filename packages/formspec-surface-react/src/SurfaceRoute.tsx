@@ -35,7 +35,7 @@ import type { NativeScreenerSlotProps, SurfaceScreenerCompletionPolicy } from '.
 import { presentedRouteTitle, type SurfaceRouteTitleResolver } from './title-presentation.js';
 import { activeWorkspaceSlot } from './workspace-navigation.js';
 import type { DataSourceRevisionSelector } from './data-source-revision.js';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   generationNeedAnchors,
   resolveRouteTitleLevel,
@@ -55,7 +55,7 @@ import type {
   ResponseActionsDocument,
 } from '@formspec-org/types';
 import { Heading } from './heading.js';
-import { useFilingDraftObservations, type FilingStatusOptions } from './FilingStatus.js';
+import { FilingStatus, useFilingDraftObservations, type FilingStatusOptions } from './FilingStatus.js';
 import {
   SurfaceSlotFrame,
   type SurfaceDefinitionFormRenderInput,
@@ -83,6 +83,7 @@ import { useSurfaceThemeTokens } from './surface-theme.js';
 
 export interface SurfaceRouteViewProps {
   filingStatus?: FilingStatusOptions | undefined;
+  bandPreferenceScope?: string | undefined;
   formSession?: SurfaceFormSession | undefined;
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
@@ -146,6 +147,7 @@ export interface SurfaceRouteViewProps {
 export function SurfaceRouteView({
   plan,
   filingStatus,
+  bandPreferenceScope,
   resolveRouteTitle,
   strings,
   dataSourceLoader,
@@ -185,8 +187,10 @@ export function SurfaceRouteView({
   const suppliedReader = filingStatus?.readSummaries;
   const readSummaries = useMemo(() => suppliedReader ?? port?.readSummaries.bind(port), [suppliedReader, port]);
   const draftScope = suppliedReader ? formSession?.previewScope : formSession?.drafts?.scope;
+  const observedSlots = useMemo(() => plan.bands?.length
+    ? [...plan.bands.map(band => band.slot), ...plan.slots] : plan.slots, [plan.bands, plan.slots]);
   const observe = useFilingDraftObservations(
-    plan.slots, readSummaries, draftScope, filingStatus?.revision, runtimeGeneration, formSession?.draftRevision,
+    observedSlots, readSummaries, draftScope, filingStatus?.revision, runtimeGeneration, formSession?.draftRevision,
   );
   const filingStatusContext = filingStatus && { ...filingStatus, observe };
 
@@ -250,6 +254,15 @@ export function SurfaceRouteView({
           {titleText}
         </Heading>
       )}
+
+      {plan.bands?.map(({ routeId, slot }) => {
+        const preference = JSON.stringify([bandPreferenceScope, plan.surfaceRef ?? handle.surfaceId, routeId, slot.slotId]);
+        return <TrackerBand key={preference} preference={preference} title={slot.title}>
+          <div data-slot={slot.slotId} data-slot-type={slot.slotType} {...needTraceAttributes(slot.needAnchors)}>
+            <FilingStatus plan={slot.tracker} context={filingStatusContext} level={slot.headingBaseLevel} text={text} />
+          </div>
+        </TrackerBand>;
+      })}
 
       {showThemeNotice && (
         <p
@@ -331,4 +344,24 @@ export function SurfaceRouteView({
       />
     </article>
   );
+}
+
+/** Native disclosure supplies keyboard behavior and a localized default summary for untitled slots. */
+function TrackerBand({ preference, title, children }: {
+  preference: string; title: string | undefined; children: ReactNode;
+}) {
+  const key = `formspec.surface.tracker-band.${preference}`;
+  const [expanded, setExpanded] = useState(() => {
+    try { return window.localStorage.getItem(key) !== 'closed'; }
+    catch { return true; }
+  });
+  return <details data-filing-band="" open={expanded} onToggle={event => {
+    const open = event.currentTarget.open;
+    setExpanded(open);
+    try { window.localStorage.setItem(key, open ? 'open' : 'closed'); }
+    catch { /* The disclosure remains usable when storage is unavailable. */ }
+  }}>
+    {title && <summary>{title}</summary>}
+    {children}
+  </details>;
 }

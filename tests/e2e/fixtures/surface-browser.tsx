@@ -26,7 +26,7 @@ const smallTracker = showsTracker && !largeTracker;
 const extraForms = largeTracker ? scaleForms : [];
 const roster = `${id}/roster`;
 const report = `${id}/report`;
-const tracker = { id: 'tracker', slotType: 'filing-status', binding: { groups: [{
+const tracker = { id: 'tracker', slotType: 'filing-status', ...(trackerMode === 'band' && { title: 'Filing map' }), binding: { ...(trackerMode === 'band' && { placement: 'band' }), groups: [{
   id: 'annual', label: 'Annual forms', forms: largeTracker ? extraForms.map(({ routeRef }) => ({ routeRef: `scale-${routeRef}`, slotRef: 'filing' })) : [{
     routeRef: 'form', slotRef: 'filing', hint: 'Have the contact details ready.', params: { state: { value: 'ny' } },
   }, { routeRef: 'roster', slotRef: 'filing' }, { routeRef: 'report', slotRef: 'filing' }],
@@ -165,6 +165,7 @@ createRoot(document.getElementById('root')!).render(
   <BrowserSurfaceApp bundle={bundle} adapters={{ mode,
         basePath: "/surface-browser-history",
         routeParams: { state: 'ny' },
+        viewerPreferenceKey: fixtureOptions.get('viewer') ?? undefined,
         readSummaries: showsTracker ? readTracker : undefined,
         resolveDefinitionComponent: ({ definition: target }) => !workspace && !alternatingMode && target.url === definition ? componentDocument : undefined,
         definitionActionInvoker: ({ document, actionRef, nodeId, ports }) => invokeResponseAction(document, actionRef, ports, nodeId),

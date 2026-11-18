@@ -976,6 +976,15 @@ The slot renders another route of the **same** Surface inside the host route.
 
 ### 3.6 `filing-status`
 
+For `binding.placement: "band"`, the shell MUST render the declared tracker in a
+disclosure ahead of the matched route's slots, including on the declaring page.
+Embedded routes do not emit additional bands. The same tracker plan, authorized
+batch read and accessibility rules apply in either placement. The slot title
+names the disclosure when authored. The browser binding remembers its open
+state for the viewer, app, Surface and declaring slot. Hosts that switch signed-in
+viewers within a browser profile supply a stable viewer preference key. With
+storage unavailable the disclosure remains operable.
+
 The shell plans the tracker from the authored Surface groups and the admitted
 Definitions. It MUST use the ordinary route label precedence (authored
 navigation label, route title, then route ID), preserve authored group and form
