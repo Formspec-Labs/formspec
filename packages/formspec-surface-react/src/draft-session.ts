@@ -26,7 +26,7 @@ export async function deriveDraftSubject(subject: DataSourceSubject | undefined)
 
 type CommittedDraft =
   | { status: 'loaded'; response: FormResponse; revision: string; key: DraftKey }
-  | { status: 'absent' | 'denied' | 'version-mismatch' | 'unavailable' | 'save-failed' };
+  | { status: 'initialized' | 'absent' | 'denied' | 'version-mismatch' | 'unavailable' | 'save-failed' };
 
 type DraftOpen =
   | { status: 'ready'; engine: IFormEngine; writer: DraftWriter }
@@ -108,6 +108,9 @@ export function createDraftSession(
           }
           if (loaded.status === 'version-mismatch') return { ...loaded, key };
           if (loaded.status === 'denied' || loaded.status === 'unavailable') return { status: loaded.status };
+          if (loaded.status === 'absent' && Object.values(definition.subject?.keys ?? {}).some(key => key.minted)) {
+            return { status: 'unavailable' };
+          }
           const seed = created.seed;
           if (!draft && seed.draftSeed) return { status: seed.draftSeed };
           const response = draft && parseJsonExact(draft.responseJson) as FormResponse;
@@ -125,6 +128,7 @@ export function createDraftSession(
           try {
             const writer = createDraftWriter({
               engine, key, draft, port: storage.port,
+              initializedRevision: loaded.status === 'initialized' ? loaded.revision : undefined,
               creationPins: Object.fromEntries(Object.entries(resolutions).filter(([, delivery]) => delivery.pinned)),
               responseId: response?.id ?? input.semanticControlScope?.responseId,
               author: response?.author ?? storage.author,

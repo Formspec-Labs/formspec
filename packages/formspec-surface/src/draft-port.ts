@@ -83,13 +83,31 @@ type DraftWriteRefusal = DraftRefusal | { status: 'conflict' };
 
 export type DraftLoadResult =
   | { status: 'loaded'; draft: DraftRecord }
+  | { status: 'initialized'; revision: string; pins: DraftRecord['pins'] }
   | { status: 'absent' }
   | { status: 'version-mismatch'; storedVersion: string; revision: string }
   | DraftRefusal;
 export type DraftSaveResult = { status: 'saved'; revision: string } | { status: 'pin-unavailable'; instance: string } | DraftWriteRefusal;
 export type DraftRestartResult = { status: 'discarded' } | DraftWriteRefusal;
 
+/** Parent keys only. The same attempt must recover the same initialized unit. */
+export interface DraftStartInput {
+  scope: string;
+  definitionUrl: string;
+  definitionVersion: string;
+  subject: DataSourceSubject;
+  attemptId: string;
+}
+
+export type DraftStartResult =
+  | { status: 'started'; subject: NonNullable<DraftKey['subject']> }
+  | { status: 'invalid-subject' | 'conflict' }
+  | { status: 'pin-unavailable'; instance: string }
+  | DraftRefusal;
+
 export interface DraftPort {
+  /** A store offering explicit unit creation authorizes open before lookup or minting. */
+  start?(input: DraftStartInput): Promise<DraftStartResult>;
   /** Authorize before looking up a draft or disclosing its pin. */
   load(key: DraftKey, definitionVersion: string, signal?: AbortSignal): Promise<DraftLoadResult>;
   /** Compare the revision and commit both draft pieces and progress atomically. */
@@ -99,6 +117,7 @@ export interface DraftPort {
 
 /** Browser preview can discard an authorized mismatched revision on confirmation. */
 export interface BrowserDraftPort extends DraftPort {
+  start(input: DraftStartInput): Promise<DraftStartResult>;
   restart(key: DraftKey, expectedRevision: string): Promise<DraftRestartResult>;
   subscribe(listener: () => void): () => void;
 }

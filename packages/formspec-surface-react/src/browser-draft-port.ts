@@ -2,9 +2,9 @@
 import { deepEqual, initFormspecEngine, initFormspecEngineTools, responseSubjectId, selectResponses } from '@formspec-org/engine';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import {
-  prepareResponseFiling, prepareResponseFixtures, responseDraftKey, responsePairKey, responseSelectionRecord,
+  canonicalFiniteJson, prepareResponseFiling, prepareResponseFixtures, responseDraftKey, responsePairKey, responseSelectionRecord,
   catalogResponseDigest, catalogResponseProjection, catalogResponseSelection, resolveDataSourceDescriptor, selectFilingStatus,
-  type BrowserDraftPort, type DataSourceCatalogHandle, type DraftKey, type DraftRecord, type DraftSaveInput, type DraftSectionPlacement,
+  type BrowserDraftPort, type DraftStartInput, type DraftStartResult, type DataSourceCatalogHandle, type DraftKey, type DraftRecord, type DraftSaveInput, type DraftSectionPlacement,
   type FilingStatusObservation, type ResponseFiling, type ResponseFixtures, type ResponseRecordTools,
 } from '@formspec-org/surface';
 import type { DispositionAuthority, FormDefinition, FormResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
@@ -15,8 +15,10 @@ type StoredDraft = Omit<DraftRecord, 'pins'> & {
   definitionVersion: string;
   pinsJson: string;
 };
+type InitializedDraft = Pick<StoredDraft, 'definitionVersion' | 'revision' | 'pinsJson'>;
+type StartAttempt = { request: string; subject: NonNullable<DraftKey['subject']> };
 type StoredSummary = { definitionVersion: string; summary: DraftSaveInput['summary'] };
-type Stores = { editable: StoredDraft; summaries: StoredSummary; filings: ResponseFiling };
+type Stores = { editable: StoredDraft | InitializedDraft; starts: StartAttempt; summaries: StoredSummary; filings: ResponseFiling };
 type StoreName = keyof Stores;
 type StoredEntry<S extends StoreName> = { id: string[]; value: Stores[S] };
 
@@ -38,6 +40,8 @@ export interface PreviewFilingStoreOptions {
    * A selection check authorizes the requested subject space before lookup,
    * including when it contains no records. Other checks use the filing key.
    */
+  /** Delegate the existing open check to the host with the supplied parents. */
+  authorizeOpen?: (input: Readonly<DraftStartInput>) => boolean | Promise<boolean>;
   authorize?: (key: DraftKey, relation: 'read' | 'resume' | 'send', selection?: ResponseSelectionRequest) => boolean | Promise<boolean>;
 }
 export interface BrowserFilingStoreOptions extends PreviewFilingStoreOptions {
@@ -93,7 +97,8 @@ function draftCandidates(
   entries: readonly StoredEntry<'editable'>[], scope: string, definition: FormDefinition, tools: ResponseRecordTools,
 ): SelectionCandidate[] | undefined {
   try {
-    return entries.map(({ id, value }) => {
+    return entries.flatMap(({ id, value }) => {
+      if (!('responseJson' in value)) return [];
       const response = tools.parseResponse(value.responseJson);
       const key = responseDraftKey(scope, response, definition, tools);
       if (response.definitionUrl !== definition.url || JSON.stringify(id) !== JSON.stringify(storageKey(key))) {
@@ -274,8 +279,87 @@ function createFilingStore(
     },
   };
 
+  async function openingPins(
+    key: DraftKey, definition: FormDefinition | undefined, observed?: { pins: DraftRecord['pins'] | undefined },
+  ) {
+    const requests = definition
+      ? definitionResponseRequests(definition, key).filter(request => request.selection.pin === 'at-open')
+      : [];
+    const selections = requests.length ? await responses.select(requests) : undefined;
+    const pins = Object.create(null) as Record<string, DraftRecord['pins'][string]>;
+    let missingPin: string | undefined;
+    for (const { key: instance } of requests) {
+      const outcome = selections?.get(instance);
+      if (outcome?.status !== 'available' || !outcome.pinned) {
+        missingPin = instance;
+        break;
+      }
+      const { status: _status, newer: _newer, ...delivery } = outcome;
+      if (observed && (!observed.pins || !Object.hasOwn(observed.pins, instance) || !deepEqual(observed.pins[instance], delivery))) {
+        missingPin = instance;
+        break;
+      }
+      pins[instance] = delivery;
+    }
+    return { pins, missingPin };
+  }
+
   const drafts: BrowserDraftPort = {
     subscribe,
+    async start(suppliedInput) {
+      try {
+        const input = structuredClone(suppliedInput);
+        if (input.scope !== scope) return { status: 'denied' };
+        if (options.authorize && !options.authorizeOpen) return { status: 'unavailable' };
+        if (options.authorizeOpen && !await options.authorizeOpen(structuredClone(input))) return { status: 'denied' };
+        const definition = definitions.get(input.definitionUrl);
+        const declaration = definition?.subject;
+        if (!input.attemptId || !declaration || definition?.version !== input.definitionVersion ||
+          declaration.type !== input.subject.type) return { status: 'invalid-subject' };
+        const fields = Object.entries(declaration.keys);
+        const minted = fields.filter(([, field]) => field.minted);
+        const parents = fields.filter(([, field]) => !field.minted);
+        const supplied = input.subject.keys;
+        if (!minted.length || Object.keys(supplied).length !== parents.length ||
+          !parents.every(([name, field]) => Object.hasOwn(supplied, name) &&
+            (field.dataType === 'integer' ? Number.isSafeInteger(supplied[name]) : typeof supplied[name] === 'string'))) {
+          return { status: 'invalid-subject' };
+        }
+        const attempt = [scope, input.attemptId];
+        const request = canonicalFiniteJson({ definitionUrl: input.definitionUrl, version: input.definitionVersion,
+          type: declaration.type, keys: supplied });
+        async function recover(tx: Transaction): Promise<DraftStartResult | undefined> {
+          const prior = await tx.get('starts', attempt);
+          if (!prior) return;
+          if (prior.request !== request) return { status: 'conflict' };
+          const draft = await tx.get('editable', storageKey({ scope, definitionUrl: input.definitionUrl, subject: prior.subject }));
+          return draft?.definitionVersion === input.definitionVersion
+            ? { status: 'started', subject: prior.subject } : { status: 'conflict' };
+        }
+        const prior = await transaction(['starts', 'editable'], 'readonly', recover);
+        if (prior) return prior;
+        const keys = { ...supplied, ...Object.fromEntries(minted.map(([name]) => [name, crypto.randomUUID()])) };
+        const { tools } = await ready();
+        const subject = { type: declaration.type, keys, id: tools.subjectId(declaration.type, keys) };
+        const key = { scope, definitionUrl: input.definitionUrl, subject };
+        const { pins, missingPin } = await openingPins(key, definition);
+        const result = await transaction<DraftStartResult>(['starts', 'editable', 'summaries'], 'readwrite', async tx => {
+          const winner = await recover(tx);
+          if (winner) return winner;
+          if (missingPin) return { status: 'pin-unavailable', instance: missingPin };
+          const id = storageKey(key);
+          if (await tx.get('editable', id)) return { status: 'conflict' };
+          tx.put('starts', attempt, { request, subject });
+          tx.put('editable', id, { definitionVersion: input.definitionVersion, revision: crypto.randomUUID(), pinsJson: JSON.stringify(pins) });
+          tx.put('summaries', id, { definitionVersion: input.definitionVersion, summary: null });
+          return { status: 'started', subject };
+        });
+        if (result.status === 'started') committed();
+        return result;
+      } catch {
+        return { status: 'unavailable' };
+      }
+    },
     async load(key, definitionVersion, signal) {
       try {
         signal?.throwIfAborted();
@@ -287,8 +371,9 @@ function createFilingStore(
         if (stored.definitionVersion !== definitionVersion) {
           return { status: 'version-mismatch', storedVersion: stored.definitionVersion, revision: stored.revision };
         }
-        const { revision, snapshotJson, responseJson, pinsJson } = stored;
-        const pins = parseJsonExact(pinsJson) as DraftRecord['pins'];
+        const pins = parseJsonExact(stored.pinsJson) as DraftRecord['pins'];
+        if (!('responseJson' in stored)) return { status: 'initialized', revision: stored.revision, pins };
+        const { revision, snapshotJson, responseJson } = stored;
         return { status: 'loaded', draft: { revision, snapshotJson, responseJson, pins } };
       } catch {
         signal?.throwIfAborted();
@@ -301,25 +386,18 @@ function createFilingStore(
         if (!await authorized(key, 'resume')) return { status: 'denied' };
         const id = storageKey(key);
         const definition = definitions.get(key.definitionUrl);
-        const requests = expectedRevision === null && definition
-          ? definitionResponseRequests(definition, key).filter(request => request.selection.pin === 'at-open')
-          : [];
-        const selections = requests.length ? await responses.select(requests) : undefined;
-        const pins = Object.create(null) as Record<string, DraftRecord['pins'][string]>;
-        let missingPin: string | undefined;
-        for (const { key: instance } of requests) {
-          const outcome = selections?.get(instance);
-          if (outcome?.status !== 'available' || !outcome.pinned) {
-            missingPin = instance;
-            break;
-          }
-          const { status: _status, newer: _newer, ...delivery } = outcome;
-          if (!creationPins || !Object.hasOwn(creationPins, instance) || !deepEqual(creationPins[instance], delivery)) {
-            missingPin = instance;
-            break;
-          }
-          pins[instance] = delivery;
+        const minted = Object.values(definition?.subject?.keys ?? {}).some(field => field.minted);
+        if (minted) {
+          if (expectedRevision === null || !definition) return { status: 'conflict' };
+          const { tools } = await ready();
+          const response = tools.parseResponse(responseJson);
+          if (response.definitionUrl !== definition.url || response.definitionVersion !== definitionVersion ||
+            !key.subject || tools.subjectId(key.subject.type, key.subject.keys) !== key.subject.id) return { status: 'conflict' };
+          const responseKey = responseDraftKey(scope, response, definition, tools);
+          if (!sameKey(responseKey, key)) return { status: 'conflict' };
         }
+        const { pins, missingPin } = expectedRevision === null
+          ? await openingPins(key, definition, { pins: creationPins }) : { pins: {}, missingPin: undefined };
         const result = await transaction(['editable', 'summaries'], 'readwrite', async tx => {
           const previous = await tx.get('editable', id);
           if ((previous?.revision ?? null) !== expectedRevision ||
@@ -342,10 +420,21 @@ function createFilingStore(
       try {
         if (!await authorized(key, 'resume')) return { status: 'denied' };
         const id = storageKey(key);
+        const definition = definitions.get(key.definitionUrl);
+        const minted = Object.values(definition?.subject?.keys ?? {}).some(field => field.minted);
+        const opening = minted && definition ? await openingPins(key, definition) : undefined;
+        if (opening?.missingPin) return { status: 'unavailable' };
         const result = await transaction(['editable', 'summaries'], 'readwrite', async tx => {
-          if ((await tx.get('editable', id))?.revision !== expectedRevision) return { status: 'conflict' } as const;
-          tx.delete('editable', id);
-          tx.delete('summaries', id);
+          const prior = await tx.get('editable', id);
+          if (!prior || prior.revision !== expectedRevision) return { status: 'conflict' } as const;
+          if (opening && definition) {
+            // Discard the old answers but retain the store-issued address on the current version.
+            tx.put('editable', id, { revision: crypto.randomUUID(), definitionVersion: definition.version, pinsJson: JSON.stringify(opening.pins) });
+            tx.put('summaries', id, { definitionVersion: definition.version, summary: null });
+          } else {
+            tx.delete('editable', id);
+            tx.delete('summaries', id);
+          }
           return { status: 'discarded' } as const;
         });
         if (result.status === 'discarded') committed();
@@ -421,7 +510,7 @@ function createFilingStore(
         const filingId = [scope, filing.responseId];
         const result = await transaction<PreviewFilingSubmitResult>(['editable', 'summaries', 'filings'], 'readwrite', async tx => {
           const previous = await tx.get('editable', id);
-          if (!previous || previous.revision !== fence.revision || previous.definitionVersion !== definitionVersion ||
+          if (!previous || !('responseJson' in previous) || previous.revision !== fence.revision || previous.definitionVersion !== definitionVersion ||
               previous.responseJson !== fence.responseJson) return { status: 'conflict' };
           const draft = tools.parseResponse(previous.responseJson);
           const definition = definitions.get(key.definitionUrl)!;
@@ -499,10 +588,11 @@ export function createBrowserFilingStore(options: BrowserFilingStoreOptions): Pr
   }
 
   const transaction: RunTransaction = async (stores, mode, work) => {
-    const request = indexedDB.open(databaseName, 2);
-    request.onupgradeneeded = () => {
+    const request = indexedDB.open(databaseName, 3);
+    request.onupgradeneeded = event => {
       const db = request.result;
-      for (const store of ['editable', 'summaries', 'filings']) {
+      for (const store of ['editable', 'summaries', 'filings', 'starts']) {
+        if (event.oldVersion >= 2 && db.objectStoreNames.contains(store)) continue;
         if (db.objectStoreNames.contains(store)) db.deleteObjectStore(store);
         db.createObjectStore(store);
       }
@@ -544,7 +634,7 @@ export function createBrowserFilingStore(options: BrowserFilingStoreOptions): Pr
 
 export function createMemoryFilingStore(options: PreviewFilingStoreOptions): PreviewFilingStore {
   type Entries = { [S in StoreName]: StoredEntry<S>[] };
-  let entries: Entries = { editable: [], summaries: [], filings: [] };
+  let entries: Entries = { editable: [], summaries: [], filings: [], starts: [] };
   let pending: Promise<unknown> = Promise.resolve();
   const listeners = new Set<() => void>();
 

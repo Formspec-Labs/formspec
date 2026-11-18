@@ -269,7 +269,7 @@ export * from "./screener-slot.js";
 export type { FilingStatusPlan } from './filing-status.js';
 export type {
   BrowserDraftPort, CurrentDraftProgress, DraftKey, DraftLoadResult, DraftPort, DraftRecord,
-  DraftRestartResult, DraftSaveInput, DraftSaveResult, DraftSectionPlacement,
+  DraftStartInput, DraftStartResult, DraftRestartResult, DraftSaveInput, DraftSaveResult, DraftSectionPlacement,
   FilingDraftObservation, FilingDraftQuery, FilingObservation, FilingProgressCounts, FilingStatusObservation, FilingStatusReader,
 } from './draft-port.js';
 

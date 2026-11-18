@@ -10,7 +10,7 @@ import { qualifyDraftReview } from './internal/draft-review-qualification.js';
 import type { DraftResponseReviewData } from './widgets/response-review-metadata.js';
 
 type DraftReviewFailure = Extract<DraftReviewPlan, { status: 'unresolved' }>['reason'] |
-  'absent' | 'denied' | 'version-mismatch' | 'unavailable' | 'save-failed' | 'response-invalid' | 'presentation-invalid';
+  'initialized' | 'absent' | 'denied' | 'version-mismatch' | 'unavailable' | 'save-failed' | 'response-invalid' | 'presentation-invalid';
 
 export type DraftReviewDelivery = Extract<WidgetDataDelivery, { status: 'ready' }> |
   (Extract<WidgetDataDelivery, { status: 'unavailable' }> & { draftReviewReason: DraftReviewFailure });

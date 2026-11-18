@@ -23,6 +23,7 @@ export interface DraftWriterOptions {
   engine: IFormEngine;
   key: DraftKey;
   port: DraftPort;
+  initializedRevision?: string | undefined;
   draft?: DraftRecord | undefined;
   creationPins?: DraftRecord['pins'];
   sections: readonly PageSequenceEntry[];
@@ -193,7 +194,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
     };
   }
 
-  function checkpoint(expectedRevision = committed?.revision ?? null): Promise<boolean> {
+  function checkpoint(expectedRevision = committed?.revision ?? options.initializedRevision ?? null): Promise<boolean> {
     if (pending) return pending;
     failureNotice = 'saveFailed';
     const savingEdit = edit;

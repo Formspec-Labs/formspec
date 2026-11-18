@@ -1,6 +1,6 @@
 /** @filedesc Reusable behavioral checks for authorized Surface draft storage. */
 import type { ResponseSelectionDelivery, ResponseSelectionOutcome } from '@formspec-org/types';
-import type { DraftKey, DraftPort, DraftSaveInput } from './draft-port.js';
+import type { DraftKey, DraftPort, DraftSaveInput, DraftStartInput } from './draft-port.js';
 
 const definitionUrl = 'https://example.test/definition';
 const query = {
@@ -205,3 +205,28 @@ export const draftPortConformance = {
   },
 
 };
+
+/** Run against a fresh store with the input Definition and authorized parents. */
+export async function checkMintedDraftStart(port: DraftPort, input: Omit<DraftStartInput, 'attemptId'>) {
+  check(port.start, 'adapter must implement explicit creation');
+  const start = (attemptId: string) => port.start!({ ...input, attemptId });
+  const [first, retry, second] = await Promise.all([start('first'), start('first'), start('second')]);
+  check(first.status === 'started' && retry.status === 'started' && second.status === 'started', 'start failed');
+  check(first.subject.id === retry.subject.id && first.subject.id !== second.subject.id, 'attempt identity lost');
+  for (const [index, subject] of [first.subject, second.subject].entries()) {
+    const key = { scope: input.scope, definitionUrl: input.definitionUrl, subject };
+    const initial = await port.load(key, input.definitionVersion);
+    check(initial.status === 'initialized', 'untouched unit must resume without a saved Response');
+    const answer = String(index);
+    const edit = saveInput(initial.revision, answer, key);
+    const response = { ...JSON.parse(edit.responseJson), definitionVersion: input.definitionVersion };
+    const snapshot = { ...JSON.parse(edit.snapshotJson), definitionVersion: input.definitionVersion };
+    const result = await port.save({ ...edit, definitionVersion: input.definitionVersion,
+      snapshotJson: JSON.stringify(snapshot), responseJson: JSON.stringify(response) });
+    check(result.status === 'saved', 'first edit failed');
+  }
+  for (const [index, subject] of [first.subject, second.subject].entries()) {
+    const result = await port.load({ scope: input.scope, definitionUrl: input.definitionUrl, subject }, input.definitionVersion);
+    check(result.status === 'loaded' && JSON.parse(result.draft.responseJson).data.answer === String(index), 'unit lost its own edits');
+  }
+}
