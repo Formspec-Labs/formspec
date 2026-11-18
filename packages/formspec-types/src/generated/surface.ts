@@ -315,6 +315,10 @@ export interface RouteParamMap {
  */
 export interface FilingStatusBinding {
   /**
+   * Show this tracker in a collapsible band on every route of this Surface. Omit to show it inline on its declaring route.
+   */
+  placement?: 'band';
+  /**
    * @minItems 1
    */
   groups: [FilingStatusGroup, ...FilingStatusGroup[]];

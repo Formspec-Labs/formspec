@@ -33,3 +33,12 @@ it('admits one explicit parameter source and closes the binding', () => {
   Object.assign(extra.routes[0]!.slots[0]!.binding, { extra: true });
   expect(validate(extra)).toBe(false);
 });
+
+it('admits an authored band and refuses unknown placements', () => {
+  const app = document('0.4');
+  const binding = app.routes[0]!.slots[0]!.binding;
+  Object.assign(binding, { placement: 'band' });
+  expect(validate(app)).toBe(true);
+  Object.assign(binding, { placement: 'overlay' });
+  expect(validate(app)).toBe(false);
+});
