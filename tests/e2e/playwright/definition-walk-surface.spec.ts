@@ -1,39 +1,25 @@
-/** @filedesc Walk every form slot and section on the routes of a synthetic exported Surface app. */
+/** @filedesc Walk every form mount in an exported app through the same checks as the emitted suite. */
 import { expect, test } from '@playwright/test';
-import { composeSurfaceApp, createWidgetRegistry, dereferenceBundleExport, planRoute, routeHref } from '@formspec-org/surface';
-import { derivePlan, expectClean, runAxePass, walkDefinition } from '../../../packages/formspec-walk/src/index';
+import { checkSurfaceForm } from '../../../packages/formspec-walk/src/index';
+import { surfaceWalkTargets } from '../../../packages/formspec-walk/bin/surface-walk.mjs';
+import { FORMSPEC_E2E_ORIGIN } from '../harness-server';
 import { surfaceWalkExport } from '../fixtures/surface-walk-export';
 
-const bundle = dereferenceBundleExport(surfaceWalkExport);
-const app = composeSurfaceApp(bundle.surfaces, { entrySurface: bundle.entrySurface });
-const params = { state: 'ny' };
-const forms = app.routes.flatMap(handle => {
-    const route = routeHref(handle, params);
-    const plan = planRoute({ ...bundle, handle, params, registryEntries: [], widgets: createWidgetRegistry() });
-    return plan.slots.flatMap(slot => {
-        if (slot.slotType !== 'definition-form') return [];
-        if (!slot.definition || route.refusal) throw new Error(`Cannot walk ${handle.routeId}/${slot.slotId}`);
-        return [{
-            definition: slot.definition, routeId: handle.routeId, slotId: slot.slotId,
-            url: `/surface-browser.html?walkRoutes#${route.href}`,
-            root: `[data-surface="${handle.surfaceId}"][data-route="${handle.routeId}"] [data-slot="${slot.slotId}"] [data-formspec-render-root]`,
-        }];
-    });
+const targets = surfaceWalkTargets(surfaceWalkExport, {
+    url: `${FORMSPEC_E2E_ORIGIN}/surface-browser.html?walkRoutes`, params: { state: 'ny' },
 });
 
-test('every exported Definition has a form route to walk', () => {
-    expect(forms.length).toBeGreaterThan(0);
-    expect(new Set(forms.map(form => form.definition.url))).toEqual(new Set(surfaceWalkExport.manifest.definitions!.map(ref => ref.url)));
+test('walks each exported form, including both forms on the equipment route', () => {
+    expect(targets.map(target => target.title)).toEqual([
+        'registration/contact/details', 'registration/equipment/details', 'registration/equipment/inventory',
+    ]);
 });
 
-for (const { definition, routeId, slotId, url, root } of forms) {
-    test(`walks ${routeId}/${slotId} through every section`, async ({ page }) => {
-        const report = await walkDefinition(page, derivePlan(definition), { url, root });
-        expectClean(report);
+for (const target of targets) {
+    test(target.title, async ({ page }) => {
+        const { report, axe } = await checkSurfaceForm(page, target);
         expect(report.uncovered).toEqual([]);
         expect(report).toMatchObject({ steps: 2, fields: 2 });
-
-        const axe = await runAxePass(page, { root, documents: { definition } });
         expect(axe.pages).toMatchObject({ kind: 'workspace', expectedMin: 2, drawn: 2, visited: 2 });
         expect(axe.states.map(state => state.id)).toEqual(['page-1', 'page-2', 'errors-1', 'errors-2']);
     });

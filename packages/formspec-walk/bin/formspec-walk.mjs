@@ -9,10 +9,13 @@ import { createFormEngine, initFormspecEngine } from '@formspec-org/engine';
 import { derivePlan, deriveRecipes, emitSpec } from '@formspec-org/walk';
 
 const USAGE = `usage: formspec-walk emit (--docs <dir> | --manifest <package-manifest.json>) [--form <formId>] --url <page url> [--root <selector>] [--locale <code>] [--out <file>] [--from <package>]
+       formspec-walk emit --bundle <export.json> --url <hash preview URL> [--params <JSON>] [--locale <code>] [--out <file>]
        formspec-walk a11y (--docs <dir> | --manifest <package-manifest.json>) [--form <formId>] [--locale <code>] [--timeout-ms <ms>] [--out <file>]
        formspec-walk test [Playwright test arguments]
        formspec-walk serve [--port <n>] [--host <addr>] [--timeout-ms <ms>]
 
+  --bundle    emit one keyboard, screen-reader and axe test per exported Surface form slot and Definition Locale
+  --params    route parameters for the export, e.g. '{"state":"ny"}'; the URL is the static hash preview before routing
   --docs      a directory holding the form's documents: the Definition, its Locale(s), its Theme (any *.json), or a package directory containing package-manifest.json
   --manifest  a package-manifest.json file describing one or more forms and their per-form Definition, Locale(s) and Theme files
   --form      the formId (or slug) to select from package-manifest.json (required for emit when the package has multiple forms)
@@ -216,6 +219,18 @@ if (isMain) {
       const json = `${JSON.stringify(summary, null, 2)}\n`;
       await writeOutput(flag('out'), json);
       process.exit(anyFailed ? 3 : violations.length ? 1 : 0);
+    }
+  } else if (flag('bundle')) {
+    if (!flag('url') || ['docs', 'manifest', 'form', 'root'].some(key => flag(key))) failCli(USAGE);
+    if (flag('mode') && flag('mode') !== 'hash') failCli('Surface export emission requires a hash-mode preview URL');
+    try {
+      const { surfaceWalkTargets, emitSurfaceWalk } = await import('./surface-walk.mjs');
+      const targets = surfaceWalkTargets(JSON.parse(readFileSync(flag('bundle'), 'utf8')), {
+        url: flag('url'), params: JSON.parse(flag('params') ?? '{}'), locale: flag('locale'),
+      });
+      await writeOutput(flag('out'), emitSurfaceWalk(targets, flag('from')));
+    } catch (error) {
+      failCli(`formspec-walk emit: ${error.message}`);
     }
   } else {
     if (!flag('url') || (!flag('docs') && !flag('manifest'))) failCli(USAGE);
