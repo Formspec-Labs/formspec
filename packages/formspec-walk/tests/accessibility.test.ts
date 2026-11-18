@@ -224,6 +224,20 @@ describe('every page is visited, or the check fails', () => {
         expect(expectedPages(form('wizard', [group('one', []), group('two', [])]), themed)).toBe(2);
     });
 
+    it('counts an explicit Tabs root after the Theme groups its children into one page', async () => {
+        const definition = form('single', [field('first', 'First'), field('second', 'Second')]);
+        const component = {
+            $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition.url },
+            tree: { component: 'Tabs', children: [
+                { component: 'TextInput', bind: 'first' }, { component: 'TextInput', bind: 'second' },
+            ] },
+        } as const;
+        const theme = { pages: [{ id: 'both', title: 'Both', regions: [{ key: 'first' }, { key: 'second' }] }] };
+        const report = await server.check({ definition, component, theme });
+        expect(report.failure).toBeUndefined();
+        expect(report.pages).toMatchObject({ kind: 'tabs', drawn: 1, visited: 1, expectedMin: 1 });
+    });
+
     it('counts workspace sections in the shared plan, including interleaved loose content', () => {
         const definition = form('workspace', [
             field('opening', 'Opening'), group('one', [field('a', 'A')]), field('between', 'Between'),

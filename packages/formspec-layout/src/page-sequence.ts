@@ -407,21 +407,30 @@ export function hasWizardSections(pages: readonly PageSequenceEntry[]): boolean 
     return pages.some(page => page.id || findAuthoredPageSection(page) !== undefined);
 }
 
+/** Apply the normal Component planner when the document supplies its own page control. */
+export function planExplicitPageRoot(definition: FormDefinition, options: PageSequenceOptions): LayoutNode | undefined {
+    const component = options.component;
+    if (!component || (component.tree.component !== 'Wizard' && component.tree.component !== 'Tabs')) return undefined;
+    const componentPresentation = 'formPresentation' in component ? component.formPresentation : undefined;
+    const presentation = options.context?.formPresentation
+        ?? mergeFormPresentationForPlanning(definition.formPresentation, componentPresentation);
+    return planComponentTree(component.tree as ComponentTreeNode, preparePlanContext({
+        ...options.context,
+        items: definition.items,
+        findItem: path => findItemAtPath(definition.items, path),
+        componentDocument: component,
+        theme: options.theme,
+        formPresentation: presentation,
+    }));
+}
+
 /** Section titles from the same planner inputs the respondent view uses. */
 export function resolveSectionTitlePlan(definition: FormDefinition, options: PageSequenceOptions = {}) {
     const component = options.component;
     const componentPresentation = component && 'formPresentation' in component ? component.formPresentation : undefined;
     const presentation = mergeFormPresentationForPlanning(definition.formPresentation, componentPresentation);
     if (component?.tree.component === 'Wizard' && presentation?.pageMode !== 'workspace') {
-        const root = planComponentTree(component.tree as ComponentTreeNode, preparePlanContext({
-            ...options.context,
-            items: definition.items,
-            findItem: path => findItemAtPath(definition.items, path),
-            componentDocument: component,
-            theme: options.theme,
-            formPresentation: presentation,
-        }));
-        return root.children.map(describeWizardStep);
+        return planExplicitPageRoot(definition, options)?.children.map(describeWizardStep) ?? [];
     }
     if (presentation?.pageMode !== 'workspace' && presentation?.pageMode !== 'wizard') return [];
     if (presentation.pageMode === 'wizard' && component?.tree.component === 'Tabs') return [];

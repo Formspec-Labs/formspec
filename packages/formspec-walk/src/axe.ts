@@ -1,6 +1,6 @@
 /** @filedesc Run axe on each form page and report coverage, violations, and items for review. */
 import type { Locator, Page } from '@playwright/test';
-import { hasWizardSections, mergeFormPresentationForPlanning, placementCovers, resolvePageSequence, type ThemeDocument } from '@formspec-org/layout';
+import { hasWizardSections, mergeFormPresentationForPlanning, placementCovers, planExplicitPageRoot, resolvePageSequence, type ThemeDocument } from '@formspec-org/layout';
 import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
 import type { HostDocuments } from '@formspec-org/webcomponent/host';
 import { revealSearch, type RecipeStep } from './reveal.js';
@@ -230,9 +230,11 @@ async function loadAxe(): Promise<AxeBuilderCtor> {
 export function expectedPages(definition: unknown, theme?: unknown, component?: ComponentDocument | null): number {
     const presentation = formPresentation(definition, component);
     const mode = presentation?.pageMode;
-    const tree = component?.tree;
-    if (mode !== 'workspace' && (tree?.component === 'Wizard' || tree?.component === 'Tabs')) {
-        return Math.max(1, 'children' in tree && Array.isArray(tree.children) ? tree.children.length : 0);
+    if (mode !== 'workspace') {
+        const planned = planExplicitPageRoot(definition as FormDefinition, {
+            component: component ?? undefined, theme: (theme ?? undefined) as ThemeDocument | undefined,
+        });
+        if (planned) return Math.max(1, planned.children.length);
     }
     if (mode !== 'wizard' && mode !== 'tabs' && mode !== 'workspace') return 1;
     const pages = planPages(definition, presentation!, theme, component);
