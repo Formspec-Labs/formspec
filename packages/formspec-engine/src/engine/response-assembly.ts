@@ -387,22 +387,16 @@ export function collectRelevantValidationResults(
     )).map(toValidationResult);
 }
 
-/** Shape validations for a specific timing, from a WASM eval with the matching trigger. */
+/** Definition errors precede Shape timing. Keep them in every enabled report. */
 export function collectTimedShapeValidationResults(
     evalResult: EvalResult,
     shapeTiming: Map<string, EvalShapeTiming>,
     timing: EvalShapeTiming,
 ): ValidationResult[] {
-    const results: ValidationResult[] = [];
-    for (const validation of evalResult.validations) {
-        if (!validation.shapeId) {
-            continue;
-        }
-        if ((shapeTiming.get(validation.shapeId) ?? 'continuous') === timing) {
-            results.push(toValidationResult(validation));
-        }
-    }
-    return results;
+    return evalResult.validations.filter(validation =>
+        validation.source === 'definition' || validation.code === 'CONSTRAINT_PARSE_ERROR' ||
+        (validation.shapeId && (shapeTiming.get(validation.shapeId) ?? 'continuous') === timing),
+    ).map(toValidationResult);
 }
 
 /** Compute counts and wrap the evaluator's results in the spec report. */

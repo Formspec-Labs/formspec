@@ -229,3 +229,21 @@ test('unknown validation report options are rejected at runtime', () => {
     /unknown validation option.*timing/i,
   );
 });
+
+test('on-demand reports a Definition refusal before Shape timing applies', () => {
+  for (const [bind, code] of [
+    [{ calculate: '1 +' }, 'E400'],
+    [{ constraint: '1 +' }, 'CONSTRAINT_PARSE_ERROR'],
+  ]) {
+    const definition = buildDefinition();
+    definition.binds = [{ path: 'liveOk', ...bind }];
+    const engine = new FormEngine(definition);
+    for (const report of [
+      engine.getValidationReport({ profile: 'on-demand' }),
+      engine.getResponseSnapshot({ profile: 'on-demand' }).validationReport,
+    ]) {
+      assert.equal(report.valid, false);
+      assert.deepEqual(report.results.map(finding => finding.code), [code]);
+    }
+  }
+});
