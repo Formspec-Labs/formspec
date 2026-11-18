@@ -59,7 +59,7 @@ test.describe('Kitchen Sink Holistic UI Coverage', () => {
     if (!conditionalGroup) {
       throw new Error('ConditionalGroup fixture not found');
     }
-    conditionalGroup.when = "profileMode = 'advanced'";
+    conditionalGroup.when = "$profileMode = 'advanced'";
 
     await gotoHarness(page);
     await mountDefinition(page, normalizeDefinitionForEngine(DEFINITION_V1));

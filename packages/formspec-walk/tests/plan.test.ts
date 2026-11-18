@@ -199,8 +199,8 @@ describe('plan derivation', () => {
         expect(lineItems.repeat!.rowName.pattern!.test('Items 2')).toBe(false);
         expect(lineItems.repeat!.removeLabel!.pattern!.test('Remove Line Items 2')).toBe(true);
         expect(plan.uncovered).toEqual([
-            "priorityLevel: required is the expression \"profileMode = 'advanced'\"; the engine decides",
-            'vipCode: required is the expression "vipEnabled = true"; the engine decides',
+            "priorityLevel: required is the expression \"$profileMode = 'advanced'\"; the engine decides",
+            'vipCode: required is the expression "$vipEnabled = true"; the engine decides',
         ]);
     });
 

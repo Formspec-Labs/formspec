@@ -47,7 +47,7 @@
               { "component": "Toggle", "bind": "vipEnabled" },
               {
                 "component": "ConditionalGroup",
-                "when": "vipEnabled = true",
+                "when": "$vipEnabled = true",
                 "children": [
                   { "component": "TextInput", "bind": "vipCode" }
                 ]

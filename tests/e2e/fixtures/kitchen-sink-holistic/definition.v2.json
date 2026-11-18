@@ -67,7 +67,7 @@
     },
     {
       "name": "projectedTotal",
-      "expression": "grandTotal * (1 + @taxRate)"
+      "expression": "$grandTotal * (1 + @taxRate)"
     }
   ],
   "items": [
@@ -277,21 +277,21 @@
     },
     {
       "path": "priorityLevel",
-      "required": "profileMode = 'advanced'"
+      "required": "$profileMode = 'advanced'"
     },
     {
       "path": "contactMethod",
-      "relevant": "profileMode = 'advanced'",
+      "relevant": "$profileMode = 'advanced'",
       "default": "email"
     },
     {
       "path": "tags",
-      "relevant": "profileMode = 'advanced'",
+      "relevant": "$profileMode = 'advanced'",
       "nonRelevantBehavior": "keep"
     },
     {
       "path": "lineItems.lineSubtotal",
-      "calculate": "lineQty * linePrice",
+      "calculate": "$lineQty * $linePrice",
       "readonly": "true"
     },
     {
@@ -301,8 +301,8 @@
     },
     {
       "path": "vipCode",
-      "relevant": "vipEnabled = true",
-      "required": "vipEnabled = true",
+      "relevant": "$vipEnabled = true",
+      "required": "$vipEnabled = true",
       "default": "AUTO-VIP",
       "disabledDisplay": "protected",
       "excludedValue": "null"
@@ -314,35 +314,35 @@
       "target": "endDate",
       "severity": "error",
       "message": "End date must not precede start date",
-      "constraint": "endDate >= startDate"
+      "constraint": "$endDate >= $startDate"
     },
     {
       "id": "website_https",
       "target": "website",
       "severity": "error",
       "message": "Website must use https",
-      "constraint": "startsWith(website, 'https://')"
+      "constraint": "startsWith($website, 'https://')"
     },
     {
       "id": "budget_error",
       "target": "budget",
       "severity": "error",
       "message": "Budget must be greater than or equal to grand total",
-      "constraint": "budget >= grandTotal"
+      "constraint": "$budget >= $grandTotal"
     },
     {
       "id": "budget_warning",
       "target": "budget",
       "severity": "warning",
       "message": "Budget is close to grand total",
-      "constraint": "budget > grandTotal + 100"
+      "constraint": "$budget > $grandTotal + 100"
     },
     {
       "id": "profile_info",
       "target": "profileMode",
       "severity": "info",
       "message": "Advanced profile mode selected",
-      "constraint": "profileMode = 'basic'"
+      "constraint": "$profileMode = 'basic'"
     },
     {
       "id": "submit_total_positive",
@@ -350,7 +350,7 @@
       "severity": "error",
       "timing": "submit",
       "message": "Grand total must be positive on submit",
-      "constraint": "grandTotal > 0"
+      "constraint": "$grandTotal > 0"
     },
     {
       "id": "demand_name_present",
@@ -358,7 +358,7 @@
       "severity": "error",
       "timing": "demand",
       "message": "Full name is required for demand checks",
-      "constraint": "length(fullName) > 0"
+      "constraint": "length($fullName) > 0"
     },
     {
       "id": "composite_guard",
@@ -366,8 +366,8 @@
       "severity": "error",
       "message": "Composite guard must hold",
       "and": [
-        "budget >= grandTotal",
-        "endDate >= startDate"
+        "$budget >= $grandTotal",
+        "$endDate >= $startDate"
       ]
     }
   ]

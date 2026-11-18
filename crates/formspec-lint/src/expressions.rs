@@ -5,6 +5,7 @@
 //! `walk_*` helpers traverse binds, shapes, and variables.
 #![allow(clippy::missing_docs_in_private_items)]
 
+use fel_core::parser::SiteKind;
 pub use formspec_core::definition_expressions::BindProperty;
 use formspec_core::definition_expressions::{
     ExpressionSite, visit_bind_expressions, visit_expressions, visit_initial_value_expressions,
@@ -134,15 +135,14 @@ pub(crate) fn initial_value_diagnostics(
 ) -> Vec<LintDiagnostic> {
     let mut diagnostics = Vec::new();
     visit_initial_value_expressions(document, |source, target, path| {
-        match fel_core::parse(source) {
-            Ok(parsed) => crate::repeat_references::check_expression(
+        if let Some(parsed) = parse_expression(source, path, &mut diagnostics) {
+            crate::repeat_references::check_expression(
                 items,
                 Some(target),
                 path,
                 &parsed,
                 &mut diagnostics,
-            ),
-            Err(error) => diagnostics.push(parse_error(path, &error)),
+            );
         }
     });
     diagnostics
@@ -208,31 +208,57 @@ fn try_parse(
     compiled: &mut Vec<CompiledExpression>,
     diagnostics: &mut Vec<LintDiagnostic>,
 ) {
-    match fel_core::parse(source) {
-        Ok(parsed) => {
-            let mut expression = CompiledExpression {
-                expression: source.to_string(),
-                parsed,
-                expression_path,
-                bind: None,
-                shape_target: None,
-                shape_index: None,
-                shape_context_target: None,
-                variable: None,
-            };
-            match owner {
-                Owner::None => {}
-                Owner::Bind(slot) => expression.bind = Some(slot),
-                Owner::Shape { index, target } => {
-                    expression.shape_target = target;
-                    expression.shape_index = Some(index);
-                }
-                Owner::ShapeContext(target) => expression.shape_context_target = target,
-                Owner::Variable(slot) => expression.variable = Some(slot),
-            }
-            compiled.push(expression);
+    let Some(parsed) = parse_expression(source, &expression_path, diagnostics) else {
+        return;
+    };
+    let mut expression = CompiledExpression {
+        expression: source.to_string(),
+        parsed,
+        expression_path,
+        bind: None,
+        shape_target: None,
+        shape_index: None,
+        shape_context_target: None,
+        variable: None,
+    };
+    match owner {
+        Owner::None => {}
+        Owner::Bind(slot) => expression.bind = Some(slot),
+        Owner::Shape { index, target } => {
+            expression.shape_target = target;
+            expression.shape_index = Some(index);
         }
-        Err(e) => diagnostics.push(parse_error(&expression_path, &e)),
+        Owner::ShapeContext(target) => expression.shape_context_target = target,
+        Owner::Variable(slot) => expression.variable = Some(slot),
+    }
+    compiled.push(expression);
+}
+
+/// Parse one FEL slot for lint: E400 when it does not parse, E406 for each bare name no
+/// `let` binds (the grammar has no bare field reference; hosts read it as `$name`).
+pub(crate) fn parse_expression(
+    source: &str,
+    expression_path: &str,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) -> Option<fel_core::Expr> {
+    match fel_core::parser::parse_with_sites(source) {
+        Ok((parsed, sites)) => {
+            for site in sites {
+                if let SiteKind::UnboundName { name, .. } = site.kind {
+                    diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
+                        crate::LintCode::E406,
+                        4,
+                        expression_path,
+                        format!("FEL has no bare field reference: write ${name} instead of {name}"),
+                    )));
+                }
+            }
+            Some(parsed)
+        }
+        Err(error) => {
+            diagnostics.push(parse_error(expression_path, &error));
+            None
+        }
     }
 }
 

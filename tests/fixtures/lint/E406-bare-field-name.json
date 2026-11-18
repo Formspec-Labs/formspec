@@ -1,0 +1,14 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.com/forms/e406",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "E406 fixture — bare name read as a field",
+  "items": [
+    { "key": "amount", "type": "field", "dataType": "integer", "label": "Amount" },
+    { "key": "note", "type": "field", "dataType": "string", "label": "Note" }
+  ],
+  "binds": [
+    { "path": "note", "relevant": "amount > 0" }
+  ]
+}

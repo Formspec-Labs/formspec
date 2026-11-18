@@ -223,6 +223,18 @@
       "state": "tested"
     },
     {
+      "code": "E406",
+      "pass": 4,
+      "severity": "error",
+      "title": "Bare name used as a field reference",
+      "specRef": "../fel-core/specs/fel/fel-grammar.md#6-path-expressions",
+      "suggestedFix": "prefix the field name with $ (amount becomes $amount), or bind the name with let",
+      "fixtures": [
+        "tests/fixtures/lint/E406-bare-field-name.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "E500",
       "pass": 5,
       "severity": "error",

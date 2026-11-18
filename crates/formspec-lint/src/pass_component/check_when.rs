@@ -78,21 +78,17 @@ impl<'a> GuardCheck<'a> {
         };
         if let Some(when) = node.get("when").and_then(Value::as_str) {
             let path = format!("{path}.when");
-            match fel_core::parse(when) {
-                Ok(parsed) => {
-                    if let Some(items) = self.items {
-                        crate::repeat_references::check_expression(
-                            items,
-                            Some(scope),
-                            &path,
-                            &parsed,
-                            &mut self.diagnostics,
-                        );
-                    }
-                }
-                Err(error) => self
-                    .diagnostics
-                    .push(crate::expressions::parse_error(&path, &error)),
+            if let Some(parsed) =
+                crate::expressions::parse_expression(when, &path, &mut self.diagnostics)
+                && let Some(items) = self.items
+            {
+                crate::repeat_references::check_expression(
+                    items,
+                    Some(scope),
+                    &path,
+                    &parsed,
+                    &mut self.diagnostics,
+                );
             }
         }
         if let Some((name, template)) = self

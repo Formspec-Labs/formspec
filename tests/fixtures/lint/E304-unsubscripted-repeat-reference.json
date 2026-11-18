@@ -17,6 +17,6 @@
     { "key": "total", "type": "field", "label": "Total", "dataType": "decimal" }
   ],
   "binds": [
-    { "path": "total", "calculate": "sum(rows.amount)" }
+    { "path": "total", "calculate": "sum($rows.amount)" }
   ]
 }
