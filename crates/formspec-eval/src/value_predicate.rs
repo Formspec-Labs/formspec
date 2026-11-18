@@ -1,42 +1,29 @@
-//! Shared predicates for “is this value empty?” across bind validation (required vs constraint rules differ).
+//! Core §4.3.1 emptiness after input whitespace normalization.
 
 use fel_core::exact_json::Value;
 
-/// `required` bind: empty means null, whitespace-only string, or empty array.
-pub(crate) fn is_empty_for_required_bind(val: &Value) -> bool {
-    match val {
+/// Required, type and constraint checks share the same definition of an empty value.
+pub(crate) fn is_empty_bind_value(value: &Value) -> bool {
+    match value {
         Value::Null => true,
-        Value::String(s) => s.trim().is_empty(),
-        Value::Array(arr) => arr.is_empty(),
-        _ => false,
-    }
-}
-
-/// Bind `constraint` and extension value checks (§3.8.1): skip when null, **non-trimmed** empty string, or empty array.
-pub(crate) fn value_skips_optional_bind_checks(val: &Value) -> bool {
-    match val {
-        Value::Null => true,
-        Value::String(s) => s.is_empty(),
-        Value::Array(arr) => arr.is_empty(),
+        Value::String(text) => text.is_empty(),
+        Value::Array(items) => items.is_empty(),
         _ => false,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
     use fel_core::exact_json::native_json as json;
 
     #[test]
-    fn required_trims_string_whitespace_only() {
-        assert!(is_empty_for_required_bind(&json!("   ")));
-        assert!(!value_skips_optional_bind_checks(&json!("   ")));
-    }
-
-    #[test]
-    fn constraint_does_not_trim_whitespace_only_string() {
-        assert!(!value_skips_optional_bind_checks(&json!(" x ")));
-        assert!(value_skips_optional_bind_checks(&json!("")));
+    fn only_null_empty_strings_and_empty_arrays_are_empty() {
+        for empty in [Value::Null, json!(""), json!([])] {
+            assert!(is_empty_bind_value(&empty));
+        }
+        for present in [json!("   "), json!([null]), json!({}), json!(false), json!(0)] {
+            assert!(!is_empty_bind_value(&present));
+        }
     }
 }

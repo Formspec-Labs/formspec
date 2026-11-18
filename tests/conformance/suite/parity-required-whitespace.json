@@ -1,0 +1,31 @@
+{
+  "id": "parity.required-whitespace",
+  "kind": "VALIDATION_REPORT",
+  "specRefs": [
+    "Core \u00a74.3.1 required and whitespace",
+    "Core \u00a73.5 empty and present"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-required-whitespace.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "preserved": "   ",
+    "trimmed": "   "
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "trimmed",
+        "code": "REQUIRED",
+        "severity": "error",
+        "constraintKind": "required"
+      }
+    ]
+  }
+}

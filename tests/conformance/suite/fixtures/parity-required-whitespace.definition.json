@@ -1,0 +1,41 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:required-whitespace",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Required text",
+  "items": [
+    {
+      "key": "preserved",
+      "type": "field",
+      "dataType": "string",
+      "label": "Preserved"
+    },
+    {
+      "key": "trimmed",
+      "type": "field",
+      "dataType": "string",
+      "label": "Trimmed"
+    }
+  ],
+  "binds": [
+    {
+      "path": "preserved",
+      "required": "true"
+    },
+    {
+      "path": "trimmed",
+      "required": "true",
+      "whitespace": "trim"
+    }
+  ],
+  "shapes": [
+    {
+      "id": "presence",
+      "target": "preserved",
+      "severity": "warning",
+      "constraint": "present($preserved) and empty($trimmed)",
+      "message": "Unexpected presence"
+    }
+  ]
+}

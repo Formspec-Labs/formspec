@@ -1300,7 +1300,7 @@ fn required_with_empty_string_fails() {
 }
 
 #[test]
-fn required_with_whitespace_only_string_fails() {
+fn required_preserves_whitespace_by_default() {
     let def = json!({
         "items": [
             { "key": "name", "dataType": "string" }
@@ -1314,11 +1314,8 @@ fn required_with_whitespace_only_string_fails() {
     data.insert("name".to_string(), json!("   "));
 
     let result = evaluate(&def, &data, &EvalOptions::default());
-    assert_eq!(
-        result.validations.len(),
-        1,
-        "whitespace-only string must fail required check (trim then empty)"
-    );
+    // Core §4.3.1 applies an authored whitespace transform before validation.
+    assert!(result.validations.is_empty());
 }
 
 // ── Calculate continues when non-relevant ────────────────────

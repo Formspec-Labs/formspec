@@ -18,7 +18,7 @@ use crate::types::{
     ValidationSource,
 };
 
-use crate::value_predicate::{is_empty_for_required_bind, value_skips_optional_bind_checks};
+use crate::value_predicate::is_empty_bind_value;
 
 use super::expr::{ConstraintSite, constraint_passes};
 use super::{Findings, Validation};
@@ -42,7 +42,7 @@ impl Validation<'_> {
         let val = resolve_value_by_path(values, &item.path);
 
         // Required check
-        if item.mip.required && is_empty_for_required_bind(&val) {
+        if item.mip.required && is_empty_bind_value(&val) {
             findings.results.push(ValidationResult {
                 path: item.path.clone(),
                 severity: Severity::Error,
@@ -58,8 +58,7 @@ impl Validation<'_> {
 
         // Type mismatch check — covers all 13 spec dataTypes.
         // Skip for null AND empty values (same gate as constraint checks per §3.8.1).
-        if !val.is_null()
-            && !value_skips_optional_bind_checks(&val)
+        if !is_empty_bind_value(&val)
             && let Some(ref dt) = item.data_type
         {
             let mismatch = match dt.as_str() {
@@ -168,7 +167,7 @@ impl Validation<'_> {
         // Constraint check — skip for empty values (§3.8.1).
         // "A constraint that cannot be evaluated due to null inputs is not considered
         // violated."  The `required` bind, not `constraint`, enforces non-emptiness.
-        if !value_skips_optional_bind_checks(&val)
+        if !is_empty_bind_value(&val)
             && let Some(ref expr) = item.constraint
         {
             let env = self.state.site(self.index, &item.path);
@@ -388,7 +387,7 @@ fn validate_extension_constraints(
         }
 
         // Skip value constraints if the value is null/empty (§3.8.1)
-        if value_skips_optional_bind_checks(val) {
+        if is_empty_bind_value(val) {
             continue;
         }
 
