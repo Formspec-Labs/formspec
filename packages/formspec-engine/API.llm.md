@@ -1145,6 +1145,7 @@ Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createForm
 - **responseSubject** (`Omit<NonNullable<FormResponse['subject']>, 'keys'> & {
         keys?: ResponseSubjectKeys;
     }`): Host-supplied Response identity, available to FEL from the first evaluation.
+- **responseInstanceResolutions** (`Readonly<Record<string, ResponseSelectionDelivery>>`): Available, host-qualified deliveries of Definition Response instances, keyed by instance name.
 
 #### interface `FormDraftSnapshot`
 
@@ -2574,6 +2575,10 @@ Resolve an item in a nested item tree by dotted path.
 } | undefined`
 
 Resolve an item's parent path, index, and value in a nested item tree.
+
+## `wasmAssembleCandidate(definition: FormDefinition, response: FormResponse, resolution: Readonly<Record<string, ResponseSelectionDelivery>>): FormResponse`
+
+Assemble the Response instance evidence before the candidate is signed.
 
 ## `wasmCreateResponse(definition: unknown, data: Record<string, unknown>, context?: WasmCreateOptions, extensions?: FelExtensionHost): WasmCreation`
 
