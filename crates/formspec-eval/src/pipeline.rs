@@ -16,6 +16,7 @@ use crate::types::{
 };
 use fel_core::Value as FelValue;
 use fel_core::exact_json::Value;
+use formspec_core::BindTargets;
 use formspec_core::assembler::unassembled_definition_references;
 use formspec_core::subject_key::SubjectKey;
 use std::cell::RefCell;
@@ -28,7 +29,6 @@ pub struct PreparedDefinition {
     definition: Value,
     items: Vec<types::ItemInfo>,
     definition_errors: Vec<ValidationResult>,
-    calculate_order: Option<CalculateOrder>,
 }
 
 impl PreparedDefinition {
@@ -53,21 +53,25 @@ impl PreparedDefinition {
                 definition,
                 items: Vec::new(),
                 definition_errors,
-                calculate_order: None,
             };
         }
         let items = rebuild_item_tree(&definition);
-        let definition_errors = rebuild::check_expressions(&definition, &items);
-        let calculate_order = if definition_errors.is_empty() {
-            CalculateOrder::for_definition(&items, &definition)
-        } else {
-            None
-        };
+        let mut definition_errors = rebuild::check_expressions(&definition, &items);
+        let binds = BindTargets::new(definition.get("binds"));
+        check_calculate_conflicts(&items, &binds, &mut definition_errors);
+        if definition_errors.is_empty()
+            && let Err(message) = CalculateOrder::check_definition(
+                &items,
+                &rebuild::parse_variables(&definition),
+                &definition,
+            )
+        {
+            definition_errors.push(circular_dependency(message));
+        }
         Self {
             definition,
             items,
             definition_errors,
-            calculate_order,
         }
     }
 
@@ -123,6 +127,20 @@ fn prepared_definition(definition: &Value) -> Rc<PreparedDefinition> {
         cache.truncate(RECENT_DEFINITIONS);
         prepared
     })
+}
+
+#[cfg(feature = "create")]
+pub(crate) fn creation_refusal(definition: &Value) -> Option<ValidationResult> {
+    prepared_definition(definition)
+        .definition_errors
+        .iter()
+        .find(|error| {
+            matches!(
+                error.code,
+                ValidationCode::CircularDependency | ValidationCode::CalculateTargetConflict
+            )
+        })
+        .cloned()
 }
 
 /// Evaluate a definition through the full four-phase pipeline.
@@ -243,10 +261,22 @@ fn evaluate_prepared(
     };
     let mut counts = flat.repeat_counts;
     rebuild::expand_repeat_instances_counted(&mut items, &mut counts);
+    let binds = BindTargets::new(definition.get("binds"));
+    let mut indexed_binds = fel_core::exact_json::Map::new();
+    if binds.has_indexed() {
+        rebuild::apply_indexed_binds(&mut items, &binds, &mut indexed_binds);
+    }
     let mut index = ScopeIndex::new(&items, counts);
     for path in flat.values.keys() {
         index.add_value_path(path);
     }
+    let order = CalculateOrder::new(
+        &items,
+        &index,
+        &rebuild::parse_variables(definition),
+        definition,
+    )
+    .map_err(|message| vec![circular_dependency(message)])?;
     let options = &options;
     let context = &options.context;
 
@@ -262,7 +292,7 @@ fn evaluate_prepared(
         definition,
         context.previous_validations.as_deref(),
         options,
-        prepared.calculate_order.as_ref(),
+        &order,
         &mut aggregates,
         false,
     );
@@ -288,7 +318,7 @@ fn evaluate_prepared(
         definition,
         Some(&validations),
         options,
-        prepared.calculate_order.as_ref(),
+        &order,
         &mut aggregates,
         true,
     );
@@ -312,17 +342,7 @@ fn evaluate_prepared(
     drop(aggregates);
 
     if let Some(cycle_msg) = cycle_err {
-        validations.push(ValidationResult {
-            path: String::new(),
-            severity: types::Severity::Error,
-            constraint_kind: types::ConstraintKind::Definition,
-            code: types::ValidationCode::CircularDependency,
-            message: cycle_msg,
-            constraint: None,
-            source: Some(types::ValidationSource::Definition),
-            shape_id: None,
-            context: None,
-        });
+        validations.push(circular_dependency(cycle_msg));
     }
 
     let mut non_relevant = Vec::new();
@@ -340,6 +360,7 @@ fn evaluate_prepared(
     apply_nrb(&mut values, &items, default_nrb);
 
     let data = build_output_data(&items, &index.counts, &values, default_nrb);
+    let calculated_paths = order.writer_paths(&items);
 
     let variables = var_values
         .iter()
@@ -349,6 +370,8 @@ fn evaluate_prepared(
     Ok(EvaluationResult {
         values,
         host_values,
+        calculated_paths,
+        indexed_binds,
         data,
         validations,
         diagnostics: calculate_diagnostics
@@ -443,6 +466,43 @@ fn check_subject(definition: &Value, subject: &EvalSubject) -> Result<(), Valida
     Ok(())
 }
 
+fn circular_dependency(message: String) -> ValidationResult {
+    definition_error(String::new(), ValidationCode::CircularDependency, message)
+}
+
+fn check_calculate_conflicts(
+    items: &[types::ItemInfo],
+    binds: &BindTargets<'_, Value>,
+    errors: &mut Vec<ValidationResult>,
+) {
+    for item in items {
+        if binds.has_calculate_conflict(&item.path)
+            || binds.entries(&item.path).is_empty() && binds.has_calculate_conflict(&item.key)
+        {
+            errors.push(definition_error(
+                item.path.clone(),
+                ValidationCode::CalculateTargetConflict,
+                format!("Multiple calculate Binds target `{}`", item.path),
+            ));
+        }
+        check_calculate_conflicts(&item.children, binds, errors);
+    }
+}
+
+fn definition_error(path: String, code: ValidationCode, message: String) -> ValidationResult {
+    ValidationResult {
+        path,
+        severity: Severity::Error,
+        constraint_kind: ConstraintKind::Definition,
+        code,
+        message,
+        constraint: None,
+        source: Some(ValidationSource::Definition),
+        shape_id: None,
+        context: None,
+    }
+}
+
 fn type_error(path: &str, message: String) -> ValidationResult {
     ValidationResult {
         path: path.to_string(),
@@ -461,6 +521,8 @@ fn refuse_input(validations: Vec<ValidationResult>) -> EvaluationResult {
     EvaluationResult {
         values: HashMap::new(),
         host_values: HashMap::new(),
+        calculated_paths: Vec::new(),
+        indexed_binds: Default::default(),
         data: Value::Object(Default::default()),
         validations,
         diagnostics: Vec::new(),
@@ -510,27 +572,23 @@ mod tests {
     }
     #[test]
     fn definition_cache_preserves_ordered_bind_precedence() {
+        // Competing calculate Binds now refuse under Core §3.10.1.
+        // Required still tests property replacement and the order-sensitive cache key.
         let first = json!({
             "items": [{"key": "rows", "type": "group", "repeatable": true, "children": [
                 {"key": "amount", "dataType": "integer"}
             ]}],
             "binds": {
-                "rows.amount": {"calculate": "1"},
-                "rows[*].amount": {"calculate": "2"}
+                "rows.amount": {"required": "false"},
+                "rows[*].amount": {"required": "true"}
             }
         });
         let mut second = first.clone();
         second["binds"].as_object_mut().unwrap().reverse();
         let input = HashMap::from([("rows".to_owned(), json!([{}]))]);
         let options = EvalOptions::default();
-        assert_eq!(
-            evaluate(&first, &input, &options).values["rows[0].amount"],
-            json!(2)
-        );
-        assert_eq!(
-            evaluate(&second, &input, &options).values["rows[0].amount"],
-            json!(1)
-        );
+        assert!(evaluate(&first, &input, &options).required["rows[0].amount"]);
+        assert!(!evaluate(&second, &input, &options).required["rows[0].amount"]);
     }
 
     #[test]
@@ -546,7 +604,6 @@ mod tests {
             ]}
         ]});
         let prepared = prepared_definition(&definition);
-        assert!(prepared.calculate_order.is_some());
         let options = EvalOptions::default();
 
         let empty = prepared.evaluate(&HashMap::new(), &options);

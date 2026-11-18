@@ -12,6 +12,7 @@
 
 use std::collections::HashSet;
 
+use formspec_core::bind_targets::bind_row_index;
 use formspec_core::path_utils::{Path, PathSegment};
 use formspec_core::value_coerce::LetterCase;
 use formspec_core::visit_definition_items_json;
@@ -286,7 +287,7 @@ fn resolve_child_segment<'a>(
 ) -> Result<&'a crate::tree::ItemRef, String> {
     // If current segment is Index/Wildcard, it doesn't resolve to a NEW item,
     // but rather validates the current item is repeatable.
-    if matches!(segment, PathSegment::Wildcard | PathSegment::Indexed(_)) {
+    if is_repeat_selector(segment) {
         ensure_repeatable_if_needed(label, &parent.full_path, parent, segment)?;
         return Ok(parent);
     }
@@ -306,14 +307,21 @@ fn resolve_child_segment<'a>(
     Ok(child)
 }
 
+fn is_repeat_selector(segment: &PathSegment) -> bool {
+    match segment {
+        PathSegment::Wildcard | PathSegment::Indexed(_) => true,
+        PathSegment::Special(selector) => bind_row_index(selector).is_some(),
+        PathSegment::Exact(_) => false,
+    }
+}
+
 fn ensure_repeatable_if_needed(
     label: &str,
     path: &str,
     item_ref: &crate::tree::ItemRef,
     segment: &PathSegment,
 ) -> Result<(), String> {
-    if matches!(segment, PathSegment::Wildcard | PathSegment::Indexed(_)) && !item_ref.is_repeatable
-    {
+    if is_repeat_selector(segment) && !item_ref.is_repeatable {
         return Err(format!(
             "{label} uses wildcard on non-repeatable group: {path}"
         ));

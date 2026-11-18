@@ -59,7 +59,7 @@ pub(super) struct BindPass<'a> {
     /// Paths with error-severity results in the prior cycle (`valid()` MIP state).
     pub(super) invalid_paths: &'a HashSet<String>,
     /// Run calculates here when other binds can observe their document-order writes.
-    pub(super) calculate_in_document_order: bool,
+    pub(super) early_writers: &'a HashSet<String>,
 }
 
 impl Visit for BindPass<'_> {
@@ -142,7 +142,7 @@ impl Visit for BindPass<'_> {
             item.value = val.clone();
         }
 
-        if self.calculate_in_document_order
+        if self.early_writers.contains(&item.path)
             && let Some(expr) = &item.calculate
             && let Ok(parsed) = parse(expr)
         {

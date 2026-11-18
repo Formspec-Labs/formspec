@@ -1,0 +1,22 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:formspec:parity:repeat-calculate-order",
+  "version": "1.0.0",
+  "title": "Repeat calculation order",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "repeatable": true,
+      "children": [
+        { "key": "positive", "type": "field", "dataType": "integer", "label": "Positive rows" },
+        { "key": "steps", "type": "field", "dataType": "integer", "label": "Steps to end" }
+      ]
+    }
+  ],
+  "binds": [
+    { "path": "rows[*].positive", "calculate": "countWhere($rows[*], $.steps > 0)" },
+    { "path": "rows[*].steps", "calculate": "(next().steps ?? 0) + 1" }
+  ]
+}

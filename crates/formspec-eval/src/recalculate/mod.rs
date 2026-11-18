@@ -12,7 +12,7 @@ mod text_pass;
 pub(crate) mod variables;
 mod walk;
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 
 use fel_core::Value as FelValue;
 use fel_core::exact_json::Value;
@@ -46,7 +46,10 @@ pub fn recalculate(
     Option<String>,
 ) {
     let index = ScopeIndex::for_flat(items, data.keys());
-    let order = CalculateOrder::new(items, &index, &parse_variables(definition));
+    let order = match CalculateOrder::new(items, &index, &parse_variables(definition), definition) {
+        Ok(order) => order,
+        Err(message) => return (HashMap::new(), HashMap::new(), Some(message)),
+    };
     let recalculated = recalculate_phase(
         items,
         &index,
@@ -54,7 +57,7 @@ pub fn recalculate(
         definition,
         previous_validations,
         options,
-        order.as_ref(),
+        &order,
         &mut AggregateMemo::default(),
         false,
     );
@@ -88,7 +91,7 @@ pub(crate) fn recalculate_phase(
     definition: &Value,
     previous_validations: Option<&[ValidationResult]>,
     options: &EvalOptions,
-    order: Option<&CalculateOrder>,
+    order: &CalculateOrder,
     aggregates: &mut AggregateMemo,
     resolve_text: bool,
 ) -> Recalculated {
@@ -103,11 +106,8 @@ pub(crate) fn recalculate_phase(
         .map(|def| fel_core::parse(&def.expression).ok())
         .collect();
     let variables = variables::Variables::new(&var_defs, index, &expressions);
-    if let Some(order) = order {
-        // Seed values only when early reads cannot affect the settled result. Each producer
-        // rewrites its column before calculates read it. Unchanged writes preserve the memo.
-        order.seed_previous_values(items, &mut state, aggregates);
-    }
+    // Seed values only where early reads cannot see them. Unchanged writes preserve the memo.
+    order.seed_previous_values(items, &mut state, aggregates);
     state.restore_aggregates(aggregates);
     let (_, cycle_err) = variables.evaluate(&mut state, index, fel);
     let invalid_paths: HashSet<String> = previous_validations
@@ -118,32 +118,28 @@ pub(crate) fn recalculate_phase(
         })
         .map(|result| result.path.clone())
         .collect();
+    for path in &invalid_paths {
+        state.env.mip_states.entry(path.clone()).or_default().valid = false;
+    }
 
     let walk = Walk { index, fel };
+    order.evaluate_early(items, &mut state, &mut values, &walk);
     walk.items(
         items,
         &mut state,
         &mut values,
         &mut BindPass {
             invalid_paths: &invalid_paths,
-            calculate_in_document_order: order.is_none(),
+            early_writers: order.early_writers(),
         },
         Parent::ROOT,
     );
 
-    let settle =
-        |items: &mut [ItemInfo], state: &mut ScopeData, values: &mut HashMap<String, Value>| {
-            if let Some(order) = order {
-                order.evaluate(items, state, values, &walk)
-            } else {
-                calculate_pass::settle_calculated_values(items, state, values, &walk)
-            }
-        };
-    let mut diagnostics = settle(items, &mut state, &mut values);
+    let mut diagnostics = order.evaluate(items, &mut state, &mut values, &walk);
     if !var_defs.is_empty() {
         bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel);
         variables.evaluate(&mut state, index, fel);
-        diagnostics = settle(items, &mut state, &mut values);
+        diagnostics = order.evaluate(items, &mut state, &mut values, &walk);
         bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel);
     }
     let (final_var_values, _) = variables.evaluate(&mut state, index, fel);
@@ -171,26 +167,6 @@ pub(crate) fn recalculate_phase(
         cycle_error: cycle_err,
         item_text,
     }
-}
-
-/// Order dependencies first, leaving unresolved incoming edges on a cycle.
-fn topological_order(incoming: &mut [usize], dependents: &[Vec<usize>]) -> Option<Vec<usize>> {
-    let mut ready: VecDeque<_> = incoming
-        .iter()
-        .enumerate()
-        .filter_map(|(id, count)| (*count == 0).then_some(id))
-        .collect();
-    let mut order = Vec::with_capacity(incoming.len());
-    while let Some(id) = ready.pop_front() {
-        order.push(id);
-        for &dependent in &dependents[id] {
-            incoming[dependent] -= 1;
-            if incoming[dependent] == 0 {
-                ready.push_back(dependent);
-            }
-        }
-    }
-    (order.len() == incoming.len()).then_some(order)
 }
 
 #[cfg(test)]
@@ -227,6 +203,62 @@ mod tests {
     #[test]
     fn calculated_column_scans_once_with_called_current() {
         assert_calculated_column_scans_once(&EvalOptions::default(), "@current().amt", false);
+    }
+
+    #[test]
+    fn calculated_column_and_predicate_scan_once_in_a_mixed_form() {
+        let def = json!({"items": [
+            {"key": "ready", "dataType": "boolean", "calculate": "true"},
+            {"key": "checked", "dataType": "string", "required": "$ready"},
+            {"key": "visible", "dataType": "string", "relevant": "required($checked)"},
+            {"key": "rows", "type": "group", "repeatable": true, "children": [
+                {"key": "positive", "dataType": "integer", "calculate": "countWhere($rows[*].amt, $ > 0)"},
+                {"key": "share", "dataType": "decimal", "calculate": "$amt / sum($rows[*].amt)"},
+                {"key": "amt", "dataType": "integer", "calculate": "$input * 2"},
+                {"key": "input", "dataType": "integer"}
+            ]}
+        ]});
+        let (first, second, scans, items) =
+            evaluate_twice(&def, HashMap::new(), &EvalOptions::default());
+        assert!(find_item_by_path(&items, "visible").unwrap().mip.relevant);
+        for result in [first, second] {
+            assert_eq!(result.values["rows[0].positive"], json!(2));
+            assert_eq!(result.values["rows[1].share"], json!(0.75));
+        }
+        assert_eq!(scans, 2, "one scan per aggregate across both phases");
+    }
+
+    #[test]
+    fn early_readonly_reads_the_completed_column_and_bare_repeat_predicate() {
+        assert_early_readonly_reads_completed_column("$input * 2");
+    }
+
+    #[test]
+    fn early_readonly_batches_a_column_that_reads_prior_validity() {
+        assert_early_readonly_reads_completed_column("if(valid($input), $input * 2, 0)");
+    }
+
+    fn assert_early_readonly_reads_completed_column(amount: &str) {
+        let def = json!({"items": [
+            {"key": "rows", "type": "group", "repeatable": true, "children": [
+                {"key": "early", "dataType": "integer", "readonly": "$share > 0"},
+                {"key": "share", "dataType": "decimal", "calculate": "$amt / sum($rows[*].amt)"},
+                {"key": "positive", "dataType": "integer", "calculate": "countWhere($rows, $.amt > 0)"},
+                {"key": "amt", "dataType": "integer", "calculate": amount},
+                {"key": "input", "dataType": "integer", "constraint": "$ >= 0"}
+            ]}
+        ]});
+        let (first, second, scans, items) =
+            evaluate_twice(&def, HashMap::new(), &EvalOptions::default());
+        assert!(
+            find_item_by_path(&items, "rows[0].early")
+                .unwrap()
+                .mip
+                .readonly
+        );
+        assert_eq!(first.values["rows[0].positive"], json!(2));
+        assert_eq!(second.values["rows[1].share"], json!(0.75));
+        assert_eq!(scans, 2, "one scan per aggregate across both phases");
     }
 
     #[test]
@@ -368,7 +400,6 @@ mod tests {
         for result in [first, second] {
             assert_eq!(result.values["selected"], json!(12));
         }
-        assert!(CalculateOrder::for_definition(&rebuild_item_tree(&def), &def).is_some());
     }
 
     fn evaluate_twice(
@@ -381,20 +412,12 @@ mod tests {
             ("rows[1].input".into(), json!(3)),
         ]);
         let mut items = rebuild_item_tree(def);
-        let order = CalculateOrder::for_definition(&items, def);
         crate::rebuild::expand_repeat_instances(&mut items, &data);
         let index = ScopeIndex::for_flat(&items, data.keys());
+        let order = CalculateOrder::new(&items, &index, &parse_variables(def), def).unwrap();
         let mut memo = AggregateMemo::default();
         let first = recalculate_phase(
-            &mut items,
-            &index,
-            &data,
-            def,
-            None,
-            options,
-            order.as_ref(),
-            &mut memo,
-            false,
+            &mut items, &index, &data, def, None, options, &order, &mut memo, false,
         );
         let (validations, _) = crate::revalidate::revalidate_scoped(
             &items,
@@ -412,7 +435,7 @@ mod tests {
             def,
             Some(&validations),
             options,
-            order.as_ref(),
+            &order,
             &mut memo,
             false,
         );
@@ -420,7 +443,7 @@ mod tests {
     }
 
     #[test]
-    fn calculate_with_postfix_self_read_keeps_bounded_cycle_handling() {
+    fn calculation_dependencies_refuse_a_postfix_self_read() {
         let def = json!({
             "items": [
                 { "key": "counter", "dataType": "object", "calculate":
@@ -433,12 +456,11 @@ mod tests {
             ]
         });
         let data = HashMap::from([("rows[0].input".into(), json!(1))]);
-        let mut items = rebuild_item_tree(&def);
-        crate::rebuild::expand_repeat_instances(&mut items, &data);
-        let (values, _, _) = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
-        // The document-order Bind pass writes once, then the calculate loop is capped at 100.
-        assert_eq!(values["counter"], json!({"amount": 101}));
-        assert_eq!(values["rows[0].share"], json!(1));
+        // Core §3.6.2 requires refusal of the Definition. The old assertion
+        // treated the value produced by the 100-pass cap as a valid answer.
+        let result = crate::evaluate(&def, &data, &EvalOptions::default());
+        assert_eq!(result.validations[0].code, "CIRCULAR_DEPENDENCY");
+        assert_eq!(result.data, json!({}));
     }
 
     #[test]
@@ -447,11 +469,11 @@ mod tests {
     }
 
     #[test]
-    fn fallback_repeats_when_only_the_calculated_type_changes() {
+    fn early_readonly_calculate_is_resettled_when_only_its_type_changes() {
         assert_late_default_settles_calculated_type(true);
     }
 
-    fn assert_late_default_settles_calculated_type(use_fallback: bool) {
+    fn assert_late_default_settles_calculated_type(readonly_reads_calculate: bool) {
         let mut def = json!({
             "items": [
                 { "key": "reader", "dataType": "string", "calculate": "if(isNull($p), 'string', typeOf($p))" },
@@ -464,8 +486,8 @@ mod tests {
                 ] }
             ]
         });
-        if use_fallback {
-            // Readonly can observe intermediate writes, so this still uses the bounded loop.
+        if readonly_reads_calculate {
+            // Readonly can observe the earlier write before the default is applied.
             def["items"][2]["readonly"] = json!("present($p)");
         }
         let data = HashMap::from([("rows[0].input".into(), json!(1))]);

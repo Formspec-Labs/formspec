@@ -15,6 +15,8 @@ mod compatible_versions;
 pub mod component_tree;
 pub mod definition_expressions;
 pub mod definition_items;
+pub mod dependency_order;
+pub mod dependency_reads;
 pub mod extension_analysis;
 pub mod fel_analysis;
 pub mod fel_condition_group_lift;

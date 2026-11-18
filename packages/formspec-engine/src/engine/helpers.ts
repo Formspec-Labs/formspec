@@ -432,32 +432,6 @@ export function extractInlineBind(item: FormItem, path: string): EngineBindConfi
     return used ? bind : null;
 }
 
-export function detectNamedCycle(graph: Map<string, Set<string>>, message: string): void {
-    const visiting = new Set<string>();
-    const visited = new Set<string>();
-
-    const visit = (node: string): void => {
-        if (visited.has(node)) {
-            return;
-        }
-        if (visiting.has(node)) {
-            throw new Error(message);
-        }
-        visiting.add(node);
-        for (const dep of graph.get(node) ?? []) {
-            if (graph.has(dep)) {
-                visit(dep);
-            }
-        }
-        visiting.delete(node);
-        visited.add(node);
-    };
-
-    for (const node of graph.keys()) {
-        visit(node);
-    }
-}
-
 export function topoSortKeys<T extends { key: string }>(
     nodes: T[],
     graph: Map<string, Set<string>>,
@@ -611,14 +585,4 @@ export function resolveQualifiedGroupRefs(
     }
 
     return result;
-}
-
-export function resolveRelativeDependency(dep: string, parentPath: string, selfPath: string): string | null {
-    if (!dep) {
-        return selfPath;
-    }
-    if (dep.includes('.')) {
-        return dep;
-    }
-    return parentPath ? `${parentPath}.${dep}` : dep;
 }

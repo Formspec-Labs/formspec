@@ -1,5 +1,6 @@
 /** @filedesc Diffs batch evaluation snapshots into per-signal patch payloads. */
 import { deepEqual } from './json-values.js';
+import type { EngineBindConfig } from './engine/helpers.js';
 
 
 export interface EvalValidation {
@@ -32,6 +33,8 @@ export interface EvalResult {
     preservedValues?: Record<string, unknown>;
     filingOnlyPaths?: string[];
     repeatCounts?: Record<string, number>;
+    calculatedPaths?: string[];
+    indexedBinds?: Record<string, EngineBindConfig>;
     required: Record<string, boolean>;
     readonly: Record<string, boolean>;
 }

@@ -196,3 +196,60 @@ test('cycle detection works through repeat group dependencies', () => {
     'should detect cycle between repeat group fields'
   );
 });
+
+function calculationDefinition(binds) {
+  return {
+    $formspec: '1.0', url: 'urn:test:calculation-dependencies', version: '1.0.0',
+    title: 'Repeat calculation dependencies',
+    items: [{
+      key: 'rows', type: 'group', label: 'Rows', repeatable: true,
+      children: ['a', 'b'].map(key => ({ key, type: 'field', label: key, dataType: 'integer' })),
+    }],
+    binds,
+  };
+}
+
+test('calculation dependencies check actual rows on create, resume, and add', () => {
+  const definition = calculationDefinition([
+    { path: 'rows[*].a', calculate: '(prev().b ?? 0) + 1' },
+    { path: 'rows[*].b', calculate: '(next().a ?? 0) + 1' },
+  ]);
+  for (const options of [{ responseData: { rows: [{}, {}] } }, { savedResponseData: { rows: [{}, {}] } }]) {
+    assert.throws(() => new FormEngine(definition, options), /Cyclic dependency.*rows\[0\]\.b.*rows\[1\]\.a/);
+  }
+  const engine = new FormEngine(definition, { savedResponseData: { rows: [{}] } });
+  assert.equal(engine.signals['rows[0].a'].value, 1);
+  engine.addRepeatInstance('rows');
+  assert.ok(engine.getValidationReport().results.some(result => result.code === 'CIRCULAR_DEPENDENCY'));
+  engine.removeRepeatInstance('rows', 1);
+  assert.ok(engine.getValidationReport().valid);
+  engine.dispose();
+});
+
+test('calculation dependencies present the indexed writer only in its target row', () => {
+  const definition = calculationDefinition([
+    { path: 'rows[@index = 2].a', calculate: '$rows[1].a + 1' },
+  ]);
+  const engine = new FormEngine(definition, { savedResponseData: { rows: [{ a: 7 }, { a: 99 }] } });
+  assert.equal(engine.signals['rows[0].a'].value, 7);
+  assert.equal(engine.signals['rows[1].a'].value, 8);
+  engine.setValue('rows[0].a', 12);
+  assert.equal(engine.signals['rows[1].a'].value, 13);
+  assert.deepEqual(engine.getDraftSnapshot().data.rows, [{ a: 12 }, {}]);
+  engine.removeRepeatInstance('rows', 0);
+  assert.equal(engine.signals['rows[0].a'].value, null);
+  engine.dispose();
+});
+
+test('a row-specific default is stored only in the targeted draft row', () => {
+  const definition = calculationDefinition([
+    { path: 'rows[@index = 2].a', relevant: '$b > 0', default: 5 },
+  ]);
+  const engine = new FormEngine(definition, { savedResponseData: { rows: [{ b: 0 }, { b: 0 }] } });
+  engine.setValue('rows[0].b', 1);
+  engine.setValue('rows[1].b', 1);
+  assert.equal(engine.signals['rows[0].a'].value, null);
+  assert.equal(engine.signals['rows[1].a'].value, 5);
+  assert.deepEqual(engine.getDraftSnapshot().data.rows, [{ b: 1 }, { a: 5, b: 1 }]);
+  engine.dispose();
+});

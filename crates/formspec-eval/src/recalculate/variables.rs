@@ -8,7 +8,7 @@ use crate::fel_eval::Fel;
 use crate::scope::{ScopeData, ScopeIndex};
 use crate::types::VariableDef;
 
-use super::topological_order;
+use formspec_core::dependency_order::dependency_order;
 
 fn variable_context_name(reference: &str) -> Option<&str> {
     let name = reference.strip_prefix('@')?.split(['.', '(']).next()?;
@@ -71,25 +71,19 @@ impl<'a> Variables<'a> {
                     .map_or_else(Vec::new, |expr| context_dependencies(expr, &names))
             })
             .collect();
-        let mut incoming = vec![0; bindings.len()];
-        let mut dependents = vec![Vec::new(); bindings.len()];
+        let mut inputs = vec![Vec::new(); bindings.len()];
         for (id, binding) in bindings.iter().enumerate() {
             for name in &dependencies[binding.declaration] {
                 if let Some(&dependency) = crate::scope::lexical_scopes(binding.site)
                     .chain(std::iter::once("#"))
                     .find_map(|site| by_site.get(&(site, name.as_str())))
                 {
-                    incoming[id] += 1;
-                    dependents[dependency].push(id);
+                    inputs[id].push(dependency);
                 }
             }
         }
-        let order = topological_order(&mut incoming, &dependents).ok_or_else(|| {
-            let cycle: Vec<_> = bindings
-                .iter()
-                .zip(incoming)
-                .filter_map(|(binding, count)| (count != 0).then_some(binding.name))
-                .collect();
+        let order = dependency_order(&inputs).map_err(|members| {
+            let cycle: Vec<_> = members.into_iter().map(|id| bindings[id].name).collect();
             format!("Circular variable dependencies: {cycle:?}")
         });
         Self { bindings, order }

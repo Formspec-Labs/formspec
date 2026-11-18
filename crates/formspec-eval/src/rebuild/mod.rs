@@ -16,4 +16,4 @@ pub(crate) use nested_data::flatten_response_data;
 use repeat_data::detect_repeat_count;
 pub use repeat_data::expand_wildcard_path;
 pub use repeat_expand::expand_repeat_instances;
-pub(crate) use repeat_expand::expand_repeat_instances_counted;
+pub(crate) use repeat_expand::{apply_indexed_binds, expand_repeat_instances_counted};

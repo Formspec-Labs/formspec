@@ -189,12 +189,7 @@ fn build_item_info_from_ctx(
         })
         .unwrap_or_default();
 
-    let letter_case = LetterCase::for_field(
-        data_type.as_deref(),
-        bind.get("letterCase").and_then(Value::as_str),
-    );
-
-    ItemInfo {
+    let mut info = ItemInfo {
         key,
         path,
         item_type,
@@ -202,55 +197,19 @@ fn build_item_info_from_ctx(
         currency,
         value: Value::Null,
         mip: MipState::default(),
-        calculate: Some(&bind)
-            .and_then(|b| b.get("calculate"))
-            .and_then(|v| v.as_str())
-            .map(String::from),
-        precision: Some(&bind)
-            .and_then(|b| b.get("precision"))
-            .and_then(|v| v.as_u64())
-            .and_then(|value| u32::try_from(value).ok()),
-        constraint: Some(&bind)
-            .and_then(|b| b.get("constraint"))
-            .and_then(|v| v.as_str())
-            .map(String::from),
-        constraint_message: Some(&bind)
-            .and_then(|b| b.get("constraintMessage"))
-            .and_then(|v| v.as_str())
-            .map(String::from),
-        relevance: Some(&bind)
-            .and_then(|b| b.get("relevant"))
-            .and_then(bool_or_string_expr),
-        required_expr: Some(&bind)
-            .and_then(|b| b.get("required"))
-            .and_then(bool_or_string_expr),
-        readonly_expr: Some(&bind)
-            .and_then(|b| b.get("readonly"))
-            .and_then(bool_or_string_expr),
-        whitespace: Some(&bind)
-            .and_then(|b| b.get("whitespace"))
-            .and_then(|v| v.as_str())
-            .map(WhitespaceMode::from_str_lossy),
-        letter_case,
-        nrb: Some(&bind)
-            .and_then(|b| b.get("nonRelevantBehavior"))
-            .and_then(|v| v.as_str())
-            .map(NrbMode::from_str_lossy),
-        excluded_value: Some(&bind)
-            .and_then(|b| b.get("excludedValue"))
-            .and_then(|v| v.as_str())
-            .and_then(ExcludedValueMode::parse_wire),
-        default_value: Some(&bind)
-            .and_then(|b| b.get("default"))
-            .and_then(|v| match v {
-                Value::String(s) if s.starts_with('=') => None,
-                other => Some(other.clone()),
-            }),
-        default_expression: Some(&bind)
-            .and_then(|b| b.get("default"))
-            .and_then(|v| v.as_str())
-            .filter(|s| s.starts_with('='))
-            .map(|s| s[1..].to_string()),
+        calculate: None,
+        precision: None,
+        constraint: None,
+        constraint_message: None,
+        relevance: None,
+        required_expr: None,
+        readonly_expr: None,
+        whitespace: None,
+        letter_case: None,
+        nrb: None,
+        excluded_value: None,
+        default_value: None,
+        default_expression: None,
         initial_value: item.get("initialValue").cloned(),
         parent_path: ctx.parent_dotted.clone(),
         repeatable: is_repeatable_group(item["type"].as_str(), item["repeatable"].as_bool()),
@@ -300,6 +259,64 @@ fn build_item_info_from_ctx(
             .and_then(Value::as_bool)
             == Some(false),
         children,
+    };
+    apply_bind(&mut info, &bind);
+    info
+}
+
+pub(super) fn apply_bind(item: &mut ItemInfo, bind: &Map<String, Value>) {
+    if let Some(value) = bind.get("calculate") {
+        item.calculate = Some(value).and_then(|v| v.as_str()).map(String::from);
+    }
+    if let Some(value) = bind.get("precision") {
+        item.precision = Some(value)
+            .and_then(|v| v.as_u64())
+            .and_then(|value| u32::try_from(value).ok());
+    }
+    if let Some(value) = bind.get("constraint") {
+        item.constraint = Some(value).and_then(|v| v.as_str()).map(String::from);
+    }
+    if let Some(value) = bind.get("constraintMessage") {
+        item.constraint_message = Some(value).and_then(|v| v.as_str()).map(String::from);
+    }
+    if let Some(value) = bind.get("relevant") {
+        item.relevance = Some(value).and_then(bool_or_string_expr);
+    }
+    if let Some(value) = bind.get("required") {
+        item.required_expr = Some(value).and_then(bool_or_string_expr);
+    }
+    if let Some(value) = bind.get("readonly") {
+        item.readonly_expr = Some(value).and_then(bool_or_string_expr);
+    }
+    if let Some(value) = bind.get("whitespace") {
+        item.whitespace = Some(value)
+            .and_then(|v| v.as_str())
+            .map(WhitespaceMode::from_str_lossy);
+    }
+    if let Some(value) = bind.get("letterCase") {
+        item.letter_case = LetterCase::for_field(item.data_type.as_deref(), value.as_str());
+    }
+    if let Some(value) = bind.get("nonRelevantBehavior") {
+        item.nrb = Some(value)
+            .and_then(|v| v.as_str())
+            .map(NrbMode::from_str_lossy);
+    }
+    if let Some(value) = bind.get("excludedValue") {
+        item.excluded_value = Some(value)
+            .and_then(|v| v.as_str())
+            .and_then(ExcludedValueMode::parse_wire);
+    }
+    if let Some(value) = bind.get("default") {
+        item.default_value = Some(value).and_then(|v| match v {
+            Value::String(s) if s.starts_with('=') => None,
+            other => Some(other.clone()),
+        });
+    }
+    if let Some(value) = bind.get("default") {
+        item.default_expression = Some(value)
+            .and_then(|v| v.as_str())
+            .filter(|s| s.starts_with('='))
+            .map(|s| s[1..].to_string());
     }
 }
 

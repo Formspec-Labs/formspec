@@ -172,6 +172,10 @@ pub struct EvaluationResult {
     pub values: HashMap<String, Value>,
     /// Settled values before applying the filed Response's non-relevant behavior.
     pub(crate) host_values: HashMap<String, Value>,
+    /// Calculated Item paths for the editing host.
+    pub(crate) calculated_paths: Vec<String>,
+    /// Effective Bind properties at paths affected by row-specific Binds.
+    pub(crate) indexed_binds: fel_core::exact_json::Map<String, Value>,
     /// The Response projection of [`Self::values`]: groups are nested objects and repeats arrays of
     /// row objects, after `nonRelevantBehavior`. What a Response stores as `data`.
     pub data: Value,

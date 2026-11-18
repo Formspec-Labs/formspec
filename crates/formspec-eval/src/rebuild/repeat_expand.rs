@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 
 use fel_core::exact_json::Value;
+use formspec_core::BindTargets;
 
 use crate::types::ItemInfo;
 
@@ -75,5 +76,19 @@ pub(crate) fn expand_repeat_instances_counted(items: &mut [ItemInfo], counts: &m
             // Recurse into non-repeatable groups
             expand_repeat_instances_counted(&mut item.children, counts);
         }
+    }
+}
+
+pub(crate) fn apply_indexed_binds(
+    items: &mut [ItemInfo],
+    binds: &BindTargets<'_, Value>,
+    resolved: &mut fel_core::exact_json::Map<String, Value>,
+) {
+    for item in items {
+        if let Some(bind) = binds.merged_concrete(&item.path) {
+            super::item_tree::apply_bind(item, &bind);
+            resolved.insert(item.path.clone(), Value::Object(bind));
+        }
+        apply_indexed_binds(&mut item.children, binds, resolved);
     }
 }

@@ -17,29 +17,34 @@ export function patchValueSignalsFromWasm(options: {
     values: Record<string, unknown>;
     signals: Record<string, EngineSignal<any>>;
     data: Record<string, any>;
-    bindConfigs: Record<string, EngineBindConfig>;
-    calculatedFields: Set<string>;
+    bindAt: (path: string, basePath: string) => EngineBindConfig | undefined;
+    isCalculated: (path: string, basePath: string) => boolean;
+    refused: boolean;
 }): void {
     for (const [path, sig] of Object.entries(options.signals)) {
         const basePath = toBasePath(path);
+        const calculated = options.isCalculated(path, basePath);
         // Native output can omit non-relevant fields. Their editing values still belong to the primary instance.
         if (!Object.prototype.hasOwnProperty.call(options.values, path)) {
-            if (!options.calculatedFields.has(basePath)) {
+            if (calculated && options.refused) {
+                sig.value = null;
+            } else if (!calculated) {
                 sig.value = normalizeWasmValue(options.data[path] ?? null);
             }
             continue;
         }
         const value = options.values[path];
         const normalizedValue = normalizeWasmValue(value);
-        if (!options.calculatedFields.has(basePath)
-            && options.bindConfigs[basePath]?.default !== undefined
+        const hasDefault = options.bindAt(path, basePath)?.default !== undefined;
+        if (!calculated
+            && hasDefault
             && isEmptyValue(options.data[path])
             && !deepEqual(options.data[path], normalizedValue)) {
             options.data[path] = cloneValue(normalizedValue);
         }
         let rawValue: any;
-        if (!options.calculatedFields.has(basePath)
-            && (path in options.data || options.bindConfigs[basePath]?.default === undefined)) {
+        if (!calculated
+            && (path in options.data || !hasDefault)) {
             rawValue = options.data[path];
         } else {
             rawValue = normalizedValue;

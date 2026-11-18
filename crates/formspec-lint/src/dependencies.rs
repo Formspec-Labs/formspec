@@ -27,8 +27,12 @@
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
-use fel_core::{Expr, extract_dependencies};
+use fel_core::ast::PathSegment;
 use formspec_core::BindTargets;
+use formspec_core::bind_targets::bind_row_index;
+use formspec_core::dependency_order::dependency_order;
+use formspec_core::dependency_reads::{Property, PropertyInput, Read, Reads, Root};
+use formspec_core::path_utils::{Path, PathSegment as BindSegment};
 use serde_json::Value;
 
 use crate::expressions::{BindProperty, CompiledExpression, ShapeMember, shape_members};
@@ -79,7 +83,9 @@ fn build_graph(compiled: &[CompiledExpression], items: &ItemTreeIndex, document:
             .filter_map(|(index, shape)| Some((shape.get("id")?.as_str()?, index)))
             .collect();
         for (index, shape) in declarations.iter().enumerate() {
-            if let Some(target) = shape.get("target").and_then(Value::as_str) {
+            if let Some(target) = shape.get("target").and_then(Value::as_str)
+                && !matches!(shape["severity"].as_str(), Some("warning" | "info"))
+            {
                 shapes
                     .entry(item_key(target, items))
                     .or_default()
@@ -110,6 +116,12 @@ fn build_graph(compiled: &[CompiledExpression], items: &ItemTreeIndex, document:
         let Some(bind) = &expression.bind else {
             continue;
         };
+        // An indexed writer needs its actual Response rows before checking it for cycles.
+        if Path::parse(&bind.path).segments.iter().any(|segment| {
+            matches!(segment, BindSegment::Special(selector) if bind_row_index(selector).is_some())
+        }) {
+            continue;
+        }
         let key = item_key(&bind.path, items);
         if matches!(
             bind.property,
@@ -141,6 +153,10 @@ fn build_graph(compiled: &[CompiledExpression], items: &ItemTreeIndex, document:
     // Bind/variable expressions always participate. Shape queries must seed themselves
     // (they can cycle without Binds); other Shape expressions are needed only when a
     // valid() query reaches their Shape. Reference-only cycles already exist above.
+    let dependencies: Vec<_> = compiled
+        .iter()
+        .map(|expression| Reads::new(&expression.parsed))
+        .collect();
     let mut pending: Vec<Vertex> = compiled
         .iter()
         .enumerate()
@@ -148,12 +164,8 @@ fn build_graph(compiled: &[CompiledExpression], items: &ItemTreeIndex, document:
             if expression.bind.is_some() || expression.variable.is_some() {
                 return Some(Vertex::Expression(index));
             }
-            if expression.shape_index.is_some() {
-                let mut queries = Vec::new();
-                collect_mip_queries(&expression.parsed, &mut queries);
-                if !queries.is_empty() {
-                    return Some(Vertex::Expression(index));
-                }
+            if expression.shape_index.is_some() && !dependencies[index].properties.is_empty() {
+                return Some(Vertex::Expression(index));
             }
             None
         })
@@ -179,40 +191,36 @@ fn build_graph(compiled: &[CompiledExpression], items: &ItemTreeIndex, document:
             Vertex::Value(_) => continue,
         };
         let expression = &compiled[index];
-        let parsed = &expression.parsed;
-        let dependencies = extract_dependencies(parsed);
-        let mut reads: BTreeSet<Vertex> = dependencies
-            .fields
-            .iter()
-            .map(|field| Vertex::Value(item_key(field, items)))
-            .collect();
-        for reference in &dependencies.context_refs {
-            if let Some(field) = reference.strip_prefix("@current.") {
-                reads.insert(Vertex::Value(item_key(field, items)));
-            } else if let Some(variable) = variable_read(reference, expression, items, &variables) {
+        let mut reads = BTreeSet::new();
+        let dependency = &dependencies[index];
+        for read in &dependency.values {
+            if let Some(key) = read_key(read, expression, items) {
+                if let Some(item) = items
+                    .by_key
+                    .get(&key)
+                    .filter(|item| item.data_type.is_none())
+                {
+                    let prefix = format!("{}.", item.full_path);
+                    reads.extend(
+                        items
+                            .by_key
+                            .values()
+                            .filter(|child| child.full_path.starts_with(&prefix))
+                            .map(|child| Vertex::Value(child.key.clone())),
+                    );
+                }
+                reads.insert(Vertex::Value(key));
+            }
+        }
+        for name in &dependency.variables {
+            if let Some(variable) = variable_read(name, expression, items, &variables) {
                 reads.insert(Vertex::Expression(variable));
             }
         }
-        if dependencies.has_self_ref
-            && let Some(target) = expression
-                .bind
-                .as_ref()
-                .map(|bind| bind.path.as_str())
-                .or(expression.shape_target.as_deref())
-                .or_else(|| {
-                    expression
-                        .variable
-                        .as_ref()
-                        .map(|variable| variable.scope.as_str())
-                        .filter(|scope| *scope != "#")
-                })
-        {
-            reads.insert(Vertex::Value(item_key(target, items)));
-        }
-        let mut queries = Vec::new();
-        collect_mip_queries(parsed, &mut queries);
-        for (function, path) in queries {
-            reads.extend(mip_query_reads(&function, &path, items, &by_slot, &shapes));
+        for (property, read) in &dependency.properties {
+            if let Some(key) = read_key(read, expression, items) {
+                reads.extend(mip_query_reads(*property, &key, items, &by_slot, &shapes));
+            }
         }
         pending.extend(
             reads
@@ -229,17 +237,24 @@ fn build_graph(compiled: &[CompiledExpression], items: &ItemTreeIndex, document:
 
 /// Resolve `@name` (including members of its value) in the nearest visible scope.
 fn variable_read(
-    reference: &str,
+    name: &str,
     expression: &CompiledExpression,
     items: &ItemTreeIndex,
     variables: &HashMap<(&str, String), usize>,
 ) -> Option<usize> {
-    let name = reference.strip_prefix('@')?.split('.').next()?;
-    // FEL grammar reserves these names for repeat/external-instance context.
-    if matches!(name, "current" | "index" | "count" | "instance") {
-        return None;
+    let target = expression_target(expression);
+    if let Some(item) = target.and_then(|target| items.by_key.get(&item_key(target, items))) {
+        for scope in self_and_ancestors(item, items) {
+            if let Some(&index) = variables.get(&(name, scope)) {
+                return Some(index);
+            }
+        }
     }
-    let target = expression
+    variables.get(&(name, "#".to_owned())).copied()
+}
+
+fn expression_target(expression: &CompiledExpression) -> Option<&str> {
+    expression
         .bind
         .as_ref()
         .map(|bind| bind.path.as_str())
@@ -249,15 +264,57 @@ fn variable_read(
                 .variable
                 .as_ref()
                 .map(|variable| variable.scope.as_str())
-        });
-    if let Some(item) = target.and_then(|target| items.by_key.get(&item_key(target, items))) {
-        for scope in self_and_ancestors(item, items) {
-            if let Some(&index) = variables.get(&(name, scope)) {
-                return Some(index);
+        })
+}
+
+fn read_key(read: &Read, expression: &CompiledExpression, items: &ItemTreeIndex) -> Option<String> {
+    let mut path = match &read.root {
+        Root::Field(name) => item_key(name, items),
+        Root::Target => item_key(expression_target(expression)?, items),
+        Root::Current | Root::Parent => {
+            let key = item_key(expression_target(expression)?, items);
+            let item = items.by_key.get(&key)?;
+            let mut repeats = self_and_ancestors(item, items)
+                .into_iter()
+                .filter(|key| items.by_key.get(key).is_some_and(|item| item.is_repeatable));
+            let current = repeats.next()?;
+            if matches!(&read.root, Root::Current) {
+                current
+            } else {
+                repeats
+                    .next()
+                    .or_else(|| items.by_key.get(&current)?.parent_full_path.clone())
+                    .unwrap_or_default()
             }
         }
+        Root::Previous | Root::Next => return None,
+    };
+    for segment in &read.path {
+        match segment {
+            PathSegment::Dot(key) => {
+                if !path.is_empty() {
+                    path.push('.');
+                }
+                path.push_str(key);
+            }
+            PathSegment::Index(_)
+                if items
+                    .by_key
+                    .get(&item_key(&path, items))
+                    .is_some_and(|item| item.is_repeatable) =>
+            {
+                return None;
+            }
+            PathSegment::Index(_) | PathSegment::Wildcard => {}
+        }
     }
-    variables.get(&(name, "#".to_owned())).copied()
+    let key = item_key(&path, items);
+    (!read.row_count
+        || !items
+            .by_key
+            .get(&key)
+            .is_some_and(|item| item.is_repeatable))
+    .then_some(key)
 }
 
 /// The Item key a path names (keys are unique, E200).
@@ -370,7 +427,7 @@ fn self_and_ancestors(item: &ItemRef, items: &ItemTreeIndex) -> Vec<String> {
 
 /// The vertices a MIP query function call on `path` reads (see the module docs).
 fn mip_query_reads(
-    function: &str,
+    property: Property,
     path: &str,
     items: &ItemTreeIndex,
     by_slot: &HashMap<(String, BindProperty), Vec<usize>>,
@@ -381,129 +438,48 @@ fn mip_query_reads(
         Some(item) => self_and_ancestors(item, items),
         None => vec![key.clone()],
     };
-    let own = |property: BindProperty| {
+    let binds = |key: &str, property: BindProperty| {
         by_slot
-            .get(&(key.clone(), property))
+            .get(&(key.to_owned(), property))
             .into_iter()
             .flatten()
             .copied()
             .map(Vertex::Expression)
-            .collect::<Vec<_>>()
     };
-    let inherited = |property: BindProperty| {
-        lineage
-            .iter()
-            .filter_map(|governing| by_slot.get(&(governing.clone(), property)))
-            .flatten()
-            .copied()
-            .map(Vertex::Expression)
-            .collect::<Vec<_>>()
-    };
-    match function {
-        "relevant" => inherited(BindProperty::Relevant),
-        "readonly" => inherited(BindProperty::Readonly),
-        "required" => [
-            own(BindProperty::Required),
-            inherited(BindProperty::Relevant),
-        ]
-        .concat(),
-        "valid" => {
-            let shape_reads = shapes
-                .get(&key)
-                .into_iter()
-                .flatten()
-                .copied()
-                .map(Vertex::Shape)
-                .collect::<Vec<_>>();
-            [
-                vec![Vertex::Value(key.clone())],
-                own(BindProperty::Required),
-                own(BindProperty::Constraint),
-                inherited(BindProperty::Relevant),
-                shape_reads,
-            ]
-            .concat()
+    let mut reads = Vec::new();
+    for input in property.inputs() {
+        match *input {
+            PropertyInput::Value => reads.push(Vertex::Value(key.clone())),
+            PropertyInput::Inherited(property) => {
+                reads.extend(
+                    lineage
+                        .iter()
+                        .flat_map(|key| binds(key, bind_property(property))),
+                );
+            }
+            PropertyInput::Own(property) => reads.extend(binds(&key, bind_property(property))),
+            PropertyInput::Constraint => reads.extend(binds(&key, BindProperty::Constraint)),
+            PropertyInput::ErrorShapes => {
+                reads.extend(
+                    shapes
+                        .get(&key)
+                        .into_iter()
+                        .flatten()
+                        .copied()
+                        .map(Vertex::Shape),
+                );
+            }
         }
-        _ => Vec::new(),
     }
+    reads
 }
 
-/// Collect `(function, path)` for every MIP query function call in `expr`.
-///
-/// fel-core reports the queried paths but not which function queried them; the function
-/// decides which Bind expression is read. The match is exhaustive on purpose, so a new
-/// FEL expression form fails to compile here instead of being skipped silently.
-fn collect_mip_queries(expr: &Expr, queries: &mut Vec<(String, String)>) {
-    match expr {
-        Expr::FunctionCall { name, args } => {
-            if matches!(
-                name.as_str(),
-                "relevant" | "readonly" | "required" | "valid"
-            ) && let Some(first) = args.first()
-            {
-                for path in extract_dependencies(first).fields {
-                    queries.push((name.clone(), path));
-                }
-            }
-            for arg in args {
-                collect_mip_queries(arg, queries);
-            }
-        }
-        Expr::Null
-        | Expr::Boolean(_)
-        | Expr::Number(_)
-        | Expr::String(_)
-        | Expr::DateLiteral(_)
-        | Expr::DateTimeLiteral(_)
-        | Expr::FieldRef { .. }
-        | Expr::VarRef { .. }
-        | Expr::ContextRef { .. } => {}
-        Expr::Array(elements) => {
-            for element in elements {
-                collect_mip_queries(element, queries);
-            }
-        }
-        Expr::Object(entries) => {
-            for (_, value) in entries {
-                collect_mip_queries(value, queries);
-            }
-        }
-        Expr::UnaryOp { operand, .. } => collect_mip_queries(operand, queries),
-        Expr::BinaryOp { left, right, .. }
-        | Expr::NullCoalesce { left, right }
-        | Expr::RowLookup {
-            source: left,
-            key: right,
-            ..
-        } => {
-            collect_mip_queries(left, queries);
-            collect_mip_queries(right, queries);
-        }
-        Expr::Ternary {
-            condition,
-            then_branch,
-            else_branch,
-        }
-        | Expr::IfThenElse {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            collect_mip_queries(condition, queries);
-            collect_mip_queries(then_branch, queries);
-            collect_mip_queries(else_branch, queries);
-        }
-        Expr::Membership {
-            value, container, ..
-        } => {
-            collect_mip_queries(value, queries);
-            collect_mip_queries(container, queries);
-        }
-        Expr::LetBinding { value, body, .. } => {
-            collect_mip_queries(value, queries);
-            collect_mip_queries(body, queries);
-        }
-        Expr::PostfixAccess { expr, .. } => collect_mip_queries(expr, queries),
+fn bind_property(property: Property) -> BindProperty {
+    match property {
+        Property::Required => BindProperty::Required,
+        Property::Relevant => BindProperty::Relevant,
+        Property::Readonly => BindProperty::Readonly,
+        Property::Valid => unreachable!("validity isn't stored in a Bind"),
     }
 }
 
@@ -511,6 +487,41 @@ fn collect_mip_queries(expr: &Expr, queries: &mut Vec<(String, String)>) {
 
 /// Depth-first back-edge detection. Returns each cycle as its vertex sequence.
 fn detect_cycles(graph: &Graph) -> Vec<Vec<Vertex>> {
+    let vertices: Vec<_> = graph.keys().collect();
+    let ids: HashMap<_, _> = vertices
+        .iter()
+        .enumerate()
+        .map(|(id, &vertex)| (vertex, id))
+        .collect();
+    let inputs: Vec<Vec<_>> = graph
+        .values()
+        .map(|dependencies| {
+            dependencies
+                .iter()
+                .filter_map(|vertex| ids.get(vertex).copied())
+                .collect()
+        })
+        .collect();
+    // Core identifies the cycle members. The lint pass turns those vertices
+    // into authored paths and readable witness chains.
+    let Err(members) = dependency_order(&inputs) else {
+        return Vec::new();
+    };
+    let active: HashSet<_> = members.into_iter().map(|id| vertices[id]).collect();
+    let graph: Graph = graph
+        .iter()
+        .filter(|(vertex, _)| active.contains(vertex))
+        .map(|(vertex, edges)| {
+            (
+                vertex.clone(),
+                edges
+                    .iter()
+                    .filter(|target| active.contains(target))
+                    .cloned()
+                    .collect(),
+            )
+        })
+        .collect();
     let mut visited = HashSet::new();
     let mut stack = Vec::new();
     let mut on_stack = HashSet::new();
@@ -520,7 +531,7 @@ fn detect_cycles(graph: &Graph) -> Vec<Vec<Vertex>> {
         if !visited.contains(vertex) {
             dfs(
                 vertex,
-                graph,
+                &graph,
                 &mut visited,
                 &mut stack,
                 &mut on_stack,

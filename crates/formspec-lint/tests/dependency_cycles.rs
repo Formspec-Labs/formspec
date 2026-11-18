@@ -38,6 +38,30 @@ fn cycles(document: &Value) -> Vec<String> {
 }
 
 #[test]
+fn lint_does_not_treat_a_different_index_as_the_same_writer() {
+    let document = definition(
+        json!([{"key":"rows", "type":"group", "label":"Rows", "repeatable":true, "children":[number("amount")]}]),
+        json!([{"path":"rows[@index = 2].amount", "calculate":"($rows[*].amount)[1] + 1"}]),
+    );
+    let diagnostics = lint(&document).diagnostics;
+    assert!(
+        !diagnostics
+            .iter()
+            .any(|d| matches!(d.code, LintCode::E300 | LintCode::E500)),
+        "{diagnostics:?}"
+    );
+}
+
+#[test]
+fn lint_sees_the_calculated_field_inside_a_group_value() {
+    let document = definition(
+        json!([{"key":"g", "type":"group", "label":"Group", "children":[number("a")]}]),
+        json!([{"path":"g.a", "calculate":"if($g = {a: 1}, 2, 1)"}]),
+    );
+    assert_eq!(cycles(&document).len(), 1, "{:?}", cycles(&document));
+}
+
+#[test]
 fn required_rules_naming_each_other_are_not_a_cycle() {
     let document = definition(
         json!([text("c"), text("d")]),
@@ -565,11 +589,14 @@ fn shape_ids_take_precedence_even_when_the_id_is_not_fel() {
 #[test]
 fn reserved_repeat_contexts_do_not_read_same_named_variables() {
     for name in ["index", "count", "current"] {
+        // Bare @current reads the whole row, including this calculate's output.
+        // Select an input sibling to test the namespace without that real cycle.
+        let expression = if name == "current" { "@current.input".to_owned() } else { format!("@{name}") };
         let mut document = definition(
             json!([
-                { "key": "rows", "type": "group", "label": "Rows", "repeatable": true, "children": [number("a")] }
+                { "key": "rows", "type": "group", "label": "Rows", "repeatable": true, "children": [number("a"), number("input")] }
             ]),
-            json!([{ "path": "rows[*].a", "calculate": format!("@{name}") }]),
+            json!([{ "path": "rows[*].a", "calculate": expression }]),
         );
         document["variables"] = json!([{ "name": name, "expression": "$a" }]);
         assert!(

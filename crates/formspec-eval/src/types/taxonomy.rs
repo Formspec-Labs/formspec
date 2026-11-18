@@ -180,6 +180,8 @@ pub enum ValidationCode {
     UnsubscriptedRepeatReference,
     /// A Group inclusion needs assembly before evaluation.
     UnassembledDefinitionReference,
+    /// Multiple calculate Binds can write the same Item.
+    CalculateTargetConflict,
     /// Repeat count below minimum.
     MinRepeat,
     /// Repeat count above maximum.
@@ -219,6 +221,7 @@ impl ValidationCode {
             "SEED_PREDICATE_SCOPE" => Self::SeedPredicateScope,
             "UNSUBSCRIPTED_REPEAT_REFERENCE" => Self::UnsubscriptedRepeatReference,
             "UNASSEMBLED_DEFINITION_REFERENCE" => Self::UnassembledDefinitionReference,
+            "CALCULATE_TARGET_CONFLICT" => Self::CalculateTargetConflict,
             "MIN_REPEAT" => Self::MinRepeat,
             "MAX_REPEAT" => Self::MaxRepeat,
             "UNRESOLVED_EXTENSION" => Self::UnresolvedExtension,
@@ -246,6 +249,7 @@ impl ValidationCode {
             ValidationCode::SeedPredicateScope => "SEED_PREDICATE_SCOPE",
             ValidationCode::UnsubscriptedRepeatReference => "UNSUBSCRIPTED_REPEAT_REFERENCE",
             ValidationCode::UnassembledDefinitionReference => "UNASSEMBLED_DEFINITION_REFERENCE",
+            ValidationCode::CalculateTargetConflict => "CALCULATE_TARGET_CONFLICT",
             ValidationCode::MinRepeat => "MIN_REPEAT",
             ValidationCode::MaxRepeat => "MAX_REPEAT",
             ValidationCode::UnresolvedExtension => "UNRESOLVED_EXTENSION",

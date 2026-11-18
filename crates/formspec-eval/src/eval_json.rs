@@ -55,6 +55,13 @@ pub fn evaluation_result_to_host_snapshot_json_value(result: &EvaluationResult) 
         .collect();
     root.insert("filingOnlyPaths".into(), json!(filing_only));
     root.insert("repeatCounts".into(), json!(result.row_counts));
+    root.insert("calculatedPaths".into(), json!(result.calculated_paths));
+    if !result.indexed_binds.is_empty() {
+        root.insert(
+            "indexedBinds".into(),
+            Value::Object(result.indexed_binds.clone()),
+        );
+    }
     root.insert(
         "scopedVariables".into(),
         Value::Object(

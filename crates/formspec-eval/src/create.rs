@@ -66,6 +66,18 @@ pub fn create_response(
     prefill: Value,
     options: &CreateOptions<'_>,
 ) -> CreateResult {
+    if let Some(finding) = crate::pipeline::creation_refusal(definition) {
+        return CreateResult {
+            data: Value::Object(Map::new()),
+            diagnostics: vec![CreationDiagnostic {
+                path: finding.path,
+                expression: finding.constraint.unwrap_or_default(),
+                code: finding.code.to_string(),
+                message: finding.message,
+            }],
+            ..CreateResult::default()
+        };
+    }
     let mut data = prefill;
     let evaluation_options = creation_evaluation_options(definition, options);
     let mut creation = Creation::new(definition, options, &evaluation_options);

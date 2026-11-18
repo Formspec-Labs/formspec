@@ -1,0 +1,24 @@
+{
+  "id": "parity.repeat-calculate-order",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §3.6.2: topologically order calculation dependencies after resolving the concrete rows",
+    "Core §3.5.1: countWhere binds $ to each element of the array"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-repeat-calculate-order.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": { "rows": [{}, {}, {}] },
+  "expected": {
+    "valid": true,
+    "counts": { "error": 0, "warning": 0, "info": 0 },
+    "results": [],
+    "data": {
+      "rows": [
+        { "positive": 3, "steps": 3 },
+        { "positive": 3, "steps": 2 },
+        { "positive": 3, "steps": 1 }
+      ]
+    }
+  }
+}

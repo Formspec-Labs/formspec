@@ -67,8 +67,6 @@ import {
 } from '../wasm-bridge-runtime.js';
 import {
     resolveOptionSetsOnDefinition,
-    validateCalculateBindCycles,
-    validateVariableDefinitionCycles,
 } from './definition-setup.js';
 import { captureDraftData } from './draft-snapshot.js';
 import { validateInstanceDataAgainstSchema } from './instance-schema.js';
@@ -158,6 +156,8 @@ export class FormEngine implements IFormEngine {
     private readonly _shapeTiming = new Map<string, 'continuous' | 'submit' | 'demand'>();
     private readonly _displaySignalPaths = new Set<string>();
     private readonly _calculatedFields = new Set<string>();
+    private _calculatedPaths = new Set<string>();
+    private _indexedBinds: Record<string, EngineBindConfig> = {};
     private readonly _registryEntries = new Map<string, RegistryEntry>();
     /** Host FEL extension functions (Core §3.12), passed to every Rust evaluation. */
     private readonly _extensionFunctions = new FelExtensionFunctions();
@@ -266,8 +266,6 @@ export class FormEngine implements IFormEngine {
         this.initializeInstances(options.loadExternalSources !== false);
         this.initializeBindConfigs(this.definition.items);
         this.rejectInstancePathBinds();
-        validateVariableDefinitionCycles(this._variableDefs, scope => this.variableScopePath(scope));
-        validateCalculateBindCycles(this._bindConfigs);
         this.registerItems(this.definition.items);
         try {
             const saved = options.draftSnapshot?.data ?? options.savedResponseData;
@@ -276,7 +274,7 @@ export class FormEngine implements IFormEngine {
             } else {
                 this.createResponseData(options.responseData ?? {});
             }
-            this._evaluate();
+            this._evaluate(null, true);
         } catch (error) {
             this.dispose();
             throw error;
@@ -406,7 +404,7 @@ export class FormEngine implements IFormEngine {
     }
 
     public getDisabledDisplay(path: string): 'hidden' | 'protected' {
-        return this._bindConfigs[toBasePath(path)]?.disabledDisplay ?? 'hidden';
+        return this.bindAt(path)?.disabledDisplay ?? 'hidden';
     }
 
     public getVariableValue(name: string, scopePath: string): FormFieldValue {
@@ -441,8 +439,8 @@ export class FormEngine implements IFormEngine {
             for (const pending of created.pending) this._pendingCreationPaths.add(pending);
             this.appendRepeatRow(path, item);
             this.loadItemsData(item.children ?? [], created.data, `${path}[${index}]`);
+            this._evaluate();
         });
-        this._evaluate();
         return index;
     }
 
@@ -523,7 +521,7 @@ export class FormEngine implements IFormEngine {
             const path = prefix ? `${prefix}.${item.key}` : item.key;
             const value = present ? data[item.key] : undefined;
             if (item.type === 'field') {
-                if ((present || replace) && !this._calculatedFields.has(toBasePath(path))) {
+                if ((present || replace) && !this.isCalculated(path)) {
                     this.storeFieldValue(path, value);
                     if (replace) this.writeSources[path].value = null;
                 }
@@ -562,6 +560,8 @@ export class FormEngine implements IFormEngine {
 
     private createResponseData(data: JsonRecord, pendingPaths?: string[]): void {
         const created = wasmCreateResponse(this.definition, data, this.creationContext(pendingPaths), this._extensionFunctions);
+        const refusal = created.diagnostics.find(diagnostic => this.isCalculationRefusal(diagnostic.code));
+        if (refusal) throw new Error(refusal.message);
         this._pendingCreationPaths = new Set(created.pending);
         for (const diagnostic of created.diagnostics) {
             this._creationDiagnostics.push(diagnostic);
@@ -679,7 +679,7 @@ export class FormEngine implements IFormEngine {
 
     /** Coerces and stores a field value without evaluating; false for calculated or undeclared fields. */
     private writeFieldData(name: string, value: FormFieldValue, basePath = toBasePath(name)): boolean {
-        if (this._calculatedFields.has(basePath)) {
+        if (this.isCalculated(name, basePath)) {
             return false;
         }
 
@@ -688,9 +688,18 @@ export class FormEngine implements IFormEngine {
             return false;
         }
 
-        const bind = this._bindConfigs[basePath];
+        const bind = this.bindAt(name, basePath);
         this.storeFieldValue(name, coerceFieldValue(item, bind, this.definition, value));
         return true;
+    }
+
+    private isCalculated(path: string, basePath = toBasePath(path)): boolean {
+        return this._calculatedFields.has(basePath) || this._calculatedPaths.has(path);
+    }
+
+    private bindAt(path: string, basePath = toBasePath(path)): EngineBindConfig | undefined {
+        const indexed = this._indexedBinds[path];
+        return indexed ? { ...this._bindConfigs[basePath], ...indexed } : this._bindConfigs[basePath];
     }
 
     private storeFieldValue(path: string, value: FormFieldValue): void {
@@ -1865,7 +1874,14 @@ export class FormEngine implements IFormEngine {
         });
     }
 
-    private _evaluate(previousResult: Pick<EvalResult, 'nonRelevant' | 'validations'> | null = this._fullResult): void {
+    private isCalculationRefusal(code: unknown): boolean {
+        return code === 'CIRCULAR_DEPENDENCY' || code === 'CALCULATE_TARGET_CONFLICT';
+    }
+
+    private _evaluate(
+        previousResult: Pick<EvalResult, 'nonRelevant' | 'validations'> | null = this._fullResult,
+        constructing = false,
+    ): void {
         const baseResult = wasmEvaluateDefinition(
             this.definition,
             this.editingData(),
@@ -1879,6 +1895,10 @@ export class FormEngine implements IFormEngine {
             }),
             this._extensionFunctions,
         ) as EvalResult;
+        const refusal = baseResult.validations.find(result => this.isCalculationRefusal(result.code));
+        if (refusal && constructing) {
+            throw new Error(String(refusal.message));
+        }
         if (this._responseSubject) {
             const refusal = baseResult.validations.find(({ path }) =>
                 path === '#subjectType' || path === '#subjectKeys' || path.startsWith('#subjectKeys.'));
@@ -1893,14 +1913,25 @@ export class FormEngine implements IFormEngine {
         // Assign before patching: effects that run when the batch closes read `_fullResult` through FEL contexts.
         this._previousEvalResult = evalResult;
         this._fullResult = evalResult;
+        if (!refusal) {
+            this._calculatedPaths = new Set(evalResult.calculatedPaths);
+            this._indexedBinds = evalResult.indexedBinds ?? {};
+            // A resumed Response may carry a result for a newly resolved indexed
+            // calculation. Discard that result from the editable draft.
+            for (const path of this._calculatedPaths) {
+                delete this._data[path];
+                if (this._displaySignalPaths.has(path)) this.signals[path] ??= this._rx.signal(null);
+            }
+        }
 
         this._rx.batch(() => {
             patchValueSignalsFromWasm({
                 values: evalResult.values,
                 signals: this.signals,
                 data: this._data,
-                bindConfigs: this._bindConfigs,
-                calculatedFields: this._calculatedFields,
+                bindAt: (path, basePath) => this.bindAt(path, basePath),
+                isCalculated: (path, basePath) => this.isCalculated(path, basePath),
+                refused: refusal !== undefined,
             });
             patchDeltaSignalsFromWasm(this._rx, delta, {
                 relevantSignals: this.relevantSignals,

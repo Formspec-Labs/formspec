@@ -207,7 +207,7 @@ impl ScopeIndex {
         }
     }
 
-    fn contains(&self, path: &str) -> bool {
+    pub(crate) fn contains(&self, path: &str) -> bool {
         self.children.contains_key(path) || self.counts.contains_key(path) || self.declares(path)
     }
 
@@ -237,48 +237,76 @@ struct Aggregate {
     function: String,
     /// Starts at the first wildcard in this concrete collection.
     path: Vec<PathSegment>,
+    predicate: Option<Expr>,
+    predicate_inputs: Option<Vec<Vec<PathSegment>>>,
     value: Value,
 }
 
 impl Aggregate {
     fn reads_write(&self, relative: &str) -> bool {
-        let mut rest = relative;
-        for part in &self.path {
-            if rest.is_empty() {
-                return true;
+        match &self.predicate_inputs {
+            Some(paths) => paths
+                .iter()
+                .any(|path| projection_overlaps_write(path, relative)),
+            None => projection_overlaps_write(&self.path, relative),
+        }
+    }
+}
+
+fn projection_overlaps_write(path: &[PathSegment], relative: &str) -> bool {
+    let mut rest = relative;
+    for part in path {
+        if rest.is_empty() {
+            return true;
+        }
+        match part {
+            PathSegment::Dot(name) => {
+                let Some(tail) = rest.strip_prefix('.').and_then(|s| s.strip_prefix(name)) else {
+                    return false;
+                };
+                if !tail.is_empty() && !tail.starts_with(['.', '[']) {
+                    return false;
+                }
+                rest = tail;
             }
-            match part {
-                PathSegment::Dot(name) => {
-                    let Some(tail) = rest.strip_prefix('.').and_then(|s| s.strip_prefix(name))
-                    else {
-                        return false;
-                    };
-                    if !tail.is_empty() && !tail.starts_with(['.', '[']) {
-                        return false;
-                    }
-                    rest = tail;
+            PathSegment::Index(wanted) => {
+                let Some((index, tail)) = rest.strip_prefix('[').and_then(|s| s.split_once(']'))
+                else {
+                    return false;
+                };
+                if index.parse::<usize>().ok().and_then(|i| i.checked_add(1)) != Some(*wanted) {
+                    return false;
                 }
-                PathSegment::Index(wanted) => {
-                    let Some((index, tail)) =
-                        rest.strip_prefix('[').and_then(|s| s.split_once(']'))
-                    else {
-                        return false;
-                    };
-                    if index.parse::<usize>().ok().and_then(|i| i.checked_add(1)) != Some(*wanted) {
-                        return false;
-                    }
-                    rest = tail;
-                }
-                PathSegment::Wildcard => {
-                    let Some((_, tail)) = rest.strip_prefix('[').and_then(|s| s.split_once(']'))
-                    else {
-                        return false;
-                    };
-                    rest = tail;
-                }
+                rest = tail;
+            }
+            PathSegment::Wildcard => {
+                let Some((_, tail)) = rest.strip_prefix('[').and_then(|s| s.split_once(']')) else {
+                    return false;
+                };
+                rest = tail;
             }
         }
-        true
+    }
+    true
+}
+
+/// A hoisted predicate may only see the array element or literal values.
+fn uses_only_predicate_value(expr: &Expr) -> bool {
+    match expr {
+        Expr::FieldRef { name: None, .. }
+        | Expr::Null
+        | Expr::Boolean(_)
+        | Expr::Number(_)
+        | Expr::String(_)
+        | Expr::DateLiteral(_)
+        | Expr::DateTimeLiteral(_) => true,
+        Expr::UnaryOp { operand, .. } | Expr::PostfixAccess { expr: operand, .. } => {
+            uses_only_predicate_value(operand)
+        }
+        Expr::BinaryOp { left, right, .. } | Expr::NullCoalesce { left, right } => {
+            uses_only_predicate_value(left) && uses_only_predicate_value(right)
+        }
+        _ => false,
     }
 }
 
@@ -548,6 +576,9 @@ impl Site<'_> {
         if let Some(value) = self.data.env.data.get(&path) {
             return Ok(value.clone());
         }
+        if self.index.data_type(&path).is_some() {
+            return Ok(Value::Null);
+        }
         if self.index.children.contains_key(&path) || path.ends_with(']') {
             return Ok(self.object(&path));
         }
@@ -600,13 +631,13 @@ impl Site<'_> {
         Some(())
     }
 
-    fn relative_row(&self, offset: isize) -> Option<String> {
+    pub(crate) fn relative_row(&self, offset: isize) -> Option<String> {
         let row = self.index.repeat_rows(self.path).next_back()?;
         let index = row.index.checked_add_signed(offset)?;
         (index < row.count).then(|| Self::row_path(&row, index))
     }
 
-    fn parent_path(&self) -> Option<String> {
+    pub(crate) fn parent_path(&self) -> Option<String> {
         let mut rows = self.index.repeat_rows(self.path).rev();
         let row = rows.next()?;
         if let Some(parent) = rows.next() {
@@ -642,17 +673,23 @@ impl Environment for Site<'_> {
         let Expr::FunctionCall { name, args } = expr else {
             return None;
         };
-        if !matches!(name.as_str(), "sum" | "count" | "avg" | "min" | "max") {
-            return None;
-        }
-        let [
+        let Some((
             Expr::FieldRef {
                 name: Some(root),
                 path,
             },
-        ] = args.as_slice()
+            rest,
+        )) = args.split_first()
         else {
             return None;
+        };
+        let predicate = match (name.as_str(), rest) {
+            ("sum" | "count" | "avg" | "min" | "max", []) => None,
+            (
+                "countWhere" | "every" | "some" | "sumWhere" | "avgWhere" | "minWhere" | "maxWhere",
+                [predicate],
+            ) if uses_only_predicate_value(predicate) => Some(predicate),
+            _ => return None,
         };
         let mut group = self.head(root);
         let mut segments = path.as_slice();
@@ -675,13 +712,20 @@ impl Environment for Site<'_> {
         {
             return Some(Value::Number(Decimal::from(count)));
         }
+        if segments.is_empty() && self.index.counts.contains_key(&group) {
+            segments = &[PathSegment::Wildcard];
+        }
         if !matches!(segments.first(), Some(PathSegment::Wildcard)) {
             return None;
         }
         if let Some(value) = self.data.aggregates.borrow().get(&group).and_then(|calls| {
             calls
                 .iter()
-                .find(|cached| cached.function == *name && cached.path == segments)
+                .find(|cached| {
+                    cached.function == *name
+                        && cached.path == segments
+                        && cached.predicate.as_ref() == predicate
+                })
                 .map(|cached| cached.value.clone())
         }) {
             return Some(value);
@@ -710,6 +754,15 @@ impl Environment for Site<'_> {
             .push(Aggregate {
                 function: name.clone(),
                 path: segments.to_vec(),
+                predicate: predicate.cloned(),
+                predicate_inputs: predicate
+                    .filter(|_| matches!(name.as_str(), "countWhere" | "every" | "some"))
+                    .map(|predicate| {
+                        formspec_core::dependency_reads::predicate_value_paths(predicate)
+                            .into_iter()
+                            .map(|path| segments.iter().cloned().chain(path).collect())
+                            .collect()
+                    }),
                 value: result.value.clone(),
             });
         Some(result.value)
