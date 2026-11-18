@@ -1,0 +1,35 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:keyed-row",
+  "version": "1.0.0",
+  "title": "Row lookup",
+  "status": "draft",
+  "items": [
+    {
+      "key": "selection",
+      "type": "field",
+      "dataType": "string",
+      "label": "Selected ID"
+    },
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "repeatable": true,
+      "children": [
+        {
+          "key": "id",
+          "type": "field",
+          "dataType": "string",
+          "label": "ID"
+        },
+        {
+          "key": "name",
+          "type": "field",
+          "dataType": "string",
+          "label": "Name"
+        }
+      ]
+    }
+  ]
+}

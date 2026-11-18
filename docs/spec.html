@@ -4941,6 +4941,10 @@ any syntactic construct that resolves to an Instance value:</p>
 <li><code>@current.field</code></li>
 <li><code>@instance('name').field</code></li>
 </ul>
+<p>See <a
+href="https://github.com/Formspec-Labs/fel-core/blob/main/specs/fel/fel-grammar.md#621-keyed-row-lookup">FEL
+Grammar §6.2.1</a> for the dependencies of a keyed row lookup
+(§4.4.2).</p>
 <p>For a warning explanation basis (§2.1.6), extraction also includes
 reads of the current node (<code>$</code>), the current row
 (<code>@current</code>), Definition variables, secondary instances
@@ -5072,7 +5076,9 @@ Unary          ← &#39;not&#39; _ Unary
 Postfix        ← Atom PathTail*
 
 PathTail       ← &#39;.&#39; Identifier
-               / &#39;[&#39; _ ( Integer / &#39;*&#39; ) _ &#39;]&#39;
+               / &#39;[&#39; _ ( Integer / &#39;*&#39; / RowKey _ (&#39;==&#39; / &#39;=&#39;) _ Expression ) _ &#39;]&#39;
+
+RowKey         ← Identifier (&#39;.&#39; Identifier)*
 
 Atom           ← IfCall
                / FunctionCall
@@ -5477,6 +5483,13 @@ recorded.</td>
 a position that does not exist.</td>
 <td>Same as type error: result is <code>null</code>, diagnostic
 recorded.</td>
+</tr>
+<tr>
+<td><strong>Ambiguous row lookup</strong></td>
+<td>More than one row has the requested key (§4.4.2).</td>
+<td>The lookup yields <code>null</code> and emits
+<code>FEL_AMBIGUOUS_ROW_LOOKUP</code>. Formspec surfaces the diagnostic
+message from Bind constraints and Shapes.</td>
 </tr>
 <tr>
 <td><strong>Date overflow</strong></td>
@@ -8032,7 +8045,14 @@ Instances in Expressions</h4>
 <p>Instance data is accessed in FEL expressions via the
 <code>@instance()</code> function:</p>
 <pre><code>@instance(&#39;priorYear&#39;).total_expenditures
-@instance(&#39;stateCodes&#39;)[code = &#39;CA&#39;].name</code></pre>
+@instance(&#39;stateCodes&#39;)[code = &#39;CA&#39;].name
+@instance(&#39;list&#39;).rows[id = subject(&#39;id&#39;)].name</code></pre>
+<p>See <a
+href="https://github.com/Formspec-Labs/fel-core/blob/main/specs/fel/fel-grammar.md#621-keyed-row-lookup">FEL
+Grammar §6.2.1</a> for keyed lookup rules. A duplicate match yields
+<code>null</code> and the FEL diagnostic
+<code>FEL_AMBIGUOUS_ROW_LOOKUP</code>. Formspec surfaces the diagnostic
+message when it evaluates Bind constraints and Shapes.</p>
 <p>The argument to <code>@instance()</code> MUST be a string literal
 matching an instance name declared in the <code>instances</code> object.
 References to undeclared instances MUST produce a Definition error.</p>

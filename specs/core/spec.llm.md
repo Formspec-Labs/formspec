@@ -108,6 +108,12 @@ App-level Data Sources catalogs serve consumers such as Surface prefill and widg
 
 Required properties: `name` (unique identifier, used in `@instance('name')`).
 
+`@instance('list').rows[id = subject('id')].name` reads the name of the unique
+row whose `id` equals the current form's subject key. See [FEL Grammar §6.2.1](https://github.com/Formspec-Labs/fel-core/blob/main/specs/fel/fel-grammar.md#621-keyed-row-lookup)
+for keyed lookup rules. A duplicate match yields `null` and the FEL diagnostic
+`FEL_AMBIGUOUS_ROW_LOOKUP`. Formspec surfaces the diagnostic message from Bind
+constraints and Shapes.
+
 | Source | Mechanism |
 |--------|-----------|
 | `data` (inline) | Data embedded in definition via `data` property |

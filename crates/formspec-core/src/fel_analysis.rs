@@ -13,7 +13,7 @@ use std::sync::LazyLock;
 use fel_core::ast::{BinaryOp, Expr, PathSegment, UnaryOp};
 use fel_core::extensions::FelType;
 use fel_core::extensions::builtin_function_catalog;
-use fel_core::{Error, parse};
+use fel_core::{Error, extract_dependencies, parse};
 use serde_json::{Value, json};
 use std::ops::Range;
 
@@ -360,7 +360,12 @@ fn check_comparison_types(
             check_comparison_types(value, field_types, warnings);
             check_comparison_types(container, field_types, warnings);
         }
-        Expr::NullCoalesce { left, right } => {
+        Expr::NullCoalesce { left, right }
+        | Expr::RowLookup {
+            source: left,
+            key: right,
+            ..
+        } => {
             check_comparison_types(left, field_types, warnings);
             check_comparison_types(right, field_types, warnings);
         }
@@ -515,7 +520,12 @@ fn check_parameter_types(
             check_parameter_types(value, field_types, warnings);
             check_parameter_types(container, field_types, warnings);
         }
-        Expr::NullCoalesce { left, right } => {
+        Expr::NullCoalesce { left, right }
+        | Expr::RowLookup {
+            source: left,
+            key: right,
+            ..
+        } => {
             check_parameter_types(left, field_types, warnings);
             check_parameter_types(right, field_types, warnings);
         }
@@ -606,6 +616,13 @@ pub fn collect_fel_rewrite_targets(expression: &str) -> FelRewriteTargets {
 // ── AST walking ─────────────────────────────────────────────────
 
 const RESERVED_CONTEXT_NAMES: &[&str] = &["current", "index", "count", "instance"];
+
+fn postfix_base(mut expr: &Expr) -> &Expr {
+    while let Expr::PostfixAccess { expr: inner, .. } = expr {
+        expr = inner;
+    }
+    expr
+}
 
 fn collect_info(
     expr: &Expr,
@@ -716,9 +733,14 @@ fn collect_info(
                 collect_info(v, references, variables, functions, function_calls);
             }
         }
-        Expr::PostfixAccess { expr, .. } => {
-            collect_info(expr, references, variables, functions, function_calls);
-        }
+        Expr::RowLookup { .. } | Expr::PostfixAccess { .. } => match postfix_base(expr) {
+            Expr::RowLookup { source, key, .. } => {
+                references.extend(extract_dependencies(expr).fields);
+                collect_info(source, references, variables, functions, function_calls);
+                collect_info(key, references, variables, functions, function_calls);
+            }
+            base => collect_info(base, references, variables, functions, function_calls),
+        },
         // Literals — no references
         Expr::Null
         | Expr::Boolean(_)
@@ -753,6 +775,48 @@ pub struct RewriteOptions {
 /// Returns a new AST with transformed references.
 pub fn rewrite_fel_references(expr: &Expr, options: &RewriteOptions) -> Expr {
     rewrite_expr(expr, options)
+}
+
+// A keyed selector reads one row of the source field's repeat path.
+fn lookup_source_path(expr: &Expr) -> Option<String> {
+    let (mut full_path, segments) = match expr {
+        Expr::FieldRef {
+            name: Some(name),
+            path,
+        }
+        | Expr::VarRef { name, path } => (name.clone(), path),
+        Expr::PostfixAccess { expr, path } => (lookup_source_path(expr)?, path),
+        Expr::RowLookup { source, .. } => {
+            return Some(format!("{}[*]", lookup_source_path(source)?));
+        }
+        _ => return None,
+    };
+    for segment in segments {
+        match segment {
+            PathSegment::Dot(name) => {
+                full_path.push('.');
+                full_path.push_str(name);
+            }
+            PathSegment::Index(index) => full_path.push_str(&format!("[{index}]")),
+            PathSegment::Wildcard => full_path.push_str("[*]"),
+        }
+    }
+    Some(full_path)
+}
+
+pub(crate) fn rewrite_row_tail(
+    options: &RewriteOptions,
+    row_path: &str,
+    tail: &str,
+) -> Option<String> {
+    let rewrite = options.rewrite_field_path.as_ref()?;
+    let updated = rewrite(&format!("{row_path}{tail}"))?;
+    // The last wildcard of row_path represents this lookup, even when its source
+    // is itself within another repeat or keyed lookup.
+    let lookup_index = row_path.matches("[*]").count().checked_sub(1)?;
+    let (boundary, marker) = updated.match_indices("[*]").nth(lookup_index)?;
+    let updated_tail = &updated[boundary + marker.len()..];
+    (updated_tail != tail && !updated_tail.is_empty()).then(|| updated_tail.to_owned())
 }
 
 fn rewrite_expr(expr: &Expr, opts: &RewriteOptions) -> Expr {
@@ -917,6 +981,26 @@ fn rewrite_expr(expr: &Expr, opts: &RewriteOptions) -> Expr {
                 .map(|(k, v)| (k.clone(), rewrite_expr(v, opts)))
                 .collect(),
         ),
+        Expr::RowLookup {
+            source,
+            key_path,
+            key,
+        } => Expr::RowLookup {
+            source: Box::new(rewrite_expr(source, opts)),
+            key_path: lookup_source_path(source)
+                .and_then(|source_path| {
+                    let row_path = format!("{source_path}[*]");
+                    let tail = format!(".{}", key_path.join("."));
+                    let updated = rewrite_row_tail(opts, &row_path, &tail)?;
+                    let segments: Vec<_> = updated.strip_prefix('.')?.split('.').collect();
+                    segments
+                        .iter()
+                        .all(|name| fel_core::lexer::is_valid_fel_identifier(name))
+                        .then(|| segments.into_iter().map(str::to_owned).collect())
+                })
+                .unwrap_or_else(|| key_path.clone()),
+            key: Box::new(rewrite_expr(key, opts)),
+        },
         Expr::PostfixAccess { expr: inner, path } => Expr::PostfixAccess {
             expr: Box::new(rewrite_expr(inner, opts)),
             path: path.clone(),
@@ -1089,7 +1173,16 @@ fn collect_rewrite_targets(expr: &Expr, targets: &mut FelRewriteTargets) {
                 collect_rewrite_targets(value, targets);
             }
         }
-        Expr::PostfixAccess { expr, .. } => collect_rewrite_targets(expr, targets),
+        Expr::RowLookup { .. } | Expr::PostfixAccess { .. } => match postfix_base(expr) {
+            Expr::RowLookup { source, key, .. } => {
+                targets
+                    .field_paths
+                    .extend(extract_dependencies(expr).fields);
+                collect_rewrite_targets(source, targets);
+                collect_rewrite_targets(key, targets);
+            }
+            base => collect_rewrite_targets(base, targets),
+        },
         Expr::Null
         | Expr::Boolean(_)
         | Expr::Number(_)

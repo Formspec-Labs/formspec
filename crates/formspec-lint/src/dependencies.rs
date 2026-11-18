@@ -469,7 +469,13 @@ fn collect_mip_queries(expr: &Expr, queries: &mut Vec<(String, String)>) {
             }
         }
         Expr::UnaryOp { operand, .. } => collect_mip_queries(operand, queries),
-        Expr::BinaryOp { left, right, .. } | Expr::NullCoalesce { left, right } => {
+        Expr::BinaryOp { left, right, .. }
+        | Expr::NullCoalesce { left, right }
+        | Expr::RowLookup {
+            source: left,
+            key: right,
+            ..
+        } => {
             collect_mip_queries(left, queries);
             collect_mip_queries(right, queries);
         }

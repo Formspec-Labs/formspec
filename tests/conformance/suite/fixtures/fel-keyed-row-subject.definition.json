@@ -1,0 +1,36 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:agency-lookup",
+  "version": "1.0.0",
+  "title": "Agency lookup",
+  "status": "draft",
+  "subject": {
+    "type": "urn:example:agency",
+    "keys": {
+      "id": {
+        "dataType": "string"
+      }
+    }
+  },
+  "instances": {
+    "agencies": {
+      "data": {
+        "rows": []
+      }
+    }
+  },
+  "items": [
+    {
+      "key": "name",
+      "type": "field",
+      "dataType": "string",
+      "label": "Agency name"
+    }
+  ],
+  "binds": [
+    {
+      "path": "name",
+      "calculate": "@instance('agencies').rows[id = subject('id')].name"
+    }
+  ]
+}

@@ -2558,6 +2558,8 @@ an Instance value:
 - `@current.field`
 - `@instance('name').field`
 
+See [FEL Grammar §6.2.1](https://github.com/Formspec-Labs/fel-core/blob/main/specs/fel/fel-grammar.md#621-keyed-row-lookup) for the dependencies of a keyed row lookup (§4.4.2).
+
 For a warning explanation basis (§2.1.6), extraction also includes reads of
 the current node (`$`), the current row (`@current`), Definition variables,
 secondary instances through `instance()`, subject keys through `subject()`,
@@ -2687,7 +2689,9 @@ Unary          ← 'not' _ Unary
 Postfix        ← Atom PathTail*
 
 PathTail       ← '.' Identifier
-               / '[' _ ( Integer / '*' ) _ ']'
+               / '[' _ ( Integer / '*' / RowKey _ ('==' / '=') _ Expression ) _ ']'
+
+RowKey         ← Identifier ('.' Identifier)*
 
 Atom           ← IfCall
                / FunctionCall
@@ -2905,6 +2909,7 @@ evaluation errors as follows:
 | **Type error** | An operator or function receives an operand of an unexpected type (e.g., `'hello' + 5`). | The expression result is `null`. The processor MUST record a diagnostic. The diagnostic SHOULD be surfaced to Definition authors (e.g., in a debug console) but MUST NOT be surfaced to end users as a validation error. |
 | **Division by zero** | The `/` or `%` operator has a zero right operand. | Same as type error: result is `null`, diagnostic recorded. |
 | **Index out of bounds** | An explicit repeat index (`$repeat[n].field`) references a position that does not exist. | Same as type error: result is `null`, diagnostic recorded. |
+| **Ambiguous row lookup** | More than one row has the requested key (§4.4.2). | The lookup yields `null` and emits `FEL_AMBIGUOUS_ROW_LOOKUP`. Formspec surfaces the diagnostic message from Bind constraints and Shapes. |
 | **Date overflow** | A `dateAdd()` operation produces an invalid date that cannot be normalized (e.g., adding 1 month to January 31 is normalized to February 28/29, which is valid — but implementation-specific edge cases may arise). | Processor MUST normalize to the nearest valid date. If normalization is not possible, result is `null`, diagnostic recorded. |
 | **Regex error** | The `matches()` function receives an invalid regular expression string. | The expression result is `null`. The processor MUST record a diagnostic. |
 
@@ -4143,7 +4148,12 @@ Instance data is accessed in FEL expressions via the `@instance()` function:
 ```
 @instance('priorYear').total_expenditures
 @instance('stateCodes')[code = 'CA'].name
+@instance('list').rows[id = subject('id')].name
 ```
+
+See [FEL Grammar §6.2.1](https://github.com/Formspec-Labs/fel-core/blob/main/specs/fel/fel-grammar.md#621-keyed-row-lookup) for keyed lookup rules. A duplicate match
+yields `null` and the FEL diagnostic `FEL_AMBIGUOUS_ROW_LOOKUP`. Formspec surfaces
+the diagnostic message when it evaluates Bind constraints and Shapes.
 
 The argument to `@instance()` MUST be a string literal matching an instance
 name declared in the `instances` object. References to undeclared instances

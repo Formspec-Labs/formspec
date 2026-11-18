@@ -100,9 +100,9 @@ is a companion to the Formspec specification v1.0 §3 and supersedes the
 <strong>informative</strong> grammar given in §3.7 of that
 specification.</p>
 <p>A conformant FEL parser MUST accept exactly the language described by
-this grammar. The semantics of each construct are defined in §§3.2–3.12
-of the Formspec specification; this document defines only the
-syntax.</p>
+this grammar. This document also defines keyed row lookup semantics
+(§6.2.1). See Formspec Core §§3.2–3.12 for the other expression
+semantics in Definitions.</p>
 <h2 id="notation">2. Notation</h2>
 <p>This grammar uses the Parsing Expression Grammar (PEG) formalism as
 defined by Bryan Ford in <em>“Parsing Expression Grammars: A
@@ -355,7 +355,7 @@ Unary          ← &#39;not&#39; !IdContinue _ Unary
                / &#39;-&#39; _ Unary
                / Postfix
 
-# --- Postfix (dot/index access after any atom) ---
+# --- Postfix (path access after any atom) ---
 Postfix        ← Atom PathTail*
 
 # --- Atoms ---
@@ -516,8 +516,9 @@ table is normative and matches the structural encoding in §4.</p>
 </table>
 <p>Parenthesised sub-expressions (<code>( … )</code>) override
 precedence as usual. Postfix operators (<code>.field</code>,
-<code>[index]</code>) bind tighter than all prefix operators, enabling
-<code>prev().field</code> and <code>(expr).field</code>.</p>
+<code>[index]</code>, <code>[key = expression]</code>) bind tighter than
+all prefix operators, enabling <code>prev().field</code> and
+<code>(expr).field</code>.</p>
 <h2 id="path-expressions">6. Path Expressions</h2>
 <p>Path expressions reference Instance data. They are
 <strong>not</strong> general expressions — they appear as atoms in the
@@ -527,7 +528,9 @@ expression grammar.</p>
                / ContextRef PathTail*
 
 PathTail       ← &#39;.&#39; Identifier
-               / &#39;[&#39; _ ( Integer / &#39;*&#39; ) _ &#39;]&#39;
+               / &#39;[&#39; _ ( Integer / &#39;*&#39; / RowKey _ (&#39;==&#39; / &#39;=&#39;) _ Expression ) _ &#39;]&#39;
+
+RowKey         ← Identifier (&#39;.&#39; Identifier)*
 
 ContextRef     ← &#39;@&#39; Identifier (&#39;(&#39; _ StringLiteral? _ &#39;)&#39;)?</code></pre>
 <h3 id="reference-forms">6.1 Reference Forms</h3>
@@ -620,9 +623,13 @@ ContextRef     ← &#39;@&#39; Identifier (&#39;(&#39; _ StringLiteral? _ &#39;)
 </table>
 <h3 id="path-resolution-rules">6.2 Path Resolution Rules</h3>
 <ol type="1">
-<li><strong>Scope:</strong> Field references are lexically scoped.
-Inside a repeatable group, <code>$sibling</code> resolves within the
-<strong>same repeat instance</strong>.</li>
+<li><strong>Scope:</strong> The host defines how field names resolve.
+Formspec Definitions follow <a
+href="https://formspec.org/specs/core/#321-simple-references">Core
+§3.2.1</a> and <a
+href="https://formspec.org/specs/core/#322-repeat-references">§3.2.2</a>.
+A sibling key reads this row, and <code>$repeat[*].field</code> reads
+across rows.</li>
 <li><strong>Index bounds:</strong> An explicit index
 <code>$repeat[n]</code> where <code>n &lt; 1</code> or
 <code>n &gt;</code> the number of instances MUST signal an evaluation
@@ -640,6 +647,41 @@ applies after <code>ContextRef</code>, so
 <code>@effects[*].outcomeRef</code> use the same postfix traversal rules
 as <code>$</code> field references.</li>
 </ol>
+<h4 id="keyed-row-lookup">6.2.1 Keyed row lookup</h4>
+<p><code>rows[key = expression]</code> selects a single row from an
+array. The left side is an identifier or dot-separated field path
+relative to each array element. The right side is an ordinary FEL
+expression in the surrounding scope. A bare name on that side resolves
+in the surrounding scope, independently of the row being checked. Both
+<code>=</code> and <code>==</code> spell the lookup operator.</p>
+<p>A null source or empty array MUST yield <code>null</code> without
+evaluating the right side. Any other non-array input MUST yield
+<code>null</code> with a type diagnostic. For a nonempty array, evaluate
+the right side once. A null lookup value yields <code>null</code>. A row
+matches only when its key path reaches a non-null value equal to the
+lookup value without type coercion. Skip non-object elements and paths
+that do not reach a value.</p>
+<p>One match yields the row itself, so <code>.field</code> reads its
+field using ordinary path rules. Zero matches yield <code>null</code>.
+Multiple matches MUST yield <code>null</code> with the FEL evaluation
+diagnostic <code>FEL_AMBIGUOUS_ROW_LOOKUP</code>, even if the matching
+rows are identical. Access after <code>null</code> continues to yield
+<code>null</code>.</p>
+<p>Dependency extraction MUST include the source expression and the
+references read by the right-side expression under ordinary dependency
+rules. When the source is a field reference, dependency extraction MUST
+also include its key path and any path read after the selector, using
+<code>[*]</code> at the lookup position. For example,
+<code>$rows[id = $selection].label</code> reads <code>rows</code>,
+<code>rows[*].id</code>, <code>rows[*].label</code>, and
+<code>selection</code>.</p>
+<p><a href="https://docs.jsonata.org/predicate">JSONata predicates</a>
+provide the bracket syntax and direct field access after a singleton
+match. FEL requires a unique match for scalar reads. FEL’s two scopes
+follow the distinction illustrated by <a
+href="https://www.w3.org/TR/xforms11/#fn-current">XForms 1.1
+<code>current()</code></a>, where a predicate reads a candidate’s field
+and compares it with a value from the surrounding context.</p>
 <h3 id="host-supplied-context-bindings">6.3 Host-Supplied Context
 Bindings</h3>
 <p>FEL is host-agnostic: the same grammar embeds in Formspec
@@ -763,7 +805,7 @@ evaluator MAY receive already-materialized roots as long as observable
 behavior satisfies the host spec’s declared timing.</p>
 <h4 id="examples-non-normative">6.3.3 Examples (non-normative)</h4>
 <p>A Response Actions document can declare:</p>
-<table style="width:100%;">
+<table style="width:99%;">
 <colgroup>
 <col style="width: 16%" />
 <col style="width: 16%" />

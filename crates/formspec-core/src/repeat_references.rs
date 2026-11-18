@@ -207,7 +207,13 @@ fn visit_field_paths<'a>(
     let mut child = |expr| visit_field_paths(expr, locals, &mut Vec::new(), visit);
     match expression {
         Expr::UnaryOp { operand, .. } => child(operand),
-        Expr::BinaryOp { left, right, .. } | Expr::NullCoalesce { left, right } => {
+        Expr::BinaryOp { left, right, .. }
+        | Expr::NullCoalesce { left, right }
+        | Expr::RowLookup {
+            source: left,
+            key: right,
+            ..
+        } => {
             child(left);
             child(right);
         }

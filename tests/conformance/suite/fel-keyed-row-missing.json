@@ -1,0 +1,24 @@
+{
+  "id": "fel.keyed-row-missing",
+  "kind": "FEL_EVALUATION",
+  "specRefs": [
+    "FEL Grammar §6.2.1 Keyed row lookup"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/fel-keyed-row.definition.json",
+  "origin": "saved",
+  "site": "",
+  "inputData": {
+    "selection": "A",
+    "rows": [
+      {
+        "id": "B",
+        "name": "Beta"
+      }
+    ]
+  },
+  "expression": "$rows[id = $selection].name",
+  "comparator": "exact",
+  "expected": {
+    "value": null
+  }
+}

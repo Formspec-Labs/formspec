@@ -7,7 +7,7 @@
 use fel_core::lexer::{Lexer, SpannedToken, Token};
 use fel_core::{Error, ParseError, parse};
 
-use crate::fel_analysis::RewriteOptions;
+use crate::fel_analysis::{RewriteOptions, rewrite_row_tail};
 
 const RESERVED_CONTEXT_NAMES: &[&str] = &["current", "index", "count", "instance"];
 
@@ -290,8 +290,9 @@ impl<'a> ExactRewriteParser<'a> {
     }
 
     fn parse_unary(&mut self) -> Result<(), Error> {
-        if matches!(self.peek(), Token::Not) {
-            if self.pos + 1 < self.tokens.len()
+        if matches!(self.peek(), Token::Not | Token::Bang) {
+            if matches!(self.peek(), Token::Not)
+                && self.pos + 1 < self.tokens.len()
                 && matches!(self.tokens[self.pos + 1].token, Token::In)
             {
                 return self.parse_postfix();
@@ -309,32 +310,102 @@ impl<'a> ExactRewriteParser<'a> {
     }
 
     fn parse_postfix(&mut self) -> Result<(), Error> {
-        self.parse_atom()?;
+        let mut field_path = if matches!(self.peek(), Token::Dollar) {
+            let start = self.advance().span.start;
+            self.parse_field_ref(start)?
+        } else {
+            self.parse_atom()?;
+            self.parse_path_tail()?;
+            None
+        };
+
+        while matches!(self.peek(), Token::LBracket) {
+            if let Some(path) = &mut field_path {
+                path.push_str("[*]");
+            }
+            self.parse_row_lookup(field_path.as_deref())?;
+            let start = self.current().span.start;
+            let tail = self.parse_path_tail()?;
+            if let Some(path) = &mut field_path
+                && !tail.is_empty()
+            {
+                if let Some(updated) = rewrite_row_tail(self.options, path, &tail) {
+                    self.replacements.push(Replacement {
+                        start,
+                        end: self.tokens[self.pos - 1].span.end,
+                        text: updated,
+                    });
+                }
+                path.push_str(&tail);
+            }
+        }
+        Ok(())
+    }
+
+    fn parse_row_lookup(&mut self, row_path: Option<&str>) -> Result<(), Error> {
+        self.expect(&Token::LBracket)?;
+        let (first, token) = self.eat_identifier()?;
+        let mut tail = format!(".{first}");
+        let mut end = token.span.end;
+        while matches!(self.peek(), Token::Dot) {
+            self.advance();
+            let (segment, token) = self.eat_identifier()?;
+            tail.push('.');
+            tail.push_str(&segment);
+            end = token.span.end;
+        }
+        self.expect(&Token::Eq)?;
+        if let Some(path) = row_path
+            && let Some(updated) = rewrite_row_tail(self.options, path, &tail)
+            && let Some(key_path) = updated.strip_prefix('.')
+        {
+            self.replacements.push(Replacement {
+                start: token.span.start,
+                end,
+                text: key_path.to_owned(),
+            });
+        }
+
+        let saved_no_in = self.no_in_depth;
+        self.no_in_depth = 0;
+        let result = self.parse_expression();
+        self.no_in_depth = saved_no_in;
+        result?;
+        self.expect(&Token::RBracket)
+    }
+
+    // Consume ordinary path segments, leaving a keyed selector for parse_postfix.
+    fn parse_path_tail(&mut self) -> Result<String, Error> {
+        let mut tail = String::new();
         loop {
             match self.peek() {
                 Token::Dot => {
                     self.advance();
-                    self.eat_identifier()?;
+                    let (segment, _) = self.eat_identifier()?;
+                    tail.push('.');
+                    tail.push_str(&segment);
                 }
                 Token::LBracket => {
+                    if matches!(&self.tokens[self.pos + 1].token, Token::Identifier(_)) {
+                        break;
+                    }
                     self.advance();
-                    match self.peek() {
-                        Token::Star | Token::Number(_) => {
-                            self.advance();
-                        }
-                        _ => {
+                    match self.peek().clone() {
+                        Token::Star => tail.push_str("[*]"),
+                        Token::Number(n) => tail.push_str(&format!("[{n}]")),
+                        token => {
                             return Err(self.parse_err_current(format!(
-                                "expected number or * in brackets, got {:?}",
-                                self.peek()
+                                "expected number or * in brackets, got {token:?}"
                             )));
                         }
                     }
+                    self.advance();
                     self.expect(&Token::RBracket)?;
                 }
                 _ => break,
             }
         }
-        Ok(())
+        Ok(tail)
     }
 
     fn parse_atom(&mut self) -> Result<(), Error> {
@@ -348,10 +419,6 @@ impl<'a> ExactRewriteParser<'a> {
             | Token::DateTimeLiteral(_) => {
                 self.advance();
                 Ok(())
-            }
-            Token::Dollar => {
-                let start = self.advance().span.start;
-                self.parse_field_ref(start)
             }
             Token::At => {
                 let at_token = self.advance().clone();
@@ -388,66 +455,30 @@ impl<'a> ExactRewriteParser<'a> {
         }
     }
 
-    fn parse_field_ref(&mut self, start: usize) -> Result<(), Error> {
-        let mut parts: Vec<String> = Vec::new();
-        let mut has_name = false;
-        let mut end = start + 1;
-
-        if let Token::Identifier(name) = self.peek().clone() {
-            has_name = true;
-            end = self.advance().span.end;
-            parts.push(name);
+    fn parse_field_ref(&mut self, start: usize) -> Result<Option<String>, Error> {
+        let name = if let Token::Identifier(name) = self.peek().clone() {
+            self.advance();
+            Some(name)
+        } else {
+            None
+        };
+        let tail = self.parse_path_tail()?;
+        let Some(name) = name else {
+            return Ok(None);
+        };
+        let original = format!("{name}{tail}");
+        if let Some(rewrite) = &self.options.rewrite_field_path
+            && let Some(updated) = rewrite(&original)
+            && updated != original
+        {
+            self.replacements.push(Replacement {
+                start,
+                end: self.tokens[self.pos - 1].span.end,
+                text: format!("${updated}"),
+            });
         }
 
-        loop {
-            match self.peek() {
-                Token::Dot => {
-                    self.advance();
-                    let (seg_name, token) = self.eat_identifier()?;
-                    end = token.span.end;
-                    parts.push(seg_name);
-                }
-                Token::LBracket => {
-                    self.advance();
-                    let bracket = match self.peek().clone() {
-                        Token::Star => {
-                            self.advance();
-                            "[*]".to_string()
-                        }
-                        Token::Number(n) => {
-                            self.advance();
-                            format!("[{n}]")
-                        }
-                        _ => {
-                            return Err(self.parse_err_current(format!(
-                                "expected number or * in field ref brackets, got {:?}",
-                                self.peek()
-                            )));
-                        }
-                    };
-                    let rbracket = self.current().clone();
-                    self.expect(&Token::RBracket)?;
-                    end = self.tokens[self.pos - 1].span.end.max(rbracket.span.end);
-                    parts.push(bracket);
-                }
-                _ => break,
-            }
-        }
-
-        if has_name && let Some(rewrite) = &self.options.rewrite_field_path {
-            let original = parts.join(".").replace(".[", "[");
-            if let Some(updated) = rewrite(&original)
-                && updated != original
-            {
-                self.replacements.push(Replacement {
-                    start,
-                    end,
-                    text: format!("${updated}"),
-                });
-            }
-        }
-
-        Ok(())
+        Ok(Some(original))
     }
 
     fn parse_context_ref(&mut self, _start: usize) -> Result<(), Error> {
@@ -459,17 +490,9 @@ impl<'a> ExactRewriteParser<'a> {
 
         if matches!(self.peek(), Token::LParen) {
             self.advance();
-            match self.peek().clone() {
-                Token::StringLit(value) => {
-                    arg_value = Some(value);
-                    arg_token = Some(self.advance().clone());
-                }
-                _ => {
-                    return Err(self.parse_err_current(format!(
-                        "expected string literal, got {:?}",
-                        self.peek()
-                    )));
-                }
+            if let Token::StringLit(value) = self.peek().clone() {
+                arg_value = Some(value);
+                arg_token = Some(self.advance().clone());
             }
             self.expect(&Token::RParen)?;
         }
@@ -772,6 +795,122 @@ mod tests {
             result,
             "prev( /* keep */ \"householdMembers\" , $household.memberTotal ) + $bar /* tail */ + @instance('demographics').name + @current.summary.total + @renamed_var"
         );
+    }
+
+    const NO_REWRITES: RewriteOptions = RewriteOptions {
+        rewrite_field_path: None,
+        rewrite_current_path: None,
+        rewrite_variable: None,
+        rewrite_instance_name: None,
+        rewrite_navigation_target: None,
+    };
+
+    #[test]
+    fn rewrites_keyed_lookup_source_and_key_in_expressions_and_templates() {
+        let options = RewriteOptions {
+            rewrite_field_path: Some(Box::new(|path| match path {
+                "k" => Some("key".to_string()),
+                "rows" => Some("lines".to_string()),
+                _ => None,
+            })),
+            ..NO_REWRITES
+        };
+        for (source, expected) in [
+            ("$rows[id = $k].name", "$lines[id = $key].name"),
+            ("$rows[id = 1] ?? $k", "$lines[id = 1] ?? $key"),
+            (
+                "@instance('list').rows[identity.id == $k].name",
+                "@instance('list').rows[identity.id == $key].name",
+            ),
+            (
+                "let match = $rows[id = $k in [1]] in match",
+                "let match = $lines[id = $key in [1]] in match",
+            ),
+        ] {
+            assert_eq!(rewrite_fel_source_references(source, &options), expected);
+        }
+        assert_eq!(
+            rewrite_message_template("{{$rows[id = $k].name}}", &options),
+            "{{$lines[id = $key].name}}"
+        );
+    }
+
+    #[test]
+    fn keyed_lookup_children_are_discoverable_and_renameable() {
+        let expression = "$rows[id = $sel].name";
+        let targets = crate::collect_fel_rewrite_targets(expression);
+        let expected = ["rows", "rows[*].id", "rows[*].name", "sel"]
+            .map(String::from)
+            .into();
+        assert_eq!(targets.field_paths, expected);
+        assert_eq!(crate::get_fel_dependencies(expression), expected);
+
+        let options = RewriteOptions {
+            rewrite_field_path: Some(Box::new(|path| match path {
+                "rows[*].id" => Some("rows[*].rowId".into()),
+                "rows[*].name" => Some("rows[*].label".into()),
+                _ => None,
+            })),
+            ..NO_REWRITES
+        };
+        assert_eq!(
+            rewrite_fel_source_references(expression, &options),
+            "$rows[rowId = $sel].label"
+        );
+        let key_rename = RewriteOptions {
+            rewrite_field_path: Some(Box::new(|path| {
+                (path == "rows[*].id").then(|| "rows[*].rowId".into())
+            })),
+            ..NO_REWRITES
+        };
+        assert_eq!(
+            crate::rewrite_fel_references(&parse(expression).unwrap(), &key_rename),
+            parse("$rows[rowId = $sel].name").unwrap()
+        );
+    }
+
+    #[test]
+    fn assembly_prefixes_keyed_lookup_field_references() {
+        let map = crate::AssemblyFelRewriteMap {
+            fragment_root_key: String::new(),
+            host_group_key: "host".into(),
+            imported_keys: ["rows", "k"].map(String::from).into(),
+            key_prefix: "p_".into(),
+        };
+        assert_eq!(
+            crate::rewrite_fel_for_assembly("$rows[id = $k].name", &map),
+            "$p_rows[id = $p_k].name"
+        );
+    }
+
+    #[test]
+    fn exact_parser_accepts_fel_corpora() {
+        let fel_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../fel-core");
+        let mut rejected = Vec::new();
+        for corpus in [
+            "tests/corpus/fuzz_regression.jsonl",
+            "conformance/fel-conformance.jsonl",
+        ] {
+            let text = std::fs::read_to_string(fel_root.join(corpus)).unwrap();
+            for (index, line) in text.lines().enumerate() {
+                let row: serde_json::Value = serde_json::from_str(line).unwrap();
+                let expression = row["expression"].as_str().unwrap();
+                if parse(expression).is_err() {
+                    continue;
+                }
+                let tokens = Lexer::new(expression).tokenize().unwrap();
+                let options = NO_REWRITES;
+                let mut parser = ExactRewriteParser::new(expression, tokens, &options);
+                let result = parser.parse_expression();
+                if result.is_err() || !parser.at_eof() {
+                    rejected.push(format!(
+                        "{corpus}:{}: {expression:?}: {result:?}",
+                        index + 1
+                    ));
+                }
+            }
+        }
+        assert!(rejected.is_empty(), "{}", rejected.join("\n"));
     }
 
     #[test]
