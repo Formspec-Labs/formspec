@@ -80,6 +80,7 @@ MCP_TOOL_ALLOWLIST = [
         "formspec_set_field_behavior",
         "formspec_add_action",
         "formspec_bind_response_mapping",
+        "formspec_configure_mapping",
         "formspec_set_locale",
         "formspec_set_theme",
         "formspec_preview_form",

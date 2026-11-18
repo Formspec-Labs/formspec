@@ -4,6 +4,8 @@ Note: The Rust backend does not include `code` or `shapeId` in validation result
 Results contain: path, severity, kind, message. Tests that previously filtered by
 error code now filter by kind and/or message content instead.
 """
+from decimal import Decimal
+
 import pytest
 from formspec._rust import evaluate_definition, ProcessingResult
 
@@ -97,18 +99,23 @@ class TestEvaluateVariables:
     def test_variable_depending_on_variable(self):
         """indirectCosts depends on totalDirect — topo sort must evaluate totalDirect first."""
         defn = {
+            'items': [{
+                'type': 'group', 'key': 'items', 'repeatable': True,
+                'children': [{'type': 'field', 'key': 'amount', 'dataType': 'decimal'}],
+            }],
             'variables': [
                 {'name': 'indirectCosts', 'expression': 'moneyAmount(@totalDirect) * 0.1'},
                 {'name': 'totalDirect',   'expression': 'money(sum($items[*].amount), "USD")'},
             ]
         }
-        data = {'items': [{'amount': 1000}]}
+        data = {'items': [{'amount': Decimal('1000.05')}]}
         result = evaluate_definition(defn, data)
+        # Core §3.4.1 represents money amounts as decimal strings.
         assert result.variables['totalDirect'] == {
-            'amount': 1000,
+            'amount': '1000.05',
             'currency': 'USD',
         }
-        assert result.variables['indirectCosts'] == pytest.approx(100)
+        assert result.variables['indirectCosts'] == Decimal('100.005')
 
     def test_no_variables(self):
         result = evaluate_definition({}, {})
@@ -720,15 +727,22 @@ class TestCalculate:
         assert t0 == pytest.approx(20)
         assert t1 == pytest.approx(15)
 
-    def test_calculate_with_precision(self):
+    @pytest.mark.parametrize(('expression', 'expected'), [
+        ('10 / 3', Decimal('3.33')),
+        ('2.345', Decimal('2.34')),
+        ('2.355', Decimal('2.36')),
+    ])
+    def test_calculate_with_precision(self, expression, expected):
+        """Calculated values use round half to even (fs-en4w)."""
         defn = {
             'items': [
                 {'type': 'field', 'key': 'val', 'dataType': 'decimal', 'precision': 2},
             ],
-            'binds': [{'path': 'val', 'calculate': '10 / 3'}],
+            'binds': [{'path': 'val', 'calculate': expression}],
         }
         result = evaluate_definition(defn, {'val': 0})
-        assert result.data['val'] == pytest.approx(3.33, abs=0.005)
+        # The Python evaluator exposes fractional JSON numbers as Decimal.
+        assert result.data['val'] == expected
 
 
 # ── Bind validation ──────────────────────────────────────────────────────────
