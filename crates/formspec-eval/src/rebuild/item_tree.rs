@@ -25,7 +25,7 @@
 //! it does not relax the normative spec for published definitions.
 #![allow(clippy::missing_docs_in_private_items)]
 
-use fel_core::exact_json::Value;
+use fel_core::exact_json::{Map, Value};
 use formspec_core::repeat_references::is_repeatable_group;
 use formspec_core::{
     DefinitionItemKeyPolicy, DefinitionItemVisitCtx, visit_definition_items_json_shallow,
@@ -52,7 +52,14 @@ pub fn rebuild_item_tree(definition: &Value) -> Vec<ItemInfo> {
         .and_then(|v| v.as_str());
 
     match items {
-        Some(items) => rebuild_items_slice(items, &binds, None, default_currency, "$.items"),
+        Some(items) => rebuild_items_slice(
+            items,
+            &binds,
+            None,
+            default_currency,
+            "$.items",
+            definition.get("optionSets").and_then(Value::as_object),
+        ),
         None => vec![],
     }
 }
@@ -85,6 +92,7 @@ fn rebuild_items_slice(
     parent_dotted: Option<&str>,
     default_currency: Option<&str>,
     json_array_parent: &str,
+    sets: Option<&Map<String, Value>>,
 ) -> Vec<ItemInfo> {
     let mut out = Vec::new();
     visit_definition_items_json_shallow(
@@ -93,7 +101,7 @@ fn rebuild_items_slice(
         parent_dotted,
         DefinitionItemKeyPolicy::CoerceNonStringKeyToEmpty,
         &mut |ctx| {
-            out.push(build_item_info_from_ctx(ctx, binds, default_currency));
+            out.push(build_item_info_from_ctx(ctx, binds, default_currency, sets));
         },
     );
     out
@@ -103,6 +111,7 @@ fn build_item_info_from_ctx(
     ctx: &DefinitionItemVisitCtx<'_, Value>,
     binds: &BindTargets<'_, Value>,
     default_currency: Option<&str>,
+    sets: Option<&Map<String, Value>>,
 ) -> ItemInfo {
     let item = ctx.item;
     let key = ctx.key.to_string();
@@ -174,6 +183,7 @@ fn build_item_info_from_ctx(
                 Some(path.as_str()),
                 default_currency,
                 &child_prefix,
+                sets,
             )
         })
         .unwrap_or_default();
@@ -239,13 +249,13 @@ fn build_item_info_from_ctx(
         repeatable: is_repeatable_group(item["type"].as_str(), item["repeatable"].as_bool()),
         repeat_min: item.get("minRepeat").and_then(|v| v.as_u64()),
         repeat_max: item.get("maxRepeat").and_then(|v| v.as_u64()),
-        option_values: item
-            .get("options")
+        option_values: formspec_core::effective_item_options(item, sets)
             .and_then(|v| v.as_array())
             .map(|arr| {
                 arr.iter()
                     .filter_map(|opt| opt.get("value").and_then(Value::as_str).map(String::from))
-                    .collect()
+                    .collect::<std::collections::HashSet<_>>()
+                    .into()
             })
             .unwrap_or_default(),
         accept_types: item

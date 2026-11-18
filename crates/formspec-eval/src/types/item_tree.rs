@@ -1,6 +1,7 @@
 //! Item tree nodes built from the definition.
 
 use fel_core::exact_json::Value;
+use std::{collections::HashSet, sync::Arc};
 
 use super::modes::{ExcludedValueMode, NrbMode, WhitespaceMode};
 
@@ -80,7 +81,7 @@ pub struct ItemInfo {
     /// Maximum repeat count (for repeatable groups).
     pub repeat_max: Option<u64>,
     /// Valid option values for choice/multiChoice fields.
-    pub option_values: Vec<String>,
+    pub option_values: Arc<HashSet<String>>,
     /// Accepted MIME types for attachment fields (e.g. ["image/*", "application/pdf"]).
     pub accept_types: Vec<String>,
     /// Extension names declared on this item (only enabled ones, value=true).
@@ -122,7 +123,7 @@ impl Default for ItemInfo {
             repeatable: false,
             repeat_min: None,
             repeat_max: None,
-            option_values: Vec::new(),
+            option_values: Arc::default(),
             accept_types: Vec::new(),
             extensions: Vec::new(),
             pre_populate_instance: None,

@@ -83,7 +83,7 @@ pub use jsonld_context::{
     JsonLdDerivation, JsonLdDiagnostic, JsonLdDiagnosticKind, derive_json_ld_context,
     json_ld_derivation_to_json_value,
 };
-pub use option_sets::resolve_option_sets_on_definition;
+pub use option_sets::{effective_item_options, resolve_option_sets_on_definition};
 pub use parser_recovery::{
     JsonParseDiagnostic, JsonRecoveryError, ParsedJsonResult, parse_json_with_recovery,
 };

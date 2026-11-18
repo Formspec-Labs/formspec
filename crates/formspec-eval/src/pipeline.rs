@@ -56,9 +56,7 @@ impl PreparedDefinition {
                 calculate_order: None,
             };
         }
-        let mut resolved = definition.clone();
-        formspec_core::resolve_option_sets_on_definition(&mut resolved);
-        let items = rebuild_item_tree(&resolved);
+        let items = rebuild_item_tree(&definition);
         let definition_errors = rebuild::check_expressions(&definition, &items);
         let calculate_order = if definition_errors.is_empty() {
             CalculateOrder::for_definition(&items, &definition)

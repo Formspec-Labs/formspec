@@ -338,3 +338,38 @@ fn best_seed_time(n: usize, runs: usize) -> Duration {
         .min()
         .expect("runs > 0")
 }
+
+/// Compare repeat-row cost for the last value in a small and a large named set.
+#[test]
+#[ignore = "timing benchmark; run explicitly with --run-ignored only"]
+fn option_membership_scaling() {
+    for count in [16, 3000] {
+        let entries: Vec<_> = (0..count)
+            .map(|code| json!({"value": code.to_string(), "label": code.to_string()}))
+            .collect();
+        let prepared = formspec_eval::PreparedDefinition::new(json!({
+            "optionSets": {"codes": {"options": entries}},
+            "items": [{"type": "group", "key": "rows", "repeatable": true, "children": [
+                {"type": "field", "key": "code", "dataType": "choice", "optionSet": "codes"}
+            ]}]
+        }));
+        for rows in [250, 500, 1000] {
+            let input = HashMap::from([(
+                "rows".to_owned(),
+                json!(vec![json!({"code": (count - 1).to_string()}); rows]),
+            )]);
+            let best = (0..3)
+                .map(|_| {
+                    let start = Instant::now();
+                    let result = prepared.evaluate(&input, &EvalOptions::default());
+                    let duration = start.elapsed();
+                    assert!(result.validations.is_empty());
+                    assert_eq!(result.data["rows"].as_array().unwrap().len(), rows);
+                    duration
+                })
+                .min()
+                .unwrap();
+            println!("{rows} rows x {count} options: {best:?}");
+        }
+    }
+}

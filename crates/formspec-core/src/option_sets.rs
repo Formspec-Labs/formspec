@@ -2,29 +2,35 @@
 
 use fel_core::exact_json::{Map, Value};
 
-fn options_from_set_entry(entry: &Value) -> Value {
-    match entry {
-        Value::Array(_) => entry.clone(),
-        Value::Object(map) => map
-            .get("options")
-            .filter(|v| v.is_array())
-            .cloned()
-            .unwrap_or_else(|| Value::Array(vec![])),
-        _ => Value::Array(vec![]),
+/// Return the effective inline option array or remote URI for an Item.
+pub fn effective_item_options<'a>(
+    item: &'a Value,
+    sets: Option<&'a Map<String, Value>>,
+) -> Option<&'a Value> {
+    if let Some(entry) = item
+        .get("optionSet")
+        .and_then(Value::as_str)
+        .and_then(|name| sets?.get(name))
+    {
+        return if entry.is_array() {
+            Some(entry)
+        } else {
+            entry.get("options").or_else(|| entry.get("source"))
+        };
     }
+    item.get("options")
 }
 
 fn visit_and_resolve_items(items: &mut [Value], sets: &Map<String, Value>) {
     for item in items.iter_mut() {
+        if item.get("optionSet").is_some()
+            && let Some(options) = effective_item_options(item, Some(sets)).cloned()
+        {
+            item["options"] = options;
+        }
         let Some(obj) = item.as_object_mut() else {
             continue;
         };
-        let set_key = obj.get("optionSet").and_then(|v| v.as_str());
-        if let Some(name) = set_key {
-            if let Some(entry) = sets.get(name) {
-                obj.insert("options".to_string(), options_from_set_entry(entry));
-            }
-        }
         if let Some(Value::Array(children)) = obj.get_mut("children") {
             visit_and_resolve_items(children, sets);
         }

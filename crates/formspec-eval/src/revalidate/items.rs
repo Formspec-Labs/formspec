@@ -65,7 +65,7 @@ impl Validation<'_> {
                 // String-family: must be a JSON string
                 "string" | "text" => !val.is_string(),
                 "choice" => !val.as_str().map_or(false, |s| {
-                    item.option_values.is_empty() || item.option_values.iter().any(|o| o == s)
+                    item.option_values.is_empty() || item.option_values.contains(s)
                 }),
 
                 // Numeric: integer must be whole, decimal any number
@@ -92,8 +92,7 @@ impl Validation<'_> {
                 "multiChoice" => !val.as_array().map_or(false, |arr| {
                     arr.iter().all(|v| {
                         v.as_str().map_or(false, |s| {
-                            item.option_values.is_empty()
-                                || item.option_values.iter().any(|o| o == s)
+                            item.option_values.is_empty() || item.option_values.contains(s)
                         })
                     })
                 }),

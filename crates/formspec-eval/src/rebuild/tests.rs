@@ -246,3 +246,18 @@ fn flatten_response_data_leaves_field_arrays_whole() {
     assert_eq!(flat.values.get("tags"), Some(&json!(["a", "b", "c"])));
     assert!(flat.repeat_counts.is_empty());
 }
+
+#[test]
+fn public_rebuild_resolves_named_options_before_inline_options() {
+    let def = json!({
+        "optionSets": {"codes": {"options": [{"value": "named", "label": "Named"}]}},
+        "items": [{"key": "group", "type": "group", "children": [{
+            "key": "code", "type": "field", "dataType": "choice", "optionSet": "codes",
+            "options": [{"value": "inline", "label": "Inline"}]
+        }]}]
+    });
+    let items = rebuild_item_tree(&def);
+    let values = &items[0].children[0].option_values;
+    assert!(values.iter().any(|value| value == "named"));
+    assert!(!values.iter().any(|value| value == "inline"));
+}
