@@ -428,14 +428,30 @@ def test_evaluate_filed_keeps_a_refusal_for_ambiguous_data():
 def test_evaluate_filed_refuses_non_convergence():
     from formspec import evaluate_filed
 
+    next_value = iter(range(100))
+    definition = {
+        "items": [{"type": "field", "key": "x", "dataType": "integer"}],
+        "binds": [{"path": "x", "calculate": "unstableTestValue()"}],
+    }
+    with pytest.raises(ValueError, match="did not converge"):
+        evaluate_filed(
+            definition,
+            {},
+            extension_functions={"unstableTestValue": lambda: next(next_value)},
+        )
+
+
+def test_evaluate_filed_reads_settled_calculation_for_relevance():
+    from formspec import evaluate_filed
+
     definition = {
         "items": [{"type": "field", "key": "x", "dataType": "integer"}],
         "binds": [{"path": "x", "relevant": "not(present($x))", "calculate": "1"}],
     }
-    assert evaluate_definition(definition, {}, mode="submit").data == {"x": 1}
+    # This used to oscillate because relevance read x before the calculation wrote it.
+    assert evaluate_definition(definition, {}, mode="submit").data == {}
     assert evaluate_definition(definition, {"x": 1}, mode="submit").data == {}
-    with pytest.raises(ValueError, match="did not converge"):
-        evaluate_filed(definition, {})
+    assert evaluate_filed(definition, {}).data == {}
 
 
 def test_evaluate_definition_validation_keys_match_wasm_camel_case():
