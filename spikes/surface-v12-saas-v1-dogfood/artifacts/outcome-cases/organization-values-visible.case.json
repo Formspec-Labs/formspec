@@ -32,12 +32,12 @@
       "renderStepRef": "open-onboarding",
       "control": {
         "artifactRef": "https://formspec.cloud/definitions/organization-setup",
-        "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+        "artifactDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
         "subjectKind": "definition-item",
         "subjectRef": "organizationName"
       },
       "definitionRef": "https://formspec.cloud/definitions/organization-setup",
-      "definitionDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+      "definitionDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
       "path": "organizationName",
       "value": "New Organization"
     },
@@ -47,12 +47,12 @@
       "renderStepRef": "open-onboarding",
       "control": {
         "artifactRef": "https://formspec.cloud/definitions/organization-setup",
-        "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+        "artifactDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
         "subjectKind": "definition-item",
         "subjectRef": "workspaceName"
       },
       "definitionRef": "https://formspec.cloud/definitions/organization-setup",
-      "definitionDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+      "definitionDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
       "path": "workspaceName",
       "value": "New Workspace"
     },
@@ -62,12 +62,12 @@
       "renderStepRef": "open-onboarding",
       "control": {
         "artifactRef": "https://formspec.cloud/definitions/organization-setup",
-        "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+        "artifactDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
         "subjectKind": "definition-item",
         "subjectRef": "environment"
       },
       "definitionRef": "https://formspec.cloud/definitions/organization-setup",
-      "definitionDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+      "definitionDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
       "path": "environment",
       "value": "sandbox"
     },
@@ -107,7 +107,7 @@
           "kind": "artifact-declaration",
           "subject": {
             "artifactRef": "https://formspec.cloud/definitions/organization-setup",
-            "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+            "artifactDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
             "subjectKind": "definition-item",
             "subjectRef": "organizationName"
           }
@@ -133,12 +133,12 @@
       "stepRef": "finish-onboarding",
       "subject": {
         "artifactRef": "https://formspec.cloud/definitions/organization-setup",
-        "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+        "artifactDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
         "subjectKind": "definition-item",
         "subjectRef": "organizationName"
       },
       "definitionRef": "https://formspec.cloud/definitions/organization-setup",
-      "definitionDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+      "definitionDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
       "status": "completed",
       "item": {
         "path": "organizationName",
@@ -154,7 +154,7 @@
           "kind": "artifact-declaration",
           "subject": {
             "artifactRef": "https://formspec.cloud/definitions/organization-setup",
-            "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+            "artifactDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
             "subjectKind": "definition-item",
             "subjectRef": "workspaceName"
           }
@@ -180,12 +180,12 @@
       "stepRef": "finish-onboarding",
       "subject": {
         "artifactRef": "https://formspec.cloud/definitions/organization-setup",
-        "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+        "artifactDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
         "subjectKind": "definition-item",
         "subjectRef": "workspaceName"
       },
       "definitionRef": "https://formspec.cloud/definitions/organization-setup",
-      "definitionDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+      "definitionDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
       "status": "completed",
       "item": {
         "path": "workspaceName",
@@ -201,7 +201,7 @@
           "kind": "artifact-declaration",
           "subject": {
             "artifactRef": "https://formspec.cloud/definitions/organization-setup",
-            "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+            "artifactDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
             "subjectKind": "definition-item",
             "subjectRef": "environment"
           }
@@ -227,12 +227,12 @@
       "stepRef": "finish-onboarding",
       "subject": {
         "artifactRef": "https://formspec.cloud/definitions/organization-setup",
-        "artifactDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+        "artifactDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
         "subjectKind": "definition-item",
         "subjectRef": "environment"
       },
       "definitionRef": "https://formspec.cloud/definitions/organization-setup",
-      "definitionDigest": "sha256:2d57731d3c97e8f313a8da5c6a1c97d4be759b84811b065303bb6c573d8c3fe5",
+      "definitionDigest": "sha256:27b015ccaac03ce007ce3e284c01a1b0e606abc29601fa5a1e0f56a04ccd2ad1",
       "status": "completed",
       "item": {
         "path": "environment",

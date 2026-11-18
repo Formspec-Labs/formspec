@@ -4081,6 +4081,11 @@ and `le`, `ge` and `offset` only on integer keys. App-graph authoring invokes th
 through its injected engine port with the upstream Definitions resolved by URL;
 the server MUST invoke it when either side publishes.
 
+When `response.definition.compatibleVersions` is present, the range and the
+upstream Definition versions MUST use Semantic Versioning (SemVer). Without a
+range, the check MUST cover every upstream Definition version and accept version
+identifiers from other schemes, including integer and date versions.
+
 For `pin: "at-open"`, the server MUST select and record a pin with
 `pinned: true` at draft open; an unavailable pin MUST refuse opening and name
 the missing filing. Browser creation receives the pinned value as an instance;

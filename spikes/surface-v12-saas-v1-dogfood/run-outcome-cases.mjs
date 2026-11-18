@@ -41,6 +41,7 @@ import {
 } from "@formspec-org/engine";
 import { lintDocument } from "@formspec-org/engine/fel-tools";
 import { planResponseActionInvocation } from "@formspec-org/engine/render";
+import { withPreviewSingletonSubject } from "./demo/src/preview-response.ts";
 import { createSemanticControlRegistry } from "@formspec-org/react/semantic-controls";
 import {
   createPreviewDefinitionResponseStore,
@@ -2143,11 +2144,12 @@ async function makeCaseRuntime({
     ) {
       return;
     }
+    const deliveredResponse = withPreviewSingletonSubject(response, bundle.definitions);
     for (const binding of responseSourceBindings(catalogHandles, response)) {
       const recorded = responseStore.record({
         binding,
         invocationId: result.invocationId,
-        response,
+        response: deliveredResponse,
       });
       if (recorded.status === "refused") {
         throw new Error(

@@ -2,9 +2,9 @@
   "$formspecReasoningReview": "1.1",
   "generatedFrom": "validated bundle, Needs, scenario, AppGraph collector, and mounted Experience paths",
   "traceRule": {
-    "directness": "Every behavior-bearing rendered or preview node carries its own direct current Need link; parent and sibling links never satisfy it.",
+    "directness": "Every rendered or preview node has a direct Need link or inherits one through the App Graph owner table.",
     "needResolution": "Every direct link resolves uniquely to an adopted Need at its current revision.",
-    "experienceResolution": "Every direct Need link reaches at least one mounted Experience unit citing that Need, with resolved actor and task references."
+    "experienceResolution": "Every effective Need link reaches at least one mounted Experience unit citing that Need, with resolved actor and task references."
   },
   "bundles": [
     {
@@ -369,9 +369,7 @@
           "pointer": "/items/0",
           "kind": "definition-item",
           "label": "organizationName",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -379,7 +377,11 @@
                 "needId": "configure-organization",
                 "revision": 1,
                 "raw": "need:configure-organization@1",
-                "pointer": "/items/0/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -420,9 +422,7 @@
           "pointer": "/items/1",
           "kind": "definition-item",
           "label": "workspaceName",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -430,7 +430,11 @@
                 "needId": "configure-organization",
                 "revision": 1,
                 "raw": "need:configure-organization@1",
-                "pointer": "/items/1/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -471,9 +475,7 @@
           "pointer": "/items/2",
           "kind": "definition-item",
           "label": "environment",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -481,7 +483,11 @@
                 "needId": "configure-organization",
                 "revision": 1,
                 "raw": "need:configure-organization@1",
-                "pointer": "/items/2/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -522,9 +528,7 @@
           "pointer": "/items/2/options/0",
           "kind": "definition-option",
           "label": "Production",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -532,7 +536,11 @@
                 "needId": "configure-organization",
                 "revision": 1,
                 "raw": "need:configure-organization@1",
-                "pointer": "/items/2/options/0/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -594,9 +602,7 @@
           "pointer": "/items/2/options/1",
           "kind": "definition-option",
           "label": "Sandbox",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -604,7 +610,11 @@
                 "needId": "configure-organization",
                 "revision": 1,
                 "raw": "need:configure-organization@1",
-                "pointer": "/items/2/options/1/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -666,9 +676,7 @@
           "pointer": "/binds/0",
           "kind": "definition-bind",
           "label": "organizationName",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -676,7 +684,11 @@
                 "needId": "configure-organization",
                 "revision": 1,
                 "raw": "need:configure-organization@1",
-                "pointer": "/binds/0/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -738,9 +750,7 @@
           "pointer": "/binds/1",
           "kind": "definition-bind",
           "label": "workspaceName",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -748,7 +758,11 @@
                 "needId": "configure-organization",
                 "revision": 1,
                 "raw": "need:configure-organization@1",
-                "pointer": "/binds/1/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -810,9 +824,7 @@
           "pointer": "/binds/2",
           "kind": "definition-bind",
           "label": "environment",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -820,7 +832,11 @@
                 "needId": "configure-organization",
                 "revision": 1,
                 "raw": "need:configure-organization@1",
-                "pointer": "/binds/2/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -965,9 +981,7 @@
           "pointer": "/items/0",
           "kind": "definition-item",
           "label": "fullName",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -975,7 +989,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/items/0/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -1016,9 +1034,7 @@
           "pointer": "/items/1",
           "kind": "definition-item",
           "label": "email",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -1026,7 +1042,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/items/1/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -1067,9 +1087,7 @@
           "pointer": "/items/2",
           "kind": "definition-item",
           "label": "request",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -1077,7 +1095,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/items/2/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -1118,9 +1140,7 @@
           "pointer": "/items/3",
           "kind": "definition-item",
           "label": "acceptNotices",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -1128,7 +1148,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/items/3/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -1169,9 +1193,7 @@
           "pointer": "/binds/0",
           "kind": "definition-bind",
           "label": "fullName",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -1179,7 +1201,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/binds/0/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -1252,9 +1278,7 @@
           "pointer": "/binds/1",
           "kind": "definition-bind",
           "label": "email",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -1262,7 +1286,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/binds/1/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -1335,9 +1363,7 @@
           "pointer": "/binds/2",
           "kind": "definition-bind",
           "label": "request",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -1345,7 +1371,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/binds/2/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -1418,9 +1448,7 @@
           "pointer": "/binds/3",
           "kind": "definition-bind",
           "label": "acceptNotices",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -1428,7 +1456,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/binds/3/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -5341,9 +5373,7 @@
           "pointer": "/references/0",
           "kind": "reference-entry",
           "label": "organization-name-help",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -5351,7 +5381,11 @@
                 "needId": "configure-organization",
                 "revision": 1,
                 "raw": "need:configure-organization@1",
-                "pointer": "/references/0/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -5413,9 +5447,7 @@
           "pointer": "/references/1",
           "kind": "reference-entry",
           "label": "workspace-name-help",
-          "anchors": [
-            "need:configure-organization@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -5423,7 +5455,11 @@
                 "needId": "configure-organization",
                 "revision": 1,
                 "raw": "need:configure-organization@1",
-                "pointer": "/references/1/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/organization-setup",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -5607,9 +5643,7 @@
           "pointer": "/references/0",
           "kind": "reference-entry",
           "label": "full-name-help",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -5617,7 +5651,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/references/0/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -5690,9 +5728,7 @@
           "pointer": "/references/1",
           "kind": "reference-entry",
           "label": "email-help",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -5700,7 +5736,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/references/1/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -5773,9 +5813,7 @@
           "pointer": "/references/2",
           "kind": "reference-entry",
           "label": "response-help",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -5783,7 +5821,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/references/2/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,
@@ -5856,9 +5898,7 @@
           "pointer": "/references/3",
           "kind": "reference-entry",
           "label": "notices-help",
-          "anchors": [
-            "need:complete-and-prove-response@1"
-          ],
+          "anchors": [],
           "traces": [
             {
               "direct": {
@@ -5866,7 +5906,11 @@
                 "needId": "complete-and-prove-response",
                 "revision": 1,
                 "raw": "need:complete-and-prove-response@1",
-                "pointer": "/references/3/x-generation/anchors/0"
+                "pointer": "/x-generation/anchors/0"
+              },
+              "via": {
+                "artifactRef": "https://formspec.cloud/definitions/public-response",
+                "pointer": ""
               },
               "need": {
                 "matchCount": 1,

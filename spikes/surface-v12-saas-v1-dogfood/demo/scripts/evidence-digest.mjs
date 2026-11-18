@@ -23,6 +23,7 @@ export const AUDITED_HOST_RUNTIME_FILES = Object.freeze([
   'src/App.tsx',
   'src/app.css',
   'src/main.tsx',
+  'src/preview-response.ts',
   'tsconfig.json',
   'vite.config.ts',
 ]);

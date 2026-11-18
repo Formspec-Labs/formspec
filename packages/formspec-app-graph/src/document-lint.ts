@@ -10,6 +10,7 @@ import type {
 import { diagnosticSourceForHandle } from './report.js';
 import { componentTargetUrl } from './locale-associations.js';
 import { handlesByKind, ownProp, record, stringProp } from './surface-widgets.js';
+import { responseProjectionDiagnostics } from './instance-projection.js';
 
 /** Context keys match the engine's `lintDocument` options; this package has no engine dependency. */
 export interface AppGraphDocumentLintContext {
@@ -21,6 +22,10 @@ export interface AppGraphDocumentLintContext {
   componentDocuments?: unknown[];
   localeDocuments?: unknown[];
   registryDocuments?: unknown[];
+  /** For a projection request, all loaded Definition documents of the selected URL. */
+  upstreamDefinitions?: readonly unknown[];
+  /** For a projection request, the consuming Definition's subject declaration or null. */
+  consumerSubject?: unknown;
 }
 
 export interface AppGraphLintDiagnostic {
@@ -32,11 +37,21 @@ export interface AppGraphLintDiagnostic {
   specRef?: string;
 }
 
+export interface AppGraphInstanceProjectionDiagnostic {
+  code: string;
+  jsonPointer: string;
+  upstreamVersion: string | null;
+  message: string;
+}
+
 /** A host injects its document linter, normally the engine's Rust/WASM `lintDocument`. */
 export type AppGraphDocumentLinter = (
   document: unknown,
   context: AppGraphDocumentLintContext,
-) => { diagnostics?: readonly AppGraphLintDiagnostic[] };
+) => {
+  diagnostics?: readonly AppGraphLintDiagnostic[];
+  instanceProjectionDiagnostics?: readonly AppGraphInstanceProjectionDiagnostic[];
+};
 
 export interface AppGraphDocumentLintValidatorOptions {
   /** Resolve the host input for a loaded Mapping, or return undefined for ordinary Mapping lint. */
@@ -169,14 +184,20 @@ export function documentLintValidator(
   lint: AppGraphDocumentLinter,
   { resolveMappingSourceContext }: AppGraphDocumentLintValidatorOptions = {},
 ): AppGraphCrossArtifactValidator {
-  return (context) => context.handles
-    .filter((handle) => handle.status === 'loaded' && LINTED_KINDS.has(handle.artifactKind))
+  const validate = (context: AppGraphContext) => context.handles
+    .filter((handle) => handle.status === 'loaded')
     .flatMap((handle) => {
+      if (handle.artifactKind === 'dataSources') return responseProjectionDiagnostics(lint, context, handle);
+      if (!LINTED_KINDS.has(handle.artifactKind)) return [];
       const lintContext = lintContextFor(context, handle);
       if (handle.artifactKind === 'mapping') {
         const sourceContext = resolveMappingSourceContext?.(handle, context);
         if (sourceContext !== undefined) lintContext.mappingSourceContext = sourceContext;
       }
-      return documentLintDiagnostics(lint, handle, lintContext);
+      const diagnostics = documentLintDiagnostics(lint, handle, lintContext);
+      return handle.artifactKind === 'definition'
+        ? diagnostics.concat(responseProjectionDiagnostics(lint, context, handle))
+        : diagnostics;
     });
+  return Object.assign(validate, { checksResponseProjections: true as const });
 }

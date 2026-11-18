@@ -96,6 +96,10 @@
       "name": "organization-setup",
       "title": "Organization setup",
       "description": "Core organization, workspace, and environment data required for customer-controlled setup.",
+      "subject": {
+        "type": "https://formspec.cloud/subjects/organization-setup",
+        "keys": {}
+      },
       "x-generation": {
         "anchors": ["need:configure-organization@1"]
       },
@@ -105,9 +109,6 @@
           "type": "field",
           "label": "Organization name",
           "dataType": "string",
-          "x-generation": {
-            "anchors": ["need:configure-organization@1"]
-          },
           "semanticType": "x-formspec-organization-name"
         },
         {
@@ -115,9 +116,6 @@
           "type": "field",
           "label": "Workspace name",
           "dataType": "string",
-          "x-generation": {
-            "anchors": ["need:configure-organization@1"]
-          },
           "semanticType": "x-formspec-workspace-name"
         },
         {
@@ -128,46 +126,28 @@
           "options": [
             {
               "value": "production",
-              "label": "Production",
-              "x-generation": {
-                "anchors": ["need:configure-organization@1"]
-              }
+              "label": "Production"
             },
             {
               "value": "sandbox",
-              "label": "Sandbox",
-              "x-generation": {
-                "anchors": ["need:configure-organization@1"]
-              }
+              "label": "Sandbox"
             }
           ],
-          "x-generation": {
-            "anchors": ["need:configure-organization@1"]
-          },
           "semanticType": "x-formspec-deployment-environment"
         }
       ],
       "binds": [
         {
           "path": "organizationName",
-          "required": "true",
-          "x-generation": {
-            "anchors": ["need:configure-organization@1"]
-          }
+          "required": "true"
         },
         {
           "path": "workspaceName",
-          "required": "true",
-          "x-generation": {
-            "anchors": ["need:configure-organization@1"]
-          }
+          "required": "true"
         },
         {
           "path": "environment",
-          "required": "true",
-          "x-generation": {
-            "anchors": ["need:configure-organization@1"]
-          }
+          "required": "true"
         }
       ]
     },
@@ -188,9 +168,6 @@
           "type": "field",
           "label": "Full name",
           "dataType": "string",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          },
           "semanticType": "x-formspec-person-name"
         },
         {
@@ -198,19 +175,13 @@
           "type": "field",
           "label": "Email address",
           "dataType": "string",
-          "semanticType": "x-formspec-contact-email",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          }
+          "semanticType": "x-formspec-contact-email"
         },
         {
           "key": "request",
           "type": "field",
           "label": "Your response",
           "dataType": "text",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          },
           "semanticType": "x-formspec-submitted-response"
         },
         {
@@ -218,44 +189,29 @@
           "type": "field",
           "label": "I agree to receive submission notices",
           "dataType": "boolean",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          },
           "semanticType": "x-formspec-submission-notice-consent"
         }
       ],
       "binds": [
         {
           "path": "fullName",
-          "required": "true",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          }
+          "required": "true"
         },
         {
           "path": "email",
           "required": "true",
           "constraint": "matches($, '^[^@\\\\s]+@[^@\\\\s]+\\\\.[^@\\\\s]+$')",
-          "constraintMessage": "Enter a valid email address.",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          }
+          "constraintMessage": "Enter a valid email address."
         },
         {
           "path": "request",
-          "required": "true",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          }
+          "required": "true"
         },
         {
           "path": "acceptNotices",
           "required": "true",
           "constraint": "$ = true",
-          "constraintMessage": "Agree to receive submission notices before continuing.",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          }
+          "constraintMessage": "Agree to receive submission notices before continuing."
         }
       ]
     },
@@ -7371,10 +7327,7 @@
           "audience": "human",
           "title": "Choosing an organization name",
           "content": "Use the legal or operating name teammates will recognize. You can change the display name later.",
-          "priority": "primary",
-          "x-generation": {
-            "anchors": ["need:configure-organization@1"]
-          }
+          "priority": "primary"
         },
         {
           "id": "workspace-name-help",
@@ -7383,10 +7336,7 @@
           "audience": "both",
           "title": "Naming the first workspace",
           "content": "Use a short name for the team or program that will own these forms and responses.",
-          "priority": "primary",
-          "x-generation": {
-            "anchors": ["need:configure-organization@1"]
-          }
+          "priority": "primary"
         },
         {
           "id": "environment-help",
@@ -7434,10 +7384,7 @@
           "audience": "human",
           "title": "Name on the receipt",
           "content": "Enter the name you want the receiving organization to see on this submission and its receipt.",
-          "priority": "primary",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          }
+          "priority": "primary"
         },
         {
           "id": "email-help",
@@ -7446,10 +7393,7 @@
           "audience": "both",
           "title": "Where the receipt goes",
           "content": "Use an address you can access. The submission receipt and any follow-up notices will use it.",
-          "priority": "primary",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          }
+          "priority": "primary"
         },
         {
           "id": "response-help",
@@ -7458,10 +7402,7 @@
           "audience": "human",
           "title": "What to include",
           "content": "Describe the request clearly enough for the organization to route it. Do not include passwords or payment card numbers.",
-          "priority": "primary",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          }
+          "priority": "primary"
         },
         {
           "id": "notices-help",
@@ -7470,10 +7411,7 @@
           "audience": "human",
           "title": "Submission notices",
           "content": "Notices cover this submission, including its receipt and status. They do not subscribe you to marketing.",
-          "priority": "supplementary",
-          "x-generation": {
-            "anchors": ["need:complete-and-prove-response@1"]
-          }
+          "priority": "supplementary"
         },
         {
           "id": "response-agent-context",

@@ -110,3 +110,36 @@ test('an exact action relation selects only its citing mounted unit', () => {
     }],
   );
 });
+
+test('an inherited item traces through its Definition pin and its own mounted unit', () => {
+  const input = fixture([{ id: 'operate' }]);
+  const definitionRef = 'https://example.test/definition';
+  const owner = { artifactSlot: 'definition', jsonPointer: '' };
+  input.bundle.documents[definitionRef] = { items: [{ key: 'name' }] };
+  input.bundle.documents[EXPERIENCE_REF].units[0].itemRefs = [{ path: 'name' }];
+  input.graphInput.handles.push({ slot: 'definition', ref: { url: definitionRef } });
+  input.nodes.push({
+    source: owner,
+    kind: 'definition',
+    pointer: '',
+    label: 'Definition',
+    anchors: [{ raw: 'need:operate@1', needId: 'operate', revision: 1, pointer: '/x-generation/anchors/0' }],
+    invalidAnchors: [],
+  }, {
+    source: { artifactSlot: 'definition', jsonPointer: '/items/0' },
+    kind: 'definition-item',
+    pointer: '/items/0',
+    label: 'Name',
+    anchors: [],
+    invalidAnchors: [],
+    effective: { needIds: ['operate'], via: [owner] },
+  });
+
+  const review = buildBundleReasoningReview(input);
+  const item = review.renderedPointers[2];
+
+  assert.equal(review.status, 'complete');
+  assert.deepEqual(item.anchors, []);
+  assert.deepEqual(item.traces[0].via, { artifactRef: definitionRef, pointer: '' });
+  assert.deepEqual(item.traces[0].experiencePaths.map(({ unitRef }) => unitRef), ['exact']);
+});

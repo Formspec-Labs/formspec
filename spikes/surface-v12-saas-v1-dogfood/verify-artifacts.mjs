@@ -25,10 +25,13 @@ import {
   UX_TITLE_DUPLICATE_CODE,
   artifactResolutionGraphInput,
   collectRenderedNeedTraceNodes,
+  documentLintValidator,
   produceBundleExportAppGraphValidationReport,
   validateNeedUsableOutcomes,
   validateRenderedNeedTrace,
 } from '@formspec-org/app-graph';
+import { initFormspecEngine, initFormspecEngineTools } from '@formspec-org/engine/init-formspec-engine';
+import { lintDocument } from '@formspec-org/engine/fel-tools';
 import {
   createWidgetRegistry,
   flattenRegistryEntries,
@@ -300,6 +303,7 @@ async function verifyFixture(ajv, fixture, previewSet) {
       };
     },
     crossArtifactValidators: [
+      documentLintValidator(lintDocument),
       validateRenderedNeedTrace,
       validateNeedUsableOutcomes,
     ],
@@ -642,6 +646,8 @@ async function verifyEvidence(expectedReview) {
 }
 
 async function main() {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
   const [ajv, previewSet, review] = await Promise.all([
     createAjv(),
     json(join(ARTIFACTS, 'preview-set.json')),

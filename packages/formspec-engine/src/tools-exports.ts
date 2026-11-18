@@ -39,6 +39,7 @@ export {
 } from './fel/fel-api.js';
 
 export type { TreeItemLike, ItemLocation } from './fel/fel-api.js';
+export { checkInstanceProjection, type InstanceProjectionDiagnostic } from './fel/fel-api-tools.js';
 
 export { createMappingEngine, RuntimeMappingEngine } from './mapping/RuntimeMappingEngine.js';
 export { isValidResponseAuthored, responseSubjectId, selectResponses } from './wasm-bridge-tools.js';

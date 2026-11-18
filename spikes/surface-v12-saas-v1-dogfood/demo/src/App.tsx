@@ -5,6 +5,7 @@
  * only from the preview set. This file supplies generic browser and runtime
  * adapters without interpreting any product identifier.
  */
+import { withPreviewSingletonSubject } from './preview-response.ts';
 import { useCallback, useMemo, useState } from 'react';
 import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020.js';
 import {
@@ -504,6 +505,7 @@ export function App({ selection }: { selection: PreviewSelection }) {
       ) {
         return;
       }
+      const deliveredResponse = withPreviewSingletonSubject(response, selection.bundle.definitions);
       let recorded = false;
       for (const binding of definitionResponseBindingsFor(
         selection.bundle.dataSources ?? [],
@@ -512,13 +514,13 @@ export function App({ selection }: { selection: PreviewSelection }) {
         const outcome = responseStore.record({
           binding,
           invocationId: result.invocationId,
-          response,
+          response: deliveredResponse,
         });
         if (outcome.status === 'recorded') recorded = true;
       }
       if (recorded) setResponseGeneration((current) => current + 1);
     },
-    [responseStore, selection.bundle.dataSources],
+    [responseStore, selection.bundle.dataSources, selection.bundle.definitions],
   );
   const dataSourceLoader = useMemo<DataSourceLoader>(
     () => responseStore.wrapLoader(runtime.loader),

@@ -91,7 +91,6 @@ export {
   validateExecutableSchemaContracts,
 } from './executable-schema-contracts.js';
 export {
-  DATA_SOURCE_CONTRACT_CODES,
   validateDataSources,
 } from './data-sources.js';
 export {
@@ -129,6 +128,7 @@ export {
   type AppGraphDocumentLinter,
   type AppGraphLintDiagnostic,
   type AppGraphDocumentLintContext,
+  type AppGraphInstanceProjectionDiagnostic,
   type AppGraphDocumentLintValidatorOptions,
 } from './document-lint.js';
 export {

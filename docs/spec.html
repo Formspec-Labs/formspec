@@ -7972,6 +7972,11 @@ version in range, upstream subject type and key compatibility, and
 keys. App-graph authoring invokes this operation through its injected
 engine port with the upstream Definitions resolved by URL; the server
 MUST invoke it when either side publishes.</p>
+<p>When <code>response.definition.compatibleVersions</code> is present,
+the range and the upstream Definition versions MUST use Semantic
+Versioning (SemVer). Without a range, the check MUST cover every
+upstream Definition version and accept version identifiers from other
+schemes, including integer and date versions.</p>
 <p>For <code>pin: "at-open"</code>, the server MUST select and record a
 pin with <code>pinned: true</code> at draft open; an unavailable pin
 MUST refuse opening and name the missing filing. Browser creation

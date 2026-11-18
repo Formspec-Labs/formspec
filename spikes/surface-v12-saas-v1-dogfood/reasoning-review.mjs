@@ -144,6 +144,10 @@ function directLinks(node) {
   ];
 }
 
+function sourceKey({ artifactSlot, jsonPointer }) {
+  return JSON.stringify([artifactSlot, jsonPointer]);
+}
+
 function nodeRelations(node, artifactRef, documents, index, needId) {
   const resolved = pointerValue(documents.get(artifactRef), node.pointer);
   const value = record(resolved.value);
@@ -258,6 +262,7 @@ function traceForLink(link, node, artifactRef, documents, needsById, index) {
       raw: link.raw,
       pointer: link.pointer,
     },
+    ...(link.via ? { via: link.via } : {}),
     need: {
       matchCount: matches.length,
       id: link.needId,
@@ -285,6 +290,9 @@ export function buildBundleReasoningReview({
   for (const handle of graphInput.handles) {
     artifactRefBySlot.set(handle.slot, handle.ref?.url);
   }
+  const artifactRefFor = (source) => artifactRefBySlot.get(source.artifactSlot) ??
+    source.ref?.url ?? source.source;
+  const nodesBySource = new Map(nodes.map((node) => [sourceKey(node.source), node]));
   const documents = reviewDocuments(bundle, scenarioFile, scenario);
   const needsById = new Map();
   for (const need of needs.needs ?? []) {
@@ -294,11 +302,17 @@ export function buildBundleReasoningReview({
   const index = experienceIndex(bundle);
 
   const renderedPointers = nodes.map((node) => {
-    const artifactRef =
-      artifactRefBySlot.get(node.source.artifactSlot) ??
-      node.source.ref?.url ??
-      node.source.source;
+    const artifactRef = artifactRefFor(node.source);
     const links = directLinks(node);
+    if (links.length === 0) {
+      for (const source of node.effective.via) {
+        const owner = nodesBySource.get(sourceKey(source));
+        if (!owner) continue;
+        links.push(...directLinks(owner)
+          .filter(({ needId }) => node.effective.needIds.includes(needId))
+          .map((link) => ({ ...link, via: { artifactRef: artifactRefFor(source), pointer: source.jsonPointer } })));
+      }
+    }
     const traces = links.map((link) =>
       traceForLink(
         link,
@@ -312,7 +326,7 @@ export function buildBundleReasoningReview({
     const reasons = [
       ...(node.failure ? [node.failure.reason] : []),
       ...node.invalidAnchors.map((anchor) => anchor.reason),
-      ...(links.length === 0 ? ['direct-need-link-missing'] : []),
+      ...(links.length === 0 ? ['effective-need-link-missing'] : []),
       ...traces
         .filter((trace) => trace.status !== 'traced')
         .map((trace) =>
@@ -465,11 +479,11 @@ export function reasoningReviewDocument(bundles) {
     generatedFrom: 'validated bundle, Needs, scenario, AppGraph collector, and mounted Experience paths',
     traceRule: {
       directness:
-        'Every behavior-bearing rendered or preview node carries its own direct current Need link; parent and sibling links never satisfy it.',
+        'Every rendered or preview node has a direct Need link or inherits one through the App Graph owner table.',
       needResolution:
         'Every direct link resolves uniquely to an adopted Need at its current revision.',
       experienceResolution:
-        'Every direct Need link reaches at least one mounted Experience unit citing that Need, with resolved actor and task references.',
+        'Every effective Need link reaches at least one mounted Experience unit citing that Need, with resolved actor and task references.',
     },
     bundles,
   };

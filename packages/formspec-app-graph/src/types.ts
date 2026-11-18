@@ -157,7 +157,11 @@ export interface AppGraphContext {
   hostWidgetContracts?: HostWidgetContracts;
 }
 
-export type AppGraphCrossArtifactValidator = (context: AppGraphContext) => AppGraphDiagnostic[];
+export interface AppGraphCrossArtifactValidator {
+  (context: AppGraphContext): AppGraphDiagnostic[];
+  /** This validator checks response projections through the injected engine port. */
+  readonly checksResponseProjections?: true;
+}
 
 export type AppGraphSchemaValidators =
   | AppGraphSchemaValidator

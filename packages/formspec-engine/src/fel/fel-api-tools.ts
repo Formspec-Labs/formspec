@@ -46,6 +46,8 @@ import {
     wasmWellKnownRegistryUrl,
 } from '../wasm-bridge-tools.js';
 
+export { checkInstanceProjection, type InstanceProjectionDiagnostic } from '../wasm-bridge-tools.js';
+
 export const tokenizeFEL = wasmTokenizeFel;
 
 function mapRewriteEntries(

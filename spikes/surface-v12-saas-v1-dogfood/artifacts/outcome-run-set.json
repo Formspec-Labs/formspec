@@ -9,19 +9,19 @@
   "cases": [
     {
       "path": "outcome-cases/organization-empty-is-blocked.case.json",
-      "digest": "sha256:40055803ee35065a63721dd7850e6716008dccdd18a37e21ca866aadd26e9953",
+      "digest": "sha256:39e7b364435655604f2ffe55e33c5003e040e16010bf0fb1b745db17a42f1f55",
       "required": true,
       "claimRequired": true
     },
     {
       "path": "outcome-cases/organization-values-visible.case.json",
-      "digest": "sha256:5982f743ca59ab622a4a16b4c89e3c59498308ce4026453bed446e76eab8df3e",
+      "digest": "sha256:89a51a90bd075b151622e6a8ce7d87eaa683e56eca0e2548e2c4380dae0f0006",
       "required": true,
       "claimRequired": true
     },
     {
       "path": "outcome-cases/public-response-invalid-input.case.json",
-      "digest": "sha256:8f684806e44222da20972b88805595b66dd44cfd110b91b9c3deb29be80e7e66",
+      "digest": "sha256:dc520f0bc0051288b78dc6d1cf4ca494075a2e91dcf9c17d17714723c89b1545",
       "required": true,
       "claimRequired": true
     },

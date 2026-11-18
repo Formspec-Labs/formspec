@@ -1,12 +1,15 @@
-import { describe, expect, it } from 'vitest';
+/** @filedesc Catalog Response projection checks through the AppGraph engine port. */
+import { beforeAll, describe, expect, it } from 'vitest';
+import { initFormspecEngine, initFormspecEngineTools, lintDocument } from '@formspec-org/engine';
 import {
-  DATA_SOURCE_CONTRACT_CODES,
+  documentLintValidator,
   validateDataSources,
   type AppGraphContext,
   type ResolvedArtifactHandle,
 } from '../src/index.js';
 
 const DEFINITION_URL = 'https://example.gov/forms/intake';
+const subject = { type: 'urn:example:filing', keys: {} };
 const CATALOG_URL = 'https://example.gov/data/intake';
 
 function handle(
@@ -41,6 +44,7 @@ function fixture(options: FixtureOptions): AppGraphContext {
       $formspec: '1.0',
       url: DEFINITION_URL,
       version: '1.0.0',
+      ...(options.selection ? { subject } : {}),
       items: options.items ?? [{ key: 'name', type: 'field', label: 'Name', dataType: 'string' }],
     },
     DEFINITION_URL,
@@ -95,6 +99,7 @@ function definition(
       $formspec: '1.0',
       url: DEFINITION_URL,
       version,
+      subject,
       items,
     },
     DEFINITION_URL,
@@ -102,9 +107,21 @@ function definition(
   return { ...result, ref: { url: DEFINITION_URL, version } };
 }
 
+beforeAll(async () => {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+});
+
+// This fixture previously asserted the TS-only codes and details. It now exercises
+// the composed graph and verifies the Rust code, source location and version.
+function validate(context: AppGraphContext) {
+  return [...validateDataSources(context), ...documentLintValidator(lintDocument)(context)]
+    .filter(finding => finding.origin === 'app-graph-validator' || finding.code.startsWith('INSTANCE-PROJECTION-'));
+}
+
 describe('definition-response source.schema describes Response.data', () => {
   it('rejects top-level FormResponse envelope properties with exact schema and Definition pointers', () => {
-    const diagnostics = validateDataSources(fixture({
+    const diagnostics = validate(fixture({
       schema: {
         type: 'object',
         properties: {
@@ -119,11 +136,11 @@ describe('definition-response source.schema describes Response.data', () => {
     }));
 
     expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
-      DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
-      DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
-      DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
-      DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
-      DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
+      'INSTANCE-PROJECTION-PATH-MISSING',
+      'INSTANCE-PROJECTION-PATH-MISSING',
+      'INSTANCE-PROJECTION-PATH-MISSING',
+      'INSTANCE-PROJECTION-PATH-MISSING',
+      'INSTANCE-PROJECTION-PATH-MISSING',
     ]);
     expect(diagnostics.map((diagnostic) => diagnostic.primarySource?.jsonPointer)).toEqual([
       '/sources/0/schema/properties/authored',
@@ -137,17 +154,11 @@ describe('definition-response source.schema describes Response.data', () => {
       && diagnostic.relatedSources[0]?.artifactSlot === 'definitions[0]'
       && diagnostic.relatedSources[0]?.jsonPointer === '/items'
     )).toBe(true);
-    expect(diagnostics[1]?.details).toMatchObject({
-      reason: 'schema-property-not-definition-data-key',
-      sourceRef: 'response:intake',
-      definitionRef: DEFINITION_URL,
-      property: 'data',
-      definitionDataKeys: ['name'],
-    });
+    expect(diagnostics[1]?.details).toEqual({ upstreamVersion: '1.0.0' });
   });
 
   it('accepts a field schema whose top-level properties are Definition data keys', () => {
-    const diagnostics = validateDataSources(fixture({
+    const diagnostics = validate(fixture({
       schema: {
         type: 'object',
         additionalProperties: false,
@@ -159,7 +170,7 @@ describe('definition-response source.schema describes Response.data', () => {
   });
 
   it('accepts legitimate Definition fields named status and data', () => {
-    const diagnostics = validateDataSources(fixture({
+    const diagnostics = validate(fixture({
       schema: {
         type: 'object',
         properties: {
@@ -176,8 +187,24 @@ describe('definition-response source.schema describes Response.data', () => {
     expect(diagnostics).toEqual([]);
   });
 
+  it('accepts integer values under JSON Schema number and refuses incompatible types', () => {
+    const items = [
+      { key: 'count', type: 'field', label: 'Count', dataType: 'integer' },
+      { key: 'name', type: 'field', label: 'Name', dataType: 'string' },
+    ];
+    const diagnostics = validate(fixture({
+      items,
+      schema: { type: 'object', properties: { count: { type: 'number' }, name: { type: 'boolean' } } },
+    }));
+    expect(diagnostics).toMatchObject([{
+      code: 'INSTANCE-PROJECTION-FIELD-TYPE-MISMATCH',
+      primarySource: { jsonPointer: '/sources/0/schema/properties/name/type' },
+      details: { upstreamVersion: '1.0.0' },
+    }]);
+  });
+
   it('fails closed on an unresolved Definition without guessing schema properties', () => {
-    const diagnostics = validateDataSources(fixture({
+    const diagnostics = validate(fixture({
       schema: { type: 'object', properties: { name: { type: 'string' } } },
       definitions: [],
     }));
@@ -203,7 +230,7 @@ describe('definition-response source.schema describes Response.data', () => {
 
   it('fails closed on an ambiguous exact Definition resolution', () => {
     const items = [{ key: 'name', type: 'field', label: 'Name', dataType: 'string' }];
-    const diagnostics = validateDataSources(fixture({
+    const diagnostics = validate(fixture({
       schema: { type: 'object', properties: { name: { type: 'string' } } },
       definitions: [definition('definitions[0]', items), definition('definitions[1]', items)],
     }));
@@ -249,7 +276,7 @@ describe('definition-response source.schema describes Response.data', () => {
       type: 'display',
       label: 'Instructions',
     }];
-    const valid = validateDataSources(fixture({
+    const valid = validate(fixture({
       schema: {
         type: 'object',
         properties: {
@@ -267,7 +294,7 @@ describe('definition-response source.schema describes Response.data', () => {
     }));
     expect(valid).toEqual([]);
 
-    const nestedChildAtRoot = validateDataSources(fixture({
+    const nestedChildAtRoot = validate(fixture({
       schema: {
         type: 'object',
         properties: { recordId: { type: 'string' } },
@@ -275,7 +302,7 @@ describe('definition-response source.schema describes Response.data', () => {
       items,
     }));
     expect(nestedChildAtRoot).toMatchObject([{
-      code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
+      code: 'INSTANCE-PROJECTION-PATH-MISSING',
       primarySource: {
         jsonPointer: '/sources/0/schema/properties/recordId',
       },
@@ -283,15 +310,12 @@ describe('definition-response source.schema describes Response.data', () => {
         artifactSlot: 'definitions[0]',
         jsonPointer: '/items',
       }],
-      details: {
-        property: 'recordId',
-        definitionDataKeys: ['applications', 'count'],
-      },
+      details: { upstreamVersion: '1.0.0' },
     }]);
   });
 
-  it('reports unsupported top-level schema composition as indeterminate instead of guessing', () => {
-    const diagnostics = validateDataSources(fixture({
+  it('reports unsupported top-level schema composition on the catalog source', () => {
+    const diagnostics = validate(fixture({
       schema: {
         allOf: [{
           type: 'object',
@@ -301,25 +325,20 @@ describe('definition-response source.schema describes Response.data', () => {
     }));
 
     expect(diagnostics).toMatchObject([{
-      code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaIndeterminate,
+      code: 'INSTANCE-PROJECTION-SCHEMA-UNSUPPORTED',
       primarySource: {
         artifactSlot: 'dataSources[0]',
         jsonPointer: '/sources/0/schema/allOf',
       },
-      relatedSources: [{
-        artifactSlot: 'definitions[0]',
-        jsonPointer: '/items',
-      }],
-      details: {
-        reason: 'top-level-schema-composition-unsupported',
-        unsupportedKeywords: ['allOf'],
-      },
+      // Schema composition is a source-level defect independent of upstream version.
+      relatedSources: [],
+      details: { upstreamVersion: null },
     }]);
   });
 });
 
 it('checks list item keys against the Definition selected by URL and range', () => {
-  const diagnostics = validateDataSources(fixture({
+  const diagnostics = validate(fixture({
     selection: {
       definition: { url: DEFINITION_URL, compatibleVersions: '^1.0.0' },
       subject: [],
@@ -330,7 +349,7 @@ it('checks list item keys against the Definition selected by URL and range', () 
     schema: { type: 'array', items: { type: 'object', properties: { missing: { type: 'string' } } } },
   }));
   expect(diagnostics).toMatchObject([{
-    code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
+    code: 'INSTANCE-PROJECTION-PATH-MISSING',
     primarySource: { jsonPointer: '/sources/0/schema/items/properties/missing' },
   }]);
 });
@@ -346,20 +365,23 @@ describe('catalog Definition version range', () => {
 
   const schema = { type: 'object', properties: { name: { type: 'string' } } };
 
-  it.each(['^2.0.0', 'not a semver range'])('reports no admitted version for %s', range => {
-    expect(validateDataSources(fixture({ schema, selection: selection(range) }))).toMatchObject([{
-      code: DATA_SOURCE_CONTRACT_CODES.definitionSelectionUnresolved,
-      primarySource: { jsonPointer: '/sources/0/responseSelection/definition' },
-      details: { definitionRef: DEFINITION_URL, compatibleVersions: range },
+  it.each([
+    ['^2.0.0', 'INSTANCE-PROJECTION-NO-ELIGIBLE-VERSION', ''],
+    ['not a semver range', 'INSTANCE-PROJECTION-VERSION-INVALID', '/compatibleVersions'],
+  ])('refuses an empty or invalid range %s', (range, code, suffix) => {
+    expect(validate(fixture({ schema, selection: selection(range) }))).toMatchObject([{
+      code,
+      primarySource: { jsonPointer: `/sources/0/responseSelection/definition${suffix}` },
+      details: { upstreamVersion: null },
     }]);
   });
 
   it('reports duplicate loaded copies of an admitted version', () => {
-    expect(validateDataSources(fixture({
+    expect(validate(fixture({
       schema, selection: selection('^1.0.0'),
       definitions: [definition('definitions[0]', []), definition('definitions[1]', [])],
     }))).toMatchObject([{
-      code: DATA_SOURCE_CONTRACT_CODES.definitionSelectionUnresolved,
+      code: 'INSTANCE-PROJECTION-VERSION-AMBIGUOUS',
       primarySource: { jsonPointer: '/sources/0/responseSelection/definition' },
     }]);
   });
@@ -370,22 +392,23 @@ describe('catalog Definition version range', () => {
       definition('definitions[1]', [], '1.1.0'),
       definition('definitions[2]', [], '2.0.0'),
     ];
-    expect(validateDataSources(fixture({
+    expect(validate(fixture({
       schema, selection: selection('^1.0.0'), definitions,
       manifestDefinitionRefs: definitions.map(handle => ({ url: DEFINITION_URL, version: handle.ref!.version! })),
     }))).toMatchObject([{
-      code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
+      code: 'INSTANCE-PROJECTION-PATH-MISSING',
       relatedSources: [{ artifactSlot: 'definitions[1]', jsonPointer: '/items' }],
     }]);
   });
 
-  it('reports mapped payloads that need the Core projection check', () => {
-    expect(validateDataSources(fixture({
+  it('reports an unsupported Mapping on the catalog source', () => {
+    expect(validate(fixture({
       schema, selection: selection('^1.0.0', 'urn:mapping:intake'),
     }))).toMatchObject([{
-      code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaIndeterminate,
+      code: 'INSTANCE-PROJECTION-SCHEMA-UNSUPPORTED',
       primarySource: { jsonPointer: '/sources/0/responseSelection/mapping' },
-      details: { reason: 'mapped-payload-check-unavailable' },
+      // The catalog Mapping cannot be proved from any supplied version alone.
+      details: { upstreamVersion: null },
     }]);
   });
 });

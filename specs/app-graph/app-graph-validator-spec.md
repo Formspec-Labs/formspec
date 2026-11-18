@@ -321,7 +321,7 @@ app-graph report.
 | Experience target Definitions and unit references | `AppGraphValidator` | `cross-artifact` | Checks that references name loaded Definitions and units. |
 | Response Actions targetDefinition and Surface transition trigger references | `AppGraphValidator` | `cross-artifact` | Response Actions remains the executor; validator only checks declared references. The shared kernel rejects Surface transition triggers that are neither loaded Response Actions `actions[*].id` values nor closed-core Response Actions intents declared by exactly one loaded action; it does not promote Runtime Plan commands or direct `x-` extension-intent triggers. |
 | Data Sources catalog identity and availability selectors to loaded Surfaces, routes, slots, Definitions, and admitted modules | `AppGraphValidator` | `cross-artifact` | Catalog URL identity and Surface URL plus route/slot identity are exact. Route ids are not graph-global. Payload fetching, cache behavior, and runtime authorization remain out of scope. |
-| Catalog Response selection predicates and payload shapes | Core `check_instance_projection` through `AppGraphValidator` | `cross-artifact` | Validate against the compatible upstream Definitions as specified in [Data Sources §4.2](../data-sources/data-sources-spec.md#42-non-draft-definition-response-selection). |
+| Definition response-instance projections and catalog Response selection | Core `check_instance_projection` through the injected engine port | `cross-artifact` | Validate field paths, payload shapes and subject predicates against compatible upstream Definitions. See [Data Sources §4.2](../data-sources/data-sources-spec.md#42-non-draft-definition-response-selection) for catalog delivery. |
 | Surface 0.2 widget data bindings to Registry 1.1 inputs and Data Sources | `AppGraphValidator` | `cross-artifact` | Resolves the widget through its module contribution, then checks the declared input and exact `(catalogRef, sourceRef)` pair. App, exact Surface, qualified route, qualified slot, or matching module availability may cover the widget; Definition-only availability does not. The optional source payload schema remains Data Sources authority and no payload is fetched here. |
 | Surface 0.2 widget action bindings and completed-action transition candidates | `AppGraphValidator` | `cross-artifact` | `E612` rejects undeclared outputs and unresolved exact action ids. `E611` credits a widget only through Registry output plus Surface mapping plus the same resolved action. Zero transition candidates reports a stay result; more than one reports ambiguity and selects none. |
 | Duplicate visible titles in one proven display scope | `AppGraphValidator` | `cross-artifact` | Emits an advisory warning for repeated effective navigation labels in one Surface scope, route-to-visible-slot titles, tasks within one Experience, sibling or immediate parent-child Section/Panel titles, and titles within one resolved StructuredPanel. Comparison applies Unicode NFC normalization, trimming, and whitespace collapse, but remains case-sensitive because AppGraph does not resolve the active display locale. Theme and Definition fallback pages are excluded because AppGraph cannot prove that the layout planner selected them. |
@@ -332,6 +332,23 @@ app-graph report.
 | Response Actions invocation, idempotency replay, effect execution, and ledger append | Response Actions runtime and LedgerPort gates | not validator-owned | The validator may check references but must not execute behavior. |
 | Component Surface/route target resolution, duplicate route claims, route-bound control Definition context, fake `targetDefinition` rejection, and node identity disambiguation | Component Surface/route identity contract plus `AppGraphValidator` gates | `cross-artifact` | The shared kernel currently enforces loaded Component membership, Surface/route/slot target resolution, duplicate route claims, exact-only Surface version mismatch, ref-less Component handle rejection, evidence-limited fake `targetDefinition` rejection, URL-based `definition-form` route context for route-bound Components with bound controls, stable route-scoped nodePath segment availability (`nodeId`, then `bind`, then `id`), sibling segment ambiguity, and duplicate constructed graph-wide Component node identity keys. Studio/kernel graph-wide operations and provenance validation remain later gates. |
 | Component projection output and renderer fallback | Projection/runtime/renderer gates | not validator-owned | The validator may check future Component graph identity, but it must not render Components or choose fallback behavior. |
+
+#### Response projection context
+
+The validator pairs each response instance and each catalog `definition-response`
+selection with all loaded Definitions whose reference and document URLs both
+match the selection. It supplies those Definitions in one call to the engine
+port, including an empty set when none are loaded. Core selects eligible versions
+and checks paths, types and subject predicates. The caller supplies the consuming
+Definition's subject explicitly, or `null` when there is no subject. Catalog
+predicates that read route parameters use `null` when they have no consuming
+Definition subject to read. Session drafts use the exact Definition resolved by
+the catalog's `definitionRef`.
+
+Authoring and publication callers MUST inject an engine port that performs these
+checks. AppGraph refuses a projection when the caller omits that port. Each
+finding points into the consuming artifact and preserves Core's
+`details.upstreamVersion`, including `null` when the finding has no single version.
 
 #### Stable rendered-Need evidence rule
 
@@ -456,8 +473,20 @@ The built-in vNext checks use these stable diagnostic families:
 | `DATA-SOURCE-CATALOG-REF` | error | A loaded Data Sources catalog is not manifested exactly once or its document `id` differs from that reference URL. |
 | `DATA-SOURCE-ID-COLLISION` | error | A catalog declares the same source id more than once. |
 | `DATA-SOURCE-AVAILABILITY-REF` | error | A Definition, Surface, qualified route, qualified slot, or module availability selector does not resolve. |
-| `DATA-SOURCE-DEFINITION-DATA-SCHEMA` | error | A `definition-response` source schema declares a direct top-level property that is not a root `Response.data` key in the exact resolved Definition. |
-| `DATA-SOURCE-DEFINITION-DATA-SCHEMA-INDETERMINATE` | error | AppGraph cannot safely compare a `definition-response` source schema with the resolved Definition because the schema composition or Definition item shape is unsupported. |
+| `APP-GRAPH-PROJECTION-CHECK-MISSING` | error | A response projection requires an injected engine check and the caller has not provided one. |
+| `INSTANCE-PROJECTION-DEFINITION-MISMATCH` | error | The selection has no upstream Definition URL, or a supplied Definition has a different URL. |
+| `INSTANCE-PROJECTION-VERSION-INVALID` | error | An upstream Definition lacks a version identifier, or a declared range or version fails SemVer parsing. |
+| `INSTANCE-PROJECTION-VERSION-AMBIGUOUS` | error | Multiple supplied Definitions identify the same eligible version. |
+| `INSTANCE-PROJECTION-NO-ELIGIBLE-VERSION` | error | No supplied upstream Definition version matches the selection. |
+| `INSTANCE-PROJECTION-SCHEMA-UNSUPPORTED` | error | The catalog schema or mapped output cannot be compared statically with the upstream Definition. |
+| `INSTANCE-PROJECTION-PATH-MISSING` | error | A projected field path or catalog root data key is missing from an eligible upstream Definition. |
+| `INSTANCE-PROJECTION-FIELD-TYPE-MISMATCH` | error | The declared projection admits a different field type from the upstream Definition. |
+| `INSTANCE-PROJECTION-SUBJECT-MISSING` | error | An eligible upstream Definition lacks a subject declaration. |
+| `INSTANCE-PROJECTION-SUBJECT-TYPE-MISMATCH` | error | Eligible upstream versions declare different subject types. |
+| `INSTANCE-PROJECTION-SUBJECT-KEY-TYPE-DRIFT` | error | Eligible upstream versions declare different subject key sets or key types. |
+| `INSTANCE-PROJECTION-SUBJECT-KEY-MISSING` | error | A predicate names an undeclared upstream subject key, or a catalog predicate names an undeclared consuming key. |
+| `INSTANCE-PROJECTION-SUBJECT-KEY-TYPE-MISMATCH` | error | A predicate compares incompatible declared key types or names an upstream key with an unsupported type. |
+| `INSTANCE-PROJECTION-SUBJECT-INTEGER-REQUIRED` | error | A predicate uses an integer-only operation on a non-integer upstream key. |
 | `APP-GRAPH-WIDGET-DATA-BINDING` | error | An optional widget data binding names an undeclared input, catalog, source, or unavailable source. |
 | `WIDGET-DATA-REQUIRED-UNAVAILABLE` | error | A required Registry input is unbound or its exact source descriptor is unavailable. |
 | `E612` | error | A Surface widget action binding names an output the resolved Registry widget does not declare or an `actionRef` that does not resolve to exactly one loaded Response Actions action. |

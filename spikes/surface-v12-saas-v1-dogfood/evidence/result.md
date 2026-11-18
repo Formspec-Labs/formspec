@@ -11,7 +11,7 @@ structured data. Generic framework code supplies rendering, validation,
 responsive layout, accessible defaults, state storage, semantic controls and
 outputs, and evidence collection without product-specific branches.
 
-Reviewed input digest: `sha256:b8f631ac8d24d207a7b7d3438046b0b379cb4998f2b867f2ae29037b13ddd050`
+Reviewed input digest: `sha256:bcc7448d49ba67dee8df3923179bbb58d0d8af59e8d4d49ee3f560e0d5bc5e79`
 
 ## Structured artifact and reasoning result
 

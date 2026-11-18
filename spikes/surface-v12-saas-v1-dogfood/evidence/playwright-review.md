@@ -1,6 +1,10 @@
 # v12 Playwright review
 
-Reviewed input digest: `sha256:b8f631ac8d24d207a7b7d3438046b0b379cb4998f2b867f2ae29037b13ddd050`
+Reviewed input digest: `sha256:bcc7448d49ba67dee8df3923179bbb58d0d8af59e8d4d49ee3f560e0d5bc5e79`
+
+## November 18, 2026 projection check
+
+Chromium rendered 15 routes across five profiles and tested the loaded views at desktop and mobile widths. Blank onboarding stayed on the form. A valid submission reached the dashboard, and Administration read all three saved values through the filed Response catalog. Invalid public input stayed on the form, valid input reached the receipt, and the same host rendered the independent bundle.
 
 ## November 17, 2026 recapture
 

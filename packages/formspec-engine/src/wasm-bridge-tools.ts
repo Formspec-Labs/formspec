@@ -313,9 +313,32 @@ export interface WasmLintDocumentOptions {
     appGraphValidationReport?: unknown;
     schemaOnly?: boolean;
     noFel?: boolean;
+    /** For an AppGraph projection check, pass all loaded Definitions for the selected URL. */
+    upstreamDefinitions?: readonly unknown[];
+    /** Subject declaration of the consuming Definition, or null when there is none. */
+    consumerSubject?: unknown;
 }
 
-/** Lint a Formspec document. */
+export interface InstanceProjectionDiagnostic {
+    code: string;
+    jsonPointer: string;
+    upstreamVersion: string | null;
+    message: string;
+}
+
+/** Check an instance or catalog source against every eligible upstream Definition. */
+export function checkInstanceProjection(
+    source: unknown,
+    consumerSubject: unknown,
+    upstreamDefinitions: readonly unknown[],
+): InstanceProjectionDiagnostic[] {
+    assertWasmToolsReadySync();
+    return JSON.parse(wasmTools().checkInstanceProjection(
+        JSON.stringify(source), JSON.stringify(consumerSubject ?? null), JSON.stringify(upstreamDefinitions),
+    ));
+}
+
+/** Lint a Formspec document, or check a response projection when given upstream Definitions. */
 export function wasmLintDocument(
     doc: unknown,
     options?: WasmLintDocumentOptions,
@@ -324,7 +347,12 @@ export function wasmLintDocument(
     valid: boolean;
     diagnostics: any[];
     appGraphReport?: { ok: boolean; diagnostics: any[] };
+    instanceProjectionDiagnostics?: InstanceProjectionDiagnostic[];
 } {
+    if (options?.upstreamDefinitions !== undefined) {
+        const instanceProjectionDiagnostics = checkInstanceProjection(doc, options.consumerSubject, options.upstreamDefinitions);
+        return { documentType: null, valid: instanceProjectionDiagnostics.length === 0, diagnostics: [], instanceProjectionDiagnostics };
+    }
     assertWasmToolsReadySync();
     const optionsJson =
         options === undefined ? undefined : JSON.stringify(options);

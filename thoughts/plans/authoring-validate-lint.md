@@ -125,9 +125,7 @@ app-graph is layer 1 and has no engine. `document-lint.ts` replaces `locale-lint
   | `LOCALE_LINT_ORIGIN` | `DOCUMENT_LINT_ORIGIN` (same value) |
 
 - Deleted: `validateThemeTokenRegistry`. Lint W708, rescoped by fs-i29t, is the one owner (§3).
-- **Amendment (ADR 0172, proposed; implement only once it is ratified).** app-graph calls the Rust `check_instance_projection(instance, upstream_definition)` through this same linter port.
-  - `AppGraphDocumentLintContext` gains an upstream-Definitions member, resolved by URL from `instances.*.response.definition`, added in this same unreleased rename.
-  - app-graph's TS `DATA-SOURCE-DEFINITION-DATA-SCHEMA` check for catalog sources is then deleted, and the Rust check is its one owner.
+- **Amendment (ADR 0172).** AppGraph calls the Rust `check_instance_projection` through the same linter port. The projection context passes the consuming subject or explicit `null` and every loaded Definition at the selected URL, for both response instances and catalog selections. Core owns projection diagnostics and version filtering.
 - `WireframesMcpServerOptions.localeLinter` becomes `documentLinter`, still required.
 
 ### D3. Where the linter is bound
@@ -245,7 +243,7 @@ The native validators are listed at `app-graph/src/validator.ts:335-355`. The fs
 | locale-associations | `APP-GRAPH-LOCALE-{DUPLICATE,REF,TARGET,UI-CHROME-MISSING}` | none (E1400 cannot fire under URL pairing) | Keep. |
 | ux-title-duplicates | `APP-GRAPH-UX-TITLE-DUPLICATE` (Section and Panel titles) | none (W1902 is Definition sibling labels) | Keep. |
 | ui-graph-policy | `THEME-TOKEN-{REF,CATEGORY,SLOT,WIDGET}`, `THEME-ROUTE-CLASS`, `LOCALE-KEY-OWNER*` (policy evidence) | none | Keep. |
-| data-sources | `DATA-SOURCE-DEFINITION-DATA-SCHEMA` (catalog sources) and the other `DATA-SOURCE-*` codes | Rust `check_instance_projection` (ADR 0172, proposed) | Once 0172 is ratified, the Rust check owns `DATA-SOURCE-DEFINITION-DATA-SCHEMA` through the linter port (§2 D2 amendment) and the TS check is deleted. Until then, keep. |
+| data-sources | `DATA-SOURCE-*` for catalog identity and availability | Rust `check_instance_projection` (ADR 0172) | The linter port reports `INSTANCE-PROJECTION-*` for the selection and delivered schema (§2 D2 amendment). |
 | Other modules: component-graph-context, executable-schema-contracts, experience-action-refs, needs coverage and rendered-need trace, screener-surface-targets, ux-authoring-quality, widget-runtime-contract | | none (no lint pass, or an excluded kind) | Keep. |
 
 ## 4. Files to change, by repository

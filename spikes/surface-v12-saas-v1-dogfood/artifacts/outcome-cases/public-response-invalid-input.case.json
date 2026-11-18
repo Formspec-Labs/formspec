@@ -32,12 +32,12 @@
       "renderStepRef": "open-public-response",
       "control": {
         "artifactRef": "https://formspec.cloud/definitions/public-response",
-        "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "artifactDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
         "subjectKind": "definition-item",
         "subjectRef": "fullName"
       },
       "definitionRef": "https://formspec.cloud/definitions/public-response",
-      "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+      "definitionDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
       "path": "fullName",
       "value": "Ada Lovelace"
     },
@@ -47,12 +47,12 @@
       "renderStepRef": "open-public-response",
       "control": {
         "artifactRef": "https://formspec.cloud/definitions/public-response",
-        "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "artifactDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
         "subjectKind": "definition-item",
         "subjectRef": "email"
       },
       "definitionRef": "https://formspec.cloud/definitions/public-response",
-      "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+      "definitionDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
       "path": "email",
       "value": "not-an-email"
     },
@@ -62,12 +62,12 @@
       "renderStepRef": "open-public-response",
       "control": {
         "artifactRef": "https://formspec.cloud/definitions/public-response",
-        "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "artifactDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
         "subjectKind": "definition-item",
         "subjectRef": "request"
       },
       "definitionRef": "https://formspec.cloud/definitions/public-response",
-      "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+      "definitionDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
       "path": "request",
       "value": "Please review this request."
     },
@@ -77,12 +77,12 @@
       "renderStepRef": "open-public-response",
       "control": {
         "artifactRef": "https://formspec.cloud/definitions/public-response",
-        "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "artifactDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
         "subjectKind": "definition-item",
         "subjectRef": "acceptNotices"
       },
       "definitionRef": "https://formspec.cloud/definitions/public-response",
-      "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+      "definitionDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
       "path": "acceptNotices",
       "value": false
     },
@@ -115,7 +115,7 @@
           "kind": "artifact-declaration",
           "subject": {
             "artifactRef": "https://formspec.cloud/definitions/public-response",
-            "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+            "artifactDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
             "subjectKind": "definition-bind",
             "subjectRef": "acceptNotices"
           }
@@ -141,12 +141,12 @@
       "stepRef": "submit-invalid-response",
       "subject": {
         "artifactRef": "https://formspec.cloud/definitions/public-response",
-        "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "artifactDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
         "subjectKind": "definition-bind",
         "subjectRef": "acceptNotices"
       },
       "definitionRef": "https://formspec.cloud/definitions/public-response",
-      "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+      "definitionDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
       "valid": false,
       "containsIssues": [
         {
@@ -163,7 +163,7 @@
           "kind": "artifact-declaration",
           "subject": {
             "artifactRef": "https://formspec.cloud/definitions/public-response",
-            "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+            "artifactDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
             "subjectKind": "definition-bind",
             "subjectRef": "email"
           }
@@ -189,12 +189,12 @@
       "stepRef": "submit-invalid-response",
       "subject": {
         "artifactRef": "https://formspec.cloud/definitions/public-response",
-        "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "artifactDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
         "subjectKind": "definition-bind",
         "subjectRef": "email"
       },
       "definitionRef": "https://formspec.cloud/definitions/public-response",
-      "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+      "definitionDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
       "valid": false,
       "containsIssues": [
         {
@@ -211,7 +211,7 @@
           "kind": "artifact-declaration",
           "subject": {
             "artifactRef": "https://formspec.cloud/definitions/public-response",
-            "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+            "artifactDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
             "subjectKind": "definition-item",
             "subjectRef": "acceptNotices"
           }
@@ -237,12 +237,12 @@
       "stepRef": "submit-invalid-response",
       "subject": {
         "artifactRef": "https://formspec.cloud/definitions/public-response",
-        "artifactDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+        "artifactDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
         "subjectKind": "definition-item",
         "subjectRef": "acceptNotices"
       },
       "definitionRef": "https://formspec.cloud/definitions/public-response",
-      "definitionDigest": "sha256:12ab9e1e2e176631190a596bdb541838a8a5f645205f447809ab998978153bb5",
+      "definitionDigest": "sha256:97a2c1a814a0a1020d96c5d8c52c7c0b4ffaff24267a24cd8f0bb5ce546c8ee1",
       "status": "in-progress",
       "item": {
         "path": "acceptNotices",
