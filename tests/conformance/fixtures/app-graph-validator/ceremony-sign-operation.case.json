@@ -1,0 +1,9 @@
+{
+  "id": "ceremony-sign-operation",
+  "description": "Sign output bound to a response Action with an opaque request id. The catalog also contains an unrelated Sign request.",
+  "cases": [
+    { "id": "missing", "expected": { "diagnostics": [{ "code": "E612" }] } },
+    { "id": "wrong", "operation": "prepare", "expected": { "diagnostics": [{ "code": "E612" }] } },
+    { "id": "matching", "operation": "sign", "expected": { "diagnostics": [] } }
+  ]
+}

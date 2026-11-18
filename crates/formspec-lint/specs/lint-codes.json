@@ -418,11 +418,12 @@
       "code": "E612",
       "pass": 8,
       "severity": "error",
-      "title": "Surface widget action binding names an undeclared output or unresolved action (SURFACE-WIDGET-ACTION-REF)",
+      "title": "Invalid Surface widget output or bound Response Action (SURFACE-WIDGET-ACTION-REF)",
       "specRef": "specs/app-graph/app-graph-validator-spec.md#71-vnext-surface-graph-diagnostics",
-      "suggestedFix": "declare the output in Registry widgetShape.actionOutputs and map it to one exact loaded Response Actions action id",
+      "suggestedFix": "map the declared output to one qualified action and give its signing request operation sign for a ceremony Sign output",
       "fixtures": [
-        "tests/conformance/fixtures/app-graph-validator/surface-vnext-cross-artifact.case.json"
+        "tests/conformance/fixtures/app-graph-validator/surface-vnext-cross-artifact.case.json",
+        "tests/conformance/fixtures/app-graph-validator/ceremony-sign-operation.case.json"
       ],
       "state": "tested"
     },

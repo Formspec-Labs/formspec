@@ -1,4 +1,5 @@
 /** @filedesc Qualified module-widget Response ownership and transition admission. */
+import corpus from '../../../tests/conformance/fixtures/app-graph-validator/ceremony-sign-operation.case.json';
 import { describe, expect, it } from 'vitest';
 import { validateSurfaceWidgetActions, validateSurfaceResponseActionTriggers, type AppGraphContext,
   type ResolvedArtifactHandle } from '../src/index.js';
@@ -6,7 +7,7 @@ import { validateSurfaceWidgetActions, validateSurfaceResponseActionTriggers, ty
 function handle(kind: string, url: string, document: unknown): ResolvedArtifactHandle {
   return { slot: kind, artifactKind: kind, status: 'loaded', ref: { url }, document };
 }
-function fixture() {
+function fixture(output = 'save', deliveryContractId?: string) {
   const input = { name: 'saved', required: true };
   const binding = { actionRef: 'save', responseInput: 'saved' };
   const source = { id: 'saved', schema: { $ref: 'https://formspec.org/schemas/response/1.0' },
@@ -19,12 +20,12 @@ function fixture() {
     handles: [definition, handle('registry', 'urn:registry', { entries: [
       { name: 'x-module', category: 'module', contributes: ['x-widget'] },
       { name: 'x-widget', category: 'widget', widgetShape: { widgetName: 'Widget',
-        dataInputs: [input], actionOutputs: [{ name: 'save' }] } },
+        dataInputs: [input], deliveryContractId, actionOutputs: [{ name: output }] } },
     ] }), handle('dataSources', 'urn:data', { id: 'urn:data', sources: [source] }),
     handle('responseActions', 'urn:actions', actions),
     handle('surface', 'urn:surface', { routes: [
       { id: 'home', slots: [{ id: 'widget', slotType: 'module-widget', binding: {
-        moduleId: 'x-module', widgetName: 'Widget', actionBindings: { save: binding },
+        moduleId: 'x-module', widgetName: 'Widget', actionBindings: { [output]: binding },
         dataBindings: { saved: { catalogRef: 'urn:data', sourceRef: 'saved' } },
       } }], transitions: [{ trigger: 'save', to: 'done' }] },
       { id: 'done', slots: [] },
@@ -59,5 +60,21 @@ describe('qualified widget Response actions', () => {
     if (failure === 'unmanifested-definition') (f.context.manifest.document as { definitions: unknown[] }).definitions = [];
     if (failure === 'app-context') { f.actions.scope = 'app'; delete (f.actions as Partial<typeof f.actions>).targetDefinition; }
     refuses(f.context);
+  });
+});
+
+describe('signing ceremony Sign output', () => {
+  it.each(corpus.cases)('checks the bound request operation ($id)', ({ operation, expected }) => {
+    const { context, actions } = fixture('sign', '@formspec-org/surface-react/SigningCeremony@0.1');
+    Object.assign(actions.actions[0]!, { effects: [{ type: 'serviceRequest', requestRef: 'record' }] });
+    Object.assign(actions, { 'x-formspec-runtime': { requests: [
+      { id: 'record', operation }, { id: 'unrelated', operation: 'sign' },
+    ] } });
+    const findings = validateSurfaceWidgetActions(context);
+    expect(findings.map(({ code }) => ({ code }))).toEqual(expected.diagnostics);
+    for (const finding of findings) expect(finding.details?.reason).toBe('ceremony-sign-operation');
+    expect(validateSurfaceResponseActionTriggers(context).some(finding => finding.code === 'E611'))
+      .toBe(expected.diagnostics.length > 0);
+    expect(validateSurfaceWidgetActions(fixture('sign', 'urn:other:widget').context)).toEqual([]);
   });
 });

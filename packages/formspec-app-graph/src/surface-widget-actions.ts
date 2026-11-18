@@ -129,6 +129,28 @@ export function widgetActionOwnershipMatches(
   });
 }
 
+/** The maintained ceremony maps its Sign output to a response-scoped signing request. */
+function ceremonySignMatches(contribution: RegistryWidgetEntry, output: string,
+  reference: ResponseActionReferences['actions'][number]): boolean {
+  if (output !== 'sign' || stringProp(widgetShape(contribution), 'deliveryContractId')
+      !== '@formspec-org/surface-react/SigningCeremony@0.1') return true;
+  if (reference.scope !== 'response') return false;
+  const document = record(reference.handle.document);
+  const action = recordArray(ownProp(document, 'actions'))[reference.actionIndex];
+  const catalog = record(ownProp(document, 'x-formspec-runtime'));
+  const requests = recordArray(ownProp(catalog, 'requests'));
+  const operations: string[] = [];
+  for (const effect of recordArray(ownProp(action, 'effects'))) {
+    if (stringProp(effect, 'type') !== 'serviceRequest') continue;
+    const id = stringProp(effect, 'requestRef');
+    const matches = requests.filter(request => id && stringProp(request, 'id') === id);
+    if (matches.length !== 1) return false;
+    const operation = stringProp(matches[0], 'operation');
+    if (operation !== undefined) operations.push(operation);
+  }
+  return operations.length === 1 && operations[0] === 'sign';
+}
+
 function validActionsForWidget(
   context: AppGraphContext,
   widget: SurfaceWidgetSlot,
@@ -147,6 +169,7 @@ function validActionsForWidget(
       outputs.get(outputName) === 1
       && actionRef
       && matches.length === 1
+      && ceremonySignMatches(contribution, outputName, matches[0]!)
       && widgetActionOwnershipMatches(context, widget, contribution, record(value), matches[0]!)
     )
       ? [{ widget, outputName, actionRef }]
@@ -257,6 +280,18 @@ function widgetActionBindingDiagnostics(
               actualScope: matches[0]!.scope,
               responseInput: stringProp(binding, 'responseInput'),
             },
+          });
+        } else if (!ceremonySignMatches(contribution, outputName, matches[0]!)) {
+          const action = matches[0]!;
+          diagnostics.push({
+            code: 'E612',
+            severity: 'error',
+            phase: 'cross-artifact',
+            origin: 'app-graph-validator',
+            message: 'Map the signing ceremony Sign output to a response Action with one signing request whose operation is sign.',
+            primarySource: diagnosticSourceForHandle(widget.surface, actionBindingPointer(widget, outputName)),
+            relatedSources: [diagnosticSourceForHandle(action.handle, `/actions/${action.actionIndex}`)],
+            details: { reason: 'ceremony-sign-operation', outputName, actionRef },
           });
         }
       }
