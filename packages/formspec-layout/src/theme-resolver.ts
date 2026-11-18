@@ -162,7 +162,7 @@ export interface Tier1Hints {
     formPresentation?: {
         labelPosition?: 'top' | 'start' | 'hidden';
         density?: 'compact' | 'comfortable' | 'spacious';
-        pageMode?: 'single' | 'wizard' | 'tabs';
+        pageMode?: 'single' | 'wizard' | 'tabs' | 'workspace';
     };
 }
 

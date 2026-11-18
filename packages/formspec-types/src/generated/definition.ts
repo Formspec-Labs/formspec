@@ -490,9 +490,9 @@ export interface FormDefinition {
    */
   formPresentation?: {
     /**
-     * How top-level groups are paginated. 'single': all items on one page. 'wizard': sequential steps with navigation controls. 'tabs': tabbed sections. Processors that don't support the declared mode SHOULD fall back to 'single'.
+     * How top-level groups are paginated. 'single': all items on one page. 'wizard': sequential steps with navigation controls. 'tabs': tabbed sections. 'workspace': free navigation between sections with question search and findings. Processors that don't support the declared mode MUST fall back to 'single'.
      */
-    pageMode?: 'single' | 'wizard' | 'tabs';
+    pageMode?: 'single' | 'wizard' | 'tabs' | 'workspace';
     /**
      * Default label placement for all Fields. 'top': label above input. 'start': label to the leading side (left in LTR, right in RTL). 'hidden': label suppressed visually but MUST remain in accessible markup.
      */

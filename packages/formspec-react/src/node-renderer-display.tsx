@@ -414,12 +414,12 @@ function DataTableCell({
             const match = choices.find((c) => c.value === rawValue);
             if (match) displayValue = match.label;
         }
-        return <td {...metadataAttrs}>{displayValue}</td>;
+        return <td {...metadataAttrs} data-name={signalPath}>{displayValue}</td>;
     }
 
     if (dataType === 'boolean') {
         return (
-            <td {...metadataAttrs}>
+            <td {...metadataAttrs} data-name={signalPath}>
                 <input
                     className="formspec-datatable-input"
                     type="checkbox"
@@ -434,7 +434,7 @@ function DataTableCell({
 
     if ((dataType === 'choice' || dataType === 'select') && choices.length > 0) {
         return (
-            <td {...metadataAttrs}>{wrapControl(
+            <td {...metadataAttrs} data-name={signalPath}>{wrapControl(
                 <select
                     className="formspec-datatable-input"
                     name={signalPath}
@@ -458,7 +458,7 @@ function DataTableCell({
             : undefined;
         const numericDisplay = jsonValueText(moneyValue ?? rawValue);
         return (
-            <td {...metadataAttrs}>{wrapControl(
+            <td {...metadataAttrs} data-name={signalPath}>{wrapControl(
                 <input
                     className="formspec-datatable-input"
                     name={signalPath}
@@ -494,7 +494,7 @@ function DataTableCell({
 
     if (dataType === 'date') {
         return (
-            <td {...metadataAttrs}>{wrapControl(
+            <td {...metadataAttrs} data-name={signalPath}>{wrapControl(
                 <input
                     className="formspec-datatable-input"
                     name={signalPath}
@@ -509,7 +509,7 @@ function DataTableCell({
     }
 
     return (
-        <td {...metadataAttrs}>{wrapControl(
+        <td {...metadataAttrs} data-name={signalPath}>{wrapControl(
             <input
                 className="formspec-datatable-input"
                 name={signalPath}
@@ -536,7 +536,7 @@ function DataTableDisplay({
 }) {
     const chrome = useChromeText();
     const { engine } = useFormspecContext();
-    const bindKey = node.props?.bind as string | undefined;
+    const bindKey = node.bindPath ?? node.props?.bind as string | undefined;
     const columns = (node.props?.columns as DataTableColumn[]) || [];
     // Component §6.14: both default to true; false only hides the affordance (§4.4).
     const allowAdd = node.props?.allowAdd !== false;
@@ -566,14 +566,14 @@ function DataTableDisplay({
 
     if (!bindKey || columns.length === 0) {
         return (
-            <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style} {...metadataAttrs}>
+            <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style} data-bind={bindKey} {...metadataAttrs}>
                 <table className="formspec-data-table" />
             </div>
         );
     }
 
     return (
-        <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style} {...metadataAttrs}>
+        <div className={`formspec-data-table-wrapper${cssClass ? ' ' + cssClass : ''}`} style={style} data-bind={bindKey} {...metadataAttrs}>
             <table className="formspec-data-table">
                 {(node.props?.title as string) && (
                     <caption>{node.props?.title as string}</caption>

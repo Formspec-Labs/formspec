@@ -493,10 +493,11 @@
           "enum": [
             "single",
             "wizard",
-            "tabs"
+            "tabs",
+            "workspace"
           ],
           "default": "single",
-          "description": "How top-level groups are paginated. 'single': all items on one page. 'wizard': sequential steps with navigation controls. 'tabs': tabbed sections. Processors that don't support the declared mode SHOULD fall back to 'single'."
+          "description": "How top-level groups are paginated. 'single': all items on one page. 'wizard': sequential steps with navigation controls. 'tabs': tabbed sections. 'workspace': free navigation between sections with question search and findings. Processors that don't support the declared mode MUST fall back to 'single'."
         },
         "labelPosition": {
           "type": "string",

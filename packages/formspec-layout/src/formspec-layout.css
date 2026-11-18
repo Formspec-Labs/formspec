@@ -2,3 +2,50 @@
 
 @import "./styles/layout.primitives.css";
 @import "./styles/layout.responsive.css";
+
+.formspec-workspace-container {
+  container: formspec-workspace / inline-size;
+}
+
+.formspec-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--formspec-space-lg, 1.5rem);
+  align-items: start;
+}
+
+.formspec-workspace__navigation ul,
+.formspec-workspace__findings ul {
+  margin-block: var(--formspec-space-sm, 0.5rem);
+  padding-inline-start: 1.25em;
+}
+
+.formspec-workspace__navigation [aria-current] {
+  font-weight: bold;
+}
+
+.formspec-workspace__navigation input {
+  display: block;
+  max-inline-size: 100%;
+}
+
+.formspec-workspace__navigation small {
+  display: block;
+}
+
+.formspec-workspace__previous-next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--formspec-space-sm, 0.5rem);
+  margin-block: var(--formspec-space-md, 1rem);
+}
+
+.formspec-workspace p[role="status"]:empty {
+  margin: 0;
+}
+
+@container formspec-workspace (width > 50rem) {
+  .formspec-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) minmax(0, 1fr);
+  }
+}

@@ -1,6 +1,7 @@
 /** @filedesc Native browser navigation and color-scheme checks for Surface. */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { Walk } from '@formspec-org/walk';
 import { expect, test } from '@playwright/test';
 import { SURFACE_APPEARANCE_SCRIPT } from '../../../packages/formspec-surface-react/src/browser-appearance';
 
@@ -120,4 +121,146 @@ test('history links reload under a base path and modified clicks leave the origi
   await expect(page.getByRole('heading', { name: 'Root route' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Root route' })).toBeVisible();
+});
+
+test('the authored workspace updates focus and title through section links and browser history', async ({ page }) => {
+  await page.goto('/surface-browser.html?workspace#/filing/ny?slot=filing&section=stale');
+  const contact = page.getByRole('textbox', { name: 'Contact name' });
+  const intro = page.getByRole('heading', { name: 'Introduction', exact: true });
+  const details = page.getByRole('heading', { name: 'Details', exact: true });
+  await expect(intro).toBeVisible();
+  await expect(page).toHaveTitle('Introduction – Filing – Example filing');
+  await contact.fill('Example');
+  await page.getByRole('link', { name: 'Details', exact: true }).click();
+  await expect(page).toHaveURL(/#\/filing\/ny\?slot=filing&section=details$/);
+  await expect(details).toBeFocused();
+  await expect(page).toHaveTitle('Details – Filing – Example filing');
+  await expect(contact).toHaveCount(0);
+  await page.goBack();
+  await expect(intro).toBeFocused();
+  await expect(page).toHaveTitle('Introduction – Filing – Example filing');
+  await expect(contact).toHaveValue('Example');
+  await page.goForward();
+  await expect(details).toBeFocused();
+  await expect(page).toHaveTitle('Details – Filing – Example filing');
+  await page.reload();
+  await expect(details).toBeVisible();
+  await expect(page).toHaveTitle('Details – Filing – Example filing');
+  await page.getByRole('link', { name: 'Overview', exact: true }).click();
+  await expect(page).toHaveTitle('Overview – Example filing');
+});
+
+test('only the workspace selected by the URL moves focus when a route has multiple forms', async ({ page }) => {
+  await page.goto('/surface-browser.html?workspace&twoForms#/filing/ny?slot=additional&section=details');
+  const first = page.locator('[data-slot="filing"]');
+  const second = page.locator('[data-slot="additional"]');
+  await expect(second.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
+  await first.getByRole('link', { name: 'Introduction', exact: true }).click();
+  await expect(first.getByRole('heading', { name: 'Introduction', exact: true })).toBeFocused();
+  await expect(second.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
+  await first.getByRole('link', { name: 'Details', exact: true }).click();
+  await expect(first.getByRole('heading', { name: 'Details', exact: true })).toBeFocused();
+  await expect(second.getByRole('heading', { name: 'Details', exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveTitle('Introduction – Filing – Example filing');
+  await page.goBack();
+  await expect(second.getByRole('heading', { name: 'Details', exact: true })).toBeFocused();
+  await expect(page).toHaveTitle('Details – Filing – Example filing');
+});
+
+test('workspace search announces results and relates them to the search box', async ({ page }) => {
+  await page.goto('/surface-browser.html?workspace#/filing/ny');
+  const search = page.getByRole('searchbox', { name: 'Search questions' });
+  const navigation = page.locator('.formspec-workspace__navigation');
+  const status = navigation.getByRole('status');
+  const results = navigation.getByRole('list', { name: 'Search questions' });
+  await expect(status).toBeEmpty();
+  await search.fill('notes');
+  await expect(status).toHaveText('Matching questions (1)');
+  await expect(search).toHaveAccessibleDescription('Matching questions (1)');
+  await expect(results.getByRole('button', { name: 'Notes Details' })).toBeVisible();
+  await expect(search).toHaveAttribute('aria-controls', (await results.getAttribute('id'))!);
+  await search.fill('no such question');
+  await expect(status).toHaveText('No matching questions.');
+  await expect(search).toHaveAccessibleDescription('No matching questions.');
+  await search.clear();
+  await expect(status).toBeEmpty();
+});
+
+test('workspace stacks when its Surface column is narrow on a wide screen', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/surface-browser.html?workspace#/filing/ny');
+  const workspace = page.locator('.formspec-workspace');
+  const slot = page.locator('[data-slot="filing"]');
+  const columns = () => workspace.evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length);
+  await slot.evaluate(node => { node.style.inlineSize = '64rem'; });
+  await expect.poll(columns).toBe(3);
+  await slot.evaluate(node => { node.style.inlineSize = '32rem'; });
+  await expect.poll(columns).toBe(1);
+});
+
+test('Definition Walk uses the workspace bridge for choices, page changes, repeats and validation', async ({ page }) => {
+  await page.goto('/surface-browser.html?workspace#/filing/ny');
+  const walk = await Walk.open(page, {});
+  try {
+    const choice = page.getByLabel('Filing type');
+    await choice.selectOption('revision');
+    await expect(choice).toHaveValue('revision');
+    expect(await walk.show('details.rows[0].entry')).toBe(true);
+    await expect(page.getByRole('textbox', { name: 'Entry' })).toBeVisible();
+    await page.getByRole('button', { name: 'Add Rows' }).click();
+    await expect(page.getByRole('textbox', { name: 'Entry' })).toHaveCount(2);
+    expect(await walk.show('intro.contact')).toBe(true);
+    await expect(choice).toHaveValue('revision');
+    expect(await walk.summary([{ path: 'details.notes', label: 'Notes' }])).toBe(1);
+    expect(walk.findings).toEqual([]);
+    await expect(page.getByRole('textbox', { name: 'Notes' })).toBeFocused();
+  } finally {
+    await walk.sr.stop();
+  }
+});
+
+test('Definition Walk opens a workspace before any question is mounted', async ({ page }) => {
+  await page.goto('/surface-browser.html?workspace&displayFirst#/filing/ny');
+  await expect(page.getByRole('heading', { name: 'Instructions' })).toBeVisible();
+  await expect(page.locator('[data-name]')).toHaveCount(0);
+  const walk = await Walk.open(page, {});
+  try {
+    expect(await walk.show('intro.contact')).toBe(true);
+    await expect(page.getByRole('textbox', { name: 'Contact name' })).toBeVisible();
+  } finally {
+    await walk.sr.stop();
+  }
+});
+
+test('Definition Walk waits for a control in an empty React root outside workspace', async ({ page }) => {
+  await Walk.open(page, {
+    mount: async () => {
+      await page.setContent('<div data-formspec-render-root style="min-height: 1rem"></div>');
+      await page.evaluate(() => {
+        window.setTimeout(() => {
+          const root = document.querySelector<HTMLElement>('[data-formspec-render-root]')!;
+          root.dataset.summaryReadyBeforeControl = String(root.hasAttribute('show-validation-summary'));
+          root.innerHTML = '<input data-name="contact">';
+        }, 750);
+      });
+    },
+  });
+  await expect(page.locator('[data-formspec-render-root]')).toHaveAttribute('data-summary-ready-before-control', 'false');
+});
+
+test('Definition Walk finds the right empty repeat when two workspace sections use the same Add label', async ({ page }) => {
+  await page.goto('/surface-browser.html?workspace&emptyRepeat#/filing/ny');
+  const walk = await Walk.open(page, {});
+  try {
+    await walk.repeat('details.rows', {
+      firstField: 'details.rows.entry', rowName: 'Rows', addLabel: 'Add Rows', removeLabel: 'Remove Rows 1',
+    });
+    expect(walk.findings).toEqual([]);
+    await expect(page.getByRole('button', { name: 'Add Rows' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Entry' })).toHaveCount(0);
+    expect(await walk.live('intro.otherRows.otherEntry')).toBeUndefined();
+  } finally {
+    await walk.sr.stop();
+  }
 });

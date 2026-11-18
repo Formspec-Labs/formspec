@@ -33,6 +33,7 @@ import type { NativeScreenerSlotProps, SurfaceScreenerCompletionPolicy } from '.
  *    would mean inventing one. Authored order is the only thing defined.
  */
 import { presentedRouteTitle, type SurfaceRouteTitleResolver } from './title-presentation.js';
+import { activeWorkspaceSlot } from './workspace-navigation.js';
 import type { DataSourceRevisionSelector } from './data-source-revision.js';
 import { useRef } from 'react';
 import {
@@ -181,8 +182,7 @@ export function SurfaceRouteView({
   useSurfaceThemeTokens(container, grant.themeDocument);
 
   const workspace = formSession?.workspace;
-  const formSlots = plan.slots.filter(slot => slot.slotType === 'definition-form');
-  const activeSlot = workspace?.slot ?? (formSlots.length === 1 ? formSlots[0]?.slotId : undefined);
+  const activeSlot = activeWorkspaceSlot(plan, workspace?.slot);
 
   const titleLevel = resolveRouteTitleLevel(plan.headingBaseLevel);
   const titleText = presentedRouteTitle(handle, resolveRouteTitle);
@@ -261,7 +261,8 @@ export function SurfaceRouteView({
             localeDocuments={localeDocuments}
             activeLocale={activeLocale}
             formSession={formSession}
-            activeSection={slotPlan.slotId === activeSlot ? workspace?.activeSection : undefined}
+            {...(workspace && slotPlan.slotId === activeSlot && { activeSection: workspace.activeSection })}
+            sectionNavigationActive={slotPlan.slotId === activeSlot}
             grant={grant}
             route={route}
             strings={text}

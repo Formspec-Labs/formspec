@@ -1493,6 +1493,7 @@ controls the Definition never authors. Locale 2.0 gives a Locale
 Document a closed family to retune this chrome for
 <code>target.kind: "definition"</code>:</p>
 <pre><code>$ui.&lt;ChromeStringKey&gt;</code></pre>
+<p>Workspace chrome keys require Locale 2.1.</p>
 <p><code>&lt;ChromeStringKey&gt;</code> is closed. The Locale schema and
 every conforming renderer’s chrome inventory MUST contain these exact
 suffixes one-for-one (source of truth:
@@ -1620,6 +1621,66 @@ with the schema by test):</p>
 <tr>
 <td><code>wizard.otherItems</code></td>
 <td><code>Additional items</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>workspace.sections</code></td>
+<td><code>Form sections</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>workspace.search</code></td>
+<td><code>Search questions</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>workspace.matchCount</code></td>
+<td><code>Matching questions ({{$count}})</code></td>
+<td><code>count</code></td>
+</tr>
+<tr>
+<td><code>workspace.noMatches</code></td>
+<td><code>No matching questions.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>workspace.findings</code></td>
+<td><code>Findings</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>workspace.error</code></td>
+<td><code>Error: {{$message}}</code></td>
+<td><code>message</code></td>
+</tr>
+<tr>
+<td><code>workspace.warning</code></td>
+<td><code>Warning: {{$message}}</code></td>
+<td><code>message</code></td>
+</tr>
+<tr>
+<td><code>workspace.info</code></td>
+<td><code>Information: {{$message}}</code></td>
+<td><code>message</code></td>
+</tr>
+<tr>
+<td><code>workspace.filled</code></td>
+<td><code>{{$filled}} of {{$total}} answers filled</code></td>
+<td><code>filled</code>, <code>total</code></td>
+</tr>
+<tr>
+<td><code>workspace.validationUnavailable</code></td>
+<td><code>Validation is unavailable.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>workspace.targetUnavailable</code></td>
+<td><code>This question is no longer available.</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>workspace.targetReadOnly</code></td>
+<td><code>This question cannot be edited.</code></td>
 <td>none</td>
 </tr>
 <tr>

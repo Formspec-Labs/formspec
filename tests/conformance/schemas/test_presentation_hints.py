@@ -65,7 +65,7 @@ def _invalid(definition):
 class TestFormPresentationValid:
     """Valid formPresentation values."""
 
-    @pytest.mark.parametrize("mode", ["single", "wizard", "tabs"])
+    @pytest.mark.parametrize("mode", ["single", "wizard", "tabs", "workspace"])
     def test_valid_page_mode(self, mode):
         _valid(_minimal_def(formPresentation={"pageMode": mode}))
 

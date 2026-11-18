@@ -297,7 +297,7 @@ Optional: `versionAlgorithm` ("semver"/"date"/"integer"/"natural", default "semv
 
 ### Form Presentation (advisory)
 
-`pageMode`: "single" | "wizard" | "tabs". `labelPosition`: "top" | "start" | "hidden". `density`: "compact" | "comfortable" | "spacious".
+`pageMode`: "single" | "wizard" | "tabs" | "workspace". Workspace shows one section at a time with free section selection, question search, and validation findings. `labelPosition`: "top" | "start" | "hidden". `density`: "compact" | "comfortable" | "spacious".
 
 ### Item Properties
 

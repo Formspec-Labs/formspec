@@ -43,6 +43,7 @@ import type { SurfaceScreenerCompletionPolicy } from './screener-completion.js';
  * does. A shell that owned history would be a shell that could not be embedded.
  */
 import { presentedRouteTitle, type SurfaceRouteTitleResolver } from './title-presentation.js';
+import { activeWorkspaceSlot } from './workspace-navigation.js';
 import { useHostAppearance } from './browser-appearance.js';
 import type { DataSourceRevisionSelector } from './data-source-revision.js';
 import { deriveSurfaceRuntimeGeneration } from "./runtime-generation.js";
@@ -452,7 +453,6 @@ export function SurfaceAppView(props: SurfaceAppProps & {
   const appRoot = useRef<HTMLDivElement>(null);
   const main = useRef<HTMLElement>(null);
   const hostAppearance = useHostAppearance(appRoot, browser !== undefined);
-  const formSession = browser && { ...browser, appearance: hostAppearance ?? browser.appearance };
 
   const strings: SurfaceStrings = useMemo(
     () =>
@@ -667,6 +667,28 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     return () => deliver(undefined);
   }, [props.onCurrentRouteStateChange, routePlan, runtimeGeneration]);
 
+  const [sectionTitles, setSectionTitles] = useState<{
+    generation: string;
+    bySlot: ReadonlyMap<string, string>;
+  }>();
+  const reportSectionTitle = useCallback((slot: string, title: string | undefined) => {
+    setSectionTitles(previous => {
+      if (previous?.generation !== runtimeGeneration && title === undefined) return previous;
+      const bySlot = new Map(previous?.generation === runtimeGeneration ? previous.bySlot : []);
+      if (bySlot.get(slot) === title) return previous;
+      if (title === undefined) bySlot.delete(slot);
+      else bySlot.set(slot, title);
+      return { generation: runtimeGeneration, bySlot };
+    });
+  }, [runtimeGeneration]);
+  const workspace = browser?.workspace;
+  const formSession = browser && {
+    ...browser, appearance: hostAppearance ?? browser.appearance,
+    workspace: workspace && { ...workspace, reportSectionTitle },
+  };
+  const activeSlot = activeWorkspaceSlot(routePlan, workspace?.slot);
+  const sectionTitle = workspace && activeSlot && sectionTitles?.generation === runtimeGeneration
+    ? sectionTitles.bySlot.get(activeSlot) : undefined;
   const appTitle = props.appTitle ?? bundle.title;
 
   const entryPath = browser?.entryPath;
@@ -675,7 +697,7 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     : props.resolveNavigationHref(entryPath);
   const brandTrace = needTraceAttributes(generationNeedAnchors(bundle.manifest));
   const routeTitle = browser && routePlan ? presentedRouteTitle(routePlan.handle, props.resolveRouteTitle) : undefined;
-  const title = routeTitle && appTitle ? `${routeTitle} – ${appTitle}` : routeTitle ?? appTitle;
+  const title = [sectionTitle, routeTitle, appTitle].filter(Boolean).join(' – ');
   const match = resolution.match;
   const routeIdentity = browser && JSON.stringify([browser.previewScope, match
     ? [match.handle.surfaceId, match.handle.routeId, match.params]

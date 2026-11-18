@@ -1,7 +1,7 @@
 'use client';
 
 /** @filedesc ValidationSummary — the shared summary rows, each a link to its field, in the default look. */
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useContext } from 'react';
 import {
     readValidationSummaryRows,
     type ValidationSummaryComp,
@@ -13,6 +13,7 @@ import { useFormspecContext } from './context';
 import { useChromeText } from './use-chrome-text';
 import { useHeadingLevel } from './heading-level';
 import { useSignal } from './use-signal';
+import { WorkspaceFieldJump } from './workspace';
 import { focusFieldIn } from './use-focus-field';
 
 export interface ValidationSummaryProps {
@@ -53,6 +54,7 @@ export function ValidationSummary({
 }: ValidationSummaryProps) {
     const { engine, touchedVersion, latestSubmit } = useFormspecContext();
     const chrome = useChromeText();
+    const workspaceJump = useContext(WorkspaceFieldJump);
     const Heading = `h${useHeadingLevel()}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -109,7 +111,9 @@ export function ValidationSummary({
     const jump = (row: ValidationSummaryRow) => (event: React.MouseEvent) => {
         event.preventDefault();
         const scope = containerRef.current?.closest<HTMLElement>('.formspec-theme-scope') ?? document.body;
-        if (row.jumpPath) focusFieldIn(scope, row.jumpPath);
+        if (!row.jumpPath) return;
+        if (workspaceJump) workspaceJump(row.jumpPath);
+        else focusFieldIn(scope, row.jumpPath);
     };
 
     const renderRows = (items: ValidationSummaryRow[]) => (

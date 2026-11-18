@@ -3217,7 +3217,7 @@ these properties.
 
 | Property | Type | Values | Default | Description |
 |---|---|---|---|---|
-| `pageMode` | string | `"single"`, `"wizard"`, `"tabs"` | `"single"` | Selects the navigation presentation for the active page source. `"wizard"`: sequential steps with navigation controls. `"tabs"`: tabbed sections. `"single"`: all items on one page. Processors that do not support the declared mode SHOULD fall back to `"single"`. |
+| `pageMode` | string | `"single"`, `"wizard"`, `"tabs"`, `"workspace"` | `"single"` | Selects the navigation presentation for the active page source. `"wizard"`: sequential steps with navigation controls. `"tabs"`: tabbed sections. `"workspace"`: free section navigation with question search and findings. `"single"`: all items on one page. Processors that do not support the declared mode MUST fall back to `"single"`. |
 | `labelPosition` | string | `"top"`, `"start"`, `"hidden"` | `"top"` | Default label placement for all Fields. `"top"`: label above input. `"start"`: label to the leading side (left in LTR, right in RTL). `"hidden"`: label suppressed visually but MUST remain in accessible markup. |
 | `density` | string | `"compact"`, `"comfortable"`, `"spacious"` | `"comfortable"` | Spacing density hint. |
 | `defaultCurrency` | string | ISO 4217 (e.g. `"USD"`) | (none) | Default currency code applied to all `money` fields that do not declare their own `currency` property. When set, MoneyInput widgets MUST pre-fill the currency to this value and lock it. FEL `money()` calls that omit the currency argument MAY inherit this default. |
@@ -3282,6 +3282,30 @@ Page authority is resolved in this order:
    render.
 5. All page units MUST remain mounted; tab switching changes visibility, not
    lifecycle.
+
+**Workspace mode** (`pageMode: "workspace"`):
+
+1. The processor MUST use the authored Component Section `id` or Theme
+   `PageLayout.id` when that source supplies the page. A generated group page
+   MUST use its Item key. For other loose content, the processor MUST use the
+   first available Item key in structural order, if one exists. A display-only
+   page with an authored ID remains an addressable section.
+2. Content without a section ID MUST remain in authored order. Attach it to
+   the preceding identified section, or to the following one when no identified
+   section precedes it. If no section has an ID, render one continuous view.
+3. The processor MUST render one active section and provide direct section
+   selection and Previous and Next controls when multiple sections exist.
+   Section changes MUST preserve the form session, move focus to the section
+   heading, and update the page title where the host supports it. An
+   absent or unknown section target selects the first section.
+4. The processor MUST enable localized search of relevant questions and show
+   current validation findings. Search and findings MUST be able to target
+   concrete repeated questions across sections. After rendering the target
+   section, focus its control. If the control becomes unavailable, explain
+   that and focus the section or form heading. Keep findings without a
+   renderable owner at form level.
+5. Section selection does not gate forward movement on validation. Save,
+   review and submit actions retain their whole-form scope.
 
 **Property applicability:**
 

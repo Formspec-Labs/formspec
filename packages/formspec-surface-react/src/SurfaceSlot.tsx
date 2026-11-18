@@ -141,6 +141,7 @@ export interface SurfaceFormSession {
     activeSection: string | undefined;
     hrefForSection: (slot: string, section: string) => string | undefined;
     onActiveSectionChange: (slot: string, section: string) => void;
+    reportSectionTitle?: ((slot: string, title: string | undefined) => void) | undefined;
   } | undefined;
 }
 
@@ -162,8 +163,10 @@ export interface SurfaceDefinitionFormRenderInput {
   /** Report committed saves and failed writes to the single shell live region. */
   reportSave?: ((notice: SurfaceSaveNotice) => void) | undefined;
   activeSection?: string | undefined;
+  sectionNavigationActive?: boolean | undefined;
   hrefForSection?: ((section: string) => string | undefined) | undefined;
   onActiveSectionChange?: ((section: string) => void) | undefined;
+  onSectionTitleChange?: ((title: string | undefined) => void) | undefined;
   /**
    * Data Source payload admitted before mount. Record identity, route/session
    * generation, and owner revision remain separate from Definition field data.
@@ -273,6 +276,7 @@ export function createSurfaceSemanticControlScopeResolver(
 export interface SurfaceSlotProps {
   formSession?: SurfaceFormSession | undefined;
   activeSection?: string | undefined;
+  sectionNavigationActive?: boolean | undefined;
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
   screenerCompletion?: SurfaceScreenerCompletionPolicy | undefined;
@@ -510,7 +514,12 @@ export function SurfaceSlot({
   activeLocale,
   formSession,
   activeSection,
+  sectionNavigationActive,
 }: SurfaceSlotProps): ReactNode {
+  const reportSectionTitle = formSession?.workspace?.reportSectionTitle;
+  const onSectionTitleChange = useCallback((title: string | undefined) => {
+    reportSectionTitle?.(plan.slotId, title);
+  }, [reportSectionTitle, plan.slotId]);
   const subjectPrefix = surfaceSemanticOutputSubjectRef(
     route.routeId,
     plan.slotId,
@@ -568,13 +577,15 @@ export function SurfaceSlot({
         responseActionInvoker: definitionActionInvoker,
         localeDocuments,
         activeLocale,
+        onSectionTitleChange,
+        ...(sectionNavigationActive && workspace && { activeSection }),
         ...(formSession && {
           appearance: formSession.appearance,
           previewScope: formSession.previewScope,
           reportSave: formSession.reportSave,
         }),
         ...(workspace && {
-          activeSection,
+          sectionNavigationActive,
           hrefForSection: section => workspace.hrefForSection(plan.slotId, section),
           onActiveSectionChange: section => workspace.onActiveSectionChange(plan.slotId, section),
         }),
@@ -1135,21 +1146,27 @@ function DefaultDefinitionFormSlot({
   return renderDefaultDefinitionForm(input);
 }
 
-function DefaultSurfaceDefinitionForm({
-  plan,
-  grant,
-  initialData,
-  referencesDocuments,
-  responseActionsDocument,
-  semanticControlScope,
-  onDefinitionActionResult,
-  onActionCompleted,
-  responseActionInvoker,
-  componentDocument,
-  localeDocuments,
-  activeLocale,
-  appearance,
-}: SurfaceDefinitionFormRenderInput): ReactNode {
+function DefaultSurfaceDefinitionForm(input: SurfaceDefinitionFormRenderInput): ReactNode {
+  const {
+    plan,
+    grant,
+    initialData,
+    referencesDocuments,
+    responseActionsDocument,
+    semanticControlScope,
+    onDefinitionActionResult,
+    onActionCompleted,
+    responseActionInvoker,
+    componentDocument,
+    localeDocuments,
+    activeLocale,
+    appearance,
+    activeSection,
+    sectionNavigationActive,
+    hrefForSection,
+    onActiveSectionChange,
+    onSectionTitleChange,
+  } = input;
   const engine = useMemo(() => {
     const created = createFormEngine(plan.definition);
     if (initialData?.data !== undefined) {
@@ -1215,6 +1232,11 @@ function DefaultSurfaceDefinitionForm({
     <FormspecForm
       {...(appearance && { className: `formspec-appearance-${appearance}` })}
       engine={engine}
+      {...('activeSection' in input && { activeSection })}
+      onActiveSectionChange={onActiveSectionChange}
+      sectionNavigationActive={sectionNavigationActive}
+      hrefForSection={hrefForSection}
+      onSectionTitleChange={onSectionTitleChange}
       componentDocument={componentDocument}
       themeDocument={grant.themeDocument}
       registryEntries={[...plan.registryEntries]}

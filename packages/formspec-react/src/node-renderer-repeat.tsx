@@ -128,7 +128,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
 export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; renderChild: NodeRenderer }) {
     const { engine } = useFormspecContext();
     useSignal(engine.localeSignal); // re-render add/remove text on a locale switch
-    const bindKey = node.props?.bind as string;
+    const bindKey = node.bindPath ?? node.props.bind as string;
     const { count, relevant, canAdd, canRemove } = useRepeatAffordances(bindKey, repeatLocks(node));
     const labels = (node.props?.labels as string[] | undefined) ?? [];
     const allowMultiple = node.props?.allowMultiple === true;
@@ -275,21 +275,27 @@ export function rewriteBindPaths(node: LayoutNode, repeatPath: string, instanceI
     const groupScopePrefix = `${repeatPath}.`;
     const instancePrefix = `${repeatPath}[${instanceIdx}]`;
 
-    const rewritten: LayoutNode = { ...node };
-
-    if (rewritten.bindPath?.startsWith(templatePrefix)) {
-        rewritten.bindPath = instancePrefix + rewritten.bindPath.slice(templatePrefix.length);
-    } else if (rewritten.bindPath?.startsWith(groupScopePrefix)) {
-        rewritten.bindPath = `${instancePrefix}.${rewritten.bindPath.slice(groupScopePrefix.length)}`;
+    function instantiate(path: string | undefined): string | undefined {
+        if (path === templatePrefix || path?.startsWith(`${templatePrefix}.`)) {
+            return instancePrefix + path.slice(templatePrefix.length);
+        }
+        if (path?.startsWith(groupScopePrefix)) {
+            return `${instancePrefix}.${path.slice(groupScopePrefix.length)}`;
+        }
+        return path;
     }
 
-    rewritten.id = `${node.id}-${instanceIdx}`;
-
-    if (node.children.length > 0) {
-        rewritten.children = node.children.map((child) =>
-            rewriteBindPaths(child, repeatPath, instanceIdx),
-        );
-    }
+    const bind = typeof node.props.bind === 'string' ? node.props.bind : undefined;
+    const resolvedBind = instantiate(bind);
+    const rewritten: LayoutNode = {
+        ...node,
+        id: `${node.id}-${instanceIdx}`,
+        bindPath: instantiate(node.bindPath),
+        repeatPath: instantiate(node.repeatPath),
+        whenPrefix: instantiate(node.whenPrefix),
+        props: resolvedBind === bind ? node.props : { ...node.props, bind: resolvedBind },
+        children: node.children.map(child => rewriteBindPaths(child, repeatPath, instanceIdx)),
+    };
 
     return rewritten;
 }

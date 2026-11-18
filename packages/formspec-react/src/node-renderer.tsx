@@ -1,6 +1,7 @@
 'use client';
 
 /** @filedesc Recursive LayoutNode renderer — dispatches to field or layout components. */
+import { Workspace } from './workspace';
 import React, {
     useMemo,
     useCallback,
@@ -63,8 +64,11 @@ const FALLBACK_MAP: Record<string, string> = {
 
 /** Render a single LayoutNode, recursing into children. */
 export function FormspecNode({ node: plannedNode }: { node: LayoutNode }) {
+    const { layoutPlan, workspacePages } = useFormspecContext();
     const node = useLocalizedNode(plannedNode);
     const renderChild = useCallback((child: LayoutNode) => <FormspecNode node={child} />, []);
+
+    if (plannedNode === layoutPlan && workspacePages) return <Workspace root={node} pages={workspacePages} />;
 
     if (node.isRepeatTemplate && node.repeatPath) {
         return <RepeatGroup node={node} renderChild={renderChild} />;

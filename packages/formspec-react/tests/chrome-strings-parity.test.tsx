@@ -100,6 +100,18 @@ describe('the React renderer draws its own words from the shared inventory', () 
             'wizard.steps',
             'wizard.submit',
             'wizard.submitForm',
+            'workspace.error',
+            'workspace.filled',
+            'workspace.findings',
+            'workspace.info',
+            'workspace.matchCount',
+            'workspace.noMatches',
+            'workspace.search',
+            'workspace.sections',
+            'workspace.targetReadOnly',
+            'workspace.targetUnavailable',
+            'workspace.validationUnavailable',
+            'workspace.warning',
         ]);
     });
 

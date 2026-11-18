@@ -852,6 +852,8 @@ Locale 2.0 gives a Locale Document a closed family to retune this chrome for
 $ui.<ChromeStringKey>
 ```
 
+Workspace chrome keys require Locale 2.1.
+
 `<ChromeStringKey>` is closed. The Locale schema and every conforming
 renderer's chrome inventory MUST contain these exact suffixes one-for-one
 (source of truth: `packages/formspec-layout/src/ui-strings.ts`, kept in parity
@@ -881,6 +883,18 @@ with the schema by test):
 | `wizard.step` | `Step` | none |
 | `wizard.collapseNavigation` | `Collapse navigation` | none |
 | `wizard.otherItems` | `Additional items` | none |
+| `workspace.sections` | `Form sections` | none |
+| `workspace.search` | `Search questions` | none |
+| `workspace.matchCount` | `Matching questions ({{$count}})` | `count` |
+| `workspace.noMatches` | `No matching questions.` | none |
+| `workspace.findings` | `Findings` | none |
+| `workspace.error` | `Error: {{$message}}` | `message` |
+| `workspace.warning` | `Warning: {{$message}}` | `message` |
+| `workspace.info` | `Information: {{$message}}` | `message` |
+| `workspace.filled` | `{{$filled}} of {{$total}} answers filled` | `filled`, `total` |
+| `workspace.validationUnavailable` | `Validation is unavailable.` | none |
+| `workspace.targetUnavailable` | `This question is no longer available.` | none |
+| `workspace.targetReadOnly` | `This question cannot be edited.` | none |
 | `modal.close` | `Close` | none |
 | `alert.dismiss` | `Dismiss` | none |
 | `validationSummary.heading` | `Please correct the following` | none |

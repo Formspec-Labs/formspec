@@ -35,11 +35,11 @@ export function Tabs({ node, children }: LayoutComponentProps) {
         || node.fieldItem?.label
         || 'Tabs';
 
-    const setActiveTab = useCallback((nextIndex: number) => {
+    const setActiveTab = useCallback((nextIndex: number, focus = true) => {
         const bounded = Math.max(0, Math.min(tabCount - 1, nextIndex));
         setActiveTabRaw(bounded);
         // Focus the target tab button (WAI-ARIA automatic activation)
-        setTimeout(() => buttonRefs.current[bounded]?.focus(), 0);
+        if (focus) setTimeout(() => buttonRefs.current[bounded]?.focus(), 0);
     }, [tabCount]);
 
     const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -106,7 +106,7 @@ export function Tabs({ node, children }: LayoutComponentProps) {
                         aria-selected={isActive}
                         aria-controls={`panel-${id}-${idx}`}
                         tabIndex={isActive ? 0 : -1}
-                        onClick={() => setActiveTab(idx)}
+                        onClick={event => setActiveTab(idx, event.nativeEvent.isTrusted === true)}
                         {...needTraceAttrs(
                             explicitLabels?.[idx]
                                 ? explicitLabelGeneration?.[idx]?.anchors

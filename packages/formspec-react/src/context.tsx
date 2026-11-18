@@ -58,6 +58,7 @@ import type {
     SemanticControlScope,
     SemanticResponseBinding,
 } from './semantic-controls';
+import { planPageMode, type WorkspacePage } from './plan-page-mode';
 import { useSignal } from './use-signal';
 import { chromeText } from './use-chrome-text';
 
@@ -199,18 +200,15 @@ export interface FormspecContextValue {
     fieldHelpLabel: string;
     /** Effective formPresentation (definition merged with component document). */
     formPresentation?: Record<string, unknown>;
+    /** @internal Shared workspace pages and the optional navigation host. */
+    workspacePages?: WorkspacePage[];
+    workspaceNavigation?: WorkspaceNavigationProps;
     /** Synchronize the `show-validation-summary` attribute from `.formspec-container`. */
     setShowValidationSummaryAttr?: (show: boolean) => void;
 }
 
 /** @internal The provider's value, or `null` outside one — read it through {@link useFormspecContext}. */
 export const FormspecContext = createContext<FormspecContextValue | null>(null);
-
-function pageModeFromPresentation(presentation: Record<string, unknown> | undefined): 'wizard' | 'tabs' | undefined {
-    return presentation?.pageMode === 'wizard' || presentation?.pageMode === 'tabs'
-        ? presentation.pageMode
-        : undefined;
-}
 
 const RESPONSE_ACTION_ID = /^[A-Za-z][A-Za-z0-9-]*$/;
 
@@ -337,7 +335,21 @@ function autoPlacedDefinitionActions(
     return candidate.actions.filter(hasActionLabel);
 }
 
-export interface FormspecProviderProps {
+export interface WorkspaceNavigationProps {
+    /** A supplied value (including undefined) makes the host own section selection. */
+    activeSection?: string | undefined;
+    onActiveSectionChange?: ((section: string) => void) | undefined;
+    /** Suppress section focus while another form owns the host's active location. */
+    sectionNavigationActive?: boolean | undefined;
+    /** Format a link for normal browser behavior such as opening a new tab. */
+    hrefForSection?: ((section: string) => string | undefined) | undefined;
+    /** Let a host compose the page title. An undefined title clears the current section. */
+    onSectionTitleChange?: ((title: string | undefined) => void) | undefined;
+    /** Opt in to prefixing the document title with the active section when no title callback is supplied. */
+    updateDocumentTitle?: boolean | undefined;
+}
+
+export interface FormspecProviderProps extends WorkspaceNavigationProps {
     /** Pre-built FormEngine instance. Mutually exclusive with `definition`. */
     engine?: IFormEngine;
     /** Raw definition JSON. Will create a FormEngine internally. */
@@ -593,11 +605,11 @@ export function FormspecProvider(props: FormspecProviderProps) {
     const [showValidationSummaryAttr, setShowValidationSummaryAttr] = useState(false);
     const effectiveShowValidationSummary = showValidationSummary || showValidationSummaryAttr;
 
-    const layoutPlan = useMemo(() => {
-        if (!engine) return null;
+    const { root: layoutPlan, workspace } = useMemo(() => {
+        if (!engine) return { root: null };
         const def = engine.getDefinition();
         const items = def.items || [];
-        const pageMode = pageModeFromPresentation(mergedFormPresentation);
+        const pageMode = mergedFormPresentation?.pageMode;
 
         const planCtx = preparePlanContext({
             items,
@@ -610,8 +622,13 @@ export function FormspecProvider(props: FormspecProviderProps) {
             findItem: (key: string) => findItemByKey(items, key),
         });
 
+        const paged = pageMode === 'wizard' || pageMode === 'tabs' || pageMode === 'workspace'
+            ? planPageMode(def, planCtx, pageMode)
+            : undefined;
         let root: LayoutNode;
-        if (componentDocument?.tree) {
+        if (paged) {
+            root = paged.root;
+        } else if (componentDocument?.tree) {
             root = planComponentTree(componentDocument.tree, planCtx);
         } else {
             // planDefinitionFallback returns an array — wrap in a root Stack node
@@ -623,9 +640,6 @@ export function FormspecProvider(props: FormspecProviderProps) {
                 props: {},
                 cssClasses: [],
                 children: nodes,
-                pageMode: pageMode && nodes.some((node) => node.component === 'Section')
-                    ? pageMode
-                    : undefined,
             };
         }
 
@@ -635,11 +649,11 @@ export function FormspecProvider(props: FormspecProviderProps) {
         // authored labels keep visible copy in the Action or its Locale reference.
         if (onSubmit || responseActionInvoker && !planContains(root, 'ActionButton')) {
             for (const action of autoPlacedDefinitionActions(responseActionsDocument, def)) {
-                ensureActionButton(root, planCtx.nextId, { pageMode, actionRef: action.id });
+                ensureActionButton(root, planCtx.nextId, { pageMode: root.pageMode, actionRef: action.id });
             }
         }
         if (effectiveShowValidationSummary) ensureValidationSummary(root, planCtx.nextId);
-        return root;
+        return { root, workspace: paged?.workspace };
     }, [engine, componentDocument, componentGraph, hostEvidence, effectiveThemeDocument, activeBreakpoint, onSubmit, responseActionInvoker, effectiveShowValidationSummary, responseActionsDocument, mergedFormPresentation]);
 
     // §10: surface a finding when the host wires onSubmit but no submit Action
@@ -707,10 +721,19 @@ export function FormspecProvider(props: FormspecProviderProps) {
         }
     }, [engine, externalEngine]);
 
+    const { activeSection, onActiveSectionChange, sectionNavigationActive, hrefForSection, onSectionTitleChange, updateDocumentTitle } = props;
+    const controlledSection = Object.prototype.hasOwnProperty.call(props, 'activeSection');
+    const workspaceNavigation = useMemo<WorkspaceNavigationProps>(() => ({
+        ...(controlledSection && { activeSection }),
+        onActiveSectionChange, sectionNavigationActive, hrefForSection, onSectionTitleChange, updateDocumentTitle,
+    }), [controlledSection, activeSection, onActiveSectionChange, sectionNavigationActive, hrefForSection, onSectionTitleChange, updateDocumentTitle]);
+
     const value = useMemo<FormspecContextValue>(
         () => ({
             engine,
             layoutPlan,
+            workspacePages: workspace,
+            workspaceNavigation,
             components,
             themeDocument: effectiveThemeDocument,
             emitThemeTokens: shouldEmitThemeTokens,
@@ -744,7 +767,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             formPresentation: mergedFormPresentation,
             setShowValidationSummaryAttr,
         }),
-        [engine, layoutPlan, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, latestSubmitSignal, recordSubmit, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation, setShowValidationSummaryAttr],
+        [engine, layoutPlan, workspace, workspaceNavigation, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, latestSubmitSignal, recordSubmit, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation, setShowValidationSummaryAttr],
     );
 
     return (

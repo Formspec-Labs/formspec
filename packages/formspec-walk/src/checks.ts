@@ -184,7 +184,9 @@ export class Walk {
         const rootSelector = options.root ?? DEFAULT_WALK_ROOT_SELECTOR;
         if (options.url) await page.goto(options.url);
         if (options.mount) await options.mount(page);
-        await page.waitForSelector(`${rootSelector} :is([data-name], .formspec-repeat)`);
+        // A React workspace can open on an instruction page with no mounted controls.
+        const root = options.root === undefined ? rootSelector : `:is(${rootSelector})`;
+        await page.waitForSelector(`${root} :is([data-name], .formspec-repeat, .formspec-workspace)`);
         if (options.locale) {
             await page.evaluate(({ selector, code }) => { (document.querySelector(selector) as any).locale = code; }, { selector: rootSelector, code: options.locale });
             await page.waitForTimeout(150);
@@ -273,16 +275,19 @@ export class Walk {
     }
 
     /** Bring the step that holds `path` into view — forward through a wizard, then from its first step; whether it is visible now. */
-    async show(path: string): Promise<boolean> {
-        const fieldRoot = this.root.locator(`[data-name="${path}"]`);
+    show(path: string): Promise<boolean> {
+        return this.showControl(this.root.locator(`[data-name="${path}"]`));
+    }
+
+    private async showControl(control: Locator): Promise<boolean> {
         for (let pass = 0; pass < 2; pass += 1) {
             for (let i = 0; i < 50; i += 1) {
-                if (await fieldRoot.isVisible()) return true;
+                if (await control.isVisible()) return true;
                 if (!(await this.step('next'))) break;
             }
             if (pass === 0) while (await this.step('previous')) { /* back to the first step */ }
         }
-        return fieldRoot.isVisible();
+        return control.isVisible();
     }
 
     /** Advance a wizard one step; false when there is no enabled Next. */
@@ -637,20 +642,28 @@ export class Walk {
     /** Add names a control, adds a row the focus lands in, names the row and its Remove control, which removes it. */
     async repeat(groupPath: string, w: RepeatWant): Promise<void> {
         if (!w.addLabel) return;
+        const addLabel = want(w.addLabel);
+        // An identically named repeat may be visible on a different section.
+        // The React renderer stamps repeat bindings, even when there are no rows yet.
+        const itemKey = baseOf(groupPath).split('.').at(-1);
+        const scope = await this.root.locator('.formspec-workspace').count()
+            ? this.root.locator(`:is(.formspec-repeat, .formspec-data-table-wrapper):is([data-bind="${groupPath}"], [data-bind="${itemKey}"])`)
+            : this.root;
+        const add = scope.getByRole('button', { name: asRegex(addLabel) });
         let recipe: RecipeStep[] | null = null;
         if (w.firstField) {
             const f = await this.live(w.firstField);
             if (f && !f.relevant && w.shownBy) { recipe = await this.applyRecipe(f.path, w.shownBy); if (!recipe) return; }
-            if (!(await this.show(f?.path ?? w.firstField))) { this.found(`${groupPath}: never shown on any step`); if (recipe) await this.restore(recipe); return; }
+            // An empty repeat has an Add control but no field instance to navigate to yet.
+            const shown = f ? await this.show(f.path) : await this.showControl(add.first());
+            if (!shown) { this.found(`${groupPath}: never shown on any step`); if (recipe) await this.restore(recipe); return; }
         }
-        await this.repeatShown(groupPath, w);
+        await this.repeatShown(groupPath, w, scope, add, addLabel);
         if (recipe) await this.restore(recipe);
     }
 
-    private async repeatShown(groupPath: string, w: RepeatWant): Promise<void> {
+    private async repeatShown(groupPath: string, w: RepeatWant, scope: Locator, add: Locator, addLabel: ExpectedText): Promise<void> {
         const rows = () => this.root.locator(`[data-name^="${groupPath}["]`).evaluateAll((els) => new Set(els.map((e) => /\[(\d+)\]/.exec((e as HTMLElement).dataset.name ?? '')?.[1])).size);
-        const addLabel = want(w.addLabel!);
-        const add = this.root.getByRole('button', { name: asRegex(addLabel) });
         if (!(await add.count())) { this.found(`${groupPath}: no Add control named "${addLabel.text}"`); return; }
         const before = await rows();
         if (w.maxRepeat !== undefined && before >= w.maxRepeat) return;
@@ -676,7 +689,7 @@ export class Walk {
         if (!rowName || !nameOpensWith(rowName, rowWant)) this.found(`${groupPath}: new row named "${rowName}", expected "${rowWant.text}"`);
         if (w.removeLabel) {
             const removeLabel = want(w.removeLabel);
-            const remove = this.root.getByRole('button', { name: asRegex(removeLabel) });
+            const remove = scope.getByRole('button', { name: asRegex(removeLabel) });
             if (!(await remove.count())) this.found(`${groupPath}: no Remove control named "${removeLabel.text}"`);
             else {
                 await remove.last().click();
