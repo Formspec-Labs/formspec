@@ -68,7 +68,7 @@ fn check_shapes(document: &Value, index: &ItemTreeIndex, diagnostics: &mut Vec<L
     for (i, shape) in shapes.iter().enumerate() {
         if let Some(id) = shape.get("id").and_then(Value::as_str) {
             if !ids.insert(id) {
-                diagnostics.push(LintDiagnostic::error(
+                diagnostics.push(crate::semantic_helpers::error(
                     LintCode::E315,
                     3,
                     format!("$.shapes[{i}].id"),
@@ -86,7 +86,7 @@ fn check_shapes(document: &Value, index: &ItemTreeIndex, diagnostics: &mut Vec<L
             shape.get("explanation").and_then(Value::as_str),
             Some("confirm" | "explain" | "acknowledge")
         ) {
-            diagnostics.push(LintDiagnostic::error(
+            diagnostics.push(crate::semantic_helpers::error(
                 LintCode::E314,
                 3,
                 format!("$.shapes[{i}].explanation"),

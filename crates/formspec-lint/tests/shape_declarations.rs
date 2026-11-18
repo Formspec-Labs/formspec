@@ -21,7 +21,10 @@ fn shape_declarations_report_only_the_offending_slots() {
             .diagnostics
             .into_iter()
             .filter(|d| d.code.as_wire_str() == code)
-            .map(|d| d.path)
+            .map(|d| {
+                assert!(d.spec_ref.is_some() && d.suggested_fix.is_some());
+                d.path
+            })
             .collect();
         assert_eq!(paths, [path]);
     }
