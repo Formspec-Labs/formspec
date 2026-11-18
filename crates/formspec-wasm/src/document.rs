@@ -147,6 +147,13 @@ mod tests {
     use formspec_lint::LintMode;
 
     #[test]
+    fn lint_options_reject_mapping_source_context_without_data_path() {
+        let error = lint_options_from_wasm_json(Some(r#"{"mappingSourceContext":{"schema":{}}}"#))
+            .expect_err("Mapping source context requires dataPath");
+        assert!(error.contains("missing field `dataPath`"), "{error}");
+    }
+
+    #[test]
     fn lint_options_accept_camel_case_host_keys() {
         let options = lint_options_from_wasm_json(Some(
             r#"{
