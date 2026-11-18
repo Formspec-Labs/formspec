@@ -101,7 +101,7 @@ Every route declared in `routes[]` MUST be reachable from the document's
 - from Surface 0.3, each reachable native `screener` slot's
   `binding.allowedTargets` entry using `surface:<route-id>`, when it names a
   route in the same Surface, and
-- in Surface 0.4, each reachable `filing-status` entry’s `routeRef`.
+- in Surface 0.4, each reachable `filing-status` entry’s `routeRef`. A band appears on the entry route, so its links participate regardless of which route declares the slot.
 
 A route that is not reached by this walk is invalid and MUST be reported as
 `E606` (`SURFACE-ROUTE-UNREACHABLE`). Producers SHOULD either add a transition

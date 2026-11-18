@@ -413,6 +413,15 @@ fn is_route_param_name(name: &str) -> bool {
     chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-')
 }
 
+fn filing_targets(slot: &Value) -> impl Iterator<Item = &str> {
+    slot["binding"]["groups"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .flat_map(|group| group["forms"].as_array().into_iter().flatten())
+        .filter_map(|entry| entry["routeRef"].as_str())
+}
+
 /// Check reachability through declared local route edges.
 fn check_route_reachability(
     routes: &[Value],
@@ -439,6 +448,21 @@ fn check_route_reachability(
     let mut queue: VecDeque<String> = VecDeque::new();
     queue.push_back(entry_id.to_string());
     visited.insert(entry_id.to_string());
+
+    // Each persistent band renders on the entry page, regardless of its declaring route.
+    if dialect == Some("0.4") {
+        let bands = routes
+            .iter()
+            .flat_map(|route| route["slots"].as_array().into_iter().flatten())
+            .filter(|slot| {
+                slot["slotType"] == "filing-status" && slot["binding"]["placement"] == "band"
+            });
+        for target in bands.flat_map(filing_targets) {
+            if route_ids.contains(target) && visited.insert(target.to_string()) {
+                queue.push_back(target.to_string());
+            }
+        }
+    }
 
     while let Some(cur) = queue.pop_front() {
         let Some(route) = routes
@@ -470,13 +494,7 @@ fn check_route_reachability(
                 Some("screener") if matches!(dialect, Some("0.3" | "0.4")) => {
                     screener_targets(slot).map(|(_, target)| target).collect()
                 }
-                Some("filing-status") if dialect == Some("0.4") => slot["binding"]["groups"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .flat_map(|group| group["forms"].as_array().into_iter().flatten())
-                    .filter_map(|entry| entry["routeRef"].as_str())
-                    .collect::<Vec<_>>(),
+                Some("filing-status") if dialect == Some("0.4") => filing_targets(slot).collect(),
                 _ => Vec::new(),
             };
             for target in targets {
@@ -498,7 +516,7 @@ fn check_route_reachability(
                 PASS,
                 &format!("$.routes[{route_idx}]"),
                 &format!(
-                    "Route {route_id:?} is not reachable from the surface's entry route {entry_id:?} via transitions[].to, embed-route bindings, or native 0.3 Screener allowedTargets (SURFACE-ROUTE-UNREACHABLE)."
+                    "Route {route_id:?} is not reachable from the surface's entry route {entry_id:?} via transitions[].to, embed-route bindings, native Screener allowedTargets, or filing-status links (SURFACE-ROUTE-UNREACHABLE)."
                 ),
             )));
         }
@@ -558,6 +576,34 @@ mod tests {
                 .iter()
                 .any(|item| item.code == crate::LintCode::E606)
         );
+    }
+
+    #[test]
+    fn tracker_band_destinations_are_reachable_from_entry() {
+        let mut doc = serde_json::json!({
+            "$formspecSurface": "0.4", "id": "app", "entry": "home",
+            "routes": [
+                {"id": "home", "path": "/", "slots": []},
+                {"id": "overview", "path": "/overview", "slots": [
+                    {"id": "form", "slotType": "definition-form", "binding": {"definitionRef": "urn:form"}},
+                    {"id": "tracker", "slotType": "filing-status", "binding": {
+                        "placement": "band",
+                        "groups": [{"id": "annual", "label": "Forms", "forms": [{"routeRef": "overview", "slotRef": "form"}]}]
+                    }}
+                ]}
+            ]
+        });
+        let reachable = |doc: &Value| {
+            !lint_surface(doc)
+                .iter()
+                .any(|d| d.code == crate::LintCode::E606)
+        };
+        assert!(reachable(&doc));
+        doc["routes"][1]["slots"][1]["binding"]
+            .as_object_mut()
+            .unwrap()
+            .remove("placement");
+        assert!(!reachable(&doc));
     }
 
     #[test]
