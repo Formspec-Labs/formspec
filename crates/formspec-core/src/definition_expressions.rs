@@ -283,14 +283,102 @@ pub fn shape_members<'a, V: JsonTree>(
         })
 }
 
+/// Definition FEL outside the reactive expression graph.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AdditionalExpressionSite<'a> {
+    /// A creation seed or interpolated text, evaluated at its owning Item or Shape target.
+    Item(Option<&'a str>),
+    /// A fee amount, evaluated against current answers.
+    Fee,
+    /// A migration transform, evaluated against the earlier Response.
+    Migration,
+    /// An opening interpolation delimiter with no closing delimiter.
+    UnclosedTemplate,
+}
+
+/// Visit creation seeds, text interpolations, fees and migration transforms.
+///
+/// For an unclosed interpolation, the source is the text following its opening braces.
+pub fn visit_additional_expressions<V: JsonTree>(
+    document: &V,
+    mut visit: impl FnMut(&str, String, AdditionalExpressionSite<'_>),
+) {
+    visit_initial_value_expressions(document, |source, target, path| {
+        visit(
+            source,
+            path.to_owned(),
+            AdditionalExpressionSite::Item(Some(target)),
+        );
+    });
+    visit_template_segments(document, |source, target, path, closed| {
+        let site = if closed {
+            AdditionalExpressionSite::Item(target)
+        } else {
+            AdditionalExpressionSite::UnclosedTemplate
+        };
+        visit(source, path.to_owned(), site);
+    });
+
+    if let Some(lines) = document
+        .get("fees")
+        .and_then(|fees| fees.get("lineItems"))
+        .and_then(V::as_array)
+    {
+        for (index, line) in lines.iter().enumerate() {
+            if let Some(source) = line.get("calculate").and_then(V::as_str) {
+                visit(
+                    source,
+                    format!("$.fees.lineItems[{index}].calculate"),
+                    AdditionalExpressionSite::Fee,
+                );
+            }
+        }
+    }
+    if let Some(versions) = document
+        .get("migrations")
+        .and_then(|migrations| migrations.get("from"))
+    {
+        for (version, migration) in versions.members() {
+            let Some(rules) = migration.get("fieldMap").and_then(V::as_array) else {
+                continue;
+            };
+            for (index, rule) in rules.iter().enumerate() {
+                if rule.get("transform").and_then(V::as_str) == Some("expression")
+                    && let Some(source) = rule.get("expression").and_then(V::as_str)
+                {
+                    let version = serde_json::Value::String(version.to_owned());
+                    visit(
+                        source,
+                        format!("$.migrations.from[{version}].fieldMap[{index}].expression"),
+                        AdditionalExpressionSite::Migration,
+                    );
+                }
+            }
+        }
+    }
+}
+
 /// Visit each FEL interpolation in Definition text slots with its JSONPath.
 pub fn visit_template_expressions<V: JsonTree>(
     document: &V,
     mut visit: impl FnMut(&str, Option<&str>, &str),
 ) {
+    visit_template_segments(document, |source, target, path, closed| {
+        if closed {
+            visit(source, target, path);
+        }
+    });
+}
+
+fn visit_template_segments<V: JsonTree>(
+    document: &V,
+    mut visit: impl FnMut(&str, Option<&str>, &str, bool),
+) {
     let mut check_template = |text: &V, target: Option<&str>, path: &str| {
         if let Some(text) = text.as_str() {
-            check_interpolations(text, |expression| visit(expression, target, path));
+            check_interpolations(text, |expression, closed| {
+                visit(expression, target, path, closed)
+            });
         }
     };
     visit_binds(document, |bind, target, location| {
@@ -326,14 +414,15 @@ pub fn visit_template_expressions<V: JsonTree>(
 }
 
 /// Visit each unescaped `{{expression}}` in a text slot (Locale §3.3.1).
-fn check_interpolations(mut text: &str, mut check: impl FnMut(&str)) {
+fn check_interpolations(mut text: &str, mut check: impl FnMut(&str, bool)) {
     while let Some((_, after_open)) = text.split_once("{{") {
         if let Some(after_escape) = after_open.strip_prefix("{{") {
             text = after_escape;
         } else if let Some((expression, rest)) = after_open.split_once("}}") {
-            check(expression);
+            check(expression, true);
             text = rest;
         } else {
+            check(after_open, false);
             break;
         }
     }

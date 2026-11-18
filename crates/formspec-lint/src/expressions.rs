@@ -8,7 +8,7 @@
 use fel_core::parser::SiteKind;
 pub use formspec_core::definition_expressions::BindProperty;
 use formspec_core::definition_expressions::{
-    ExpressionSite, visit_bind_expressions, visit_expressions, visit_initial_value_expressions,
+    ExpressionSite, visit_bind_expressions, visit_expressions,
 };
 pub(crate) use formspec_core::definition_expressions::{ShapeMember, shape_members};
 use serde_json::Value;
@@ -122,32 +122,6 @@ pub fn compile_expressions(document: &Value) -> ExpressionCompilationResult {
     }
 }
 
-// ── Item initialValue ───────────────────────────────────────────
-
-/// Check Item `initialValue` expressions for parse and repeat-reference errors.
-///
-/// Kept out of [`compile_expressions`]: an `initialValue` is a creation seed, evaluated
-/// once, so it is neither a dependency-graph vertex (Core §3.6.1) nor part of the
-/// evaluation-time expression census callers such as wos-server read from `compiled`.
-pub(crate) fn initial_value_diagnostics(
-    document: &Value,
-    items: &crate::tree::ItemTreeIndex,
-) -> Vec<LintDiagnostic> {
-    let mut diagnostics = Vec::new();
-    visit_initial_value_expressions(document, |source, target, path| {
-        if let Some(parsed) = parse_expression(source, path, &mut diagnostics) {
-            crate::repeat_references::check_expression(
-                items,
-                Some(target),
-                path,
-                &parsed,
-                &mut diagnostics,
-            );
-        }
-    });
-    diagnostics
-}
-
 /// Check `seedFrom.where` outside the processing cycle's dependency graph.
 pub(crate) fn seed_predicate_diagnostics(document: &Value) -> Vec<LintDiagnostic> {
     let mut diagnostics = Vec::new();
@@ -174,7 +148,6 @@ pub(crate) fn seed_predicate_diagnostics(document: &Value) -> Vec<LintDiagnostic
     );
     diagnostics
 }
-
 // ── Standalone Screener Document ────────────────────────────────
 
 /// Walk all FEL expression slots in a standalone Screener Document.
@@ -342,23 +315,22 @@ mod tests {
     }
 
     // wos-server admits task Definitions from `compiled`, whose census excludes creation
-    // seeds; `initialValue` is parse-checked separately and never joins it.
+    // seeds. Whole-Definition lint still checks the seed via the public lint entry point.
     #[test]
     fn initial_values_are_checked_outside_the_expression_census() {
         let item = |initial: &str| {
-            let field =
-                json!({ "key": "d", "type": "field", "dataType": "date", "initialValue": initial });
-            json!({ "items": [field] })
+            json!({
+                "$formspec": "1.0", "url":"urn:test:seed", "title":"Seed",
+                "version":"1.0.0", "status":"draft",
+                "items":[{"key":"d", "type":"field", "label":"Date", "dataType":"date", "initialValue":initial}]
+            })
         };
         let well_formed = item("=today()");
         assert!(compile_expressions(&well_formed).compiled.is_empty());
-        assert!(
-            initial_value_diagnostics(&well_formed, &crate::tree::build_item_index(&well_formed))
-                .is_empty()
-        );
+        assert!(crate::lint(&well_formed).diagnostics.is_empty());
 
         let broken = item("=today( +");
-        let malformed = initial_value_diagnostics(&broken, &crate::tree::build_item_index(&broken));
+        let malformed = crate::lint(&broken).diagnostics;
         assert_eq!(malformed.len(), 1);
         assert_eq!(malformed[0].path, "$.items[0].initialValue");
         assert!(compile_expressions(&broken).diagnostics.is_empty());

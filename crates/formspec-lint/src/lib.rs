@@ -66,6 +66,7 @@ pub mod pass_component;
 pub mod pass_response;
 pub mod pass_theme;
 pub mod references;
+mod definition_expression_checks;
 mod repeat_references;
 mod response_instances;
 pub mod tree;
@@ -273,9 +274,13 @@ fn lint_definition(
     if !options.no_fel {
         let compilation = expressions::compile_expressions(doc);
         diagnostics.extend(compilation.diagnostics);
-        diagnostics.extend(expressions::initial_value_diagnostics(doc, &tree_index));
         diagnostics.extend(expressions::seed_predicate_diagnostics(doc));
-        repeat_references::check_definition(doc, &tree_index, &compilation.compiled, diagnostics);
+        definition_expression_checks::check_definition(
+            doc,
+            &tree_index,
+            &compilation.compiled,
+            diagnostics,
+        );
         diagnostics.extend(dependencies::analyze_dependencies(
             &compilation.compiled,
             &tree_index,
