@@ -26,6 +26,7 @@ const USAGE = `usage: formspec-walk emit (--docs <dir> | --manifest <package-man
   --root      scope walk navigation to the selected form on a multi-form host
   --all       emit every --manifest form to --out-dir <dir> using --url-template <url> with {formId} or {slug}
   --axe       include a host-page axe test in each emitted spec
+  --summary   test --summary <file> writes per-form results, findings, axe reports and uncovered items
   --from      the package the spec imports the walk from (default @formspec-org/walk)
 
   test   runs installed Playwright with an execution reporter: no executed tests (including all skipped) fails.
@@ -134,16 +135,21 @@ if (isMain) {
     const require = createRequire(import.meta.url);
     const forwarded = [];
     const reporters = [];
+    let summary;
     const testArgs = args.slice(1);
     for (let i = 0; i < testArgs.length; i += 1) {
       const arg = testArgs[i];
-      if (arg === '--reporter') reporters.push(testArgs[++i] ?? 'list');
+      if (arg === '--summary' || arg.startsWith('--summary=')) {
+        summary = arg === '--summary' ? testArgs[++i] : arg.slice('--summary='.length);
+        if (!summary || summary.startsWith('--')) failCli('--summary requires a JSON output path');
+      } else if (arg === '--reporter') reporters.push(testArgs[++i] ?? 'list');
       else if (arg.startsWith('--reporter=')) reporters.push(arg.slice('--reporter='.length));
       else forwarded.push(arg);
     }
     const gate = fileURLToPath(new URL('../dist/reporter.js', import.meta.url));
     const result = spawnSync(process.execPath, [require.resolve('@playwright/test/cli'), 'test',
-      '--reporter', [...(reporters.length ? reporters : ['list']), gate].join(','), ...forwarded], { stdio: 'inherit' });
+      '--reporter', [...(reporters.length ? reporters : ['list']), gate].join(','), ...forwarded], { stdio: 'inherit',
+        env: { ...process.env, ...(summary ? { FORMSPEC_WALK_SUMMARY: resolve(summary) } : {}) } });
     if (result.error) console.error(result.error.message);
     process.exit(result.status ?? 1);
   }

@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
+import WalkReporter from '../src/reporter.js';
 
 const dirs: string[] = [];
 function scratch() {
@@ -13,6 +14,7 @@ function scratch() {
 }
 afterEach(() => {
     for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+    delete process.env.FORMSPEC_WALK_SUMMARY;
 });
 
 function emit(dir: string, ...args: string[]) {
@@ -42,4 +44,28 @@ it('refuses a locale absent from an all-forms request before writing specs', () 
     expect(result.status).toBe(2);
     expect(result.stderr).toContain('visit): no Locale document for en');
     expect(readdirSync(dir)).toEqual([]);
+});
+
+it('reports attempts, structured evidence and global errors with the run verdict', async () => {
+    const path = join(scratch(), 'summary.json');
+    process.env.FORMSPEC_WALK_SUMMARY = path;
+    const reporter = new WalkReporter();
+    const attachment = (name: string, data: unknown) => ({ name, body: Buffer.from(JSON.stringify(data)) });
+    const result = { status: 'failed', retry: 0, errors: [{ message: 'failed assertion' }], attachments: [
+        attachment('formspec-walk', { findings: ['wrong label'], uncovered: ['remote options'] }),
+        attachment('formspec-axe', { status: 'failed', failure: { reason: 'pages' } }),
+    ] };
+    const test = { title: 'label', titlePath: () => ['contact', 'label'], outcome: () => 'unexpected',
+        annotations: [{ type: 'formspec-form', description: 'contact' }, { type: 'formspec-uncovered', description: 'static gap' }],
+        results: [result], location: { file: 'contact.spec.ts' } };
+    reporter.onBegin({} as never, { allTests: () => [test] } as never);
+    reporter.onTestEnd(test as never, result as never);
+    reporter.onError({ message: 'worker failed' });
+    await reporter.onEnd({ status: 'failed' } as never);
+    const summary = JSON.parse(readFileSync(path, 'utf8'));
+    expect(summary).toMatchObject({ status: 'failed', errors: ['worker failed'], forms: [{
+        formId: 'contact', findings: ['wrong label'], uncovered: ['static gap', 'remote options'],
+        axe: [{ status: 'failed', failure: { reason: 'pages' } }],
+        tests: [{ outcome: 'unexpected', attempts: [{ status: 'failed', errors: ['failed assertion'] }] }],
+    }] });
 });
