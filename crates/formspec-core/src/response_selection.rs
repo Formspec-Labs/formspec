@@ -51,12 +51,24 @@ pub struct SubjectKeyDeclaration {
     pub data_type: SubjectKeyType,
 }
 
+/// The storage record that supplied a selection candidate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SelectionRecordKind {
+    /// An editable draft, including an unsigned or signed candidate prepared for filing.
+    OpenDraft,
+    /// An immutable filed Response.
+    Filing,
+}
+
 /// A Response candidate with its storage scope and original JSON.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SelectionRecord {
     /// Storage scope supplied by the caller.
     pub scope: String,
+    /// The store supplies the record kind independently of the Response document.
+    pub kind: SelectionRecordKind,
     /// Original Response JSON, including authored signatures.
     pub response: Box<RawValue>,
     /// Server-only respondent identity when the Definition has no subject.

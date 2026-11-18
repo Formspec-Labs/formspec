@@ -870,6 +870,7 @@ def assemble_candidate_json(
 def select_responses_json(records_json: str, selection_json: str, context_json: str) -> str:
     """Select an authorized Response read using exact JSON text in and out.
 
+    Each record requires its store-owned kind ("open-draft" or "filing").
     Set `upstreamSubject` to JSON null when the upstream Definition declares no subject.
     """
     return formspec_rust.select_responses_json(records_json, selection_json, context_json)

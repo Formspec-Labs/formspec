@@ -153,7 +153,7 @@ export function resetToolsWasmDynamicImportCountForTest(): void {
 export const selectResponses: SelectResponses = (records, selection, context) => {
     const recordJson = records.map(record => {
         if (record.responseJson === undefined) return JSON.stringify(record);
-        const { scope, implicitSubjectId, responseJson } = record;
+        const { scope, kind, implicitSubjectId, responseJson } = record;
         // Validate one complete object before embedding it. A bracket check alone
         // would allow the text to inject sibling record fields. Pass the original
         // text to Rust as RawValue so digits and duplicate members stay visible.
@@ -161,7 +161,7 @@ export const selectResponses: SelectResponses = (records, selection, context) =>
         if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
             throw new TypeError('A selection record must contain one Response object.');
         }
-        const metadata = JSON.stringify({ scope, implicitSubjectId });
+        const metadata = JSON.stringify({ scope, kind, implicitSubjectId });
         return `${metadata.slice(0, -1)},"response":${responseJson}}`;
     });
     const resultJson = wasmTools().selectResponsesJson(

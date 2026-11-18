@@ -12,7 +12,8 @@ use serde_json::value::RawValue;
 
 use super::{
     PredicateOp, PredicateSource, ResponseSelection, SelectedRecord, SelectionContext,
-    SelectionRecord, SelectionSource, SelectionStatus, Sha256Digest, SubjectKeyType, subject_id,
+    SelectionRecord, SelectionRecordKind, SelectionSource, SelectionStatus, Sha256Digest,
+    SubjectKeyType, subject_id,
 };
 use crate::compatible_versions::parse_definition_version;
 use crate::subject_key::SubjectKey;
@@ -138,7 +139,7 @@ pub(super) struct Candidate<'a> {
     input: &'a RawValue,
     pub(super) position: usize,
     implicit_subject_id: Option<&'a str>,
-    status: RecordStatus,
+    kind: SelectionRecordKind,
     pub(super) response: ResponseFields<'a>,
     pub(super) authored: AuthoredInstant,
     response_hash: OnceCell<Option<Sha256Digest>>,
@@ -154,18 +155,19 @@ impl<'a> Candidate<'a> {
         predicates: &[Predicate<'_>],
         range: Option<&semver_rs::Range>,
     ) -> Option<Option<Self>> {
+        if selection.status == SelectionStatus::Completed
+            && record.kind == SelectionRecordKind::OpenDraft
+        {
+            return Some(None);
+        }
         let json = record.response.get();
         let header: ResponseHeader = serde_json::from_str(json).ok()?;
         if header.definition_url != selection.definition.url {
             return Some(None);
         }
-        let status = serde_json::from_str(header.status?.get()).ok()?;
-        match (selection.status, status) {
-            (_, RecordStatus::Stopped)
-            | (SelectionStatus::Completed, RecordStatus::InProgress | RecordStatus::Amended) => {
-                return Some(None);
-            }
-            _ => {}
+        let status: RecordStatus = serde_json::from_str(header.status?.get()).ok()?;
+        if record.kind == SelectionRecordKind::OpenDraft && status == RecordStatus::Stopped {
+            return Some(None);
         }
         let response: ResponseFields = serde_json::from_str(json).ok()?;
         if range.is_some_and(|range| {
@@ -199,6 +201,9 @@ impl<'a> Candidate<'a> {
             (None, Some(actual)) if actual.keys.is_none() => {}
             _ => return Some(None),
         }
+        if record.kind == SelectionRecordKind::Filing && status != RecordStatus::Completed {
+            return None;
+        }
         if response.id.is_empty() || !response.data.get().starts_with('{') {
             return None;
         }
@@ -210,7 +215,7 @@ impl<'a> Candidate<'a> {
                 .implicit_subject_id
                 .as_deref()
                 .filter(|id| !id.is_empty()),
-            status,
+            kind: record.kind,
             response,
             authored,
             response_hash: OnceCell::new(),
@@ -229,7 +234,7 @@ impl<'a> Candidate<'a> {
 
     /// Whether this record is an open draft.
     pub(super) fn draft(&self) -> bool {
-        self.status != RecordStatus::Completed
+        self.kind == SelectionRecordKind::OpenDraft
     }
 
     /// Obtain the handoff hash from original Response text, including authored signatures.

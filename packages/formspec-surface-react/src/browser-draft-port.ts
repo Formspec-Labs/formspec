@@ -104,7 +104,7 @@ function draftCandidates(
       if (response.definitionUrl !== definition.url || JSON.stringify(id) !== JSON.stringify(storageKey(key))) {
         throw new Error('Stored draft does not match its filing unit.');
       }
-      return { key, input: responseSelectionRecord(key, value.responseJson), responseId: response.id ?? '' };
+      return { key, input: responseSelectionRecord(key, value.responseJson, 'open-draft'), responseId: response.id ?? '' };
     });
   } catch {
     return undefined;
@@ -219,7 +219,7 @@ function createFilingStore(
           const dispositions: NonNullable<ResponseSelectionContext['dispositions']>[number][] = [];
           const unresolved: ResponseSelectionRecord[] = [];
           const completed = records.map(({ key, responseJson, responseId, responseHash }) => {
-            const input = responseSelectionRecord(key, responseJson);
+            const input = responseSelectionRecord(key, responseJson, 'filing');
             const decision = decisions.get(responsePairKey({ responseId, responseHash }));
             if (decision?.status === 'decided') dispositions.push({ responseId, responseHash, value: decision.disposition });
             if (decision?.status === 'unavailable') unresolved.push(input);

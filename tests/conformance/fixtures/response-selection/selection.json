@@ -36,7 +36,56 @@
     ]
   },
   "records": {
+    "prepared": {
+      "kind": "open-draft",
+      "scope": "scope-a",
+      "response": {
+        "id": "draft",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-08T00:00:00Z",
+        "data": {
+          "result": "draft",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "invalid-filing": {
+      "kind": "filing",
+      "scope": "scope-a",
+      "response": {
+        "id": "amended-draft",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "amended",
+        "authored": "2025-07-09T00:00:00Z",
+        "data": {
+          "result": "amended-draft",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
     "old": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "old",
@@ -60,6 +109,7 @@
       }
     },
     "filed": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "filed",
@@ -88,6 +138,7 @@
       }
     },
     "draft": {
+      "kind": "open-draft",
       "scope": "scope-a",
       "response": {
         "id": "draft",
@@ -111,6 +162,7 @@
       }
     },
     "amended-draft": {
+      "kind": "open-draft",
       "scope": "scope-a",
       "response": {
         "id": "amended-draft",
@@ -134,6 +186,7 @@
       }
     },
     "other-agency": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "other-agency",
@@ -157,6 +210,7 @@
       }
     },
     "starts-late": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "starts-late",
@@ -180,6 +234,7 @@
       }
     },
     "ends-early": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "ends-early",
@@ -203,6 +258,7 @@
       }
     },
     "prior": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "prior",
@@ -226,6 +282,7 @@
       }
     },
     "wrong-version": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "wrong-version",
@@ -249,6 +306,7 @@
       }
     },
     "bad-version": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "bad-version",
@@ -272,6 +330,7 @@
       }
     },
     "wrong-url": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "wrong-url",
@@ -295,6 +354,7 @@
       }
     },
     "wrong-scope": {
+      "kind": "filing",
       "scope": "scope-b",
       "response": {
         "id": "wrong-scope",
@@ -318,6 +378,7 @@
       }
     },
     "wrong-type": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "wrong-type",
@@ -337,6 +398,7 @@
       }
     },
     "stopped": {
+      "kind": "open-draft",
       "scope": "scope-a",
       "response": {
         "id": "stopped",
@@ -360,6 +422,7 @@
       }
     },
     "𐀀": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "𐀀",
@@ -383,6 +446,7 @@
       }
     },
     "": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "",
@@ -406,6 +470,7 @@
       }
     },
     "later-fraction": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "later-fraction",
@@ -429,6 +494,7 @@
       }
     },
     "wildcard-version": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "filed",
@@ -457,6 +523,7 @@
       }
     },
     "precise-int": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "precise-int",
@@ -480,6 +547,7 @@
       }
     },
     "unsafe-int": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "unsafe-int",
@@ -503,6 +571,7 @@
       }
     },
     "projected": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "projected",
@@ -543,6 +612,7 @@
       }
     },
     "outside-projection": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "outside-projection",
@@ -583,6 +653,7 @@
       }
     },
     "precise-value": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "precise-value",
@@ -605,6 +676,7 @@
       }
     },
     "integral-spelling": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "integral-spelling",
@@ -628,6 +700,7 @@
       }
     },
     "implicit-a": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "implicit-a",
@@ -643,6 +716,7 @@
       "implicitSubjectId": "respondent-a"
     },
     "implicit-b": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "implicit-b",
@@ -658,6 +732,7 @@
       "implicitSubjectId": "respondent-b"
     },
     "implicit-unknown": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "implicit-unknown",
@@ -672,6 +747,7 @@
       }
     },
     "replacement": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "old",
@@ -695,6 +771,7 @@
       }
     },
     "other-definition-missing-id": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "definitionUrl": "urn:example:other",
@@ -717,6 +794,7 @@
       }
     },
     "other-definition-missing-authored": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "id": "old",
@@ -739,10 +817,12 @@
       }
     },
     "other-scope-malformed": {
+      "kind": "filing",
       "scope": "scope-b",
       "response": {}
     },
     "stopped-malformed": {
+      "kind": "open-draft",
       "scope": "scope-a",
       "response": {
         "definitionUrl": "urn:example:plan",
@@ -750,6 +830,7 @@
       }
     },
     "draft-malformed": {
+      "kind": "open-draft",
       "scope": "scope-a",
       "response": {
         "definitionUrl": "urn:example:plan",
@@ -757,6 +838,7 @@
       }
     },
     "completed-malformed": {
+      "kind": "filing",
       "scope": "scope-a",
       "response": {
         "definitionUrl": "urn:example:plan",
@@ -764,6 +846,7 @@
       }
     },
     "negative-zero-offset": {
+      "kind": "open-draft",
       "scope": "scope-a",
       "response": {
         "id": "a-negative-zero-offset",
@@ -787,6 +870,7 @@
       }
     },
     "before-leap-second": {
+      "kind": "open-draft",
       "scope": "scope-a",
       "response": {
         "id": "before-leap-second",
@@ -810,6 +894,7 @@
       }
     },
     "leap-second": {
+      "kind": "open-draft",
       "scope": "scope-a",
       "response": {
         "id": "leap-second",
@@ -833,6 +918,7 @@
       }
     },
     "after-leap-second": {
+      "kind": "open-draft",
       "scope": "scope-a",
       "response": {
         "id": "after-leap-second",
@@ -857,6 +943,82 @@
     }
   },
   "cases": [
+    {
+      "name": "current prefers a prepared open draft to a newer filing and omits its handoff hash",
+      "records": [
+        "prepared",
+        "filed"
+      ],
+      "selection": {
+        "status": "current"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "draft",
+            "definitionVersion": "1.3.0"
+          }
+        ],
+        "value": {
+          "result": "draft"
+        },
+        "valueDigest": "sha256:d818aac9c3ecd6ba8a4ca69ce03c151841115d1af76e6a52d468755d3df59cc7",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "completed ignores a prepared draft even when it is the only record",
+      "records": [
+        "prepared"
+      ],
+      "selection": {},
+      "context": {},
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "completed still selects an immutable filing alongside a prepared draft",
+      "records": [
+        "filed",
+        "prepared"
+      ],
+      "selection": {},
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "a filing with amended bytes is unavailable",
+      "records": [
+        "invalid-filing"
+      ],
+      "selection": {
+        "status": "current",
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "unavailable"
+      }
+    },
     {
       "name": "typed equality with integer offset",
       "records": [

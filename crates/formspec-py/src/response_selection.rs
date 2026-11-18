@@ -5,6 +5,7 @@ use pyo3::prelude::*;
 
 /// Select an authorized Response read and return its exact JSON value and evidence.
 ///
+/// Records require a store-owned `kind` of `open-draft` or `filing`.
 /// The context requires `upstreamSubject`. Supply JSON null when the upstream
 /// Definition declares no subject. Invalid input raises ValueError.
 #[pyfunction]

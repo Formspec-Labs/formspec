@@ -41,6 +41,20 @@ fn response_selection_conformance() {
 }
 
 #[test]
+fn records_require_a_store_owned_kind() {
+    let suite: Value = serde_json::from_str(CASES).unwrap();
+    let mut record = suite["records"]["prepared"].clone();
+    record.as_object_mut().unwrap().remove("kind");
+    let error = select_json(
+        &serde_json::to_string(&[record]).unwrap(),
+        &suite["selection"].to_string(),
+        &suite["context"].to_string(),
+    )
+    .unwrap_err();
+    assert!(error.contains("missing field `kind`"), "{error}");
+}
+
+#[test]
 fn missing_upstream_subject_is_a_wire_error() {
     let suite: Value = serde_json::from_str(CASES).unwrap();
     let case = &suite["missingUpstreamSubject"];

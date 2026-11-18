@@ -37,9 +37,9 @@ export function responseDraftKey(scope: string, response: FormResponse, definiti
 }
 
 export function responseSelectionRecord(
-  key: DraftKey, responseJson: string,
+  key: DraftKey, responseJson: string, kind: ResponseSelectionRecord['kind'],
 ): ResponseSelectionRecord {
-  return { scope: key.scope, responseJson, ...(key.subject === undefined && { implicitSubjectId: 'preview' }) };
+  return { scope: key.scope, kind, responseJson, ...(key.subject === undefined && { implicitSubjectId: 'preview' }) };
 }
 
 export function prepareResponseFiling(
@@ -52,7 +52,7 @@ export function prepareResponseFiling(
     throw new Error('A preview filing must be a completed Response for a known Definition.');
   }
   const key = responseDraftKey(scope, response, definition, tools);
-  const result = tools.selectResponses([responseSelectionRecord(key, responseJson)], {
+  const result = tools.selectResponses([responseSelectionRecord(key, responseJson, 'filing')], {
     definition: { url: response.definitionUrl }, status: 'completed', cardinality: 'latest',
     subject: [], pin: 'none',
   }, { scope, authorized: true, source: 'catalog', upstreamSubject: definition.subject ?? null, projection: [] });
@@ -92,7 +92,7 @@ export function selectFilingStatus(
     scope: key.scope, authorized: true, source: 'catalog', upstreamSubject: definition.subject ?? null, projection: [],
     ...(key.subject && { consumerSubject: key.subject.keys }),
   };
-  const result = tools.selectResponses(candidates.map(record => responseSelectionRecord(record.key, record.responseJson)),
+  const result = tools.selectResponses(candidates.map(record => responseSelectionRecord(record.key, record.responseJson, 'filing')),
     selection, context);
   if (result.status !== 'available') return { status: 'unavailable' };
   if (result.none) return { status: 'none' };

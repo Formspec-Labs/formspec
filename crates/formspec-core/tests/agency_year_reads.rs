@@ -3,7 +3,7 @@
 
 use formspec_core::{
     check_instance_projection,
-    response_selection::{select_json, subject_id_json},
+    response_selection::{SelectionRecordKind, select_json, subject_id_json},
 };
 use serde_json::{Value, json};
 
@@ -13,11 +13,22 @@ const PEOPLE_SERVED: &str = include_str!(
     "../../../tests/fixtures/response-selection/agency-year/people-served.definition.json"
 );
 
-fn record(definition: &Value, id: &str, status: &str, uei: &str, ffy: i64, data: Value) -> Value {
+fn record(
+    definition: &Value,
+    id: &str,
+    kind: SelectionRecordKind,
+    uei: &str,
+    ffy: i64,
+    data: Value,
+) -> Value {
+    let status = match kind {
+        SelectionRecordKind::OpenDraft => "in-progress",
+        SelectionRecordKind::Filing => "completed",
+    };
     let subject_type = definition["subject"]["type"].as_str().unwrap();
     let keys = json!({"uei": uei, "ffy": ffy});
     let subject_id = subject_id_json(subject_type, &keys.to_string()).unwrap();
-    json!({"scope": "sample", "response": {
+    json!({"scope": "sample", "kind": kind, "response": {
         "$formspecResponse": "1.0",
         "definitionUrl": definition["url"], "definitionVersion": definition["version"],
         "id": id, "authored": "2025-10-01T00:00:00Z", "status": status,
@@ -62,7 +73,7 @@ fn people_served_reads_the_current_sibling_and_previous_filing_for_the_same_agen
         record(
             &module,
             "open",
-            "in-progress",
+            SelectionRecordKind::OpenDraft,
             "A",
             2025,
             json!({"capacity": 12, "note": "draft"}),
@@ -70,7 +81,7 @@ fn people_served_reads_the_current_sibling_and_previous_filing_for_the_same_agen
         record(
             &module,
             "filed",
-            "completed",
+            SelectionRecordKind::Filing,
             "A",
             2025,
             json!({"capacity": 8}),
@@ -78,7 +89,7 @@ fn people_served_reads_the_current_sibling_and_previous_filing_for_the_same_agen
         record(
             &module,
             "other-agency",
-            "in-progress",
+            SelectionRecordKind::OpenDraft,
             "B",
             2025,
             json!({"capacity": 29}),
@@ -86,7 +97,7 @@ fn people_served_reads_the_current_sibling_and_previous_filing_for_the_same_agen
         record(
             &module,
             "other-year",
-            "in-progress",
+            SelectionRecordKind::OpenDraft,
             "A",
             2024,
             json!({"capacity": 51}),
@@ -94,7 +105,7 @@ fn people_served_reads_the_current_sibling_and_previous_filing_for_the_same_agen
         record(
             &report,
             "other-prior",
-            "completed",
+            SelectionRecordKind::Filing,
             "B",
             2024,
             json!({"people": 61}),
@@ -102,7 +113,7 @@ fn people_served_reads_the_current_sibling_and_previous_filing_for_the_same_agen
         record(
             &report,
             "this-year",
-            "completed",
+            SelectionRecordKind::Filing,
             "A",
             2025,
             json!({"people": 24}),
@@ -125,7 +136,7 @@ fn people_served_reads_the_current_sibling_and_previous_filing_for_the_same_agen
     records.push(record(
         &report,
         "last-year",
-        "completed",
+        SelectionRecordKind::Filing,
         "A",
         2024,
         json!({"people": 7}),

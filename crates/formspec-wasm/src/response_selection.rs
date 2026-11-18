@@ -6,6 +6,7 @@ use wasm_bindgen::prelude::*;
 ///
 /// # Errors
 ///
+/// Records require a store-owned `kind` of `open-draft` or `filing`.
 /// Returns an error for invalid input JSON, including an omitted `upstreamSubject`.
 /// Supply JSON null when the upstream Definition declares no subject.
 #[wasm_bindgen(js_name = selectResponsesJson)]

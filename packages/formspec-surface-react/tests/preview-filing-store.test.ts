@@ -73,6 +73,29 @@ it('checks exact completed filing identity and refuses a duplicate or stale Subm
     .toEqual({ status: 'unavailable' });
 });
 
+it('keeps a prepared draft current without qualifying it as a filing', async () => {
+  const filed = await responseText(report, reportingUnit, 'urn:report:filed', 'filed', '2025-01-02T00:00:00Z');
+  const prepared = await responseText(report, reportingUnit, 'urn:report:open', 'prepared', '2025-01-01T00:00:00Z');
+  const store = createMemoryFilingStore({ scope, definitions, fixtures: { filings: [{ responseJson: filed }] } });
+  const fence = await checkpoint(store, prepared);
+  expect(await store.drafts.save({
+    key: fence.key, definitionVersion: version, expectedRevision: fence.revision, responseJson: prepared,
+    snapshotJson: JSON.stringify({ definitionUrl: report, definitionVersion: version, data: { answer: 'prepared' } }),
+    summary: null,
+  })).toMatchObject({ status: 'saved' });
+
+  const results = await store.responses.select([
+    { ...request(report, { status: 'current' }), key: 'current' },
+    { ...request(report), key: 'completed' },
+  ]);
+  const current = results.get('current');
+  expect(current).toMatchObject({ status: 'available', value: { answer: 'prepared' } });
+  if (current?.status !== 'available') throw new Error('prepared draft is unavailable');
+  expect(current.records).toEqual([{ responseId: 'urn:report:open', definitionVersion: version }]);
+  expect(results.get('completed')).toMatchObject({ status: 'available', value: { answer: 'filed' },
+    records: [{ responseId: 'urn:report:filed', responseHash: expect.stringMatching(/^sha256:/) }] });
+});
+
 it('joins decisions by the exact hash and treats missing prior-year reports as an authorized empty result', async () => {
   const tools = await previewResponseRecordTools();
   const planJson = await responseText(plan, period, 'urn:plan:1', 'approved plan');
