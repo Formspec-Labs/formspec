@@ -4000,6 +4000,7 @@ and requiredness — without embedding logic in the item tree.
 | `constraintMessage` | string | **0..1** (OPTIONAL) | Human-readable message to display when `constraint` evaluates to `false`. MAY contain `{{expression}}` sequences, resolved as for a Shape `message` with `$` bound to the targeted node. If absent, implementations SHOULD generate a generic failure message. |
 | `default` | any | **0..1** (OPTIONAL) | Value to assign when a previously non-relevant node becomes relevant again. This is distinct from `initialValue` on the Item: `initialValue` is applied once at Response creation; `default` is applied on each relevance transition from non-relevant to relevant. |
 | `whitespace` | string | **0..1** (OPTIONAL) | Controls how text values are normalized on input. MUST be one of: `"preserve"` (no modification — **DEFAULT**), `"trim"` (remove leading/trailing whitespace), `"normalize"` (trim then collapse internal runs to a single space), `"remove"` (remove all whitespace — useful for identifiers like phone numbers and EINs). Whitespace transformation is applied **before** the value is stored in the Instance and **before** any constraint or type validation. For `"integer"` or `"decimal"` fields, whitespace is always trimmed regardless of this setting. |
+| `letterCase` | string | **0..1** (OPTIONAL) | Controls letter case on input to `string` and `text` fields. MUST be `"preserve"` (**DEFAULT**), `"upper"`, or `"lower"`. Authors MUST use it only on those field types. |
 | `excludedValue` | string | **0..1** (OPTIONAL) | Controls what downstream expressions see when this field is non-relevant. MUST be one of: `"preserve"` (expressions see the field's last value — **DEFAULT**) or `"null"` (expressions see `null` when the field is non-relevant). This controls the *in-memory evaluation model*; `nonRelevantBehavior` controls the *serialized output*. |
 | `nonRelevantBehavior` | string | **0..1** (OPTIONAL) | Per-path override of the Definition-level `nonRelevantBehavior`. Takes precedence over the Definition default. See §5.6. |
 | `disabledDisplay` | string | **0..1** (OPTIONAL) | Presentation hint for non-relevant items. MUST be one of `"hidden"` or `"protected"`. When `"hidden"`, non-relevant items are removed from the visual layout. When `"protected"`, non-relevant items remain visible but are rendered as disabled/greyed-out. Default: `"hidden"`. (Borrowed from FHIR R5 Questionnaire.) |
@@ -4014,6 +4015,29 @@ their earlier values. Merging is replacement, not logical combination — two
 when both must hold. The merged Bind is the Item's single effective Bind for
 evaluation and for the inheritance rules of §4.3.2. Authoring tools that edit
 a Bind property SHOULD edit that effective value, not a shadowed earlier copy.
+
+For string input to a Definition's `string` or `text` field, processors MUST
+apply the effective `letterCase` after `whitespace` and before storage,
+expression evaluation, and validation. `upper` and `lower` use full Unicode
+default case conversion, including context-dependent mappings, independent of
+the respondent's locale. The result may have a different length. `preserve`
+leaves the case as entered. Processors apply no case conversion to other field
+types or non-string values. Input includes raw prefill and values seeded when a
+Response is created. A renderer MUST show the stored value when the respondent
+finishes editing the field.
+
+**Normative example.** Given a `string` field `registryId` and this Bind,
+input `" ab 12 "` MUST be stored and displayed as `"AB12"`. The constraint
+MUST see `"AB12"` and pass.
+
+```{.json #letter-case-example}
+{
+  "path": "registryId",
+  "whitespace": "remove",
+  "letterCase": "upper",
+  "constraint": "$ = 'AB12'"
+}
+```
 
 #### 4.3.2 Inheritance Rules
 

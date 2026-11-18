@@ -362,6 +362,11 @@ class TestDefinitionBind:
         assert ev["enum"] == ["preserve", "null"]
         assert ev.get("default") == "preserve"
 
+    def test_s4_3__letter_case_enum_and_default(self):
+        letter_case = self.BIND["properties"]["letterCase"]
+        assert letter_case["enum"] == ["preserve", "upper", "lower"]
+        assert letter_case["default"] == "preserve"
+
     def test_s4_3__disabled_display_enum_and_default(self):
         dd = self.BIND["properties"]["disabledDisplay"]
         assert dd["enum"] == ["hidden", "protected"]
@@ -377,7 +382,7 @@ class TestDefinitionBind:
     def test_s4_3__closed_world_property_set(self):
         expected = {
             "path", "required", "relevant", "readonly", "calculate",
-            "constraint", "constraintMessage", "default", "whitespace",
+            "constraint", "constraintMessage", "default", "whitespace", "letterCase",
             "excludedValue", "nonRelevantBehavior", "disabledDisplay",
             "extensions", "x-generation",
         }

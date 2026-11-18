@@ -4,8 +4,9 @@ use std::collections::{HashMap, HashSet};
 
 use fel_core::ExtensionFunctions;
 use fel_core::exact_json::{Map, Value};
-use formspec_core::path_utils::{Path, PathSegment};
-use formspec_core::value_coerce::coerce_field_value;
+use formspec_core::BindTargets;
+use formspec_core::path_utils::{Path, PathSegment, normalize_indexed_path};
+use formspec_core::value_coerce::{LetterCase, coerce_field_value};
 
 use crate::fel_eval::Fel;
 use crate::fel_json::{fel_to_runtime_json, json_to_runtime_fel_typed};
@@ -128,11 +129,13 @@ struct Initial<'a> {
     model: String,
     object: Vec<PathSegment>,
     key: &'a str,
+    item: &'a Value,
     expression: &'a str,
 }
 
 struct Creation<'a> {
     definition: &'a Value,
+    case_binds: Option<BindTargets<'a, Value>>,
     options: &'a CreateOptions<'a>,
     evaluation_options: &'a EvalOptions<'a>,
     result: CreateResult,
@@ -145,12 +148,34 @@ impl<'a> Creation<'a> {
         options: &'a CreateOptions<'a>,
         evaluation_options: &'a EvalOptions<'a>,
     ) -> Self {
+        let binds = definition.get("binds");
+        let has_letter_case = |bind: &Value| bind.get("letterCase").is_some();
+        let normalizes_case = match binds {
+            Some(Value::Array(binds)) => binds.iter().any(has_letter_case),
+            Some(Value::Object(binds)) => binds.values().any(has_letter_case),
+            _ => false,
+        };
         Self {
             definition,
+            case_binds: normalizes_case.then(|| BindTargets::new(binds)),
             options,
             evaluation_options,
             result: CreateResult::default(),
             initials: Vec::new(),
+        }
+    }
+
+    fn normalize_input(&self, item: &Value, path: &str, value: &mut Value) {
+        let Some(binds) = &self.case_binds else {
+            return;
+        };
+        let data_type = string(item, "dataType");
+        if !value.is_string() || !LetterCase::supports(data_type) {
+            return;
+        }
+        let bind = Value::Object(binds.merged(&normalize_indexed_path(path)));
+        if LetterCase::for_field(data_type, string(&bind, "letterCase")).is_some() {
+            *value = coerce_field_value(item, Some(&bind), self.definition, std::mem::take(value));
         }
     }
 
@@ -180,8 +205,13 @@ impl<'a> Creation<'a> {
             };
             match item_type(item) {
                 "field" => {
-                    if !data.contains_key(key) && self.eligible(parent, &location.model) {
-                        self.field(item, key, data, &location);
+                    if self.eligible(parent, &location.model) {
+                        if !data.contains_key(key) {
+                            self.field(item, key, data, &location);
+                        }
+                        if let Some(value) = data.get_mut(key) {
+                            self.normalize_input(item, &location.model, value);
+                        }
                     }
                     self.items(children(item, "children"), data, &location);
                 }
@@ -254,6 +284,7 @@ impl<'a> Creation<'a> {
                     model: location.model.clone(),
                     object: location.wire.clone(),
                     key,
+                    item,
                     expression: &expression[1..],
                 });
             }
@@ -411,10 +442,11 @@ impl<'a> Creation<'a> {
                     self.result.pending.push(initial.model.clone());
                     continue;
                 }
-                let value = fel_to_runtime_json(
+                let mut value = fel_to_runtime_json(
                     &fel.evaluate(&parsed, &scope.site(&index, &initial.model))
                         .value,
                 );
+                self.normalize_input(initial.item, &initial.model, &mut value);
                 let value_for_scope =
                     json_to_runtime_fel_typed(&value, index.data_type(&initial.model));
                 if let Some(object) = at_mut(data, &initial.object).and_then(Value::as_object_mut) {

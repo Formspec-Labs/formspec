@@ -22,6 +22,42 @@ fn is_numeric_data_type(dt: &str) -> bool {
     matches!(dt, "integer" | "decimal" | "number")
 }
 
+/// A case conversion for free-text input.
+#[derive(Debug, Clone, Copy)]
+pub enum LetterCase {
+    /// Apply full Unicode uppercase conversion.
+    Upper,
+    /// Apply full Unicode lowercase conversion.
+    Lower,
+}
+
+impl LetterCase {
+    /// Whether a data type permits letter-case normalization.
+    pub fn supports(data_type: Option<&str>) -> bool {
+        matches!(data_type, Some("string" | "text"))
+    }
+
+    /// Read the effective mode, returning `None` when the field preserves case.
+    pub fn for_field(data_type: Option<&str>, mode: Option<&str>) -> Option<Self> {
+        if !Self::supports(data_type) {
+            return None;
+        }
+        match mode {
+            Some("upper") => Some(Self::Upper),
+            Some("lower") => Some(Self::Lower),
+            _ => None,
+        }
+    }
+
+    /// Apply locale-independent Unicode case conversion.
+    pub fn apply(self, value: &str) -> String {
+        match self {
+            Self::Upper => value.to_uppercase(),
+            Self::Lower => value.to_lowercase(),
+        }
+    }
+}
+
 fn apply_whitespace(s: &str, mode: &str) -> String {
     match mode {
         "trim" => s.trim().to_string(),
@@ -77,7 +113,7 @@ fn bind_precision(bind: Option<&Value>) -> Option<u32> {
     u32::try_from(n).ok()
 }
 
-/// Coerce an inbound field value (whitespace, numeric strings, money shape, `precision` rounding).
+/// Normalize inbound text and coerce numbers, money, and precision.
 ///
 /// Matches TypeScript `coerceFieldValue(item, bind, definition, value)` in `packages/formspec-engine`.
 pub fn coerce_field_value(
@@ -86,10 +122,15 @@ pub fn coerce_field_value(
     definition: &Value,
     mut value: Value,
 ) -> Value {
-    if let Value::String(ref s) = value {
+    if let Value::String(text) = &mut value {
         if let Some(mode) = bind_whitespace(bind) {
-            let t = apply_whitespace(s, mode);
-            value = Value::String(t);
+            *text = apply_whitespace(text, mode);
+        }
+        let mode = bind
+            .and_then(|bind| bind.get("letterCase"))
+            .and_then(Value::as_str);
+        if let Some(letter_case) = LetterCase::for_field(data_type(item), mode) {
+            *text = letter_case.apply(text);
         }
     }
 
@@ -188,6 +229,29 @@ mod tests {
         let b = json!({ "whitespace": "remove" });
         let out = coerce_field_value(&item("string"), Some(&b), &json!({}), json!(" h i "));
         assert_eq!(out, json!("hi"));
+    }
+
+    #[test]
+    fn letter_case_coerces_only_free_text() {
+        for (data_type, mode, input, expected) in [
+            ("string", "upper", " straße 7 ", "STRASSE7"),
+            ("text", "lower", " Ο Σ ", "ος"),
+            ("string", "preserve", " MiXeD ", "MiXeD"),
+            (
+                "uri",
+                "upper",
+                "https://example.test/MiXeD",
+                "https://example.test/MiXeD",
+            ),
+            ("choice", "lower", "MiXeD", "MiXeD"),
+        ] {
+            let bind = json!({ "letterCase": mode, "whitespace": "remove" });
+            assert_eq!(
+                coerce_field_value(&item(data_type), Some(&bind), &json!({}), json!(input)),
+                json!(expected),
+                "{data_type} with {mode}",
+            );
+        }
     }
 
     #[test]

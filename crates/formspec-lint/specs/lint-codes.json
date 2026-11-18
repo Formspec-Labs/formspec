@@ -245,6 +245,18 @@
       "state": "tested"
     },
     {
+      "code": "E316",
+      "pass": 3,
+      "severity": "error",
+      "title": "Letter case on a non-text field",
+      "specRef": "specs/core/spec.md#431-bind-properties",
+      "suggestedFix": "remove letterCase or bind it to a string or text field",
+      "fixtures": [
+        "tests/fixtures/lint/E316-letter-case-non-text.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W300",
       "pass": 3,
       "severity": "warning",

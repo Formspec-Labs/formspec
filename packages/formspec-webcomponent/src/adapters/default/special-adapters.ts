@@ -4,6 +4,7 @@ import { effect } from '@preact/signals-core';
 import type { AdapterContext } from '../types';
 import type { DisplayComponentBehavior } from '../display-behaviors';
 import type { DataTableBehavior } from '../../behaviors/types';
+import { isControlFocused } from '../../behaviors/shared';
 import { watchText } from '../watch-text';
 import { uiText } from '../ui-text.js';
 
@@ -247,20 +248,22 @@ export function renderDefaultDataTable(behavior: DataTableBehavior, parent: HTML
                         }
 
                         const readonlySig = host.engine.readonlySignals[sigPath];
+                        const showValue = (value: typeof sig.value) => {
+                            const display = value != null && typeof value === 'object' && 'amount' in value
+                                ? value.amount : value;
+                            const text = typeof display === 'number' && Number.isNaN(display)
+                                ? '' : jsonValueText(display);
+                            if (inputEl.value !== text) inputEl.value = text;
+                        };
+                        if (dataType === 'string' || dataType === 'text') {
+                            const finishEdit = () => showValue(sig.value);
+                            inputEl.addEventListener('blur', finishEdit);
+                            cellEffectDisposers.push(() => inputEl.removeEventListener('blur', finishEdit));
+                        }
                         const syncInput = effect(() => {
                             const value = sig.value;
                             const readonly = readonlySig?.value ?? false;
-                            if (document.activeElement !== inputEl) {
-                                if (value !== null && value !== undefined && typeof value === 'object' && 'amount' in value) {
-                                    (inputEl as HTMLInputElement).value =
-                                        value.amount !== null ? jsonValueText(value.amount) : '';
-                                } else {
-                                    inputEl.value =
-                                        value === null || value === undefined || (typeof value === 'number' && isNaN(value))
-                                            ? ''
-                                            : jsonValueText(value);
-                                }
-                            }
+                            if (!isControlFocused(inputEl)) showValue(value);
                             inputEl.disabled = readonly;
                         });
                         cellEffectDisposers.push(syncInput);

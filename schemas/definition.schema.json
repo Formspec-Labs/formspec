@@ -1650,6 +1650,13 @@
           "default": "preserve",
           "description": "Controls how text values are normalized on input. Applied BEFORE storage and BEFORE validation. 'preserve' (DEFAULT): no modification. 'trim': remove leading/trailing whitespace. 'normalize': trim then collapse internal runs to single space. 'remove': remove all whitespace (useful for identifiers like phone numbers, EINs). Integer/decimal fields always trim regardless."
         },
+        "letterCase": {
+          "type": "string",
+          "enum": ["preserve", "upper", "lower"],
+          "default": "preserve",
+          "description": "Letter case for string and text field input. Apply after whitespace and before storage and validation. Upper and lower use full, locale-independent Unicode default case conversion.",
+          "examples": ["upper", "lower"]
+        },
         "excludedValue": {
           "type": "string",
           "enum": [

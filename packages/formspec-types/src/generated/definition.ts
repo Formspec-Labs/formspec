@@ -932,6 +932,10 @@ export interface Bind {
    */
   whitespace?: 'preserve' | 'trim' | 'normalize' | 'remove';
   /**
+   * Letter case for string and text field input. Apply after whitespace and before storage and validation. Upper and lower use full, locale-independent Unicode default case conversion.
+   */
+  letterCase?: 'preserve' | 'upper' | 'lower';
+  /**
    * Controls what downstream FEL expressions see when this field is non-relevant. 'preserve' (DEFAULT): expressions see the field's last value. 'null': expressions see null. This controls the in-memory evaluation model; nonRelevantBehavior controls the serialized output.
    */
   excludedValue?: 'preserve' | 'null';

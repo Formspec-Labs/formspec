@@ -27,6 +27,7 @@
 
 use fel_core::exact_json::{Map, Value};
 use formspec_core::repeat_references::is_repeatable_group;
+use formspec_core::value_coerce::LetterCase;
 use formspec_core::{
     DefinitionItemKeyPolicy, DefinitionItemVisitCtx, visit_definition_items_json_shallow,
 };
@@ -188,6 +189,11 @@ fn build_item_info_from_ctx(
         })
         .unwrap_or_default();
 
+    let letter_case = LetterCase::for_field(
+        data_type.as_deref(),
+        bind.get("letterCase").and_then(Value::as_str),
+    );
+
     ItemInfo {
         key,
         path,
@@ -225,6 +231,7 @@ fn build_item_info_from_ctx(
             .and_then(|b| b.get("whitespace"))
             .and_then(|v| v.as_str())
             .map(WhitespaceMode::from_str_lossy),
+        letter_case,
         nrb: Some(&bind)
             .and_then(|b| b.get("nonRelevantBehavior"))
             .and_then(|v| v.as_str())

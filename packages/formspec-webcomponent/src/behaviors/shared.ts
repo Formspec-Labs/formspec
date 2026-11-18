@@ -23,6 +23,12 @@ export function resolveFieldPath(bind: string, prefix: string): string {
     return prefix ? `${prefix}.${bind}` : bind;
 }
 
+/** Read focus from the document or shadow root that owns the control. */
+export function isControlFocused(control: HTMLElement): boolean {
+    const root = control.getRootNode();
+    return 'activeElement' in root && root.activeElement === control;
+}
+
 /** Convert a dotted field path to a DOM-safe element ID. */
 export function toFieldId(fieldPath: string): string {
     return `field-${fieldPath.replace(/[\.\[\]]/g, '-')}`;

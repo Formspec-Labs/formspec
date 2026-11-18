@@ -1,7 +1,7 @@
 //! Phase 2: Recalculate — evaluate computed values and bind expressions.
 //!
 //! Submodules follow data flow: `json_fel` (coercion) → `variables` / `repeats` →
-//! `bind_pass` (relevance, required, readonly, whitespace) → ordered calculates.
+//! `bind_pass` (input normalization, relevance, required, readonly) → ordered calculates.
 #![allow(clippy::missing_docs_in_private_items)]
 
 mod bind_pass;
@@ -94,7 +94,7 @@ pub(crate) fn recalculate_phase(
 ) -> Recalculated {
     let fel = Fel::new(options.extensions);
     let mut values = data.clone();
-    bind_pass::apply_whitespace_to_items(items, &mut values);
+    bind_pass::normalize_input_text(items, &mut values);
 
     let mut state = ScopeData::for_values(index, &values, options);
     let var_defs = parse_variables(definition);

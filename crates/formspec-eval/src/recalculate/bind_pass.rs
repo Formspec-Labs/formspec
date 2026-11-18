@@ -1,4 +1,4 @@
-//! Per-item bind evaluation: relevance, readonly, required, defaults, whitespace, repeat aliases.
+//! Per-item input normalization and evaluation of relevance, readonly, required, and defaults.
 
 use std::collections::{HashMap, HashSet};
 
@@ -13,22 +13,27 @@ use crate::fel_json::{fel_to_runtime_json, is_date_data_type};
 use crate::scope::{ScopeData, ScopeIndex};
 use crate::types::{ItemInfo, WhitespaceMode};
 
-/// Apply whitespace normalization to all items that have a whitespace bind.
-pub(crate) fn apply_whitespace_to_items(
+/// Normalize inbound text before building the scope used by expressions and validation.
+pub(crate) fn normalize_input_text(
     items: &mut [ItemInfo],
     values: &mut HashMap<String, JsonValue>,
 ) {
     for item in items.iter_mut() {
-        if let Some(mode) = item.whitespace {
-            if mode != WhitespaceMode::Preserve
-                && let Some(JsonValue::String(s)) = values.get(&item.path)
-            {
-                let transformed = mode.apply(s);
-                values.insert(item.path.clone(), JsonValue::String(transformed.clone()));
-                item.value = JsonValue::String(transformed);
+        let whitespace = item
+            .whitespace
+            .filter(|mode| *mode != WhitespaceMode::Preserve);
+        if (whitespace.is_some() || item.letter_case.is_some())
+            && let Some(JsonValue::String(text)) = values.get_mut(&item.path)
+        {
+            if let Some(mode) = whitespace {
+                *text = mode.apply(text);
             }
+            if let Some(mode) = item.letter_case {
+                *text = mode.apply(text);
+            }
+            item.value = JsonValue::String(text.clone());
         }
-        apply_whitespace_to_items(&mut item.children, values);
+        normalize_input_text(&mut item.children, values);
     }
 }
 

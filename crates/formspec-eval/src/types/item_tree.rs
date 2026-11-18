@@ -1,6 +1,7 @@
 //! Item tree nodes built from the definition.
 
 use fel_core::exact_json::Value;
+use formspec_core::value_coerce::LetterCase;
 use std::{collections::HashSet, sync::Arc};
 
 use super::modes::{ExcludedValueMode, NrbMode, WhitespaceMode};
@@ -62,6 +63,8 @@ pub struct ItemInfo {
     pub readonly_expr: Option<String>,
     /// Whitespace normalization mode (if any).
     pub whitespace: Option<WhitespaceMode>,
+    /// Letter-case conversion on input, when enabled for a text field.
+    pub letter_case: Option<LetterCase>,
     /// Non-relevant behavior override for this bind.
     pub nrb: Option<NrbMode>,
     /// Excluded value behavior when non-relevant.
@@ -114,6 +117,7 @@ impl Default for ItemInfo {
             required_expr: None,
             readonly_expr: None,
             whitespace: None,
+            letter_case: None,
             nrb: None,
             excluded_value: None,
             default_value: None,

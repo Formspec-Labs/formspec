@@ -59,6 +59,20 @@ test('editable DataTable choices survive a host rerender in existing and added r
 });
 
 for (const adapter of ['default', 'uswds']) {
+    test(`${adapter} webcomponent stores normalized text during editing and shows it on blur`, async ({ page }) => {
+        await page.goto(`/input-host-webcomponent.html${adapter === 'uswds' ? '?uswds' : ''}`);
+        const input = page.getByRole('textbox', { name: 'Registry ID' });
+        const storedValue = () => page.evaluate(() => (document.querySelector('formspec-render') as any).engine.getDraftSnapshot().data.registry);
+        await input.pressSequentially('ab cd ');
+        expect(await storedValue()).toBe('AB CD');
+        await input.blur();
+        await expect(input).toHaveValue('AB CD');
+        // The engine value is already canonical, so the second edit may emit no signal.
+        await input.fill('aB  Cd');
+        await input.blur();
+        await expect(input).toHaveValue('AB CD');
+    });
+
     test(`${adapter} webcomponent keeps its focused choice during a host status rerender`, async ({ page }) => {
         page.on('pageerror', error => console.error('browser page error:', error.message));
         await page.goto(`/input-host-webcomponent.html${adapter === 'uswds' ? '?uswds' : ''}`);
@@ -74,3 +88,22 @@ for (const adapter of ['default', 'uswds']) {
         expect(await page.evaluate(() => (document.querySelector('formspec-render') as any).engine.getResponse().data.state)).toBe('CA');
     });
 }
+
+test('editable DataTable shows the stored case after blur', async ({ page }) => {
+    await page.goto('/input-host-webcomponent.html?table');
+    const input = page.locator('input[name="offices[0].registry"]');
+    await input.fill('ab cd ');
+    expect(await page.evaluate(() => (document.querySelector('formspec-render') as any).engine.getDraftSnapshot().data.offices))
+        .toEqual([{ registry: 'AB CD' }]);
+    await input.blur();
+    await expect(input).toHaveValue('AB CD');
+});
+
+test('text input inside a shadow root keeps spaces during editing', async ({ page }) => {
+    await page.goto('/input-host-webcomponent.html?shadow');
+    const input = page.getByRole('textbox', { name: 'Registry ID' });
+    await input.pressSequentially('ab cd ');
+    await expect(input).toHaveValue('ab cd ');
+    await input.blur();
+    await expect(input).toHaveValue('AB CD');
+});

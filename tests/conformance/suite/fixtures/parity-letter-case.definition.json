@@ -1,0 +1,73 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:letter-case",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Registry identifiers",
+  "items": [
+    {
+      "key": "registry",
+      "type": "field",
+      "dataType": "string",
+      "label": "Registry ID"
+    },
+    {
+      "key": "notes",
+      "type": "field",
+      "dataType": "text",
+      "label": "Notes"
+    },
+    {
+      "key": "preserved",
+      "type": "field",
+      "dataType": "string",
+      "label": "Preserved"
+    },
+    {
+      "key": "unchanged",
+      "type": "field",
+      "dataType": "string",
+      "label": "No case bind"
+    },
+    {
+      "key": "offices",
+      "type": "group",
+      "repeatable": true,
+      "label": "Offices",
+      "children": [
+        {
+          "key": "code",
+          "type": "field",
+          "dataType": "string",
+          "label": "Office code"
+        }
+      ]
+    }
+  ],
+  "binds": [
+    {
+      "path": "registry",
+      "letterCase": "lower",
+      "whitespace": "remove"
+    },
+    {
+      "path": "registry",
+      "letterCase": "upper",
+      "constraint": "$ = 'STRASSE7'"
+    },
+    {
+      "path": "notes",
+      "letterCase": "lower",
+      "constraint": "$ = 'ος'"
+    },
+    {
+      "path": "preserved",
+      "letterCase": "preserve"
+    },
+    {
+      "path": "offices[*].code",
+      "letterCase": "upper",
+      "constraint": "$ = 'AB' or $ = 'CD'"
+    }
+  ]
+}

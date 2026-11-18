@@ -1,0 +1,47 @@
+{
+  "id": "parity.letter-case-prefill",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.3.1 letterCase and whitespace"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-letter-case.definition.json",
+  "origin": "new",
+  "mode": "submit",
+  "inputData": {
+    "registry": " straße 7 ",
+    "notes": "ΟΣ",
+    "preserved": "MiXeD",
+    "unchanged": "MiXeD",
+    "offices": [
+      {
+        "code": "aB"
+      },
+      {
+        "code": "Cd"
+      }
+    ]
+  },
+  "expected": {
+    "data": {
+      "registry": "STRASSE7",
+      "notes": "ος",
+      "preserved": "MiXeD",
+      "unchanged": "MiXeD",
+      "offices": [
+        {
+          "code": "AB"
+        },
+        {
+          "code": "CD"
+        }
+      ]
+    },
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": []
+  }
+}

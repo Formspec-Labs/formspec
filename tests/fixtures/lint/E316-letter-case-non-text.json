@@ -1,0 +1,29 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:letter-case-misuse",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Letter case misuse",
+  "items": [
+    {
+      "key": "codes",
+      "type": "group",
+      "repeatable": true,
+      "label": "Codes",
+      "children": [
+        {
+          "key": "endpoint",
+          "type": "field",
+          "dataType": "uri",
+          "label": "Endpoint"
+        }
+      ]
+    }
+  ],
+  "binds": [
+    {
+      "path": "codes[*].endpoint",
+      "letterCase": "upper"
+    }
+  ]
+}

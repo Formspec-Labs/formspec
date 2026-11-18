@@ -4,7 +4,7 @@ import { effect } from '@preact/signals-core';
 import type { WidthStop } from '@formspec-org/types';
 import type { ComponentDescriptor } from '../hub-types.js';
 import type { TextInputBehavior, FieldRefs, BehaviorContext } from './types';
-import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata, readRegistryConstraints, markFieldTouched } from './shared';
+import { resolveFieldPath, toFieldId, resolveAndStripTokens, bindSharedFieldEffects, resolveFieldText, warnIfIncompatible, readRegistryMetadata, readRegistryConstraints, markFieldTouched, isControlFocused } from './shared';
 
 /** Field bind and TextInput props are spread onto {@link ComponentDescriptor} at render time. */
 type TextInputComp = ComponentDescriptor & {
@@ -96,21 +96,32 @@ export function useTextInput(ctx: BehaviorContext, comp: TextInputComp): TextInp
             const disposers = bindSharedFieldEffects(ctx, fieldPath, vm, labelText, refs, presentation);
 
             // Resolve the actual input element once for both sync directions
-            const inputEl = refs.control.querySelector('input') || refs.control.querySelector('textarea') || refs.control;
+            const inputEl = (refs.control.querySelector('input, textarea') ?? refs.control) as HTMLInputElement | HTMLTextAreaElement;
+
+            const showValue = (value: unknown) => {
+                const text = jsonValueText(value);
+                if (inputEl.value !== text) inputEl.value = text;
+            };
 
             // Value sync: engine → DOM
             disposers.push(effect(() => {
                 const sig = ctx.engine.signals[fieldPath];
                 if (!sig) return;
-                const val = sig.value;
-                if (document.activeElement !== inputEl) {
-                    (inputEl as HTMLInputElement).value = val == null ? '' : jsonValueText(val);
-                }
+                const value = sig.value;
+                if (!isControlFocused(inputEl)) showValue(value);
             }));
 
             // Value sync: DOM → engine
-            inputEl.addEventListener('input', (e) => {
-                ctx.engine.setValue(fieldPath, (e.target as HTMLInputElement).value);
+            const storeInput = () => ctx.engine.setValue(fieldPath, inputEl.value);
+            const finishEdit = () => {
+                const sig = ctx.engine.signals[fieldPath];
+                if (sig) showValue(sig.value);
+            };
+            inputEl.addEventListener('input', storeInput);
+            inputEl.addEventListener('blur', finishEdit);
+            disposers.push(() => {
+                inputEl.removeEventListener('input', storeInput);
+                inputEl.removeEventListener('blur', finishEdit);
             });
 
             return () => disposers.forEach(d => d());

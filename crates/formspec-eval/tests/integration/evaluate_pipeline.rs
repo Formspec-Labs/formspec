@@ -779,6 +779,29 @@ fn test_variable_evaluation_order() {
 // ── Whitespace normalization ─────────────────────────────────
 
 #[test]
+fn letter_case_normalizes_batch_input_before_expressions_and_validation() {
+    let definition = fel_core::exact_json::from_str(include_str!(
+        "../../../../tests/conformance/suite/fixtures/parity-letter-case.definition.json"
+    ))
+    .unwrap();
+    let data = json!({
+        "registry": " straße 7 ", "notes": "ΟΣ", "preserved": "MiXeD",
+        "unchanged": "MiXeD", "offices": [{"code": "aB"}, {"code": "Cd"}]
+    });
+    let expected = json!({
+        "registry": "STRASSE7", "notes": "ος", "preserved": "MiXeD",
+        "unchanged": "MiXeD", "offices": [{"code": "AB"}, {"code": "CD"}]
+    });
+    let result = evaluate(
+        &definition,
+        &data.as_object().unwrap().clone().into_iter().collect(),
+        &EvalOptions::default(),
+    );
+    assert_eq!(result.data, expected);
+    assert!(result.validations.is_empty(), "{:?}", result.validations);
+}
+
+#[test]
 fn test_whitespace_trim() {
     let def = json!({
         "items": [

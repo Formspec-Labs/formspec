@@ -344,6 +344,7 @@ Tier 1 hints can be overridden by Theme spec (Tier 2) and Component spec (Tier 3
 - `constraintMessage`: human-readable failure text
 - `default`: value applied when non-relevant→relevant transition (distinct from `initialValue`)
 - `whitespace`: "preserve" (default) | "trim" | "normalize" | "remove" — applied before storage and validation
+- `letterCase`: "preserve" (default) | "upper" | "lower" — locale-independent Unicode case conversion for `string` and `text` input, after whitespace and before storage and validation
 - `excludedValue`: "preserve" (default) | "null" — what downstream expressions see for non-relevant fields
 - `nonRelevantBehavior`: per-path override of definition-level setting
 - `disabledDisplay`: "hidden" (default) | "protected" — how non-relevant items render

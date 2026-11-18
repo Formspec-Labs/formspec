@@ -13,6 +13,17 @@ from formspec._rust import evaluate_definition, ProcessingResult
 # ── ProcessingResult + process() scaffold ────────────────────────────────────
 
 class TestProcessingResult:
+    def test_letter_case_is_applied_by_native_input_and_batch_evaluation(self):
+        from formspec._native import coerce_field_value
+
+        field = {'type': 'field', 'key': 'license', 'dataType': 'string'}
+        bind = {'path': 'license', 'letterCase': 'upper', 'whitespace': 'trim',
+                'constraint': "$ = 'AB-9'"}
+        definition = {'items': [field], 'binds': [bind]}
+        result = evaluate_definition(definition, {'license': ' ab-9 '})
+        assert (result.data, result.valid) == ({'license': 'AB-9'}, True)
+        assert coerce_field_value(field, definition, ' ab-9 ', bind=bind) == 'AB-9'
+
     def test_process_returns_processing_result(self):
         result = evaluate_definition({}, {})
         assert isinstance(result, ProcessingResult)

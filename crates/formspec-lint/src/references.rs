@@ -4,6 +4,7 @@
 //! - **E300**: Bind path references an unknown item
 //! - **E301**: Shape target references an unknown item
 //! - **E302**: Item's `optionSet` references an undefined option set
+//! - **E316**: Bind uses `letterCase` on a non-text target
 //! - **W300**: Item's `dataType` is incompatible with `optionSet`
 //!
 //! Private helpers validate bind paths, shapes, and option sets against the item index.
@@ -12,11 +13,12 @@
 use std::collections::HashSet;
 
 use formspec_core::path_utils::{Path, PathSegment};
+use formspec_core::value_coerce::LetterCase;
 use formspec_core::visit_definition_items_json;
 use serde_json::Value;
 
 use crate::LintCode;
-use crate::tree::ItemTreeIndex;
+use crate::tree::{ItemRef, ItemTreeIndex};
 use crate::types::LintDiagnostic;
 
 /// Data types compatible with optionSets.
@@ -47,9 +49,27 @@ fn check_bind_paths(
     if let Some(binds_arr) = binds_val.and_then(|v| v.as_array()) {
         for (i, bind) in binds_arr.iter().enumerate() {
             if let Some(path) = bind.get("path").and_then(|v| v.as_str()) {
-                let json_path = format!("$.binds[{i}].path");
-                if let Some(diag) = validate_path(path, &json_path, "Bind", LintCode::E300, index) {
-                    diagnostics.push(diag);
+                match resolve_path(path, "Bind", index) {
+                    Ok(Some(item))
+                        if bind.get("letterCase").is_some()
+                            && !LetterCase::supports(item.data_type.as_deref()) =>
+                    {
+                        diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
+                            LintCode::E316,
+                            3,
+                            format!("$.binds[{i}].letterCase"),
+                            "letterCase requires a string or text field",
+                        )));
+                    }
+                    Err(message) => {
+                        diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
+                            LintCode::E300,
+                            3,
+                            format!("$.binds[{i}].path"),
+                            message,
+                        )))
+                    }
+                    Ok(_) => {}
                 }
             }
         }
@@ -187,46 +207,35 @@ fn validate_path(
     index: &ItemTreeIndex,
 ) -> Option<LintDiagnostic> {
     match resolve_path(path, label, index) {
-        Ok(()) => None,
+        Ok(_) => None,
         Err(message) => Some(crate::metadata::with_metadata(LintDiagnostic::error(
             error_code, 3, json_path, message,
         ))),
     }
 }
 
-/// Simple key: look up in `by_key` (unless ambiguous) or `by_full_path`.
-fn validate_simple_key(
-    key: &str,
-    json_path: &str,
+fn resolve_path<'a>(
+    path: &str,
     label: &str,
-    error_code: LintCode,
-    index: &ItemTreeIndex,
-) -> Option<LintDiagnostic> {
-    if index.by_full_path.contains_key(key) {
-        return None;
-    }
-    if !index.ambiguous_keys.contains(key) && index.by_key.contains_key(key) {
-        return None;
-    }
-    Some(crate::metadata::with_metadata(LintDiagnostic::error(
-        error_code,
-        3,
-        json_path,
-        format!("{label} references unknown item: {key}"),
-    )))
-}
-
-fn resolve_path(path: &str, label: &str, index: &ItemTreeIndex) -> Result<(), String> {
+    index: &'a ItemTreeIndex,
+) -> Result<Option<&'a ItemRef>, String> {
     let p = Path::parse(path);
     if p.segments.is_empty() {
-        return Ok(());
+        return Ok(None);
     }
 
-    if p.segments.len() == 1 {
-        if let PathSegment::Exact(key) = &p.segments[0] {
-            return validate_simple_key(key, "$", label, LintCode::E300, index)
-                .map_or(Ok(()), |diag| Err(diag.message));
-        }
+    if let [PathSegment::Exact(key)] = p.segments.as_slice() {
+        return index
+            .by_full_path
+            .get(key)
+            .or_else(|| {
+                index
+                    .by_key
+                    .get(key)
+                    .filter(|_| !index.ambiguous_keys.contains(key))
+            })
+            .map(Some)
+            .ok_or_else(|| format!("{label} references unknown item: {key}"));
     }
 
     let mut current = resolve_root_segment(path, &p.segments[0], label, index)?;
@@ -235,7 +244,7 @@ fn resolve_path(path: &str, label: &str, index: &ItemTreeIndex) -> Result<(), St
         current = resolve_child_segment(path, label, current, seg, index)?;
     }
 
-    Ok(())
+    Ok(Some(current))
 }
 
 fn resolve_root_segment<'a>(
@@ -327,6 +336,21 @@ mod tests {
 
     fn codes(diags: &[LintDiagnostic]) -> Vec<&str> {
         diags.iter().map(|d| d.code.as_wire_str()).collect()
+    }
+
+    #[test]
+    fn letter_case_reports_non_text_bind_targets() {
+        let doc: Value = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/lint/E316-letter-case-non-text.json"
+        ))
+        .unwrap();
+        let findings = lint(&doc);
+        assert!(
+            findings.iter().any(|finding| {
+                finding.code.as_wire_str() == "E316" && finding.path == "$.binds[0].letterCase"
+            }),
+            "{findings:?}"
+        );
     }
 
     // ── 1. Valid simple bind path — no E300 ───────────────────
