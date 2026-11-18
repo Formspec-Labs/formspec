@@ -11,7 +11,7 @@ interface TargetSlot {
   binding: unknown;
 }
 
-interface TargetRoute {
+export interface TargetRoute {
   id: string;
   params?: readonly { name: string }[];
   slots: readonly TargetSlot[];
@@ -34,6 +34,17 @@ export interface FilingStatusIssue {
 function record(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown> : undefined;
+}
+
+/** Resolve a route and its Definition form within the owning Surface. */
+export function resolveLocalDefinitionForm<R extends TargetRoute>(routes: readonly R[], routeRef: string, slotRef: string) {
+  const matches = routes.filter(route => route.id === routeRef);
+  const route = matches.length === 1 ? matches[0] : undefined;
+  if (!route) return { reason: 'route-unresolved' } as const;
+  const slots = route.slots.filter(slot => slot.id === slotRef);
+  const slot = slots.length === 1 ? slots[0] : undefined;
+  if (slot?.slotType !== 'definition-form') return { reason: 'slot-unresolved' } as const;
+  return { route, slot: slot as R['slots'][number] };
 }
 
 /** Walk entries by their authored owner. Used for reverse references in editors. */
@@ -97,18 +108,12 @@ export function resolveFilingStatusTargets<R extends TargetRoute>(
         refuse('invalid-binding');
         return;
       }
-      const matches = routes.filter(route => route.id === entry.routeRef);
-      const route = matches.length === 1 ? matches[0] : undefined;
-      if (!route) {
-        refuse('route-unresolved');
+      const target = resolveLocalDefinitionForm(routes, entry.routeRef, entry.slotRef);
+      if ('reason' in target && target.reason) {
+        refuse(target.reason);
         return;
       }
-      const slots = route.slots.filter(slot => slot.id === entry.slotRef);
-      const slot = slots.length === 1 ? slots[0] : undefined;
-      if (slot?.slotType !== 'definition-form') {
-        refuse('slot-unresolved');
-        return;
-      }
+      const { route, slot } = target;
 
       const names = (route.params ?? []).map(param => param.name).sort();
       const sources = entry.params === undefined ? {} : record(entry.params);

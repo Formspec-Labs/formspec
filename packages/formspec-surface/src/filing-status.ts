@@ -2,7 +2,7 @@
 import { resolveFilingStatusTargets } from '@formspec-org/app-graph';
 import { fillUiParams, resolvePageSequence, UI_STRINGS } from '@formspec-org/layout';
 import type { ComponentDocument, FormDefinition, ThemeDocument } from '@formspec-org/types';
-import { matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
+import { formHref, matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
 import { planFilingRoster } from './filing-roster.js';
 import type { DataSourceCatalogHandle, DataSourceLoadRequest, LoadWidgetDataInputsRequest, DataSourceSubject } from './data-source-loader.js';
 import type { FilingDraftQuery } from './draft-port.js';
@@ -51,12 +51,6 @@ export type FilingStatusPlan =
 
 function subjectIdentity(subject: DataSourceSubject | undefined): unknown {
   return subject ? [subject.type, Object.entries(subject.keys).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)] : null;
-}
-
-function formHref(path: string, slot: string, section?: string): string {
-  const query = new URLSearchParams({ slot });
-  if (section !== undefined) query.set('section', section);
-  return `${path}?${query}`;
 }
 
 export interface FilingPlanInput {

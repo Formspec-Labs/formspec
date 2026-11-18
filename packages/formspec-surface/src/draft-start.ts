@@ -1,7 +1,7 @@
 /** @filedesc Plan an explicit creation control and qualify its store-returned destination. */
 import { parseRouteSubjectKey, resolveDraftStartTarget } from '@formspec-org/app-graph';
 import type { FormDefinition } from '@formspec-org/types';
-import { matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
+import { formHref, matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
 import type { DataSourceSubject } from './data-source-loader.js';
 import type { SurfaceRoute } from './route-path.js';
 
@@ -44,5 +44,5 @@ export function draftStartHref(plan: DraftStartPlan, subject: DataSourceSubject)
   }
   const link = routeHref(plan.destination, { ...plan.params, ...Object.fromEntries(minted) });
   if (link.refusal || matchRoute(plan.app, link.href).match?.handle !== plan.destination) return;
-  return `${link.href}?${new URLSearchParams({ slot: plan.slotId })}`;
+  return formHref(link.href, plan.slotId);
 }

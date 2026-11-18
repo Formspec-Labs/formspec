@@ -359,6 +359,13 @@ export function routeHref(
   return { href: fillRoutePath(handle.path, params), diagnostics, refusal };
 }
 
+/** Address a form slot and, optionally, one of its sections. */
+export function formHref(path: string, slot: string, section?: string): string {
+  const query = new URLSearchParams({ slot });
+  if (section !== undefined) query.set('section', section);
+  return `${path}?${query}`;
+}
+
 /** The route a transition targets, resolved within the transition's own Surface. */
 export function routeInSurface(
   app: SurfaceApp,

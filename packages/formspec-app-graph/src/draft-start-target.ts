@@ -3,27 +3,21 @@ import type { FormDefinition } from '@formspec-org/types';
 import type { AppGraphContext, AppGraphDiagnostic } from './types.js';
 import { exactDefinitionResolution } from './data-sources.js';
 import { diagnosticSourceForHandle } from './report.js';
-
-interface Route {
-  id: string;
-  params?: readonly { name: string }[];
-  slots: readonly { id: string; slotType: string; binding: unknown }[];
-}
+import { resolveLocalDefinitionForm, type TargetRoute } from './filing-status-targets.js';
+import { ownProp } from './surface-widgets.js';
 
 function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
 }
 
-export function resolveDraftStartTarget<R extends Route>(routes: readonly R[], source: Route, binding: unknown,
+export function resolveDraftStartTarget<R extends TargetRoute>(routes: readonly R[], source: TargetRoute, binding: unknown,
   lookupDefinition: (ref: string) => FormDefinition | undefined) {
   const start = record(binding);
-  if (typeof start?.label !== 'string' || !start.label.trim()) return;
-  const matches = routes.filter(route => route.id === start.routeRef);
-  const route = matches[0];
-  if (matches.length !== 1 || !route) return;
-  const slots = route.slots.filter(slot => slot.id === start.slotRef);
-  const slot = slots[0];
-  if (slots.length !== 1 || slot?.slotType !== 'definition-form') return;
+  if (typeof start?.label !== 'string' || !start.label.trim() ||
+      typeof start.routeRef !== 'string' || typeof start.slotRef !== 'string') return;
+  const target = resolveLocalDefinitionForm(routes, start.routeRef, start.slotRef);
+  if ('reason' in target && target.reason) return;
+  const { route, slot } = target;
   const form = record(slot.binding);
   const definition = typeof form?.definitionRef === 'string' && lookupDefinition(form.definitionRef);
   const mapping = record(form?.subjectKeys);
@@ -35,8 +29,8 @@ export function resolveDraftStartTarget<R extends Route>(routes: readonly R[], s
   const mintedParams = new Set<string>();
   const keys: { key: string; parameter: string; dataType: 'string' | 'integer'; minted: boolean }[] = [];
   for (const [key, field] of fields) {
-    const parameter = mapping[key];
-    if (!Object.hasOwn(mapping, key) || typeof parameter !== 'string' || !targetParams.has(parameter)) return;
+    const parameter = ownProp(mapping, key);
+    if (typeof parameter !== 'string' || !targetParams.has(parameter)) return;
     if (field.minted) {
       if (field.dataType !== 'string' || field.authorizationParent || sourceParams.has(parameter) || mintedParams.has(parameter)) return;
       mintedParams.add(parameter);
@@ -56,9 +50,11 @@ export function validateDraftStartTargets(context: AppGraphContext): AppGraphDia
   }
   for (const handle of context.handles) {
     if (handle.artifactKind !== 'surface' || handle.status !== 'loaded') continue;
-    const routes = record(handle.document)?.routes;
+    const surface = record(handle.document);
+    if (surface?.$formspecSurface !== '0.4') continue;
+    const routes = surface.routes;
     if (!Array.isArray(routes)) continue;
-    routes.forEach((source: Route, index) => source.slots?.forEach((slot, slotIndex) => {
+    routes.forEach((source: TargetRoute, index) => source.slots?.forEach((slot, slotIndex) => {
       if (slot.slotType !== 'draft-start' || resolveDraftStartTarget(routes, source, slot.binding, lookup)) return;
       diagnostics.push({ code: 'APP-GRAPH-SURFACE-SUBJECT-KEYS', severity: 'error', origin: 'app-graph-validator',
         phase: 'cross-artifact', message: 'The draft start must address a form with store-minted keys and resolvable parent parameters.',
