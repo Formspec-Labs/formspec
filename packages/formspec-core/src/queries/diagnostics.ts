@@ -34,10 +34,9 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
   };
   log('start');
   const itemRows = flattenItems(state.definition.items).filter((row) => row.path);
-  const assemblyFindings = itemRows.some(({ item }) => '$ref' in item)
-    ? lintDocument(state.definition, { noFel: true }).diagnostics.filter(({ code }) => code === 'E313')
-    : [];
-  const structural: Diagnostic[] = assemblyFindings.map(({ path, code, message }) => ({
+  const definitionFindings = lintDocument(state.definition, { noFel: true }).diagnostics
+    .filter(({ code }) => code === 'E202' || code === 'E313');
+  const structural: Diagnostic[] = definitionFindings.map(({ path, code, message }) => ({
     artifact: 'definition',
     path: path.slice(2),
     severity: 'error',
