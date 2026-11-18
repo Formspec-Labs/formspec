@@ -347,12 +347,25 @@ fn option_membership_scaling() {
         let entries: Vec<_> = (0..count)
             .map(|code| json!({"value": code.to_string(), "label": code.to_string()}))
             .collect();
-        let prepared = formspec_eval::PreparedDefinition::new(json!({
+        let definition = json!({
             "optionSets": {"codes": {"options": entries}},
             "items": [{"type": "group", "key": "rows", "repeatable": true, "children": [
                 {"type": "field", "key": "code", "dataType": "choice", "optionSet": "codes"}
             ]}]
-        }));
+        });
+        let best_preparation = (0..3)
+            .map(|_| {
+                let input = definition.clone();
+                let start = Instant::now();
+                let prepared = formspec_eval::PreparedDefinition::new(input);
+                let duration = start.elapsed();
+                std::hint::black_box(prepared);
+                duration
+            })
+            .min()
+            .unwrap();
+        eprintln!("{count} options: {best_preparation:?} preparation");
+        let prepared = formspec_eval::PreparedDefinition::new(definition);
         for rows in [250, 500, 1000] {
             let input = HashMap::from([(
                 "rows".to_owned(),
