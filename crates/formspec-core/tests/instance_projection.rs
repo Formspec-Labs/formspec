@@ -630,6 +630,7 @@ fn direct_reads_compare_only_static_untransformed_choice_values() {
     for (expression, count) in [
         ("=@instance('prior').stage", 1),
         ("=instance('prior', 'stage')", 1),
+        ("=instance('prior', '').stage", 1),
         ("=@instance('elsewhere').stage", 0),
         ("=upper(@instance('prior').stage)", 0),
     ] {
@@ -699,6 +700,10 @@ fn catalog_prefill_compares_only_delivered_unmapped_fields() {
     assert!(check(&source, false, url, "2.0.0").is_empty());
     source["schema"]["properties"] = json!({});
     assert!(check(&source, false, url, "1.1.0").is_empty());
+    source["schema"] = json!({"type": "object"});
+    let findings = check(&source, false, url, "1.1.0");
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].code, Code::OptionValuesMismatch);
 }
 
 #[test]

@@ -237,6 +237,9 @@ fn singleton_instance_path(expression: &Expr, name: &str) -> Option<Path> {
         }),
         Expr::FunctionCall { name: fun, args } if fun == "instance" => match args.as_slice() {
             [Expr::String(arg)] if arg == name => Some(Path::new()),
+            [Expr::String(arg), Expr::String(path)] if arg == name && path.is_empty() => {
+                Some(Path::new())
+            }
             [Expr::String(arg), Expr::String(path)]
                 if arg == name && !path.contains(['[', ']']) =>
             {

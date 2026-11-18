@@ -253,11 +253,13 @@ pub fn check_instance_projection(
         ));
     }
 
-    let catalog_fields = if catalog {
+    let (catalog_fields, catalog_shape_known) = if catalog {
         check_catalog_subject_keys(response, consumer_subject, &mut diagnostics);
-        catalog_schema_properties(instance, response, &mut diagnostics)
+        let diagnostic_count = diagnostics.len();
+        let fields = catalog_schema_properties(instance, response, &mut diagnostics);
+        (fields, diagnostics.len() == diagnostic_count)
     } else {
-        None
+        (None, false)
     };
     let choice_consumer = consumer.filter(|consumer| match consumer {
         ProjectionConsumer::Instance { .. } => !catalog,
@@ -273,7 +275,7 @@ pub fn check_instance_projection(
                                 .is_some_and(|version| range.test(&version))
                         })
                     })
-                && (instance.get("schema").is_none() || catalog_fields.is_some())
+                && catalog_shape_known
         }
     });
     let carries = ChoiceCarry::from_source(instance, choice_consumer);
