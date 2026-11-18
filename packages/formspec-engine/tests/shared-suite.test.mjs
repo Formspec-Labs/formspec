@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FormEngine, createResponse, evaluateDefinition, evaluateFiled } from '../dist/index.js';
+import { isJsonRecord as isPlainObject } from '../dist/json-values.js';
 
 // The guard (tests/conformance/suite, schema schemas/conformance-suite.schema.json) runs each case through
 // legs that must agree (thoughts/plans/evaluator-parity.md §2.7):
@@ -57,10 +58,6 @@ function clone(value) {
   return value === undefined ? undefined : parseJsonExact(JSON.stringify(value));
 }
 
-function isPlainObject(value) {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
 function listCasePaths() {
   return fs
     .readdirSync(suiteDir)
@@ -71,19 +68,12 @@ function listCasePaths() {
 
 // --- Comparison ------------------------------------------------------------------------------
 
-function normalizeNumber(value) {
-  if (Number.isNaN(value) || !Number.isFinite(value)) return String(value);
-  if (Object.is(value, -0)) return 0;
-  if (Number.isInteger(value)) return value;
-  return Number(value.toPrecision(12));
-}
-
 function normalizeJson(value) {
   if (value instanceof Date) return value.toISOString();
-  if (typeof value === 'number') return normalizeNumber(value);
+  if (typeof value === 'number' && !Number.isFinite(value)) return String(value);
   if (Array.isArray(value)) return value.map(normalizeJson);
   if (isPlainObject(value)) {
-    const out = {};
+    const out = Object.create(null);
     for (const key of Object.keys(value).sort()) {
       if (value[key] === undefined) continue;
       out[key] = normalizeJson(value[key]);
@@ -93,8 +83,16 @@ function normalizeJson(value) {
   return value === undefined ? null : value;
 }
 
-const same = (a, b) => JSON.stringify(normalizeJson(a)) === JSON.stringify(normalizeJson(b));
 const show = (value) => JSON.stringify(normalizeJson(value));
+const same = (a, b) => show(a) === show(b);
+
+test('shared-suite comparisons preserve exact decimal digits', () => {
+  assert.equal(same(0.1234567890123, 0.1234567890124), false);
+  const exact = parseJsonExact('0.1234567890123456789012345678');
+  assert.equal(same(exact, parseJsonExact('0.1234567890123456789012345679')), false);
+  assert.equal(same(exact, parseJsonExact('1.234567890123456789012345678e-1')), true);
+  assert.equal(show({ exact }), '{"exact":0.1234567890123456789012345678}');
+});
 
 /** A ValidationResult without envelope markers or absent optional fields. */
 function cleanResult(result) {
