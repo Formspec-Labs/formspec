@@ -469,11 +469,10 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         await scanPages('validation-errors');
 
         // Fields relevance hides: show each by the values that reveal it, check its page, put the values back.
-        const hidden: string[] = await page.evaluate(({ sel, concrete }) => {
+        const hidden: string[] = await page.evaluate((sel) => {
             const engine = (document.querySelector(sel) as any).engine;
-            const paths = (engine.getFieldPaths() as string[]).filter(path => !engine.isPathRelevant(path));
-            return concrete ? paths : [...new Set(paths.map(path => path.replace(/\[\d+\]/g, '')))];
-        }, { sel: rootSelector, concrete: Boolean(workspace) });
+            return (engine.getFieldPaths() as string[]).filter(path => !engine.isPathRelevant(path));
+        }, rootSelector);
         for (const [n, path] of hidden.entries()) {
             const id = `reveal-${path}`;
             if (n >= maxReveals) {
@@ -505,11 +504,15 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
                     pageIndex = await page.evaluate(({ sel, ps, p }) => {
                         const root = document.querySelector(sel)!;
                         const field = root.querySelector(`[data-name="${p}"]`);
-                        if (!field || !ps) return 0;
+                        if (!field) return -1;
+                        if (!ps) return 0;
                         return [...root.querySelectorAll(ps)].findIndex((panel) => panel.contains(field));
                     }, { sel: rootSelector, ps: panelSelector, p: path });
                     if (pageIndex < 0) throw new RendererError(`field ${path} was revealed but sits on no page`);
                     await goTo(pageIndex);
+                    if (!await root.locator(`[data-name=${JSON.stringify(path)}]:visible`).count()) {
+                        throw new RendererError(`field ${path} was revealed but is hidden on page ${pageIndex + 1}`);
+                    }
                 }
                 await analyse(id, 'page', pageIndex + 1);
                 result.pages.revealedFields += 1;

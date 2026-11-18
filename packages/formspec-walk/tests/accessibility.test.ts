@@ -183,6 +183,21 @@ describe('every page is visited, or the check fails', () => {
         expect(report.violations.some((v) => v.rule === 'label' && v.state === 'page-2')).toBe(true);
     });
 
+    it.each(['wizard', 'tabs'])('checks a revealed repeat field on page two of a %s', async (mode) => {
+        const gate = { key: 'gate', type: 'field', label: 'Gate', dataType: 'boolean' };
+        const rows = { ...group('rows', [gate, unlabelled('detail')]), repeatable: true, minRepeat: 2 };
+        const definition = form(mode, [group('one', [field('a', 'A')]), group('two', [rows])], {
+            binds: [{ path: 'two.rows[*].detail', relevant: '$gate' }],
+        });
+        const report = await server.check({ definition });
+        expect(report.status).toBe('completed');
+        for (const row of [0, 1]) {
+            const state = `reveal-two.rows[${row}].detail`;
+            expect(report.states.find(s => s.id === state)?.step).toBe(2);
+            expect(report.violations.some(v => v.state === state && v.rule === 'label')).toBe(true);
+        }
+    });
+
     it('a wizard under a fallback Locale is stepped by its buttons, not their translated names', async () => {
         const target = { kind: 'definition', url: 'urn:test:wizard' };
         const wizardWords = { '$ui.wizard.next': 'Étape suivante', '$ui.wizard.nextStep': 'Aller à l’étape suivante', '$ui.wizard.previous': 'Précédent', '$ui.wizard.previousStep': 'Étape précédente' };
