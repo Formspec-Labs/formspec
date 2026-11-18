@@ -221,6 +221,30 @@
       "state": "tested"
     },
     {
+      "code": "E314",
+      "pass": 3,
+      "severity": "error",
+      "title": "Warning answer mode on a non-warning Shape",
+      "specRef": "specs/core/spec.md#521-shape-properties",
+      "suggestedFix": "omit explanation or set it to none on an error or info Shape",
+      "fixtures": [
+        "tests/fixtures/lint/E314-non-warning-explanation.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E315",
+      "pass": 3,
+      "severity": "error",
+      "title": "Duplicate Shape id",
+      "specRef": "specs/core/spec.md#521-shape-properties",
+      "suggestedFix": "give each Shape a unique id",
+      "fixtures": [
+        "tests/fixtures/lint/E315-duplicate-shape-id.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W300",
       "pass": 3,
       "severity": "warning",

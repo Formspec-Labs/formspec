@@ -1,0 +1,12 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:duplicate-shape",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Duplicate Shape ID",
+  "items": [{"type": "field", "key": "age", "label": "Age", "dataType": "integer"}],
+  "shapes": [
+    {"id": "limit", "target": "age", "constraint": "true", "message": "First"},
+    {"id": "limit", "target": "#", "constraint": "true", "message": "Second"}
+  ]
+}

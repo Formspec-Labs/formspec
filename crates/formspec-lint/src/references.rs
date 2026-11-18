@@ -28,7 +28,7 @@ pub fn check_references(document: &Value, index: &ItemTreeIndex) -> Vec<LintDiag
     let mut diagnostics = Vec::new();
 
     check_bind_paths(document, index, &mut diagnostics);
-    check_shape_targets(document, index, &mut diagnostics);
+    check_shapes(document, index, &mut diagnostics);
     check_option_sets(document, index, &mut diagnostics);
 
     diagnostics
@@ -58,17 +58,42 @@ fn check_bind_paths(
 
 // ── Shape targets (E301) ──────────────────────────────────────
 
-fn check_shape_targets(
-    document: &Value,
-    index: &ItemTreeIndex,
-    diagnostics: &mut Vec<LintDiagnostic>,
-) {
+fn check_shapes(document: &Value, index: &ItemTreeIndex, diagnostics: &mut Vec<LintDiagnostic>) {
     let shapes = match document.get("shapes").and_then(|v| v.as_array()) {
         Some(s) => s,
         None => return,
     };
 
+    let mut ids = HashSet::new();
     for (i, shape) in shapes.iter().enumerate() {
+        if let Some(id) = shape.get("id").and_then(Value::as_str) {
+            if !ids.insert(id) {
+                diagnostics.push(LintDiagnostic::error(
+                    LintCode::E315,
+                    3,
+                    format!("$.shapes[{i}].id"),
+                    format!("Shape id '{id}' is already declared"),
+                ));
+            }
+        }
+        if matches!(
+            shape
+                .get("severity")
+                .and_then(Value::as_str)
+                .unwrap_or("error"),
+            "error" | "info"
+        ) && matches!(
+            shape.get("explanation").and_then(Value::as_str),
+            Some("confirm" | "explain" | "acknowledge")
+        ) {
+            diagnostics.push(LintDiagnostic::error(
+                LintCode::E314,
+                3,
+                format!("$.shapes[{i}].explanation"),
+                "Only a warning Shape can request a respondent explanation",
+            ));
+        }
+
         let target = match shape.get("target").and_then(|v| v.as_str()) {
             Some(t) => t,
             None => continue,

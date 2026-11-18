@@ -1,0 +1,13 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:shape-explanation",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Warning answers on Shapes",
+  "items": [{"type": "field", "key": "age", "label": "Age", "dataType": "integer"}],
+  "shapes": [
+    {"id": "implicitError", "target": "#", "constraint": "true", "message": "First", "explanation": "explain"},
+    {"id": "info", "target": "#", "severity": "info", "constraint": "true", "message": "Second", "explanation": "none"},
+    {"id": "warning", "target": "#", "severity": "warning", "constraint": "true", "message": "Third", "explanation": "confirm"}
+  ]
+}
