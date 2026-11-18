@@ -146,7 +146,7 @@ const bundle = dereferenceBundleExport({
     },
     ...Object.fromEntries(extraForms.map(({ url, definition }) => [url, definition])),
     [theme]: {
-      tokens: { 'color.primary': '#123456' },
+      tokens: { 'color.primary': '#123456', 'font.weight.medium': 550 },
       ...(fixtureOptions.has('themePages') && {
         pages: [{ id: 'theme-intro', title: 'Contact details', regions: [{ key: 'intro', span: 12 }] }],
       }),

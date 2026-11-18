@@ -35,6 +35,9 @@ test('the browser restores appearance and announces one draft save result', asyn
   await page.goto('/surface-browser.html#/filing/ny');
   const app = page.locator('.fs-surface-app');
   const form = page.locator('.formspec-container');
+  await expect(page.locator('article')).toHaveAttribute('data-tenant-theme', 'admitted');
+  await expect(app).toHaveCSS('--formspec-color-primary', '#123456');
+  await expect(app).toHaveCSS('--formspec-font-weight-medium', '550');
   await expect(form).toHaveCSS('color-scheme', 'dark');
   await expect(app).toHaveCSS('color-scheme', 'dark');
   await page.getByLabel('Appearance').selectOption('light');
@@ -59,6 +62,7 @@ test('the browser restores appearance and announces one draft save result', asyn
   await page.getByRole('link', { name: 'Staff' }).click();
   await expect(page.locator('article')).toHaveAttribute('data-tenant-theme', 'refused');
   await expect(app).not.toHaveCSS('--formspec-color-primary', '#123456');
+  await expect(app).not.toHaveCSS('--formspec-font-weight-medium', '550');
   await expect(notices).toHaveCount(0);
 });
 
