@@ -41,11 +41,17 @@ fn replacement(kind: SiteKind, original: &str, options: &RewriteOptions) -> Opti
         SiteKind::ContextName { name } if !RESERVED_CONTEXT_NAMES.contains(&name.as_str()) => {
             options.rewrite_variable.as_ref()?(&name).filter(|new| *new != name)
         }
-        SiteKind::ContextArgument { context, value } if context == "instance" => {
-            options.rewrite_instance_name.as_ref()?(&value)
-                .filter(|new| *new != value)
-                .map(|new| quote_string_literal(&new, quote()))
+        // `@instance('name')` and the function form `instance('name', path)` name one instance.
+        SiteKind::ContextArgument {
+            context: name,
+            value,
         }
+        | SiteKind::FirstStringArgument {
+            function: name,
+            value,
+        } if name == "instance" => options.rewrite_instance_name.as_ref()?(&value)
+            .filter(|new| *new != value)
+            .map(|new| quote_string_literal(&new, quote())),
         SiteKind::ContextTail { context, path } if context == "current" => {
             options.rewrite_current_path.as_ref()?(&path).filter(|new| *new != path)
         }
@@ -168,6 +174,25 @@ mod tests {
         rewrite_instance_name: None,
         rewrite_navigation_target: None,
     };
+
+    #[test]
+    fn instance_rename_covers_the_context_and_function_forms() {
+        let expression = "@instance('census').total + instance(\"census\", 'count')";
+        assert_eq!(
+            crate::collect_fel_rewrite_targets("instance('census', 'count')").instance_names,
+            ["census".to_string()].into()
+        );
+        let options = RewriteOptions {
+            rewrite_instance_name: Some(Box::new(|name| {
+                (name == "census").then(|| "survey".into())
+            })),
+            ..NO_REWRITES
+        };
+        assert_eq!(
+            rewrite_fel_source_references(expression, &options),
+            "@instance('survey').total + instance(\"survey\", 'count')"
+        );
+    }
 
     #[test]
     fn grouped_navigation_literal_keeps_unicode_trivia_and_quote_style() {

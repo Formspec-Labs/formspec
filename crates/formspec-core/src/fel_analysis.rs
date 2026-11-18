@@ -47,7 +47,7 @@ pub struct FelAnalysis {
 pub struct FelAnalysisError {
     /// Error text from the FEL parser or evaluator.
     pub message: String,
-    /// Byte range in the expression when the parser reported a span.
+    /// Unicode scalar (char) index range in the expression when the parser reported a span.
     pub span: Option<Range<usize>>,
 }
 
@@ -822,6 +822,11 @@ fn collect_rewrite_targets(expr: &Expr, targets: &mut FelRewriteTargets) {
             }
         }
         Expr::FunctionCall { name, args } => {
+            if name == "instance"
+                && let Some(Expr::String(instance_name)) = args.first()
+            {
+                targets.instance_names.insert(instance_name.clone());
+            }
             if matches!(name.as_str(), "prev" | "next" | "parent")
                 && let Some(Expr::String(target_name)) = args.first()
             {
@@ -903,7 +908,7 @@ fn collect_rewrite_targets(expr: &Expr, targets: &mut FelRewriteTargets) {
 
 /// Static analysis result as JSON (`valid`, `errors`, `warnings`, `references`, `variables`, `functions`).
 ///
-/// Each `errors` element is `{"message": string, "span": object | null}` with `start`/`end` byte offsets when known.
+/// Each `errors` element is `{"message": string, "span": object | null}` with `start`/`end` character (Unicode scalar) offsets when known.
 pub fn fel_analysis_to_json_value(result: &FelAnalysis) -> Value {
     json!({
         "valid": result.valid,
