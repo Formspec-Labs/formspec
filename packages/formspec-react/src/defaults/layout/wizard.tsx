@@ -192,6 +192,8 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
             </div>
             <div
                 className="formspec-wizard-panel"
+                data-step-index={currentStep}
+                data-step-count={totalSteps}
                 role="region"
                 aria-label={title}
                 ref={stepPanelRef}

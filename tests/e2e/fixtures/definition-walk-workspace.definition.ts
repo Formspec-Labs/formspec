@@ -36,3 +36,9 @@ export const mixedRepeatDefinition: FormDefinition = {
   ] }],
   binds: [{ path: 'details.rows[*].entry', relevant: '$show' }],
 };
+
+
+/** The target is on step two, unmounted after the initial pass finishes step three. */
+export function wizardWithMiddleTarget(form: FormDefinition): FormDefinition {
+  return { ...form, formPresentation: { pageMode: 'wizard' }, items: [form.items[0], form.items[2], form.items[1]] };
+}

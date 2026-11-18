@@ -1,7 +1,7 @@
 /** @filedesc Axe coverage of each section in the React workspace. */
 import { expect, test } from '@playwright/test';
 import { checkAccessibility } from '../../../packages/formspec-walk/src/index';
-import { definition, mixedRepeatDefinition } from '../fixtures/definition-walk-workspace.definition';
+import { definition, mixedRepeatDefinition, wizardWithMiddleTarget } from '../fixtures/definition-walk-workspace.definition';
 
 const documents = { definition };
 const fixture = '/definition-walk-workspace.html';
@@ -88,4 +88,31 @@ test('axe reveals and checks the hidden repeat instance even when its sibling is
   expect(labels('reveal-details.rows[0].entry')).toContainEqual(expect.stringContaining('details.rows[0].entry'));
   expect(report.pages?.revealedFields).toBe(1);
   await expect(page.locator('[data-name="details.rows[0].entry"]')).toHaveCount(0);
+});
+
+test('axe reveals a concrete row on an unmounted React wizard step', async ({ page }) => {
+  const report = await checkAccessibility(page, {
+    documents: { definition: wizardWithMiddleTarget(mixedRepeatDefinition) },
+    open: async p => {
+      await p.goto(`${fixture}?mixedRepeat&wizard`);
+      await expect(p.locator('.formspec-wizard-panel')).toHaveCount(1);
+    }, timeoutMs,
+  });
+  expect(report.status, report.failure?.message).toBe('completed');
+  expect(report.pages).toMatchObject({ kind: 'wizard', drawn: 3, visited: 3, revealedFields: 1 });
+  const state = 'reveal-details.rows[0].entry';
+  expect(report.states.find(s => s.id === state)?.step).toBe(2);
+  expect(report.violations.find(v => v.rule === 'label' && v.state === state)?.nodes)
+    .toContainEqual(expect.objectContaining({ html: expect.stringContaining('details.rows[0].entry') }));
+});
+
+test('a guarded React wizard reports incomplete coverage and preserves the first scan', async ({ page }) => {
+  const report = await checkAccessibility(page, {
+    documents: { definition: wizardWithMiddleTarget(definition) },
+    open: async p => { await p.goto(`${fixture}?wizard`); }, timeoutMs,
+  });
+  expect(report.status).toBe('failed');
+  expect(report.failure).toMatchObject({ reason: 'pages', message: expect.stringContaining('validation') });
+  expect(report.pages).toMatchObject({ kind: 'wizard', drawn: 3, visited: 1 });
+  expect(report.states.map(s => s.id)).toEqual(['page-1']);
 });

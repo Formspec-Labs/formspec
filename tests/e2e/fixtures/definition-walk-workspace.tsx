@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
 import type { FormDefinition } from '@formspec-org/types';
 import { FormspecForm } from '../../../packages/formspec-react/src/index';
-import { definition, mixedRepeatDefinition } from './definition-walk-workspace.definition';
+import { definition, mixedRepeatDefinition, wizardWithMiddleTarget } from './definition-walk-workspace.definition';
 import '../../../packages/formspec-layout/src/formspec-default.css';
 
 await initFormspecEngine();
@@ -25,6 +25,7 @@ if (options.has('revealCases')) {
     ],
   }], binds: [...(definition.binds ?? []), { path: 'details.people[*].phones[*].number', relevant: '$show' }] };
 }
+if (options.has('wizard')) form = wizardWithMiddleTarget(form);
 if (options.has('continuous')) {
   form = { ...definition, items: [], binds: [] };
 }

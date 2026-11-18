@@ -337,11 +337,18 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         .evaluateAll(controls => controls.map(control => control.getAttribute('data-formspec-section')!)) : [];
     const plannedIds = new Set(sectionIds);
     const unexpected = new Set(renderedIds.filter(id => !plannedIds.has(id)));
+    // React mounts just the current wizard panel. Other pagers keep a panel per step.
+    const pager = () => root.locator(panelSelector!).evaluateAll(nodes => {
+        const panels = nodes as HTMLElement[];
+        const current = panels.findIndex(panel => !panel.hidden && !panel.classList.contains('formspec-hidden'));
+        const step = panels[current]?.dataset;
+        return { index: Number(step?.stepIndex ?? current), count: Number(step?.stepCount ?? panels.length) };
+    });
     const drawn = workspace
         ? (sectionIds[0] === undefined && !renderedIds.length
             ? await workspaceRoot.locator(WORKSPACE_CONTENT).count()
             : renderedIds.length)
-        : panelSelector ? await root.locator(panelSelector).count() : 1;
+        : panelSelector ? (await pager()).count : 1;
     const adapter = await page.evaluate((sel) => (document.querySelector(sel) as any)?.resolvedAdapterName ?? null, rootSelector);
     const result: AxePassResult = {
         axeVersion: null, adapter, pages: { kind: mode, expectedMin, drawn, visited: 0, revealedFields: 0 },
@@ -367,11 +374,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         ids.map(id => `[data-formspec-section="${CSS.escape(id ?? '')}"]`), sectionIds) : [];
 
     /** Index of the page showing now. */
-    const active = (): Promise<number> => page.evaluate(({ sel, ps }) => {
-        if (!ps) return 0;
-        const panels = [...document.querySelector(sel)!.querySelectorAll(ps)] as HTMLElement[];
-        return panels.findIndex((p) => !p.classList.contains('formspec-hidden') && !p.hidden);
-    }, { sel: rootSelector, ps: panelSelector });
+    const active = async () => panelSelector ? (await pager()).index : 0;
 
     /** Show page `index`: tabs by clicking its tab, a wizard by its Next / Previous buttons. */
     const goTo = async (index: number): Promise<void> => {
@@ -388,7 +391,12 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
                 await button.first().click();
             }
             await page.waitForTimeout(100);
-            if ((await active()) === now) throw new RendererError(`the form stayed on page ${now + 1} when asked to show page ${index + 1}`);
+            if ((await active()) === now) {
+                if (mode === 'wizard' && index > now && await root.locator(`${WIZARD_PANEL}:visible [aria-invalid="true"]:visible`).count()) {
+                    throw new PageCoverageError(`Wizard validation kept the form on page ${now + 1}; page ${index + 1} was not reached`, result);
+                }
+                throw new RendererError(`the form stayed on page ${now + 1} when asked to show page ${index + 1}`);
+            }
         }
         throw new RendererError(`page ${index + 1} was not reached`);
     };
@@ -508,18 +516,14 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
                         continue;
                     }
                 } else {
-                    pageIndex = await page.evaluate(({ sel, ps, p }) => {
-                        const root = document.querySelector(sel)!;
-                        const field = root.querySelector(`[data-name="${p}"]`);
-                        if (!field) return -1;
-                        if (!ps) return 0;
-                        return [...root.querySelectorAll(ps)].findIndex((panel) => panel.contains(field));
-                    }, { sel: rootSelector, ps: panelSelector, p: path });
-                    if (pageIndex < 0) throw new RendererError(`field ${path} was revealed but sits on no page`);
-                    await goTo(pageIndex);
-                    if (!await root.locator(`[data-name=${JSON.stringify(path)}]:visible`).count()) {
-                        throw new RendererError(`field ${path} was revealed but is hidden on page ${pageIndex + 1}`);
+                    const target = root.locator(`[data-name=${JSON.stringify(path)}]:visible`);
+                    pageIndex = await active();
+                    // A later step's field may have no DOM node until that step mounts.
+                    for (let i = 0; i < pageCount && !await target.count(); i += 1) {
+                        await goTo(i);
+                        pageIndex = i;
                     }
+                    if (!await target.count()) throw new RendererError(`field ${path} was revealed but is visible on no page`);
                 }
                 await analyse(id, 'page', pageIndex + 1);
                 result.pages.revealedFields += 1;
