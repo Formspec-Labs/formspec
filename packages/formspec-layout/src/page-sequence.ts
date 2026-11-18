@@ -6,6 +6,8 @@ import {
     buildThemePageNodes, planComponentTree, planDefinitionFallback, planDefinitionItem, preparePlanContext,
 } from './planner.js';
 import type { ComponentTreeNode, LayoutNode, PlanContext } from './types.js';
+import { mergeFormPresentationForPlanning } from './form-presentation.js';
+import { UI_STRINGS } from './ui-strings.js';
 
 export interface PageSequenceEntry {
     id?: string;
@@ -13,7 +15,11 @@ export interface PageSequenceEntry {
     /** Item whose Locale-resolved label supplies the generated title. */
     titleBind?: string;
     titleLocaleKey?: string;
+    /** Layout node ID of the Heading promoted to the page title. */
+    titleHeadingId?: string;
     nodes: LayoutNode[];
+    /** Trailing instructions and controls shown on every page. */
+    sharedNodes?: LayoutNode[];
     /** The Component root to wrap the selected nodes in when the authored root is split. */
     container?: LayoutNode;
     /** Unique field placement paths. A repeat template uses [*], an explicit index stays concrete. */
@@ -29,17 +35,23 @@ export interface PageSequenceOptions {
     context?: Pick<PlanContext, 'formPresentation' | 'componentGraph' | 'hostEvidence' | 'isComponentAvailable' | 'nextId' | 'activeBreakpoint'>;
 }
 
-type Section = Omit<PageSequenceEntry, 'fields' | 'fieldTemplates' | 'groups'> & { loose?: true };
+type Section = Omit<PageSequenceEntry, 'fields' | 'fieldTemplates' | 'groups'> & { loose?: true; themeRemainder?: true };
 
 function stringProp(value: unknown): string | undefined {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
 
-function walkNodes(nodes: LayoutNode[], visit: (node: LayoutNode, parents: LayoutNode[]) => void, parents: LayoutNode[] = []): void {
-    for (const node of nodes) {
-        visit(node, parents);
-        if (node.children.length) walkNodes(node.children, visit, [...parents, node]);
-    }
+function walkNodes(
+    nodes: LayoutNode[],
+    visit: (node: LayoutNode, parents: LayoutNode[], painted?: LayoutNode) => void,
+    parents: LayoutNode[] = [],
+    painted: LayoutNode[] = nodes,
+): void {
+    nodes.forEach((node, index) => {
+        const paintedNode = painted[index];
+        visit(node, parents, paintedNode);
+        if (node.children.length) walkNodes(node.children, visit, [...parents, node], paintedNode?.children ?? []);
+    });
 }
 
 function authoredSection(node: LayoutNode, localePrefix: '$component' | '$page'): Section {
@@ -110,7 +122,17 @@ function themeSections(nodes: LayoutNode[], ctx: PlanContext): Section[] | undef
     }, ctx.items, ctx, { preserveBinding: true, retainHiddenRegions: true, retainRegionlessPages: true });
     if (!pages.length) return undefined;
     const remaining = removePlacements(nodes, assigned);
-    return [...pages.map(node => authoredSection(node, '$page')), ...splitSections(remaining, () => undefined)];
+    const unassigned = remaining.filter(hasItem);
+    const loose = remaining.filter(node => !hasItem(node));
+    return [
+        ...pages.map(node => authoredSection(node, '$page')),
+        ...(loose.length ? [{ nodes: loose, loose: true as const }] : []),
+        ...(unassigned.length ? [{ nodes: unassigned, loose: true as const, themeRemainder: true as const }] : []),
+    ];
+}
+
+function hasItem(node: LayoutNode): boolean {
+    return !!node.bindPath || node.children.some(hasItem);
 }
 
 /** Convert only indices introduced by a template to wildcards. */
@@ -220,14 +242,24 @@ function definitionSections(nodes: LayoutNode[], ctx: PlanContext): Section[] {
     return order.map(section => section ?? generated[nextGroup++]);
 }
 
-function planSections(ctx: PlanContext): Section[] {
+function isSharedControl(node: LayoutNode): boolean {
+    return node.component === 'ActionButton' || node.component === 'ValidationSummary';
+}
+
+function planSections(ctx: PlanContext): { sections: Section[]; sharedNodes: LayoutNode[] } {
     const tree = ctx.componentDocument?.tree as ComponentTreeNode | undefined;
     const root = tree && planComponentTree(tree, ctx, '', undefined, false);
     const authoredPages = componentTreeOwnsPages(tree);
     const container = root && (!root.bindPath || authoredPages) && root.component !== 'Section' && root.children.length
         ? { ...root, children: [] }
         : undefined;
-    const base = container ? root!.children : root ? [root] : planDefinitionFallback(ctx.items, ctx, '', false);
+    const nodes = container ? root!.children : root ? [root] : planDefinitionFallback(ctx.items, ctx, '', false);
+    // Studio can place unbound instructions beside actions intended for every step.
+    const lastContent = [...nodes].reverse().findIndex(node =>
+        !(node.category === 'display' && !node.bindPath) && !isSharedControl(node));
+    const suffix = lastContent < 0 ? nodes : nodes.slice(nodes.length - lastContent);
+    const sharedNodes = suffix.length < nodes.length && suffix.some(isSharedControl) ? suffix : [];
+    const base = nodes.slice(0, nodes.length - sharedNodes.length);
 
     let sections: Section[] | undefined;
     if (authoredPages) {
@@ -242,60 +274,113 @@ function planSections(ctx: PlanContext): Section[] {
         sections = themeSections([...base, ...planDefinitionFallback(unplaced, ctx, '', false)], ctx);
     }
     sections ??= definitionSections(base, ctx);
-    return sections.map(section => ({ ...section, container }));
+    return { sections: sections.map(section => ({ ...section, container })), sharedNodes };
+}
+
+function nameLooseSections(sections: Section[], painted: Section[], ctx: PlanContext): void {
+    const ids = new Set(sections.flatMap(section => section.id ? [section.id] : []));
+    sections.forEach((section, index) => {
+        if (!section.loose) return;
+        let id: string | undefined;
+        walkNodes(section.nodes, (node, _parents, paintedNode) => {
+            if (id && section.title) return;
+            const item = node.bindPath ? ctx.findItem(node.bindPath) : null;
+            if (!id && item?.key && !ids.has(item.key)) id = item.key;
+            if (section.title || node.component !== 'Heading' || node.bindPath && item?.type !== 'display') return;
+            const title = stringProp(node.props.text);
+            if (!title?.trim()) return;
+            const paintedTitle = stringProp(paintedNode?.props.text);
+            section.title = paintedTitle?.trim() ? paintedTitle : title;
+            section.titleHeadingId = paintedNode?.id;
+            section.titleBind = node.bindPath;
+            const componentId = stringProp(node.props.id);
+            if (!node.bindPath && componentId) section.titleLocaleKey = `$component.${componentId}.text`;
+        }, [], painted[index].nodes);
+        if (!id) return;
+        if (section.themeRemainder && !section.title) {
+            section.title = UI_STRINGS['wizard.otherItems'];
+            section.titleLocaleKey = '$ui.wizard.otherItems';
+        }
+        if (section.title) {
+            section.id = id;
+            ids.add(id);
+        }
+    });
+}
+
+function attachLooseSections(sections: Section[], definitionTitle: string, workspace: boolean) {
+    const pages: Array<{ section: Section; owner: number; indexes: number[] }> = [];
+    let leading: number[] = [];
+    sections.forEach((section, index) => {
+        if (!section.id && (section.loose || workspace)) {
+            (pages.at(-1)?.indexes ?? leading).push(index);
+        } else {
+            pages.push({ section, owner: index, indexes: [...leading, index] });
+            leading = [];
+        }
+    });
+    if (!pages.length && leading.length) {
+        pages.push({
+            section: { nodes: [], title: definitionTitle, titleLocaleKey: '$form.title', container: sections[0].container },
+            owner: 0, indexes: leading,
+        });
+    }
+    return pages;
 }
 
 export function resolvePageSequence(definition: FormDefinition, options: PageSequenceOptions = {}): PageSequenceEntry[] {
+    const componentPresentation = options.component && 'formPresentation' in options.component
+        ? options.component.formPresentation : undefined;
+    const presentation = options.context?.formPresentation
+        ?? mergeFormPresentationForPlanning(definition.formPresentation, componentPresentation);
     const ctx = preparePlanContext({
         ...options.context,
         items: definition.items,
         componentDocument: options.component,
         theme: options.theme,
         // Retain presentation hints while collecting unpaginated nodes for this section plan.
-        formPresentation: { ...(options.context?.formPresentation ?? definition.formPresentation), pageMode: 'single' },
+        formPresentation: { ...presentation, pageMode: 'single' },
         activeBreakpoint: null,
         findItem: path => findItemAtPath(definition.items, path),
     });
-    const sections = planSections(ctx);
+    const structural = planSections(ctx);
+    const { sections } = structural;
     // Responsive overrides affect paint. Bindings and children are authored structure (Component §9.2).
     const painted = options.context?.activeBreakpoint
         ? planSections({ ...ctx, activeBreakpoint: options.context.activeBreakpoint })
-        : sections;
+        : structural;
 
-    const ids = new Set(sections.flatMap(section => section.id ? [section.id] : []));
+    nameLooseSections(sections, painted.sections, ctx);
     const placements = new Map<string, string[]>();
     const templates = new Set<string>();
-    return sections.map(({ loose, ...section }, index) => {
-        if (loose) {
-            walkNodes(section.nodes, node => {
-                if (section.id || !node.bindPath) return;
-                const key = ctx.findItem(node.bindPath)?.key;
-                if (key && !ids.has(key)) {
-                    section.id = key;
-                    section.title = 'Additional items';
-                    section.titleLocaleKey = '$ui.wizard.otherItems';
-                    ids.add(key);
-                }
+    const pages = attachLooseSections(sections, definition.title, presentation?.pageMode === 'workspace')
+        .map(({ section: { loose, themeRemainder: _themeRemainder, ...section }, owner, indexes }): PageSequenceEntry => {
+            const fields = new Set<string>();
+            const groups = new Set<string>();
+            if (!loose && section.titleBind) groups.add(section.titleBind);
+            const nodes = indexes.flatMap(index => sections[index].nodes);
+            const structuralNodes = section.container ? [{ ...section.container, children: nodes }] : nodes;
+            readPlacements(structuralNodes, ctx, fields, groups);
+            const ownedFields = [...fields].filter(path => {
+                const key = placementKey(path);
+                const previous = placements.get(key) ?? [];
+                if (previous.some(placement => placementCovers(placement, path))) return false;
+                placements.set(key, [...previous, path]);
+                return true;
             });
-        }
-        const fields = new Set<string>();
-        const groups = new Set<string>();
-        if (section.titleBind) groups.add(section.titleBind);
-        const structuralNodes = section.container ? [{ ...section.container, children: section.nodes }] : section.nodes;
-        readPlacements(structuralNodes, ctx, fields, groups);
-        const ownedFields = [...fields].filter(path => {
-            const key = placementKey(path);
-            const previous = placements.get(key) ?? [];
-            if (previous.some(placement => placementCovers(placement, path))) return false;
-            placements.set(key, [...previous, path]);
-            return true;
+            const fieldTemplates = [...new Set(ownedFields.map(placementKey))].filter(path => {
+                if (templates.has(path)) return false;
+                templates.add(path);
+                return true;
+            });
+            const paintedOwner = painted.sections[owner];
+            const title = section.nodes[0]?.component === 'Section'
+                ? paintedOwner.title : section.title;
+            return { ...section, title,
+                nodes: indexes.flatMap(index => painted.sections[index].nodes), container: paintedOwner.container,
+                fields: ownedFields, fieldTemplates, groups: [...groups] };
         });
-        const fieldTemplates = [...new Set(ownedFields.map(placementKey))].filter(path => {
-            if (templates.has(path)) return false;
-            templates.add(path);
-            return true;
-        });
-        return { ...section, nodes: painted[index].nodes, container: painted[index].container,
-            fields: ownedFields, fieldTemplates, groups: [...groups] };
-    });
+    const last = pages.at(-1);
+    if (last && painted.sharedNodes.length) last.sharedNodes = painted.sharedNodes;
+    return pages;
 }

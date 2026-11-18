@@ -2,6 +2,8 @@
 import { readFileSync } from 'node:fs';
 import { chromium, type Browser } from '@playwright/test';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { resolvePageSequence, type ThemeDocument } from '@formspec-org/layout';
+import type { FormDefinition } from '@formspec-org/types';
 import { renderHostPage } from '@formspec-org/webcomponent/host';
 import { createServer } from 'node:http';
 import { checkAccessibility, expectedPages, MANUAL_REVIEW, type RendererCheckReport } from '../src/index.js';
@@ -224,11 +226,18 @@ describe('every page is visited, or the check fails', () => {
             field('opening', 'Opening'), group('one', [field('a', 'A')]), field('between', 'Between'),
             group('two', [field('b', 'B')]), field('closing', 'Closing'),
         ]);
-        expect(expectedPages(definition)).toBe(5);
-        expect(expectedPages(definition, { pages: [
+        const generated = resolvePageSequence(definition as FormDefinition);
+        expect(generated.map(section => section.id)).toEqual(['one', 'two']);
+        expect(expectedPages(definition)).toBe(generated.length);
+
+        const theme = { pages: [
             { id: 'instructions', title: 'Instructions' },
             { id: 'answers', title: 'Answers', regions: [{ key: 'one', span: 12 }] },
-        ] })).toBe(3);
+        ] } as ThemeDocument;
+        const themed = resolvePageSequence(definition as FormDefinition, { theme });
+        // Walk uses the same Item key as the workspace navigation for the trailing Theme section.
+        expect(themed.map(section => section.id)).toEqual(['instructions', 'answers', 'opening']);
+        expect(expectedPages(definition, theme)).toBe(themed.length);
     });
 
     it('checks all rendered fields when the standalone host draws a workspace as one page', async () => {

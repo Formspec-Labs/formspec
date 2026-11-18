@@ -167,12 +167,10 @@ describe('Assist provider tools', () => {
     const provider = createFullProvider();
     const result = await parse(provider, 'formspec.form.pages', {});
     expect(result.pages.map((p: { id: string }) => p.id)).toEqual([
-      // The plan retains loose Items in order and uses Item keys independently of labels.
+      // Unheaded Items attach to their neighbors and retain their first owning section.
       'organization',
-      'contactEmail',
       'details',
       'budgetItems',
-      'derivedScore',
     ]);
   });
 
@@ -648,6 +646,7 @@ describe('Assist provider tools', () => {
     expect(themePages.pages.map((page: { id: string; title?: string }) => [page.id, page.title])).toEqual([
       ['theme-contact', 'Theme Contact'],
       ['theme-details', 'Theme Details'],
+      // Assist uses the same trailing section ID as the workspace and tracker.
       ['organization', 'Additional items'],
     ]);
     expect(themePages.pages.map((page: { id: string; fieldCount: number }) => [page.id, page.fieldCount])).toEqual([
@@ -663,10 +662,8 @@ describe('Assist provider tools', () => {
     const definitionPages = await parse(definitionProvider, 'formspec.form.pages', {});
     expect(definitionPages.pages.map((page: { id: string; title?: string }) => [page.id, page.title])).toEqual([
       ['organization', 'Organization'],
-      ['contactEmail', 'Additional items'],
       ['details', 'Project Details'],
       ['budgetItems', 'Budget Items'],
-      ['derivedScore', 'Additional items'],
     ]);
   });
 
@@ -709,12 +706,10 @@ describe('Assist provider tools', () => {
 
     const invalidThemePages = await parse(invalidThemeProvider, 'formspec.form.pages', {});
     expect(invalidThemePages.pages.map((page: { id: string }) => page.id)).toEqual([
-      // The plan retains loose Items in order and uses Item keys independently of labels.
+      // Without Theme authority, the preceding group owns each unheaded run.
       'organization',
-      'contactEmail',
       'details',
       'budgetItems',
-      'derivedScore',
     ]);
   });
 
@@ -758,14 +753,15 @@ describe('Assist provider tools', () => {
         missingReadonly: 0,
         filled: false,
       },
-      expect.objectContaining({
+      {
         id: 'contactEmail',
         title: 'Additional items',
         // The derived read-only value is excluded from editable counts.
         fieldCount: 4,
         filledCount: 0,
+        missingReadonly: 0,
         filled: false,
-      }),
+      },
     ]);
   });
 
@@ -841,6 +837,9 @@ describe('Assist provider tools', () => {
     engine.getFieldVM('contactEmail')?.setValue('owner@example.org');
     engine.getFieldVM('organization.name')?.setValue('Acme Foundation');
     engine.getFieldVM('organization.ein')?.setValue('12-3456789');
+    // Fill the unassigned budget fields to isolate the optional blank on the authored Theme page.
+    engine.getFieldVM('budgetItems[0].description')?.setValue('Printing');
+    engine.getFieldVM('budgetItems[0].amount')?.setValue(1500);
     const emptyProvider = createAssistProvider({
       engine,
       theme: makeTheme(),

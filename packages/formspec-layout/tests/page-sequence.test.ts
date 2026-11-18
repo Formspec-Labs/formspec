@@ -34,6 +34,73 @@ function makeDefinition() {
 }
 
 describe('resolvePageSequence', () => {
+    it('titles alternating loose runs from their first heading and attaches unheaded content in order', () => {
+        const definition = makeDefinition();
+        const [organization, contact, details] = definition.items;
+        const heading = (key: string, label: string) => ({ key, type: 'display', label, presentation: { widgetHint: 'Heading' } });
+        const text = (key: string, label: string) => ({ key, type: 'display', label });
+        const plan = resolvePageSequence({ ...definition, items: [
+            text('lead', 'Read this before starting.'), heading('before', 'Before you start'), heading('second', 'Also note'),
+            organization, text('between', 'Keep these records.'),
+            details, heading('finish', 'After you file'), contact,
+        ] });
+
+        expect(plan.map(({ id, title, titleBind, nodes, fields }) => ({
+            id, title, titleBind, items: nodes.map(node => node.bindPath), fields,
+        }))).toEqual([
+            { id: 'lead', title: 'Before you start', titleBind: 'before', items: ['lead', 'before', 'second'], fields: [] },
+            { id: 'organization', title: 'organization', titleBind: 'organization', items: ['organization', 'between'],
+                fields: ['organization.name', 'organization.ein'] },
+            { id: 'details', title: 'details', titleBind: 'details', items: ['details'], fields: ['details.summary'] },
+            { id: 'finish', title: 'After you file', titleBind: 'finish', items: ['finish', 'contactEmail'], fields: ['contactEmail'] },
+        ]);
+    });
+
+    it('attaches leading unheaded Items to the following keyed section and trailing Items to the preceding one', () => {
+        const definition = makeDefinition();
+        const [organization, contact, details] = definition.items;
+        const plan = resolvePageSequence({ ...definition, items: [
+            { key: 'intro', type: 'display', label: 'Fill this in.' }, organization, details, contact,
+        ] });
+
+        expect(describePages(plan)).toEqual([
+            { id: 'organization', title: 'organization', fields: ['organization.name', 'organization.ein'] },
+            { id: 'details', title: 'details', fields: ['details.summary', 'contactEmail'] },
+        ]);
+        expect(plan.map(section => section.nodes.map(node => node.bindPath))).toEqual([
+            ['intro', 'organization'], ['details', 'contactEmail'],
+        ]);
+    });
+
+    it('uses the Definition title for a flat form with no section heading', () => {
+        const definition = makeDefinition();
+        const plan = resolvePageSequence({ ...definition, items: [definition.items[1]] });
+
+        expect(describePages(plan)).toEqual([
+            { id: undefined, title: 'Grant Application', fields: ['contactEmail'] },
+        ]);
+    });
+
+    it('retains title bindings and Locale keys even when authored titles match', () => {
+        const definition = makeDefinition();
+        const plan = resolvePageSequence(definition, {
+            component: {
+                $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition.url },
+                tree: { component: 'Stack', children: [
+                    { component: 'Section', id: 'first', title: 'Details', children: [] },
+                    { component: 'Heading', id: 'help', text: 'Details' },
+                    { component: 'TextInput', bind: 'contactEmail' },
+                    { component: 'Section', id: 'last', title: 'Details', children: [] },
+                ] },
+            },
+        });
+        expect(plan.map(({ id, title, titleLocaleKey }) => [id, title, titleLocaleKey])).toEqual([
+            ['first', 'Details', '$component.first.title'],
+            ['contactEmail', 'Details', '$component.help.text'],
+            ['last', 'Details', '$component.last.title'],
+        ]);
+    });
+
     it('uses component pages before theme and definition hints', () => {
         const pages = resolvePageSequence(makeDefinition(), {
             component: {
@@ -147,7 +214,6 @@ describe('resolvePageSequence', () => {
 
         expect(describePages(pages)).toEqual([
             { id: 'lines-page', title: 'Line items', fields: ['lineItems[0].amount'] },
-            // An explicit row placement only owns that row. The loose template still renders other rows.
             { id: 'lineItems', title: 'Additional items', fields: ['lineItems[*].amount'] },
         ]);
     });
@@ -168,11 +234,50 @@ describe('resolvePageSequence', () => {
         expect(describePages(pages)).toEqual([
             { id: 'theme-contact', title: 'Theme Contact', fields: ['contactEmail'] },
             { id: 'theme-details', title: 'Theme Details', fields: ['details.summary'] },
-            {
-                id: 'organization',
-                title: 'Additional items',
-                fields: ['organization.name', 'organization.ein'],
+            // The trailing Theme section uses the first unassigned Item's key.
+            { id: 'organization', title: 'Additional items', fields: ['organization.name', 'organization.ein'] },
+        ]);
+        expect(pages.at(-1)?.titleLocaleKey).toBe('$ui.wizard.otherItems');
+    });
+
+    it('skips a reserved Theme page ID when naming the trailing section', () => {
+        const definition = makeDefinition();
+        const pages = resolvePageSequence({
+            ...definition,
+            items: [{ key: 'organization', type: 'display', label: 'Instructions' }, ...definition.items.slice(1),
+                { key: 'closing', type: 'display', label: 'Before you file', presentation: { widgetHint: 'Heading' } }],
+        }, {
+            theme: {
+                $formspecTheme: '1.0',
+                version: '1.0.0',
+                targetDefinition: { url: definition.url },
+                pages: [{ id: 'organization', title: 'Project details', regions: [{ key: 'details' }] }],
             },
+        });
+
+        expect(describePages(pages)).toEqual([
+            { id: 'organization', title: 'Project details', fields: ['details.summary'] },
+            { id: 'contactEmail', title: 'Before you file', fields: ['contactEmail'] },
+        ]);
+        expect(pages[1].titleBind).toBe('closing');
+    });
+
+    it('keeps trailing Items reachable when every candidate key is already a Theme page ID', () => {
+        const definition = makeDefinition();
+        const pages = resolvePageSequence({
+            ...definition,
+            items: definition.items.slice(1),
+        }, {
+            theme: {
+                $formspecTheme: '1.0',
+                version: '1.0.0',
+                targetDefinition: { url: definition.url },
+                pages: [{ id: 'contactEmail', title: 'Project details', regions: [{ key: 'details' }] }],
+            },
+        });
+
+        expect(describePages(pages)).toEqual([
+            { id: 'contactEmail', title: 'Project details', fields: ['details.summary', 'contactEmail'] },
         ]);
     });
 
@@ -195,7 +300,6 @@ describe('resolvePageSequence', () => {
 
         expect(describePages(pages)).toEqual([
             { id: 'theme-contact', title: 'Theme Contact', fields: ['contactEmail'] },
-            // A single-mode Theme still leaves its unassigned Items in the shared section plan.
             { id: 'organization', title: 'Additional items', fields: ['organization.name', 'organization.ein', 'details.summary'] },
         ]);
     });
@@ -203,9 +307,8 @@ describe('resolvePageSequence', () => {
     it('falls back to generated definition group sections when no component or theme pages exist', () => {
         const pages = resolvePageSequence(makeDefinition());
         expect(describePages(pages)).toEqual([
-            // Generated IDs are Item keys and loose Items stay in structural order.
-            { id: 'organization', title: 'organization', fields: ['organization.name', 'organization.ein'] },
-            { id: 'contactEmail', title: 'Additional items', fields: ['contactEmail'] },
+            // Generated IDs come from groups. The unheaded field follows the previous group's fields.
+            { id: 'organization', title: 'organization', fields: ['organization.name', 'organization.ein', 'contactEmail'] },
             { id: 'details', title: 'details', fields: ['details.summary'] },
         ]);
     });
@@ -268,11 +371,7 @@ describe('resolvePageSequence', () => {
 
         expect(describePages(pages)).toEqual([
             { id: 'theme-org', title: 'Theme Org', fields: ['organization.name'] },
-            {
-                id: 'contactEmail',
-                title: 'Additional items',
-                fields: ['contactEmail', 'details.summary'],
-            },
+            { id: 'contactEmail', title: 'Additional items', fields: ['contactEmail', 'details.summary'] },
         ]);
     });
 
@@ -324,11 +423,7 @@ describe('resolvePageSequence', () => {
 
         expect(describePages(pages)).toEqual([
             { id: 'theme-details', title: 'Theme Details', fields: ['details.summary'] },
-            {
-                id: 'organization',
-                title: 'Additional items',
-                fields: ['organization.name', 'organization.ein', 'contactEmail'],
-            },
+            { id: 'organization', title: 'Additional items', fields: ['organization.name', 'organization.ein', 'contactEmail'] },
         ]);
     });
 });

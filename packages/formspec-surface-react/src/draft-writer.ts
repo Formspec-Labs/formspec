@@ -6,7 +6,7 @@ import {
   type ResponseActionEffectDispatchContext, type ResponseActionInvocationPorts,
 } from '@formspec-org/engine';
 import {
-  summarizeFormProgress, workspaceSections, type PageSequenceEntry, type ProgressCounts,
+  summarizeFormProgress, type PageSequenceEntry, type ProgressCounts,
 } from '@formspec-org/layout';
 import type { DraftKey, DraftPort, DraftRecord, DraftSaveInput, FilingProgressCounts } from '@formspec-org/surface';
 import type {
@@ -94,7 +94,7 @@ function counts({ total, filled, toFix, toCheck }: ProgressCounts): FilingProgre
 export function createDraftWriter(options: DraftWriterOptions) {
   const { engine, key, port, report } = options;
   const definitionVersion = engine.definition.version;
-  const placements = workspaceSections(options.sections).map(({ id, fields }) => ({
+  const placements = options.sections.map(({ id, fields }) => ({
     ...(id === undefined ? {} : { id }), fields,
   }));
   const authoredAutosave = options.actions?.actions?.find(action => action.intent === 'autosave' &&

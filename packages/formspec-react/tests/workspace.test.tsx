@@ -3,7 +3,7 @@ import React, { act, useState } from 'react';
 import { beforeAll, expect, it, vi } from 'vitest';
 import { createAssistProvider } from '@formspec-org/assist';
 import { createFormEngine, initFormspecEngine } from '@formspec-org/engine';
-import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
+import type { ComponentDocument, FormDefinition, ThemeDocument } from '@formspec-org/types';
 import type { FieldComponentProps } from '../src/component-map';
 import { FormspecProvider, useFormspecContext } from '../src/context';
 import { FormspecNode } from '../src/node-renderer';
@@ -246,19 +246,21 @@ it.each(['wizard', 'tabs'] as const)('uses Assist page order in %s while retaini
     const engine = createFormEngine({
         ...definition, formPresentation: { pageMode }, shapes: [],
         binds: [{ path: 'intro.name', required: 'true' }],
-        items: [definition.items[0], { key: 'middle', type: 'field', dataType: 'string', label: 'Middle question' }, definition.items[1]],
+        // A loose run has its own page when a display Heading supplies the title.
+        items: [definition.items[0], { key: 'check', type: 'display', label: 'Check the application', presentation: { widgetHint: 'Heading' } },
+            { key: 'middle', type: 'field', dataType: 'string', label: 'Middle question' }, definition.items[1]],
     });
     const assist = createAssistProvider({ engine, registerWebMCP: false });
     const host = actRender(<FormspecForm engine={engine} />);
     const selectors = pageMode === 'tabs' ? '[role="tab"]' : '.formspec-wizard-step-label';
     const labels = Array.from(host.querySelectorAll(selectors)).map(tab => tab.textContent?.trim());
     const pages = assist.getProgress().pages!;
-    expect(pages.map(page => page.id)).toEqual(['intro', 'middle', 'details']);
+    expect(pages.map(page => page.id)).toEqual(['intro', 'check', 'details']);
     expect(labels).toHaveLength(pages.length);
     pages.forEach((page, index) => expect(labels[index]).toContain(page.title));
     if (pageMode === 'tabs') {
         const retained = control(host, 'intro.name');
-        clickText(host, 'Additional items');
+        clickText(host, 'Check the application');
         expect(control(host, 'intro.name')).toBe(retained);
         expect(control(host, 'middle')?.closest('[role="tabpanel"]')?.hasAttribute('hidden')).toBe(false);
     } else {
@@ -269,6 +271,166 @@ it.each(['wizard', 'tabs'] as const)('uses Assist page order in %s while retaini
         expect(control(host, 'intro.name')).toBeNull();
         expect(control(host, 'middle')).not.toBeNull();
     }
+});
+
+const pageModes = [
+    ['workspace', '.formspec-workspace__navigation nav button'],
+    ['wizard', '.formspec-wizard-step-label'],
+    ['tabs', '[role="tab"]'],
+] as const;
+
+it.each(pageModes)('attaches loose content to authored Component Sections in %s', (pageMode) => {
+    const host = actRender(<FormspecForm definition={{ ...definition, formPresentation: { pageMode } }}
+        componentDocument={authoredSections(true)} />);
+    const headings = () => Array.from(host.querySelectorAll('h1,h2,h3,h4,h5,h6')).map(node => node.textContent);
+    expect(headings().filter(title => title === 'Contact')).toHaveLength(1);
+    expect(Array.from(host.querySelectorAll('p')).map(node => node.textContent)).toEqual(
+        expect.arrayContaining(['Before', 'Between']),
+    );
+    clickText(host, pageMode === 'wizard' ? 'Next' : 'Details');
+    expect(headings().filter(title => title === 'Details')).toHaveLength(1);
+    expect(control(host, 'details.approval')).not.toBeNull();
+});
+
+it.each(['wizard', 'tabs'] as const)('keeps loose text outside an authored Section condition in %s', (pageMode) => {
+    const component = authoredSections(true);
+    const children = [...component.tree.children!];
+    children[1] = { ...children[1], when: 'false' };
+    const host = actRender(<FormspecForm definition={{ ...definition, shapes: [], formPresentation: { pageMode } }}
+        componentDocument={{ ...component, tree: { ...component.tree, children } }} />);
+    expect(host.textContent).toContain('Before');
+    expect(host.textContent).toContain('Between');
+    expect(control(host, 'intro.name')).toBeNull();
+});
+
+const themed: ThemeDocument = {
+    $formspecTheme: '1.0', version: '1.0.0', targetDefinition: { url: definition.url },
+    pages: [{ id: 'contact-page', title: 'Contact', regions: [{ key: 'intro.name', span: 12 }] }],
+};
+
+it.each(pageModes)('attaches unbound Component text to an authored Theme page in %s', (pageMode, selector) => {
+    const componentDocument: ComponentDocument = {
+        ...authoredSections(true),
+        tree: { component: 'Stack', children: [
+            { component: 'TextInput', bind: 'intro.name' },
+            { component: 'TextInput', bind: 'details.approval' },
+            { component: 'Text', text: 'Check before submitting.' },
+        ] },
+    };
+    const host = actRender(<FormspecForm definition={{ ...definition, items: [
+        definition.items[0], { ...definition.items[1], children: [definition.items[1].children![1]] },
+    ], shapes: [], formPresentation: { pageMode } }} componentDocument={componentDocument} themeDocument={{
+        ...themed, pages: [...themed.pages!, { id: 'approval-page', title: 'Review', regions: [{ key: 'details.approval', span: 12 }] }],
+    }} />);
+    expect(Array.from(host.querySelectorAll(selector)).map(node => node.textContent)).toEqual(['Contact', 'Review']);
+    clickText(host, pageMode === 'wizard' ? 'Next' : 'Review');
+    expect(Array.from(host.querySelectorAll('h1,h2,h3,h4,h5,h6')).filter(node => node.textContent === 'Review')).toHaveLength(1);
+    expect(host.textContent).toContain('Check before submitting.');
+    expect(control(host, 'details.approval')).not.toBeNull();
+});
+
+it.each(pageModes)('consumes only the Heading that names a loose section in %s', (pageMode, selector) => {
+    const engine = createFormEngine({ ...definition, shapes: [], formPresentation: { pageMode },
+        items: [
+            { key: 'notice', type: 'display', label: 'Notice', presentation: { widgetHint: 'Heading' } },
+            { key: 'directions', type: 'display', label: 'Directions', presentation: { widgetHint: 'Heading' } },
+            ...definition.items,
+        ],
+    });
+    engine.loadLocale({ $formspecLocale: '2.1', version: '1.0.0', locale: 'es',
+        target: { kind: 'definition', url: definition.url }, strings: { 'notice.label': 'Aviso' } });
+    engine.setLocale('es');
+    const host = actRender(<FormspecForm engine={engine} />);
+    expect(host.querySelector(selector)?.textContent).toBe('Aviso');
+    const headings = Array.from(host.querySelectorAll('h1,h2,h3,h4,h5,h6')).map(node => node.textContent);
+    expect(headings.filter(title => title === 'Aviso')).toHaveLength(1);
+    expect(headings).toContain('Directions');
+});
+
+it.each(pageModes)('consumes a localized Component Heading that names a loose section in %s', (pageMode, selector) => {
+    const engine = createFormEngine({ ...definition, shapes: [], formPresentation: { pageMode },
+        items: [{ key: 'note', type: 'field', dataType: 'string', label: 'Note' }, ...definition.items] });
+    engine.loadLocale({ $formspecLocale: '2.1', version: '1.0.0', locale: 'es',
+        target: { kind: 'definition', url: definition.url }, strings: { '$component.notice.text': 'Aviso' } });
+    engine.setLocale('es');
+    const host = actRender(<FormspecForm engine={engine} componentDocument={{
+        ...authoredSections(true),
+        tree: { component: 'Stack', children: [
+            { component: 'Stack', children: [
+                { component: 'Heading', id: 'notice', text: 'Notice' },
+                { component: 'TextInput', bind: 'note' },
+            ] },
+            { component: 'Section', id: 'contact', title: 'Contact',
+                children: [{ component: 'TextInput', bind: 'intro.name' }] },
+        ] },
+    }} />);
+    expect(host.querySelector(selector)?.textContent).toBe('Aviso');
+    expect(Array.from(host.querySelectorAll('h1,h2,h3,h4,h5,h6'))
+        .filter(node => node.textContent === 'Aviso')).toHaveLength(1);
+    expect(control(host, 'note')).not.toBeNull();
+});
+
+it('promotes the painted text of an anonymous Heading to the workspace title', () => {
+    const media = vi.spyOn(window, 'matchMedia').mockImplementation(query => ({
+        matches: true, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList));
+    try {
+        const host = actRender(<FormspecForm definition={{ ...definition, shapes: [] }} componentDocument={{
+            ...authoredSections(true), breakpoints: { wide: 600 },
+            tree: { component: 'Stack', children: [
+                { component: 'Heading', text: 'Notice', responsive: { wide: { text: 'Full notice' } } },
+                { component: 'TextInput', bind: 'intro.name' },
+                { component: 'Section', id: 'details', title: 'Details',
+                    children: [{ component: 'TextInput', bind: 'details.approval' }] },
+            ] },
+        }} />);
+        expect(host.querySelector('.formspec-workspace__content > h3')?.textContent).toBe('Full notice');
+        expect(Array.from(host.querySelectorAll('h1,h2,h3,h4,h5,h6'))
+            .filter(node => node.textContent === 'Full notice')).toHaveLength(1);
+    } finally {
+        media.mockRestore();
+    }
+});
+
+it.each(pageModes)('renders the responsive Section title and a localized untitled fallback in %s', (pageMode, selector) => {
+    const media = vi.spyOn(window, 'matchMedia').mockImplementation(query => ({
+        matches: true, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList));
+    try {
+        const engine = createFormEngine({ ...definition, shapes: [], formPresentation: { pageMode } });
+        engine.loadLocale({ $formspecLocale: '2.1', version: '1.0.0', locale: 'es',
+            target: { kind: 'definition', url: definition.url },
+            strings: { '$ui.wizard.stepTitle': 'Paso {{$index}}' } });
+        engine.setLocale('es');
+        const authored = authoredSections(true);
+        const componentDocument: ComponentDocument = {
+            ...authored, breakpoints: { wide: 600 },
+            tree: { component: 'Stack', children: [
+                { component: 'Section', id: 'contact', title: 'Contact', responsive: { wide: { title: 'Full contact' } },
+                    children: [{ component: 'TextInput', bind: 'intro.name' }] },
+                { component: 'Section', id: 'raw-approved', children: [{ component: 'TextInput', bind: 'details.approval' }] },
+            ] },
+        };
+        const host = actRender(<FormspecForm engine={engine} componentDocument={componentDocument} />);
+        expect(Array.from(host.querySelectorAll(selector)).map(node => node.textContent)).toEqual(['Full contact', 'Paso 2']);
+    } finally {
+        media.mockRestore();
+    }
+});
+
+it.each(pageModes)('shows unassigned Items in one localized section after Theme pages in %s', (pageMode, selector) => {
+    const engine = createFormEngine({ ...definition, shapes: [], formPresentation: { pageMode },
+        items: [contact, { key: 'loose', type: 'field', dataType: 'string', label: 'Loose' }],
+    });
+    engine.loadLocale({ $formspecLocale: '2.1', version: '1.0.0', locale: 'es',
+        target: { kind: 'definition', url: definition.url }, strings: { '$ui.wizard.otherItems': 'Otras preguntas' } });
+    engine.setLocale('es');
+    const host = actRender(<FormspecForm engine={engine} themeDocument={{
+        ...themed, pages: [{ ...themed.pages![0], regions: [{ key: 'name', span: 12 }] }],
+    }} />);
+    expect(Array.from(host.querySelectorAll(selector)).map(node => node.textContent)).toEqual(['Contact', 'Otras preguntas']);
+    clickText(host, pageMode === 'wizard' ? 'Next' : 'Otras preguntas');
+    expect(control(host, 'loose')).not.toBeNull();
 });
 
 it('uses the authored row label for a repeat that owns its section', () => {
@@ -325,7 +487,7 @@ it('waits for an authored nested tab before focusing the requested question', as
     expect(document.activeElement).toBe(approval);
 });
 
-it('keeps a shared Save control available when a Wizard step blocks Next', () => {
+it('keeps trailing instructions beside shared Save on every Wizard step', () => {
     const engine = createFormEngine({
         ...definition, formPresentation: { pageMode: 'wizard' }, shapes: [],
         binds: [{ path: 'intro.name', required: 'true' }],
@@ -351,6 +513,15 @@ it('keeps a shared Save control available when a Wizard step blocks Next', () =>
     const save = Array.from(host.querySelectorAll('button')).find(button => button.textContent === 'Save draft');
     expect(save).toBeDefined();
     expect(save?.closest('.formspec-wizard-panel')).toBeNull();
+    const instructions = Array.from(host.querySelectorAll('p')).find(node => node.textContent === 'You may save at any time.');
+    expect(instructions).toBeDefined();
+    expect(instructions!.nextElementSibling?.contains(save!)).toBe(true);
+    expect(instructions!.closest('.formspec-wizard-panel')).toBeNull();
+    act(() => engine.setValue('intro.name', 'Contact'));
+    clickText(host, 'Next');
+    expect(control(host, 'details.approval')).not.toBeNull();
+    expect(instructions!.isConnected).toBe(true);
+    expect(save!.isConnected).toBe(true);
 });
 
 it('renders root Save and validation summary once across authored workspace sections', () => {

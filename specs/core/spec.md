@@ -3316,12 +3316,22 @@ Page authority is resolved in this order:
 
 1. The processor MUST use the authored Component Section `id` or Theme
    `PageLayout.id` when that source supplies the page. A generated group page
-   MUST use its Item key. For other loose content, the processor MUST use the
-   first available Item key in structural order, if one exists. A display-only
-   page with an authored ID remains an addressable section.
+   MUST use its Item key. Outside the Theme remainder described below, a
+   loose run can form an addressable section only when its first non-blank
+   Heading supplies its title and the run has an available Item key. The
+   processor MUST use that Heading's text and the first available Item key
+   in structural order. Processors MUST preserve authored titles. A
+   display-only page with an authored ID remains an addressable section.
 2. Content without a section ID MUST remain in authored order. Attach it to
    the preceding identified section, or to the following one when no identified
    section precedes it. If no section has an ID, render one continuous view.
+   When the Theme supplies the pages, Theme §6.3 governs unassigned Items.
+   If rendered and an Item key is available, those Items form one trailing
+   section after all Theme pages. The processor MUST use the first available
+   Item key in structural order as its section ID and the first non-blank
+   Heading as its title. If the section has no such Heading, the processor
+   MUST give it a localized stock title. If every Item key is already in use
+   as a section ID, the Items remain at the end of the final Theme page.
 3. The processor MUST render one active section and provide direct section
    selection and Previous and Next controls when multiple sections exist.
    Section changes MUST preserve the form session, move focus to the section

@@ -80,6 +80,7 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
     const searchStatusId = useId();
     const findingsHeading = useId();
 
+    const navigationActive = workspaceNavigation?.sectionNavigationActive !== false;
     const activeIndex = Math.max(0, pages.findIndex(page => page.id === selected));
     const active = pages[activeIndex];
     useLayoutEffect(() => {
@@ -154,7 +155,6 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
         if (section !== active || workspaceNavigation?.sectionNavigationActive === false) select(section);
     }
 
-    const navigationActive = workspaceNavigation?.sectionNavigationActive !== false;
     const previousPage = useRef({ section: active?.id, navigationActive });
     useLayoutEffect(() => {
         const previous = previousPage.current;

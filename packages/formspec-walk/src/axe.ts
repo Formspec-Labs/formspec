@@ -1,6 +1,6 @@
 /** @filedesc Run axe on each form page and report coverage, violations, and items for review. */
 import type { Locator, Page } from '@playwright/test';
-import { mergeFormPresentationForPlanning, placementCovers, resolvePageSequence, workspaceSections, type ThemeDocument } from '@formspec-org/layout';
+import { mergeFormPresentationForPlanning, placementCovers, resolvePageSequence, type ThemeDocument } from '@formspec-org/layout';
 import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
 import type { HostDocuments } from '@formspec-org/webcomponent/host';
 import { revealSearch, type RecipeStep } from './reveal.js';
@@ -280,10 +280,10 @@ function workspacePresentation(definition: unknown, component?: ComponentDocumen
 
 function planWorkspace(definition: unknown, presentation: Record<string, unknown>, theme?: unknown, component?: ComponentDocument | null) {
     const d = definition as FormDefinition;
-    return workspaceSections(resolvePageSequence({ ...d, items: d.items ?? [], formPresentation: presentation }, {
+    return resolvePageSequence({ ...d, items: d.items ?? [], formPresentation: presentation }, {
         component: component ?? undefined,
         theme: (theme ?? undefined) as ThemeDocument | undefined,
-    }));
+    });
 }
 
 /** What an axe pass over a rendered form collected. */

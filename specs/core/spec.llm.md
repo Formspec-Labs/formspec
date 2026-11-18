@@ -301,7 +301,7 @@ Optional: `versionAlgorithm` ("semver"/"date"/"integer"/"natural", default "semv
 
 ### Form Presentation (advisory)
 
-`pageMode`: "single" | "wizard" | "tabs" | "workspace". Workspace shows one section at a time with free section selection, question search, and validation findings. `labelPosition`: "top" | "start" | "hidden". `density`: "compact" | "comfortable" | "spacious".
+`pageMode`: "single" | "wizard" | "tabs" | "workspace". Workspace shows one section at a time with free section selection, question search, and validation findings. Workspace preserves authored Component Section and Theme page IDs and titles. A generated group uses its Item key. Outside the Theme remainder, a loose run becomes an addressable section only when its first non-blank Heading supplies its title and its first available Item key supplies its ID. Content without a section ID attaches to the previous identified section, or to the next one when first. Under Theme §6.3, rendered unassigned Items form one trailing section with the first available Item key as its ID and the first non-blank Heading or a localized stock title as its title. If every candidate key is already a section ID, the Items stay at the end of the final Theme page. `labelPosition`: "top" | "start" | "hidden". `density`: "compact" | "comfortable" | "spacious".
 
 ### Item Properties
 

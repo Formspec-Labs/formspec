@@ -1,7 +1,7 @@
 /** @filedesc Native browser navigation and color-scheme checks for Surface. */
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { Walk } from '@formspec-org/walk';
+import { runAxePass, Walk } from '@formspec-org/walk';
 import { expect, test } from '@playwright/test';
 import { SURFACE_APPEARANCE_SCRIPT } from '../../../packages/formspec-surface-react/src/browser-appearance';
 
@@ -121,6 +121,88 @@ test('history links reload under a base path and modified clicks leave the origi
   await expect(page.getByRole('heading', { name: 'Root route' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Root route' })).toBeVisible();
+});
+
+const alternatingSections = ['Before you start', 'Introduction', 'Review checklist', 'Details'];
+
+for (const mode of ['wizard', 'tabs']) {
+  test(`alternating Items have meaningful ${mode} section names`, async ({ page }) => {
+    await page.goto(`/surface-browser.html?alternating=${mode}#/filing/ny`);
+    const labels = mode === 'wizard' ? page.locator('.formspec-wizard-step-label') : page.getByRole('tab');
+    await expect(labels).toHaveText(alternatingSections);
+    if (mode === 'wizard') await page.getByRole('button', { name: 'Next step', exact: true }).click();
+    else await page.getByRole('tab', { name: 'Introduction' }).click();
+    await expect(page.getByRole('textbox', { name: 'Contact name' })).toBeVisible();
+  });
+}
+
+test('alternating Items share section names across the filing tracker, workspace and page title', async ({ page }) => {
+  await page.goto('/surface-browser.html?alternating=workspace&tracker');
+  const firstRow = page.locator('.fs-surface-filing__row').first();
+  await firstRow.locator('summary').click();
+  const sectionLinks = firstRow.locator('.fs-surface-filing__sections a');
+  await expect(sectionLinks).toHaveText(alternatingSections.map(name => `${name} 0 of 1 answered`));
+  await sectionLinks.filter({ hasText: 'Review checklist' }).click();
+  await expect(page).toHaveURL(/section=keep$/);
+  await expect(page).toHaveTitle('Review checklist – Filing – Example filing');
+  await expect(page.getByText('Keep these records.')).toBeVisible();
+  const rail = page.locator('.formspec-workspace__navigation');
+  await expect(rail.getByRole('link')).toHaveText(alternatingSections);
+  await rail.getByRole('link', { name: 'Details' }).click();
+  await expect(page).toHaveTitle('Details – Filing – Example filing');
+  await expect(page.getByText('Save a copy after filing.')).toBeVisible();
+  const walk = await Walk.open(page, {});
+  try {
+    expect(await walk.show('reviewer')).toBe(true);
+    await expect(page).toHaveTitle('Review checklist – Filing – Example filing');
+    await expect(page.getByRole('textbox', { name: 'Reviewer name' })).toBeVisible();
+  } finally {
+    await walk.sr.stop();
+  }
+});
+
+test('unassigned Theme Items keep their workspace section through browser navigation', async ({ page }) => {
+  await page.goto('/surface-browser.html?workspace&themePages#/filing/ny?slot=filing&section=theme-intro');
+  const intro = page.getByRole('heading', { name: 'Contact details' });
+  const remainder = page.getByRole('heading', { name: 'Additional items' });
+  await expect(intro).toBeVisible();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(remainder).toBeFocused();
+  await expect(page.getByRole('textbox', { name: 'Notes' })).toBeVisible();
+  await expect(page).toHaveTitle('Additional items – Filing – Example filing');
+  // The trailing section takes its ID from the first unassigned Item.
+  await expect(page).toHaveURL(/slot=filing&section=details$/);
+  await expect(page.getByRole('link', { name: 'Additional items', exact: true })).toHaveAttribute('href', /slot=filing&section=details$/);
+  await page.goBack();
+  await expect(intro).toBeFocused();
+  await page.goForward();
+  await expect(remainder).toBeFocused();
+  await page.reload();
+  await expect(remainder).toBeVisible();
+  await page.getByRole('button', { name: 'Previous', exact: true }).click();
+  await expect(intro).toBeFocused();
+
+  const definition = await page.locator('[data-formspec-render-root]').evaluate(root =>
+    (root as HTMLElement & { engine: { getDefinition: () => unknown } }).engine.getDefinition());
+  const axe = await runAxePass(page, { documents: {
+    definition,
+    theme: { pages: [{ id: 'theme-intro', title: 'Contact details', regions: [{ key: 'intro', span: 12 }] }] },
+  } });
+  expect(axe.pages).toMatchObject({ kind: 'workspace', expectedMin: 2, drawn: 2, visited: 2 });
+});
+
+test('the filing tracker links to the trailing section of unassigned Theme Items', async ({ page }) => {
+  await page.goto('/surface-browser.html?workspace&themePages&tracker');
+  const firstRow = page.locator('.fs-surface-filing__row').first();
+  await firstRow.locator('summary').click();
+  const trailingSection = firstRow.locator('.fs-surface-filing__sections a').filter({ hasText: 'Additional items' });
+  await expect(trailingSection).toHaveAttribute('href', /slot=filing&section=details$/);
+  await expect(firstRow.locator('.fs-surface-filing__segment[title^="Additional items"]')).toHaveAttribute(
+    'href', /slot=filing&section=details$/,
+  );
+  await trailingSection.click();
+  await expect(page.getByRole('heading', { name: 'Additional items', exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Notes' })).toBeVisible();
 });
 
 test('the authored workspace updates focus and title through section links and browser history', async ({ page }) => {

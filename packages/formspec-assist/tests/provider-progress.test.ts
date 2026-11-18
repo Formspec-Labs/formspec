@@ -207,10 +207,11 @@ it('uses live requiredness, relevance and validation, including changes without 
   engine.setValue('target', 'bad');
   expect(await invoke(provider, 'formspec.form.nextIncomplete', { scope: 'page' })).toMatchObject({ reason: 'invalid' });
   engine.setValue('mode', 'hidden');
-  expect(provider.getProgress().pages?.[0]).toMatchObject({ fieldCount: 1, filled: true });
+  // A flat form has no addressable pages. Its fields still count toward live progress.
+  expect(provider.getProgress()).toMatchObject({ total: 1, filled: 1, pages: [] });
   engine.setValue('mode', 'shown');
-  // A filled page can still have errors that keep the form from being ready.
-  expect(provider.getProgress()).toMatchObject({ ready: false, pages: [{ filled: true }] });
+  // A filled form can still have errors that keep it from being ready.
+  expect(provider.getProgress()).toMatchObject({ total: 2, filled: 2, ready: false });
   expect(await invoke(provider, 'formspec.form.nextIncomplete', { scope: 'page' })).toMatchObject({ reason: 'invalid' });
   engine.setValue('target', 'good');
   expect(provider.getProgress().ready).toBe(true);

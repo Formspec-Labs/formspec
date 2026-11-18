@@ -513,12 +513,6 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
                     component: 'Tabs',
                     category: 'layout',
                     props: {
-                        tabLabels: pages.map(
-                            (p) =>
-                                (p.props?.title as string | undefined)
-                                || (p.props?.label as string | undefined)
-                                || (p.fieldItem?.label as string | undefined),
-                        ),
                         placement: (fp.tabPosition as string | undefined) || 'top',
                         defaultTab: (fp.defaultTab as number | undefined) ?? 0,
                     },

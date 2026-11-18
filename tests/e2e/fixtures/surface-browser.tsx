@@ -12,6 +12,7 @@ import { scaleForms } from './surface-filing-scale';
 
 const fixtureOptions = new URLSearchParams(location.search);
 const workspace = fixtureOptions.has('workspace');
+const alternatingMode = fixtureOptions.get('alternating');
 const twoForms = fixtureOptions.has('twoForms');
 const id = 'https://example.test/filing';
 const definition = `${id}/definition`;
@@ -36,7 +37,7 @@ const reportSections = [['people', 'People served', 7], ['outcomes', 'Outcomes',
 const counts = { total: 4, filled: 2, toFix: 1, toCheck: 2 };
 const complete = (total: number) => ({ total, filled: total, toFix: 0, toCheck: 0 });
 const observations = new Map<string, FilingDraftObservation>([
-  [definition, { status: 'current', form: { total: 5, filled: 2, toFix: 1, toCheck: 3, ready: false }, sections: {
+  [definition, alternatingMode || workspace ? { status: 'absent' } : { status: 'current', form: { total: 5, filled: 2, toFix: 1, toCheck: 3, ready: false }, sections: {
     'report-details': counts,
     'certification': { total: 1, filled: 0, toFix: 0, toCheck: 1 },
   } }],
@@ -92,7 +93,19 @@ const bundle = dereferenceBundleExport({
     },
     [definition]: {
       $formspec: '1.0', url: definition, version: '1.0.0', title: 'Filing',
-      ...(workspace ? {
+      ...(alternatingMode ? {
+        formPresentation: { pageMode: alternatingMode },
+        items: [
+          { key: 'before', type: 'display', label: 'Before you start', presentation: { widgetHint: 'Heading' } },
+          { ...contact, key: 'reference', label: 'Reference number' },
+          { key: 'intro', type: 'group', label: 'Introduction', children: [contact] },
+          { key: 'keep', type: 'display', label: 'Keep these records.' },
+          { key: 'review', type: 'display', label: 'Review checklist', presentation: { widgetHint: 'Heading' } },
+          { ...contact, key: 'reviewer', label: 'Reviewer name' },
+          { key: 'details', type: 'group', label: 'Details', children: [{ ...contact, key: 'notes', label: 'Notes' }] },
+          { key: 'submit', type: 'display', label: 'Save a copy after filing.' },
+        ],
+      } : workspace ? {
         formPresentation: { pageMode: 'workspace' },
         items: [
           { key: 'intro', type: 'group', label: 'Introduction', children: [
@@ -129,7 +142,12 @@ const bundle = dereferenceBundleExport({
       })),
     },
     ...Object.fromEntries(extraForms.map(({ url, definition }) => [url, definition])),
-    [theme]: { tokens: { 'color.primary': '#123456' } },
+    [theme]: {
+      tokens: { 'color.primary': '#123456' },
+      ...(fixtureOptions.has('themePages') && {
+        pages: [{ id: 'theme-intro', title: 'Contact details', regions: [{ key: 'intro', span: 12 }] }],
+      }),
+    },
     [actions]: {
       $formspecResponseActions: '1.0', version: '1.0.0', scope: 'response',
       targetDefinition: { url: definition },
@@ -143,7 +161,7 @@ const mode = location.pathname.startsWith('/surface-browser-history') ? 'history
 createRoot(document.getElementById('root')!).render(
   <BrowserSurfaceApp bundle={bundle} mode={mode} basePath="/surface-browser-history" routeParams={{ state: 'ny' }}
     readSummaries={showsTracker ? readTracker : undefined}
-    resolveDefinitionComponent={({ definition: target }) => !workspace && target.url === definition ? componentDocument : undefined}
+    resolveDefinitionComponent={({ definition: target }) => !workspace && !alternatingMode && target.url === definition ? componentDocument : undefined}
     definitionActionInvoker={({ document, actionRef, nodeId, ports }) => invokeResponseAction(document, actionRef, ports, nodeId)}
     renderDefinitionForm={fixtureOptions.has('displayFirst') ? input => renderDefaultDefinitionForm({
       ...input,
@@ -155,7 +173,7 @@ createRoot(document.getElementById('root')!).render(
           { component: 'TextInput', bind: 'intro.contact' },
         ] },
       ] } },
-    }) : workspace ? undefined : input => <>
+    }) : workspace || alternatingMode ? undefined : input => <>
       <a href={input.hrefForSection?.('details')} onClick={event => {
         if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
         event.preventDefault();

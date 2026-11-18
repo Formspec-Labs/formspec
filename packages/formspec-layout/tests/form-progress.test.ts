@@ -8,7 +8,7 @@ const url = 'https://example.org/section-progress';
 const definition = {
     $formspec: '1.0', url, version: '1.0.0', title: 'Progress',
     items: [
-        { key: 'welcome', type: 'display', label: 'Welcome' },
+        { key: 'welcome', type: 'display', label: 'Welcome', presentation: { widgetHint: 'Heading' } },
         { key: 'Accounts', type: 'group', label: 'Account details', repeatable: true, children: [
             { key: 'rows', type: 'group', repeatable: true, children: [
                 ...['amount', 'agreed', 'locked', 'required', 'hidden'].map(key => ({ key, type: 'field', dataType: 'string' })),
@@ -55,22 +55,45 @@ describe('section plan', () => {
 
     it('retains Component sections, loose subtrees, duplicate placements and shared actions in authored order', () => {
         const plan = layout.resolvePageSequence(definition, { component, theme });
-        expect(plan.map(section => section.id)).toEqual([undefined, 'Accounts.V1', undefined, 'ReviewOnly', 'note']);
+        // Loose content without a named, keyed section attaches in authored order.
+        expect(plan.map(section => section.id)).toEqual(['Accounts.V1', 'ReviewOnly']);
         expect(plan.flatMap(section => section.nodes.map(node => node.component)))
             .toEqual(['Heading', 'Section', 'ActionButton', 'Section', 'TextInput']);
-        expect(plan[1].fields).toContain('Accounts[*].rows[*].amount');
-        expect(plan[3].fields).toEqual([]);
-        expect(plan[3].nodes[0].children).toHaveLength(2);
-        expect(layout.workspaceSections(plan).map(section => section.nodes.map(node => node.component)))
-            .toEqual([['Heading', 'Section', 'ActionButton'], ['Section'], ['TextInput']]);
+        expect(plan[0].fields).toContain('Accounts[*].rows[*].amount');
+        expect(plan[1].fields).toEqual(['note']);
+        expect(plan[1].nodes[0].children).toHaveLength(2);
+        expect(plan.map(section => section.nodes.map(node => node.component)))
+            .toEqual([['Heading', 'Section', 'ActionButton'], ['Section', 'TextInput']]);
     });
 
     it('uses Theme IDs and generated Item keys while retaining display-only loose content', () => {
         expect(layout.resolvePageSequence(definition, { theme }).map(section => section.id))
             .toEqual(['Summary.V1', 'Accounts_Page', 'welcome']);
         const generated = layout.resolvePageSequence(definition);
-        expect(generated.map(section => section.id)).toEqual(['welcome', 'Accounts', 'note']);
+        // The display heading starts its own section and the trailing unheaded field belongs to Accounts.
+        expect(generated.map(section => section.id)).toEqual(['welcome', 'Accounts']);
+        expect(generated[0]).toMatchObject({ title: 'Welcome', titleBind: 'welcome', groups: [] });
         expect(generated[1]).toMatchObject({ title: 'Account details', titleBind: 'Accounts' });
+    });
+
+    it('counts unheaded Theme Items in the trailing section that owns them', () => {
+        const plan = layout.resolvePageSequence({ ...definition, items: definition.items.slice(1) }, {
+            theme: { ...theme, pages: theme.pages!.slice(1) },
+        });
+        expect(plan.map(({ id, titleLocaleKey, fields }) => ({ id, titleLocaleKey, fields }))).toEqual([
+            { id: 'Accounts_Page', titleLocaleKey: '$page.Accounts_Page.title',
+                fields: ['Accounts[*].rows[*].amount', 'Accounts[*].rows[*].agreed', 'Accounts[*].rows[*].locked',
+                    'Accounts[*].rows[*].required', 'Accounts[*].rows[*].hidden'] },
+            // The trailing section persists its progress under the first available Item key.
+            { id: 'note', titleLocaleKey: '$ui.wizard.otherItems', fields: ['note'] },
+        ]);
+        const summary = layout.summarizeFormProgress(plan, {
+            fields: [{ path: 'note', relevant: true, readonly: false, required: false, empty: false }],
+            report: null,
+        });
+        expect(summary.sections.map(({ id, counts }) => [id, counts.filled])).toEqual([
+            ['Accounts_Page', 0], ['note', 1],
+        ]);
     });
 
     it('preserves a regionless authored Theme page with display content', () => {
@@ -107,7 +130,9 @@ describe('section plan', () => {
         } as ComponentDocument;
         const plan = layout.resolvePageSequence(definition, { component: withoutSections, theme });
         expect(plan.map(section => section.id)).toEqual(['Summary.V1', 'Accounts_Page', 'welcome']);
-        expect(plan[2].nodes.map(node => node.component)).toEqual(['Heading', 'ActionButton', 'Text']);
+        expect(plan[1].nodes.map(node => node.component)).toEqual(['Section', 'Heading']);
+        expect(plan[2].nodes.map(node => node.component)).toEqual(['Heading']);
+        expect(plan[2].sharedNodes?.map(node => node.component)).toEqual(['ActionButton']);
     });
 
     it('keeps a wholly unkeyed form continuous and preserves an unkeyed authored Section', () => {
@@ -116,9 +141,10 @@ describe('section plan', () => {
             { component: 'ActionButton', actionRef: 'save' },
         ] } as ComponentDocument['tree'];
         const plan = layout.resolvePageSequence({ ...definition, items: [] }, { component: { ...component, tree } });
-        expect(plan.map(section => section.id)).toEqual([undefined, undefined]);
-        expect(plan.flatMap(section => section.nodes.map(node => node.component))).toEqual(['Section', 'ActionButton']);
-        expect(layout.workspaceSections(plan).map(section => section.id)).toEqual([undefined]);
+        // The shared action attaches without creating a second unkeyed page.
+        expect(plan.map(section => section.id)).toEqual([undefined]);
+        expect(plan[0].nodes.map(node => node.component)).toEqual(['Section']);
+        expect(plan[0].sharedNodes?.map(node => node.component)).toEqual(['ActionButton']);
     });
 
     it('keeps nested Theme siblings and responsive hidden placements in the same structural sections', () => {
@@ -143,7 +169,8 @@ describe('section plan', () => {
                     { component: 'DataTable', bind: 'rows', columns: [{ bind: 'amount' }] },
                 ] },
             ] },
-            { component: 'Text', bind: 'welcome' },
+            // The heading supplies a title, and the next available key avoids the authored ID.
+            { component: 'Heading', bind: 'welcome' },
             { component: 'TextInput', bind: 'note' },
         ] } } as ComponentDocument;
         const plan = layout.resolvePageSequence(definition, { component: table });
