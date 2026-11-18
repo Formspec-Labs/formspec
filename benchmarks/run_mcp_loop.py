@@ -76,6 +76,7 @@ MCP_TOOL_ALLOWLIST = [
     for name in (
         # Product verbs.
         "formspec_bootstrap_form",
+        "formspec_edit_definition",
         "formspec_add_form_field",
         "formspec_set_field_behavior",
         "formspec_add_action",
