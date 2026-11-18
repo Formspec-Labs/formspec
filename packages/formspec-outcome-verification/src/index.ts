@@ -27,6 +27,7 @@ export {
   lintOutcomeVerificationReport,
   OUTCOME_EVIDENCE_COMPATIBILITY,
 } from "./lint.js";
+export { indexOutcomeNeedTraces } from "./need-trace.js";
 export {
   digestRunnerAdmissionContext,
   deriveActionInvocationId,

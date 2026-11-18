@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  indexOutcomeNeedTraces,
   lintOutcomeVerificationCase,
   lintOutcomeVerificationReport,
   type OutcomeResolvedLintContext,
@@ -171,7 +172,7 @@ describe("lintOutcomeVerificationCase", () => {
     );
   });
 
-  it("requires direct owner-produced Need trace on every technical artifact rule", () => {
+  it("requires owner-produced Need trace on every technical artifact rule", () => {
     const lintContext = context();
     const actionTrace = lintContext.subjectNeedBindings.find(
       (binding) => binding.subject.subjectKind === "response-action"
@@ -181,6 +182,68 @@ describe("lintOutcomeVerificationCase", () => {
     expect(codes(structuredClone(caseDocument), lintContext)).toContain(
       "OUTCOME_ARTIFACT_RULE_NEED_TRACE_MISSING"
     );
+  });
+
+  describe("effective Need trace on the tested Bind", () => {
+    const item = { artifactSlot: "definitions[0]", jsonPointer: "/items/0" };
+    const sibling = { ...item, jsonPointer: "/items/1" };
+    const bind = { ...item, jsonPointer: "/binds/0" };
+    const { id: needId, revision } = caseDocument.need;
+
+    function node(
+      source: typeof item,
+      anchors: Array<{ needId: string; revision: number }>,
+      via: Array<typeof item>
+    ) {
+      return {
+        source,
+        anchors,
+        effective: { needIds: via.length === 0 ? [] : [needId], via },
+      };
+    }
+
+    function bindFindings(nodes: ReturnType<typeof node>[]) {
+      const lintContext = context();
+      const binding = lintContext.subjectNeedBindings.find(
+        ({ subject }) => subject.subjectKind === "definition-bind"
+      )!;
+      lintContext.subjectNeedBindings = lintContext.subjectNeedBindings.filter(
+        (candidate) => candidate !== binding
+      );
+      for (const pin of indexOutcomeNeedTraces(nodes)(bind)) {
+        lintContext.subjectNeedBindings.push({ subject: binding.subject, ...pin });
+      }
+      return codes(structuredClone(caseDocument), lintContext);
+    }
+
+    it("accepts the exact revision inherited from the Bind's item", () => {
+      expect(bindFindings([
+        node(item, [{ needId, revision }], [item]),
+        node(bind, [], [item]),
+      ])).toEqual([]);
+    });
+
+    it("rejects a sibling item's matching pin", () => {
+      expect(bindFindings([
+        node(item, [], []),
+        node(sibling, [{ needId, revision }], [sibling]),
+        node(bind, [], [item]),
+      ])).toContain("OUTCOME_ARTIFACT_RULE_NEED_TRACE_MISSING");
+    });
+
+    it("rejects a stale inherited revision of the same Need", () => {
+      expect(bindFindings([
+        node(item, [{ needId, revision: revision - 1 }], [item]),
+        node(sibling, [{ needId, revision }], [sibling]),
+        node(bind, [], [item]),
+      ])).toContain("OUTCOME_ARTIFACT_RULE_NEED_TRACE_MISSING");
+    });
+
+    it("rejects a Bind without direct or inherited trace", () => {
+      expect(bindFindings([node(bind, [], [])])).toContain(
+        "OUTCOME_ARTIFACT_RULE_NEED_TRACE_MISSING"
+      );
+    });
   });
 
   it("pins the exact App Manifest identity and version", () => {

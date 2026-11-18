@@ -28,6 +28,8 @@ import { act, createElement, useCallback, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   artifactResolutionGraphInput,
+  collectRenderedNeedTraceNodes,
+  documentLintValidator,
   produceBundleExportAppGraphValidationReport,
   validateRenderedNeedTrace,
 } from "@formspec-org/app-graph";
@@ -37,6 +39,7 @@ import {
   isValidResponseAuthored,
   selectResponses,
 } from "@formspec-org/engine";
+import { lintDocument } from "@formspec-org/engine/fel-tools";
 import { planResponseActionInvocation } from "@formspec-org/engine/render";
 import { createSemanticControlRegistry } from "@formspec-org/react/semantic-controls";
 import {
@@ -62,6 +65,7 @@ import {
   digestRunnerAdmissionContext,
   evaluateOutcomeClaimGate,
   generateOutcomeVerificationReport,
+  indexOutcomeNeedTraces,
   issueOutcomeLintClearance,
   lintOutcomeVerificationReport,
   runOutcomeVerificationCase,
@@ -742,6 +746,8 @@ async function createAppGraphRuntime(ajv, preview, caseDocument, sources) {
     caseDocument.need.documentRef,
     caseDocument.need.documentDigest
   );
+  let traceNodes = [];
+  const lintDocuments = documentLintValidator(lintDocument);
   const result = await produceBundleExportAppGraphValidationReport({
     manifest: preview.bundle.manifest,
     documents: preview.bundle.documents,
@@ -772,7 +778,19 @@ async function createAppGraphRuntime(ajv, preview, caseDocument, sources) {
             })),
           };
     },
-    crossArtifactValidators: [validateRenderedNeedTrace],
+    crossArtifactValidators: [
+      Object.assign((context) => {
+        const lintDiagnostics = lintDocuments(context);
+        if (lintDiagnostics.some(({ severity }) => severity === "error")) {
+          return lintDiagnostics;
+        }
+        const traceDiagnostics = validateRenderedNeedTrace(context);
+        if (!traceDiagnostics.some(({ severity }) => severity === "error")) {
+          traceNodes = collectRenderedNeedTraceNodes(context);
+        }
+        return [...lintDiagnostics, ...traceDiagnostics];
+      }, { checksResponseProjections: lintDocuments.checksResponseProjections }),
+    ],
     surfaceLocal: { diagnostics: [] },
     authorizationBoundary: { diagnostics: [] },
     unsupported: { diagnostics: [] },
@@ -792,10 +810,16 @@ async function createAppGraphRuntime(ajv, preview, caseDocument, sources) {
     );
   }
   const graph = artifactResolutionGraphInput(result.artifactResolutionReport);
-  return {
+  const runtime = {
     report: result.report,
     manifest: graph.manifest,
     handles: graph.handles,
+  };
+  return {
+    ...runtime,
+    subjectNeedBindings: subjectNeedBindings(
+      runtime, sources, traceNodes, caseDocument
+    ),
   };
 }
 
@@ -936,9 +960,12 @@ function appGraphRelationState({
     resolved && subjectIsMounted(appGraphRuntime, source, subject);
   if (relation === "mounted") return mounted ? "present" : "absent";
 
-  const anchor = `need:${caseDocument.need.id}@${caseDocument.need.revision}`;
-  return mounted &&
-    resolvedObject?.["x-generation"]?.anchors?.includes?.(anchor)
+  return mounted && appGraphRuntime.subjectNeedBindings.some(
+    (binding) =>
+      canonicalJsonEqual(binding.subject, subject) &&
+      binding.needId === caseDocument.need.id &&
+      binding.needRevision === caseDocument.need.revision
+  )
     ? "present"
     : "absent";
 }
@@ -1139,10 +1166,18 @@ function resolveSubjectObject(document, subject) {
       );
     case "definition-item":
       return definitionItem(document, subject.subjectRef);
-    case "definition-bind":
-      return (document.binds ?? []).find?.(
+    case "definition-bind": {
+      const matches = (document.binds ?? []).filter(
         (item) => item?.path === subject.subjectRef
       );
+      if (matches.length > 1) {
+        throw new Error(
+          `Definition ${subject.artifactRef} has ${matches.length} Binds at path ${JSON.stringify(subject.subjectRef)}. ` +
+          "Outcome Verification requires one Bind per cited path."
+        );
+      }
+      return matches[0];
+    }
     case "definition-shape":
       return (document.shapes ?? []).find?.(
         (item) => item?.id === subject.subjectRef
@@ -1452,21 +1487,58 @@ function experienceUnitBindings(preview, sources) {
   return bindings;
 }
 
-function subjectNeedBindings(sources) {
+function objectAtPointer(document, pointer) {
+  let value = document;
+  for (const segment of pointer === "" ? [] : pointer.slice(1).split("/")) {
+    const key = segment.replaceAll("~1", "/").replaceAll("~0", "~");
+    if (value === null || typeof value !== "object" || !Object.hasOwn(value, key)) {
+      return undefined;
+    }
+    value = value[key];
+  }
+  return value;
+}
+
+function subjectNeedBindings(runtime, sources, traceNodes, caseDocument) {
+  const effectivePins = indexOutcomeNeedTraces(traceNodes);
+  const citedBindSubjects = caseDocument.expectedObservations.flatMap(
+    ({ ruleRefs }) => ruleRefs
+      .filter((rule) =>
+        rule.kind === "artifact-declaration" &&
+        rule.subject.subjectKind === "definition-bind"
+      )
+      .map((rule) => rule.subject)
+  );
+  const nodesBySlot = new Map();
+  for (const { source } of traceNodes) {
+    const nodes = nodesBySlot.get(source.artifactSlot) ?? [];
+    nodes.push(source);
+    nodesBySlot.set(source.artifactSlot, nodes);
+  }
   const bindings = [];
   for (const source of sources) {
+    const handle = appManifestResolved(runtime, source, {
+      subjectKind: "app-manifest",
+      subjectRef: source.artifactRef,
+    }) ? runtime.manifest : loadedGraphHandle(runtime, source);
+    if (!handle) continue;
+
+    const traceSourceByObject = new Map();
+    for (const node of nodesBySlot.get(handle.slot) ?? []) {
+      const object = objectAtPointer(handle.document, node.jsonPointer);
+      if (isRecord(object)) traceSourceByObject.set(object, node);
+    }
     for (const subject of source.subjects ?? []) {
       const qualified = qualifiedSubject(source, subject);
-      const resolved = resolveSubjectObject(source.document, qualified);
-      for (const anchor of resolved?.["x-generation"]?.anchors ?? []) {
-        if (typeof anchor !== "string") continue;
-        const match = /^need:(.+)@([1-9][0-9]*)$/.exec(anchor);
-        if (!match) continue;
-        bindings.push({
-          subject: qualified,
-          needId: match[1],
-          needRevision: Number(match[2]),
-        });
+      if (
+        qualified.subjectKind === "definition-bind" &&
+        !citedBindSubjects.some((cited) => canonicalJsonEqual(cited, qualified))
+      ) continue;
+      const resolved = resolveSubjectObject(handle.document, qualified);
+      const traceSource = traceSourceByObject.get(resolved);
+      if (!traceSource) continue;
+      for (const pin of effectivePins(traceSource)) {
+        bindings.push({ subject: qualified, ...pin });
       }
     }
   }
@@ -1552,7 +1624,7 @@ function appArtifactBindings(preview, sources, caseDocument) {
   });
 }
 
-function createOwnerFactsPort({ previewSet, identity }) {
+function createOwnerFactsPort({ ajv, previewSet, identity }) {
   return {
     identity,
     async deriveFacts({ caseDocument, sources }) {
@@ -1567,6 +1639,7 @@ function createOwnerFactsPort({ previewSet, identity }) {
         );
       }
       const preview = previews[0];
+      const runtime = await createAppGraphRuntime(ajv, preview, caseDocument, sources);
       return {
         sources: structuredClone(sources),
         semanticControlBindings: semanticControlBindings(
@@ -1575,7 +1648,7 @@ function createOwnerFactsPort({ previewSet, identity }) {
           sources
         ),
         experienceUnitBindings: experienceUnitBindings(preview, sources),
-        subjectNeedBindings: subjectNeedBindings(sources),
+        subjectNeedBindings: runtime.subjectNeedBindings,
         appArtifactBindings: appArtifactBindings(
           preview,
           sources,
@@ -2683,6 +2756,7 @@ async function main() {
       }),
     };
     const ownerFacts = createOwnerFactsPort({
+      ajv,
       previewSet,
       identity: ownerFactsIdentity,
     });

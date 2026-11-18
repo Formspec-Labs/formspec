@@ -30,7 +30,7 @@ type ExpectedView =
   | (ExpectedBaseView & {
       kind: "app-graph";
       subject: QualifiedSubjectRef;
-      relation: "resolves" | "mounted" | "direct-need-trace";
+      relation: "resolves" | "mounted" | "need-trace";
       state: "present" | "absent";
     })
   | (ExpectedBaseView & {
@@ -959,7 +959,7 @@ function lintRules(
           finding(
             "OUTCOME_ARTIFACT_RULE_NEED_TRACE_MISSING",
             rulePath,
-            `owner subject does not carry direct need:${need.id}@${need.revision} trace`
+            `owner subject's effective trace lacks need:${need.id}@${need.revision}`
           )
         );
       }

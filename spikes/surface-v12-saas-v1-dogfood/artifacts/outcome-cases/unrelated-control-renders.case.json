@@ -33,7 +33,7 @@
   ],
   "expectedObservations": [
     {
-      "id": "control-route-has-direct-need-trace",
+      "id": "control-route-has-need-trace",
       "kind": "app-graph",
       "ruleRefs": [
         {
@@ -58,7 +58,7 @@
           "kind": "specification-rule",
           "specRef": "https://formspec.org/specs/app-graph-validator",
           "specVersion": "1.0.0-draft.1",
-          "ruleId": "rendered-node.direct-need-trace"
+          "ruleId": "rendered-node.effective-need-trace"
         }
       ],
       "checkpointRef": "after-control-render",
@@ -69,7 +69,7 @@
         "subjectKind": "surface-route",
         "subjectRef": "control"
       },
-      "relation": "direct-need-trace",
+      "relation": "need-trace",
       "state": "present"
     },
     {

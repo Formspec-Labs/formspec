@@ -58,7 +58,7 @@
           "kind": "specification-rule",
           "specRef": "https://formspec.org/specs/app-graph-validator",
           "specVersion": "1.0.0-draft.1",
-          "ruleId": "rendered-node.direct-need-trace"
+          "ruleId": "rendered-node.effective-need-trace"
         }
       ],
       "checkpointRef": "after-open",

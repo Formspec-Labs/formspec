@@ -26,7 +26,7 @@ RULE_CATALOG = (
     (
         "app-graph/app-graph-validator-spec.md",
         "1.0.0-draft.1",
-        "rendered-node.direct-need-trace",
+        "rendered-node.effective-need-trace",
     ),
     ("surface/surface-spec.md", "0.3.0-draft.1", "rendering.semantic-output"),
     (
@@ -187,7 +187,9 @@ def test_procedure_control_kinds_match_renderer_registry_ownership() -> None:
 
 def test_renderer_outputs_are_owner_scoped_and_need_traced() -> None:
     assert "exact `routeId/slotId` subject prefix" in OUTCOME_SPEC
-    assert "owner-declared direct anchor" in OUTCOME_SPEC
+    # ADR 0174 §9 allows an exact subject to inherit a pin through AppGraph.
+    assert "effective trace containing the case's exact Need id and revision" in OUTCOME_SPEC
+    assert "A sibling or an Experience citation cannot supply this trace." in OUTCOME_SPEC
     assert "out-of-scope" in OUTCOME_SPEC
 
 
@@ -289,7 +291,7 @@ def test_stable_rule_catalog_matches_owner_specs() -> None:
         header = owner.split("---", 2)[1].splitlines()
         # An additive dialect can keep a published rule's exact observation version.
         assert f"version: {version}" in header or f"  {rule_id}: {version}" in header
-        assert f"`{rule_id}`" in owner
+        assert f"Normative rule `{rule_id}`" in owner
         assert f"`{version}`" in OUTCOME_SPEC
         assert f"`{rule_id}`" in OUTCOME_SPEC
 

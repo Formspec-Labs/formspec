@@ -230,9 +230,10 @@ version 0.1 specification-rule index bound by the verifier implementation
 digest. A case may cite a rule, but neither the case nor caller context may add
 a rule or mark it current.
 
-Every cited technical artifact subject must itself carry the exact direct
-`need:<id>@<revision>` anchor pinned by the case. Direct Need trace is a
-precondition for every expectation, not an optional `app-graph` observation.
+Every cited technical artifact subject's effective Need trace must include the
+case's exact `need:<id>@<revision>` pin. AppGraph's owner table determines which
+direct or inherited anchors count. The pinned revision must be current and
+adopted. This precondition applies to every expectation.
 The safe verifier derives that relation and route-to-Experience-Unit service
 from the digest-paired owner documents and AppGraph results. A caller-supplied
 array, case field, rule reference, or lint-context helper cannot create or
@@ -244,8 +245,8 @@ that service relation is not unique, the expectation is ineligible.
 
 At least one artifact declaration must identify the exact technical subject
 being tested: the same Action ID, rendered or graph node, Data Source ID, or
-Definition item/Bind that supplies the expected fact. A correctly anchored
-sibling in the same document cannot lend its trace to another subject.
+Definition item/Bind that supplies the expected fact. A Bind can inherit from
+the item its path resolves to. A sibling's anchor cannot supply the trace.
 
 If any required rule is absent, unresolved, unversioned, or contradictory,
 cross-document lint rejects the request before execution and returns findings,
@@ -418,7 +419,7 @@ Version 0.1 admits these closed observation kinds:
 
 | Observation          | Owner-produced fact                                                   |
 | -------------------- | --------------------------------------------------------------------- |
-| `app-graph`          | Static resolution, mounting, and direct Need trace                    |
+| `app-graph`          | Static resolution, mounting, and effective Need trace                 |
 | `validation-report`  | Validity and named ValidationResult codes                             |
 | `response`           | Response status and values at Definition item paths                   |
 | `action-invocation`  | Action ID, terminal state, and correlated effect outcomes             |
@@ -473,7 +474,7 @@ fields are the only portable facts an adapter may give the comparator.
 
 | Kind                 | Expected fields                                                                                                                                                                  | Observed fields                                                                                                                                        | Passing comparison                                                                                                             |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `app-graph`          | `subject: QualifiedSubjectRef`; `relation: resolves \| mounted \| direct-need-trace`; `state: present \| absent`                                                                 | The same three fields                                                                                                                                  | Exact equality                                                                                                                 |
+| `app-graph`          | `subject: QualifiedSubjectRef`; `relation: resolves \| mounted \| need-trace`; `state: present \| absent`                                                                        | The same three fields                                                                                                                                  | Exact equality                                                                                                                 |
 | `validation-report`  | `subject: QualifiedSubjectRef`; `definitionRef`; `definitionDigest`; `valid`; optional `containsIssues[]` and `excludesIssues[]` entries with exact `{ path, code }`             | The same source fields plus `responseId`, `responseRevision`, `valid`, and owner-produced `issues[]`                                                   | Definition, exact bound Response revision, and validity match; all included item/Bind issues exist; all excluded issues do not |
 | `response`           | `subject: QualifiedSubjectRef` for one `definition-item`; `definitionRef`; `definitionDigest`; required `{ path, presence: present \| absent, value? }`; optional exact `status` | The same source fields plus `responseId`, `responseRevision`, canonical complete-snapshot `responseDigest`, `status`, and `{ path, presence, value? }` | Exact bound Response revision, requested status, presence, and canonical value match                                           |
 | `action-invocation`  | `actionsRef`; `actionsDigest`; `actionId`; `terminal`; exact ordered `effects[]` entries `{ index, type, status, outcomeRef? }`                                                  | The same fields plus `invocationId` and optional `responseId`                                                                                          | Action, terminal, and complete effect trace match exactly                                                                      |
@@ -1082,7 +1083,7 @@ Schema validation catches document shape. Cross-document lint must also catch:
 - empty, unresolved, or unversioned rule references;
 - a case, App, Need, artifact, or source pin that does not match its exact
   paired owner document;
-- a cited technical artifact subject without a direct anchor to the exact
+- a cited technical artifact subject whose effective trace lacks the exact
   pinned Need revision;
 - a normative clause used without a stable specification rule ID;
 - unresolved route, Definition, item, action, source, browser-resource effect,
@@ -1158,8 +1159,8 @@ The regression set must prove:
     effect in that plan stops version 0.1 before execution.
 21. A custom widget mounted in one slot cannot publish semantic output for a
     sibling slot or another route.
-22. Replacing a technical owner subject's direct Need anchor with another Need
-    makes every dependent expectation ineligible to pass, even when the
+22. Removing the pinned Need revision from a technical subject's effective
+    trace makes every dependent expectation ineligible to pass, even when the
     procedure's runtime values still match.
 23. Sequential and concurrent attempts to reuse one resolved-target/run ID
     execute nothing after the first binding, even when case and admission

@@ -7,7 +7,7 @@ export const OUTCOME_V01_SPECIFICATION_RULE_INDEX = Object.freeze([
   {
     specRef: "https://formspec.org/specs/app-graph-validator",
     specVersion: "1.0.0-draft.1",
-    ruleId: "rendered-node.direct-need-trace",
+    ruleId: "rendered-node.effective-need-trace",
   },
   {
     specRef: "https://formspec.org/specs/core",

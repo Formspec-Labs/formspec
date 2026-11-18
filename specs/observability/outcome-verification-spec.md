@@ -71,7 +71,7 @@ Each source keeps its existing authority:
 | Action validation gate, effects, and terminal state   | Response Actions        | Observe                  |
 | Routes, mounted output, and renderer semantics        | Surface and rendering   | Exercise and observe     |
 | Source declaration and qualified load result          | Data Sources            | Observe                  |
-| Static graph resolution and direct Need trace         | AppGraphValidator       | Observe                  |
+| Static graph resolution and effective Need trace      | AppGraphValidator       | Observe                  |
 | Procedure, expectations, and comparison conclusion    | Outcome Verification    | Own                      |
 
 An Outcome Verification document MUST NOT redefine an owner vocabulary or
@@ -205,7 +205,7 @@ MUST reject missing, stale, mismatched, or caller-fabricated clearance.
 
 The verifier supplies a trusted `OutcomeOwnerFactsPort`, implemented through
 AppGraphValidator and the existing owner interfaces. It returns the exact
-subject inventories, direct Need anchors, Action plans, semantic-control
+subject inventories, effective Need pins, Action plans, semantic-control
 bindings, and subject-or-slot-to-Experience-Unit service relationships used by
 lint. These facts are separate from caller input; caller-parsed documents and
 low-level lint facts are not claim-bearing authority. An AppGraph-rejected
@@ -228,10 +228,11 @@ outcome context; a technical runtime expectation must also cite the
 implementation declaration and normative processing rule that produce the
 fact.
 
-Every technical artifact subject cited by an expectation MUST carry an
-owner-declared direct anchor to the case's exact Need id and revision. A shared
-Need citation elsewhere in the graph, an Experience citation, or a matching
-label does not establish this trace.
+Every technical artifact subject cited by an expectation MUST have an
+effective trace containing the case's exact Need id and revision. The verifier
+checks the pinned anchors at the source pointers in the subject's App Graph
+effective trace. The revision MUST be current and adopted.
+A sibling or an Experience citation cannot supply this trace.
 
 Specification rules resolve through a verifier-owned, build-generated version
 0.1 rule index. The index is bound to the verifier implementation digest, and
@@ -244,7 +245,7 @@ Version 0.1 recognizes this closed rule index:
 
 | `specRef`                                        | `specVersion`   | `ruleId`                          | Meaning                                           |
 | ------------------------------------------------ | --------------- | --------------------------------- | ------------------------------------------------- |
-| `https://formspec.org/specs/app-graph-validator` | `1.0.0-draft.1` | `rendered-node.direct-need-trace` | Static direct Need trace plus resolved mounting   |
+| `https://formspec.org/specs/app-graph-validator` | `1.0.0-draft.1` | `rendered-node.effective-need-trace` | App Graph effective trace for an inventoried node |
 | `https://formspec.org/specs/surface`             | `0.3.0-draft.1` | `rendering.semantic-output`       | Qualified renderer-produced semantic output       |
 | `https://formspec.org/specs/surface`             | `0.3.0-draft.1` | `routing.current-route-state`     | Authoritative host/router current Surface route    |
 | `https://formspec.org/specs/data-sources`        | `1.0.0-draft.1` | `loader.qualified-result`         | Qualified load state and owner-reported freshness |
@@ -262,7 +263,7 @@ Version 0.1 defines exactly seven observation kinds:
 
 | Kind                 | Owner-produced fact                                                |
 | -------------------- | ------------------------------------------------------------------ |
-| `app-graph`          | Static resolution, mounting, or direct Need trace                  |
+| `app-graph`          | Static resolution, mounting, or effective Need trace               |
 | `validation-report`  | Validity and exact ValidationResult path/code issues for one Response revision |
 | `response`           | Exact item value or absence from a digest-pinned Response, with optional status |
 | `action-invocation`  | Action terminal state and complete ordered effect trace            |
@@ -272,6 +273,12 @@ Version 0.1 defines exactly seven observation kinds:
 
 The observation vocabulary is closed. Version 0.1 has no `x-` observation kind,
 `resource-result`, or `integrity-result`.
+
+An `app-graph` observation reports whether its exact subject resolves
+(`resolves`), resolves and is mounted (`mounted`), or resolves, is mounted, and
+has the case's exact Need pin in its effective trace (`need-trace`). The
+trace comes from AppGraphValidator's
+[`rendered-node.effective-need-trace` rule](../app-graph/app-graph-validator-spec.md#effective-publication-trace).
 
 Each expectation MUST name a later `checkpointRef`. Every non-structural
 expectation MUST also name the producing `stepRef`.

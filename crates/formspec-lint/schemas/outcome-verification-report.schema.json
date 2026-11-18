@@ -463,7 +463,7 @@
         },
         "relation": {
           "type": "string",
-          "enum": ["resolves", "mounted", "direct-need-trace"]
+          "enum": ["resolves", "mounted", "need-trace"]
         },
         "state": {
           "type": "string",

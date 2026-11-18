@@ -367,7 +367,7 @@ export interface ExperienceUnitBinding {
   subjects: QualifiedSubjectRef[];
 }
 
-/** Owner-inventoried direct Need anchor on one exact artifact subject. */
+/** Pinned Need in the owner-produced effective trace of one exact subject. */
 export interface SubjectNeedBinding {
   subject: QualifiedSubjectRef;
   needId: string;

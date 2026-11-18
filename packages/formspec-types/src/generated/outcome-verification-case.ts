@@ -45,7 +45,7 @@ export type ExpectedAppGraphObservation = ExpectedObservationBase & {
   kind?: 'app-graph';
   requiredEvidence?: 'structural';
   subject: QualifiedSubjectRef;
-  relation: 'resolves' | 'mounted' | 'direct-need-trace';
+  relation: 'resolves' | 'mounted' | 'need-trace';
   state: 'present' | 'absent';
 };
 /**

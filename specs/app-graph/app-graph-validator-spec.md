@@ -345,8 +345,10 @@ applicability, precondition, effect, and Need-satisfaction conclusions.
 
 #### Effective publication trace
 
-The strict rendered-Need publication profile implements [Needs §10.3](../needs/needs-spec.md#103-publication-trace).
-Its node inventory MUST export an effective trace for every inventoried node.
+**Normative rule `rendered-node.effective-need-trace`.** Under the strict
+rendered-Need publication profile ([Needs §10.3](../needs/needs-spec.md#103-publication-trace)),
+AppGraphValidator MUST export the effective trace for every inventoried node
+using the ownership rules below.
 A **direct trace** is a pinned `need:<id>@<revision>` anchor, or a typed
 `needRefs[]` citation where the profile already credits it. For a node `n`:
 

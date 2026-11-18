@@ -2,7 +2,10 @@
   "$formspecOutcomeVerificationRunSet": "0.1",
   "version": "0.1.0",
   "previewSet": "preview-set.json",
-  "needsDocuments": ["saas-v1.needs.json", "control.needs.json"],
+  "needsDocuments": [
+    "saas-v1.needs.json",
+    "control.needs.json"
+  ],
   "cases": [
     {
       "path": "outcome-cases/organization-empty-is-blocked.case.json",
@@ -24,7 +27,7 @@
     },
     {
       "path": "outcome-cases/unrelated-control-renders.case.json",
-      "digest": "sha256:cb43a3c18aa58f8093ba4bc6d91bf76b506980a40b5c1fa5f9664b19fabaf282",
+      "digest": "sha256:213598606606a29cfe3d152586a81da318b8cfee387ca9730756429272a95c02",
       "required": true,
       "claimRequired": false
     }
