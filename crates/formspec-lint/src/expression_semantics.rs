@@ -167,12 +167,12 @@ impl<'a> ExpressionSemantics<'a> {
         }
         for (name, reads) in &dependencies.instance_reads {
             if self.document["instances"].get(name).is_none() {
-                if let Some(finding) = self.instance_read_finding(name, "", path) {
+                if let Some(finding) = self.instance_read_finding(name, "", path, false) {
                     emit(name, finding);
                 }
             } else {
                 for read in reads {
-                    if let Some(finding) = self.instance_read_finding(name, read, path) {
+                    if let Some(finding) = self.instance_read_finding(name, read, path, false) {
                         emit(name, finding);
                     }
                 }
@@ -220,7 +220,7 @@ impl<'a> ExpressionSemantics<'a> {
                 return false;
             };
             if let Some(data_type) = &item.data_type {
-                return field_value_contains(data_type, members);
+                return field_value_contains(data_type, members, false);
             }
             match next {
                 PathSegment::Exact(key) if item.is_group => {
@@ -273,10 +273,16 @@ impl<'a> ExpressionSemantics<'a> {
         path: &str,
         diagnostics: &mut Vec<LintDiagnostic>,
     ) {
-        diagnostics.extend(self.instance_read_finding(name, read, path));
+        diagnostics.extend(self.instance_read_finding(name, read, path, true));
     }
 
-    fn instance_read_finding(&self, name: &str, read: &str, path: &str) -> Option<LintDiagnostic> {
+    fn instance_read_finding(
+        &self,
+        name: &str,
+        read: &str,
+        path: &str,
+        raw_json: bool,
+    ) -> Option<LintDiagnostic> {
         let Some(instance) = self.document["instances"].get(name) else {
             return Some(error(
                 LintCode::E404,
@@ -312,7 +318,7 @@ impl<'a> ExpressionSemantics<'a> {
                         || path_prefix(declared, column)
                             && data_type.as_str().is_some_and(|kind| {
                                 let members = Path::parse(&column[declared.len()..]);
-                                field_value_contains(kind, &members.segments)
+                                field_value_contains(kind, &members.segments, raw_json)
                             })
                 })
         }) {
@@ -328,12 +334,14 @@ impl<'a> ExpressionSemantics<'a> {
 }
 
 /// Core §4.2.3 defines the compound field values. Attachments permit extra host metadata.
-fn field_value_contains(data_type: &str, members: &[PathSegment]) -> bool {
+fn field_value_contains(data_type: &str, members: &[PathSegment], raw_json: bool) -> bool {
     if members.is_empty() {
         return true;
     }
     match (data_type, members) {
-        ("money", [PathSegment::Exact(key)]) => matches!(key.as_str(), "amount" | "currency"),
+        ("money", [PathSegment::Exact(key)]) if raw_json => {
+            matches!(key.as_str(), "amount" | "currency")
+        }
         ("multiChoice", [PathSegment::Indexed(_) | PathSegment::Wildcard]) => true,
         ("attachment", [PathSegment::Exact(key), tail @ ..]) => {
             tail.is_empty() || !matches!(key.as_str(), "contentType" | "url" | "data" | "size")

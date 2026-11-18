@@ -101,7 +101,8 @@ fn projected_paths_allow_containers_and_use_the_delivered_shape() {
             "some(@instance('prior').rows, $.code.missing = 'A')",
             true,
         ),
-        ("latest", "@instance('prior').fee.amount", false),
+        // A declared money field reaches FEL as a Money value. Structured seeds read raw JSON.
+        ("latest", "@instance('prior').fee.amount", true),
         ("latest", "@instance('prior').fee.missing", true),
         (
             "latest",
@@ -137,6 +138,25 @@ fn projected_paths_allow_containers_and_use_the_delivered_shape() {
     }
     doc["instances"]["prior"]["response"]["mapping"] = json!("urn:test:reshape");
     assert!(!lint(&doc).diagnostics.iter().any(|d| d.code == "E405"));
+
+    let response = doc["instances"]["prior"]["response"]
+        .as_object_mut()
+        .unwrap();
+    response.remove("mapping");
+    response.insert("cardinality".to_owned(), json!("latest"));
+    let item = doc["items"][0].as_object_mut().unwrap();
+    item.remove("initialValue");
+    item.insert(
+        "prePopulate".to_owned(),
+        json!({"instance":"prior","path":"fee.amount"}),
+    );
+    let diagnostics = lint(&doc).diagnostics;
+    assert!(
+        !diagnostics
+            .iter()
+            .any(|d| d.code == "E405" || d.code == "E101"),
+        "{diagnostics:?}"
+    );
 }
 
 #[test]
