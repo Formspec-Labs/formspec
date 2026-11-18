@@ -157,6 +157,7 @@ export type SurfaceShellStringKey =
   | '$module.x-formspec-surface.shell.filingSummaryToFix'
   | '$module.x-formspec-surface.shell.filingSummaryToCheck'
   | '$module.x-formspec-surface.shell.filingLegendCaption'
+  | '$module.x-formspec-surface.shell.filingMap'
   | '$module.x-formspec-surface.shell.filingSections'
   | '$module.x-formspec-surface.shell.filingFiled'
   | '$module.x-formspec-surface.shell.filingReturned'

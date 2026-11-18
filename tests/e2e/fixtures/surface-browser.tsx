@@ -26,7 +26,7 @@ const smallTracker = showsTracker && !largeTracker;
 const extraForms = largeTracker ? scaleForms : [];
 const roster = `${id}/roster`;
 const report = `${id}/report`;
-const tracker = { id: 'tracker', slotType: 'filing-status', ...(trackerMode === 'band' && { title: 'Filing map' }), binding: { ...(trackerMode === 'band' && { placement: 'band' }), groups: [{
+const tracker = { id: 'tracker', slotType: 'filing-status', ...(trackerMode === 'band' && !fixtureOptions.has('untitled') && { title: 'Filing map' }), binding: { ...(trackerMode === 'band' && { placement: 'band' }), groups: [{
   id: 'annual', label: 'Annual forms', forms: largeTracker ? extraForms.map(({ routeRef }) => ({ routeRef: `scale-${routeRef}`, slotRef: 'filing' })) : [{
     routeRef: 'form', slotRef: 'filing', hint: 'Have the contact details ready.', params: { state: { value: 'ny' } },
   }, { routeRef: 'roster', slotRef: 'filing' }, { routeRef: 'report', slotRef: 'filing' }],

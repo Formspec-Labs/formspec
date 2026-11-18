@@ -980,7 +980,8 @@ For `binding.placement: "band"`, the shell MUST render the declared tracker in a
 disclosure ahead of the matched route's slots, including on the declaring page.
 Embedded routes do not emit additional bands. The same tracker plan, authorized
 batch read and accessibility rules apply in either placement. The slot title
-names the disclosure when authored. The browser binding remembers its open
+names the disclosure when authored. Otherwise the shell uses its localized
+filing map label. The browser binding remembers its open
 state for the viewer, app, Surface and declaring slot. Hosts that switch signed-in
 viewers within a browser profile supply a stable viewer preference key. With
 storage unavailable the disclosure remains operable.

@@ -540,3 +540,12 @@ test('the authored tracker band follows navigation and remembers a viewer’s di
   await page.goto('/surface-browser.html?tracker=band&viewer=second');
   await expect(band).toHaveAttribute('open', '');
 });
+
+test('an untitled tracker band has a named keyboard disclosure', async ({ page }) => {
+  await page.goto('/surface-browser.html?tracker=band&untitled');
+  const band = page.locator('details[data-filing-band]');
+  const disclosure = band.locator(':scope > summary');
+  await expect(disclosure).toHaveText('Filing map');
+  await disclosure.press('Space');
+  await expect(band.getByRole('link', { name: 'Filing', exact: true })).toBeHidden();
+});

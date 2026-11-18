@@ -258,7 +258,7 @@ export function SurfaceRouteView({
 
       {plan.bands?.map(({ routeId, slot }) => {
         const preference = JSON.stringify([bandPreferenceScope, plan.surfaceRef ?? handle.surfaceId, routeId, slot.slotId]);
-        return <TrackerBand key={preference} preference={preference} title={slot.title}>
+        return <TrackerBand key={preference} preference={preference} title={slot.title?.trim() ? slot.title : text('filingMap')}>
           <div data-slot={slot.slotId} data-slot-type={slot.slotType} {...needTraceAttributes(slot.needAnchors)}>
             <FilingStatus plan={slot.tracker} context={filingStatusContext} level={slot.headingBaseLevel} text={text} />
           </div>
@@ -349,20 +349,20 @@ export function SurfaceRouteView({
 
 /** Native disclosure supplies keyboard behavior and a localized default summary for untitled slots. */
 function TrackerBand({ preference, title, children }: {
-  preference: string; title: string | undefined; children: ReactNode;
+  preference: string; title: string; children: ReactNode;
 }) {
   const key = `formspec.surface.tracker-band.${preference}`;
-  const [expanded, setExpanded] = useState(() => {
+  const [initiallyExpanded] = useState(() => {
     try { return window.localStorage.getItem(key) !== 'closed'; }
     catch { return true; }
   });
-  return <details data-filing-band="" open={expanded} onToggle={event => {
-    const open = event.currentTarget.open;
-    setExpanded(open);
-    try { window.localStorage.setItem(key, open ? 'open' : 'closed'); }
-    catch { /* The disclosure remains usable when storage is unavailable. */ }
-  }}>
-    {title && <summary>{title}</summary>}
+  return <details data-filing-band="" open={initiallyExpanded}>
+    <summary onClick={event => {
+      // Persist before the browser can navigate away. Native toggle events are queued.
+      const open = !event.currentTarget.closest('details')?.open;
+      try { window.localStorage.setItem(key, open ? 'open' : 'closed'); }
+      catch { /* The disclosure remains usable when storage is unavailable. */ }
+    }}>{title}</summary>
     {children}
   </details>;
 }
