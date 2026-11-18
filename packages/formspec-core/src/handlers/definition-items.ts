@@ -216,8 +216,15 @@ function rewritePathPrefix(path: string, oldPath: string, newPath: string): stri
     }
   }
 
-  const rewritten = [...newParts];
   const finalMatchedIndex = oldParts.length - 1;
+  let sharedAncestors = 0;
+  while (
+    sharedAncestors < Math.min(finalMatchedIndex, newParts.length - 1)
+    && oldParts[sharedAncestors] === newParts[sharedAncestors]
+  ) {
+    sharedAncestors++;
+  }
+  const rewritten = [...rawParts.slice(0, sharedAncestors), ...newParts.slice(sharedAncestors)];
   const finalMatchedSuffix = rawParts[finalMatchedIndex]?.slice(normalizedParts[finalMatchedIndex].length) ?? '';
   if (rewritten.length > 0 && finalMatchedSuffix) {
     rewritten[rewritten.length - 1] = rewritten[rewritten.length - 1] + finalMatchedSuffix;

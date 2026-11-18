@@ -209,6 +209,29 @@ describe('definition.deleteItem', () => {
 });
 
 describe('definition.renameItem', () => {
+  it('preserves row selection when renaming a grouped repeat child', () => {
+    const project = createRawProject();
+    project.batch([
+      { type: 'definition.addItem', payload: { type: 'group', key: 'rows', repeatable: true } },
+      { type: 'definition.addItem', payload: { type: 'field', key: 'id', parentPath: 'rows' } },
+      { type: 'definition.addItem', payload: { type: 'group', key: 'details', parentPath: 'rows' } },
+      { type: 'definition.addItem', payload: { type: 'field', key: 'name', parentPath: 'rows.details' } },
+      { type: 'definition.addItem', payload: { type: 'field', key: 'copy' } },
+      { type: 'definition.setBind', payload: {
+        path: 'copy',
+        properties: { calculate: '($rows[id = 1].details).name ?? ($rows[0]).details.name' },
+      } },
+    ]);
+
+    project.dispatch({
+      type: 'definition.renameItem',
+      payload: { path: 'rows.details.name', newKey: 'label' },
+    });
+
+    expect(project.definition.binds?.[0].calculate)
+      .toBe('($rows[id = 1].details).label ?? $rows[0].details.label');
+  });
+
   it('renames an item and returns the new path', () => {
     const project = createRawProject();
     project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'name' } });

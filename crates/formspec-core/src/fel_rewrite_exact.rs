@@ -23,7 +23,9 @@ fn target(kind: &SiteKind) -> Option<Target> {
     Some(match kind {
         SiteKind::Field { path, .. } => Target::FieldPath(path.clone()),
         SiteKind::RowKey { rows, key, .. } => Target::FieldPath(format!("{rows}.{key}")),
-        SiteKind::RowTail { rows, tail, .. } => Target::FieldPath(format!("{rows}{tail}")),
+        SiteKind::RowTail {
+            rows, prefix, tail, ..
+        } => Target::FieldPath(format!("{rows}{prefix}{tail}")),
         SiteKind::ContextTail { context, path, .. } if context == "current" => {
             Target::CurrentPath(path.clone())
         }
@@ -119,12 +121,27 @@ fn replacement(kind: &SiteKind, original: &str, options: &RewriteOptions) -> Opt
     let quote = || char::from(original.as_bytes()[0]);
     match target(kind)? {
         Target::FieldPath(path) => {
-            let new = changed(path.clone(), options.rewrite_field_path.as_ref()?(&path))?;
+            let rewrite = options.rewrite_field_path.as_ref()?;
+            let new = changed(path.clone(), rewrite(&path))?;
             match kind {
-                SiteKind::RowKey { rows, key, .. } => row_suffix(rows, &format!(".{key}"), &new)?
-                    .strip_prefix('.')
-                    .map(str::to_owned),
-                SiteKind::RowTail { rows, tail, .. } => row_suffix(rows, tail, &new),
+                SiteKind::RowKey { rows, key, .. } => {
+                    row_suffix(rows, "", &format!(".{key}"), &new)?
+                        .strip_prefix('.')
+                        .map(str::to_owned)
+                }
+                SiteKind::RowTail {
+                    rows, prefix, tail, ..
+                } => {
+                    let renamed_prefix = (!prefix.is_empty()).then(|| {
+                        let path = format!("{rows}{prefix}");
+                        rewrite(&path).unwrap_or(path)
+                    });
+                    let fixed_tail = match &renamed_prefix {
+                        Some(path) => after_selected_row(rows, path)?,
+                        None => "",
+                    };
+                    row_suffix(rows, fixed_tail, tail, &new)
+                }
                 _ => Some(format!("${new}")),
             }
         }
@@ -145,13 +162,17 @@ fn replacement(kind: &SiteKind, original: &str, options: &RewriteOptions) -> Opt
 }
 
 /// The part of a renamed row path after the selected row's own wildcard, when it changed.
-fn row_suffix(row_path: &str, tail: &str, updated: &str) -> Option<String> {
+fn row_suffix(row_path: &str, prefix: &str, tail: &str, updated: &str) -> Option<String> {
+    let updated_tail = after_selected_row(row_path, updated)?.strip_prefix(prefix)?;
+    (updated_tail.starts_with(['.', '[']) && updated_tail != tail).then(|| updated_tail.to_owned())
+}
+
+fn after_selected_row<'a>(row_path: &str, updated: &'a str) -> Option<&'a str> {
     // The last wildcard of row_path represents this lookup, even when its source
     // is itself within another repeat or keyed lookup.
     let lookup_index = row_path.matches("[*]").count().checked_sub(1)?;
     let (boundary, marker) = updated.match_indices("[*]").nth(lookup_index)?;
-    let updated_tail = &updated[boundary + marker.len()..];
-    (updated_tail != tail && !updated_tail.is_empty()).then(|| updated_tail.to_owned())
+    Some(&updated[boundary + marker.len()..])
 }
 
 /// Rewrite each `{{ ... }}` FEL substring in a message template via [`rewrite_fel_source_references`].
@@ -442,6 +463,65 @@ mod tests {
         ] {
             assert_eq!(rewrite_fel_source_references(source, &options), expected);
         }
+    }
+
+    #[test]
+    fn grouped_postfix_paths_in_the_corpus_are_renamed() {
+        for (source, path, renamed, expected) in [
+            (
+                "/*雪*/ (($a)).b + $keep",
+                "a.b",
+                "new.path",
+                "/*雪*/ $new.path + $keep",
+            ),
+            (
+                "($r[k = $selector].a).b",
+                "r[*].a.b",
+                "r[*].a.new_b",
+                "($r[k = $selector].a).new_b",
+            ),
+            (
+                "($r[k = $selector]).a.b",
+                "r[*].a.b",
+                "r[*].new_a.b",
+                "($r[k = $selector]).new_a.b",
+            ),
+        ] {
+            let dependencies = fel_core::extract_dependencies(&parse(source).unwrap());
+            assert!(dependencies.fields.contains(path), "{source}");
+            let mut field_paths = serde_json::Map::new();
+            if collect_fel_rewrite_targets(source)
+                .field_paths
+                .contains(path)
+            {
+                field_paths.insert(path.to_owned(), renamed.into());
+            }
+            let options = crate::rewrite_options_from_camel_case_json(
+                &serde_json::json!({ "fieldPaths": field_paths }),
+            );
+            assert_eq!(
+                rewrite_fel_source_references(source, &options),
+                expected,
+                "{source}"
+            );
+        }
+    }
+
+    #[test]
+    fn moving_the_inner_path_keeps_the_outer_tail_and_lookup() {
+        let source = "($r[k = $selector].a).b";
+        let options = crate::rewrite_options_from_camel_case_json(&serde_json::json!({
+            "fieldPaths": {
+                "r[*].a": "r[*].new.a",
+                "r[*].a.b": "r[*].new.a.b"
+            }
+        }));
+        assert_eq!(
+            rewrite_fel_source_references(source, &options),
+            "($r[k = $selector].new.a).b"
+        );
+        let wildcard = "($r[*]).b";
+        assert!(!collect_fel_rewrite_targets(wildcard).field_paths.contains("r[*].b"));
     }
 
     /// Dependency analysis walks the syntax tree; discovery and the rewriter use parser sites.
