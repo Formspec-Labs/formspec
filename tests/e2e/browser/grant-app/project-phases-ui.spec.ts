@@ -29,8 +29,8 @@ test.describe('Grant App: Project Phases UI', () => {
     await goToPage(page, 'Project Phases');
 
     await addRepeatInstance(page, 'projectPhases[0].phaseTasks');
-    await engineSetValue(page, 'projectPhases[0].phaseTasks[0].hours', 10);
-    await engineSetValue(page, 'projectPhases[0].phaseTasks[0].hourlyRate', { amount: 100, currency: 'USD' });
+    await page.getByRole('spinbutton', { name: 'Hours, Row 1', exact: true }).fill('10');
+    await page.getByRole('spinbutton', { name: 'Hourly Rate, Row 1', exact: true }).fill('100');
 
     const phaseTotalText = page.locator('.formspec-wizard-panel:not(.formspec-hidden)');
     await expect(phaseTotalText).toContainText('$1,000.00');
