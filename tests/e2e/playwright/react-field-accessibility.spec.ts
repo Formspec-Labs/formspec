@@ -36,12 +36,12 @@ if (process.env.FORMSPEC_WALK_SR === 'os') {
   screenReaderTest('the OS reader announces the required native date', async ({ page, screenReader }, info) => {
     await page.goto(route);
     await screenReader.navigateToWebContent();
-    await page.getByRole('button', { name: /Evidence.*Upload a file/i }).focus();
+    // Start on an optional field so an earlier required announcement cannot satisfy the check.
+    await page.getByRole('textbox', { name: 'Contact name' }).focus();
     await screenReader.clearSpokenPhraseLog();
-    await page.keyboard.press('Tab');
-    await expect(page.locator('input[type=date]')).toBeFocused();
+    await page.locator('input[type=date]').focus();
     try {
-      await expect.poll(async () => (await screenReader.spokenPhraseLog()).join(' ')).toMatch(/required/i);
+      await expect.poll(async () => (await screenReader.spokenPhraseLog()).join(' ')).toMatch(/(?=.*due date)(?=.*required)/i);
     } finally {
       await info.attach('native-date-speech', { body: (await screenReader.spokenPhraseLog()).join('\n'), contentType: 'text/plain' });
     }
