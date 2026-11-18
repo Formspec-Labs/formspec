@@ -3,8 +3,7 @@
 //! Parses FEL to extract field references, variables, and function calls, and declares the
 //! rename callbacks ([`RewriteOptions`]) that `fel_rewrite_exact` applies to authored text.
 //!
-//! Private walkers (`collect_info`, `collect_rewrite_targets`) implement AST traversal; the
-//! public API wraps them.
+//! The private walker `collect_info` implements AST traversal; the public API wraps it.
 #![allow(clippy::missing_docs_in_private_items)]
 
 use std::collections::{HashMap, HashSet};
@@ -601,18 +600,6 @@ pub fn get_fel_dependencies(expression: &str) -> HashSet<String> {
     }
 }
 
-/// Collect every rewriteable target referenced by a FEL expression.
-pub fn collect_fel_rewrite_targets(expression: &str) -> FelRewriteTargets {
-    match parse(expression) {
-        Ok(expr) => {
-            let mut targets = FelRewriteTargets::default();
-            collect_rewrite_targets(&expr, &mut targets);
-            targets
-        }
-        Err(_) => FelRewriteTargets::default(),
-    }
-}
-
 // ── AST walking ─────────────────────────────────────────────────
 
 pub(crate) const RESERVED_CONTEXT_NAMES: &[&str] = &["current", "index", "count", "instance"];
@@ -768,140 +755,6 @@ pub struct RewriteOptions {
     pub rewrite_instance_name: Option<RewriteFn>,
     /// Rewrite literal field-name arguments to prev()/next()/parent().
     pub rewrite_navigation_target: Option<RewriteFn2>,
-}
-
-fn collect_rewrite_targets(expr: &Expr, targets: &mut FelRewriteTargets) {
-    match expr {
-        Expr::FieldRef { name, path } => {
-            let mut segments = Vec::new();
-            if let Some(n) = name {
-                segments.push(n.clone());
-            }
-            for seg in path {
-                match seg {
-                    PathSegment::Dot(s) => segments.push(s.clone()),
-                    PathSegment::Index(i) => segments.push(format!("[{i}]")),
-                    PathSegment::Wildcard => segments.push("[*]".to_string()),
-                }
-            }
-            if !segments.is_empty() {
-                targets
-                    .field_paths
-                    .insert(segments.join(".").replace(".[", "["));
-            }
-        }
-        Expr::VarRef { name, path } => {
-            let mut segments = vec![name.clone()];
-            for seg in path {
-                match seg {
-                    PathSegment::Dot(s) => segments.push(s.clone()),
-                    PathSegment::Index(i) => segments.push(format!("[{i}]")),
-                    PathSegment::Wildcard => segments.push("[*]".to_string()),
-                }
-            }
-            targets
-                .field_paths
-                .insert(segments.join(".").replace(".[", "["));
-        }
-        Expr::ContextRef {
-            name,
-            arg,
-            tail,
-            called: _,
-        } => {
-            if name == "current" {
-                if !tail.is_empty() {
-                    targets.current_paths.insert(tail.join("."));
-                }
-            } else if name == "instance" {
-                if let Some(instance_name) = arg {
-                    targets.instance_names.insert(instance_name.clone());
-                }
-            } else if !RESERVED_CONTEXT_NAMES.contains(&name.as_str()) {
-                targets.variables.insert(name.clone());
-            }
-        }
-        Expr::FunctionCall { name, args } => {
-            if name == "instance"
-                && let Some(Expr::String(instance_name)) = args.first()
-            {
-                targets.instance_names.insert(instance_name.clone());
-            }
-            if matches!(name.as_str(), "prev" | "next" | "parent")
-                && let Some(Expr::String(target_name)) = args.first()
-            {
-                let nav = NavigationTarget {
-                    function_name: name.clone(),
-                    name: target_name.clone(),
-                };
-                if !targets.navigation_targets.contains(&nav) {
-                    targets.navigation_targets.push(nav);
-                }
-            }
-            for arg in args {
-                collect_rewrite_targets(arg, targets);
-            }
-        }
-        Expr::UnaryOp { operand, .. } => collect_rewrite_targets(operand, targets),
-        Expr::BinaryOp { left, right, .. } => {
-            collect_rewrite_targets(left, targets);
-            collect_rewrite_targets(right, targets);
-        }
-        Expr::Ternary {
-            condition,
-            then_branch,
-            else_branch,
-        }
-        | Expr::IfThenElse {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            collect_rewrite_targets(condition, targets);
-            collect_rewrite_targets(then_branch, targets);
-            collect_rewrite_targets(else_branch, targets);
-        }
-        Expr::Membership {
-            value, container, ..
-        } => {
-            collect_rewrite_targets(value, targets);
-            collect_rewrite_targets(container, targets);
-        }
-        Expr::NullCoalesce { left, right } => {
-            collect_rewrite_targets(left, targets);
-            collect_rewrite_targets(right, targets);
-        }
-        Expr::LetBinding { value, body, .. } => {
-            collect_rewrite_targets(value, targets);
-            collect_rewrite_targets(body, targets);
-        }
-        Expr::Array(elems) => {
-            for elem in elems {
-                collect_rewrite_targets(elem, targets);
-            }
-        }
-        Expr::Object(entries) => {
-            for (_, value) in entries {
-                collect_rewrite_targets(value, targets);
-            }
-        }
-        Expr::RowLookup { .. } | Expr::PostfixAccess { .. } => match postfix_base(expr) {
-            Expr::RowLookup { source, key, .. } => {
-                targets
-                    .field_paths
-                    .extend(extract_dependencies(expr).fields);
-                collect_rewrite_targets(source, targets);
-                collect_rewrite_targets(key, targets);
-            }
-            base => collect_rewrite_targets(base, targets),
-        },
-        Expr::Null
-        | Expr::Boolean(_)
-        | Expr::Number(_)
-        | Expr::String(_)
-        | Expr::DateLiteral(_)
-        | Expr::DateTimeLiteral(_) => {}
-    }
 }
 
 // ── JSON projections + rewrite map parsing (WASM / tooling) ─────
@@ -1079,21 +932,6 @@ mod tests {
     fn test_wildcard_in_references() {
         let result = analyze_fel("sum($items[*].price)");
         assert!(result.references.contains("items[*].price"));
-    }
-
-    #[test]
-    fn collect_rewrite_targets_captures_all_categories() {
-        let targets = collect_fel_rewrite_targets(
-            "$total + @current.line.amount + prev('amount') + @instance('lookup') + @var",
-        );
-        assert!(targets.field_paths.contains("total"));
-        assert!(targets.current_paths.contains("line.amount"));
-        assert!(targets.instance_names.contains("lookup"));
-        assert!(targets.variables.contains("var"));
-        assert!(targets.navigation_targets.contains(&NavigationTarget {
-            function_name: "prev".to_string(),
-            name: "amount".to_string(),
-        }));
     }
 
     // ── Object and array literal analysis ────────────────────────

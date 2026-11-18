@@ -1,8 +1,90 @@
 //! Exact-text rewriting using locations from the FEL parser.
+//!
+//! [`target`] is the one place that decides what a rename can reach: rewriting edits those
+//! sites, and [`collect_fel_rewrite_targets`] reports exactly the names the rewrite callbacks
+//! will be asked about (the WASM bridge turns JavaScript callbacks into a map over them).
 #![allow(clippy::missing_docs_in_private_items)]
 
-use crate::fel_analysis::{RESERVED_CONTEXT_NAMES, RewriteOptions};
+use crate::fel_analysis::{
+    FelRewriteTargets, NavigationTarget, RESERVED_CONTEXT_NAMES, RewriteOptions,
+};
 use fel_core::parser::{SiteKind, parse_with_sites};
+
+/// The name a [`RewriteOptions`] callback receives for one located site.
+enum Target {
+    FieldPath(String),
+    CurrentPath(String),
+    Variable(String),
+    InstanceName(String),
+    Navigation { function: String, name: String },
+}
+
+fn target(kind: &SiteKind) -> Option<Target> {
+    Some(match kind {
+        SiteKind::Field { path, .. } => Target::FieldPath(path.clone()),
+        SiteKind::RowKey { rows, key, .. } => Target::FieldPath(format!("{rows}.{key}")),
+        SiteKind::RowTail { rows, tail, .. } => Target::FieldPath(format!("{rows}{tail}")),
+        SiteKind::ContextTail { context, path, .. } if context == "current" => {
+            Target::CurrentPath(path.clone())
+        }
+        SiteKind::ContextName { name, .. } if !RESERVED_CONTEXT_NAMES.contains(&name.as_str()) => {
+            Target::Variable(name.clone())
+        }
+        // `@instance('name')` and the function form `instance('name', path)` name one instance.
+        SiteKind::ContextArgument {
+            context: name,
+            value,
+            ..
+        }
+        | SiteKind::FirstStringArgument {
+            function: name,
+            value,
+            ..
+        } if name == "instance" => Target::InstanceName(value.clone()),
+        SiteKind::FirstStringArgument {
+            function, value, ..
+        } if matches!(function.as_str(), "prev" | "next" | "parent") => Target::Navigation {
+            function: function.clone(),
+            name: value.clone(),
+        },
+        _ => return None,
+    })
+}
+
+/// Collect every rewriteable target referenced by a FEL expression (empty when it does not parse).
+pub fn collect_fel_rewrite_targets(expression: &str) -> FelRewriteTargets {
+    let mut targets = FelRewriteTargets::default();
+    let Ok((_, sites)) = parse_with_sites(expression) else {
+        return targets;
+    };
+    for site in &sites {
+        match target(&site.kind) {
+            Some(Target::FieldPath(path)) => {
+                targets.field_paths.insert(path);
+            }
+            Some(Target::CurrentPath(path)) => {
+                targets.current_paths.insert(path);
+            }
+            Some(Target::Variable(name)) => {
+                targets.variables.insert(name);
+            }
+            Some(Target::InstanceName(name)) => {
+                targets.instance_names.insert(name);
+            }
+            Some(Target::Navigation { function, name }) => {
+                let nav = NavigationTarget {
+                    function_name: function,
+                    name,
+                };
+                if !targets.navigation_targets.contains(&nav) {
+                    targets.navigation_targets.push(nav);
+                }
+            }
+            None => {}
+        }
+    }
+    targets
+}
 
 /// Rewrite reference spans, preserving other source text and returning invalid input verbatim.
 pub fn rewrite_fel_source_references(expression: &str, options: &RewriteOptions) -> String {
@@ -16,7 +98,7 @@ fn try_rewrite_source(
     let (_, sites) = parse_with_sites(expression)?;
     let mut edits = Vec::new();
     for site in sites {
-        if let Some(text) = replacement(site.kind, &expression[site.bytes.clone()], options) {
+        if let Some(text) = replacement(&site.kind, &expression[site.bytes.clone()], options) {
             edits.push((site.bytes, text));
         }
     }
@@ -32,50 +114,38 @@ fn try_rewrite_source(
     Ok(output)
 }
 
-fn replacement(kind: SiteKind, original: &str, options: &RewriteOptions) -> Option<String> {
+fn replacement(kind: &SiteKind, original: &str, options: &RewriteOptions) -> Option<String> {
+    let changed = |old: String, new: Option<String>| new.filter(|new| *new != old);
     let quote = || char::from(original.as_bytes()[0]);
-    match kind {
-        SiteKind::Field { path, .. } => options.rewrite_field_path.as_ref()?(&path)
-            .filter(|new| *new != path)
-            .map(|new| format!("${new}")),
-        SiteKind::ContextName { name, .. } if !RESERVED_CONTEXT_NAMES.contains(&name.as_str()) => {
-            options.rewrite_variable.as_ref()?(&name).filter(|new| *new != name)
+    match target(kind)? {
+        Target::FieldPath(path) => {
+            let new = changed(path.clone(), options.rewrite_field_path.as_ref()?(&path))?;
+            match kind {
+                SiteKind::RowKey { rows, key, .. } => row_suffix(rows, &format!(".{key}"), &new)?
+                    .strip_prefix('.')
+                    .map(str::to_owned),
+                SiteKind::RowTail { rows, tail, .. } => row_suffix(rows, tail, &new),
+                _ => Some(format!("${new}")),
+            }
         }
-        // `@instance('name')` and the function form `instance('name', path)` name one instance.
-        SiteKind::ContextArgument {
-            context: name,
-            value,
-            ..
+        Target::CurrentPath(path) => {
+            changed(path.clone(), options.rewrite_current_path.as_ref()?(&path))
         }
-        | SiteKind::FirstStringArgument {
-            function: name,
-            value,
-            ..
-        } if name == "instance" => options.rewrite_instance_name.as_ref()?(&value)
-            .filter(|new| *new != value)
-            .map(|new| quote_string_literal(&new, quote())),
-        SiteKind::ContextTail { context, path, .. } if context == "current" => {
-            options.rewrite_current_path.as_ref()?(&path).filter(|new| *new != path)
-        }
-        SiteKind::FirstStringArgument {
-            function, value, ..
-        } if matches!(function.as_str(), "prev" | "next" | "parent") => {
-            options.rewrite_navigation_target.as_ref()?(&value, &function)
-                .filter(|new| *new != value)
+        Target::Variable(name) => changed(name.clone(), options.rewrite_variable.as_ref()?(&name)),
+        Target::InstanceName(name) => {
+            changed(name.clone(), options.rewrite_instance_name.as_ref()?(&name))
                 .map(|new| quote_string_literal(&new, quote()))
         }
-        SiteKind::RowKey { rows, key, .. } => rewrite_row_tail(options, &rows, &format!(".{key}"))?
-            .strip_prefix('.')
-            .map(str::to_owned),
-        SiteKind::RowTail { rows, tail, .. } => rewrite_row_tail(options, &rows, &tail),
-        _ => None,
+        Target::Navigation { function, name } => changed(
+            name.clone(),
+            options.rewrite_navigation_target.as_ref()?(&name, &function),
+        )
+        .map(|new| quote_string_literal(&new, quote())),
     }
 }
 
-/// Rename the part of a selected row's path after its lookup wildcard.
-fn rewrite_row_tail(options: &RewriteOptions, row_path: &str, tail: &str) -> Option<String> {
-    let rewrite = options.rewrite_field_path.as_ref()?;
-    let updated = rewrite(&format!("{row_path}{tail}"))?;
+/// The part of a renamed row path after the selected row's own wildcard, when it changed.
+fn row_suffix(row_path: &str, tail: &str, updated: &str) -> Option<String> {
     // The last wildcard of row_path represents this lookup, even when its source
     // is itself within another repeat or keyed lookup.
     let lookup_index = row_path.matches("[*]").count().checked_sub(1)?;
@@ -176,6 +246,21 @@ mod tests {
         rewrite_instance_name: None,
         rewrite_navigation_target: None,
     };
+
+    #[test]
+    fn collect_rewrite_targets_captures_all_categories() {
+        let targets = collect_fel_rewrite_targets(
+            "$total + @current.line.amount + prev('amount') + @instance('lookup') + @var",
+        );
+        assert!(targets.field_paths.contains("total"));
+        assert!(targets.current_paths.contains("line.amount"));
+        assert!(targets.instance_names.contains("lookup"));
+        assert!(targets.variables.contains("var"));
+        assert!(targets.navigation_targets.contains(&NavigationTarget {
+            function_name: "prev".to_string(),
+            name: "amount".to_string(),
+        }));
+    }
 
     #[test]
     fn instance_rename_covers_the_context_and_function_forms() {
@@ -359,8 +444,9 @@ mod tests {
         }
     }
 
-    /// Dependency analysis walks the syntax tree; the rewriter edits parser-located text.
-    /// Renaming each `$` path the former finds must leave no stale spelling of it.
+    /// Dependency analysis walks the syntax tree; discovery and the rewriter use parser sites.
+    /// Renaming each `$` path the former finds, through the discovered-target map the WASM
+    /// export builds, must leave no stale spelling of it.
     #[test]
     fn every_corpus_field_reference_is_renamed() {
         fn mentions(text: &str, path: &str) -> bool {
@@ -394,13 +480,17 @@ mod tests {
                         continue;
                     }
                     let renamed = format!("{path}Z");
-                    let target = path.clone();
-                    let options = RewriteOptions {
-                        rewrite_field_path: Some(Box::new(move |found| {
-                            (found == target).then(|| format!("{found}Z"))
-                        })),
-                        ..NO_REWRITES
-                    };
+                    // Rename the way the WASM export does: a map over the discovered targets.
+                    let mut field_paths = serde_json::Map::new();
+                    if collect_fel_rewrite_targets(&source)
+                        .field_paths
+                        .contains(&path)
+                    {
+                        field_paths.insert(path.clone(), renamed.clone().into());
+                    }
+                    let options = crate::rewrite_options_from_camel_case_json(
+                        &serde_json::json!({ "fieldPaths": field_paths }),
+                    );
                     let output = rewrite_fel_source_references(&source, &options);
                     if parse(&output).is_err()
                         || mentions(&output, &path)
