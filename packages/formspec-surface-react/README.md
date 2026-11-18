@@ -32,8 +32,10 @@ import '@formspec-org/layout/formspec-default.css';
 
 <BrowserSurfaceApp
   bundle={dereferenceBundleExport(exported)}
-  mode="hash"
-  widgetModules={[starterWidgetModule('x-formspec-tenant-chrome')]}
+  adapters={{
+    mode: 'hash',
+    widgetModules: [starterWidgetModule('x-formspec-tenant-chrome')],
+  }}
 />
 ```
 
@@ -59,14 +61,20 @@ import { SURFACE_APPEARANCE_SCRIPT } from '@formspec-org/surface-react';
 <script dangerouslySetInnerHTML={{ __html: SURFACE_APPEARANCE_SCRIPT }} />
 ```
 
-Use `previewEditions` with a distinct scope per edition to store drafts in the
-browser. Supply `draftStorage` with an authorized `DraftPort`, a stable
-scope, and an optional author to use host storage. The default form resumes
-from that store before applying initial data. Its writer handles Save Draft,
-schedules background saves when the bundle declares an `autosave` action, and
-reports the result in the masthead. Supply `checkpointPorts` to evaluate
-authored preconditions or dispatch other effects on checkpoint actions.
-`beforeLeave` lets the host add its own navigation check.
+For a browser-only preview, use `createSurfacePreviewEdition` for each export
+and pass the results to `previewEditions`. It validates the optional scenario
+and configures one local draft and filing store per edition. Give each edition
+a stable, distinct scope. The [static preview](../../examples/surface-preview/)
+loads these inputs from files.
+
+For host storage, supply an authorized `DraftPort`, stable scope and optional
+author in `adapters.draftStorage`. Supply the corresponding Response selector
+in `adapters.responses`. The default form resumes from the draft store before
+applying initial data. Its writer handles Save Draft, schedules background saves
+when the bundle declares an `autosave` action, and reports the result in the
+masthead. Supply `checkpointPorts` to evaluate authored preconditions or
+dispatch other effects on checkpoint actions. `beforeLeave` adds a host
+navigation check.
 
 Hosts with their own router can mount controlled `SurfaceApp` with
 `location` and `onNavigate`.
