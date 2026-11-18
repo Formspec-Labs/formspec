@@ -156,11 +156,14 @@ describe('forms the product ships pass the check', () => {
         expect(report.violations.map((v) => `${v.state} ${v.rule}`)).toEqual([]);
     });
 
-    it('the NJ kitchen-sink form (two pages, drop zones) has no violations', async () => {
+    it('the NJ kitchen-sink form (with drop zones) has no violations', async () => {
         const dir = '../../../tests/e2e/fixtures/kitchen-sink-holistic';
         const report = await server.check({ definition: read(`${dir}/definition.v2.json`) });
+        expect(report.failure).toBeUndefined();
         expect(report.status).toBe('completed');
-        expect(report.states.length).toBeGreaterThanOrEqual(4);
+        // The shared section plan attaches unheaded content to the sole group page.
+        expect(report.pages).toMatchObject({ kind: 'wizard', drawn: 1, visited: 1, expectedMin: 1 });
+        expect(report.states.map(state => state.id)).toEqual(expect.arrayContaining(['page-1', 'errors-1']));
         expect(report.violations.map((v) => `${v.state} ${v.rule}`)).toEqual([]);
     });
 });
@@ -212,12 +215,12 @@ describe('every page is visited, or the check fails', () => {
         });
     });
 
-    it('counts the pages a Definition guarantees, leaving out conditional ones', () => {
+    it('counts planned panels, including a conditional group but without a loose-content page', () => {
         const d = form('wizard', [group('one', []), group('two', []), field('loose', 'L')], { binds: [{ path: 'two', relevant: '$x = 1' }] });
         expect(expectedPages(d)).toBe(2);
         expect(expectedPages({ ...d, formPresentation: {} })).toBe(1);
         expect(expectedPages(form('tabs', [group('one', []), group('two', [])]))).toBe(2);
-        const themed = { pages: [{ regions: [{ key: 'one' }] }, { regions: [{ key: 'two' }] }] };
+        const themed = { pages: [{ id: 'first', regions: [{ key: 'one' }] }, { id: 'second', regions: [{ key: 'two' }] }] };
         expect(expectedPages(form('wizard', [group('one', []), group('two', [])]), themed)).toBe(2);
     });
 

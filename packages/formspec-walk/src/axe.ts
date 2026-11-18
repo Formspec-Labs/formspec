@@ -1,6 +1,6 @@
 /** @filedesc Run axe on each form page and report coverage, violations, and items for review. */
 import type { Locator, Page } from '@playwright/test';
-import { mergeFormPresentationForPlanning, placementCovers, resolvePageSequence, type ThemeDocument } from '@formspec-org/layout';
+import { hasWizardSections, mergeFormPresentationForPlanning, placementCovers, resolvePageSequence, type ThemeDocument } from '@formspec-org/layout';
 import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
 import type { HostDocuments } from '@formspec-org/webcomponent/host';
 import { revealSearch, type RecipeStep } from './reveal.js';
@@ -223,62 +223,28 @@ async function loadAxe(): Promise<AxeBuilderCtor> {
     }
 }
 
-/** A minimal Definition, for counting pages. */
-interface DefinitionLike {
-    formPresentation?: { pageMode?: string };
-    binds?: Array<{ path?: string; relevant?: unknown }>;
-    items?: Array<{ key?: string; type?: string; children?: unknown[] }>;
-}
-interface ThemeLike {
-    pages?: Array<{ regions?: Array<{ key?: string }> }>;
-}
-
-const hasKey = (items: unknown[] | undefined, key: string): boolean =>
-    (items ?? []).some((i) => {
-        const item = i as { key?: string; children?: unknown[] };
-        return item.key === key || hasKey(item.children, key);
-    });
-
 /**
- * Count pages for a renderer that supports the authored page mode. Wizard and tabs count top-level groups
- * or Theme pages, plus a page for loose items. Definition groups with a `relevant` bind may be absent.
- * For workspace, this returns the authored section count. A renderer that falls back to a continuous page
- * has a minimum of one. Pass `documents` to the check to let it choose the minimum from the rendered mode.
+ * Count the shared plan's page units, including a continuous form as one page.
+ * Explicit Wizard and Tabs roots supply their own page children.
  */
 export function expectedPages(definition: unknown, theme?: unknown, component?: ComponentDocument | null): number {
-    const presentation = workspacePresentation(definition, component);
-    return presentation
-        ? Math.max(1, planWorkspace(definition, presentation, theme, component).length)
-        : expectedNonWorkspacePages(definition, theme);
-}
-
-function expectedNonWorkspacePages(definition: unknown, theme?: unknown): number {
-    const d = definition as DefinitionLike;
-    const mode = d.formPresentation?.pageMode;
-    if (mode !== 'wizard' && mode !== 'tabs') return 1;
-    const items = d.items ?? [];
-    const conditional = new Set((d.binds ?? []).filter((b) => b.relevant !== undefined && b.relevant !== null && b.path).map((b) => b.path));
-    const themed = ((theme as ThemeLike | null | undefined)?.pages ?? [])
-        .filter((p) => (p.regions ?? []).some((r) => r.key && hasKey(items, r.key)));
-    if (themed.length) {
-        const assigned = new Set(themed.flatMap((p) => (p.regions ?? []).map((r) => r.key as string)));
-        const loose = items.some((i) => !assigned.has(i.key ?? '') && !(assigned.size && [...assigned].some((k) => hasKey(i.children, k))));
-        return themed.length + (loose ? 1 : 0);
+    const presentation = formPresentation(definition, component);
+    const mode = presentation?.pageMode;
+    const tree = component?.tree;
+    if (mode !== 'workspace' && (tree?.component === 'Wizard' || tree?.component === 'Tabs')) {
+        return Math.max(1, 'children' in tree && Array.isArray(tree.children) ? tree.children.length : 0);
     }
-    const groups = items.filter((i) => i.type === 'group');
-    if (!groups.length) return 1;
-    const fixed = groups.filter((g) => !conditional.has(g.key));
-    const loose = items.some((i) => i.type !== 'group');
-    return fixed.length + (loose ? 1 : 0);
+    if (mode !== 'wizard' && mode !== 'tabs' && mode !== 'workspace') return 1;
+    const pages = planPages(definition, presentation!, theme, component);
+    return mode === 'workspace' || hasWizardSections(pages) ? Math.max(1, pages.length) : 1;
 }
 
-function workspacePresentation(definition: unknown, component?: ComponentDocument | null) {
+function formPresentation(definition: unknown, component?: ComponentDocument | null) {
     const componentPresentation = component && 'formPresentation' in component ? component.formPresentation : undefined;
-    const presentation = mergeFormPresentationForPlanning((definition as DefinitionLike).formPresentation, componentPresentation);
-    return presentation?.pageMode === 'workspace' ? presentation : undefined;
+    return mergeFormPresentationForPlanning((definition as FormDefinition).formPresentation, componentPresentation);
 }
 
-function planWorkspace(definition: unknown, presentation: Record<string, unknown>, theme?: unknown, component?: ComponentDocument | null) {
+function planPages(definition: unknown, presentation: Record<string, unknown>, theme?: unknown, component?: ComponentDocument | null) {
     const d = definition as FormDefinition;
     return resolvePageSequence({ ...d, items: d.items ?? [], formPresentation: presentation }, {
         component: component ?? undefined,
@@ -340,10 +306,11 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         if (root.querySelector(tab)) return 'tabs';
         return 'single';
     }, { sel: rootSelector, wizard: WIZARD_PANEL, tab: TAB, ws: WORKSPACE });
-    const presentation = documents && workspacePresentation(documents.definition, documents.component);
-    const workspaceFallback = mode === 'single' && presentation !== undefined;
-    const workspace = mode === 'workspace' && documents && presentation
-        ? planWorkspace(documents.definition, presentation, documents.theme, documents.component)
+    const presentation = documents && formPresentation(documents.definition, documents.component);
+    const workspacePresentation = presentation?.pageMode === 'workspace' ? presentation : undefined;
+    const workspaceFallback = mode === 'single' && workspacePresentation !== undefined;
+    const workspace = mode === 'workspace' && documents && workspacePresentation
+        ? planPages(documents.definition, workspacePresentation, documents.theme, documents.component)
         : undefined;
     if (mode === 'workspace' && !workspace) {
         throw new PageCoverageError('Workspace coverage requires the authored Definition and any Theme or Component used by the renderer');
@@ -352,7 +319,9 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
     let expectedMin = options.expectedPages ?? null;
     if (workspace) expectedMin = Math.max(expectedMin ?? 0, sectionIds.length);
     else if (workspaceFallback) expectedMin = 1;
-    else if (expectedMin === null && documents && !presentation) expectedMin = expectedNonWorkspacePages(documents.definition, documents.theme);
+    else if (expectedMin === null && documents && !workspacePresentation) {
+        expectedMin = expectedPages(documents.definition, documents.theme, documents.component);
+    }
 
     const panelSelector = mode === 'wizard' ? WIZARD_PANEL : mode === 'tabs' ? TAB_PANEL : null;
     const root = page.locator(rootSelector);
