@@ -5,11 +5,13 @@ import type { ResolvedArtifactHandle } from '../src/types.js';
 
 const url = 'https://example.test/definitions/filing';
 
-function validate(keys: object | undefined, subjectKeys?: object, otherVersionKeys?: object) {
+function validate(keys: object | undefined, subjectKeys?: object, otherVersionKeys?: object, pinnedVersion?: string) {
   const versions = otherVersionKeys === undefined ? [keys] : [keys, otherVersionKeys];
   const manifest: ResolvedArtifactHandle = {
     slot: 'app', artifactKind: 'appManifest', status: 'loaded',
-    document: { definitions: versions.map((_, index) => ({ url, version: `${index + 1}.0.0` })) },
+    document: { definitions: pinnedVersion === undefined
+      ? versions.map((_, index) => ({ url, version: `${index + 1}.0.0` }))
+      : [{ url, version: pinnedVersion }] },
   };
   return validateSurfaceDefinitionSlots({
     manifest,
@@ -51,6 +53,13 @@ describe('definition-form subjectKeys', () => {
     expect(validate({})).toEqual([]);
     expect(validate({}, {})).toEqual([]);
     expect(validate(undefined)).toEqual([]);
+  });
+
+  it('checks historical versions even when the app pins one Definition', () => {
+    expect(validate(keys, { ffy: 'year' }, {}, '1.0.0')).toMatchObject([{
+      relatedSources: [{ artifactSlot: 'definitions[1]', jsonPointer: '/subject' }],
+      details: { reason: 'subject-key-undeclared', key: 'ffy' },
+    }]);
   });
 
   it.each([0, 1])('checks the subject binding of loaded version at index %s', index => {

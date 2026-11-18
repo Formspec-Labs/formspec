@@ -141,22 +141,23 @@ export function exactDefinitionResolution(
   const version = manifestMatches === 1 ? stringProp(declared[0], 'version') : undefined;
   const candidates = handlesByKind(context.handles, 'definition').filter((definition) => {
     const documentUrl = stringProp(record(definition.document), 'url');
-    return definition.ref?.url === definitionRef && documentUrl === definitionRef
-      && (version === undefined || definition.ref.version === version);
+    return definition.ref?.url === definitionRef && documentUrl === definitionRef;
   });
-  if (manifestMatches > 1 || candidates.length > 1) {
+  // Subject-key validation still checks every loaded version of the Definition.
+  const matching = version === undefined ? candidates : candidates.filter(({ ref }) => ref?.version === version);
+  if (manifestMatches > 1 || matching.length > 1) {
     return {
       status: 'ambiguous',
       manifestMatches,
-      definitionMatches: candidates.length,
+      definitionMatches: matching.length,
       candidates,
     };
   }
-  if (manifestMatches !== 1 || candidates.length !== 1) {
+  if (manifestMatches !== 1 || matching.length !== 1) {
     return {
       status: 'unresolved',
       manifestMatches,
-      definitionMatches: candidates.length,
+      definitionMatches: matching.length,
       candidates,
     };
   }
@@ -164,7 +165,7 @@ export function exactDefinitionResolution(
     status: 'resolved',
     manifestMatches,
     definitionMatches: 1,
-    definition: candidates[0],
+    definition: matching[0],
     candidates,
   };
 }
