@@ -2303,6 +2303,12 @@ Validate enabled x-extension usage in an item tree against registry entries.
 - **registryDocuments?**: `unknown[]`
 - **mode?**: `string`
 - **definitionDocument?**: `unknown`
+- **mappingSourceContext** (`{
+        /** JSON Schema for the host metadata and the Definition data root. */
+        schema: unknown;
+        /** Dotted path to the Definition data object within the host input. */
+        dataPath: string;
+    }`): Host input for a Definition-associated Mapping. Requires the paired Definition.
 - **themeDocument?**: `unknown`
 - **componentDocuments?**: `unknown[]`
 - **localeDocuments?**: `unknown[]`
