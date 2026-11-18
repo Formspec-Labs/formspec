@@ -394,7 +394,7 @@ export function collectTimedShapeValidationResults(
     timing: EvalShapeTiming,
 ): ValidationResult[] {
     return evalResult.validations.filter(validation =>
-        validation.source === 'definition' || validation.code === 'CONSTRAINT_PARSE_ERROR' ||
+        validation.source === 'definition' ||
         (validation.shapeId && (shapeTiming.get(validation.shapeId) ?? 'continuous') === timing),
     ).map(toValidationResult);
 }
