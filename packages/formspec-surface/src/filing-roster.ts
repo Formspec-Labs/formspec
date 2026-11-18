@@ -72,7 +72,7 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
       const unavailable = new Set<string>();
       const members = new Map<string, NonNullable<FilingStatusGroupPlan['member']>>();
       for (const { group } of template.groups) {
-        const repeat = group.repeat;
+        const { repeat, ...fixedGroup } = group;
         if (!repeat) { groups.push(group); continue; }
         const delivery = deliveries.get(group.id);
         if (delivery?.status !== 'ready') {
@@ -90,7 +90,7 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
           if (typeof label !== 'string' || !label.trim()) return refuse('invalid-repeat-label');
           // Authored IDs cannot contain a slash.
           const id = group.id + '/' + index;
-          groups.push({ ...group, repeat: undefined, id, forms: memberForms(group, member) });
+          groups.push({ ...fixedGroup, id, forms: memberForms(group, member) });
           members.set(id, { groupId: group.id, label, waitingLabel: repeat.waitingLabel });
         }
       }
@@ -106,6 +106,7 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
       for (const group of groups) {
         const ready = planned.get(group.id);
         const member = members.get(group.id);
+        if (!ready && group.forms.length) return refuse('invalid-repeat-rows');
         if (!ready) {
           ordered.push({ id: group.id, label: group.label, ...(unavailable.has(group.id) && { unavailable: true }), needAnchors: generationNeedAnchors(group), rows: [] });
         } else if (member) {
