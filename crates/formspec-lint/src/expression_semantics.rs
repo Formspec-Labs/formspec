@@ -179,7 +179,12 @@ impl<'a> ExpressionSemantics<'a> {
             return false;
         };
         resolve_head(
-            &|key| self.items.by_full_path.contains_key(key),
+            &|key| {
+                self.items
+                    .by_full_path
+                    .get(key)
+                    .is_some_and(|item| item.is_group || item.data_type.is_some())
+            },
             scope,
             head,
         )
@@ -197,13 +202,20 @@ impl<'a> ExpressionSemantics<'a> {
             if let Some(data_type) = &item.data_type {
                 return field_value_contains(data_type, members);
             }
-            if let PathSegment::Exact(key) = next {
-                path.push('.');
-                path.push_str(key);
+            match next {
+                PathSegment::Exact(key) if item.is_group => {
+                    path.push('.');
+                    path.push_str(key);
+                }
+                PathSegment::Indexed(_) | PathSegment::Wildcard if item.is_repeatable => {}
+                _ => return false,
             }
             members = tail;
         }
-        self.items.by_full_path.contains_key(&path)
+        self.items
+            .by_full_path
+            .get(&path)
+            .is_some_and(|item| item.is_group || item.data_type.is_some())
     }
 
     /// A variable belongs to a scope Item (visible to descendants) or to the form.

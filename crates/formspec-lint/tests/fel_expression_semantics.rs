@@ -154,3 +154,26 @@ fn self_relative_fields_are_checked_at_the_target_instead_of_its_parent() {
     assert_eq!(failures.len(), 1, "{diagnostics:?}");
     assert!(failures[0].message.contains("$.outer"));
 }
+
+#[test]
+fn field_reads_require_data_items_and_subscripts_require_repeatable_groups() {
+    let document = json!({
+        "$formspec":"1.0","url":"urn:test:data-items","version":"1.0.0","status":"draft",
+        "title":"Data-bearing Items",
+        "items":[
+            {"key":"heading","type":"display","label":"Heading"},
+            {"key":"info","type":"group","label":"Info","children":[
+                {"key":"code","type":"field","dataType":"string","label":"Code"}]},
+            {"key":"answer","type":"field","dataType":"string","label":"Answer",
+             "initialValue":"=$heading + $info[*].code"}
+        ]
+    });
+    let findings: Vec<_> = lint(&document)
+        .diagnostics
+        .into_iter()
+        .filter(|d| d.code == "E402")
+        .collect();
+    assert_eq!(findings.len(), 2, "{findings:?}");
+    assert!(findings.iter().any(|d| d.message.contains("$heading")));
+    assert!(findings.iter().any(|d| d.message.contains("$info[*].code")));
+}

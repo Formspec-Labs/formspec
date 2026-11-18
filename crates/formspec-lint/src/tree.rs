@@ -26,6 +26,8 @@ pub struct ItemRef {
     pub parent_full_path: Option<String>,
     /// The item's `dataType` value, if present.
     pub data_type: Option<String>,
+    /// Whether this item declares a Group.
+    pub is_group: bool,
     /// Whether this item declares a repeatable Group.
     pub is_repeatable: bool,
 }
@@ -72,6 +74,7 @@ pub fn build_item_index(document: &Value) -> ItemTreeIndex {
             json_path: ctx.json_path.clone(),
             parent_full_path: ctx.parent_dotted.clone(),
             data_type,
+            is_group: ctx.item["type"] == "group",
             is_repeatable,
         };
 
