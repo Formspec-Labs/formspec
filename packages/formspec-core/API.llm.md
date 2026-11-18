@@ -86,11 +86,80 @@ Called after each successful dispatch when recording is on.
 
 @deprecated Use {@link getCurrentComponentDocument}.
 
+## `importComponentTree(tree: unknown, items: readonly FormItem[]): Record<string, unknown>`
+
+Invert the export bind transform on an incoming tree so its authored nodes match
+their items on reconcile. Export drops a layout container's bind to a plain group
+(component-spec §4.2: layout components are bind-forbidden) and writes descendants
+as dotted paths; repeat template children restart as flat keys (§4.4). Import:
+
+- rewrites every bind relative to its enclosing group node (the in-memory shape);
+- binds an unbound container to the plain group all its bound descendants sit in.
+  Export cannot tell a group's node from a wrapper directly around it or directly
+  inside it (both shapes re-export identically), so of the unbound containers nested
+  one inside the next around the same bound nodes, the group takes the outermost
+  showing its generated component (Stack for a plain group) — the shape Studio's wrap
+  commands produce — else the outermost, always leaving one container per group the
+  nesting still needs. A group given another component inside a wrapper showing the
+  generated one imports inverted;
+- binds an unbound node with no bound descendants to the next group, in document
+  order under the enclosing group, that holds no field or display at any depth, that no
+  node binds into, and whose generated component it shows: an empty group exports as a
+  bare container
+  (`{ component: 'Stack', children: [] }`). An empty group whose node carries any
+  other component cannot be told from an empty layout container of that type, and
+  imports as one;
+- marks every other unbound node a layout wrapper (`_layout` + `nodeId`), the shape
+  the reconciler preserves.
+
+The root and nodes that already carry `nodeId` are in-memory shape and keep their
+identity, so the transform is idempotent on a tree that was never exported.
+
+## `exportComponentTree(state: ProjectState): ComponentTreeExport`
+
+Export the component tree once and decide from it whether the document is derived,
+so `export()` never cleans the same tree twice. Linear in the tree and item count:
+one item index, one clean pass per side, one reconcile, one structural compare.
+
+## `componentDocumentIsDerived(state: ProjectState): boolean`
+
+True when the component document holds nothing beyond what
+`reconcileComponentTree` generates from the Definition alone: no document-level
+content (tokens, breakpoints, custom components, …) and an exported tree equal
+to the exported default tree.
+
+Such a document is not an authoring decision, yet component-spec §1.2 lets any
+Component Document override Theme widget selection — so a derived document
+should not be emitted. Compares exported shapes, so Studio-only node metadata
+(`nodeId`, `definitionItemPath`, non-schema props) never counts as authored.
+
+#### interface `ComponentTreeExport`
+
+The component tree as export writes it, and whether the document is derived.
+
+- **derived** (`boolean`): See {@link componentDocumentIsDerived}.
+- **tree** (`Record<string, unknown> | undefined`): Exported (schema-valid, export-bind-shaped) tree; `undefined` when the document has none.
+
 ## `editableComponentTree(state: ProjectState): EditableComponentNode | undefined`
 
 ## `currentComponentTree(state: ProjectState): EditableComponentNode | undefined`
 
 ## `walkComponentTree(root: EditableComponentNode, visit: (node: EditableComponentNode) => void): void`
+
+## `componentNodesByBind(root: EditableComponentNode): ReadonlyMap<string, EditableComponentNode>`
+
+The first node, in {@link walkComponentTree} order, bound to each `bind` value — built
+once per tree root. Root identity is the version: dispatch edits a structuredClone and a
+rebuild installs a new root, so a committed tree never changes under its index. Use it
+for queries over committed state, never over a tree a handler is still mutating.
+
+## `generateNodeId(): string`
+
+Generate a unique node ID for unbound tree nodes.
+
+IDs are session-scoped monotonic strings of the form `node_1`, `node_2`, etc.
+They provide stable addressing for layout/container nodes that have no
+definition-level bind key.
 
 #### interface `EditableComponentNode`
 
@@ -102,9 +171,40 @@ Minimal shape of nodes in an editable component tree (ingress boundary).
 
 ## `normalizeBindsFromUnknown(binds: unknown): FormBind[] | undefined`
 
+Normalize definition `binds` from JSON import (object map or array) to the
+array shape the studio and queries expect — mirrors createDefaultState.
+
+## `bindTargetKey(path: string): string`
+
+Item-wide target key for a bind path. core §4.3.3: `[*]` applies a Bind to every
+repetition, so `jobs[*].hours` and the item path `jobs.hours` address the same
+node set. Single-repetition selectors (`[@index = N]`) stay distinct.
+
+## `mergeBindProperties(entries: Iterable<FormBind>): Record<string, unknown>`
+
+Merge bind property records in document order; later values win (both engines' merge rule).
+
+## `bindIndex(binds: readonly FormBind[]): ReadonlyMap<string, readonly FormBind[]>`
+
+Bind entries grouped by {@link bindTargetKey}, in document order, built once per
+`binds` array. Array identity is the version: dispatch edits a structuredClone of
+the committed state, and a handler that rewrites bind paths in place swaps in a
+new array, so an indexed array's paths never change under the index.
+
+## `bindEntriesFor(binds: readonly FormBind[] | undefined, path: string): readonly FormBind[]`
+
+Every bind entry whose target is `path`, in document order. O(1) after the first lookup on `binds`.
+
 ## `withComponentEnvelope(body: ComponentState, definitionUrl: string): ComponentDocument`
 
-## `withThemeEnvelope(body: ThemeState, definitionUrl: string): ThemeDocument`
+## `withThemeEnvelope(body: ThemeState): ThemeDocument`
+
+Merge working Theme state with the required Theme envelope fields.
+
+Unlike {@link withComponentEnvelope} this mints NO `targetDefinition` default:
+theme-spec §2.2.1 makes an absent `targetDefinition` a declaration of bundle scope,
+and `theme.schema.json` no longer requires it. Defaulting here would rewrite every
+bundle-scoped Theme into a Definition-scoped one at export.
 
 ## `viewThemeDocument(theme: ThemeState): ThemeDocument`
 
@@ -113,15 +213,26 @@ fields are added only at export via {@link withThemeEnvelope}).
 
 ## `themeStateFromDocument(doc: ThemeDocument): ThemeState`
 
-Strip envelope fields from an imported theme document into working state.
+Strip the spec-version marker from an imported theme document into working state. The
+document's identity (`url`, `version`, `name`, `title`, `description`) stays: a manifest pins
+a Theme by (url, version), so dropping them would make a saved bundle stop resolving.
 
 ## `withMappingEnvelope(body: MappingState, definitionUrl: string): MappingDocument`
+
+Merge working Mapping state with the required Mapping envelope fields, minting each only
+when the state lacks it, so an imported document keeps its author's key order.
 
 ## `mappingStateFromDocument(doc: MappingDocument): MappingState`
 
 Strip envelope fields from an imported mapping document into working state.
 
-## `COMPONENT_BASE_PROP_NAMES: readonly ["accessibility", "component", "conceptRefs", "cssClass", "id", "layout", "responsive", "style", "taskRefs", "unitRef", "when", "x-generation"]`
+## `assertDocumentId(id: unknown, what: string): asserts id is string`
+
+Refuse an id a bundle writer could not use as a file name: empty, `.`/`..`, or carrying a
+path separator or NUL. A tool-supplied id such as `../escaped` would otherwise write
+`<id>.<suffix>.json` outside the bundle folder, past the host's path policy.
+
+## `COMPONENT_BASE_PROP_NAMES: readonly ["accessibility", "component", "conceptRefs", "cssClass", "extensions", "id", "layout", "responsive", "style", "taskRefs", "unitRef", "when", "x-generation"]`
 
 AUTO-GENERATED — DO NOT EDIT
 
@@ -130,60 +241,69 @@ Re-run: npm run codegen:component-props (from packages/formspec-core)
 
 ## `COMPONENT_SCHEMA_PROPS: Record<string, readonly string[]>`
 
+Component property handlers.
+
+These handlers implement the `component.*` property-mutation commands defined
+in the API spec's "Component -- Node Properties", "Custom Components", and
+"Document-Level" sections. They modify properties on individual tree nodes,
+manage custom component templates, and set document-level tokens/breakpoints.
+
+handlers/component-properties
+
 ## `componentPropertiesHandlers: {
-    'component.setNodeProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setNodeProperty': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.setNodeType': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setNodeType': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.setNodeStyle': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setNodeStyle': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.setNodeAccessibility': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setNodeAccessibility': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.spliceArrayProp': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.spliceArrayProp': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.setFieldWidget': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setFieldWidget': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
         nodeNotFound: true;
     } | {
         rebuildComponentTree: false;
         nodeNotFound?: undefined;
     };
-    'component.setResponsiveOverride': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setResponsiveOverride': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.setGroupRepeatable': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setGroupRepeatable': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: true;
     };
-    'component.setGroupDisplayMode': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setGroupDisplayMode': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.setGroupDataTable': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setGroupDataTable': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.registerCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.registerCustom': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.updateCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.updateCustom': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.deleteCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.deleteCustom': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.renameCustom': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.renameCustom': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.setToken': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setToken': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.setBreakpoint': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setBreakpoint': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'component.setDocumentProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'component.setDocumentProperty': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
 }`
@@ -264,35 +384,22 @@ rather than the binds array.
 definition-binds
 
 ## `definitionBindsHandlers: {
-    'definition.setBind': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'definition.setBind': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
-    'definition.setItemProperty': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'definition.setItemProperty': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: boolean;
     };
-    'definition.setFieldDataType': (state: import("../types.js").ProjectState, payload: unknown) => {
-        rebuildComponentTree: false;
+    'definition.setFieldDataType': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: boolean;
     };
-    'definition.setFieldOptions': (state: import("../types.js").ProjectState, payload: unknown) => {
-        rebuildComponentTree: false;
+    'definition.setFieldOptions': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: boolean;
     };
-    'definition.setItemExtension': (state: import("../types.js").ProjectState, payload: unknown) => {
+    'definition.setItemExtension': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
 }`
-
-Handlers for definition bind management and field configuration commands.
-
-**Binds** in Formspec are declarative rules that connect a field (identified by
-a dot-path) to dynamic behaviors: calculated values, relevance conditions,
-required/readonly state, validation constraints, default values, and various
-processing directives. Each bind entry targets a single path and carries one
-or more property expressions (typically FEL strings). The binds array lives at
-`definition.binds` and is the primary mechanism for making fields reactive.
-
-This module also registers handlers for direct field/item property editing
-(data type, options, extensions) which operate on the `definition.items` tree
-rather than the binds array.
 
 ## `definitionInstancesHandlers: {
     'definition.addInstance': (state: import("../types.js").ProjectState, payload: unknown) => {
@@ -347,8 +454,9 @@ rather than the binds array.
      *
      * **Side effects** (cascading cleanup):
      * - Removes the item from its parent's children array.
-     * - Filters out any `binds` entries whose `path` matches a deleted path.
-     * - Filters out any `shapes` entries whose `target` matches a deleted path.
+     * - Filters out `binds` and `shapes` whose `path` / `target` addresses the deleted
+     *   item or a descendant, whatever repeat selectors they carry (`jobs[*].hours`,
+     *   `jobs[@index = 1].hours`).
      * - Deletes matching keys from `theme.items` per-item overrides.
      *
      * @throws If `path` cannot be resolved in the item tree.
@@ -522,6 +630,18 @@ longer explanatory text).
         rebuildComponentTree: false;
     };
     'definition.deleteVariable': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
+
+## `experienceHandlers: {
+    'experience.setDocument': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'experience.remove': (state: ProjectState) => {
+        rebuildComponentTree: false;
+    };
+    'experience.setMetadata': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
 }`
@@ -816,6 +936,36 @@ Used by virtually every definition-item handler (`deleteItem`, `renameItem`,
     'definition.setMigrationDefaults': (state: import("../types.js").ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
+    'references.setDocument': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'registry.setDocument': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'registry.remove': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'ontology.setDocument': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'responseActions.setDocument': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'responseActions.remove': (state: import("../types.js").ProjectState) => {
+        rebuildComponentTree: false;
+    };
+    'responseActions.setMetadata': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'experience.setDocument': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'experience.remove': (state: import("../types.js").ProjectState) => {
+        rebuildComponentTree: false;
+    };
+    'experience.setMetadata': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
     'screener.setDocument': (state: import("../types.js").ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
@@ -934,10 +1084,10 @@ Used by virtually every definition-item handler (`deleteItem`, `renameItem`,
         rebuildComponentTree: boolean;
     };
     'definition.setFieldDataType': (state: import("../types.js").ProjectState, payload: unknown) => {
-        rebuildComponentTree: false;
+        rebuildComponentTree: boolean;
     };
     'definition.setFieldOptions': (state: import("../types.js").ProjectState, payload: unknown) => {
-        rebuildComponentTree: false;
+        rebuildComponentTree: boolean;
     };
     'definition.setItemExtension': (state: import("../types.js").ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
@@ -973,7 +1123,7 @@ Used by virtually every definition-item handler (`deleteItem`, `renameItem`,
 
 Locale command handlers.
 
-Locale documents provide translated strings for a form definition.
+Locale documents provide translated strings for one exact app, Definition, or Screener.
 Each locale is keyed by its BCP 47 code in ProjectState.locales.
 
 All handlers return `{ rebuildComponentTree: false }` because locale
@@ -1081,6 +1231,18 @@ handlers/mapping
     };
 }`
 
+## `ontologyHandlers: {
+    /**
+     * Replace the authored Ontology Document (`null` removes it). Fine-grained edits —
+     * bindings, vocabularies, metadata, the derived context — are computed by the
+     * authoring layer and committed as one whole document, which keeps the core small
+     * and every edit one undo step.
+     */
+    'ontology.setDocument': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
+
 ## `projectHandlers: {
     'project.import': (state: import("../types.js").ProjectState, payload: unknown) => {
         rebuildComponentTree: boolean;
@@ -1096,6 +1258,40 @@ handlers/mapping
         rebuildComponentTree: false;
     };
     'project.publish': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
+
+## `referencesHandlers: {
+    /**
+     * Replace the authored References Document (`null` removes it). Fine-grained edits —
+     * add/remove a bound reference, metadata — are computed by the authoring layer and
+     * committed as one whole document, which keeps the core small and every edit one undo step.
+     */
+    'references.setDocument': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
+
+## `registryHandlers: {
+    /** Replace (or create) the authored Registry Document at `id`; stored verbatim. */
+    'registry.setDocument': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    /** Drop the authored Registry Document at `id` and its index row. */
+    'registry.remove': (state: import("../types.js").ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+}`
+
+## `responseActionsHandlers: {
+    'responseActions.setDocument': (state: ProjectState, payload: unknown) => {
+        rebuildComponentTree: false;
+    };
+    'responseActions.remove': (state: ProjectState) => {
+        rebuildComponentTree: false;
+    };
+    'responseActions.setMetadata': (state: ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
 }`
@@ -1206,6 +1402,13 @@ handlers/mapping
     'theme.setExtension': (state: import("../types.js").ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
+    /**
+     * `compatibleVersions` is a member of `targetDefinition` and means nothing without
+     * one. On a bundle-scoped Theme (no `targetDefinition`, theme-spec §2.2.1) this
+     * command binds the Theme to the project's Definition — an explicit scope change the
+     * caller asked for by naming a compatible-version range. It uses the real Definition
+     * URL, never the empty string, which would only produce a schema-invalid document.
+     */
     'theme.setTargetCompatibility': (state: import("../types.js").ProjectState, payload: unknown) => {
         rebuildComponentTree: false;
     };
@@ -1214,10 +1417,22 @@ handlers/mapping
 Shared tree utilities for component handlers.
 
 Both component-properties.ts and component-tree.ts operate on the same
-component tree structure. This module centralizes the shared TreeNode type,
-tree initialization, and Studio-generated marking to avoid duplication.
+component tree structure. They share node lookup, binding checks, and tree initialization.
 
 handlers/tree-utils
+
+## `appendBindPath(prefix: string, bind: string | undefined): string`
+
+## `findTreeNode(root: TreeNode, ref: {
+    bind?: string;
+    nodeId?: string;
+}): TreeNodeMatch | undefined`
+
+Find a node by its ID or bind, with the enclosing definition path for relative binds.
+
+## `assertDisplayItemComponent(state: ProjectState, component: string, bind: unknown, parentBindPath: string, definitionItemPath?: string): void`
+
+Authoring uses Text for display Items so the renderer follows their live label and relevance.
 
 ## `ensureTree(state: ProjectState): TreeNode`
 
@@ -1244,14 +1459,36 @@ Internal representation of a component tree node.
 - `style`, `accessibility`, `responsive` -- typed sub-objects for property handlers.
 - Additional keys hold component-specific props.
 
+#### type `TreeNodeMatch`
+
+```ts
+type TreeNodeMatch = {
+    parent: TreeNode;
+    index: number;
+    node: TreeNode;
+    parentBindPath: string;
+};
+```
+
 #### class `HistoryManager`
 
 Manages undo/redo stacks and command log.
 Pure data structure — no knowledge of commands or state shape.
 
+Each stack slot carries an opaque `label` supplied at {@link push} time. The
+label travels with the slot across `popUndo`/`popRedo`, so
+{@link nextUndoLabel} always names the command the next `undo()` reverses and
+{@link nextRedoLabel} names the one the next `redo()` re-executes. Depth
+pruning, redo invalidation, and `clear()` move label and snapshot together —
+that single bookkeeping site is what makes the label trustworthy to callers
+who gate on it (ADR 0152 §5.2 treats replay as a write).
+
 ##### `constructor(maxDepth?: number)`
 
-##### `push(snapshot: T): void`
+- **(get) nextUndoLabel** (`L | undefined`): Label of the command the next `popUndo` reverses; `undefined` when none.
+- **(get) nextRedoLabel** (`L | undefined`): Label of the command the next `popRedo` re-executes; `undefined` when none.
+
+##### `push(snapshot: T, label?: L): void`
 
 ##### `popUndo(current: T): T | null`
 
@@ -1265,9 +1502,57 @@ Pure data structure — no knowledge of commands or state shape.
 
 ##### `clearLog(): void`
 
-## `normalizeBcp47(code: string): string`
+## `itemsByPath(items: readonly FormItem[]): Map<string, FormItem>`
 
-Normalize BCP 47: lowercase language, title-case script, uppercase region.
+Definition path → item for every item in the tree, in one walk — instead of an engine
+`itemAtPath` per lookup, which serializes the whole item tree into WASM on every call.
+Mirrors its first-match rule: a duplicate sibling key resolves to the first item, and
+the duplicate's subtree is unreachable.
+
+## `itemIndex(items: readonly FormItem[]): ReadonlyMap<string, FormItem>`
+
+{@link itemsByPath}, built once per `items` array. Array identity is the version, the
+invariant `bindIndex` rests on: dispatch edits a structuredClone of the committed state,
+so a committed item tree never changes under its index. Use it for queries over committed
+state, never over a tree a handler is still mutating (handlers use the engine directly).
+
+## `itemAtIndexedPath(items: readonly FormItem[], path: string): FormItem | undefined`
+
+The engine's `itemAtPath` as an O(1) lookup: the engine still parses the path (repeat
+indexes and selectors stripped), the index answers the lookup. Item keys never contain
+`.` or `[`, so an index path and a normalized path address the same item.
+
+## `jsonEqual(a: unknown, b: unknown): boolean`
+
+Deep equality over JSON values; object key order is ignored.
+
+## `deriveJsonLdContext(definition: FormDefinition, ontology: OntologyDocument): JsonLdDerivation`
+
+Derive the JSON-LD `@context` that lifts a Response to linked data (Ontology spec §6.2).
+
+Bound fields name their concept typed by `dataType`; bound groups become scoped contexts
+(repeatable ones `@set` containers); unbound structural groups nest; a key reused across
+scopes cannot collide. The derived context is the reference: lint diffs an authored
+`context['@context']` against it. Requires `initFormspecEngineTools()`.
+
+#### interface `JsonLdDerivation`
+
+The derived `@context` object (unwrapped) and everything the derivation could not honor.
+
+- **context** (`Record<string, unknown>`): Assign to `ontology.context['@context']` or apply as `{ '@context': context, ...response.data }`.
+- **diagnostics** (`JsonLdDiagnostic[]`): Empty when every concept binding produced its term.
+
+#### type `JsonLdDiagnostic`
+
+One thing the derivation could not honor; see the Ontology spec §6.2 for the three kinds.
+
+```ts
+type JsonLdDiagnostic = JsonLdContextDiagnostic;
+```
+
+## `supportedLocaleDialect(value: unknown): '2.0' | '2.1'`
+
+@filedesc Preserve supported Locale dialects through public authoring import.
 
 ## `resolvePageStructure(state: PageStructureInput, definitionItemKeys: string[]): ResolvedPageStructure`
 
@@ -1348,600 +1633,36 @@ returns the new state plus all results. Middleware wraps the full plan.
 
 #### interface `ProjectCommandMap`
 
-- **'theme.setToken'**: `{
-        key: string;
-        value: unknown;
-    }`
-- **'theme.setTokens'**: `{
-        tokens: Record<string, unknown>;
-    }`
-- **'theme.setDefaults'**: `{
-        property: string;
-        value: unknown;
-    }`
-- **'theme.addSelector'**: `{
-        match: unknown;
-        apply: unknown;
-        insertIndex?: number;
-    }`
-- **'theme.setSelector'**: `{
-        index: number;
-        match?: unknown;
-        apply?: unknown;
-    }`
-- **'theme.deleteSelector'**: `{
-        index: number;
-    }`
-- **'theme.reorderSelector'**: `{
-        index: number;
-        direction: 'up' | 'down';
-    }`
-- **'theme.setItemOverride'**: `{
-        itemKey: string;
-        property: string;
-        value: unknown;
-    }`
-- **'theme.deleteItemOverride'**: `{
-        itemKey: string;
-    }`
-- **'theme.setItemStyle'**: `{
-        itemKey: string;
-        property: string;
-        value: unknown;
-    }`
-- **'theme.setItemWidgetConfig'**: `{
-        itemKey: string;
-        property: string;
-        value: unknown;
-    }`
-- **'theme.setItemAccessibility'**: `{
-        itemKey: string;
-        property: string;
-        value: unknown;
-    }`
-- **'theme.setBreakpoint'**: `{
-        name: string;
-        minWidth: number | null;
-    }`
-- **'theme.setStylesheets'**: `{
-        urls: string[];
-    }`
-- **'theme.setDocumentProperty'**: `{
-        property: string;
-        value: unknown;
-    }`
-- **'theme.setExtension'**: `{
-        key: string;
-        value: unknown;
-    }`
-- **'theme.setTargetCompatibility'**: `{
-        compatibleVersions: string;
-    }`
-- **'screener.setDocument'**: `ScreenerDocument`
-- **'screener.remove'**: `Record<string, unknown>`
-- **'screener.setMetadata'**: `Record<string, unknown>`
-- **'screener.addItem'**: `Record<string, unknown>`
-- **'screener.deleteItem'**: `{
-        key: string;
-    }`
-- **'screener.setItemProperty'**: `{
-        key: string;
-        property: string;
-        value: unknown;
-    }`
-- **'screener.reorderItem'**: `{
-        index: number;
-        direction: 'up' | 'down';
-    }`
-- **'screener.setBind'**: `{
-        path: string;
-        properties: Record<string, unknown>;
-    }`
-- **'screener.addPhase'**: `{
+- **'ontology.setDocument'** (`{
+        document: OntologyDocument | null;
+    }`): Whole-document replace of the one authored Ontology Document; `null` removes it.
+- **'registry.setDocument'** (`{
         id: string;
-        strategy: string;
-        label?: string;
-        insertIndex?: number;
-    }`
-- **'screener.removePhase'**: `{
-        phaseId: string;
-    }`
-- **'screener.reorderPhase'**: `{
-        phaseId: string;
-        direction: 'up' | 'down';
-    }`
-- **'screener.setPhaseProperty'**: `{
-        phaseId: string;
-        property: string;
-        value: unknown;
-    }`
-- **'screener.addRoute'**: `{
-        phaseId: string;
-        route: Record<string, unknown>;
-        insertIndex?: number;
-    }`
-- **'screener.setRouteProperty'**: `{
-        phaseId: string;
-        index: number;
-        property: string;
-        value: unknown;
-    }`
-- **'screener.deleteRoute'**: `{
-        phaseId: string;
-        index: number;
-    }`
-- **'screener.reorderRoute'**: `{
-        phaseId: string;
-        index: number;
-        direction: 'up' | 'down';
-    }`
-- **'screener.setAvailability'**: `{
-        from?: string | null;
-        until?: string | null;
-    }`
-- **'screener.setResultValidity'**: `{
-        duration: string | null;
-    }`
-- **'project.import'**: `Partial<ProjectBundle>`
-- **'project.importSubform'**: `{
-        definition: Record<string, unknown>;
-        targetGroupPath?: string;
-        keyPrefix?: string;
-    }`
-- **'project.loadRegistry'**: `{
-        registry: Record<string, unknown>;
-    }`
-- **'project.removeRegistry'**: `{
-        url: string;
-    }`
-- **'project.publish'**: `{
-        version: string;
-        summary?: string;
-    }`
-- **'mapping.create'**: `{
-        id: string;
-        targetSchema?: TargetSchema;
-    }`
-- **'mapping.delete'**: `{
-        id: string;
-    }`
-- **'mapping.rename'**: `{
-        oldId: string;
-        newId: string;
-    }`
-- **'mapping.select'**: `{
-        id: string;
-    }`
-- **'mapping.setProperty'**: `{
-        mappingId?: string;
-        property: string;
-        value: unknown;
-    }`
-- **'mapping.setTargetSchema'**: `{
-        mappingId?: string;
-        property: string;
-        value: unknown;
-    }`
-- **'mapping.addRule'**: `{
-        mappingId?: string;
-        sourcePath?: string;
-        targetPath?: string;
-        transform?: string;
-        insertIndex?: number;
-    }`
-- **'mapping.setRule'**: `{
-        mappingId?: string;
-        index: number;
-        property: string;
-        value: unknown;
-    }`
-- **'mapping.deleteRule'**: `{
-        mappingId?: string;
-        index: number;
-    }`
-- **'mapping.clearRules'**: `{
-        mappingId?: string;
-    }`
-- **'mapping.reorderRule'**: `{
-        mappingId?: string;
-        index: number;
-        direction: 'up' | 'down';
-    }`
-- **'mapping.setAdapter'**: `{
-        mappingId?: string;
-        format: string;
-        config: unknown;
-    }`
-- **'mapping.setDefaults'**: `{
-        mappingId?: string;
-        defaults: Record<string, unknown>;
-    }`
-- **'mapping.autoGenerateRules'**: `{
-        mappingId?: string;
-        scopePath?: string;
-        priority?: number;
-        replace?: boolean;
-    }`
-- **'mapping.setExtension'**: `{
-        mappingId?: string;
-        key: string;
-        value: unknown;
-    }`
-- **'mapping.setRuleExtension'**: `{
-        mappingId?: string;
-        index: number;
-        key: string;
-        value: unknown;
-    }`
-- **'mapping.addInnerRule'**: `{
-        mappingId?: string;
-        ruleIndex: number;
-        sourcePath?: string;
-        targetPath?: string;
-        transform?: string;
-        insertIndex?: number;
-    }`
-- **'mapping.setInnerRule'**: `{
-        mappingId?: string;
-        ruleIndex: number;
-        innerIndex: number;
-        property: string;
-        value: unknown;
-    }`
-- **'mapping.deleteInnerRule'**: `{
-        mappingId?: string;
-        ruleIndex: number;
-        innerIndex: number;
-    }`
-- **'mapping.reorderInnerRule'**: `{
-        mappingId?: string;
-        ruleIndex: number;
-        innerIndex: number;
-        direction: 'up' | 'down';
-    }`
-- **'locale.load'**: `{
-        document: Record<string, unknown>;
-    }`
-- **'locale.remove'**: `{
-        localeId: string;
-    }`
-- **'locale.select'**: `{
-        localeId: string;
-    }`
-- **'locale.setString'**: `{
-        localeId?: string;
-        key: string;
-        value: string | null;
-    }`
-- **'locale.setStrings'**: `{
-        localeId?: string;
-        strings: Record<string, string>;
-    }`
-- **'locale.removeString'**: `{
-        localeId?: string;
-        key: string;
-    }`
-- **'locale.setMetadata'**: `{
-        localeId?: string;
-        property: string;
-        value: unknown;
-    }`
-- **'locale.setFallback'**: `{
-        localeId?: string;
-        fallback: string | null;
-    }`
-- **'definition.addVariable'**: `Record<string, unknown>`
-- **'definition.setVariable'**: `{
-        name: string;
-        property: string;
-        value: unknown;
-    }`
-- **'definition.deleteVariable'**: `{
-        name: string;
-    }`
-- **'definition.addShape'**: `Record<string, unknown>`
-- **'definition.setShapeProperty'**: `{
-        id: string;
-        property: string;
-        value: unknown;
-    }`
-- **'definition.setShapeComposition'**: `{
-        id: string;
-        mode: string;
-        refs?: string[];
-        ref?: string;
-    }`
-- **'definition.renameShape'**: `{
-        id: string;
-        newId: string;
-    }`
-- **'definition.deleteShape'**: `{
-        id: string;
-    }`
-- **'definition.setDefinitionProperty'**: `{
-        property: string;
-        value: unknown;
-    }`
-- **'definition.setFormPresentation'**: `{
-        property: string;
-        value: unknown;
-    }`
-- **'definition.setGroupRef'**: `{
-        path: string;
-        ref: string | null;
-        keyPrefix?: string;
-    }`
-- **'definition.setOptionSet'**: `{
-        name: string;
-        options?: unknown[];
-        source?: string;
-    }`
-- **'definition.setOptionSetProperty'**: `{
-        name: string;
-        property: string;
-        value: unknown;
-    }`
-- **'definition.deleteOptionSet'**: `{
-        name: string;
-    }`
-- **'definition.promoteToOptionSet'**: `{
-        path: string;
-        name: string;
-    }`
-- **'definition.addMigration'**: `{
-        fromVersion: string;
-        description?: string;
-    }`
-- **'definition.deleteMigration'**: `{
-        fromVersion: string;
-    }`
-- **'definition.setMigrationProperty'**: `{
-        fromVersion: string;
-        property: string;
-        value: unknown;
-    }`
-- **'definition.addFieldMapRule'**: `{
-        fromVersion: string;
-        source: string;
-        target: string | null;
-        transform: string;
-        expression?: string;
-        insertIndex?: number;
-    }`
-- **'definition.setFieldMapRule'**: `{
-        fromVersion: string;
-        index: number;
-        property: string;
-        value: unknown;
-    }`
-- **'definition.deleteFieldMapRule'**: `{
-        fromVersion: string;
-        index: number;
-    }`
-- **'definition.setMigrationDefaults'**: `{
-        fromVersion: string;
-        defaults: Record<string, unknown>;
-    }`
-- **'definition.setFormTitle'**: `{
-        title: string;
-    }`
-- **'definition.addItem'**: `Record<string, unknown>`
-- **'definition.deleteItem'**: `{
-        path: string;
-    }`
-- **'definition.renameItem'**: `{
-        path: string;
-        newKey: string;
-    }`
-- **'definition.moveItem'**: `{
-        sourcePath: string;
-        targetParentPath?: string;
-        targetIndex?: number;
-    }`
-- **'definition.reorderItem'**: `{
-        path: string;
-        direction: 'up' | 'down';
-    }`
-- **'definition.duplicateItem'**: `{
-        path: string;
-    }`
-- **'definition.addInstance'**: `Record<string, unknown>`
-- **'definition.setInstance'**: `{
-        name: string;
-        property: string;
-        value: unknown;
-    }`
-- **'definition.renameInstance'**: `{
-        name: string;
-        newName: string;
-    }`
-- **'definition.deleteInstance'**: `{
-        name: string;
-    }`
-- **'definition.setBind'**: `{
-        path: string;
-        properties: Record<string, unknown>;
-    }`
-- **'definition.setItemProperty'**: `{
-        path: string;
-        property: string;
-        value: unknown;
-    }`
-- **'definition.setFieldDataType'**: `{
-        path: string;
-        dataType: NonNullable<FormItem['dataType']>;
-    }`
-- **'definition.setFieldOptions'**: `{
-        path: string;
-        options: unknown;
-    }`
-- **'definition.setItemExtension'**: `{
-        path: string;
-        extension: string;
-        value: unknown;
-    }`
-- **'component.reconcileFromDefinition'**: `Record<string, never>`
-- **'component.addNode'**: `{
-        parent: {
-            bind?: string;
-            nodeId?: string;
-        };
-        insertIndex?: number;
-        component: string;
-        bind?: string;
-        props?: Record<string, unknown>;
-    }`
-- **'component.deleteNode'**: `{
-        node: {
-            bind?: string;
-            nodeId?: string;
-        };
-    }`
-- **'component.moveNode'**: `{
-        source: {
-            bind?: string;
-            nodeId?: string;
-        };
-        targetParent: {
-            bind?: string;
-            nodeId?: string;
-        };
-        targetIndex?: number;
-    }`
-- **'component.reorderNode'**: `{
-        node: {
-            bind?: string;
-            nodeId?: string;
-        };
-        direction: 'up' | 'down';
-    }`
-- **'component.duplicateNode'**: `{
-        node: {
-            bind?: string;
-            nodeId?: string;
-        };
-    }`
-- **'component.wrapNode'**: `{
-        node: {
-            bind?: string;
-            nodeId?: string;
-        };
-        wrapper: {
-            component: string;
-            props?: Record<string, unknown>;
-        };
-    }`
-- **'component.wrapSiblingNodes'**: `{
-        nodes: Array<{
-            bind?: string;
-            nodeId?: string;
-        }>;
-        wrapper: {
-            component: string;
-            props?: Record<string, unknown>;
-        };
-    }`
-- **'component.unwrapNode'**: `{
-        node: {
-            bind?: string;
-            nodeId?: string;
-        };
-    }`
-- **'component.setNodeProperty'**: `{
-        node: {
-            bind?: string;
-            nodeId?: string;
-        };
-        property: string;
-        value: unknown;
-    }`
-- **'component.setNodeType'**: `{
-        node: {
-            bind?: string;
-            nodeId?: string;
-        };
-        component: string;
-        preserveProps?: boolean;
-    }`
-- **'component.setNodeStyle'**: `{
-        node: {
-            bind?: string;
-            nodeId?: string;
-        };
-        property: string;
-        value: unknown;
-    }`
-- **'component.setNodeAccessibility'**: `{
-        node: {
-            bind?: string;
-            nodeId?: string;
-        };
-        property: string;
-        value: unknown;
-    }`
-- **'component.spliceArrayProp'**: `{
-        node: {
-            bind?: string;
-            nodeId?: string;
-        };
-        property: string;
-        index: number;
-        deleteCount: number;
-        insert?: unknown[];
-    }`
-- **'component.setFieldWidget'**: `{
-        fieldKey: string;
-        widget: string;
-    }`
-- **'component.setResponsiveOverride'**: `{
-        node: {
-            bind?: string;
-            nodeId?: string;
-        };
-        breakpoint: string;
-        patch: unknown;
-    }`
-- **'component.setGroupRepeatable'**: `{
-        groupKey: string;
-        repeatable: boolean;
-    }`
-- **'component.setGroupDisplayMode'**: `{
-        groupKey: string;
-        mode: string;
-    }`
-- **'component.setGroupDataTable'**: `{
-        groupKey: string;
-        config: unknown;
-    }`
-- **'component.registerCustom'**: `{
-        name: string;
-        params: unknown;
-        tree: unknown;
-    }`
-- **'component.updateCustom'**: `{
-        name: string;
-        params?: unknown;
-        tree?: unknown;
-    }`
-- **'component.deleteCustom'**: `{
-        name: string;
-    }`
-- **'component.renameCustom'**: `{
-        name: string;
-        newName: string;
-    }`
-- **'component.setToken'**: `{
-        key: string;
-        value: unknown;
-    }`
-- **'component.setBreakpoint'**: `{
-        name: string;
-        minWidth: number | null;
-    }`
-- **'component.setDocumentProperty'**: `{
-        property: string;
-        value: unknown;
-    }`
+        document: RegistryDocument;
+    }`): Whole-document replace of the authored Registry Document at `id` (`default` = the bundle's own).
+- **'references.setDocument'** (`{
+        document: ReferencesDocument | null;
+    }`): Whole-document replace of the one authored References Document; `null` removes it.
+
+#### type `ComponentMoveProvenanceRef`
+
+```ts
+type ComponentMoveProvenanceRef = {
+    route: string;
+    nodePath: string;
+} | {
+    route: string;
+    nodePath: string;
+    component: unknown;
+    surface: unknown;
+    id?: string;
+    nodeId?: string;
+};
+```
+
+#### type `ProjectImportPayload`
+
+`project.import` payload: a bundle's documents, and what the documents it omits mean.
 
 #### interface `IProjectCore`
 
@@ -1950,6 +1671,9 @@ Implemented by RawProject (formspec-core). Consumed by Project (formspec-studio-
 This is the seam between the two packages.
 
 - **locales** (`Readonly<Record<string, LocaleState>>`): Read-only view of all loaded locale states, keyed by BCP 47 code.
+- **nextUndoCommand** (`AnyCommand | InternalCommand | null`): The command the next `undo()` reverses / the next `redo()` re-executes,
+or `null` when that stack is empty. Peeking is what lets a caller refuse
+a history step before the state moves (ADR 0152 §5.2 — replay is write).
 
 ##### `dispatch(command: Command<T, ProjectCommandMap[T]>): CommandResult`
 
@@ -2053,26 +1777,6 @@ Get the currently selected locale code in the editor.
 
 ##### `export(): ProjectBundle`
 
-#### type `FormspecCoreProject`
-
-Authoring-time project session: co-edited definition / component / theme / mappings,
-command dispatch, undo/redo, read-model queries, and export.
-
-Implemented by {@link RawProject}. Higher layers (e.g. formspec-studio-core) should
-depend on this type rather than the concrete class when only the contract is needed.
-
-```ts
-type FormspecCoreProject = IProjectCore;
-```
-
-#### type `CreateFormspecCoreProject`
-
-Factory shape for {@link createRawProject}. Returns a {@link FormspecCoreProject}.
-
-```ts
-type CreateFormspecCoreProject = (options?: ProjectOptions) => FormspecCoreProject;
-```
-
 ## `resolvePageStructureFromTree(tree: TreeNode, pageMode: 'single' | 'wizard' | 'tabs', allItemKeys: string[]): ResolvedPageStructure`
 
 Resolve page structure from the component tree.
@@ -2147,7 +1851,10 @@ Groups are traversed but not included — only leaf items appear.
 
 ## `itemAt(state: ProjectState, path: string): FormItem | undefined`
 
-Resolve an item by its dot-path within the definition tree.
+Resolve an item by its dot-path within the definition tree (repeat indexes ignored).
+Returns a copy, as the engine lookup it replaced did: callers edit what they read, and
+an edit to the committed item would rewrite undo history and stale the path index.
+The lookup is O(1) after the first on a committed item tree; the copy is the item's size.
 
 ## `responseSchemaRows(state: ProjectState): ResponseSchemaRow[]`
 
@@ -2176,11 +1883,14 @@ Resolve the effective presentation for a field through the theme cascade.
 
 ## `bindFor(state: ProjectState, path: string): Record<string, unknown> | undefined`
 
-Get the effective bind properties for a field path.
+Get the effective bind properties for a field path: every bind entry targeting
+the path (`[*]` wildcards match the item path), merged in document order with
+later values winning — the same merge both engines apply.
 
 ## `componentFor(state: ProjectState, fieldKey: string): Record<string, unknown> | undefined`
 
-Find the component tree node bound to a field key.
+Find the component tree node bound to a field key (the first, breadth-first).
+O(1) after the first lookup on a committed tree.
 
 ## `unboundItems(state: ProjectState): string[]`
 
@@ -2238,7 +1948,9 @@ Browse extension entries across all loaded registries with optional filtering.
 
 ## `resolveExtension(state: ProjectState, name: string): Record<string, unknown> | undefined`
 
-Resolve an extension name against all loaded registries.
+Resolve an extension name against all loaded registries — Registry spec §2.2: identical declarations of
+one name (the same document host-loaded and authored, say) are one declaration; differing declarations
+are an unqualified collision and resolve nothing. Never first-match.
 
 ## `buildSearchIndex(state: ProjectState): SearchIndexEntry[]`
 
@@ -2270,7 +1982,7 @@ Uses dot-boundary matching to avoid partial-segment false positives.
 Given selected paths, expand to include all descendants from the definition tree.
 Returns a deduplicated list.
 
-## `serializeToJSON(state: ProjectState): unknown`
+## `serializeToJSON(state: ProjectState): ProjectState['definition']`
 
 Extract the definition document as a clean JSON object (deep copy).
 The result is fully JSON-serializable and safe to stringify/transmit.
@@ -2335,13 +2047,24 @@ Factory function for creating a new {@link RawProject} instance.
 
 Central editing surface for a Formspec artifact bundle.
 
-Manages four co-evolving artifacts (definition, component, theme, mapping)
-plus extension registries and version history. Every mutation flows through a
-command-dispatch pipeline. Queries are delegated to pure functions in `queries/`.
+Manages four co-evolving artifacts (definition, component, theme, mapping), the
+standalone sidecars (screener, experience, response actions, ontology, authored
+registries), plus the extension index and version history. Every mutation flows
+through a command-dispatch pipeline. Queries are delegated to pure functions in `queries/`.
 
 ##### `constructor(options?: ProjectOptions)`
 
 - **(get) mapping** (`Readonly<MappingDocument>`): Returns the mapping document for the currently selected integration.
+- **(get) nextUndoCommand** (`AnyCommand | InternalCommand | null`): The command the next {@link undo} reverses, or `null` when the undo stack
+is empty. Multi-command dispatches report the same synthetic `batch` /
+`batchWithRebuild` envelope the log records, so callers see every command
+in the step they are about to walk back.
+
+Exposed so a caller can decide whether an undo is permitted *before* the
+state moves — ADR 0152 §5.2 gates replay of protected-vocabulary writes on
+exactly this, and a post-hoc undo-then-redo probe would fire listeners and
+corrupt the redo stack.
+- **(get) nextRedoCommand** (`AnyCommand | InternalCommand | null`): The command the next {@link redo} re-executes, or `null` when none.
 
 ##### `localeAt(code: string): LocaleState | undefined`
 
@@ -2455,6 +2178,169 @@ Typed schema object as a mutable string-keyed record (one assertion at the seam)
 
 ## `setRecordProperty(target: Record<string, unknown>, property: string, value: unknown): void`
 
+## `computeAnchorSet(raw: unknown): string[]`
+
+§3.1 — string-only, duplicate-stripped, bytewise-sorted anchor set.
+
+## `regenerationMergeWithAdapter(adapter: MergeDocumentAdapter<TDoc>, inputs: RegenerationMergeInputs<TDoc>, context?: RegenerationMergeContext): RegenerationMergeResult<TDoc>`
+
+§2.1 — three-way regeneration merge, or the §6.2 absent-common-ancestor
+degradation when `oldGenerated` is null.
+
+Deterministic, no-mutation, report-only: returns fresh `merged` and `report`
+documents and never writes to an input.
+
+## `regenerationMerge(inputs: RegenerationMergeInputs<ComponentDocumentLike>, context?: RegenerationMergeContext): RegenerationMergeResult<ComponentDocumentLike>`
+
+§2.1 three-way regeneration merge over Component v1.1 documents.
+
+## `regenerationMergeSurface(inputs: RegenerationMergeInputs<SurfaceDocumentLike>, context?: RegenerationMergeContext): RegenerationMergeResult<SurfaceDocumentLike>`
+
+§2.1 three-way regeneration merge over Surface documents.
+
+## `mergeReviewQueue(report: MergeReport): MergeEntry[]`
+
+Report entries whose severity is `error` or `warning` — the review queue.
+
+## `componentMergeAdapter: MergeDocumentAdapter<ComponentDocumentLike>`
+
+Component v1.1 adapter — identity from `x-generation.anchors[]` (Component
+Reference Fields), children from `children[]`, widget from `component`.
+
+## `surfaceMergeAdapter: MergeDocumentAdapter<SurfaceDocumentLike>`
+
+Surface adapter — the Surface family carries no `x-generation`, so identity
+comes from the spec-required stable ids (`surface:<id>`, `route:<id>`,
+`slot:<id>`). That is an id match, not a path or ordinal heuristic: §3.3
+already names a non-empty `id` as the stable local discriminator, and a
+route/slot id is the only identity this family defines.
+
+#### interface `MergeEntry`
+
+One `MergeReport` record. `nodePath` is a JSON Pointer into `merged`.
+
+- **anchors**: `string[]`
+- **nodePath**: `string`
+- **code**: `MergeCode`
+- **severity**: `MergeSeverity`
+- **reason**: `string`
+- **propertyDeltas?**: `string[]`
+
+#### interface `OrphanEntry`
+
+An `orphaned[]` record — carries the §8.3 reattachment metadata.
+
+- **reattachedTo**: `string`
+- **cascaded**: `boolean`
+- **detached**: `boolean`
+
+#### interface `MergeReport`
+
+- **version**: `'1.0'`
+- **surviving**: `MergeEntry[]`
+- **regenerated**: `MergeEntry[]`
+- **orphaned**: `OrphanEntry[]`
+- **pendingReview**: `MergeEntry[]`
+- **conflicts**: `MergeEntry[]`
+
+#### interface `AnchorMappingsInput`
+
+The §9.1 `$formspecAnchorMappings` input. `kind` is tolerated, never read.
+
+- **$formspecAnchorMappings?**: `string`
+- **anchorMappings?**: `ReadonlyArray<{
+        from: string;
+        to: string;
+        kind?: string;
+    }>`
+
+#### interface `RegenerationMergeContext`
+
+§2.2 `RegenerationMergeContext`. The peer documents are carried for
+downstream resolver composition (§11.5) and are never read by the algorithm.
+
+- **anchorMappings?**: `AnchorMappingsInput | null`
+- **definition?**: `unknown`
+- **experience?**: `unknown`
+- **responseActions?**: `unknown`
+- **registry?**: `unknown`
+- **ontology?**: `unknown`
+- **hostPolicy?**: `unknown`
+
+#### interface `RegenerationMergeInputs`
+
+- **oldGenerated** (`TDoc | null | undefined`): The §2.4 common ancestor. `null`/`undefined` degrades to fresh generation.
+
+#### interface `RegenerationMergeResult`
+
+- **merged**: `TDoc`
+- **report**: `MergeReport`
+
+#### interface `MergeDocumentAdapter`
+
+- **name** (`string`): Family name, quoted into report reasons.
+- **rootPointer** (`string`): JSON Pointer of the merged root node.
+- **anchorsPointer** (`string`): Node-local pointer of the anchor array, when the family stores one.
+- **typeKey** (`string`): Node-local property carrying the widget type (§6.5 widget swap).
+
+##### `root(doc: TDoc): MergeNode | undefined`
+
+##### `document(newGenerated: TDoc, mergedRoot: MergeNode): TDoc`
+
+Rebuild a document from `newGenerated`'s doc-level members + merged root.
+
+##### `childrenKey(node: MergeNode, depth: number): string | undefined`
+
+Child-array property at this depth, or undefined at a leaf level.
+
+##### `anchors(node: MergeNode, depth: number): unknown`
+
+Raw anchor strings for merge identity (normalized by §3.1 downstream).
+
+##### `discriminator(node: MergeNode): string | undefined`
+
+§3.3 stable local discriminator for same-parent duplicate anchor sets.
+
+##### `assertInput(doc: TDoc, role: string): void`
+
+§2.1 admission gate. Throws {@link RegenerationMergeInputError}.
+
+#### interface `ComponentDocumentLike`
+
+Minimal Component document shape the merge reads.
+
+- **$formspecComponent?**: `string`
+- **tree?**: `MergeNode`
+
+#### interface `SurfaceDocumentLike`
+
+Minimal Surface document shape the merge reads.
+
+- **$formspecSurface?**: `string`
+- **routes?**: `unknown`
+
+#### type `MergeCode`
+
+The complete `COMP-REGENERATION-*` code set (spec §7.2).
+
+#### type `MergeSeverity`
+
+```ts
+type MergeSeverity = 'error' | 'warning' | 'info';
+```
+
+#### type `MergeNode`
+
+```ts
+type MergeNode = Record<string, unknown>;
+```
+
+#### class `RegenerationMergeInputError`
+
+Thrown when an input document fails the adapter's §2.1 admission gate.
+
+##### `constructor(message: string, role: string)`
+
 ## `registryEntry(entry: unknown): RegistryEntryShape`
 
 #### interface `RegistryEntryShape`
@@ -2473,6 +2359,14 @@ Typed schema object as a mutable string-keyed record (one assertion at the seam)
 
 Build a loaded registry record from a registry document payload.
 Ensures a stable `url` on the stored document for `project.removeRegistry`.
+
+## `syncAuthoredRegistries(state: ProjectState): void`
+
+Rebuild the `extensions.registries` rows derived from the authored `state.registries`:
+host-loaded rows stay in place, every derived row is replaced by a fresh index of its
+authored document (a registry without a `url` is indexed under `urn:formspec:registry:<id>`).
+Runs after every write to `state.registries`, so the authored document is the only source
+and the index never carries a stale or duplicated projection of it.
 
 ## `normalizeState(state: ProjectState): void`
 
@@ -2509,6 +2403,25 @@ Determine the default component type for a definition item.
 Maps item types to sensible widget defaults: field -> TextInput,
 group -> Stack, display -> Text.
 
+## `generatedComponentType(item: FormItem): string`
+
+The component the reconciler generates for a field or group: the widgetHint's
+component, else {@link defaultComponentType}.
+
+## `generatedWidgetMoves(before: ReadonlyMap<string, FormItem>, after: ReadonlyMap<string, FormItem>): Map<string, GeneratedWidgetMove>`
+
+Generated widget moves between two versions of an item tree: every field or group path
+in both whose generated widget differs. Linear in the item count.
+
+## `moveGeneratedWidgets(tree: unknown | undefined, moves: ReadonlyMap<string, GeneratedWidgetMove>): void`
+
+The reconciler keeps an existing node's component, so a node still showing the widget
+generated for an item's old shape (dataType, options, repeatable, widgetHint) would read
+as authored once the shape changes — a TextInput pinned on a choice field, a Stack bound
+to a repeatable group (component-spec §4.4). Such nodes take the new generated widget;
+nodes showing any other widget are authored and stay. `moves` is keyed by definition
+item path (a node's `definitionItemPath`). One walk of the tree.
+
 ## `reconcileComponentTree(definition: FormDefinition, currentTree: unknown | undefined): TreeNode`
 
 Rebuild the component tree to mirror the definition item hierarchy.
@@ -2522,6 +2435,13 @@ The algorithm:
   2. Collect existing bound/display nodes by path, rebuild from definition.
   3. Build a flat Stack root with all definition-derived nodes.
   4. Re-insert layout wrappers (including Section nodes) at original positions.
+
+#### interface `GeneratedWidgetMove`
+
+An item's generated widget before and after its shape changed.
+
+- **from**: `string`
+- **to**: `string`
 
 #### interface `ComponentState`
 
@@ -2541,41 +2461,29 @@ Handlers read/write tree, tokens, breakpoints, etc.
 Theme working state — content without required envelope metadata.
 Handlers read/write defaults, selectors, items, pages, etc.
 
-- **targetDefinition?**: `{
-        url: string;
-        compatibleVersions?: string;
-    }`
-- **tokens?**: `Record<string, unknown>`
-- **defaults?**: `Record<string, unknown>`
-- **selectors?**: `unknown[]`
-- **items?**: `Record<string, unknown>`
-- **pages?**: `unknown[]`
-- **breakpoints?**: `Record<string, number>`
-- **stylesheets?**: `string[]`
-- **extensions?**: `Record<string, unknown>`
+- **url** (`string`): Document identity, kept from an imported Theme; export mints `version` only when absent.
 
 #### interface `MappingState`
 
 Mapping working state — content without required envelope metadata.
 Handlers read/write rules, targetSchema, adapters, etc.
 
-- **version?**: `string`
-- **rules?**: `FieldRule[]`
-- **targetSchema?**: `TargetSchema`
-- **definitionRef?**: `string`
-- **definitionVersion?**: `string`
-- **direction?**: `'forward' | 'reverse' | 'both'`
-- **defaults?**: `Record<string, unknown>`
-- **autoMap?**: `boolean`
-- **conformanceLevel?**: `'core' | 'bidirectional' | 'extended'`
-- **adapters?**: `Record<string, unknown>`
+- **sourceSchema** (`{
+        url: string;
+        version: string;
+        schema: Record<string, unknown>;
+    }`): Independent external source identity and exact inline input schema.
 
 #### interface `ExtensionsState`
 
-Read-only extension state loaded into a project.
+Read-only extension state: every registry the project resolves against, indexed.
 
-Registries provide custom data types, FEL functions, constraints, and properties.
-They are reference data -- the project loads them but does not author them.
+Registries provide custom data types, FEL functions, constraints, properties, and concepts.
+Rows come from two sources and are never authored here: registries a host loads for
+resolution (`project.loadRegistry`), and the project's own authored documents in
+{@link ProjectState.registries}, re-indexed on every `registry.*` write. Name resolution
+follows Registry spec §2.2: identical declarations across rows are one declaration; differing
+declarations of one name resolve nothing (never first-match, never host-over-authored).
 
 - **registries** (`LoadedRegistry[]`): All extension registries currently loaded into the project.
 
@@ -2587,6 +2495,8 @@ All fields are JSON-serializable — no Maps or class instances.
 - **url** (`string`): Canonical URL of the registry document.
 - **document** (`unknown`): The raw registry document as loaded.
 - **entries** (`Record<string, unknown>`): Extension entries keyed by name. Plain object for JSON serializability.
+- **authoredId** (`string`): The {@link ProjectState.registries} id this row was derived from. Absent on a
+host-loaded registry. Derived rows are rebuilt from the authored document, never edited.
 
 #### interface `VersioningState`
 
@@ -2627,6 +2537,13 @@ Mutations happen exclusively through dispatched commands; never mutate directly.
 - **selectedLocaleId** (`string`): BCP 47 code of the active locale in the editor.
 - **extensions** (`ExtensionsState`): Loaded extension registries providing custom types, functions, and constraints.
 - **screener** (`ScreenerDocument | null`): Standalone Screener Document, or null if no screener is loaded.
+- **experience** (`ExperienceDocument | null`): Standalone Experience Document, or null if no experience is loaded.
+- **responseActions** (`ResponseActionsDocument | null`): Standalone Response Actions Document, or null if no response-actions are loaded.
+- **ontology** (`OntologyDocument | null`): The one authored Ontology Document (concept bindings by path), or null when none.
+- **registries** (`Record<string, RegistryDocument>`): Authored Registry Documents keyed by id (`default` is the bundle's own; another id is a
+foreign stem). Stored verbatim; the resolution index in {@link extensions} is derived.
+- **references** (`ReferencesDocument | null`): The one authored References Document (external resources bound to Definition paths),
+or null when none. Single emission, like `ontology` — never keyed.
 - **versioning** (`VersioningState`): Baseline snapshot and release history for changelog generation.
 
 #### interface `Command`
