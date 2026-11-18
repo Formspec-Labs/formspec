@@ -88,6 +88,26 @@ function countField(
     if (!hasError && counts.valid !== null) counts.valid++;
 }
 
+/** Core §5.3.1 reports both the original warning and the action needed to resolve it. */
+function progressResults(results: readonly ValidationResult[]): readonly ValidationResult[] {
+    const instances = new Set<string>();
+    const groups = new Set<string>();
+    for (const result of results) {
+        if (result.constraintKind !== 'explanation' || result.severity !== 'error') continue;
+        if (result.shapeId) {
+            instances.add(JSON.stringify([result.shapeId, result.path]));
+        } else if (result.context && 'code' in result.context && typeof result.context.code === 'string') {
+            groups.add(result.context.code);
+        }
+    }
+    if (!instances.size && !groups.size) return results;
+    return results.filter(result => {
+        if (result.severity !== 'warning' || result.constraintKind !== 'shape' || result.source === 'external') return true;
+        if (result.code && groups.has(result.code)) return false;
+        return !instances.has(JSON.stringify([result.shapeId, result.path]));
+    });
+}
+
 export function summarizeFormProgress(
     sectionPlan: readonly PageSequenceEntry[], state: EvaluatedFormState,
 ): FormProgressSummary {
@@ -105,7 +125,7 @@ export function summarizeFormProgress(
     const errorPaths = new Set<string>();
     const findings: ProgressFinding[] = [];
     const seen = new Set<string>();
-    for (const result of state.report?.results ?? []) {
+    for (const result of progressResults(state.report?.results ?? [])) {
         const { path, severity } = result;
         if (severity === 'error') errorPaths.add(path);
         const field = relevant.get(path);

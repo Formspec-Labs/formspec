@@ -205,6 +205,60 @@ it('counts and displays each outstanding acknowledgement group once', () => {
     expect(new Set(rows.map(row => row.identity)).size).toBe(2);
 });
 
+describe('warning follow-ups in the progress summary and findings margin', () => {
+    const warning = (path: string, shapeId: string, code: string) =>
+        result(path, 'warning', code, { shapeId, source: 'shape' });
+    const plan = layout.resolvePageSequence(definition, { component });
+    const path = 'Accounts[1].rows[2].amount';
+    const sibling = 'Accounts[1].rows[3].amount';
+    function summarize(results: ValidationResult[]) {
+        const fields = [path, sibling, 'note'].map(path => ({
+            path, relevant: true, required: false, readonly: false, empty: false,
+        }));
+        return layout.summarizeFormProgress(plan, { fields, report: {
+            $formspecValidationReport: '1.0', valid: results.every(row => row.severity !== 'error'),
+            timestamp: '2026-01-01T00:00:00Z', results,
+        } });
+    }
+
+    it.each(['EXPLANATION_REQUIRED', 'EXPLANATION_STALE'])('pairs %s only with its exact repeat instance', code => {
+        const underlying = warning(path, 'checkValue', 'CHECK_VALUE');
+        const paired = result(path, 'error', code, { source: 'shape', constraintKind: 'explanation', shapeId: 'checkValue' });
+        const otherShape = warning(path, 'otherCheck', 'CHECK_VALUE');
+        const otherInstance = warning(sibling, 'checkValue', 'CHECK_VALUE');
+        const progress = summarize([underlying, otherShape, paired, otherInstance]);
+        expect(progress.form).toMatchObject({ toFix: 1, toCheck: 2, ready: false });
+        expect(progress.sections.find(section => section.id === 'Accounts.V1')?.counts)
+            .toMatchObject({ toFix: 1, toCheck: 2 });
+        const rows = layout.readFormProgressFindingRows(progress, {
+            field: () => ({ label: 'Amount', controlId: 'amount' }),
+            message: finding => finding.message, chrome: () => '',
+        });
+        expect(rows.map(row => row.identity)).toEqual([otherShape, paired, otherInstance].map(validationResultIdentity));
+        expect(rows[1].jumpPath).toBe(path);
+    });
+
+    it('uses a single group follow-up across sections and keeps an independent external warning', () => {
+        const grouped = result('#', 'error', 'EXPLANATION_STALE', {
+            source: 'shape', constraintKind: 'explanation', context: { code: 'CHECK_VALUE' },
+        });
+        const outside = result(path, 'warning', 'CHECK_VALUE', { source: 'external', constraintKind: 'external' });
+        const progress = summarize([grouped, warning(path, 'checkValue', 'CHECK_VALUE'),
+            warning('note', 'checkNote', 'CHECK_VALUE'), outside]);
+        expect(progress.form).toMatchObject({ toFix: 1, toCheck: 1 });
+        expect(progress.findings.map(finding => finding.result)).toEqual([grouped, outside]);
+        expect(progress.findings[0].formLevel).toBe(true);
+        expect(progress.sections.reduce((sum, section) => sum + (section.counts.toFix ?? 0), 0)).toBe(0);
+    });
+
+    it('retains the original warning when its explanation is current and filing is permitted', () => {
+        const resolved = warning(path, 'checkValue', 'CHECK_VALUE');
+        const progress = summarize([resolved]);
+        expect(progress.form).toMatchObject({ toFix: 0, toCheck: 1, ready: true });
+        expect(progress.findings.map(finding => finding.result)).toEqual([resolved]);
+    });
+});
+
 it('keeps finding identity on rendered summary rows when an earlier finding is filtered', () => {
     const shape = result('#', 'error', 'CHECK', { shapeId: 'check' });
     const rows = layout.readValidationSummaryRows({ showFieldErrors: false }, {
