@@ -2,8 +2,8 @@
 /** @filedesc Definition Walk CLI: emit specs, run them, or check renderer accessibility. */
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, relative, resolve } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createFormEngine, initFormspecEngine } from '@formspec-org/engine';
 import { derivePlan, deriveRecipes, emitSpec } from '@formspec-org/walk';
@@ -23,6 +23,9 @@ const USAGE = `usage: formspec-walk emit (--docs <dir> | --manifest <package-man
   --root      selector for one renderer on a multi-form route (e.g. '[data-slot="filing"] [data-formspec-render-root]')
   --locale    the Locale to derive the wording from (default: the Definition's inline wording)
   --out       write here instead of stdout
+  --root      scope walk navigation to the selected form on a multi-form host
+  --all       emit every --manifest form to --out-dir <dir> using --url-template <url> with {formId} or {slug}
+  --axe       include a host-page axe test in each emitted spec
   --from      the package the spec imports the walk from (default @formspec-org/walk)
 
   test   runs installed Playwright with an execution reporter: no executed tests (including all skipped) fails.
@@ -67,7 +70,7 @@ export function readDocuments(dir, code) {
 }
 
 /** The forms in a package-manifest.json, with each form's Definition, Theme and strictly scoped Locale documents. */
-export function readPackageForms(manifestPath, formFilter, code, { requireSingle = false } = {}) {
+export function readPackageForms(manifestPath, formFilter, code, { requireSingle = false, requireAll = false } = {}) {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const baseDir = dirname(manifestPath);
   const allForms = Array.isArray(manifest.forms) ? manifest.forms : [];
@@ -90,7 +93,7 @@ export function readPackageForms(manifestPath, formFilter, code, { requireSingle
     const themeFile = form.theme?.file ?? manifest.theme?.file;
     const theme = themeFile ? JSON.parse(readFileSync(join(baseDir, themeFile), 'utf8')) : undefined;
     const locale = code ? locales.find((d) => d.locale === code) : undefined;
-    if (code && !locale && (requireSingle || Boolean(formFilter))) {
+    if (code && !locale && (requireSingle || requireAll || Boolean(formFilter))) {
       failCli(`${manifestPath} (${form.formId}): no Locale document for ${code}`);
     }
     return { formId: form.formId, slug: form.slug, displayName: form.displayName, definition, theme, locales, locale };
@@ -146,7 +149,7 @@ if (isMain) {
   }
   if (!['emit', 'a11y', 'serve'].includes(command)) failCli(USAGE);
 
-  const resolveForms = ({ requireSingle = false } = {}) => {
+  const resolveForms = ({ requireSingle = false, requireAll = false } = {}) => {
     const docsDir = flag('docs');
     const manifestArg = flag('manifest');
     const formFilter = flag('form');
@@ -156,7 +159,7 @@ if (isMain) {
       : undefined;
     const manifestPath = manifestArg ?? autoManifest;
     if (manifestPath) {
-      return { manifestPath, forms: readPackageForms(manifestPath, formFilter, code, { requireSingle }) };
+      return { manifestPath, forms: readPackageForms(manifestPath, formFilter, code, { requireSingle, requireAll }) };
     }
     if (!docsDir) failCli(USAGE);
     return { manifestPath: undefined, forms: [{ formId: basename(docsDir), ...readDocuments(docsDir, code) }] };
@@ -233,26 +236,50 @@ if (isMain) {
       failCli(`formspec-walk emit: ${error.message}`);
     }
   } else {
-    if (!flag('url') || (!flag('docs') && !flag('manifest'))) failCli(USAGE);
-    const { manifestPath, forms } = resolveForms({ requireSingle: true });
-    const [selectedForm] = forms;
-    const { definition, theme, locale } = selectedForm;
-    const code = flag('locale');
-    const formFilter = flag('form');
-    const plan = derivePlan(definition, { locale, theme });
+    const all = args.includes('--all');
+    const template = flag('url-template');
+    const outDir = flag('out-dir');
+    if (all) {
+      if (!flag('manifest') || !template || !outDir || outDir.startsWith('--') || ['url', 'form', 'out', 'docs'].some(key => flag(key))) failCli(USAGE);
+      if (!/{(?:formId|slug)}/.test(template)) failCli('--url-template requires {formId} or {slug}');
+    } else if (template || outDir || !flag('url') || (!flag('docs') && !flag('manifest'))) failCli(USAGE);
+
+    const { manifestPath, forms } = resolveForms({ requireSingle: !all, requireAll: all });
+    const urls = new Set();
+    const files = new Set();
+    const targets = forms.map(form => {
+      if (!all) return { form, url: flag('url'), file: flag('out') };
+      if (typeof form.formId !== 'string' || !form.formId) failCli('Every manifest form requires a formId');
+      const url = template.replace(/{(formId|slug)}/g, (_, key) => {
+        if (!form[key]) failCli(`${form.formId} has no ${key} for --url-template`);
+        return encodeURIComponent(form[key]);
+      });
+      const filename = encodeURIComponent(form.formId) + '.spec.ts';
+      if (files.has(filename.toLowerCase()) || urls.has(url)) failCli(`${form.formId}: duplicate spec filename or host URL`);
+      files.add(filename.toLowerCase());
+      urls.add(url);
+      return { form, url, file: join(outDir, filename) };
+    });
+    if (all && existsSync(outDir)) {
+      const wanted = new Set(targets.map(target => basename(target.file)));
+      const stale = readdirSync(outDir).find(name => name.endsWith('.spec.ts') && !wanted.has(name));
+      if (stale) failCli(`${outDir} contains another spec (${stale}); use a dedicated output directory`);
+    }
     await initFormspecEngine();
-    const recipes = deriveRecipes(createFormEngine(definition), plan);
-    const root = flag('root');
-    const rootFlag = root ? ` --root '${root.replaceAll("'", "'\\''")}'` : '';
-    const sourceFlag = flag('manifest')
-      ? `--manifest ${relative(process.cwd(), flag('manifest')) || basename(flag('manifest'))}`
-      : `--docs ${relative(process.cwd(), flag('docs')) || '.'}`;
-    const formFlag = formFilter ? ` --form ${formFilter}` : (manifestPath ? ` --form ${selectedForm.formId}` : '');
-    const command_ = `npx formspec-walk emit ${sourceFlag}${formFlag} --url ${flag('url')}${rootFlag}${code ? ` --locale ${code}` : ''}${flag('out') ? ` --out ${relative(process.cwd(), flag('out'))}` : ''}`;
-    const source = manifestPath
-      ? `${basename(dirname(manifestPath))}/${selectedForm.formId}${selectedForm.displayName ? ` (${selectedForm.displayName})` : ''}`
-      : `${basename(flag('docs'))}/`;
-    const spec = emitSpec(plan, definition, { url: flag('url'), root, source, command: command_, locale, recipes, from: flag('from') });
-    await writeOutput(flag('out'), spec);
+    const commandLine = ['formspec-walk', ...args].map(arg => /^[a-zA-Z0-9_./:@=-]+$/.test(arg)
+      ? arg : "'" + arg.replaceAll("'", "'\\''") + "'").join(' ');
+    const outputs = targets.map(({ form, url, file }) => {
+      const { definition, theme, locale } = form;
+      const plan = derivePlan(definition, { locale, theme });
+      const recipes = deriveRecipes(createFormEngine(definition), plan);
+      const source = manifestPath
+        ? `${basename(dirname(manifestPath))}/${form.formId}${form.displayName ? ` (${form.displayName})` : ''}`
+        : `${basename(flag('docs'))}/`;
+      const spec = emitSpec(plan, definition, { url, source, command: commandLine, locale, recipes,
+        formId: form.formId, root: flag('root'), axe: args.includes('--axe'), theme, from: flag('from') });
+      return { file, spec };
+    });
+    if (all) mkdirSync(outDir, { recursive: true });
+    for (const { file, spec } of outputs) await writeOutput(file, spec);
   }
 }

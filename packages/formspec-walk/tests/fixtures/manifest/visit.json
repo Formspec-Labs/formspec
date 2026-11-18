@@ -1,0 +1,5 @@
+{
+  "$formspec": "1.0", "url": "urn:example:visit", "version": "1.0.0", "status": "draft", "title": "Visit",
+  "items": [{ "key": "place", "type": "field", "dataType": "string", "label": "Meeting place" }],
+  "binds": [{ "path": "place", "constraint": "$place != 'unavailable'" }]
+}

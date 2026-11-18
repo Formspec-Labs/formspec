@@ -1,0 +1,6 @@
+{
+  "forms": [
+    { "formId": "contact", "slug": "contact-us", "definition": { "file": "contact.json" }, "locales": [{ "file": "contact.en.json" }] },
+    { "formId": "visit", "slug": "book-visit", "definition": { "file": "visit.json" } }
+  ]
+}

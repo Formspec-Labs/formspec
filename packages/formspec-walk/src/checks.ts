@@ -57,6 +57,8 @@ export interface SummaryRowWant {
 export interface OpenOptions {
     /** The page to open; it must mount a `<formspec-render>`. */
     url?: string;
+    /** Refuse to attribute a manifest form's checks to a different mounted Definition. */
+    expectedDefinition?: { url: string; version: string };
     /** Or mount the form yourself (a harness). */
     mount?: (page: Page) => Promise<void>;
     /** Locale code to activate once the form is up. */
@@ -167,8 +169,8 @@ export class Walk {
         this.root = page.locator(rootSelector);
     }
 
-    /** Open the page (or mount), activate the locale, add the renderer's default summary if the page placed none. */
-    static async open(page: Page, options: OpenOptions): Promise<Walk> {
+    /** Load the selected host form and locale for keyboard, reader or axe checks. */
+    static async openPage(page: Page, options: OpenOptions): Promise<void> {
         const rootSelector = options.root ?? DEFAULT_WALK_ROOT_SELECTOR;
         if (options.url) await page.goto(options.url);
         if (options.mount) await options.mount(page);
@@ -176,10 +178,24 @@ export class Walk {
         const ready = ':is([data-name], .formspec-repeat, .formspec-workspace, .formspec-wizard-panel, [role="tabpanel"]):visible';
         const root = options.root === undefined ? rootSelector : `:is(${rootSelector})`;
         await page.waitForSelector(`${root} ${ready}`);
+        if (options.expectedDefinition) {
+            const expected = options.expectedDefinition;
+            const matches = await page.locator(rootSelector).evaluate((element, target) => {
+                const mounted = (element as HTMLElement & { engine?: IFormEngine }).engine?.getDefinition();
+                return mounted?.url === target.url && mounted?.version === target.version;
+            }, expected);
+            if (!matches) throw new Error(`Host did not mount ${expected.url} version ${expected.version}`);
+        }
         if (options.locale) {
             await page.evaluate(({ selector, code }) => { (document.querySelector(selector) as any).locale = code; }, { selector: rootSelector, code: options.locale });
             await page.waitForTimeout(150);
         }
+    }
+
+    /** Open the form and start the reader, adding the default validation summary if needed. */
+    static async open(page: Page, options: OpenOptions): Promise<Walk> {
+        await Walk.openPage(page, options);
+        const rootSelector = options.root ?? DEFAULT_WALK_ROOT_SELECTOR;
         // A page that places no ValidationSummary gets the renderer's default one (jump links on) before the
         // walk starts, so the form re-plans once, up front.
         const added = await page.evaluate((selector) => {

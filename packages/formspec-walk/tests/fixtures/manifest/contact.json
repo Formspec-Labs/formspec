@@ -1,0 +1,4 @@
+{
+  "$formspec": "1.0", "url": "urn:example:contact", "version": "1.0.0", "status": "draft", "title": "Contact",
+  "items": [{ "key": "name", "type": "field", "dataType": "string", "label": "Contact name" }]
+}
