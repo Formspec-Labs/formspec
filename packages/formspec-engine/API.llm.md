@@ -518,31 +518,6 @@ type RuntimeNowInput = Date | string | number;
 
 @filedesc Validate instance JSON against optional per-instance schema (datatype strings).
 
-## `collectSeedFromGroups(items: FormItem[], prefix?: string): SeedFromGroup[]`
-
-## `findRelativeSeedContext(fieldPath: string, seedFromGroups: SeedFromGroup[]): {
-    seedFrom: SeedFromGroup['seedFrom'];
-    rowIndex: number;
-} | null`
-
-## `repeatHasHostData(groupPath: string, data: Record<string, unknown>, signals: Record<string, {
-    value: FormFieldValue;
-}>, minRepeat: number): boolean`
-
-True when host primary data already sized this repeat.
-
-## `resolvePrePopulateFromInstance(item: FormItem, fieldPath: string, seedFromGroups: SeedFromGroup[], getInstanceData: (name: string, path?: string) => FormFieldValue, instanceDataRoot: (name: string) => unknown): FormFieldValue | undefined`
-
-#### type `SeedFromGroup`
-
-```ts
-type SeedFromGroup = {
-    path: string;
-    item: FormItem;
-    seedFrom: NonNullable<FormItem['seedFrom']>;
-};
-```
-
 ## `sourceErrorMessage(error: unknown): string`
 
 ## `freezeSourceMetadata(value: T): T`

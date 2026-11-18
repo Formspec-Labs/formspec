@@ -426,8 +426,10 @@ User-provided component overrides.
 
 #### interface `SubmitResult`
 
-- **response**: `FormResponse`
-- **validationReport**: `ValidationReport | null`
+- **previewFiling** (`{
+        receiptRef: string;
+        label: string;
+    }`): Receipt and label for a completed local preview filing.
 
 #### interface `FormspecHumanReference`
 
