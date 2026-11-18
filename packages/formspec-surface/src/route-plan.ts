@@ -30,10 +30,11 @@ import type { WidgetRegistry } from './registry.js';
 import type { DataSourceCatalogHandle } from './data-source-loader.js';
 import type { MappingDocumentHandle } from './definition-form-initial-data.js';
 import type { ExperienceDocumentHandle } from './experience-unit.js';
-import { planRoute, type SlotPlan } from './slot-plan.js';
+import { planRoute, type SlotPlan, type SurfaceDefinitionComponentResolver } from './slot-plan.js';
 import type { HeadingLevel, SurfaceStaticAssetResolver } from './static-content.js';
 import type { SurfaceStringOverrides, SurfaceStrings } from './strings.js';
 import type { ThemeAuthority, ThemeGrant } from './theme-authority.js';
+import type { FilingSectionLocaleLookup } from './filing-status.js';
 import {
   planTransitions,
   slotSuppliedTriggers,
@@ -58,6 +59,8 @@ export interface SurfaceRoutePlanInput<TComponent> {
   mappings?: readonly MappingDocumentHandle[] | undefined;
   /** Exact manifest URL for the matched Surface document. */
   surfaceRef?: string | undefined;
+  resolveDefinitionComponent?: SurfaceDefinitionComponentResolver | undefined;
+  resolveDefinitionLocaleString?: FilingSectionLocaleLookup | undefined;
   responseActions?: readonly ResponseActionsDocumentLike[] | undefined;
   themeAuthority: ThemeAuthority;
   /** Whether the host supplied a Response Actions executor. Never assumed. */
@@ -105,6 +108,7 @@ export function planMatchedRoute<TComponent>(
     params: input.params,
     experiences: input.experiences,
     screenerHandles: input.screenerHandles,
+    filingStatus: { app: input.app, themeAuthority: input.themeAuthority, resolveDefinitionLocaleString: input.resolveDefinitionLocaleString },
     experienceHandles: input.experienceHandles,
     definitions: input.definitions,
     registryEntries: input.registryEntries,
@@ -112,6 +116,7 @@ export function planMatchedRoute<TComponent>(
     dataSources: input.dataSources,
     mappings: input.mappings,
     surfaceRef: input.surfaceRef,
+    resolveDefinitionComponent: input.resolveDefinitionComponent,
     responseActions: input.responseActions,
     headingBaseLevel,
     staticAssetResolver: input.staticAssetResolver,

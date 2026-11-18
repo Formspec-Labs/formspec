@@ -1473,14 +1473,122 @@ one-for-one:</p>
 <td><code>saveFailed</code></td>
 <td>none</td>
 </tr>
+<tr>
+<td><code>filingNotStarted</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingNotStartedWithSize</code></td>
+<td><code>count</code></td>
+</tr>
+<tr>
+<td><code>filingInProgress</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingReady</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingReadinessUnavailable</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingLoading</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingDenied</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingStale</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingUnavailable</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingAddressUnavailable</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingDefinitionUnavailable</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingSubjectUnavailable</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingChecksUnavailable</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingSectionCountsUnavailable</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingFillCount</code></td>
+<td><code>filled</code>, <code>total</code></td>
+</tr>
+<tr>
+<td><code>filingSomeProgressUnavailable</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingFixCount</code></td>
+<td><code>count</code></td>
+</tr>
+<tr>
+<td><code>filingCheckCount</code></td>
+<td><code>count</code></td>
+</tr>
+<tr>
+<td><code>filingAnswered</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingStillToAnswer</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingHasFix</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingHasCheck</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingSummaryAnswered</code></td>
+<td><code>filled</code>, <code>total</code></td>
+</tr>
+<tr>
+<td><code>filingSummaryToFix</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingSummaryToCheck</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingLegendCaption</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>filingSections</code></td>
+<td><code>count</code></td>
+</tr>
 </tbody>
 </table>
 <p>The shell-specific references form a read-only object supplied by the
 Surface processor. They carry strings only and expose no route table,
 navigation function, action executor, Response, or mutable host state.
 All ordinary FEL rules still apply.</p>
-<p>The preview edition, appearance and draft save keys require Locale
-2.1.</p>
+<p>The preview edition, appearance, draft save, and filing-status keys
+require Locale 2.1.</p>
 <p>These keys are valid only for <code>target.kind: "app"</code> and the
 <code>x-formspec-surface</code> module. A processor MUST reject an
 unknown shell suffix and MUST NOT translate a shorter host key or legacy

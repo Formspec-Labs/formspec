@@ -140,6 +140,24 @@ class TestLocaleSchema:
         doc["$formspecLocale"] = "2.1"
         _validate(doc)
 
+    @pytest.mark.parametrize(("key", "value"), [
+        ("filingLegendCaption", "Chaque bande représente un formulaire."),
+        ("filingSections", "Rubriques ({{$count}})"),
+    ])
+    def test_filing_chrome_requires_a_locale_2_1_app_target(self, key: str, value: str) -> None:
+        doc = _minimal_locale()
+        doc["target"] = {"kind": "app", "url": "https://example.gov/apps/intake"}
+        doc["strings"] = {
+            f"$module.x-formspec-surface.shell.{key}": value,
+        }
+        with pytest.raises(ValidationError):
+            _validate(doc)
+        doc["$formspecLocale"] = "2.1"
+        _validate(doc)
+        doc["target"]["kind"] = "definition"
+        with pytest.raises(ValidationError):
+            _validate(doc)
+
     def test_ui_chrome_key_is_valid_on_a_definition_target(self) -> None:
         doc = _minimal_locale()
         doc["strings"] = {"$ui.repeat.add": "Ajouter {{$label}}"}

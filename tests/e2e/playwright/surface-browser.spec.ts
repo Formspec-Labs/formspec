@@ -1,6 +1,6 @@
 /** @filedesc Native browser navigation and color-scheme checks for Surface. */
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { Walk } from '@formspec-org/walk';
 import { expect, test } from '@playwright/test';
 import { SURFACE_APPEARANCE_SCRIPT } from '../../../packages/formspec-surface-react/src/browser-appearance';
@@ -264,3 +264,174 @@ test('Definition Walk finds the right empty repeat when two workspace sections u
     await walk.sr.stop();
   }
 });
+
+test('filing-status exposes task progress and opens its section disclosure by keyboard', async ({ page }) => {
+  await page.goto('/surface-browser.html?tracker');
+  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const task = tracker.getByRole('link', { name: 'Filing', exact: true });
+  await expect(task).toHaveAccessibleDescription('In progress');
+  await expect(tracker.getByText('Have the contact details ready.')).toBeVisible();
+  const strip = tracker.locator('.fs-surface-filing__strip');
+  await expect(strip).toHaveCount(3);
+  await expect(strip.first()).toHaveAttribute('aria-hidden', 'true');
+  const row = task.locator('xpath=ancestor::li[1]');
+  const summary = row.locator('details > summary');
+  // The form name distinguishes otherwise identical section counts in a screen reader.
+  await expect(summary).toHaveAccessibleName('Sections (2) Filing');
+  await expect(tracker.locator('details > summary').nth(2)).toHaveAccessibleName('Sections (3) Annual report');
+  await expect(summary).toHaveCSS('display', 'list-item');
+  await expect(summary).toHaveCSS('list-style-type', 'disclosure-closed');
+  const section = tracker.getByRole('link', { name: 'Report details 2 of 4 answered 1 to fix 2 to check', exact: true });
+  await expect(section).toHaveCount(0);
+  await expect(strip.first().locator('[data-finding="fix"]')).toHaveCount(1);
+  await expect(strip.first().locator('[data-finding="check"]')).toHaveCount(1);
+  await expect(strip.first().locator('[data-finding="fix"]')).toHaveCSS('border-block-start-style', 'solid');
+  await expect(strip.first().locator('[data-finding="check"]')).toHaveCSS('border-block-start-style', 'dashed');
+  const fix = row.locator('.fs-surface-filing__counts .fs-surface-filing__fix');
+  const check = row.locator('.fs-surface-filing__counts .fs-surface-filing__check');
+  expect(await fix.evaluate(node => getComputedStyle(node).color)).not.toBe(await check.evaluate(node => getComputedStyle(node).color));
+  const [filing, roster, report] = await strip.evaluateAll(strips => strips.map(element => {
+    const { width, height } = element.getBoundingClientRect();
+    return { width, height, segments: Array.from(element.children, segment => segment.getBoundingClientRect().width) };
+  }));
+  expect(filing.height).toBeCloseTo(36);
+  expect(filing.width / report.width).toBeCloseTo(Math.sqrt(3 / 12));
+  expect(roster.width / report.width).toBeCloseTo(Math.sqrt(1 / 12));
+  expect(filing.segments[1] / filing.segments[0]).toBeCloseTo(2);
+  expect(filing.segments.reduce((a, b) => a + b)).toBeLessThan(filing.width);
+  await expect(tracker.getByText('Not started, 1 question')).toBeVisible();
+  await expect(tracker.locator('.fs-surface-filing__totals dl dd').first()).toHaveText('14 of 18');
+  await expect(tracker.locator('[aria-live], [role="status"]')).toHaveCount(0);
+  await task.focus();
+  await page.keyboard.press('Tab');
+  await expect(summary).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(row.locator('details')).toHaveAttribute('open', '');
+  await expect(summary).toHaveCSS('list-style-type', 'disclosure-open');
+  const item = section.locator('..');
+  await expect(item).toContainText('2 of 4 answered');
+  await expect(item).toContainText('1 to fix');
+  await expect(item).toContainText('2 to check');
+  await page.keyboard.press('Tab');
+  await expect(section).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page).toHaveURL(/#\/filing\/ny\?slot=filing&section=report-details$/);
+  await expect(page.locator('[data-fixture-section]')).toHaveText('report-details');
+  await expect(page.getByRole('textbox', { name: 'Contact name' })).toBeVisible();
+});
+
+test('a pointer click on a strip segment follows its section link', async ({ page }) => {
+  await page.goto('/surface-browser.html?tracker');
+  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const section = tracker.locator('details a').filter({ hasText: /^Certification\b/ });
+  const href = await section.getAttribute('href');
+  await tracker.locator('.fs-surface-filing__strip').first().locator('.fs-surface-filing__segment').nth(1).click();
+  expect(new URL(page.url()).hash).toBe(href);
+  await expect(page.locator('[data-fixture-section]')).toHaveText('certification');
+});
+
+test('a modified click opens a hidden strip link in a new tab', async ({ page, context }) => {
+  await page.goto('/surface-browser.html?tracker');
+  const segment = page.locator('.fs-surface-filing__strip').first().locator('a').first();
+  const task = page.getByRole('link', { name: 'Filing', exact: true });
+  await task.focus();
+  await expect(segment).toHaveAttribute('tabindex', '-1');
+  await expect(segment).toHaveAttribute('title', 'Report details: 2 of 4 answered, 1 to fix, 2 to check');
+  await expect(segment).toHaveAttribute('href', '#/filing/ny?slot=filing&section=report-details');
+  const overview = page.url();
+  const [tab] = await Promise.all([
+    context.waitForEvent('page'),
+    segment.click({ modifiers: ['ControlOrMeta'] }),
+  ]);
+  await expect(tab.locator('[data-fixture-section]')).toHaveText('report-details');
+  await expect(tab).toHaveURL(/#\/filing\/ny\?slot=filing&section=report-details$/);
+  await expect(page).toHaveURL(overview);
+  await expect(task).toBeFocused();
+  await tab.close();
+});
+
+test('forced colors retain the answered fill and both kinds of findings', async ({ page }) => {
+  await page.emulateMedia({ forcedColors: 'active' });
+  await page.goto('/surface-browser.html?tracker');
+  const strip = page.locator('.fs-surface-filing__strip').first();
+  const segment = strip.locator('.fs-surface-filing__segment').first();
+  await expect(segment.locator('.fs-surface-filing__fill')).toHaveCSS('width', /^(?!0px$).+/);
+  const [background, fill, fix, check] = await strip.evaluate(node => {
+    const color = (selector: string, property: string) =>
+      getComputedStyle(node.querySelector(selector)!).getPropertyValue(property);
+    return [
+      color('.fs-surface-filing__segment', 'background-color'),
+      color('.fs-surface-filing__fill', 'background-color'),
+      color('[data-finding="fix"]', 'border-block-start-color'),
+      color('[data-finding="check"]', 'border-block-start-color'),
+    ];
+  });
+  expect(fill).not.toBe(background);
+  expect(fix).not.toBe(background);
+  expect(check).not.toBe(background);
+  await expect(strip.locator('[data-finding="fix"]')).toHaveCSS('border-block-start-style', 'solid');
+  await expect(strip.locator('[data-finding="check"]')).toHaveCSS('border-block-start-style', 'dashed');
+});
+
+test('tracker columns follow the container width and wrap expanded section links', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await page.goto('/surface-browser.html?tracker');
+  const row = page.locator('.fs-surface-filing__row').first();
+  await expect(row.getByText('2 of 5 answered', { exact: true })).toBeVisible();
+  const positions = () => row.locator(':scope > div').evaluateAll(
+    columns => columns.map(column => ({ x: column.getBoundingClientRect().x, y: column.getBoundingClientRect().y })),
+  );
+  const [form, sections, progress] = await positions();
+  expect(form!.x).toBeLessThan(sections!.x);
+  expect(sections!.x).toBeLessThan(progress!.x);
+  await row.locator('summary').click();
+  const sectionItems = row.locator('.fs-surface-filing__sections li');
+  const [first, second] = await sectionItems.evaluateAll(items => items.map(item => item.getBoundingClientRect().y));
+  expect(first).toEqual(second);
+
+  const tracker = page.locator('.fs-surface-filing');
+  await tracker.evaluate(node => { node.style.inlineSize = '320px'; });
+  const narrow = await positions();
+  expect(narrow.map(column => column.x)).toEqual([form!.x, form!.x, form!.x]);
+  expect(narrow[0]!.y).toBeLessThan(narrow[1]!.y);
+  expect(narrow[1]!.y).toBeLessThan(narrow[2]!.y);
+});
+
+for (const [variant, formCount] of [['small', 3], ['large', 12]] as const) {
+  test(`filing tracker fits desktop and mobile with ${formCount} forms`, async ({ page }) => {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`/surface-browser.html?tracker=${variant}`);
+      const rows = page.locator('.fs-surface-filing__row');
+      await expect(rows).toHaveCount(formCount);
+      await expect(page.locator('.fs-surface-filing__totals dd')).toHaveCount(3);
+      const columns = rows.first().locator(':scope > div');
+      const x = await columns.evaluateAll(elements => elements.map(element => element.getBoundingClientRect().x));
+      expect(new Set(x).size).toBe(width === 1280 ? 3 : 1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      if (variant === 'large') {
+        const sectionCounts = await rows.evaluateAll(elements => elements.map(
+          row => row.querySelectorAll('.fs-surface-filing__sections a').length,
+        ));
+        expect(sectionCounts).toEqual([10, 11, 12, 13, 14, 15, 10, 11, 12, 13, 14, 15]);
+        await expect(rows.locator('details:not([open])')).toHaveCount(formCount);
+        const firstRow = rows.first();
+        const height = () => firstRow.evaluate(element => element.getBoundingClientRect().height);
+        const closedHeight = await height();
+        const summary = firstRow.locator('summary');
+        // The visible count also carries the form name for assistive technology.
+        await expect(summary).toHaveAccessibleName('Sections (10) Eligible entity list');
+        await summary.click();
+        expect(await height()).toBeGreaterThan(closedHeight);
+        const linkLines = await firstRow.locator('.fs-surface-filing__sections li').evaluateAll(
+          items => new Set(items.map(item => item.getBoundingClientRect().y)).size,
+        );
+        expect(linkLines).toBeGreaterThan(1);
+        await summary.click();
+        await expect(firstRow.locator('details')).not.toHaveAttribute('open');
+      }
+      const screenshotDir = process.env.FORMSPEC_FILING_SCREENSHOT_DIR;
+      if (screenshotDir) await page.screenshot({ path: join(screenshotDir, `filing-${formCount}-${width}.png`), fullPage: true });
+    }
+  });
+}

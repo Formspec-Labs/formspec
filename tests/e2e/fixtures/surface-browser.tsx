@@ -3,11 +3,12 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { invokeResponseAction } from '@formspec-org/engine';
 import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
-import { dereferenceBundleExport } from '@formspec-org/surface';
+import { dereferenceBundleExport, type FilingDraftObservation, type FilingStatusReader } from '@formspec-org/surface';
 import type { ComponentDocument } from '@formspec-org/types';
 import { BrowserSurfaceApp, renderDefaultDefinitionForm } from '../../../packages/formspec-surface-react/src/index';
 import '../../../packages/formspec-surface-react/src/formspec-surface.css';
 import '../../../packages/formspec-layout/src/formspec-default.css';
+import { scaleForms } from './surface-filing-scale';
 
 const fixtureOptions = new URLSearchParams(location.search);
 const workspace = fixtureOptions.has('workspace');
@@ -17,30 +18,75 @@ const definition = `${id}/definition`;
 const surface = `${id}/surface`;
 const theme = `${id}/theme`;
 const actions = `${id}/actions`;
+const trackerMode = new URLSearchParams(location.search).get('tracker');
+const showsTracker = trackerMode !== null;
+const largeTracker = trackerMode === 'large';
+const smallTracker = showsTracker && !largeTracker;
+const extraForms = largeTracker ? scaleForms : [];
+const roster = `${id}/roster`;
+const report = `${id}/report`;
+const tracker = { id: 'tracker', slotType: 'filing-status', binding: { groups: [{
+  id: 'annual', label: 'Annual forms', forms: largeTracker ? extraForms.map(({ routeRef }) => ({ routeRef: `scale-${routeRef}`, slotRef: 'filing' })) : [{
+    routeRef: 'form', slotRef: 'filing', hint: 'Have the contact details ready.', params: { state: { value: 'ny' } },
+  }, { routeRef: 'roster', slotRef: 'filing' }, { routeRef: 'report', slotRef: 'filing' }],
+}] } };
+const contact = { key: 'contact', type: 'field', dataType: 'string', label: 'Contact name' };
+const supplemental = ['officer', 'submissionDate'].map(key => ({ ...contact, key, label: key }));
+const reportSections = [['people', 'People served', 7], ['outcomes', 'Outcomes', 4], ['notes', 'Notes', 1]] as const;
+const counts = { total: 4, filled: 2, toFix: 1, toCheck: 2 };
+const complete = (total: number) => ({ total, filled: total, toFix: 0, toCheck: 0 });
+const observations = new Map<string, FilingDraftObservation>([
+  [definition, { status: 'current', form: { total: 5, filled: 2, toFix: 1, toCheck: 3, ready: false }, sections: {
+    'report-details': counts,
+    'certification': { total: 1, filled: 0, toFix: 0, toCheck: 1 },
+  } }],
+  [roster, { status: 'absent' }],
+  [report, { status: 'current', form: { ...complete(12), ready: true },
+    sections: Object.fromEntries(reportSections.map(([key, , size]) => [key, complete(size)])) }],
+  ...extraForms.map(({ url, observation }) => [url, observation] as const),
+]);
+const readTracker: FilingStatusReader = async queries => new Map(queries.map(query => [
+  query.key, observations.get(query.definitionUrl) ?? { status: 'unavailable' },
+]));
+const contactControl = { component: 'TextInput', bind: showsTracker ? 'details.contact' : 'contact' };
 const componentDocument: ComponentDocument = {
   $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition },
   tree: { component: 'Stack', children: [
-    { component: 'TextInput', bind: 'contact' },
+    showsTracker
+      ? { component: 'Section', id: 'report-details', title: 'Report details', children: [contactControl] }
+      : contactControl,
+    ...(showsTracker ? [{ component: 'Section', id: 'certification', title: 'Certification',
+      children: supplemental.map(field => ({ component: 'TextInput', bind: `details.${field.key}` })) }] : []),
     { component: 'ActionButton', actionRef: 'save', label: { literal: 'Save draft' } },
   ] },
 };
 const bundle = dereferenceBundleExport({
   manifest: {
     $formspecBundle: '2.4', id, title: 'Example filing', entrySurface: surface,
-    definitions: [{ url: definition }], surfaces: [{ url: surface }], theme: { url: theme },
+    definitions: [definition, ...(smallTracker ? [roster, report] : []), ...extraForms.map(({ url }) => url)].map(url => ({ url })),
+    surfaces: [{ url: surface }], theme: { url: theme },
     responseActionDocuments: [{ url: actions }],
   },
   documents: {
     [surface]: {
-      $formspecSurface: '0.2', id: 'filing', entry: 'home', routes: [
-        { id: 'home', path: '/overview', title: 'Overview', routeClass: 'intake', slots: [] },
+      $formspecSurface: showsTracker ? '0.4' : '0.2', id: 'filing', entry: 'home', routes: [
+        { id: 'home', path: '/overview', title: 'Overview', routeClass: 'intake', slots: showsTracker ? [tracker] : [] },
         { id: 'root', path: '/', title: 'Root route', routeClass: 'intake', slots: [] },
         { id: 'form', path: '/filing/{state}', title: 'Filing', routeClass: 'intake',
+          ...(showsTracker ? { navigation: { visible: false } } : {}),
           params: [{ name: 'state', type: 'string' }],
           slots: [
             { id: 'filing', slotType: 'definition-form', binding: { definitionRef: definition } },
             ...(twoForms ? [{ id: 'additional', slotType: 'definition-form', binding: { definitionRef: definition } }] : []),
           ] },
+        ...(smallTracker ? [['roster', 'Eligible entity list', roster], ['report', 'Annual report', report]].map(([key, title, url]) => ({
+          id: key, path: `/${key}`, title, routeClass: 'intake', navigation: { visible: false },
+          slots: [{ id: 'filing', slotType: 'definition-form', binding: { definitionRef: url } }],
+        })) : []),
+        ...extraForms.map(({ routeRef, title, url }) => ({
+          id: `scale-${routeRef}`, path: `/scale/${routeRef}`, title, routeClass: 'intake', navigation: { visible: false },
+          slots: [{ id: 'filing', slotType: 'definition-form', binding: { definitionRef: url } }],
+        })),
         { id: 'staff', path: '/staff', title: 'Staff', routeClass: 'operation', slots: [] },
       ],
     },
@@ -67,8 +113,22 @@ const bundle = dereferenceBundleExport({
           ] },
         ],
         binds: [{ path: 'details.notes', required: 'true' }],
-      } : { items: [{ key: 'contact', type: 'field', dataType: 'string', label: 'Contact name' }] }),
+      } : {
+        description: 'Submit the annual filing and certify the information provided.',
+        items: showsTracker ? [{ key: 'details', type: 'group', label: 'Details', children: [contact, ...supplemental] }] : [contact],
+      }),
     },
+    [roster]: { $formspec: '1.0', url: roster, version: '1.0.0', title: 'Eligible entity list',
+      description: 'Identify eligible entities and the areas they serve.', items: [
+      { key: 'entities', type: 'group', label: 'Entities', children: [contact] },
+    ] },
+    [report]: { $formspec: '1.0', url: report, version: '1.0.0', title: 'Annual report',
+      description: 'Report people served and outcomes for the filing period.',
+      items: reportSections.map(([key, label, size]) => ({ key, type: 'group', label,
+        children: Array.from({ length: size }, (_, i) => ({ ...contact, key: `answer${i}`, label: `Question ${i + 1}` })),
+      })),
+    },
+    ...Object.fromEntries(extraForms.map(({ url, definition }) => [url, definition])),
     [theme]: { tokens: { 'color.primary': '#123456' } },
     [actions]: {
       $formspecResponseActions: '1.0', version: '1.0.0', scope: 'response',
@@ -82,6 +142,8 @@ await initFormspecEngine();
 const mode = location.pathname.startsWith('/surface-browser-history') ? 'history' : 'hash';
 createRoot(document.getElementById('root')!).render(
   <BrowserSurfaceApp bundle={bundle} mode={mode} basePath="/surface-browser-history" routeParams={{ state: 'ny' }}
+    readSummaries={showsTracker ? readTracker : undefined}
+    resolveDefinitionComponent={({ definition: target }) => !workspace && target.url === definition ? componentDocument : undefined}
     definitionActionInvoker={({ document, actionRef, nodeId, ports }) => invokeResponseAction(document, actionRef, ports, nodeId)}
     renderDefinitionForm={fixtureOptions.has('displayFirst') ? input => renderDefaultDefinitionForm({
       ...input,
@@ -104,7 +166,7 @@ createRoot(document.getElementById('root')!).render(
         <a href="#fixture-anchor">Skip to report controls</a>
         <p id="fixture-anchor" tabIndex={-1}>Report controls</p>
       </>}
-      {renderDefaultDefinitionForm({ ...input, componentDocument })}
+      {renderDefaultDefinitionForm(input)}
     </>}
   />,
 );

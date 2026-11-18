@@ -42,6 +42,7 @@ import { validateExecutableSchemaContracts } from './executable-schema-contracts
 import { validateLocaleAssociations } from './locale-associations.js';
 import { validateNeedsCoverage } from './needs-coverage.js';
 import { runRenderedNeedTrace } from './rendered-need-trace.js';
+import { validateFilingStatusTargets } from './filing-status-targets.js';
 import { validateScreenerSurfaceTargets } from './screener-surface-targets.js';
 import { validateSurfaceDefinitionSlots } from './surface-definition-slots.js';
 import { validateSurfaceExperienceUnits } from './surface-experience-units.js';
@@ -343,6 +344,7 @@ function runCrossArtifactValidators(
     validateLocaleAssociations,
     validateNeedsCoverage,
     validateScreenerSurfaceTargets,
+    validateFilingStatusTargets,
     validateSurfaceDefinitionSlots,
     validateSurfaceExperienceUnits,
     validateSurfaceResponseActionTriggers,

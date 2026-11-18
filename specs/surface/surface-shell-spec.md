@@ -169,6 +169,7 @@ This specification defines the processor that closes the gap. In scope:
   predictably when nothing matches (§2).
 - Dispatching each slot type to a rendering obligation, including what a slot
   does when the artifact it names is absent (§3).
+- Planning filing trackers and displaying authorized draft observations (§3.6).
 - Deriving theme authority from route class, and scoping token emission so the
   derivation cannot be undone downstream (§4).
 - Planning transitions without firing them (§5).
@@ -203,7 +204,7 @@ reproducible across React, a web component, a PDF writer, or a terminal.
 |---|---|---|
 | **Shell core** | Composing the route table; path matching and specificity; entry-route selection; slot dispatch and target resolution; theme grant per route; heading-level assignment; transition planning; the diagnostic set. | Emit markup, touch a DOM, assume a medium, own navigation history, or fetch anything. |
 | **Binding** | Turning a route plan into one medium's primitives; element choice; focus order; the presentation of unavailable, empty, and unfireable states. | Re-derive anything the core decided — a binding that recomputes a route match, a theme grant, a slot dispatch, or a heading level has forked the contract. |
-| **Host application** | Supplying the incoming path and route-parameter values; supplying bundle bytes and signature; verification (§6); the widget registry; the Response Actions executor; navigation and history; the data a module widget displays; presenting unmatched paths. | Reach past the shell to write theme tokens; infer transition success from a click; substitute an artifact the bundle did not name. |
+| **Host application** | Supplying the incoming path and route-parameter values; supplying bundle bytes and signature; verification (§6); the widget registry; the Response Actions executor; navigation and history; the data a module widget displays; authorized filing-summary reads; presenting unmatched paths. | Reach past the shell to write theme tokens; infer transition success from a click; substitute an artifact the bundle did not name. |
 | **Validation-time tooling** | Everything decidable without a person: `E603`, `E604`, `E606`, `E607`, `E610`, `E611` (§5.4), `THEME-ROUTE-CLASS`, `THEME-TOKEN-UNREGISTERED`. | Nothing here is the shell's to re-implement. |
 
 **The shell trusts validation and still fails closed.** A conformant shell MAY
@@ -582,8 +583,16 @@ exactly:
 `transitionTriggerUnresolved`, `transitionTriggerAmbiguous`,
 `transitionNoExecutor`, `transitionSuppliedBySlot`, `transitionFireable`,
 `previewEditionLabel`, `appearanceLabel`, `appearanceSystem`,
-`appearanceLight`, `appearanceDark`, `saved`, `savedLocally`, and `saveFailed`.
-The preview edition, appearance and draft save keys require Locale 2.1.
+`appearanceLight`, `appearanceDark`, `saved`, `savedLocally`, `saveFailed`,
+`filingNotStarted`, `filingNotStartedWithSize`, `filingInProgress`, `filingReady`,
+`filingReadinessUnavailable`, `filingLoading`, `filingDenied`, `filingStale`,
+`filingUnavailable`, `filingAddressUnavailable`, `filingDefinitionUnavailable`,
+`filingSubjectUnavailable`, `filingChecksUnavailable`, `filingSectionCountsUnavailable`,
+`filingFillCount`, `filingSomeProgressUnavailable`, `filingFixCount`, `filingCheckCount`,
+`filingAnswered`, `filingStillToAnswer`, `filingHasFix`, `filingHasCheck`,
+`filingSummaryAnswered`, `filingSummaryToFix`, `filingSummaryToCheck`,
+`filingLegendCaption`, and `filingSections`.
+The preview edition, appearance, draft save, and filing-status keys require Locale 2.1.
 
 The Locale schema and the runtime string inventory MUST contain the same set,
 one-for-one. No processor may add a free-form shell key or accept a compatibility
@@ -594,7 +603,8 @@ remain literal text.
 The shell exposes a read-only FEL context for these strings. It contains
 `$widgetName` for widget-unavailable keys, `$target` for
 `transitionContinue`, `$to` for transition-target keys, and `$trigger` for
-transition trigger/executor/status keys. Keys not named here receive no
+transition trigger, executor, and status keys. Filing answer counts use
+`$filled` and `$total`. Filing finding counts and the not-started size hint use `$count`. Keys not named here receive no
 shell-specific variable. Missing variables follow Locale's ordinary FEL
 interpolation behavior; the shell MUST NOT run a second interpolation pass.
 
@@ -922,6 +932,55 @@ The slot renders another route of the **same** Surface inside the host route.
   navigation context.
 
 ---
+
+### 3.6 `filing-status`
+
+The shell plans the tracker from the authored Surface groups and the admitted
+Definitions. It MUST use the ordinary route label precedence (authored
+navigation label, route title, then route ID), preserve authored group and form
+order, and generate links using the normal route matcher and href builder.
+Navigation visibility governs the menu. The generated address MUST match the
+intended route, including when a literal path shadows a parameterized path.
+Disable an entry whose route or Definition is unavailable and explain why on
+that row. Duplicate groups or resolved targets make the tracker unavailable.
+Use the address query's reserved `slot` and `section` keys for links to a form
+slot and an identified section. Route parameters supply the existing
+`subjectKeys` resolution for that same form.
+
+Plan sections from the same admitted Component, Theme, and Definition as the
+form. Resolve its description and section labels through the active Definition Locale. Use shared
+evaluated progress to report counts. The shell MUST NOT open drafts or start
+form engines for the tracker. A host may supply one `readSummaries` call for authorized, revision-qualified
+draft summaries for all displayed forms. A matching current summary supplies
+counts at its saved revision. Its ready flag means that required values,
+including read-only values, are filled and the applicable report has no
+blocking findings. A required blank establishes In progress even when the
+report is unavailable. A current draft with insufficient readiness evidence
+retains its counts and shows readiness unavailable. An authorized read
+confirming absence is Not started. Loading, denied, stale, and
+unavailable reads have distinct presentation. A refused or missing result
+provides no counts or evidence of absence. Retain the authored section links
+when counts are unavailable. Sum known answer and finding counts across the
+tracker and indicate when some progress is unavailable. Confirmed absence
+contributes zero answers and findings and the authored question count.
+
+Each form row presents a task link, a section strip, and status and counts.
+Show the Definition description and authored hint when present. Connect the
+task link to its status with `aria-describedby`. Stack the row on narrow
+containers. A collapsed-by-default disclosure below each strip shows the
+localized section count in its summary and opens a wrapping list of section
+links with accessible text for available answer and finding counts. Each strip
+segment links to the same section, preserves native modified-click behavior,
+and shows the section name and available counts in its pointer tooltip. Each
+segment marks issues to fix first, then issues to check when no fix mark applies. The summary
+labels the answered, fix, and check totals. A caption under the legend explains
+how strip and segment lengths relate to the forms. Template fields set segment
+widths. The strip's share of the available width is
+`max(sqrt(formWeight / largestFormWeight), 0.08)`. Repeated instances affect
+counts. The strip is `aria-hidden` and its links are outside the tab order.
+In forced colors, the fill and both mark styles remain visible. Counts MUST
+stay outside live regions.
+The viewing route's Theme grant governs the tracker.
 
 ## 4. The Theme Boundary
 
@@ -1767,7 +1826,7 @@ A conformant **Surface Shell Core** MUST:
     `severity`, `message`, and a document-vocabulary `site` (§7).
 30. Report rather than throw for every condition in §7.2, and deliver every
     diagnostic to the host regardless of which stage produced it (§7.1).
-31. Keep its person-facing strings one-for-one with Locale 2.0's closed Surface
+31. Keep its person-facing strings one-for-one with Locale's closed Surface
     key set, evaluate only FEL `{{...}}`, and keep fallback within the same app
     target (§3.0).
 

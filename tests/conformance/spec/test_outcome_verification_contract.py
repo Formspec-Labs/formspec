@@ -286,7 +286,9 @@ def test_response_observations_pin_complete_response_identity() -> None:
 def test_stable_rule_catalog_matches_owner_specs() -> None:
     for relative_path, version, rule_id in RULE_CATALOG:
         owner = (SPEC_DIR / relative_path).read_text(encoding="utf-8")
-        assert f"version: {version}" in owner
+        header = owner.split("---", 2)[1].splitlines()
+        # An additive dialect can keep a published rule's exact observation version.
+        assert f"version: {version}" in header or f"  {rule_id}: {version}" in header
         assert f"`{rule_id}`" in owner
         assert f"`{version}`" in OUTCOME_SPEC
         assert f"`{rule_id}`" in OUTCOME_SPEC

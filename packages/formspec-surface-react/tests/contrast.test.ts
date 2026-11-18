@@ -62,6 +62,7 @@ const SCHEMES = {
     accentFill: tokens['color.primary'] as string,
     accentInk: tokens['color.primaryForeground'] as string,
     danger: tokens['color.error'] as string,
+    warning: tokens['color.warning'] as string,
     /** What the surface-render-v10 host paints behind the route. */
     hostPanel: '#ffffff',
   },
@@ -75,6 +76,7 @@ const SCHEMES = {
     accentFill: tokens['color.primary'] as string,
     accentInk: tokens['color.primaryForeground'] as string,
     danger: tokens['color.dark.error'] as string,
+    warning: tokens['color.dark.warning'] as string,
     hostPanel: '#1c2026',
   },
 } as const;
@@ -117,6 +119,13 @@ describe.each(Object.entries(SCHEMES))('shell-owned surfaces — %s', (_scheme, 
     expect(contrast(palette.danger, background)).toBeGreaterThanOrEqual(AA_BODY);
   });
 
+  it('filing tracker: badges and links on the card, answers on the strip', () => {
+    expect(contrast(palette.danger, palette.panel)).toBeGreaterThanOrEqual(AA_BODY);
+    expect(contrast(palette.warning, palette.panel)).toBeGreaterThanOrEqual(AA_BODY);
+    expect(contrast(palette.accent, palette.panel)).toBeGreaterThanOrEqual(AA_BODY);
+    expect(contrast(palette.accent, palette.panelQuiet)).toBeGreaterThanOrEqual(AA_NON_TEXT);
+  });
+
   it.each(backdrops)('nav link and card boundaries on %s clear SC 1.4.11', (_where, background) => {
     expect(contrast(palette.lineStrong, background)).toBeGreaterThanOrEqual(AA_NON_TEXT);
   });
@@ -138,6 +147,7 @@ describe('the stylesheet cannot regress to a single-scheme palette', () => {
     '--fs-surface-accent-fill',
     '--fs-surface-accent-ink',
     '--fs-surface-danger',
+    '--fs-surface-warning',
     '--fs-surface-focus',
   ];
 

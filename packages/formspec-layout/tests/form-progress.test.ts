@@ -201,6 +201,10 @@ it('reports form readiness independently of an optional blank in a section', () 
     expect(layout.pageProgressIssue(counts)).toBe('empty');
     expect(summary.sections[0].filled).toBe(false);
     expect(summary.form.ready).toBe(true);
+    expect(layout.summarizeFormProgress(plan, {
+        fields: [{ path: 'note', relevant: true, readonly: false, required: false, empty: true }],
+        report: null,
+    }).form.ready).toBeNull();
 });
 
 function result(path: string, severity: ValidationResult['severity'], code: string, extra = {}): ValidationResult {
@@ -245,6 +249,7 @@ it('counts live nested instances, ignores hidden values, and owns findings by co
     expect(rows.find(finding => finding.code === 'x-error')).toMatchObject({ label: 'Montant', jumpPath: `${row}.amount`, sectionId: 'Accounts.V1' });
     expect(rows.filter(finding => finding.formLevel).map(finding => [finding.code, finding.jumpPath]))
         .toEqual([['x-form', null], ['x-unplaced', null], ['x-info', null]]);
+    // Required blanks establish a blocker even when validation counts are unavailable.
     expect(layout.summarizeFormProgress(plan, { fields, report: null }).form)
         .toMatchObject({ total: 3, filled: 2, missing: 2, toFix: null, toCheck: null, ready: false });
 });

@@ -127,7 +127,7 @@ Attach unkeyed fragments to adjacent identified sections without changing their 
 #### interface `FormProgressSummary`
 
 - **form**: `ProgressCounts & {
-        ready: boolean;
+        ready: boolean | null;
     }`
 - **sections**: `Array<{
         id?: string;

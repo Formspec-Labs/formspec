@@ -43,6 +43,7 @@
   --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
   --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
   --fs-surface-danger: var(--formspec-color-error, #c1281f);
+  --fs-surface-warning: var(--formspec-color-warning, #946112);
   --fs-surface-focus: var(--formspec-color-ring, var(--formspec-color-primary, #27594f));
   --fs-surface-font-heading: var(--formspec-font-heading, "Fraunces", "Iowan Old Style", Georgia, serif);
   --fs-surface-font-mono: var(--formspec-font-mono, "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace);
@@ -65,6 +66,7 @@
     --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
     --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
     --fs-surface-danger: var(--formspec-color-dark-error, #ff8b7f);
+    --fs-surface-warning: var(--formspec-color-dark-warning, #e2b35c);
     --fs-surface-focus: var(--formspec-color-dark-ring, var(--formspec-color-dark-primary, #8fc6b7));
     color-scheme: dark;
   }
@@ -96,6 +98,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
   --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
   --fs-surface-danger: var(--formspec-color-dark-error, #ff8b7f);
+  --fs-surface-warning: var(--formspec-color-dark-warning, #e2b35c);
   --fs-surface-focus: var(--formspec-color-dark-ring, var(--formspec-color-dark-primary, #8fc6b7));
   color-scheme: dark;
 }
@@ -114,6 +117,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
   --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
   --fs-surface-danger: var(--formspec-color-error, #c1281f);
+  --fs-surface-warning: var(--formspec-color-warning, #946112);
   --fs-surface-focus: var(--formspec-color-ring, var(--formspec-color-primary, #27594f));
   --fs-surface-font-heading: var(--formspec-font-heading, "Fraunces", "Iowan Old Style", Georgia, serif);
   --fs-surface-font-mono: var(--formspec-font-mono, "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace);
@@ -1357,5 +1361,225 @@ th[data-cell-kind="status"] {
   }
   .fs-response-review-context {
     gap: 1rem;
+  }
+}
+
+.fs-surface-filing {
+  container: filing / inline-size;
+}
+
+.fs-surface-filing__tasks,
+.fs-surface-filing__sections,
+.fs-surface-filing__legend {
+  list-style: none;
+  padding-inline-start: 0;
+  margin-block: 0;
+}
+
+.fs-surface-filing__group {
+  margin-block: 1rem;
+}
+
+.fs-surface-filing__row {
+  display: grid;
+  gap: 0.5rem;
+  border-block-start: 1px solid var(--fs-surface-line);
+  padding-block: 0.625rem;
+  overflow-wrap: anywhere;
+}
+
+.fs-surface-filing__form > :is(a, [role='link']) {
+  font-weight: 600;
+}
+
+.fs-surface-filing__form > a,
+.fs-surface-filing__section-nav summary,
+.fs-surface-filing__sections a {
+  color: var(--fs-surface-accent);
+}
+
+.fs-surface-filing__form p,
+.fs-surface-filing__totals p,
+.fs-surface-filing__key p {
+  color: var(--fs-surface-ink-quiet);
+  margin-block: 0.125rem 0;
+}
+
+.fs-surface-filing__form p,
+.fs-surface-filing__progress,
+.fs-surface-filing__section-nav summary,
+.fs-surface-filing__sections,
+.fs-surface-filing__totals dt,
+.fs-surface-filing__totals p,
+.fs-surface-filing__key {
+  font-size: 0.875em;
+}
+
+.fs-surface-filing__counts,
+.fs-surface-filing__sections,
+.fs-surface-filing__totals dl,
+.fs-surface-filing__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: baseline;
+}
+
+.fs-surface-filing__counts {
+  margin-block-start: 0.125rem;
+}
+
+.fs-surface-filing__section-nav summary {
+  display: list-item;
+  inline-size: fit-content;
+  min-block-size: 1.5rem;
+  padding-block: 0;
+  line-height: 1.5rem;
+}
+
+.fs-surface-filing__sections li:not(:last-child)::after {
+  content: '';
+  display: inline-block;
+  inline-size: 0.2rem;
+  block-size: 0.2rem;
+  margin-inline-start: 0.5rem;
+  border-radius: 50%;
+  background: var(--fs-surface-line-strong);
+  vertical-align: middle;
+}
+
+.fs-surface-filing__totals dl {
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+}
+
+.fs-surface-filing__totals dd {
+  margin: 0;
+  font-size: 1.625em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+@container filing (min-width: 38rem) {
+  .fs-surface-filing__row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.25fr) minmax(0, 1fr);
+    column-gap: 1rem;
+  }
+
+  .fs-surface-filing__progress {
+    grid-column: 3;
+  }
+}
+
+.fs-surface-filing__strip {
+  display: flex;
+  gap: min(0.25rem, 1%);
+  block-size: 2.25rem;
+  margin-block: 0.25rem;
+}
+
+.fs-surface-filing__segment,
+.fs-surface-filing__swatch {
+  position: relative;
+  display: flex;
+  background: var(--fs-surface-panel-quiet);
+  outline: 1px solid var(--fs-surface-line-strong);
+  outline-offset: -1px;
+}
+
+.fs-surface-filing__segment {
+  flex-basis: 0;
+  min-inline-size: 0;
+}
+
+.fs-surface-filing__segment[href]:hover {
+  outline: 2px solid var(--fs-surface-accent);
+  outline-offset: -2px;
+}
+
+.fs-surface-filing__fill {
+  inline-size: 100%;
+  background: var(--fs-surface-accent);
+}
+
+.fs-surface-filing__mark {
+  position: absolute;
+  inset-block-start: -0.25rem;
+  inset-inline: 0;
+  border-block-start-width: 0.1875rem;
+}
+
+.fs-surface-filing__fix,
+.fs-surface-filing__totals dd[data-finding='fix'],
+.fs-surface-filing__mark[data-finding='fix'] {
+  color: var(--fs-surface-danger);
+}
+
+.fs-surface-filing__fix,
+.fs-surface-filing__mark[data-finding='fix'] {
+  border-style: solid;
+}
+
+.fs-surface-filing__check,
+.fs-surface-filing__totals dd[data-finding='check'],
+.fs-surface-filing__mark[data-finding='check'] {
+  color: var(--fs-surface-warning);
+}
+
+.fs-surface-filing__check,
+.fs-surface-filing__mark[data-finding='check'] {
+  border-style: dashed;
+}
+
+.fs-surface-filing__mark[data-finding] {
+  border-inline: 0;
+  border-block-end: 0;
+}
+
+.fs-surface-filing__fix,
+.fs-surface-filing__check {
+  border-width: 1px;
+  border-radius: 0.25rem;
+  padding-inline: 0.25rem;
+}
+
+.fs-surface-filing__legend {
+  gap: 0.5rem 1rem;
+}
+
+.fs-surface-filing__key p {
+  margin-block-start: 0.375rem;
+}
+
+.fs-surface-filing__legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.fs-surface-filing__swatch {
+  inline-size: 1.5rem;
+  block-size: 0.75rem;
+}
+
+@media (forced-colors: active) {
+  .fs-surface-filing__segment,
+  .fs-surface-filing__swatch {
+    forced-color-adjust: none;
+    background: Canvas;
+    outline-color: CanvasText;
+  }
+
+  .fs-surface-filing__segment[href]:hover {
+    outline-color: LinkText;
+  }
+
+  .fs-surface-filing__fill {
+    background: CanvasText;
+  }
+
+  .fs-surface-filing__mark[data-finding] {
+    color: CanvasText;
   }
 }

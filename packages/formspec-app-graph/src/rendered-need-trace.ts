@@ -605,6 +605,23 @@ function surfaceNodes(
             `${nodeLabel(slot, `slots[${slotIndex}]`)} content`,
           ));
         }
+        if (stringProp(slot, 'slotType') === 'filing-status' && binding) {
+          const bindingPointer = `${slotPointer}/binding`;
+          out.push(generationNode(handle, 'surface-filing-status-binding', bindingPointer, binding, 'Filing tracker'));
+          if (Array.isArray(binding.groups)) binding.groups.forEach((rawGroup, groupIndex) => {
+            const group = record(rawGroup);
+            if (!group) return;
+            const groupPointer = `${bindingPointer}/groups/${groupIndex}`;
+            out.push(generationNode(handle, 'surface-filing-status-group', groupPointer, group,
+              stringProp(group, 'label') ?? `groups[${groupIndex}]`));
+            if (Array.isArray(group.forms)) group.forms.forEach((rawEntry, entryIndex) => {
+              const entry = record(rawEntry);
+              if (!entry) return;
+              out.push(generationNode(handle, 'surface-filing-status-entry', `${groupPointer}/forms/${entryIndex}`, entry,
+                stringProp(entry, 'routeRef') ?? `forms[${entryIndex}]`));
+            });
+          });
+        }
         if (stringProp(slot, 'slotType') !== 'module-widget') return;
         const dataBindings = record(binding?.dataBindings);
         if (dataBindings) {

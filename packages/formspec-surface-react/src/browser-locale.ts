@@ -1,7 +1,24 @@
 /** @filedesc Select an offered browser Locale and bind the Surface shell's string family. */
 import { evalFEL, interpolateMessage, LocaleStore, preactReactiveRuntime } from '@formspec-org/engine';
 import { resolveSurfaceLocaleStrings, type ResolvedBundle } from '@formspec-org/surface';
-import { targetDefinitionMatches, type LocaleDocument } from '@formspec-org/types';
+import { targetDefinitionMatches, type FormDefinition, type LocaleDocument } from '@formspec-org/types';
+
+/** Build the Definition-targeted cascade without opening a draft or starting a form engine. */
+export function definitionLocaleLookup(documents: readonly LocaleDocument[] = [], activeLocale?: string) {
+  const stores = new Map<FormDefinition, LocaleStore>();
+  return (definition: FormDefinition, key: string): string | null => {
+    let store = stores.get(definition);
+    if (!store) {
+      store = new LocaleStore(preactReactiveRuntime, undefined, { kind: 'definition', url: definition.url });
+      for (const document of documents) {
+        if (document.target.kind === 'definition' && targetDefinitionMatches(document.target, definition)) store.loadLocale(document);
+      }
+      if (activeLocale !== undefined) store.setLocale(activeLocale);
+      stores.set(definition, store);
+    }
+    return store.lookupKey(key);
+  };
+}
 
 function selectLanguage(available: readonly string[], requested: readonly string[]): string {
   const offered = new Set(available);

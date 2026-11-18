@@ -110,7 +110,7 @@ export interface FormProgress {
   required: number;
   requiredFilled: number;
   missingReadonly: number;
-  ready: boolean;
+  ready: boolean | null;
   pages?: Array<{
     id: string;
     title?: string;

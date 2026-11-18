@@ -32,13 +32,15 @@
  *   set is a termination requirement, not an optimisation.
  */
 import { admitScreenerPresentation, type ScreenerDocumentHandle } from './screener-slot.js';
-import type { FormDefinition, RegistryEntry } from '@formspec-org/types';
+import type { ComponentDocument, FormDefinition, RegistryEntry } from '@formspec-org/types';
 import { targetDefinitionMatches } from '@formspec-org/types';
-import { widgetActionScopeMatches } from '@formspec-org/app-graph';
+import { parseRouteSubjectKey, widgetActionScopeMatches } from '@formspec-org/app-graph';
 import type { ExperienceDocument } from '@formspec-org/types';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
 import type { SurfaceRoute } from './route-path.js';
-import type { SurfaceRouteHandle } from './composition.js';
+import type { SurfaceApp, SurfaceRouteHandle } from './composition.js';
+import { planFilingStatus, type FilingSectionLocaleLookup, type FilingStatusPlan } from './filing-status.js';
+import type { ThemeAuthority } from './theme-authority.js';
 import {
   planExperienceUnit,
   type ExperienceDocumentHandle,
@@ -89,11 +91,13 @@ export type SlotPlan<TComponent> = SlotPlanBase &
         /** Qualified Data Source plan used before the form engine mounts. */
         initialData?: DefinitionFormInitialDataPlan;
         definition?: FormDefinition;
+        componentDocument?: ComponentDocument;
         subject?: DataSourceSubject;
         registryEntries: readonly RegistryEntry[];
         status: 'ready' | 'unresolved';
       }
     | { slotType: 'screener'; screener?: ScreenerDocumentHandle; allowedTargets: readonly string[]; status: 'ready' | 'unresolved'; reason?: string }
+    | { slotType: 'filing-status'; tracker: FilingStatusPlan }
     | { slotType: 'experience-unit'; unit: ExperienceUnitPlan }
     | {
         slotType: 'module-widget';
@@ -128,6 +132,7 @@ export type SlotPlan<TComponent> = SlotPlanBase &
 
 const KNOWN_SLOT_TYPES = {
   'screener': true,
+  'filing-status': true,
   'definition-form': true,
   'experience-unit': true,
   'module-widget': true,
@@ -135,10 +140,20 @@ const KNOWN_SLOT_TYPES = {
   'embed-route': true,
 } as const satisfies Record<SurfaceSlot['slotType'], true>;
 
+/** Select an already admitted Component for this exact route and form. */
+export type SurfaceDefinitionComponentResolver = (target: {
+  surfaceRef: string | undefined;
+  routeId: string;
+  slotId: string;
+  definition: FormDefinition;
+}) => ComponentDocument | undefined;
+
 export interface SlotPlanContext<TComponent> {
   handle: SurfaceRouteHandle;
   params?: Readonly<Record<string, string>> | undefined;
   screenerHandles?: readonly ScreenerDocumentHandle[] | undefined;
+  resolveDefinitionComponent?: SurfaceDefinitionComponentResolver | undefined;
+  filingStatus?: { app: SurfaceApp; themeAuthority: ThemeAuthority; resolveDefinitionLocaleString?: FilingSectionLocaleLookup | undefined };
   experiences: readonly ExperienceDocument[];
   /** Exact manifested source identity for qualified Experience bindings. */
   experienceHandles?: readonly ExperienceDocumentHandle[] | undefined;
@@ -249,12 +264,36 @@ function planSlot<TComponent>(
       const allowedTargets = Array.isArray(binding.allowedTargets) && binding.allowedTargets.every(t => typeof t === 'string') ? binding.allowedTargets as string[] : [];
       const authored = new Set(handle?.document.evaluation?.flatMap(p => p.routes.map(r => r.target)) ?? []);
       const admission = handle ? admitScreenerPresentation(handle.document) : undefined;
-      const reason = context.handle.surface.$formspecSurface !== '0.3' ? 'surface-version-unsupported'
+      const reason = context.handle.surface.$formspecSurface !== '0.3' && context.handle.surface.$formspecSurface !== '0.4' ? 'surface-version-unsupported'
         : !handle || !handle.ref.version || handle.document.url !== handle.ref.url || handle.document.version !== handle.ref.version ? 'screener-pin-unresolved'
         : admission?.status !== 'ready' ? admission?.reason ?? 'presentation-unsupported'
         : !allowedTargets.length || new Set(allowedTargets).size !== allowedTargets.length || allowedTargets.some(t => !t.startsWith('surface:') || !authored.has(t)) ? 'allowed-target-invalid' : undefined;
       if (reason) diagnostics.push(surfaceDiagnostic('SLOT-BINDING-INCOMPLETE', 'The native Screener slot is unavailable.', site, { reason }));
       return { ...shared, slotType: 'screener', ...(handle ? { screener: handle } : {}), allowedTargets, status: reason ? 'unresolved' : 'ready', ...(reason ? { reason } : {}) };
+    }
+    case 'filing-status': {
+      const tracker: FilingStatusPlan = context.filingStatus ? planFilingStatus({
+        ...context.filingStatus,
+        handle: context.handle,
+        bindingRoute,
+        binding,
+        params: context.params ?? {},
+        definitions: context.definitions,
+        resolveSubject: resolveFormSubject,
+        resolveDefinitionComponent: context.resolveDefinitionComponent,
+        surfaceRef: context.surfaceRef,
+      }) : { status: 'unresolved', reason: 'route-table-unavailable' };
+      if (tracker.status === 'unresolved') diagnostics.push(surfaceDiagnostic(
+        'SLOT-BINDING-INCOMPLETE', 'The filing tracker cannot resolve its form links.', site,
+        { reason: tracker.reason },
+      ));
+      else for (const group of tracker.groups) for (const row of group.rows) {
+        if (row.status === 'disabled') diagnostics.push(surfaceDiagnostic(
+          'SLOT-BINDING-INCOMPLETE', 'A filing tracker form is unavailable.', site,
+          { reason: row.reason, entry: row.key },
+        ));
+      }
+      return { ...shared, slotType: 'filing-status', tracker };
     }
     case 'definition-form': {
       const definitionRef = typeof binding.definitionRef === 'string' ? binding.definitionRef : '';
@@ -297,6 +336,10 @@ function planSlot<TComponent>(
           return { ...plan, status: 'unresolved' };
         }
         plan.definition = definition;
+        const component = context.resolveDefinitionComponent?.({
+          surfaceRef: context.surfaceRef, routeId: bindingRoute.id, slotId: slot.id, definition,
+        });
+        if (component) plan.componentDocument = component;
         if (subject) plan.subject = subject;
         if (binding.initialData !== undefined) {
           const initialData = planDefinitionFormInitialData({
@@ -661,16 +704,9 @@ function resolveFormSubject(
     if (parameter === undefined || !declaredParams.has(parameter)) return false;
     const value = ownString(params, parameter);
     if (value === undefined) return false;
-    if (dataType === 'string') {
-      keys.push([key, value]);
-      continue;
-    }
-    if (dataType !== 'integer' || !/^(?:0|-?[1-9][0-9]*)$/u.test(value)) return false;
-    const integer = BigInt(value);
-    const number = Number(integer);
-    // Core §2.1.6 and ADR 0172 §11 item 9 require the I-JSON integer range.
-    if (!Number.isSafeInteger(number)) return false;
-    keys.push([key, number]);
+    const typed = parseRouteSubjectKey(dataType, value);
+    if (typed === undefined) return false;
+    keys.push([key, typed]);
   }
   return Object.freeze({ type, keys: Object.freeze(Object.fromEntries(keys)) });
 }

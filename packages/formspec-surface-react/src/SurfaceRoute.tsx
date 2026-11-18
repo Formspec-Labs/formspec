@@ -55,6 +55,7 @@ import type {
   ResponseActionsDocument,
 } from '@formspec-org/types';
 import { Heading } from './heading.js';
+import { useFilingDraftObservations, type FilingStatusOptions } from './FilingStatus.js';
 import {
   SurfaceSlotFrame,
   type SurfaceDefinitionFormRenderInput,
@@ -81,6 +82,7 @@ import { needTraceAttributes } from './need-trace.js';
 import { useSurfaceThemeTokens } from './surface-theme.js';
 
 export interface SurfaceRouteViewProps {
+  filingStatus?: FilingStatusOptions | undefined;
   formSession?: SurfaceFormSession | undefined;
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
@@ -143,6 +145,7 @@ export interface SurfaceRouteViewProps {
 
 export function SurfaceRouteView({
   plan,
+  filingStatus,
   resolveRouteTitle,
   strings,
   dataSourceLoader,
@@ -178,6 +181,10 @@ export function SurfaceRouteView({
   const container = useRef<HTMLElement>(null);
   const { handle, grant, params } = plan;
   const text = strings ?? resolveSurfaceStrings();
+  const observe = useFilingDraftObservations(
+    plan.slots, filingStatus?.readSummaries, formSession?.previewScope, filingStatus?.revision, runtimeGeneration,
+  );
+  const filingStatusContext = filingStatus && { ...filingStatus, observe };
 
   useSurfaceThemeTokens(container, grant.themeDocument);
 
@@ -254,6 +261,7 @@ export function SurfaceRouteView({
           <SurfaceSlotFrame
             key={slotPlan.slotId}
             plan={slotPlan}
+            filingStatus={filingStatusContext}
             screenerCompletion={screenerCompletion}
               checkScreenerTarget={checkScreenerTarget}
               onScreenerTarget={onScreenerTarget}

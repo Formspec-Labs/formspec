@@ -26,7 +26,7 @@ export interface ProgressFinding {
 }
 
 export interface FormProgressSummary {
-    form: ProgressCounts & { ready: boolean };
+    form: ProgressCounts & { ready: boolean | null };
     sections: Array<{ id?: string; counts: ProgressCounts; filled: boolean }>;
     findings: ProgressFinding[];
 }
@@ -166,7 +166,7 @@ export function summarizeFormProgress(
         const section = owner(fieldOwners, path);
         if (section !== undefined) countField(sections[section].counts, field, hasError);
     }
-    const ready = form.missing === 0 && state.report?.valid === true;
+    const ready = form.missing > 0 ? false : (state.report === null ? null : state.report.valid);
     for (const section of sections) {
         section.filled = section.counts.filled === section.counts.total;
     }

@@ -122,6 +122,14 @@ function undeclaredDiagnostic(
   };
 }
 
+/** Parse a Definition subject key from its route string using the Core I-JSON range. */
+export function parseRouteSubjectKey(dataType: unknown, value: string): string | number | undefined {
+  if (dataType === 'string') return value;
+  if (dataType !== 'integer' || !/^(?:0|-?[1-9][0-9]*)$/u.test(value)) return undefined;
+  const integer = Number(value);
+  return Number.isSafeInteger(integer) ? integer : undefined;
+}
+
 function subjectKeyDiagnostics(
   surface: ResolvedArtifactHandle,
   slot: DefinitionFormSlot,

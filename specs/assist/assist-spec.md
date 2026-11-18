@@ -416,7 +416,7 @@ interface FormProgress {
   required: number;
   requiredFilled: number;
   missingReadonly: number;
-  ready: boolean;
+  ready: boolean | null;
   pages?: PageProgress[];
 }
 
@@ -519,8 +519,10 @@ editable instances with no error at their concrete field path. It is `null`
 when live validation is unavailable. `required` counts all relevant
 required instances, including read-only fields, and `requiredFilled` counts
 their filled subset. `missingReadonly` counts relevant required read-only
-blanks. `ready` requires an available live report, no live errors at any
-path and no relevant required blank.
+blanks. Any relevant required blank sets `ready` to `false`. Otherwise,
+`ready` follows the live report's `valid` flag, or is `null` when that report
+is unavailable. The form description reports `complete` for true, `in-progress`
+for false, and `unavailable` for `null`.
 
 For page-scoped progress and navigation, use the shared section IDs, titles
 and order from Core §4.1.2. Count each concrete field instance in the first

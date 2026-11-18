@@ -96,12 +96,18 @@ it('changes generated and authored page titles with Locale while keeping the sam
   expect(component.getProgress().pages?.[0]).toMatchObject({ id: 'component-contact', title: 'Coordonnées' });
 });
 
-it('keeps validation unavailable visible in Assist progress', () => {
-  const engine = createEngine();
+it('keeps validation and readiness unavailable in Assist tools', async () => {
+  // An optional blank leaves readiness unknown when there is no validation report.
+  const engine = new FormEngine({
+    $formspec: '1.0', url: 'https://example.org/unknown-progress', version: '1.0.0', title: 'Unknown progress',
+    items: [{ key: 'note', type: 'field', dataType: 'string' }],
+  });
   const live = engine.getEvaluatedFormState();
   vi.spyOn(engine, 'getEvaluatedFormState').mockReturnValue({ ...live, report: null });
   const provider = createAssistProvider({ engine, registerWebMCP: false });
-  expect(provider.getProgress()).toMatchObject({ total: 6, valid: null, ready: false });
+  expect(provider.getProgress()).toMatchObject({ total: 1, filled: 0, valid: null, ready: null });
+  const result = await provider.invokeTool('formspec.form.describe', {});
+  expect(JSON.parse(result.content[0].text)).toMatchObject({ status: 'unavailable' });
 });
 
 it('returns an engine error for unavailable page validation even with a required read-only blank', async () => {
@@ -115,6 +121,8 @@ it('returns an engine error for unavailable page validation even with a required
   const live = engine.getEvaluatedFormState();
   vi.spyOn(engine, 'getEvaluatedFormState').mockReturnValue({ ...live, report: null });
   const provider = createAssistProvider({ engine, registerWebMCP: false });
+  expect(provider.getProgress()).toMatchObject({ valid: null, ready: false });
+  expect(await invoke(provider, 'formspec.form.describe')).toMatchObject({ status: 'in-progress' });
   const result = await provider.invokeTool('formspec.form.nextIncomplete', { scope: 'page' });
   expect(result.isError).toBe(true);
   expect(JSON.parse(result.content[0].text)).toMatchObject({ code: 'ENGINE_ERROR', message: 'Live validation is unavailable' });

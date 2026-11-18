@@ -14,9 +14,9 @@ export type SurfaceDocument = {
   [k: string]: unknown;
 } & {
   /**
-   * Surface specification version. Screener slots require 0.3.
+   * Surface specification version. Screener slots require 0.3 or later. Filing-status slots require 0.4.
    */
-  $formspecSurface: '0.2' | '0.3';
+  $formspecSurface: '0.2' | '0.3' | '0.4';
   /**
    * Stable identifier for this Surface document. Unique within the bundle.
    */
@@ -60,9 +60,16 @@ export type Slot = {
    */
   id: string;
   /**
-   * Closed slot-type taxonomy; 0.3 adds native Screener presentation. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.
+   * Closed slot-type taxonomy; 0.3 adds native Screener presentation and 0.4 adds filing-status. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.
    */
-  slotType: 'definition-form' | 'experience-unit' | 'module-widget' | 'static-content' | 'embed-route' | 'screener';
+  slotType:
+    | 'definition-form'
+    | 'experience-unit'
+    | 'module-widget'
+    | 'static-content'
+    | 'embed-route'
+    | 'screener'
+    | 'filing-status';
   /**
    * OPTIONAL renderer hint naming a layout position (e.g. 'left', 'main', 'right', 'header'). Author-defined; renderers consume per their layout model. v0.2 carries no normative position vocabulary.
    */
@@ -79,6 +86,19 @@ export type Slot = {
    */
   [k: `x-${string}`]: unknown;
 };
+/**
+ * Either an explicit value or the name of a parameter declared by the current route.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "FilingStatusParamSource".
+ */
+export type FilingStatusParamSource =
+  | {
+      value: string;
+    }
+  | {
+      routeParam: string;
+    };
 /**
  * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "Route".
@@ -286,6 +306,54 @@ export interface RouteParamMap {
    * via the `patternProperty` "^[a-zA-Z][a-zA-Z0-9_-]*$".
    */
   [k: string]: string;
+}
+/**
+ * An ordered overview of Definition forms in this Surface. Each group represents one filing unit.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "FilingStatusBinding".
+ */
+export interface FilingStatusBinding {
+  /**
+   * @minItems 1
+   */
+  groups: [FilingStatusGroup, ...FilingStatusGroup[]];
+  'x-generation'?: Generation;
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "FilingStatusGroup".
+ */
+export interface FilingStatusGroup {
+  /**
+   * Stable id unique within this tracker.
+   */
+  id: string;
+  label: string;
+  /**
+   * @minItems 1
+   */
+  forms: [FilingStatusEntry, ...FilingStatusEntry[]];
+  'x-generation'?: Generation;
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "FilingStatusEntry".
+ */
+export interface FilingStatusEntry {
+  routeRef: string;
+  /**
+   * Id of a Definition-form slot on the referenced route.
+   */
+  slotRef: string;
+  hint?: string;
+  /**
+   * One authored source per parameter declared by the target route.
+   */
+  params?: {
+    [k: string]: FilingStatusParamSource;
+  };
+  'x-generation'?: Generation;
 }
 /**
  * This interface was referenced by `undefined`'s JSON-Schema

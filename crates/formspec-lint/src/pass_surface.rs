@@ -6,7 +6,7 @@
 //! - **E606 / `SURFACE-ROUTE-UNREACHABLE`**: every declared route is reachable
 //!   from the surface's `entry` route by walking transitions[].to and
 //!   embed-route slot bindings (binding.routeRef), and native 0.3 Screener
-//!   allowedTargets within this Surface. Unreachable routes are
+//!   allowedTargets and native 0.4 filing-status destinations. Unreachable routes are
 //!   dead code in the surface — they can never be navigated to.
 //! - **E607 / `SURFACE-SLOT-BINDING-UNRESOLVED`**: every slot's binding
 //!   refers to an in-document target where applicable. For `embed-route`
@@ -51,18 +51,13 @@ pub(crate) fn lint_surface(doc: &Value) -> Vec<LintDiagnostic> {
 
     check_slot_binding_resolution(routes, &route_ids, &mut diagnostics);
     check_route_param_completeness(routes, &mut diagnostics);
-    let native_screeners = doc.get("$formspecSurface").and_then(Value::as_str) == Some("0.3");
+    let dialect = doc.get("$formspecSurface").and_then(Value::as_str);
+    let native_screeners = matches!(dialect, Some("0.3" | "0.4"));
     if native_screeners {
         check_screener_route_params(routes, entry, &mut diagnostics);
     }
     if let Some(entry_id) = entry {
-        check_route_reachability(
-            routes,
-            entry_id,
-            &route_ids,
-            native_screeners,
-            &mut diagnostics,
-        );
+        check_route_reachability(routes, entry_id, &route_ids, dialect, &mut diagnostics);
     }
 
     diagnostics
@@ -423,7 +418,7 @@ fn check_route_reachability(
     routes: &[Value],
     entry_id: &str,
     route_ids: &HashSet<String>,
-    native_screeners: bool,
+    dialect: Option<&str>,
     diagnostics: &mut Vec<LintDiagnostic>,
 ) {
     if !route_ids.contains(entry_id) {
@@ -439,7 +434,7 @@ fn check_route_reachability(
         return;
     }
 
-    // BFS follows transitions, embeds, and native 0.3 Screener destinations.
+    // Walk all local edges admitted by the Surface dialect.
     let mut visited: HashSet<String> = HashSet::new();
     let mut queue: VecDeque<String> = VecDeque::new();
     queue.push_back(entry_id.to_string());
@@ -464,36 +459,29 @@ fn check_route_reachability(
             }
         }
 
-        // Native 0.3 bindings declare potential destinations, not eligibility rules.
-        if native_screeners {
-            for slot in route
-                .get("slots")
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-            {
-                for (_, target) in screener_targets(slot) {
-                    if route_ids.contains(target) && visited.insert(target.to_string()) {
-                        queue.push_back(target.to_string());
-                    }
+        for slot in route
+            .get("slots")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+        {
+            let targets = match slot.get("slotType").and_then(Value::as_str) {
+                Some("embed-route") => slot["binding"]["routeRef"].as_str().into_iter().collect(),
+                Some("screener") if matches!(dialect, Some("0.3" | "0.4")) => {
+                    screener_targets(slot).map(|(_, target)| target).collect()
                 }
-            }
-        }
-
-        // Edges via embed-route slots
-        if let Some(slots) = route.get("slots").and_then(Value::as_array) {
-            for s in slots {
-                if s.get("slotType").and_then(Value::as_str) != Some("embed-route") {
-                    continue;
-                }
-                if let Some(target) = s
-                    .get("binding")
-                    .and_then(|b| b.get("routeRef"))
-                    .and_then(Value::as_str)
-                {
-                    if route_ids.contains(target) && visited.insert(target.to_string()) {
-                        queue.push_back(target.to_string());
-                    }
+                Some("filing-status") if dialect == Some("0.4") => slot["binding"]["groups"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .flat_map(|group| group["forms"].as_array().into_iter().flatten())
+                    .filter_map(|entry| entry["routeRef"].as_str())
+                    .collect::<Vec<_>>(),
+                _ => Vec::new(),
+            };
+            for target in targets {
+                if route_ids.contains(target) && visited.insert(target.to_string()) {
+                    queue.push_back(target.to_string());
                 }
             }
         }
@@ -542,6 +530,34 @@ mod tests {
                 { "id": "paper", "path": "/paper", "slots": [{ "id": "text", "slotType": "static-content", "binding": { "kind": "text", "content": "Paper" }}]}
             ]
         })
+    }
+
+    #[test]
+    fn filing_status_reaches_the_form_only_in_surface_0_4() {
+        let mut surface = serde_json::json!({
+            "$formspecSurface": "0.4", "id": "app", "entry": "home",
+            "routes": [
+                { "id": "home", "path": "/", "slots": [
+                    { "id": "tracker", "slotType": "filing-status", "binding": {
+                        "groups": [{ "id": "annual", "label": "Annual filings", "forms": [
+                            { "routeRef": "apply", "slotRef": "form" }
+                        ]}]
+                    }}
+                ] },
+                { "id": "apply", "path": "/apply", "slots": [
+                    { "id": "form", "slotType": "definition-form", "binding": {
+                        "definitionRef": "urn:apply"
+                    }}
+                ] }
+            ]
+        });
+        assert!(lint_surface(&surface).is_empty());
+        surface["$formspecSurface"] = serde_json::json!("0.3");
+        assert!(
+            lint_surface(&surface)
+                .iter()
+                .any(|item| item.code == crate::LintCode::E606)
+        );
     }
 
     #[test]

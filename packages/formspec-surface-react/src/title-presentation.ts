@@ -12,3 +12,7 @@ export function presentedRouteTitle(
 ): string {
   return resolve?.(handle) ?? handle.route.title ?? handle.routeId;
 }
+
+export function presentedRouteLabel(handle: SurfaceRouteHandle, resolve: SurfaceRouteTitleResolver | undefined): string {
+  return handle.route.navigation?.label ?? presentedRouteTitle(handle, resolve);
+}

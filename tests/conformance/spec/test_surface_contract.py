@@ -63,6 +63,35 @@ def test_surface_publishable_fixture_validates_and_lints_clean() -> None:
     assert codes(doc, registries=[STRICT_REGISTRY]) == set()
 
 
+def test_native_lint_accepts_surface_filing_status_only_in_0_4() -> None:
+    doc = {
+        "$formspecSurface": "0.4",
+        "id": "filing",
+        "entry": "overview",
+        "routes": [
+            {
+                "id": "overview", "path": "/", "slots": [
+                    {"id": "tracker", "slotType": "filing-status", "binding": {"groups": [
+                        {"id": "annual", "label": "Annual forms", "forms": [
+                            {"routeRef": "apply", "slotRef": "capture"}
+                        ]}
+                    ]}}
+                ]
+            },
+            {
+                "id": "apply", "path": "/apply", "slots": [
+                    {"id": "capture", "slotType": "definition-form", "binding": {"definitionRef": "urn:apply"}}
+                ]
+            },
+        ],
+    }
+
+    surface_validator().validate(doc)
+    assert codes(doc) == set()
+    doc["$formspecSurface"] = "0.3"
+    assert {"E101", "E606"} <= codes(doc)
+
+
 @pytest.mark.parametrize(
     ("fixture", "expected"),
     [

@@ -827,13 +827,40 @@ MUST contain these exact suffixes one-for-one:
 | `saved` | none |
 | `savedLocally` | none |
 | `saveFailed` | none |
+| `filingNotStarted` | none |
+| `filingNotStartedWithSize` | `count` |
+| `filingInProgress` | none |
+| `filingReady` | none |
+| `filingReadinessUnavailable` | none |
+| `filingLoading` | none |
+| `filingDenied` | none |
+| `filingStale` | none |
+| `filingUnavailable` | none |
+| `filingAddressUnavailable` | none |
+| `filingDefinitionUnavailable` | none |
+| `filingSubjectUnavailable` | none |
+| `filingChecksUnavailable` | none |
+| `filingSectionCountsUnavailable` | none |
+| `filingFillCount` | `filled`, `total` |
+| `filingSomeProgressUnavailable` | none |
+| `filingFixCount` | `count` |
+| `filingCheckCount` | `count` |
+| `filingAnswered` | none |
+| `filingStillToAnswer` | none |
+| `filingHasFix` | none |
+| `filingHasCheck` | none |
+| `filingSummaryAnswered` | `filled`, `total` |
+| `filingSummaryToFix` | none |
+| `filingSummaryToCheck` | none |
+| `filingLegendCaption` | none |
+| `filingSections` | `count` |
 
 The shell-specific references form a read-only object supplied by the Surface
 processor. They carry strings only and expose no route table, navigation
 function, action executor, Response, or mutable host state. All ordinary FEL
 rules still apply.
 
-The preview edition, appearance and draft save keys require Locale 2.1.
+The preview edition, appearance, draft save, and filing-status keys require Locale 2.1.
 
 These keys are valid only for `target.kind: "app"` and the
 `x-formspec-surface` module. A processor MUST reject an unknown shell suffix and

@@ -51,7 +51,7 @@ export function buildToolHandler(
           version: definition.version,
           fieldCount: fields.engine.getFieldPaths().length,
           pageCount: state.pages?.length ?? 0,
-          status: state.ready ? 'complete' : 'in-progress',
+          status: state.ready === null ? 'unavailable' : state.ready ? 'complete' : 'in-progress',
         };
       };
     case 'formspec.field.list':

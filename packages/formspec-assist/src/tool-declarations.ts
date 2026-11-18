@@ -39,7 +39,7 @@ export function buildToolDeclarations(): ToolDeclaration[] {
       description:
         'Describe the active form: title, description, version, field and page counts, and whether it is complete. '
         + 'Call it first to orient before listing fields or setting values. '
-        + 'Returns the form metadata and a status of complete or in-progress.',
+        + 'Returns form metadata and a status of complete, in-progress, or unavailable.',
       inputSchema: { type: 'object', additionalProperties: false },
       annotations: READ_ONLY,
     },

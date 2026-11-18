@@ -1,15 +1,15 @@
 # Native Screener slots
 
-Surface 0.3 can render one native Screener and navigate using its actual
+Surface 0.3 and 0.4 can render one native Screener and navigate using its actual
 Determination. The binding is closed:
 
 ```json
 {"screenerRef":"urn:example:eligibility","allowedTargets":["surface:apply","surface:paper"]}
 ```
 
-Use `https://formspec.org/schemas/surface/0.3`. The unchanged 0.2 schema remains
-at its historical URI in `schemas/surface-v0.2.schema.json`. The latest schema
-also admits existing 0.2 documents, but only 0.3 admits Screener slots.
+Use the matching Surface schema URI. The repository keeps 0.2 and 0.3 at
+`schemas/surface-v0.2.schema.json` and `schemas/surface-v0.3.schema.json`. The
+current 0.4 schema also admits those documents. Native Screeners require Surface 0.3 or later.
 
 The App Manifest must list exactly one Screener URL with an exact semantic
 version; the loaded document must carry the same URL/version. Each allowed

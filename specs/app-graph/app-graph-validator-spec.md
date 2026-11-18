@@ -434,6 +434,14 @@ effective trace rather than compute a second inheritance implementation.
 The existing `definitions`, `locales`, and `components` canonical digest
 bindings and the server proof in Needs §10.3 rule 4 remain unchanged.
 
+For a Surface 0.4 filing-status slot, graph validation MUST resolve each entry
+to one same-Surface route and one Definition-form slot. It MUST reject missing
+or unknown parameter sources, repeated groups with the same ID, statically
+duplicate targets, and conflicting subject-key sources within a group.
+Runtime additionally rejects duplicate targets whose parameter values coincide
+after resolution. The strict rendered-Need profile checks the slot, binding,
+each group and each entry as distinct direct trace nodes.
+
 ### 7.1 vNext Surface graph diagnostics
 
 The built-in vNext checks use these stable diagnostic families:

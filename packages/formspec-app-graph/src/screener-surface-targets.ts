@@ -178,7 +178,7 @@ export function validateScreenerSurfaceTargets(context: AppGraphContext): AppGra
         const screener = matches.length === 1 ? matches[0] : undefined;
         const allowed = binding?.allowedTargets;
         const authored = new Set(screener ? screenerSurfaceTargets(screener).map(target => target.target) : []);
-        const reason = document?.$formspecSurface !== '0.3' ? 'surface-version-unsupported'
+        const reason = document?.$formspecSurface !== '0.3' && document?.$formspecSurface !== '0.4' ? 'surface-version-unsupported'
           : !ref || !isExactVersion(ref.version) || !screener || stringProp(record(screener.ref), 'version') !== ref.version || stringProp(record(screener.document), 'url') !== url || stringProp(record(screener.document), 'version') !== ref.version ? 'screener-pin-unresolved'
           : !Array.isArray(allowed) || !allowed.length || new Set(allowed).size !== allowed.length || allowed.some(target => typeof target !== 'string' || !authored.has(target) || routes.filter(route => `surface:${route.routeId}` === target).length !== 1) ? 'allowed-target-invalid' : undefined;
         if (reason) diagnostics.push(diagnostic('Native Screener slot cannot resolve its exact Screener and allowed destinations.', diagnosticSourceForHandle(surface, `/routes/${routeIndex}/slots/${slotIndex}/binding`), undefined, { reason }));

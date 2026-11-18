@@ -356,6 +356,11 @@ artifacts identify candidate outputs. AppGraphValidator owns static candidate
 matching and its diagnostics. The Needs specification owns Need resolution and
 the prohibition against computed Need satisfaction.
 
+An Experience unit may explain the Need for a Surface filing tracker using
+the existing Need declarations. The binding, each authored group and entry,
+and the enclosing slot each carry a direct Need trace under the strict
+[Surface rendered-Need profile](../surface/surface-spec.md#strict-rendered-need-trace-profile).
+
 ## 7. Applicability
 
 **Applicability** declares the contexts in which an Experience Document or a Unit is intended to apply. It is metadata that informs generation and selection -- it does NOT alter Core processing.

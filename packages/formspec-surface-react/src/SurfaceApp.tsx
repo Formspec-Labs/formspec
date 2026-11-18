@@ -42,7 +42,8 @@ import type { SurfaceScreenerCompletionPolicy } from './screener-completion.js';
  * of the way of hosts that already have a router — which every host of any size
  * does. A shell that owned history would be a shell that could not be embedded.
  */
-import { presentedRouteTitle, type SurfaceRouteTitleResolver } from './title-presentation.js';
+import { presentedRouteLabel, presentedRouteTitle, type SurfaceRouteTitleResolver } from './title-presentation.js';
+import { definitionLocaleLookup } from './browser-locale.js';
 import { activeWorkspaceSlot } from './workspace-navigation.js';
 import { useHostAppearance } from './browser-appearance.js';
 import type { DataSourceRevisionSelector } from './data-source-revision.js';
@@ -54,7 +55,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type MouseEvent,
   type ReactNode,
 } from "react";
 import {
@@ -81,6 +81,7 @@ import {
   type SurfaceDiagnostic,
   type SurfaceRouteHandle,
   type SurfaceRoutePlan,
+  type SurfaceDefinitionComponentResolver,
   type SurfaceStringOverrides,
   type SurfaceStrings,
   type SurfaceStaticAssetResolver,
@@ -111,6 +112,8 @@ import {
 } from "./diagnostic-delivery.js";
 import { needTraceAttributes } from "./need-trace.js";
 import { useSurfaceThemeTokens } from "./surface-theme.js";
+import type { FilingStatusOptions } from "./FilingStatus.js";
+import { isPlainLinkClick } from "./browser-location.js";
 
 export interface SurfaceTransitionOutcome {
   advanced: boolean;
@@ -311,6 +314,12 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
   onWidgetActionReport?:
     | ((report: SurfaceWidgetActionReport) => void)
     | undefined;
+  /** Reads authorized draft progress across the filing tracker in one batch. */
+  readSummaries?: FilingStatusOptions["readSummaries"];
+  /** Change when a committed observation should be read again. */
+  filingDraftRevision?: FilingStatusOptions["revision"];
+  /** Pure selection of an admitted Component for both the form and its tracker links. */
+  resolveDefinitionComponent?: SurfaceDefinitionComponentResolver | undefined;
   /** Host form runtime seam; the current `FormspecForm` remains the default. */
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   /** Generic async Response Actions executor used by mounted Definition forms. */
@@ -513,6 +522,10 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     return () => { screenerVisit.active = false; };
   }, [screenerVisit]);
 
+  const localeDocuments = props.localeDocuments ?? bundle.localeDocuments;
+  const resolveDefinitionLocaleString = useMemo(
+    () => definitionLocaleLookup(localeDocuments, props.activeLocale), [localeDocuments, props.activeLocale],
+  );
   const routePlan: SurfaceRoutePlan<SurfaceWidget> | undefined = useMemo(() => {
     if (!resolution.match) return undefined;
     return planMatchedRoute<SurfaceWidget>({
@@ -528,6 +541,8 @@ export function SurfaceAppView(props: SurfaceAppProps & {
       dataSources: bundle.dataSources,
       mappings: bundle.mappings,
       surfaceRef: bundle.surfaceRefs?.get(resolution.match.handle.surface),
+      resolveDefinitionComponent: props.resolveDefinitionComponent,
+      resolveDefinitionLocaleString,
       responseActions: bundle.responseActions,
       themeAuthority: model.themeAuthority,
       hasExecutor: props.onFireTransition !== undefined,
@@ -547,6 +562,8 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     props.evaluateTransitionCondition,
     props.headingBaseLevel,
     props.staticAssetResolver,
+    props.resolveDefinitionComponent,
+    resolveDefinitionLocaleString,
     strings,
   ]);
   useSurfaceThemeTokens(appRoot, browser ? routePlan?.grant.themeDocument ?? props.platformTheme : undefined);
@@ -761,9 +778,16 @@ export function SurfaceAppView(props: SurfaceAppProps & {
               key={browser ? runtimeGeneration : `${routePlan.handle.surfaceId}/${routePlan.handle.routeId}`}
               plan={routePlan}
               formSession={formSession}
+              filingStatus={{
+                readSummaries: props.readSummaries,
+                revision: props.filingDraftRevision,
+                navigate: (href) => { if (browser) void browser.navigate(href); else onNavigate(href); },
+                formatHref: props.resolveNavigationHref,
+                resolveRouteTitle: props.resolveRouteTitle,
+              }}
               screenerCompletion={props.screenerCompletion}
               screenerInstanceId={screenerVisit.id}
-              localeDocuments={props.localeDocuments ?? props.bundle.localeDocuments}
+              localeDocuments={localeDocuments}
               activeLocale={props.activeLocale}
               resolveRouteTitle={props.resolveRouteTitle}
               strings={strings}
@@ -830,11 +854,6 @@ function SurfaceDocumentTitle({ title }: { title: string }) {
     return () => { document.title = previous; };
   }, [title]);
   return null;
-}
-
-function isPlainLinkClick(event: MouseEvent): boolean {
-  return !event.defaultPrevented && event.button === 0 &&
-    !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey;
 }
 
 export interface SurfaceNavProps {
@@ -946,9 +965,7 @@ export function SurfaceNav({
             <ul className="fs-surface-nav__list">
               {group.routes.map((handle, index) => {
                 const { href, refusal } = routeHref(handle, routeParams ?? {});
-                const navigationLabel =
-                  handle.route.navigation?.label ??
-                  presentedRouteTitle(handle, resolveRouteTitle);
+                const navigationLabel = presentedRouteLabel(handle, resolveRouteTitle);
                 const navigationAnchors = generationNeedAnchors(
                   handle.route.navigation
                 );

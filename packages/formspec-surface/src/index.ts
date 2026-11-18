@@ -134,6 +134,7 @@ export {
   type SlotPlan,
   type SlotPlanBase,
   type SlotPlanContext,
+  type SurfaceDefinitionComponentResolver,
   type SurfaceSlot,
   type WidgetActionLabelPlan,
   type WidgetActionMetadataPlan,
@@ -268,3 +269,5 @@ export {
 } from './response-field-metadata.js';
 
 export * from "./screener-slot.js";
+
+export type { FilingDraftObservation, FilingDraftQuery, FilingProgressCounts, FilingStatusPlan, FilingStatusReader } from './filing-status.js';

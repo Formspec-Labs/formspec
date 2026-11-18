@@ -87,6 +87,7 @@ import {
   type WidgetDataDelivery,
 } from '@formspec-org/surface';
 import { Heading, nextLevel } from './heading.js';
+import { FilingStatus, type FilingStatusViewContext } from './FilingStatus.js';
 import type {
   SurfaceWidget,
   SurfaceWidgetActionExecutor,
@@ -152,7 +153,7 @@ export interface SurfaceDefinitionFormRenderInput {
   responseActionsDocument: ReactResponseActionsDocument | undefined;
   referencesDocuments: readonly ReferencesDocument[];
   ontologyDocuments: readonly OntologyDocument[];
-  /** Host-admitted Component for this exact Definition and route/slot. */
+  /** Host-admitted Component from resolveDefinitionComponent for this Definition and route/slot. */
   componentDocument?: ComponentDocument | undefined;
   /** Host-admitted Locale documents; only matching Definition targets apply. */
   localeDocuments?: readonly LocaleDocument[] | undefined;
@@ -274,6 +275,7 @@ export function createSurfaceSemanticControlScopeResolver(
 }
 
 export interface SurfaceSlotProps {
+  filingStatus?: FilingStatusViewContext | undefined;
   formSession?: SurfaceFormSession | undefined;
   activeSection?: string | undefined;
   sectionNavigationActive?: boolean | undefined;
@@ -481,6 +483,7 @@ export function SurfaceSlotFrame(props: SurfaceSlotProps) {
 
 export function SurfaceSlot({
   plan,
+  filingStatus,
   grant,
   route,
   strings,
@@ -532,6 +535,9 @@ export function SurfaceSlot({
       : undefined;
 
   switch (plan.slotType) {
+    case 'filing-status':
+      return <FilingStatus plan={plan.tracker} context={filingStatus}
+        level={plan.title === undefined ? plan.headingBaseLevel : nextLevel(plan.headingBaseLevel)} text={strings} />;
     case 'screener': {
       if (plan.status !== 'ready' || !plan.screener) return <UnavailableSlot>{plan.reason ?? 'screener-unavailable'}</UnavailableSlot>;
       return <NativeScreenerSlot key={`${screenerInstanceId ?? runtimeGeneration ?? ''}/${plan.screener.ref.url}/${plan.screener.ref.version}`}
@@ -570,6 +576,7 @@ export function SurfaceSlot({
         grant,
         route,
         responseActionsDocument,
+        componentDocument: plan.componentDocument,
         referencesDocuments: referencesDocuments ?? [],
         ontologyDocuments: ontologyDocuments ?? [],
         onDefinitionActionResult,
@@ -752,6 +759,7 @@ export function SurfaceSlot({
             <SurfaceSlotFrame
               key={child.slotId}
               plan={child}
+              filingStatus={filingStatus}
               grant={grant}
               route={route}
               strings={strings}

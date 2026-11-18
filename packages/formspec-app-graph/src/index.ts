@@ -204,3 +204,6 @@ export {
   artifactHandlesFor,
   validateAppGraph,
 } from './validator.js';
+
+export { parseRouteSubjectKey } from './surface-definition-slots.js';
+export { filingStatusEntries, resolveFilingStatusTargets, validateFilingStatusTargets } from './filing-status-targets.js';

@@ -1,5 +1,5 @@
 /** @filedesc Read and write Surface addresses through browser session history. */
-import { useCallback, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useLayoutEffect, useRef, useSyncExternalStore, type MouseEvent } from 'react';
 
 export type SurfaceBrowserMode = 'history' | 'hash';
 
@@ -118,4 +118,9 @@ export function useBrowserLocation(fallback = '/'): [string, (href: string) => v
   const location = address ? new URL(address).pathname : fallback;
   const navigate = useCallback((href: string) => pushBrowserAddress(href, true), []);
   return [location, navigate];
+}
+
+export function isPlainLinkClick(event: MouseEvent): boolean {
+  return !event.defaultPrevented && event.button === 0 &&
+    !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey;
 }

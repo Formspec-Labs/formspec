@@ -1,6 +1,9 @@
 ---
 title: Formspec Surface Specification
-version: 0.3.0-draft.1
+version: 0.4.0-draft.1
+stable_rule_versions:
+  rendering.semantic-output: 0.3.0-draft.1
+  routing.current-route-state: 0.3.0-draft.1
 date: 2026-10-09
 depends_on:
   - specs/core/spec.md
@@ -11,9 +14,9 @@ depends_on:
   - specs/registry/extension-registry.md
 ---
 
-# Formspec Surface Specification v0.3
+# Formspec Surface Specification v0.4
 
-**Version:** 0.3.0-draft.1
+**Version:** 0.4.0-draft.1
 **Date:** 2026-10-09
 **Editors:** Formspec Working Group
 **Companion to:** Formspec v1.0 -- A JSON-Native Declarative Form Standard
@@ -30,7 +33,7 @@ primitive. It defines the semantic rules that are not expressible in
 
 A Surface document names routes inside an app and binds slots on those routes.
 Slots compose Definition forms, Experience units, module widgets, static
-content, native Screeners, and nested route references. Surface is inward composition: it
+content, native Screeners, filing-status trackers, and nested route references. Surface is inward composition: it
 describes what can be rendered within an app after the app has been selected.
 The companion [Surface Shell Specification](surface-shell-spec.md) defines how
 a runtime composes, resolves, renders, and diagnoses published Surface
@@ -94,16 +97,16 @@ Every route declared in `routes[]` MUST be reachable from the document's
 - each reachable route's `transitions[].to` target, when the target names a
   route in the same Surface,
 - each reachable `embed-route` slot's `binding.routeRef`, when the target names
-  a route in the same Surface, and
-- in Surface 0.3, each reachable native `screener` slot's
+  a route in the same Surface,
+- from Surface 0.3, each reachable native `screener` slot's
   `binding.allowedTargets` entry using `surface:<route-id>`, when it names a
-  route in the same Surface.
+  route in the same Surface, and
+- in Surface 0.4, each reachable `filing-status` entry’s `routeRef`.
 
 A route that is not reached by this walk is invalid and MUST be reported as
 `E606` (`SURFACE-ROUTE-UNREACHABLE`). Producers SHOULD either add a transition
 from a reachable route, embed the route via an `embed-route` slot, declare an
-authored native Screener destination in Surface 0.3, or remove the unreachable
-route.
+authored native Screener destination or filing-status entry, or remove the unreachable route.
 
 ### Route Parameters
 
@@ -268,7 +271,7 @@ text, image, alternative text, divider, runtime-data choice, or action mapping
 independently of the slot container and title. A standard structured widget
 additionally checks its panel root, every block, every authored field or table
 column, and every action presentation. Every loaded Data Sources `sources[]`
-entry is also one checked node. Parent, slot, catalog, source, widget-config,
+entry is also one checked node. A filing-status slot, its binding, each group, and each entry require direct anchors. Parent, slot, catalog, source, widget-config,
 and Response Action metadata do not authorize a related untraced node.
 
 Preview scenarios remain outside `AppGraphContext` because they are not App
@@ -321,6 +324,26 @@ target route. That external target does not change the slot's `slotType`, typed
 Cross-document slot bindings, such as `definition-form.binding.definitionRef`
 and `experience-unit.binding.unitRef`, are resolved by the app/bundle graph and
 are outside this Surface-local rule.
+
+### Filing-status binding
+
+Surface 0.4 adds `filing-status`. The closed binding contains ordered
+`groups[]`. Each group has an `id` unique within the slot, a `label`, and
+ordered `forms[]`. Each entry has `routeRef`, `slotRef`, and an optional
+authored `hint`. Both references MUST resolve exactly once within this Surface,
+and the slot MUST be a `definition-form`.
+
+An entry's `params` MUST supply exactly the target route's declared parameter
+names. Each value selects either an explicit string in `{value}` or a named
+parameter of the current route in `{routeParam}`. An embedded tracker uses the
+parameters admitted for its enclosing authored route. A group represents one
+filing unit. Its subject-keyed forms MUST agree on the subject type and sources
+of its typed keys. A preview group may consist entirely of forms without authored subjects.
+
+Processors MUST refuse unresolved or ambiguous targets and duplicate resolved
+route, slot, and parameter tuples within a tracker. Authoring tools MUST refuse
+removing a referenced route or slot, or changing a referenced slot's type away
+from `definition-form`, while a surviving entry still refers to it.
 
 ### Definition-form initial data
 
@@ -685,6 +708,14 @@ Definition/App targets MUST NOT be redirected to a Screener. Locale 2.1 may targ
 the selected Screener. No task, draft, provider, signing or agency verification
 authority follows from a successful Screener destination.
 
+### 5.3 Filing-status slots (v0.4)
+
+The canonical schema URI is `https://formspec.org/schemas/surface/0.4`.
+The 0.3 schema remains at its published URI.
+Surface 0.4 retains the native Screener slot and adds the filing-status binding
+defined in §4. Surface 0.2 and 0.3 MUST refuse filing-status slots. The existing
+Outcome Verification rules retain the revisions pinned in this document.
+
 ## 6. The `surface:<route-id>` URI scheme
 
 [ADR 0150 §7](../../../thoughts/adr/0150-formspec-as-layered-ui-substrate.md#7-surface-and-screener-are-orthogonal)
@@ -731,7 +762,7 @@ A Surface document is conformance-coherent when:
    missing entry route, empty route set, duplicate route ids, routes without
    slots, or duplicate slot ids.
 3. E606 reports no unreachable routes (every `routes[].id` reachable from
-   `entry` via transitions and embed-route bindings).
+   `entry` through the local edges listed in §3).
 4. E607 reports no unresolved embed-route bindings (every
    `binding.routeRef` resolves to a `routes[].id` in this Surface).
 5. Cross-bundle bindings resolve via the existing bundle-graph passes —
@@ -753,6 +784,7 @@ A Surface document is conformance-coherent when:
    failure makes the widget unavailable; action invocation uses one stable id,
    Response Actions retry/replay semantics, obsolete-completion refusal, and
    at-most-once transition navigation.
+9. Filing-status entries resolve under §4 and satisfy the strict Need trace profile when active.
 
 A non-form app (a bundle with `definitions: []` and a `surfaces: [...]`
 declaring routes with `experience-unit` / `module-widget` /
