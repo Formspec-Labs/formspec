@@ -1,5 +1,6 @@
 /** @filedesc Runtime WASM — init, accessors, and wrappers that use only the runtime `formspec_wasm_runtime` module. */
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
+import type { FormDefinition, FormResponse, ResponseSelectionDelivery } from '@formspec-org/types';
 
 /** Decode the maintained WASM protocol without rounding its numeric leaves. */
 function parseWasmJson<T = any>(text: string): T { return parseJsonExact(text) as T; }
@@ -387,6 +388,17 @@ export interface WasmCreation {
     data: import('./interfaces.js').JsonRecord;
     pending: string[];
     diagnostics: string[];
+}
+
+/** Assemble the Response instance evidence before the candidate is signed. */
+export function wasmAssembleCandidate(
+    definition: FormDefinition,
+    response: FormResponse,
+    resolution: Readonly<Record<string, ResponseSelectionDelivery>>,
+): FormResponse {
+    return parseWasmJson(wasm().assembleCandidate(
+        JSON.stringify(definition), JSON.stringify(response), 'null', JSON.stringify(resolution),
+    ));
 }
 
 /** Apply creation-time values to a new Response or resolve its pending values. */

@@ -848,6 +848,19 @@ def canonical_item_path(path: str) -> str:
     return ".".join(segment for segment in trimmed.split(".") if segment)
 
 
+def assemble_candidate_json(
+    definition_json: str, response_json: str, evaluation_json: str, resolution_json: str,
+) -> str:
+    """Assemble Response instance evidence from exact JSON without rounding answers.
+
+    The resolution maps Definition instance names to available selector deliveries.
+    A missing or inconsistent delivery raises ValueError.
+    """
+    return formspec_rust.assemble_candidate_json(
+        definition_json, response_json, evaluation_json, resolution_json,
+    )
+
+
 def select_responses_json(records_json: str, selection_json: str, context_json: str) -> str:
     """Select an authorized Response read using exact JSON text in and out.
 

@@ -58,6 +58,7 @@ import {
 } from '../field-view-model.js';
 import { createFormViewModel, type FormViewModel } from '../form-view-model.js';
 import {
+    wasmAssembleCandidate,
     wasmCreateFelContext,
     wasmCreateRepeatRow,
     wasmCreateResponse,
@@ -161,6 +162,7 @@ export class FormEngine implements IFormEngine {
     /** Host FEL extension functions (Core §3.12), passed to every Rust evaluation. */
     private readonly _extensionFunctions = new FelExtensionFunctions();
     private readonly _responseSubject: FormEngineOptions['responseSubject'];
+    private readonly _responseInstanceResolutions: NonNullable<FormEngineOptions['responseInstanceResolutions']>;
     private _registryDocuments: unknown[] = [];
     private readonly _remoteOptionsTasks: Array<Promise<void>> = [];
     private readonly _instanceSourceResolver?: InstanceSourceResolver;
@@ -217,6 +219,9 @@ export class FormEngine implements IFormEngine {
         } = options;
         this._instanceSourceResolver = options.instanceSourceResolver;
         this._responseSubject = cloneValue(options.responseSubject ?? undefined);
+        this._responseInstanceResolutions = Object.assign(
+            Object.create(null), cloneValue(options.responseInstanceResolutions ?? {}),
+        );
         this._rx = reactiveRuntime;
         this._issuerStore = new IssuerStore(issuerFetcher ?? new FetchIssuerFetcher());
         this._validationProfileResolver = new DefaultValidationProfileResolver();
@@ -884,7 +889,26 @@ export class FormEngine implements IFormEngine {
         const responseTrigger = this._validationProfileResolver.resolve(profile);
         const trigger = this._validationProfileResolver.resolve(validationProfile ?? profile);
         const timestamp = this.nowISO();
-        const responseResult = this.evaluateResultForTrigger(responseTrigger, timestamp);
+        let instances: JsonRecord | undefined;
+        let changedInstance: string | undefined;
+        if (responseTrigger === 'submit' && trigger === 'submit') {
+            for (const [name, instance] of Object.entries(this.definition.instances ?? {})) {
+                if (!instance.response) continue;
+                instances ??= { ...this.instanceData };
+                if (meta?.authoredSignatures?.length) {
+                    throw new Error('Capture the unsigned Response candidate before attaching signatures');
+                }
+                const delivery = this._responseInstanceResolutions[name];
+                if (!delivery) continue;
+                if (!deepEqual(delivery.value, instances[name])) {
+                    changedInstance ??= name;
+                    continue;
+                }
+                // Use the delivered value when evaluating a potential signing candidate.
+                instances[name] = delivery.value as JsonValue;
+            }
+        }
+        const responseResult = this.evaluateResultForTrigger(responseTrigger, timestamp, { instances });
         const data = responseTrigger === 'submit'
             ? cloneValue(responseResult.data)
             : this.draftResponseData(responseResult);
@@ -897,7 +921,7 @@ export class FormEngine implements IFormEngine {
             this.definition.url,
             this.definition.version,
         );
-        const response = buildFormspecResponseEnvelope({
+        let response = buildFormspecResponseEnvelope({
             definition: this.definition,
             data,
             report: responseTrigger === 'disabled' ? null : report,
@@ -908,6 +932,12 @@ export class FormEngine implements IFormEngine {
             subject: cloneValue(this._responseSubject ?? meta?.subject),
             meta,
         }) as unknown as FormResponse;
+        if (response.status === 'completed' && instances) {
+            if (changedInstance !== undefined) {
+                throw new Error(`Response instance '${changedInstance}' changed after resolution`);
+            }
+            response = wasmAssembleCandidate(this.definition, response, this._responseInstanceResolutions);
+        }
         return { response, validationReport: report };
     }
 
@@ -1279,6 +1309,11 @@ export class FormEngine implements IFormEngine {
         }
 
         for (const [name, instance] of Object.entries(instances)) {
+            const delivery = instance.response && this._responseInstanceResolutions[name];
+            if (delivery) {
+                this.instanceData[name] = cloneValue(delivery.value) as JsonValue;
+                continue;
+            }
             if (instance.data !== undefined) {
                 const seedData = cloneValue(instance.data) as JsonValue;
                 this.validateInstanceSchema(name, seedData);

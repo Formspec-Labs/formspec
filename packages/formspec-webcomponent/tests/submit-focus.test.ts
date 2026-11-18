@@ -64,4 +64,38 @@ describe('submit focus on repeat rows', () => {
         expect(target.jumpable).toBe(false);
         expect(target.path).toBe('jobs[3].title');
     });
+
+    it('emits submit and focuses the first error when a Response read is unavailable', () => {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        el.definition = {
+            ...jobsDefinition(),
+            instances: {
+                filing: {
+                    response: {
+                        definition: { url: 'urn:test:filing' },
+                        subject: [],
+                        status: 'completed',
+                        pin: 'none',
+                        cardinality: 'latest',
+                    },
+                    schema: { title: 'string' },
+                },
+            },
+        };
+        el.render();
+        const submissions: unknown[] = [];
+        el.addEventListener('formspec-submit', (event: CustomEvent) => submissions.push(event.detail));
+
+        const detail = el.submit({
+            validationTuple: { profile: 'on-submit', blocking: 'block-on-error', persistence: 'complete-response' },
+        });
+
+        expect(submissions).toEqual([detail]);
+        expect(detail.response.status).toBe('in-progress');
+        expect(detail.response.resolvedInstances).toBeUndefined();
+        expect(detail.validationReport.valid).toBe(false);
+        const focusedField = document.activeElement?.closest<HTMLElement>('[data-name]');
+        expect(focusedField?.dataset.name).toBe('jobs[0].title');
+    });
 });

@@ -8,6 +8,7 @@
 //! - `fel` — eval + analysis + path utils always; `fel-authoring`: tokenize/parse/print/rewrites/catalog
 //! - `fel_context` — `FelContext`: one form's FEL state resident across ad-hoc reads (no per-call context JSON)
 //! - `evaluate` — batch definition evaluation, screener (always in runtime WASM)
+//! - `candidate` — signing candidate assembly (always in runtime WASM)
 //! - `extensions` — `FelExtensionHost`: JS-backed FEL extension functions (Core §3.12)
 //! - `definition` — option sets and migrations. Tools add `assembleDefinition` and
 //!   `checkInstanceProjection` through `definition-assembly` and `document-api`.
@@ -23,6 +24,7 @@
 //! - `json_host` — internal JSON parse/stringify helpers
 //! - `wasm_tests` — native `cargo nextest run` coverage (`#[cfg(test)]` only)
 
+mod candidate;
 #[cfg(feature = "changelog-api")]
 mod changelog;
 mod changeset;

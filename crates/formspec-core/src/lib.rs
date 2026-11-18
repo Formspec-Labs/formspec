@@ -20,6 +20,7 @@ pub mod fel_analysis;
 pub mod fel_condition_group_lift;
 pub mod fel_rewrite_exact;
 pub mod instance_projection;
+pub mod instance_resolution;
 pub mod json_artifacts;
 pub mod json_util;
 pub mod jsonld_context;

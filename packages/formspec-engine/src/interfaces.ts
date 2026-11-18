@@ -8,6 +8,7 @@ import type {
     FormItem,
     FormResponse,
     MappingDocument,
+    ResponseSelectionDelivery,
     ValidationResult,
     ValidationReport,
     ValidationProfile,
@@ -295,6 +296,8 @@ export interface FormEngineOptions {
     draftSnapshot?: FormDraftSnapshot;
     /** Host-supplied Response identity, available to FEL from the first evaluation. */
     responseSubject?: Omit<NonNullable<FormResponse['subject']>, 'keys'> & { keys?: ResponseSubjectKeys };
+    /** Available, host-qualified deliveries of Definition Response instances, keyed by instance name. */
+    responseInstanceResolutions?: Readonly<Record<string, ResponseSelectionDelivery>>;
 }
 
 /** Editable data pinned to a Definition, including hidden answers and exact repeat arrays. */

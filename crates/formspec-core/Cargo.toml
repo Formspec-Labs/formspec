@@ -12,7 +12,6 @@ default = ["response-selection"]
 response-selection = [
     "dep:chrono",
     "dep:integrity-canonical",
-    "serde_json/raw_value",
 ]
 
 [dependencies]
@@ -22,7 +21,7 @@ fel-core = { version = "0.3.0", path = "../../../fel-core" }
 rust_decimal = "~1.41"
 semver_rs = "0.2.0"
 serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
+serde_json = { version = "1", features = ["preserve_order", "raw_value"] }
 
 [dev-dependencies]
 proptest = "1"

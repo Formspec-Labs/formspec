@@ -1,10 +1,9 @@
 //! Wire admission and subject identity hashing for the selector.
 
 use std::collections::BTreeMap;
-use std::fmt;
 
 use integrity_canonical::{DigestAlgorithm, compute_digest, domain_separated_canonical_bytes};
-use serde::{Deserialize, Deserializer, Serialize, de::Error};
+use serde::{Deserialize, Deserializer, de::Error};
 use serde_json::{json, value::RawValue};
 
 use crate::subject_key::SubjectKey;
@@ -47,50 +46,6 @@ fn integer(raw: &RawValue) -> Result<i64, String> {
         .ok()
         .and_then(|value| value.parse().ok())
         .ok_or_else(|| "expected a signed 64-bit JSON integer".to_owned())
-}
-
-/// Lowercase hexadecimal SHA-256 with the Core wire prefix.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-#[serde(try_from = "String")]
-pub struct Sha256Digest(String);
-
-impl Sha256Digest {
-    /// Hashes framed bytes using the shared integrity primitive.
-    pub(super) fn hash(bytes: &[u8]) -> Self {
-        Self(format!(
-            "sha256:{}",
-            compute_digest(bytes, DigestAlgorithm::Sha256)
-        ))
-    }
-
-    /// Returns the digest in its wire format.
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl TryFrom<String> for Sha256Digest {
-    type Error = &'static str;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let hex = value
-            .strip_prefix("sha256:")
-            .ok_or("missing sha256: prefix")?;
-        if hex.len() != 64
-            || !hex
-                .bytes()
-                .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
-        {
-            return Err("expected 64 lowercase hexadecimal digits");
-        }
-        Ok(Self(value))
-    }
-}
-
-impl fmt::Display for Sha256Digest {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.as_str())
-    }
 }
 
 /// Derives the unprefixed filing-unit id from its type and typed keys.

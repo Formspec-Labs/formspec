@@ -492,6 +492,14 @@ npm run test:wasm-runtime-isolation # runtime-only init (no global setup)
 
 20 test files in `tests/` covering: bind behaviors, bind defaults and expression context, definition assembly (sync/async), FEL path rewriting, shape composition and timing, repeat lifecycle, response pruning, remote options, runtime diagnostics, replay, and runtime mapping.
 
+### Response instance evidence
+
+For Definitions that read other Responses, pass the host's available deliveries
+to `FormEngine` as `responseInstanceResolutions`, keyed by instance name. The
+engine evaluates with those values and includes their `resolvedInstances`
+evidence in the signing snapshot. Missing, stale, or inconsistent deliveries
+block signing. Draft saves can continue while a read is unavailable.
+
 ### Attach evidence after whole-Response signing
 
 Call `getResponse({ id: stableResponseId, profile: 'on-submit' })` once, then confirm

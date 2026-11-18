@@ -14,6 +14,7 @@ pub(crate) const PY_API_VERSION: u32 = 1;
 
 pub(crate) type PyObject = pyo3::Py<pyo3::PyAny>;
 
+mod candidate;
 mod changelog;
 mod convert;
 mod document;
@@ -45,6 +46,7 @@ fn formspec_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(document::detect_type, m)?)?;
     m.add_function(wrap_pyfunction!(document::lint_document, m)?)?;
     m.add_function(wrap_pyfunction!(document::evaluate_def, m)?)?;
+    m.add_function(wrap_pyfunction!(candidate::assemble_candidate_json, m)?)?;
     m.add_function(wrap_pyfunction!(document::coerce_field_value, m)?)?;
     m.add_function(wrap_pyfunction!(document::check_instance_projection, m)?)?;
     m.add_function(wrap_pyfunction!(

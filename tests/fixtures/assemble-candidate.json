@@ -1,0 +1,153 @@
+{
+  "definition": {
+    "$formspec": "1.0",
+    "url": "urn:test:candidate",
+    "version": "1.0.0",
+    "title": "Synthetic filing",
+    "items": [{ "key": "total", "type": "field", "dataType": "integer", "label": "Total" }],
+    "binds": [{ "path": "total", "calculate": "@instance('a_completed').renamed + @instance('z_current').amount" }],
+    "instances": {
+      "z_current": {
+        "response": { "definition": { "url": "urn:test:upstream" }, "subject": [], "status": "current", "pin": "none", "cardinality": "latest" },
+        "schema": { "amount": "integer" }
+      },
+      "m_empty": {
+        "response": { "definition": { "url": "urn:test:upstream" }, "subject": [], "status": "completed", "pin": "none", "cardinality": "latest", "whenNone": "empty" },
+        "schema": { "amount": "integer" },
+        "data": {}
+      },
+      "z_mapped_empty": {
+        "response": { "definition": { "url": "urn:test:upstream" }, "subject": [], "status": "completed", "pin": "none", "cardinality": "latest", "whenNone": "empty", "mapping": "urn:test:rename" },
+        "schema": { "renamed": "integer" },
+        "data": { "renamed": 0 }
+      },
+      "a_completed": {
+        "response": { "definition": { "url": "urn:test:upstream" }, "subject": [], "status": "completed", "pin": "at-open", "cardinality": "latest", "mapping": "urn:test:rename" },
+        "schema": { "renamed": "integer" }
+      },
+      "inline": { "data": { "amount": 99 } }
+    }
+  },
+  "response": {
+    "$formspecResponse": "1.0",
+    "id": "candidate",
+    "definitionUrl": "urn:test:candidate",
+    "definitionVersion": "1.0.0",
+    "authored": "2026-01-02T00:00:00Z",
+    "status": "completed",
+    "data": { "total": 13, "exact": 1234567890.123456789012345678 },
+    "resolvedInstances": []
+  },
+  "resolution": {
+    "z_current": {
+      "records": [{ "responseId": "stored-draft", "definitionVersion": "3.0.0" }],
+      "value": { "amount": 5 },
+      "valueDigest": "sha256:f0fd2a1ebf0d85b35f6684182242da4753a17f3d90903df1964766bfac3423c9",
+      "none": false,
+      "pinned": false
+    },
+    "m_empty": {
+      "records": [],
+      "value": {},
+      "valueDigest": "sha256:c95b97011ef82c4526185d143b4faa3c7bf665b1a66a5ab33c1cb55aeff76527",
+      "none": true,
+      "pinned": false
+    },
+    "z_mapped_empty": {
+      "records": [],
+      "value": { "renamed": 0 },
+      "valueDigest": "sha256:1a44c1e2a13ae5e3725c65c3ada7ea89112a5fced8e18f6813010789b9f529e0",
+      "none": true,
+      "pinned": false
+    },
+    "a_completed": {
+      "records": [{ "responseId": "stored-filing", "definitionVersion": "2.0.0", "responseHash": "sha256:94227db87d8de51f3fdaba8f95d208da79424a7ee313ba1304dbfe7f1ebd98c1" }],
+      "value": { "renamed": 8 },
+      "valueDigest": "sha256:3dfd82622bd0559e7310b83d443db73a7a0cd56d31c11904e8122a71c3ac9c78",
+      "none": false,
+      "pinned": true,
+      "mapping": { "url": "urn:test:rename", "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+    }
+  },
+  "refusals": [
+    {
+      "instance": "a_completed",
+      "delivery": { "pinned": false },
+      "message": "has a pin status that disagrees with the Definition"
+    },
+    {
+      "instance": "z_current",
+      "delivery": { "mapping": { "url": "urn:test:rename", "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } },
+      "message": "has an unexpected Mapping"
+    },
+    {
+      "instance": "a_completed",
+      "delivery": { "mapping": null },
+      "message": "is missing its declared Mapping"
+    },
+    {
+      "instance": "a_completed",
+      "delivery": { "mapping": { "url": "urn:test:different", "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } },
+      "message": "has a Mapping URL that disagrees with the Definition"
+    },
+    {
+      "instance": "z_mapped_empty",
+      "delivery": { "mapping": { "url": "urn:test:rename", "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } },
+      "message": "has an unexpected Mapping"
+    },
+    {
+      "instance": "a_completed",
+      "delivery": { "records": [{ "responseId": "stored-filing", "definitionVersion": "2.0.0" }] },
+      "message": "has a completed record without responseHash"
+    },
+    {
+      "instance": "z_current",
+      "delivery": { "records": [
+        { "responseId": "stored-draft", "definitionVersion": "3.0.0" },
+        { "responseId": "another-draft", "definitionVersion": "3.0.0" }
+      ] },
+      "message": "has more than one record for a latest selection"
+    },
+    {
+      "instance": "z_current",
+      "delivery": { "none": true, "records": [] },
+      "message": "requires whenNone: empty to deliver an empty match"
+    },
+    {
+      "instance": "z_current",
+      "delivery": { "none": true },
+      "message": "has inconsistent empty-match evidence"
+    }
+  ],
+  "resolvedInstances": [
+    {
+      "instance": "a_completed",
+      "records": [{ "responseId": "stored-filing", "definitionVersion": "2.0.0", "responseHash": "sha256:94227db87d8de51f3fdaba8f95d208da79424a7ee313ba1304dbfe7f1ebd98c1" }],
+      "valueDigest": "sha256:3dfd82622bd0559e7310b83d443db73a7a0cd56d31c11904e8122a71c3ac9c78",
+      "none": false,
+      "pinned": true,
+      "mapping": { "url": "urn:test:rename", "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+    },
+    {
+      "instance": "m_empty",
+      "records": [],
+      "valueDigest": "sha256:c95b97011ef82c4526185d143b4faa3c7bf665b1a66a5ab33c1cb55aeff76527",
+      "none": true,
+      "pinned": false
+    },
+    {
+      "instance": "z_current",
+      "records": [{ "responseId": "stored-draft", "definitionVersion": "3.0.0" }],
+      "valueDigest": "sha256:f0fd2a1ebf0d85b35f6684182242da4753a17f3d90903df1964766bfac3423c9",
+      "none": false,
+      "pinned": false
+    },
+    {
+      "instance": "z_mapped_empty",
+      "records": [],
+      "valueDigest": "sha256:1a44c1e2a13ae5e3725c65c3ada7ea89112a5fced8e18f6813010789b9f529e0",
+      "none": true,
+      "pinned": false
+    }
+  ]
+}

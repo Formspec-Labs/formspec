@@ -25,6 +25,7 @@ __all__ = [
     "RegistryInfo",
     "evaluate_definition",
     "evaluate_filed",
+    "assemble_candidate_json",
     "lint",
     "lint_report",
     "detect_document_type",

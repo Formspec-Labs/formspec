@@ -27,6 +27,7 @@ Sibling binding: **[`formspec-py`](../formspec-py/)** (`formspec_rust`) targets 
 |--------|------|
 | `fel` | Always: eval, `getFelDependencies`, `analyzeFel`, path helpers. `fel-authoring`: tokenize/parse/print/rewrites/catalog. |
 | `evaluate` | `evaluateDefinition`, `evaluateScreenerDocument`, context/trigger parsing |
+| `candidate` | `assembleCandidate` records validated Response instance evidence before signing. |
 | `definition` | Always: option sets + migrations. `definition-assembly`: `assembleDefinition`. |
 | `value_coerce` | `coerceFieldValue` (item/bind/definition/value JSON strings) |
 | `changeset` | Changeset dependency analysis (key extraction, connected components) |

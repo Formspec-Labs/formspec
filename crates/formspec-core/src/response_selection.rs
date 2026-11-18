@@ -15,9 +15,13 @@ use candidates::{Candidate, compare_rank, resolve_predicates};
 use delivery::{deliver, value_digest};
 
 #[doc(inline)]
+pub use crate::instance_resolution::{
+    DeliveredSelection, MappingReference, SelectedRecord, Sha256Digest,
+};
+#[doc(inline)]
 pub use candidates::valid_authored_instant;
 #[doc(inline)]
-pub use wire::{Sha256Digest, select_json, subject_id, subject_id_json};
+pub use wire::{select_json, subject_id, subject_id_json};
 
 /// The declared type of an upstream subject key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -240,48 +244,6 @@ pub struct SelectionMapping {
     pub reference: MappingReference,
     /// The resolved Mapping document.
     pub document: serde_json::Value,
-}
-
-/// Identity and digest of the Mapping used to produce the delivered value.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MappingReference {
-    /// Declared Mapping URL.
-    pub url: String,
-    /// Caller-verified digest of the resolved Mapping.
-    pub digest: Sha256Digest,
-}
-
-/// Evidence identifying one selected Response.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct SelectedRecord {
-    /// Response id.
-    pub response_id: String,
-    /// Version of the selected Response's Definition.
-    pub definition_version: String,
-    /// Handoff hash of a completed Response. Drafts omit this.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub response_hash: Option<Sha256Digest>,
-}
-
-/// An available value together with the evidence needed to keep a pin.
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DeliveredSelection {
-    /// Selected records in selection order.
-    pub records: Vec<SelectedRecord>,
-    /// The exact JSON value read by the consumer.
-    pub value: Box<RawValue>,
-    /// The digest of the delivered value.
-    pub value_digest: Sha256Digest,
-    /// Whether the delivery came from a successful empty match.
-    pub none: bool,
-    /// Whether this delivery is pinned at open.
-    pub pinned: bool,
-    /// Identity of the Mapping applied at delivery.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mapping: Option<MappingReference>,
 }
 
 /// Identity of a different completed record that a fresh read would select.

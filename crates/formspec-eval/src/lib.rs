@@ -37,6 +37,7 @@ pub mod screener_eval;
 pub mod screener_qualification;
 pub mod types;
 
+mod assemble_candidate;
 #[cfg(feature = "create")]
 mod create;
 mod eval_json;
@@ -52,6 +53,9 @@ pub use fel_core::exact_json;
 
 /// Whether new-Response creation is available in this build.
 pub const CREATION_COMPILED: bool = cfg!(feature = "create");
+
+#[doc(inline)]
+pub use assemble_candidate::{CandidateAssemblyError, assemble_candidate, assemble_candidate_json};
 
 #[cfg(feature = "create")]
 pub use create::{CreateOptions, CreateResult, create_repeat_row, create_response};
