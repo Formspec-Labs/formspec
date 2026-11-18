@@ -6,6 +6,18 @@ Browser: Chromium through Playwright
 Decision: the implementation cases pass; the formal demo claim remains held for
 human approval
 
+## November 17, 2026 recapture
+
+All nine screenshots changed from the July review because the host now uses
+main's shared typography and the browser checks use updated desktop and mobile
+viewports. The unrelated outcome has its own capture of the community-room
+route at 1280 × 720. The general control capture uses 1440 × 1000.
+
+The landing replay ran with Mapping-backed preview reads refused and absent
+selector inputs omitted. Eight captures reproduced exactly. The blocked-setup
+capture shows the same validation errors with different hover styling on the
+Finish setup button.
+
 ## Result
 
 The take-two audit found two false-success flows. Both are now implemented

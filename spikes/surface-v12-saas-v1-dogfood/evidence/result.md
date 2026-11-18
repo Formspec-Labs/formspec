@@ -11,7 +11,7 @@ structured data. Generic framework code supplies rendering, validation,
 responsive layout, accessible defaults, state storage, semantic controls and
 outputs, and evidence collection without product-specific branches.
 
-Reviewed input digest: `sha256:fb30fb637a26ed7153289b0c539991234f0feef560e527c0d746f3bb73fc317a`
+Reviewed input digest: `sha256:b8f631ac8d24d207a7b7d3438046b0b379cb4998f2b867f2ae29037b13ddd050`
 
 ## Structured artifact and reasoning result
 
@@ -50,13 +50,18 @@ become product approval.
 
 ## Browser result
 
-Playwright rendered all 15 routes and followed all 34 authored action paths
+The July 31 review rendered all 15 routes and followed all 34 authored action paths
 through their resolved controls and native action seams. It completed 30
 route-and-width checks and 75 profile-and-route checks across `loaded`, `empty`,
 `unavailable`, `error`, and `longContent`. The final browser pass also verified
 the repaired organization and public-response flows, the unrelated control,
 and the shared mobile toggle layout. It recorded no horizontal overflow,
 browser warning, or browser error.
+
+The November 17 recapture repeated the route, width, and profile checks with
+the WASM-backed preview store. It verified that a completed setup supplies
+the organization, workspace, and environment on Administration, and
+recaptured the public response and independent control journeys.
 
 The detailed review and pinned captures are in
 [`playwright-review.md`](./playwright-review.md) and

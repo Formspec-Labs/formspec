@@ -1,8 +1,22 @@
 # v12 Playwright review
 
-Date: 2026-07-31
+Reviewed input digest: `sha256:b8f631ac8d24d207a7b7d3438046b0b379cb4998f2b867f2ae29037b13ddd050`
 
-Reviewed input digest: `sha256:fb30fb637a26ed7153289b0c539991234f0feef560e527c0d746f3bb73fc317a`
+## November 17, 2026 recapture
+
+The production preview build rendered 15 routes at desktop and mobile widths
+and completed 75 route and profile combinations. Each view had one page heading
+and fit its viewport. The browser reported zero warnings and errors. All 34
+authored action controls exposed a direct Need identity in their applicable states.
+
+Empty organization setup stayed on the form and flagged three fields. After a
+valid submission, Administration showed the recorded organization, workspace,
+and environment through the WASM-backed catalog read. Invalid public input
+stayed on the form. Valid input reached the verified receipt. The same host
+rendered the independent community-room bundle. The captures below are from
+this recapture.
+
+## July 31, 2026 review
 
 ## Result
 
