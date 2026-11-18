@@ -21,7 +21,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { FormDefinition, LocaleDocument, ThemeDocument } from '@formspec-org/types';
 import {
-    derivePlan, expectClean, guidepupScreenReader, virtualScreenReader, walkDefinition, type GuidepupLike, type ScreenReader,
+    Walk, derivePlan, expectClean, guidepupScreenReader, virtualScreenReader, walkDefinition, type GuidepupLike, type ScreenReader,
 } from '@formspec-org/walk';
 import { gotoHarness, mountDefinition } from '../browser/helpers/harness';
 
@@ -146,4 +146,36 @@ test('field names keep punctuation and group headings precede their own fields',
     await page.locator('.formspec-group-title').filter({ hasText: 'Account #' }).last().evaluate(el => el.remove());
     const broken = await walkDefinition(page, plan, {});
     expect(broken.findings).toContain('group "Account #": not announced as a heading before its first field second.account');
+});
+
+test('incidental groups cannot change how the walk judges a single control name', async ({ page }) => {
+    const definition = {
+        $formspec: '1.0', version: '1.0.0', url: 'urn:test:walk-ownership', title: 'Ownership',
+        items: [
+            { type: 'field', key: 'name', dataType: 'string', label: 'Name' },
+            { type: 'field', key: 'color', dataType: 'choice', label: 'Color',
+                options: [{ value: 'blue', label: 'Blue' }, { value: 'red', label: 'Red' }] },
+        ],
+    } as FormDefinition;
+    await gotoHarness(page);
+    await mountDefinition(page, definition);
+    const walk = await Walk.open(page, {});
+    const name = page.locator('[data-name="name"]');
+    await name.evaluate(el => {
+        const group = document.createElement('div');
+        group.setAttribute('role', 'group');
+        group.setAttribute('aria-label', 'Instructions');
+        el.appendChild(group);
+    });
+    await walk.field('name', { label: 'Name' });
+    expect(walk.findings).toEqual([]);
+    await page.locator('[data-name="color"] select').evaluate((el: HTMLSelectElement) => {
+        const options = document.createElement('optgroup');
+        options.label = 'Palette';
+        options.append(...Array.from(el.options));
+        el.appendChild(options);
+        el.setAttribute('aria-label', 'Color unrelated suffix');
+    });
+    await walk.field('color', { label: 'Color' });
+    expect(walk.findings).toContain('color: no control named for the label "Color"');
 });

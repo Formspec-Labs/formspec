@@ -398,22 +398,25 @@ export class Walk {
         const fieldRoot = this.root.locator(`[data-name="${f.path}"]`).filter({ visible: true });
         if ((await fieldRoot.count()) !== 1) { this.found(`${f.path}: expected one visible field root, got ${await fieldRoot.count()}`); return; }
         const required = w.required === 'engine' || w.required === undefined ? f.required : w.required;
-        const controls = this.byRoles(fieldRoot, CONTROL_ROLES);
+        const actionable = [...INPUT_ROLES, 'radio', 'button'] as const;
+        const controls = this.byRoles(fieldRoot, actionable);
         const count = await controls.count();
         if (!count) { this.found(`${f.path}: no control with a role inside the field`); return; }
+        // Only a group around the principal control can name the field. An optgroup
+        // or a sibling help panel does not change a single input into a composite.
+        const owners = controls.first().locator('xpath=ancestor::*');
         const groupName = asRegex(label, required ? '(?:\\s+required)?' : '');
-        const groups = this.byRoles(fieldRoot, ['group', 'radiogroup'], groupName);
+        const groups = this.byRoles(fieldRoot, ['group', 'radiogroup'], groupName).and(owners);
         const isGroup = await groups.count() > 0;
-        if (!isGroup && await fieldRoot.evaluate((el, sel) => el.matches(sel) || Boolean(el.querySelector(sel)), GROUP_CONTROL)) {
-            this.found(`${f.path}: no group named for the label "${label.text}"`);
-        }
         const composite = !isGroup && count > 1;
         if (!isGroup) {
             const name = asRegex(label, composite ? '(?:\\s+.*)?' : '');
-            if (!await this.byRoles(fieldRoot, CONTROL_ROLES, name).count())
+            if (!await this.byRoles(fieldRoot, actionable, name).count())
                 this.found(`${f.path}: no control named for the label "${label.text}"`);
             if (composite && await this.byRoles(fieldRoot, INPUT_ROLES, name).count() !== await this.byRoles(fieldRoot, INPUT_ROLES).count())
                 this.found(`${f.path}: a control does not open with the label "${label.text}"`);
+            if (await fieldRoot.evaluate((el, selector) => el.matches(selector), GROUP_CONTROL))
+                this.found(`${f.path}: no group named for the label "${label.text}"`);
         }
         if (w.required === 'engine') this.uncover(`${f.path}: required is an expression; the engine decides`);
 
@@ -567,10 +570,14 @@ export class Walk {
             at.set(f.path, i);
             cursor = i + 1;
         }
+        const headingLabels = groups.map(g => want(g.label).text);
         for (const g of groups) {
             const first = at.get(g.firstField);
             if (first === undefined) continue;
             const label = want(g.label);
+            if (!this.sr.readingPosition && headingLabels.indexOf(label.text) !== headingLabels.lastIndexOf(label.text)) {
+                this.uncover(`group "${label.text}": ${this.sr.name} supplies speech without a DOM cursor; repeated heading ownership is unverified`);
+            }
             // A group is a heading (a landmark's name alone does not head it), read before its first field.
             const heading = entries.slice(0, first).some(({ phrase, heads }) => /^heading, /.test(phrase)
                 && (heads === undefined || heads.includes(g.firstField)) && asRegex(label).test(heardNameOf(phrase)));
