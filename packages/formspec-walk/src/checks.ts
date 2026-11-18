@@ -2,7 +2,7 @@
 import type { Locator, Page } from '@playwright/test';
 import type { IFormEngine } from '@formspec-org/engine';
 import { UI_STRINGS } from '@formspec-org/layout';
-import { expected, matches, type ExpectedText } from './plan.js';
+import { expected, type ExpectedText } from './plan.js';
 import { needsHostData, revealSearch, type RecipeStep } from './reveal.js';
 import { virtualScreenReader, type ScreenReader } from './screen-reader.js';
 import { stepWizard } from './wizard.js';
@@ -90,13 +90,12 @@ interface Stop {
 }
 
 /** Roles a Formspec control can carry; a phrase or snapshot line opens with one of these. */
-const CONTROL_ROLES = ['textbox', 'spinbutton', 'combobox', 'checkbox', 'switch', 'radiogroup', 'group', 'listbox', 'slider', 'button'];
+const INPUT_ROLES = ['textbox', 'spinbutton', 'combobox', 'listbox', 'checkbox', 'switch', 'slider'] as const;
+const CONTROL_ROLES = [...INPUT_ROLES, 'radiogroup', 'group', 'button'] as const;
 /** Roles the reader may open a phrase with: a control, an option inside a group control, or the structure around them. */
-const HEARD_ROLES = [...CONTROL_ROLES, 'radio', 'option', 'menuitemradio', 'heading', 'region', 'navigation', 'list', 'listitem', 'paragraph', 'link',
+const HEARD_ROLES: string[] = [...CONTROL_ROLES, 'radio', 'option', 'menuitemradio', 'heading', 'region', 'navigation', 'list', 'listitem', 'paragraph', 'link',
     'article', 'form', 'status', 'alert', 'dialog', 'table', 'row', 'cell', 'columnheader', 'rowheader', 'img', 'figure', 'separator', 'main', 'banner',
     'contentinfo', 'complementary', 'search', 'tablist', 'tab', 'tabpanel', 'menu', 'menuitem', 'progressbar', 'meter', 'note', 'term', 'definition', 'document'];
-/** Controls that take a value; a button inside a field is named for its action ("Toggle calendar", "Browse"). */
-const INPUT_ROLES = ['textbox', 'spinbutton', 'combobox', 'listbox', 'checkbox', 'switch', 'slider'];
 /** The states the virtual reader appends after a name, each its own comma segment. */
 const STATE_SEGMENT = /^(not )?(checked|invalid|read only|required|expanded|selected|pressed|disabled|busy|current|multi-?selectable)$|^(has popup|placeholder|position|set size|level|orientation|value|min value|max value|current value) |^(mixed|end of .*)$/;
 const GROUP_CONTROL = 'fieldset, [role="group"], [role="radiogroup"]';
@@ -104,30 +103,20 @@ const MAX_TABS = 800;
 const MAX_PHRASES = 4000;
 
 const norm = (s: string) => s.replace(/\s+/g, ' ').replace(/\s*\*\s*$/, '').trim();
-/** A required marker rides the label's end ("Full Name*"); drop it wherever a name segment ends. */
-const unstarred = (s: string) => norm(s).replace(/\s*\*\s*(?=,|$)/g, '');
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** A pattern's anchors dropped, so it can be searched for inside a longer text. */
 const loose = (w: ExpectedText) => new RegExp(w.pattern ? w.pattern.source.replace(/^\^\\s\*/, '').replace(/\[\\s\\S\]\*\$$/, '') : escapeRe(w.text).replace(/\s+/g, '\\s+'));
-const asRegex = (w: ExpectedText) => w.pattern ?? new RegExp(`^\\s*${escapeRe(w.text).replace(/\s+/g, '\\s+')}\\s*\\*?\\s*$`);
+/** Match the normalized authored name, allowing the renderer's required marker. */
+const asRegex = (w: ExpectedText, suffix = '') => w.pattern ?? new RegExp(
+    `^\\s*${escapeRe(norm(w.text)).replace(/\s+/g, '\\s+')}(?:\\s*\\*)*${suffix}\\s*$`);
 /** `w` appears somewhere in `text`. */
 const contains = (text: string, w: ExpectedText) => loose(w).test(text);
 /** Words only: a hint rendered as a list loses its separators in `textContent`. */
 const squash = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
-/** Playwright's name for a control is the label and nothing else (a required marker aside). */
-const nameIs = (actual: string, w: ExpectedText) => matches(unstarred(actual), w) || matches(norm(actual), w);
-/** The name opens with the label: a composite widget's own control extends it ("Salary currency code"). */
-const nameOpensWith = (actual: string, w: ExpectedText) => {
-    const clean = unstarred(actual);
-    return nameIs(actual, w) || (w.pattern ? w.pattern.test(clean) : clean.startsWith(`${w.text} `));
-};
-/** What the reader said is the name — then, as further segments, a value and a description. */
-const heardIs = (heard: string, w: ExpectedText, opensWith: boolean) => {
-    const clean = unstarred(heard);
-    if (matches(clean, w)) return true;
-    if (w.pattern) return w.pattern.test(clean);
-    return clean.startsWith(`${w.text}, `) || (opensWith && clean.startsWith(`${w.text} `));
-};
+const nameOpensWith = (actual: string, w: ExpectedText) => asRegex(w, '(?:\\s+.*)?').test(actual);
+/** Speech may append a comma-delimited value or description to the accessible name. */
+const heardIs = (heard: string, w: ExpectedText, opensWith: boolean) =>
+    asRegex(w, opensWith ? '(?:, .*|\\s+.*)?' : '(?:, .*)?').test(heard);
 /** What the reader called the thing: the phrase without its role and its trailing states. Names may contain commas. */
 const heardNameOf = (phrase: string) => {
     const segments = phrase.split(', ');
@@ -372,10 +361,11 @@ export class Walk {
         return stops;
     }
 
-    /** Playwright's own role + name for every control inside a field root. */
-    private async controls(fieldRoot: Locator): Promise<Array<{ role: string; name: string }>> {
-        const snapshot = await fieldRoot.ariaSnapshot();
-        return [...snapshot.matchAll(/^\s*- (\w+) "((?:[^"\\]|\\.)*)"/gm)].map((m) => ({ role: m[1], name: m[2].replace(/\\"/g, '"') }));
+    /** Query Playwright's role/name implementation, including a fieldset that is itself the field root. */
+    private byRoles(field: Locator, roles: readonly Parameters<Locator['getByRole']>[0][], name?: RegExp): Locator {
+        const scope = field.locator('..');
+        const matches = roles.map(role => scope.getByRole(role, { name }));
+        return field.or(field.locator('*')).and(matches.reduce((a, b) => a.or(b)));
     }
 
     // ── the checks ─────────────────────────────────────────────────
@@ -392,25 +382,24 @@ export class Walk {
         const label = want(w.label);
         const fieldRoot = this.root.locator(`[data-name="${f.path}"]`).filter({ visible: true });
         if ((await fieldRoot.count()) !== 1) { this.found(`${f.path}: expected one visible field root, got ${await fieldRoot.count()}`); return; }
-        const all = await this.controls(fieldRoot);
-        const owned = all.filter((c) => CONTROL_ROLES.includes(c.role));
-        const control = owned.find((c) => nameOpensWith(c.name, label)) ?? owned[0];
-        if (!control) { this.found(`${f.path}: no control with a role inside the field`); return; }
-        const isGroup = control.role === 'group' || control.role === 'radiogroup';
-        // One control carries the label as its name. In a composite widget every control that takes a value
-        // opens with the label ("Salary currency code"); a button keeps its action's name. Options inside a
-        // group control are named by their own labels and checked below.
-        const composite = !isGroup && owned.length > 1;
-        if (isGroup) {
-            if (!nameIs(control.name, label)) this.found(`${f.path}: accessible name "${control.name}" is not the label "${label.text}"`);
-        } else if (composite) {
-            if (!nameOpensWith(control.name, label)) this.found(`${f.path}: first control "${control.name}" does not open with the label "${label.text}"`);
-            for (const c of owned) if (c !== control && INPUT_ROLES.includes(c.role) && !nameOpensWith(c.name, label))
-                this.found(`${f.path}: control "${c.name}" does not open with the label "${label.text}"`);
-        } else if (!nameIs(control.name, label)) {
-            this.found(`${f.path}: accessible name "${control.name}" is not the label "${label.text}"`);
-        }
         const required = w.required === 'engine' || w.required === undefined ? f.required : w.required;
+        const controls = this.byRoles(fieldRoot, CONTROL_ROLES);
+        const count = await controls.count();
+        if (!count) { this.found(`${f.path}: no control with a role inside the field`); return; }
+        const groupName = asRegex(label, required ? '(?:\\s+required)?' : '');
+        const groups = this.byRoles(fieldRoot, ['group', 'radiogroup'], groupName);
+        const isGroup = await groups.count() > 0;
+        if (!isGroup && await fieldRoot.evaluate((el, sel) => el.matches(sel) || Boolean(el.querySelector(sel)), GROUP_CONTROL)) {
+            this.found(`${f.path}: no group named for the label "${label.text}"`);
+        }
+        const composite = !isGroup && count > 1;
+        if (!isGroup) {
+            const name = asRegex(label, composite ? '(?:\\s+.*)?' : '');
+            if (!await this.byRoles(fieldRoot, CONTROL_ROLES, name).count())
+                this.found(`${f.path}: no control named for the label "${label.text}"`);
+            if (composite && await this.byRoles(fieldRoot, INPUT_ROLES, name).count() !== await this.byRoles(fieldRoot, INPUT_ROLES).count())
+                this.found(`${f.path}: a control does not open with the label "${label.text}"`);
+        }
         if (w.required === 'engine') this.uncover(`${f.path}: required is an expression; the engine decides`);
 
         if (!stop) {
@@ -426,7 +415,7 @@ export class Walk {
                 // Focus lands on an option, or on the one control a group wraps (an upload's Browse button),
                 // whose name extends the label like a composite widget's; the group's own name is checked in the reading order.
                 const options = (w.options ?? []).map(want);
-                if (!options.some((o) => matches(heardName, o)) && !asRegex(label).test(heardName) && !(options.length === 0 && heardIs(heardName, label, true)))
+                if (!options.some((o) => asRegex(o).test(heardName)) && !asRegex(label).test(heardName) && !(options.length === 0 && heardIs(heardName, label, true)))
                     this.found(`${f.path}: screen reader heard "${stop.phrase}", neither the label "${label.text}" nor one of its options`);
             } else {
                 if (!heardIs(heardName, label, composite)) this.found(`${f.path}: screen reader heard "${stop.phrase}", not the label "${label.text}"`);
@@ -441,17 +430,16 @@ export class Walk {
         }
         if (isGroup) {
             // Required rides the group (aria-required, or the legend's own "required" text for checkbox groups).
-            const groupRequired = await fieldRoot.evaluate((el, sel) => {
-                const g = el.matches(sel) ? el : el.querySelector(sel);
-                if (!g) return null;
-                return g.getAttribute('aria-required') === 'true' || /\brequired\b/i.test(g.querySelector('legend')?.textContent ?? '');
-            }, GROUP_CONTROL);
-            if (groupRequired !== null && groupRequired !== required) this.found(`${f.path}: ${required ? 'required' : 'not required'}, but the group says ${groupRequired ? 'required' : 'nothing'}`);
+            const groupRequired = await groups.evaluateAll(nodes => nodes.some(g =>
+                g.getAttribute('aria-required') === 'true' ||
+                /\brequired\b/i.test(g.querySelector('legend')?.textContent ?? '')));
+            if (groupRequired !== required) this.found(`${f.path}: ${required ? 'required' : 'not required'}, but the group says ${groupRequired ? 'required' : 'nothing'}`);
         }
         if (w.options?.length) {
-            const names = all.filter((c) => ['option', 'radio', 'checkbox', 'menuitemradio'].includes(c.role)).map((c) => c.name);
-            for (const o of w.options.map(want))
-                if (!names.some((n) => nameIs(n, o))) this.found(`${f.path}: option "${o.text}" is not offered; saw ${JSON.stringify(names)}`);
+            for (const option of w.options.map(want)) {
+                if (!await this.byRoles(fieldRoot, ['option', 'radio', 'checkbox', 'menuitemradio'], asRegex(option)).count())
+                    this.found(`${f.path}: option "${option.text}" is not offered`);
+            }
         }
         if (!f.readonly) await this.choice(f.path, fieldRoot);
     }
@@ -542,21 +530,24 @@ export class Walk {
         const shown = fields.filter((f) => live.some((l) => l.path === f.path && l.relevant && l.inDom));
         await this.sr.start();
         await this.sr.clearSpokenPhraseLog();
-        let n = 0;
-        while (n < MAX_PHRASES && (await this.sr.next())) n += 1;
-        if (n === MAX_PHRASES) this.found(`reading order: still reading after ${MAX_PHRASES} phrases; the reader may be looping`);
-        const phrases = await this.sr.spokenPhraseLog();
-        const indexOf = (label: ExpectedText, from: number) => {
-            for (let i = from; i < phrases.length; i += 1) if (heardIs(heardNameOf(phrases[i]), label, true)) return i;
-            return -1;
-        };
+        const entries: Array<{ phrase: string; path?: string | null; heads?: string[] }> = [];
+        while (entries.length < MAX_PHRASES) {
+            const next = await this.sr.next();
+            if (!next) break;
+            entries.push(this.sr.readingPosition?.() ?? { phrase: await this.sr.lastSpokenPhrase() });
+        }
+        if (entries.length === MAX_PHRASES) this.found(`reading order: still reading after ${MAX_PHRASES} phrases; the reader may be looping`);
+        const phrases = entries.map(entry => entry.phrase);
+        const indexOf = (path: string, label: ExpectedText, from: number) => entries.findIndex((entry, i) =>
+            i >= from && (entry.path === undefined ? !/^heading, /.test(entry.phrase) : entry.path === path)
+            && heardIs(heardNameOf(entry.phrase), label, true));
         let cursor = 0;
         const at = new Map<string, number>();
         for (const f of shown) {
             const label = want(f.label);
             // Same-labelled fields (repeat rows) are told apart by reading on from the last one.
-            let i = indexOf(label, cursor);
-            if (i < 0 && indexOf(label, 0) >= 0) { this.found(`${f.path}: read before the field the Definition puts ahead of it`); i = indexOf(label, 0); }
+            let i = indexOf(f.path, label, cursor);
+            if (i < 0 && indexOf(f.path, label, 0) >= 0) { this.found(`${f.path}: read before the field the Definition puts ahead of it`); i = indexOf(f.path, label, 0); }
             if (i < 0) { this.found(`${f.path}: never read aloud; the reader listed ${phrases.length} phrases`); continue; }
             at.set(f.path, i);
             cursor = i + 1;
@@ -566,7 +557,8 @@ export class Walk {
             if (first === undefined) continue;
             const label = want(g.label);
             // A group is a heading (a landmark's name alone does not head it), read before its first field.
-            const heading = phrases.slice(0, first).some((p) => /^heading, /.test(p) && asRegex(label).test(norm(heardNameOf(p))));
+            const heading = entries.slice(0, first).some(({ phrase, heads }) => /^heading, /.test(phrase)
+                && (heads === undefined || heads.includes(g.firstField)) && asRegex(label).test(heardNameOf(phrase)));
             if (!heading) this.found(`group "${label.text}": not announced as a heading before its first field ${g.firstField}`);
         }
         return phrases;

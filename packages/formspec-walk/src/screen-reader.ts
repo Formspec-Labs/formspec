@@ -3,6 +3,13 @@ import type { Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import virtualBuild from './virtual-build.cjs';
 
+/** Spoken phrase paired with the field under the reader's cursor or the fields its heading introduces. */
+interface ReadingPosition {
+    phrase: string;
+    path: string | null;
+    heads?: string[];
+}
+
 /**
  * What the walk needs from any screen reader: a reading cursor over the form and the log of what was
  * spoken. Focus changes made with the real keyboard are heard too — that is how the Tab walk is judged.
@@ -12,6 +19,8 @@ export interface ScreenReader {
     start(): Promise<void>;
     /** Move the reading cursor forward; false when it wrapped back to where it started. */
     next(): Promise<boolean>;
+    /** Available for readers that expose their current DOM node. */
+    readingPosition?(): ReadingPosition | undefined;
     lastSpokenPhrase(): Promise<string>;
     spokenPhraseLog(): Promise<string[]>;
     clearSpokenPhraseLog(): Promise<void>;
@@ -41,6 +50,7 @@ declare global {
  * second opinion on Playwright's. Injected as a blob module: works on the harness and on any built page.
  */
 export function virtualScreenReader(page: Page, rootSelector = 'formspec-render'): ScreenReader {
+    let position: ReadingPosition | undefined;
     return {
         name: 'virtual',
         async start() {
@@ -60,15 +70,29 @@ export function virtualScreenReader(page: Page, rootSelector = 'formspec-render'
         // The cursor wraps silently inside a container: the wrap is being back at the first thing it said
         // after start, on the same node. (A node may be announced more than once on the way — on entry, on
         // exit — so a repeated node alone is not the signal.)
-        next: () => page.evaluate(async () => {
-            const v = window.__formspecVirtualScreenReader!;
-            await v.next();
-            const node = v.activeNode ?? document;
-            const phrase = await v.lastSpokenPhrase();
-            const first = window.__formspecVirtualFirst;
-            if (!first) { window.__formspecVirtualFirst = { node, phrase }; return true; }
-            return !(first.node === node && first.phrase === phrase);
-        }),
+        async next() {
+            const next = await page.evaluate(async () => {
+                const v = window.__formspecVirtualScreenReader!;
+                await v.next();
+                const node = v.activeNode ?? document;
+                const phrase = await v.lastSpokenPhrase();
+                const first = window.__formspecVirtualFirst;
+                if (first && first.node === node && first.phrase === phrase) return undefined;
+                if (!first) window.__formspecVirtualFirst = { node, phrase };
+                const el = node instanceof Element ? node : node.parentElement;
+                const path = el?.closest<HTMLElement>('[data-name]')?.dataset.name ?? null;
+                if (!phrase.startsWith('heading, ')) return { phrase, path };
+                // A legend or header can wrap the heading. Its nearest ancestor containing
+                // fields identifies which section the reader is actually announcing.
+                let scope = el?.parentElement;
+                while (scope && !scope.querySelector('[data-name]')) scope = scope.parentElement;
+                const heads = Array.from(scope?.querySelectorAll<HTMLElement>('[data-name]') ?? [], f => f.dataset.name!);
+                return { phrase, path, heads };
+            });
+            position = next;
+            return Boolean(next);
+        },
+        readingPosition: () => position,
         lastSpokenPhrase: () => page.evaluate(() => window.__formspecVirtualScreenReader!.lastSpokenPhrase()),
         spokenPhraseLog: () => page.evaluate(() => window.__formspecVirtualScreenReader!.spokenPhraseLog()),
         clearSpokenPhraseLog: () => page.evaluate(() => window.__formspecVirtualScreenReader!.clearSpokenPhraseLog()),

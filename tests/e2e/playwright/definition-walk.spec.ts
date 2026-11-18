@@ -123,3 +123,27 @@ test.describe('an already-built page', () => {
         });
     }
 });
+
+test('field names keep punctuation and group headings precede their own fields', async ({ page }) => {
+    const definition = {
+        $formspec: '1.0', url: 'urn:test:walk-field-names', version: '1.0.0', title: 'Field names',
+        items: ['first', 'second'].map(key => ({
+            key, type: 'group', label: 'Account #', children: [
+                { key: 'account', type: 'field', dataType: 'string', label: 'Account #' },
+                { key: 'other', type: 'field', dataType: 'string', label: 'Other*' },
+                { key: 'colors', type: 'field', dataType: 'multiChoice', label: 'Colors',
+                    options: [{ value: 'all', label: 'Total: all sources' }, { value: 'some', label: 'Some:' }] },
+            ],
+        })),
+        binds: [{ path: 'first.colors', required: 'true' }, { path: 'second.colors', required: 'true' }],
+    } as FormDefinition;
+    await gotoHarness(page);
+    await mountDefinition(page, definition);
+    const plan = derivePlan(definition);
+    expectClean(await walkDefinition(page, plan, {}));
+
+    // The first group's identically named heading cannot stand in for the second.
+    await page.locator('.formspec-group-title').filter({ hasText: 'Account #' }).last().evaluate(el => el.remove());
+    const broken = await walkDefinition(page, plan, {});
+    expect(broken.findings).toContain('group "Account #": not announced as a heading before its first field second.account');
+});
