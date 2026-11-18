@@ -9,12 +9,12 @@ import { withPreviewSingletonSubject } from './preview-response.ts';
 import { useCallback, useMemo, useState } from 'react';
 import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020.js';
 import {
-  invokeResponseAction,
+  invokeResponseActionAsync,
   isValidResponseAuthored,
   resolveResponseAction,
   resolveResponseActionValidationTuple,
   selectResponses,
-  type ResponseActionInvocationPorts,
+  type ResponseActionAsyncInvocationPorts,
   type ResponseActionInvocationResult,
 } from '@formspec-org/engine';
 import {
@@ -337,7 +337,7 @@ function widgetActionExecutorFor(
       return simulatedActionResult(actionsDocument, actionRef, outcome);
     }
 
-    const ports: ResponseActionInvocationPorts<SurfaceWidgetActionDetail> = {
+    const ports: ResponseActionAsyncInvocationPorts<SurfaceWidgetActionDetail> = {
       submit: () => ({
         response: {} as SubmitResult['response'],
         validationReport: {
@@ -382,7 +382,7 @@ function widgetActionExecutorFor(
       resolveIdempotencyKey: (_effect, action, context) =>
         `${invocationId}:${action.id}:${context.effectIndex}`,
     };
-    return invokeResponseAction(
+    return invokeResponseActionAsync(
       actionsDocument,
       actionRef,
       ports,
