@@ -307,6 +307,11 @@ export function wasmExecuteMappingDoc(
     return JSON.parse(resultJson);
 }
 
+/** The receiving Definition and the authored binding for a response read. */
+export type ProjectionConsumer =
+    | { kind: 'instance'; name: string; definition: unknown }
+    | { kind: 'prefill'; mapped: boolean; definition: unknown };
+
 export interface WasmLintDocumentOptions {
     registryDocuments?: unknown[];
     mode?: string;
@@ -329,10 +334,7 @@ export interface WasmLintDocumentOptions {
     /** For an AppGraph projection check, pass all loaded Definitions for the selected URL. */
     upstreamDefinitions?: readonly unknown[];
     /** The consuming form and how it receives data, or null for a widget. */
-    projectionConsumer?:
-        | { kind: 'instance'; name: string; definition: unknown }
-        | { kind: 'prefill'; mapped: boolean; definition: unknown }
-        | null;
+    projectionConsumer?: ProjectionConsumer | null;
 }
 
 export interface InstanceProjectionDiagnostic {
@@ -345,12 +347,12 @@ export interface InstanceProjectionDiagnostic {
 /** Check an instance or catalog source against every eligible upstream Definition. */
 export function checkInstanceProjection(
     source: unknown,
-    projectionConsumer: WasmLintDocumentOptions['projectionConsumer'],
+    projectionConsumer: ProjectionConsumer | null,
     upstreamDefinitions: readonly unknown[],
 ): InstanceProjectionDiagnostic[] {
     assertWasmToolsReadySync();
     return JSON.parse(wasmTools().checkResponseProjection(
-        JSON.stringify(source), JSON.stringify(projectionConsumer ?? null), JSON.stringify(upstreamDefinitions),
+        JSON.stringify(source), JSON.stringify(projectionConsumer), JSON.stringify(upstreamDefinitions),
     ));
 }
 

@@ -1,5 +1,6 @@
 /** @filedesc Shared lint diagnostics and URL-paired bundle document lint through an injected linter. */
 
+import type { ProjectionConsumer } from '@formspec-org/engine';
 import type {
   AppGraphContext,
   AppGraphCrossArtifactValidator,
@@ -12,7 +13,7 @@ import { componentTargetUrl } from './locale-associations.js';
 import { handlesByKind, ownProp, record, stringProp } from './surface-widgets.js';
 import { responseProjectionDiagnostics } from './instance-projection.js';
 
-/** Context keys match the engine's `lintDocument` options; this package has no engine dependency. */
+/** Context keys match the engine's `lintDocument` options. The host supplies the linter. */
 export interface AppGraphDocumentLintContext {
   definitionDocument?: unknown;
   /** Host JSON Schema and the dotted path to the paired Definition's data within it. */
@@ -25,10 +26,7 @@ export interface AppGraphDocumentLintContext {
   /** For a projection request, all loaded Definition documents of the selected URL. */
   upstreamDefinitions?: readonly unknown[];
   /** The form and its direct instance or catalog binding, or null for a widget. */
-  projectionConsumer?:
-    | { kind: 'instance'; name: string; definition: unknown }
-    | { kind: 'prefill'; mapped: boolean; definition: unknown }
-    | null;
+  projectionConsumer?: ProjectionConsumer | null;
 }
 
 export interface AppGraphLintDiagnostic {

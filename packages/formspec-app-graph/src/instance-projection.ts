@@ -1,7 +1,8 @@
 /** @filedesc Pairs response instances and catalog sources with upstream Definitions for Rust validation. */
 
 import { exactDefinitionResolution } from './data-sources.js';
-import type { AppGraphDocumentLinter, AppGraphDocumentLintContext } from './document-lint.js';
+import type { ProjectionConsumer } from '@formspec-org/engine';
+import type { AppGraphDocumentLinter } from './document-lint.js';
 import { diagnosticSourceForHandle } from './report.js';
 import { escapeJsonPointerToken, handlesByKind, ownProp, record, recordArray, stringProp, type JsonRecord } from './surface-widgets.js';
 import type { AppGraphContext, AppGraphDiagnostic, ResolvedArtifactHandle } from './types.js';
@@ -32,7 +33,7 @@ function projectionDiagnostics(
   consumer: ResolvedArtifactHandle,
   pointer: string,
   source: JsonRecord,
-  projectionConsumer: AppGraphDocumentLintContext['projectionConsumer'],
+  projectionConsumer: ProjectionConsumer | null,
   upstream: ResolvedArtifactHandle[],
 ): AppGraphDiagnostic[] {
   const { instanceProjectionDiagnostics } = lint(source, {
@@ -63,7 +64,7 @@ function catalogConsumers(
   context: AppGraphContext,
   catalog: ResolvedArtifactHandle,
   source: JsonRecord,
-): Array<AppGraphDocumentLintContext['projectionConsumer']> {
+): Array<ProjectionConsumer | null> {
   const catalogRef = catalog.ref?.url;
   const sourceRef = stringProp(source, 'id');
   if (!catalogRef || !sourceRef) return [null];
@@ -92,7 +93,7 @@ function catalogConsumers(
       }
     }
   }
-  const consumers: Array<AppGraphDocumentLintContext['projectionConsumer']> = Array.from(
+  const consumers: Array<ProjectionConsumer | null> = Array.from(
     forms, ([form, mapped]) => ({ kind: 'prefill', definition: form.document, mapped }),
   );
   if (widget || forms.size === 0) consumers.push(null);
