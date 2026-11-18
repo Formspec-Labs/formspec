@@ -90,7 +90,7 @@ def test_non_fel_case_requires_payload_or_input_data(conformance_suite_schema: d
 def test_standard_validation_codes_include_core_reserved_codes(conformance_suite_schema: dict) -> None:
     """Core §2.5.1 reserved codes are standard codes both runtimes emit identically."""
     reserved = _core_reserved_codes()
-    assert "CONSTRAINT_PARSE_ERROR" in reserved, reserved
+    assert "UNDEFINED_FUNCTION" in reserved, reserved
     standard = conformance_suite_schema["$defs"]["standardValidationCode"]
     assert standard["enum"][: len(reserved)] == reserved
     assert "seven" not in standard["description"].lower()

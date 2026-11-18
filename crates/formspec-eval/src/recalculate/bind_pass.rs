@@ -11,7 +11,7 @@ use super::walk::{Visit, Walk};
 use crate::fel_eval::Fel;
 use crate::fel_json::{fel_to_runtime_json, is_date_data_type};
 use crate::scope::{ScopeData, ScopeIndex};
-use crate::types::{ItemInfo, WhitespaceMode};
+use crate::types::{EvalDiagnostic, ItemInfo, WhitespaceMode};
 
 /// Normalize inbound text before building the scope used by expressions and validation.
 pub(crate) fn normalize_input_text(
@@ -60,6 +60,8 @@ pub(super) struct BindPass<'a> {
     pub(super) invalid_paths: &'a HashSet<String>,
     /// Run calculates here when other binds can observe their document-order writes.
     pub(super) early_writers: &'a HashSet<String>,
+    /// Errors from the Bind expressions that determine the returned state.
+    pub(super) diagnostics: &'a mut Vec<EvalDiagnostic>,
 }
 
 impl Visit for BindPass<'_> {
@@ -78,7 +80,9 @@ impl Visit for BindPass<'_> {
         let was_relevant = item.mip.prev_relevant;
 
         let own_relevant = if let Some(ref expr) = item.relevance {
-            fel.eval_bool(expr, &state.site(walk.index, &item.path), true)
+            fel.eval_bool(expr, &state.site(walk.index, &item.path), true, |result| {
+                EvalDiagnostic::record(self.diagnostics, result, &item.path, expr, None);
+            })
         } else {
             true
         };
@@ -95,6 +99,7 @@ impl Visit for BindPass<'_> {
                 if let Some(ref expr) = item.default_expression {
                     if let Ok(parsed) = parse(expr) {
                         let result = fel.evaluate(&parsed, &state.site(walk.index, &item.path));
+                        EvalDiagnostic::record(self.diagnostics, &result, &item.path, expr, None);
                         let coerced = coerce_calculated_value(item, result.value);
                         let json_val = fel_to_runtime_json(&coerced);
                         values.insert(item.path.clone(), json_val.clone());
@@ -124,7 +129,9 @@ impl Visit for BindPass<'_> {
 
         // Core §4.3.1: a `calculate` Bind is implicitly readonly unless `readonly` is set explicitly.
         let own_readonly = if let Some(ref expr) = item.readonly_expr {
-            fel.eval_bool(expr, &state.site(walk.index, &item.path), false)
+            fel.eval_bool(expr, &state.site(walk.index, &item.path), false, |result| {
+                EvalDiagnostic::record(self.diagnostics, result, &item.path, expr, None);
+            })
         } else {
             item.calculate.is_some()
         };
@@ -132,7 +139,8 @@ impl Visit for BindPass<'_> {
 
         if item.mip.relevant {
             if let Some(ref expr) = item.required_expr {
-                item.mip.required = fel.eval_bool(expr, &state.site(walk.index, &item.path), false);
+                item.mip.required =
+                    fel.eval_bool(expr, &state.site(walk.index, &item.path), false, |_| {});
             }
         } else {
             item.mip.required = false;
@@ -183,11 +191,17 @@ pub(crate) fn refresh_required_state(
     invalid_paths: &HashSet<String>,
     index: &ScopeIndex,
     fel: Fel<'_>,
+    mut diagnostics: Option<&mut Vec<EvalDiagnostic>>,
 ) {
     for item in items.iter_mut() {
         if item.mip.relevant {
             if let Some(ref expr) = item.required_expr {
-                item.mip.required = fel.eval_bool(expr, &state.site(index, &item.path), false);
+                item.mip.required =
+                    fel.eval_bool(expr, &state.site(index, &item.path), false, |result| {
+                        if let Some(output) = diagnostics.as_deref_mut() {
+                            EvalDiagnostic::record(output, result, &item.path, expr, None);
+                        }
+                    });
             }
         } else {
             item.mip.required = false;
@@ -203,6 +217,13 @@ pub(crate) fn refresh_required_state(
             },
         );
 
-        refresh_required_state(&mut item.children, state, invalid_paths, index, fel);
+        refresh_required_state(
+            &mut item.children,
+            state,
+            invalid_paths,
+            index,
+            fel,
+            diagnostics.as_deref_mut(),
+        );
     }
 }

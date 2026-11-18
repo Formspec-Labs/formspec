@@ -117,12 +117,6 @@ function buildItem(payload: Record<string, unknown>): FormItem {
   if (payload.options) item.options = payload.options as { value: string; label: string }[];
   if (payload.labels) item.labels = payload.labels as Record<string, string>;
   for (const prop of [
-    'relevant',
-    'required',
-    'readonly',
-    'calculate',
-    'constraint',
-    'constraintMessage',
     'initialValue',
     'repeatable',
     'minRepeat',

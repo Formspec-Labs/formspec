@@ -168,11 +168,11 @@ pub enum ValidationCode {
     TypeMismatch,
     /// Constraint expression evaluated to false.
     ConstraintFailed,
-    /// A Bind constraint calls an undefined function (Core §3.10.1).
-    ConstraintParseError,
+    /// An authored FEL expression calls an undefined function (Core §3.10.1).
+    UndefinedFunction,
     /// An authored FEL expression does not conform to the grammar (Core §3.10.1).
     SyntaxError,
-    /// A built-in function is called with the wrong number of arguments (Core §3.10.1).
+    /// A function is called with the wrong number of arguments (Core §3.10.1).
     ArityMismatch,
     /// A seed predicate reads an input outside its creation scope.
     SeedPredicateScope,
@@ -215,7 +215,7 @@ impl ValidationCode {
             "REQUIRED" => Self::Required,
             "TYPE_MISMATCH" => Self::TypeMismatch,
             "CONSTRAINT_FAILED" => Self::ConstraintFailed,
-            "CONSTRAINT_PARSE_ERROR" => Self::ConstraintParseError,
+            "UNDEFINED_FUNCTION" => Self::UndefinedFunction,
             "SYNTAX_ERROR" => Self::SyntaxError,
             "ARITY_MISMATCH" => Self::ArityMismatch,
             "SEED_PREDICATE_SCOPE" => Self::SeedPredicateScope,
@@ -243,7 +243,7 @@ impl ValidationCode {
             ValidationCode::Required => "REQUIRED",
             ValidationCode::TypeMismatch => "TYPE_MISMATCH",
             ValidationCode::ConstraintFailed => "CONSTRAINT_FAILED",
-            ValidationCode::ConstraintParseError => "CONSTRAINT_PARSE_ERROR",
+            ValidationCode::UndefinedFunction => "UNDEFINED_FUNCTION",
             ValidationCode::SyntaxError => "SYNTAX_ERROR",
             ValidationCode::ArityMismatch => "ARITY_MISMATCH",
             ValidationCode::SeedPredicateScope => "SEED_PREDICATE_SCOPE",

@@ -1228,12 +1228,19 @@ function DefaultSurfaceDefinitionForm(
   const engine = useMemo(() => {
     if (draftEngine) return draftEngine;
     try {
-      return createFormEngine(plan.definition, {
+      const created = createFormEngine(plan.definition, {
         ...(responseSubject && { responseSubject }),
         ...(initialData?.data !== undefined && {
           responseData: initialData.data as Parameters<IFormEngine['loadResponseData']>[0],
         }),
       });
+      const subjectRefused = responseSubject && created.getValidationReport()?.results.some(({ path }) =>
+        path === '#subjectType' || path === '#subjectKeys' || path.startsWith('#subjectKeys.'));
+      if (subjectRefused) {
+        created.dispose();
+        return undefined;
+      }
+      return created;
     } catch (error) {
       console.warn('Formspec Surface could not create the form engine.', error);
       return undefined;

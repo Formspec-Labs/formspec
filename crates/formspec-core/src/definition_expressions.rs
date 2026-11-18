@@ -83,7 +83,7 @@ pub fn visit_expressions<V: JsonTree>(
                     if let Some(source) = value.as_str() {
                         visit(
                             source,
-                            format!("$.shapes[{index}].context.{key}"),
+                            jsonpath_member(&format!("$.shapes[{index}].context"), key),
                             ExpressionSite::ShapeContext(target),
                         );
                     }
@@ -172,6 +172,21 @@ pub fn visit_initial_value_expressions<V: JsonTree>(
     });
 }
 
+/// Append a JSON object member without interpreting its key as a path.
+fn jsonpath_member(base: &str, key: &str) -> String {
+    let mut bytes = key.bytes();
+    let simple = bytes
+        .next()
+        .is_some_and(|first| first.is_ascii_alphabetic() || first == b'_')
+        && bytes.all(|byte| byte.is_ascii_alphanumeric() || byte == b'_');
+    if simple {
+        format!("{base}.{key}")
+    } else {
+        let quoted = serde_json::to_string(key).expect("JSON member key serializes");
+        format!("{base}[{quoted}]")
+    }
+}
+
 /// Visit authored Bind expressions in a Definition or standalone Screener.
 pub fn visit_bind_expressions<V: JsonTree>(
     document: &V,
@@ -214,7 +229,7 @@ pub fn visit_binds<V: JsonTree>(document: &V, mut visit: impl FnMut(&V, &str, St
         }
     } else {
         for (target, bind) in binds.members().filter(|(_, bind)| bind.is_object()) {
-            visit(bind, target, format!("$.binds.{target}"));
+            visit(bind, target, jsonpath_member("$.binds", target));
         }
     }
 }

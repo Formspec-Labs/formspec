@@ -5,12 +5,13 @@ import type { ThemeDocument, PresentationBlock } from '@formspec-org/layout';
  * Minimal valid Formspec definition with a single string field.
  * Override any property via the `overrides` param.
  */
-export function singleFieldDef(overrides?: Record<string, any>) {
+export function singleFieldDef(overrides?: Record<string, any>, bind?: Record<string, unknown>) {
     return {
         $formspec: '1.0',
         url: 'urn:test:form',
         version: '1.0.0',
         title: 'Test Form',
+        ...(bind && { binds: [{ path: overrides?.key ?? 'name', ...bind }] }),
         items: [
             {
                 key: 'name',

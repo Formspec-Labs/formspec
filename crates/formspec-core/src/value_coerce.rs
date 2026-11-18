@@ -105,8 +105,10 @@ fn bind_whitespace(bind: Option<&Value>) -> Option<&str> {
     bind?.get("whitespace").and_then(|v| v.as_str())
 }
 
-fn bind_precision(bind: Option<&Value>) -> Option<u32> {
-    let p = bind?.get("precision")?;
+fn precision(item: &Value, bind: Option<&Value>) -> Option<u32> {
+    let p = bind
+        .and_then(|bind| bind.get("precision"))
+        .or_else(|| item.get("precision"))?;
     let n = p
         .as_u64()
         .or_else(|| p.as_i64().filter(|&i| i >= 0).map(|i| i as u64))?;
@@ -175,7 +177,7 @@ pub fn coerce_field_value(
         }
     }
 
-    if let Some(precision) = bind_precision(bind) {
+    if let Some(precision) = precision(item, bind) {
         if let Some(number) = value.as_decimal() {
             value = round_to_precision(number, precision);
         } else if let Some(obj) = value.as_object_mut() {

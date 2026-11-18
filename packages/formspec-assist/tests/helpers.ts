@@ -27,6 +27,15 @@ export function makeDefinition() {
     formPresentation: {
       pageMode: 'wizard',
     },
+    binds: [
+      { path: 'organization.name', required: 'true' },
+      { path: 'organization.ein', required: 'true' },
+      { path: 'contactEmail', required: 'true' },
+      { path: 'details.summary', required: 'false' },
+      { path: 'budgetItems[*].description', required: 'true' },
+      { path: 'budgetItems[*].amount', required: 'true' },
+      { path: 'derivedScore', readonly: 'true', calculate: '1' },
+    ],
     items: [
       {
         key: 'organization',
@@ -38,7 +47,6 @@ export function makeDefinition() {
             type: 'field',
             dataType: 'string',
             label: 'Organization Name',
-            required: true,
             semanticType: 'x-concept-org-name',
           },
           {
@@ -46,7 +54,6 @@ export function makeDefinition() {
             type: 'field',
             dataType: 'string',
             label: 'Employer Identification Number',
-            required: true,
             semanticType: 'x-concept-org-ein',
           },
         ],
@@ -56,7 +63,6 @@ export function makeDefinition() {
         type: 'field',
         dataType: 'string',
         label: 'Contact Email',
-        required: true,
         presentation: { widgetHint: 'TextInput' },
       },
       {
@@ -69,7 +75,6 @@ export function makeDefinition() {
             type: 'field',
             dataType: 'string',
             label: 'Project Summary',
-            required: false,
           },
         ],
       },
@@ -86,14 +91,12 @@ export function makeDefinition() {
             type: 'field',
             dataType: 'string',
             label: 'Item Description',
-            required: true,
           },
           {
             key: 'amount',
             type: 'field',
             dataType: 'number',
             label: 'Amount',
-            required: true,
           },
         ],
       },
@@ -102,8 +105,6 @@ export function makeDefinition() {
         type: 'field',
         dataType: 'integer',
         label: 'Derived Score',
-        readonly: true,
-        calculate: "1",
       },
     ],
   } as const;

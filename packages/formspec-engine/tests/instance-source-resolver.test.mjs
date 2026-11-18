@@ -377,3 +377,20 @@ test('subject-scoped initial values wait for a referenced source and preserve an
     assert.deepEqual(engine.getDraftSnapshot().data, { amount: 22, edited: 0 });
   } finally { engine.dispose(); }
 });
+
+test('a recovered instance is evaluated with the values it just seeded', async () => {
+  const pending = deferred();
+  const def = definition({ readonly: false });
+  def.items.push({ key: 'copy', type: 'field', dataType: 'string', label: 'Copy' });
+  def.binds.push({ path: 'copy', calculate: '$name' }, { path: 'name', required: 'true' });
+  const engine = createFormEngine(def, { instanceSourceResolver: () => pending.promise });
+
+  engine.setInstanceValue('context', undefined, { number: 1e30 });
+  assert.equal(engine.getValidationReport({ profile: 'on-demand' }).valid, false);
+  pending.resolve({ status: 'loaded', value: loaded });
+  await engine.waitForInstanceSources();
+
+  assert.equal(engine.signals.copy.value, loaded.name);
+  assert.equal(engine.getValidationReport().valid, true);
+  engine.dispose();
+});

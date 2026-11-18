@@ -51,12 +51,12 @@ describe('isItemRequired', () => {
         )).toBe(true);
     });
 
-    it('treats item.required = true as required regardless of binds', () => {
+    it('allows an authored Bind to leave an Item optional', () => {
         expect(isItemRequired(
-            { key: 'name', required: true },
+            { key: 'name' },
+            { binds: [{ path: 'name', required: 'false' }] },
             {},
-            {},
-        )).toBe(true);
+        )).toBe(false);
     });
 
     it('evaluates FEL expression in required bind using the engine', () => {

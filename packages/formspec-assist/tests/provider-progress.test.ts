@@ -10,9 +10,10 @@ beforeAll(ensureEngine);
 it('shares counts at the same revision and identifies the first required read-only blank', async () => {
   const engine = new FormEngine({
     $formspec: '1.0', url: 'https://example.org/shared-counts', version: '1.0.0', title: 'Counts',
+    binds: [{ path: 'Facts.locked', readonly: true, required: true }, { path: 'Facts.later', readonly: true, required: true }],
     items: [{ key: 'Facts', type: 'group', label: '', children: [
-      { key: 'locked', type: 'field', dataType: 'string', label: 'Imported answer', readonly: true, required: true },
-      { key: 'later', type: 'field', dataType: 'string', label: 'Second imported answer', readonly: true, required: true },
+      { key: 'locked', type: 'field', dataType: 'string', label: 'Imported answer' },
+      { key: 'later', type: 'field', dataType: 'string', label: 'Second imported answer' },
       { key: 'number', type: 'field', dataType: 'integer' },
       { key: 'agreed', type: 'field', dataType: 'boolean' },
     ] }],
@@ -51,10 +52,10 @@ it('reports an invalid editable answer before a required read-only blank in both
   const engine = new FormEngine({
     $formspec: '1.0', url: 'https://example.org/invalid-progress', version: '1.0.0', title: 'Invalid progress',
     items: [
-      { key: 'locked', type: 'field', dataType: 'string', readonly: true, required: true },
+      { key: 'locked', type: 'field', dataType: 'string' },
       { key: 'answer', type: 'field', dataType: 'integer', label: 'Answer', initialValue: 0 },
     ],
-    binds: [{ path: 'answer', constraint: '$answer > 0' }],
+    binds: [{ path: 'locked', readonly: true, required: true }, { path: 'answer', constraint: '$answer > 0' }],
   });
   const provider = createAssistProvider({ engine, registerWebMCP: false });
   expect(await invoke(provider, 'formspec.form.nextIncomplete'))
@@ -113,8 +114,9 @@ it('keeps validation and readiness unavailable in Assist tools', async () => {
 it('returns an engine error for unavailable page validation even with a required read-only blank', async () => {
   const engine = new FormEngine({
     $formspec: '1.0', url: 'https://example.org/unavailable-progress', version: '1.0.0', title: 'Unavailable progress',
+    binds: [{ path: 'locked', readonly: true, required: true }],
     items: [
-      { key: 'locked', type: 'field', dataType: 'string', readonly: true, required: true },
+      { key: 'locked', type: 'field', dataType: 'string' },
       { key: 'answer', type: 'field', dataType: 'integer', initialValue: 0 },
     ],
   });
@@ -250,7 +252,8 @@ it('refreshes page planning after live definition edits and follows a replacemen
   expect(provider.getProgress().pages?.[0].id).toBe('organization');
   provider.attach(new FormEngine({
     $formspec: '1.0', url: 'https://example.org/new', version: '1.0.0', formPresentation: { pageMode: 'wizard' },
-    items: [{ key: 'new', type: 'group', label: 'New page', children: [{ key: 'field', type: 'field', dataType: 'string', required: true }] }],
+    binds: [{ path: 'new.field', required: true }],
+    items: [{ key: 'new', type: 'group', label: 'New page', children: [{ key: 'field', type: 'field', dataType: 'string' }] }],
   } as any));
   expect(provider.getProgress().pages).toEqual([{
     id: 'new', fieldCount: 1, filledCount: 0, missingReadonly: 0, filled: false, title: 'New page',

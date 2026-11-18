@@ -1,0 +1,49 @@
+{
+  "id": "parity.settled-fel-diagnostics",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-settled-fel-diagnostics.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {},
+  "specRefs": [
+    "Core \u00a73.10.2 (evaluation diagnostics)"
+  ],
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "data": {},
+    "results": [],
+    "diagnostics": [
+      {
+        "path": "amount",
+        "expression": "sum([79228162514264337593543950335, 1])",
+        "code": "FEL_ARITHMETIC_OVERFLOW"
+      },
+      {
+        "path": "amount",
+        "expression": "sum([79228162514264337593543950335, 2])",
+        "code": "FEL_ARITHMETIC_OVERFLOW"
+      },
+      {
+        "path": "amount",
+        "expression": "sum([79228162514264337593543950335, 3])",
+        "code": "FEL_ARITHMETIC_OVERFLOW"
+      },
+      {
+        "path": "#",
+        "expression": "sum([79228162514264337593543950335, 4])",
+        "code": "FEL_ARITHMETIC_OVERFLOW",
+        "shapeId": "inactive"
+      },
+      {
+        "path": "#",
+        "expression": "sum([79228162514264337593543950335, 5])",
+        "code": "FEL_ARITHMETIC_OVERFLOW"
+      }
+    ]
+  }
+}

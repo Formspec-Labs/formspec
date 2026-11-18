@@ -102,6 +102,8 @@ fn same(a: &Value, b: &Value) -> bool {
 /// What a leg produced: sorted results without envelope markers, and the Response data.
 struct Outcome {
     results: Vec<Value>,
+    diagnostics: Vec<Value>,
+    refused: bool,
     data: Value,
     undeclared: Option<Value>,
     non_relevant: Vec<String>,
@@ -111,6 +113,8 @@ impl Outcome {
     fn from_evaluation(result: &EvaluationResult) -> Self {
         let json = evaluation_result_to_json_value(result);
         Self {
+            refused: result.refused,
+            diagnostics: json["diagnostics"].as_array().cloned().unwrap_or_default(),
             results: sorted_results(json["validations"].as_array().map_or(&[], Vec::as_slice)),
             data: json["data"].clone(),
             undeclared: json.get("undeclaredDataPaths").cloned(),
@@ -254,6 +258,29 @@ fn against_expected(actual: &Outcome, expected: &Value) -> Vec<String> {
         && (errors == 0) != valid
     {
         problems.push(format!("valid {}, expected {valid}", errors == 0));
+    }
+    if let Some(expected) = expected.get("diagnostics").and_then(Value::as_array) {
+        let diagnostic_keys = ["path", "expression", "code", "shapeId"];
+        let clean = |diagnostics: &[Value]| {
+            let mut result: Vec<_> = diagnostics
+                .iter()
+                .map(|diagnostic| {
+                    let fields = diagnostic_keys.iter().filter_map(|key| {
+                        diagnostic
+                            .get(key)
+                            .map(|value| ((*key).to_owned(), value.clone()))
+                    });
+                    canonical(&Value::Object(fields.collect())).to_string()
+                })
+                .collect();
+            result.sort();
+            result
+        };
+        let actual = clean(&actual.diagnostics);
+        let expected = clean(expected);
+        if actual != expected {
+            problems.push(format!("diagnostics {actual:?}, expected {expected:?}"));
+        }
     }
     if let Some(counts) = expected.get("counts") {
         for severity in ["error", "warning", "info"] {
@@ -506,13 +533,7 @@ fn item_index(definition: &Value) -> ItemIndex {
 
 /// Ways `evaluate` changed `input` that the processing cycle does not permit.
 fn inventions(definition: &Value, input: &Value, output: &Outcome) -> Vec<String> {
-    // An authored-slot refusal stops in Rebuild. A cycle finding can accompany evaluated data.
-    if output.results.iter().any(|result| {
-        result["constraintKind"] == "definition"
-            && result["path"]
-                .as_str()
-                .is_some_and(|path| path.starts_with("$."))
-    }) {
+    if output.refused {
         return if same(&output.data, &parse("{}")) {
             Vec::new()
         } else {
@@ -626,6 +647,8 @@ fn no_invention_refuses_a_new_row_with_only_an_empty_repeat() {
     );
     // Pin the padded output so the oracle is still tested when evaluation stops padding (fs-i731).
     let outcome = Outcome {
+        refused: false,
+        diagnostics: Vec::new(),
         results: Vec::new(),
         data: parse(r#"{"rows":[{"nested":[]}]}"#),
         undeclared: None,

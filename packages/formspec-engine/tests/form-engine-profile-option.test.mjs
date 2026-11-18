@@ -248,3 +248,72 @@ test('on-demand reports a Definition refusal before Shape timing applies', () =>
     }
   }
 });
+
+test('on-demand preserves shared input refusals in the report and Response snapshot', () => {
+  const type = 'urn:test:filing-unit';
+  const definition = {
+    ...buildDefinition(),
+    subject: { type, keys: { id: { dataType: 'integer' } } },
+    shapes: [],
+  };
+  const engine = new FormEngine(definition, {
+    savedResponseData: {},
+    responseSubject: { id: 'unit', type, keys: { id: 'wrong type' } },
+  });
+  const options = { profile: 'on-demand' };
+  const report = engine.getValidationReport(options);
+  const snapshot = engine.getResponseSnapshot(options);
+  for (const value of [report, snapshot.validationReport]) {
+    assert.equal(value.valid, false);
+    assert.deepEqual(value.results.map(({ path, code }) => [path, code]), [
+      ['#subjectKeys.id', 'TYPE_MISMATCH'],
+    ]);
+  }
+  assert.deepEqual(snapshot.response.validationResults, report.results);
+});
+
+test('on-demand preserves a decimal range refusal on create and resume', () => {
+  const definition = {
+    ...buildDefinition(),
+    items: [{ key: 'amount', type: 'field', dataType: 'decimal' }],
+    shapes: [],
+  };
+  for (const dataOption of ['responseData', 'savedResponseData']) {
+    const engine = new FormEngine(definition, { [dataOption]: { amount: 1e30 } });
+    const options = { profile: 'on-demand' };
+    const report = engine.getValidationReport(options);
+    assert.equal(report.valid, false);
+    assert.deepEqual(report.results.map(({ path, code }) => [path, code]), [
+      ['amount', 'TYPE_MISMATCH'],
+    ]);
+    assert.deepEqual(engine.getResponseSnapshot(options).response.validationResults, report.results);
+    engine.dispose();
+  }
+});
+
+test('on-demand preserves a flat and nested conflict in a saved Response', () => {
+  const definition = {
+    ...buildDefinition(),
+    items: [{ key: 'group', type: 'group', children: [
+      { key: 'amount', type: 'field', dataType: 'integer' },
+    ] }],
+    shapes: [],
+  };
+  const options = { profile: 'on-demand' };
+  for (const dataOption of ['responseData', 'savedResponseData']) {
+    const engine = new FormEngine(definition, {
+      [dataOption]: { 'group.amount': 1, group: { amount: 2 } },
+    });
+    engine.clearExternalValidation();
+    const report = engine.getValidationReport(options);
+    assert.equal(report.valid, false);
+    assert.deepEqual(report.results.map(({ path, code }) => [path, code]), [
+      ['group.amount', 'TYPE_MISMATCH'],
+    ]);
+    assert.deepEqual(engine.getResponseSnapshot(options).response.validationResults, report.results);
+    engine.loadResponseData({ group: { amount: 3 } });
+    assert.equal(engine.getValidationReport(options).valid, true);
+    assert.deepEqual(engine.getResponseSnapshot(options).response.data, { group: { amount: 3 } });
+    engine.dispose();
+  }
+});

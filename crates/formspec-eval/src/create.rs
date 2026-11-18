@@ -39,6 +39,8 @@ pub struct CreateOptions<'a> {
 /// Created data and outstanding source-dependent values.
 #[derive(Debug, Default, serde::Serialize)]
 pub struct CreateResult {
+    /// Creation stopped before evaluating any expression.
+    pub refused: bool,
     /// New Response data or the new repeat row.
     pub data: Value,
     /// Concrete item paths awaiting an instance source.
@@ -66,20 +68,13 @@ pub fn create_response(
     prefill: Value,
     options: &CreateOptions<'_>,
 ) -> CreateResult {
-    if let Some(finding) = crate::pipeline::creation_refusal(definition) {
-        return CreateResult {
-            data: Value::Object(Map::new()),
-            diagnostics: vec![CreationDiagnostic {
-                path: finding.path,
-                expression: finding.constraint.unwrap_or_default(),
-                code: finding.code.to_string(),
-                message: finding.message,
-            }],
-            ..CreateResult::default()
-        };
+    let evaluation_options = creation_evaluation_options(definition, options);
+    if let Some(finding) =
+        crate::pipeline::creation_refusal(definition, &prefill, &evaluation_options)
+    {
+        return refused_creation(prefill, finding);
     }
     let mut data = prefill;
-    let evaluation_options = creation_evaluation_options(definition, options);
     let mut creation = Creation::new(definition, options, &evaluation_options);
     if let Some(root) = data.as_object_mut() {
         creation.items(children(definition, "items"), root, &Location::default());
@@ -87,6 +82,20 @@ pub fn create_response(
     creation.evaluate_initials(definition, &mut data);
     creation.result.data = data;
     creation.result
+}
+
+fn refused_creation(data: Value, finding: crate::ValidationResult) -> CreateResult {
+    CreateResult {
+        refused: true,
+        data,
+        diagnostics: vec![CreationDiagnostic {
+            path: finding.path,
+            expression: finding.constraint.unwrap_or_default(),
+            code: finding.code.to_string(),
+            message: finding.message,
+        }],
+        ..CreateResult::default()
+    }
 }
 
 /// Initialize a new row at the end of an existing repeat, using its actual FEL site.
@@ -98,6 +107,11 @@ pub fn create_repeat_row(
     group_path: &str,
     options: &CreateOptions<'_>,
 ) -> Option<CreateResult> {
+    let evaluation_options = creation_evaluation_options(definition, options);
+    if let Some(finding) = crate::pipeline::creation_refusal(definition, &data, &evaluation_options)
+    {
+        return Some(refused_creation(Value::Object(Map::new()), finding));
+    }
     let mut wire_path = Vec::new();
     let (group, relative_instance) = find_repeat(
         children(definition, "items"),
@@ -116,7 +130,6 @@ pub fn create_repeat_row(
     }
     let index = rows.len();
     wire_path.push(PathSegment::Indexed(index));
-    let evaluation_options = creation_evaluation_options(definition, options);
     let mut creation = Creation::new(definition, options, &evaluation_options);
     let mut row = Map::new();
     creation.items(
@@ -667,14 +680,15 @@ impl Environment for SeedSite<'_> {
     }
 }
 
-fn creation_evaluation_options(
+fn creation_evaluation_options<'a>(
     definition: &Value,
-    options: &CreateOptions<'_>,
-) -> EvalOptions<'static> {
+    options: &CreateOptions<'a>,
+) -> EvalOptions<'a> {
     let mut instances = options.instances.clone();
     hydrate_inline_instances(definition, &mut instances);
     EvalOptions {
         instances,
+        extensions: options.extensions,
         context: EvalContext {
             now_iso: options.now_iso.clone(),
             subject: options.subject.clone(),

@@ -190,9 +190,16 @@ test('migrations preserve and calculate exact numeric fields', async () => {
 test('unsupported precision is rejected explicitly at batch and reactive entry points', () => {
   for (const token of ['1e-100', '1e100', '0.123456789012345678901234567891']) {
     const input = parseJsonExact(token);
-    assert.throws(() => evaluateDefinition(definition, { input }), /precision or range/);
+    // The shared evaluator now carries the range error in a refused result.
+    const result = evaluateDefinition(definition, { input });
+    assert.equal(result.refused, true);
+    assert.equal(result.validations[0].code, 'TYPE_MISMATCH');
+    assert.match(result.validations[0].message, /precision or range/);
     const engine = new FormEngine(definition);
-    assert.throws(() => engine.setValue('input', input), /precision or range/);
+    engine.setValue('input', input);
+    const report = engine.getValidationReport({ profile: 'on-demand' });
+    assert.equal(report.valid, false);
+    assert.match(report.results[0].message, /precision or range/);
     engine.dispose();
   }
 });

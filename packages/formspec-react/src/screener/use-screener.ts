@@ -44,7 +44,6 @@ export function isItemRequired(
   screener: ScreenerDocumentInput | null | undefined,
   answers: ScreenerAnswers,
 ): boolean {
-  if ((item as FormItem & { required?: boolean }).required === true) return true;
   const binds: Bind[] = screener?.binds ?? [];
   const bind = binds.find((b) => b.path === item.key);
   if (!bind || bind.required == null) return false;

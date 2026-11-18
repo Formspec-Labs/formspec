@@ -567,13 +567,13 @@ constraint message, use:
 
 This key localizes the `constraintMessage` of the Item's effective Bind
 (core §4.3.1 merges several Binds on one path into one), and only for a
-`CONSTRAINT_FAILED` result — the constraint evaluated to `false`. A
-`CONSTRAINT_PARSE_ERROR` (the expression calls an undefined function —
-a definition error, core §3.10.1 and Phase 3 step 1a) keeps its processor-generated message: the author's rule text
-describes data that broke the rule, not a broken rule. `TYPE_MISMATCH`,
-`MIN_REPEAT` / `MAX_REPEAT`, `SHAPE_FAILED`, and `EXTERNAL_FAILED`
-results likewise keep their processor or Shape message. Only the
-per-code key (`<key>.errors.<code>`) relabels those.
+`CONSTRAINT_FAILED` result, which means the constraint evaluated to
+`false`. Rebuild findings such as `UNDEFINED_FUNCTION` carry a
+processor-generated message and the authored expression’s JSONPath
+(Core §3.10.1). `TYPE_MISMATCH`, `MIN_REPEAT` / `MAX_REPEAT`,
+`SHAPE_FAILED`, and `EXTERNAL_FAILED` results carry their processor or
+Shape message. The per-code key (`<key>.errors.<code>`) can relabel those
+Item or Shape findings.
 
 To localize the required-field message for an item:
 
@@ -595,8 +595,8 @@ When resolving a validation message, the cascade is:
 4. The `ValidationResult.message`: the processor-generated message
    (core Phase 3 step 1b).
 
-Steps 2 and 3 never apply to another code: a `CONSTRAINT_PARSE_ERROR`
-falls from step 1 straight to step 4.
+The per-Bind keys apply to `CONSTRAINT_FAILED` and `REQUIRED` findings.
+Other findings use a per-code translation when available or the result message.
 
 Examples:
 

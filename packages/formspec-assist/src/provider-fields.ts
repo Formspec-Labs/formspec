@@ -6,7 +6,6 @@ import type { ContextResolver } from './context-resolver.js';
 import { jsonError } from './errors.js';
 
 type ExtendedFormItem = FormItem & {
-  calculate?: string;
   presentation?: { widgetHint?: string };
   repeatable?: boolean;
   minRepeat?: number;
@@ -56,10 +55,9 @@ export class ProviderFields {
     visit(definition.items);
     const fields = collectFieldMetadata(definition);
     this.fieldOrder = [...fields.keys()];
-    this.calculatedPaths = new Set([
-      ...[...fields.values()].filter(({ item }) => typeof (item as ExtendedFormItem).calculate === 'string').map(({ path }) => path),
-      ...(definition.binds ?? []).filter((bind) => bind.calculate).map((bind) => normalizeFieldPath(bind.path.replace(/\[\*\]/g, ''))),
-    ]);
+    this.calculatedPaths = new Set((definition.binds ?? [])
+      .filter((bind) => bind.calculate)
+      .map((bind) => normalizeFieldPath(bind.path.replace(/\[\*\]/g, ''))));
   }
 
   private findItem(path: string): ExtendedFormItem | undefined {
@@ -67,12 +65,8 @@ export class ProviderFields {
     return this.items.get(normalizeFieldPath(path));
   }
 
-  /** The `calculate` expression owning `basePath`, from its item or a Bind; the engine refuses writes to these (§4.3 rule 2). */
+  /** The `calculate` expression owning `basePath`, from its Bind; the engine refuses writes to these (§4.3 rule 2). */
   private calculateExpression(basePath: string): string | undefined {
-    const item = this.findItem(basePath);
-    if (typeof item?.calculate === 'string') {
-      return item.calculate;
-    }
     return this.engine.getDefinition().binds?.find((bind) => bind.calculate && bind.path.replace(/\[\*\]/g, '') === basePath)?.calculate;
   }
 

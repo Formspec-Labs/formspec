@@ -2482,8 +2482,9 @@ describe('ValidationSummaryDisplay gate behavior', () => {
             status: 'active',
             title: 'VS Gate Test',
             name: 'vs-gate',
+            binds: [{ path: 'username', required: true }],
             items: [
-                { key: 'username', type: 'field', dataType: 'string', label: 'Username', required: true },
+                { key: 'username', type: 'field', dataType: 'string', label: 'Username' },
             ],
         };
         const engine = createFormEngine(validationDef);

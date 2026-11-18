@@ -405,7 +405,12 @@ mod tests {
             &EvalOptions::default(),
         );
         assert_eq!(results.len(), 1, "got {results:?}");
-        assert_eq!(results[0].code, "CONSTRAINT_PARSE_ERROR");
+        // Direct revalidation of a manual Item tree lacks authored JSONPaths.
+        assert_eq!(results[0].code, "UNDEFINED_FUNCTION");
+        assert_eq!(
+            results[0].constraint_kind,
+            crate::types::ConstraintKind::Definition
+        );
         assert_eq!(
             results[0].message,
             "Constraint expression error: undefined function: bogusFunc"

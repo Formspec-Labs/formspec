@@ -599,7 +599,7 @@ export interface IFormEngine {
 
     /**
      * Register a FEL extension function (Core §3.12) and re-evaluate. Throws for a FEL built-in or
-     * reserved word. Unregistered calls stay definition errors (`CONSTRAINT_PARSE_ERROR` on binds).
+     * reserved word. Unregistered calls produce the Definition finding `UNDEFINED_FUNCTION`.
      */
     registerExtensionFunction?(
         name: string,

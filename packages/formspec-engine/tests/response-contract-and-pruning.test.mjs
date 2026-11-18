@@ -96,13 +96,13 @@ test('should deep-prune hidden groups from response data when parent visibility 
     url: 'http://example.org/test-deep-prune',
     version: '1.0.0',
     title: 'Deep Pruning',
+    binds: [{ path: 'parent', relevant: 'showParent == true' }],
     items: [
       { type: 'field', dataType: 'boolean', key: 'showParent', label: 'Show Parent' },
       {
         type: 'group',
         key: 'parent',
         label: 'Parent',
-        visible: 'showParent == true',
         children: [{ type: 'field', dataType: 'string', key: 'child', label: 'Child' }]
       }
     ]

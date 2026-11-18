@@ -1878,12 +1878,8 @@ recalculation guarantee, borrowed from XForms.
 1. For each relevant field that is in the affected subgraph or whose
    `required` / `relevant` state changed in Phase 2:
    a. If the field has a `constraint` Bind, evaluate the constraint expression.
-      If the expression calls an undefined function (a definition error,
-      §3.10.1), record a ValidationResult with severity
-      `"error"`, code `CONSTRAINT_PARSE_ERROR`, and a processor-generated
-      message describing the failure. A syntax error never reaches this
-      phase: Rebuild refuses it (§3.10.1). An evaluation error (§3.10.2) is not a
-      definition error: its `null` result passes.
+      Rebuild checks the expression for Definition errors (§3.10.1).
+      An evaluation error (§3.10.2) yields `null`, which passes the constraint.
       If the result is `false`, record a ValidationResult with severity
       `"error"` and the Bind’s `constraintMessage`.
    b. If the field has a `required` Bind that evaluated to `true`, and the
@@ -1983,9 +1979,9 @@ codes override the generic defaults.
 | `MIN_REPEAT` | `cardinality` | Fewer repeat instances than `minRepeat`. |
 | `MAX_REPEAT` | `cardinality` | More repeat instances than `maxRepeat`. |
 | `CONSTRAINT_FAILED` | `constraint` | Bind `constraint` returned `false`. |
-| `CONSTRAINT_PARSE_ERROR` | `constraint` | Bind `constraint` expression calls an undefined function (§3.10.1). |
+| `UNDEFINED_FUNCTION` | `definition` | An authored expression calls a function outside the built-in catalog and the evaluation’s extension registry (§3.10.1). |
 | `SYNTAX_ERROR` | `definition` | An authored FEL expression does not conform to the grammar (§3.10.1). Rebuild refuses evaluation at the authored expression. A `{{}}` text interpolation is exempt: it renders literally (§4.2.1). |
-| `ARITY_MISMATCH` | `definition` | An authored FEL expression calls a built-in function with the wrong number of arguments (§3.10.1). Rebuild refuses evaluation at the authored expression. A `{{}}` text interpolation is exempt. |
+| `ARITY_MISMATCH` | `definition` | An authored FEL expression calls a built-in or registered extension function with the wrong number of arguments (§3.10.1). Rebuild refuses evaluation at the authored expression. A `{{}}` text interpolation is exempt. |
 | `SEED_PREDICATE_SCOPE` | `definition` | A `seedFrom.where` predicate reads a source outside its creation scope (§4.2.2.1). Rebuild refuses evaluation at the authored predicate. |
 | `UNSUBSCRIPTED_REPEAT_REFERENCE` | `definition` | An authored field path continues past a repeatable Group without a subscript (§3.2.2). Rebuild refuses evaluation at the authored expression. |
 | `UNASSEMBLED_DEFINITION_REFERENCE` | `definition` | A Group still carries a `$ref` inclusion that assembly (§6.6.2) has not resolved. Rebuild refuses evaluation at the authored reference. |
@@ -2904,9 +2900,11 @@ following and MUST NOT proceed to Recalculate:
 | **Calculate target conflict** | A `calculate` Bind targets a field that is also targeted by another `calculate` Bind. Each field MUST have at most one `calculate` Bind. |
 | **Instance-path Bind** | A Bind `path` names a secondary instance (`instances.<name>…` or `@instance('<name>')…`) rather than an Item. Bind paths resolve to Items only (§4.3.3); no Bind writes an instance, whatever its `readonly` value (§4.4.1). |
 
-§2.5.1 lists the reserved ValidationResult codes for syntax errors, arity
-mismatches, unsubscripted repeat references, unassembled Definition
-references, and circular dependencies.
+Rebuild checks function names and argument counts against the built-in catalog
+and the extension signatures registered for the evaluation. It checks calls
+inside branches that evaluation might skip. Report `UNDEFINED_FUNCTION` or
+`ARITY_MISMATCH` at the authored expression’s JSONPath with a
+processor-generated message. See §2.5.1 for the reserved codes.
 
 #### 3.10.2 Evaluation Errors
 

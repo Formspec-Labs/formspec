@@ -228,8 +228,9 @@ test('getFormVM description resolves from definition', () => {
 
 test('getFormVM isValid reflects current validation state', () => {
   const engine = new FormEngine(minDef({
+    binds: [{ path: 'req', required: true }],
     items: [
-      { key: 'req', type: 'field', dataType: 'string', label: 'Required', required: true },
+      { key: 'req', type: 'field', dataType: 'string', label: 'Required' },
     ],
   }));
   const formVM = engine.getFormVM();
@@ -580,8 +581,9 @@ test('getFieldVM returns undefined for removed repeat instance path', () => {
 
 test('getFieldVM required reflects bind required expression', () => {
   const engine = new FormEngine(minDef({
+    binds: [{ path: 'name', required: true }],
     items: [
-      { key: 'name', type: 'field', dataType: 'string', label: 'Name', required: true },
+      { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
     ],
   }));
   const vm = engine.getFieldVM('name');
@@ -660,9 +662,10 @@ test('getFieldVM options resolve from locale when available', () => {
 
 test('getFormVM validationSummary reflects current error counts', () => {
   const engine = new FormEngine(minDef({
+    binds: [{ path: 'req1', required: true }, { path: 'req2', required: true }],
     items: [
-      { key: 'req1', type: 'field', dataType: 'string', label: 'R1', required: true },
-      { key: 'req2', type: 'field', dataType: 'string', label: 'R2', required: true },
+      { key: 'req1', type: 'field', dataType: 'string', label: 'R1' },
+      { key: 'req2', type: 'field', dataType: 'string', label: 'R2' },
     ],
   }));
   const formVM = engine.getFormVM();

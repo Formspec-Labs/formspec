@@ -1,7 +1,7 @@
 /** @filedesc Host FEL extension functions (Core §3.12): engine registration reaches every Rust evaluation. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FormEngine, wasmEvaluateScreenerDocument } from '../dist/index.js';
+import { FormEngine, evaluateDefinition, wasmEvaluateScreenerDocument } from '../dist/index.js';
 
 function definition() {
   return {
@@ -42,7 +42,7 @@ test('registerExtensionFunction re-evaluates; unregistered calls stay definition
   engine.setValue('qty', 3);
   assert.deepEqual(
     engine.getValidationReport().results.map((r) => r.code),
-    ['CONSTRAINT_PARSE_ERROR'],
+    ['UNDEFINED_FUNCTION', 'UNDEFINED_FUNCTION'],
   );
 
   engine.registerExtensionFunction('double', double);
@@ -109,4 +109,41 @@ test('a standalone Screener Document routes on host extension functions (Core §
   const withoutHost = wasmEvaluateScreenerDocument(screener, answers);
   assert.equal(withoutHost.phases[0].matched[0].target, 'urn:forms:small|1.0.0');
   assert.deepEqual(withoutHost.phases[0].warnings, ['fel-expression-error']);
+});
+
+test('extension signatures refuse before any Definition expression executes', () => {
+  let calls = 0;
+  const def = definition();
+  def.items[0].initialValue = '=recordCall()';
+  const extensionFunctions = {
+    double: { minArgs: 2, maxArgs: 2, implementation: () => { calls++; return 0; } },
+    recordCall: { minArgs: 0, maxArgs: 0, implementation: () => { calls++; return 3; } },
+  };
+  const host = { arity: name => extensionFunctions[name], invoke: () => { calls++; return '3'; } };
+  const batch = evaluateDefinition(def, {}, undefined, host);
+  const engine = new FormEngine(def, { extensionFunctions });
+  assert.equal(batch.refused, true);
+  for (const findings of [batch.validations, engine.getValidationReport().results]) {
+    assert.deepEqual(findings.map(({ path, code }) => [path, code]), [
+      ['$.binds[0].calculate', 'ARITY_MISMATCH'],
+      ['$.binds[1].constraint', 'ARITY_MISMATCH'],
+    ]);
+  }
+  assert.equal(calls, 0);
+  engine.dispose();
+});
+
+test('late extension registration retries creation for a new Response', () => {
+  const def = definition();
+  def.items[0].initialValue = '=double(2)';
+  const engine = new FormEngine(def);
+  const resumed = new FormEngine(def, { savedResponseData: {} });
+  assert.equal(engine.getValidationReport().valid, false);
+  assert.equal(engine.signals.qty.value, null);
+  engine.registerExtensionFunction('double', double);
+  resumed.registerExtensionFunction('double', double);
+  assert.deepEqual(engine.getResponse().data, { qty: 4, total: 8 });
+  assert.equal(resumed.signals.qty.value, null);
+  engine.dispose();
+  resumed.dispose();
 });

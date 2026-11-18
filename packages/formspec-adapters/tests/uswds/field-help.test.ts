@@ -19,7 +19,7 @@ afterEach(() => {
 
 const DEFINITION_URL = 'urn:test:uswds-help';
 
-function renderForm(items: any[], references?: unknown[], theme?: unknown): any {
+function renderForm(items: any[], references?: unknown[], theme?: unknown, binds = [] as unknown[]): any {
     globalRegistry.setAdapter('uswds');
     const el = document.createElement('formspec-render') as any;
     document.body.appendChild(el);
@@ -30,6 +30,7 @@ function renderForm(items: any[], references?: unknown[], theme?: unknown): any 
         version: '1.0.0',
         title: 'Eligibility questions',
         items,
+        binds,
     };
     if (references) {
         el.referencesDocuments = {
@@ -91,7 +92,7 @@ describe('USWDS rich hint on the real render path', () => {
 
     it("drops the asterisk under the theme's requiredIndicator 'none' but keeps aria-required", () => {
         const el = renderForm(
-            [{ key: 'name', type: 'field', label: 'Name', dataType: 'string', required: true }],
+            [{ key: 'name', type: 'field', label: 'Name', dataType: 'string' }],
             undefined,
             {
                 $formspecTheme: '1.0',
@@ -100,6 +101,7 @@ describe('USWDS rich hint on the real render path', () => {
                 adapter: 'uswds',
                 defaults: { requiredIndicator: 'none' },
             },
+            [{ path: 'name', required: 'true' }],
         );
         expect(el.querySelector('.usa-label .formspec-required')).toBeNull();
         expect((el.querySelector('input') as HTMLInputElement).getAttribute('aria-required')).toBe('true');

@@ -1047,16 +1047,15 @@ specific Bind’s constraint message, use:</p>
 <pre><code>&lt;itemKey&gt;.constraintMessage</code></pre>
 <p>This key localizes the <code>constraintMessage</code> of the Item’s
 effective Bind (core §4.3.1 merges several Binds on one path into one),
-and only for a <code>CONSTRAINT_FAILED</code> result — the constraint
-evaluated to <code>false</code>. A <code>CONSTRAINT_PARSE_ERROR</code>
-(the expression calls an undefined function — a definition error, core
-§3.10.1 and Phase 3 step 1a) keeps its processor-generated message: the
-author’s rule text describes data that broke the rule, not a broken
-rule. <code>TYPE_MISMATCH</code>, <code>MIN_REPEAT</code> /
+and only for a <code>CONSTRAINT_FAILED</code> result, which means the
+constraint evaluated to <code>false</code>. Rebuild findings such as
+<code>UNDEFINED_FUNCTION</code> carry a processor-generated message and
+the authored expression’s JSONPath (Core §3.10.1).
+<code>TYPE_MISMATCH</code>, <code>MIN_REPEAT</code> /
 <code>MAX_REPEAT</code>, <code>SHAPE_FAILED</code>, and
-<code>EXTERNAL_FAILED</code> results likewise keep their processor or
-Shape message. Only the per-code key
-(<code>&lt;key&gt;.errors.&lt;code&gt;</code>) relabels those.</p>
+<code>EXTERNAL_FAILED</code> results carry their processor or Shape
+message. The per-code key (<code>&lt;key&gt;.errors.&lt;code&gt;</code>)
+can relabel those Item or Shape findings.</p>
 <p>To localize the required-field message for an item:</p>
 <pre><code>&lt;itemKey&gt;.requiredMessage</code></pre>
 <h5 id="resolution-precedence">Resolution precedence</h5>
@@ -1073,9 +1072,9 @@ a <code>CONSTRAINT_FAILED</code> result.</li>
 <li>The <code>ValidationResult.message</code>: the processor-generated
 message (core Phase 3 step 1b).</li>
 </ol>
-<p>Steps 2 and 3 never apply to another code: a
-<code>CONSTRAINT_PARSE_ERROR</code> falls from step 1 straight to step
-4.</p>
+<p>The per-Bind keys apply to <code>CONSTRAINT_FAILED</code> and
+<code>REQUIRED</code> findings. Other findings use a per-code
+translation when available or the result message.</p>
 <p>Examples:</p>
 <div class="sourceCode" id="cb16"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>

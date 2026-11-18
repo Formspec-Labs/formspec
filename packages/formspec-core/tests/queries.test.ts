@@ -222,9 +222,9 @@ describe('statistics', () => {
   it('reports expression, component node, and mapping rule counts', () => {
     const project = createRawProject();
     project.batch([
-      { type: 'definition.addItem', payload: { type: 'field', key: 'a', relevant: '$b > 0' } },
+      { type: 'definition.addItem', payload: { type: 'field', key: 'a' } },
       { type: 'definition.addItem', payload: { type: 'field', key: 'b' } },
-      { type: 'definition.setBind', payload: { path: 'a', properties: { calculate: '$b + 1' } } },
+      { type: 'definition.setBind', payload: { path: 'a', properties: { relevant: '$b > 0', calculate: '$b + 1' } } },
       { type: 'mapping.addRule', payload: { sourcePath: 'a', targetPath: 'out.a', transform: 'expression' } },
       { type: 'mapping.setRule', payload: { index: 0, property: 'expression', value: '$a + $b' } },
     ]);

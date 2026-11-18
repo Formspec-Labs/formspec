@@ -49,15 +49,19 @@ class TestProcessingResult:
         ]
         assert result.diagnostics[0]['message']
 
-    def test_undefined_function_fails_and_is_a_diagnostic(self):
-        """Core §3.10.1: an undefined function is a definition error, so the shape fails."""
+    def test_undefined_function_refuses_rebuild(self):
+        """Core §3.10.1: undefined calls refuse the Definition before the Shape runs."""
         defn = {'shapes': [{
             'id': 'bogus', 'target': '#', 'severity': 'error',
             'message': 'Fail', 'constraint': 'bogusFunc($x)',
         }]}
         result = evaluate_definition(defn, {'x': 1})
-        assert [r['message'] for r in result.results] == ['Fail']
-        assert [d['shapeId'] for d in result.diagnostics] == ['bogus']
+        # Rebuild reports the authored slot instead of labeling it with the Shape message.
+        assert result.refused
+        assert [(r['path'], r['code']) for r in result.results] == [
+            ('$.shapes[0].constraint', 'UNDEFINED_FUNCTION'),
+        ]
+        assert result.diagnostics == []
 
     def test_validate_wraps_process(self):
         """results list contains validation failures."""

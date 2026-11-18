@@ -191,7 +191,17 @@ impl Composition<'_> {
         let inactive = shape
             .get("activeWhen")
             .and_then(|v| v.as_str())
-            .is_some_and(|active_when| !self.fel.eval_bool(active_when, self.env, false));
+            .is_some_and(|expression| {
+                !self.fel.eval_bool(expression, self.env, false, |result| {
+                    EvalDiagnostic::record(
+                        self.diagnostics,
+                        result,
+                        target,
+                        expression,
+                        shape_id.as_deref(),
+                    );
+                })
+            });
         let truth = if inactive {
             Some(Truth::True)
         } else {

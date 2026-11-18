@@ -6,7 +6,7 @@ use fel_core::{Expr, Value, extract_dependencies};
 
 use crate::fel_eval::Fel;
 use crate::scope::{ScopeData, ScopeIndex};
-use crate::types::VariableDef;
+use crate::types::{EvalDiagnostic, VariableDef};
 
 use formspec_core::dependency_order::dependency_order;
 
@@ -35,6 +35,7 @@ struct Binding<'a> {
     name: &'a str,
     site: &'a str,
     expression: &'a Expr,
+    source: &'a str,
     declaration: usize,
 }
 
@@ -59,6 +60,7 @@ impl<'a> Variables<'a> {
                     name,
                     site,
                     expression,
+                    source: &definition.expression,
                     declaration,
                 });
             }
@@ -112,6 +114,7 @@ impl<'a> Variables<'a> {
         state: &mut ScopeData,
         index: &ScopeIndex,
         fel: Fel<'_>,
+        mut diagnostics: Option<&mut Vec<EvalDiagnostic>>,
     ) -> (HashMap<String, Value>, Option<String>) {
         state.variables.clear();
         let order = match &self.order {
@@ -121,9 +124,11 @@ impl<'a> Variables<'a> {
         let mut result = HashMap::new();
         for &id in order {
             let binding = &self.bindings[id];
-            let value = fel
-                .evaluate(binding.expression, &state.site(index, binding.site))
-                .value;
+            let evaluated = fel.evaluate(binding.expression, &state.site(index, binding.site));
+            if let Some(output) = diagnostics.as_deref_mut() {
+                EvalDiagnostic::record(output, &evaluated, binding.site, binding.source, None);
+            }
+            let value = evaluated.value;
             result.insert(binding.name.to_owned(), value.clone());
             state
                 .variables

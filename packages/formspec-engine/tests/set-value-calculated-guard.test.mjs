@@ -99,9 +99,10 @@ test('setValue on a field with inline calculate property should not crash', () =
     url: 'http://example.org/test',
     version: '1.0.0',
     title: 'Inline Calculate Test',
+    binds: [{ path: 'doubled', calculate: '$x * 2' }],
     items: [
       { key: 'x', type: 'field', dataType: 'integer', label: 'X' },
-      { key: 'doubled', type: 'field', dataType: 'integer', label: 'Doubled', calculate: '$x * 2' },
+      { key: 'doubled', type: 'field', dataType: 'integer', label: 'Doubled' },
     ],
   });
 

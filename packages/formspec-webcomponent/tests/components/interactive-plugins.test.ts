@@ -204,8 +204,9 @@ describe('pageMode wizard (Stack + Pages + formPresentation)', () => {
         document.body.appendChild(el);
         el.definition = {
             ...multiFieldDef([
-                { key: 'name', label: 'Name', dataType: 'string', required: true },
+                { key: 'name', label: 'Name', dataType: 'string' },
             ]),
+            binds: [{ path: 'name', required: 'true' }],
             formPresentation: { pageMode: 'wizard' },
         };
         el.componentDocument = minimalComponentDoc({
@@ -247,9 +248,10 @@ describe('pageMode wizard (Stack + Pages + formPresentation)', () => {
         document.body.appendChild(el);
         el.definition = {
             ...multiFieldDef([
-                { key: 'step1field', label: 'Step 1 Field', dataType: 'string', required: true },
-                { key: 'step2field', label: 'Step 2 Field', dataType: 'string', required: true },
+                { key: 'step1field', label: 'Step 1 Field', dataType: 'string' },
+                { key: 'step2field', label: 'Step 2 Field', dataType: 'string' },
             ]),
+            binds: [{ path: 'step1field', required: 'true' }, { path: 'step2field', required: 'true' }],
             formPresentation: { pageMode: 'wizard' },
         };
         el.componentDocument = minimalComponentDoc({
@@ -283,8 +285,9 @@ describe('pageMode wizard (Stack + Pages + formPresentation)', () => {
         document.body.appendChild(el);
         el.definition = {
             ...multiFieldDef([
-                { key: 'name', label: 'Name', dataType: 'string', required: true },
+                { key: 'name', label: 'Name', dataType: 'string' },
             ]),
+            binds: [{ path: 'name', required: 'true' }],
             formPresentation: { pageMode: 'wizard' },
         };
         el.componentDocument = minimalComponentDoc({
@@ -323,8 +326,9 @@ describe('pageMode wizard (Stack + Pages + formPresentation)', () => {
         document.body.appendChild(el);
         el.definition = {
             ...multiFieldDef([
-                { key: 'name', label: 'Name', dataType: 'string', required: true },
+                { key: 'name', label: 'Name', dataType: 'string' },
             ]),
+            binds: [{ path: 'name', required: 'true' }],
             formPresentation: { pageMode: 'wizard' },
         };
         el.componentDocument = minimalComponentDoc({
@@ -968,7 +972,8 @@ describe('ValidationSummary plugin', () => {
             url: 'urn:test:form',
             version: '1.0.0',
             title: 'Test',
-            items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name', required: true }],
+            binds: [{ path: 'name', required: true }],
+            items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
             shapes: [
                 {
                     id: 'dup-a',

@@ -134,6 +134,14 @@ function againstExpected(actual, expected) {
     problems.push(...missing.map((w) => `expected result missing ${show(w)}`));
     problems.push(...unmatched.map((g) => `unexpected result ${show(g)}`));
   }
+  if ('diagnostics' in expected) {
+    const clean = (diagnostics) => (diagnostics ?? [])
+      .map(({ path, expression, code, shapeId }) => ({ path, expression, code, ...(shapeId ? { shapeId } : {}) }))
+      .sort((a, b) => show(a).localeCompare(show(b)));
+    if (!same(clean(actual.diagnostics), clean(expected.diagnostics))) {
+      problems.push(`diagnostics ${show(clean(actual.diagnostics))}, expected ${show(clean(expected.diagnostics))}`);
+    }
+  }
   if ('data' in expected) problems.push(...dataDiff(actual.data, expected.data).map((d) => `data ${d} (actual vs expected)`));
   if ('undeclaredDataPaths' in expected
     && !same([...(actual.undeclaredDataPaths ?? [])].sort(), [...expected.undeclaredDataPaths].sort())) {
@@ -219,7 +227,7 @@ function isDefinitionRefusal({ constraintKind, path }) {
 
 /** Ways `evaluate` changed `input` into `output` that the processing cycle does not permit. */
 function inventions(definition, input, output) {
-  if (output.validations.some(isDefinitionRefusal)) {
+  if (output.refused) {
     return same(output.data, {}) ? [] : [`refusal data ${show(output.data)}, expected {}`];
   }
   const { items, calculated } = itemIndex(definition);
@@ -332,11 +340,11 @@ async function runProcessingCase(caseDoc, legs) {
     const context = { ...options(server), trigger };
     const raw = evaluateDefinition(clone(definition), clone(data), context);
     for (const p of inventions(definition, data, raw)) inventionProblems.push(`${label}: ${p}`);
-    return outcome(raw.validations, raw.data, raw.undeclaredDataPaths);
+    return { ...outcome(raw.validations, raw.data, raw.undeclaredDataPaths), diagnostics: raw.diagnostics };
   };
   const settle = (data, { server = true } = {}) => {
     const raw = evaluateFiled(clone(definition), clone(data), options(server));
-    const verdict = outcome(raw.validations, raw.data, raw.undeclaredDataPaths);
+    const verdict = { ...outcome(raw.validations, raw.data, raw.undeclaredDataPaths), diagnostics: raw.diagnostics };
     const again = evaluate(server ? 'S(fixpoint)' : 'P(fixpoint)', verdict.data, 'submit', { server });
     return { verdict, problems: [...againstExpected(verdict, expected), ...betweenLegs('fixpoint', again, verdict)] };
   };
@@ -351,21 +359,32 @@ async function runProcessingCase(caseDoc, legs) {
   const roundTrip = (data) => dataDiff(evaluate('P(round trip)', data, 'continuous').data, data)
     .map((d) => `round trip of expected.data ${d}`);
 
-  // An invalid filing unit is refused before a browser session or filed Response exists.
+  const engine = await openEngine(caseDoc, definition, payload);
+  const engineLive = () => {
+    const live = engineOutcome(engine, 'live');
+    if ('diagnostics' in expected) {
+      live.diagnostics = engine.getDiagnosticsSnapshot().evaluationDiagnostics;
+    }
+    return live;
+  };
+  // The server lacks subject inputs here. Preserve that known difference while
+  // checking the same refusal in the browser's on-demand report and Response.
   const refusal = expected.results?.find(({ path }) => path.startsWith('#subject'));
   if (refusal && caseDoc.subject) {
     assert.equal(caseDoc.expectedCandidate, undefined, 'a refused subject cannot produce a filing');
-    await assert.rejects(openEngine(caseDoc, definition, payload), {
-      message: `${refusal.path}: ${refusal.message}`,
-    });
+    const snapshot = engine.getResponseSnapshot({ profile: 'on-demand' });
+    assert.deepEqual(snapshot.response.validationResults, snapshot.validationReport.results);
+    const demand = outcome(snapshot.validationReport.results, snapshot.response.data);
+    const problems = againstExpected(demand, expected);
+    assert.deepEqual(problems, [], 'on-demand FormEngine subject refusal');
     checkSubmitLegs(payload);
+    engine.dispose();
     legs.set('noInvention', inventionProblems);
     return;
   }
-  const engine = await openEngine(caseDoc, definition, payload);
   if (caseDoc.operations) {
     // The session that produced the filed record runs here; `expected` is the state after the last step.
-    const liveSession = engineOutcome(engine, 'live');
+    const liveSession = engineLive();
     const liveFromFiled = evaluate('P(FormEngine live data)', liveSession.data, 'continuous');
     const liveProblems = betweenLegs('FormEngine live vs P', liveSession, liveFromFiled);
     if (submit) {
@@ -388,7 +407,11 @@ async function runProcessingCase(caseDoc, legs) {
     if (!submit) {
       legs.set('P', [...againstExpected(live, expected), ...('data' in expected ? roundTrip(expected.data) : [])]);
     }
-    const liveProblems = betweenLegs('FormEngine live vs P', engineOutcome(engine, 'live'), live, { data: compareDraftData });
+    const engineResult = engineLive();
+    const liveProblems = betweenLegs('FormEngine live vs P', engineResult, live, { data: compareDraftData });
+    if (!submit && 'diagnostics' in expected) {
+      liveProblems.push(...againstExpected(engineResult, { diagnostics: expected.diagnostics }));
+    }
     if (!compareDraftData) {
       liveProblems.push(...dataDiff(engine.getDraftSnapshot().data, payload).map((p) => `retained draft data ${p}`));
     }

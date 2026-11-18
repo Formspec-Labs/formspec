@@ -1,0 +1,31 @@
+{
+  "id": "parity.undefined-function",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-undefined-function.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {},
+  "specRefs": [
+    "Core \u00a73.10.1 (errors during Rebuild)"
+  ],
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "data": {},
+    "results": [
+      {
+        "path": "$.binds[0].calculate",
+        "code": "UNDEFINED_FUNCTION",
+        "severity": "error",
+        "constraintKind": "definition",
+        "source": "definition",
+        "constraint": "if true then 3 else unregistered()"
+      }
+    ],
+    "diagnostics": []
+  }
+}

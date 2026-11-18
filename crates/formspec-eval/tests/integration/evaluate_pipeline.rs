@@ -47,7 +47,7 @@ fn evaluating_saved_data_never_applies_creation_values() {
 }
 
 #[test]
-fn default_evaluation_json_matches_main_for_removed_answers_and_repeats() {
+fn default_evaluation_json_includes_refusal_status_and_preserves_data_shape() {
     let definition = json!({
         "items": [
             {"key": "hidden", "type": "field", "dataType": "string"},
@@ -70,11 +70,10 @@ fn default_evaluation_json_matches_main_for_removed_answers_and_repeats() {
     ]);
     assert_eq!(result.required, expected_mips);
     assert_eq!(result.readonly, expected_mips);
-    // Main serializes these two HashMaps in iteration order. Use the same order
-    // for their members while pinning all top-level keys and the remaining bytes.
+    // Match the iteration order of the two maps while pinning the report fields.
     let expected = format!(
         concat!(
-            r#"{{"values":{{"rows[0].amount":3}},"data":{{"rows":[{{"amount":3}}]}},"#,
+            r#"{{"refused":false,"values":{{"rows[0].amount":3}},"data":{{"rows":[{{"amount":3}}]}},"#,
             r#""validations":[],"diagnostics":[],"nonRelevant":["hidden"],"variables":{{}},"#,
             r#""required":{},"readonly":{}}}"#
         ),
@@ -4603,10 +4602,9 @@ fn repeat_group_zero_instances_no_required_errors() {
     );
 }
 
-/// When a repeatable group has minRepeat: 0, no data, and NO wildcard binds,
-/// template children must still not produce validation errors.
+/// A required Bind addressed by the Item path must still skip a repeat with zero rows.
 #[test]
-fn repeat_group_zero_instances_inline_required_no_errors() {
+fn repeat_group_zero_instances_item_path_required_no_errors() {
     let def = json!({
         "items": [
             {
@@ -4614,9 +4612,12 @@ fn repeat_group_zero_instances_inline_required_no_errors() {
                 "repeatable": true,
                 "minRepeat": 0,
                 "children": [
-                    { "key": "condition_name", "dataType": "string", "required": true }
+                    { "key": "condition_name", "dataType": "string" }
                 ]
             }
+        ],
+        "binds": [
+            {"path": "past_conditions.condition_name", "required": true},
         ]
     });
 
@@ -4630,7 +4631,7 @@ fn repeat_group_zero_instances_inline_required_no_errors() {
         .collect();
     assert!(
         required_errors.is_empty(),
-        "required must not fire on repeat template with 0 instances (inline required), got: {required_errors:?}"
+        "required must not fire on repeat template with 0 instances (required by Item path), got: {required_errors:?}"
     );
 }
 

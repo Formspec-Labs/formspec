@@ -29,6 +29,17 @@
         "results": { "type": "array", "items": { "$ref": "#/$defs/expectedResult" } }
       }
     },
+    "expectedDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "expression", "code"],
+      "properties": {
+        "path": { "type": "string" },
+        "expression": { "type": "string" },
+        "code": { "type": "string" },
+        "shapeId": { "type": "string" }
+      }
+    },
     "standardValidationCode": {
       "type": "string",
       "enum": [
@@ -37,7 +48,7 @@
         "MIN_REPEAT",
         "MAX_REPEAT",
         "CONSTRAINT_FAILED",
-        "CONSTRAINT_PARSE_ERROR",
+        "UNDEFINED_FUNCTION",
         "SYNTAX_ERROR",
         "ARITY_MISMATCH",
         "SEED_PREDICATE_SCOPE",
@@ -277,6 +288,7 @@
               "counts": { "$ref": "#/$defs/counts" },
               "results": { "type": "array", "items": { "$ref": "#/$defs/expectedResult" } },
               "data": { "type": "object" },
+              "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/expectedDiagnostic" } },
               "undeclaredDataPaths": { "type": "array", "items": { "type": "string" } }
             }
           }

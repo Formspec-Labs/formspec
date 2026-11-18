@@ -14,7 +14,7 @@ beforeAll(async () => {
 
 /** Helper: create element, set definition, and return the rendered field wrapper. */
 function renderField(
-    itemOverrides: Record<string, any> = {},
+    { bind, ...itemOverrides }: Record<string, any> = {},
     compDocTree?: any,
     themeDoc?: any,
 ) {
@@ -23,7 +23,7 @@ function renderField(
 
     if (themeDoc) el.themeDocument = themeDoc;
 
-    const def = singleFieldDef(itemOverrides);
+    const def = singleFieldDef(itemOverrides, bind);
 
     if (compDocTree) {
         el.componentDocument = {
@@ -150,27 +150,27 @@ describe('input rendering — reactive signals', () => {
     });
 
     it('required signal adds * indicator to label', () => {
-        const el = renderField({ required: true });
+        const el = renderField({ bind: { required: 'true' } });
         const label = el.querySelector('.formspec-label') as HTMLElement;
         expect(label.querySelector('.formspec-required')).not.toBeNull();
         expect(label.textContent).toContain('*');
     });
 
     it('relevance false adds formspec-hidden class', () => {
-        const el = renderField({ relevant: 'false' });
+        const el = renderField({ bind: { relevant: 'false' } });
         const fieldWrapper = el.querySelector('.formspec-field') as HTMLElement;
         expect(fieldWrapper.classList.contains('formspec-hidden')).toBe(true);
     });
 
     it('readonly signal sets readOnly on input and aria-readonly', () => {
-        const el = renderField({ readonly: true });
+        const el = renderField({ bind: { readonly: 'true' } });
         const input = el.querySelector('input') as HTMLInputElement;
         expect(input.readOnly).toBe(true);
         expect(input.getAttribute('aria-readonly')).toBe('true');
     });
 
     it('error signal shows error text and sets aria-invalid', () => {
-        const el = renderField({ constraint: 'false', constraintMessage: 'Bad value' });
+        const el = renderField({ bind: { constraint: 'false', constraintMessage: 'Bad value' } });
         const engine = el.getEngine();
         // Trigger validation by setting a value
         engine.setValue('name', 'test');

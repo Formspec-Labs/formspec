@@ -105,7 +105,7 @@ test('getResponse() requires filing-unit identity before evaluation', () => {
   assert.deepEqual(bound.getResponse().subject, subject);
 });
 
-test('FormEngine refuses invalid filing-unit identity at construction', async (t) => {
+test('FormEngine reports invalid filing-unit identity', async (t) => {
   const type = 'urn:example:subject:agency-year';
   const definition = minDef({ subject: { type, keys: { ffy: { dataType: 'integer' }, uei: { dataType: 'string' } } } });
   const cases = [
@@ -123,7 +123,14 @@ test('FormEngine refuses invalid filing-unit identity at construction', async (t
   ];
   for (const [name, form, subject, message] of cases) {
     await t.test(name, () => {
-      assert.throws(() => new FormEngine(form, { responseSubject: { id: 'filing-unit', ...subject } }), message);
+      // The old constructor exception kept the refusal out of the validation report.
+      const engine = new FormEngine(form, { responseSubject: { id: 'filing-unit', ...subject } });
+      const report = engine.getValidationReport();
+      assert.equal(report.valid, false);
+      assert.equal(report.results.length, 1);
+      assert.equal(report.results[0].code, 'TYPE_MISMATCH');
+      assert.match(`${report.results[0].path}: ${report.results[0].message}`, message);
+      engine.dispose();
     });
   }
 });
@@ -150,15 +157,18 @@ test('FormEngine refusal prevents instance and remote option loads', async (t) =
     binds: [{ path: 'name', remoteOptions: 'https://example.org/options' }],
   });
 
-  assert.throws(() => new FormEngine(definition, {
+  // The refusal is available in reports. It still prevents both source loads.
+  const engine = new FormEngine(definition, {
     responseSubject: { id: 'filing-unit', keys: { uei: 'A' } },
     instanceSourceResolver: () => {
       calls.push('instance source');
       return { status: 'loaded', value: {} };
     },
-  }), /#subjectKeys\.uei/);
-  await Promise.resolve();
+  });
+  assert.equal(engine.getValidationReport().results[0].path, '#subjectKeys.uei');
+  await engine.waitForInstanceSources();
   assert.deepEqual(calls, []);
+  engine.dispose();
 });
 
 // ── runtimeMeta(key) ──────────────────────────────────────────────

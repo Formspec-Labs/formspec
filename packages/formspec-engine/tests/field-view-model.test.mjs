@@ -279,7 +279,7 @@ test('FieldViewModel per-Bind constraintMessage labels only CONSTRAINT_FAILED', 
     // Core Phase 3 step 1a: a definition error keeps its processor-generated message.
     const errorsSig = rt.signal([
         {
-            path: 'email', severity: 'error', constraintKind: 'constraint', code: 'CONSTRAINT_PARSE_ERROR',
+            path: 'email', severity: 'error', constraintKind: 'definition', code: 'UNDEFINED_FUNCTION',
             message: 'Constraint expression error: undefined function: bogus', constraintMessage: 'Bad email',
         },
         {

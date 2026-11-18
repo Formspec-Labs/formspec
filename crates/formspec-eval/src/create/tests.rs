@@ -190,9 +190,14 @@ fn filtered_seed_waits_for_its_instances_and_ignores_editing_data() {
     def["instances"]["policy"] = json!({"source":"https://example.invalid/policy"});
     def["items"][2]["seedFrom"]["where"] =
         json!("$.name = subject('name') and $.age >= @instance('policy').minimum");
+    def["subject"] = json!({
+        "type": "urn:test:named-unit",
+        "keys": {"name": {"dataType": "string"}}
+    });
     let records = json!({"items":[{"name":"A","age":2},{"name":"A","age":6}]});
     let policy = json!({"minimum":4});
     let subject = crate::EvalSubject {
+        subject_type: Some("urn:test:named-unit".into()),
         keys: Some([("name".into(), fel_core::Value::String("A".into()))].into()),
         ..Default::default()
     };

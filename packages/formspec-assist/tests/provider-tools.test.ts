@@ -233,6 +233,7 @@ describe('Assist provider tools', () => {
   it('formspec.field.set returns NOT_RELEVANT for hidden field', async () => {
     const def = {
       ...makeDefinition(),
+      binds: [{ path: 'contactEmail', relevant: 'false' }],
       items: [
         ...makeDefinition().items.filter((i: { key: string }) => i.key !== 'contactEmail'),
         {
@@ -240,7 +241,6 @@ describe('Assist provider tools', () => {
           type: 'field' as const,
           dataType: 'string' as const,
           label: 'Contact Email',
-          relevant: 'false',
         },
       ],
     };
@@ -965,10 +965,10 @@ describe('Stale-write guard (draft.3 C5, §4.3 rule 6): compare-and-set', () => 
       title: 'Calc',
       items: [
         { key: 'a', type: 'field', dataType: 'integer', label: 'A' },
-        { key: 'double', type: 'field', dataType: 'integer', label: 'Double', calculate: '$a * 2' },
+        { key: 'double', type: 'field', dataType: 'integer', label: 'Double' },
         { key: 'viaBind', type: 'field', dataType: 'integer', label: 'Via bind' },
       ],
-      binds: [{ path: 'viaBind', calculate: '$a + 1' }],
+      binds: [{ path: 'double', calculate: '$a * 2' }, { path: 'viaBind', calculate: '$a + 1' }],
     } as any);
     engine.setValue('a', 4);
     const provider = createAssistProvider({ engine, registerWebMCP: false });
@@ -1213,13 +1213,10 @@ describe('Apply by path (draft.3 C4, §3.5)', () => {
   });
 
   it('reports NOT_RELEVANT for a hidden field the match set left out', async () => {
+    const authored = makeDefinition();
     const definition = {
-      ...makeDefinition(),
-      items: makeDefinition().items.map((item) => (
-        item.key === 'organization'
-          ? { ...item, children: item.children.map((child) => (child.key === 'ein' ? { ...child, relevant: 'false' } : child)) }
-          : item
-      )),
+      ...authored,
+      binds: [...authored.binds, { path: 'organization.ein', relevant: 'false' }],
     };
     const provider = makeMatchingProvider({ engine: new FormEngine(definition as any) });
     const result = read(await provider.invokeTool('formspec.profile.apply', { paths: ['organization.ein'] }));

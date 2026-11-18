@@ -49,8 +49,9 @@ describe('mountHost', () => {
             version: '1.0.0',
             status: 'draft',
             title: 'Rich',
+            binds: [{ path: 'refCode', required: true, readonly: true }],
             items: [
-                { key: 'refCode', type: 'field', dataType: 'string', label: 'Reference code', required: true, readonly: true },
+                { key: 'refCode', type: 'field', dataType: 'string', label: 'Reference code' },
                 { key: 'photo', type: 'field', dataType: 'file', label: 'Photo', presentation: { widgetHint: 'FileUpload' } },
             ],
         } as never;

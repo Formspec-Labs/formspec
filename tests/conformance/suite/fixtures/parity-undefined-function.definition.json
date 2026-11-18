@@ -1,0 +1,20 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:parity-undefined-function",
+  "version": "1.0.0",
+  "title": "Unknown call in an unused branch",
+  "items": [
+    {
+      "key": "amount",
+      "label": "Amount",
+      "type": "field",
+      "dataType": "integer"
+    }
+  ],
+  "binds": [
+    {
+      "path": "amount",
+      "calculate": "if true then 3 else unregistered()"
+    }
+  ]
+}

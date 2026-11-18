@@ -516,10 +516,12 @@ def test_evaluate_definition_extension_failure_is_null_with_diagnostic():
     assert any("boom" in d["message"] for d in result.diagnostics), result.diagnostics
 
 
-def test_evaluate_definition_without_extension_is_parse_error():
+def test_evaluate_definition_without_extension_refuses_rebuild():
     """Core §3.10.1: an unregistered extension call stays a definition error."""
     result = evaluate_definition(_EXTENSION_DEFINITION, {"qty": 3})
-    assert [r["code"] for r in result.results] == ["CONSTRAINT_PARSE_ERROR"]
+    assert result.refused
+    # Both calls are checked at Rebuild, including the calculate call.
+    assert [r["code"] for r in result.results] == ["UNDEFINED_FUNCTION"] * 2
 
 
 def test_evaluate_definition_rejects_builtin_extension_name():
@@ -769,3 +771,56 @@ def test_evaluate_definition_item_text_resolves_context_hint_and_description():
     assert result.item_text["qty"]["descriptions"] == {"short": "Ordre 2"}
     # The context-less resolution still falls back to the Definition's inline text.
     assert result.item_text["qty"]["hint"] == "Up to 2"
+
+
+def test_diagnostics_follow_up_refuses_unknown_and_wrong_arity_before_running_extensions():
+    invoked = []
+
+    def called(value, extra):
+        invoked.append((value, extra))
+        return value
+
+    definition = {
+        "items": [{"key": "result", "type": "field", "dataType": "integer"}],
+        "binds": [{"path": "result", "calculate": "called(5)"}],
+    }
+    for extensions, code in [({}, "UNDEFINED_FUNCTION"), ({"called": called}, "ARITY_MISMATCH")]:
+        result = evaluate_definition(definition, {}, extension_functions=extensions)
+        assert result.data == {}
+        assert [(v["path"], v["code"]) for v in result.results] == [
+            ("$.binds[0].calculate", code),
+        ]
+        assert result.diagnostics == []
+    assert invoked == []
+
+
+def test_settled_expression_diagnostics_reach_the_python_bridge():
+    fixtures = Path(__file__).resolve().parents[1] / "conformance" / "suite"
+    definition = json.loads(
+        (fixtures / "fixtures" / "parity-settled-fel-diagnostics.definition.json").read_text()
+    )
+    expected = json.loads((fixtures / "parity-settled-fel-diagnostics.json").read_text())["expected"]
+    default = "sum([79228162514264337593543950335, 6])"
+    definition["binds"][0]["default"] = f"={default}"
+    result = evaluate_definition(definition, {}, context={"previousNonRelevant": ["amount"]})
+    actual = [
+        {key: d[key] for key in ("path", "expression", "code", "shapeId") if key in d}
+        for d in result.diagnostics
+    ]
+    assert sorted(actual, key=lambda d: d["expression"]) == [
+        *expected["diagnostics"],
+        {"path": "amount", "expression": default, "code": "FEL_ARITHMETIC_OVERFLOW"},
+    ]
+
+
+def test_extension_registration_requires_a_positional_signature():
+    class Opaque:
+        __signature__ = "unavailable"
+
+        def __call__(self, value):
+            return value
+
+    with pytest.raises(TypeError, match="positional signature"):
+        evaluate_definition(
+            _EXTENSION_DEFINITION, {"qty": 3}, extension_functions={"double": Opaque()}
+        )

@@ -23,6 +23,7 @@ export interface EvalDiagnostic {
 }
 
 export interface EvalResult {
+    refused: boolean;
     values: Record<string, unknown>;
     data: Record<string, unknown>;
     validations: EvalValidation[];

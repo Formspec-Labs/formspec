@@ -229,9 +229,10 @@ test('should block cyclical calculate dependencies when definition fields refere
         url: 'http://example.org/test',
         version: '1.0.0',
         title: 'Cyclic Calculate Test',
+        binds: [{ path: 'a', calculate: 'b * 2' }, { path: 'b', calculate: 'a * 2' }],
         items: [
-          { type: 'field', dataType: 'number', key: 'a', label: 'A', calculate: 'b * 2' },
-          { type: 'field', dataType: 'number', key: 'b', label: 'B', calculate: 'a * 2' }
+          { type: 'field', dataType: 'number', key: 'a', label: 'A' },
+          { type: 'field', dataType: 'number', key: 'b', label: 'B' }
         ]
       }),
     /Cyclic dependency detected/

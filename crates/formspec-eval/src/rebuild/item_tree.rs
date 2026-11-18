@@ -139,39 +139,14 @@ fn build_item_info_from_ctx(
         .or(default_currency)
         .map(String::from);
 
-    // Inline Item properties first, then every Bind targeting the Item in document
-    // order, later values winning (Core §4.3.1). A Definition with no Bind for the
-    // full path falls back to Binds addressed by the bare key.
-    let mut bind = fel_core::exact_json::Map::new();
-    for field in [
-        "calculate",
-        "constraint",
-        "constraintMessage",
-        "relevant",
-        "required",
-        "readonly",
-        "default",
-        "precision",
-        "disabledDisplay",
-        "whitespace",
-        "nonRelevantBehavior",
-        "excludedValue",
-    ] {
-        if let Some(value) = item.get(field) {
-            bind.insert(field.to_string(), value.clone());
-        }
-    }
-    if bind.get("relevant").is_none()
-        && let Some(value) = item.get("visible")
-    {
-        bind.insert("relevant".to_string(), value.clone());
-    }
+    // Merge authored Binds in document order. When no Bind targets the full path,
+    // look for a Bind addressed by the Item's bare key.
     let target = if binds.entries(&path).is_empty() {
         key.as_str()
     } else {
         path.as_str()
     };
-    bind.extend(binds.merged(target));
+    let bind = binds.merged(target);
 
     let children = item
         .get("children")
@@ -198,7 +173,10 @@ fn build_item_info_from_ctx(
         value: Value::Null,
         mip: MipState::default(),
         calculate: None,
-        precision: None,
+        precision: item
+            .get("precision")
+            .and_then(Value::as_u64)
+            .and_then(|value| u32::try_from(value).ok()),
         constraint: None,
         constraint_message: None,
         relevance: None,
@@ -331,11 +309,11 @@ mod tests {
         let def = json!({
             "items": [{
                 "key": "name",
-                "dataType": "string",
-                "whitespace": "trim",
-                "nonRelevantBehavior": "empty",
-                "excludedValue": "null"
-            }]
+                "dataType": "string"
+            }],
+            "binds": [
+                {"path": "name", "whitespace": "trim", "nonRelevantBehavior": "empty", "excludedValue": "null"},
+            ]
         });
         let items = rebuild_item_tree(&def);
         assert_eq!(items.len(), 1);
@@ -350,9 +328,11 @@ mod tests {
         let def = json!({
             "items": [{
                 "key": "x",
-                "dataType": "string",
-                "excludedValue": "not-a-mode"
-            }]
+                "dataType": "string"
+            }],
+            "binds": [
+                {"path": "x", "excludedValue": "not-a-mode"},
+            ]
         });
         let items = rebuild_item_tree(&def);
         assert!(items[0].excluded_value.is_none());

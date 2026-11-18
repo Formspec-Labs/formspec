@@ -317,7 +317,6 @@ export function normalizeBinds(state: ProjectState, path: string): NormalizedBin
   if (item) {
     if (item.prePopulate !== undefined) result.prePopulate = item.prePopulate;
     if (item.initialValue !== undefined) result.initialValue = item.initialValue;
-    if (item.default !== undefined) result.default = item.default;
   }
 
   return result;

@@ -70,13 +70,15 @@ pub fn recalculate(
 
 /// Output of one recalculate phase.
 pub(crate) struct Recalculated {
-    /// Evaluation errors from the calculates that produced `values`.
+    /// Errors from expressions that produced the returned values and Bind state.
     pub(crate) diagnostics: Vec<EvalDiagnostic>,
     /// Response values.
     pub(crate) values: HashMap<String, Value>,
     /// Variable values as FEL values.
     pub(crate) variables: HashMap<String, FelValue>,
     pub(crate) scoped_variables: ScopedVariables,
+    /// State read by FEL queries during validation.
+    pub(crate) mip_states: HashMap<String, fel_core::MipState>,
     /// Variable dependency cycle, if any.
     pub(crate) cycle_error: Option<String>,
     /// Item text by instance path, when requested and `options.item_text` is set.
@@ -109,7 +111,7 @@ pub(crate) fn recalculate_phase(
     // Seed values only where early reads cannot see them. Unchanged writes preserve the memo.
     order.seed_previous_values(items, &mut state, aggregates);
     state.restore_aggregates(aggregates);
-    let (_, cycle_err) = variables.evaluate(&mut state, index, fel);
+    let (_, cycle_err) = variables.evaluate(&mut state, index, fel, None);
     let invalid_paths: HashSet<String> = previous_validations
         .unwrap_or(&[])
         .iter()
@@ -124,6 +126,7 @@ pub(crate) fn recalculate_phase(
 
     let walk = Walk { index, fel };
     order.evaluate_early(items, &mut state, &mut values, &walk);
+    let mut diagnostics = Vec::new();
     walk.items(
         items,
         &mut state,
@@ -131,21 +134,30 @@ pub(crate) fn recalculate_phase(
         &mut BindPass {
             invalid_paths: &invalid_paths,
             early_writers: order.early_writers(),
+            diagnostics: &mut diagnostics,
         },
         Parent::ROOT,
     );
 
-    let mut diagnostics = order.evaluate(items, &mut state, &mut values, &walk);
+    let mut calculate_diagnostics = order.evaluate(items, &mut state, &mut values, &walk);
     if !var_defs.is_empty() {
-        bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel);
-        variables.evaluate(&mut state, index, fel);
-        diagnostics = order.evaluate(items, &mut state, &mut values, &walk);
-        bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel);
+        bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel, None);
+        variables.evaluate(&mut state, index, fel, None);
+        calculate_diagnostics = order.evaluate(items, &mut state, &mut values, &walk);
+        bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel, None);
     }
-    let (final_var_values, _) = variables.evaluate(&mut state, index, fel);
+    diagnostics.extend(calculate_diagnostics);
+    let (final_var_values, _) = variables.evaluate(&mut state, index, fel, Some(&mut diagnostics));
 
     // Required expressions may read calculates that appeared later in document order.
-    bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel);
+    bind_pass::refresh_required_state(
+        items,
+        &mut state,
+        &invalid_paths,
+        index,
+        fel,
+        Some(&mut diagnostics),
+    );
 
     let item_text = options
         .item_text
@@ -158,12 +170,14 @@ pub(crate) fn recalculate_phase(
         });
 
     let scoped_variables = std::mem::take(&mut state.variables);
+    let mip_states = std::mem::take(&mut state.env.mip_states);
     state.save_aggregates(aggregates);
     Recalculated {
         diagnostics,
         values,
         variables: final_var_values,
         scoped_variables,
+        mip_states,
         cycle_error: cycle_err,
         item_text,
     }
@@ -208,16 +222,24 @@ mod tests {
     #[test]
     fn calculated_column_and_predicate_scan_once_in_a_mixed_form() {
         let def = json!({"items": [
-            {"key": "ready", "dataType": "boolean", "calculate": "true"},
-            {"key": "checked", "dataType": "string", "required": "$ready"},
-            {"key": "visible", "dataType": "string", "relevant": "required($checked)"},
+            {"key": "ready", "dataType": "boolean"},
+            {"key": "checked", "dataType": "string"},
+            {"key": "visible", "dataType": "string"},
             {"key": "rows", "type": "group", "repeatable": true, "children": [
-                {"key": "positive", "dataType": "integer", "calculate": "countWhere($rows[*].amt, $ > 0)"},
-                {"key": "share", "dataType": "decimal", "calculate": "$amt / sum($rows[*].amt)"},
-                {"key": "amt", "dataType": "integer", "calculate": "$input * 2"},
+                {"key": "positive", "dataType": "integer"},
+                {"key": "share", "dataType": "decimal"},
+                {"key": "amt", "dataType": "integer"},
                 {"key": "input", "dataType": "integer"}
             ]}
-        ]});
+        ],
+            "binds": [
+                {"path": "ready", "calculate": "true"},
+                {"path": "checked", "required": "$ready"},
+                {"path": "visible", "relevant": "required($checked)"},
+                {"path": "rows[*].positive", "calculate": "countWhere($rows[*].amt, $ > 0)"},
+                {"path": "rows[*].share", "calculate": "$amt / sum($rows[*].amt)"},
+                {"path": "rows[*].amt", "calculate": "$input * 2"},
+            ]});
         let (first, second, scans, items) =
             evaluate_twice(&def, HashMap::new(), &EvalOptions::default());
         assert!(find_item_by_path(&items, "visible").unwrap().mip.relevant);
@@ -241,13 +263,20 @@ mod tests {
     fn assert_early_readonly_reads_completed_column(amount: &str) {
         let def = json!({"items": [
             {"key": "rows", "type": "group", "repeatable": true, "children": [
-                {"key": "early", "dataType": "integer", "readonly": "$share > 0"},
-                {"key": "share", "dataType": "decimal", "calculate": "$amt / sum($rows[*].amt)"},
-                {"key": "positive", "dataType": "integer", "calculate": "countWhere($rows, $.amt > 0)"},
-                {"key": "amt", "dataType": "integer", "calculate": amount},
-                {"key": "input", "dataType": "integer", "constraint": "$ >= 0"}
+                {"key": "early", "dataType": "integer"},
+                {"key": "share", "dataType": "decimal"},
+                {"key": "positive", "dataType": "integer"},
+                {"key": "amt", "dataType": "integer"},
+                {"key": "input", "dataType": "integer"}
             ]}
-        ]});
+        ],
+            "binds": [
+                {"path": "rows[*].early", "readonly": "$share > 0"},
+                {"path": "rows[*].share", "calculate": "$amt / sum($rows[*].amt)"},
+                {"path": "rows[*].positive", "calculate": "countWhere($rows, $.amt > 0)"},
+                {"path": "rows[*].amt", "calculate": amount},
+                {"path": "rows[*].input", "constraint": "$ >= 0"},
+            ]});
         let (first, second, scans, items) =
             evaluate_twice(&def, HashMap::new(), &EvalOptions::default());
         assert!(
@@ -278,11 +307,16 @@ mod tests {
         let def = json!({
             "variables": [{"name": "multiplier", "expression": "2"}],
             "items": [{ "key": "rows", "type": "group", "repeatable": true, "children": [
-                { "key": "share", "dataType": "decimal", "calculate": format!("{numerator} / sum($rows[*].amt)") },
-                { "key": "amt", "dataType": "integer", "calculate": "$input * @multiplier" },
-                { "key": "input", "dataType": "integer", "required":
-                    if required_reads_calculate { "$share > 0.5" } else { "false" } }
-            ] }]
+                { "key": "share", "dataType": "decimal" },
+                { "key": "amt", "dataType": "integer" },
+                { "key": "input", "dataType": "integer" }
+            ] }],
+            "binds": [
+                {"path": "rows[*].share", "calculate": format!("{numerator} / sum($rows[*].amt)")},
+                {"path": "rows[*].amt", "calculate": "$input * @multiplier"},
+                {"path": "rows[*].input", "required":
+                    if required_reads_calculate { "$share > 0.5" } else { "false" }},
+            ]
         });
         let (first, second, scans, items) = evaluate_twice(&def, HashMap::new(), options);
         for result in [first, second] {
@@ -310,13 +344,19 @@ mod tests {
     fn validation_feedback_rescans_a_changed_calculated_column() {
         let def = json!({
             "items": [
-                { "key": "sentinel", "dataType": "string", "required": true },
-                { "key": "gate", "dataType": "integer", "relevant": "valid($sentinel)", "excludedValue": "null" },
+                { "key": "sentinel", "dataType": "string" },
+                { "key": "gate", "dataType": "integer" },
                 { "key": "rows", "type": "group", "repeatable": true, "children": [
-                    { "key": "share", "dataType": "decimal", "calculate": "$amt / sum($rows[*].amt)" },
-                    { "key": "amt", "dataType": "integer", "calculate": "$input + coalesce($gate, 0)" },
+                    { "key": "share", "dataType": "decimal" },
+                    { "key": "amt", "dataType": "integer" },
                     { "key": "input", "dataType": "integer" }
                 ] }
+            ],
+            "binds": [
+                {"path": "sentinel", "required": true},
+                {"path": "gate", "relevant": "valid($sentinel)", "excludedValue": "null"},
+                {"path": "rows[*].share", "calculate": "$amt / sum($rows[*].amt)"},
+                {"path": "rows[*].amt", "calculate": "$input + coalesce($gate, 0)"},
             ]
         });
         let (first, second, scans, _) = evaluate_twice(
@@ -332,15 +372,22 @@ mod tests {
     #[test]
     fn relevance_observes_required_during_the_bind_walk() {
         let def = json!({"items": [
-            {"key": "ready", "dataType": "boolean", "calculate": "true"},
-            {"key": "checked", "dataType": "string", "required": "$ready"},
-            {"key": "visible", "dataType": "string", "relevant": "required($checked)"},
+            {"key": "ready", "dataType": "boolean"},
+            {"key": "checked", "dataType": "string"},
+            {"key": "visible", "dataType": "string"},
             {"key": "rows", "type": "group", "repeatable": true, "children": [
-                {"key": "share", "dataType": "decimal", "calculate": "$amt / sum($rows[*].amt)"},
-                {"key": "amt", "dataType": "integer", "calculate": "$input * 2"},
+                {"key": "share", "dataType": "decimal"},
+                {"key": "amt", "dataType": "integer"},
                 {"key": "input", "dataType": "integer"}
             ]}
-        ]});
+        ],
+            "binds": [
+                {"path": "ready", "calculate": "true"},
+                {"path": "checked", "required": "$ready"},
+                {"path": "visible", "relevant": "required($checked)"},
+                {"path": "rows[*].share", "calculate": "$amt / sum($rows[*].amt)"},
+                {"path": "rows[*].amt", "calculate": "$input * 2"},
+            ]});
         let (_, _, _, items) = evaluate_twice(&def, HashMap::new(), &EvalOptions::default());
         assert!(find_item_by_path(&items, "visible").unwrap().mip.relevant);
     }
@@ -351,14 +398,21 @@ mod tests {
             "variables": [{"name": "v", "expression": "required($x)"}],
             "items": [
                 {"key": "t", "dataType": "integer"},
-                {"key": "c", "dataType": "integer", "calculate": "$t * 2"},
-                {"key": "x", "dataType": "string", "required": "$c > 5"},
-                {"key": "vc", "dataType": "integer", "calculate": "if(@v, 1, 0)"},
+                {"key": "c", "dataType": "integer"},
+                {"key": "x", "dataType": "string"},
+                {"key": "vc", "dataType": "integer"},
                 {"key": "rows", "type": "group", "repeatable": true, "children": [
-                    {"key": "share", "dataType": "decimal", "calculate": "$amt / sum($rows[*].amt)"},
-                    {"key": "amt", "dataType": "integer", "calculate": "$input * 2"},
+                    {"key": "share", "dataType": "decimal"},
+                    {"key": "amt", "dataType": "integer"},
                     {"key": "input", "dataType": "integer"}
                 ]}
+            ],
+            "binds": [
+                {"path": "c", "calculate": "$t * 2"},
+                {"path": "x", "required": "$c > 5"},
+                {"path": "vc", "calculate": "if(@v, 1, 0)"},
+                {"path": "rows[*].share", "calculate": "$amt / sum($rows[*].amt)"},
+                {"path": "rows[*].amt", "calculate": "$input * 2"},
             ]
         });
         let data = HashMap::from([("t".into(), json!(4))]);
@@ -371,10 +425,15 @@ mod tests {
         let def = json!({
             "variables": [{"name": "v", "expression": "required($x)"}],
             "items": [
-                {"key": "x", "dataType": "string", "required": "$c > 5"},
-                {"key": "c", "dataType": "integer", "calculate": "$t * 2"},
+                {"key": "x", "dataType": "string"},
+                {"key": "c", "dataType": "integer"},
                 {"key": "t", "dataType": "integer"},
-                {"key": "vc", "dataType": "integer", "calculate": "if(@v, 1, 0)"}
+                {"key": "vc", "dataType": "integer"}
+            ],
+            "binds": [
+                {"path": "x", "required": "$c > 5"},
+                {"path": "c", "calculate": "$t * 2"},
+                {"path": "vc", "calculate": "if(@v, 1, 0)"},
             ]
         });
         let result = crate::evaluate(
@@ -389,13 +448,18 @@ mod tests {
     #[test]
     fn keyed_row_lookup_reads_completed_calculated_columns() {
         let def = json!({"items": [
-            {"key": "selected", "dataType": "integer", "calculate": "$rows[id = 6].amt"},
+            {"key": "selected", "dataType": "integer"},
             {"key": "rows", "type": "group", "repeatable": true, "children": [
-                {"key": "id", "dataType": "integer", "calculate": "$input * 2"},
-                {"key": "amt", "dataType": "integer", "calculate": "$input * 4"},
+                {"key": "id", "dataType": "integer"},
+                {"key": "amt", "dataType": "integer"},
                 {"key": "input", "dataType": "integer"}
             ]}
-        ]});
+        ],
+            "binds": [
+                {"path": "selected", "calculate": "$rows[id = 6].amt"},
+                {"path": "rows[*].id", "calculate": "$input * 2"},
+                {"path": "rows[*].amt", "calculate": "$input * 4"},
+            ]});
         let (first, second, _, _) = evaluate_twice(&def, HashMap::new(), &EvalOptions::default());
         for result in [first, second] {
             assert_eq!(result.values["selected"], json!(12));
@@ -446,13 +510,18 @@ mod tests {
     fn calculation_dependencies_refuse_a_postfix_self_read() {
         let def = json!({
             "items": [
-                { "key": "counter", "dataType": "object", "calculate":
-                    "{amount: coalesce(($).amount, 0) + 1}" },
+                { "key": "counter", "dataType": "object" },
                 { "key": "rows", "type": "group", "repeatable": true, "children": [
-                    { "key": "amt", "dataType": "integer", "calculate": "$input * 2" },
-                    { "key": "share", "dataType": "decimal", "calculate": "$amt / sum($rows[*].amt)" },
+                    { "key": "amt", "dataType": "integer" },
+                    { "key": "share", "dataType": "decimal" },
                     { "key": "input", "dataType": "integer" }
                 ] }
+            ],
+            "binds": [
+                {"path": "counter", "calculate":
+                    "{amount: coalesce(($).amount, 0) + 1}"},
+                {"path": "rows[*].amt", "calculate": "$input * 2"},
+                {"path": "rows[*].share", "calculate": "$amt / sum($rows[*].amt)"},
             ]
         });
         let data = HashMap::from([("rows[0].input".into(), json!(1))]);
@@ -476,19 +545,26 @@ mod tests {
     fn assert_late_default_settles_calculated_type(readonly_reads_calculate: bool) {
         let mut def = json!({
             "items": [
-                { "key": "reader", "dataType": "string", "calculate": "if(isNull($p), 'string', typeOf($p))" },
-                { "key": "p", "dataType": "date", "calculate": "if(coalesce($gate, false), date('2026-11-18'), '2026-11-18')" },
-                { "key": "gate", "dataType": "boolean", "default": true },
+                { "key": "reader", "dataType": "string" },
+                { "key": "p", "dataType": "date" },
+                { "key": "gate", "dataType": "boolean" },
                 { "key": "rows", "type": "group", "repeatable": true, "children": [
-                    { "key": "amt", "dataType": "integer", "calculate": "$input * 2" },
-                    { "key": "share", "dataType": "decimal", "calculate": "$amt / sum($rows[*].amt)" },
+                    { "key": "amt", "dataType": "integer" },
+                    { "key": "share", "dataType": "decimal" },
                     { "key": "input", "dataType": "integer" }
                 ] }
+            ],
+            "binds": [
+                {"path": "reader", "calculate": "if(isNull($p), 'string', typeOf($p))"},
+                {"path": "p", "calculate": "if(coalesce($gate, false), date('2026-11-18'), '2026-11-18')"},
+                {"path": "gate", "default": true},
+                {"path": "rows[*].amt", "calculate": "$input * 2"},
+                {"path": "rows[*].share", "calculate": "$amt / sum($rows[*].amt)"},
             ]
         });
         if readonly_reads_calculate {
             // Readonly can observe the earlier write before the default is applied.
-            def["items"][2]["readonly"] = json!("present($p)");
+            def["binds"][2]["readonly"] = json!("present($p)");
         }
         let data = HashMap::from([("rows[0].input".into(), json!(1))]);
         let mut items = rebuild_item_tree(&def);

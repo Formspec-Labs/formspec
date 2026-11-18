@@ -1248,9 +1248,14 @@ mod tests {
         let without: Value =
             serde_json::from_str(&evaluate_definition_inner(&def, &data, None, None).unwrap())
                 .unwrap();
+        assert_eq!(without["refused"], json!(true));
         assert_eq!(
             without["validations"][0]["code"],
-            json!("CONSTRAINT_PARSE_ERROR")
+            json!("UNDEFINED_FUNCTION")
+        );
+        assert_eq!(
+            without["validations"][0]["path"],
+            json!("$.binds[0].calculate")
         );
     }
 

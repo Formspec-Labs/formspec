@@ -91,6 +91,7 @@ fn evaluation_report(result: &EvaluationResult, style: JsonWireStyle) -> Map<Str
         .collect();
 
     let mut root = Map::new();
+    root.insert("refused".into(), Value::Bool(result.refused));
     root.insert(
         "values".into(),
         fel_core::exact_json::to_value(&result.values).expect("evaluation values serialize"),

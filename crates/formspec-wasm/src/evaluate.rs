@@ -79,8 +79,6 @@ fn evaluate_definition_json(
     let definition: Value = parse_json_as(definition_json, "definition JSON")?;
     let data_val: Value = parse_json_as(data_json, "data JSON")?;
 
-    fel_core::exact_json::check_decimal_range(&definition)?;
-    fel_core::exact_json::check_decimal_range(&data_val)?;
     let data = json_object_to_string_map(&data_val);
 
     let options = match context_json {
@@ -88,8 +86,8 @@ fn evaluate_definition_json(
             let ctx: Value = parse_json_as(&context_json, "context JSON")?;
             let ctx_obj = ctx.as_object().ok_or("context must be a JSON object")?;
             for (name, value) in ctx_obj {
-                // The evaluator checks subject inputs in sorted key order on every host.
-                if !matches!(name.as_str(), "subjectType" | "subjectKeys") {
+                // These inputs have their own checks in the evaluator and can return findings.
+                if !matches!(name.as_str(), "subjectType" | "subjectKeys" | "instances") {
                     fel_core::exact_json::check_decimal_range(value)?;
                 }
             }
@@ -256,9 +254,6 @@ fn create_inner(
         return Err("response data must be a JSON object".into());
     }
     let context: Value = parse_json_as(context_json.unwrap_or("{}"), "creation context JSON")?;
-    for value in [&definition, &data, &context] {
-        fel_core::exact_json::check_decimal_range(value)?;
-    }
     let context = context
         .as_object()
         .ok_or("creation context must be a JSON object")?;

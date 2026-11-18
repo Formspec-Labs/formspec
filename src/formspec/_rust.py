@@ -148,7 +148,7 @@ class ProcessingResult(msgspec.Struct, frozen=True):
     data: dict
     variables: dict
     non_relevant: list[str]
-    # Author-facing evaluation errors from calculate, constraint and shape expressions (Core §3.10.2):
+    # Author-facing errors raised while evaluating Definition expressions (Core §3.10.2):
     # dicts with path, expression, message, the FEL code when it has one, and shapeId for shapes.
     # Never validation results.
     diagnostics: list[dict] = msgspec.field(default_factory=list)
@@ -159,6 +159,8 @@ class ProcessingResult(msgspec.Struct, frozen=True):
     item_text: dict[str, dict] = msgspec.field(default_factory=dict)
     # Flat evaluation state keyed by path (``group.field``, ``rows[0].name``), like FormEngine's.
     values: dict = msgspec.field(default_factory=dict)
+    # The Definition or inputs were refused before Recalculate.
+    refused: bool = False
 
 
 class MappingDiagnostic(msgspec.Struct, frozen=True):
@@ -643,8 +645,10 @@ def evaluate_definition(
             ``ProcessingResult.item_text`` (Core §4.2.1); the caller applies the Locale
             fallback cascade (Locale §4) before passing the strings.
         extension_functions: Optional FEL extension functions (Core §3.12), name → callable.
-            Arguments arrive as Python values; a raised exception makes the call null and
-            adds an author diagnostic. A name matching a FEL built-in raises ValueError.
+            The callable must expose a positional signature for the arity check.
+            Wrap opaque callables to declare their arity. Arguments arrive as Python values.
+            An exception during a call yields null and an author diagnostic. Registering a
+            FEL built-in name raises ValueError.
     """
     raw = formspec_rust.evaluate_def(
         definition,
@@ -696,6 +700,7 @@ def _processing_result(raw: dict) -> ProcessingResult:
         results=validations,
         data=raw.get("data", {}),
         values=raw.get("values", {}),
+        refused=raw["refused"],
         variables=raw.get("variables", {}),
         non_relevant=raw.get("nonRelevant", raw.get("non_relevant", [])),
         diagnostics=raw.get("diagnostics", []),

@@ -60,37 +60,22 @@ fn bind_constraint_type_error_passes_and_records_diagnostic() {
     assert!(!diagnostic.message.is_empty());
 }
 
-/// An undefined function is a definition error (§3.10.1), like a syntax error: it
-/// fails with the definition-error code, not the data-rule code.
 #[test]
-fn bind_constraint_undefined_function_fails_and_records_diagnostic() {
+fn bind_constraint_undefined_function_refuses_before_revalidate() {
     let def = definition(
         json!([{ "path": "name", "constraint": "bogusFunc($name)" }]),
         json!([]),
     );
     let result = evaluate(&def, &data(), &EvalOptions::default());
-
-    let codes: Vec<String> = result
-        .validations
-        .iter()
-        .map(|v| v.code.to_string())
-        .collect();
-    assert_eq!(
-        codes,
-        vec!["CONSTRAINT_PARSE_ERROR"],
-        "{:?}",
-        result.validations
-    );
-    assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
-    assert!(
-        result.diagnostics[0].message.contains("bogusFunc"),
-        "{:?}",
-        result.diagnostics
-    );
+    assert_eq!(result.data, json!({}));
+    assert_eq!(result.validations.len(), 1);
+    assert_eq!(result.validations[0].code, "UNDEFINED_FUNCTION");
+    assert_eq!(result.validations[0].path, "$.binds[0].constraint");
+    assert!(result.diagnostics.is_empty());
 }
 
-/// Core Phase 3 step 1a: a definition error carries a processor-generated message.
-/// The Bind's `constraintMessage` describes a `false` result, so it never labels one.
+/// Core §3.10.1: invalid Bind constraints report the authored expression and
+/// processor message at Rebuild. The old test expected a field-level validation.
 #[test]
 fn bind_constraint_definition_error_ignores_constraint_message() {
     let def = definition(
@@ -103,14 +88,13 @@ fn bind_constraint_definition_error_ignores_constraint_message() {
     );
     let result = evaluate(&def, &data(), &EvalOptions::default());
 
+    assert!(result.refused);
     assert_eq!(result.validations.len(), 1, "{:?}", result.validations);
     let failure = &result.validations[0];
-    assert_eq!(failure.code, "CONSTRAINT_PARSE_ERROR");
-    assert!(
-        failure.message.starts_with("Constraint expression error: "),
-        "{:?}",
-        failure.message
-    );
+    assert_eq!(failure.path, "$.binds[0].constraint");
+    assert_eq!(failure.code, "UNDEFINED_FUNCTION");
+    assert_eq!(failure.message, "undefined function: bogusFunc");
+    assert!(result.diagnostics.is_empty());
 }
 
 /// A `false` result keeps the author's `constraintMessage`.
@@ -146,20 +130,24 @@ fn shape_undefined_function_fails_in_every_position() {
     );
     let result = evaluate(&def, &data(), &EvalOptions::default());
 
-    let failed: Vec<(&str, Option<&str>)> = result
+    // Definition errors use authored JSONPaths for every Shape position.
+    let failed: Vec<_> = result
         .validations
         .iter()
-        .map(|v| (v.path.as_str(), v.shape_id.as_deref()))
+        .map(|v| (v.path.as_str(), v.code.as_wire_str()))
         .collect();
     assert_eq!(
-        failed,
-        vec![
-            ("name", Some("constraintCheck")),
-            ("#", Some("notCheck")),
-            ("rows[0].note", Some("rowCheck")),
+        failed
+            .iter()
+            .map(|(path, code)| (*path, code.as_ref()))
+            .collect::<Vec<_>>(),
+        [
+            ("$.shapes[0].constraint", "UNDEFINED_FUNCTION"),
+            ("$.shapes[1].not", "UNDEFINED_FUNCTION"),
+            ("$.shapes[2].constraint", "UNDEFINED_FUNCTION"),
         ]
     );
-    assert_eq!(result.diagnostics.len(), 3, "{:?}", result.diagnostics);
+    assert!(result.diagnostics.is_empty());
 }
 
 #[test]
@@ -450,4 +438,111 @@ fn diagnostics_serialize_beside_validations() {
     assert_eq!(json["diagnostics"][0]["expression"], json!("$name + 5 > 0"));
     assert!(json["diagnostics"][0]["message"].is_string());
     assert!(json["diagnostics"][0].get("shapeId").is_none());
+}
+
+#[test]
+fn diagnostics_follow_up_refuses_unknown_call_in_unreachable_branch() {
+    let def = definition(
+        json!([{ "path": "name", "calculate": "if true then 'yes' else absentFunction()" }]),
+        json!([]),
+    );
+    let result = evaluate(&def, &data(), &EvalOptions::default());
+
+    assert_eq!(result.data, json!({}));
+    assert_eq!(result.validations.len(), 1);
+    assert_eq!(result.validations[0].path, "$.binds[0].calculate");
+    assert_eq!(result.validations[0].code, "UNDEFINED_FUNCTION");
+    assert!(result.diagnostics.is_empty());
+}
+
+#[test]
+fn diagnostics_follow_up_reports_each_settled_expression_site() {
+    let overflow = |digit| format!("sum([79228162514264337593543950335, {digit}])");
+    let mut def = definition(
+        json!([{"path": "name", "relevant": overflow(1), "required": overflow(2),
+            "readonly": overflow(3), "default": format!("={}", overflow(4))}]),
+        json!([{"id": "conditional", "target": "#", "activeWhen": overflow(5),
+            "constraint": "false", "message": "Inactive"}]),
+    );
+    def["variables"] = json!([{"name": "overflow", "expression": overflow(6)}]);
+    let options = EvalOptions::default().context(formspec_eval::EvalContext {
+        previous_non_relevant: Some(vec!["name".into()]),
+        ..Default::default()
+    });
+    let result = evaluate(&def, &HashMap::new(), &options);
+    let mut actual: Vec<_> = result
+        .diagnostics
+        .iter()
+        .map(|d| {
+            (
+                d.expression.clone(),
+                d.path.as_str(),
+                d.shape_id.as_deref(),
+                d.code.as_deref(),
+            )
+        })
+        .collect();
+    actual.sort();
+    let expected = (1..=6)
+        .map(|digit| {
+            (
+                overflow(digit),
+                if digit <= 4 { "name" } else { "#" },
+                (digit == 5).then_some("conditional"),
+                Some("FEL_ARITHMETIC_OVERFLOW"),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(actual, expected);
+    assert!(result.validations.is_empty());
+}
+
+#[test]
+fn diagnostics_follow_up_ignores_forbidden_inline_item_properties() {
+    let def = json!({"items": [
+        {"key": "calculate", "type": "field", "dataType": "integer", "calculate": "11"},
+        {"key": "constraint", "type": "field", "dataType": "integer", "constraint": "false"},
+        {"key": "relevant", "type": "field", "dataType": "integer", "relevant": "false"},
+        {"key": "required", "type": "field", "dataType": "integer", "required": "true"},
+        {"key": "readonly", "type": "field", "dataType": "integer", "readonly": "true"},
+        {"key": "visible", "type": "field", "dataType": "integer", "visible": "false"},
+        {"key": "default", "type": "field", "dataType": "integer", "default": "11"}
+    ]});
+    let data = HashMap::from([
+        ("calculate".into(), json!(5)),
+        ("relevant".into(), json!(6)),
+        ("visible".into(), json!(7)),
+        ("constraint".into(), json!(8)),
+    ]);
+    let result = evaluate(&def, &data, &EvalOptions::default());
+
+    assert_eq!(
+        result.data,
+        json!({"calculate": 5, "relevant": 6, "visible": 7, "constraint": 8})
+    );
+    assert!(result.validations.is_empty());
+    assert!(result.non_relevant.is_empty());
+    assert_eq!(result.readonly.get("readonly"), Some(&false));
+    assert_eq!(result.required.get("required"), Some(&false));
+}
+
+#[test]
+fn diagnostics_follow_up_quotes_authored_jsonpath_members() {
+    let def = definition(
+        json!({"rows.note": {"constraint": "missing()"}}),
+        json!([{"id": "example", "target": "#", "constraint": "true",
+            "context": {"a.b": "missing()"}}]),
+    );
+    let result = evaluate(&def, &data(), &EvalOptions::default());
+    assert_eq!(
+        result
+            .validations
+            .iter()
+            .map(|v| v.path.as_str())
+            .collect::<Vec<_>>(),
+        [
+            r#"$.binds["rows.note"].constraint"#,
+            r#"$.shapes[0].context["a.b"]"#,
+        ]
+    );
 }

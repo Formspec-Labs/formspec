@@ -120,25 +120,25 @@ describe('label — rich-text subset', () => {
 
 describe('theme requiredIndicator', () => {
     it('shows the asterisk by default', () => {
-        const el = render(singleFieldDef({ required: true }));
+        const el = render(singleFieldDef({}, { required: 'true' }));
         const label = el.querySelector('.formspec-label') as HTMLElement;
         expect(label.querySelector('.formspec-required')).not.toBeNull();
     });
 
     it("drops the visible marker under defaults.requiredIndicator 'none'", () => {
-        const el = render(singleFieldDef({ required: true }), theme({ requiredIndicator: 'none' }));
+        const el = render(singleFieldDef({}, { required: 'true' }), theme({ requiredIndicator: 'none' }));
         const label = el.querySelector('.formspec-label') as HTMLElement;
         expect(label.querySelector('.formspec-required')).toBeNull();
         expect(label.textContent).not.toContain('*');
     });
 
     it('keeps aria-required when the marker is suppressed', () => {
-        const el = render(singleFieldDef({ required: true }), theme({ requiredIndicator: 'none' }));
+        const el = render(singleFieldDef({}, { required: 'true' }), theme({ requiredIndicator: 'none' }));
         expect((el.querySelector('input') as HTMLInputElement).getAttribute('aria-required')).toBe('true');
     });
 
     it('lets a per-item override restore the marker', () => {
-        const el = render(singleFieldDef({ required: true }), {
+        const el = render(singleFieldDef({}, { required: 'true' }), {
             ...theme({ requiredIndicator: 'none' }),
             items: { name: { requiredIndicator: 'marker' } },
         });

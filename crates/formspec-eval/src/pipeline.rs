@@ -29,6 +29,7 @@ pub struct PreparedDefinition {
     definition: Value,
     items: Vec<types::ItemInfo>,
     definition_errors: Vec<ValidationResult>,
+    extension_calls: rebuild::ExtensionCalls,
 }
 
 impl PreparedDefinition {
@@ -53,10 +54,12 @@ impl PreparedDefinition {
                 definition,
                 items: Vec::new(),
                 definition_errors,
+                extension_calls: rebuild::ExtensionCalls::default(),
             };
         }
         let items = rebuild_item_tree(&definition);
-        let mut definition_errors = rebuild::check_expressions(&definition, &items);
+        let (mut definition_errors, extension_calls) =
+            rebuild::check_expressions(&definition, &items);
         let binds = BindTargets::new(definition.get("binds"));
         check_calculate_conflicts(&items, &binds, &mut definition_errors);
         if definition_errors.is_empty()
@@ -72,6 +75,7 @@ impl PreparedDefinition {
             definition,
             items,
             definition_errors,
+            extension_calls,
         }
     }
 
@@ -130,17 +134,41 @@ fn prepared_definition(definition: &Value) -> Rc<PreparedDefinition> {
 }
 
 #[cfg(feature = "create")]
-pub(crate) fn creation_refusal(definition: &Value) -> Option<ValidationResult> {
-    prepared_definition(definition)
-        .definition_errors
-        .iter()
-        .find(|error| {
-            matches!(
-                error.code,
-                ValidationCode::CircularDependency | ValidationCode::CalculateTargetConflict
-            )
+pub(crate) fn creation_refusal(
+    definition: &Value,
+    data: &Value,
+    options: &EvalOptions<'_>,
+) -> Option<ValidationResult> {
+    let prepared = prepared_definition(definition);
+    let fields = formspec_core::json_object_to_string_map(data);
+    precheck_inputs(definition, &fields, options)
+        .err()
+        .or_else(|| {
+            prepared
+                .definition_errors
+                .iter()
+                .find(|error| {
+                    matches!(
+                        error.code,
+                        ValidationCode::CircularDependency
+                            | ValidationCode::CalculateTargetConflict
+                    )
+                })
+                .cloned()
         })
-        .cloned()
+        .or_else(|| {
+            prepared
+                .extension_calls
+                .check(options.extensions)
+                .into_iter()
+                .next()
+        })
+        .or_else(|| {
+            flatten_input(&prepared.items, &fields)
+                .err()?
+                .into_iter()
+                .next()
+        })
 }
 
 /// Evaluate a definition through the full four-phase pipeline.
@@ -227,38 +255,18 @@ fn evaluate_prepared(
     options: &EvalOptions,
 ) -> Result<EvaluationResult, Vec<ValidationResult>> {
     let definition = &prepared.definition;
-    if let Some(subject) = &options.context.subject
-        && let Err(refusal) = check_subject(definition, subject)
-    {
-        return Err(vec![refusal]);
-    }
     let mut options = options.clone();
     hydrate_inline_instances(definition, &mut options.instances);
-    for (path, value) in std::iter::once(("#definition", definition))
-        .chain(data.iter().map(|(path, value)| (path.as_str(), value)))
-        .chain(
-            options
-                .instances
-                .iter()
-                .map(|(path, value)| (path.as_str(), value)),
-        )
-    {
-        if let Err(message) = fel_core::exact_json::check_decimal_range(value) {
-            return Err(vec![type_error(path, message)]);
-        }
-    }
+    precheck_inputs(definition, data, &options).map_err(|finding| vec![finding])?;
     if !prepared.definition_errors.is_empty() {
         return Err(prepared.definition_errors.clone());
     }
+    let call_errors = prepared.extension_calls.check(options.extensions);
+    if !call_errors.is_empty() {
+        return Err(call_errors);
+    }
     let mut items = prepared.items.clone();
-    let flat = match rebuild::flatten_response_data(&items, data) {
-        Ok(flat) => flat,
-        Err(conflicts) => {
-            return Err(conflicts.iter().map(|path| type_error(path, format!(
-                "`{path}` is supplied both as a flat dotted key and inside its group object; supply it once"
-            ))).collect());
-        }
-    };
+    let flat = flatten_input(&items, data)?;
     let mut counts = flat.repeat_counts;
     rebuild::expand_repeat_instances_counted(&mut items, &mut counts);
     let binds = BindTargets::new(definition.get("binds"));
@@ -323,8 +331,16 @@ fn evaluate_prepared(
         true,
     );
     let item_text = next.item_text;
-    let calculate_diagnostics = next.diagnostics;
-    if next.values != values || next.scoped_variables != scoped_variables {
+    let recalculate_diagnostics = next.diagnostics;
+    // Shapes and constraints can read MIPs even when the two passes produce the same values.
+    let mips_changed = first.mip_states.iter().any(|(path, before)| {
+        next.mip_states.get(path).is_some_and(|after| {
+            before.relevant != after.relevant
+                || before.required != after.required
+                || before.readonly != after.readonly
+        })
+    });
+    if next.values != values || next.scoped_variables != scoped_variables || mips_changed {
         values = next.values;
         var_values = next.variables;
         scoped_variables = next.scoped_variables;
@@ -368,13 +384,14 @@ fn evaluate_prepared(
         .collect();
 
     Ok(EvaluationResult {
+        refused: false,
         values,
         host_values,
         calculated_paths,
         indexed_binds,
         data,
         validations,
-        diagnostics: calculate_diagnostics
+        diagnostics: recalculate_diagnostics
             .into_iter()
             .chain(diagnostics)
             .collect(),
@@ -388,7 +405,45 @@ fn evaluate_prepared(
     })
 }
 
-/// Check a supplied subject against Core §2.1.6 before any FEL expression runs.
+/// Refuse inputs before creation or recalculation can evaluate expressions.
+fn precheck_inputs(
+    definition: &Value,
+    data: &HashMap<String, Value>,
+    options: &EvalOptions<'_>,
+) -> Result<(), ValidationResult> {
+    if let Some(subject) = &options.context.subject
+        && let Err(refusal) = check_subject(definition, subject)
+    {
+        return Err(refusal);
+    }
+    for (path, value) in std::iter::once(("#definition", definition))
+        .chain(data.iter().map(|(path, value)| (path.as_str(), value)))
+        .chain(
+            options
+                .instances
+                .iter()
+                .map(|(path, value)| (path.as_str(), value)),
+        )
+    {
+        if let Err(message) = fel_core::exact_json::check_decimal_range(value) {
+            return Err(type_error(path, message));
+        }
+    }
+    Ok(())
+}
+
+fn flatten_input(
+    items: &[types::ItemInfo],
+    data: &HashMap<String, Value>,
+) -> Result<rebuild::FlatInput, Vec<ValidationResult>> {
+    rebuild::flatten_response_data(items, data).map_err(|conflicts| {
+        conflicts.iter().map(|path| type_error(path, format!(
+            "`{path}` is supplied both as a flat dotted key and inside its group object; supply it once"
+        ))).collect()
+    })
+}
+
+/// Check a supplied subject against Core §2.1.6.
 fn check_subject(definition: &Value, subject: &EvalSubject) -> Result<(), ValidationResult> {
     let declared_keys = if let Some(declaration) = definition.get("subject") {
         let declared_type = declaration
@@ -519,6 +574,7 @@ fn type_error(path: &str, message: String) -> ValidationResult {
 
 fn refuse_input(validations: Vec<ValidationResult>) -> EvaluationResult {
     EvaluationResult {
+        refused: true,
         values: HashMap::new(),
         host_values: HashMap::new(),
         calculated_paths: Vec::new(),
@@ -596,13 +652,17 @@ mod tests {
         let definition = json!({"items": [
             {"key": "groups", "type": "group", "repeatable": true, "children": [
                 {"key": "rows", "type": "group", "repeatable": true, "children": [
-                    {"key": "share", "dataType": "decimal", "calculate":
-                        "@current.amt / sum($rows[*].amt)"},
-                    {"key": "amt", "dataType": "integer", "calculate": "$input * 2"},
+                    {"key": "share", "dataType": "decimal"},
+                    {"key": "amt", "dataType": "integer"},
                     {"key": "input", "dataType": "integer"}
                 ]}
             ]}
-        ]});
+        ],
+            "binds": [
+                {"path": "groups[*].rows[*].share", "calculate":
+                        "@current.amt / sum($rows[*].amt)"},
+                {"path": "groups[*].rows[*].amt", "calculate": "$input * 2"},
+            ]});
         let prepared = prepared_definition(&definition);
         let options = EvalOptions::default();
 

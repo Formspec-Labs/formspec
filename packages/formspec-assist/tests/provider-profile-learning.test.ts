@@ -53,7 +53,8 @@ it('uses one item lookup for nested repeated fields and parent group bounds', as
 it('skips nonrelevant filled fields while learning', async () => {
   const engine = new FormEngine({
     $formspec: '1.0', url: 'https://example.org/hidden', version: '1.0.0',
-    items: [{ key: 'visible', type: 'field', dataType: 'string' }, { key: 'hidden', type: 'field', dataType: 'string', relevant: 'false' }],
+    binds: [{ path: 'hidden', relevant: 'false' }],
+    items: [{ key: 'visible', type: 'field', dataType: 'string' }, { key: 'hidden', type: 'field', dataType: 'string' }],
   } as any);
   engine.setValue('visible', 'Keep');
   engine.setValue('hidden', 'Skip');

@@ -1,6 +1,9 @@
 //! Refuse invalid authored expressions before any expression in the Definition runs (Core §3.10.1).
 
 use std::collections::{HashMap, HashSet};
+use std::sync::Mutex;
+
+use fel_core::{Diagnostic, ExtensionFunctions, IndexMap, builtin_arity, visit_function_calls};
 
 use fel_core::exact_json::Value;
 use formspec_core::definition_expressions::{
@@ -15,72 +18,174 @@ use crate::types::{
     ConstraintKind, ItemInfo, Severity, ValidationCode, ValidationResult, ValidationSource,
 };
 
-/// Return one Definition error per syntax error, arity mismatch, or unsubscripted repeat path.
-pub(crate) fn check(definition: &Value, items: &[ItemInfo]) -> Vec<ValidationResult> {
+type Arity = (usize, Option<usize>);
+
+#[derive(Debug)]
+struct ExtensionCall {
+    argc: usize,
+    path: String,
+    expression: String,
+}
+
+#[derive(Debug)]
+struct CheckedExtensions {
+    signatures: Vec<Option<Arity>>,
+    errors: Vec<ValidationResult>,
+}
+
+/// Extension calls found while parsing the authored Definition.
+#[derive(Debug, Default)]
+pub(crate) struct ExtensionCalls {
+    names: IndexMap<String, Vec<ExtensionCall>>,
+    checked: Mutex<Option<CheckedExtensions>>,
+}
+
+impl ExtensionCalls {
+    /// Check signatures from the current host, without invoking any implementation.
+    pub(crate) fn check(
+        &self,
+        extensions: Option<&dyn ExtensionFunctions>,
+    ) -> Vec<ValidationResult> {
+        if self.names.is_empty() {
+            return Vec::new();
+        }
+        // Only the signatures of referenced names affect the result. Resolve them
+        // before taking the lock because hosts can implement arity lookup in JS.
+        let signatures: Vec<_> = self
+            .names
+            .keys()
+            .map(|name| extensions.and_then(|host| host.arity(name)))
+            .collect();
+        let mut checked = self.checked.lock().expect("extension check cache");
+        if let Some(memo) = checked
+            .as_ref()
+            .filter(|memo| memo.signatures == signatures)
+        {
+            return memo.errors.clone();
+        }
+        let mut errors = Vec::new();
+        for ((name, calls), arity) in self.names.iter().zip(&signatures) {
+            for call in calls {
+                let (code, diagnostic) = match arity {
+                    None => (
+                        ValidationCode::UndefinedFunction,
+                        Diagnostic::undefined_function(name),
+                    ),
+                    Some((min, max))
+                        if call.argc < *min || max.is_some_and(|max| call.argc > max) =>
+                    {
+                        (
+                            ValidationCode::ArityMismatch,
+                            Diagnostic::arity_mismatch(name, *min, *max, call.argc),
+                        )
+                    }
+                    _ => continue,
+                };
+                errors.push(finding(
+                    &call.path,
+                    &call.expression,
+                    code,
+                    diagnostic.message,
+                ));
+            }
+        }
+        *checked = Some(CheckedExtensions {
+            signatures,
+            errors: errors.clone(),
+        });
+        errors
+    }
+}
+
+fn finding(path: &str, source: &str, code: ValidationCode, message: String) -> ValidationResult {
+    ValidationResult {
+        path: path.to_owned(),
+        severity: Severity::Error,
+        constraint_kind: ConstraintKind::Definition,
+        code,
+        message,
+        constraint: Some(source.to_owned()),
+        source: Some(ValidationSource::Definition),
+        shape_id: None,
+        context: None,
+    }
+}
+
+/// Check authored expressions and retain the calls that need host signatures.
+pub(crate) fn check(
+    definition: &Value,
+    items: &[ItemInfo],
+) -> (Vec<ValidationResult>, ExtensionCalls) {
     let mut by_path = HashSet::new();
     let mut by_key = HashMap::new();
     let mut repeats = HashSet::new();
     index_items(items, &mut by_path, &mut by_key, &mut repeats);
 
     let mut errors = Vec::new();
+    let mut extensions = ExtensionCalls::default();
     // `display` marks `{{}}` text: an interpolation that fails to parse or evaluate renders
     // literally (Core §4.2.1, Locale §3.3.1), so only its repeat paths can refuse the Definition.
-    let mut check_expression =
-        |source: &str, target: Option<&str>, location: &str, display: bool| {
-            let mut refuse = |code, message: String| {
-                errors.push(ValidationResult {
-                    path: location.to_owned(),
-                    severity: Severity::Error,
-                    constraint_kind: ConstraintKind::Definition,
-                    code,
-                    message,
-                    constraint: Some(source.to_owned()),
-                    source: Some(ValidationSource::Definition),
-                    shape_id: None,
-                    context: None,
-                });
-            };
-            let expression = match fel_core::parse(source) {
-                Ok(expression) => expression,
-                Err(error) => {
-                    if !display {
-                        refuse(ValidationCode::SyntaxError, syntax_message(&error, source));
-                    }
-                    return;
+    let mut check_expression = |source: &str,
+                                target: Option<&str>,
+                                location: &str,
+                                display: bool| {
+        let mut refuse = |code, message| errors.push(finding(location, source, code, message));
+        let expression = match fel_core::parse(source) {
+            Ok(expression) => expression,
+            Err(error) => {
+                if !display {
+                    refuse(ValidationCode::SyntaxError, syntax_message(&error, source));
                 }
-            };
-            if !display {
-                for mismatch in fel_core::builtin_arity_mismatches(&expression) {
-                    refuse(ValidationCode::ArityMismatch, mismatch.message);
-                }
-            }
-            if repeats.is_empty() {
                 return;
             }
-            let offenders = unsubscripted_repeats(
-                target,
-                &expression,
-                |path| {
-                    by_path
-                        .get(path)
-                        .copied()
-                        .or_else(|| by_key.get(path).copied())
-                        .map(str::to_owned)
-                },
-                |path| by_path.contains(path),
-                |path| repeats.contains(path),
-            );
-            if !offenders.is_empty() {
-                let messages: Vec<_> = offenders
-                    .iter()
-                    .map(|path| unsubscripted_repeat_message(path))
-                    .collect();
-                refuse(
-                    ValidationCode::UnsubscriptedRepeatReference,
-                    messages.join(". "),
-                );
-            }
         };
+        if !display {
+            visit_function_calls(&expression, &mut |name, argc| match builtin_arity(name) {
+                Some((min, max)) if argc < min || max.is_some_and(|max| argc > max) => {
+                    refuse(
+                        ValidationCode::ArityMismatch,
+                        Diagnostic::arity_mismatch(name, min, max, argc).message,
+                    );
+                }
+                Some(_) => {}
+                None => extensions
+                    .names
+                    .entry(name.to_owned())
+                    .or_default()
+                    .push(ExtensionCall {
+                        argc,
+                        path: location.to_owned(),
+                        expression: source.to_owned(),
+                    }),
+            });
+        }
+        if repeats.is_empty() {
+            return;
+        }
+        let offenders = unsubscripted_repeats(
+            target,
+            &expression,
+            |path| {
+                by_path
+                    .get(path)
+                    .copied()
+                    .or_else(|| by_key.get(path).copied())
+                    .map(str::to_owned)
+            },
+            |path| by_path.contains(path),
+            |path| repeats.contains(path),
+        );
+        if !offenders.is_empty() {
+            let messages: Vec<_> = offenders
+                .iter()
+                .map(|path| unsubscripted_repeat_message(path))
+                .collect();
+            refuse(
+                ValidationCode::UnsubscriptedRepeatReference,
+                messages.join(". "),
+            );
+        }
+    };
     visit_expressions(definition, |source, location, site| {
         if let ExpressionSite::Variable(Some(_), scope) = site {
             let target = variable_target(
@@ -104,20 +209,15 @@ pub(crate) fn check(definition: &Value, items: &[ItemInfo]) -> Vec<ValidationRes
     visit_seed_predicates(definition, Value::as_bool, |source, path| {
         if let Err(error) = formspec_core::seed_predicate::parse_seed_predicate(definition, source)
         {
-            errors.push(ValidationResult {
-                path: path.to_owned(),
-                severity: Severity::Error,
-                constraint_kind: ConstraintKind::Definition,
-                code: ValidationCode::from_wire(error.code),
-                message: error.message,
-                constraint: Some(source.to_owned()),
-                source: Some(ValidationSource::Definition),
-                shape_id: None,
-                context: None,
-            });
+            errors.push(finding(
+                path,
+                source,
+                ValidationCode::from_wire(error.code),
+                error.message,
+            ));
         }
     });
-    errors
+    (errors, extensions)
 }
 
 /// Core §3.10.1: the message names the expression and the approximate error position.

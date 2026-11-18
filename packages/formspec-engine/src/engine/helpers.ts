@@ -399,39 +399,6 @@ export function isEmptyValue(value: unknown): boolean {
     return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0);
 }
 
-const INLINE_BIND_KEYS = [
-    'calculate',
-    'constraint',
-    'constraintMessage',
-    'relevant',
-    'required',
-    'readonly',
-    'default',
-    'precision',
-    'disabledDisplay',
-    'whitespace',
-    'nonRelevantBehavior',
-    'remoteOptions',
-    'excludedValue',
-] as const satisfies readonly (keyof EngineBindConfig)[];
-
-export function extractInlineBind(item: FormItem, path: string): EngineBindConfig | null {
-    const bind: EngineBindConfig = { path };
-    let used = false;
-    for (const key of INLINE_BIND_KEYS) {
-        const value = item[key as keyof FormItem];
-        if (value !== undefined) {
-            Object.assign(bind, { [key]: value } as Pick<EngineBindConfig, typeof key>);
-            used = true;
-        }
-    }
-    if (item.visible !== undefined && bind.relevant === undefined) {
-        bind.relevant = item.visible;
-        used = true;
-    }
-    return used ? bind : null;
-}
-
 export function topoSortKeys<T extends { key: string }>(
     nodes: T[],
     graph: Map<string, Set<string>>,

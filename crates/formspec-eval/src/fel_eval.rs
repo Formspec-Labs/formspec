@@ -51,14 +51,22 @@ impl<'a> Fel<'a> {
         }
     }
 
-    /// Boolean value of `source`; `default` when it fails to parse or is not a boolean.
-    pub(crate) fn eval_bool(self, source: &str, env: &dyn Environment, default: bool) -> bool {
-        match parse(source) {
-            Ok(parsed) => match self.evaluate(&parsed, env).value {
-                Value::Boolean(b) => b,
-                _ => default,
-            },
-            Err(_) => default,
+    /// Return the boolean value, or `default`, and expose any evaluation errors.
+    pub(crate) fn eval_bool(
+        self,
+        source: &str,
+        env: &dyn Environment,
+        default: bool,
+        record: impl FnOnce(&EvalResult),
+    ) -> bool {
+        let Ok(parsed) = parse(source) else {
+            return default;
+        };
+        let result = self.evaluate(&parsed, env);
+        record(&result);
+        match result.value {
+            Value::Boolean(value) => value,
+            _ => default,
         }
     }
 }

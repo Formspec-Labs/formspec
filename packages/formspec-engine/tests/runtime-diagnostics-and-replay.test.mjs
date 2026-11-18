@@ -187,7 +187,7 @@ test('diagnostics snapshot carries author-facing evaluation errors (Core §3.10.
   assert.deepEqual(byPath(engine.getDiagnosticsSnapshot({ profile: 'off' }).evaluationDiagnostics), bindDiagnostics);
 });
 
-test('an undefined function fails its constraint (Core §3.10.1) and still appears in the diagnostics snapshot', () => {
+test('an undefined function refuses the Definition and appears in the validation report', () => {
   const engine = new FormEngine({
     $formspec: '1.0',
     url: 'http://example.org/undefined-function',
@@ -198,12 +198,11 @@ test('an undefined function fails its constraint (Core §3.10.1) and still appea
   });
   engine.setValue('qty', 1);
 
+  // Unknown calls refuse the Definition. They no longer produce runtime diagnostics.
   const snapshot = engine.getDiagnosticsSnapshot();
   const failures = snapshot.validation.results.map(({ path, code, constraintKind }) => ({ path, code, constraintKind }));
-  assert.deepEqual(failures, [{ path: 'qty', code: 'CONSTRAINT_PARSE_ERROR', constraintKind: 'constraint' }]);
-  assert.deepEqual(snapshot.evaluationDiagnostics, [
-    { path: 'qty', expression: 'nosuchfn($)', message: 'undefined function: nosuchfn' }
-  ]);
+  assert.deepEqual(failures, [{ path: '$.binds[0].constraint', code: 'UNDEFINED_FUNCTION', constraintKind: 'definition' }]);
+  assert.deepEqual(snapshot.evaluationDiagnostics, []);
 });
 
 test('a syntax error or arity mismatch refuses the Definition in both evaluators (Core §3.10.1)', () => {
@@ -303,4 +302,48 @@ test('an acyclic overflowing aggregate keeps its diagnostic through both evaluat
   } finally {
     engine.dispose();
   }
+});
+
+test('Shape activation diagnostics reflect the MIPs returned by the final pass', () => {
+  const activeWhen = 'if relevant($toggle) then true else sum([79228162514264337593543950335, 1])';
+  const definition = {
+    $formspec: '1.0', url: 'urn:test:settled-shape-activation', version: '1.0.0',
+    title: 'Settled Shape activation',
+    items: ['sentinel', 'toggle'].map(key => ({ key, type: 'field', label: key, dataType: 'string' })),
+    binds: [{ path: 'sentinel', required: 'true' }, { path: 'toggle', relevant: 'valid($sentinel)' }],
+    shapes: [{ id: 'conditional', target: '#', activeWhen, constraint: 'false', message: 'Active' }],
+  };
+  const batch = evaluateDefinition(definition, {});
+  assert.deepEqual(batch.nonRelevant, ['toggle']);
+  const engine = new FormEngine(definition);
+  const snapshot = engine.getDiagnosticsSnapshot();
+  for (const [findings, diagnostics] of [
+    [batch.validations, batch.diagnostics],
+    [snapshot.validation.results, snapshot.evaluationDiagnostics],
+  ]) {
+    assert.deepEqual(findings.map(({ code }) => code), ['REQUIRED']);
+    assert.deepEqual(diagnostics.map(({ path, expression, shapeId, code }) => [path, expression, shapeId, code]), [
+      ['#', activeWhen, 'conditional', 'FEL_ARITHMETIC_OVERFLOW'],
+    ]);
+  }
+  engine.dispose();
+});
+
+test('a default reports its FEL error once when the field becomes relevant', () => {
+  const expression = 'sum([79228162514264337593543950335, 1])';
+  const definition = {
+    $formspec: '1.0', url: 'urn:test:default-diagnostic', version: '1.0.0',
+    title: 'Default diagnostics',
+    items: [
+      { key: 'enabled', type: 'field', label: 'Enabled', dataType: 'boolean' },
+      { key: 'amount', type: 'field', label: 'Amount', dataType: 'decimal' },
+    ],
+    binds: [{ path: 'amount', relevant: '$enabled = true', default: `=${expression}` }],
+  };
+  const engine = new FormEngine(definition);
+  assert.deepEqual(engine.getDiagnosticsSnapshot().evaluationDiagnostics, []);
+  engine.setValue('enabled', true);
+  assert.deepEqual(engine.getDiagnosticsSnapshot().evaluationDiagnostics.map(({ path, expression, code }) =>
+    [path, expression, code]), [['amount', expression, 'FEL_ARITHMETIC_OVERFLOW']]);
+  engine.dispose();
 });

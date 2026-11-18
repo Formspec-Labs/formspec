@@ -10,20 +10,21 @@ function makeDefinition() {
     url: 'https://example.org/forms/grant',
     version: '1.0.0',
     title: 'Grant Application',
+    binds: [{ path: 'organization.name', required: true }, { path: 'organization.ein', required: true }, { path: 'contactEmail', required: true }, { path: 'derivedScore', readonly: true, calculate: "1" }],
     items: [
       {
         key: 'organization',
         type: 'group',
         label: 'Organization',
         children: [
-          { key: 'name', type: 'field', dataType: 'string', label: 'Name', required: true },
-          { key: 'ein', type: 'field', dataType: 'string', label: 'EIN', required: true },
+          { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+          { key: 'ein', type: 'field', dataType: 'string', label: 'EIN' },
         ],
       },
-      { key: 'contactEmail', type: 'field', dataType: 'string', label: 'Email', required: true },
+      { key: 'contactEmail', type: 'field', dataType: 'string', label: 'Email' },
       { key: 'optionalNote', type: 'field', dataType: 'string', label: 'Note' },
       { key: 'displayOnly', type: 'display', label: 'Display only', widget: 'Heading', content: 'Hello' },
-      { key: 'derivedScore', type: 'field', dataType: 'integer', label: 'Derived', readonly: true, calculate: "1" },
+      { key: 'derivedScore', type: 'field', dataType: 'integer', label: 'Derived' },
     ],
   };
 }
@@ -76,8 +77,9 @@ test('evaluated state adds no edit evaluation and includes submit-only findings 
   definition.items.push(
     { key: 'zero', type: 'field', dataType: 'integer' },
     { key: 'false', type: 'field', dataType: 'boolean' },
-    { key: 'hidden', type: 'field', dataType: 'string', relevant: 'false', initialValue: 'retained' },
+    { key: 'hidden', type: 'field', dataType: 'string', initialValue: 'retained' },
   );
+  definition.binds.push({ path: 'hidden', relevant: 'false' });
   definition.shapes = ['continuous', 'submit', 'demand'].map(timing => ({
     id: timing, target: '#', severity: 'warning', constraint: 'false', message: `${timing} finding`, timing,
   }));

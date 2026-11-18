@@ -171,22 +171,22 @@ impl Validation<'_> {
         {
             let env = self.state.site(self.index, &item.path);
 
-            // An undefined function (Core §3.10.1) is CONSTRAINT_PARSE_ERROR with a
-            // processor-generated message (Phase 3 step 1a). `evaluate` refuses a syntax
-            // error at Rebuild; only a direct `revalidate` caller reaches the parse arm.
-            // Only a `false` result is CONSTRAINT_FAILED, labeled by `constraintMessage`.
+            // The full evaluator refuses invalid expressions at Rebuild. The direct
+            // revalidate entry point still identifies errors when given an Item tree.
             let site = ConstraintSite {
                 path: &item.path,
                 shape_id: None,
                 fel: self.fel,
             };
             let outcome = match parse(expr) {
-                Ok(parsed) => site.settle(
-                    self.fel.evaluate(&parsed, &env),
-                    expr,
-                    &mut findings.diagnostics,
-                ),
-                Err(e) => Err(e.to_string()),
+                Ok(parsed) => site
+                    .settle(
+                        self.fel.evaluate(&parsed, &env),
+                        expr,
+                        &mut findings.diagnostics,
+                    )
+                    .map_err(|detail| (ValidationCode::UndefinedFunction, detail)),
+                Err(e) => Err((ValidationCode::SyntaxError, e.to_string())),
             };
             let failure = match outcome {
                 Ok(value) if constraint_passes(&value) => None,
@@ -200,20 +200,27 @@ impl Validation<'_> {
                         None => format!("Constraint failed: {expr}"),
                     },
                 )),
-                Err(detail) => Some((
-                    ValidationCode::ConstraintParseError,
-                    format!("Constraint expression error: {detail}"),
-                )),
+                Err((code, detail)) => {
+                    Some((code, format!("Constraint expression error: {detail}")))
+                }
             };
             if let Some((code, message)) = failure {
                 findings.results.push(ValidationResult {
                     path: item.path.clone(),
                     severity: Severity::Error,
-                    constraint_kind: ConstraintKind::Constraint,
+                    constraint_kind: if code == ValidationCode::ConstraintFailed {
+                        ConstraintKind::Constraint
+                    } else {
+                        ConstraintKind::Definition
+                    },
+                    source: Some(if code == ValidationCode::ConstraintFailed {
+                        ValidationSource::Bind
+                    } else {
+                        ValidationSource::Definition
+                    }),
                     code,
                     message,
                     constraint: Some(expr.clone()),
-                    source: Some(ValidationSource::Bind),
                     shape_id: None,
                     context: None,
                 });

@@ -124,10 +124,45 @@ fn unregistered_extension_stays_a_definition_error() {
         &EvalOptions::default().trigger(EvalTrigger::Submit),
     );
 
-    let qty = result
-        .validations
-        .iter()
-        .find(|v| v.path == "qty")
-        .expect("qty constraint result");
-    assert_eq!(qty.code, "CONSTRAINT_PARSE_ERROR");
+    // Rebuild refuses the entire Definition, including creation-time expressions.
+    assert!(result.refused);
+    assert!(
+        result
+            .validations
+            .iter()
+            .any(|finding| finding.path == "$.binds[2].constraint"
+                && finding.code == "UNDEFINED_FUNCTION")
+    );
+    assert!(result.diagnostics.is_empty());
+}
+
+#[test]
+fn diagnostics_follow_up_checks_extension_signatures_per_evaluation_without_calling_them() {
+    let def = json!({"items": [{"key": "result", "type": "field", "dataType": "integer"}],
+        "binds": [{"path": "result", "calculate": "double(5)"}]});
+    let prepared = formspec_eval::PreparedDefinition::new(def);
+    let mut wrong = ExtensionRegistry::new();
+    wrong
+        .register("double", 2, Some(2), |_| panic!("invalid call executed"))
+        .unwrap();
+    let right = registry();
+    let data = HashMap::new();
+    for (options, code) in [
+        (EvalOptions::default().extensions(&wrong), "ARITY_MISMATCH"),
+        (EvalOptions::default(), "UNDEFINED_FUNCTION"),
+        (EvalOptions::default().extensions(&wrong), "ARITY_MISMATCH"),
+    ] {
+        let refused = prepared.evaluate(&data, &options);
+        assert_eq!(refused.data, json!({}));
+        assert_eq!(refused.validations.len(), 1);
+        assert_eq!(refused.validations[0].path, "$.binds[0].calculate");
+        assert_eq!(refused.validations[0].code, code);
+        assert!(refused.diagnostics.is_empty());
+        assert_eq!(
+            prepared
+                .evaluate(&data, &EvalOptions::default().extensions(&right))
+                .data,
+            json!({"result": 10})
+        );
+    }
 }

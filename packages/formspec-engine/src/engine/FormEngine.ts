@@ -100,7 +100,6 @@ import {
     cloneValue,
     coerceFieldValue,
     deepEqual,
-    extractInlineBind,
     getNestedValue,
     getScopeAncestors,
     isJsonRecord,
@@ -192,6 +191,9 @@ export class FormEngine implements IFormEngine {
     private readonly _data: JsonRecord = Object.create(null);
     private _previousEvalResult: EvalResult | null = null;
     private _fullResult: EvalResult | null = null;
+    // Keep the exact rejected input across report profiles and host-only updates.
+    private _refusedInput: JsonRecord | undefined;
+    private _refusedCreation: { pendingPaths?: string[] } | undefined;
     private _issuerOverride: IssuerSource | undefined;
     private _resolvedIssuer: ResolvedIssuer | undefined;
     private _issuerResolutionPromise: Promise<ResolvedIssuer> | undefined;
@@ -271,15 +273,14 @@ export class FormEngine implements IFormEngine {
             const saved = options.draftSnapshot?.data ?? options.savedResponseData;
             if (saved !== undefined) {
                 this.loadItemsData(this.definition.items, saved, '');
-            } else {
-                this.createResponseData(options.responseData ?? {});
             }
-            this._evaluate(null, true);
+            const input = saved ?? this.createResponseData(options.responseData ?? {});
+            this._evaluate(null, true, input);
         } catch (error) {
             this.dispose();
             throw error;
         }
-        if (options.loadExternalSources !== false) this.initializeRemoteOptions();
+        if (options.loadExternalSources !== false && !this.hasSubjectRefusal()) this.initializeRemoteOptions();
 
         // Create form-level view model (after first evaluate so validation is available)
         this._formViewModel = createFormViewModel({
@@ -430,9 +431,9 @@ export class FormEngine implements IFormEngine {
             return undefined;
         }
         const created = wasmCreateRepeatRow(
-            this.definition, this.editingData(), path, this.creationContext(), this._extensionFunctions,
+            this.definition, this._refusedInput ?? this.editingData(), path, this.creationContext(), this._extensionFunctions,
         );
-        if (!created) return undefined;
+        if (!created || created.refused) return undefined;
         this._rx.batch(() => {
             this._pendingCreationPaths.delete(path);
             this._failedSeedPaths.delete(path);
@@ -470,18 +471,19 @@ export class FormEngine implements IFormEngine {
             this._evaluate(previous && {
                 nonRelevant: previous.nonRelevant.flatMap(shift),
                 validations: shiftFindings(previous.validations),
-            });
+            }, false, this.editingData());
         });
     }
 
     /** Resume saved Response data with its exact row counts and answered fields. */
     public loadResponseData(data: JsonRecord): void {
         this._rx.batch(() => {
+            this._refusedCreation = undefined;
             this._pendingCreationPaths.clear();
             this._creationDiagnostics.length = 0;
             this._failedSeedPaths.clear();
             this.loadItemsData(this.definition.items, data, '', true);
-            this._evaluate(null);
+            this._evaluate(null, false, data);
         });
     }
 
@@ -558,10 +560,16 @@ export class FormEngine implements IFormEngine {
         };
     }
 
-    private createResponseData(data: JsonRecord, pendingPaths?: string[]): void {
+    private createResponseData(data: JsonRecord, pendingPaths?: string[]): JsonRecord {
         const created = wasmCreateResponse(this.definition, data, this.creationContext(pendingPaths), this._extensionFunctions);
         const refusal = created.diagnostics.find(diagnostic => this.isCalculationRefusal(diagnostic.code));
         if (refusal) throw new Error(refusal.message);
+        this._refusedCreation = created.refused ? { pendingPaths } : undefined;
+        if (created.refused) {
+            // Evaluation reports the authored Definition finding.
+            this.loadItemsData(this.definition.items, created.data, '');
+            return created.data;
+        }
         this._pendingCreationPaths = new Set(created.pending);
         for (const diagnostic of created.diagnostics) {
             this._creationDiagnostics.push(diagnostic);
@@ -569,6 +577,7 @@ export class FormEngine implements IFormEngine {
             if (diagnostic.code !== 'SEED_SOURCE_UNAVAILABLE') this._failedSeedPaths.add(diagnostic.path);
         }
         this.loadItemsData(this.definition.items, created.data, '');
+        return created.data;
     }
 
     private appendRepeatRow(path: string, item: FormItem): void {
@@ -673,7 +682,7 @@ export class FormEngine implements IFormEngine {
         if (this.writeFieldData(name, value, basePath)) {
             this._pendingCreationPaths.delete(name);
             (this.writeSources[name] ??= this._rx.signal<WriteSource | null>(null)).value = options.source ?? 'user';
-            this._evaluate();
+            this._evaluate(undefined, false, this.editingData());
         }
     }
 
@@ -1412,7 +1421,7 @@ export class FormEngine implements IFormEngine {
             let previous: JsonValue | undefined;
             let hadPrevious = false;
             Promise.resolve().then(async () => {
-                if (signal.aborted) return;
+                if (signal.aborted || this.hasSubjectRefusal()) return;
                 let payload: JsonValue;
                 if (resolver) {
                     const result = readSourceResult(await resolver(request, Object.freeze({ signal })));
@@ -1448,10 +1457,11 @@ export class FormEngine implements IFormEngine {
                 try {
                     if (this._disposed) return;
                     this._pendingInstanceSources.delete(name);
-                    if (this._pendingCreationPaths.size > 0) {
-                        this.createResponseData(this.editingData(), [...this._pendingCreationPaths]);
-                    }
-                    this._evaluate();
+                    const data = this._pendingCreationPaths.size > 0
+                        ? this.createResponseData(
+                            this._refusedInput ?? this.editingData(), [...this._pendingCreationPaths])
+                        : undefined;
+                    this._evaluate(undefined, false, data);
                     if (installed) {
                         if (!resolver && instance.static) FormEngine.instanceSourceCache.set(source, cloneValue(this.instanceData[name]));
                         this._instanceSourceOutcomes[name] = { status: 'loaded' };
@@ -1480,13 +1490,6 @@ export class FormEngine implements IFormEngine {
             this._groupItems.set(path, item);
             if (item.type === 'field') {
                 this._fieldDataTypes[path] = item.dataType;
-            }
-            const inlineBind = extractInlineBind(item, path);
-            if (inlineBind) {
-                this._bindConfigs[path] = { ...this._bindConfigs[path], ...inlineBind };
-                if (inlineBind.calculate) {
-                    this._calculatedFields.add(path);
-                }
             }
             if (item.children) {
                 this.initializeBindConfigs(item.children, path);
@@ -1878,13 +1881,23 @@ export class FormEngine implements IFormEngine {
         return code === 'CIRCULAR_DEPENDENCY' || code === 'CALCULATE_TARGET_CONFLICT';
     }
 
+    private hasSubjectRefusal(): boolean {
+        return this._fullResult?.refused === true && this._fullResult.validations.some(({ path }) =>
+            path === '#subjectType' || path === '#subjectKeys' || path.startsWith('#subjectKeys.'));
+    }
+
     private _evaluate(
         previousResult: Pick<EvalResult, 'nonRelevant' | 'validations'> | null = this._fullResult,
         constructing = false,
+        input = this._refusedInput ?? this.editingData(),
     ): void {
+        // Retry new Response creation if the host has since supplied a valid input or extension.
+        const data = this._refusedCreation && !constructing
+            ? this.createResponseData(input, this._refusedCreation.pendingPaths)
+            : input;
         const baseResult = wasmEvaluateDefinition(
             this.definition,
-            this.editingData(),
+            data,
             wasmEvaluateDefinitionPayload({
                 nowIso: this.nowISO(),
                 previousResult,
@@ -1899,13 +1912,6 @@ export class FormEngine implements IFormEngine {
         if (refusal && constructing) {
             throw new Error(String(refusal.message));
         }
-        if (this._responseSubject) {
-            const refusal = baseResult.validations.find(({ path }) =>
-                path === '#subjectType' || path === '#subjectKeys' || path.startsWith('#subjectKeys.'));
-            if (refusal) {
-                throw new Error(`${refusal.path}: ${refusal.message}`);
-            }
-        }
         const evalResult = this.shapedEvalResult(baseResult);
         // Shape timing is enforced in Rust `revalidate` for the default continuous WASM eval;
         // no TS-side filter needed for parity with batch eval.
@@ -1913,7 +1919,8 @@ export class FormEngine implements IFormEngine {
         // Assign before patching: effects that run when the batch closes read `_fullResult` through FEL contexts.
         this._previousEvalResult = evalResult;
         this._fullResult = evalResult;
-        if (!refusal) {
+        this._refusedInput = evalResult.refused ? cloneValue(data) : undefined;
+        if (!evalResult.refused) {
             this._calculatedPaths = new Set(evalResult.calculatedPaths);
             this._indexedBinds = evalResult.indexedBinds ?? {};
             // A resumed Response may carry a result for a newly resolved indexed
@@ -1931,7 +1938,7 @@ export class FormEngine implements IFormEngine {
                 data: this._data,
                 bindAt: (path, basePath) => this.bindAt(path, basePath),
                 isCalculated: (path, basePath) => this.isCalculated(path, basePath),
-                refused: refusal !== undefined,
+                refused: evalResult.refused,
             });
             patchDeltaSignalsFromWasm(this._rx, delta, {
                 relevantSignals: this.relevantSignals,
@@ -1955,7 +1962,7 @@ export class FormEngine implements IFormEngine {
         nowIso = this.nowISO(),
         options: { data?: Record<string, unknown>; instances?: Record<string, unknown> } = {},
     ): EvalResult {
-        const data = options.data ?? this.editingData();
+        const data = options.data ?? this._refusedInput ?? this.editingData();
         if (trigger === 'submit') {
             // A reactive report depends on edits, even if every answer was pruned from its data.
             this._evaluationVersion.value;
@@ -1975,7 +1982,7 @@ export class FormEngine implements IFormEngine {
             }),
             this._extensionFunctions,
         ) as EvalResult;
-        return trigger === 'submit' ? result : this.shapedEvalResult(result);
+        return trigger === 'submit' || result.refused ? result : this.shapedEvalResult(result);
     }
 
     private resolveRepeatPath(itemName: string): string {

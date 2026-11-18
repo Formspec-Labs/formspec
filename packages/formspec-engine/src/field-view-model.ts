@@ -252,8 +252,7 @@ export function createFieldViewModel(deps: FieldViewModelDeps): FieldViewModel {
             const fromReq = localeStore.lookupKey(reqKey);
             if (fromReq !== null) return interpolateMessage(fromReq);
         } else if (code === 'CONSTRAINT_FAILED') {
-            // Core Phase 3 step 1a: `constraintMessage` labels a `false` result only; a
-            // CONSTRAINT_PARSE_ERROR (definition error) keeps its processor-generated message.
+            // Core Phase 3 step 1a: `constraintMessage` labels a `false` result.
             const constKey = `${itemKey}.constraintMessage`;
             const fromConst = localeStore.lookupKey(constKey);
             if (fromConst !== null) return interpolateMessage(fromConst);

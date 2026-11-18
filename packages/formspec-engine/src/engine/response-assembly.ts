@@ -387,14 +387,14 @@ export function collectRelevantValidationResults(
     )).map(toValidationResult);
 }
 
-/** Definition errors precede Shape timing. Keep them in every enabled report. */
+/** Keep refusals alongside findings for the requested Shape timing. */
 export function collectTimedShapeValidationResults(
     evalResult: EvalResult,
     shapeTiming: Map<string, EvalShapeTiming>,
     timing: EvalShapeTiming,
 ): ValidationResult[] {
     return evalResult.validations.filter(validation =>
-        validation.source === 'definition' ||
+        evalResult.refused ||
         (validation.shapeId && (shapeTiming.get(validation.shapeId) ?? 'continuous') === timing),
     ).map(toValidationResult);
 }

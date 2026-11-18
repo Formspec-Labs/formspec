@@ -151,7 +151,7 @@ Creation-time values are outside this cycle. Re-evaluating a Response MUST NOT p
 
 ### Phase 1: Rebuild
 **Trigger**: Structural change (repeat added/removed, definition replaced).
-**Action**: Re-index items, reconstruct dependency DAG, validate acyclic. If cycle detected → error, stop.
+**Action**: Re-index items and check the Definition. Refuse dependency cycles, invalid FEL syntax, unknown calls, and arity mismatches before evaluating expressions. Check signatures against built-ins and the evaluation’s registered extensions.
 *No-op after initial load if no repeatable groups.*
 
 ### Phase 2: Recalculate
@@ -166,7 +166,7 @@ Creation-time values are outside this cycle. Re-evaluating a Response MUST NOT p
 
 ### Phase 3: Revalidate
 **Trigger**: Phase 2 completed.
-**Action**: For affected relevant fields: evaluate `constraint` binds (`false` → `CONSTRAINT_FAILED` with the Bind's `constraintMessage`; undefined function → `CONSTRAINT_PARSE_ERROR` with a processor-generated message, never the author's text; a syntax error never reaches this phase), check `required` state, evaluate intersecting shapes. Composed shapes (`and`/`or`/`not`/`xone`) evaluated by combining constituent results.
+**Action**: For affected relevant fields: evaluate `constraint` binds (`false` → `CONSTRAINT_FAILED` with the Bind's `constraintMessage`), check `required` state, evaluate intersecting shapes. Composed shapes (`and`/`or`/`not`/`xone`) evaluated by combining constituent results.
 
 ### Phase 4: Notify
 **Trigger**: Phase 3 completed.
@@ -182,7 +182,7 @@ Structured JSON objects, not booleans. Every ValidationResult entry has:
 - `severity` (REQUIRED): `error` | `warning` | `info`
 - `path` (REQUIRED): dot-notation with concrete 0-based indices for repeats (e.g., `lineItems[2].amount` is the third instance; FEL `@index` is 1-based)
 - `message` (REQUIRED): human-readable
-- `constraintKind` (REQUIRED): `required` | `type` | `cardinality` | `constraint` | `shape` | `external` | `explanation`
+- `constraintKind` (REQUIRED): `required` | `type` | `cardinality` | `constraint` | `shape` | `external` | `explanation` | `definition`
 - `code` (RECOMMENDED): machine-readable identifier
 - `source` (OPTIONAL): `bind` | `shape`
 - `shapeId` (OPTIONAL): Shape failure or instance explanation result

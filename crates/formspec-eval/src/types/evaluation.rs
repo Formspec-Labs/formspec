@@ -27,7 +27,7 @@ pub struct ValidationResult {
     pub context: Option<HashMap<String, Value>>,
 }
 
-/// Evaluation error from a calculate, constraint, or shape expression (Core §3.10.2).
+/// Evaluation error from a Definition expression (Core §3.10.2).
 ///
 /// The expression evaluated to `null`; in constraint position that passes (§3.8.1).
 /// The diagnostic is for Definition authors (debug consoles, previews) and MUST NOT
@@ -35,7 +35,7 @@ pub struct ValidationResult {
 /// [`EvaluationResult::validations`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EvalDiagnostic {
-    /// Resolved path of the bind or shape target (`#` for form-level shapes).
+    /// Concrete path of the expression target or variable scope (`#` at form level).
     pub path: String,
     /// FEL expression that raised the error, as evaluated.
     pub expression: String,
@@ -167,6 +167,8 @@ pub struct ItemText {
 /// Result of the full evaluation cycle.
 #[derive(Debug, Clone)]
 pub struct EvaluationResult {
+    /// Evaluation stopped before Recalculate because the Definition or input was refused.
+    pub refused: bool,
     /// All field values after recalculation (post-NRB): flat state keyed by path
     /// (`group.field`, `rows[0].name`), like [`Self::required`] and [`Self::readonly`].
     pub values: HashMap<String, Value>,
@@ -181,7 +183,7 @@ pub struct EvaluationResult {
     pub data: Value,
     /// Validation results.
     pub validations: Vec<ValidationResult>,
-    /// Author-facing evaluation errors from calculate, constraint, and shape expressions.
+    /// Author-facing errors raised while evaluating Definition expressions.
     pub diagnostics: Vec<EvalDiagnostic>,
     /// Fields marked non-relevant.
     pub non_relevant: Vec<String>,

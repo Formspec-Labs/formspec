@@ -385,6 +385,7 @@ export interface WasmCreateOptions {
 }
 
 export interface WasmCreation {
+    refused: boolean;
     data: import('./interfaces.js').JsonRecord;
     pending: string[];
     diagnostics: Array<import('./diff.js').EvalDiagnostic & { code: string }>;
@@ -451,6 +452,8 @@ type WasmEvaluationContext = {
 };
 
 type WasmEvaluation = {
+    /** The Definition or inputs were refused before Recalculate. */
+    refused: boolean;
     /** Flat state keyed by path (`group.field`, `rows[0].name`), like `required` and `readonly`. */
     values: any;
     /** The Response projection of `values` after `nonRelevantBehavior`: groups are objects, repeats are arrays of row objects. */
