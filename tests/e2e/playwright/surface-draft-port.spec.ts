@@ -276,3 +276,15 @@ test('writes exactly the submitted JSON and keeps the draft when a duplicate fil
   expect(result.storedText).toBe(result.exactText);
   expect(result.draft.status).toBe('loaded');
 });
+
+test('a form reads an accepted filing and current sibling, retaining its open pin after a newer filing', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&hydration');
+  await expect(page.getByLabel('Answer', { exact: true })).toHaveValue('old/draft');
+  await expect(page.getByLabel('Detail', { exact: true })).toHaveValue('old');
+  await page.getByRole('button', { name: 'Save draft' }).click();
+  await expect(page.getByRole('banner').getByRole('status')).toContainText(/saved/i);
+  await page.getByRole('button', { name: 'File updated directory' }).click();
+  await expect(page.getByRole('button', { name: 'Updated filing stored' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel('Answer', { exact: true })).toHaveValue('old/draft');
+});

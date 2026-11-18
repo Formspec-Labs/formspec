@@ -8,6 +8,8 @@ import { BrowserSurfaceApp, createBrowserFilingStore, previewFilingInvoker } fro
 import { starterWidgetModule } from '../../../packages/formspec-surface-react/src/widgets/index';
 import { reviewModule, reviewRegistry, reviewSlot } from './surface-draft-review';
 
+import { hydrationInstances, hydrationStorage, upstream, upstreamUrl } from './surface-hydration';
+
 const query = new URLSearchParams(location.search);
 const id = 'https://example.test/drafts';
 const keyed = query.has('subject');
@@ -17,6 +19,7 @@ const actions = id + '/actions';
 const tracker = query.has('tracker');
 const review = query.has('review');
 const registry = id + '/registry';
+const hydration = query.has('hydration');
 const submit = query.has('submit');
 const component: ComponentDocument = {
   $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition },
@@ -31,7 +34,7 @@ const component: ComponentDocument = {
 };
 const bundle = dereferenceBundleExport({
   manifest: {
-    $formspecBundle: '2.4', id, definitions: [{ url: definition }], surfaces: [{ url: surface }],
+    $formspecBundle: '2.4', id, definitions: [{ url: definition }, ...(hydration ? [{ url: upstreamUrl }] : [])], surfaces: [{ url: surface }],
     entrySurface: surface, responseActionDocuments: [{ url: actions }],
     ...(review && { registries: [{ url: registry }] }),
   },
@@ -56,18 +59,22 @@ const bundle = dereferenceBundleExport({
       ],
     },
     ...(review && { [registry]: reviewRegistry }),
+    ...(hydration && { [upstreamUrl]: upstream }),
     [definition]: {
       $formspec: '1.0', url: definition, version: query.get('version') ?? '1.0.0', title: 'Filing',
+      ...(hydration && { instances: hydrationInstances }),
       nonRelevantBehavior: 'remove',
       ...(keyed && { subject: { type: 'urn:test:filing-year', keys: { year: { dataType: 'integer' } } } }),
       items: [
         { key: 'answer', type: 'field', dataType: 'string', label: 'Answer' },
         { key: 'show', type: 'field', dataType: 'boolean', label: 'Show detail' },
-        { key: 'detail', type: 'field', dataType: 'string', label: 'Detail' },
+        { key: 'detail', type: 'field', dataType: 'string', label: 'Detail',
+          ...(hydration && { prePopulate: { instance: 'accepted', path: 'result' } }) },
         { key: 'rows', type: 'group', repeatable: true, label: 'Rows',
           children: [{ key: 'row', type: 'field', dataType: 'string', label: 'Row value' }] },
       ],
-      binds: [{ path: 'detail', relevant: '$show = true' }],
+      binds: hydration ? [{ path: 'answer', calculate: "@instance('roster').result & '/' & @instance('sibling').result" }]
+        : [{ path: 'detail', relevant: '$show = true' }],
     },
     [actions]: {
       $formspecResponseActions: '1.0', version: '1.0.0', scope: 'response', targetDefinition: { url: definition },
@@ -83,12 +90,19 @@ const bundle = dereferenceBundleExport({
 if (query.has('form')) {
   await initFormspecEngine();
   const root = createRoot(document.getElementById('root')!);
+  const reads = hydration ? await hydrationStorage(bundle.definitions) : undefined;
   const invoker = submit ? previewFilingInvoker(createBrowserFilingStore({
     scope: 'edition', definitions: bundle.definitions,
   }).submit) : undefined;
   const mount = (visit: number) => root.render(<>
     <span hidden data-fixture-render={visit} />
+    {reads && <button onClick={async event => {
+      const button = event.currentTarget;
+      await reads.fileNewer();
+      button.textContent = 'Updated filing stored';
+    }}>File updated directory</button>}
     <BrowserSurfaceApp
+      draftStorage={reads?.storage}
       previewEditions={submit ? [{ scope: 'edition', bundle }, { scope: 'edition-b', bundle }] : [{ scope: 'edition', bundle }]}
       definitionActionInvoker={invoker}
       mode="hash" routeParams={keyed ? { year: "2025" } : undefined}
