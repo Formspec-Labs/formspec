@@ -77,7 +77,7 @@ def resolve_option_sets_on_definition(definition: dict[str, Any]) -> dict[str, A
 
 def check_instance_projection(
     instance: dict[str, Any],
-    consumer_subject: dict[str, Any] | None,
+    consumer: dict[str, Any] | None,
     upstream_definitions: list[dict[str, Any]],
 ) -> list[dict[str, str | None]]: ...
 

@@ -10,7 +10,7 @@
 //! - `mapping` — mapping document parse + `execute_mapping_doc`
 //! - `native_tests` — Rust unit tests (mapping parse, string helpers; `#[cfg(test)]` only)
 
-pub(crate) const PY_API_VERSION: u32 = 1;
+pub(crate) const PY_API_VERSION: u32 = 2;
 
 pub(crate) type PyObject = pyo3::Py<pyo3::PyAny>;
 

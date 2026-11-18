@@ -75,7 +75,8 @@ pub use fel_rewrite_exact::{
 };
 #[doc(inline)]
 pub use instance_projection::{
-    InstanceProjectionCode, InstanceProjectionDiagnostic, check_instance_projection,
+    InstanceProjectionCode, InstanceProjectionDiagnostic, ProjectionConsumer,
+    check_instance_projection,
 };
 pub use json_artifacts::{changelog_to_json_value, extension_usage_issues_to_json_value};
 pub use json_util::json_object_to_string_map;

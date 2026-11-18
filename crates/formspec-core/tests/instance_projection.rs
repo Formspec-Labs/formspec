@@ -1,9 +1,30 @@
 //! Cross-Definition checks for response-backed instance projections.
 
-use formspec_core::{
-    InstanceProjectionCode as Code, check_instance_projection, compatible_version_satisfied,
-};
+use formspec_core::{InstanceProjectionCode as Code, compatible_version_satisfied};
 use serde_json::{Value, json};
+
+// These fixtures exercise path and predicate validation independent of consumer items.
+fn check_instance_projection(
+    instance: &Value,
+    subject: Option<&Value>,
+    upstream: &[Value],
+) -> Vec<formspec_core::InstanceProjectionDiagnostic> {
+    let consumer = subject.map(|subject| {
+        let definition = json!({"subject": subject});
+        if instance["kind"] == "definition-response" {
+            formspec_core::ProjectionConsumer::Prefill {
+                definition,
+                mapped: false,
+            }
+        } else {
+            formspec_core::ProjectionConsumer::Instance {
+                definition,
+                name: "prior".into(),
+            }
+        }
+    });
+    formspec_core::check_instance_projection(instance, consumer.as_ref(), upstream)
+}
 
 fn instance() -> Value {
     json!({
@@ -559,4 +580,120 @@ fn reports_each_catalog_source_defect_once_across_three_versions() {
             .collect();
         assert_eq!(reported, [(code, pointer, None)]);
     }
+}
+
+#[test]
+fn seeded_multichoice_compares_stored_keys_across_inline_and_named_sets() {
+    use formspec_core::ProjectionConsumer;
+    let mut source = instance();
+    source["schema"] = json!({"rows[*].stage": "multiChoice"});
+    let consumer = ProjectionConsumer::Instance {
+        name: "prior".into(),
+        definition: json!({"subject": consumer_subject(), "items": [{
+            "type": "group", "key": "history", "repeatable": true,
+            "seedFrom": {"instance": "prior", "path": "rows"}, "children": [{
+                "type": "field", "key": "previous", "dataType": "multiChoice",
+                "prePopulate": {"instance": "prior", "path": "stage"},
+                "options": [{"value":"a","label":"A"},{"value":"b","label":"B"}]
+            }]
+        }]}),
+    };
+    let mut first = upstream();
+    first["items"][1]["children"] = json!([{"type":"field","key":"stage",
+        "dataType":"multiChoice","optionSet":"stages","options":[]}]);
+    first["optionSets"] = json!({"stages":{"options":[
+        {"value":"b","label":"Second"},{"value":"a","label":"First"}
+    ]}});
+    let mut second = first.clone();
+    second["version"] = json!("1.1.0");
+    second["optionSets"]["stages"]["options"][0]["value"] = json!("c");
+    let findings =
+        formspec_core::check_instance_projection(&source, Some(&consumer), &[first, second]);
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].code, Code::OptionValuesMismatch);
+    assert_eq!(findings[0].json_pointer, "/schema/rows[*].stage");
+    assert_eq!(findings[0].upstream_version.as_deref(), Some("1.1.0"));
+}
+
+#[test]
+fn direct_reads_compare_only_static_untransformed_choice_values() {
+    use formspec_core::ProjectionConsumer;
+    let mut source = instance();
+    source["schema"] = json!({"stage":"choice"});
+    let mut upstream = upstream();
+    upstream["items"] = json!([{"type":"field","key":"stage","dataType":"choice","options":[{"value":"active","label":"Active"}]}]);
+    let field = json!({"type":"field","key":"copy","dataType":"choice","options":[{"value":"open","label":"Active"}]});
+    let consumer_for = |items| ProjectionConsumer::Instance {
+        name: "prior".into(),
+        definition: json!({"subject":consumer_subject(),"items":items}),
+    };
+    for (expression, count) in [
+        ("=@instance('prior').stage", 1),
+        ("=instance('prior', 'stage')", 1),
+        ("=@instance('elsewhere').stage", 0),
+        ("=upper(@instance('prior').stage)", 0),
+    ] {
+        let mut item = field.clone();
+        item["initialValue"] = json!(expression);
+        let consumer = consumer_for(vec![item]);
+        assert_eq!(
+            formspec_core::check_instance_projection(
+                &source,
+                Some(&consumer),
+                std::slice::from_ref(&upstream)
+            )
+            .len(),
+            count,
+            "{expression}"
+        );
+    }
+    let calculated = ProjectionConsumer::Instance {
+        name: "prior".into(),
+        definition: json!({"subject":consumer_subject(), "items":[field],
+            "binds":[{"path":"copy","calculate":"@instance('prior').stage"}]}),
+    };
+    let calculated_findings = formspec_core::check_instance_projection(
+        &source,
+        Some(&calculated),
+        std::slice::from_ref(&upstream),
+    );
+    assert_eq!(calculated_findings.len(), 1);
+    assert_eq!(calculated_findings[0].code, Code::OptionValuesMismatch);
+    let mut item = field;
+    item["prePopulate"] = json!({"instance":"prior","path":"stage"});
+    let consumer = consumer_for(vec![item]);
+    upstream["items"][0]["options"] = json!("https://example.org/live-options");
+    assert!(
+        formspec_core::check_instance_projection(&source, Some(&consumer), &[upstream]).is_empty()
+    );
+}
+
+#[test]
+fn catalog_prefill_compares_only_delivered_unmapped_fields() {
+    use formspec_core::ProjectionConsumer;
+    let mut source = json!({"kind":"definition-response","responseSelection":instance()["response"],
+        "schema":{"type":"object","properties":{"stage":{"type":"string"}}}});
+    let mut upstream = upstream();
+    let field = json!({"key":"stage","type":"field","dataType":"choice","options":[{"value":"a","label":"A"}]});
+    upstream["items"] = json!([field]);
+    let mut destination = field;
+    destination["options"][0]["value"] = json!("b");
+    let check = |source: &Value, mapped| {
+        let consumer = ProjectionConsumer::Prefill {
+            mapped,
+            definition: json!({"items":[destination], "subject":consumer_subject()}),
+        };
+        formspec_core::check_instance_projection(
+            source,
+            Some(&consumer),
+            std::slice::from_ref(&upstream),
+        )
+    };
+    let findings = check(&source, false);
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].code, Code::OptionValuesMismatch);
+    assert_eq!(findings[0].json_pointer, "/schema/properties/stage");
+    assert!(check(&source, true).is_empty());
+    source["schema"]["properties"] = json!({});
+    assert!(check(&source, false).is_empty());
 }

@@ -80,7 +80,8 @@ def test_evaluate_definition_preserves_response_subject_keys():
 
 
 def test_formspec_rust_exports_expected_contract():
-    assert getattr(formspec_rust, "PY_API_VERSION", None) == 1
+    # Version 2 requires the receiving Definition and binding for projection checks.
+    assert getattr(formspec_rust, "PY_API_VERSION", None) == 2
 
     signature = inspect.signature(formspec_rust.evaluate_def)
     assert list(signature.parameters.keys()) == [
@@ -153,9 +154,8 @@ def test_check_instance_projection_reports_consumer_subject_key_type():
         "type": "urn:example:program-period",
         "keys": {"period": {"dataType": "string"}},
     }
-    findings = formspec_rust.check_instance_projection(
-        instance, consumer_subject, [upstream]
-    )
+    consumer = {"kind": "instance", "name": "prior", "definition": {"subject": consumer_subject}}
+    findings = formspec_rust.check_instance_projection(instance, consumer, [upstream])
     assert len(findings) == 1
     assert findings[0]["code"] == "INSTANCE-PROJECTION-SUBJECT-KEY-TYPE-MISMATCH"
     assert findings[0]["jsonPointer"] == "/response/subject/0/from/subject"
@@ -165,10 +165,31 @@ def test_check_instance_projection_reports_consumer_subject_key_type():
         formspec_rust.check_instance_projection(instance, upstream_definitions=[upstream])
 
     instance["response"]["definition"]["compatibleVersions"] = "^2.0.0"
-    findings = formspec_rust.check_instance_projection(instance, consumer_subject, [upstream])
+    findings = formspec_rust.check_instance_projection(instance, consumer, [upstream])
     assert len(findings) == 1
     assert findings[0]["code"] == "INSTANCE-PROJECTION-NO-ELIGIBLE-VERSION"
     assert findings[0]["upstreamVersion"] is None
+
+
+def test_projection_reports_changed_choice_values_from_native_checker():
+    item = {
+        "key": "stage", "type": "field", "dataType": "choice",
+        "options": [{"value": "open", "label": "Open"}],
+    }
+    source = {"response": {"definition": {"url": "urn:example:stages"}}, "schema": {"stage": "choice"}}
+    consumer = {
+        "kind": "instance", "name": "prior", "definition": {"items": [
+            {**item, "initialValue": "=@instance('prior').stage"}
+        ]},
+    }
+    upstream = {
+        "url": "urn:example:stages", "version": "1", "subject": {"type": "urn:example:case", "keys": {}},
+        "items": [{**item, "options": [{"value": "opened", "label": "Open"}]}],
+    }
+    findings = formspec_rust.check_instance_projection(source, consumer, [upstream])
+    assert [(row["code"], row["jsonPointer"], row["upstreamVersion"]) for row in findings] == [
+        ("INSTANCE-PROJECTION-OPTION-VALUES-MISMATCH", "/schema/stage", "1")
+    ]
 
 
 # ── FEL parse ────────────────────────────────────────────────────

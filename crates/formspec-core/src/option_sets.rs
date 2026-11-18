@@ -1,8 +1,20 @@
 //! Resolve `options` from `optionSets` in a Formspec Definition.
 
-use fel_core::exact_json::{Map, Value};
+use fel_core::exact_json::{JsonTree, Map, Value};
 
 static EMPTY_OPTIONS: Value = Value::Array(Vec::new());
+
+pub(crate) fn named_item_option_set<'a, V: JsonTree>(
+    item: &'a V,
+    lookup: impl FnOnce(&str) -> Option<&'a V>,
+) -> Option<&'a V> {
+    item.get("optionSet").and_then(V::as_str).and_then(lookup)
+}
+
+pub(crate) fn inline_set_options<V: JsonTree>(entry: &V) -> Option<&V> {
+    let options = entry.get("options").unwrap_or(entry);
+    options.as_array().map(|_| options)
+}
 
 /// Return the Item's effective options, with a defined named set taking precedence.
 /// Source-only named sets supply no inline options.
@@ -10,19 +22,8 @@ pub fn effective_item_options<'a>(
     item: &'a Value,
     sets: Option<&'a Map<String, Value>>,
 ) -> Option<&'a Value> {
-    if let Some(entry) = item
-        .get("optionSet")
-        .and_then(Value::as_str)
-        .and_then(|name| sets?.get(name))
-    {
-        return Some(if entry.is_array() {
-            entry
-        } else {
-            entry
-                .get("options")
-                .filter(|options| options.is_array())
-                .unwrap_or(&EMPTY_OPTIONS)
-        });
+    if let Some(entry) = named_item_option_set(item, |name| sets?.get(name)) {
+        return Some(inline_set_options(entry).unwrap_or(&EMPTY_OPTIONS));
     }
     item.get("options")
 }

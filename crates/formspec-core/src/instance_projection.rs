@@ -4,10 +4,41 @@
 
 use std::collections::BTreeMap;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+mod choices;
+use choices::ChoiceCarry;
 use serde_json::{Map, Value};
 
 use crate::compatible_versions::{parse_compatible_range, parse_definition_version};
+
+/// The authored link from a response source to a consuming form.
+#[derive(Debug, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
+pub enum ProjectionConsumer {
+    /// Named secondary instance in this Definition.
+    Instance {
+        /// The Definition that declares the instance and receiving fields.
+        definition: Value,
+        /// Instance key, before JSON Pointer escaping.
+        name: String,
+    },
+    /// A Surface form slot bound to this source through initialData.
+    Prefill {
+        /// The form receiving the catalog payload.
+        definition: Value,
+        /// A reverse Mapping changes the relationship between field paths.
+        mapped: bool,
+    },
+}
+
+impl ProjectionConsumer {
+    fn definition(&self) -> &Value {
+        match self {
+            Self::Instance { definition, .. } | Self::Prefill { definition, .. } => definition,
+        }
+    }
+}
 
 /// Machine-readable reason a response instance fails projection validation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -33,6 +64,9 @@ pub enum InstanceProjectionCode {
     /// A projected field declares a different type from the upstream field.
     #[serde(rename = "INSTANCE-PROJECTION-FIELD-TYPE-MISMATCH")]
     FieldTypeMismatch,
+    /// Directly carried choices have different sets of stored option values.
+    #[serde(rename = "INSTANCE-PROJECTION-OPTION-VALUES-MISMATCH")]
+    OptionValuesMismatch,
     /// The upstream Definition lacks a subject declaration.
     #[serde(rename = "INSTANCE-PROJECTION-SUBJECT-MISSING")]
     SubjectMissing,
@@ -92,7 +126,7 @@ impl InstanceProjectionDiagnostic {
 /// version. For subject drift, it uses the first version with a subject in semantic
 /// version order when ranged and in byte order of the version text otherwise.
 ///
-/// Pass the consuming Definition's `subject` declaration for `from.subject` predicates.
+/// Pass the consuming Definition and its authored instance or prefill binding.
 /// Catalog selections using `from.routeParam` pass `None`.
 /// The Definition schema and document lint check the local response instance declaration.
 /// Inline and URI-backed instances return no findings.
@@ -114,11 +148,13 @@ impl InstanceProjectionDiagnostic {
 /// ```
 pub fn check_instance_projection(
     instance: &Value,
-    consumer_subject: Option<&Value>,
+    consumer: Option<&ProjectionConsumer>,
     upstream_definitions: &[Value],
 ) -> Vec<InstanceProjectionDiagnostic> {
     use InstanceProjectionCode as Code;
 
+    let consumer_subject = consumer.and_then(|value| value.definition().get("subject"));
+    let carries = ChoiceCarry::from_source(instance, consumer);
     let catalog = instance["kind"] == "definition-response";
     let draft = catalog && instance["runtime"]["delivery"] == "draft";
     let member = if catalog {
@@ -153,7 +189,7 @@ pub fn check_instance_projection(
         )];
     };
     if draft {
-        return check_catalog_draft(instance, url, upstream_definitions);
+        return check_catalog_draft(instance, url, upstream_definitions, &carries);
     }
     let range = match target.get("compatibleVersions") {
         Some(raw) => {
@@ -252,6 +288,9 @@ pub fn check_instance_projection(
         if let Some(fields) = projected_fields {
             check_projected_fields(fields, &definition["items"], version, &mut diagnostics);
         }
+        for carry in &carries {
+            carry.check(definition, Some(version), &mut diagnostics);
+        }
         let subject = &definition["subject"];
         let Some(subject_type) = subject["type"].as_str().filter(|ty| !ty.is_empty()) else {
             diagnostics.push(InstanceProjectionDiagnostic::new(
@@ -304,6 +343,7 @@ fn check_catalog_draft(
     source: &Value,
     url: &str,
     upstream: &[Value],
+    carries: &[ChoiceCarry],
 ) -> Vec<InstanceProjectionDiagnostic> {
     use InstanceProjectionCode as Code;
 
@@ -321,6 +361,9 @@ fn check_catalog_draft(
                     version,
                     &mut diagnostics,
                 );
+            }
+            for carry in carries {
+                carry.check(definition, version, &mut diagnostics);
             }
             diagnostics
         }
@@ -556,7 +599,9 @@ fn check_projected_fields(
     use InstanceProjectionCode as Code;
 
     for (path, expected_type) in schema {
-        let (code, message) = match projected_field_type(items, path) {
+        let (code, message) = match projected_field(items, path)
+            .and_then(|field| field["dataType"].as_str())
+        {
             Some(actual_type) if expected_type.as_str() == Some(actual_type) => continue,
             Some(actual_type) => (
                 Code::FieldTypeMismatch,
@@ -586,7 +631,7 @@ fn json_pointer_token(value: &str) -> String {
 }
 
 /// Resolves a data path while checking the array traversal at each group.
-fn projected_field_type<'a>(mut items: &'a Value, path: &str) -> Option<&'a str> {
+fn projected_field<'a>(mut items: &'a Value, path: &str) -> Option<&'a Value> {
     let mut segments = path.split('.').peekable();
     while let Some(segment) = segments.next() {
         let (key, wildcard) = segment
@@ -595,7 +640,7 @@ fn projected_field_type<'a>(mut items: &'a Value, path: &str) -> Option<&'a str>
         let item = items.as_array()?.iter().find(|item| item["key"] == key)?;
         if segments.peek().is_none() {
             return if item["type"] == "field" && !wildcard {
-                item["dataType"].as_str()
+                Some(item)
             } else {
                 None
             };

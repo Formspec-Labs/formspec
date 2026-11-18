@@ -36,7 +36,7 @@ pub fn assemble_definition_wasm(
 
 /// Return projection diagnostics for every eligible published upstream Definition version.
 ///
-/// Pass the consuming Definition's subject as JSON, or `null` for catalog route
+/// Pass the instance or prefill consumer as JSON, or `null` for widget route
 /// parameters. Pass all published Definitions for the upstream URL as a JSON array.
 ///
 /// # Errors
@@ -46,18 +46,17 @@ pub fn assemble_definition_wasm(
 #[wasm_bindgen(js_name = "checkInstanceProjection")]
 pub fn check_instance_projection_wasm(
     instance_json: &str,
-    consumer_subject_json: &str,
+    consumer_json: &str,
     upstream_definitions_json: &str,
 ) -> Result<String, JsError> {
     let instance = parse_value_str(instance_json, "instance JSON").map_err(|e| JsError::new(&e))?;
-    let consumer_subject: Option<Value> =
-        parse_json_as(consumer_subject_json, "consuming subject JSON")
-            .map_err(|e| JsError::new(&e))?;
+    let consumer: Option<formspec_core::ProjectionConsumer> =
+        parse_json_as(consumer_json, "projection consumer JSON").map_err(|e| JsError::new(&e))?;
     let upstream_definitions: Vec<Value> =
         parse_json_as(upstream_definitions_json, "upstream Definitions JSON")
             .map_err(|e| JsError::new(&e))?;
     let diagnostics =
-        check_instance_projection(&instance, consumer_subject.as_ref(), &upstream_definitions);
+        check_instance_projection(&instance, consumer.as_ref(), &upstream_definitions);
     to_json_string(&diagnostics).map_err(|e| JsError::new(&e))
 }
 

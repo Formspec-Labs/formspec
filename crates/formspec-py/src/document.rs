@@ -311,24 +311,24 @@ pub fn resolve_option_sets_on_definition(
 
 /// Check a response instance against every eligible published upstream Definition version.
 ///
-/// Pass the consuming Definition's subject declaration, or `None` for catalog
+/// Pass an instance or prefill consumer with its Definition, or `None` for widget
 /// route parameters. Supply all published Definitions for the upstream URL.
 ///
 /// # Errors
 ///
 /// Returns a Python exception when an input cannot be decoded in the required JSON shape.
-#[pyfunction(signature = (instance, consumer_subject, upstream_definitions))]
+#[pyfunction(signature = (instance, consumer, upstream_definitions))]
 pub fn check_instance_projection(
     py: Python,
     instance: &Bound<'_, PyAny>,
-    consumer_subject: Option<&Bound<'_, PyAny>>,
+    consumer: Option<&Bound<'_, PyAny>>,
     upstream_definitions: &Bound<'_, PyAny>,
 ) -> PyResult<PyObject> {
     let instance = depythonize_via_json(instance)?;
     let upstream_definitions: Vec<Value> = depythonize_via_json(upstream_definitions)?;
-    let consumer_subject = consumer_subject.map(depythonize_via_json).transpose()?;
+    let consumer = consumer.map(depythonize_via_json).transpose()?;
     let diagnostics =
-        check_instance_projection_core(&instance, consumer_subject.as_ref(), &upstream_definitions);
+        check_instance_projection_core(&instance, consumer.as_ref(), &upstream_definitions);
     Ok(pythonize::pythonize(py, &diagnostics)?.unbind())
 }
 
