@@ -3664,8 +3664,9 @@ A repeat whose `seedFrom` source is pending MUST stay absent until loading
 succeeds or fails. A field whose `prePopulate` source is pending MUST NOT
 receive `initialValue` while it waits. An expression `initialValue` MUST remain
 pending while any instance it references directly or through a visible Definition
-variable is loading (§4.5.1). A processor MAY use authored fallback
-data for FEL while loading. On success, apply still-pending values from the
+variable is loading (§4.5.1). When the expression computes an instance name,
+a processor MAY wait for all outstanding instance sources to settle.
+A processor MAY use authored fallback data for FEL while loading. On success, apply still-pending values from the
 loaded data. On failure, apply them from authored fallback data when present.
 Without fallback data, `seedFrom` uses `N = 0` and the processor SHOULD
 emit a diagnostic. Host data and person edits still win (FH-064).

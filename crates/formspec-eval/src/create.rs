@@ -397,15 +397,19 @@ impl<'a> Creation<'a> {
             .collect();
         let variables =
             crate::recalculate::variables::Variables::new(&definitions, &index, &expressions);
-        let pending = variables.pending_sources(&self.options.pending_instances);
+        let variables = variables.for_creation();
         for initial in &self.initials {
             if let Ok(parsed) = fel_core::parse(initial.expression) {
-                if pending.waits_for(&parsed, &initial.model) {
+                if !variables.ready(
+                    &parsed,
+                    &initial.model,
+                    &self.options.pending_instances,
+                    &mut scope,
+                    &index,
+                    fel,
+                ) {
                     self.result.pending.push(initial.model.clone());
                     continue;
-                }
-                if !definitions.is_empty() {
-                    variables.evaluate(&mut scope, &index, fel);
                 }
                 let value = fel_to_runtime_json(
                     &fel.evaluate(&parsed, &scope.site(&index, &initial.model))

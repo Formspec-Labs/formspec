@@ -138,8 +138,9 @@ fn a_failed_seed_without_fallback_reports_a_diagnostic_and_pads() {
 fn expression_initial_waits_for_its_visible_variable_source() {
     let def = json!({
         "variables":[{"name":"answer","expression":"@source + 2"},
-                     {"name":"source","expression":"@instance('p').amount"}],
-        "items":[{"type":"field","key":"value","dataType":"integer","initialValue":"=@answer"},
+                     {"name":"source","expression":"instance($sourceName, 'amount')"}],
+        "items":[{"type":"field","key":"sourceName","dataType":"string","initialValue":"p"},
+                 {"type":"field","key":"value","dataType":"integer","initialValue":"=@answer"},
                  {"type":"field","key":"direct","dataType":"integer","initialValue":"=@instance('p').amount"}]
     });
     let pending = create_response(
@@ -150,13 +151,16 @@ fn expression_initial_waits_for_its_visible_variable_source() {
             ..Default::default()
         },
     );
-    assert_eq!(pending.data, json!({}));
+    assert_eq!(pending.data, json!({"sourceName":"p"}));
     assert_eq!(pending.pending, ["value", "direct"]);
     let options = CreateOptions {
         instances: [("p".into(), json!({"amount":20}))].into(),
         pending_paths: Some(pending.pending.into_iter().collect()),
         ..Default::default()
     };
-    let ready = create_response(&def, json!({"direct":null}), &options);
-    assert_eq!(ready.data, json!({"value":22,"direct":null}));
+    let ready = create_response(&def, json!({"direct":null,"sourceName":"p"}), &options);
+    assert_eq!(
+        ready.data,
+        json!({"sourceName":"p","value":22,"direct":null})
+    );
 }

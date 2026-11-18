@@ -10,16 +10,18 @@ use crate::types::VariableDef;
 
 use super::topological_order;
 
+fn variable_context_name(reference: &str) -> Option<&str> {
+    let name = reference.strip_prefix('@')?.split(['.', '(']).next()?;
+    (!matches!(name, "current" | "index" | "count" | "instance")).then_some(name)
+}
+
 fn context_dependencies(ast: &Expr, known_vars: &HashSet<&str>) -> Vec<String> {
-    let deps = extract_dependencies(ast);
-    deps.context_refs
+    extract_dependencies(ast)
+        .context_refs
         .iter()
-        .filter_map(|r| {
-            let name = r.strip_prefix('@')?.split(['.', '(']).next()?;
-            (!matches!(name, "current" | "index" | "count" | "instance")
-                && known_vars.contains(name))
-            .then(|| name.to_owned())
-        })
+        .filter_map(|reference| variable_context_name(reference))
+        .filter(|name| known_vars.contains(name))
+        .map(str::to_owned)
         .collect()
 }
 
@@ -93,30 +95,21 @@ impl<'a> Variables<'a> {
         Self { bindings, order }
     }
 
-    /// Propagate outstanding instance dependencies in lexical binding order.
+    /// Index visible declarations by their existing dependency order for one-shot expressions.
     #[cfg(feature = "create")]
-    pub(crate) fn pending_sources<'b>(
-        &'b self,
-        instances: &'b HashSet<String>,
-    ) -> PendingSources<'b> {
-        let mut sources = PendingSources {
-            instances,
-            variables: HashMap::new(),
-        };
-        if !instances.is_empty()
-            && let Ok(order) = &self.order
-        {
-            for &id in order {
-                let binding = &self.bindings[id];
-                let pending = sources.waits_for(binding.expression, binding.site);
-                sources
-                    .variables
-                    .entry(binding.site)
-                    .or_default()
-                    .insert(binding.name, pending);
-            }
-        }
-        sources
+    pub(crate) fn for_creation(&self) -> CreationVariables<'_> {
+        let bindings: Vec<_> = self
+            .order
+            .iter()
+            .flatten()
+            .map(|id| &self.bindings[*id])
+            .collect();
+        let by_site = bindings
+            .iter()
+            .enumerate()
+            .map(|(rank, binding)| ((binding.site, binding.name), rank))
+            .collect();
+        CreationVariables { bindings, by_site }
     }
 
     /// Read each declaration at its concrete site after its visible dependencies.
@@ -160,31 +153,58 @@ pub(super) fn variable_sites<'a>(
 }
 
 #[cfg(feature = "create")]
-pub(crate) struct PendingSources<'a> {
-    instances: &'a HashSet<String>,
-    variables: HashMap<&'a str, HashMap<&'a str, bool>>,
+pub(crate) struct CreationVariables<'a> {
+    bindings: Vec<&'a Binding<'a>>,
+    by_site: HashMap<(&'a str, &'a str), usize>,
 }
 
 #[cfg(feature = "create")]
-impl PendingSources<'_> {
-    pub(crate) fn waits_for(&self, expr: &Expr, site: &str) -> bool {
-        if self.instances.is_empty() {
-            return false;
-        }
-        let deps = extract_dependencies(expr);
-        !deps.instance_refs.is_disjoint(self.instances)
-            || deps.context_refs.iter().any(|reference| {
-                let name = reference
-                    .trim_start_matches('@')
-                    .split(['.', '('])
-                    .next()
-                    .unwrap_or("");
-                crate::scope::lexical_scopes(site)
+impl CreationVariables<'_> {
+    /// Evaluate only declarations this expression reads, after all their source names settle.
+    pub(crate) fn ready(
+        &self,
+        expr: &Expr,
+        site: &str,
+        instances: &HashSet<String>,
+        state: &mut ScopeData,
+        index: &ScopeIndex,
+        fel: Fel<'_>,
+    ) -> bool {
+        let mut work = vec![(expr, site)];
+        let mut required = std::collections::BTreeSet::new();
+        while let Some((expr, site)) = work.pop() {
+            let deps = extract_dependencies(expr);
+            if !instances.is_empty()
+                && (deps.has_dynamic_instance || !deps.instance_refs.is_disjoint(instances))
+            {
+                return false;
+            }
+            for reference in &deps.context_refs {
+                let Some(name) = variable_context_name(reference) else {
+                    continue;
+                };
+                if let Some(&rank) = crate::scope::lexical_scopes(site)
                     .chain(std::iter::once("#"))
-                    .find_map(|scope| self.variables.get(scope)?.get(name))
-                    .copied()
-                    .unwrap_or(false)
-            })
+                    .find_map(|scope| self.by_site.get(&(scope, name)))
+                    && required.insert(rank)
+                {
+                    let binding = self.bindings[rank];
+                    work.push((binding.expression, binding.site));
+                }
+            }
+        }
+        for rank in required {
+            let binding = self.bindings[rank];
+            let value = fel
+                .evaluate(binding.expression, &state.site(index, binding.site))
+                .value;
+            state
+                .variables
+                .entry(binding.site.to_owned())
+                .or_default()
+                .insert(binding.name.to_owned(), value);
+        }
+        true
     }
 }
 

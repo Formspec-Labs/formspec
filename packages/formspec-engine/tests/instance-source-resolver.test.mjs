@@ -297,3 +297,29 @@ test('prototype-named unavailable sources preserve actual fallback or missing da
     }
   }
 });
+
+test('subject-scoped initial values wait for a referenced source and preserve an edit', async () => {
+  const type = 'urn:test:filing-year';
+  const form = {
+    $formspec: '1.0', url: 'urn:test:creation-source', version: '1.0.0',
+    subject: { type, keys: { year: { dataType: 'integer' } } },
+    instances: { p: { source: 'urn:test:source', data: {} } },
+    variables: [{ name: 'sameYear', expression: "string(subject('year')) = @instance('p').year" }],
+    items: ['amount', 'edited'].map(key => ({
+      key, type: 'field', dataType: 'integer', label: key,
+      initialValue: "=if(@sameYear, @instance('p').amount, 0)",
+    })),
+  };
+  const source = deferred();
+  const engine = createFormEngine(form, {
+    responseSubject: { id: 'year', type, keys: { year: 2025 } },
+    instanceSourceResolver: () => source.promise,
+  });
+  try {
+    assert.equal(Object.hasOwn(engine.getDraftSnapshot().data, 'amount'), false);
+    engine.setValue('edited', 0);
+    source.resolve({ status: 'loaded', value: { year: '2025', amount: 22 } });
+    await engine.waitForInstanceSources();
+    assert.deepEqual(engine.getDraftSnapshot().data, { amount: 22, edited: 0 });
+  } finally { engine.dispose(); }
+});
