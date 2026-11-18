@@ -17,7 +17,6 @@ mod tests {
     use crate::fel::{
         eval_fel_inner, eval_fel_with_context_inner, eval_fel_with_context_trace_inner,
         eval_fel_with_trace_inner, interpolate_fel_template_inner, interpolate_template_inner,
-        prepare_expression_inner,
     };
     #[cfg(feature = "fel-authoring")]
     use crate::fel::{rewrite_fel_for_assembly_inner, tokenize_fel_inner};
@@ -246,6 +245,40 @@ mod tests {
         );
         assert_eq!(val["values"]["g.a"], json!("x"));
         assert_eq!(val["values"]["rows[1].n"], json!("q"));
+    }
+
+    #[test]
+    fn evaluate_definition_inner_includes_browser_editing_state() {
+        let definition = json!({
+            "items": [
+                {"key": "hidden", "type": "field", "dataType": "string"},
+                {"key": "blank", "type": "field", "dataType": "string"},
+                {"key": "rows", "type": "group", "repeatable": true, "children": [
+                    {"key": "amount", "type": "field", "dataType": "integer"}
+                ]}
+            ],
+            "binds": [
+                {"path": "hidden", "relevant": "false"},
+                {"path": "blank", "relevant": "false", "nonRelevantBehavior": "empty"}
+            ],
+            "nonRelevantBehavior": "remove",
+            "variables": [{"name": "double", "scope": "rows", "expression": "$amount * 2"}]
+        });
+        let data = json!({"hidden": "draft answer", "rows": [{"amount": 3}]});
+        let result: Value = serde_json::from_str(
+            &evaluate_definition_inner(&definition.to_string(), &data.to_string(), None, None)
+                .unwrap(),
+        )
+        .unwrap();
+        assert!(result["values"].get("hidden").is_none());
+        assert!(result["data"].get("hidden").is_none());
+        assert_eq!(result["preservedValues"], json!({"hidden": "draft answer"}));
+        assert_eq!(result["filingOnlyPaths"], json!(["blank"]));
+        assert_eq!(result["repeatCounts"], json!({"rows": 1}));
+        assert_eq!(
+            result["scopedVariables"],
+            json!({"rows[0]": {"double": {"$type": "number", "value": 6}}})
+        );
     }
 
     // ── Finding 68: evaluate_definition_inner output shape ──────
@@ -478,16 +511,6 @@ mod tests {
         });
         let out = rewrite_fel_for_assembly_inner("$budget.amount", &map.to_string()).unwrap();
         assert_eq!(out, "$projectBudget.proj_amount");
-    }
-
-    #[test]
-    fn prepare_expression_inner_repeat_aliases_from_values_by_path() {
-        let opt = json!({
-            "expression": "rows.score",
-            "valuesByPath": { "rows[0].score": 1, "rows[1].score": 2 },
-        });
-        let out = prepare_expression_inner(&opt.to_string()).unwrap();
-        assert_eq!(out, "$rows[*].score");
     }
 
     #[test]
@@ -1357,7 +1380,8 @@ mod tests {
         );
         assert_eq!(
             fel_eval_value(
-                &ctx.evaluate_inner("sum(rows.qty)", "", false, None, None)
+                // Core §3.2.2 requires a wildcard for this collection projection.
+                &ctx.evaluate_inner("sum($rows[*].qty)", "", false, None, None)
                     .unwrap()
             ),
             json!(5)
@@ -1373,7 +1397,6 @@ mod tests {
             fel_eval_value(&ctx.evaluate_inner("@limit", "", false, None, None).unwrap()),
             json!(10)
         );
-        assert_eq!(ctx.prepare("$ + 1", "rows[0].qty", true), "$qty + 1");
     }
 
     /// Ad-hoc reads through the handle keep the `evalFELWithContext` rule: registered yes, undefined no.

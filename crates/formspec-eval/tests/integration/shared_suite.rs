@@ -23,8 +23,9 @@ use std::path::{Path, PathBuf};
 
 use fel_core::exact_json::Value;
 use formspec_eval::{
-    EvalOptions, EvalTrigger, ItemTextRequest, evaluate, evaluation_result_to_json_value,
-    extension_constraints_from_registry_documents, filed_response_data_matches,
+    EvalOptions, EvalTrigger, HostFelContext, ItemTextRequest, evaluate,
+    evaluation_result_to_json_value, extension_constraints_from_registry_documents,
+    filed_response_data_matches,
 };
 
 /// The runner's name in the ledger.
@@ -775,16 +776,31 @@ fn run_item_text(case: &Value, legs: &mut Legs) {
     legs.insert("text".to_string(), problems);
 }
 
-/// FEL cases: the expression as a calculate in the same synthetic Definition the TS runner builds.
-///
-/// Site-scoped cases (`site`) evaluate through `HostFelContext`, which cannot yet be built from an
-/// evaluation result natively (fs-rxih); they report that as the leg's problem.
+/// Evaluate FEL at its authored site, or as a calculate in a synthetic Definition.
 fn run_fel(case: &Value, legs: &mut Legs) {
-    if case.get("site").is_some() {
-        legs.insert(
-            "value".to_string(),
-            vec!["site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)".to_string()],
-        );
+    if let Some(site) = case.get("site").and_then(Value::as_str) {
+        let definition = read_json(case["definitionPath"].as_str().expect("definitionPath"));
+        let data = input_payload(case)
+            .as_object()
+            .expect("input data object")
+            .clone()
+            .into_iter()
+            .collect();
+        let mut options = EvalOptions::default();
+        options.context.now_iso = Some(NOW.to_string());
+        let evaluated = evaluate(&definition, &data, &options);
+        let context = HostFelContext::from_evaluation(&definition, &evaluated, &options);
+        let result = context
+            .evaluate(
+                case["expression"].as_str().expect("FEL expression"),
+                site,
+                true,
+                Some(NOW),
+                None,
+            )
+            .expect("site expression parses");
+        let actual = fel_core::exact_json::from_fel(&result.value);
+        record_fel_value(case, legs, actual);
         return;
     }
     let fields = case
@@ -822,7 +838,10 @@ fn run_fel(case: &Value, legs: &mut Legs) {
     let mut options = EvalOptions::default();
     options.context.now_iso = Some(NOW.to_string());
     let result = evaluation_result_to_json_value(&evaluate(&definition, &data, &options));
-    let actual = result["values"]["suiteValue"].clone();
+    record_fel_value(case, legs, result["values"]["suiteValue"].clone());
+}
+
+fn record_fel_value(case: &Value, legs: &mut Legs, actual: Value) {
     let wanted = &case["expected"]["value"];
     let ok = match (
         case["comparator"].as_str(),

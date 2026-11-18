@@ -3,13 +3,14 @@
 use std::collections::{HashMap, HashSet};
 
 use fel_core::exact_json::Value as JsonValue;
-use fel_core::{FormspecEnvironment, MipState, Value, parse};
+use fel_core::{MipState, Value, parse};
 
 use super::json_fel::{coerce_calculated_value, json_to_runtime_fel_typed};
 use super::walk::{Visit, Walk};
 use crate::fel_eval::Fel;
 use crate::fel_json::{fel_to_runtime_json, is_date_data_type};
-use crate::types::{ItemInfo, WhitespaceMode, resolve_qualified_repeat_refs};
+use crate::scope::{ScopeData, ScopeIndex};
+use crate::types::{ItemInfo, WhitespaceMode};
 
 /// Apply whitespace normalization to all items that have a whitespace bind.
 pub(crate) fn apply_whitespace_to_items(
@@ -60,18 +61,16 @@ impl Visit for BindPass<'_> {
         &mut self,
         walk: &Walk<'_>,
         item: &mut ItemInfo,
-        env: &mut FormspecEnvironment,
+        state: &mut ScopeData,
         values: &mut HashMap<String, JsonValue>,
         parent: Parent,
     ) -> Parent {
         let fel = walk.fel;
-        let normalize_expr = |expr: &str| resolve_qualified_repeat_refs(expr, &item.path);
 
         let was_relevant = item.mip.prev_relevant;
 
         let own_relevant = if let Some(ref expr) = item.relevance {
-            let normalized_expr = normalize_expr(expr);
-            fel.eval_bool(&normalized_expr, env, true)
+            fel.eval_bool(expr, &state.site(walk.index, &item.path), true)
         } else {
             true
         };
@@ -86,13 +85,12 @@ impl Visit for BindPass<'_> {
             };
             if is_empty {
                 if let Some(ref expr) = item.default_expression {
-                    let normalized_expr = normalize_expr(expr);
-                    if let Ok(parsed) = parse(&normalized_expr) {
-                        let result = fel.evaluate(&parsed, env);
+                    if let Ok(parsed) = parse(expr) {
+                        let result = fel.evaluate(&parsed, &state.site(walk.index, &item.path));
                         let coerced = coerce_calculated_value(item, result.value);
                         let json_val = fel_to_runtime_json(&coerced);
                         values.insert(item.path.clone(), json_val.clone());
-                        env.set_field(&item.path, coerced);
+                        state.set_field(&item.path, coerced);
                     }
                 } else if let Some(ref default_val) = item.default_value {
                     let data_type = item.data_type.as_deref();
@@ -106,20 +104,19 @@ impl Visit for BindPass<'_> {
                         fel_to_runtime_json(&coerced)
                     };
                     values.insert(item.path.clone(), json_val);
-                    env.set_field(&item.path, coerced);
+                    state.set_field(&item.path, coerced);
                 }
             }
         }
 
         if !item.mip.relevant && item.excluded_value == Some(crate::types::ExcludedValueMode::Null)
         {
-            env.set_field(&item.path, Value::Null);
+            state.set_field(&item.path, Value::Null);
         }
 
         // Core §4.3.1: a `calculate` Bind is implicitly readonly unless `readonly` is set explicitly.
         let own_readonly = if let Some(ref expr) = item.readonly_expr {
-            let normalized_expr = normalize_expr(expr);
-            fel.eval_bool(&normalized_expr, env, false)
+            fel.eval_bool(expr, &state.site(walk.index, &item.path), false)
         } else {
             item.calculate.is_some()
         };
@@ -127,8 +124,7 @@ impl Visit for BindPass<'_> {
 
         if item.mip.relevant {
             if let Some(ref expr) = item.required_expr {
-                let normalized_expr = normalize_expr(expr);
-                item.mip.required = fel.eval_bool(&normalized_expr, env, false);
+                item.mip.required = fel.eval_bool(expr, &state.site(walk.index, &item.path), false);
             }
         } else {
             item.mip.required = false;
@@ -139,18 +135,17 @@ impl Visit for BindPass<'_> {
         }
 
         if let Some(ref expr) = item.calculate {
-            let normalized_expr = normalize_expr(expr);
-            if let Ok(parsed) = parse(&normalized_expr) {
-                let result = fel.evaluate(&parsed, env);
+            if let Ok(parsed) = parse(expr) {
+                let result = fel.evaluate(&parsed, &state.site(walk.index, &item.path));
                 let coerced = coerce_calculated_value(item, result.value);
                 let json_val = fel_to_runtime_json(&coerced);
                 values.insert(item.path.clone(), json_val.clone());
                 item.value = json_val.clone();
-                env.set_field(&item.path, coerced);
+                state.set_field(&item.path, coerced);
             }
         }
 
-        env.set_mip(
+        state.env.set_mip(
             &item.path,
             MipState {
                 valid: !self.invalid_paths.contains(&item.path),
@@ -178,21 +173,21 @@ impl Visit for BindPass<'_> {
 /// settled calculated values) and updates MIP state.
 pub(crate) fn refresh_required_state(
     items: &mut [ItemInfo],
-    env: &mut FormspecEnvironment,
+    state: &mut ScopeData,
     invalid_paths: &HashSet<String>,
+    index: &ScopeIndex,
     fel: Fel<'_>,
 ) {
     for item in items.iter_mut() {
         if item.mip.relevant {
             if let Some(ref expr) = item.required_expr {
-                let normalized_expr = resolve_qualified_repeat_refs(expr, &item.path);
-                item.mip.required = fel.eval_bool(&normalized_expr, env, false);
+                item.mip.required = fel.eval_bool(expr, &state.site(index, &item.path), false);
             }
         } else {
             item.mip.required = false;
         }
 
-        env.set_mip(
+        state.env.set_mip(
             &item.path,
             MipState {
                 valid: !invalid_paths.contains(&item.path),
@@ -202,6 +197,6 @@ pub(crate) fn refresh_required_state(
             },
         );
 
-        refresh_required_state(&mut item.children, env, invalid_paths, fel);
+        refresh_required_state(&mut item.children, state, invalid_paths, index, fel);
     }
 }

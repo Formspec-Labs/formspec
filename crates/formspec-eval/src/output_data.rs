@@ -11,6 +11,7 @@ use std::collections::{HashMap, HashSet};
 use fel_core::exact_json::{Map, Value};
 
 use crate::rebuild::rebuild_item_tree;
+use crate::scope::RowCounts;
 use crate::types::{ItemInfo, NrbMode};
 
 /// Checks whether a filed Response's data matches its evaluation.
@@ -97,13 +98,14 @@ fn group_matches(item: &ItemInfo, filed: Option<&Value>, evaluated: &Value) -> b
 /// Build the nested projection of `values` through the evaluated `items`.
 pub(crate) fn build_output_data(
     items: &[ItemInfo],
+    counts: &RowCounts,
     values: &HashMap<String, Value>,
     default_nrb: &str,
 ) -> Value {
     let mut covered = HashSet::new();
     let mut root = Map::new();
     let inherited = NrbMode::from_str_lossy(default_nrb);
-    emit(items, values, inherited, &mut covered, &mut root);
+    emit(items, counts, values, inherited, &mut covered, &mut root);
     // Keys no Item names (additional properties the input carried) keep their place: dotted paths nest.
     let mut extras: Vec<&String> = values
         .keys()
@@ -121,6 +123,7 @@ pub(crate) fn build_output_data(
 /// Keep the object scope rules in sync with `collect_group_items`.
 fn emit(
     items: &[ItemInfo],
+    counts: &RowCounts,
     values: &HashMap<String, Value>,
     inherited: NrbMode,
     covered: &mut HashSet<String>,
@@ -137,7 +140,7 @@ fn emit(
                 // must not replace the group's object.
                 covered.insert(item.path.clone());
                 let mut object = Map::new();
-                emit(&item.children, values, mode, covered, &mut object);
+                emit(&item.children, counts, values, mode, covered, &mut object);
                 if !object.is_empty() {
                     into.insert(item.key.clone(), Value::Object(object));
                 }
@@ -146,29 +149,36 @@ fn emit(
                 covered.insert(item.path.clone());
                 // Rows come from the post-NRB `values`, so each leaf's most specific behavior already
                 // applied: `empty` left null leaves, `keep` the answers, `remove` nothing.
-                // Expanded rows are consecutive runs of children sharing a `parent_path` (`rows[i]`).
-                let mut rows: Vec<(&str, Map<String, Value>)> = Vec::new();
+                let count = counts.get(&item.path).copied().unwrap_or(0) as usize;
+                let mut rows = vec![Map::new(); count];
                 for child in &item.children {
-                    let row = child.parent_path.as_deref().unwrap_or("");
-                    if rows.last().is_none_or(|(last, _)| *last != row) {
-                        rows.push((row, Map::new()));
-                    }
-                    let (_, object) = rows.last_mut().expect("row pushed above");
-                    emit(std::slice::from_ref(child), values, mode, covered, object);
+                    let Some(index) = child
+                        .parent_path
+                        .as_deref()
+                        .and_then(|row| row.strip_suffix(']'))
+                        .and_then(|row| row.rsplit_once('['))
+                        .and_then(|(_, index)| index.parse::<usize>().ok())
+                    else {
+                        continue;
+                    };
+                    emit(
+                        std::slice::from_ref(child),
+                        counts,
+                        values,
+                        mode,
+                        covered,
+                        &mut rows[index],
+                    );
                 }
                 // A repeat removed as non-relevant survives only through a descendant whose own
                 // `keep` or `empty` outranks it, the rule the group branch applies to its object.
                 let removed = !item.mip.relevant && mode == NrbMode::Remove;
-                if removed && rows.iter().all(|(_, row)| row.is_empty()) {
+                if removed && rows.iter().all(Map::is_empty) {
                     continue;
                 }
                 into.insert(
                     item.key.clone(),
-                    Value::Array(
-                        rows.into_iter()
-                            .map(|(_, row)| Value::Object(row))
-                            .collect(),
-                    ),
+                    Value::Array(rows.into_iter().map(Value::Object).collect()),
                 );
             }
             _ => {
@@ -177,7 +187,7 @@ fn emit(
                     into.insert(item.key.clone(), value.clone());
                 }
                 // Dependent questions share the parent's object because a scalar cannot contain children.
-                emit(&item.children, values, mode, covered, into);
+                emit(&item.children, counts, values, mode, covered, into);
             }
         }
     }

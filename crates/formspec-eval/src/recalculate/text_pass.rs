@@ -5,15 +5,13 @@
 
 use std::collections::{BTreeSet, HashMap};
 
-use fel_core::FormspecEnvironment;
+use crate::scope::ScopeData;
 use fel_core::exact_json::Value as JsonValue;
 use formspec_core::{DefinitionItemKeyPolicy, visit_definition_items_json_with_policy};
 
 use super::walk::{Visit, Walk};
 use crate::interpolation::interpolate_fel;
-use crate::types::{
-    ItemInfo, ItemText, ItemTextRequest, resolve_qualified_repeat_refs, strip_indices,
-};
+use crate::types::{ItemInfo, ItemText, ItemTextRequest, strip_indices};
 
 /// A Definition Item's inline text properties.
 #[derive(Default)]
@@ -108,20 +106,15 @@ impl Visit for TextPass<'_> {
         &mut self,
         walk: &Walk<'_>,
         item: &mut ItemInfo,
-        env: &mut FormspecEnvironment,
+        state: &mut ScopeData,
         _values: &mut HashMap<String, JsonValue>,
         (): (),
     ) {
         let Some(inline) = self.sources.get(&strip_indices(&item.path)) else {
             return;
         };
-        let env = &*env;
-        let interpolate = |template: &str| {
-            interpolate_fel(template, env, walk.fel, |expression| {
-                resolve_qualified_repeat_refs(expression, &item.path)
-            })
-            .text
-        };
+        let env = state.site(walk.index, &item.path);
+        let interpolate = |template: &str| interpolate_fel(template, &env, walk.fel).text;
         let locale = |property: &str| {
             self.request
                 .locale_strings

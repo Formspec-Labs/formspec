@@ -724,39 +724,15 @@
     },
     "parity.repeat-empty-rows-count": {
       "ts": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "FEL row arrays count rows only up to the last row holding a value (repeats.rs:100-109), so {} rows vanish: count($rows[*]) = 1 (F26c)",
-          "problems": [
-            "data m: 1 vs 3 (actual vs expected)",
-            "data n: 1 vs 3 (actual vs expected)",
-            "round trip of expected.data m: 1 vs 3",
-            "round trip of expected.data n: 1 vs 3"
-          ]
-        },
         "F": {
           "ticket": "fs-i731",
-          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503), so FormEngine counts '' rows (k = 3; the F21 'browser counts rows lacking the field'); P also undercounts until fs-rxih",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503), so FormEngine counts '' rows (k = 3; the F21 'browser counts rows lacking the field')",
           "problems": [
             "FormEngine live vs P data rows[1].a: \"\" vs absent",
             "FormEngine live vs P data rows[2].a: \"\" vs absent",
-            "FormEngine live vs P data m: 3 vs 1",
             "FormEngine live vs P data k: 3 vs 1",
-            "FormEngine live vs P data n: 3 vs 1",
             "FormEngine live vs P data rows[1]: absent vs {}",
             "FormEngine live vs P data rows[2]: absent vs {}"
-          ]
-        }
-      },
-      "rust": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "FEL row arrays count rows only up to the last row holding a value (repeats.rs:100-109), so {} rows vanish: count($rows[*]) = 1 (F26c)",
-          "problems": [
-            "data m: 1 vs 3 (actual vs expected)",
-            "data n: 1 vs 3 (actual vs expected)",
-            "round trip of expected.data m: 1 vs 3",
-            "round trip of expected.data n: 1 vs 3"
           ]
         }
       }
@@ -818,122 +794,6 @@
         }
       }
     },
-    "parity.repeat-zero-rows-aggregates": {
-      "ts": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "zero rows leave $rows unbound (repeats.rs:158-166), so count and sum are null instead of 0 (F21)",
-          "problems": [
-            "data m: null vs 0 (actual vs expected)",
-            "data total: null vs 0 (actual vs expected)",
-            "round trip of expected.data m: null vs 0",
-            "round trip of expected.data total: null vs 0"
-          ]
-        }
-      },
-      "rust": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "zero rows leave $rows unbound (repeats.rs:158-166), so count and sum are null instead of 0 (F21)",
-          "problems": [
-            "data m: null vs 0 (actual vs expected)",
-            "data total: null vs 0 (actual vs expected)",
-            "round trip of expected.data m: null vs 0",
-            "round trip of expected.data total: null vs 0"
-          ]
-        }
-      }
-    },
-    "parity.row-explicit-index-1-based": {
-      "ts": {
-        "S": {
-          "ticket": "fs-rxih",
-          "why": "a Bind constraint reads $rows[1] as the second row: its env has no row arrays (revalidate/env.rs:26-45) and fel-core's flat-key fallback (core.rs:990-1010) uses the 1-based index against 0-based keys (N3)",
-          "problems": [
-            "valid false, expected true",
-            "counts {\"error\":1,\"info\":0,\"warning\":0}, expected {\"error\":0,\"info\":0,\"warning\":0}",
-            "unexpected result {\"code\":\"CONSTRAINT_FAILED\",\"constraint\":\"$rows[1].lo = 1\",\"constraintKind\":\"constraint\",\"message\":\"constraint saw another first row\",\"path\":\"probe\",\"severity\":\"error\",\"source\":\"bind\"}"
-          ]
-        }
-      },
-      "rust": {
-        "S": {
-          "ticket": "fs-rxih",
-          "why": "a Bind constraint reads $rows[1] as the second row: its env has no row arrays (revalidate/env.rs:26-45) and fel-core's flat-key fallback (core.rs:990-1010) uses the 1-based index against 0-based keys (N3)",
-          "problems": [
-            "valid false, expected true",
-            "error count 1, expected 0",
-            "unexpected result {\"code\":\"CONSTRAINT_FAILED\",\"constraint\":\"$rows[1].lo = 1\",\"constraintKind\":\"constraint\",\"message\":\"constraint saw another first row\",\"path\":\"probe\",\"severity\":\"error\",\"source\":\"bind\"}"
-          ]
-        }
-      }
-    },
-    "parity.row-explicit-index-1-based-site-root": {
-      "rust": {
-        "value": {
-          "ticket": "fs-rxih",
-          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
-          "problems": [
-            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
-          ]
-        }
-      }
-    },
-    "parity.row-explicit-index-1-based-site-row": {
-      "rust": {
-        "value": {
-          "ticket": "fs-rxih",
-          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
-          "problems": [
-            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
-          ]
-        }
-      }
-    },
-    "parity.row-nested-group-sibling": {
-      "ts": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "bind_aliases aliases only direct row leaves (repeats.rs:298-336), so $a in a group nested in a row is null (F18)",
-          "problems": [
-            "data rows[0].body.copy: null vs \"hello\" (actual vs expected)",
-            "round trip of expected.data rows[0].body.copy: null vs \"hello\""
-          ]
-        }
-      },
-      "rust": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "bind_aliases aliases only direct row leaves (repeats.rs:298-336), so $a in a group nested in a row is null (F18)",
-          "problems": [
-            "data rows[0].body.copy: null vs \"hello\" (actual vs expected)",
-            "round trip of expected.data rows[0].body.copy: null vs \"hello\""
-          ]
-        }
-      }
-    },
-    "parity.row-nested-group-sibling-site": {
-      "rust": {
-        "value": {
-          "ticket": "fs-rxih",
-          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
-          "problems": [
-            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
-          ]
-        }
-      }
-    },
-    "parity.row-nested-group-sibling-text": {
-      "rust": {
-        "text": {
-          "ticket": "fs-rxih",
-          "why": "the evaluator's text pass resolves $a in a group nested in a row to null ('Copy of '), the F18 alias gap (repeats.rs:298-336); the browser's HostFelContext resolves it (N8: two engines)",
-          "problems": [
-            "rows[0].body.copy: {\"label\":\"Copy of \"} vs {\"label\":\"Copy of hello\"}"
-          ]
-        }
-      }
-    },
     "parity.row-required-sibling": {
       "ts": {
         "F": {
@@ -944,16 +804,6 @@
             "FormEngine live vs P data rows[0].detail2: \"\" vs absent",
             "FormEngine live vs P data rows[1].detail: \"\" vs absent",
             "FormEngine live vs P data rows[1].detail2: \"\" vs absent"
-          ]
-        },
-        "S": {
-          "ticket": "fs-rxih",
-          "why": "refresh_required_state re-evaluates required without the row scope and overwrites the walk's result (bind_pass.rs:179-207, mod.rs:176) (F13)",
-          "problems": [
-            "valid true, expected false",
-            "counts {\"error\":0,\"info\":0,\"warning\":0}, expected {\"error\":2,\"info\":0,\"warning\":0}",
-            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"rows[0].detail\",\"severity\":\"error\"}",
-            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"rows[0].detail2\",\"severity\":\"error\"}"
           ]
         },
         "F_submit": {
@@ -976,68 +826,16 @@
             "recheck of FormEngine submit data vs S data rows[1].detail2: \"\" vs absent"
           ]
         }
-      },
-      "rust": {
-        "S": {
-          "ticket": "fs-rxih",
-          "why": "refresh_required_state re-evaluates required without the row scope and overwrites the walk's result (bind_pass.rs:179-207, mod.rs:176) (F13)",
-          "problems": [
-            "valid true, expected false",
-            "error count 0, expected 2",
-            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"rows[0].detail2\",\"severity\":\"error\"}",
-            "expected result missing {\"code\":\"REQUIRED\",\"constraintKind\":\"required\",\"path\":\"rows[0].detail\",\"severity\":\"error\"}"
-          ]
-        }
-      }
-    },
-    "parity.row-required-sibling-site-0": {
-      "rust": {
-        "value": {
-          "ticket": "fs-rxih",
-          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
-          "problems": [
-            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
-          ]
-        }
-      }
-    },
-    "parity.row-required-sibling-site-1": {
-      "rust": {
-        "value": {
-          "ticket": "fs-rxih",
-          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
-          "problems": [
-            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
-          ]
-        }
       }
     },
     "parity.row-sibling-absent-is-null": {
       "ts": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "a row with no `kind` reads the outer field: aliases are bound only for present values (repeats.rs:298-336) (N2)",
-          "problems": [
-            "data rows[1].echo: \"TOP\" vs null (actual vs expected)",
-            "round trip of expected.data rows[1].echo: \"TOP\" vs null"
-          ]
-        },
         "F": {
           "ticket": "fs-i731",
-          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503); P also leaks the outer value until fs-rxih (N2)",
+          "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503)",
           "problems": [
             "FormEngine live vs P data rows[1].kind: \"\" vs absent",
-            "FormEngine live vs P data rows[1].echo: \"\" vs \"TOP\""
-          ]
-        }
-      },
-      "rust": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "a row with no `kind` reads the outer field: aliases are bound only for present values (repeats.rs:298-336) (N2)",
-          "problems": [
-            "data rows[1].echo: \"TOP\" vs null (actual vs expected)",
-            "round trip of expected.data rows[1].echo: \"TOP\" vs null"
+            "FormEngine live vs P data rows[1].echo: \"\" vs null"
           ]
         }
       }
@@ -1051,15 +849,6 @@
             "value false, expected true (exact)"
           ]
         }
-      },
-      "rust": {
-        "value": {
-          "ticket": "fs-rxih",
-          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
-          "problems": [
-            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
-          ]
-        }
       }
     },
     "parity.row-sibling-absent-is-null-text": {
@@ -1069,76 +858,6 @@
           "why": "FormEngine files untouched fields as '' (text) or null; the evaluator leaves them absent (F12: helpers.ts:110 emptyValueForItem, FormEngine.ts:1493-1503) (coalesce('', 'none') is ''); once absent, HostFelContext falls outward (N8) until fs-rxih",
           "problems": [
             "text {\"rows[0].echo\":{\"label\":\"Kind row0\"},\"rows[1].echo\":{\"label\":\"Kind \"}}, expected {\"rows[0].echo\":{\"label\":\"Kind row0\"},\"rows[1].echo\":{\"label\":\"Kind none\"}}"
-          ]
-        }
-      },
-      "rust": {
-        "text": {
-          "ticket": "fs-rxih",
-          "why": "the evaluator's text pass reads the outer `kind` for a row without one ('Kind TOP', N2); the browser shows 'Kind ' (F12) — two engines, two wrong answers",
-          "problems": [
-            "rows[1].echo: {\"label\":\"Kind TOP\"} vs {\"label\":\"Kind none\"}"
-          ]
-        }
-      }
-    },
-    "parity.row-star-is-all-rows": {
-      "ts": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "wildcard.rs:37-84 rewrites $rows[*] to the current row inside a rows[*] bind, so sum() sees one number and the share is null (F21); Core §3.2.2 says all rows",
-          "problems": [
-            "data rows[0].share: null vs 0.25 (actual vs expected)",
-            "data rows[1].share: null vs 0.75 (actual vs expected)",
-            "round trip of expected.data rows[0].share: null vs 0.25",
-            "round trip of expected.data rows[1].share: null vs 0.75"
-          ]
-        }
-      },
-      "rust": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "wildcard.rs:37-84 rewrites $rows[*] to the current row inside a rows[*] bind, so sum() sees one number and the share is null (F21); Core §3.2.2 says all rows",
-          "problems": [
-            "data rows[0].share: null vs 0.25 (actual vs expected)",
-            "data rows[1].share: null vs 0.75 (actual vs expected)",
-            "round trip of expected.data rows[0].share: null vs 0.25",
-            "round trip of expected.data rows[1].share: null vs 0.75"
-          ]
-        }
-      }
-    },
-    "parity.row-star-is-all-rows-site": {
-      "rust": {
-        "value": {
-          "ticket": "fs-rxih",
-          "why": "site-scoped FEL runs through HostFelContext, which cannot yet be built from an EvaluationResult natively (fs-rxih makes one site-scope module for evaluate and HostFelContext)",
-          "problems": [
-            "site-scoped evaluation needs HostFelContext built from an EvaluationResult (fs-rxih)"
-          ]
-        }
-      }
-    },
-    "parity.row-target-shape-non-relevant": {
-      "ts": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "a shape on rows[*] finds no item node for rows[0] (shapes.rs:149) and ignores the non-relevant repeat (F26b)",
-          "problems": [
-            "valid false, expected true",
-            "counts {\"error\":1,\"info\":0,\"warning\":0}, expected {\"error\":0,\"info\":0,\"warning\":0}",
-            "unexpected result {\"code\":\"SHAPE_FAILED\",\"constraint\":\"false\",\"constraintKind\":\"shape\",\"message\":\"row rule\",\"path\":\"rows[0]\",\"severity\":\"error\",\"shapeId\":\"row-rule\",\"source\":\"shape\"}"
-          ]
-        }
-      },
-      "rust": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "a shape on rows[*] finds no item node for rows[0] (shapes.rs:149) and ignores the non-relevant repeat (F26b)",
-          "problems": [
-            "valid false, expected true",
-            "error count 1, expected 0",
-            "unexpected result {\"code\":\"SHAPE_FAILED\",\"constraint\":\"false\",\"constraintKind\":\"shape\",\"message\":\"row rule\",\"path\":\"rows[0]\",\"severity\":\"error\",\"shapeId\":\"row-rule\",\"source\":\"shape\"}"
           ]
         }
       }
@@ -1324,32 +1043,6 @@
             "FormEngine live vs P data src: \"\" vs absent",
             "FormEngine live vs P data copy: \"\" vs null",
             "FormEngine live vs P data srcIsNull: false vs true"
-          ]
-        }
-      }
-    },
-    "parity.variable-scoped-per-row": {
-      "ts": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "a variable scoped to a repeat gets no row scope (variables.rs:112-152 aliases only 'rows.' keys, never 'rows[0].x'), so @rowDouble is null (N9)",
-          "problems": [
-            "data rows[0].d: null vs 2 (actual vs expected)",
-            "data rows[1].d: null vs 6 (actual vs expected)",
-            "round trip of expected.data rows[0].d: null vs 2",
-            "round trip of expected.data rows[1].d: null vs 6"
-          ]
-        }
-      },
-      "rust": {
-        "P": {
-          "ticket": "fs-rxih",
-          "why": "a variable scoped to a repeat gets no row scope (variables.rs:112-152 aliases only 'rows.' keys, never 'rows[0].x'), so @rowDouble is null (N9)",
-          "problems": [
-            "data rows[0].d: null vs 2 (actual vs expected)",
-            "data rows[1].d: null vs 6 (actual vs expected)",
-            "round trip of expected.data rows[0].d: null vs 2",
-            "round trip of expected.data rows[1].d: null vs 6"
           ]
         }
       }

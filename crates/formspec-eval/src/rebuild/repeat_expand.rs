@@ -7,24 +7,16 @@ use fel_core::exact_json::Value;
 
 use crate::types::ItemInfo;
 
-use super::repeat_data::detect_repeat_count;
+use crate::scope::{LegacyPadding, RowCounts, count_flat_rows};
 
 /// Expand repeatable groups into concrete indexed instances based on data.
 ///
 /// For each repeatable group, counts instances in data and clones the
 /// template children N times with indexed paths: `group[0].child`, `group[1].child`.
 pub fn expand_repeat_instances(items: &mut [ItemInfo], data: &HashMap<String, Value>) {
-    expand_repeat_instances_inner(items, data, &HashMap::new());
-}
-
-/// [`expand_repeat_instances`] with row counts supplied beside the data (a row with no answered
-/// field has no key in `data`); a repeat takes the larger of the two counts.
-pub(crate) fn expand_repeat_instances_counted(
-    items: &mut [ItemInfo],
-    data: &HashMap<String, Value>,
-    counts: &HashMap<String, u64>,
-) {
-    expand_repeat_instances_inner(items, data, counts);
+    let mut counts = RowCounts::new();
+    count_flat_rows(data.keys(), &mut counts);
+    expand_repeat_instances_counted(items, &mut counts, &mut LegacyPadding::new());
 }
 
 fn rebase_item_paths(item: &mut ItemInfo, from: &str, to: &str) {
@@ -47,16 +39,21 @@ fn rebase_item_paths(item: &mut ItemInfo, from: &str, to: &str) {
     }
 }
 
-fn expand_repeat_instances_inner(
+/// Expand rows from the flatten pass and record any legacy minRepeat padding.
+pub(crate) fn expand_repeat_instances_counted(
     items: &mut [ItemInfo],
-    data: &HashMap<String, Value>,
-    counts: &HashMap<String, u64>,
+    counts: &mut RowCounts,
+    padding: &mut LegacyPadding,
 ) {
     for item in items.iter_mut() {
         if item.repeatable {
-            let count = detect_repeat_count(&item.path, data)
-                .max(counts.get(&item.path).copied().unwrap_or(0) as usize)
-                .max(item.repeat_min.unwrap_or(0) as usize);
+            let supplied = counts.get(&item.path).copied();
+            let count = supplied.unwrap_or(0).max(item.repeat_min.unwrap_or(0));
+            if count > supplied.unwrap_or(0) {
+                padding.insert(item.path.clone(), supplied);
+            }
+            counts.insert(item.path.clone(), count);
+            let count = count as usize;
             if count > 0 {
                 // Clone template children into concrete indexed instances
                 let template_children = item.children.clone();
@@ -69,10 +66,10 @@ fn expand_repeat_instances_inner(
                         rebase_item_paths(&mut concrete, &original_path, &indexed_path);
                         concrete.parent_path = Some(format!("{}[{}]", item.path, i));
                         // Recursively expand nested repeatables
-                        expand_repeat_instances_inner(
+                        expand_repeat_instances_counted(
                             std::slice::from_mut(&mut concrete),
-                            data,
                             counts,
+                            padding,
                         );
                         expanded.push(concrete);
                     }
@@ -87,7 +84,7 @@ fn expand_repeat_instances_inner(
             }
         } else {
             // Recurse into non-repeatable groups
-            expand_repeat_instances_inner(&mut item.children, data, counts);
+            expand_repeat_instances_counted(&mut item.children, counts, padding);
         }
     }
 }

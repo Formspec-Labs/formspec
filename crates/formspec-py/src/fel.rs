@@ -8,7 +8,7 @@ use pyo3::types::PyDict;
 use fel_core::{
     EvaluatorOptions, JsonWireStyle, MapEnvironment, Trace, builtin_function_catalog_json_value,
     dependencies_to_json_value_styled, evaluate, evaluate_with, extract_dependencies,
-    fel_diagnostics_to_json_value, host_options_from_json, parse, prepare,
+    fel_diagnostics_to_json_value, parse,
 };
 use formspec_core::{
     analyze_fel, assembly_fel_rewrite_map_from_value, fel_analysis_to_json_value,
@@ -282,7 +282,8 @@ pub fn parse_fel(expression: &str) -> Option<String> {
         Ok(_) => None,
         Err(fel_core::Error::Parse(pe)) => {
             if let Some(span) = pe.span {
-                if pe.message.contains("at position") || pe.message.contains("starting at position") {
+                if pe.message.contains("at position") || pe.message.contains("starting at position")
+                {
                     Some(pe.message)
                 } else {
                     Some(format!("{} at position {}", pe.message, span.start))
@@ -338,23 +339,6 @@ pub fn list_builtin_functions(py: Python) -> PyResult<PyObject> {
     json_to_python(py, &json)
 }
 
-/// Normalize FEL source for evaluation (same rules as the TS engine / `prepareFelExpression` WASM).
-///
-/// Args:
-///     options: dict with `expression` (required), optional `current_item_path` / `currentItemPath`,
-///         `replace_self_ref` / `replaceSelfRef`, `repeat_counts` / `repeatCounts`,
-///         and `values_by_path` / `valuesByPath` or `field_paths` / `fieldPaths`.
-#[pyfunction]
-pub fn prepare_expression(options: &Bound<'_, PyAny>) -> PyResult<String> {
-    let v: Value = depythonize_json(options)?;
-    let m = v.as_object().ok_or_else(|| {
-        pyo3::exceptions::PyTypeError::new_err("prepare_expression options must be a dict")
-    })?;
-    let owned =
-        host_options_from_json(m).map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?;
-    Ok(prepare(&owned))
-}
-
 /// Rewrite FEL using definition-assembly RewriteMap (fragment + host keys, same as TS `rewriteFEL`).
 #[pyfunction]
 #[pyo3(name = "rewrite_fel_for_assembly")]
@@ -379,15 +363,25 @@ mod tests {
     fn test_parse_fel_invalid_surfaces_message_and_position() {
         // Test 1: trailing operator / unexpected eof
         let err1 = parse_fel("1 +").expect("should error");
-        assert!(err1.contains("unexpected token") || err1.contains("position"), "{err1}");
+        assert!(
+            err1.contains("unexpected token") || err1.contains("position"),
+            "{err1}"
+        );
 
         // Test 2: unexpected token / character
         let err2 = parse_fel("1 @ 2").expect("should error");
-        assert!((err2.contains("unexpected character") || err2.contains("unexpected token")) && err2.contains("position"), "{err2}");
+        assert!(
+            (err2.contains("unexpected character") || err2.contains("unexpected token"))
+                && err2.contains("position"),
+            "{err2}"
+        );
 
         // Test 3: unclosed string literal
         let err3 = parse_fel("'unterminated").expect("should error");
-        assert!(err3.contains("unterminated string") && err3.contains("position"), "{err3}");
+        assert!(
+            err3.contains("unterminated string") && err3.contains("position"),
+            "{err3}"
+        );
     }
 
     #[test]
@@ -414,14 +408,17 @@ mod tests {
         assert_eq!(diags2[0].span, Some(3..4));
 
         // cannot apply '+' extracts '+' and targets the failing operator in compound expression
-        let mut diags3 = vec![fel_core::Diagnostic::error("cannot apply '+' to string and number")];
+        let mut diags3 = vec![fel_core::Diagnostic::error(
+            "cannot apply '+' to string and number",
+        )];
         attach_spans_to_diagnostics(&mut diags3, "1 + 2\n\"abc\" + 3");
         assert_eq!(diags3[0].span, Some(12..13));
 
         // cannot apply '-' extracts '-' and searches from the end
-        let mut diags4 = vec![fel_core::Diagnostic::error("cannot apply '-' to number and string")];
+        let mut diags4 = vec![fel_core::Diagnostic::error(
+            "cannot apply '-' to number and string",
+        )];
         attach_spans_to_diagnostics(&mut diags4, "10 - 5 - \"bad\"");
         assert_eq!(diags4[0].span, Some(7..8));
     }
 }
-

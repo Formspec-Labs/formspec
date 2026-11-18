@@ -44,45 +44,6 @@ pub(crate) fn json_to_runtime_fel(value: &JsonValue) -> Value {
     }
 }
 
-/// Convert a nested response using the same field typing as flat values.
-pub(crate) fn json_tree_to_runtime_fel<'a>(
-    value: &JsonValue,
-    path: &str,
-    data_type: &impl Fn(&str) -> Option<&'a str>,
-) -> Value {
-    if data_type(path).is_some() {
-        return json_to_runtime_fel_typed(value, data_type(path));
-    }
-    match value {
-        JsonValue::Object(object) => Value::Object(
-            object
-                .iter()
-                .map(|(key, value)| {
-                    let child = if path.is_empty() {
-                        key.clone()
-                    } else {
-                        format!("{path}.{key}")
-                    };
-                    (
-                        key.clone(),
-                        json_tree_to_runtime_fel(value, &child, data_type),
-                    )
-                })
-                .collect(),
-        ),
-        JsonValue::Array(array) => Value::Array(
-            array
-                .iter()
-                .enumerate()
-                .map(|(index, value)| {
-                    json_tree_to_runtime_fel(value, &format!("{path}[{index}]"), data_type)
-                })
-                .collect(),
-        ),
-        _ => json_to_runtime_fel(value),
-    }
-}
-
 /// Whether a field `dataType` reads as FEL `date` (Core §2.1.3).
 ///
 /// FEL `date` has no zone, offset, or source precision, so its JSON rendering
@@ -144,5 +105,43 @@ mod tests {
             json_to_runtime_fel_typed(&json!(null), Some("date")),
             Value::Null
         );
+    }
+}
+
+/// Encode a resident variable, preserving FEL types and literal object keys.
+pub(crate) fn variable_to_wire(value: &Value) -> JsonValue {
+    match value {
+        Value::Object(entries) => {
+            let object = JsonValue::Object(
+                entries
+                    .iter()
+                    .map(|(key, value)| (key.clone(), variable_to_wire(value)))
+                    .collect(),
+            );
+            exact_json::native_json!({"$type": "object", "value": object})
+        }
+        Value::Array(entries) => JsonValue::Array(entries.iter().map(variable_to_wire).collect()),
+        value => exact_json::to_value(&fel_core::fel_to_wire_json(value)).expect("FEL wire value"),
+    }
+}
+
+/// Decode one resident variable from its FEL wire representation.
+pub(crate) fn variable_from_wire(value: &JsonValue) -> Value {
+    match value {
+        JsonValue::Array(entries) => Value::Array(entries.iter().map(variable_from_wire).collect()),
+        JsonValue::Object(entries)
+            if entries.get("$type").and_then(JsonValue::as_str) == Some("object") =>
+        {
+            Value::Object(
+                entries
+                    .get("value")
+                    .and_then(JsonValue::as_object)
+                    .into_iter()
+                    .flatten()
+                    .map(|(key, value)| (key.clone(), variable_from_wire(value)))
+                    .collect(),
+            )
+        }
+        value => exact_json::to_fel_wire(value),
     }
 }

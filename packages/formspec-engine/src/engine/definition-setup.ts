@@ -11,6 +11,7 @@ import {
 import type { EngineBindConfig } from './helpers.js';
 import {
     detectNamedCycle,
+    getScopeAncestors,
     parentPathOf,
     resolveRelativeDependency,
     toBasePath,
@@ -22,14 +23,26 @@ export function resolveOptionSetsOnDefinition(definition: FormDefinition): FormD
     ) as FormDefinition;
 }
 
-export function validateVariableDefinitionCycles(variableDefs: FormVariable[]): void {
+export function validateVariableDefinitionCycles(
+    variableDefs: FormVariable[],
+    resolveScope: (scope?: string) => string,
+): void {
+    const scopes = new Map<string, Set<string>>();
+    for (const definition of variableDefs) {
+        const scope = resolveScope(definition.scope);
+        if (!scopes.has(scope)) scopes.set(scope, new Set());
+        scopes.get(scope)?.add(definition.name);
+    }
     const graph = new Map<string, Set<string>>();
-    for (const variableDef of variableDefs) {
+    for (const definition of variableDefs) {
+        const scope = resolveScope(definition.scope);
+        const visible = ['#', ...getScopeAncestors(scope)].reverse();
         const deps = new Set<string>();
-        for (const name of wasmAnalyzeFel(variableDef.expression).variables) {
-            deps.add(name);
+        for (const name of wasmAnalyzeFel(definition.expression).variables) {
+            const declaration = visible.find(path => scopes.get(path)?.has(name));
+            if (declaration) deps.add(`${declaration}:${name}`);
         }
-        graph.set(variableDef.name, deps);
+        graph.set(`${scope}:${definition.name}`, deps);
     }
     detectNamedCycle(graph, 'Circular variable dependency');
 }

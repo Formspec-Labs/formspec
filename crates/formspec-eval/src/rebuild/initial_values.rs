@@ -2,12 +2,13 @@
 
 use std::collections::HashMap;
 
-use fel_core::FormspecEnvironment;
 use fel_core::exact_json::Value;
 
+use crate::EvalOptions;
 use crate::fel_eval::Fel;
-use crate::fel_json::{fel_to_runtime_json, json_to_runtime_fel};
-use crate::types::{EvalContext, ItemInfo};
+use crate::fel_json::{fel_to_runtime_json, json_to_runtime_fel_typed};
+use crate::scope::{ScopeData, ScopeIndex};
+use crate::types::ItemInfo;
 
 /// Seed initial values for fields that are missing from data (9e).
 /// If initialValue is a string starting with "=", evaluate as FEL expression.
@@ -15,15 +16,16 @@ use crate::types::{EvalContext, ItemInfo};
 pub(crate) fn seed_initial_values(
     items: &[ItemInfo],
     data: &mut HashMap<String, Value>,
-    context: &EvalContext,
-    fel: Fel<'_>,
+    index: &ScopeIndex,
+    options: &EvalOptions<'_>,
 ) {
     let mut env = SeedEnv {
-        context,
-        env: None,
+        index,
+        options,
+        state: None,
         dirty: Vec::new(),
     };
-    seed_items(items, data, fel, &mut env);
+    seed_items(items, data, Fel::new(options.extensions), &mut env);
 }
 
 /// The environment `=` initial values evaluate in.
@@ -32,42 +34,32 @@ pub(crate) fn seed_initial_values(
 /// independent inputs. It is built on the first `=` value a pass meets (a definition with none pays
 /// nothing) and carries each seeded value forward, so the pass costs O(data + items) instead.
 struct SeedEnv<'a> {
-    /// Clock and Response identity for seeded expressions.
-    context: &'a EvalContext,
-    /// The environment, once some `=` initial value has needed it.
-    env: Option<FormspecEnvironment>,
+    index: &'a ScopeIndex,
+    options: &'a EvalOptions<'a>,
+    state: Option<ScopeData>,
     /// Paths seeded before the environment existed, folded in when it is built.
     dirty: Vec<String>,
 }
 
 impl SeedEnv<'_> {
-    /// The environment reflecting every value currently in `data`.
-    fn get(&mut self, data: &HashMap<String, Value>) -> &FormspecEnvironment {
-        let context = self.context;
-        let env = self.env.get_or_insert_with(|| {
-            let mut env = FormspecEnvironment::new();
-            if let Some(keys) = context.subject_keys() {
-                env.subject_keys.clone_from(keys);
-            }
-            if let Some(now_iso) = &context.now_iso {
-                env.set_now_from_iso(now_iso);
-            }
-            for (path, value) in data {
-                env.set_field(path, json_to_runtime_fel(value));
-            }
-            env
-        });
+    fn get(&mut self, data: &HashMap<String, Value>) -> &ScopeData {
+        let state = self
+            .state
+            .get_or_insert_with(|| ScopeData::for_values(self.index, data, self.options));
         for path in self.dirty.drain(..) {
             if let Some(value) = data.get(&path) {
-                env.set_field(&path, json_to_runtime_fel(value));
+                state.set_field(
+                    &path,
+                    json_to_runtime_fel_typed(value, self.index.data_type(&path)),
+                );
             }
         }
-        env
+        state
     }
 
     /// Records a value just seeded at `path`, so later expressions resolve it.
     fn seeded(&mut self, path: &str) {
-        if self.env.is_some() {
+        if self.state.is_some() {
             self.dirty.push(path.to_string());
         }
     }
@@ -87,7 +79,8 @@ fn seed_items(
             match init_val {
                 Value::String(s) if s.starts_with('=') => {
                     if let Ok(parsed) = fel_core::parse(&s[1..]) {
-                        let result = fel.evaluate(&parsed, env.get(data));
+                        let index = env.index;
+                        let result = fel.evaluate(&parsed, &env.get(data).site(index, &item.path));
                         data.insert(item.path.clone(), fel_to_runtime_json(&result.value));
                         env.seeded(&item.path);
                     }
@@ -98,8 +91,7 @@ fn seed_items(
                 }
             }
         }
-        // A repeat's children are templates (`rows.addr.flag`) until rows expand; seeding one would
-        // write a path no row owns.
+        // The browser still owns repeat-row initialization until fs-i731.
         if !item.repeatable {
             seed_items(&item.children, data, fel, env);
         }

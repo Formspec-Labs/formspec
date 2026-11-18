@@ -6,7 +6,6 @@ mod nested_data;
 mod repeat_data;
 mod repeat_expand;
 mod repeat_references;
-mod wildcard;
 
 #[cfg(test)]
 mod tests;
@@ -19,6 +18,3 @@ pub use repeat_data::expand_wildcard_path;
 pub use repeat_expand::expand_repeat_instances;
 pub(crate) use repeat_expand::expand_repeat_instances_counted;
 pub(crate) use repeat_references::check as check_repeat_references;
-pub(crate) use wildcard::{
-    apply_wildcard_binds, instantiate_wildcard_expr, is_wildcard_bind, wildcard_base,
-};

@@ -9,60 +9,30 @@ use fel_core::exact_json::Value;
 use formspec_core::registry_client::version_satisfies;
 use url::Url;
 
-use fel_core::{FormspecEnvironment, parse};
+use fel_core::parse;
 
 use crate::convert::resolve_value_by_path;
-use crate::fel_json::json_to_runtime_fel_typed;
 use crate::interpolation::interpolate_fel;
-use crate::rebuild::detect_repeat_count;
-use crate::recalculate::repeats::InstanceScope;
 use crate::types::{
     ConstraintKind, ExtensionConstraint, ItemInfo, Severity, ValidationCode, ValidationResult,
-    ValidationSource, resolve_qualified_repeat_refs,
+    ValidationSource,
 };
 
 use crate::value_predicate::{is_empty_for_required_bind, value_skips_optional_bind_checks};
 
-use super::env::restore_sibling_aliases;
 use super::expr::{ConstraintSite, constraint_passes};
 use super::{Findings, Validation};
 
 impl Validation<'_> {
     /// Validates `items` and their descendants: required, type, constraint, extensions, cardinality.
-    pub(super) fn validate_items(
-        &self,
-        items: &[ItemInfo],
-        env: &mut FormspecEnvironment,
-        findings: &mut Findings,
-    ) {
+    pub(super) fn validate_items(&self, items: &[ItemInfo], findings: &mut Findings) {
         for item in items {
-            self.validate_item(item, env, findings);
+            self.validate_item(item, findings);
         }
     }
 
-    /// Validates one repeat group's expanded instance children with each row's scope bound — the
-    /// sibling aliases and `@index` / `@count` / `@current` the recalculate walk gives the same row.
-    fn validate_instance_children(
-        &self,
-        children: &[ItemInfo],
-        env: &mut FormspecEnvironment,
-        findings: &mut Findings,
-    ) {
-        let mut scope = InstanceScope::new(children, self.values, self.index);
-        for child in children {
-            scope.enter(child, env, self.values, self.index);
-            self.validate_item(child, env, findings);
-        }
-        scope.finish(env);
-    }
-
-    fn validate_item(
-        &self,
-        item: &ItemInfo,
-        env: &mut FormspecEnvironment,
-        findings: &mut Findings,
-    ) {
-        let (values, siblings) = (self.values, &self.siblings);
+    fn validate_item(&self, item: &ItemInfo, findings: &mut Findings) {
+        let values = self.values;
         // Skip non-relevant items (validation suppressed per S5.6)
         if !item.mip.relevant {
             return;
@@ -201,14 +171,7 @@ impl Validation<'_> {
         if !value_skips_optional_bind_checks(&val)
             && let Some(ref expr) = item.constraint
         {
-            let normalized_expr = resolve_qualified_repeat_refs(expr, &item.path);
-            let saved_aliases = siblings.bind(env, &item.path);
-            // Temporarily bind bare $ to this field's value (typed like env fields — S2.1.3)
-            let prev_dollar = env.data.remove("");
-            env.data.insert(
-                String::new(),
-                json_to_runtime_fel_typed(&val, item.data_type.as_deref()),
-            );
+            let env = self.state.site(self.index, &item.path);
 
             // Core §3.10.1 definition errors (syntax error, undefined function) share
             // CONSTRAINT_PARSE_ERROR with a processor-generated message (Phase 3 step 1a);
@@ -218,9 +181,9 @@ impl Validation<'_> {
                 shape_id: None,
                 fel: self.fel,
             };
-            let outcome = match parse(&normalized_expr) {
+            let outcome = match parse(expr) {
                 Ok(parsed) => site.settle(
-                    self.fel.evaluate(&parsed, env),
+                    self.fel.evaluate(&parsed, &env),
                     expr,
                     &mut findings.diagnostics,
                 ),
@@ -234,12 +197,7 @@ impl Validation<'_> {
                 Ok(_) => Some((
                     ValidationCode::ConstraintFailed,
                     match item.constraint_message.as_deref() {
-                        Some(message) => {
-                            interpolate_fel(message, env, self.fel, |e| {
-                                resolve_qualified_repeat_refs(e, &item.path)
-                            })
-                            .text
-                        }
+                        Some(message) => interpolate_fel(message, &env, self.fel).text,
                         None => format!("Constraint failed: {expr}"),
                     },
                 )),
@@ -261,13 +219,6 @@ impl Validation<'_> {
                     context: None,
                 });
             }
-
-            // Restore previous bare $ binding
-            env.data.remove("");
-            if let Some(prev) = prev_dollar {
-                env.data.insert(String::new(), prev);
-            }
-            restore_sibling_aliases(env, saved_aliases);
         }
 
         // Extension constraint enforcement
@@ -281,13 +232,9 @@ impl Validation<'_> {
 
         // Cardinality check for repeatable groups
         if item.repeatable {
-            let count = self
-                .repeat_counts
-                .and_then(|m| m.get(&item.path).copied())
-                .map(|n| n as usize)
-                .unwrap_or_else(|| detect_repeat_count(&item.path, values));
+            let count = self.index.cardinality(item, values);
             if let Some(min) = item.repeat_min
-                && (count as u64) < min
+                && count < min
             {
                 findings.results.push(ValidationResult {
                     path: item.path.clone(),
@@ -302,7 +249,7 @@ impl Validation<'_> {
                 });
             }
             if let Some(max) = item.repeat_max
-                && (count as u64) > max
+                && count > max
             {
                 findings.results.push(ValidationResult {
                     path: item.path.clone(),
@@ -318,11 +265,7 @@ impl Validation<'_> {
             }
         }
 
-        if item.repeatable && !item.children.is_empty() {
-            self.validate_instance_children(&item.children, env, findings);
-        } else {
-            self.validate_items(&item.children, env, findings);
-        }
+        self.validate_items(&item.children, findings);
     }
 }
 

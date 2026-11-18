@@ -147,6 +147,8 @@ pub struct EvaluationResult {
     /// All field values after recalculation (post-NRB): flat state keyed by path
     /// (`group.field`, `rows[0].name`), like [`Self::required`] and [`Self::readonly`].
     pub values: HashMap<String, Value>,
+    /// Settled values before applying the filed Response's non-relevant behavior.
+    pub(crate) host_values: HashMap<String, Value>,
     /// The Response projection of [`Self::values`]: groups are nested objects and repeats arrays of
     /// row objects, after `nonRelevantBehavior`. What a Response stores as `data`.
     pub data: Value,
@@ -158,6 +160,10 @@ pub struct EvaluationResult {
     pub non_relevant: Vec<String>,
     /// Evaluated variable values.
     pub variables: HashMap<String, Value>,
+    /// Variables by concrete scope and name, with FEL types.
+    pub scoped_variables: HashMap<String, HashMap<String, fel_core::Value>>,
+    /// Materialized row count by concrete repeat group.
+    pub row_counts: HashMap<String, u64>,
     /// Required state by path.
     pub required: HashMap<String, bool>,
     /// Readonly state by path.

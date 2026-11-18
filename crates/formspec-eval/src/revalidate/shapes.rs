@@ -4,272 +4,94 @@
 use std::collections::{HashMap, HashSet};
 
 use fel_core::exact_json::Value as JsonValue;
-use fel_core::{FormspecEnvironment, Value};
+use fel_core::{Environment, Value};
 
 use crate::fel_eval::Fel;
-use crate::fel_json::json_to_runtime_fel_typed;
 use crate::interpolation::interpolate_fel;
-use crate::rebuild::{
-    expand_wildcard_path, instantiate_wildcard_expr, is_wildcard_bind, wildcard_base,
-};
 use crate::types::{
     ConstraintKind, EvalDiagnostic, Severity, ValidationCode, ValidationResult, ValidationSource,
-    find_item_by_path,
 };
 
-use super::env::{RowContext, restore_sibling_aliases};
-use super::expr::{ConstraintSite, constraint_passes};
+use super::expr::ConstraintSite;
 use super::{Findings, Validation};
 
 impl Validation<'_> {
-    /// Evaluates `shape` at its target, or per concrete row for a wildcard target.
-    pub(super) fn validate_shape(
-        &self,
-        shape: &JsonValue,
-        env: &mut FormspecEnvironment,
-        findings: &mut Findings,
-    ) {
-        let (values, siblings, items, fel) = (self.values, &self.siblings, self.items, self.fel);
+    /// Evaluate each concrete Shape target in its own lexical scope.
+    pub(super) fn validate_shape(&self, shape: &JsonValue, findings: &mut Findings) {
         let target = shape.get("target").and_then(|v| v.as_str()).unwrap_or("");
-
-        // Wildcard shape target: expand and evaluate per-instance
-        if is_wildcard_bind(target) {
-            self.validate_wildcard_shape(shape, env, findings);
-            return;
-        }
-
-        // §5.6 rule 1: non-relevant targets suppress shape evaluation
-        if target != "#"
-            && !target.is_empty()
-            && let Some(item) = find_item_by_path(items, target)
-            && !item.mip.relevant
-        {
-            return;
-        }
-        let severity = shape
-            .get("severity")
-            .and_then(|v| v.as_str())
-            .unwrap_or("error");
-        let message = shape
-            .get("message")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Shape constraint failed");
-
-        // Check activeWhen
-        let saved_aliases = if target.is_empty() || target == "#" {
-            HashMap::new()
-        } else {
-            siblings.bind(env, target)
-        };
-        if let Some(active_when) = shape.get("activeWhen").and_then(|v| v.as_str())
-            && !fel.eval_bool(active_when, env, true)
-        {
-            restore_sibling_aliases(env, saved_aliases);
-            return;
-        }
-
-        // Bind bare $ to target field value for shape constraint evaluation
-        let prev_dollar = env.data.remove("");
-        if !target.is_empty()
-            && let Some(target_val) = values.get(target)
-        {
-            env.data.insert(
-                String::new(),
-                json_to_runtime_fel_typed(target_val, siblings.data_type(target)),
-            );
-        }
-
-        let sid = shape.get("id").and_then(|v| v.as_str()).map(str::to_string);
-        let scode = shape
-            .get("code")
-            .and_then(|v| v.as_str())
-            .unwrap_or("SHAPE_FAILED");
-
-        let passes = Composition {
-            shapes_by_id: &self.shapes_by_id,
-            env,
-            visiting: HashSet::new(),
-            diagnostics: &mut findings.diagnostics,
-            fel,
-        }
-        .passes(shape, target);
-        if !passes {
-            findings.results.push(ValidationResult {
-                path: target.to_string(),
-                severity: Severity::parse_wire(severity).unwrap_or(Severity::Error),
-                constraint_kind: ConstraintKind::Shape,
-                code: ValidationCode::from_wire(scode),
-                message: interpolate_fel(message, env, fel, str::to_string).text,
-                constraint: shape
-                    .get("constraint")
-                    .and_then(|v| v.as_str())
-                    .map(str::to_string),
-                source: Some(ValidationSource::Shape),
-                shape_id: sid.clone(),
-                context: evaluate_shape_context(shape, env, None, fel),
-            });
-        }
-
-        restore_sibling_aliases(env, saved_aliases);
-        // Restore previous bare $ binding
-        env.data.remove("");
-        if let Some(prev) = prev_dollar {
-            env.data.insert(String::new(), prev);
-        }
-    }
-
-    /// Validate a shape with a wildcard target, evaluating per concrete instance.
-    fn validate_wildcard_shape(
-        &self,
-        shape: &JsonValue,
-        env: &mut FormspecEnvironment,
-        findings: &mut Findings,
-    ) {
-        let (values, siblings, items, fel) = (self.values, &self.siblings, self.items, self.fel);
-        let target = shape.get("target").and_then(|v| v.as_str()).unwrap_or("");
-        let severity = shape
-            .get("severity")
-            .and_then(|v| v.as_str())
-            .unwrap_or("error");
-        let message = shape
-            .get("message")
-            .and_then(|v| v.as_str())
-            .unwrap_or("Shape constraint failed");
-
-        let base = match wildcard_base(target) {
-            Some(b) => b.to_string(),
-            None => return,
-        };
-
-        let concrete_paths = expand_wildcard_path(target, values);
-        let mut row = RowContext::new();
-
-        for concrete_path in &concrete_paths {
-            // §5.6 rule 1: skip non-relevant targets
-            if let Some(item) = find_item_by_path(items, concrete_path)
-                && !item.mip.relevant
+        for path in self.index.targets(target) {
+            let item_path = if path.ends_with(']') {
+                path.rsplit_once('[')
+                    .map_or(path.as_str(), |(group, _)| group)
+            } else {
+                &path
+            };
+            if self
+                .by_path
+                .get(item_path)
+                .is_some_and(|item| !item.mip.relevant)
             {
                 continue;
             }
-
-            // Extract the index from the concrete path to instantiate the constraint
-            let index = match concrete_path.find('[') {
-                Some(pos) => {
-                    let rest = &concrete_path[pos + 1..];
-                    rest.split(']')
-                        .next()
-                        .and_then(|s| s.parse::<usize>().ok())
-                        .unwrap_or(0)
-                }
-                None => continue,
-            };
-
-            let saved_aliases = siblings.bind(env, concrete_path);
-            row.enter(concrete_path, env, values, self.index);
-
-            // Build a row-scoped environment: instantiate [*] references in the constraint.
-            // A field target binds `$` to its value, null when the row left it empty — the same answer a
-            // concrete target gives. Only a row target (`rows[*]`, a path ending in its index) leaves `$`
-            // to the repeat context, where it is the row itself.
-            let prev_dollar = env.data.remove("");
-            match values.get(concrete_path.as_str()) {
-                Some(val) => {
-                    env.data.insert(
-                        String::new(),
-                        json_to_runtime_fel_typed(val, siblings.data_type(concrete_path)),
-                    );
-                }
-                None if !concrete_path.ends_with(']') => {
-                    env.data.insert(String::new(), fel_core::Value::Null);
-                }
-                None => {}
+            let env = self.state.site(self.index, &path);
+            let passes = Composition {
+                shapes_by_id: &self.shapes_by_id,
+                env: &env,
+                visiting: HashSet::new(),
+                diagnostics: &mut findings.diagnostics,
+                fel: self.fel,
             }
-
-            let active = shape
-                .get("activeWhen")
-                .and_then(|v| v.as_str())
-                .map(|expr| instantiate_wildcard_expr(expr, &base, index))
-                .map(|expr| fel.eval_bool(&expr, env, true))
-                .unwrap_or(true);
-            if !active {
-                restore_sibling_aliases(env, saved_aliases);
-                env.data.remove("");
-                if let Some(prev) = prev_dollar {
-                    env.data.insert(String::new(), prev);
-                }
-                continue;
-            }
-
-            // Create an instantiated shape for this row
-            let constraint_expr = shape
-                .get("constraint")
-                .and_then(|v| v.as_str())
-                .map(|expr| instantiate_wildcard_expr(expr, &base, index));
-
-            let sid = shape.get("id").and_then(|v| v.as_str()).map(str::to_string);
-            let passes = constraint_expr.as_deref().is_none_or(|expr| {
-                ConstraintSite {
-                    path: concrete_path,
-                    shape_id: sid.as_deref(),
-                    fel,
-                }
-                .evaluate(expr, env, &mut findings.diagnostics)
-                .is_some_and(|value| constraint_passes(&value))
-            });
-
-            let scode = shape
-                .get("code")
-                .and_then(|v| v.as_str())
-                .unwrap_or("SHAPE_FAILED");
-
+            .passes(shape, &path);
             if !passes {
+                let severity = shape
+                    .get("severity")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("error");
+                let code = shape
+                    .get("code")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("SHAPE_FAILED");
+                let message = shape
+                    .get("message")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("Shape constraint failed");
                 findings.results.push(ValidationResult {
-                    path: concrete_path.clone(),
+                    path: path.clone(),
                     severity: Severity::parse_wire(severity).unwrap_or(Severity::Error),
                     constraint_kind: ConstraintKind::Shape,
-                    code: ValidationCode::from_wire(scode),
-                    message: interpolate_fel(message, env, fel, str::to_string).text,
-                    constraint: constraint_expr.clone(),
+                    code: ValidationCode::from_wire(code),
+                    message: interpolate_fel(message, &env, self.fel).text,
+                    constraint: shape
+                        .get("constraint")
+                        .and_then(|v| v.as_str())
+                        .map(str::to_owned),
                     source: Some(ValidationSource::Shape),
-                    shape_id: sid.clone(),
-                    context: evaluate_shape_context(shape, env, Some((&base, index)), fel),
+                    shape_id: shape.get("id").and_then(|v| v.as_str()).map(str::to_owned),
+                    context: evaluate_shape_context(shape, &env, self.fel),
                 });
             }
-
-            // Restore bare $
-            restore_sibling_aliases(env, saved_aliases);
-            env.data.remove("");
-            if let Some(prev) = prev_dollar {
-                env.data.insert(String::new(), prev);
-            }
         }
-        row.finish(env);
     }
 }
 
 fn evaluate_shape_context(
     shape: &JsonValue,
-    env: &FormspecEnvironment,
-    wildcard: Option<(&str, usize)>,
+    env: &dyn Environment,
     fel: Fel<'_>,
 ) -> Option<HashMap<String, JsonValue>> {
     let context = shape.get("context")?.as_object()?;
-    let mut evaluated = HashMap::new();
-
-    for (key, raw_expr) in context {
-        let value = match raw_expr.as_str() {
-            Some(expr) => {
-                let expression = wildcard
-                    .map(|(base, index)| instantiate_wildcard_expr(expr, base, index))
-                    .unwrap_or_else(|| expr.to_string());
-                fel_core::exact_json::from_fel(&fel.evaluate_source(&expression, env).value)
-            }
-            None => raw_expr.clone(),
-        };
-        evaluated.insert(key.clone(), value);
-    }
-
-    Some(evaluated)
+    Some(
+        context
+            .iter()
+            .map(|(key, raw)| {
+                let value = raw.as_str().map_or_else(
+                    || raw.clone(),
+                    |expr| fel_core::exact_json::from_fel(&fel.evaluate_source(expr, env).value),
+                );
+                (key.clone(), value)
+            })
+            .collect(),
+    )
 }
 
 /// Kleene truth of a shape or composition element (Core §3.8.1: `null` is unknown).
@@ -338,7 +160,7 @@ impl Truth {
 /// Kleene evaluation of one top-level shape and the shapes it references.
 struct Composition<'a> {
     shapes_by_id: &'a HashMap<String, &'a JsonValue>,
-    env: &'a FormspecEnvironment,
+    env: &'a dyn Environment,
     /// Shape IDs on the current reference path, for cycle detection.
     visiting: HashSet<String>,
     diagnostics: &'a mut Vec<EvalDiagnostic>,

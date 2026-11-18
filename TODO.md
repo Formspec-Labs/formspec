@@ -459,7 +459,6 @@ Findings from 8-scout parallel survey of `formspec/`. Rollup: `formspec/TODO.md`
    - crates/formspec-eval/src/revalidate/items.rs:65-157 — 90-line `match dt.as_str()` arm-soup with nested map_or(false, |s| ...). money and attachment arms are inline 20-line predicates. val.as_f64().unwrap() on line 77. Extract type_mismatch helper; drop unwrap.
    - crates/formspec-eval/src/rebuild/item_tree.rs:199-306 — build_item_info_from_ctx is 180 lines of repeated bind-lookup boilerplate. Same Some(&bind).and_then(|b| b.get("field")).and_then(|v| v.as_str()).map(String::from) 11 times. Extract bind_str(bind, field) and bind_u64.
    - crates/formspec-eval/src/rebuild/item_tree.rs:35-41 — bool_or_string_expr turns Value::Bool(true/false) into "true"/"false" then re-parses through FEL. Slow + fragile. Lift to enum BindExpr { Bool(bool), Fel(String) }; eval_bool short-circuits.
-   - crates/formspec-eval/src/rebuild/wildcard.rs:160-179 — instantiate_concrete_expr nearly duplicates internal_path_to_fel_path. Pairs with PR-SWEEP-003.
    - crates/formspec-eval/src/runtime_seed.rs:29-57 — seed_prepopulate recurses past short-circuit when existing is non-null. Collapse.
    - crates/formspec-eval/src/convert.rs — resolve_value_by_path is pub but sole caller is revalidate/items.rs:42. Make pub(crate) unless an external host actually consumes it.
    - crates/formspec-eval/src/pipeline.rs:140-141 — fabricates "1.0.0" $formspec version fallback. Document or thread Option<&str>.

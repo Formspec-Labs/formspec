@@ -7,7 +7,6 @@ import {
   wasmApplyMigrationsToResponseData,
   wasmCoerceFieldValue,
   wasmEvaluateDefinition,
-  wasmPrepareFelExpression,
   wasmResolveOptionSetsOnDefinition,
 } from '../dist/wasm-bridge-runtime.js';
 import { wasmRewriteFelForAssembly, wasmTokenizeFel } from '../dist/wasm-bridge-tools.js';
@@ -187,26 +186,6 @@ test('wasmCoerceFieldValue matches engine coercion for decimal + precision', () 
   const value = JSON.stringify('3.14159');
   const out = JSON.parse(wasmCoerceFieldValue(item, bind, definition, value));
   assert.equal(out, 3.14);
-});
-
-test('wasmPrepareFelExpression matches repeat-alias normalization', () => {
-  const out = wasmPrepareFelExpression(
-    JSON.stringify({
-      expression: 'rows.score + $rows.score',
-      valuesByPath: { 'rows[0].score': 1, 'rows[1].score': 2 },
-    }),
-  );
-  assert.equal(out, '$rows[*].score + $rows[*].score');
-});
-
-test('wasmPrepareFelExpression does not splice repeat alias after a dot', () => {
-  const out = wasmPrepareFelExpression(
-    JSON.stringify({
-      expression: 'x.rows.score',
-      valuesByPath: { 'rows[0].score': 1, 'rows[1].score': 2 },
-    }),
-  );
-  assert.equal(out, 'x.rows.score');
 });
 
 test('wasmTokenizeFel returns positioned tokens through the JS bridge', () => {

@@ -10,6 +10,47 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[test]
+fn default_evaluation_json_matches_main_for_removed_answers_and_repeats() {
+    let definition = json!({
+        "items": [
+            {"key": "hidden", "type": "field", "dataType": "string"},
+            {"key": "rows", "type": "group", "repeatable": true, "children": [
+                {"key": "amount", "type": "field", "dataType": "integer"}
+            ]}
+        ],
+        "binds": [{"path": "hidden", "relevant": "false"}],
+        "nonRelevantBehavior": "remove"
+    });
+    let data = HashMap::from([
+        ("hidden".into(), json!("draft answer")),
+        ("rows".into(), json!([{"amount": 3}])),
+    ]);
+    let result = evaluate(&definition, &data, &EvalOptions::default());
+    let expected_mips = HashMap::from([
+        ("hidden".into(), false),
+        ("rows".into(), false),
+        ("rows[0].amount".into(), false),
+    ]);
+    assert_eq!(result.required, expected_mips);
+    assert_eq!(result.readonly, expected_mips);
+    // Main serializes these two HashMaps in iteration order. Use the same order
+    // for their members while pinning all top-level keys and the remaining bytes.
+    let expected = format!(
+        concat!(
+            r#"{{"values":{{"rows[0].amount":3}},"data":{{"rows":[{{"amount":3}}]}},"#,
+            r#""validations":[],"diagnostics":[],"nonRelevant":["hidden"],"variables":{{}},"#,
+            r#""required":{},"readonly":{}}}"#
+        ),
+        fel_core::exact_json::to_value(&result.required).unwrap(),
+        fel_core::exact_json::to_value(&result.readonly).unwrap(),
+    );
+    assert_eq!(
+        formspec_eval::evaluation_result_to_json_value(&result).to_string(),
+        expected
+    );
+}
+
+#[test]
 fn unsubscripted_repeat_reference_stops_before_recalculate() {
     let definition = json!({
         "items": [
@@ -1642,7 +1683,8 @@ fn validation_result_shape_kind_is_shape() {
 fn variable_scoped_to_non_ancestor_is_invisible() {
     let def = json!({
         "items": [
-            { "key": "result", "dataType": "integer" }
+            { "key": "result", "dataType": "integer" },
+            { "key": "local", "type": "group", "children": [] }
         ],
         "binds": {
             "result": { "calculate": "@scoped_var" }
@@ -2876,6 +2918,7 @@ fn initial_value_fel_expression_uses_context_now() {
 
 #[test]
 fn wildcard_bind_per_instance_calculate() {
+    // Core §3.2.2: the Bind targets every row and each expression reads siblings.
     let def = json!({
         "items": [
             {
@@ -2889,7 +2932,7 @@ fn wildcard_bind_per_instance_calculate() {
             }
         ],
         "binds": {
-            "items[*].total": { "calculate": "$items[*].qty * $items[*].price" }
+            "items[*].total": { "calculate": "$qty * $price" }
         }
     });
 
@@ -3002,7 +3045,8 @@ fn wildcard_shape_row_scoped_sibling_references() {
         "shapes": [{
             "id": "s1",
             "target": "rows[*].end",
-            "constraint": "$rows[*].end > $rows[*].start",
+            // Core §3.2.2: [*] reads every row. This Shape compares siblings.
+            "constraint": "$end > $start",
             "severity": "error",
             "message": "End must exceed start"
         }]
@@ -3026,7 +3070,7 @@ fn wildcard_shape_row_scoped_sibling_references() {
 
 #[test]
 fn wildcard_shape_bare_dollar_gt_sibling_row_ref() {
-    // Python unit test parity: `$` = target field; `$rows[*].min` = same-row sibling.
+    // Core §3.2.2: a bare sibling key reads the same row and [*] reads every row.
     let def = json!({
         "items": [
             {
@@ -3041,7 +3085,7 @@ fn wildcard_shape_bare_dollar_gt_sibling_row_ref() {
         "shapes": [{
             "id": "s1",
             "target": "rows[*].max",
-            "constraint": "$ > $rows[*].min",
+            "constraint": "$ > $min",
             "severity": "error",
             "message": "Max must exceed min",
             "code": "RANGE"
@@ -3080,7 +3124,7 @@ fn wildcard_shape_bare_dollar_gt_sibling_nested_rows_array() {
         "shapes": [{
             "id": "s1",
             "target": "rows[*].max",
-            "constraint": "$ > $rows[*].min",
+            "constraint": "$ > $min",
             "severity": "error",
             "message": "Max must exceed min",
             "code": "RANGE"
@@ -3161,7 +3205,7 @@ fn variables_recompute_from_repeat_calculations() {
             }
         ],
         "binds": [
-            { "path": "lines[*].subtotal", "calculate": "$lines[*].qty * $lines[*].unit" }
+            { "path": "lines[*].subtotal", "calculate": "$qty * $unit" }
         ],
         "variables": [
             { "name": "grandTotal", "expression": "sum($lines[*].subtotal)" }
@@ -3564,6 +3608,7 @@ fn scoped_variable_nearest_scope_wins() {
 
 #[test]
 fn wildcard_bind_array_style() {
+    // Core §3.2.2: [*] belongs on the target, and bare keys read this row.
     let def = json!({
         "items": [
             {
@@ -3576,7 +3621,7 @@ fn wildcard_bind_array_style() {
             }
         ],
         "binds": [
-            { "path": "rows[*].doubled", "calculate": "$rows[*].x * 2" }
+            { "path": "rows[*].doubled", "calculate": "$x * 2" }
         ]
     });
 
@@ -4633,4 +4678,106 @@ fn repeat_group_with_instances_required_fires_normally() {
         1,
         "required must fire on existing instance with empty value"
     );
+}
+
+#[test]
+fn row_totals_refresh_after_writes_and_stay_within_their_enclosing_row() {
+    let def = json!({
+        "items": [{
+            "key": "orders", "type": "group", "repeatable": true,
+            "children": [
+                {"key": "label", "dataType": "string"},
+                {"key": "lines", "type": "group", "repeatable": true, "children": [
+                    {"key": "share", "dataType": "decimal"},
+                    {"key": "amt", "dataType": "integer"},
+                    {"key": "input", "dataType": "integer"},
+                    {"key": "local", "dataType": "integer"},
+                    {"key": "orderLabel", "dataType": "string"},
+                    {"key": "variableCopy", "dataType": "integer"}
+                ]}
+            ]
+        }],
+        "variables": [
+            {"name": "rowAmount", "expression": "99"},
+            {"name": "rowAmount", "scope": "lines", "expression": "@actual"},
+            {"name": "actual", "scope": "lines", "expression": "$amt"}
+        ],
+        "binds": [
+            {"path": "orders[*].lines[*].share", "calculate": "$amt / sum($lines[*].amt)"},
+            {"path": "orders[*].lines[*].amt", "calculate": "$input * 2"},
+            {"path": "orders[*].lines[*].local", "calculate": "let lines = [{amt: $amt}] in sum($lines[*].amt)"},
+            {"path": "orders[*].lines[*].orderLabel", "calculate": "parent().label"},
+            {"path": "orders[*].lines[*].variableCopy", "calculate": "@rowAmount"}
+        ]
+    });
+    let data = HashMap::from([(
+        "orders".to_owned(),
+        json!([
+            {"label": "first", "lines": [{"amt": 1, "input": 1}, {"amt": 1, "input": 3}, {}]},
+            {"label": "second", "lines": [{"amt": 5, "input": 2}, {"amt": 5, "input": 2}]}
+        ]),
+    )]);
+
+    let outcome = evaluate(&def, &data, &EvalOptions::default());
+    assert_eq!(outcome.values["orders[0].lines[0].share"], json!(0.25));
+    assert_eq!(outcome.values["orders[0].lines[1].share"], json!(0.75));
+    assert_eq!(outcome.values["orders[0].lines[2].share"], Value::Null);
+    assert_eq!(outcome.values["orders[1].lines[0].share"], json!(0.5));
+    assert_eq!(outcome.values["orders[0].lines[1].local"], json!(6));
+    assert_eq!(
+        outcome.values["orders[1].lines[0].orderLabel"],
+        json!("second")
+    );
+    assert_eq!(outcome.values["orders[0].lines[1].variableCopy"], json!(6));
+}
+
+#[test]
+fn host_snapshot_agrees_on_declared_fields_preserved_values_and_row_counts() {
+    let def = json!({
+        "items": [
+            {"key": "rate", "dataType": "integer"},
+            {"key": "hidden", "dataType": "integer"},
+            {"key": "rows", "type": "group", "repeatable": true, "children": [
+                {"key": "own", "dataType": "integer"},
+                {"key": "copy", "dataType": "integer"},
+                {"key": "empty", "type": "group", "children": []}
+            ]}
+        ],
+        "binds": [
+            {"path": "hidden", "relevant": "false", "excludedValue": "preserve"},
+            {"path": "rows[*].copy", "calculate": "$rate + $own"}
+        ]
+    });
+    let data = HashMap::from([
+        ("rate".to_owned(), json!(2)),
+        ("hidden".to_owned(), json!(47)),
+        (
+            "rows".to_owned(),
+            json!([{"own": 10, "rate": 999}, {"own": 20}]),
+        ),
+    ]);
+    let options = EvalOptions::default()
+        .apply_creation_seeds(false)
+        .context(EvalContext {
+            repeat_counts: Some(HashMap::from([("rows".to_owned(), 1)])),
+            ..EvalContext::default()
+        });
+    let result = evaluate(&def, &data, &options);
+    assert_eq!(result.row_counts["rows"], 2);
+    assert_eq!(result.values["rows[0].copy"], json!(12));
+    assert_eq!(result.values["rows[1].copy"], json!(22));
+    assert!(!result.values.contains_key("hidden"));
+    let host = formspec_eval::HostFelContext::from_evaluation(&def, &result, &options);
+    let read = |expr| {
+        fel_core::exact_json::from_fel(
+            &host
+                .evaluate(expr, "rows[0].own", true, None, None)
+                .unwrap()
+                .value,
+        )
+    };
+    assert_eq!(read("$rate"), json!(2));
+    assert_eq!(read("$hidden"), json!(47));
+    assert_eq!(read("$"), json!(10));
+    assert_eq!(read("@count"), json!(2));
 }

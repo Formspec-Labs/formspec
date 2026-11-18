@@ -205,7 +205,8 @@ class TestEvaluateVariables:
             'variables': [
                 {'name': 'factor', 'expression': '2', 'scope': 'rows'},
             ],
-            'binds': [{'path': 'rows[*].doubled', 'calculate': '$rows[*].amount * @factor'}],
+            # Core §3.2.2 uses the bare sibling key for the current row.
+            'binds': [{'path': 'rows[*].doubled', 'calculate': '$amount * @factor'}],
         }
         result = evaluate_definition(defn, {'rows': [{'amount': 5, 'doubled': 0}]})
         assert result.values['rows[0].doubled'] == 10
@@ -389,7 +390,8 @@ class TestValidate:
             'shapes': [{
                 'id': 's1', 'target': 'rows[*].max', 'severity': 'error',
                 'message': 'Max must exceed min', 'code': 'RANGE',
-                'constraint': '$ > $rows[*].min',
+                # Compare the target with its sibling in the same row.
+                'constraint': '$ > $min',
             }],
         }
         result = evaluate_definition(defn, {'rows': [{'min': 1, 'max': 10}, {'min': 5, 'max': 3}]})
@@ -716,7 +718,8 @@ class TestCalculate:
                     {'type': 'field', 'key': 'total', 'dataType': 'decimal'},
                 ],
             }],
-            'binds': [{'path': 'items[*].total', 'calculate': '$items[*].qty * $items[*].price'}],
+            # The target fans out across rows, while the expression reads this row.
+            'binds': [{'path': 'items[*].total', 'calculate': '$qty * $price'}],
         }
         result = evaluate_definition(defn, {
             'items': [{'qty': 2, 'price': 10, 'total': 0}, {'qty': 5, 'price': 3, 'total': 0}]

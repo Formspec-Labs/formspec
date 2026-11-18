@@ -20,7 +20,8 @@
 
 use fel_core::{
     Environment, ExtensionFunctions, FormspecEnvironment, Value,
-    expr_is_interpolation_static_literal, expr_references_instance_data, has_error_diagnostics, parse,
+    expr_is_interpolation_static_literal, expr_references_instance_data, has_error_diagnostics,
+    parse,
 };
 
 use crate::fel_eval::Fel;
@@ -141,20 +142,13 @@ pub fn interpolate_fel_template(
     env: &FormspecEnvironment,
     extensions: Option<&dyn ExtensionFunctions>,
 ) -> Interpolated {
-    interpolate_fel(template, env, Fel::new(extensions), |expression| {
-        expression.to_string()
-    })
+    interpolate_fel(template, env, Fel::new(extensions))
 }
 
-/// Interpolates `template` against `env`; `prepare` rewrites each expression before parsing.
-pub(crate) fn interpolate_fel(
-    template: &str,
-    env: &dyn Environment,
-    fel: Fel<'_>,
-    prepare: impl Fn(&str) -> String,
-) -> Interpolated {
+/// Interpolates authored FEL against the supplied site.
+pub(crate) fn interpolate_fel(template: &str, env: &dyn Environment, fel: Fel<'_>) -> Interpolated {
     interpolate_template(template, |expression| {
-        let parsed = parse(&prepare(expression)).map_err(|e| e.to_string())?;
+        let parsed = parse(expression).map_err(|e| e.to_string())?;
         let result = fel.evaluate(&parsed, env);
         interpolation_text(
             expression,
@@ -186,7 +180,7 @@ mod tests {
     use rust_decimal::Decimal;
 
     fn fel_text(template: &str, env: &FormspecEnvironment) -> String {
-        interpolate_fel(template, env, Fel::default(), str::to_string).text
+        interpolate_fel(template, env, Fel::default()).text
     }
 
     fn make_env() -> FormspecEnvironment {
@@ -305,12 +299,7 @@ mod tests {
 
     #[test]
     fn failed_expressions_record_warnings() {
-        let out = interpolate_fel(
-            "{{$budget}} {{((}} {{nope}}",
-            &make_env(),
-            Fel::default(),
-            str::to_string,
-        );
+        let out = interpolate_fel("{{$budget}} {{((}} {{nope}}", &make_env(), Fel::default());
         assert_eq!(out.text, "1000 {{((}} {{nope}}");
         let failed: Vec<&str> = out.warnings.iter().map(|w| w.expression.as_str()).collect();
         assert_eq!(failed, vec!["((", "nope"]);

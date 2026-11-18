@@ -21,16 +21,60 @@ use crate::types::{
     ValidationSource,
 };
 
-/// Full batch evaluation output as JSON (matches `evaluateDefinition` WASM shape, camelCase).
+/// Serialize the batch evaluation report with camelCase keys.
 pub fn evaluation_result_to_json_value(result: &EvaluationResult) -> Value {
     evaluation_result_to_json_value_styled(result, JsonWireStyle::JsCamel)
 }
 
-/// Serialize [`EvaluationResult`] for host bindings (`JsCamel` vs `PythonSnake` keys).
+/// Serialize the batch evaluation report in the requested wire style.
 pub fn evaluation_result_to_json_value_styled(
     result: &EvaluationResult,
     style: JsonWireStyle,
 ) -> Value {
+    Value::Object(evaluation_report(result, style))
+}
+
+/// Serialize the browser's editing snapshot alongside the camelCase evaluation report.
+///
+/// The snapshot can contain draft answers excluded from the filed Response.
+pub fn evaluation_result_to_host_snapshot_json_value(result: &EvaluationResult) -> Value {
+    let mut root = evaluation_report(result, JsonWireStyle::JsCamel);
+    // Editing expressions see the settled values before filing removes or
+    // nulls non-relevant fields. Send only the entries that differ.
+    let preserved = result
+        .host_values
+        .iter()
+        .filter(|(path, value)| result.values.get(*path) != Some(*value))
+        .map(|(path, value)| (path.clone(), value.clone()))
+        .collect();
+    root.insert("preservedValues".into(), Value::Object(preserved));
+    let filing_only: Vec<_> = result
+        .values
+        .keys()
+        .filter(|path| !result.host_values.contains_key(*path))
+        .collect();
+    root.insert("filingOnlyPaths".into(), json!(filing_only));
+    root.insert("repeatCounts".into(), json!(result.row_counts));
+    root.insert(
+        "scopedVariables".into(),
+        Value::Object(
+            result
+                .scoped_variables
+                .iter()
+                .map(|(scope, names)| {
+                    let names = names
+                        .iter()
+                        .map(|(key, value)| (key.clone(), crate::fel_json::variable_to_wire(value)))
+                        .collect();
+                    (scope.clone(), Value::Object(names))
+                })
+                .collect(),
+        ),
+    );
+    Value::Object(root)
+}
+
+fn evaluation_report(result: &EvaluationResult, style: JsonWireStyle) -> Map<String, Value> {
     let (nr_key, ck_key, sid_key) = evaluation_batch_keys(style);
 
     let validations: Vec<Value> = result
@@ -74,7 +118,7 @@ pub fn evaluation_result_to_json_value_styled(
             ),
         );
     }
-    Value::Object(root)
+    root
 }
 
 /// `{ label, labels?, description?, descriptions?, hint?, hints? }`: absent properties are omitted.

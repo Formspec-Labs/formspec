@@ -1,23 +1,101 @@
 //! Top-level evaluate orchestration (rebuild → recalculate → revalidate → NRB).
 
 use crate::eval_options::EvalOptions;
-use crate::fel_eval::Fel;
 
 use crate::nrb::apply_nrb;
 use crate::output_data::build_output_data;
 use crate::rebuild;
 use crate::rebuild_item_tree;
 use crate::recalculate::recalculate_phase;
-use crate::revalidate::revalidate;
+use crate::revalidate::revalidate_scoped;
 use crate::runtime_seed::{
     apply_previous_non_relevant, hydrate_inline_instances, seed_prepopulate_tree,
     seed_repeat_from_instances,
 };
+use crate::scope::{AggregateMemo, LegacyPadding, ScopeIndex, count_flat_rows};
 use crate::types::{self, EvalSubject, EvaluationResult, ValidationResult};
 use fel_core::Value as FelValue;
 use fel_core::exact_json::Value;
 use formspec_core::subject_key::SubjectKey;
-use std::collections::{BTreeSet, HashMap};
+use std::cell::RefCell;
+use std::collections::{BTreeSet, HashMap, VecDeque};
+use std::rc::Rc;
+
+/// Definition work shared across evaluations of different Response data.
+#[derive(Debug)]
+pub struct PreparedDefinition {
+    definition: Value,
+    items: Vec<types::ItemInfo>,
+    definition_errors: Vec<ValidationResult>,
+}
+
+impl PreparedDefinition {
+    /// Resolve authored items and check repeat references once.
+    pub fn new(definition: Value) -> Self {
+        let mut resolved = definition.clone();
+        formspec_core::resolve_option_sets_on_definition(&mut resolved);
+        let items = rebuild_item_tree(&resolved);
+        let definition_errors = rebuild::check_repeat_references(&definition, &items);
+        Self {
+            definition,
+            items,
+            definition_errors,
+        }
+    }
+
+    /// Evaluate Response data against this prepared Definition.
+    pub fn evaluate(
+        &self,
+        data: &HashMap<String, Value>,
+        options: &EvalOptions<'_>,
+    ) -> EvaluationResult {
+        evaluate_prepared(self, data, options)
+    }
+}
+
+thread_local! {
+    // Stateless WASM and native callers often resubmit the same authored JSON.
+    // Keep a small working set by content. Callers with longer lifetimes can
+    // own a PreparedDefinition directly.
+    static DEFINITIONS: RefCell<VecDeque<Rc<PreparedDefinition>>> = const {
+        RefCell::new(VecDeque::new())
+    };
+}
+
+fn same_definition(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Object(left), Value::Object(right)) => {
+            // Object-style binds are applied in document order.
+            left.len() == right.len()
+                && left.iter().zip(right).all(|((key, value), (other, next))| {
+                    key == other && same_definition(value, next)
+                })
+        }
+        (Value::Array(left), Value::Array(right)) => {
+            left.len() == right.len()
+                && left
+                    .iter()
+                    .zip(right)
+                    .all(|(value, next)| same_definition(value, next))
+        }
+        (Value::Number(left), Value::Number(right)) => left.as_str() == right.as_str(),
+        _ => left == right,
+    }
+}
+
+fn prepared_definition(definition: &Value) -> Rc<PreparedDefinition> {
+    DEFINITIONS.with_borrow_mut(|cache| {
+        const RECENT_DEFINITIONS: usize = 4;
+        let prepared = cache
+            .iter()
+            .position(|entry| same_definition(&entry.definition, definition))
+            .and_then(|position| cache.remove(position))
+            .unwrap_or_else(|| Rc::new(PreparedDefinition::new(definition.clone())));
+        cache.push_front(Rc::clone(&prepared));
+        cache.truncate(RECENT_DEFINITIONS);
+        prepared
+    })
+}
 
 /// Evaluate a definition through the full four-phase pipeline.
 pub fn evaluate(
@@ -25,6 +103,15 @@ pub fn evaluate(
     data: &HashMap<String, Value>,
     options: &EvalOptions,
 ) -> EvaluationResult {
+    prepared_definition(definition).evaluate(data, options)
+}
+
+fn evaluate_prepared(
+    prepared: &PreparedDefinition,
+    data: &HashMap<String, Value>,
+    options: &EvalOptions,
+) -> EvaluationResult {
+    let definition = &prepared.definition;
     if let Some(subject) = &options.context.subject
         && let Err(refusal) = check_subject(definition, subject)
     {
@@ -45,25 +132,23 @@ pub fn evaluate(
             return refuse_input(vec![type_error(path, message)]);
         }
     }
-    let mut items = {
-        let mut resolved = definition.clone();
-        formspec_core::resolve_option_sets_on_definition(&mut resolved);
-        rebuild_item_tree(&resolved)
-    };
-    let definition_errors = rebuild::check_repeat_references(definition, &items);
-    if !definition_errors.is_empty() {
-        return refuse_input(definition_errors);
+    if !prepared.definition_errors.is_empty() {
+        return refuse_input(prepared.definition_errors.clone());
     }
+    let mut items = prepared.items.clone();
     let flat = match rebuild::flatten_response_data(&items, data) {
         Ok(flat) => flat,
         Err(conflicts) => return refuse_ambiguous_input(&conflicts),
     };
-    // Row counts the host sent beside the data win over the ones read from the rows.
+    // The host can supply empty rows alongside its flat signals. Answered
+    // rows and the empty rows read from nested data still count.
     let mut counts = flat.repeat_counts;
     if let Some(host) = &options.context.repeat_counts {
-        counts.extend(host.iter().map(|(path, n)| (path.clone(), *n)));
+        for (path, count) in host {
+            let supplied = counts.entry(path.clone()).or_default();
+            *supplied = (*supplied).max(*count);
+        }
     }
-    options.context.repeat_counts = Some(counts.clone());
     let options = &options;
     let context = &options.context;
 
@@ -73,51 +158,75 @@ pub fn evaluate(
     }
     seed_prepopulate_tree(&items, &mut seeded_data, &options.instances);
 
-    rebuild::seed_initial_values(
-        &items,
-        &mut seeded_data,
-        context,
-        Fel::new(options.extensions),
-    );
-
-    rebuild::expand_repeat_instances_counted(&mut items, &seeded_data, &counts);
-
-    let binds = definition.get("binds");
-    rebuild::apply_wildcard_binds(&mut items, binds);
+    if options.apply_creation_seeds {
+        count_flat_rows(seeded_data.keys(), &mut counts);
+    }
+    let mut padding = LegacyPadding::new();
+    rebuild::expand_repeat_instances_counted(&mut items, &mut counts, &mut padding);
+    let mut index = ScopeIndex::new(&items, counts);
+    index.legacy_padding = padding;
+    for path in seeded_data.keys() {
+        index.add_value_path(path);
+    }
+    rebuild::seed_initial_values(&items, &mut seeded_data, &index, options);
 
     if let Some(ref prev_nr) = context.previous_non_relevant {
         apply_previous_non_relevant(&mut items, prev_nr);
     }
 
+    let mut aggregates = AggregateMemo::default();
     let first = recalculate_phase(
         &mut items,
+        &index,
         &seeded_data,
         definition,
         context.previous_validations.as_deref(),
         options,
+        &mut aggregates,
         false,
     );
     let (mut values, mut var_values, cycle_err) =
         (first.values, first.variables, first.cycle_error);
 
-    let (mut validations, mut diagnostics) =
-        revalidate(&items, &values, &var_values, definition, options);
+    let mut scoped_variables = first.scoped_variables;
+    let (mut validations, mut diagnostics) = revalidate_scoped(
+        &items,
+        &index,
+        &values,
+        &scoped_variables,
+        definition,
+        options,
+        &mut aggregates,
+    );
 
     // Item text resolves in this pass: it sees `valid()` from the validations above.
     let next = recalculate_phase(
         &mut items,
+        &index,
         &seeded_data,
         definition,
         Some(&validations),
         options,
+        &mut aggregates,
         true,
     );
     let item_text = next.item_text;
-    if next.values != values || next.variables != var_values {
+    if next.values != values || next.scoped_variables != scoped_variables {
         values = next.values;
         var_values = next.variables;
-        (validations, diagnostics) = revalidate(&items, &values, &var_values, definition, options);
+        scoped_variables = next.scoped_variables;
+        (validations, diagnostics) = revalidate_scoped(
+            &items,
+            &index,
+            &values,
+            &scoped_variables,
+            definition,
+            options,
+            &mut aggregates,
+        );
     }
+
+    drop(aggregates);
 
     if let Some(cycle_msg) = cycle_err {
         validations.push(ValidationResult {
@@ -144,9 +253,10 @@ pub fn evaluate(
         .get("nonRelevantBehavior")
         .and_then(|v| v.as_str())
         .unwrap_or("remove");
+    let host_values = values.clone();
     apply_nrb(&mut values, &items, default_nrb);
 
-    let data = build_output_data(&items, &values, default_nrb);
+    let data = build_output_data(&items, &index.counts, &values, default_nrb);
 
     let variables = var_values
         .iter()
@@ -155,11 +265,14 @@ pub fn evaluate(
 
     EvaluationResult {
         values,
+        host_values,
         data,
         validations,
         diagnostics,
         non_relevant,
         variables,
+        scoped_variables,
+        row_counts: index.counts,
         required,
         readonly,
         item_text,
@@ -268,13 +381,76 @@ fn refuse_ambiguous_input(paths: &[String]) -> EvaluationResult {
 fn refuse_input(validations: Vec<ValidationResult>) -> EvaluationResult {
     EvaluationResult {
         values: HashMap::new(),
+        host_values: HashMap::new(),
         data: Value::Object(Default::default()),
         validations,
         diagnostics: Vec::new(),
         non_relevant: Vec::new(),
         variables: HashMap::new(),
+        scoped_variables: HashMap::new(),
+        row_counts: HashMap::new(),
         required: HashMap::new(),
         readonly: HashMap::new(),
         item_text: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fel_core::exact_json::native_json as json;
+
+    #[test]
+    fn definition_cache_reuses_content_and_rechecks_authored_edits() {
+        let mut definition = json!({
+            "items": [
+                {"key": "rows", "type": "group", "repeatable": true, "children": [
+                    {"key": "name", "dataType": "string"}
+                ]},
+                {"key": "copy", "dataType": "string"}
+            ],
+            "binds": [{"path": "copy", "calculate": "$rows.name"}]
+        });
+        let refused = prepared_definition(&definition);
+        assert_eq!(refused.definition_errors.len(), 1);
+        assert!(Rc::ptr_eq(
+            &refused,
+            &prepared_definition(&definition.clone())
+        ));
+
+        definition["binds"][0]["calculate"] = json!("$rows[1].name");
+        assert!(
+            prepared_definition(&definition)
+                .definition_errors
+                .is_empty()
+        );
+        assert!(Rc::ptr_eq(
+            &refused,
+            &prepared_definition(&refused.definition)
+        ));
+    }
+    #[test]
+    fn definition_cache_preserves_ordered_bind_precedence() {
+        let first = json!({
+            "items": [{"key": "rows", "type": "group", "repeatable": true, "children": [
+                {"key": "amount", "dataType": "integer"}
+            ]}],
+            "binds": {
+                "rows.amount": {"calculate": "1"},
+                "rows[*].amount": {"calculate": "2"}
+            }
+        });
+        let mut second = first.clone();
+        second["binds"].as_object_mut().unwrap().reverse();
+        let input = HashMap::from([("rows".to_owned(), json!([{}]))]);
+        let options = EvalOptions::default();
+        assert_eq!(
+            evaluate(&first, &input, &options).values["rows[0].amount"],
+            json!(2)
+        );
+        assert_eq!(
+            evaluate(&second, &input, &options).values["rows[0].amount"],
+            json!(1)
+        );
     }
 }

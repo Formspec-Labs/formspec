@@ -66,6 +66,7 @@ fn best_time_for(def: &Value, rows: usize, runs: usize) -> Duration {
             let result = evaluate(def, &data, &EvalOptions::default());
             let elapsed = start.elapsed();
             assert!(result.validations.is_empty(), "{:?}", result.validations);
+            assert_eq!(result.values["grand"], json!(3 * rows * (rows + 1) / 2));
             elapsed
         })
         .min()
@@ -110,6 +111,115 @@ fn constraint_scaling() {
         ratio < 3.0,
         "800 rows cost {ratio:.2}x 400 rows: superlinear"
     );
+}
+
+#[test]
+#[ignore = "timing benchmark; run explicitly with --run-ignored only"]
+fn row_site_aggregate_scaling() {
+    let options = EvalOptions::default();
+    let workload = std::env::var("FORMSPEC_REPEAT_WORKLOAD").ok();
+    let size = std::env::var("FORMSPEC_REPEAT_ROWS")
+        .ok()
+        .map(|rows| rows.parse::<usize>().expect("positive row count"));
+    let sizes = size.map_or_else(|| vec![200, 400, 800], |rows| vec![rows]);
+    let mut failures = Vec::new();
+    for (label, path, expression) in [
+        ("share", "rows[*].share", "$amt / sum($rows[*].amt)"),
+        (
+            "running",
+            "rows[*].running",
+            "coalesce(prev().running, 0) + $amt",
+        ),
+        ("deep", "rows[*].one.two.three.copy", "$source"),
+    ] {
+        if workload
+            .as_deref()
+            .is_some_and(|workload| workload != label)
+        {
+            continue;
+        }
+        let def = json!({
+            "$formspec": "1.0", "url": "test", "version": "1.0.0", "title": "T",
+            "items": [{"key": "rows", "type": "group", "label": "Rows", "repeatable": true,
+                "children": [
+                    {"key": "amt", "type": "field", "dataType": "integer", "label": "Amount"},
+                    {"key": "share", "type": "field", "dataType": "decimal", "label": "Share"},
+                    {"key": "running", "type": "field", "dataType": "integer", "label": "Running"},
+                    {"key": "one", "type": "group", "label": "One", "children": [
+                        {"key": "two", "type": "group", "label": "Two", "children": [
+                            {"key": "three", "type": "group", "label": "Three", "children": [
+                                {"key": "source", "type": "field", "dataType": "integer", "label": "Source"},
+                                {"key": "copy", "type": "field", "dataType": "integer", "label": "Copy"}
+                            ]}
+                        ]}
+                    ]}
+                ]}],
+            "binds": [{"path": path, "calculate": expression}]
+        });
+        let times: Vec<_> = sizes
+            .iter()
+            .copied()
+            .map(|rows| {
+                let input: HashMap<_, _> = (0..rows)
+                    .flat_map(|row| {
+                        [
+                            (
+                                format!("rows[{row}].amt"),
+                                json!([1, 3].get(row).copied().unwrap_or(0)),
+                            ),
+                            (format!("rows[{row}].one.two.three.source"), json!(row)),
+                        ]
+                    })
+                    .collect();
+                let (key, expected) = match label {
+                    "share" => ("rows[1].share".to_string(), json!(0.75)),
+                    "running" => (format!("rows[{}].running", rows - 1), json!(4)),
+                    _ => (
+                        format!("rows[{}].one.two.three.copy", rows - 1),
+                        json!(rows - 1),
+                    ),
+                };
+                let mut best = Duration::MAX;
+                for _ in 0..3 {
+                    let start = Instant::now();
+                    let result = evaluate(&def, &input, &options);
+                    best = best.min(start.elapsed());
+                    if result.values.get(&key) != Some(&expected) {
+                        failures.push(format!(
+                            "{key}: expected {expected}, got {:?}",
+                            result.values.get(&key)
+                        ));
+                    }
+                }
+                best
+            })
+            .collect();
+        check_ratios(label, &sizes, &times, &mut failures);
+    }
+    if workload
+        .as_deref()
+        .is_none_or(|workload| workload == "constraint")
+    {
+        let def = constrained_definition();
+        let times: Vec<_> = sizes
+            .iter()
+            .copied()
+            .map(|rows| best_time_for(&def, rows, 3))
+            .collect();
+        check_ratios("constraint", &sizes, &times, &mut failures);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+fn check_ratios(label: &str, sizes: &[usize], times: &[Duration], failures: &mut Vec<String>) {
+    let ratios: Vec<_> = times
+        .windows(2)
+        .map(|p| p[1].div_duration_f64(p[0]))
+        .collect();
+    println!("{label} {sizes:?}: {times:?}, ratios {ratios:.2?}");
+    if ratios.iter().any(|ratio| *ratio >= 3.0) {
+        failures.push(format!("{label}: superlinear scaling {ratios:.2?}"));
+    }
 }
 
 /// A definition whose only per-item work is the seed pass (9e): `n` plain fields, each with a FEL

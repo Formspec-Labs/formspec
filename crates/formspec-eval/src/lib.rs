@@ -2,7 +2,7 @@
 //!
 //! ## Layout
 //! The main path is [`pipeline::evaluate`] with [`EvalOptions`]:
-//! 1. [`mod@rebuild`] — definition → item tree, initial values, repeat expansion, wildcard binds
+//! 1. [`mod@rebuild`] — definition → item tree, initial values and repeat expansion
 //! 2. [`mod@recalculate`] — relevance, required, readonly, variables, calculate ([`recalculate()`])
 //! 3. [`mod@revalidate`] — required/type/constraint, extensions, shapes ([`revalidate()`])
 //! 4. [`mod@nrb`] — output shaping for non-relevant fields
@@ -41,6 +41,7 @@ mod output_data;
 mod pipeline;
 mod registry_constraints;
 mod runtime_seed;
+mod scope;
 
 /// Exact JSON values for text-based evaluator input and output.
 pub use fel_core::exact_json;
@@ -48,17 +49,17 @@ pub use fel_core::exact_json;
 pub use convert::resolve_value_by_path;
 pub use eval_json::{
     EvalHostContextBundle, eval_context_from_json_object, eval_host_context_from_json_map,
-    evaluation_result_to_json_value, evaluation_result_to_json_value_styled,
-    item_text_request_from_json_object,
+    evaluation_result_to_host_snapshot_json_value, evaluation_result_to_json_value,
+    evaluation_result_to_json_value_styled, item_text_request_from_json_object,
 };
 pub use eval_options::EvalOptions;
 pub use host_context::HostFelContext;
 pub use nrb::{apply_nrb, resolve_nrb};
 pub use output_data::filed_response_data_matches;
-pub use pipeline::evaluate;
+pub use pipeline::{PreparedDefinition, evaluate};
 pub use rebuild::parse_variables;
 pub use rebuild::{expand_repeat_instances, expand_wildcard_path, rebuild_item_tree};
-pub use recalculate::{recalculate, topo_sort_variables};
+pub use recalculate::recalculate;
 pub use registry_constraints::extension_constraints_from_registry_documents;
 pub use revalidate::revalidate;
 pub use screener_eval::evaluate_screener_document;

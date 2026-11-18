@@ -7,22 +7,20 @@
 mod bind_pass;
 mod calculate_pass;
 pub(crate) mod json_fel;
-pub(crate) mod repeats;
 mod text_pass;
 mod variables;
 mod walk;
 
 use std::collections::{HashMap, HashSet};
 
+use fel_core::Value as FelValue;
 use fel_core::exact_json::Value;
-use fel_core::{FormspecEnvironment, Value as FelValue};
 
 use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
 use crate::rebuild::parse_variables;
+use crate::scope::{AggregateMemo, ScopeData, ScopeIndex, ScopedVariables};
 use crate::types::{ItemInfo, ItemText, ValidationResult};
-
-pub use variables::topo_sort_variables;
 
 use bind_pass::{BindPass, Parent};
 use walk::Walk;
@@ -45,12 +43,15 @@ pub fn recalculate(
     HashMap<String, FelValue>,
     Option<String>,
 ) {
+    let index = ScopeIndex::for_flat(items, data.keys(), options.context.repeat_counts.as_ref());
     let recalculated = recalculate_phase(
         items,
+        &index,
         data,
         definition,
         previous_validations,
         options,
+        &mut AggregateMemo::default(),
         false,
     );
     (
@@ -66,6 +67,7 @@ pub(crate) struct Recalculated {
     pub(crate) values: HashMap<String, Value>,
     /// Variable values as FEL values.
     pub(crate) variables: HashMap<String, FelValue>,
+    pub(crate) scoped_variables: ScopedVariables,
     /// Variable dependency cycle, if any.
     pub(crate) cycle_error: Option<String>,
     /// Item text by instance path, when requested and `options.item_text` is set.
@@ -75,55 +77,27 @@ pub(crate) struct Recalculated {
 /// [`recalculate`], plus Item text from the settled scope when `resolve_text` and `options.item_text`.
 pub(crate) fn recalculate_phase(
     items: &mut [ItemInfo],
+    index: &ScopeIndex,
     data: &HashMap<String, Value>,
     definition: &Value,
     previous_validations: Option<&[ValidationResult]>,
     options: &EvalOptions,
+    aggregates: &mut AggregateMemo,
     resolve_text: bool,
 ) -> Recalculated {
     let fel = Fel::new(options.extensions);
-    let mut env = FormspecEnvironment::new();
-    if let Some(keys) = options.context.subject_keys() {
-        env.subject_keys.clone_from(keys);
-    }
-    if let Some(now_iso) = options.context.now_iso.as_deref() {
-        env.set_now_from_iso(now_iso);
-    }
-
-    for (name, value) in &options.instances {
-        env.set_instance(name, json_fel::json_to_runtime_fel(value));
-    }
     let mut values = data.clone();
-
-    // Path→dataType map (Core §2.1.3: date strings → Date) and repeat row index.
-    let index = repeats::ResponseIndex::new(items, &values);
-
-    for (k, v) in &values {
-        env.set_field(
-            k,
-            json_fel::json_to_runtime_fel_typed(v, index.data_type(k)),
-        );
-    }
-
     bind_pass::apply_whitespace_to_items(items, &mut values);
 
-    for (k, v) in &values {
-        env.set_field(
-            k,
-            json_fel::json_to_runtime_fel_typed(v, index.data_type(k)),
-        );
-    }
-    repeats::populate_repeat_group_arrays(items, &values, &index, &mut env);
-
+    let mut state = ScopeData::for_values(index, &values, options);
+    state.restore_aggregates(aggregates);
     let var_defs = parse_variables(definition);
-    let (initial_var_values, scoped_var_values, cycle_err) =
-        variables::evaluate_variables_scoped(&var_defs, &mut env, fel);
-
-    env.variables.extend(initial_var_values.clone());
-
-    let has_scoped = var_defs
+    let expressions: Vec<_> = var_defs
         .iter()
-        .any(|v| v.scope.as_deref().unwrap_or("#") != "#");
+        .map(|def| fel_core::parse(&def.expression).ok())
+        .collect();
+    let variables = variables::Variables::new(&var_defs, index, &expressions);
+    let (_, cycle_err) = variables.evaluate(&mut state, index, fel);
     let invalid_paths: HashSet<String> = previous_validations
         .unwrap_or(&[])
         .iter()
@@ -133,15 +107,10 @@ pub(crate) fn recalculate_phase(
         .map(|result| result.path.clone())
         .collect();
 
-    let walk = |scoped_vars| Walk {
-        index: &index,
-        scoped_vars: has_scoped.then_some(scoped_vars),
-        fel,
-    };
-
-    walk(&scoped_var_values).items(
+    let walk = Walk { index, fel };
+    walk.items(
         items,
-        &mut env,
+        &mut state,
         &mut values,
         &mut BindPass {
             invalid_paths: &invalid_paths,
@@ -149,34 +118,15 @@ pub(crate) fn recalculate_phase(
         Parent::ROOT,
     );
 
-    calculate_pass::settle_calculated_values(
-        items,
-        &mut env,
-        &mut values,
-        &walk(&scoped_var_values),
-    );
-    repeats::populate_repeat_group_arrays(items, &values, &index, &mut env);
+    calculate_pass::settle_calculated_values(items, &mut state, &mut values, &walk);
+    if !var_defs.is_empty() {
+        variables.evaluate(&mut state, index, fel);
+        calculate_pass::settle_calculated_values(items, &mut state, &mut values, &walk);
+    }
+    let (final_var_values, _) = variables.evaluate(&mut state, index, fel);
 
-    let (mut final_var_values, final_scoped_var_values, _) =
-        variables::evaluate_variables_scoped(&var_defs, &mut env, fel);
-    env.variables.extend(final_var_values.clone());
-
-    calculate_pass::settle_calculated_values(
-        items,
-        &mut env,
-        &mut values,
-        &walk(&final_scoped_var_values),
-    );
-    repeats::populate_repeat_group_arrays(items, &values, &index, &mut env);
-
-    (final_var_values, _, _) = variables::evaluate_variables_scoped(&var_defs, &mut env, fel);
-    env.variables.extend(final_var_values.clone());
-
-    // Re-evaluate required expressions now that all calculated values and
-    // variables have settled. The initial bind pass evaluated required before
-    // calculate for each item, so required states that depend on calculated
-    // fields may be stale (spec S2.4: topological evaluation order).
-    bind_pass::refresh_required_state(items, &mut env, &invalid_paths, fel);
+    // Required expressions may read calculates that appeared later in document order.
+    bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel);
 
     let item_text = options
         .item_text
@@ -184,13 +134,16 @@ pub(crate) fn recalculate_phase(
         .filter(|_| resolve_text)
         .map(|request| {
             let mut pass = text_pass::TextPass::new(definition, request);
-            walk(&final_scoped_var_values).items(items, &mut env, &mut values, &mut pass, ());
+            walk.items(items, &mut state, &mut values, &mut pass, ());
             pass.text
         });
 
+    let scoped_variables = std::mem::take(&mut state.variables);
+    state.save_aggregates(aggregates);
     Recalculated {
         values,
         variables: final_var_values,
+        scoped_variables,
         cycle_error: cycle_err,
         item_text,
     }

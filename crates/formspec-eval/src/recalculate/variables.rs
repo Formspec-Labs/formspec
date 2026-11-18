@@ -1,203 +1,171 @@
-//! Definition variables: dependency topo sort, scope keys, and scoped evaluation order.
+//! Order and evaluate Definition variables at their concrete item paths.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 
-use fel_core::{FormspecEnvironment, Value, extract_dependencies, parse};
+use fel_core::{Expr, Value, extract_dependencies};
 
 use crate::fel_eval::Fel;
-use crate::types::{VariableDef, strip_indices};
+use crate::scope::{ScopeData, ScopeIndex};
+use crate::types::VariableDef;
 
-/// Topologically sort variables by their dependencies.
-pub fn topo_sort_variables(variables: &[VariableDef]) -> Result<Vec<String>, String> {
-    let var_names: HashSet<&str> = variables.iter().map(|v| v.name.as_str()).collect();
-    let mut resolved: Vec<String> = Vec::new();
-    let mut remaining: Vec<&str> = variables.iter().map(|v| v.name.as_str()).collect();
-
-    while !remaining.is_empty() {
-        let mut progress = false;
-        let mut next_remaining = Vec::new();
-
-        for &name in &remaining {
-            let var = variables.iter().find(|v| v.name == name).unwrap();
-            let deps = variable_deps(&var.expression, &var_names);
-            if deps.iter().all(|d| resolved.iter().any(|r| r == d)) {
-                resolved.push(name.to_string());
-                progress = true;
-            } else {
-                next_remaining.push(name);
-            }
-        }
-
-        remaining = next_remaining;
-        if !progress {
-            let cycle: Vec<String> = remaining.iter().map(|s| s.to_string()).collect();
-            return Err(format!("Circular variable dependencies: {:?}", cycle));
-        }
-    }
-
-    Ok(resolved)
-}
-
-/// Extract variable-level dependencies from a FEL expression.
-pub(crate) fn variable_deps(expr: &str, known_vars: &HashSet<&str>) -> Vec<String> {
-    match parse(expr) {
-        Ok(ast) => {
-            let deps = extract_dependencies(&ast);
-            deps.context_refs
-                .iter()
-                .filter_map(|r| {
-                    let name = r.strip_prefix('@')?;
-                    let base = name.split('.').next().unwrap_or(name);
-                    let base = base.split('(').next().unwrap_or(base);
-                    if known_vars.contains(base) {
-                        Some(base.to_string())
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        }
-        Err(_) => vec![],
-    }
-}
-
-/// Visible variables for a given item path (scope-qualified keys in `all_vars`).
-///
-/// Values stay FEL values: a variable's type is its expression's result (Core §4.5),
-/// which JSON would flatten (a `date` becomes a string).
-pub(crate) fn visible_variables(
-    all_vars: &HashMap<String, Value>,
-    item_path: &str,
-) -> HashMap<String, Value> {
-    let mut visible = HashMap::new();
-
-    for (key, val) in all_vars {
-        if let Some(name) = key.strip_prefix("#:") {
-            visible.insert(name.to_string(), val.clone());
-        }
-    }
-
-    let stripped = strip_indices(item_path);
-    let parts: Vec<&str> = stripped.split('.').collect();
-    for i in 1..=parts.len() {
-        let ancestor = parts[..i].join(".");
-        let prefix = format!("{ancestor}:");
-        for (key, val) in all_vars {
-            if let Some(name) = key.strip_prefix(&prefix) {
-                visible.insert(name.to_string(), val.clone());
-            }
-        }
-    }
-
-    visible
-}
-
-fn visible_variables_for_scope(
-    all_vars: &HashMap<String, Value>,
-    scope: &str,
-) -> HashMap<String, Value> {
-    if scope == "#" {
-        let mut visible = HashMap::new();
-        for (key, val) in all_vars {
-            if let Some(name) = key.strip_prefix("#:") {
-                visible.insert(name.to_string(), val.clone());
-            }
-        }
-        visible
-    } else {
-        visible_variables(all_vars, scope)
-    }
-}
-
-fn bind_scope_field_aliases(
-    env: &mut FormspecEnvironment,
-    scope: &str,
-) -> HashMap<String, Option<Value>> {
-    if scope == "#" {
-        return HashMap::new();
-    }
-
-    let mut saved = HashMap::new();
-    let prefix = format!("{scope}.");
-    let entries: Vec<(String, Value)> = env
-        .data
+fn context_dependencies(ast: &Expr, known_vars: &HashSet<&str>) -> Vec<String> {
+    let deps = extract_dependencies(ast);
+    deps.context_refs
         .iter()
-        .map(|(key, value)| (key.clone(), value.clone()))
-        .collect();
+        .filter_map(|r| {
+            let name = r.strip_prefix('@')?.split(['.', '(']).next()?;
+            (!matches!(name, "current" | "index" | "count" | "instance")
+                && known_vars.contains(name))
+            .then(|| name.to_owned())
+        })
+        .collect()
+}
 
-    for (path, value) in entries {
-        if let Some(alias) = path.strip_prefix(&prefix)
-            && !alias.contains('.')
+/// Parsed variable declarations and their concrete evaluation order.
+pub(super) struct Variables<'a> {
+    bindings: Vec<Binding<'a>>,
+    order: Result<Vec<usize>, String>,
+}
+
+struct Binding<'a> {
+    name: &'a str,
+    site: &'a str,
+    expression: &'a Expr,
+    declaration: usize,
+}
+
+impl<'a> Variables<'a> {
+    pub(super) fn new(
+        definitions: &'a [VariableDef],
+        index: &'a ScopeIndex,
+        expressions: &'a [Option<Expr>],
+    ) -> Self {
+        let mut bindings = Vec::new();
+        let mut by_site = HashMap::new();
+        for (declaration, (definition, expression)) in
+            definitions.iter().zip(expressions).enumerate()
         {
-            saved.insert(alias.to_string(), env.data.get(alias).cloned());
-            env.set_field(alias, value);
-        }
-    }
-
-    saved
-}
-
-fn restore_scope_field_aliases(
-    env: &mut FormspecEnvironment,
-    saved_aliases: HashMap<String, Option<Value>>,
-) {
-    for (alias, previous) in saved_aliases {
-        match previous {
-            Some(value) => env.set_field(&alias, value),
-            None => {
-                env.data.remove(&alias);
+            let Some(expression) = expression else {
+                continue;
+            };
+            let scope = definition.scope.as_deref().unwrap_or("#");
+            let sites = (scope == "#")
+                .then_some("#")
+                .into_iter()
+                .chain(index.variable_sites(scope));
+            let name = definition.name.as_str();
+            for site in sites {
+                by_site.insert((site, name), bindings.len());
+                bindings.push(Binding {
+                    name,
+                    site,
+                    expression,
+                    declaration,
+                });
             }
         }
-    }
-}
-
-/// Evaluate variables in topological order; returns bare-name map, scope-keyed map, cycle error.
-pub(crate) fn evaluate_variables_scoped(
-    var_defs: &[VariableDef],
-    env: &mut FormspecEnvironment,
-    fel: Fel<'_>,
-) -> (
-    HashMap<String, Value>,
-    HashMap<String, Value>,
-    Option<String>,
-) {
-    let (order, cycle_err) = match topo_sort_variables(var_defs) {
-        Ok(order) => (order, None),
-        Err(cycle_msg) => {
-            let order = var_defs.iter().map(|v| v.name.clone()).collect();
-            (order, Some(cycle_msg))
-        }
-    };
-
-    let mut var_values = HashMap::new();
-    let mut scoped_values = HashMap::new();
-
-    for name in &order {
-        let matching: Vec<_> = var_defs.iter().filter(|v| v.name == *name).collect();
-        for var in matching {
-            let scope = var.scope.as_deref().unwrap_or("#");
-            let saved_aliases = bind_scope_field_aliases(env, scope);
-            let saved_variables = std::mem::replace(
-                &mut env.variables,
-                visible_variables_for_scope(&scoped_values, scope),
-            );
-            if let Ok(parsed) = parse(&var.expression) {
-                let value = fel.evaluate(&parsed, env).value;
-                var_values.insert(name.clone(), value.clone());
-                scoped_values.insert(format!("{scope}:{name}"), value);
+        let names: HashSet<_> = definitions.iter().map(|var| var.name.as_str()).collect();
+        let dependencies: Vec<_> = expressions
+            .iter()
+            .map(|expr| {
+                expr.as_ref()
+                    .map_or_else(Vec::new, |expr| context_dependencies(expr, &names))
+            })
+            .collect();
+        let mut incoming = vec![0; bindings.len()];
+        let mut dependents = vec![Vec::new(); bindings.len()];
+        for (id, binding) in bindings.iter().enumerate() {
+            for name in &dependencies[binding.declaration] {
+                if let Some(&dependency) = crate::scope::lexical_scopes(binding.site)
+                    .chain(std::iter::once("#"))
+                    .find_map(|site| by_site.get(&(site, name.as_str())))
+                {
+                    incoming[id] += 1;
+                    dependents[dependency].push(id);
+                }
             }
-            env.variables = saved_variables;
-            restore_scope_field_aliases(env, saved_aliases);
         }
+        let mut ready: VecDeque<_> = incoming
+            .iter()
+            .enumerate()
+            .filter_map(|(id, count)| (*count == 0).then_some(id))
+            .collect();
+        let mut order = Vec::with_capacity(bindings.len());
+        while let Some(id) = ready.pop_front() {
+            order.push(id);
+            for &dependent in &dependents[id] {
+                incoming[dependent] -= 1;
+                if incoming[dependent] == 0 {
+                    ready.push_back(dependent);
+                }
+            }
+        }
+        let order = if order.len() == bindings.len() {
+            Ok(order)
+        } else {
+            let cycle: Vec<_> = bindings
+                .iter()
+                .zip(incoming)
+                .filter_map(|(binding, count)| (count != 0).then_some(binding.name))
+                .collect();
+            Err(format!("Circular variable dependencies: {cycle:?}"))
+        };
+        Self { bindings, order }
     }
 
-    (var_values, scoped_values, cycle_err)
+    /// Read each declaration at its concrete site after its visible dependencies.
+    pub(super) fn evaluate(
+        &self,
+        state: &mut ScopeData,
+        index: &ScopeIndex,
+        fel: Fel<'_>,
+    ) -> (HashMap<String, Value>, Option<String>) {
+        state.variables.clear();
+        let order = match &self.order {
+            Ok(order) => order,
+            Err(cycle) => return (HashMap::new(), Some(cycle.clone())),
+        };
+        let mut result = HashMap::new();
+        for &id in order {
+            let binding = &self.bindings[id];
+            let value = fel
+                .evaluate(binding.expression, &state.site(index, binding.site))
+                .value;
+            result.insert(binding.name.to_owned(), value.clone());
+            state
+                .variables
+                .entry(binding.site.to_owned())
+                .or_default()
+                .insert(binding.name.to_owned(), value);
+        }
+        (result, None)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
+
+    // Exercise the ordering used by evaluation after removal of the flat sorter.
+    fn variable_order(definitions: &[VariableDef]) -> Result<Vec<&str>, String> {
+        let index = ScopeIndex::default();
+        let expressions: Vec<_> = definitions
+            .iter()
+            .map(|definition| fel_core::parse(&definition.expression).ok())
+            .collect();
+        let variables = Variables::new(definitions, &index, &expressions);
+        variables.order.map(|order| {
+            order
+                .into_iter()
+                .map(|id| {
+                    definitions[variables.bindings[id].declaration]
+                        .name
+                        .as_str()
+                })
+                .collect()
+        })
+    }
 
     #[test]
     fn test_topo_sort_correct_order() {
@@ -219,12 +187,12 @@ mod tests {
             },
         ];
 
-        let order = topo_sort_variables(&vars).unwrap();
+        let order = variable_order(&vars).unwrap();
         assert_eq!(order.len(), 3);
 
-        let pos_a = order.iter().position(|n| n == "a").unwrap();
-        let pos_b = order.iter().position(|n| n == "b").unwrap();
-        let pos_c = order.iter().position(|n| n == "c").unwrap();
+        let pos_a = order.iter().position(|&n| n == "a").unwrap();
+        let pos_b = order.iter().position(|&n| n == "b").unwrap();
+        let pos_c = order.iter().position(|&n| n == "c").unwrap();
         assert!(pos_a < pos_b, "a must be evaluated before b");
         assert!(pos_b < pos_c, "b must be evaluated before c");
     }
@@ -244,7 +212,7 @@ mod tests {
             },
         ];
 
-        let result = topo_sort_variables(&vars);
+        let result = variable_order(&vars);
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(
@@ -269,16 +237,17 @@ mod tests {
             },
         ];
 
-        let order = topo_sort_variables(&vars).unwrap();
+        let order = variable_order(&vars).unwrap();
         assert_eq!(order.len(), 2);
-        assert!(order.contains(&"x".to_string()));
-        assert!(order.contains(&"y".to_string()));
+        assert!(order.contains(&"x"));
+        assert!(order.contains(&"y"));
     }
 
     #[test]
     fn variable_deps_dotted_context_ref() {
         let known: HashSet<&str> = ["config"].iter().cloned().collect();
-        let deps = variable_deps("@config.threshold + 1", &known);
+        let expr = fel_core::parse("@config.threshold + 1").unwrap();
+        let deps = context_dependencies(&expr, &known);
         assert_eq!(
             deps,
             vec!["config"],
@@ -287,33 +256,20 @@ mod tests {
     }
 
     #[test]
-    fn variable_deps_parse_failure_returns_empty() {
-        let known: HashSet<&str> = ["x"].iter().cloned().collect();
-        let deps = variable_deps("@@@ !!invalid!!", &known);
-        assert!(deps.is_empty(), "parse failure should return empty vec");
+    fn variable_order_skips_invalid_expression() {
+        let definitions = [VariableDef {
+            name: "x".into(),
+            expression: "@@@ !!invalid!!".into(),
+            scope: None,
+        }];
+        assert!(variable_order(&definitions).unwrap().is_empty());
     }
 
     #[test]
     fn variable_deps_filters_unknown_refs() {
         let known: HashSet<&str> = ["a"].iter().cloned().collect();
-        let deps = variable_deps("@a + @b", &known);
+        let expr = fel_core::parse("@a + @b").unwrap();
+        let deps = context_dependencies(&expr, &known);
         assert_eq!(deps, vec!["a"], "only known vars returned");
-    }
-
-    #[test]
-    fn visible_variables_unit_test() {
-        let mut all_vars = HashMap::new();
-        all_vars.insert("#:global_var".to_string(), Value::Boolean(true));
-        all_vars.insert("section:local_var".to_string(), Value::Null);
-        all_vars.insert("other:other_var".to_string(), Value::Boolean(false));
-
-        let visible = visible_variables(&all_vars, "section.field");
-        assert_eq!(visible.get("global_var"), Some(&Value::Boolean(true)));
-        assert_eq!(visible.get("local_var"), Some(&Value::Null));
-        assert_eq!(visible.get("other_var"), None);
-
-        let visible_top = visible_variables(&all_vars, "top");
-        assert_eq!(visible_top.get("global_var"), Some(&Value::Boolean(true)));
-        assert_eq!(visible_top.get("local_var"), None);
     }
 }

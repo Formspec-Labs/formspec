@@ -177,7 +177,8 @@ test('a repeat row or group path is its own lexical scope for $sibling refs (Cor
   assert.equal(engine.compileExpression('$employer', 'jobs[0]')(), 'Acme');
   assert.equal(engine.compileExpression('$employer', 'jobs[1]')(), 'Beta');
   assert.equal(engine.compileExpression("$current and $employer = 'Beta'", 'jobs[1]')(), true);
-  assert.equal(engine.compileExpression('$jobs.employer', 'jobs[1]')(), 'Beta');
+  // Core §3.2.2 requires a subscript on repeat paths with a tail.
+  assert.equal(engine.compileExpression('$jobs.employer', 'jobs[1]')(), null);
   assert.equal(engine.compileExpression('@index', 'jobs[1]')(), 2);
   assert.equal(engine.compileExpression('$city', 'jobs[1].address')(), 'Oslo');
   assert.equal(engine.compileExpression('$employer', 'jobs[1].address')(), 'Beta', 'row scope still encloses a nested group');
@@ -190,7 +191,8 @@ test('a repeat row or group path is its own lexical scope for $sibling refs (Cor
 
 test('ad-hoc FEL reads see every evaluation: values, added rows, removed rows', () => {
   const engine = makeRepeatEngine();
-  const total = engine.compileExpression('sum($rows.amount)', '');
+  // Core §3.2.2 requires an explicit wildcard to project a field across rows.
+  const total = engine.compileExpression('sum($rows[*].amount)', '');
   const rowAmount = engine.compileExpression('$amount * @count', 'rows[1]');
   assert.equal(total(), 60);
   assert.equal(rowAmount(), 60);
@@ -207,4 +209,34 @@ test('ad-hoc FEL reads see every evaluation: values, added rows, removed rows', 
   engine.removeRepeatInstance('rows', 0);
   assert.equal(total(), 36);
   assert.equal(rowAmount(), 90, 'rows[1] is the former rows[2] after re-keying');
+});
+
+test('concrete row labels and variables share the evaluator scope and retain object values', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'urn:test:concrete-row-scope',
+    version: '1.0.0',
+    title: 'Rows',
+    items: [{ key: 'secret', type: 'field', dataType: 'integer', label: 'Secret' }, {
+      key: 'rows', type: 'group', label: 'Rows', repeatable: true, minRepeat: 2,
+      children: [{ key: 'amount', type: 'field', dataType: 'integer', label: 'Value {{$}}' }],
+    }],
+    binds: [{ path: 'secret', relevant: 'false', calculate: '11' }],
+    variables: [
+      { name: 'rate', expression: '1' },
+      { name: 'rate', scope: 'rows', expression: '@base' },
+      { name: 'base', scope: 'rows', expression: '$amount' },
+      { name: 'record', expression: '{"$type": "date", value: "2026-01-02"}' },
+    ],
+  });
+  engine.setValue('rows[0].amount', 5);
+  engine.setValue('rows[1].amount', 8);
+  assert.equal(engine.getVariableValue('rate', 'rows[0].amount'), 5);
+  assert.equal(engine.getVariableValue('rate', 'rows[1].amount'), 8);
+  assert.equal(engine.getVariableValue('rate', ''), 1);
+  assert.equal(engine.getFieldVM('rows[0].amount').interpolate('Value {{$}}'), 'Value 5');
+  assert.equal(engine.compileExpression('@record.value', '')(), '2026-01-02');
+  assert.equal(engine.compileExpression('$secret', '')(), 11);
+  assert.equal(engine.compileExpression('relevant($secret)', '')(), false);
+  engine.dispose();
 });

@@ -7,7 +7,7 @@ use fel_core::exact_json::Value;
 use formspec_core::json_object_to_string_map;
 use formspec_eval::{
     AnswerInput, AnswerState, EvalOptions, eval_host_context_from_json_map, evaluate,
-    evaluate_screener_document, evaluation_result_to_json_value, parse_answer_state,
+    evaluate_screener_document, evaluation_result_to_host_snapshot_json_value, parse_answer_state,
 };
 use wasm_bindgen::prelude::*;
 
@@ -17,7 +17,7 @@ use crate::json_host::{parse_json_as, to_json_string};
 // ── Definition Evaluation ───────────────────────────────────────
 
 /// Evaluate a Formspec definition against provided data (4-phase batch processor).
-/// Returns JSON: { values, validations, nonRelevant, variables, required, readonly }
+/// Returns the camelCase evaluation report with the browser's editing state.
 ///
 /// `context_json.subjectType` and `context_json.subjectKeys` supply the current Response's subject.
 /// `extensions` resolves Definition calls to host extension functions (Core §3.12).
@@ -79,7 +79,7 @@ pub(crate) fn evaluate_definition_inner(
 
     let result = evaluate(&definition, &data, &options);
 
-    let json = evaluation_result_to_json_value(&result);
+    let json = evaluation_result_to_host_snapshot_json_value(&result);
     to_json_string(&json)
 }
 

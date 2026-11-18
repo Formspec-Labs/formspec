@@ -27,6 +27,10 @@ export interface EvalResult {
     diagnostics: EvalDiagnostic[];
     nonRelevant: string[];
     variables: Record<string, unknown>;
+    scopedVariables?: Record<string, Record<string, unknown>>;
+    preservedValues?: Record<string, unknown>;
+    filingOnlyPaths?: string[];
+    repeatCounts?: Record<string, number>;
     required: Record<string, boolean>;
     readonly: Record<string, boolean>;
 }

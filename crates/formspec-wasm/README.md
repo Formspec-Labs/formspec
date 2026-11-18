@@ -15,7 +15,7 @@
 | `changelog-api` | **yes** | `generateChangelog`. |
 | `fel-authoring` | **yes** | `parseFel`, `tokenizeFel`, `printFel`, `tryLiftConditionGroup`, `extractDependencies`, FEL rewrites, `rewriteFelForAssembly`, `listBuiltinFunctions`. |
 
-**Runtime WASM** (`npm run build:wasm:runtime`): `wasm-pack … -- --no-default-features` — **none** of the above; only **eval / screener / coerce / migrations / option sets / core FEL** (`evalFel*`, `prepareFelExpression`, `getFelDependencies`, `analyzeFel`, path helpers) + **split ABI** string.
+**Runtime WASM** (`npm run build:wasm:runtime`): `wasm-pack … -- --no-default-features` — **none** of the above; only **eval / screener / coerce / migrations / option sets / core FEL** (`evalFel*`, `getFelDependencies`, `analyzeFel`, path helpers) + **split ABI** string.
 
 **Tools WASM**: default features = `full-wasm` (all rows). TypeScript loads runtime first, tools lazily (**ADR 0050**).
 
@@ -25,7 +25,7 @@ Sibling binding: **[`formspec-py`](../formspec-py/)** (`formspec_rust`) targets 
 
 | Module | Role |
 |--------|------|
-| `fel` | Always: eval, `prepareFelExpression`, `getFelDependencies`, `analyzeFel`, path helpers. `fel-authoring`: tokenize/parse/print/rewrites/catalog. |
+| `fel` | Always: eval, `getFelDependencies`, `analyzeFel`, path helpers. `fel-authoring`: tokenize/parse/print/rewrites/catalog. |
 | `evaluate` | `evaluateDefinition`, `evaluateScreenerDocument`, context/trigger parsing |
 | `definition` | Always: option sets + migrations. `definition-assembly`: `assembleDefinition`. |
 | `value_coerce` | `coerceFieldValue` (item/bind/definition/value JSON strings) |

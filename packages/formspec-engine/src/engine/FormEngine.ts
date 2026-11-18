@@ -89,8 +89,6 @@ import {
 } from './response-assembly.js';
 import {
     mergeWasmEvalWithExternalValidations,
-    normalizeExpressionForWasmEvaluation,
-    visibleScopedVariableValues,
     wasmEvaluateDefinitionPayload,
 } from './wasm-fel.js';
 import { felContextSchema, felContextSnapshot } from './fel-context.js';
@@ -269,7 +267,7 @@ export class FormEngine implements IFormEngine {
         this.initializeInstances();
         this.initializeBindConfigs(this.definition.items);
         this.rejectInstancePathBinds();
-        validateVariableDefinitionCycles(this._variableDefs);
+        validateVariableDefinitionCycles(this._variableDefs, scope => this.variableScopePath(scope));
         validateCalculateBindCycles(this._bindConfigs);
         this.registerItems(this.definition.items);
         if (options.draftSnapshot) {
@@ -413,8 +411,14 @@ export class FormEngine implements IFormEngine {
     }
 
     public getVariableValue(name: string, scopePath: string): FormFieldValue {
-        const visible = visibleScopedVariableValues(scopePath, this._variableDefs, this.variableSignals);
-        return visible[name];
+        this._evaluationVersion.value;
+        const scopes = this._fullResult?.scopedVariables ?? {};
+        const path = scopePath.split('.');
+        const prefixes = path.map((_, index) => path.slice(0, index + 1).join('.'));
+        if (!['#', ...prefixes].some(scope => Object.prototype.hasOwnProperty.call(scopes[scope] ?? {}, name))) {
+            return undefined;
+        }
+        return this.compileExpression(`@${name}`, scopePath)();
     }
 
     /** Appends a row and returns its index; `undefined` when the path is not repeatable or already at `maxRepeat` (Core §4.2.2). */
@@ -592,7 +596,7 @@ export class FormEngine implements IFormEngine {
             return (parseJsonExact(this.felContext().evaluate(
                 expression,
                 currentItemName,
-                false,
+                true,
                 this.nowISO(),
                 this._extensionFunctions,
             )) as { value: FormFieldValue }).value;
@@ -772,7 +776,7 @@ export class FormEngine implements IFormEngine {
         }
 
         const version = this._evaluationVersion.value;
-        const cached = this._derivationTraceCache.get(basePath);
+        const cached = this._derivationTraceCache.get(path);
         if (cached && cached.version === version) {
             return cached.trace.map((step) => cloneValue(step) as FelTraceStep);
         }
@@ -780,13 +784,13 @@ export class FormEngine implements IFormEngine {
         try {
             const result = parseJsonExact(this.felContext().evaluateTrace(
                 calculate,
-                basePath,
-                false,
+                path,
+                true,
                 this.nowISO(),
                 this._extensionFunctions,
             )) as FelTraceResult;
             const trace = Array.isArray(result.trace) ? result.trace : [];
-            this._derivationTraceCache.set(basePath, {
+            this._derivationTraceCache.set(path, {
                 version,
                 trace: trace.map((step) => cloneValue(step) as FelTraceStep),
             });
@@ -1699,21 +1703,18 @@ export class FormEngine implements IFormEngine {
         if (!this._felContext) {
             this._felContext = {
                 key: '',
-                handle: wasmCreateFelContext(felContextSchema(this._fieldDataTypes, this._bindConfigs)),
+                handle: wasmCreateFelContext(felContextSchema(
+                    this._fieldDataTypes,
+                    this._bindConfigs,
+                    [...this._groupItems.keys()].filter(path => !path.includes('[')),
+                )),
             };
         }
         if (this._felContext.key !== key) {
             this._felContext.handle.load(JSON.stringify(felContextSnapshot({
                 data: this._data,
                 fullResult: this._fullResult,
-                fieldSignals: this.signals,
-                validationResults: this.validationResults,
-                relevantSignals: this.relevantSignals,
-                readonlySignals: this.readonlySignals,
-                requiredSignals: this.requiredSignals,
                 repeats: this.repeats,
-                variableDefs: this._variableDefs,
-                variableSignals: this.variableSignals,
                 instanceData: this.instanceData,
                 locale: this.felLocale(),
                 dateFormats: this._localeStore.dateFormats() ?? undefined,
@@ -1768,8 +1769,7 @@ export class FormEngine implements IFormEngine {
     ): Set<string> {
         const dependencies = new Set<string>();
         try {
-            const normalized = this.normalizeExpressionForWasm(expression, currentPath);
-            for (const dependency of getFELDependencies(normalized)
+            for (const dependency of getFELDependencies(expression)
                 .map(FormEngine.normalizeDependencyPath)
                 .filter((dependency) => dependency.length > 0)) {
                 dependencies.add(dependency);
@@ -1779,7 +1779,7 @@ export class FormEngine implements IFormEngine {
         }
 
         for (const variableDef of this.visibleVariableDefinitions(expression, currentPath)) {
-            const scope = variableDef.scope ?? '#';
+            const scope = this.variableScopePath(variableDef.scope);
             const key = `${scope}:${variableDef.name}`;
             if (seenVariables.has(key)) {
                 continue;
@@ -1798,6 +1798,14 @@ export class FormEngine implements IFormEngine {
         return dependencies;
     }
 
+    private variableScopePath(scope = '#'): string {
+        if (scope === '#' || this._groupItems.has(scope)) return scope;
+        for (const [path, item] of this._groupItems) {
+            if (!path.includes('[') && item.key === scope) return path;
+        }
+        return scope;
+    }
+
     private visibleVariableDefinitions(expression: string, currentPath: string): FormVariable[] {
         let names: string[];
         try {
@@ -1812,7 +1820,7 @@ export class FormEngine implements IFormEngine {
             let visible: FormVariable | undefined;
             for (const scope of scopes) {
                 for (const variableDef of this._variableDefs) {
-                    if (variableDef.name === name && (variableDef.scope ?? '#') === scope) {
+                    if (variableDef.name === name && this.variableScopePath(variableDef.scope) === scope) {
                         visible = variableDef;
                     }
                 }
@@ -1978,16 +1986,6 @@ export class FormEngine implements IFormEngine {
         ) as EvalResult);
     }
 
-    private normalizeExpressionForWasm(expression: string, currentItemPath = '', replaceSelfRef = false): string {
-        return normalizeExpressionForWasmEvaluation({
-            expression,
-            currentItemPath,
-            replaceSelfRef,
-            repeats: this.repeats,
-            fieldSignals: this.signals,
-        });
-    }
-
     private resolveRepeatPath(itemName: string): string {
         return this.repeats[itemName] ? itemName : toBasePath(itemName);
     }
@@ -2061,7 +2059,7 @@ export class FormEngine implements IFormEngine {
             setFieldValue: (value, options) => this.setValue(path, value, options),
             getWriteSource: () => (this.writeSources[path] ??= this._rx.signal<WriteSource | null>(null)),
             interpolate: (template) => this._interpolate(template, path),
-            interpolateMessage: (template) => this._interpolate(template, path, true),
+            interpolateMessage: (template) => this._interpolate(template, path),
         });
         this._fieldViewModels[path] = vm;
     }
@@ -2069,16 +2067,15 @@ export class FormEngine implements IFormEngine {
     /**
      * Locale §3.3.2: resolve `{{}}` in `template` in the binding scope of `itemPath` (form scope when empty),
      * one WASM call per template. Plain text skips the FEL context, so it tracks no evaluation signals.
-     * `bindScope` binds bare `$` to the item, as its Bind does — the scope a validation message resolves in.
      */
-    private _interpolate(template: string, itemPath = '', bindScope = false): string {
+    private _interpolate(template: string, itemPath = ''): string {
         if (!template.includes('{{')) {
             return template;
         }
         return (parseJsonExact(this.felContext().interpolate(
             template,
             itemPath,
-            bindScope,
+            true,
             this.nowISO(),
             this._extensionFunctions,
         )) as WasmInterpolated).text;

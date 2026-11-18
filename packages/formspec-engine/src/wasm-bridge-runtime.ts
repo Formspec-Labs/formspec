@@ -303,11 +303,6 @@ export function wasmInterpolateTemplate(
     return parseWasmJson(wasm().interpolateTemplate(template, evaluate));
 }
 
-/** Normalize FEL source before evaluation (bare `$`, repeat qualifiers, repeat aliases). */
-export function wasmPrepareFelExpression(optionsJson: string): string {
-    return wasm().prepareFelExpression(optionsJson);
-}
-
 /**
  * One form's FEL state, resident in WASM across ad-hoc reads.
  *
@@ -318,6 +313,7 @@ export type WasmFelContextHandle = import('../wasm-pkg-runtime/formspec_wasm_run
 
 /** Creates a resident FEL context from a Definition's leaf typing and `excludedValue: "null"` binds. */
 export function wasmCreateFelContext(schema: {
+    itemPaths?: string[];
     dataTypes: Record<string, string>;
     excludedValueNull: string[];
 }): WasmFelContextHandle {

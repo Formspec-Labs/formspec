@@ -3,12 +3,13 @@
 use std::collections::HashMap;
 
 use fel_core::exact_json::Value;
-use fel_core::{FormspecEnvironment, parse};
+use fel_core::parse;
 
 use super::json_fel::coerce_calculated_value;
 use super::walk::{Visit, Walk};
 use crate::fel_json::fel_to_runtime_json;
-use crate::types::{ItemInfo, resolve_qualified_repeat_refs};
+use crate::scope::ScopeData;
+use crate::types::ItemInfo;
 
 /// Upper bound on calculate passes; cyclic calculates stop here instead of spinning.
 const MAX_CALCULATE_PASSES: usize = 100;
@@ -16,13 +17,13 @@ const MAX_CALCULATE_PASSES: usize = 100;
 /// Re-evaluates every `calculate` until a pass changes no value.
 pub(super) fn settle_calculated_values(
     items: &mut [ItemInfo],
-    env: &mut FormspecEnvironment,
+    state: &mut ScopeData,
     values: &mut HashMap<String, Value>,
     walk: &Walk<'_>,
 ) {
     for _ in 0..MAX_CALCULATE_PASSES {
         let mut pass = CalculatePass { changed: false };
-        walk.items(items, env, values, &mut pass, ());
+        walk.items(items, state, values, &mut pass, ());
         if !pass.changed {
             break;
         }
@@ -42,25 +43,26 @@ impl Visit for CalculatePass {
         &mut self,
         walk: &Walk<'_>,
         item: &mut ItemInfo,
-        env: &mut FormspecEnvironment,
+        state: &mut ScopeData,
         values: &mut HashMap<String, Value>,
         (): (),
     ) {
         let Some(ref expr) = item.calculate else {
             return;
         };
-        let normalized_expr = resolve_qualified_repeat_refs(expr, &item.path);
-        let Ok(parsed) = parse(&normalized_expr) else {
+        let Ok(parsed) = parse(expr) else {
             return;
         };
 
-        let result = walk.fel.evaluate(&parsed, env);
+        let result = walk
+            .fel
+            .evaluate(&parsed, &state.site(walk.index, &item.path));
         let coerced = coerce_calculated_value(item, result.value);
         let json_val = fel_to_runtime_json(&coerced);
         self.changed |= values.get(&item.path) != Some(&json_val);
 
         values.insert(item.path.clone(), json_val.clone());
         item.value = json_val;
-        env.set_field(&item.path, coerced);
+        state.set_field(&item.path, coerced);
     }
 }

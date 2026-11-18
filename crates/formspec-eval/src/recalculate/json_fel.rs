@@ -2,7 +2,6 @@
 
 use fel_core::Value as TypeValue;
 
-pub(crate) use crate::fel_json::json_to_runtime_fel;
 pub(crate) use crate::fel_json::json_to_runtime_fel_typed;
 
 use crate::types::ItemInfo;

@@ -1,11 +1,7 @@
-/** @filedesc WASM definition-eval payload, EvalResult merge, FEL normalization, and scoped variable visibility. */
+/** @filedesc WASM definition-eval payload, EvalResult merge, and validation merge. */
 
-import type { FormVariable } from '@formspec-org/types';
 import type { EvalResult, EvalValidation } from '../diff.js';
 import type { ResponseSubjectKeys } from '../interfaces.js';
-import type { EngineSignal } from '../reactivity/types.js';
-import { getScopeAncestors, snapshotSignals } from './helpers.js';
-import { wasmPrepareFelExpression } from '../wasm-bridge-runtime.js';
 
 // --- wasmEvaluateDefinition payload -------------------------------------------------------------
 
@@ -69,48 +65,4 @@ export function mergeWasmEvalWithExternalValidations(
         ...result,
         validations: [...result.validations, ...options.externalValidations],
     };
-}
-
-// --- FEL source normalization (before WASM) ---------------------------------------------------
-
-export function normalizeExpressionForWasmEvaluation(options: {
-    expression: string;
-    currentItemPath: string;
-    replaceSelfRef: boolean;
-    repeats: Record<string, EngineSignal<number>>;
-    fieldSignals: Record<string, EngineSignal<any>>;
-}): string {
-    const repeatCounts: Record<string, number> = {};
-    for (const [path, sig] of Object.entries(options.repeats)) {
-        repeatCounts[path] = sig.value;
-    }
-    return wasmPrepareFelExpression(
-        JSON.stringify({
-            expression: options.expression,
-            currentItemPath: options.currentItemPath,
-            replaceSelfRef: options.replaceSelfRef,
-            repeatCounts,
-            valuesByPath: snapshotSignals(options.fieldSignals),
-        }),
-    );
-}
-
-// --- Scoped variable visibility ---------------------------------------------------------------
-
-export function visibleScopedVariableValues(
-    scopePath: string,
-    variableDefs: FormVariable[],
-    variableSignals: Record<string, EngineSignal<any>>,
-): Record<string, any> {
-    const visible: Record<string, any> = {};
-    const candidates = ['#', ...getScopeAncestors(scopePath)];
-    for (const scope of candidates) {
-        for (const variableDef of variableDefs) {
-            if ((variableDef.scope ?? '#') !== scope) {
-                continue;
-            }
-            visible[variableDef.name] = variableSignals[`${scope}:${variableDef.name}`]?.value ?? null;
-        }
-    }
-    return visible;
 }

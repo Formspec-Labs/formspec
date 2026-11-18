@@ -1,70 +1,38 @@
 //! Host-resident FEL context for ad-hoc reads: `compileExpression`, Locale `{{}}`, derivation traces.
 //!
-//! A host keeps one [`HostFelContext`] per engine, [`HostFelContext::load`]s the form-scope
-//! state after each evaluation, and evaluates expressions against it by Item path. Each read
-//! costs O(scope): [`ScopedEnv`] resolves names lazily from a path-ordered value map instead
-//! of the host serializing the whole form per call. Scope rules match the engine's JSON
-//! context (Core §3.2.1 lexical scopes, §4.3 repeat context, Locale §3.3.2 binding scope).
+//! The host loads one snapshot after evaluation and reuses it for reads at any Item.
 
-use std::cell::RefCell;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
-use fel_core::ast::PathSegment as FelPathSegment;
 use fel_core::exact_json::{Map, Value as JsonValue};
 use fel_core::{
-    Date, Environment, EvalResult, EvaluatorOptions, ExtensionFunctions, FieldError, MipState,
-    MissingTimezoneContextError, RepeatAliases, Trace, Value, evaluate_with, parse,
-    parse_datetime_literal, prepare_with_aliases, resolve_value_path, resolve_value_segments,
+    EvalResult, EvaluatorOptions, ExtensionFunctions, Trace, Value, evaluate_with, parse,
 };
-use formspec_core::path_utils::{Path, PathSegment};
 use formspec_core::subject_key::SubjectKey;
-use rust_decimal::Decimal;
 
 use crate::fel_eval::Fel;
-use crate::fel_json::{json_to_runtime_fel, json_to_runtime_fel_typed, json_tree_to_runtime_fel};
+use crate::fel_json::{json_to_runtime_fel, json_to_runtime_fel_typed};
 use crate::interpolation::{Interpolated, interpolate_fel};
-use crate::recalculate::repeats::set_nested_json_path;
+use crate::scope::{ScopeData, ScopeIndex, Site, count_flat_rows};
+use crate::types::strip_indices;
+use crate::{EvalOptions, EvaluationResult};
 
 /// Form-scope FEL state a host loads once per evaluation and reads many times.
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct HostFelContext {
-    /// Field `dataType` by un-indexed path (Core §2.1.3 typing of leaves).
     data_types: HashMap<String, String>,
-    /// Un-indexed paths bound with `excludedValue: "null"`: a non-relevant read by full path is `null`.
     excluded_null: HashSet<String>,
-    /// Values by instance path, ordered so one prefix scan reads a group or a row.
-    values: BTreeMap<String, JsonValue>,
-    /// MIP state by instance path; absent paths hold [`MipState::default`].
-    mips: HashMap<String, MipState>,
-    /// Variable values by scope (`#` for form scope) and name.
-    variables: HashMap<String, HashMap<String, Value>>,
-    /// Row counts by repeat group instance path (`orders[0].items`).
-    repeat_counts: HashMap<String, u32>,
-    /// Named instances behind `@instance('name')`.
-    instances: HashMap<String, Value>,
-    /// Active locale (BCP 47) behind `locale()`.
-    locale: Option<String>,
-    /// The active Locale document's `formats.date` patterns by `formatDate` style (Locale §2.4).
-    date_formats: HashMap<String, String>,
-    /// Runtime metadata behind `runtimeMeta(key)`.
-    meta: HashMap<String, Value>,
-    /// Response identity behind `subject(key)`.
-    subject_keys: HashMap<String, Value>,
-    /// Repeat aliases (`rows.score`) inferred from the value paths, rebuilt per load.
-    aliases: RepeatAliases,
-    /// Nested values built from prefix scans (`rows`, `rows[3]`), cleared per load.
-    nested: RefCell<HashMap<String, Value>>,
+    declarations: HashSet<String>,
+    index: ScopeIndex,
+    state: ScopeData,
 }
 
-/// One enclosing repeat instance along an Item path.
-#[derive(Debug, Clone)]
-struct RepeatAncestor {
-    /// Group instance path (`orders[0].items`).
-    group: String,
-    /// 0-based row index.
-    index: usize,
-    /// Row count.
-    count: usize,
+impl std::fmt::Debug for HostFelContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HostFelContext")
+            .field("index", &self.index)
+            .finish_non_exhaustive()
+    }
 }
 
 impl HostFelContext {
@@ -87,7 +55,10 @@ impl HostFelContext {
             .filter_map(|(path, data_type)| Some((path.clone(), data_type.as_str()?.to_string())))
             .collect();
         let excluded_null = string_list(schema.get("excludedValueNull"));
-        Self::new(data_types, excluded_null.into_iter().collect())
+        Self {
+            declarations: string_list(schema.get("itemPaths")).into_iter().collect(),
+            ..Self::new(data_types, excluded_null.into_iter().collect())
+        }
     }
 
     /// Replaces the form-scope state from one evaluation.
@@ -127,94 +98,194 @@ impl HostFelContext {
             .get("values")
             .map(|values| values.as_object().ok_or("values must be a JSON object"))
             .transpose()?;
-        // A row array at a repeat's path repeats the rows that sit beside it at `path[i].leaf`; FEL
-        // reads those. A multi-valued field's array has no such rows and is kept. Every `[` in a key
-        // closes a repeat path with rows (`rows[0].tasks[1].x` → `rows`, `rows[0].tasks`): one pass.
-        let with_rows: HashSet<&str> = supplied
-            .into_iter()
-            .flat_map(|all| all.keys())
-            .flat_map(|key| key.match_indices('[').map(|(at, _)| &key[..at]))
-            .collect();
-        self.values = supplied
-            .into_iter()
-            .flatten()
-            .filter(|(path, value)| !(value.is_array() && with_rows.contains(path.as_str())))
-            .map(|(path, value)| (path.clone(), value.clone()))
-            .collect();
-        self.aliases = RepeatAliases::from_field_paths(self.values.keys().map(String::as_str));
-
-        self.mips.clear();
-        if let Some(mips) = snapshot.get("mips") {
-            let mips = mips.as_object().ok_or("mips must be a JSON object")?;
-            for path in string_list(mips.get("invalid")) {
-                self.mips.entry(path).or_default().valid = false;
-            }
-            for path in string_list(mips.get("nonRelevant")) {
-                self.mips.entry(path).or_default().relevant = false;
-            }
-            for path in string_list(mips.get("readonly")) {
-                self.mips.entry(path).or_default().readonly = true;
-            }
-            for path in string_list(mips.get("required")) {
-                self.mips.entry(path).or_default().required = true;
-            }
-        }
-
-        self.repeat_counts = snapshot
+        let mut counts = snapshot
             .get("repeatCounts")
             .and_then(JsonValue::as_object)
             .into_iter()
             .flatten()
-            .filter_map(|(path, count)| Some((path.clone(), u32::try_from(count.as_u64()?).ok()?)))
+            .filter_map(|(path, count)| Some((path.clone(), count.as_u64()?)))
             .collect();
+        count_flat_rows(
+            supplied.into_iter().flat_map(|values| values.keys()),
+            &mut counts,
+        );
+        let mips = snapshot
+            .get("mips")
+            .map(|mips| mips.as_object().ok_or("mips must be a JSON object"))
+            .transpose()?;
 
-        self.variables = snapshot
+        let mut state = ScopeData::default();
+        for (name, field) in [
+            ("invalid", 0),
+            ("nonRelevant", 1),
+            ("readonly", 2),
+            ("required", 3),
+        ] {
+            for path in string_list(mips.and_then(|mips| mips.get(name))) {
+                let mip = state.env.mip_states.entry(path).or_default();
+                match field {
+                    0 => mip.valid = false,
+                    1 => mip.relevant = false,
+                    2 => mip.readonly = true,
+                    _ => mip.required = true,
+                }
+            }
+        }
+        state.env.data = supplied
+            .into_iter()
+            .flatten()
+            .filter(|(path, _)| !counts.contains_key(*path))
+            .map(|(path, value)| {
+                let template = strip_indices(path);
+                let non_relevant = state
+                    .env
+                    .mip_states
+                    .get(path)
+                    .is_some_and(|mip| !mip.relevant);
+                let value = if non_relevant && self.excluded_null.contains(&template) {
+                    Value::Null
+                } else {
+                    json_to_runtime_fel_typed(
+                        value,
+                        self.data_types.get(&template).map(String::as_str),
+                    )
+                };
+                (path.clone(), value)
+            })
+            .collect();
+        state.variables = snapshot
             .get("variables")
             .and_then(JsonValue::as_object)
             .into_iter()
             .flatten()
-            .map(|(scope, names)| (scope.clone(), fel_map(names.as_object())))
+            .map(|(scope, names)| {
+                let names = names
+                    .as_object()
+                    .into_iter()
+                    .flatten()
+                    .map(|(key, value)| (key.clone(), crate::fel_json::variable_from_wire(value)))
+                    .collect();
+                (scope.clone(), names)
+            })
             .collect();
-
-        if let Some(instances) = snapshot.get("instances") {
-            self.instances = fel_map(instances.as_object());
-        }
-        self.locale = snapshot
+        state.env.instances = snapshot.get("instances").map_or_else(
+            || std::mem::take(&mut self.state.env.instances),
+            |instances| fel_map(instances.as_object()),
+        );
+        state.env.locale = snapshot
             .get("locale")
             .and_then(JsonValue::as_str)
-            .map(str::to_string);
-        self.date_formats = snapshot
+            .map(str::to_owned);
+        state.env.date_formats = snapshot
             .get("dateFormats")
             .and_then(JsonValue::as_object)
-            .map(|formats| {
-                formats
-                    .iter()
-                    .filter_map(|(style, pattern)| {
-                        pattern.as_str().map(|p| (style.clone(), p.to_string()))
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
-        self.meta = fel_map(snapshot.get("meta").and_then(JsonValue::as_object));
-        self.subject_keys = subject_keys;
-        self.nested.borrow_mut().clear();
+            .into_iter()
+            .flatten()
+            .filter_map(|(style, pattern)| Some((style.clone(), pattern.as_str()?.to_owned())))
+            .collect();
+        state.env.meta = fel_map(snapshot.get("meta").and_then(JsonValue::as_object));
+        state.env.subject_keys = subject_keys;
+        self.index = ScopeIndex::snapshot(
+            counts,
+            &self.data_types,
+            self.declarations.iter().cloned(),
+            state.env.data.keys().cloned(),
+        );
+        self.state = state;
         Ok(())
     }
 
-    /// Normalizes `expression` for `current_item_path` (bare `$`, `$group.field`, repeat aliases).
-    pub fn prepare(
-        &self,
-        expression: &str,
-        current_item_path: &str,
-        replace_self_ref: bool,
-    ) -> String {
-        prepare_with_aliases(
-            expression,
-            current_item_path,
-            replace_self_ref,
-            &self.repeat_counts,
-            &self.aliases,
-        )
+    /// Build an ad-hoc context from a native Definition evaluation.
+    pub fn from_evaluation(
+        definition: &JsonValue,
+        result: &EvaluationResult,
+        options: &EvalOptions<'_>,
+    ) -> Self {
+        let items = crate::rebuild_item_tree(definition);
+        let data_types = crate::types::collect_data_types(&items);
+        fn declarations(items: &[crate::ItemInfo], paths: &mut HashSet<String>) {
+            for item in items {
+                paths.insert(item.path.clone());
+                declarations(&item.children, paths);
+            }
+        }
+        let mut item_paths = HashSet::new();
+        declarations(&items, &mut item_paths);
+        let index = ScopeIndex::snapshot(
+            result.row_counts.clone(),
+            &data_types,
+            item_paths.iter().cloned(),
+            result.host_values.keys().cloned(),
+        );
+        let mut options = options.clone();
+        crate::runtime_seed::hydrate_inline_instances(definition, &mut options.instances);
+        let mut state = ScopeData::for_values(&index, &result.host_values, &options);
+        state.variables.clone_from(&result.scoped_variables);
+        for finding in &result.validations {
+            if finding.severity == crate::types::Severity::Error && !finding.path.is_empty() {
+                state
+                    .env
+                    .mip_states
+                    .entry(finding.path.clone())
+                    .or_default()
+                    .valid = false;
+            }
+        }
+        for path in &result.non_relevant {
+            state
+                .env
+                .mip_states
+                .entry(path.clone())
+                .or_default()
+                .relevant = false;
+        }
+        for (path, &required) in &result.required {
+            state
+                .env
+                .mip_states
+                .entry(path.clone())
+                .or_default()
+                .required = required;
+        }
+        for (path, &readonly) in &result.readonly {
+            state
+                .env
+                .mip_states
+                .entry(path.clone())
+                .or_default()
+                .readonly = readonly;
+        }
+        fn collect_excluded(items: &[crate::ItemInfo], paths: &mut HashSet<String>) {
+            for item in items {
+                if item.excluded_value == Some(crate::types::ExcludedValueMode::Null) {
+                    paths.insert(item.path.clone());
+                }
+                collect_excluded(&item.children, paths);
+            }
+        }
+        let mut excluded_null = HashSet::new();
+        collect_excluded(&items, &mut excluded_null);
+        for path in &result.non_relevant {
+            if excluded_null.contains(&strip_indices(path)) {
+                state.set_field(path, Value::Null);
+            }
+        }
+        Self {
+            data_types,
+            excluded_null,
+            declarations: item_paths,
+            index,
+            state,
+        }
+    }
+
+    fn site<'a>(&'a self, path: &'a str, bind_self: bool, now_iso: Option<&str>) -> Site<'a> {
+        let mut site = self.state.site(&self.index, path);
+        site.bind_self = bind_self;
+        if let Some(now_iso) = now_iso {
+            site.set_now(now_iso);
+        }
+        site
     }
 
     /// Evaluates `expression` in the binding scope of `current_item_path`.
@@ -229,9 +300,8 @@ impl HostFelContext {
         now_iso: Option<&str>,
         extensions: Option<&dyn ExtensionFunctions>,
     ) -> Result<EvalResult, String> {
-        let expr = parse(&self.prepare(expression, current_item_path, replace_self_ref))
-            .map_err(|e| e.to_string())?;
-        let env = ScopedEnv::new(self, current_item_path, now_iso);
+        let expr = parse(expression).map_err(|e| e.to_string())?;
+        let env = self.site(current_item_path, replace_self_ref, now_iso);
         Ok(Fel::new(extensions).evaluate(&expr, &env))
     }
 
@@ -244,9 +314,8 @@ impl HostFelContext {
         now_iso: Option<&str>,
         extensions: Option<&dyn ExtensionFunctions>,
     ) -> Result<(EvalResult, Trace), String> {
-        let expr = parse(&self.prepare(expression, current_item_path, replace_self_ref))
-            .map_err(|e| e.to_string())?;
-        let env = ScopedEnv::new(self, current_item_path, now_iso);
+        let expr = parse(expression).map_err(|e| e.to_string())?;
+        let env = self.site(current_item_path, replace_self_ref, now_iso);
         let mut trace = Trace::new();
         let result = evaluate_with(
             &expr,
@@ -272,120 +341,8 @@ impl HostFelContext {
         now_iso: Option<&str>,
         extensions: Option<&dyn ExtensionFunctions>,
     ) -> Interpolated {
-        let env = ScopedEnv::new(self, current_item_path, now_iso);
-        interpolate_fel(template, &env, Fel::new(extensions), |expression| {
-            self.prepare(expression, current_item_path, replace_self_ref)
-        })
-    }
-
-    /// Field `dataType` for an instance path.
-    fn data_type(&self, path: &str) -> Option<&str> {
-        self.data_types
-            .get(&Path::parse(path).strip_indices())
-            .map(String::as_str)
-    }
-
-    /// The typed leaf at exactly `path`, if it holds a value.
-    fn leaf(&self, path: &str) -> Option<Value> {
-        self.values
-            .get(path)
-            .map(|value| json_to_runtime_fel_typed(value, self.data_type(path)))
-    }
-
-    /// Whether any value lies under `prefix` (`prefix.x` or `prefix[n]...`).
-    fn has_children(&self, prefix: &str) -> bool {
-        self.first_under(&format!("{prefix}.")) || self.first_under(&format!("{prefix}["))
-    }
-
-    /// Whether the ordered value map holds any path starting with `prefix`.
-    fn first_under(&self, prefix: &str) -> bool {
-        self.values
-            .range(prefix.to_string()..)
-            .next()
-            .is_some_and(|(path, _)| path.starts_with(prefix))
-    }
-
-    /// Values under `prefix` (`prefix.` and `prefix[` forms), each with its path relative to `prefix`.
-    fn children<'a>(&'a self, prefix: &'a str) -> impl Iterator<Item = (&'a str, &'a JsonValue)> {
-        let dotted = format!("{prefix}.");
-        let indexed = format!("{prefix}[");
-        let under = move |start: String| {
-            self.values
-                .range(start.clone()..)
-                .take_while(move |(path, _)| path.starts_with(&start))
-        };
-        under(dotted)
-            .chain(under(indexed))
-            .map(move |(path, value)| (&path[prefix.len()..], value))
-    }
-
-    /// The object or row array under `prefix`, built from its flat values; `None` when empty.
-    ///
-    /// Memoized until the next load: a row's fields are built once per evaluation, not per read.
-    fn nested(&self, prefix: &str) -> Option<Value> {
-        if let Some(value) = self.nested.borrow().get(prefix) {
-            return Some(value.clone());
-        }
-        if !self.has_children(prefix) {
-            return None;
-        }
-        let mut tree = JsonValue::Null;
-        for (relative, value) in self.children(prefix) {
-            set_nested_json_path(&mut tree, relative, value.clone());
-        }
-        let built = json_tree_to_runtime_fel(&tree, prefix, &|path| self.data_type(path));
-        self.nested
-            .borrow_mut()
-            .insert(prefix.to_string(), built.clone());
-        Some(built)
-    }
-
-    /// Non-repeat fields directly under group `prefix`: what `parent()` sees from its outermost repeat.
-    fn group_snapshot(&self, prefix: &str) -> Value {
-        let mut tree = JsonValue::Object(Map::new());
-        for (relative, value) in self.children(prefix) {
-            let Some(relative) = relative.strip_prefix('.') else {
-                continue;
-            };
-            if relative.contains('[') {
-                continue;
-            }
-            set_nested_json_path(&mut tree, relative, value.clone());
-        }
-        json_tree_to_runtime_fel(&tree, prefix, &|path| self.data_type(path))
-    }
-
-    /// `group.field` across every row of a repeat: the projection `FormspecEnvironment` applies to flat rows.
-    fn project_repeat(&self, segments: &[String]) -> Option<Value> {
-        for split in 1..segments.len() {
-            let prefix = format!("{}[", segments[..split].join("."));
-            let suffix = format!(".{}", segments[split..].join("."));
-            let mut rows: Vec<(usize, Value)> = self
-                .values
-                .range(prefix.clone()..)
-                .take_while(|(path, _)| path.starts_with(&prefix))
-                .filter_map(|(path, value)| {
-                    let (index, tail) = path[prefix.len()..].split_once(']')?;
-                    (tail == suffix).then(|| {
-                        (
-                            index.parse::<usize>().ok()?,
-                            json_to_runtime_fel_typed(value, self.data_type(path)),
-                        )
-                            .into()
-                    })?
-                })
-                .collect();
-            if !rows.is_empty() {
-                rows.sort_by_key(|(index, _)| *index);
-                return Some(Value::Array(rows.into_iter().map(|(_, v)| v).collect()));
-            }
-        }
-        None
-    }
-
-    /// MIP state at exactly `path`; unlisted paths are [`MipState::default`].
-    fn mip(&self, path: &str) -> MipState {
-        self.mips.get(path).cloned().unwrap_or_default()
+        let env = self.site(current_item_path, replace_self_ref, now_iso);
+        interpolate_fel(template, &env, Fel::new(extensions))
     }
 }
 
@@ -406,336 +363,6 @@ fn string_list(value: Option<&JsonValue>) -> Vec<String> {
         .flatten()
         .filter_map(|entry| entry.as_str().map(str::to_string))
         .collect()
-}
-
-/// FEL `[n]` (1-based, Core §4.3.3) to the instance path's `[n-1]`.
-fn to_instance_path(fel_path: &str) -> String {
-    let mut out = String::with_capacity(fel_path.len());
-    let mut rest = fel_path;
-    while let Some(open) = rest.find('[') {
-        out.push_str(&rest[..=open]);
-        rest = &rest[open + 1..];
-        match rest.find(']') {
-            Some(close) => {
-                match rest[..close].parse::<usize>() {
-                    Ok(n) => out.push_str(&n.saturating_sub(1).to_string()),
-                    Err(_) => out.push_str(&rest[..close]),
-                }
-                rest = &rest[close..];
-            }
-            None => break,
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
-/// The binding scope of one Item path over a [`HostFelContext`].
-struct ScopedEnv<'a> {
-    /// The form-scope state every name resolves against.
-    ctx: &'a HostFelContext,
-    /// Enclosing lexical scopes, innermost first (`rows[0].address`, `rows[0]`, `rows`).
-    scopes: Vec<String>,
-    /// Un-indexed scope prefixes for variable visibility, innermost first (`rows.address`, `rows`).
-    variable_scopes: Vec<String>,
-    /// Repeat instances enclosing the Item, outermost first.
-    repeats: Vec<RepeatAncestor>,
-    /// Clock backing `now()` / `today()` for this evaluation.
-    now: Option<Date>,
-}
-
-impl<'a> ScopedEnv<'a> {
-    /// Scope chain, variable visibility, and repeat ancestry for `current_item_path`.
-    fn new(ctx: &'a HostFelContext, current_item_path: &str, now_iso: Option<&str>) -> Self {
-        let path = Path::parse(current_item_path);
-        let is_field = ctx.data_types.contains_key(&path.strip_indices());
-        let innermost = if is_field {
-            path.parent_string()
-        } else {
-            path.to_string()
-        };
-        let mut scopes = Vec::new();
-        let mut current = String::new();
-        for segment in Path::parse(&innermost).segments {
-            match segment {
-                PathSegment::Exact(name) => {
-                    if !current.is_empty() {
-                        current.push('.');
-                    }
-                    current.push_str(&name);
-                }
-                PathSegment::Indexed(index) => current.push_str(&format!("[{index}]")),
-                PathSegment::Wildcard | PathSegment::Special(_) => continue,
-            }
-            scopes.push(current.clone());
-        }
-        scopes.reverse();
-
-        let base = path.strip_indices();
-        let mut variable_scopes: Vec<String> = base
-            .match_indices('.')
-            .map(|(dot, _)| base[..dot].to_string())
-            .collect();
-        if !base.is_empty() {
-            variable_scopes.push(base);
-        }
-        variable_scopes.reverse();
-
-        Self {
-            ctx,
-            scopes,
-            variable_scopes,
-            repeats: repeat_ancestors(&path, &ctx.repeat_counts),
-            now: now_iso.and_then(|iso| {
-                parse_datetime_literal(&if iso.starts_with('@') {
-                    iso.to_string()
-                } else {
-                    format!("@{iso}")
-                })
-            }),
-        }
-    }
-
-    /// The nearest enclosing repeat instance, if the Item sits inside one.
-    fn innermost_repeat(&self) -> Option<&RepeatAncestor> {
-        self.repeats.last()
-    }
-
-    /// Row `index` of `ancestor` as an object; an empty object when the row holds no values.
-    fn row(&self, ancestor: &RepeatAncestor, index: usize) -> Value {
-        self.ctx
-            .nested(&format!("{}[{index}]", ancestor.group))
-            .unwrap_or_else(|| Value::Object(fel_core::IndexMap::new()))
-    }
-
-    /// `key` under one scope: a leaf, or the object or rows under it.
-    fn scoped(&self, scope: &str, key: &str) -> Option<Value> {
-        let full = format!("{scope}.{key}");
-        self.ctx.leaf(&full).or_else(|| self.ctx.nested(&full))
-    }
-
-    /// MIP state for a FEL-indexed path, nearest enclosing scope first.
-    fn mip_state(&self, fel_path: &[String]) -> MipState {
-        let key = to_instance_path(&fel_path.join("."));
-        for scope in &self.scopes {
-            let full = format!("{scope}.{key}");
-            if let Some(state) = self.ctx.mips.get(&full) {
-                return state.clone();
-            }
-        }
-        self.ctx.mip(&key)
-    }
-
-    /// `value` walked by `tail`, or `value` itself when the tail is empty.
-    fn tail(value: Value, tail: &[String]) -> Value {
-        if tail.is_empty() {
-            value
-        } else {
-            resolve_value_path(&value, tail)
-        }
-    }
-}
-
-/// Repeat instances along `path`, outermost first, for groups the host reports counts for.
-fn repeat_ancestors(path: &Path, counts: &HashMap<String, u32>) -> Vec<RepeatAncestor> {
-    let mut ancestors = Vec::new();
-    let mut current = String::new();
-    let mut segments = path.segments.iter().peekable();
-    while let Some(segment) = segments.next() {
-        match segment {
-            PathSegment::Exact(name) => {
-                if !current.is_empty() {
-                    current.push('.');
-                }
-                current.push_str(name);
-                if let Some(PathSegment::Indexed(index)) = segments.peek() {
-                    if let Some(count) = counts.get(&current) {
-                        ancestors.push(RepeatAncestor {
-                            group: current.clone(),
-                            index: *index,
-                            count: *count as usize,
-                        });
-                    }
-                    current.push_str(&format!("[{index}]"));
-                    segments.next();
-                }
-            }
-            PathSegment::Indexed(index) => current.push_str(&format!("[{index}]")),
-            PathSegment::Wildcard | PathSegment::Special(_) => {}
-        }
-    }
-    ancestors
-}
-
-impl ScopedEnv<'_> {
-    /// Resolve a dotted field prefix in lexical scope before applying subscripts.
-    fn lookup_dotted(&self, root: Option<&str>, keys: &[String]) -> Value {
-        let Some(root) = root else {
-            return self
-                .innermost_repeat()
-                .map(|ancestor| self.row(ancestor, ancestor.index))
-                .unwrap_or(Value::Null);
-        };
-        let key = if keys.is_empty() {
-            root.to_owned()
-        } else {
-            format!("{root}.{}", keys.join("."))
-        };
-        for scope in &self.scopes {
-            if let Some(value) = self.scoped(scope, &key) {
-                return value;
-            }
-        }
-        if let Some(value) = self.ctx.leaf(&key) {
-            let excluded = self
-                .ctx
-                .excluded_null
-                .contains(&Path::parse(&key).strip_indices());
-            return if excluded && !self.ctx.mip(&key).relevant {
-                Value::Null
-            } else {
-                value
-            };
-        }
-        self.ctx
-            .nested(&key)
-            .or_else(|| {
-                self.ctx
-                    .project_repeat(&key.split('.').map(str::to_owned).collect::<Vec<_>>())
-            })
-            .unwrap_or(Value::Null)
-    }
-}
-
-impl Environment for ScopedEnv<'_> {
-    fn resolve_field(
-        &self,
-        root: Option<&str>,
-        path: &[FelPathSegment],
-    ) -> Result<Value, FieldError> {
-        let dots: Vec<_> = path
-            .iter()
-            .map_while(|segment| match segment {
-                FelPathSegment::Dot(key) if root.is_some() => Some(key.clone()),
-                _ => None,
-            })
-            .collect();
-        let value = self.lookup_dotted(root, &dots);
-        if dots.len() == path.len() {
-            return Ok(value);
-        }
-        resolve_value_segments(&value, &path[dots.len()..])
-    }
-
-    fn resolve_context(&self, name: &str, arg: Option<&str>, tail: &[String]) -> Value {
-        match name {
-            "current" => self
-                .innermost_repeat()
-                .map(|ancestor| Self::tail(self.row(ancestor, ancestor.index), tail))
-                .unwrap_or(Value::Null),
-            "index" => self
-                .innermost_repeat()
-                .map(|ancestor| Value::Number(Decimal::from(ancestor.index as u64 + 1)))
-                .unwrap_or(Value::Null),
-            "count" => self
-                .innermost_repeat()
-                .map(|ancestor| Value::Number(Decimal::from(ancestor.count as u64)))
-                .unwrap_or(Value::Null),
-            "instance" => arg
-                .and_then(|name| self.ctx.instances.get(name))
-                .map(|value| Self::tail(value.clone(), tail))
-                .unwrap_or(Value::Null),
-            _ => self
-                .variable_scopes
-                .iter()
-                .map(String::as_str)
-                .chain(std::iter::once("#"))
-                .find_map(|scope| self.ctx.variables.get(scope)?.get(name))
-                .map(|value| Self::tail(value.clone(), tail))
-                .unwrap_or(Value::Null),
-        }
-    }
-
-    fn mip_valid(&self, path: &[String]) -> Value {
-        Value::Boolean(self.mip_state(path).valid)
-    }
-
-    fn mip_relevant(&self, path: &[String]) -> Value {
-        Value::Boolean(self.mip_state(path).relevant)
-    }
-
-    fn mip_readonly(&self, path: &[String]) -> Value {
-        Value::Boolean(self.mip_state(path).readonly)
-    }
-
-    fn mip_required(&self, path: &[String]) -> Value {
-        Value::Boolean(self.mip_state(path).required)
-    }
-
-    fn repeat_prev(&self) -> Value {
-        match self.innermost_repeat() {
-            Some(ancestor) if ancestor.index >= 1 => self.row(ancestor, ancestor.index - 1),
-            _ => Value::Null,
-        }
-    }
-
-    fn repeat_next(&self) -> Value {
-        match self.innermost_repeat() {
-            Some(ancestor) if ancestor.index + 1 < ancestor.count => {
-                self.row(ancestor, ancestor.index + 1)
-            }
-            _ => Value::Null,
-        }
-    }
-
-    fn repeat_parent(&self) -> Value {
-        match self.repeats.as_slice() {
-            [.., parent, _] => self.row(parent, parent.index),
-            [outermost] => {
-                let parent = Path::parse(&outermost.group).parent_string();
-                if parent.is_empty() {
-                    Value::Null
-                } else {
-                    self.ctx.group_snapshot(&parent)
-                }
-            }
-            [] => Value::Null,
-        }
-    }
-
-    fn current_date(&self) -> Result<Date, MissingTimezoneContextError> {
-        self.current_datetime().map(|dt| Date::Date {
-            year: dt.year(),
-            month: dt.month(),
-            day: dt.day(),
-        })
-    }
-
-    fn current_datetime(&self) -> Result<Date, MissingTimezoneContextError> {
-        self.now
-            .clone()
-            .ok_or_else(MissingTimezoneContextError::not_configured)
-    }
-
-    fn locale(&self) -> Option<&str> {
-        self.ctx.locale.as_deref()
-    }
-
-    fn date_format(&self, style: &str) -> Option<&str> {
-        self.ctx.date_formats.get(style).map(String::as_str)
-    }
-
-    fn runtime_meta(&self, key: &str) -> Value {
-        self.ctx.meta.get(key).cloned().unwrap_or(Value::Null)
-    }
-
-    fn subject_key(&self, key: &str) -> Value {
-        self.ctx
-            .subject_keys
-            .get(key)
-            .cloned()
-            .unwrap_or(Value::Null)
-    }
 }
 
 #[cfg(test)]
@@ -785,7 +412,7 @@ mod tests {
                 "required": ["rows[0].qty"]
             },
             "repeatCounts": { "rows": 2, "rows[0].tasks": 2, "section.jobs": 1 },
-            "variables": { "#": { "limit": 10 }, "rows": { "limit": 99 } },
+            "variables": { "#": { "limit": 10 }, "rows[0]": { "limit": 99 } },
             "instances": { "config": { "max": 3 } },
             "locale": "fr-CA",
             "meta": { "channel": "kiosk" }
@@ -855,10 +482,9 @@ mod tests {
         assert_eq!(eval(&ctx, "$rows[2].name", ""), json!("Beta"));
         assert_eq!(eval(&ctx, "count($rows)", ""), json!(2));
         assert_eq!(eval(&ctx, "sum($rows[*].qty)", ""), json!(5));
-        assert_eq!(eval(&ctx, "sum(rows.qty)", ""), json!(5));
         assert_eq!(eval(&ctx, "$tasks[2].mins", "rows[0]"), json!(7));
-        assert_eq!(eval(&ctx, "$rows.qty", "rows[1].name"), json!(3));
-        assert_eq!(eval(&ctx, "$rows.qty", "rows[0].tasks[1].mins"), json!(2));
+        assert_eq!(eval(&ctx, "$qty", "rows[1].name"), json!(3));
+        assert_eq!(eval(&ctx, "$qty", "rows[0].tasks[1].mins"), json!(2));
         assert_eq!(eval(&ctx, "$section.title", ""), json!("Work"));
     }
 
@@ -896,6 +522,22 @@ mod tests {
     }
 
     #[test]
+    fn mip_queries_require_a_single_valid_repeat_row() {
+        let ctx = context();
+        assert_eq!(
+            eval(&ctx, "valid($rows[2].qty)", "rows[0].qty"),
+            json!(false)
+        );
+        let results = [
+            "valid($rows[*].qty)",
+            "valid($rows[0].qty)",
+            "valid($rows[3].qty)",
+        ]
+        .map(|expression| eval(&ctx, expression, "rows[0].qty"));
+        assert_eq!(results, [json!(null), json!(null), json!(null)]);
+    }
+
+    #[test]
     fn excluded_value_null_applies_to_non_relevant_full_path_reads() {
         let ctx = context();
         assert_eq!(eval(&ctx, "$secret", ""), json!(null));
@@ -916,13 +558,18 @@ mod tests {
     }
 
     #[test]
-    fn self_reference_and_qualified_group_refs_prepare_per_item() {
+    fn self_reference_and_unsubscripted_repeat_refusal() {
         let ctx = context();
         let result = ctx
             .evaluate("$ * 10", "rows[1].qty", true, None, None)
             .unwrap();
         assert_eq!(fel_to_ui_json(&result.value), json!(30));
-        assert_eq!(eval(&ctx, "$rows.name", "rows[0].qty"), json!("Alpha"));
+        // Core §3.2.2 requires a subscript on repeat paths that continue to a field.
+        let result = ctx
+            .evaluate("$rows.name", "rows[0].qty", false, None, None)
+            .unwrap();
+        assert!(fel_core::has_error_diagnostics(&result.diagnostics));
+        assert!(result.value.is_null());
     }
 
     #[test]
@@ -977,12 +624,5 @@ mod tests {
             ctx.load(json!({ "values": 1 }).as_object().unwrap())
                 .is_err()
         );
-    }
-
-    #[test]
-    fn fel_index_to_instance_path() {
-        assert_eq!(to_instance_path("rows[2].tasks[1].x"), "rows[1].tasks[0].x");
-        assert_eq!(to_instance_path("plain.path"), "plain.path");
-        assert_eq!(to_instance_path("rows[*].x"), "rows[*].x");
     }
 }

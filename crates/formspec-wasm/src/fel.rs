@@ -12,8 +12,8 @@
 use fel_core::{
     EvaluatorOptions, ExtensionFunctions, Trace, evaluate, evaluate_with,
     fel_diagnostics_to_json_value, field_map_from_json_str,
-    formspec_environment_from_exact_json_map, has_error_diagnostics, host_options_from_json, parse,
-    prepare, reject_undefined_functions,
+    formspec_environment_from_exact_json_map, has_error_diagnostics, parse,
+    reject_undefined_functions,
 };
 #[cfg(feature = "fel-authoring")]
 use fel_core::{
@@ -429,22 +429,6 @@ pub fn rewrite_fel_for_assembly_wasm(expression: &str, map_json: &str) -> Result
 pub fn list_builtin_functions() -> Result<String, JsError> {
     let json = builtin_function_catalog_json_value();
     to_json_string(&json).map_err(|e| JsError::new(&e))
-}
-
-/// Normalize FEL source for host evaluation (bare `$`, repeat qualifiers, repeat aliases).
-/// `options_json`: `{ expression, currentItemPath?, replaceSelfRef?, repeatCounts?, valuesByPath? | fieldPaths? }`.
-#[wasm_bindgen(js_name = "prepareFelExpression")]
-pub fn prepare_expression_wasm(options_json: &str) -> Result<String, JsError> {
-    prepare_expression_inner(options_json).map_err(|e| JsError::new(&e))
-}
-
-pub(crate) fn prepare_expression_inner(options_json: &str) -> Result<String, String> {
-    let v: Value = parse_value_str(options_json, "prepareFelExpression options JSON")?;
-    let obj = v
-        .as_object()
-        .ok_or("prepareFelExpression options must be a JSON object")?;
-    let owned = host_options_from_json(obj)?;
-    Ok(prepare(&owned))
 }
 
 // ── Path Utils ──────────────────────────────────────────────────

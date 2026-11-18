@@ -1,7 +1,6 @@
 //! Phase 3: Revalidate — validate all constraints and shapes.
 #![allow(clippy::missing_docs_in_private_items)]
 
-mod env;
 mod expr;
 mod items;
 mod shapes;
@@ -14,11 +13,7 @@ use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
 use crate::types::{EvalDiagnostic, EvalTrigger, ExtensionConstraint, ItemInfo, ValidationResult};
 
-use crate::rebuild::is_wildcard_bind;
-use crate::recalculate::repeats::ResponseIndex;
-use env::{
-    RepeatGroupArrays, SiblingValues, apply_excluded_values_to_env, build_validation_env_typed,
-};
+use crate::scope::{AggregateMemo, ScopeData, ScopeIndex, ScopedVariables};
 
 /// Validate all constraints and shapes.
 ///
@@ -36,6 +31,28 @@ pub fn revalidate(
     definition: &Value,
     options: &EvalOptions,
 ) -> (Vec<ValidationResult>, Vec<EvalDiagnostic>) {
+    let index = ScopeIndex::for_flat(items, values.keys(), options.context.repeat_counts.as_ref());
+    let variables = HashMap::from([("#".to_owned(), variables.clone())]);
+    revalidate_scoped(
+        items,
+        &index,
+        values,
+        &variables,
+        definition,
+        options,
+        &mut AggregateMemo::default(),
+    )
+}
+
+pub(crate) fn revalidate_scoped(
+    items: &[ItemInfo],
+    index: &ScopeIndex,
+    values: &HashMap<String, Value>,
+    variables: &ScopedVariables,
+    definition: &Value,
+    options: &EvalOptions,
+    aggregates: &mut AggregateMemo,
+) -> (Vec<ValidationResult>, Vec<EvalDiagnostic>) {
     let mut findings = Findings::default();
     let trigger = options.trigger;
 
@@ -43,31 +60,56 @@ pub fn revalidate(
         return (findings.results, findings.diagnostics);
     }
 
-    let index = ResponseIndex::new(items, values);
-    let data_types = &index.data_types;
-    let mut env = build_validation_env_typed(
-        values,
-        variables,
-        options.context.now_iso.as_deref(),
-        &options.instances,
-        data_types,
-    );
-    if let Some(keys) = options.context.subject_keys() {
-        env.subject_keys.clone_from(keys);
-    }
+    let mut state = ScopeData::for_values(index, values, options);
+    state.variables.clone_from(variables);
 
-    // 9a: Apply excludedValue — non-relevant fields with excludedValue="null" appear as null in FEL
-    apply_excluded_values_to_env(items, &mut env);
+    fn index_items<'a>(
+        items: &'a [ItemInfo],
+        by_path: &mut HashMap<&'a str, &'a ItemInfo>,
+        state: &mut ScopeData,
+        invalid_paths: &HashSet<&str>,
+    ) {
+        for item in items {
+            by_path.insert(&item.path, item);
+            state.env.set_mip(
+                &item.path,
+                fel_core::MipState {
+                    valid: !invalid_paths.contains(item.path.as_str()),
+                    relevant: item.mip.relevant,
+                    readonly: item.mip.readonly,
+                    required: item.mip.required,
+                },
+            );
+            if !item.mip.relevant
+                && item.excluded_value == Some(crate::types::ExcludedValueMode::Null)
+            {
+                state.set_field(&item.path, fel_core::Value::Null);
+            }
+            index_items(&item.children, by_path, state, invalid_paths);
+        }
+    }
+    let mut by_path = HashMap::new();
+    let invalid_paths = options
+        .context
+        .previous_validations
+        .as_deref()
+        .unwrap_or_default()
+        .iter()
+        .filter(|result| result.severity == crate::types::Severity::Error)
+        .map(|result| result.path.as_str())
+        .collect();
+    index_items(items, &mut by_path, &mut state, &invalid_paths);
+    state.restore_aggregates(aggregates);
 
     let shapes = definition
         .get("shapes")
         .and_then(Value::as_array)
         .map(Vec::as_slice);
     let validation = Validation {
-        items,
+        by_path,
         values,
-        index: &index,
-        siblings: SiblingValues::new(values, data_types),
+        index,
+        state: &state,
         shapes_by_id: shapes
             .unwrap_or(&[])
             .iter()
@@ -87,17 +129,14 @@ pub fn revalidate(
             .get("$formspec")
             .and_then(Value::as_str)
             .unwrap_or("1.0.0"),
-        repeat_counts: options.context.repeat_counts.as_ref(),
         fel: Fel::new(options.extensions),
     };
 
     // Bind constraints + extension constraints
-    validation.validate_items(items, &mut env, &mut findings);
+    validation.validate_items(items, &mut findings);
 
-    // Shape rules — filtered by timing. Non-wildcard shapes read `$group` row
-    // arrays; wildcard shapes resolve rows through flat indexed keys.
+    // Shape rules are filtered by timing.
     if let Some(shapes) = shapes {
-        let mut repeat_arrays = RepeatGroupArrays::new(items, values, &index);
         for shape in shapes {
             let timing = shape
                 .get("timing")
@@ -121,15 +160,7 @@ pub fn revalidate(
                     }
                 }
             }
-            let target = shape.get("target").and_then(|v| v.as_str()).unwrap_or("");
-            let with_arrays = !is_wildcard_bind(target);
-            if with_arrays {
-                repeat_arrays.swap(&mut env);
-            }
-            validation.validate_shape(shape, &mut env, &mut findings);
-            if with_arrays {
-                repeat_arrays.swap(&mut env);
-            }
+            validation.validate_shape(shape, &mut findings);
         }
     }
 
@@ -137,27 +168,24 @@ pub fn revalidate(
     let mut seen = HashSet::new();
     findings.diagnostics.retain(|d| seen.insert(d.clone()));
 
+    state.save_aggregates(aggregates);
     (findings.results, findings.diagnostics)
 }
 
 /// Read-only inputs shared by bind-constraint and shape validation.
 struct Validation<'a> {
-    /// Evaluated item tree (relevance, constraints, cardinality).
-    items: &'a [ItemInfo],
+    /// Evaluated items by concrete path, for Shape relevance.
+    by_path: HashMap<&'a str, &'a ItemInfo>,
     /// Response values after recalculation.
     values: &'a HashMap<String, Value>,
-    /// Field data types and repeat rows, for the row scope a repeat instance's Binds see.
-    index: &'a ResponseIndex,
-    /// Row-sibling values for bare `$field` aliases.
-    siblings: SiblingValues<'a>,
+    index: &'a ScopeIndex,
+    state: &'a ScopeData,
     /// Shapes by `id`, for composition references.
     shapes_by_id: HashMap<String, &'a Value>,
     /// Registry extension constraints by extension name.
     ext_by_name: HashMap<&'a str, &'a ExtensionConstraint>,
     /// Definition `$formspec` version, for extension compatibility ranges.
     formspec_version: &'a str,
-    /// Authoritative repeat counts by group path, when the host keeps them.
-    repeat_counts: Option<&'a HashMap<String, u64>>,
     /// FEL evaluation seam.
     fel: Fel<'a>,
 }

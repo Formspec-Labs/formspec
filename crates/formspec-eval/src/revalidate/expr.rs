@@ -2,9 +2,7 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 use fel_core::error::Severity;
-use fel_core::{
-    EvalResult, FormspecEnvironment, Value, parse, undefined_function_names_from_diagnostics,
-};
+use fel_core::{Environment, EvalResult, Value, parse, undefined_function_names_from_diagnostics};
 
 use crate::fel_eval::Fel;
 use crate::types::EvalDiagnostic;
@@ -36,7 +34,7 @@ impl ConstraintSite<'_> {
     pub(super) fn evaluate(
         &self,
         expression: &str,
-        env: &FormspecEnvironment,
+        env: &dyn Environment,
         diagnostics: &mut Vec<EvalDiagnostic>,
     ) -> Option<Value> {
         let parsed = parse(expression).ok()?;
@@ -88,7 +86,7 @@ impl ConstraintSite<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fel_core::Diagnostic;
+    use fel_core::{Diagnostic, FormspecEnvironment};
     use rust_decimal::Decimal;
 
     /// Core §3.8.1 / §3.10.2: `null` passes whether it came from missing data or an eval error.

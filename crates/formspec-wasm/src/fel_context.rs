@@ -5,8 +5,7 @@
 //! holds [`HostFelContext`] across calls: the host loads a form-scope snapshot when its evaluation,
 //! structure, or instance version changes, and each read passes only the expression and the Item path.
 //!
-//! Every method mirrors a free function in [`crate::fel`] — same envelopes, same rules — so a host
-//! can use either path. Behavior lives in `formspec-eval`; this module is JSON in, JSON out.
+//! The evaluator's site rules live in `formspec-eval`. This module reads and writes JSON.
 
 use fel_core::exact_json::Value;
 use fel_core::{ExtensionFunctions, fel_diagnostics_to_json_value};
@@ -20,7 +19,7 @@ use crate::json_host::{parse_json_as, to_json_string};
 /// One form's FEL state, resident across calls.
 ///
 /// `new` takes the Definition's leaf typing; `load` replaces the per-evaluation snapshot;
-/// `evaluate`, `evaluateTrace`, `interpolate`, and `prepare` read it by Item path.
+/// `evaluate`, `evaluateTrace`, and `interpolate` read it by Item path.
 #[wasm_bindgen(js_name = "FelContext")]
 pub struct FelContextHandle {
     /// The resident context every read resolves against.
@@ -49,12 +48,6 @@ impl FelContextHandle {
     #[wasm_bindgen(js_name = "load")]
     pub fn load(&mut self, snapshot_json: &str) -> Result<(), JsError> {
         self.load_inner(snapshot_json).map_err(|e| JsError::new(&e))
-    }
-
-    /// Normalizes `expression` for `item_path` (bare `$`, `$group.field`, repeat aliases).
-    #[wasm_bindgen(js_name = "prepare")]
-    pub fn prepare(&self, expression: &str, item_path: &str, replace_self_ref: bool) -> String {
-        self.inner.prepare(expression, item_path, replace_self_ref)
     }
 
     /// Evaluates `expression` in the binding scope of `item_path`; JSON `{ value, hasErrorDiagnostics }`.

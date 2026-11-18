@@ -8,7 +8,7 @@ use crate::types::find_item_by_path;
 
 use super::{
     detect_repeat_count, expand_repeat_instances, expand_wildcard_path, flatten_response_data,
-    instantiate_wildcard_expr, parse_variables, rebuild_item_tree,
+    parse_variables, rebuild_item_tree,
 };
 
 #[test]
@@ -230,33 +230,6 @@ fn expand_repeat_instances_no_repeatables() {
     expand_repeat_instances(&mut items, &data);
     assert_eq!(items.len(), 1);
     assert_eq!(items[0].key, "name");
-}
-
-// ── Wildcard expr instantiation ─────────────────────────────
-
-#[test]
-fn instantiate_wildcard_expr_no_prefix_collision() {
-    let result = instantiate_wildcard_expr("$myrow[*].field + $row[*].field", "row", 0);
-    assert_eq!(
-        result, "$myrow[*].field + $row[0].field",
-        "must not replace inside $myrow — only $row"
-    );
-}
-
-#[test]
-fn instantiate_wildcard_expr_dotted_base() {
-    let result = instantiate_wildcard_expr(
-        "$section.rows[*].qty * $section.rows[*].price",
-        "section.rows",
-        3,
-    );
-    assert_eq!(result, "$section.rows[3].qty * $section.rows[3].price");
-}
-
-#[test]
-fn instantiate_wildcard_expr_no_match() {
-    let result = instantiate_wildcard_expr("$other[*].x", "items", 0);
-    assert_eq!(result, "$other[*].x");
 }
 
 // ── flatten_response_data ────────────────────────────────────
