@@ -285,6 +285,15 @@ export interface FormEngineOptions {
     issuerOverride?: IssuerSource;
     /** Host primary Response data installed before seedFrom. */
     responseData?: JsonRecord;
+    /** Resume an editable snapshot before the first evaluation. Mutually exclusive with responseData. */
+    draftSnapshot?: FormDraftSnapshot;
+}
+
+/** Editable data pinned to a Definition, including hidden answers and exact repeat arrays. */
+export interface FormDraftSnapshot {
+    definitionUrl: string;
+    definitionVersion: string;
+    data: JsonRecord;
 }
 
 export interface RegistryEntry {
@@ -488,6 +497,10 @@ export interface IFormEngine {
     removeRepeatInstance(itemName: string, index: number): void;
     /** Loads Response `data` in one evaluation, one row per loaded array entry regardless of min/maxRepeat. */
     loadResponseData(data: JsonRecord): void;
+    /** Restores editable data from a draft pinned to this Definition. */
+    loadDraftSnapshot(snapshot: FormDraftSnapshot): void;
+    /** Captures editable data without evaluation. Use exact JSON for persistence. */
+    getDraftSnapshot(): FormDraftSnapshot;
 
     compileExpression(expression: string, currentItemName?: string): () => FormFieldValue;
 

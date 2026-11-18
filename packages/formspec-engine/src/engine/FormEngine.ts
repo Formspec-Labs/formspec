@@ -23,6 +23,7 @@ import type {
     EngineReplayApplyResult,
     EngineReplayEvent,
     EngineReplayResult,
+    FormDraftSnapshot,
     FormEngineDiagnosticsSnapshot,
     FormEngineOptions,
     FormEngineRuntimeContext,
@@ -65,6 +66,7 @@ import {
     validateCalculateBindCycles,
     validateVariableDefinitionCycles,
 } from './definition-setup.js';
+import { captureDraftData } from './draft-snapshot.js';
 import { validateInstanceDataAgainstSchema } from './instance-schema.js';
 import {
     patchDeltaSignalsFromWasm,
@@ -72,9 +74,9 @@ import {
     patchValueSignalsFromWasm,
 } from './reactive-patches.js';
 import {
-    applyRepeatGroupTreeSnapshot,
     clearRepeatIndexedSubtree,
-    snapshotRepeatGroupTree,
+    snapshotRepeatRow,
+    type RepeatRowSnapshot,
 } from './repeat-ops.js';
 import {
     buildFormspecResponseEnvelope,
@@ -229,6 +231,10 @@ export class FormEngine implements IFormEngine {
         this._evaluationVersion = this._rx.signal(0);
         this._labelContextSignal = this._rx.signal(null);
         this.definition = cloneValue(definition);
+        if (options.draftSnapshot) {
+            if (options.responseData) throw new Error('Supply draftSnapshot or responseData, not both');
+            this.assertDraftSnapshot(options.draftSnapshot);
+        }
 
         // Locale store — direction mode from formPresentation.direction or 'ltr'
         const directionMode = definition.formPresentation?.direction ?? 'ltr';
@@ -262,7 +268,9 @@ export class FormEngine implements IFormEngine {
         validateVariableDefinitionCycles(this._variableDefs);
         validateCalculateBindCycles(this._bindConfigs);
         this.registerItems(this.definition.items);
-        if (options.responseData) {
+        if (options.draftSnapshot) {
+            this.loadItemsData(this.definition.items, options.draftSnapshot.data, '', true);
+        } else if (options.responseData) {
             this.loadItemsData(this.definition.items, options.responseData, '');
         }
         this.runInstanceDependentSeeding();
@@ -426,7 +434,7 @@ export class FormEngine implements IFormEngine {
         if (!item?.repeatable || index < 0 || index >= count) {
             return;
         }
-        this.rebuildRepeatRows(path, item, (rows) => rows.filter((_row, current) => current !== index));
+        this.rebuildRepeatRows(path, item, index);
         if (item.seedFrom && this._pendingInstanceSources.has(item.seedFrom.instance)) {
             this._seedFromResolvedPaths.add(path);
         }
@@ -444,32 +452,71 @@ export class FormEngine implements IFormEngine {
         this._evaluate();
     }
 
-    private loadItemsData(items: FormItem[], data: JsonRecord, prefix: string): void {
+    public getDraftSnapshot(): FormDraftSnapshot {
+        const data = captureDraftData(
+            this.definition.items,
+            path => !this._calculatedFields.has(toBasePath(path)) && Object.prototype.hasOwnProperty.call(this._data, path)
+                ? this._data[path] : undefined,
+            path => this.repeats[path].value,
+        );
+        return cloneValue({
+            definitionUrl: this.definition.url,
+            definitionVersion: this.definition.version,
+            data,
+        });
+    }
+
+    public loadDraftSnapshot(snapshot: FormDraftSnapshot): void {
+        this.assertDraftSnapshot(snapshot);
+        this._rx.batch(() => {
+            this.loadItemsData(this.definition.items, snapshot.data, '', true);
+            // Restoring a draft starts a new evaluation history. Keep the prior result for the signal diff.
+            this._evaluate(null);
+        });
+    }
+
+    private assertDraftSnapshot(snapshot: FormDraftSnapshot): void {
+        if (snapshot.definitionUrl !== this.definition.url || snapshot.definitionVersion !== this.definition.version) {
+            throw new Error('Draft Definition pin does not match the form Definition');
+        }
+        if (!isJsonRecord(snapshot.data)) throw new TypeError('Draft data must be a JSON object');
+    }
+
+    private loadItemsData(items: FormItem[], data: JsonRecord, prefix: string, draft = false): void {
         for (const item of items) {
-            if (!Object.prototype.hasOwnProperty.call(data, item.key)) {
-                continue;
-            }
+            const present = Object.prototype.hasOwnProperty.call(data, item.key);
+            if (!present && !draft) continue;
             const path = prefix ? `${prefix}.${item.key}` : item.key;
-            const value = data[item.key];
+            const value = present ? data[item.key] : undefined;
             if (item.type === 'field') {
-                if (this._pendingInstanceSources.size > 0) this._sourceSeedPreservedFields.add(path);
-                this.writeFieldData(path, value as FormFieldValue);
+                if (draft || this._pendingInstanceSources.size > 0) this._sourceSeedPreservedFields.add(path);
+                if (draft) {
+                    if (!this._calculatedFields.has(toBasePath(path))) this.storeFieldValue(path, value);
+                    this.writeSources[path].value = null;
+                    this.loadItemsData(item.children ?? [], data, path, true);
+                } else {
+                    this.writeFieldData(path, value);
+                }
             } else if (item.type === 'group' && item.repeatable && this.repeats[path]) {
                 this._seedFromResolvedPaths.add(path);
                 const rows = Array.isArray(value) ? value : [];
                 if (this.repeats[path].value > rows.length) {
-                    this.rebuildRepeatRows(path, item, (snapshots) => snapshots.slice(0, rows.length));
+                    this._rx.batch(() => {
+                        this.clearRepeatSubtree(path, rows.length);
+                        this.repeats[path].value = rows.length;
+                        this.structureVersion.value += 1;
+                    });
                 }
                 while (this.repeats[path].value < rows.length) {
                     this.appendRepeatRow(path, item);
                 }
                 rows.forEach((row, index) => {
                     if (isJsonRecord(row)) {
-                        this.loadItemsData(item.children ?? [], row, `${path}[${index}]`);
+                        this.loadItemsData(item.children ?? [], row, `${path}[${index}]`, draft);
                     }
                 });
-            } else if (item.type === 'group' && !item.repeatable && isJsonRecord(value)) {
-                this.loadItemsData(item.children ?? [], value, path);
+            } else if (item.type === 'group' && !item.repeatable && (draft || isJsonRecord(value))) {
+                this.loadItemsData(item.children ?? [], isJsonRecord(value) ? value : {}, path, draft);
             }
         }
     }
@@ -483,71 +530,44 @@ export class FormEngine implements IFormEngine {
         });
     }
 
-    /** Re-keys repeat `path` to the rows `select` keeps, preserving nested shape, values, and write sources. */
-    private rebuildRepeatRows(
-        path: string,
-        item: FormItem,
-        select: (rows: Record<string, unknown>[]) => Record<string, unknown>[],
-    ): void {
-        const snapshots: Record<string, unknown>[] = [];
-        const sourceSnapshots: Record<string, unknown>[] = [];
+    /** Reindex the surviving rows with their nested shape, values and prefill protection. */
+    private rebuildRepeatRows(path: string, item: FormItem, removedIndex: number): void {
+        const children = item.children ?? [];
+        const rows: RepeatRowSnapshot[] = [];
         for (let current = 0; current < this.repeats[path].value; current += 1) {
-            snapshots.push(
-                snapshotRepeatGroupTree(
-                    item.children ?? [],
-                    `${path}[${current}]`,
-                    (fieldPath) => cloneValue(this.signals[fieldPath]?.value),
-                    (repeatPath) => this.repeats[repeatPath]?.value ?? 0,
-                ),
-            );
-            // Provenance moves with its row: a respondent's typing must not inherit an assist tag from the row above.
-            sourceSnapshots.push(
-                snapshotRepeatGroupTree(
-                    item.children ?? [],
-                    `${path}[${current}]`,
-                    (fieldPath) => this.writeSources[fieldPath]?.value ?? null,
-                    (repeatPath) => this.repeats[repeatPath]?.value ?? 0,
-                ),
-            );
+            if (current === removedIndex) continue;
+            rows.push(snapshotRepeatRow(
+                children,
+                `${path}[${current}]`,
+                fieldPath => ({
+                    value: cloneValue(this.signals[fieldPath]?.value),
+                    writeSource: this.writeSources[fieldPath]?.value ?? null,
+                    preserveSourceSeed: this._sourceSeedPreservedFields.has(fieldPath),
+                }),
+                repeatPath => this.repeats[repeatPath]?.value ?? 0,
+            ));
         }
-        const kept = new Map(snapshots.map((row, index) => [row, sourceSnapshots[index]]));
-        const rows = select(snapshots);
 
         this._rx.batch(() => {
             this.clearRepeatSubtree(path);
             this.repeats[path].value = rows.length;
-            for (let current = 0; current < rows.length; current += 1) {
-                this.registerItemChildren(item.children ?? [], `${path}[${current}]`);
-                applyRepeatGroupTreeSnapshot(
-                    item.children ?? [],
-                    `${path}[${current}]`,
-                    rows[current],
-                    (fieldPath, value) => {
-                        const v = cloneValue(value) as FormFieldValue;
-                        this._data[fieldPath] = v as JsonValue;
-                        if (this.signals[fieldPath]) {
-                            this.signals[fieldPath].value = v;
-                        }
-                    },
-                    (repeatPath, repeatItem, count) => {
-                        this.clearRepeatSubtree(repeatPath);
-                        this.repeats[repeatPath].value = count;
-                        for (let index = 0; index < count; index += 1) {
-                            this.registerItemChildren(repeatItem.children ?? [], `${repeatPath}[${index}]`);
-                        }
-                    },
-                );
-                const sources = kept.get(rows[current]);
-                if (sources) {
-                    applyRepeatGroupTreeSnapshot(
-                        item.children ?? [],
-                        `${path}[${current}]`,
-                        sources,
-                        (fieldPath, source) => {
-                            (this.writeSources[fieldPath] ??= this._rx.signal<WriteSource | null>(null)).value =
-                                (source as WriteSource | null) ?? null;
-                        },
-                    );
+            for (const [index, row] of rows.entries()) {
+                const rowPath = `${path}[${index}]`;
+                this.registerItemChildren(children, rowPath);
+                for (const { path: relativePath, item: repeatItem, count } of row.repeats) {
+                    const repeatPath = `${rowPath}.${relativePath}`;
+                    this.clearRepeatSubtree(repeatPath);
+                    this.repeats[repeatPath].value = count;
+                    for (let nested = 0; nested < count; nested += 1) {
+                        this.registerItemChildren(repeatItem.children ?? [], `${repeatPath}[${nested}]`);
+                    }
+                }
+                for (const { path: relativePath, value, writeSource, preserveSourceSeed } of row.fields) {
+                    const fieldPath = `${rowPath}.${relativePath}`;
+                    this._data[fieldPath] = value as JsonValue;
+                    this.signals[fieldPath].value = value;
+                    this.writeSources[fieldPath].value = writeSource;
+                    if (preserveSourceSeed) this._sourceSeedPreservedFields.add(fieldPath);
                 }
             }
             this.structureVersion.value += 1;
@@ -601,13 +621,16 @@ export class FormEngine implements IFormEngine {
         }
 
         const bind = this._bindConfigs[basePath];
-        const nextValue = coerceFieldValue(item, bind, this.definition, value);
-        if (nextValue === undefined) {
-            delete this._data[name];
-        } else {
-            this._data[name] = cloneValue(nextValue);
-        }
+        this.storeFieldValue(name, coerceFieldValue(item, bind, this.definition, value));
         return true;
+    }
+
+    private storeFieldValue(path: string, value: FormFieldValue): void {
+        if (value === undefined) {
+            delete this._data[path];
+        } else {
+            this._data[path] = cloneValue(value);
+        }
     }
 
     public getValidationReport(): ValidationReport;
@@ -1566,8 +1589,8 @@ export class FormEngine implements IFormEngine {
             }
             const paths = Object.keys(this.signals).filter((candidate) => toBasePath(candidate) === basePath);
             for (const path of paths) {
-                if (this._instanceSourceResolver && (
-                    this._sourceSeedPreservedFields.has(path) || this.writeSources[path]?.value != null
+                if (this._sourceSeedPreservedFields.has(path) || (
+                    this._instanceSourceResolver && this.writeSources[path]?.value != null
                 )) continue;
                 if (!isEmptyValue(this.signals[path]?.value)) {
                     continue;
@@ -1880,13 +1903,13 @@ export class FormEngine implements IFormEngine {
         });
     }
 
-    private _evaluate(): void {
+    private _evaluate(previousResult: EvalResult | null = this._fullResult): void {
         const baseResult = wasmEvaluateDefinition(
             this.definition,
             this._data,
             wasmEvaluateDefinitionPayload({
                 nowIso: this.nowISO(),
-                previousResult: this._fullResult,
+                previousResult,
                 instances: this.instanceData,
                 registryDocuments: this._registryDocuments,
                 repeatCounts: this.repeatCountsSnapshot(),
@@ -1957,26 +1980,32 @@ export class FormEngine implements IFormEngine {
         return this.repeats[itemName] ? itemName : toBasePath(itemName);
     }
 
-    private clearRepeatSubtree(rootRepeatPath: string): void {
+    private clearRepeatSubtree(rootRepeatPath: string, firstIndex = 0): void {
         const repeatPrefix = `${rootRepeatPath}[`;
+        const includesPath = (path: string) => path.startsWith(repeatPrefix) && (
+            firstIndex === 0 || Number(path.slice(repeatPrefix.length, path.indexOf(']', repeatPrefix.length))) >= firstIndex
+        );
         for (const path of Object.keys(this._fieldViewModels)) {
-            if (path.startsWith(repeatPrefix)) {
+            if (includesPath(path)) {
                 delete this._fieldViewModels[path];
             }
         }
         for (const path of this._itemLabelSignals.keys()) {
-            if (path.startsWith(repeatPrefix)) {
+            if (includesPath(path)) {
                 this._itemLabelSignals.delete(path);
             }
         }
         for (const key of this._itemHelpTextSignals.keys()) {
-            if (key.slice(key.indexOf(':') + 1).startsWith(repeatPrefix)) {
+            if (includesPath(key.slice(key.indexOf(':') + 1))) {
                 this._itemHelpTextSignals.delete(key);
             }
         }
+        for (const path of this._sourceSeedPreservedFields) {
+            if (includesPath(path)) this._sourceSeedPreservedFields.delete(path);
+        }
 
         clearRepeatIndexedSubtree({
-            rootRepeatPath,
+            includesPath,
             signals: this.signals,
             relevantSignals: this.relevantSignals,
             requiredSignals: this.requiredSignals,

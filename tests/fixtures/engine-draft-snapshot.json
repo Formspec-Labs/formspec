@@ -1,0 +1,51 @@
+{
+  "definition": {
+    "$formspec": "1.0",
+    "url": "https://example.org/engine-draft",
+    "version": "1.0.0",
+    "title": "Draft snapshot",
+    "nonRelevantBehavior": "remove",
+    "items": [
+      { "key": "show", "type": "field", "dataType": "boolean", "label": "Show" },
+      { "key": "amount", "type": "field", "dataType": "decimal", "label": "Amount" },
+      {
+        "key": "entries",
+        "type": "group",
+        "label": "Entries",
+        "repeatable": true,
+        "minRepeat": 2,
+        "children": [
+          {
+            "key": "details",
+            "type": "group",
+            "label": "Details",
+            "children": [
+              {
+                "key": "rows",
+                "type": "group",
+                "label": "Rows",
+                "repeatable": true,
+                "children": [
+                  { "key": "caption", "type": "display", "label": "Empty row" }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "binds": [
+      { "path": "amount", "relevant": "$show = true" },
+      { "path": "entries", "relevant": "$show = true" }
+    ]
+  },
+  "snapshot": {
+    "definitionUrl": "https://example.org/engine-draft",
+    "definitionVersion": "1.0.0",
+    "data": {
+      "show": false,
+      "amount": 0.3333333333333333333333333333,
+      "entries": [{ "details": { "rows": [{}, {}] } }, { "details": { "rows": [] } }]
+    }
+  }
+}

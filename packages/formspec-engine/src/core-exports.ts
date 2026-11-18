@@ -30,6 +30,7 @@ export type {
     FELAnalysisError,
     FELBuiltinFunctionCatalogEntry,
     FELRewriteOptions,
+    FormDraftSnapshot,
     FormEngineDiagnosticsSnapshot,
     FormEngineOptions,
     FormEngineRuntimeContext,

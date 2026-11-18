@@ -1,15 +1,14 @@
-/** @filedesc Repeat-row subtree clearing and snapshot/restore of nested group field values. */
+/** @filedesc Repeat-row subtree clearing and capture of field state and nested repeats. */
 
 import type { FormItem } from '@formspec-org/types';
 import type { ValidationResult } from '@formspec-org/types';
 import type { OptionEntry } from '@formspec-org/types';
 import type { EngineSignal } from '../reactivity/types.js';
-import type {
-    WriteSource, RemoteOptionsState } from '../interfaces.js';
+import type { FormFieldValue, RemoteOptionsState, WriteSource } from '../interfaces.js';
 
-/** Remove indexed paths under a repeat root from signal stores and `_data` (reactive structure only). */
+/** Remove the selected repeat paths from signal stores and primary data. */
 export function clearRepeatIndexedSubtree(options: {
-    rootRepeatPath: string;
+    includesPath: (path: string) => boolean;
     signals: Record<string, EngineSignal<any>>;
     relevantSignals: Record<string, EngineSignal<boolean>>;
     requiredSignals: Record<string, EngineSignal<boolean>>;
@@ -22,7 +21,6 @@ export function clearRepeatIndexedSubtree(options: {
     repeats: Record<string, EngineSignal<number>>;
     data: Record<string, any>;
 }): void {
-    const prefix = `${options.rootRepeatPath}[`;
     const stores: Array<Record<string, unknown>> = [
         options.signals,
         options.relevantSignals,
@@ -34,85 +32,56 @@ export function clearRepeatIndexedSubtree(options: {
         options.optionSignals,
         options.optionStateSignals,
         options.repeats,
+        options.data,
     ];
 
     for (const store of stores) {
         for (const key of Object.keys(store)) {
-            if (key.startsWith(prefix)) {
+            if (options.includesPath(key)) {
                 delete store[key];
             }
         }
     }
-
-    for (const key of Object.keys(options.data)) {
-        if (key.startsWith(prefix)) {
-            delete options.data[key];
-        }
-    }
 }
 
-/** Snapshot nested field values under a repeat prefix (used when removing a repeat row). */
-export function snapshotRepeatGroupTree(
+interface RepeatFieldState {
+    value: FormFieldValue;
+    writeSource: WriteSource | null;
+    preserveSourceSeed: boolean;
+}
+
+export interface RepeatRowSnapshot {
+    fields: Array<RepeatFieldState & { path: string }>;
+    repeats: Array<{ path: string; item: FormItem; count: number }>;
+}
+
+/** Capture paths relative to the row so the same state can be restored at its new index. */
+export function snapshotRepeatRow(
     items: FormItem[],
-    prefix: string,
-    readFieldValue: (path: string) => unknown,
+    rowPath: string,
+    readField: (path: string) => RepeatFieldState,
     getRepeatCount: (path: string) => number,
-): Record<string, unknown> {
-    const snapshot: Record<string, unknown> = {};
-    for (const item of items) {
-        const path = `${prefix}.${item.key}`;
-        if (item.type === 'field') {
-            snapshot[item.key] = readFieldValue(path);
-            continue;
-        }
-        if (item.type === 'group') {
-            if (item.repeatable) {
-                const count = getRepeatCount(path);
-                const rows: Record<string, unknown>[] = [];
-                for (let index = 0; index < count; index += 1) {
-                    rows.push(
-                        snapshotRepeatGroupTree(item.children ?? [], `${path}[${index}]`, readFieldValue, getRepeatCount),
-                    );
-                }
-                snapshot[item.key] = rows;
-            } else {
-                snapshot[item.key] = snapshotRepeatGroupTree(item.children ?? [], path, readFieldValue, getRepeatCount);
-            }
-        }
-    }
-    return snapshot;
-}
+): RepeatRowSnapshot {
+    const snapshot: RepeatRowSnapshot = { fields: [], repeats: [] };
 
-/** Restore nested field values and, when requested, repeat structure after rows were reindexed. */
-export function applyRepeatGroupTreeSnapshot(
-    items: FormItem[],
-    prefix: string,
-    snapshot: Record<string, unknown> | undefined,
-    writeField: (path: string, value: unknown) => void,
-    prepareRepeat?: (path: string, item: FormItem, count: number) => void,
-): void {
-    for (const item of items) {
-        const path = `${prefix}.${item.key}`;
-        if (item.type === 'field') {
-            writeField(path, snapshot?.[item.key]);
-            continue;
-        }
-        if (item.type === 'group') {
-            if (item.repeatable) {
-                const rows = Array.isArray(snapshot?.[item.key]) ? (snapshot[item.key] as Record<string, unknown>[]) : [];
-                prepareRepeat?.(path, item, rows.length);
-                for (let index = 0; index < rows.length; index += 1) {
-                    applyRepeatGroupTreeSnapshot(
-                        item.children ?? [],
-                        `${path}[${index}]`,
-                        rows[index] ?? {},
-                        writeField,
-                        prepareRepeat,
-                    );
+    function visit(items: FormItem[], prefix: string): void {
+        for (const item of items) {
+            if (item.type === 'display') continue;
+            const path = prefix ? `${prefix}.${item.key}` : item.key;
+            const children = item.children ?? [];
+            if (item.type === 'group' && item.repeatable) {
+                const count = getRepeatCount(`${rowPath}.${path}`);
+                snapshot.repeats.push({ path, item, count });
+                for (let index = 0; index < count; index += 1) {
+                    visit(children, `${path}[${index}]`);
                 }
             } else {
-                applyRepeatGroupTreeSnapshot(item.children ?? [], path, snapshot?.[item.key] as Record<string, unknown>, writeField, prepareRepeat);
+                if (item.type === 'field') snapshot.fields.push({ path, ...readField(`${rowPath}.${path}`) });
+                visit(children, path);
             }
         }
     }
+
+    visit(items, '');
+    return snapshot;
 }

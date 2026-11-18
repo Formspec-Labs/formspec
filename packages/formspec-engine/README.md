@@ -188,6 +188,12 @@ loadResponseData(data: JsonRecord): void
 // instead of dropping rows. Absent keys keep their state; calculated and undeclared keys are ignored.
 ```
 
+**Saving and resuming an editable draft**
+
+Call `getDraftSnapshot()` to capture the Definition URL, Definition version, and editable data. The data includes hidden answers, zero-row repeat arrays, and empty repeat rows. Capture uses the engine's current data without running evaluation. Resume through `createFormEngine(definition, { draftSnapshot })` or call `loadDraftSnapshot(snapshot)` on an existing engine. Both check the Definition URL and version.
+
+Store the snapshot as JSON text with `JSON.stringify` and read it with `parseJsonExact` from `@formspec-org/integrity-canonical` to preserve exact numeric values. The writer owns identity and capture metadata in its in-progress Response. Store that Response alongside the snapshot and use its filtered `data` for reads by sibling forms. Use `getResponse()` to assemble the Response for filing.
+
 **FEL compilation**
 
 ```typescript
