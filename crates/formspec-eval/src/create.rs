@@ -202,7 +202,11 @@ impl<'a> Creation<'a> {
         if !value.is_string() || !LetterCase::supports(data_type) {
             return;
         }
-        let bind = Value::Object(binds.merged(&normalize_indexed_path(path)));
+        let bind = Value::Object(
+            binds
+                .merged_concrete(path)
+                .unwrap_or_else(|| binds.merged(&normalize_indexed_path(path))),
+        );
         if LetterCase::for_field(data_type, string(&bind, "letterCase")).is_some() {
             *value = coerce_field_value(item, Some(&bind), self.definition, std::mem::take(value));
         }

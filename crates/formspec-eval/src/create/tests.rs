@@ -66,6 +66,25 @@ fn creation_preserves_host_values_and_applies_relative_and_absolute_reads_once()
 }
 
 #[test]
+fn creation_normalizes_an_indexed_input_before_initial_expressions_read_it() {
+    let definition = json!({
+        "items": [
+            {"key": "rows", "type": "group", "repeatable": true, "minRepeat": 2, "children": [
+                {"key": "code", "type": "field", "dataType": "string", "initialValue": "AbC"}
+            ]},
+            {"key": "copy", "type": "field", "dataType": "string", "initialValue": "=$rows[1].code"}
+        ],
+        "binds": [{"path": "rows[@index = 1].code", "letterCase": "upper"}]
+    });
+    let result = create_response(&definition, json!({}), &CreateOptions::default());
+    assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
+    assert_eq!(
+        result.data,
+        json!({"rows": [{"code": "ABC"}, {"code": "AbC"}], "copy": "ABC"})
+    );
+}
+
+#[test]
 fn creation_defers_pending_values_and_uses_arrival_or_fallback() {
     let def = definition(
         json!({"source":"https://example.invalid", "data":{"name":"Fallback", "items":[{"name":"A"}]}}),
