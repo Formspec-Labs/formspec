@@ -10,9 +10,13 @@ use crate::recalculate::{CalculateOrder, recalculate_phase};
 use crate::revalidate::revalidate_scoped;
 use crate::runtime_context::{apply_previous_non_relevant, hydrate_inline_instances};
 use crate::scope::{AggregateMemo, ScopeIndex};
-use crate::types::{self, EvalSubject, EvaluationResult, ValidationResult};
+use crate::types::{
+    self, ConstraintKind, EvalSubject, EvaluationResult, Severity, ValidationCode,
+    ValidationResult, ValidationSource,
+};
 use fel_core::Value as FelValue;
 use fel_core::exact_json::Value;
+use formspec_core::assembler::unassembled_definition_references;
 use formspec_core::subject_key::SubjectKey;
 use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap, VecDeque};
@@ -28,8 +32,30 @@ pub struct PreparedDefinition {
 }
 
 impl PreparedDefinition {
-    /// Resolve authored items and check repeat references once.
+    /// Resolve authored items and check Definition references once.
     pub fn new(definition: Value) -> Self {
+        let definition_errors: Vec<_> = unassembled_definition_references(&definition)
+            .into_iter()
+            .map(|(path, message)| ValidationResult {
+                path,
+                message,
+                severity: Severity::Error,
+                constraint_kind: ConstraintKind::Definition,
+                code: ValidationCode::UnassembledDefinitionReference,
+                source: Some(ValidationSource::Definition),
+                constraint: None,
+                shape_id: None,
+                context: None,
+            })
+            .collect();
+        if !definition_errors.is_empty() {
+            return Self {
+                definition,
+                items: Vec::new(),
+                definition_errors,
+                calculate_order: None,
+            };
+        }
         let mut resolved = definition.clone();
         formspec_core::resolve_option_sets_on_definition(&mut resolved);
         let items = rebuild_item_tree(&resolved);

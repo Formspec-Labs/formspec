@@ -44,6 +44,29 @@ function moveNodeToPage(
 }
 
 describe('diagnose', () => {
+  it('reports the assembly error for a project with an unassembled group', () => {
+    const project = createRawProject({ seed: {
+      definition: {
+        $formspec: '1.0',
+        url: 'urn:example:application',
+        version: '1.0.0',
+        status: 'draft',
+        title: 'Application',
+        items: [
+          { key: 'cover', type: 'group', label: 'Cover', $ref: 'urn:example:cover|1.0.0' },
+        ],
+      },
+    } });
+    const diagnostics = project.diagnose();
+    expect(diagnostics.structural).toContainEqual(expect.objectContaining({
+      artifact: 'definition',
+      code: 'E313',
+      path: 'items[0].$ref',
+      severity: 'error',
+    }));
+    expect(diagnostics.counts.error).toBe(1);
+  });
+
   function createLintBackedSchemaValidator(): SchemaValidator {
     return {
       validate(document) {

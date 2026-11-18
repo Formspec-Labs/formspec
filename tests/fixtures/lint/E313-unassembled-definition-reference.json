@@ -1,0 +1,40 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:application",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Application",
+  "items": [
+    {
+      "key": "section",
+      "type": "group",
+      "label": "Section",
+      "children": [
+        {
+          "key": "cover",
+          "type": "group",
+          "label": "Cover",
+          "$ref": "urn:example:cover|1.0.0"
+        }
+      ]
+    },
+    {
+      "key": "copy",
+      "type": "field",
+      "label": "Copy",
+      "dataType": "string"
+    },
+    {
+      "key": "notes",
+      "type": "field",
+      "label": "Notes",
+      "dataType": "string"
+    }
+  ],
+  "binds": [
+    {
+      "path": "copy",
+      "calculate": "$section.cover.c_name"
+    }
+  ]
+}

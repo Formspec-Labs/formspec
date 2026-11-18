@@ -444,6 +444,11 @@ Grammar, stdlib, and evaluation semantics live in **`fel-core`** / **`formspec-c
 
 ### Definition assembly
 
+Assemble Definitions that use Group `$ref` before linting or evaluation. The
+host supplies a resolver for the shared Definitions. An unresolved inclusion
+produces lint error `E313` and evaluation error
+`UNASSEMBLED_DEFINITION_REFERENCE` at the authored `$ref` path.
+
 `assembleDefinition` resolves `$ref` group items into a self-contained definition. For each `$ref` the assembler: fetches the referenced definition, selects the fragment, applies `keyPrefix`, rewrites bind paths and shape targets into the host scope, rewrites all `$`-prefixed FEL references, imports variables, detects collisions, records provenance, and recurses into nested `$ref` items.
 
 ### Rust / WASM (split artifacts)

@@ -197,6 +197,18 @@
       "state": "tested"
     },
     {
+      "code": "E313",
+      "pass": 3,
+      "severity": "error",
+      "title": "Unassembled Definition group reference",
+      "specRef": "specs/core/spec.md#662-assembly",
+      "suggestedFix": "assemble the Definition with a resolver for the referenced Definition",
+      "fixtures": [
+        "tests/fixtures/lint/E313-unassembled-definition-reference.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W300",
       "pass": 3,
       "severity": "warning",

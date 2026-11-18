@@ -4,6 +4,7 @@
 import type { FormItem } from '@formspec-org/types';
 import { analyzeFEL, normalizeIndexedPath } from '@formspec-org/engine/fel-runtime';
 import {
+  lintDocument,
   validateExtensionUsage,
   type DocumentType,
   type SchemaValidator,
@@ -32,7 +33,17 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
     if (typeof process !== 'undefined' && process.env?.DIAGNOSE_DEBUG) process.stderr.write(`[diagnose] ${msg}\n`);
   };
   log('start');
-  const structural: Diagnostic[] = [];
+  const itemRows = flattenItems(state.definition.items).filter((row) => row.path);
+  const assemblyFindings = itemRows.some(({ item }) => '$ref' in item)
+    ? lintDocument(state.definition, { noFel: true }).diagnostics.filter(({ code }) => code === 'E313')
+    : [];
+  const structural: Diagnostic[] = assemblyFindings.map(({ path, code, message }) => ({
+    artifact: 'definition',
+    path: path.slice(2),
+    severity: 'error',
+    code,
+    message,
+  }));
   const expressions: Diagnostic[] = [];
   const extensions: Diagnostic[] = [];
   const consistency: Diagnostic[] = [];
@@ -61,9 +72,11 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
         });
       } else {
         for (const e of result.errors) {
+          const path = e.path.startsWith('$.') ? e.path.slice(2) : e.path;
+          if (artifact === 'definition' && structural.some((d) => d.path === path && d.message === e.message)) continue;
           structural.push({
             artifact,
-            path: e.path.startsWith('$.') ? e.path.slice(2) : e.path === '$' ? '$' : e.path,
+            path,
             severity: 'error',
             code: 'E101',
             message: e.message,
@@ -137,7 +150,6 @@ export function diagnose(state: ProjectState, schemaValidator?: SchemaValidator)
   log('extensions done');
 
   log('flattenItems...');
-  const itemRows = flattenItems(state.definition.items).filter((row) => row.path);
   log(`flattenItems done (${itemRows.length} rows)`);
   const itemKeySet = new Set(itemRows.map((row) => row.key));
   const itemPathSet = new Set(itemRows.map((row) => row.path));

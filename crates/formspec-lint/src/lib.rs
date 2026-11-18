@@ -5,6 +5,7 @@
 //! Pass 2 (E200/E201): Tree indexing, duplicate key/path detection
 //! Pass 3 (E300/E301/E302/W300): Reference validation — bind paths, shape targets, optionSets
 //! Pass 3 (E306/E307): Definition response selection predicates
+//! Pass 3 (E313): Definition Groups that still need assembly
 //! Pass 3b (E600/E601/E602): Extension resolution against registry documents
 //! Pass 3b (E613): Item `accessControl.class` resolution against the Access-Class Registry
 //! Pass 3c (E603/E604): Module contribution resolution + payload-schema validation (ADR 0150 §4.2/§4.3)
@@ -231,10 +232,17 @@ fn lint_definition(
     let mut tree_index = tree::build_item_index(doc);
     diagnostics.append(&mut tree_index.diagnostics);
 
-    if diagnostics
+    let earlier_errors = diagnostics
         .iter()
-        .any(|d| d.severity == LintSeverity::Error && d.pass >= 2)
-    {
+        .any(|d| d.severity == LintSeverity::Error && d.pass >= 2);
+    diagnostics.extend(
+        formspec_core::assembler::unassembled_definition_references(doc)
+            .into_iter()
+            .map(|(path, message)| {
+                metadata::with_metadata(LintDiagnostic::error(LintCode::E313, 3, path, message))
+            }),
+    );
+    if earlier_errors {
         return Some(finalize_lint_result(
             DocumentType::Definition,
             std::mem::take(diagnostics),

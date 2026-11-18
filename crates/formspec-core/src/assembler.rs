@@ -7,6 +7,7 @@
 
 use std::collections::{HashMap, HashSet};
 
+use fel_core::exact_json::JsonTree;
 use serde_json::{Map, Value, json};
 
 use crate::JsonWireStyle;
@@ -14,6 +15,7 @@ use crate::assembly_fel_rewrite::{
     AssemblyFelRewriteMap as FelRewriteMap, assembly_prefix_path, rewrite_fel_for_assembly,
     rewrite_message_template_for_assembly,
 };
+use crate::definition_items::visit_definition_items_from_document;
 use crate::wire_keys::assembly_provenance_keys;
 
 /// Failure while resolving `$ref` or merging assembled fragments.
@@ -155,6 +157,24 @@ pub fn assemble_definition(definition: &Value, resolver: &dyn RefResolver) -> As
     }
 
     result
+}
+
+/// Locate Group inclusions that still need assembly (Core §6.6.2).
+///
+/// Each pair contains the authored `$ref` JSONPath and its diagnostic message.
+pub fn unassembled_definition_references<V: JsonTree>(definition: &V) -> Vec<(String, String)> {
+    let mut findings = Vec::new();
+    visit_definition_items_from_document(definition, &mut |item| {
+        if item.item.get("type").and_then(V::as_str) == Some("group")
+            && let Some(reference) = item.item.get("$ref").and_then(V::as_str)
+        {
+            findings.push((
+                format!("{}.$ref", item.json_path),
+                format!("Assemble this Definition before use: Group reference {reference:?} is unassembled"),
+            ));
+        }
+    });
+    findings
 }
 
 /// Assembly output for host bindings (camelCase vs snake_case provenance keys).

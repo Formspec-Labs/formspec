@@ -41,6 +41,8 @@ pub enum LintCode {
     E311,
     /// Registry code `E312`.
     E312,
+    /// Registry code `E313`.
+    E313,
     /// Registry code `W300`.
     W300,
     /// Registry code `E400`.
@@ -357,6 +359,7 @@ impl LintCode {
             LintCode::E309 => "E309",
             LintCode::E311 => "E311",
             LintCode::E312 => "E312",
+            LintCode::E313 => "E313",
             LintCode::W300 => "W300",
             LintCode::E400 => "E400",
             LintCode::E406 => "E406",
@@ -526,6 +529,7 @@ impl LintCode {
             LintCode::E309 => 1,
             LintCode::E311 => 1,
             LintCode::E312 => 1,
+            LintCode::E313 => 3,
             LintCode::W300 => 3,
             LintCode::E400 => 4,
             LintCode::E406 => 4,
@@ -695,6 +699,7 @@ impl LintCode {
             "E309" => Some(LintCode::E309),
             "E311" => Some(LintCode::E311),
             "E312" => Some(LintCode::E312),
+            "E313" => Some(LintCode::E313),
             "W300" => Some(LintCode::W300),
             "E400" => Some(LintCode::E400),
             "E406" => Some(LintCode::E406),
@@ -864,6 +869,7 @@ impl LintCode {
         LintCode::E309,
         LintCode::E311,
         LintCode::E312,
+        LintCode::E313,
         LintCode::W300,
         LintCode::E400,
         LintCode::E406,

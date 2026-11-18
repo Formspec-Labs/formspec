@@ -172,6 +172,8 @@ pub enum ValidationCode {
     ConstraintParseError,
     /// A field reference traverses a repeatable group without a subscript.
     UnsubscriptedRepeatReference,
+    /// A Group inclusion needs assembly before evaluation.
+    UnassembledDefinitionReference,
     /// Repeat count below minimum.
     MinRepeat,
     /// Repeat count above maximum.
@@ -207,6 +209,7 @@ impl ValidationCode {
             "CONSTRAINT_FAILED" => Self::ConstraintFailed,
             "CONSTRAINT_PARSE_ERROR" => Self::ConstraintParseError,
             "UNSUBSCRIPTED_REPEAT_REFERENCE" => Self::UnsubscriptedRepeatReference,
+            "UNASSEMBLED_DEFINITION_REFERENCE" => Self::UnassembledDefinitionReference,
             "MIN_REPEAT" => Self::MinRepeat,
             "MAX_REPEAT" => Self::MaxRepeat,
             "UNRESOLVED_EXTENSION" => Self::UnresolvedExtension,
@@ -230,6 +233,7 @@ impl ValidationCode {
             ValidationCode::ConstraintFailed => "CONSTRAINT_FAILED",
             ValidationCode::ConstraintParseError => "CONSTRAINT_PARSE_ERROR",
             ValidationCode::UnsubscriptedRepeatReference => "UNSUBSCRIPTED_REPEAT_REFERENCE",
+            ValidationCode::UnassembledDefinitionReference => "UNASSEMBLED_DEFINITION_REFERENCE",
             ValidationCode::MinRepeat => "MIN_REPEAT",
             ValidationCode::MaxRepeat => "MAX_REPEAT",
             ValidationCode::UnresolvedExtension => "UNRESOLVED_EXTENSION",

@@ -1,0 +1,30 @@
+{
+  "id": "parity.unassembled-group-ref",
+  "kind": "VALIDATION_REPORT",
+  "specRefs": [
+    "Core \u00a76.6.2: assembly resolves Group inclusions before evaluation"
+  ],
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "notes": "Existing draft value"
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [
+      {
+        "path": "$.items[0].children[0].$ref",
+        "code": "UNASSEMBLED_DEFINITION_REFERENCE",
+        "severity": "error",
+        "constraintKind": "definition",
+        "source": "definition"
+      }
+    ]
+  },
+  "definitionPath": "tests/fixtures/lint/E313-unassembled-definition-reference.json"
+}
