@@ -22,6 +22,15 @@ describe('definition.addShape', () => {
     expect(project.definition.shapes![0].id).toBeTypeOf('string');
   });
 
+  it('preserves an explicit explanation override on a warning Shape', () => {
+    const project = createRawProject();
+    project.dispatch({
+      type: 'definition.addShape',
+      payload: { target: '#', constraint: 'false', message: 'Review', severity: 'warning', explanation: 'none' },
+    });
+    expect(project.definition.shapes![0].explanation).toBe('none');
+  });
+
   it('uses explicit id when provided', () => {
     const project = createRawProject();
     project.dispatch({
