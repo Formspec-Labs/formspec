@@ -13,7 +13,10 @@
     "kind": "outcome-verified-structured-reconstruction",
     "freshBlindPublicBuilderReplay": false,
     "fixedGenericHost": true,
-    "previewBundles": ["saas-v1", "control"],
+    "previewBundles": [
+      "saas-v1",
+      "control"
+    ],
     "saasV1": {
       "routes": 15,
       "authoredNavigationEntries": 15,
@@ -45,17 +48,17 @@
       "playwrightRouteWidthChecksPassed": 30,
       "playwrightProfileRouteChecksPassed": 75,
       "playwrightConsoleWarningsOrErrors": 0,
-      "reviewedInputDigest": "sha256:e98d38610e882a0baa0dba3a36b8cc74dac1c5152c3e9afae3a5c8fcd9ad067b",
+      "reviewedInputDigest": "sha256:767fa3e3dad5337db78726ae69d89fa0c259c67e9d090996d7895c851fc99163",
       "screenshots": {
-        "screenshots/control.png": "sha256:a0b6574918758e1f5b3f6696fe4b1fdf350248b76d77f3b074a0641ba4619338",
+        "screenshots/control.png": "sha256:abc8ec36dba8961ad07b61052305abec5ebdef958798665e3ab4033b80a61575",
         "screenshots/dashboard-loaded.png": "sha256:ef8608ec90ba2861b262bdb2f686906e61d129a653d6165dd565b3d5cb7d4858",
         "screenshots/public-response-mobile.png": "sha256:3ff7ccd16d0c65858bd51307ed90a68b2d4da937db5d408117a67f2c2155c540",
         "screenshots/responses-loaded.png": "sha256:359643358c8d37f8af6d3429f293d8ab01897580a4c4b5139982b5f5220270a1",
-        "screenshots/outcome-onboarding-empty-blocked.png": "sha256:5dc889d0fb2bcf9ff1e5308518c0bf0f80cfd4e6b959b7611dfc3f995a5bd877",
-        "screenshots/outcome-onboarding-values-persisted.png": "sha256:7a4c7a4efa02efee731478640700b7bb90ddeda86e7dd8d997b004d2b89fb38c",
-        "screenshots/outcome-public-invalid-blocked.png": "sha256:0c4ae1cc8155cfc960a9cfc4100b1f1cfd8769a1024322d8ed156a019c553ad4",
+        "screenshots/outcome-onboarding-empty-blocked.png": "sha256:8d976dcbd6aabfa63600d2ff2695c9872080ece39b0bb5b11c518f682ba44c0d",
+        "screenshots/outcome-onboarding-values-persisted.png": "sha256:cd8ca2217de1f9614f86af71e1acae98369b7fcb08fd77d4c28dd0b6510ced17",
+        "screenshots/outcome-public-invalid-blocked.png": "sha256:0ae83f76faa5d8fa22790b6a8331c3eae58c812e518e9572b03d37c36f32dbc8",
         "screenshots/outcome-public-valid-receipt.png": "sha256:fa9a9b13db6d2b38081f4d4ed1633e4c3961e760d9692bfc1dd0aa0c2e856845",
-        "screenshots/outcome-unrelated-control.png": "sha256:a0b6574918758e1f5b3f6696fe4b1fdf350248b76d77f3b074a0641ba4619338"
+        "screenshots/outcome-unrelated-control.png": "sha256:abc8ec36dba8961ad07b61052305abec5ebdef958798665e3ab4033b80a61575"
       },
       "formspecUnitSuites": "passed",
       "formspecContractSurfaces": "passed",
@@ -67,7 +70,9 @@
         "claimRequiredCasesSupported": 3,
         "claimRequiredCasesTotal": 3,
         "demoClaim": "held",
-        "demoClaimReasons": ["HUMAN_ADEQUACY_NOT_APPROVED"]
+        "demoClaimReasons": [
+          "HUMAN_ADEQUACY_NOT_APPROVED"
+        ]
       }
     }
   },

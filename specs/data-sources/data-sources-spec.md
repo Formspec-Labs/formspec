@@ -401,9 +401,15 @@ identity. Consumers MUST NOT infer a result, source identity, or freshness from
 catalog order, a filename, a widget name, or a local clock.
 
 For a non-draft `definition-response` source, the qualified request also carries
-the exact source-declared `responseSelection`. The loader MUST deliver the
-selection outcome from §4.2. A loaded result for this source MUST include
-the read evidence defined below alongside the value.
+the exact source-declared `responseSelection`. In the catalog variant of
+`ResponseSelectionRequest`, the loader sends the catalog and source references,
+lookup context, and `catalogDigest`. The digest is SHA-256 over the complete
+Data Sources catalog document encoded as `integrity-canonical-json-v1`, written
+as `sha256:` followed by lowercase hexadecimal. The selector MUST resolve the
+source from its own catalog document and refuse a digest mismatch.
+
+The loader MUST deliver the selection outcome from §4.2. A loaded result for
+this source MUST include the read evidence defined below alongside the value.
 
 | Field | Meaning |
 |---|---|

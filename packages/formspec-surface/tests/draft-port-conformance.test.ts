@@ -7,7 +7,7 @@ it('rejects a port that returns absent to a denied caller with no draft', async 
   const port: DraftPort = {
     load: async () => ({ status: 'absent' }),
     save: async () => ({ status: 'denied' }),
-    readSummaries: async () => new Map([['summary', { status: 'denied' }]]),
+    readSummaries: async () => new Map([['summary', { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } }]]),
   };
   await expect(draftPortConformance['denies all operations on a never-saved key']({ port, deny() {} }))
     .rejects.toThrow('denied load revealed absence');

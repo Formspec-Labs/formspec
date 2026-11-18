@@ -827,6 +827,7 @@ describe('validateRenderedNeedTrace', () => {
       profiles: {
         loaded: {
           authorization: { default: 'authorized' },
+          filings: [{ responseJson: '{}', ...generation(current) }, { responseJson: '{}' }],
           sources: [{
             catalogRef: `${APP_URL}/data-sources`,
             sourceRef: 'query:records',
@@ -871,6 +872,7 @@ describe('validateRenderedNeedTrace', () => {
         kind: 'surface-preview-source-outcome',
         pointer: '/profiles/loaded/sources/1',
       },
+      { kind: 'surface-preview-filing', pointer: '/profiles/loaded/filings/0' },
       { kind: 'surface-preview-action-outcome', pointer: '/actions/default' },
       {
         kind: 'surface-preview-action-outcome',

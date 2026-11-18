@@ -489,21 +489,57 @@ describe('createSurfacePreviewRuntime', () => {
   });
 });
 
-it('preserves the stored read evidence of a filed Response preview', async () => {
+// Successful Response reads require admitted filings and the Rust selector.
+it('refuses scenario outcomes for Response sources and Submit actions', async () => {
   const document = scenario();
   const request = loadRequest();
-  const evidence = {
-    records: [{ responseId: 'fixture-response', definitionVersion: '1.0.0', responseHash: 'sha256:' + 'a'.repeat(64) }],
-    valueDigest: 'sha256:' + 'b'.repeat(64),
-    none: false,
+  const source = { ...request.descriptor.source, kind: 'definition-response' as const,
+    responseSelection: { definition: { url: 'urn:fixture' }, subject: [], status: 'completed' as const,
+      cardinality: 'latest' as const, pin: 'none' as const },
   };
-  const profile = document.profiles.loaded!;
-  const source = profile.sources[0]!;
-  profile.sources[0] = { ...source, status: 'loaded', freshness: 'fresh', value: { answer: 'filed' }, ...evidence };
-  request.descriptor.source = { ...request.descriptor.source, kind: 'definition-response',
-    responseSelection: { definition: { url: 'urn:fixture' }, subject: [], status: 'completed', cardinality: 'latest', pin: 'none' },
-  };
-  expect(await createSurfacePreviewRuntime(document).loader(request)).toMatchObject({
-    status: 'loaded', catalogRef: source.catalogRef, sourceRef: source.sourceRef, ...evidence,
+  request.descriptor.source = source;
+  document.actions.byAction = { submit: { status: 'complete' } };
+  const { scope: _scope, ...definitionActions } = responseActions;
+  const result = await validateSurfacePreviewScenario({
+    scenario: document,
+    bundle: resolvedBundle([{ catalogRef: CATALOG_REF, document: { ...catalog(), sources: [source] } }], [
+      { ...definitionActions, targetDefinition: { url: 'urn:fixture' }, actions: [{ id: 'submit', intent: 'submit' }] },
+    ]),
   });
+  expect(result.valid).toBe(false);
+  expect(result.diagnostics).toEqual(expect.arrayContaining([
+    expect.objectContaining({ code: 'SURFACE-SCENARIO-SOURCE-UNRESOLVED', message: expect.stringContaining('supplies this Response source') }),
+    expect.objectContaining({ code: 'SURFACE-SCENARIO-ACTION-UNRESOLVED', message: expect.stringContaining('supplies this Submit outcome') }),
+  ]));
+  expect(await createSurfacePreviewRuntime(document).loader(request)).toMatchObject({ status: 'unavailable' });
+});
+
+it('stages unavailable and failed Response reads per profile without calling the store', async () => {
+  const document = scenario();
+  const request = loadRequest();
+  request.descriptor.source = { ...request.descriptor.source, kind: 'definition-response' };
+  const bundle = resolvedBundle([{ catalogRef: CATALOG_REF, document: { ...catalog(), sources: [request.descriptor.source] } }]);
+  document.profiles = { unavailable: document.profiles.unavailable!, error: document.profiles.error! };
+  document.defaultProfile = 'unavailable';
+  expect((await validateSurfacePreviewScenario({ scenario: document, bundle })).valid).toBe(true);
+  const store = () => { throw new Error('Unexpected filing read'); };
+  const unavailable = createSurfacePreviewRuntime(document).withResponseLoader(store);
+  expect(await unavailable(request)).toMatchObject({ status: 'unavailable', reason: document.profiles.unavailable!.sources[0]!.reason });
+  const failed = createSurfacePreviewRuntime(document, 'error').withResponseLoader(store);
+  await expect(async () => failed(request)).rejects.toThrow(document.profiles.error!.sources[0]!.reason);
+});
+
+it('reports a malformed filing action as a scenario diagnostic', async () => {
+  const document = scenario();
+  const invalidActionDocument = {
+    ...responseActions,
+    'x-formspec-runtime': { requests: [] },
+    actions: [...responseActions.actions, {
+      id: 'submit', intent: 'submit', effects: [{ type: 'serviceRequest', requestRef: 'missing' }],
+    }],
+  } as unknown as ResponseActionsDocument;
+  const result = await validateSurfacePreviewScenario({ scenario: document, bundle: resolvedBundle(undefined, [invalidActionDocument]) });
+  expect(result).toMatchObject({ valid: false, diagnostics: [
+    { code: 'SURFACE-SCENARIO-ACTION-UNRESOLVED', actionId: 'submit' },
+  ] });
 });

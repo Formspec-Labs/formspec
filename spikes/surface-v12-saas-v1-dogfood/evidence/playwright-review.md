@@ -1,6 +1,22 @@
 # v12 Playwright review
 
-Reviewed input digest: `sha256:e98d38610e882a0baa0dba3a36b8cc74dac1c5152c3e9afae3a5c8fcd9ad067b`
+Reviewed input digest: `sha256:767fa3e3dad5337db78726ae69d89fa0c259c67e9d090996d7895c851fc99163`
+
+## November 18, 2026 filing-store review
+
+Chromium checked 75 route and profile combinations and 30 route and viewport
+combinations with one main heading per view and no horizontal overflow.
+It found 33 action identifiers and separately activated the authored recovery
+button on the empty Responses view. The run reported zero browser warnings
+and errors.
+
+Blank onboarding marked three required fields. The finished setup reached the
+dashboard, and Administration read the organization, workspace, and
+environment from the local filing. Its unavailable and error profiles showed
+the data-unavailable message. Invalid public input stayed on the form.
+Corrected input reached the verified receipt and downloaded it. The same
+host rendered the independent community-room bundle. The linked screenshots
+show this run.
 
 ## November 18, 2026 projection check
 

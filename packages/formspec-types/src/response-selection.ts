@@ -1,19 +1,24 @@
 /** @filedesc Host inputs and results for the shared Core Response selector. */
 
+import type {
+  DispositionObservation, NewerSelectedResponse, ResponseSelectionDelivery, ResponseSelectionOutcome,
+  ResponseSelectionRequest,
+} from './generated/response-selection.js';
+export type {
+  DispositionObservation, NewerSelectedResponse, ResponseSelectionDelivery, ResponseSelectionOutcome,
+  ResponseSelectionRequest,
+} from './generated/response-selection.js';
 import type { FormDefinition } from './generated/definition.js';
-import type { FormResponse, ResolvedInstance, ResolvedInstanceRecord, ResponseSelection, Sha256Digest } from './generated/response.js';
+import type { FormResponse, ResolvedInstance, ResponseSelection } from './generated/response.js';
 
-export interface ResponseSelectionRecord {
+export type ResponseSelectionRecord = {
   scope: string;
-  response: FormResponse;
   implicitSubjectId?: string;
-}
-
-export type ResponseSelectionDelivery = Pick<ResolvedInstance, 'records' | 'valueDigest' | 'none' | 'pinned' | 'mapping'> & {
-  value: unknown;
-};
-
-export type NewerSelectedResponse = Pick<ResolvedInstanceRecord, 'responseId'> & { responseHash: Sha256Digest };
+} & (
+  | { response: FormResponse; responseJson?: never }
+  /** Pass stored JSON text through to the native hasher unchanged. */
+  | { responseJson: string; response?: never }
+);
 
 export interface ResponseSelectionContext {
   scope: string;
@@ -33,12 +38,23 @@ export interface ResponseSelectionContext {
   includeInputPositions?: boolean;
 }
 
-export type ResponseSelectionOutcome =
-  | ({ status: 'available'; newer?: NewerSelectedResponse; inputPositions?: number[] } & ResponseSelectionDelivery)
-  | { status: 'unavailable' };
-
 export type SelectResponses = (
   records: readonly ResponseSelectionRecord[],
   selection: ResponseSelection,
   context: ResponseSelectionContext,
-) => ResponseSelectionOutcome;
+) => ResponseSelectionOutcome & { inputPositions?: number[] };
+
+export interface ResponseSelector {
+  select(
+    requests: readonly ResponseSelectionRequest[],
+    signal?: AbortSignal,
+  ): Promise<ReadonlyMap<string, ResponseSelectionOutcome>>;
+}
+
+export interface DispositionAuthority {
+  /** Result keys are JSON arrays of [responseId, responseHash]. */
+  read(
+    records: readonly NewerSelectedResponse[],
+    signal?: AbortSignal,
+  ): Promise<ReadonlyMap<string, DispositionObservation>>;
+}

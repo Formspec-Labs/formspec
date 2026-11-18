@@ -35,6 +35,8 @@
   },
   "dependencies": {
     "@formspec-org/app-graph": "^2.1.0",
+    "@formspec-org/engine": "^2.1.0",
+    "@formspec-org/integrity-canonical": "^0.1.1",
     "@formspec-org/layout": "^2.1.0",
     "@formspec-org/types": "^0.2.1",
     "semver": "^7.8.1"

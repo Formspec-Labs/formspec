@@ -6,6 +6,7 @@
  * loading, and Response Actions ports.
  */
 import { useCallback, useMemo, useState } from 'react';
+import { checkpointPreviewResponse } from '../../../preview-draft-checkpoint.ts';
 import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020.js';
 import {
   extractServiceRequestOutputs,
@@ -16,15 +17,17 @@ import {
   type ResponseActionEffectDispatchContext,
   type ResponseActionEffectDispatchResult,
   type ResponseActionInvocationResult,
-  isValidResponseAuthored,
-  selectResponses,
 } from '@formspec-org/engine';
 import {
   createSemanticControlRegistry,
   type SemanticArtifactIdentity,
+  type SubmitResult,
 } from '@formspec-org/react';
 import { sha256Digest } from '@formspec-org/outcome-verification';
 import {
+  createMemoryFilingStore,
+  readSessionDraft,
+  previewResponseRecordTools,
   createSurfaceSemanticControlScopeResolver,
   executeBrowserResourceEffect,
   renderDefaultDefinitionForm,
@@ -44,7 +47,7 @@ import {
 import {
   bundleIsRenderable,
   composeSurfaceApp,
-  createPreviewDefinitionResponseStore,
+  responseSourceLoader,
   dereferenceBundleExport,
   routeHref,
   type BundleExport,
@@ -58,7 +61,6 @@ import {
 import type {
   EffectRequest,
   FormDefinition,
-  FormResponse,
   ResponseActionsDocument,
   ServiceRequestEffect,
 } from '@formspec-org/types';
@@ -845,16 +847,19 @@ function renderBundleDefinitionFormFor(
   config: HostRuntimeConfig,
   session: HostActionSession,
   navigate: (href: string) => void,
+  checkpoint: (result: ResponseActionInvocationResult<SubmitResult>) => Promise<void>,
 ): SurfaceDefinitionFormRenderer {
-  return (input) => renderDefaultDefinitionForm({
-    ...input,
-    responseActionInvoker: definitionActionInvokerFor(
-      config,
-      session,
-      input.route.params,
-      navigate,
-    ),
-  });
+  return (input) => {
+    const invoke = definitionActionInvokerFor(config, session, input.route.params, navigate);
+    return renderDefaultDefinitionForm({
+      ...input,
+      responseActionInvoker: async action => {
+        const result = await invoke(action);
+        await checkpoint('invocation' in result ? result.invocation : result);
+        return result;
+      },
+    });
+  };
 }
 
 function hostRenderInstanceId(
@@ -978,28 +983,29 @@ function SessionBoundApp({ model }: { model: BundleHostModel }) {
       semanticSessionId,
     ],
   );
-  const definitionResponseStore = useMemo(
-    () => createPreviewDefinitionResponseStore(model.bundle.dataSources ?? [], {
-      selectResponses,
-      isValidResponseAuthored,
-      selectionContext: (_binding, policy) => {
-        const upstream = Array.from(model.bundle.definitions.values())
-          .find((definition) => definition.url === policy.definition.url);
-        return upstream && { upstreamSubject: upstream.subject ?? null };
-      },
-    }),
-    [model.bundle],
-  );
-  const runtime = useMemo(
-    () => {
-      const adapters = runtimeAdapters(model.runtime);
-      return {
-        ...adapters,
-        loader: definitionResponseStore.wrapLoader(adapters.loader),
-      };
-    },
-    [definitionResponseStore, model.runtime],
-  );
+  const scope = model.sessionGeneration;
+  const filingStore = useMemo(() => createMemoryFilingStore({
+    scope, definitions: model.bundle.definitions, catalogs: model.bundle.dataSources,
+  }), [model.bundle, scope]);
+  const runtime = useMemo(() => {
+    const adapters = runtimeAdapters(model.runtime);
+    const loadResponse = responseSourceLoader(filingStore.responses);
+    const loader: DataSourceLoader = async request => {
+      if (!isHostLocalDraft(request)) return request.responseSelection ? loadResponse(request) : adapters.loader(request);
+      return readSessionDraft({
+        async readCommitted(definition, subject) {
+          const tools = await previewResponseRecordTools();
+          const address = subject && { ...subject, id: tools.subjectId(subject.type, subject.keys) };
+          const key = { scope, definitionUrl: definition.url, subject: address };
+          const result = await filingStore.drafts.load(key, definition.version);
+          if (result.status !== 'loaded') return { status: result.status };
+          const response = tools.parseResponse(result.draft.responseJson);
+          return { status: 'loaded', response, key, revision: result.draft.revision };
+        },
+      }, model.bundle.definitions, request);
+    };
+    return { ...adapters, loader };
+  }, [filingStore, model.bundle, model.runtime, scope]);
   const widgetModules = useMemo(
     () => widgetModulesFor(model.bundle),
     [model.bundle],
@@ -1012,16 +1018,27 @@ function SessionBoundApp({ model }: { model: BundleHostModel }) {
     ),
     [actionSession, model.runtime, navigatePreservingSearch],
   );
+  const checkpoint = useCallback(async (result: ResponseActionInvocationResult<SubmitResult>) => {
+    const response = result.detail?.response;
+    if (result.status !== 'completed' || !response) return;
+    if (model.bundle.dataSources?.some(catalog => catalog.document.sources.some(source =>
+      source.kind === 'definition-response' && source.runtime.delivery === 'draft' &&
+      source.definitionRef === response.definitionUrl))) {
+      await checkpointPreviewResponse(filingStore.drafts, scope, response);
+    }
+  }, [filingStore, model.bundle.dataSources, scope]);
   const renderBundleDefinitionForm = useMemo(
     () => renderBundleDefinitionFormFor(
       model.runtime,
       actionSession,
       navigatePreservingSearch,
+      checkpoint,
     ),
     [
       actionSession,
       model.runtime,
       navigatePreservingSearch,
+      checkpoint,
     ],
   );
   const fireTransition = useMemo(
@@ -1038,41 +1055,6 @@ function SessionBoundApp({ model }: { model: BundleHostModel }) {
       navigatePreservingSearch,
     ],
   );
-  const onDefinitionActionResult = useCallback<
-    NonNullable<SurfaceDefinitionFormRenderInput['onDefinitionActionResult']>
-  >(
-    (result) => {
-      const invocationId = result.invocationId;
-      const response: FormResponse | undefined = result.detail?.response;
-      if (
-        result.status !== 'completed' ||
-        !invocationId ||
-        !response
-      ) {
-        return;
-      }
-      for (const catalog of model.bundle.dataSources ?? []) {
-        for (const source of catalog.document.sources) {
-          if (
-            source.kind !== 'definition-response' ||
-            source.runtime.delivery !== 'draft' ||
-            source.definitionRef !== response.definitionUrl
-          ) {
-            continue;
-          }
-          definitionResponseStore.record({
-            binding: {
-              catalogRef: catalog.catalogRef,
-              sourceRef: source.id,
-            },
-            invocationId,
-            response,
-          });
-        }
-      }
-    },
-    [definitionResponseStore, model.bundle.dataSources],
-  );
 
   return (
     <SurfaceApp
@@ -1088,7 +1070,6 @@ function SessionBoundApp({ model }: { model: BundleHostModel }) {
       onFireTransition={fireTransition}
       renderDefinitionForm={renderBundleDefinitionForm}
       resolveSemanticControlScope={resolveSemanticControlScope}
-      onDefinitionActionResult={onDefinitionActionResult}
       sessionGeneration={model.sessionGeneration}
     />
   );

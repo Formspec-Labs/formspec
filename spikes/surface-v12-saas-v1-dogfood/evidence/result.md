@@ -11,7 +11,7 @@ structured data. Generic framework code supplies rendering, validation,
 responsive layout, accessible defaults, state storage, semantic controls and
 outputs, and evidence collection without product-specific branches.
 
-Reviewed input digest: `sha256:e98d38610e882a0baa0dba3a36b8cc74dac1c5152c3e9afae3a5c8fcd9ad067b`
+Reviewed input digest: `sha256:767fa3e3dad5337db78726ae69d89fa0c259c67e9d090996d7895c851fc99163`
 
 ## Structured artifact and reasoning result
 
@@ -62,6 +62,11 @@ The November 17 recapture repeated the route, width, and profile checks with
 the WASM-backed preview store. It verified that a completed setup supplies
 the organization, workspace, and environment on Administration, and
 recaptured the public response and independent control journeys.
+
+The November 18 filing-store review repeated the browser matrix. It verified
+that Administration reads a newly filed setup and shows the unavailable
+state under both staged failure profiles. The public receipt downloaded after
+the corrected submission. All four structured Outcome cases passed.
 
 The detailed review and pinned captures are in
 [`playwright-review.md`](./playwright-review.md) and

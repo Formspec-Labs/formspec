@@ -27,6 +27,10 @@ const responseSchema = JSON.parse(readFileSync(
 ));
 // Compile the reusable evidence definitions without the unrelated Response root rules.
 ajv.addSchema({ $id: responseSchema.$id, $defs: responseSchema.$defs });
+const selectionSchema = JSON.parse(readFileSync(
+  resolve(here, '../../../schemas/response-selection.schema.json'), 'utf8',
+));
+ajv.addSchema(selectionSchema);
 const validate = ajv.compile(schema);
 
 const generation = {
@@ -123,4 +127,56 @@ describe('Surface Preview Scenario schema', () => {
 
     expect(validate(value)).toBe(false);
   });
+});
+
+it('accepts catalog selection requests with only references, context and a digest', () => {
+  const isolated = new Ajv2020({ strict: true, strictRequired: false, allowUnionTypes: true });
+  addFormats(isolated);
+  isolated.addSchema(selectionSchema);
+  const validateRequest = isolated.getSchema(selectionSchema.$id + '#/$defs/ResponseSelectionRequest')!;
+  const request = {
+    key: 'list', kind: 'catalog', catalogRef: 'urn:catalog', sourceRef: 'response:list',
+    catalogDigest: 'sha256:' + 'a'.repeat(64), routeParams: { year: '2026' }, consumerSubject: { year: 2026 },
+  };
+  expect(validateRequest(request), JSON.stringify(validateRequest.errors)).toBe(true);
+  expect(validateRequest({ ...request, catalogDigest: undefined })).toBe(false);
+  expect(validateRequest({ ...request, selection: { status: 'current' } })).toBe(false);
+  expect(validateRequest({ key: 'local', kind: 'definition', scope: 'edition', selection: {
+    definition: { url: 'urn:list' }, subject: [], status: 'completed', cardinality: 'latest', pin: 'none',
+  } })).toBe(true);
+  const validateOutcome = isolated.getSchema(selectionSchema.$id + '#/$defs/ResponseSelectionOutcome')!;
+  expect(validateOutcome({ status: 'available', pinned: true, none: true, records: [],
+    value: null, valueDigest: request.catalogDigest })).toBe(true);
+  expect(validateOutcome({ status: 'unavailable', catalogRef: request.catalogRef })).toBe(false);
+});
+
+it('allows Generation provenance on preview filing fixtures', () => {
+  const value = validScenario();
+  const profile = (value.profiles as Record<string, Record<string, unknown>>).loaded!;
+  profile.filings = [{ responseJson: '{}', 'x-generation': generation }];
+  expect(validate(value), JSON.stringify(validate.errors)).toBe(true);
+});
+
+it('keeps the bundled Core selection and evidence definitions in sync', () => {
+  const { $defs } = selectionSchema;
+  const validation = ({ title: _title, description: _description, $comment: _comment, ...body }:
+    Record<string, unknown>) => body;
+  const { $defs: core } = responseSchema;
+  const common = commonSchema as { $id: string; $defs: Record<string, Record<string, unknown>> };
+  const canonicalDefinition = validation(core.ResponseSelection.properties.definition);
+  expect(canonicalDefinition.$ref).toBe(`${common.$id}#/$defs/TargetDefinition`);
+  expect(validation($defs.ResponseSelection)).toEqual({
+    ...validation(core.ResponseSelection),
+    properties: {
+      ...core.ResponseSelection.properties,
+      definition: { ...canonicalDefinition, $ref: '#/$defs/TargetDefinition' },
+    },
+  });
+  for (const name of ['SubjectPredicate', 'Sha256Digest', 'ResolvedInstanceRecord']) {
+    expect(validation($defs[name])).toEqual(validation(core[name]));
+  }
+  expect(validation($defs.ResponseSelectionMapping)).toEqual(validation(core.ResolvedInstance.properties.mapping));
+  expect(validation($defs.ResponseSelectionSubjectKeys).additionalProperties)
+    .toEqual(responseSchema.properties.subject.properties.keys.additionalProperties);
+  expect(validation($defs.TargetDefinition)).toEqual(validation(common.$defs.TargetDefinition!));
 });

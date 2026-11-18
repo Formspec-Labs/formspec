@@ -36,14 +36,15 @@ import {
 import {
   initFormspecEngine,
   initFormspecEngineTools,
-  isValidResponseAuthored,
-  selectResponses,
+  invokeResponseActionAsync,
 } from "@formspec-org/engine";
 import { lintDocument } from "@formspec-org/engine/fel-tools";
 import { planResponseActionInvocation } from "@formspec-org/engine/render";
+import { filePreviewResponse, withPreviewSingletonSubject } from "./demo/src/preview-response.ts";
 import { createSemanticControlRegistry } from "@formspec-org/react/semantic-controls";
 import {
-  createPreviewDefinitionResponseStore,
+  filingAction,
+  responseSourceLoader,
   createSurfaceSemanticOutputRegistry,
   createSurfacePreviewRuntime,
   dereferenceBundleExport,
@@ -51,6 +52,7 @@ import {
   routeHref,
 } from "@formspec-org/surface";
 import {
+  createMemoryFilingStore,
   createSurfaceSemanticControlScopeResolver,
   createSurfaceSemanticOutputScopeResolver,
   starterWidgetModule,
@@ -1670,19 +1672,6 @@ function responseActionsForDefinition(preview, definitionRef) {
   );
 }
 
-function responseSourceBindings(catalogHandles, response) {
-  return catalogHandles.flatMap(({ catalogRef, document }) =>
-    (Array.isArray(document.sources) ? document.sources : []).flatMap(
-      (source) =>
-        source?.kind === "definition-response" &&
-        source?.runtime?.delivery !== "draft" &&
-        source?.responseSelection?.definition?.url === response.definitionUrl
-          ? [{ catalogRef, sourceRef: source.id }]
-          : []
-    )
-  );
-}
-
 function getPath(value, path) {
   let current = value;
   for (const segment of String(path).split(".")) {
@@ -2036,14 +2025,9 @@ async function makeCaseRuntime({
       return document ? [{ catalogRef: ref.url, document }] : [];
     }
   );
-  const responseStore = createPreviewDefinitionResponseStore(catalogHandles, {
-    selectResponses,
-    isValidResponseAuthored,
-    selectionContext: (_binding, policy) => {
-      const upstream = Array.from(bundle.definitions.values())
-        .find((definition) => definition.url === policy.definition.url);
-      return upstream && { upstreamSubject: upstream.subject ?? null };
-    },
+  const scope = scenarioRuntime.profileId;
+  const responseStore = createMemoryFilingStore({
+    scope, definitions: bundle.definitions, catalogs: bundle.dataSources, fixtures: preview.scenario.profiles[scope],
   });
   const routeRuntimes = new Map();
   const actionRuntimes = new Map();
@@ -2134,30 +2118,18 @@ async function makeCaseRuntime({
         : undefined,
   });
 
-  function rememberCompletedResponse(result) {
+  async function invokeDefinitionAction({ document, actionRef, ports, nodeId, invocationContext }) {
+    const result = await invokeResponseActionAsync(document, actionRef, ports, nodeId, invocationContext);
     const response = result.detail?.response;
-    if (
-      result.status !== "completed" ||
-      response?.status !== "completed" ||
-      typeof result.invocationId !== "string"
-    ) {
-      return;
+    if (result.status === "completed" && filingAction(document, result.resolution.action) === "submit" && response?.status === "completed") {
+      const filedResponse = withPreviewSingletonSubject(response, bundle.definitions);
+      const previewFiling = await filePreviewResponse(responseStore, scope, filedResponse);
+      return { ...result, detail: { ...result.detail, response: filedResponse, previewFiling } };
     }
-    for (const binding of responseSourceBindings(catalogHandles, response)) {
-      const recorded = responseStore.record({
-        binding,
-        invocationId: result.invocationId,
-        response,
-      });
-      if (recorded.status === "refused") {
-        throw new Error(
-          `Definition Response delivery was refused: ${recorded.reason}`
-        );
-      }
-    }
+    return result;
   }
 
-  const baseDataSourceLoader = responseStore.wrapLoader(scenarioRuntime.loader);
+  const baseDataSourceLoader = scenarioRuntime.withResponseLoader(responseSourceLoader(responseStore.responses));
   function trackedDataSourceLoader(request) {
     const routeRuntime = activeRouteRuntime;
     if (!routeRuntime) {
@@ -2294,7 +2266,7 @@ async function makeCaseRuntime({
             dataSourceLoader: trackedDataSourceLoader,
             authorizeDataSource: scenarioRuntime.authorize,
             validateDataSourcePayload,
-            onDefinitionActionResult: rememberCompletedResponse,
+            definitionActionInvoker: invokeDefinitionAction,
             resolveSemanticControlScope,
             resolveSemanticOutputScope,
             sessionGeneration: step.id,

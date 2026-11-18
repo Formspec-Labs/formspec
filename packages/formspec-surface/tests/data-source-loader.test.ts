@@ -1,6 +1,6 @@
 /** @filedesc Conformance suite for the one canonical DataSourceLoader port. */
 import { describe, expect, it, vi } from 'vitest';
-import type { DataSource, DataSourcesDocument } from '@formspec-org/types';
+import type { DataSource, DataSourcesDocument, ResponseSelector } from '@formspec-org/types';
 import {
   createDocumentResourceDataSourceLoader,
   dataSourceAvailableToWidget,
@@ -10,6 +10,7 @@ import {
   type DataSourceDescriptor,
   type DataSourceLoader,
 } from '../src/data-source-loader.js';
+import { responseSourceLoader } from '../src/response-source-loader.js';
 
 const CATALOG_REF = 'https://example.test/data/catalog';
 const SURFACE_REF = 'https://example.test/surfaces/respondent';
@@ -331,6 +332,40 @@ describe('document-resource host bridge', () => {
     });
     expect(read).not.toHaveBeenCalled();
   });
+});
+
+it('hashes a catalog document once across concurrent and later selections', async () => {
+  const selected = descriptor(source({
+    kind: 'definition-response',
+    responseSelection: {
+      definition: { url: 'urn:upstream' }, subject: [],
+      status: 'completed', cardinality: 'latest', pin: 'none',
+    },
+  }));
+  const select = vi.fn<ResponseSelector['select']>(async () => new Map());
+  const load = responseSourceLoader({ select });
+  const digest = vi.spyOn(crypto.subtle, 'digest');
+  try {
+    const request = { descriptor: selected, context };
+    await Promise.all([load(request), load(request)]);
+    await load(request);
+    expect(digest).toHaveBeenCalledTimes(1);
+    const first = select.mock.calls[0]![0][0];
+    expect(first).toMatchObject({ kind: 'catalog', catalogDigest: expect.stringMatching(/^sha256:[0-9a-f]{64}$/) });
+    expect(select).toHaveBeenNthCalledWith(3, [first]);
+
+    const updated = { ...selected.catalog, version: '2.0.0' };
+    await load({ ...request, descriptor: { ...selected, catalog: updated } });
+    expect(digest).toHaveBeenCalledTimes(2);
+    expect(select.mock.calls[3]![0][0]).not.toEqual(first);
+
+    selected.catalog.version = updated.version;
+    await load(request);
+    expect(digest).toHaveBeenCalledTimes(3);
+    expect(select.mock.calls[4]![0][0]).toEqual(select.mock.calls[3]![0][0]);
+  } finally {
+    digest.mockRestore();
+  }
 });
 
 it('delivers an authorized empty catalog selection under the widget input name', async () => {

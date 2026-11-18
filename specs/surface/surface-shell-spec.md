@@ -600,7 +600,10 @@ exactly:
 `filingFillCount`, `filingSomeProgressUnavailable`, `filingFixCount`, `filingCheckCount`,
 `filingAnswered`, `filingStillToAnswer`, `filingHasFix`, `filingHasCheck`,
 `filingSummaryAnswered`, `filingSummaryToFix`, `filingSummaryToCheck`,
-`filingLegendCaption`, and `filingSections`.
+`filingLegendCaption`, `filingSections`,
+`filingFiled`, `filingReturned`, `filingAccepted`,
+`filingClosedWithoutAcceptance`, `filingReopened`, `filingReceiptReference`,
+`filingFixture`, `filingPreviewSubmit`, and `filingReviewUnavailable`.
 The preview edition, appearance, draft, and filing-status keys require Locale 2.1.
 
 The Locale schema and the runtime string inventory MUST contain the same set,
@@ -613,7 +616,7 @@ The shell exposes a read-only FEL context for these strings. It contains
 `$widgetName` for widget-unavailable keys, `$target` for
 `transitionContinue`, `$to` for transition-target keys, and `$trigger` for
 transition trigger, executor, and status keys. Filing answer counts use
-`$filled` and `$total`. Filing finding counts and the not-started size hint use `$count`. Keys not named here receive no
+`$filled` and `$total`. Filing finding counts and the not-started size hint use `$count`. The filing receipt label uses `$reference`. Keys not named here receive no
 shell-specific variable. Missing variables follow Locale's ordinary FEL
 interpolation behavior; the shell MUST NOT run a second interpolation pass.
 
@@ -776,6 +779,11 @@ only runtime extension point inside a route.
   module level. Definition-only availability does not cover a module widget.
   The catalog must also be manifested and loaded, and the qualified source must
   resolve.
+
+  A catalog Response selection request carries `catalogDigest`, the SHA-256
+  digest of the complete Data Sources catalog document encoded as
+  `integrity-canonical-json-v1`. Data Sources §12.1 defines the selector's
+  digest check.
 
   Data Sources 1.0 remains authoritative for source schemas, authorization,
   delivery, failure, caching, staleness, and provenance. The shell supplies the
@@ -995,7 +1003,26 @@ unavailable reads have distinct presentation. A refused or missing result
 provides no counts or evidence of absence. Retain the authored section links
 when counts are unavailable. Sum known answer and finding counts across the
 tracker and indicate when some progress is unavailable. Confirmed absence
-contributes zero answers and findings and the authored question count.
+without a filing contributes zero answers and findings and the authored
+question count. A filed form with a confirmed absent draft contributes no
+draft counts and leaves the known totals complete.
+
+The host's authorized filing status read selects the latest qualifying
+completed Response for the row's filing unit. A completed Response establishes
+Filed (`filed`). A review decision for the exact Response ID and hash
+can establish Returned (`returned`), Accepted (`accepted`), Closed without
+acceptance (`closed-without-acceptance`), or Reopened (`reopened`). Show
+the verified filing and label review status unavailable when the review
+service is unavailable. Show a correction draft's progress alongside the
+filing state when both are present. A completed filing with no current draft
+shows its filing state.
+
+The filing status read may supply `receiptRef` from the authorized Response
+ID. Display it with a receipt label and use the host's authorized receipt path
+for resolution. Drafts and unavailable filing reads provide no receipt
+reference. Label a fixture receipt as a sample filing. A local preview Submit
+stores its completed Response in the preview edition and labels the result
+“Preview filing. Nothing was sent.”
 
 Each form row presents a task link, a section strip, and status and counts.
 Show the Definition description and authored hint when present. Connect the

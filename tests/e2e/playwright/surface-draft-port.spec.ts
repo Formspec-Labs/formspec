@@ -33,6 +33,16 @@ for (const name of Object.keys(draftPortConformance)) {
   });
 }
 
+test('retains unsaved edits when the host recreates the same preview edition list', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form');
+  const answer = page.getByLabel('Answer');
+  await answer.fill('unsaved');
+  await page.evaluate(() => window.dispatchEvent(new Event('rerender-draft-fixture')));
+  await expect(page.locator('[data-fixture-render="1"]')).toBeAttached();
+  await expect(page.getByRole('button', { name: 'Save draft' })).toBeVisible();
+  await expect(answer).toHaveValue('unsaved');
+});
+
 for (const keepEdits of [false, true]) {
   test(`two tabs resolve a conflict by ${keepEdits ? 'keeping edits' : 'loading the newer version'}`, async ({ page, context }) => {
     await page.goto('/surface-drafts.html?form');
@@ -231,4 +241,35 @@ test('another tab refreshes counts and stale restart cannot delete its newer com
     .resolves.toEqual({ status: 'absent' });
   await expect(page.evaluate(async () => (await import('/surface-drafts-port.ts')).loadPreview('1.0.0')))
     .resolves.toEqual({ status: 'absent' });
+});
+
+test('preview Submit produces a labeled filing and receipt that survive reload', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&subject&tracker&submit#/filing/2025');
+  await page.getByLabel('Answer').fill('annual response');
+  await page.getByRole('button', { name: 'Submit report' }).click();
+  await page.getByRole('link', { name: 'Overview' }).click();
+  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const task = tracker.getByRole('link', { name: 'Filing', exact: true });
+  await expect(task).toHaveAccessibleDescription(/^Filed\b/);
+  const receipt = tracker.getByText(/^Receipt reference: urn:uuid:/);
+  await expect(receipt).toBeVisible();
+  const original = await receipt.textContent();
+  await expect(tracker.getByText('Preview filing. Nothing was sent.')).toBeVisible();
+  await expect(tracker.locator('[aria-live]')).toHaveCount(0);
+  await page.reload();
+  await expect(task).toHaveAccessibleDescription(/^Filed\b/);
+  await expect(receipt).toHaveText(original!);
+  await page.goto('/surface-drafts.html?form&subject&tracker&submit#/overview?edition=edition-b');
+  await expect(page.locator('[data-slot-type="filing-status"]').getByRole('link', { name: 'Filing', exact: true }))
+    .toHaveAccessibleDescription(/^Not started\b/);
+});
+
+
+test('writes exactly the submitted JSON and keeps the draft when a duplicate filing is refused', async ({ page }) => {
+  await page.goto('/surface-drafts.html');
+  const result = await page.evaluate(async () => (await import('/surface-drafts-port.ts')).fileExactPreview());
+  expect(result.filing).toMatchObject({ status: 'filed', receiptRef: 'urn:report:exact' });
+  expect(result.duplicate).toEqual({ status: 'duplicate-response' });
+  expect(result.storedText).toBe(result.exactText);
+  expect(result.draft.status).toBe('loaded');
 });

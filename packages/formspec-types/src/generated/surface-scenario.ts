@@ -7,7 +7,7 @@
 
 /* eslint-disable */
 import type { Generation } from './common.js';
-import type { ResolvedInstanceRecord } from './response.js';
+import type { DispositionObservation } from './response-selection.js';
 /**
  * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema
  * via the `definition` "SurfaceScenarioCatalogRef".
@@ -26,6 +26,7 @@ export type SurfaceScenarioSourceOutcome =
   | SurfaceScenarioLoadedSource
   | SurfaceScenarioUnavailableSource
   | SurfaceScenarioErrorSource;
+export type DispositionComments = string[];
 
 /**
  * Preview-only runtime state for exercising a data-only Surface bundle. This document is not an App Manifest member and MUST NOT be treated as production data. It supplies route parameters, qualified Data Source outcomes, coarse authorization verdicts, and simulated action outcomes to a fixed generic preview host.
@@ -155,6 +156,8 @@ export interface CrossComponentRef {
 export interface SurfaceScenarioProfile {
   authorization: SurfaceScenarioAuthorization;
   sources: SurfaceScenarioSourceOutcome[];
+  filings?: SurfaceScenarioFiling[];
+  decisions?: SurfaceScenarioDecision[];
 }
 /**
  * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema
@@ -182,18 +185,6 @@ export interface SurfaceScenarioLoadedSource {
   sourceRef: SurfaceScenarioSourceRef;
   status: 'loaded';
   freshness: 'fresh' | 'stale';
-  /**
-   * Selected record evidence for a non-draft Definition-response source.
-   */
-  records?: ResolvedInstanceRecord[];
-  /**
-   * Digest of the exact delivered selection value.
-   */
-  valueDigest?: string;
-  /**
-   * True when an authorized selection has no match and admits an empty result.
-   */
-  none?: boolean;
   'x-generation'?: Generation;
   value: unknown;
 }
@@ -221,6 +212,38 @@ export interface SurfaceScenarioErrorSource {
    * Technical preview-only failure detail retained for diagnostics and never rendered as customer copy.
    */
   reason: string;
+}
+/**
+ * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema
+ * via the `definition` "SurfaceScenarioFiling".
+ */
+export interface SurfaceScenarioFiling {
+  'x-generation'?: Generation;
+  /**
+   * Exact JSON text of a sample completed Response. Subject identity and handoff hash are checked at admission.
+   */
+  responseJson: string;
+}
+/**
+ * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema
+ * via the `definition` "SurfaceScenarioDecision".
+ */
+export interface SurfaceScenarioDecision {
+  responseId: string;
+  /**
+   * SHA-256 digest encoded with the sha256: prefix and lowercase hexadecimal.
+   */
+  responseHash: string;
+  decision: DispositionObservation;
+}
+export interface DecidedDisposition {
+  status: 'decided';
+  disposition: string;
+  review: 'returned' | 'accepted' | 'closed-without-acceptance' | 'reopened';
+  comments: DispositionComments;
+}
+export interface UndecidedDisposition {
+  status: 'none' | 'unavailable';
 }
 /**
  * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema

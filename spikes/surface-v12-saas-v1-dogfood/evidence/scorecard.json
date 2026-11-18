@@ -48,7 +48,7 @@
     "playwright_route_width_checks_passed": 30,
     "playwright_profile_route_checks_passed": 75,
     "playwright_console_warnings_or_errors": 0,
-    "reviewed_input_digest": "sha256:e98d38610e882a0baa0dba3a36b8cc74dac1c5152c3e9afae3a5c8fcd9ad067b",
+    "reviewed_input_digest": "sha256:767fa3e3dad5337db78726ae69d89fa0c259c67e9d090996d7895c851fc99163",
     "formspec_unit_suites": "passed",
     "formspec_contract_surfaces": "passed"
   },
@@ -60,7 +60,9 @@
     "claim_required_cases_supported": 3,
     "claim_required_cases_total": 3,
     "demo_claim": "held",
-    "demo_claim_reasons": ["HUMAN_ADEQUACY_NOT_APPROVED"]
+    "demo_claim_reasons": [
+      "HUMAN_ADEQUACY_NOT_APPROVED"
+    ]
   },
   "historical_attempt_7": {
     "status": "failed_retained_evidence",

@@ -157,7 +157,16 @@ export type SurfaceShellStringKey =
   | '$module.x-formspec-surface.shell.filingSummaryToFix'
   | '$module.x-formspec-surface.shell.filingSummaryToCheck'
   | '$module.x-formspec-surface.shell.filingLegendCaption'
-  | '$module.x-formspec-surface.shell.filingSections';
+  | '$module.x-formspec-surface.shell.filingSections'
+  | '$module.x-formspec-surface.shell.filingFiled'
+  | '$module.x-formspec-surface.shell.filingReturned'
+  | '$module.x-formspec-surface.shell.filingAccepted'
+  | '$module.x-formspec-surface.shell.filingClosedWithoutAcceptance'
+  | '$module.x-formspec-surface.shell.filingReopened'
+  | '$module.x-formspec-surface.shell.filingReceiptReference'
+  | '$module.x-formspec-surface.shell.filingFixture'
+  | '$module.x-formspec-surface.shell.filingPreviewSubmit'
+  | '$module.x-formspec-surface.shell.filingReviewUnavailable';
 /**
  * Closed one-to-one mapping to the renderer chrome string inventory (Locale spec §3.1.10, packages/formspec-layout/src/ui-strings.ts). A new chrome string requires a Locale schema revision.
  *

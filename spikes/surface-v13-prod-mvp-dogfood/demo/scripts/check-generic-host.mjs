@@ -185,7 +185,8 @@ const requiredRuntimeMarkers = [
   "source.runtime.delivery === 'draft'",
   'renderDefaultDefinitionForm',
   'renderBundleDefinitionForm',
-  'createPreviewDefinitionResponseStore',
+  'createMemoryFilingStore',
+  'responseSourceLoader',
   'createSemanticControlRegistry',
   'createSurfaceSemanticControlScopeResolver',
   'semanticArtifactIdentities',
@@ -283,7 +284,7 @@ const semanticScopeStart = appSource.indexOf(
   'const [semanticSessionId] = useState(() => crypto.randomUUID());',
 );
 const semanticScopeEnd = appSource.indexOf(
-  '\n  const definitionResponseStore',
+  '\n  const filingStore',
   semanticScopeStart,
 );
 const semanticScopeSource =

@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { expect, it, vi } from 'vitest';
 import { initFormspecEngine } from '@formspec-org/engine';
-import { dereferenceBundleExport, type FilingDraftObservation, type FilingStatusReader } from '@formspec-org/surface';
+import { dereferenceBundleExport, type FilingDraftObservation, type FilingStatusObservation, type FilingStatusReader } from '@formspec-org/surface';
 import { BrowserSurfaceApp } from '../src/BrowserSurfaceApp.js';
 import { SurfaceApp } from '../src/SurfaceApp.js';
 import { render } from './render.js';
@@ -54,12 +54,16 @@ function filingBundle({ shadowApplication = false, version = '0.4', duplicate = 
   });
 }
 
+function draftResults(entries: [string, FilingDraftObservation][]): ReadonlyMap<string, FilingStatusObservation> {
+  return new Map(entries.map(([key, draft]) => [key, { draft, filing: { status: 'none' } }]));
+}
+
 function mount(reader?: FilingStatusReader) {
   return render(<SurfaceApp bundle={filingBundle()} location="/" onNavigate={() => {}} readSummaries={reader} />);
 }
 
 it('renders an accessible task and section list with partial counts and independent findings', async () => {
-  const read = vi.fn<FilingStatusReader>(async (queries) => new Map<string, FilingDraftObservation>([
+  const read = vi.fn<FilingStatusReader>(async (queries) => draftResults([
     [queries[0]!.key, { status: 'current', form: { ...counts, ready: false }, sections: { details: counts } }],
     [queries[1]!.key, { status: 'absent' }],
     [queries[2]!.key, { status: 'unavailable' }],
@@ -120,7 +124,7 @@ it('keeps very small forms at eight percent of the strip width', () => {
 });
 
 it('keeps denied and stale results distinct from confirmed absence', async () => {
-  const read: FilingStatusReader = async queries => new Map([
+  const read: FilingStatusReader = async queries => draftResults([
     [queries[0]!.key, { status: 'denied' }],
     [queries[1]!.key, { status: 'stale' }],
   ]);
@@ -149,7 +153,7 @@ it('opens a tracker section through the maintained hash navigation', () => {
 });
 
 it('shows available counts without inferring whether a draft is ready', async () => {
-  const dom = mount(async queries => new Map([
+  const dom = mount(async queries => draftResults([
     [queries[0]!.key, { status: 'current', form: { ...counts, filled: 4, ready: null, toFix: null, toCheck: null }, sections: {} }],
     [queries[1]!.key, { status: 'current', form: { ...counts, filled: 4, ready: true, toFix: 0, toCheck: 0 }, sections: {} }],
   ]));
@@ -239,4 +243,32 @@ it('uses the active app and Definition Locales for tracker text', async () => {
   expect(application?.closest('details')?.querySelector('summary')?.textContent).toBe('Rubriques (1) application');
   expect(application?.closest('.fs-surface-filing__row')?.textContent).toContain('Saisissez les totaux annuels.');
   window.history.replaceState(null, '', '/');
+});
+
+
+it('keeps the receipt and Filed state visible during a review outage', async () => {
+  const dom = mount(async ([query]) => new Map([[query!.key, {
+    draft: { status: 'absent' },
+    filing: { status: 'filed', receiptRef: 'urn:response:sample', responseHash: 'sha256:' + '0'.repeat(64),
+      review: 'unavailable', comments: [], sample: 'fixture' },
+  }]]));
+  await act(async () => {});
+  const row = dom.querySelector('.fs-surface-filing__row')!;
+  expect(row.textContent).toContain('Filed');
+  expect(row.textContent).toContain('Receipt reference: urn:response:sample');
+  expect(row.textContent).toContain('Sample filing');
+  expect(row.textContent).toContain('Review status unavailable');
+  expect(row.textContent).not.toContain('Not started');
+});
+
+it('keeps overview totals complete when a filing has no current draft', async () => {
+  const dom = mount(async ([first, second, third]) => new Map<string, FilingStatusObservation>([
+    [first!.key, { draft: { status: 'current', form: { ...counts, ready: false }, sections: {} }, filing: { status: 'none' } }],
+    [second!.key, { draft: { status: 'absent' }, filing: { status: 'filed', review: 'available',
+      receiptRef: 'urn:filing', responseHash: 'sha256:' + 'a'.repeat(64), comments: [] } }],
+    [third!.key, { draft: { status: 'absent' }, filing: { status: 'none' } }],
+  ]));
+  await act(async () => {});
+  expect(dom.querySelector('.fs-surface-filing__totals')?.textContent).toContain('Answered2 of 5');
+  expect(dom.querySelector('.fs-surface-filing__totals')?.textContent).not.toContain('Some progress is unavailable');
 });

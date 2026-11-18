@@ -1,0 +1,533 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/response-selection/1.0",
+  "title": "Response selection payloads",
+  "description": "Shared request and result types for scoped Response selection and review joins.",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "ResponseSelectionRequest": {
+      "title": "ResponseSelectionRequest",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DefinitionResponseSelectionRequest"
+        },
+        {
+          "$ref": "#/$defs/CatalogResponseSelectionRequest"
+        }
+      ]
+    },
+    "DefinitionResponseSelectionRequest": {
+      "type": "object",
+      "required": [
+        "key",
+        "kind",
+        "scope",
+        "selection"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selection": {
+          "$ref": "#/$defs/ResponseSelection"
+        },
+        "consumerSubject": {
+          "$ref": "#/$defs/ResponseSelectionSubjectKeys"
+        },
+        "projection": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "ResponseSelectionProjection"
+        },
+        "fallback": true,
+        "pin": {
+          "$ref": "#/$defs/ResponseSelectionDelivery"
+        },
+        "kind": {
+          "const": "definition"
+        }
+      },
+      "title": "DefinitionResponseSelectionRequest"
+    },
+    "CatalogResponseSelectionRequest": {
+      "title": "CatalogResponseSelectionRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The adapter resolves the selection from its own catalog and refuses a digest mismatch.",
+      "required": [
+        "key",
+        "kind",
+        "catalogRef",
+        "sourceRef",
+        "catalogDigest"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "const": "catalog"
+        },
+        "catalogRef": {
+          "type": "string",
+          "format": "uri"
+        },
+        "sourceRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "catalogDigest": {
+          "$ref": "#/$defs/Sha256Digest",
+          "description": "SHA-256 over the complete Data Sources catalog document encoded as integrity-canonical-json-v1."
+        },
+        "routeParams": {
+          "title": "ResponseSelectionRouteParams",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "consumerSubject": {
+          "$ref": "#/$defs/ResponseSelectionSubjectKeys"
+        },
+        "pin": {
+          "$ref": "#/$defs/ResponseSelectionDelivery"
+        }
+      }
+    },
+    "ResponseSelectionDelivery": {
+      "type": "object",
+      "required": [
+        "records",
+        "valueDigest",
+        "none",
+        "pinned",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "records": {
+          "title": "ResponseSelectionRecords",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResolvedInstanceRecord"
+          }
+        },
+        "valueDigest": {
+          "$ref": "#/$defs/Sha256Digest"
+        },
+        "none": {
+          "type": "boolean"
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "mapping": {
+          "$ref": "#/$defs/ResponseSelectionMapping"
+        },
+        "value": true
+      },
+      "title": "ResponseSelectionDelivery"
+    },
+    "NewerSelectedResponse": {
+      "type": "object",
+      "required": [
+        "responseId",
+        "responseHash"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "responseId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseHash": {
+          "$ref": "#/$defs/Sha256Digest"
+        }
+      },
+      "title": "NewerSelectedResponse"
+    },
+    "ResponseSelectionOutcome": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AvailableResponseSelection"
+        },
+        {
+          "$ref": "#/$defs/UnavailableResponseSelection"
+        }
+      ],
+      "title": "ResponseSelectionOutcome"
+    },
+    "AvailableResponseSelection": {
+      "type": "object",
+      "required": [
+        "status",
+        "records",
+        "valueDigest",
+        "none",
+        "pinned",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "available"
+        },
+        "records": {
+          "title": "ResponseSelectionRecords",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResolvedInstanceRecord"
+          }
+        },
+        "valueDigest": {
+          "$ref": "#/$defs/Sha256Digest"
+        },
+        "none": {
+          "type": "boolean"
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "mapping": {
+          "$ref": "#/$defs/ResponseSelectionMapping"
+        },
+        "value": true,
+        "newer": {
+          "$ref": "#/$defs/NewerSelectedResponse"
+        }
+      },
+      "title": "AvailableResponseSelection"
+    },
+    "DispositionObservation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DecidedDisposition"
+        },
+        {
+          "$ref": "#/$defs/UndecidedDisposition"
+        }
+      ],
+      "title": "DispositionObservation"
+    },
+    "DecidedDisposition": {
+      "type": "object",
+      "required": [
+        "status",
+        "disposition",
+        "review",
+        "comments"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "decided"
+        },
+        "disposition": {
+          "type": "string",
+          "format": "uri"
+        },
+        "review": {
+          "enum": [
+            "returned",
+            "accepted",
+            "closed-without-acceptance",
+            "reopened"
+          ]
+        },
+        "comments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "DispositionComments"
+        }
+      },
+      "title": "DecidedDisposition"
+    },
+    "UnavailableResponseSelection": {
+      "title": "UnavailableResponseSelection",
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "unavailable"
+        }
+      }
+    },
+    "UndecidedDisposition": {
+      "title": "UndecidedDisposition",
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "none",
+            "unavailable"
+          ]
+        }
+      }
+    },
+    "ResponseSelectionSubjectKeys": {
+      "title": "ResponseSelectionSubjectKeys",
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "integer"
+        ],
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      }
+    },
+    "ResponseSelectionMapping": {
+      "title": "ResponseSelectionMapping",
+      "type": "object",
+      "required": [
+        "url",
+        "digest"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the forward Mapping used."
+        },
+        "digest": {
+          "$ref": "#/$defs/Sha256Digest",
+          "description": "Digest pin of the Mapping used."
+        }
+      }
+    },
+    "Sha256Digest": {
+      "title": "Sha256Digest",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 digest encoded with the sha256: prefix and lowercase hexadecimal.",
+      "examples": [
+        "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
+      "$comment": "Match the corresponding Core definition in response.schema.json."
+    },
+    "ResolvedInstanceRecord": {
+      "title": "ResolvedInstanceRecord",
+      "type": "object",
+      "required": [
+        "responseId",
+        "definitionVersion"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "responseId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identity of the selected Response."
+        },
+        "definitionVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exact upstream Definition version."
+        },
+        "responseHash": {
+          "$ref": "#/$defs/Sha256Digest",
+          "description": "Required for completed records and absent for current drafts. ResponseJson::handoff_hash() over the complete immutable Response under formspec.response.handoff.v1; equals its IntakeHandoff.responseHash."
+        }
+      },
+      "$comment": "Match the corresponding Core definition in response.schema.json."
+    },
+    "ResponseSelection": {
+      "title": "ResponseSelection",
+      "type": "object",
+      "description": "Closed, same-scope Response selection shared by Definition instances and catalog sources. Authorize read before querying; order by authored instant descending then Response id ascending. Definition-local predicates use only from.subject; routeParam is catalog-only.",
+      "required": [
+        "definition",
+        "subject",
+        "status",
+        "cardinality",
+        "pin"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "definition": {
+          "$ref": "#/$defs/TargetDefinition"
+        },
+        "subject": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SubjectPredicate"
+          },
+          "description": "Predicates over upstream subject keys; empty means no key predicates."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "current"
+          ],
+          "description": "completed selects immutable filings. current selects the unit open draft, else latest completed; distinct from catalog delivery draft."
+        },
+        "disposition": {
+          "type": "string",
+          "format": "uri",
+          "description": "Review outcome resolved by DispositionAuthority using responseId and responseHash, never inherited by an amendment."
+        },
+        "whenNone": {
+          "type": "string",
+          "enum": [
+            "unavailable",
+            "empty"
+          ],
+          "default": "unavailable",
+          "description": "Successful no-match behavior. empty delivers fallback and records none; authorization refusal always remains unavailable."
+        },
+        "cardinality": {
+          "type": "string",
+          "enum": [
+            "latest",
+            "latest-per-subject"
+          ],
+          "description": "Select latest overall or latest per distinct subject after filtering and fixed ordering."
+        },
+        "pin": {
+          "type": "string",
+          "enum": [
+            "none",
+            "at-open"
+          ],
+          "description": "at-open selects and records a pin at draft open; later loads retain the pin and report newer."
+        },
+        "mapping": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of an optional Mapping applied forward."
+        }
+      },
+      "examples": [
+        {
+          "definition": {
+            "url": "urn:example:forms:report",
+            "compatibleVersions": ">=1.0.0 <2.0.0"
+          },
+          "subject": [
+            {
+              "key": "uei",
+              "op": "eq",
+              "from": {
+                "subject": "uei"
+              }
+            },
+            {
+              "key": "ffy",
+              "op": "eq",
+              "from": {
+                "subject": "ffy"
+              },
+              "offset": -1
+            }
+          ],
+          "status": "completed",
+          "whenNone": "empty",
+          "cardinality": "latest",
+          "pin": "none"
+        }
+      ],
+      "$comment": "Match the corresponding Core definition in response.schema.json."
+    },
+    "SubjectPredicate": {
+      "title": "SubjectPredicate",
+      "type": "object",
+      "required": [
+        "key",
+        "op",
+        "from"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+          "description": "Upstream subject key to compare."
+        },
+        "op": {
+          "type": "string",
+          "enum": [
+            "eq",
+            "le",
+            "ge"
+          ],
+          "description": "Compare the upstream key with the referenced value plus any offset. le and ge are allowed only for integer keys; eq preserves the declared type."
+        },
+        "from": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "subject": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+              "description": "Key declared by the consuming Definition subject."
+            },
+            "routeParam": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Catalog route parameter; prohibited in Definition-local response instances. Integer keys require ^-?[0-9]+$ converted exactly in base 10 before comparison or offset. Reject malformed values and integers outside the I-JSON range of -9007199254740991 to 9007199254740991 as unavailable. String keys use the string unchanged."
+            }
+          },
+          "oneOf": [
+            {
+              "required": [
+                "subject"
+              ]
+            },
+            {
+              "required": [
+                "routeParam"
+              ]
+            }
+          ]
+        },
+        "offset": {
+          "type": "integer",
+          "description": "Added to the referenced key before comparison; allowed only for integer keys."
+        }
+      },
+      "$comment": "Match the corresponding Core definition in response.schema.json."
+    },
+    "TargetDefinition": {
+      "title": "TargetDefinition",
+      "type": "object",
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical URL of the target Definition."
+        },
+        "compatibleVersions": {
+          "type": "string",
+          "description": "Semver range expression describing which Definition versions this document supports."
+        }
+      },
+      "$comment": "Match the corresponding Core definition in common.schema.json."
+    }
+  }
+}

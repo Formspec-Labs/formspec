@@ -238,10 +238,9 @@ export interface ProjectBundle {
 }
 
 export type {
-  NewerSelectedResponse,
+  DispositionAuthority,
+  ResponseSelector,
   ResponseSelectionContext,
-  ResponseSelectionDelivery,
-  ResponseSelectionOutcome,
   ResponseSelectionRecord,
   SelectResponses,
 } from './response-selection.js';

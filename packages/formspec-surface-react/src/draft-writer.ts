@@ -1,14 +1,15 @@
 /** @filedesc Serialize checkpoints and fence filing actions against one editable form revision. */
 import {
   deepEqual, invokeResponseActionAsync, preactReactiveRuntime, resolveResponseAction,
-  resolveResponseActionValidationTuple, resolveServiceRequest,
+  resolveResponseActionValidationTuple,
   type FormDraftSnapshot, type IFormEngine, type ResponseAction, type ResponseActionAsyncInvocationPorts,
   type ResponseActionEffectDispatchContext, type ResponseActionInvocationPorts,
 } from '@formspec-org/engine';
 import {
   summarizeFormProgress, type PageSequenceEntry, type ProgressCounts,
 } from '@formspec-org/layout';
-import type { DraftKey, DraftPort, DraftRecord, DraftSaveInput, FilingProgressCounts } from '@formspec-org/surface';
+import { filingAction, type DraftFencedAction, type DraftKey, type DraftPort, type DraftRecord, type DraftSaveInput, type FilingProgressCounts } from '@formspec-org/surface';
+export type { DraftFencedAction } from '@formspec-org/surface';
 import type {
   ResponseActionInvokerInput, ResponseActionInvokerResult, ResponseActionsDocument, SubmitResult,
 } from '@formspec-org/react';
@@ -33,8 +34,6 @@ export interface DraftWriterOptions {
   checkpointPorts?: DraftCheckpointPorts | undefined;
   responseId?: string | undefined;
 }
-
-export type DraftFencedAction = 'prepare' | 'sign' | 'submit';
 
 /** Pass the expected revision through to the durable Prepare, Sign or Submit operation. */
 export interface SurfaceDraftFence {
@@ -66,19 +65,6 @@ type DraftActionPorts = Omit<ResponseActionInvocationPorts<SubmitResult>, 'dispa
 };
 type DraftActionInput = Omit<ResponseActionInvokerInput<SubmitResult>, 'ports'> & { ports: DraftActionPorts };
 
-export function filingAction(
-  document: ResponseActionsDocument | null | undefined, action: ResponseAction | null | undefined,
-): DraftFencedAction | undefined {
-  if (!action || document?.scope === 'app') return undefined;
-  const catalog = document?.['x-formspec-runtime'];
-  for (const effect of action.effects ?? []) {
-    if (!catalog || effect.type !== 'serviceRequest') continue;
-    const operation = resolveServiceRequest(catalog, effect.requestRef).operation;
-    if (operation === 'prepare' || operation === 'sign') return operation;
-  }
-  return action.intent === 'submit' ? 'submit' : undefined;
-}
-
 export function usesDraftCheckpoint(action: ResponseAction): boolean {
   try {
     return resolveResponseActionValidationTuple(action).persistence === 'draft-checkpoint';
@@ -100,7 +86,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
   const authoredAutosave = options.actions?.actions?.find(action => action.intent === 'autosave' &&
     usesDraftCheckpoint(action));
   let responseId = options.responseId ?? `urn:uuid:${crypto.randomUUID()}`;
-  let committed = options.draft;
+  let committed: Pick<DraftRecord, 'revision'> | undefined = options.draft;
   let author = options.author;
   let snapshot = engine.getDraftSnapshot();
   let edit = 0;
@@ -216,7 +202,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
         if (result.status === 'conflict') observeConflict();
         return false;
       }
-      committed = { revision: result.revision, snapshotJson: input.snapshotJson, responseJson: input.responseJson };
+      committed = { revision: result.revision };
       savedEdit = savingEdit;
       conflicted = false;
       report?.(options.locally ? 'savedLocally' : 'saved');

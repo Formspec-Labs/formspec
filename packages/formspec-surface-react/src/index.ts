@@ -201,6 +201,11 @@ export type { SurfaceRouteTitleResolver } from './title-presentation.js';
 
 export type { SurfaceScreenerCompletionPolicy, SurfaceScreenerCompletion, SurfaceScreenerCompletionRequest } from './screener-completion.js';
 
-export { createBrowserDraftPort, type BrowserDraftPortOptions } from './browser-draft-port.js';
+export {
+  createBrowserFilingStore, createMemoryFilingStore, previewResponseRecordTools,
+  type BrowserFilingStoreOptions, type PreviewFilingStore, type PreviewFilingStoreOptions, type PreviewFilingSubmitResult,
+} from './browser-draft-port.js';
+export { previewFilingInvoker } from './preview-filing-invoker.js';
+export { readSessionDraft } from './draft-data-source.js';
 export { createDraftWriter, type DraftWriter, type DraftActionInvoker, type DraftActionInvokerResult, type DraftCheckpointPorts, type DraftFencedAction, type DraftWriterOptions, type SurfaceDraftFence } from './draft-writer.js';
 export type { SurfaceDraftStorage } from './draft-session.js';

@@ -868,6 +868,15 @@ MUST contain these exact suffixes one-for-one:
 | `filingSummaryToCheck` | none |
 | `filingLegendCaption` | none |
 | `filingSections` | `count` |
+| `filingFiled` | none |
+| `filingReturned` | none |
+| `filingAccepted` | none |
+| `filingClosedWithoutAcceptance` | none |
+| `filingReopened` | none |
+| `filingReceiptReference` | `reference` |
+| `filingFixture` | none |
+| `filingPreviewSubmit` | none |
+| `filingReviewUnavailable` | none |
 
 The shell-specific references form a read-only object supplied by the Surface
 processor. They carry strings only and expose no route table, navigation

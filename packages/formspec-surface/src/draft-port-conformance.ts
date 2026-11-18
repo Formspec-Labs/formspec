@@ -1,4 +1,5 @@
 /** @filedesc Reusable behavioral checks for authorized Surface draft storage. */
+import type { ResponseSelectionDelivery, ResponseSelectionOutcome } from '@formspec-org/types';
 import type { DraftKey, DraftPort, DraftSaveInput } from './draft-port.js';
 
 const definitionUrl = 'https://example.test/definition';
@@ -41,6 +42,14 @@ export interface DraftPortFixture {
   deny: () => void | Promise<void>;
   key?: DraftKey;
   otherKeys?: readonly DraftKey[];
+  pins?: {
+    instance: string;
+    initialResponseId: string;
+    newerResponseId: string;
+    addInitial(): Promise<void>;
+    addNewer(): Promise<void>;
+    select(pin: ResponseSelectionDelivery): Promise<ResponseSelectionOutcome>;
+  };
 }
 
 export const draftPortConformance = {
@@ -73,7 +82,7 @@ export const draftPortConformance = {
     const results = await port.readSummaries([{ ...query, definitionUrl: address.definitionUrl, ...(address.subject && { subject: address.subject }) }], {
       previewScope: address.scope, signal: new AbortController().signal,
     });
-    check(results.get(query.key)?.status === 'denied', 'denial exposed summary metadata');
+    check(results.get(query.key)?.draft.status === 'unavailable' && results.get(query.key)?.filing.status === 'unavailable', 'denial exposed summary metadata');
   },
 
   async 'denies all operations on a never-saved key'({ port, deny, key: address = key }: DraftPortFixture) {
@@ -84,7 +93,7 @@ export const draftPortConformance = {
     const results = await port.readSummaries([{ ...query, definitionUrl: address.definitionUrl, ...(address.subject && { subject: address.subject }) }], {
       previewScope: address.scope, signal: new AbortController().signal,
     });
-    check(results.get(query.key)?.status === 'denied', 'denied summary read revealed absence');
+    check(results.get(query.key)?.draft.status === 'unavailable' && results.get(query.key)?.filing.status === 'unavailable', 'denied summary read revealed absence');
   },
 
   async 'admits one create when both callers saw absence'({ port, key: address = key }: DraftPortFixture) {
@@ -117,7 +126,7 @@ export const draftPortConformance = {
     const summaries = await port.readSummaries([{ ...query, definitionUrl: address.definitionUrl, ...(address.subject && { subject: address.subject }) }], {
       previewScope: address.scope, signal: new AbortController().signal,
     });
-    const progress = summaries.get(query.key);
+    const progress = summaries.get(query.key)?.draft;
     check(loaded.status === 'loaded' && loaded.draft.revision === winner.revision, 'load returned the wrong revision');
     check(JSON.parse(loaded.draft.responseJson).data.answer === (left.status === 'saved' ? '' : 'other'), 'wrong filtered response');
     check(progress?.status === 'current' && progress.form.filled === (left.status === 'saved' ? 0 : 1) &&
@@ -128,18 +137,57 @@ export const draftPortConformance = {
     const read = (queries: Parameters<DraftPort['readSummaries']>[0]) =>
       port.readSummaries(queries, { previewScope: address.scope, signal: new AbortController().signal });
     const requested = { ...query, definitionUrl: address.definitionUrl, ...(address.subject && { subject: address.subject }) };
-    check((await read([requested])).get(query.key)?.status === 'absent', 'summary read did not report absence');
+    check((await read([requested])).get(query.key)?.draft.status === 'absent', 'summary read did not report absence');
     check((await port.load(address, '1.0.0')).status === 'absent', 'summary read created a draft');
     const first = await port.save(saveInput(null, 'private answer', address));
     check(first.status === 'saved', 'initial save failed');
-    const current = (await read([requested])).get(query.key);
+    const current = (await read([requested])).get(query.key)?.draft;
     check(current?.status === 'current' && Object.keys(current).sort().join() === 'form,sections,status', 'summary exposed draft data');
     const stale = await read([
       { ...requested, key: 'pin', definitionVersion: '2.0.0' },
       { ...requested, key: 'placement', sections: [{ id: 'main', fields: ['other'] }] },
     ]);
-    check(stale.get('pin')?.status === 'stale' && stale.get('placement')?.status === 'stale', 'stale counts were served');
+    check(stale.get('pin')?.draft.status === 'stale' && stale.get('placement')?.draft.status === 'stale', 'stale counts were served');
     check((await port.save({ ...saveInput(first.revision, 'second', address), summary: null })).status === 'saved', 'summary-free save failed');
-    check((await read([requested])).get(query.key)?.status === 'unavailable', 'a summary survived its invalidating revision');
+    check((await read([requested])).get(query.key)?.draft.status === 'unavailable', 'a summary survived its invalidating revision');
   },
+
+  async 'refuses creating a draft when its at-open filing is missing'({ port, key: address = key, pins }: DraftPortFixture) {
+    check(pins, 'supply a Definition with an at-open Response instance');
+    const refused = await port.save(saveInput(null, 'first', address));
+    check(refused.status === 'pin-unavailable' && refused.instance === pins.instance, 'missing filing admitted draft creation');
+    check((await port.load(address, '1.0.0')).status === 'absent', 'pin refusal created a draft');
+  },
+
+  async 'records an empty at-open pin'({ port, key: address = key, pins }: DraftPortFixture) {
+    check(pins, 'supply a Definition with an at-open Response instance and whenNone empty');
+    const created = await port.save(saveInput(null, 'first', address));
+    check(created.status === 'saved', 'a successful empty selection refused draft creation');
+    const loaded = await port.load(address, '1.0.0');
+    const pin = loaded.status === 'loaded' && loaded.draft.pins[pins.instance];
+    check(pin && pin.pinned && pin.none && pin.records.length === 0, 'creating save did not record its empty pin');
+    await pins.addNewer();
+    const outcome = await pins.select(pin);
+    check(outcome.status === 'available' && outcome.none && outcome.records.length === 0 &&
+      outcome.newer?.responseId === pins.newerResponseId, 'selection did not retain the empty pin and identify the newer filing');
+  },
+
+  async 'records an at-open pin once and reports a newer filing without changing the pin'({ port, key: address = key, pins }: DraftPortFixture) {
+    check(pins, 'supply a Definition with an at-open Response instance');
+    await pins.addInitial();
+    const created = await port.save(saveInput(null, 'first', address));
+    check(created.status === 'saved', 'the available filing did not admit creation');
+    const original = await port.load(address, '1.0.0');
+    const pin = original.status === 'loaded' && original.draft.pins[pins.instance];
+    check(pin && pin.pinned && pin.records[0]?.responseId === pins.initialResponseId, 'creating save did not record its selected filing');
+    await pins.addNewer();
+    check((await port.save(saveInput(created.revision, 'edited', address))).status === 'saved', 'later save failed');
+    const reloaded = await port.load(address, '1.0.0');
+    const retained = reloaded.status === 'loaded' && reloaded.draft.pins[pins.instance];
+    check(retained && JSON.stringify(retained) === JSON.stringify(pin), 'later save changed the pin');
+    const selection = await pins.select(retained);
+    check(selection.status === 'available' && selection.records[0]?.responseId === pins.initialResponseId &&
+      selection.newer?.responseId === pins.newerResponseId, 'selection did not retain the pin and identify the newer filing');
+  },
+
 };

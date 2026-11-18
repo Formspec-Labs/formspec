@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
 import { dereferenceBundleExport } from '@formspec-org/surface';
 import type { ComponentDocument } from '@formspec-org/types';
-import { BrowserSurfaceApp } from '../../../packages/formspec-surface-react/src/index';
+import { BrowserSurfaceApp, createBrowserFilingStore, previewFilingInvoker } from '../../../packages/formspec-surface-react/src/index';
 import { starterWidgetModule } from '../../../packages/formspec-surface-react/src/widgets/index';
 import { reviewModule, reviewRegistry, reviewSlot } from './surface-draft-review';
 
@@ -17,6 +17,7 @@ const actions = id + '/actions';
 const tracker = query.has('tracker');
 const review = query.has('review');
 const registry = id + '/registry';
+const submit = query.has('submit');
 const component: ComponentDocument = {
   $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition },
   tree: { component: 'Stack', children: [
@@ -25,6 +26,7 @@ const component: ComponentDocument = {
     { component: 'TextInput', bind: 'detail' },
     { component: 'RepeatGroup', bind: 'rows', children: [{ component: 'TextInput', bind: 'row' }] },
     { component: 'ActionButton', actionRef: 'save' },
+    ...(submit ? [{ component: 'ActionButton' as const, actionRef: 'submit' }] : []),
   ] },
 };
 const bundle = dereferenceBundleExport({
@@ -71,6 +73,7 @@ const bundle = dereferenceBundleExport({
       $formspecResponseActions: '1.0', version: '1.0.0', scope: 'response', targetDefinition: { url: definition },
       actions: [
         { id: 'save', intent: 'save-draft', label: { literal: 'Save draft' } },
+        ...(submit ? [{ id: 'submit', intent: 'submit', label: { literal: 'Submit report' } }] : []),
         ...(query.has('auto') ? [{ id: 'autosave', intent: 'autosave', label: { literal: 'Autosave' } }] : []),
       ],
     },
@@ -79,10 +82,20 @@ const bundle = dereferenceBundleExport({
 
 if (query.has('form')) {
   await initFormspecEngine();
-  createRoot(document.getElementById('root')!).render(<BrowserSurfaceApp
-    previewEditions={[{ scope: 'edition', bundle }]}
-    mode="hash" routeParams={keyed ? { year: "2025" } : undefined}
-    widgetModules={review ? [starterWidgetModule(reviewModule)] : undefined}
-    resolveDefinitionComponent={() => component}
-  />);
+  const root = createRoot(document.getElementById('root')!);
+  const invoker = submit ? previewFilingInvoker(createBrowserFilingStore({
+    scope: 'edition', definitions: bundle.definitions,
+  }).submit) : undefined;
+  const mount = (visit: number) => root.render(<>
+    <span hidden data-fixture-render={visit} />
+    <BrowserSurfaceApp
+      previewEditions={submit ? [{ scope: 'edition', bundle }, { scope: 'edition-b', bundle }] : [{ scope: 'edition', bundle }]}
+      definitionActionInvoker={invoker}
+      mode="hash" routeParams={keyed ? { year: "2025" } : undefined}
+      widgetModules={review ? [starterWidgetModule(reviewModule)] : undefined}
+      resolveDefinitionComponent={() => component}
+    />
+  </>);
+  mount(0);
+  window.addEventListener('rerender-draft-fixture', () => mount(1), { once: true });
 }

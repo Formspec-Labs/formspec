@@ -3,7 +3,8 @@ import { resolveResponseAction } from '@formspec-org/engine';
 import type { FormDefinition } from '@formspec-org/types';
 import type { DraftKey } from '@formspec-org/surface';
 import type { DraftSession } from './draft-session.js';
-import { filingAction, usesDraftCheckpoint } from './draft-writer.js';
+import { filingAction } from '@formspec-org/surface';
+import { usesDraftCheckpoint } from './draft-writer.js';
 import type { SurfaceWidgetActionExecutor } from './widget-api.js';
 
 export function fenceDraftWidgetActions(

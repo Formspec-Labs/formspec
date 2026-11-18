@@ -135,6 +135,15 @@ export const SURFACE_STRING_KEYS = [
   'filingSummaryToCheck',
   'filingLegendCaption',
   'filingSections',
+  'filingFiled',
+  'filingReturned',
+  'filingAccepted',
+  'filingClosedWithoutAcceptance',
+  'filingReopened',
+  'filingReceiptReference',
+  'filingFixture',
+  'filingPreviewSubmit',
+  'filingReviewUnavailable',
 ] as const;
 
 export type SurfaceStringKey = (typeof SURFACE_STRING_KEYS)[number];
@@ -267,6 +276,15 @@ export const DEFAULT_SURFACE_STRINGS = {
   filingSummaryToCheck: () => 'To check',
   filingLegendCaption: () => 'Each strip is one form, cut into its sections. Longer strips are bigger forms.',
   filingSections: ({ count }) => `Sections (${count})`,
+  filingFiled: () => 'Filed',
+  filingReturned: () => 'Returned',
+  filingAccepted: () => 'Accepted',
+  filingClosedWithoutAcceptance: () => 'Closed without acceptance',
+  filingReopened: () => 'Reopened',
+  filingReceiptReference: ({ reference }) => `Receipt reference: ${reference}`,
+  filingFixture: () => 'Sample filing',
+  filingPreviewSubmit: () => 'Preview filing. Nothing was sent.',
+  filingReviewUnavailable: () => 'Review status unavailable',
 } as const satisfies Record<SurfaceStringKey, SurfaceStringTemplate>;
 
 /**

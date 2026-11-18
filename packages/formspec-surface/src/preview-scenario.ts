@@ -12,9 +12,10 @@ import type {
   SurfaceScenarioSourceOutcome,
   SurfacePreviewScenario,
 } from '@formspec-org/types';
+import { filingAction } from './filing-action.js';
 import { composeSurfaceApp, matchRoute } from './composition.js';
 import type { ResolvedBundle } from './bundle.js';
-import { catalogResponseSelection, isCatalogResponseSource, readDataSourceSelection } from './data-source-loader.js';
+import { prepareResponseFixtures, type ResponseRecordTools } from './response-records.js';
 import type {
   DataSourceAuthorizer,
   DataSourceDescriptor,
@@ -32,6 +33,7 @@ export const SURFACE_SCENARIO_DIAGNOSTIC_CODES = [
   'SURFACE-SCENARIO-ACTION-UNRESOLVED',
   'SURFACE-SCENARIO-ACTION-AMBIGUOUS',
   'SURFACE-SCENARIO-PAYLOAD-SCHEMA',
+  'SURFACE-SCENARIO-FILING-FIXTURE',
 ] as const;
 
 export type SurfaceScenarioDiagnosticCode =
@@ -82,6 +84,7 @@ export interface ValidateSurfacePreviewScenarioInput {
   bundle: ResolvedBundle;
   validateSchema?: SurfaceScenarioSchemaValidator | undefined;
   validatePayload?: SurfaceScenarioPayloadValidator | undefined;
+  responseTools?: ResponseRecordTools | undefined;
 }
 
 export type SurfaceScenarioValidationResult =
@@ -98,6 +101,7 @@ export type SurfaceScenarioValidationResult =
 export interface SurfacePreviewRuntime {
   profileId: string;
   loader: DataSourceLoader;
+  withResponseLoader(load: DataSourceLoader): DataSourceLoader;
   authorize: DataSourceAuthorizer;
   actionOutcome(actionId: string): SurfaceScenarioActionOutcome;
   executeTransition: TransitionExecutor;
@@ -216,10 +220,24 @@ function structureProblems(value: unknown): string[] {
       }
       if (
         !isRecord(profileValue) ||
-        !hasOnly(profileValue, ['authorization', 'sources'])
+        !hasOnly(profileValue, ['authorization', 'sources', 'filings', 'decisions'])
       ) {
         problem(profilePath, 'expected a closed profile object');
         continue;
+      }
+
+      if (own(profileValue, 'filings') && (!Array.isArray(profileValue.filings) ||
+          !profileValue.filings.every(fixture => isRecord(fixture) &&
+            hasOnly(fixture, ['responseJson', 'x-generation']) && isNonEmptyString(fixture.responseJson) &&
+            (!own(fixture, 'x-generation') || validGeneration(fixture['x-generation']))))) {
+        problem(`${profilePath}.filings`, 'expected exact completed Response JSON text for each fixture');
+      }
+      if (own(profileValue, 'decisions') && (!Array.isArray(profileValue.decisions) ||
+          !profileValue.decisions.every(entry => isRecord(entry) &&
+            hasOnly(entry, ['responseId', 'responseHash', 'decision']) &&
+            isNonEmptyString(entry.responseId) && typeof entry.responseHash === 'string' &&
+            /^sha256:[0-9a-f]{64}$/u.test(entry.responseHash) && validDecision(entry.decision)))) {
+        problem(`${profilePath}.decisions`, 'expected exact fixture Response identities and review decisions');
       }
 
       const authorization = profileValue.authorization;
@@ -265,9 +283,6 @@ function structureProblems(value: unknown): string[] {
                 'status',
                 'freshness',
                 'value',
-                'records',
-                'valueDigest',
-                'none',
                 'x-generation',
               ]) ||
               (entry.freshness !== 'fresh' && entry.freshness !== 'stale') ||
@@ -335,6 +350,16 @@ function structureProblems(value: unknown): string[] {
     }
   }
   return problems;
+}
+
+function validDecision(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (value.status === 'unavailable' || value.status === 'none') return hasOnly(value, ['status']);
+  return value.status === 'decided' && hasOnly(value, ['status', 'disposition', 'review', 'comments']) &&
+    typeof value.disposition === 'string' && URI.test(value.disposition) &&
+    (value.review === 'returned' || value.review === 'accepted' ||
+      value.review === 'closed-without-acceptance' || value.review === 'reopened') &&
+    Array.isArray(value.comments) && value.comments.every(comment => typeof comment === 'string');
 }
 
 function validActionOutcome(
@@ -468,6 +493,18 @@ export async function validateSurfacePreviewScenario(
   }
 
   for (const [profileId, profile] of Object.entries(scenario.profiles)) {
+    if (profile.filings?.length || profile.decisions?.length) {
+      try {
+        if (!input.responseTools) throw new Error('Fixture validation requires the shared Response tools.');
+        prepareResponseFixtures(profileId, input.bundle.definitions, profile, input.responseTools);
+      } catch (error) {
+        diagnostics.push({
+          code: 'SURFACE-SCENARIO-FILING-FIXTURE', profileId,
+          path: `$.profiles.${profileId}`,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
     const seenSources = new Map<string, number>();
     const sourceEntries: {
       value: SurfaceScenarioSourceOutcome;
@@ -549,7 +586,7 @@ export async function validateSurfacePreviewScenario(
 
     for (let index = 0; index < profile.sources.length; index += 1) {
       const outcome = profile.sources[index];
-      if (!outcome || outcome.status !== 'loaded') continue;
+      if (!outcome) continue;
       const resolved = exactSource(
         input.bundle,
         outcome.catalogRef,
@@ -558,22 +595,16 @@ export async function validateSurfacePreviewScenario(
       const descriptor = resolved.descriptor;
       const schema = descriptor?.source.schema;
       if (!descriptor) continue;
-      if (isCatalogResponseSource(descriptor.source)) {
-        const evidence = readDataSourceSelection(descriptor, outcome);
-        if (!evidence) {
-          diagnostics.push({
-            code: 'SURFACE-SCENARIO-PAYLOAD-SCHEMA',
-            message: 'The preview outcome omitted or returned invalid Response selection evidence.',
-            path: `$.profiles.${profileId}.sources[${index}]`,
-            profileId,
-            catalogRef: outcome.catalogRef,
-            sourceRef: outcome.sourceRef,
-          });
-          continue;
-        }
-        if (evidence.none) continue;
+      if (descriptor.source.kind === 'definition-response' && outcome.status === 'loaded') {
+        diagnostics.push({
+          code: 'SURFACE-SCENARIO-SOURCE-UNRESOLVED',
+          message: 'The preview filing or draft store supplies this Response source.',
+          path: `$.profiles.${profileId}.sources[${index}]`,
+          profileId, catalogRef: outcome.catalogRef, sourceRef: outcome.sourceRef,
+        });
+        continue;
       }
-      if (schema === undefined || !input.validatePayload) continue;
+      if (outcome.status !== 'loaded' || schema === undefined || !input.validatePayload) continue;
       let result: DataSourcePayloadValidationResult;
       try {
         result = await input.validatePayload({
@@ -604,14 +635,30 @@ export async function validateSurfacePreviewScenario(
   }
 
   const actionCounts = new Map<string, number>();
+  const submitActions = new Set<string>();
   for (const document of input.bundle.responseActions) {
     for (const action of document.actions) {
       actionCounts.set(action.id, (actionCounts.get(action.id) ?? 0) + 1);
+      try {
+        if (filingAction(document, action) === 'submit') submitActions.add(action.id);
+      } catch (error) {
+        diagnostics.push({
+          code: 'SURFACE-SCENARIO-ACTION-UNRESOLVED', actionId: action.id,
+          message: error instanceof Error ? error.message : 'The action’s filing operation could not be resolved.',
+        });
+      }
     }
   }
   for (const actionId of Object.keys(scenario.actions.byAction ?? {})) {
     const count = actionCounts.get(actionId) ?? 0;
-    if (count === 0) {
+    if (submitActions.has(actionId)) {
+      diagnostics.push({
+        code: 'SURFACE-SCENARIO-ACTION-UNRESOLVED',
+        message: 'The preview filing store supplies this Submit outcome.',
+        path: `$.actions.byAction.${actionId}`,
+        actionId,
+      });
+    } else if (count === 0) {
       diagnostics.push({
         code: 'SURFACE-SCENARIO-ACTION-UNRESOLVED',
         message: `Action outcome "${actionId}" names no action in the resolved bundle.`,
@@ -664,7 +711,8 @@ export function createSurfacePreviewRuntime(
 ): SurfacePreviewRuntime {
   const profile = selectedProfile(scenario, profileId);
 
-  const loader: DataSourceLoader = ({ descriptor }) => {
+  const withResponseLoader = (readResponse?: DataSourceLoader): DataSourceLoader => request => {
+    const { descriptor } = request;
     if (!profile) {
       return {
         status: 'unavailable',
@@ -672,6 +720,10 @@ export function createSurfacePreviewRuntime(
       };
     }
     const outcomes = matchingOutcomes(profile, descriptor);
+    if (descriptor.source.kind === 'definition-response' && outcomes.length === 0) {
+      return readResponse?.(request) ??
+        { status: 'unavailable', reason: 'The preview filing or draft store supplies this Response source.' };
+    }
     if (outcomes.length !== 1) {
       return {
         status: 'unavailable',
@@ -685,17 +737,7 @@ export function createSurfacePreviewRuntime(
     if (!outcome) {
       return { status: 'unavailable', reason: 'scenario outcome is unavailable' };
     }
-    if (outcome.status === 'loaded') {
-      if (isCatalogResponseSource(descriptor.source)) {
-        const identity = { catalogRef: outcome.catalogRef, sourceRef: outcome.sourceRef };
-        if (catalogResponseSelection(descriptor.source)?.subject.length) {
-          return { ...identity, status: 'unavailable', reason: 'Static preview outcomes cannot resolve Response predicates.' };
-        }
-        const selection = readDataSourceSelection(descriptor, outcome);
-        return selection
-          ? { ...identity, ...selection, status: 'loaded', freshness: outcome.freshness, value: outcome.value }
-          : { ...identity, status: 'unavailable', reason: 'Invalid preview Response selection evidence.' };
-      }
+    if (outcome.status === 'loaded' && descriptor.source.kind !== 'definition-response') {
       return {
         status: 'loaded',
         freshness: outcome.freshness,
@@ -705,7 +747,8 @@ export function createSurfacePreviewRuntime(
     if (outcome.status === 'error') {
       throw new Error(outcome.reason);
     }
-    return { status: 'unavailable', reason: outcome.reason };
+    return { status: 'unavailable', reason: outcome.status === 'unavailable' ? outcome.reason
+      : 'The preview filing or draft store supplies this Response source.' };
   };
 
   const authorize: DataSourceAuthorizer = ({ descriptor }) => {
@@ -762,7 +805,8 @@ export function createSurfacePreviewRuntime(
 
   return {
     profileId,
-    loader,
+    loader: withResponseLoader(),
+    withResponseLoader,
     authorize,
     actionOutcome,
     executeTransition,

@@ -1,7 +1,7 @@
 /** @filedesc Presents an authored filing task list from a batch of draft observations. */
 import { useEffect, useId, useMemo, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import {
-  type FilingDraftObservation, type FilingDraftQuery, type FilingProgressCounts, type FilingStatusReader,
+  type FilingDraftQuery, type FilingProgressCounts, type FilingStatusObservation, type FilingStatusReader,
   type FilingStatusPlan, type HeadingLevel, type SlotPlan, type SurfaceStringKey, type SurfaceStrings,
 } from '@formspec-org/surface';
 import { Heading } from './heading.js';
@@ -9,7 +9,11 @@ import { isPlainLinkClick } from './browser-location.js';
 import { needTraceAttributes } from './need-trace.js';
 import { presentedRouteLabel, type SurfaceRouteTitleResolver } from './title-presentation.js';
 
-type DraftReads = (query: FilingDraftQuery) => FilingDraftObservation | { status: 'loading' };
+type Observation = Omit<FilingStatusObservation, 'draft'> & {
+  draft: FilingStatusObservation['draft'] | { status: 'loading' };
+};
+type DraftReads = (query: FilingDraftQuery) => Observation;
+const unavailable = { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } } as const;
 
 export interface FilingStatusNavigation {
   navigate: (href: string) => void;
@@ -54,14 +58,14 @@ export function useFilingDraftObservations(
     [queries, readSummaries, previewScope, revision, generation, draftRevision]);
   const [completed, setCompleted] = useState<{
     request: typeof request;
-    observations: ReadonlyMap<string, FilingDraftObservation>;
+    observations: ReadonlyMap<string, FilingStatusObservation>;
   }>();
 
   useEffect(() => {
     if (!request.readSummaries || request.queries.length === 0) return;
     const read = request.readSummaries;
     const controller = new AbortController();
-    const result = (observations: ReadonlyMap<string, FilingDraftObservation>) => {
+    const result = (observations: ReadonlyMap<string, FilingStatusObservation>) => {
       if (!controller.signal.aborted) setCompleted({ request, observations });
     };
     void Promise.resolve()
@@ -73,9 +77,9 @@ export function useFilingDraftObservations(
   }, [request]);
 
   return (query) => {
-    if (!readSummaries) return { status: 'unavailable' };
-    if (completed?.request !== request) return { status: 'loading' };
-    return completed.observations.get(query.key) ?? { status: 'unavailable' };
+    if (!readSummaries) return unavailable;
+    if (completed?.request !== request) return { ...unavailable, draft: { status: 'loading' } };
+    return completed.observations.get(query.key) ?? unavailable;
   };
 }
 
@@ -123,7 +127,10 @@ const observationLabel = {
 } as const;
 
 type Row = Extract<FilingStatusPlan, { status: 'ready' }>['groups'][number]['rows'][number];
-type Observation = ReturnType<DraftReads>;
+const filingLabel = {
+  filed: 'filingFiled', returned: 'filingReturned', accepted: 'filingAccepted',
+  'closed-without-acceptance': 'filingClosedWithoutAcceptance', reopened: 'filingReopened',
+} as const;
 
 const refusalLabel = {
   'route-address-unavailable': 'filingAddressUnavailable',
@@ -147,17 +154,21 @@ function FilingRow({ row, observation, largest, context, text }: {
   text: SurfaceStrings;
 }) {
   const statusId = useId();
+  const { draft, filing } = observation;
+  const receipt = 'receiptRef' in filing ? filing : undefined;
   const label = row.route ? presentedRouteLabel(row.route, context?.resolveRouteTitle)
     : row.status === 'disabled' && row.routeRef;
   const status = row.status === 'disabled' ? text(refusalLabel[row.reason])
-    : observation.status === 'absent' && row.weight > 0 ? text('filingNotStartedWithSize', { count: String(row.weight) })
-    : observation.status === 'current'
-    ? text(observation.form.ready === null ? 'filingReadinessUnavailable' : observation.form.ready ? 'filingReady' : 'filingInProgress')
-    : text(observationLabel[observation.status]);
+    : draft.status === 'absent' && filing.status === 'none' && row.weight > 0
+      ? text('filingNotStartedWithSize', { count: String(row.weight) })
+    : draft.status === 'current'
+      ? text(draft.form.ready === null ? 'filingReadinessUnavailable' : draft.form.ready ? 'filingReady' : 'filingInProgress')
+    : draft.status === 'absent' && filing.status !== 'none' ? text('filingUnavailable')
+    : text(observationLabel[draft.status]);
   const sections = row.status === 'ready' ? row.sections.map(section => {
-    const counts = observation.status === 'absent' ? { filled: 0, total: section.weight, toFix: 0, toCheck: 0 }
-      : observation.status === 'current' && Object.hasOwn(observation.sections, section.id)
-        ? observation.sections[section.id] : undefined;
+    const counts = draft.status === 'absent' && filing.status === 'none' ? { filled: 0, total: section.weight, toFix: 0, toCheck: 0 }
+      : draft.status === 'current' && Object.hasOwn(draft.sections, section.id)
+        ? draft.sections[section.id] : undefined;
     const countLabels = counts ? [filingFillCount(counts, text), ...filingFindings(counts, text).map(finding => finding.label)] : [];
     return { ...section, link: filingLinkFor(section.href, context), counts, countLabels };
   }) : [];
@@ -200,10 +211,19 @@ function FilingRow({ row, observation, largest, context, text }: {
       </details>
     </div>}
     <div className="fs-surface-filing__progress">
-      <div id={statusId}>{status}</div>
-      {observation.status === 'current' && <div className="fs-surface-filing__counts">
-        <span>{filingFillCount(observation.form, text)}</span>
-        {filingFindings(observation.form, text).map(({ kind, label }) => (
+      <div id={statusId}>
+        {receipt ? text(filingLabel[receipt.status]) : status}
+        {receipt && draft.status === 'current' && <div>{status}</div>}
+      </div>
+      {receipt && <>
+        <div>{text('filingReceiptReference', { reference: receipt.receiptRef })}</div>
+        {receipt.sample && <div>{text(receipt.sample === 'fixture' ? 'filingFixture' : 'filingPreviewSubmit')}</div>}
+        {receipt.review === 'unavailable' && <div>{text('filingReviewUnavailable')}</div>}
+        {receipt.comments.map((comment, index) => <p key={index}>{comment}</p>)}
+      </>}
+      {draft.status === 'current' && <div className="fs-surface-filing__counts">
+        <span>{filingFillCount(draft.form, text)}</span>
+        {filingFindings(draft.form, text).map(({ kind, label }) => (
           <span key={kind ?? 'unavailable'} className={kind && `fs-surface-filing__${kind}`}>{label}</span>
         ))}
         {sections.some(section => section.counts === undefined) && <span>{text('filingSectionCountsUnavailable')}</span>}
@@ -233,13 +253,14 @@ export function FilingStatus({ plan, context, level, text }: {
   let largest = 0;
   const groups = plan.groups.map(group => ({ ...group, rows: group.rows.map(row => {
     const observation: Observation = row.status === 'ready'
-      ? context?.observe(row.query) ?? { status: 'unavailable' } : { status: 'unavailable' };
+      ? context?.observe(row.query) ?? unavailable : unavailable;
+    const { draft, filing } = observation;
     if (row.status === 'disabled') partial = true;
     else {
       largest = Math.max(largest, row.weight);
       if (!seen.has(row.query.key)) {
         seen.add(row.query.key);
-        const counts = observation.status === 'current' ? observation.form : observation.status === 'absent'
+        const counts = draft.status === 'current' ? draft.form : draft.status === 'absent' && filing.status === 'none'
           ? { filled: 0, total: row.weight, toFix: 0, toCheck: 0 } : undefined;
         if (counts) {
           known++;
@@ -248,7 +269,8 @@ export function FilingStatus({ plan, context, level, text }: {
           if (counts.toFix !== null) totals.toFix = (totals.toFix ?? 0) + counts.toFix;
           if (counts.toCheck !== null) totals.toCheck = (totals.toCheck ?? 0) + counts.toCheck;
         }
-        if (!counts || counts.toFix === null || counts.toCheck === null) partial = true;
+        const filedWithoutDraft = draft.status === 'absent' && 'receiptRef' in filing;
+        if (!filedWithoutDraft && (!counts || counts.toFix === null || counts.toCheck === null)) partial = true;
       }
     }
     return { row, observation };

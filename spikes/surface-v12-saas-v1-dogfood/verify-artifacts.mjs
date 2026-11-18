@@ -501,7 +501,8 @@ async function verifyEvidence(expectedReview) {
   const routeCount = saasReview?.summary.kinds.route ?? 0;
   const actionCount = saasReview?.summary.kinds['response-action'] ?? 0;
   const dataProfileCheckCount =
-    saasReview?.summary.kinds['surface-preview-source-outcome'] ?? 0;
+    (saasReview?.summary.kinds['surface-preview-source-outcome'] ?? 0) +
+    (saasReview?.summary.kinds['surface-preview-filing'] ?? 0);
   const routeWidthCheckCount = routeCount * 2;
   const profileRouteCheckCount = routeCount * 5;
   const verificationClaims = [

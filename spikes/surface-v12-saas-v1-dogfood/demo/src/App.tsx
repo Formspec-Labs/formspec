@@ -5,14 +5,13 @@
  * only from the preview set. This file supplies generic browser and runtime
  * adapters without interpreting any product identifier.
  */
+import { filePreviewResponse, withPreviewSingletonSubject } from './preview-response.ts';
 import { useCallback, useMemo, useState } from 'react';
 import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020.js';
 import {
   invokeResponseActionAsync,
-  isValidResponseAuthored,
   resolveResponseAction,
   resolveResponseActionValidationTuple,
-  selectResponses,
   type ResponseActionAsyncInvocationPorts,
   type ResponseActionInvocationResult,
 } from '@formspec-org/engine';
@@ -23,6 +22,8 @@ import {
 } from '@formspec-org/react';
 import { sha256Digest } from '@formspec-org/outcome-verification';
 import {
+  createMemoryFilingStore,
+  previewResponseRecordTools,
   createSurfaceSemanticControlScopeResolver,
   executeBrowserResourceEffect,
   SurfaceApp,
@@ -32,27 +33,24 @@ import {
   type SurfaceWidgetActionDetail,
   type SurfaceWidgetActionExecutor,
   type SurfaceWidgetModule,
+  type DraftActionInvoker,
   type SurfaceSemanticControlScopeRequest,
 } from '@formspec-org/surface-react';
 import {
-  createPreviewDefinitionResponseStore,
+  filingAction,
+  responseSourceLoader,
   createSurfacePreviewRuntime,
   dereferenceBundleExport,
-  resolveDataSourceDescriptor,
   validateSurfacePreviewScenario,
   type BundleExport,
-  type DataSourceCatalogHandle,
-  type DataSourceLoader,
   type DataSourcePayloadValidationResult,
   type DataSourcePayloadValidator,
-  type DefinitionResponseSourceBinding,
   type ResolvedBundle,
   type SurfacePreviewRuntime,
   type SurfaceScenarioPayloadValidator,
 } from '@formspec-org/surface';
 import type {
   FormDefinition,
-  FormResponse,
   ResponseActionsDocument,
   SurfacePreviewScenario,
   SurfaceScenarioActionOutcome,
@@ -261,6 +259,7 @@ export async function loadPreviewSelection(
       scenario: entry.scenario,
       bundle,
       validatePayload: validateScenarioPayload,
+      responseTools: await previewResponseRecordTools(),
     }),
     semanticArtifactIdentities(entry.bundle, bundle),
   ]);
@@ -391,32 +390,6 @@ function widgetActionExecutorFor(
   };
 }
 
-function definitionResponseBindingsFor(
-  catalogs: readonly DataSourceCatalogHandle[],
-  response: FormResponse,
-): readonly DefinitionResponseSourceBinding[] {
-  const bindings: DefinitionResponseSourceBinding[] = [];
-  for (const handle of catalogs) {
-    for (const source of handle.document.sources) {
-      const binding = {
-        catalogRef: handle.catalogRef,
-        sourceRef: source.id,
-      };
-      const descriptor = resolveDataSourceDescriptor(catalogs, binding);
-      if (
-        descriptor?.source !== source ||
-        source.kind !== 'definition-response' ||
-        source.runtime.delivery === 'draft' ||
-        source.responseSelection?.definition.url !== response.definitionUrl
-      ) {
-        continue;
-      }
-      bindings.push(binding);
-    }
-  }
-  return bindings;
-}
-
 function previewRenderInstanceId(
   selection: PreviewSelection,
   request: SurfaceSemanticControlScopeRequest,
@@ -456,22 +429,11 @@ export function App({ selection }: { selection: PreviewSelection }) {
       ),
     [selection.profileId, selection.scenario],
   );
-  const responseStore = useMemo(
-    () =>
-      createPreviewDefinitionResponseStore(
-        selection.bundle.dataSources ?? [],
-        {
-          selectResponses,
-          isValidResponseAuthored,
-          selectionContext: (_binding, policy) => {
-            const upstream = Array.from(selection.bundle.definitions.values())
-              .find((definition) => definition.url === policy.definition.url);
-            return upstream && { upstreamSubject: upstream.subject ?? null };
-          },
-        },
-      ),
-    [selection.bundle.dataSources, selection.bundle.definitions],
-  );
+  const scope = `${selection.previewId}:${selection.profileId}`;
+  const responseStore = useMemo(() => createMemoryFilingStore({
+    scope, definitions: selection.bundle.definitions, catalogs: selection.bundle.dataSources,
+    fixtures: selection.scenario.profiles[selection.profileId]!,
+  }), [scope, selection]);
   const semanticControlRegistry = useMemo(
     () => createSemanticControlRegistry(),
     [selection.bundle, selection.previewId, selection.profileId],
@@ -491,37 +453,22 @@ export function App({ selection }: { selection: PreviewSelection }) {
       }),
     [selection, semanticControlRegistry],
   );
-  const rememberCompletedResponse = useCallback(
-    (result: ResponseActionInvocationResult<SubmitResult>) => {
+  const invokeDefinitionAction = useCallback<DraftActionInvoker>(
+    async ({ document, actionRef, ports, nodeId, invocationContext }) => {
+      const result = await invokeResponseActionAsync(document, actionRef, ports, nodeId, invocationContext);
       const response = result.detail?.response;
-      if (
-        result.status !== 'completed' ||
-        response?.status !== 'completed' ||
-        typeof response.id !== 'string' ||
-        response.id.length === 0 ||
-        typeof result.invocationId !== 'string' ||
-        result.invocationId.length === 0
-      ) {
-        return;
+      if (result.status === 'completed' && filingAction(document, result.resolution.action) === 'submit' && response?.status === 'completed') {
+        const filedResponse = withPreviewSingletonSubject(response, selection.bundle.definitions);
+        const previewFiling = await filePreviewResponse(responseStore, scope, filedResponse);
+        setResponseGeneration(current => current + 1);
+        return { ...result, detail: { ...result.detail!, response: filedResponse, previewFiling } };
       }
-      let recorded = false;
-      for (const binding of definitionResponseBindingsFor(
-        selection.bundle.dataSources ?? [],
-        response,
-      )) {
-        const outcome = responseStore.record({
-          binding,
-          invocationId: result.invocationId,
-          response,
-        });
-        if (outcome.status === 'recorded') recorded = true;
-      }
-      if (recorded) setResponseGeneration((current) => current + 1);
+      return result;
     },
-    [responseStore, selection.bundle.dataSources],
+    [responseStore, scope, selection.bundle.definitions],
   );
-  const dataSourceLoader = useMemo<DataSourceLoader>(
-    () => responseStore.wrapLoader(runtime.loader),
+  const dataSourceLoader = useMemo(
+    () => runtime.withResponseLoader(responseSourceLoader(responseStore.responses)),
     [responseStore, runtime],
   );
   const widgetModules = useMemo(
@@ -563,7 +510,7 @@ export function App({ selection }: { selection: PreviewSelection }) {
       validateDataSourcePayload={validateDataSourcePayload}
       widgetActionExecutor={widgetActionExecutor}
       onFireTransition={fireTransition}
-      onDefinitionActionResult={rememberCompletedResponse}
+      definitionActionInvoker={invokeDefinitionAction}
       resolveSemanticControlScope={resolveSemanticControlScope}
       sessionGeneration={`${selection.previewId}:${selection.profileId}:${responseGeneration}`}
     />

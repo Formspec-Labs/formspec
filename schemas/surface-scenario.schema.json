@@ -140,19 +140,6 @@
             "stale"
           ]
         },
-        "records": {
-          "type": "array",
-          "items": { "$ref": "https://formspec.org/schemas/response/1.0#/$defs/ResolvedInstanceRecord" },
-          "description": "Selected record evidence for a non-draft Definition-response source."
-        },
-        "valueDigest": {
-          "$ref": "https://formspec.org/schemas/response/1.0#/$defs/Sha256Digest",
-          "description": "Digest of the exact delivered selection value."
-        },
-        "none": {
-          "type": "boolean",
-          "description": "True when an authorized selection has no match and admits an empty result."
-        },
         "x-generation": {
           "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
           "description": "Direct generation provenance for this qualified source outcome as one semantic unit. Strict data-only preview validation requires the outcome's own current adopted Need anchor and does not inspect rows, cells, or nested value members as separate nodes."
@@ -248,6 +235,56 @@
           "items": {
             "$ref": "#/$defs/SurfaceScenarioSourceOutcome"
           }
+        },
+        "filings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SurfaceScenarioFiling"
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SurfaceScenarioDecision"
+          }
+        }
+      }
+    },
+    "SurfaceScenarioFiling": {
+      "type": "object",
+      "required": [
+        "responseJson"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation"
+        },
+        "responseJson": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exact JSON text of a sample completed Response. Subject identity and handoff hash are checked at admission."
+        }
+      }
+    },
+    "SurfaceScenarioDecision": {
+      "type": "object",
+      "required": [
+        "responseId",
+        "responseHash",
+        "decision"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "responseId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseHash": {
+          "$ref": "https://formspec.org/schemas/response/1.0#/$defs/Sha256Digest"
+        },
+        "decision": {
+          "$ref": "https://formspec.org/schemas/response-selection/1.0#/$defs/DispositionObservation"
         }
       }
     },

@@ -104,8 +104,11 @@ that chain.** Every call above that the platform does not state produces a
 
 ## Layering
 
-Layer 2 (`scripts/check-dep-fences.mjs`): depends on `@formspec-org/types` (0),
-`@formspec-org/app-graph` (1) and `@formspec-org/layout` (1). No React, no DOM.
+Layer 2 (`scripts/check-dep-fences.mjs`) depends on `@formspec-org/types` (0),
+`@formspec-org/app-graph` (1), `@formspec-org/layout` (1),
+`@formspec-org/engine` (1, for `filingAction`), and
+`@formspec-org/integrity-canonical` for catalog hashing. The package runs
+without React or the DOM.
 
 ### Captured Response wording
 

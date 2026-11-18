@@ -16,6 +16,7 @@ export const BUNDLE_PATH = resolve(DEMO_ROOT, '../artifacts/prod-mvp.bundle.json
 
 export const AUDITED_HOST_RUNTIME_FILES = Object.freeze([
   '.env',
+  '../../preview-draft-checkpoint.ts',
   'index.html',
   'package-lock.json',
   'package.json',

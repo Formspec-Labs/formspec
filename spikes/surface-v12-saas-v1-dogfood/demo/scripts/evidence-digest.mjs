@@ -17,12 +17,14 @@ export const DEMO_ROOT = resolve(scriptDirectory, '..');
 export const REPO_ROOT = resolve(DEMO_ROOT, '../../..');
 
 export const AUDITED_HOST_RUNTIME_FILES = Object.freeze([
+  '../../preview-draft-checkpoint.ts',
   'index.html',
   'package-lock.json',
   'package.json',
   'src/App.tsx',
   'src/app.css',
   'src/main.tsx',
+  'src/preview-response.ts',
   'tsconfig.json',
   'vite.config.ts',
 ]);

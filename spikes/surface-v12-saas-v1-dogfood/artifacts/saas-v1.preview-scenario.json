@@ -15,29 +15,6 @@
       "sources": [
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
-          "sourceRef": "response:organization-setup",
-          "status": "loaded",
-          "records": [
-            {
-              "responseId": "preview:organization-setup:loaded",
-              "definitionVersion": "0.12.0",
-              "responseHash": "sha256:142d2a24530562c70ea7793dee56dd983b2747b9c976a6978a656094ea07b224"
-            }
-          ],
-          "valueDigest": "sha256:1547edacc826c136425bbc7e89b15d3adce9e0579109db29c5ae1fafe3098dc2",
-          "none": false,
-          "value": {
-            "organizationName": "Acme Community Grants",
-            "workspaceName": "Grant operations",
-            "environment": "production"
-          },
-          "x-generation": {
-            "anchors": ["need:configure-organization@1"]
-          },
-          "freshness": "fresh"
-        },
-        {
-          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "host:workspace",
           "status": "loaded",
           "value": {
@@ -342,36 +319,20 @@
           },
           "freshness": "fresh"
         }
-      ]
+      ],
+      "filings": [
+        {
+          "x-generation": { "anchors": ["need:configure-organization@1"] },
+          "responseJson": "{\"$formspecResponse\":\"1.0\",\"definitionUrl\":\"https://formspec.cloud/definitions/organization-setup\",\"definitionVersion\":\"0.12.0\",\"status\":\"completed\",\"id\":\"preview:organization-setup:loaded\",\"authored\":\"2020-01-01T00:00:00Z\",\"subject\":{\"id\":\"594fc00b75baddf19ea84486f66a65d0382cba7f80738276de14cfd5ee77f39f\",\"type\":\"https://formspec.cloud/subjects/organization-setup\",\"keys\":{}},\"data\":{\"organizationName\":\"Acme Community Grants\",\"workspaceName\":\"Grant operations\",\"environment\":\"production\"}}"
+        }
+      ],
+      "decisions": []
     },
     "empty": {
       "authorization": {
         "default": "authorized"
       },
       "sources": [
-        {
-          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
-          "sourceRef": "response:organization-setup",
-          "status": "loaded",
-          "records": [
-            {
-              "responseId": "preview:organization-setup:loaded",
-              "definitionVersion": "0.12.0",
-              "responseHash": "sha256:142d2a24530562c70ea7793dee56dd983b2747b9c976a6978a656094ea07b224"
-            }
-          ],
-          "valueDigest": "sha256:1547edacc826c136425bbc7e89b15d3adce9e0579109db29c5ae1fafe3098dc2",
-          "none": false,
-          "value": {
-            "organizationName": "Acme Community Grants",
-            "workspaceName": "Grant operations",
-            "environment": "production"
-          },
-          "x-generation": {
-            "anchors": ["need:configure-organization@1"]
-          },
-          "freshness": "fresh"
-        },
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "host:workspace",
@@ -619,7 +580,14 @@
           },
           "freshness": "fresh"
         }
-      ]
+      ],
+      "filings": [
+        {
+          "x-generation": { "anchors": ["need:configure-organization@1"] },
+          "responseJson": "{\"$formspecResponse\":\"1.0\",\"definitionUrl\":\"https://formspec.cloud/definitions/organization-setup\",\"definitionVersion\":\"0.12.0\",\"status\":\"completed\",\"id\":\"preview:organization-setup:loaded\",\"authored\":\"2020-01-01T00:00:00Z\",\"subject\":{\"id\":\"594fc00b75baddf19ea84486f66a65d0382cba7f80738276de14cfd5ee77f39f\",\"type\":\"https://formspec.cloud/subjects/organization-setup\",\"keys\":{}},\"data\":{\"organizationName\":\"Acme Community Grants\",\"workspaceName\":\"Grant operations\",\"environment\":\"production\"}}"
+        }
+      ],
+      "decisions": []
     },
     "unavailable": {
       "authorization": {
@@ -631,7 +599,9 @@
           "sourceRef": "response:organization-setup",
           "status": "unavailable",
           "x-generation": {
-            "anchors": ["need:configure-organization@1"]
+            "anchors": [
+              "need:configure-organization@1"
+            ]
           },
           "reason": "The organization setup Response is unavailable in this preview profile."
         },
@@ -679,7 +649,9 @@
           },
           "reason": "resource:support-trust is unavailable in this preview profile."
         }
-      ]
+      ],
+      "filings": [],
+      "decisions": []
     },
     "error": {
       "authorization": {
@@ -691,7 +663,9 @@
           "sourceRef": "response:organization-setup",
           "status": "error",
           "x-generation": {
-            "anchors": ["need:configure-organization@1"]
+            "anchors": [
+              "need:configure-organization@1"
+            ]
           },
           "reason": "The preview simulated an organization Response loader exception."
         },
@@ -739,33 +713,12 @@
           },
           "reason": "The preview simulated a support resource loader exception."
         }
-      ]
+      ],
+      "filings": [],
+      "decisions": []
     },
     "longContent": {
       "sources": [
-        {
-          "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
-          "sourceRef": "response:organization-setup",
-          "status": "loaded",
-          "records": [
-            {
-              "responseId": "preview:organization-setup:longContent",
-              "definitionVersion": "0.12.0",
-              "responseHash": "sha256:a1689fe4584312e66cc8751808a6a0bfcfd0096db0048326ef3ff7a0fca04931"
-            }
-          ],
-          "valueDigest": "sha256:5702112d83fb85dd7929e689ccd7fcc61913d59ade52ef3349dbc35970d0a121",
-          "none": false,
-          "value": {
-            "organizationName": "Acme Community Grants and Regional Partnership Demonstration Organization",
-            "workspaceName": "Multi-county grants, vendor onboarding, and annual public reporting operations",
-            "environment": "production"
-          },
-          "x-generation": {
-            "anchors": ["need:configure-organization@1"]
-          },
-          "freshness": "fresh"
-        },
         {
           "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
           "sourceRef": "host:workspace",
@@ -1075,7 +1028,14 @@
       ],
       "authorization": {
         "default": "authorized"
-      }
+      },
+      "filings": [
+        {
+          "x-generation": { "anchors": ["need:configure-organization@1"] },
+          "responseJson": "{\"$formspecResponse\":\"1.0\",\"definitionUrl\":\"https://formspec.cloud/definitions/organization-setup\",\"definitionVersion\":\"0.12.0\",\"status\":\"completed\",\"id\":\"preview:organization-setup:longContent\",\"authored\":\"2020-01-01T00:00:00Z\",\"subject\":{\"id\":\"594fc00b75baddf19ea84486f66a65d0382cba7f80738276de14cfd5ee77f39f\",\"type\":\"https://formspec.cloud/subjects/organization-setup\",\"keys\":{}},\"data\":{\"organizationName\":\"Acme Community Grants and Regional Partnership Demonstration Organization\",\"workspaceName\":\"Multi-county grants, vendor onboarding, and annual public reporting operations\",\"environment\":\"production\"}}"
+        }
+      ],
+      "decisions": []
     }
   },
   "actions": {

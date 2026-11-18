@@ -151,8 +151,21 @@ export function resetToolsWasmDynamicImportCountForTest(): void {
  * Set `context.upstreamSubject` to null when the upstream Definition has no subject.
  */
 export const selectResponses: SelectResponses = (records, selection, context) => {
+    const recordJson = records.map(record => {
+        if (record.responseJson === undefined) return JSON.stringify(record);
+        const { scope, implicitSubjectId, responseJson } = record;
+        // Validate one complete object before embedding it. A bracket check alone
+        // would allow the text to inject sibling record fields. Pass the original
+        // text to Rust as RawValue so digits and duplicate members stay visible.
+        const parsed: unknown = JSON.parse(responseJson);
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+            throw new TypeError('A selection record must contain one Response object.');
+        }
+        const metadata = JSON.stringify({ scope, implicitSubjectId });
+        return `${metadata.slice(0, -1)},"response":${responseJson}}`;
+    });
     const resultJson = wasmTools().selectResponsesJson(
-        JSON.stringify(records),
+        `[${recordJson.join(',')}]`,
         JSON.stringify(selection),
         JSON.stringify(context),
     );

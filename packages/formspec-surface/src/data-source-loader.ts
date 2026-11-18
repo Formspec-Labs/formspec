@@ -19,6 +19,7 @@ import type {
   DataSourcesDocument,
   ResolvedInstanceRecord,
   ResponseSelection,
+  ResponseSelectionDelivery,
   Sha256Digest,
   WidgetDataInput,
 } from "@formspec-org/types";
@@ -73,6 +74,7 @@ export interface DataSourceLoadRequest {
   descriptor: DataSourceDescriptor;
   context: DataSourceActiveContext;
   responseSelection?: ResponseSelection | undefined;
+  pin?: ResponseSelectionDelivery | undefined;
 }
 
 export interface DataSourceSelectionEvidence {
