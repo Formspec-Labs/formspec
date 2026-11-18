@@ -56,7 +56,8 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "vitest run",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "test": "npm run typecheck && vitest run",
     "test:consumer": "vitest run tests/cjs-smoke.test.ts tests/esm-smoke.test.ts",
     "lint:publish": "publint --strict && attw --pack . --profile node16",
     "test:packed": "npm run lint:publish && node scripts/test-packed.mjs",

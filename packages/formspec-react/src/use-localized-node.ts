@@ -35,7 +35,12 @@ const UNCHANGED = signal<Record<string, unknown> | null>(null);
  * made from a group is titled by that group's label (`titleBind`), a page nobody authored by its `$ui`
  * chrome key (`titleKey`); undefined for any other node. Read inside a locale-signal subscription.
  */
-export function plannedTitle(engine: IFormEngine, props: Record<string, unknown> | undefined): string | undefined {
+export function plannedTitle(engine: IFormEngine, props: {
+    title?: unknown;
+    titleBind?: unknown;
+    titleKey?: unknown;
+    titleLocaleKey?: unknown;
+} | undefined): string | undefined {
     const titleBind = typeof props?.titleBind === 'string' ? props.titleBind : undefined;
     const titleKey = typeof props?.titleKey === 'string' ? props.titleKey : undefined;
     const localeKey = typeof props?.titleLocaleKey === 'string' ? props.titleLocaleKey : undefined;

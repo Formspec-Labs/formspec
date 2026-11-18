@@ -1,6 +1,6 @@
 /** @filedesc Plans renderable sections and stable Item ownership in Core page-authority order. */
 
-import type { ComponentDocument, FormDefinition, ThemeDocument } from '@formspec-org/types';
+import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
 import { componentTreeOwnsPages, findItemAtPath, getParentPath } from './planner-path-utils.js';
 import {
     buildThemePageNodes, planComponentTree, planDefinitionFallback, planDefinitionItem, preparePlanContext,
@@ -25,7 +25,7 @@ export interface PageSequenceEntry {
 
 export interface PageSequenceOptions {
     component?: ComponentDocument;
-    theme?: ThemeDocument;
+    theme?: PlanContext['theme'];
     context?: Pick<PlanContext, 'formPresentation' | 'componentGraph' | 'hostEvidence' | 'isComponentAvailable' | 'nextId' | 'activeBreakpoint'>;
 }
 
