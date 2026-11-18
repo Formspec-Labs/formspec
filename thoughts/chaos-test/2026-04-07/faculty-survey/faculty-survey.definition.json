@@ -533,12 +533,12 @@
     {
       "path": "eligibility.pub_count",
       "readonly": "true",
-      "calculate": "count($publications.pub_entries.pub_title)"
+      "calculate": "count($publications.pub_entries[*].pub_title)"
     },
     {
       "path": "eligibility.peer_reviewed_count",
       "readonly": "true",
-      "calculate": "countWhere($publications.pub_entries.peer_reviewed, true)"
+      "calculate": "countWhere($publications.pub_entries[*].peer_reviewed, true)"
     },
     {
       "path": "eligibility.research_score",
@@ -548,7 +548,7 @@
     {
       "path": "eligibility.teaching_score",
       "readonly": "true",
-      "calculate": "min(30, count($teaching.courses.course_code) * 5 + coalesce($teaching.num_advisees, 0) * 2 + coalesce($teaching.num_committees, 0))"
+      "calculate": "min(30, count($teaching.courses[*].course_code) * 5 + coalesce($teaching.num_advisees, 0) * 2 + coalesce($teaching.num_committees, 0))"
     },
     {
       "path": "eligibility.seniority_score",
@@ -608,7 +608,7 @@
       "target": "publications.pub_entries[*].pub_year",
       "message": "Publication year must be between 2023 and 2026",
       "severity": "error",
-      "constraint": "$publications.pub_entries.pub_year >= 2023 and $publications.pub_entries.pub_year <= 2026",
+      "constraint": "$pub_year >= 2023 and $pub_year <= 2026",
       "timing": "continuous"
     },
     {

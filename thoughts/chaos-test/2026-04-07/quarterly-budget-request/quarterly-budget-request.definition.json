@@ -463,7 +463,7 @@
     {
       "path": "line_items.items.line_total",
       "readonly": "true",
-      "calculate": "$line_items.items.quantity * $line_items.items.unit_cost"
+      "calculate": "$quantity * $unit_cost"
     },
     {
       "path": "totals.subtotal",
@@ -566,7 +566,7 @@
       "target": "line_items.items[*].unit_cost",
       "message": "Unit cost must be greater than zero",
       "severity": "error",
-      "constraint": "moneyAmount($line_items.items.unit_cost) > 0",
+      "constraint": "moneyAmount($unit_cost) > 0",
       "timing": "continuous"
     },
     {
@@ -574,7 +574,7 @@
       "target": "line_items.items[*].quantity",
       "message": "Quantity must be greater than zero",
       "severity": "error",
-      "constraint": "$line_items.items.quantity > 0",
+      "constraint": "$quantity > 0",
       "timing": "continuous"
     }
   ]
