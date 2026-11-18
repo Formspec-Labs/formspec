@@ -67,8 +67,7 @@ pub use extension_analysis::{
 pub use fel_analysis::{
     FelAnalysis, FelRewriteTargets, NavigationTarget, RewriteOptions, analyze_fel,
     analyze_fel_with_field_types, collect_fel_rewrite_targets, fel_analysis_to_json_value,
-    fel_rewrite_targets_to_json_value, get_fel_dependencies, rewrite_fel_references,
-    rewrite_options_from_camel_case_json,
+    fel_rewrite_targets_to_json_value, get_fel_dependencies, rewrite_options_from_camel_case_json,
 };
 pub use fel_condition_group_lift::try_lift_condition_group;
 pub use fel_rewrite_exact::{rewrite_fel_source_references, rewrite_message_template};

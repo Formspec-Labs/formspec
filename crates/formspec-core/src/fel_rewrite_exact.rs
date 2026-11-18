@@ -1,7 +1,7 @@
 //! Exact-text rewriting using locations from the FEL parser.
 #![allow(clippy::missing_docs_in_private_items)]
 
-use crate::fel_analysis::{RESERVED_CONTEXT_NAMES, RewriteOptions, rewrite_row_tail};
+use crate::fel_analysis::{RESERVED_CONTEXT_NAMES, RewriteOptions};
 use fel_core::parser::{SiteKind, parse_with_sites};
 
 /// Rewrite reference spans, preserving other source text and returning invalid input verbatim.
@@ -35,33 +35,45 @@ fn try_rewrite_source(
 fn replacement(kind: SiteKind, original: &str, options: &RewriteOptions) -> Option<String> {
     let quote = || char::from(original.as_bytes()[0]);
     match kind {
-        SiteKind::Field(path) => options.rewrite_field_path.as_ref()?(&path)
+        SiteKind::Field { path } => options.rewrite_field_path.as_ref()?(&path)
             .filter(|new| *new != path)
             .map(|new| format!("${new}")),
-        SiteKind::ContextName(name) if !RESERVED_CONTEXT_NAMES.contains(&name.as_str()) => {
+        SiteKind::ContextName { name } if !RESERVED_CONTEXT_NAMES.contains(&name.as_str()) => {
             options.rewrite_variable.as_ref()?(&name).filter(|new| *new != name)
         }
-        SiteKind::ContextArgument(name, value) if name == "instance" => {
+        SiteKind::ContextArgument { context, value } if context == "instance" => {
             options.rewrite_instance_name.as_ref()?(&value)
                 .filter(|new| *new != value)
                 .map(|new| quote_string_literal(&new, quote()))
         }
-        SiteKind::ContextTail(name, path) if name == "current" => {
+        SiteKind::ContextTail { context, path } if context == "current" => {
             options.rewrite_current_path.as_ref()?(&path).filter(|new| *new != path)
         }
-        SiteKind::FirstStringArgument(name, value)
-            if matches!(name.as_str(), "prev" | "next" | "parent") =>
+        SiteKind::FirstStringArgument { function, value }
+            if matches!(function.as_str(), "prev" | "next" | "parent") =>
         {
-            options.rewrite_navigation_target.as_ref()?(&value, &name)
+            options.rewrite_navigation_target.as_ref()?(&value, &function)
                 .filter(|new| *new != value)
                 .map(|new| quote_string_literal(&new, quote()))
         }
-        SiteKind::RowKey(row, key) => rewrite_row_tail(options, &row, &format!(".{key}"))?
+        SiteKind::RowKey { rows, key } => rewrite_row_tail(options, &rows, &format!(".{key}"))?
             .strip_prefix('.')
             .map(str::to_owned),
-        SiteKind::RowTail(row, tail) => rewrite_row_tail(options, &row, &tail),
+        SiteKind::RowTail { rows, tail } => rewrite_row_tail(options, &rows, &tail),
         _ => None,
     }
+}
+
+/// Rename the part of a selected row's path after its lookup wildcard.
+fn rewrite_row_tail(options: &RewriteOptions, row_path: &str, tail: &str) -> Option<String> {
+    let rewrite = options.rewrite_field_path.as_ref()?;
+    let updated = rewrite(&format!("{row_path}{tail}"))?;
+    // The last wildcard of row_path represents this lookup, even when its source
+    // is itself within another repeat or keyed lookup.
+    let lookup_index = row_path.matches("[*]").count().checked_sub(1)?;
+    let (boundary, marker) = updated.match_indices("[*]").nth(lookup_index)?;
+    let updated_tail = &updated[boundary + marker.len()..];
+    (updated_tail != tail && !updated_tail.is_empty()).then(|| updated_tail.to_owned())
 }
 
 /// Rewrite each `{{ ... }}` FEL substring in a message template via [`rewrite_fel_source_references`].
@@ -237,8 +249,8 @@ mod tests {
             ..NO_REWRITES
         };
         assert_eq!(
-            crate::rewrite_fel_references(&parse(expression).unwrap(), &key_rename),
-            parse("$rows[rowId = $sel].name").unwrap()
+            rewrite_fel_source_references(expression, &key_rename),
+            "$rows[rowId = $sel].name"
         );
     }
 
@@ -257,15 +269,40 @@ mod tests {
     }
 
     #[test]
-    fn every_parsable_corpus_entry_round_trips_through_exact_rewriting() {
-        let fel_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../fel-core");
+    fn leaves_bound_names_computed_targets_and_declined_renames_alone() {
         let options = RewriteOptions {
-            rewrite_field_path: Some(Box::new(|name| {
-                (name == "__corpus_probe").then(|| "__renamed".into())
+            rewrite_field_path: Some(Box::new(|path| Some(format!("p.{path}")))),
+            rewrite_instance_name: Some(Box::new(|_| None)),
+            rewrite_navigation_target: Some(Box::new(|name, _| {
+                (name == "amount").then(|| "total".into())
             })),
             ..NO_REWRITES
         };
-        let mut rejected = Vec::new();
+        for (source, expected) in [
+            ("let x = $a in $b + x", "let x = $p.a in $p.b + x"),
+            (
+                "prev('amount') + next(concat('amount', @suffix))",
+                "prev('total') + next(concat('amount', @suffix))",
+            ),
+            ("@instance('keep').v", "@instance('keep').v"),
+        ] {
+            assert_eq!(rewrite_fel_source_references(source, &options), expected);
+        }
+    }
+
+    /// Dependency analysis walks the syntax tree; the rewriter edits parser-located text.
+    /// Renaming each `$` path the former finds must leave no stale spelling of it.
+    #[test]
+    fn every_corpus_field_reference_is_renamed() {
+        fn mentions(text: &str, path: &str) -> bool {
+            let needle = format!("${path}");
+            text.match_indices(&needle).any(|(at, _)| {
+                !text[at + needle.len()..]
+                    .starts_with(|c: char| c.is_alphanumeric() || matches!(c, '_' | '.' | '['))
+            })
+        }
+        let fel_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../fel-core");
+        let mut failures = Vec::new();
         for corpus in [
             "tests/corpus/fuzz_regression.jsonl",
             "conformance/fel-conformance.jsonl",
@@ -274,28 +311,38 @@ mod tests {
             for (index, line) in text.lines().enumerate() {
                 let row: serde_json::Value = serde_json::from_str(line).unwrap();
                 let expression = row["expression"].as_str().unwrap();
-                if parse(expression).is_err() {
+                let Ok(expr) = parse(expression) else {
                     continue;
-                }
-                // Appending a real edit distinguishes successful rewriting from the
-                // public API's unchanged-source fallback, including literal-only cases.
-                let probe = format!("{expression}\n + $__corpus_probe");
-                let expected = format!("{expression}\n + $__renamed");
-                assert_eq!(
-                    rewrite_fel_source_references(&probe, &options),
-                    expected,
-                    "{corpus}:{}",
-                    index + 1
-                );
-                match try_rewrite_source(expression, &NO_REWRITES) {
-                    Ok(text) if text == expression => {}
-                    other => {
-                        rejected.push(format!("{corpus}:{}: {expression:?}: {other:?}", index + 1))
+                };
+                // The appended reference gives every expression at least one edit, so the
+                // unchanged-source fallback for invalid input cannot pass for valid input.
+                let source = format!("{expression}\n + $probe");
+                let paths = fel_core::extract_dependencies(&expr).fields.into_iter();
+                for path in paths.chain(["probe".to_owned()]) {
+                    // Row paths are covered by the keyed-lookup tests above. A bare name
+                    // is not a field reference in the normative grammar, only in the parser.
+                    if path.contains('[') || !mentions(&source, &path) {
+                        continue;
+                    }
+                    let renamed = format!("{path}Z");
+                    let target = path.clone();
+                    let options = RewriteOptions {
+                        rewrite_field_path: Some(Box::new(move |found| {
+                            (found == target).then(|| format!("{found}Z"))
+                        })),
+                        ..NO_REWRITES
+                    };
+                    let output = rewrite_fel_source_references(&source, &options);
+                    if parse(&output).is_err()
+                        || mentions(&output, &path)
+                        || !mentions(&output, &renamed)
+                    {
+                        failures.push(format!("{corpus}:{}: {path:?} in {output:?}", index + 1));
                     }
                 }
             }
         }
-        assert!(rejected.is_empty(), "{}", rejected.join("\n"));
+        assert!(failures.is_empty(), "{}", failures.join("\n"));
     }
 
     #[test]
