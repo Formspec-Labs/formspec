@@ -192,8 +192,14 @@ it('reports changed stored values only for the upstream version feeding the carr
     Object.assign(definition.document as object, { items: [field(index ? 'opened' : 'open')] });
     return definition;
   });
-  const findings = documentLintValidator(lintDocument)(graph(form, ...versions));
-  expect(findings.filter(finding => finding.code.startsWith('INSTANCE-PROJECTION-'))).toMatchObject([{
+  const report = validateAppGraph({
+    manifest: handle('appManifest', 'app', { definitions: [form.ref] }),
+    artifacts: { definitions: [form, ...versions] },
+    schemaValidators: () => ({ ok: true }),
+    crossArtifactValidators: [documentLintValidator(lintDocument)],
+  });
+  expect(report.ok).toBe(false);
+  expect(report.diagnostics.filter(finding => finding.code.startsWith('INSTANCE-PROJECTION-'))).toMatchObject([{
     code: 'INSTANCE-PROJECTION-OPTION-VALUES-MISMATCH', severity: 'error',
     primarySource: { artifactSlot: 'consumer', jsonPointer: '/instances/previous~1~0filing/schema/stage' },
     relatedSources: [{ artifactSlot: 'upstream-1.1.0' }],
