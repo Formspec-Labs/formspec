@@ -24,9 +24,10 @@ use std::path::{Path, PathBuf};
 use fel_core::exact_json::Value;
 use formspec_core::json_object_to_string_map;
 use formspec_eval::{
-    CreateOptions, EvalOptions, EvalTrigger, EvaluationResult, HostFelContext, ItemTextRequest,
-    create_response, evaluate, evaluate_filed, evaluation_result_to_json_value,
-    extension_constraints_from_registry_documents, filed_response_data_matches,
+    CreateOptions, EvalContext, EvalOptions, EvalTrigger, EvaluationResult, HostFelContext,
+    ItemTextRequest, create_response, eval_context_from_json_object, evaluate, evaluate_filed,
+    evaluation_result_to_json_value, extension_constraints_from_registry_documents,
+    filed_response_data_matches,
 };
 
 /// The runner's name in the ledger.
@@ -177,9 +178,8 @@ fn sorted_results(results: &[Value]) -> Vec<Value> {
 enum Caller {
     /// The session (legs P): the case's registries, as the browser loads them.
     Session,
-    /// A server recheck (legs S and the fixpoint): the trigger and the clock only, exactly what
-    /// formspec-server (`composition.rs` FormspecEvalAdapter, `task_local_validation.rs`,
-    /// `signing_fixture.rs`) and wos-server (`selected_formspec_processor.rs`) pass today.
+    /// A server recheck (legs S and the fixpoint). Registry documents and subject are omitted
+    /// until fs-20e3 and fs-hrx7 reach the deployed adapters.
     Server,
 }
 
@@ -187,22 +187,29 @@ enum Caller {
 struct Evaluator<'a> {
     definition: &'a Value,
     registries: Vec<Value>,
+    context: EvalContext,
     inventions: Vec<String>,
 }
 
 impl Evaluator<'_> {
-    fn check_filed(&mut self, data: &Value, expected: &Value) -> Vec<String> {
-        let mut options = EvalOptions::default().trigger(EvalTrigger::Submit);
-        options.context.now_iso = Some(NOW.to_owned());
+    fn options(&self, trigger: EvalTrigger, caller: Caller) -> EvalOptions<'static> {
+        let mut options = EvalOptions::default().trigger(trigger);
+        if matches!(caller, Caller::Session) {
+            options = options.context(self.context.clone()).extension_constraints(
+                extension_constraints_from_registry_documents(&self.registries),
+            );
+        } else {
+            options.context.now_iso = self.context.now_iso.clone();
+        }
+        options
+    }
+
+    fn check_filed(&mut self, data: &Value, expected: &Value, caller: Caller) -> Vec<String> {
+        let options = self.options(EvalTrigger::Submit, caller);
         let result = evaluate_filed(self.definition, &json_object_to_string_map(data), &options)
             .expect("suite filing should settle");
         let verdict = Outcome::from_evaluation(&result);
-        let again = self.run(
-            "S(fixpoint)",
-            &verdict.data,
-            EvalTrigger::Submit,
-            Caller::Server,
-        );
+        let again = self.run("S(fixpoint)", &verdict.data, EvalTrigger::Submit, caller);
         let mut problems = against_expected(&verdict, expected);
         problems.extend(between_legs("fixpoint", &again, &verdict));
         problems
@@ -210,13 +217,7 @@ impl Evaluator<'_> {
 
     fn run(&mut self, label: &str, data: &Value, trigger: EvalTrigger, caller: Caller) -> Outcome {
         let fields = json_object_to_string_map(data);
-        let mut options = EvalOptions::default().trigger(trigger);
-        if matches!(caller, Caller::Session) {
-            options = options.extension_constraints(extension_constraints_from_registry_documents(
-                &self.registries,
-            ));
-        }
-        options.context.now_iso = Some(NOW.to_string());
+        let options = self.options(trigger, caller);
         let outcome = Outcome::from_evaluation(&evaluate(self.definition, &fields, &options));
         let problems = inventions(self.definition, data, &outcome);
         if !problems.is_empty() && filed_response_data_matches(self.definition, data, &outcome.data)
@@ -578,6 +579,7 @@ fn no_invention_allows_empty_repeat_under_a_field() {
     let mut evaluator = Evaluator {
         definition: &definition,
         registries: Vec::new(),
+        context: EvalContext::default(),
         inventions: Vec::new(),
     };
     for (filed, expected) in [
@@ -679,8 +681,17 @@ fn run_processing(case: &Value, legs: &mut Legs) {
                 .collect()
         })
         .unwrap_or_default();
+    let mut host = fel_core::exact_json::Map::new();
+    host.insert("nowIso".into(), Value::String(NOW.into()));
+    if let Some(subject) = case.get("subject") {
+        host.insert("subjectType".into(), subject["type"].clone());
+        if let Some(keys) = subject.get("keys") {
+            host.insert("subjectKeys".into(), keys.clone());
+        }
+    }
     let mut evaluator = Evaluator {
         definition: &definition,
+        context: eval_context_from_json_object(&host).expect("suite context"),
         registries,
         inventions: Vec::new(),
     };
@@ -710,7 +721,7 @@ fn run_processing(case: &Value, legs: &mut Legs) {
         if submit {
             legs.insert(
                 "S".to_string(),
-                evaluator.check_filed(&expected["data"], &expected),
+                evaluator.check_filed(&expected["data"], &expected, Caller::Server),
             );
         } else {
             let recheck =
@@ -728,6 +739,7 @@ fn run_processing(case: &Value, legs: &mut Legs) {
                 payload,
                 &CreateOptions {
                     now_iso: Some(NOW.to_owned()),
+                    subject: evaluator.context.subject.clone(),
                     ..CreateOptions::default()
                 },
             )
@@ -742,9 +754,15 @@ fn run_processing(case: &Value, legs: &mut Legs) {
         if submit {
             let in_session =
                 evaluator.run("P(submit)", &payload, EvalTrigger::Submit, Caller::Session);
+            if case.get("subject").is_some() {
+                legs.insert(
+                    "P".to_string(),
+                    evaluator.check_filed(&in_session.data, &expected, Caller::Session),
+                );
+            }
             legs.insert(
                 "S".to_string(),
-                evaluator.check_filed(&in_session.data, &expected),
+                evaluator.check_filed(&in_session.data, &expected, Caller::Server),
             );
         } else {
             let mut problems = against_expected(&live, &expected);

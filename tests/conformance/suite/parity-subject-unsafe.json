@@ -1,0 +1,38 @@
+{
+  "id": "parity.subject-unsafe",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-subject.definition.json",
+  "subject": {
+    "type": "urn:example:unit",
+    "keys": {
+      "label": "9007199254740993",
+      "serial": 9007199254740993
+    },
+    "id": "b819609b55630e4a9781d656ed0d37bb5259530a9dc6310b5e8116b4e59bd34f"
+  },
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {},
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "data": {},
+    "results": [
+      {
+        "code": "TYPE_MISMATCH",
+        "path": "#subjectKeys.serial",
+        "constraintKind": "type",
+        "severity": "error",
+        "message": "Integer subject key must be in the I-JSON range"
+      }
+    ]
+  },
+  "specRefs": [
+    "Core §2.1.6 Response subject and §3 subject()",
+    "ADR 0172 §11 item 9"
+  ]
+}

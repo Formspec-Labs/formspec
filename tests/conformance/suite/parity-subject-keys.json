@@ -1,0 +1,53 @@
+{
+  "id": "parity.subject-keys",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-subject.definition.json",
+  "subject": {
+    "type": "urn:example:unit",
+    "keys": {
+      "label": "9007199254740993",
+      "serial": 9007199254740991
+    },
+    "id": "b819609b55630e4a9781d656ed0d37bb5259530a9dc6310b5e8116b4e59bd34f"
+  },
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {},
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "data": {
+      "label": "9007199254740993",
+      "serial": 9007199254740991
+    },
+    "results": []
+  },
+  "specRefs": [
+    "Core §2.1.6 Response subject and §3 subject()",
+    "ADR 0172 §11 item 9"
+  ],
+  "expectedCandidate": {
+    "$formspecResponse": "1.0",
+    "definitionUrl": "urn:example:subject-parity",
+    "definitionVersion": "1.0.0",
+    "status": "completed",
+    "authored": "2026-11-17T12:00:00.000Z",
+    "subject": {
+      "type": "urn:example:unit",
+      "keys": {
+        "label": "9007199254740993",
+        "serial": 9007199254740991
+      },
+      "id": "b819609b55630e4a9781d656ed0d37bb5259530a9dc6310b5e8116b4e59bd34f"
+    },
+    "data": {
+      "label": "9007199254740993",
+      "serial": 9007199254740991
+    },
+    "validationResults": []
+  }
+}

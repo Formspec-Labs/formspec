@@ -1,5 +1,6 @@
 /** @filedesc Shared-suite parity guard: every conformance case through FormEngine, the WASM evaluator and a recheck of the filed bytes */
 import test from 'node:test';
+import { canonicalJsonBytes, parseJsonExact } from '@formspec-org/integrity-canonical';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -49,11 +50,11 @@ test.after(() => {
 });
 
 function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  return parseJsonExact(fs.readFileSync(filePath, 'utf8'));
 }
 
 function clone(value) {
-  return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+  return value === undefined ? undefined : parseJsonExact(JSON.stringify(value));
 }
 
 function isPlainObject(value) {
@@ -288,7 +289,7 @@ function registryDocuments(caseDoc) {
 /** A FormEngine session: `new` creates a Response over the payload as host prefill; `saved` resumes it. */
 async function openEngine(caseDoc, definition, payload) {
   const registryEntries = registryDocuments(caseDoc).flatMap((doc) => doc.entries ?? []);
-  const options = { registryEntries, runtimeContext: { now: NOW } };
+  const options = { registryEntries, responseSubject: caseDoc.subject, runtimeContext: { now: NOW } };
   const engine = caseDoc.origin === 'new'
     ? new FormEngine(clone(definition), { ...options, responseData: clone(payload) })
     : new FormEngine(clone(definition), { ...options, savedResponseData: clone(payload) });
@@ -321,25 +322,40 @@ async function runProcessingCase(caseDoc, legs) {
   // A Rebuild refusal has no evaluated data. FormEngine still holds the person's draft inputs.
   const compareDraftData = !expected.results?.some(isDefinitionRefusal);
   const inventionProblems = [];
-  // The session (P, F) loads the case's registries as the browser does. The server legs (S, the fixpoint,
-  // FR) use exactly the options every server recheck builds today: the trigger and the clock, nothing else
-  // (formspec-server composition.rs FormspecEvalAdapter, task_local_validation.rs, signing_fixture.rs;
-  // wos-server selected_formspec_processor.rs).
+  const subjectContext = caseDoc.subject
+    ? { subjectType: caseDoc.subject.type ?? null, subjectKeys: caseDoc.subject.keys }
+    : {};
+  // The session loads registry and subject inputs. The server legs still omit those inputs
+  // (fs-20e3 and fs-hrx7).
+  const options = (server) => server
+    ? { nowIso: NOW }
+    : { nowIso: NOW, registryDocuments: documents, ...subjectContext };
   const evaluate = (label, data, trigger, { server = false } = {}) => {
-    const context = server ? { trigger, nowIso: NOW } : { trigger, nowIso: NOW, registryDocuments: documents };
+    const context = { ...options(server), trigger };
     const raw = evaluateDefinition(clone(definition), clone(data), context);
     for (const p of inventions(definition, data, raw)) inventionProblems.push(`${label}: ${p}`);
     return outcome(raw.validations, raw.data, raw.undeclaredDataPaths);
   };
-  const settle = (data) => {
-    const raw = evaluateFiled(clone(definition), clone(data), { nowIso: NOW });
+  const settle = (data, { server = true } = {}) => {
+    const raw = evaluateFiled(clone(definition), clone(data), options(server));
     const verdict = outcome(raw.validations, raw.data, raw.undeclaredDataPaths);
-    const again = evaluate('S(fixpoint)', verdict.data, 'submit', { server: true });
+    const again = evaluate(server ? 'S(fixpoint)' : 'P(fixpoint)', verdict.data, 'submit', { server });
     return { verdict, problems: [...againstExpected(verdict, expected), ...betweenLegs('fixpoint', again, verdict)] };
   };
   const roundTrip = (data) => dataDiff(evaluate('P(round trip)', data, 'continuous').data, data)
     .map((d) => `round trip of expected.data ${d}`);
 
+  // An invalid filing unit is refused before a browser session or filed Response exists.
+  const refusal = expected.results?.find(({ path }) => path.startsWith('#subject'));
+  if (refusal && caseDoc.subject) {
+    await assert.rejects(openEngine(caseDoc, definition, payload), {
+      message: `${refusal.path}: ${refusal.message}`,
+    });
+    legs.set('P', settle(payload, { server: false }).problems);
+    legs.set('S', settle(payload).problems);
+    legs.set('noInvention', inventionProblems);
+    return;
+  }
   const engine = await openEngine(caseDoc, definition, payload);
   if (caseDoc.operations) {
     // The session that produced the filed record runs here; `expected` is the state after the last step.
@@ -360,7 +376,7 @@ async function runProcessingCase(caseDoc, legs) {
   } else {
     // Fixture URL sources fail, so use their authored fallback on the session leg.
     const sessionInput = caseDoc.origin === 'new'
-      ? createResponse(definition, payload, { nowIso: NOW }).data
+      ? createResponse(definition, payload, { nowIso: NOW, ...subjectContext }).data
       : payload;
     const live = evaluate('P(continuous)', sessionInput, 'continuous');
     if (!submit) {
@@ -376,7 +392,10 @@ async function runProcessingCase(caseDoc, legs) {
       const { verdict, problems } = settle(inSession.data);
       legs.set('S', problems);
       const session = engineOutcome(engine, 'on-submit');
-      const fSubmit = betweenLegs('FormEngine submit vs S', session, verdict, { data: compareDraftData });
+      const reference = caseDoc.subject ? settle(inSession.data, { server: false }) : { verdict };
+      if (caseDoc.subject) legs.set('P', reference.problems);
+      const fSubmit = betweenLegs(caseDoc.subject ? 'FormEngine submit vs P' : 'FormEngine submit vs S',
+        session, reference.verdict, { data: compareDraftData });
       if (caseDoc.kind === 'RESPONSE_VALIDATION') {
         const filedResults = outcome(session.response.validationResults ?? [], session.data);
         fSubmit.push(...againstExpected(filedResults, { results: caseDoc.expected.response.validationResults ?? [] })
@@ -384,8 +403,13 @@ async function runProcessingCase(caseDoc, legs) {
       }
       legs.set('F_submit', fSubmit);
       const filed = evaluate('FR', session.data, 'submit', { server: true });
-      legs.set('FR', betweenLegs('recheck of FormEngine submit data vs S', filed, verdict));
+      legs.set('FR', betweenLegs(`recheck of FormEngine submit data vs ${caseDoc.subject ? 'P' : 'S'}`, filed, reference.verdict));
     }
+  }
+  if (caseDoc.expectedCandidate) {
+    const candidate = engine.getResponse({ profile: 'on-submit' });
+    assert.deepEqual(canonicalJsonBytes(candidate), canonicalJsonBytes(caseDoc.expectedCandidate),
+      'complete filed Response differs from the fixture');
   }
   engine.dispose?.();
   legs.set('noInvention', inventionProblems);

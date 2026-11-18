@@ -367,6 +367,64 @@
           ]
         }
       }
+    },
+    "parity.subject-keys": {
+      "ts": {
+        "S": {
+          "ticket": "fs-hrx7",
+          "why": "The server recheck has no stored subject keys, so subject() calculates null.",
+          "problems": [
+            "data label: null vs \"9007199254740993\" (actual vs expected)",
+            "data serial: null vs 9007199254740991 (actual vs expected)"
+          ]
+        },
+        "FR": {
+          "ticket": "fs-hrx7",
+          "why": "The server recheck has no stored subject keys, so subject() calculates null.",
+          "problems": [
+            "recheck of FormEngine submit data vs P data label: null vs \"9007199254740993\"",
+            "recheck of FormEngine submit data vs P data serial: null vs 9007199254740991"
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-hrx7",
+          "why": "The server recheck has no stored subject keys, so subject() calculates null.",
+          "problems": [
+            "data label: null vs \"9007199254740993\" (actual vs expected)",
+            "data serial: null vs 9007199254740991 (actual vs expected)"
+          ]
+        }
+      }
+    },
+    "parity.subject-unsafe": {
+      "ts": {
+        "S": {
+          "ticket": "fs-hrx7",
+          "why": "The server recheck has no stored subject keys to validate against the I-JSON integer range.",
+          "problems": [
+            "valid true, expected false",
+            "counts {\"error\":0,\"info\":0,\"warning\":0}, expected {\"error\":1,\"info\":0,\"warning\":0}",
+            "expected result missing {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Integer subject key must be in the I-JSON range\",\"path\":\"#subjectKeys.serial\",\"severity\":\"error\"}",
+            "data label: null vs absent (actual vs expected)",
+            "data serial: null vs absent (actual vs expected)"
+          ]
+        }
+      },
+      "rust": {
+        "S": {
+          "ticket": "fs-hrx7",
+          "why": "The server recheck has no stored subject keys to validate against the I-JSON integer range.",
+          "problems": [
+            "valid true, expected false",
+            "error count 0, expected 1",
+            "expected result missing {\"code\":\"TYPE_MISMATCH\",\"constraintKind\":\"type\",\"message\":\"Integer subject key must be in the I-JSON range\",\"path\":\"#subjectKeys.serial\",\"severity\":\"error\"}",
+            "data label: null vs absent (actual vs expected)",
+            "data serial: null vs absent (actual vs expected)"
+          ]
+        }
+      }
     }
   }
 }

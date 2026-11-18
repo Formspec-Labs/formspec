@@ -102,6 +102,15 @@
       "minLength": 1,
       "description": "Repository-relative path to the input payload fixture."
     },
+    "subject": {
+      "type": "object",
+      "description": "Filing-unit identity supplied by the host. Refusal cases may intentionally supply invalid keys."
+    },
+    "expectedCandidate": {
+      "type": "object",
+      "required": ["$formspecResponse", "definitionUrl", "definitionVersion", "status", "authored", "data"],
+      "description": "Complete expected filed Response at the fixture clock, compared as canonical JSON."
+    },
     "inputData": {
       "description": "Inline input payload."
     },

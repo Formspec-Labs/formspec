@@ -1,0 +1,44 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:subject-parity",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Filing unit",
+  "subject": {
+    "type": "urn:example:unit",
+    "keys": {
+      "label": {
+        "dataType": "string"
+      },
+      "serial": {
+        "dataType": "integer"
+      }
+    }
+  },
+  "items": [
+    {
+      "key": "label",
+      "label": "label",
+      "type": "field",
+      "dataType": "string"
+    },
+    {
+      "key": "serial",
+      "label": "serial",
+      "type": "field",
+      "dataType": "integer"
+    }
+  ],
+  "binds": [
+    {
+      "path": "label",
+      "calculate": "subject('label')",
+      "constraint": "subject('label') = '9007199254740993'"
+    },
+    {
+      "path": "serial",
+      "calculate": "subject('serial')",
+      "constraint": "subject('serial') = 9007199254740991"
+    }
+  ]
+}
