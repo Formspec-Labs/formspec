@@ -24,8 +24,11 @@ export interface AppGraphDocumentLintContext {
   registryDocuments?: unknown[];
   /** For a projection request, all loaded Definition documents of the selected URL. */
   upstreamDefinitions?: readonly unknown[];
-  /** For a projection request, the consuming Definition's subject declaration or null. */
-  consumerSubject?: unknown;
+  /** The form and its direct instance or catalog binding, or null for a widget. */
+  projectionConsumer?:
+    | { kind: 'instance'; name: string; definition: unknown }
+    | { kind: 'prefill'; mapped: boolean; definition: unknown }
+    | null;
 }
 
 export interface AppGraphLintDiagnostic {

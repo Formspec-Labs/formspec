@@ -13,7 +13,8 @@ test('the tools export and injected linter return the same native projection dia
         jsonPointer: '/response/definition',
         upstreamVersion: null,
     }]);
-    const report = tools.lintDocument(instance, { upstreamDefinitions: [], consumerSubject: null });
+    assert.throws(() => tools.lintDocument(instance, { upstreamDefinitions: [] }), /receiving form/);
+    const report = tools.lintDocument(instance, { upstreamDefinitions: [], projectionConsumer: null });
     assert.equal(report.valid, false);
     assert.deepEqual(report.instanceProjectionDiagnostics, findings);
 });

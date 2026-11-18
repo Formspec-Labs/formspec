@@ -328,8 +328,11 @@ export interface WasmLintDocumentOptions {
     noFel?: boolean;
     /** For an AppGraph projection check, pass all loaded Definitions for the selected URL. */
     upstreamDefinitions?: readonly unknown[];
-    /** Subject declaration of the consuming Definition, or null when there is none. */
-    consumerSubject?: unknown;
+    /** The consuming form and how it receives data, or null for a widget. */
+    projectionConsumer?:
+        | { kind: 'instance'; name: string; definition: unknown }
+        | { kind: 'prefill'; mapped: boolean; definition: unknown }
+        | null;
 }
 
 export interface InstanceProjectionDiagnostic {
@@ -342,12 +345,12 @@ export interface InstanceProjectionDiagnostic {
 /** Check an instance or catalog source against every eligible upstream Definition. */
 export function checkInstanceProjection(
     source: unknown,
-    consumerSubject: unknown,
+    projectionConsumer: WasmLintDocumentOptions['projectionConsumer'],
     upstreamDefinitions: readonly unknown[],
 ): InstanceProjectionDiagnostic[] {
     assertWasmToolsReadySync();
     return JSON.parse(wasmTools().checkInstanceProjection(
-        JSON.stringify(source), JSON.stringify(consumerSubject ?? null), JSON.stringify(upstreamDefinitions),
+        JSON.stringify(source), JSON.stringify(projectionConsumer ?? null), JSON.stringify(upstreamDefinitions),
     ));
 }
 
@@ -363,7 +366,10 @@ export function wasmLintDocument(
     instanceProjectionDiagnostics?: InstanceProjectionDiagnostic[];
 } {
     if (options?.upstreamDefinitions !== undefined) {
-        const instanceProjectionDiagnostics = checkInstanceProjection(doc, options.consumerSubject, options.upstreamDefinitions);
+        if (options.projectionConsumer === undefined) {
+            throw new TypeError('Projection checks require the receiving form and binding, or null for a widget.');
+        }
+        const instanceProjectionDiagnostics = checkInstanceProjection(doc, options.projectionConsumer, options.upstreamDefinitions);
         return { documentType: null, valid: instanceProjectionDiagnostics.length === 0, diagnostics: [], instanceProjectionDiagnostics };
     }
     assertWasmToolsReadySync();

@@ -340,10 +340,12 @@ The validator pairs each response instance and each catalog `definition-response
 selection with all loaded Definitions whose reference and document URLs both
 match the selection. It supplies those Definitions in one call to the engine
 port, including an empty set when none are loaded. Core selects eligible versions
-and checks paths, types and subject predicates. The caller supplies the consuming
-Definition's subject explicitly, or `null` when there is no subject. Catalog
-predicates that read route parameters use `null` when they have no consuming
-Definition subject to read. Session drafts use the exact Definition resolved by
+and checks paths, types, directly carried choice values and subject predicates.
+The caller supplies the consuming Definition and instance name for an instance
+read. A catalog form prefill supplies the receiving Definition and whether the
+slot applies a reverse Mapping. For direct prefill, Core compares the stored
+option values at matching delivered data paths. Widget inputs have no receiving
+Definition and pass `null`. Session drafts use the exact Definition resolved by
 the catalog's `definitionRef`.
 
 Authoring and publication callers MUST inject an engine port that performs these
@@ -482,6 +484,7 @@ The built-in vNext checks use these stable diagnostic families:
 | `INSTANCE-PROJECTION-SCHEMA-UNSUPPORTED` | error | The catalog schema or mapped output cannot be compared statically with the upstream Definition. |
 | `INSTANCE-PROJECTION-PATH-MISSING` | error | A projected field path or catalog root data key is missing from an eligible upstream Definition. |
 | `INSTANCE-PROJECTION-FIELD-TYPE-MISMATCH` | error | The declared projection admits a different field type from the upstream Definition. |
+| `INSTANCE-PROJECTION-OPTION-VALUES-MISMATCH` | error | A directly carried choice or multiChoice field declares different stored option values from an eligible upstream field. |
 | `INSTANCE-PROJECTION-SUBJECT-MISSING` | error | An eligible upstream Definition lacks a subject declaration. |
 | `INSTANCE-PROJECTION-SUBJECT-TYPE-MISMATCH` | error | Eligible upstream versions declare different subject types. |
 | `INSTANCE-PROJECTION-SUBJECT-KEY-TYPE-DRIFT` | error | Eligible upstream versions declare different subject key sets or key types. |

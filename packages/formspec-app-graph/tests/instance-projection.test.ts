@@ -41,7 +41,7 @@ beforeAll(async () => {
   await initFormspecEngineTools();
 });
 
-it('passes one set of exact-URL loaded versions and the consumer subject to the injected port', () => {
+it('passes exact-URL versions and the named receiving form so Rust can check its options', () => {
   const first = upstream('1.0.0');
   const second = upstream('1.1.0', 'renamed');
   const outsideRange = upstream('2.0.0', 'renamed');
@@ -54,10 +54,12 @@ it('passes one set of exact-URL loaded versions and the consumer subject to the 
   ));
   expect(lint.mock.calls.filter(([, context]) => 'upstreamDefinitions' in context)).toEqual([
     [{ response: selection, schema: { amount: 'integer' } }, {
-      upstreamDefinitions: [first.document, second.document, outsideRange.document], consumerSubject: subject,
+      upstreamDefinitions: [first.document, second.document, outsideRange.document],
+      projectionConsumer: { kind: 'instance', definition: consumer().document, name: 'prior' },
     }],
     [{ response: selection, schema: { amount: 'integer' } }, {
-      upstreamDefinitions: [first.document, second.document, outsideRange.document], consumerSubject: null,
+      upstreamDefinitions: [first.document, second.document, outsideRange.document],
+      projectionConsumer: { kind: 'instance', definition: noSubject.document, name: 'noSubject' },
     }],
   ]);
 });
@@ -111,7 +113,7 @@ it('checks a catalog list with a route parameter and preserves its original sour
   const second = upstream('1.1.0', 'renamed');
   const findings = documentLintValidator(lint)(graph(catalog, first, second));
   expect(lint).toHaveBeenCalledWith(source, {
-    consumerSubject: null, upstreamDefinitions: [first.document, second.document],
+    projectionConsumer: null, upstreamDefinitions: [first.document, second.document],
   });
   expect(findings).toMatchObject([{
     code: 'INSTANCE-PROJECTION-PATH-MISSING',
@@ -133,7 +135,7 @@ it('uses the consuming Definition subject for catalog form prefill', () => {
   const first = upstream('1.0.0');
   const lint = vi.fn(lintDocument);
   const findings = documentLintValidator(lint)(graph(catalog, form, surface, first));
-  expect(lint).toHaveBeenCalledWith(source, { consumerSubject: subject, upstreamDefinitions: [first.document] });
+  expect(lint).toHaveBeenCalledWith(source, { projectionConsumer: { kind: 'prefill', definition: form.document, mapped: false }, upstreamDefinitions: [first.document] });
   expect(findings.filter((finding) => finding.code.startsWith('INSTANCE-PROJECTION-'))).toEqual([]);
 });
 
@@ -165,4 +167,57 @@ it('reports each missing catalog path once per version across two forms and a wi
   }]);
   expect(findMissing(upstream('1.0.0'), upstream('1.1.0')).map((finding) =>
     finding.details?.upstreamVersion)).toEqual(['1.0.0', '1.1.0']);
+});
+
+it('reports changed stored values only for the upstream version feeding the carried field', () => {
+  const form = consumer('previous/~filing');
+  const field = (value: string) => ({
+    key: 'stage', type: 'field', label: 'Stage', dataType: 'choice',
+    options: [{ value, label: 'Current stage' }],
+  });
+  Object.assign(form.document as object, {
+    instances: { 'previous/~filing': { response: selection, schema: { stage: 'choice' } } },
+    items: [{
+      ...field('open'), key: 'previousStage',
+      prePopulate: { instance: 'previous/~filing', path: 'stage' },
+    }],
+  });
+  const versions = ['1.0.0', '1.1.0', '2.0.0'].map((version, index) => {
+    const definition = upstream(version);
+    Object.assign(definition.document as object, { items: [field(index ? 'opened' : 'open')] });
+    return definition;
+  });
+  const findings = documentLintValidator(lintDocument)(graph(form, ...versions));
+  expect(findings.filter(finding => finding.code.startsWith('INSTANCE-PROJECTION-'))).toMatchObject([{
+    code: 'INSTANCE-PROJECTION-OPTION-VALUES-MISMATCH', severity: 'error',
+    primarySource: { artifactSlot: 'consumer', jsonPointer: '/instances/previous~1~0filing/schema/stage' },
+    relatedSources: [{ artifactSlot: 'upstream-1.1.0' }],
+    details: { upstreamVersion: '1.1.0' },
+  }]);
+});
+
+it('checks the form receiving direct catalog prefill even without a subject predicate', () => {
+  const catalogUrl = 'urn:example:catalog';
+  const source = {
+    kind: 'definition-response', id: 'response:stage',
+    responseSelection: { ...selection, subject: [] },
+  };
+  const catalog = handle('dataSources', 'catalog', { sources: [source] }, catalogUrl);
+  const form = handle('definition', 'form', { url: 'urn:example:form', items: [{
+    key: 'stage', type: 'field', dataType: 'choice', options: [{ value: 'old', label: 'Old' }],
+  }] }, 'urn:example:form');
+  const surface = handle('surface', 'surface', { routes: [{ slots: [{
+    slotType: 'definition-form', binding: {
+      definitionRef: form.ref?.url, initialData: { catalogRef: catalogUrl, sourceRef: source.id },
+    },
+  }] }] });
+  const version = upstream('1.0.0');
+  Object.assign(version.document as object, { items: [{
+    key: 'stage', type: 'field', dataType: 'choice', options: [{ value: 'new', label: 'New' }],
+  }] });
+  expect(documentLintValidator(lintDocument)(graph(catalog, form, surface, version))).toContainEqual(expect.objectContaining({
+    code: 'INSTANCE-PROJECTION-OPTION-VALUES-MISMATCH',
+    primarySource: expect.objectContaining({ artifactSlot: 'catalog', jsonPointer: '/sources/0' }),
+    details: { upstreamVersion: '1.0.0' },
+  }));
 });
