@@ -128,6 +128,26 @@ impl<'a> ExpressionSemantics<'a> {
                 }
             }
         }
+        if let Some(row) = self.repeat_scope(scope) {
+            let reads: BTreeSet<_> = dependencies
+                .context_refs
+                .iter()
+                .filter_map(|reference| reference.strip_prefix("@current."))
+                .collect();
+            for read in reads {
+                if !self.item_members_exist(row, &Path::parse(read).segments) {
+                    emit(
+                        read,
+                        error(
+                            LintCode::E402,
+                            4,
+                            path,
+                            format!("Unknown field reference @current.{read}"),
+                        ),
+                    );
+                }
+            }
+        }
         let names: BTreeSet<_> = dependencies
             .context_names()
             .filter(|name| !RESERVED_CONTEXT_NAMES.contains(name))
@@ -207,7 +227,12 @@ impl<'a> ExpressionSemantics<'a> {
                     path.push('.');
                     path.push_str(key);
                 }
-                PathSegment::Indexed(_) | PathSegment::Wildcard if item.is_repeatable => {}
+                PathSegment::Indexed(_) | PathSegment::Wildcard
+                    if item.is_repeatable
+                        && !matches!(
+                            tail.first(),
+                            Some(PathSegment::Indexed(_) | PathSegment::Wildcard)
+                        ) => {}
                 _ => return false,
             }
             members = tail;
@@ -216,6 +241,17 @@ impl<'a> ExpressionSemantics<'a> {
             .by_full_path
             .get(&path)
             .is_some_and(|item| item.is_group || item.data_type.is_some())
+    }
+
+    /// The innermost repeating Group supplies `@current`.
+    fn repeat_scope(&self, mut scope: &'a str) -> Option<&'a str> {
+        while let Some(item) = self.items.by_full_path.get(scope) {
+            if item.is_repeatable {
+                return Some(scope);
+            }
+            scope = item.parent_full_path.as_deref()?;
+        }
+        None
     }
 
     /// A variable belongs to a scope Item (visible to descendants) or to the form.

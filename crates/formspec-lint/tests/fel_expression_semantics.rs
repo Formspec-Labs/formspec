@@ -177,3 +177,31 @@ fn field_reads_require_data_items_and_subscripts_require_repeatable_groups() {
     assert!(findings.iter().any(|d| d.message.contains("$heading")));
     assert!(findings.iter().any(|d| d.message.contains("$info[*].code")));
 }
+
+#[test]
+fn repeat_paths_check_the_current_row_and_disallow_double_subscripts() {
+    let document = json!({
+        "$formspec":"1.0","url":"urn:test:current-row","version":"1.0.0","status":"draft",
+        "title":"Current row",
+        "items":[{"key":"rows","type":"group","repeatable":true,"label":"Rows","children":[
+            {"key":"known","type":"field","dataType":"integer","label":"Known"},
+            {"key":"total","type":"field","dataType":"integer","label":"Total",
+             "initialValue":"=@current.known + @current.missing + $rows[1][1].known"}]}]
+    });
+    let findings: Vec<_> = lint(&document)
+        .diagnostics
+        .into_iter()
+        .filter(|d| d.code == "E402")
+        .collect();
+    assert_eq!(findings.len(), 2, "{findings:?}");
+    assert!(
+        findings
+            .iter()
+            .any(|d| d.message.contains("@current.missing"))
+    );
+    assert!(
+        findings
+            .iter()
+            .any(|d| d.message.contains("$rows[1][1].known"))
+    );
+}
