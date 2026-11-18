@@ -6,6 +6,7 @@ import type {
 } from '@formspec-org/types';
 import {
   createSurfacePreviewRuntime,
+  deriveSurfacePreviewScenario,
   validateSurfacePreviewScenario,
 } from '../src/preview-scenario.js';
 import type {
@@ -542,4 +543,14 @@ it('reports a malformed filing action as a scenario diagnostic', async () => {
   expect(result).toMatchObject({ valid: false, diagnostics: [
     { code: 'SURFACE-SCENARIO-ACTION-UNRESOLVED', actionId: 'submit' },
   ] });
+});
+
+it('derives only an addressable entry and leaves fixture facts empty', async () => {
+  const bundle = resolvedBundle();
+  const scenario = deriveSurfacePreviewScenario(bundle);
+  expect(scenario.initialPath).toBe('/app');
+  expect(scenario.profiles[scenario.defaultProfile]?.sources).toEqual([]);
+  expect(scenario['x-generation']).toBeUndefined();
+  expect(await validateSurfacePreviewScenario({ scenario, bundle })).toMatchObject({ valid: true });
+  expect(() => deriveSurfacePreviewScenario({ ...bundle, surfaces: [], entrySurface: null })).toThrow();
 });

@@ -13,7 +13,7 @@ import type {
   SurfacePreviewScenario,
 } from '@formspec-org/types';
 import { filingAction } from './filing-action.js';
-import { composeSurfaceApp, matchRoute } from './composition.js';
+import { composeSurfaceApp, matchRoute, routeHref } from './composition.js';
 import type { ResolvedBundle } from './bundle.js';
 import { prepareResponseFixtures, type ResponseRecordTools } from './response-records.js';
 import type {
@@ -678,6 +678,20 @@ export async function validateSurfacePreviewScenario(
   return diagnostics.length === 0
     ? { valid: true, scenario, diagnostics: [] }
     : { valid: false, diagnostics };
+}
+
+/** Start at the authored entry. Only a sidecar can supply example subjects or fixture facts. */
+export function deriveSurfacePreviewScenario(bundle: ResolvedBundle): SurfacePreviewScenario {
+  const app = composeSurfaceApp(bundle.surfaces, { entrySurface: bundle.entrySurface });
+  if (!app.entry) throw new Error('The preview bundle has no resolved entry route.');
+  const route = routeHref(app.entry);
+  if (route.refusal) throw new Error(route.diagnostics.map(issue => issue.message).join('\n'));
+  return {
+    $formspecSurfaceScenario: '0.1', version: '1.0.0', initialPath: route.href,
+    defaultProfile: 'local',
+    profiles: { local: { authorization: { default: 'authorized' }, sources: [] } },
+    actions: { default: { status: 'complete' } },
+  };
 }
 
 function selectedProfile(

@@ -243,6 +243,7 @@ export {
 export {
   SURFACE_SCENARIO_DIAGNOSTIC_CODES,
   createSurfacePreviewRuntime,
+  deriveSurfacePreviewScenario,
   validateSurfacePreviewScenario,
   type SurfacePreviewRuntime,
   type SurfaceScenarioDiagnostic,
