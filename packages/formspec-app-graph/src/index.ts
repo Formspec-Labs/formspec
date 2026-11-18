@@ -207,4 +207,4 @@ export {
 
 export { parseRouteSubjectKey } from './surface-definition-slots.js';
 export { resolveDraftReviewTarget } from './surface-draft-review.js';
-export { filingStatusEntries, resolveFilingStatusTargets, validateFilingStatusTargets } from './filing-status-targets.js';
+export { filingRepeatFieldsValid, filingRepeatSubjectBound, filingStatusEntries, resolveFilingStatusTargets, validateFilingStatusTargets } from './filing-status-targets.js';

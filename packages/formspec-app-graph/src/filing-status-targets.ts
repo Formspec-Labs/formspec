@@ -1,6 +1,7 @@
 /** @filedesc Resolves Surface filing-status references for validation and planning. */
 import type { FilingStatusEntry, FilingStatusGroup, FilingStatusParamSource } from '@formspec-org/types';
 import { parseRouteSubjectKey } from './surface-definition-slots.js';
+import { bindingFailure } from './data-sources.js';
 import { diagnosticSourceForHandle } from './report.js';
 import type { AppGraphContext, AppGraphDiagnostic } from './types.js';
 
@@ -27,7 +28,7 @@ interface FilingStatusTarget<R, S> {
 export interface FilingStatusIssue {
   pointer: string;
   reason: 'invalid-binding' | 'duplicate-group' | 'route-unresolved' | 'slot-unresolved'
-    | 'invalid-parameters' | 'duplicate-target' | 'mixed-subject-mappings' | 'invalid-subject-value';
+    | 'ambiguous-repeat' | 'invalid-repeat-source' | 'invalid-parameters' | 'duplicate-target' | 'mixed-subject-mappings' | 'invalid-subject-value';
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -77,6 +78,14 @@ export function resolveFilingStatusTargets<R extends TargetRoute>(
       issues.push({ pointer: groupPointer, reason: 'invalid-binding' });
       return [];
     }
+    if (Object.prototype.hasOwnProperty.call(group, 'repeat')) {
+      const repeat = record(group.repeat);
+      if (!repeat || !['catalogRef', 'sourceRef', 'labelField', 'waitingLabel'].every(key =>
+        typeof repeat[key] === 'string' && repeat[key].length > 0)) {
+        issues.push({ pointer: groupPointer + '/repeat', reason: 'invalid-repeat-source' });
+        return [];
+      }
+    }
     if (groupIds.has(group.id)) issues.push({ pointer: groupPointer, reason: 'duplicate-group' });
     groupIds.add(group.id);
 
@@ -109,6 +118,9 @@ export function resolveFilingStatusTargets<R extends TargetRoute>(
           if (Object.prototype.hasOwnProperty.call(parameter, 'value') && typeof parameter.value === 'string' && parameter.value !== '') {
             return { value: parameter.value };
           }
+          if (group.repeat && typeof parameter.rowField === 'string' && parameter.rowField) {
+            return { rowField: parameter.rowField };
+          }
           if (typeof parameter.routeParam === 'string' && sourceParams.has(parameter.routeParam)) {
             if (currentParams === undefined) return { routeParam: parameter.routeParam };
             const resolved = Object.prototype.hasOwnProperty.call(currentParams, parameter.routeParam) ? currentParams[parameter.routeParam] : undefined;
@@ -121,7 +133,7 @@ export function resolveFilingStatusTargets<R extends TargetRoute>(
         refuse('invalid-parameters');
         return;
       }
-      const key = JSON.stringify([route.id, slot.id, parameters]);
+      const key = JSON.stringify([group.repeat ? group.id : null, route.id, slot.id, parameters]);
       if (targetKeys.has(key)) {
         refuse('duplicate-target');
         return;
@@ -160,6 +172,34 @@ function subjectSourceIdentity(
   return JSON.stringify([subject.type, sources]);
 }
 
+/** Every member must address a distinct authored subject through an entry parameter. */
+export function filingRepeatSubjectBound(entry: FilingStatusEntry, binding: unknown, definition: unknown): boolean {
+  const keys = record(record(record(definition)?.subject)?.keys);
+  const mapping = record(record(binding)?.subjectKeys);
+  return Object.keys(keys ?? {}).some(key => {
+    const param = mapping?.[key];
+    return typeof param === 'string' && typeof record(entry.params?.[param])?.rowField === 'string';
+  });
+}
+
+/** Admit only an explicit array of records with the scalar fields the group consumes. */
+export function filingRepeatFieldsValid(group: FilingStatusGroup, schema: unknown): boolean {
+  const repeat = group.repeat;
+  if (!repeat) return false;
+  const payload = record(schema);
+  const array = repeat.rowsField === undefined ? payload
+    : payload?.type === 'object' && record(record(payload.properties)?.[repeat.rowsField]);
+  if (!array || array.type !== 'array') return false;
+  const item = record(array.items);
+  const fields = record(item?.properties);
+  if (item?.type !== 'object' || !fields || record(fields[repeat.labelField])?.type !== 'string') return false;
+  return group.forms.every(entry => Object.values(entry.params ?? {}).every(param => {
+    if (!('rowField' in param)) return true;
+    const type = record(fields[param.rowField])?.type;
+    return type === 'string' || type === 'integer';
+  }));
+}
+
 export function validateFilingStatusTargets(context: AppGraphContext): AppGraphDiagnostic[] {
   const diagnostics: AppGraphDiagnostic[] = [];
   const definitions = new Map(context.handles
@@ -181,10 +221,36 @@ export function validateFilingStatusTargets(context: AppGraphContext): AppGraphD
         details: { reason },
       });
       resolved.issues.forEach(report);
-      for (const { targets } of resolved.groups) {
+      for (const { group, pointer, targets } of resolved.groups) {
+        if (group.repeat) {
+          const repeat = group.repeat;
+          const failure = bindingFailure(context, {
+            surfaceRef: handle.ref?.url, routeId: route.id, slotId: slot.id,
+          }, { ...repeat });
+          const catalog = context.handles.find(h => h.artifactKind === 'dataSources' && h.ref?.url === repeat.catalogRef);
+          const sources = record(catalog?.document)?.sources;
+          const source = Array.isArray(sources) && sources.find(value => record(value)?.id === repeat.sourceRef);
+          const descriptor = record(source);
+          if (record(descriptor?.runtime)?.delivery === 'draft') {
+            const producer = record(definitions.get(descriptor?.definitionRef as string));
+            const keys = record(record(producer?.subject)?.keys);
+            if (keys && Object.keys(keys).length) {
+              const forms = route.slots.filter(candidate => candidate.slotType === 'definition-form'
+                && record(candidate.binding)?.definitionRef === descriptor?.definitionRef);
+              if (forms.length !== 1) report({ pointer: pointer + '/repeat', reason: 'ambiguous-repeat' });
+            }
+          }
+          if (failure || !filingRepeatFieldsValid(group, record(source)?.schema)) {
+            report({ pointer: pointer + '/repeat', reason: 'invalid-repeat-source' });
+          }
+        }
         let subjectMapping: string | undefined;
         for (const target of targets) {
           const definitionRef = record(target.slot.binding)?.definitionRef;
+          if (group.repeat && !filingRepeatSubjectBound(target.entry, target.slot.binding,
+            typeof definitionRef === 'string' ? definitions.get(definitionRef) : undefined)) {
+            report({ pointer: target.pointer, reason: 'ambiguous-repeat' });
+          }
           const mapping = typeof definitionRef === 'string'
             ? subjectSourceIdentity(target, definitions.get(definitionRef)) : undefined;
           if (mapping === false) {

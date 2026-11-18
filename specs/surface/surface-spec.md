@@ -340,6 +340,21 @@ parameters admitted for its enclosing authored route. A group represents one
 filing unit. Its subject-keyed forms MUST agree on the subject type and sources
 of its typed keys. A preview group may consist entirely of forms without authored subjects.
 
+A group MAY declare `repeat` with an exact Data Sources `catalogRef` and
+`sourceRef`, a string `labelField`, and an authored `waitingLabel`. The
+delivered value is an array of records, or an object whose `rowsField`
+names that array. The source schema MUST declare the label and every consumed
+field. In a repeated group a parameter MAY take a string or integer from
+`{rowField}`. Every form MUST bind at least one row field through its
+`subjectKeys`. Preserve delivery order. Each member MUST resolve to a
+distinct subject and all its forms MUST resolve to that subject. The repeat
+declaration requires its own direct Need anchor under strict trace validation.
+For a direct draft delivery, resolve an empty-key producer as the scoped
+singleton. A producer with named subject keys requires exactly one matching
+Definition-form on the declaring route. Its existing `subjectKeys` supplies
+the producer identity. A catalog selection may instead bind route parameters
+through the Data Sources selection declaration.
+
 Processors MUST refuse unresolved or ambiguous targets and duplicate resolved
 route, slot, and parameter tuples within a tracker. Authoring tools MUST refuse
 removing a referenced route or slot, or changing a referenced slot's type away

@@ -98,3 +98,37 @@ it('refuses two parameter sources when their resolved values name the same row',
   expect(graph.resolveFilingStatusTargets([f.apply], source, f.binding, { state: 'north' }).issues)
     .toEqual([expect.objectContaining({ reason: 'duplicate-target' })]);
 });
+
+it('refuses a repeating group that cannot distinguish the subjects of its members', () => {
+  const f = fixture();
+  Object.assign(f.group, { repeat: { catalogRef: 'urn:roster', sourceRef: 'members', labelField: 'name', waitingLabel: 'Waiting for' } });
+  expect(graph.validateFilingStatusTargets(f.context).map(issue => issue.details?.reason))
+    .toContain('ambiguous-repeat');
+});
+
+it('validates the qualified roster shape and the row field bound to the typed subject', () => {
+  const f = fixture();
+  Object.assign(f.group, { repeat: { catalogRef: 'urn:roster', sourceRef: 'members', rowsField: 'units',
+    labelField: 'name', waitingLabel: 'Waiting for' } });
+  Object.assign(f.form.params, { unit: { rowField: 'code' } });
+  Object.assign(f.formSlot.binding, { subjectKeys: { code: 'unit' } });
+  const code = { type: 'integer' };
+  const source = { id: 'members', availability: { level: 'app' }, schema: {
+    type: 'object', properties: { units: { type: 'array', items: { type: 'object', properties: { code, name: { type: 'string' } } } } },
+  } };
+  const context = {
+    ...f.context,
+    manifest: { document: { dataSources: [{ url: 'urn:roster' }] } },
+    handles: [...f.context.handles,
+      { artifactKind: 'definition', status: 'loaded', ref: { url: 'urn:definition' },
+        document: { subject: { type: 'urn:member', keys: { code: { dataType: 'integer' } } } } },
+      { artifactKind: 'dataSources', status: 'loaded', ref: { url: 'urn:roster' },
+        document: { id: 'urn:roster', sources: [source] } },
+    ],
+  } as unknown as AppGraphContext;
+  expect(graph.validateFilingStatusTargets(context)).toEqual([]);
+  code.type = 'object';
+  expect(graph.validateFilingStatusTargets(context)).toEqual(expect.arrayContaining([
+    expect.objectContaining({ details: { reason: 'invalid-repeat-source' } }),
+  ]));
+});

@@ -614,6 +614,8 @@ function surfaceNodes(
             const groupPointer = `${bindingPointer}/groups/${groupIndex}`;
             out.push(generationNode(handle, 'surface-filing-status-group', groupPointer, group,
               stringProp(group, 'label') ?? `groups[${groupIndex}]`));
+            const repeat = record(group.repeat);
+            if (repeat) out.push(generationNode(handle, 'surface-filing-status-repeat', groupPointer + '/repeat', repeat, 'Filing tracker roster'));
             if (Array.isArray(group.forms)) group.forms.forEach((rawEntry, entryIndex) => {
               const entry = record(rawEntry);
               if (!entry) return;

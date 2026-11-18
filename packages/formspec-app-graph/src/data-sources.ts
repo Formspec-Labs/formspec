@@ -296,7 +296,9 @@ function sourceAvailabilityDiagnostics(context: AppGraphContext): AppGraphDiagno
   return diagnostics;
 }
 
-function sourceCoversWidget(source: JsonRecord, widget: SurfaceWidgetSlot): boolean {
+type SourceUseSite = { surfaceRef?: string | undefined; routeId?: string; slotId?: string; moduleId?: string };
+
+function sourceCoversWidget(source: JsonRecord, widget: SourceUseSite): boolean {
   const availability = record(ownProp(source, 'availability'));
   const level = stringProp(availability, 'level');
   if (level === 'app') return true;
@@ -317,7 +319,7 @@ function sourceCoversWidget(source: JsonRecord, widget: SurfaceWidgetSlot): bool
     );
   }
   if (level === 'module') {
-    return stringProp(availability, 'moduleId') === widget.moduleId;
+    return widget.moduleId !== undefined && stringProp(availability, 'moduleId') === widget.moduleId;
   }
   return false;
 }
@@ -356,7 +358,7 @@ function bindingDiagnostic(
 
 export function bindingFailure(
   context: AppGraphContext,
-  widget: SurfaceWidgetSlot,
+  widget: SourceUseSite,
   binding: JsonRecord,
 ): BindingFailure | undefined {
   const catalogRef = stringProp(binding, 'catalogRef');

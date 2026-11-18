@@ -478,6 +478,19 @@
         "x-generation": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation" }
       }
     },
+    "FilingStatusRepeat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["catalogRef", "sourceRef", "labelField", "waitingLabel"],
+      "properties": {
+        "catalogRef": { "type": "string", "format": "uri" },
+        "sourceRef": { "type": "string", "minLength": 1 },
+        "rowsField": { "type": "string", "minLength": 1, "description": "Select this array property when the catalog delivers an object." },
+        "labelField": { "type": "string", "minLength": 1 },
+        "waitingLabel": { "type": "string", "minLength": 1, "description": "Label for members with a confirmed outstanding filing." },
+        "x-generation": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation" }
+      }
+    },
     "FilingStatusGroup": {
       "type": "object",
       "additionalProperties": false,
@@ -485,6 +498,7 @@
       "properties": {
         "id": { "type": "string", "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$", "description": "Stable id unique within this tracker." },
         "label": { "type": "string", "minLength": 1 },
+        "repeat": { "$ref": "#/$defs/FilingStatusRepeat" },
         "forms": {
           "type": "array",
           "minItems": 1,
@@ -511,8 +525,14 @@
       }
     },
     "FilingStatusParamSource": {
-      "description": "Either an explicit value or the name of a parameter declared by the current route.",
+      "description": "An explicit value, a parameter on the declaring route, or a field on the current repeat row.",
       "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rowField"],
+          "properties": { "rowField": { "type": "string", "minLength": 1 } }
+        },
         {
           "type": "object",
           "additionalProperties": false,

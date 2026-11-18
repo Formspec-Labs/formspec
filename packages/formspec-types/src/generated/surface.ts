@@ -87,12 +87,15 @@ export type Slot = {
   [k: `x-${string}`]: unknown;
 };
 /**
- * Either an explicit value or the name of a parameter declared by the current route.
+ * An explicit value, a parameter on the declaring route, or a field on the current repeat row.
  *
  * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "FilingStatusParamSource".
  */
 export type FilingStatusParamSource =
+  | {
+      rowField: string;
+    }
   | {
       value: string;
     }
@@ -334,10 +337,29 @@ export interface FilingStatusGroup {
    */
   id: string;
   label: string;
+  repeat?: FilingStatusRepeat;
   /**
    * @minItems 1
    */
   forms: [FilingStatusEntry, ...FilingStatusEntry[]];
+  'x-generation'?: Generation;
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "FilingStatusRepeat".
+ */
+export interface FilingStatusRepeat {
+  catalogRef: string;
+  sourceRef: string;
+  /**
+   * Select this array property when the catalog delivers an object.
+   */
+  rowsField?: string;
+  labelField: string;
+  /**
+   * Label for members with a confirmed outstanding filing.
+   */
+  waitingLabel: string;
   'x-generation'?: Generation;
 }
 /**
