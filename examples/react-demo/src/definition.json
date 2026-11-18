@@ -412,7 +412,7 @@
       "constraint": "moneyAmount($budget.totalProjectCost) >= moneyAmount($budget.requestedAmount) + moneyAmount($budget.matchingFunds)",
       "severity": "warning",
       "message": "Total project cost should be at least the sum of requested amount and matching funds.",
-      "activeWhen": "$budget.totalProjectCost > 0"
+      "activeWhen": "moneyAmount($budget.totalProjectCost) > 0"
     }
   ]
 }
