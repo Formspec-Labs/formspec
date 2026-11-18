@@ -92,6 +92,29 @@ def test_native_lint_accepts_surface_filing_status_only_in_0_4() -> None:
     assert {"E101", "E606"} <= codes(doc)
 
 
+def test_native_lint_reaches_a_draft_start_target_only_in_0_4() -> None:
+    doc = {
+        "$formspecSurface": "0.4",
+        "id": "projects",
+        "entry": "overview",
+        "routes": [
+            {"id": "overview", "path": "/", "slots": [
+                {"id": "start", "slotType": "draft-start",
+                 "binding": {"label": "New project", "routeRef": "edit", "slotRef": "project"}}
+            ]},
+            {"id": "edit", "path": "/edit/{unit}", "params": [{"name": "unit", "type": "string"}], "slots": [
+                {"id": "project", "slotType": "definition-form",
+                 "binding": {"definitionRef": "urn:project", "subjectKeys": {"unit": "unit"}}}
+            ]},
+        ],
+    }
+
+    surface_validator().validate(doc)
+    assert codes(doc) == set()
+    doc["$formspecSurface"] = "0.3"
+    assert {"E101", "E606"} <= codes(doc)
+
+
 @pytest.mark.parametrize(
     ("fixture", "expected"),
     [

@@ -33,7 +33,7 @@ primitive. It defines the semantic rules that are not expressible in
 
 A Surface document names routes inside an app and binds slots on those routes.
 Slots compose Definition forms, Experience units, module widgets, static
-content, native Screeners, filing-status trackers, and nested route references. Surface is inward composition: it
+content, native Screeners, filing-status trackers, draft-start controls, and nested route references. Surface is inward composition: it
 describes what can be rendered within an app after the app has been selected.
 The companion [Surface Shell Specification](surface-shell-spec.md) defines how
 a runtime composes, resolves, renders, and diagnoses published Surface
@@ -764,8 +764,9 @@ authority follows from a successful Screener destination.
 
 The canonical schema URI is `https://formspec.org/schemas/surface/0.4`.
 The 0.3 schema remains at its published URI.
-Surface 0.4 retains the native Screener slot and adds the filing-status and draft
-review bindings defined in §4. Surface 0.2 and 0.3 MUST refuse both additions.
+Surface 0.4 retains the native Screener slot and adds filing-status slots,
+draft-start slots, and draft review bindings as defined in §4. Surface 0.2
+and 0.3 MUST refuse all three additions.
 Outcome Verification retains the revisions pinned in this document.
 
 ## 6. The `surface:<route-id>` URI scheme
