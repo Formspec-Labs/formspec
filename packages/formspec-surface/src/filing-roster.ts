@@ -37,12 +37,12 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
   for (const { group, targets } of template.groups) {
     if (!group.repeat) continue;
     const descriptor = resolveDataSourceDescriptor(input.dataSources ?? [], group.repeat);
-    if (!descriptor || !filingRepeatFieldsValid(group, descriptor.source.schema)) return refuse('invalid-repeat-source');
-    for (const target of targets) {
-      const ref = own(target.slot.binding, 'definitionRef');
-      if (!filingRepeatSubjectBound(target.entry, target.slot.binding,
-        typeof ref === 'string' ? input.definitions.get(ref) : undefined)) return refuse('ambiguous-repeat');
-    }
+    const forms = targets.map(({ entry, slot }) => {
+      const ref = own(slot.binding, 'definitionRef');
+      return { entry, binding: slot.binding, definition: typeof ref === 'string' ? input.definitions.get(ref) : undefined };
+    });
+    if (!descriptor || !filingRepeatFieldsValid(group, descriptor.source.schema, forms)) return refuse('invalid-repeat-source');
+    if (!forms.every(form => filingRepeatSubjectBound(form.entry, form.binding, form.definition))) return refuse('ambiguous-repeat');
     const source = descriptor.source;
     const definition = source.definitionRef && input.definitions.get(source.definitionRef);
     // A draft read needs the producer's subject. Empty-key subjects are scoped
@@ -126,4 +126,3 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
     },
   };
 }
-

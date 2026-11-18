@@ -183,7 +183,10 @@ export function filingRepeatSubjectBound(entry: FilingStatusEntry, binding: unkn
 }
 
 /** Admit only an explicit array of records with the scalar fields the group consumes. */
-export function filingRepeatFieldsValid(group: FilingStatusGroup, schema: unknown): boolean {
+export function filingRepeatFieldsValid(
+  group: FilingStatusGroup, schema: unknown,
+  targets: readonly { entry: FilingStatusEntry; binding: unknown; definition: unknown }[],
+): boolean {
   const repeat = group.repeat;
   if (!repeat) return false;
   const payload = record(schema);
@@ -193,6 +196,15 @@ export function filingRepeatFieldsValid(group: FilingStatusGroup, schema: unknow
   const item = record(array.items);
   const fields = record(item?.properties);
   if (item?.type !== 'object' || !fields || record(fields[repeat.labelField])?.type !== 'string') return false;
+  for (const { entry, binding, definition } of targets) {
+    const keys = record(record(record(definition)?.subject)?.keys);
+    const mapping = record(record(binding)?.subjectKeys);
+    for (const [key, declared] of Object.entries(keys ?? {})) {
+      const param = mapping?.[key];
+      const source = typeof param === 'string' && entry.params?.[param];
+      if (source && 'rowField' in source && record(fields[source.rowField])?.type !== record(declared)?.dataType) return false;
+    }
+  }
   return group.forms.every(entry => Object.values(entry.params ?? {}).every(param => {
     if (!('rowField' in param)) return true;
     const type = record(fields[param.rowField])?.type;
@@ -240,7 +252,10 @@ export function validateFilingStatusTargets(context: AppGraphContext): AppGraphD
               if (forms.length !== 1) report({ pointer: pointer + '/repeat', reason: 'ambiguous-repeat' });
             }
           }
-          if (failure || !filingRepeatFieldsValid(group, record(source)?.schema)) {
+          const forms = targets.map(({ entry, slot }) => ({
+            entry, binding: slot.binding, definition: definitions.get(record(slot.binding)?.definitionRef as string),
+          }));
+          if (failure || !filingRepeatFieldsValid(group, descriptor?.schema, forms)) {
             report({ pointer: pointer + '/repeat', reason: 'invalid-repeat-source' });
           }
         }

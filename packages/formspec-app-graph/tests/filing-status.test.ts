@@ -127,6 +127,10 @@ it('validates the qualified roster shape and the row field bound to the typed su
     ],
   } as unknown as AppGraphContext;
   expect(graph.validateFilingStatusTargets(context)).toEqual([]);
+  code.type = 'string';
+  expect(graph.validateFilingStatusTargets(context)).toEqual(expect.arrayContaining([
+    expect.objectContaining({ details: { reason: 'invalid-repeat-source' } }),
+  ]));
   code.type = 'object';
   expect(graph.validateFilingStatusTargets(context)).toEqual(expect.arrayContaining([
     expect.objectContaining({ details: { reason: 'invalid-repeat-source' } }),

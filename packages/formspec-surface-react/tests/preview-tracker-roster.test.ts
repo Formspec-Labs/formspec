@@ -93,6 +93,8 @@ it('loads the authorized roster from its keyed draft and then its filed Response
     const rows = groups.flatMap(group => group.rows);
     const queries = rows.flatMap(row => row.status === 'ready' ? [row.query] : []);
     expect(queries.map(q => q.subject?.keys.unit)).toEqual(['b', 'a']);
+    expect(queries[0]?.sections).toBe(queries[1]?.sections);
+    expect(queries.every(query => !query.key.includes('"answer"'))).toBe(true);
     const summary = await store.drafts.readSummaries(queries, { previewScope: scope, signal: new AbortController().signal });
     expect(queries.map(q => summary.get(q.key)?.filing)).toMatchObject([
       { status: 'none' }, { status: 'filed', receiptRef: report + ':a' },
