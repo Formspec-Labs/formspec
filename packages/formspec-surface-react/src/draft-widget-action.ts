@@ -13,10 +13,7 @@ export function fenceDraftWidgetActions(
   return async input => {
     if (input.document.scope === 'app') return executor(input);
     const { action } = resolveResponseAction(input.document, input.actionRef);
-    const signingWidget = input.source.widgetName === 'SigningCeremony' || input.source.widgetName === 'x-signing-ceremony';
-    const output = input.source.outputName;
-    const kind = signingWidget && (output === 'sign' || output === 'submit')
-      ? output : filingAction(input.document, action);
+    const kind = filingAction(input.document, action);
     const checkpoint = action && usesDraftCheckpoint(action);
     if (!kind && !checkpoint) return executor(input);
 

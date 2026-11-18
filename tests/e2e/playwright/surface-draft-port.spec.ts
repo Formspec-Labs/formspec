@@ -27,15 +27,23 @@ for (const keepEdits of [false, true]) {
     await expect(other.getByLabel('Answer')).toHaveValue('loser');
 
     const action = keepEdits ? 'Keep my changes' : 'Load the newer version';
-    await other.getByRole('button', { name: action, exact: true }).click();
-    await other.getByRole('button', { name: 'Cancel', exact: true }).click();
+    const choice = other.getByRole('button', { name: action, exact: true });
+    const confirm = other.getByRole('button', { name: keepEdits ? 'Confirm overwrite' : 'Confirm discard' });
+    await choice.press('Enter');
+    await expect(confirm).toBeFocused();
+    const controls = other.getByRole('group', { name: /This form was changed somewhere else/ });
+    await expect(controls).toContainText(keepEdits ? 'Replace the saved version' : 'Discard your edits');
+    await expect(confirm).toHaveAccessibleDescription(/This form was changed somewhere else/);
+    await other.getByRole('button', { name: 'Cancel', exact: true }).press('Enter');
+    await expect(choice).toBeFocused();
     await expect(other.getByLabel('Answer')).toHaveValue('loser');
     await page.reload();
     await expect(page.getByLabel('Answer')).toHaveValue('winner');
 
-    await other.getByRole('button', { name: action, exact: true }).click();
-    await other.getByRole('button', { name: keepEdits ? 'Confirm overwrite' : 'Confirm discard' }).click();
+    await choice.press('Enter');
+    await confirm.press('Enter');
     await expect(other.getByLabel('Answer')).toHaveValue(keepEdits ? 'loser' : 'winner');
+    await expect(other.getByRole('form', { name: 'Filing' })).toBeFocused();
     await expect(other.getByText(keepEdits ? 'Draft saved in this browser.' : 'Newer draft loaded.')).toBeVisible();
     await expect(conflict).toHaveCount(0);
     await page.reload();
@@ -48,6 +56,26 @@ for (const keepEdits of [false, true]) {
     await expect(page.getByLabel('Answer')).toHaveValue('follow-up');
   });
 }
+
+test('refused navigation returns focus to the named conflict controls each time', async ({ page, context }) => {
+  const path = '/surface-drafts.html?form&auto';
+  await page.goto(path);
+  const other = await context.newPage();
+  await other.goto(path);
+  await expect(other.getByLabel('Answer')).toHaveValue('');
+  await page.getByLabel('Answer').fill('winner');
+  await expect(page.getByRole('banner').getByRole('status')).toHaveText('Draft saved in this browser.');
+  await other.getByLabel('Answer').fill('retained edit');
+  await expect(other.getByRole('banner').getByRole('status')).toHaveText(/This form was changed somewhere else/);
+
+  const overview = other.getByRole('link', { name: 'Overview' });
+  const controls = other.getByRole('group', { name: /This form was changed somewhere else/ });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await overview.press('Enter');
+    await expect(controls).toBeFocused();
+    await expect(other.getByLabel('Answer')).toHaveValue('retained edit');
+  }
+});
 
 test('restores a hidden answer and an empty repeat row after reload', async ({ page }) => {
   await page.goto('/surface-drafts.html?form');
@@ -76,12 +104,20 @@ test('preview confirms restart after a version change', async ({ page }) => {
   await expect(page.getByText('Draft saved in this browser.')).toBeVisible();
   await page.goto('/surface-drafts.html?form&version=2.0.0');
   await expect(page.getByLabel('Answer')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Discard draft and restart' }).click();
+  const restart = page.getByRole('button', { name: 'Discard draft and restart', exact: true });
+  const confirm = page.getByRole('button', { name: 'Confirm discard and restart', exact: true });
+  const mismatch = 'This draft was saved with a different version of the form.';
+  await restart.press('Enter');
+  await expect(confirm).toBeFocused();
+  await expect(page.getByRole('group', { name: mismatch })).toBeVisible();
+  await expect(confirm).toHaveAccessibleDescription(mismatch);
   await expect(page.getByLabel('Answer')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Keep draft' }).click();
-  await page.getByRole('button', { name: 'Discard draft and restart' }).click();
-  await page.getByRole('button', { name: 'Confirm discard and restart' }).click();
+  await page.getByRole('button', { name: 'Keep draft' }).press('Enter');
+  await expect(restart).toBeFocused();
+  await restart.press('Enter');
+  await confirm.press('Enter');
   await expect(page.getByLabel('Answer')).toHaveValue('');
+  await expect(page.getByRole('form', { name: 'Filing' })).toBeFocused();
   await page.goto('/surface-drafts.html?form');
   await expect(page.getByLabel('Answer')).toHaveValue('');
 });

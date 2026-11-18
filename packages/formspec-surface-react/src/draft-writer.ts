@@ -16,6 +16,8 @@ import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import type { EffectRequest, FormResponse } from '@formspec-org/types';
 import type { SurfaceSaveNotice } from './SurfaceSlot.js';
 
+export type DraftNoticeReporter = (notice: SurfaceSaveNotice, options?: { focusConflict?: boolean }) => void;
+
 export interface DraftWriterOptions {
   engine: IFormEngine;
   key: DraftKey;
@@ -26,7 +28,7 @@ export interface DraftWriterOptions {
   author?: { id: string; name?: string } | undefined;
   locally?: boolean | undefined;
   debounceMs?: number | undefined;
-  report?: ((notice: SurfaceSaveNotice) => void) | undefined;
+  report?: DraftNoticeReporter | undefined;
   invoker?: DraftActionInvoker | undefined;
   checkpointPorts?: DraftCheckpointPorts | undefined;
   responseId?: string | undefined;
@@ -145,9 +147,10 @@ export function createDraftWriter(options: DraftWriterOptions) {
     if (!authoredAutosave) return true;
     clearTimer();
     if (fence) await fence.catch(() => undefined);
-    if (autosaving && !await autosaving) return false;
-    if (pending && !await pending) return false;
-    return active && !conflicted && (edit === savedEdit || await saveAutomatically());
+    const canLeave = (!autosaving || await autosaving) && (!pending || await pending) &&
+      active && !conflicted && (edit === savedEdit || await saveAutomatically());
+    if (!canLeave && conflicted) report?.('draftConflict', { focusConflict: true });
+    return canLeave;
   }
 
   const unsubscribe = preactReactiveRuntime.effect(() => {

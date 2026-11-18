@@ -375,6 +375,33 @@ it('refuses widget Submit after an edit replaces the revision seen by Sign', asy
   expect(executor).toHaveBeenCalledTimes(1);
 });
 
+it('uses the declared Prepare and Sign operations under different ceremony output names', async () => {
+  const { engine, writer } = fixture(false);
+  const catalog = ceremony['x-formspec-runtime'];
+  const document: ResponseActionsDocument = {
+    ...ceremony,
+    'x-formspec-runtime': {
+      ...catalog,
+      requests: [
+        ...catalog.requests,
+        { ...catalog.requests[0], id: 'candidate', operation: 'prepare' },
+      ],
+    },
+    actions: [
+      ...ceremony.actions,
+      { id: 'prepare', intent: 'review', effects: [{
+        type: 'serviceRequest', requestRef: 'candidate', idempotencyKey: '@invocation.id',
+      }] },
+    ],
+  };
+  const { run, executor } = widget(writer, engine, { document });
+  engine.setValue('answer', 'candidate');
+  await expect(run('prepare', 'sign')).resolves.toMatchObject({ status: 'completed' });
+  engine.setValue('answer', 'edited after Prepare');
+  await expect(run('approve', 'submit')).rejects.toThrow('Prepare this draft');
+  expect(executor).toHaveBeenCalledTimes(1);
+});
+
 it('routes a response widget Save through the writer using the checkpoint tuple', async () => {
   const { engine, writer, stored } = fixture(false);
   const { executor, run } = widget(writer, engine, { widgetName: 'TestWidget' });

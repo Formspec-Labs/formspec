@@ -6,8 +6,8 @@ import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import { resolvePageSequence } from '@formspec-org/layout';
 import type { BrowserDraftPort, DataSourceSubject, DraftKey, DraftLoadResult, DraftPort } from '@formspec-org/surface';
 import type { FormResponse } from '@formspec-org/types';
-import { createDraftWriter, type DraftCheckpointPorts, type DraftWriter } from './draft-writer.js';
-import type { SurfaceDefinitionFormRenderInput, SurfaceSaveNotice } from './SurfaceSlot.js';
+import { createDraftWriter, type DraftCheckpointPorts, type DraftNoticeReporter, type DraftWriter } from './draft-writer.js';
+import type { SurfaceDefinitionFormRenderInput } from './SurfaceSlot.js';
 
 export interface SurfaceDraftStorage {
   port: DraftPort;
@@ -28,7 +28,7 @@ type DraftOpen =
   | { status: 'denied' | 'unavailable' | 'loading' };
 
 type Entry = {
-  consumers: Set<(notice: SurfaceSaveNotice) => void>;
+  consumers: Set<DraftNoticeReporter>;
   result: Promise<DraftOpen>;
   seed: Pick<SurfaceDefinitionFormRenderInput, 'initialData' | 'draftSeed'>;
   opened?: DraftOpen;
@@ -60,7 +60,7 @@ export function createDraftSession(
     port: storage.port,
     restart: browserPort?.restart,
 
-    acquire(key: DraftKey, input: SurfaceDefinitionFormRenderInput, report: (notice: SurfaceSaveNotice) => void) {
+    acquire(key: DraftKey, input: SurfaceDefinitionFormRenderInput, report: DraftNoticeReporter) {
       const definition = input.plan.definition;
       const id = sessionKey(key, definition.version);
       let entry = entries.get(id);
@@ -72,7 +72,7 @@ export function createDraftSession(
       }
       if (!entry) {
         const reusable = previous?.status === 'ready' ? previous : undefined;
-        const consumers = previousConsumers ?? new Set<(notice: SurfaceSaveNotice) => void>();
+        const consumers = previousConsumers ?? new Set<DraftNoticeReporter>();
         const opened = async (): Promise<DraftOpen> => {
           let loaded: DraftLoadResult;
           try {
@@ -119,7 +119,7 @@ export function createDraftSession(
               actions: input.responseActionsDocument,
               invoker: input.responseActionInvoker,
               checkpointPorts,
-              report: notice => { for (const notify of consumers) notify(notice); },
+              report: (notice, options) => { for (const notify of consumers) notify(notice, options); },
             });
             return { status: 'ready', engine, writer };
           } catch (error) {

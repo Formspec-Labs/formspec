@@ -356,8 +356,10 @@ MUST reject an unresolved or ambiguous `requestRef` before invocation.
 A response-scoped signing request declares `operation: "prepare"` to
 prepare the filing candidate or `operation: "sign"` to sign it. An Action
 MUST reference at most one request marked with a signing operation. Processors
-use the resolved request's operation to apply the draft revision check.
-The effective validation tuple declares draft checkpoint persistence.
+use the resolved request's operation to apply the
+[draft revision check](#draft-revision-check). The Action's effective
+[validation tuple](#5-validation-trigger-mapping) determines whether the
+processor saves the Response as a draft checkpoint.
 
 <!-- schema-ref:start id=response-actions-service-requests schema=schemas/response-actions.schema.json pointers=#/$defs/ServiceRequestEffect,#/$defs/RuntimeRequestCatalog,#/$defs/RuntimeRequest,#/$defs/HttpJsonRequest,#/$defs/RuntimeValueSelector,#/$defs/RuntimeRequestOutput -->
 <!-- generated:schema-ref id=response-actions-service-requests -->
@@ -435,6 +437,13 @@ directly in its private session store. Retry MUST reuse the frozen effect
 idempotency key. A Promise-returning adapter requires the asynchronous
 invocation API; the synchronous API MUST fail before treating that Promise as
 a successful outcome.
+
+#### Draft revision check
+
+For a draft-backed Prepare, Sign, or Submit, the processor finishes pending
+draft writes and passes the resulting saved revision to the filing service.
+The service checks that the saved draft still has that revision before
+applying the operation.
 
 ## 7. Invocation State Machine
 

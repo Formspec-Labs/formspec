@@ -373,13 +373,10 @@ fn service_request_diagnostics(doc: &Value) -> Vec<LintDiagnostic> {
                 ));
             }
             prior.push(request_index);
-            if let Some(operation) = request.get("operation")
-                && (is_app_scope(doc) || !matches!(operation.as_str(), Some("prepare" | "sign")))
-            {
+            if is_app_scope(doc) && is_signing_request(request) {
                 diagnostics.push(service_request_error(
                     format!("$.x-formspec-runtime.requests[{request_index}].operation"),
-                    "A response-scoped signing request must declare operation prepare or sign."
-                        .to_owned(),
+                    "Only response-scoped requests may declare a signing operation.".to_owned(),
                 ));
             }
             check_runtime_request(request, request_index, &mut diagnostics);
@@ -407,8 +404,7 @@ fn service_request_diagnostics(doc: &Value) -> Vec<LintDiagnostic> {
                 match requests_by_id.get(request_ref).map(Vec::len) {
                     Some(1) => {
                         let request_index = requests_by_id[request_ref][0];
-                        if requests.and_then(|items| items[request_index].get("operation")).is_some()
-                        {
+                        if requests.is_some_and(|items| is_signing_request(&items[request_index])) {
                             if signing_operation_seen {
                                 diagnostics.push(service_request_error(
                                     path,
@@ -437,6 +433,13 @@ fn service_request_diagnostics(doc: &Value) -> Vec<LintDiagnostic> {
     }
 
     diagnostics
+}
+
+fn is_signing_request(request: &Value) -> bool {
+    matches!(
+        request.get("operation").and_then(Value::as_str),
+        Some("prepare" | "sign")
+    )
 }
 
 fn service_request_error(path: String, message: String) -> LintDiagnostic {
@@ -1106,20 +1109,59 @@ mod tests {
                 "request": { "method": "POST", "pathTemplate": "/candidate" }
             }]
         });
-        let has_operation_error = |doc: &serde_json::Value| {
-            lint_response_actions(doc, None, &[])
-                .iter()
-                .any(|diagnostic| {
-                    diagnostic.code == crate::LintCode::E1805
-                        && diagnostic.path.ends_with(".operation")
+        let operation_diagnostics = |doc: &serde_json::Value| {
+            crate::lint(doc)
+                .diagnostics
+                .into_iter()
+                .filter(|diagnostic| {
+                    diagnostic.path == "$.x-formspec-runtime.requests[0].operation"
                 })
+                .map(|diagnostic| diagnostic.code)
+                .collect::<Vec<_>>()
         };
-        assert!(!has_operation_error(&doc));
+        assert!(operation_diagnostics(&doc).is_empty());
         doc["x-formspec-runtime"]["requests"][0]["operation"] = json!("unknown");
-        assert!(has_operation_error(&doc));
+        // The schema owns the operation enum. The semantic pass owns the scope restriction.
+        assert_eq!(operation_diagnostics(&doc), [crate::LintCode::E101]);
         doc["x-formspec-runtime"]["requests"][0]["operation"] = json!("sign");
         doc["scope"] = json!("app");
-        assert!(has_operation_error(&doc));
+        assert_eq!(operation_diagnostics(&doc), [crate::LintCode::E1805]);
+    }
+
+    #[test]
+    fn each_action_may_reference_only_one_signing_request() {
+        let mut doc = response_actions();
+        doc["x-formspec-runtime"] = json!({
+            "version": "1.0",
+            "requests": [
+                { "id": "prepare", "operation": "prepare", "adapter": "http-json",
+                  "request": { "method": "POST", "pathTemplate": "/prepare" } },
+                { "id": "sign", "operation": "sign", "adapter": "http-json",
+                  "request": { "method": "POST", "pathTemplate": "/sign" } }
+            ]
+        });
+        doc["actions"][0]["effects"] = json!([
+            { "type": "serviceRequest", "requestRef": "prepare", "idempotencyKey": "@invocation.id & '/prepare'" },
+            { "type": "serviceRequest", "requestRef": "sign", "idempotencyKey": "@invocation.id & '/sign'" }
+        ]);
+        let service_errors = |doc: &serde_json::Value| {
+            lint_response_actions(doc, None, &[])
+                .into_iter()
+                .filter(|diagnostic| diagnostic.code == crate::LintCode::E1805)
+                .map(|diagnostic| diagnostic.path)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(service_errors(&doc), ["$.actions[0].effects[1].requestRef"]);
+
+        let sign = doc["actions"][0]["effects"]
+            .as_array_mut()
+            .unwrap()
+            .pop()
+            .unwrap();
+        doc["actions"].as_array_mut().unwrap().push(json!({
+            "id": "sign", "intent": "review", "effects": [sign]
+        }));
+        assert!(service_errors(&doc).is_empty());
     }
 
     #[test]
