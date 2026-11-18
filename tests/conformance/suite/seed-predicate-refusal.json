@@ -1,0 +1,18 @@
+{
+  "id": "seed-from.refuses-invalid-predicates",
+  "kind": "VALIDATION_REPORT",
+  "specRefs": ["Core §4.2.2.1 seed predicate definition errors, even with an empty source array"],
+  "definitionPath": "tests/conformance/suite/fixtures/seed-predicate-refusal.definition.json",
+  "origin": "new",
+  "mode": "continuous",
+  "inputData": { "answer": true },
+  "expected": {
+    "valid": false,
+    "counts": { "error": 3, "warning": 0, "info": 0 },
+    "results": [
+      { "path": "$.items[0].seedFrom.where", "code": "SEED_PREDICATE_SCOPE", "severity": "error", "constraintKind": "definition", "source": "definition" },
+      { "path": "$.items[1].seedFrom.where", "code": "ARITY_MISMATCH", "severity": "error", "constraintKind": "definition", "source": "definition" },
+      { "path": "$.items[2].seedFrom.where", "code": "SYNTAX_ERROR", "severity": "error", "constraintKind": "definition", "source": "definition" }
+    ]
+  }
+}

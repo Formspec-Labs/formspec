@@ -1,0 +1,69 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:seed-selected-rows",
+  "version": "1.0.0",
+  "title": "Open records",
+  "items": [
+    {
+      "type": "group",
+      "key": "rows",
+      "label": "Open records",
+      "repeatable": true,
+      "seedFrom": {
+        "instance": "records",
+        "path": "list",
+        "where": "empty($.closed)"
+      },
+      "children": [
+        {
+          "type": "field",
+          "dataType": "string",
+          "key": "sourceId",
+          "label": "Source ID",
+          "prePopulate": {
+            "instance": "records",
+            "path": "id"
+          }
+        },
+        {
+          "type": "group",
+          "key": "nested",
+          "label": "Nested rows",
+          "repeatable": true,
+          "minRepeat": 1,
+          "seedFrom": {
+            "instance": "records",
+            "path": "list",
+            "where": "invalid +"
+          },
+          "children": []
+        }
+      ],
+      "maxRepeat": 2
+    }
+  ],
+  "instances": {
+    "records": {
+      "data": {
+        "list": [
+          {
+            "id": "C",
+            "closed": true,
+            "name": "Closed"
+          },
+          {
+            "id": "A",
+            "closed": null,
+            "name": "Alpha"
+          },
+          {
+            "id": "B",
+            "closed": null,
+            "name": "Beta"
+          }
+        ]
+      },
+      "source": "https://conformance.invalid/records"
+    }
+  }
+}

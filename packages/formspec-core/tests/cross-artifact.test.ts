@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createRawProject } from '../src/index.js';
+import { allExpressions } from '../src/queries/index.js';
 
 /** Get Section nodes from the component tree. */
 function getPageNodes(project: ReturnType<typeof createRawProject>): any[] {
@@ -211,6 +212,24 @@ describe('deleteItem — cross-artifact cleanup', () => {
 });
 
 describe('renameInstance — FEL rewriting', () => {
+  it('renames a repeat seed and its relative reads while preserving candidate fields', () => {
+    const project = createRawProject({ seed: { definition: {
+      $formspec: '1.0', url: 'urn:test:rename-seed', version: '1.0.0', title: 'Seed',
+      instances: { lookup: { data: { rows: [], cutoff: 10 } } },
+      items: [{
+        type: 'group', key: 'rows', label: 'Rows', repeatable: true,
+        seedFrom: { instance: 'lookup', path: 'rows', where: "$.cutoff >= @instance('lookup').cutoff" },
+        children: [{ type: 'field', key: 'cutoff', label: 'Cutoff', dataType: 'integer', prePopulate: { instance: 'lookup', path: 'cutoff' } }],
+      }],
+    } } });
+    project.dispatch({ type: 'definition.renameItem', payload: { path: 'rows.cutoff', newKey: 'amount' } });
+    project.dispatch({ type: 'definition.renameInstance', payload: { name: 'lookup', newName: 'records' } });
+    const where = "$.cutoff >= @instance('records').cutoff";
+    expect(project.definition.items[0].seedFrom).toEqual({ instance: 'records', path: 'rows', where });
+    expect(project.definition.items[0].children?.[0].prePopulate).toEqual({ instance: 'records', path: 'cutoff' });
+    expect(allExpressions(project.state)).toContainEqual({ expression: where, artifact: 'definition', location: 'items[rows].seedFrom.where' });
+  });
+
   it('rewrites @instance references in bind expressions', () => {
     const project = createRawProject();
     project.batch([

@@ -54,6 +54,60 @@ test('public resolver loads a readonly host source and drives binds and deferred
   engine.dispose();
 });
 
+test('filtered seeds agree across eager and delayed delivery while a person edits', async () => {
+  const def = definition();
+  def.subject = { type: 'urn:test:group', keys: { name: { dataType: 'string' } } };
+  def.instances.policy = { source: 'urn:host:policy', data: { minimum: 30 } };
+  def.items[2].maxRepeat = 1;
+  def.items[2].seedFrom.where = "$.name = subject('name') and $.age >= instance('policy', 'minimum')";
+  const values = {
+    context: { people: [{ name: 'Closed', age: 20 }, { name: 'One', age: 12 }] },
+    policy: { minimum: 11 },
+  };
+  const options = {
+    responseData: { name: 'Host prefill' },
+    responseSubject: { id: 'unit', type: 'urn:test:group', keys: { name: 'One' } },
+  };
+  const inline = structuredClone(def);
+  inline.instances = Object.fromEntries(Object.entries(values).map(([name, data]) => [name, { data }]));
+  const eager = createFormEngine(inline, options);
+  const expected = eager.getResponse().data.people;
+  assert.deepEqual(expected, [{ name: 'One' }]);
+  for (const order of [['context', 'policy'], ['policy', 'context']]) {
+    const sources = { context: deferred(), policy: deferred() };
+    const late = createFormEngine(def, {
+      ...options,
+      instanceSourceResolver: ({ instanceName }) => sources[instanceName].promise,
+    });
+    sources[order[0]].resolve({ status: 'loaded', value: values[order[0]] });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(Object.hasOwn(late.getResponse({ profile: 'off' }).data, 'people'), false);
+    late.setValue('name', 'Person edit');
+    sources[order[1]].resolve({ status: 'loaded', value: values[order[1]] });
+    await late.waitForInstanceSources();
+    assert.deepEqual(late.getResponse().data.people, expected);
+    assert.equal(late.getResponse().data.name, 'Person edit');
+    late.dispose();
+  }
+  eager.dispose();
+});
+
+test('a failed seed predicate remains visible after re-evaluation', () => {
+  const def = definition();
+  def.items[2].seedFrom.where = "'not a Boolean'";
+  const engine = createFormEngine(def, { loadExternalSources: false });
+  engine.setValue('name', 'Person edit');
+  assert.equal(engine.repeats.people.value, 0);
+  assert.equal(Object.hasOwn(engine.getResponse().data, 'people'), false);
+  assert.equal(Object.hasOwn(engine.getDraftSnapshot().data, 'people'), false);
+  assert.deepEqual(engine.getDiagnosticsSnapshot().evaluationDiagnostics.map(({ code, path }) => ({ code, path })), [
+    { code: 'SEED_PREDICATE_TYPE', path: 'people' },
+  ]);
+  engine.loadResponseData({ people: [] });
+  assert.deepEqual(engine.getDiagnosticsSnapshot().evaluationDiagnostics, []);
+  engine.dispose();
+});
+
 test('person edits and supplied Response data win over late source seeding', async () => {
   const pending = deferred();
   const engine = createFormEngine(definition(), {

@@ -394,6 +394,7 @@ export function allExpressions(state: ProjectState): ExpressionLocation[] {
       forEachItemFelExpression(item, (prop, expression) => {
         pushExpression(expression, 'definition', `items[${path}].${prop}`);
       });
+      pushExpression(item.seedFrom?.where, 'definition', `items[${path}].seedFrom.where`);
       if (typeof item.initialValue === 'string' && item.initialValue.startsWith('=')) {
         pushExpression(item.initialValue.slice(1), 'definition', `items[${path}].initialValue`);
       }

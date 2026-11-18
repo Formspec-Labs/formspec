@@ -295,6 +295,18 @@
       "state": "tested"
     },
     {
+      "code": "E407",
+      "pass": 4,
+      "severity": "error",
+      "title": "Seed predicate has invalid scope or function arity",
+      "specRef": "specs/core/spec.md#repeat-seeding-from-secondary-instances-seedfrom",
+      "suggestedFix": "use $.field, subject(), or a declared instance with a literal name, and check function argument counts",
+      "fixtures": [
+        "tests/fixtures/lint/E407-seed-predicate-scope.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "E500",
       "pass": 5,
       "severity": "error",

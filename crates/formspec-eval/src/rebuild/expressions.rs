@@ -4,7 +4,8 @@ use std::collections::{HashMap, HashSet};
 
 use fel_core::exact_json::Value;
 use formspec_core::definition_expressions::{
-    ExpressionSite, visit_expressions, visit_initial_value_expressions, visit_template_expressions,
+    ExpressionSite, visit_expressions, visit_initial_value_expressions, visit_seed_predicates,
+    visit_template_expressions,
 };
 use formspec_core::repeat_references::{
     unsubscripted_repeat_message, unsubscripted_repeats, variable_target,
@@ -99,6 +100,22 @@ pub(crate) fn check(definition: &Value, items: &[ItemInfo]) -> Vec<ValidationRes
     }
     visit_initial_value_expressions(definition, |source, target, location| {
         check_expression(source, Some(target), location, false);
+    });
+    visit_seed_predicates(definition, Value::as_bool, |source, path| {
+        if let Err(error) = formspec_core::seed_predicate::parse_seed_predicate(definition, source)
+        {
+            errors.push(ValidationResult {
+                path: path.to_owned(),
+                severity: Severity::Error,
+                constraint_kind: ConstraintKind::Definition,
+                code: ValidationCode::from_wire(error.code),
+                message: error.message,
+                constraint: Some(source.to_owned()),
+                source: Some(ValidationSource::Definition),
+                shape_id: None,
+                context: None,
+            });
+        }
     });
     errors
 }

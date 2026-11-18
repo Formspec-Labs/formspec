@@ -1986,6 +1986,7 @@ codes override the generic defaults.
 | `CONSTRAINT_PARSE_ERROR` | `constraint` | Bind `constraint` expression calls an undefined function (§3.10.1). |
 | `SYNTAX_ERROR` | `definition` | An authored FEL expression does not conform to the grammar (§3.10.1). Rebuild refuses evaluation at the authored expression. A `{{}}` text interpolation is exempt: it renders literally (§4.2.1). |
 | `ARITY_MISMATCH` | `definition` | An authored FEL expression calls a built-in function with the wrong number of arguments (§3.10.1). Rebuild refuses evaluation at the authored expression. A `{{}}` text interpolation is exempt. |
+| `SEED_PREDICATE_SCOPE` | `definition` | A `seedFrom.where` predicate reads a source outside its creation scope (§4.2.2.1). Rebuild refuses evaluation at the authored predicate. |
 | `UNSUBSCRIPTED_REPEAT_REFERENCE` | `definition` | An authored field path continues past a repeatable Group without a subscript (§3.2.2). Rebuild refuses evaluation at the authored expression. |
 | `UNASSEMBLED_DEFINITION_REFERENCE` | `definition` | A Group still carries a `$ref` inclusion that assembly (§6.6.2) has not resolved. Rebuild refuses evaluation at the authored reference. |
 | `CIRCULAR_DEPENDENCY` | `definition` | The dependency graph contains a cycle (§3.6). |
@@ -3603,14 +3604,14 @@ Group-specific properties:
 | `repeatable` | boolean | **0..1** (OPTIONAL) | When `true`, this Group represents a one-to-many collection. Each repetition creates an independent copy of the Group's `children` in the Response data. Default: `false`. |
 | `minRepeat` | integer | **0..1** (OPTIONAL) | Minimum number of repetitions. Applicable only when `repeatable` is `true`. MUST be a non-negative integer. Default: `0`. If `minRepeat` is greater than zero, creation MUST open at least that many repetitions for an absent Group. The processor MUST preserve the count of a Group supplied by the host or in a saved Response. |
 | `maxRepeat` | integer | **0..1** (OPTIONAL) | Maximum number of repetitions. Applicable only when `repeatable` is `true`. MUST be a positive integer, or absent for unbounded. If present, MUST be greater than or equal to `minRepeat`. Implementations MUST prevent the user from adding repetitions beyond this limit. |
-| `seedFrom` | object | **0..1** (OPTIONAL) | Applicable only when `repeatable` is `true`. One new-Response repetition per JSON array element on a named secondary instance (`instance`, `path`). Normative rules in §4.2.2.1. |
+| `seedFrom` | object | **0..1** (OPTIONAL) | Applicable only when `repeatable` is `true`. One new-Response repetition per selected JSON array element on a named secondary instance (`instance`, `path`, optional `where`). Normative rules in §4.2.2.1. |
 
 A non-repeatable Group (the default) is rendered as a single structural
 section. Its `children` appear exactly once in the Response data.
 
 #### 4.2.2.1 Repeat seeding from secondary instances (`seedFrom`)
 
-A repeatable Group MAY declare `seedFrom` (`instance` + `path`) to open one
+A repeatable Group MAY declare `seedFrom` (`instance`, `path`, optional `where`) to open one
 `$primary` repetition per element of a JSON array on a named secondary instance
 at **new Response creation** (one-shot; not continuous like `calculate`).
 Extended conformance (§1.4.2). This is an array path on a Definition-local
@@ -3638,8 +3639,43 @@ Group with no repeatable ancestor; a nested `seedFrom` MUST be ignored.
 }
 ```
 
-Let `N` be the length of the JSON array at `seedFrom.path` when that value is an
-array; otherwise `N = 0`. The processor MUST create `max(minRepeat, min(N,
+**Filter.** If `seedFrom.where` is present, the processor MUST evaluate the
+FEL predicate once per candidate, in source order, before applying repeat
+limits. Only Boolean `true` selects an element. The predicate sees the
+candidate as `$` (`$.closed` reads its `closed` field), the current Response
+subject via `subject(key)`, and declared secondary instances via
+`@instance('name')` or `instance('name', path)`. Instance names MUST be string
+literals. FEL `let` bindings and built-ins that operate on these inputs are
+available. The predicate MUST NOT reference primary fields, Definition
+variables, repeat navigation or state, validation state, the clock, host locale,
+runtime metadata, or host extension functions. A pending instance named by the
+predicate MUST keep the repeat absent even if the seed array has arrived.
+
+For example, given a declared `records` instance with:
+
+```{#seed-filter-data .json}
+{ "list": [{ "id": "C", "closed": "2020-01-01" }, { "id": "A", "closed": null }] }
+```
+
+this declaration MUST create only the repetition for `A`, even when the
+array arrives after creation starts. Relative `prePopulate` of `id` MUST copy
+`A`, including when `maxRepeat` is `1`.
+
+```{#seed-filter-declaration .json}
+{ "instance": "records", "path": "list", "where": "empty($.closed)" }
+```
+
+A processor MUST report syntax, arity and scope errors at the authored
+predicate as Definition errors (`SYNTAX_ERROR`, `ARITY_MISMATCH` and
+`SEED_PREDICATE_SCOPE`). During creation, a predicate evaluation error or a
+non-Boolean result MUST leave the repeat absent and report a diagnostic. Use
+the FEL error code when available, `SEED_PREDICATE_EVALUATION` otherwise, and
+`SEED_PREDICATE_TYPE` for a non-Boolean result. An error in any candidate
+aborts the selection, even after enough matches have been found for `maxRepeat`.
+
+Let `N` be the number of selected elements from the JSON array at
+`seedFrom.path`. Without `where`, select every element. If the path does not
+resolve to an array, `N = 0`. The processor MUST create `max(minRepeat, min(N,
 maxRepeat))` repetitions when `maxRepeat` is present, or `max(minRepeat, N)`
 when it is absent. Rows beyond `N` (minRepeat padding) MUST stay empty.
 `seedFrom` does not lock add/remove; `minRepeat`, `maxRepeat`, and Bind

@@ -169,6 +169,8 @@ export class FormEngine implements IFormEngine {
     private readonly _instanceSourceAbort = new AbortController();
     private readonly _pendingInstanceSources = new Set<string>();
     private _pendingCreationPaths = new Set<string>();
+    private readonly _creationDiagnostics: EvalDiagnostic[] = [];
+    private readonly _failedSeedPaths = new Set<string>();
     private readonly _instanceSourceOutcomes: Record<string, InstanceSourceLoadOutcome> = Object.create(null);
     private _disposed = false;
     private readonly _instanceSourceTasks: Array<Promise<void>> = [];
@@ -435,6 +437,7 @@ export class FormEngine implements IFormEngine {
         if (!created) return undefined;
         this._rx.batch(() => {
             this._pendingCreationPaths.delete(path);
+            this._failedSeedPaths.delete(path);
             for (const pending of created.pending) this._pendingCreationPaths.add(pending);
             this.appendRepeatRow(path, item);
             this.loadItemsData(item.children ?? [], created.data, `${path}[${index}]`);
@@ -477,6 +480,8 @@ export class FormEngine implements IFormEngine {
     public loadResponseData(data: JsonRecord): void {
         this._rx.batch(() => {
             this._pendingCreationPaths.clear();
+            this._creationDiagnostics.length = 0;
+            this._failedSeedPaths.clear();
             this.loadItemsData(this.definition.items, data, '', true);
             this._evaluate(null);
         });
@@ -486,7 +491,8 @@ export class FormEngine implements IFormEngine {
         return captureDraftData(
             this.definition.items,
             path => this._data[path],
-            path => this._pendingCreationPaths.has(path) ? undefined : this.repeats[path].value,
+            path => this._pendingCreationPaths.has(path) || this._failedSeedPaths.has(path)
+                ? undefined : this.repeats[path].value,
         );
     }
 
@@ -557,7 +563,11 @@ export class FormEngine implements IFormEngine {
     private createResponseData(data: JsonRecord, pendingPaths?: string[]): void {
         const created = wasmCreateResponse(this.definition, data, this.creationContext(pendingPaths), this._extensionFunctions);
         this._pendingCreationPaths = new Set(created.pending);
-        for (const message of created.diagnostics) console.warn(message);
+        for (const diagnostic of created.diagnostics) {
+            this._creationDiagnostics.push(diagnostic);
+            // Missing source arrays still use the authored repeat minimum.
+            if (diagnostic.code !== 'SEED_SOURCE_UNAVAILABLE') this._failedSeedPaths.add(diagnostic.path);
+        }
         this.loadItemsData(this.definition.items, created.data, '');
     }
 
@@ -954,7 +964,7 @@ export class FormEngine implements IFormEngine {
 
     private draftResponseData(result: EvalResult): Record<string, unknown> {
         const data = cloneValue(result.data);
-        for (const path of this._pendingCreationPaths) {
+        for (const path of [...this._pendingCreationPaths, ...this._failedSeedPaths]) {
             if (!this.repeats[path]) continue;
             const parentPath = parentPathOf(path);
             const parent = getNestedValue(data, parentPath);
@@ -1002,7 +1012,7 @@ export class FormEngine implements IFormEngine {
             values,
             mips,
             validation: validation.report,
-            evaluationDiagnostics: validation.diagnostics,
+            evaluationDiagnostics: [...this._creationDiagnostics.map(diagnostic => ({ ...diagnostic })), ...validation.diagnostics],
             runtimeContext: {
                 now: timestamp,
                 locale: this._runtimeContext.locale,

@@ -174,6 +174,8 @@ pub enum ValidationCode {
     SyntaxError,
     /// A built-in function is called with the wrong number of arguments (Core §3.10.1).
     ArityMismatch,
+    /// A seed predicate reads an input outside its creation scope.
+    SeedPredicateScope,
     /// A field reference traverses a repeatable group without a subscript.
     UnsubscriptedRepeatReference,
     /// A Group inclusion needs assembly before evaluation.
@@ -214,6 +216,7 @@ impl ValidationCode {
             "CONSTRAINT_PARSE_ERROR" => Self::ConstraintParseError,
             "SYNTAX_ERROR" => Self::SyntaxError,
             "ARITY_MISMATCH" => Self::ArityMismatch,
+            "SEED_PREDICATE_SCOPE" => Self::SeedPredicateScope,
             "UNSUBSCRIPTED_REPEAT_REFERENCE" => Self::UnsubscriptedRepeatReference,
             "UNASSEMBLED_DEFINITION_REFERENCE" => Self::UnassembledDefinitionReference,
             "MIN_REPEAT" => Self::MinRepeat,
@@ -240,6 +243,7 @@ impl ValidationCode {
             ValidationCode::ConstraintParseError => "CONSTRAINT_PARSE_ERROR",
             ValidationCode::SyntaxError => "SYNTAX_ERROR",
             ValidationCode::ArityMismatch => "ARITY_MISMATCH",
+            ValidationCode::SeedPredicateScope => "SEED_PREDICATE_SCOPE",
             ValidationCode::UnsubscriptedRepeatReference => "UNSUBSCRIPTED_REPEAT_REFERENCE",
             ValidationCode::UnassembledDefinitionReference => "UNASSEMBLED_DEFINITION_REFERENCE",
             ValidationCode::MinRepeat => "MIN_REPEAT",

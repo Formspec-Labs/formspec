@@ -111,7 +111,7 @@ export type FormItem = Item & {
   initialValue?: unknown;
   semanticType?: string;
   prePopulate?: { instance: string; path: string; editable?: boolean };
-  seedFrom?: { instance: string; path: string };
+  seedFrom?: import('./generated/definition.js').SeedFrom;
 
   /** Definition-local documents this Field declares as its attestation scope. */
   attests?: import('./generated/definition.js').DocumentId[];

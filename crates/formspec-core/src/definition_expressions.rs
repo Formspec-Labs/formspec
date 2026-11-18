@@ -120,6 +120,35 @@ pub fn visit_expressions<V: JsonTree>(
     }
 }
 
+/// Visit active seed predicates at their authored JSONPaths.
+pub fn visit_seed_predicates<V: JsonTree>(
+    definition: &V,
+    as_bool: impl Fn(&V) -> Option<bool>,
+    mut visit: impl FnMut(&str, &str),
+) {
+    // The Item walk is depth-first. Descendants of a repeat cannot seed.
+    let mut repeat_children = String::new();
+    visit_definition_items_from_document(definition, &mut |item| {
+        if !repeat_children.is_empty() && item.json_path.starts_with(&repeat_children) {
+            return;
+        }
+        if item.item.get("type").and_then(V::as_str) != Some("group")
+            || item.item.get("repeatable").and_then(&as_bool) != Some(true)
+        {
+            return;
+        }
+        repeat_children = format!("{}.children[", item.json_path);
+        if let Some(source) = item
+            .item
+            .get("seedFrom")
+            .and_then(|seed| seed.get("where"))
+            .and_then(V::as_str)
+        {
+            visit(source, &format!("{}.seedFrom.where", item.json_path));
+        }
+    });
+}
+
 /// Visit Item creation expressions with their Item paths and authored JSONPaths.
 ///
 /// A string starting with `=` supplies FEL source. Literal initial values are skipped.

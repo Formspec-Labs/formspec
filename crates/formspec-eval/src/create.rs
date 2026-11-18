@@ -2,10 +2,14 @@
 
 use std::collections::{HashMap, HashSet};
 
-use fel_core::ExtensionFunctions;
-use fel_core::exact_json::{Map, Value};
+use fel_core::exact_json::{Map, Value, to_fel};
+use fel_core::{
+    Environment, ExtensionFunctions, FieldError, Value as FelValue, extract_dependencies,
+    resolve_value_path, resolve_value_segments,
+};
 use formspec_core::BindTargets;
 use formspec_core::path_utils::{Path, PathSegment, normalize_indexed_path};
+use formspec_core::seed_predicate::parse_seed_predicate;
 use formspec_core::value_coerce::{LetterCase, coerce_field_value};
 
 use crate::fel_eval::Fel;
@@ -39,8 +43,21 @@ pub struct CreateResult {
     pub data: Value,
     /// Concrete item paths awaiting an instance source.
     pub pending: Vec<String>,
-    /// Missing seed source details for the host.
-    pub diagnostics: Vec<String>,
+    /// Author-facing diagnostics from creation.
+    pub diagnostics: Vec<CreationDiagnostic>,
+}
+
+/// A creation failure with its affected Item and machine-readable code.
+#[derive(Debug, serde::Serialize)]
+pub struct CreationDiagnostic {
+    /// Resolved Response item path.
+    pub path: String,
+    /// FEL source, or an empty string for an unavailable seed array.
+    pub expression: String,
+    /// Stable diagnostic code.
+    pub code: String,
+    /// Author-facing explanation.
+    pub message: String,
 }
 
 /// Fill absent Response data with the Definition's creation-time values.
@@ -338,35 +355,24 @@ impl<'a> Creation<'a> {
             .get("maxRepeat")
             .and_then(Value::as_u64)
             .unwrap_or(u64::MAX) as usize;
-        let seed_elements = if let Some((instance, path)) = seed {
-            if self.options.pending_instances.contains(instance) {
-                self.result.pending.push(location.model.clone());
-                return;
+        let seed_elements = match seed {
+            Some((instance, path)) => {
+                let Some(elements) = self.seed_elements(item, location, instance, path, maximum)
+                else {
+                    return;
+                };
+                elements
             }
-            let value = self
-                .evaluation_options
-                .instances
-                .get(instance)
-                .and_then(|root| read(root, path))
-                .and_then(Value::as_array);
-            if value.is_none() {
-                self.result.diagnostics.push(format!(
-                    "No array at {instance}.{path} for seedFrom on {}",
-                    location.model
-                ));
-            }
-            value.map(Vec::as_slice).unwrap_or_default()
-        } else {
-            &[]
+            None => Vec::new(),
         };
 
-        let count = minimum.max(seed_elements.len().min(maximum));
+        let count = minimum.max(seed_elements.len());
         let mut rows = Vec::with_capacity(count);
         for index in 0..count {
             let mut row = Map::new();
             let relative = seed.map(|(instance, _)| Relative {
                 instance,
-                element: seed_elements.get(index),
+                element: seed_elements.get(index).copied(),
             });
             // Padding a seeded repeat never assigns values to rows outside the source.
             if relative.is_none_or(|source| source.element.is_some()) {
@@ -375,6 +381,158 @@ impl<'a> Creation<'a> {
             rows.push(Value::Object(row));
         }
         data.insert(key.to_owned(), Value::Array(rows));
+    }
+
+    /// Find the source elements for an absent repeat, or defer or report a failure.
+    fn seed_elements(
+        &mut self,
+        item: &Value,
+        location: &Location<'_>,
+        instance: &str,
+        path: &str,
+        maximum: usize,
+    ) -> Option<Vec<&'a Value>> {
+        let predicate = string(&item["seedFrom"], "where");
+        let parsed = match predicate
+            .map(|source| parse_seed_predicate(self.definition, source))
+            .transpose()
+        {
+            Ok(parsed) => parsed,
+            Err(error) => {
+                self.seed_diagnostic(
+                    location,
+                    predicate.unwrap_or_default(),
+                    error.code,
+                    error.message,
+                );
+                return None;
+            }
+        };
+        let reads = parsed
+            .as_ref()
+            .map(|expr| extract_dependencies(expr).instance_refs);
+        if self.options.pending_instances.contains(instance)
+            || reads
+                .as_ref()
+                .is_some_and(|reads| !reads.is_disjoint(&self.options.pending_instances))
+        {
+            self.result.pending.push(location.model.clone());
+            return None;
+        }
+        let Some(elements) = self
+            .evaluation_options
+            .instances
+            .get(instance)
+            .and_then(|root| read(root, path))
+            .and_then(Value::as_array)
+        else {
+            self.seed_diagnostic(
+                location,
+                "",
+                "SEED_SOURCE_UNAVAILABLE",
+                format!(
+                    "No array at {instance}.{path} for seedFrom on {}",
+                    location.model
+                ),
+            );
+            return Some(Vec::new());
+        };
+        let (Some(source), Some(parsed), Some(reads)) = (predicate, parsed, reads) else {
+            return Some(elements.iter().take(maximum).collect());
+        };
+        if elements.is_empty() {
+            return Some(Vec::new());
+        }
+        let mut names: Vec<_> = reads.into_iter().collect();
+        names.sort_unstable();
+        let mut instances = HashMap::new();
+        for name in names {
+            let Some(value) = self.evaluation_options.instances.get(&name) else {
+                continue;
+            };
+            match to_fel(value) {
+                Ok(value) => {
+                    instances.insert(name, value);
+                }
+                Err(error) => {
+                    self.seed_diagnostic(
+                        location,
+                        source,
+                        "SEED_PREDICATE_EVALUATION",
+                        format!("Instance {name:?}: {error}"),
+                    );
+                    return None;
+                }
+            }
+        }
+        let mut site = SeedSite {
+            candidate: FelValue::Null,
+            instances,
+            subject: self.evaluation_options.context.subject_keys(),
+        };
+        let mut matches = Vec::new();
+        for (index, element) in elements.iter().enumerate() {
+            let row = index + 1;
+            site.candidate = match to_fel(element) {
+                Ok(value) => value,
+                Err(error) => {
+                    self.seed_diagnostic(
+                        location,
+                        source,
+                        "SEED_PREDICATE_EVALUATION",
+                        format!("Seed element {row}: {error}"),
+                    );
+                    return None;
+                }
+            };
+            let result = Fel::default().evaluate(&parsed, &site);
+            if let Some(error) = result
+                .diagnostics
+                .into_iter()
+                .find(|diagnostic| diagnostic.severity == fel_core::error::Severity::Error)
+            {
+                self.seed_diagnostic(
+                    location,
+                    source,
+                    error.code.as_deref().unwrap_or("SEED_PREDICATE_EVALUATION"),
+                    format!("Seed element {row}: {}", error.message),
+                );
+                return None;
+            }
+            match result.value {
+                FelValue::Boolean(true) if matches.len() < maximum => matches.push(element),
+                FelValue::Boolean(_) => {}
+                value => {
+                    self.seed_diagnostic(
+                        location,
+                        source,
+                        "SEED_PREDICATE_TYPE",
+                        format!(
+                            "Seed element {row}: expected a Boolean, got {}.",
+                            value.type_name()
+                        ),
+                    );
+                    return None;
+                }
+            }
+        }
+        Some(matches)
+    }
+
+    /// Record a seed failure before creating any rows.
+    fn seed_diagnostic(
+        &mut self,
+        location: &Location<'_>,
+        source: &str,
+        code: &str,
+        message: String,
+    ) {
+        self.result.diagnostics.push(CreationDiagnostic {
+            path: location.model.clone(),
+            expression: source.to_owned(),
+            code: code.to_owned(),
+            message,
+        });
     }
 
     fn row(
@@ -455,6 +613,41 @@ impl<'a> Creation<'a> {
                 }
             }
         }
+    }
+}
+
+/// FEL's only data inputs while selecting seed rows.
+struct SeedSite<'a> {
+    candidate: FelValue,
+    instances: HashMap<String, FelValue>,
+    subject: Option<&'a HashMap<String, FelValue>>,
+}
+
+impl Environment for SeedSite<'_> {
+    fn resolve_field(
+        &self,
+        root: Option<&str>,
+        path: &[fel_core::ast::PathSegment],
+    ) -> Result<FelValue, FieldError> {
+        if root.is_some() {
+            return Ok(FelValue::Null);
+        }
+        resolve_value_segments(&self.candidate, path)
+    }
+
+    fn resolve_context(&self, name: &str, arg: Option<&str>, tail: &[String]) -> FelValue {
+        if name != "instance" {
+            return FelValue::Null;
+        }
+        arg.and_then(|instance| self.instances.get(instance))
+            .map_or(FelValue::Null, |value| resolve_value_path(value, tail))
+    }
+
+    fn subject_key(&self, key: &str) -> FelValue {
+        self.subject
+            .and_then(|keys| keys.get(key))
+            .cloned()
+            .unwrap_or(FelValue::Null)
     }
 }
 

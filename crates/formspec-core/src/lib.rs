@@ -34,6 +34,7 @@ pub mod response_migration;
 pub mod response_selection;
 pub mod runtime_mapping;
 pub mod schema_validator;
+pub mod seed_predicate;
 pub mod subject_key;
 pub mod validation_report;
 pub mod value_coerce;

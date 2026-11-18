@@ -2317,6 +2317,7 @@ Machine validation code (known codes + definition-authored shape codes).
 - `ConstraintParseError` - A Bind constraint calls an undefined function (Core §3.10.1).
 - `SyntaxError` - An authored FEL expression does not conform to the grammar (Core §3.10.1).
 - `ArityMismatch` - A built-in function is called with the wrong number of arguments (Core §3.10.1).
+- `SeedPredicateScope` - A seed predicate reads an input outside its creation scope.
 - `UnsubscriptedRepeatReference` - A field reference traverses a repeatable group without a subscript.
 - `UnassembledDefinitionReference` - A Group inclusion needs assembly before evaluation.
 - `MinRepeat` - Repeat count below minimum.

@@ -387,7 +387,7 @@ export interface WasmCreateOptions {
 export interface WasmCreation {
     data: import('./interfaces.js').JsonRecord;
     pending: string[];
-    diagnostics: string[];
+    diagnostics: Array<import('./diff.js').EvalDiagnostic & { code: string }>;
 }
 
 /** Assemble the Response instance evidence before the candidate is signed. */

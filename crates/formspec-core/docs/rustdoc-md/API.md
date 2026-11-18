@@ -36,7 +36,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`formspec_core`](formspec_core.md)
 
-*29 modules*
+*30 modules*
 
 ### [`assembler`](assembler.md)
 
@@ -64,7 +64,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`definition_expressions`](definition_expressions.md)
 
-*3 enums, 6 functions*
+*3 enums, 7 functions*
 
 ### [`definition_items`](definition_items.md)
 
@@ -178,6 +178,10 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 *1 enum, 1 trait, 4 functions, 4 structs*
 
+### [`seed_predicate`](seed_predicate.md)
+
+*1 function, 1 struct*
+
 ### [`subject_key`](subject_key.md)
 
 *1 enum*
@@ -231,6 +235,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 - [`response_selection`](#response_selection) - Subject-keyed Response selection and exact delivered-value commitments (Core §2.1.6).
 - [`runtime_mapping`](#runtime_mapping) - Bidirectional mapping engine for transforming data between formats.
 - [`schema_validator`](#schema_validator) - Schema validation with document type detection and validation dispatch.
+- [`seed_predicate`](#seed_predicate) - Static checks for a creation-time repeat seed predicate.
 - [`subject_key`](#subject_key) - Typed keys for Formspec filing units.
 - [`validation_report`](#validation_report) - Assemble validation-report candidates from qualified public findings.
 - [`value_coerce`](#value_coerce) - Inbound field coercion (parity with TS `coerceFieldValue` in `formspec-engine` helpers).
@@ -494,6 +499,12 @@ Schema validation with document type detection and validation dispatch.
 Uses dependency inversion: JSON Schema validation is provided by the host via
 [`JsonSchemaValidator`]. This module detects document types, translates paths, and
 plans per-component validation for component trees.
+
+
+
+## Module: seed_predicate
+
+Static checks for a creation-time repeat seed predicate.
 
 
 
@@ -1114,6 +1125,7 @@ fn visit_component_subtree<F, impl FnMut(&Value, &str)>(node: &serde_json::Value
 - [`visit_binds`](#visit_binds) - Visit Bind objects in either supported syntax with their target and JSONPath.
 - [`visit_expressions`](#visit_expressions) - Visit every Bind, Shape, and variable expression with its authored JSONPath.
 - [`visit_initial_value_expressions`](#visit_initial_value_expressions) - Visit Item creation expressions with their Item paths and authored JSONPaths.
+- [`visit_seed_predicates`](#visit_seed_predicates) - Visit active seed predicates at their authored JSONPaths.
 - [`visit_template_expressions`](#visit_template_expressions) - Visit each FEL interpolation in Definition text slots with its JSONPath.
 
 ---
@@ -1256,6 +1268,18 @@ A string starting with `=` supplies FEL source. Literal initial values are skipp
 
 ```rust
 fn visit_initial_value_expressions<V, impl FnMut(&str, &str, &str)>(definition: &V, visit: impl Trait)
+```
+
+
+
+## formspec_core::definition_expressions::visit_seed_predicates
+
+*Function*
+
+Visit active seed predicates at their authored JSONPaths.
+
+```rust
+fn visit_seed_predicates<V, impl Fn(&V) -> Option<bool>, impl FnMut(&str, &str)>(definition: &V, as_bool: impl Trait, visit: impl Trait)
 ```
 
 
@@ -4887,6 +4911,56 @@ Validate a Formspec document, auto-detecting its type and running schema validat
 
 ```rust
 fn validate_document(doc: &serde_json::Value, validator: &dyn JsonSchemaValidator) -> SchemaValidationResult
+```
+
+---
+
+## Source: formspec_core/seed_predicate.md
+
+**formspec_core > seed_predicate**
+
+# Module: seed_predicate
+
+## Contents
+
+**Structs**
+
+- [`SeedPredicateError`](#seedpredicateerror) - A Definition error in `seedFrom.where`.
+
+**Functions**
+
+- [`parse_seed_predicate`](#parse_seed_predicate) - Parse a predicate and check that all of its inputs are available at creation.
+
+---
+
+## formspec_core::seed_predicate::SeedPredicateError
+
+*Struct*
+
+A Definition error in `seedFrom.where`.
+
+**Fields:**
+- `code: &'static str` - Machine-readable diagnostic code.
+- `message: String` - Author-facing explanation.
+
+**Trait Implementations:**
+
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+
+
+
+## formspec_core::seed_predicate::parse_seed_predicate
+
+*Function*
+
+Parse a predicate and check that all of its inputs are available at creation.
+
+# Errors
+Returns the first syntax, arity, or scope error in the predicate.
+
+```rust
+fn parse_seed_predicate<V>(definition: &V, source: &str) -> Result<fel_core::Expr, SeedPredicateError>
 ```
 
 ---

@@ -1323,7 +1323,7 @@ export interface MultiPartyPolicy {
   tier: 'coEqual' | 'asymmetric';
 }
 /**
- * One new-Response row per JSON array element on a named secondary instance. See Core §4.2.2.1.
+ * Seed new-Response rows from an array on a named secondary instance, optionally filtered by a FEL predicate. See Core §4.2.2.1.
  *
  * This interface was referenced by `FormDefinition`'s JSON-Schema
  * via the `definition` "SeedFrom".
@@ -1331,6 +1331,10 @@ export interface MultiPartyPolicy {
 export interface SeedFrom {
   instance: string;
   path: string;
+  /**
+   * FEL Boolean predicate evaluated at creation for each source element. Use $.field for the candidate, subject() for the Response subject, and literal names for declared instances.
+   */
+  where?: string;
 }
 /**
  * Advisory presentation hints for an Item. All properties OPTIONAL. A conforming processor MAY ignore any property. Presentation hints MUST NOT affect data capture, validation, calculation, or submission semantics. These are Tier 1 hints; overridden by Theme (Tier 2) and Component (Tier 3) specifications. Properties do NOT cascade from parent Group to child Items.

@@ -1932,12 +1932,18 @@
     },
     "SeedFrom": {
       "type": "object",
-      "description": "One new-Response row per JSON array element on a named secondary instance. See Core §4.2.2.1.",
+      "description": "Seed new-Response rows from an array on a named secondary instance, optionally filtered by a FEL predicate. See Core §4.2.2.1.",
       "required": ["instance", "path"],
       "additionalProperties": false,
       "properties": {
         "instance": { "type": "string" },
-        "path": { "type": "string" }
+        "path": { "type": "string" },
+        "where": {
+          "type": "string",
+          "minLength": 1,
+          "description": "FEL Boolean predicate evaluated at creation for each source element. Use $.field for the candidate, subject() for the Response subject, and literal names for declared instances.",
+          "examples": ["empty($.closed)"]
+        }
       }
     },
     "Instance": {

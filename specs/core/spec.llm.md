@@ -289,7 +289,7 @@ Missing field (exists in definition but no value) → `null`. Field key not in d
 
 ### Error Handling
 
-**Definition errors** (load-time, block processing): syntax errors, undefined references, undefined instances/functions, circular dependencies, arity mismatches, calculate target conflicts, instance-path Binds (`instances.<name>…` / `@instance('<name>')…` as a Bind `path`). Rebuild refuses evaluation with a `definition` ValidationResult at the authored expression's JSONPath: `SYNTAX_ERROR` (message carries the expression and position), `ARITY_MISMATCH`, `UNSUBSCRIPTED_REPEAT_REFERENCE`; `{{}}` text interpolation is exempt from the first two. A dependency cycle is `CIRCULAR_DEPENDENCY` with an empty path.
+**Definition errors** (load-time, block processing): syntax errors, undefined references, undefined instances/functions, circular dependencies, arity mismatches, calculate target conflicts, instance-path Binds (`instances.<name>…` / `@instance('<name>')…` as a Bind `path`). Rebuild refuses evaluation with a `definition` ValidationResult at the authored expression's JSONPath: `SYNTAX_ERROR` (message carries the expression and position), `ARITY_MISMATCH`, `SEED_PREDICATE_SCOPE`, `UNSUBSCRIPTED_REPEAT_REFERENCE`; `{{}}` text interpolation is exempt from the first two. A dependency cycle is `CIRCULAR_DEPENDENCY` with an empty path.
 
 **Evaluation errors** (runtime, produce `null` + diagnostic): type errors, division by zero, arithmetic overflow, including an aggregate's running total (`FEL_ARITHMETIC_OVERFLOW`), index out of bounds, date overflow, regex errors. Evaluation errors don't halt — they produce `null` so the rest of the form keeps working.
 
@@ -316,6 +316,8 @@ Optional: `versionAlgorithm` ("semver"/"date"/"integer"/"natural", default "semv
 **Group-specific**: `children` (REQUIRED), `repeatable` (default false), `minRepeat` (default 0), `maxRepeat` (positive int or absent for unbounded).
 
 Creation runs once for a new Response. Host prefill wins key by key, including `null` fields and `[]` groups. Resume uses saved data as given. A pending `seedFrom` repeat stays absent until arrival or failure. A pending `prePopulate` field waits before considering `initialValue`. An expression initial value waits for referenced instances, including references through visible variables. On failure, use the authored fallback. Without a fallback, `seedFrom` uses zero source rows and the processor SHOULD emit a diagnostic. Person edits win throughout.
+
+`seedFrom.where` optionally filters the array in source order before repeat limits. Use `$.field` for the candidate, `subject(key)` for the Response subject, and literal names for declared instances. The repeat waits for all named inputs used by the predicate. Boolean `true` keeps the original element for relative `prePopulate`. Predicate errors leave the repeat absent and surface a coded diagnostic.
 
 To read the current source record after removal or resume, copy a stable key with relative `prePopulate` and use keyed FEL lookup (§4.4.2). Comparing with the value at creation requires a captured value or pinned source version.
 

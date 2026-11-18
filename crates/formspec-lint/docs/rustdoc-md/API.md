@@ -887,6 +887,7 @@ Canonical lint diagnostic code (registry-driven).
 - `E101` - Registry code `E101`.
 - `E200` - Registry code `E200`.
 - `E201` - Registry code `E201`.
+- `E202` - Registry code `E202`.
 - `E300` - Registry code `E300`.
 - `E301` - Registry code `E301`.
 - `E302` - Registry code `E302`.
@@ -903,6 +904,7 @@ Canonical lint diagnostic code (registry-driven).
 - `W300` - Registry code `W300`.
 - `E400` - Registry code `E400`.
 - `E406` - Registry code `E406`.
+- `E407` - Registry code `E407`.
 - `E500` - Registry code `E500`.
 - `E600` - Registry code `E600`.
 - `E601` - Registry code `E601`.

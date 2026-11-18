@@ -58,7 +58,9 @@ pub const CREATION_COMPILED: bool = cfg!(feature = "create");
 pub use assemble_candidate::{CandidateAssemblyError, assemble_candidate, assemble_candidate_json};
 
 #[cfg(feature = "create")]
-pub use create::{CreateOptions, CreateResult, create_repeat_row, create_response};
+pub use create::{
+    CreateOptions, CreateResult, CreationDiagnostic, create_repeat_row, create_response,
+};
 
 pub use convert::resolve_value_by_path;
 pub use eval_json::{

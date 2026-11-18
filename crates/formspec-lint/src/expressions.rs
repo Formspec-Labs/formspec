@@ -148,6 +148,33 @@ pub(crate) fn initial_value_diagnostics(
     diagnostics
 }
 
+/// Check `seedFrom.where` outside the processing cycle's dependency graph.
+pub(crate) fn seed_predicate_diagnostics(document: &Value) -> Vec<LintDiagnostic> {
+    let mut diagnostics = Vec::new();
+    formspec_core::definition_expressions::visit_seed_predicates(
+        document,
+        Value::as_bool,
+        |source, path| {
+            if let Err(error) =
+                formspec_core::seed_predicate::parse_seed_predicate(document, source)
+            {
+                let code = if error.code == "SYNTAX_ERROR" {
+                    crate::LintCode::E400
+                } else {
+                    crate::LintCode::E407
+                };
+                diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
+                    code,
+                    4,
+                    path,
+                    error.message,
+                )));
+            }
+        },
+    );
+    diagnostics
+}
+
 // ── Standalone Screener Document ────────────────────────────────
 
 /// Walk all FEL expression slots in a standalone Screener Document.

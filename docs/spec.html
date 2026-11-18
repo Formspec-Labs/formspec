@@ -3370,6 +3370,13 @@ authored expression. A <code>{{}}</code> text interpolation is
 exempt.</td>
 </tr>
 <tr>
+<td><code>SEED_PREDICATE_SCOPE</code></td>
+<td><code>definition</code></td>
+<td>A <code>seedFrom.where</code> predicate reads a source outside its
+creation scope (§4.2.2.1). Rebuild refuses evaluation at the authored
+predicate.</td>
+</tr>
+<tr>
 <td><code>UNSUBSCRIPTED_REPEAT_REFERENCE</code></td>
 <td><code>definition</code></td>
 <td>An authored field path continues past a repeatable Group without a
@@ -6836,9 +6843,9 @@ from adding repetitions beyond this limit.</td>
 <td>object</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
 <td>Applicable only when <code>repeatable</code> is <code>true</code>.
-One new-Response repetition per JSON array element on a named secondary
-instance (<code>instance</code>, <code>path</code>). Normative rules in
-§4.2.2.1.</td>
+One new-Response repetition per selected JSON array element on a named
+secondary instance (<code>instance</code>, <code>path</code>, optional
+<code>where</code>). Normative rules in §4.2.2.1.</td>
 </tr>
 </tbody>
 </table>
@@ -6848,14 +6855,14 @@ Response data.</p>
 <h4 id="repeat-seeding-from-secondary-instances-seedfrom">4.2.2.1 Repeat
 seeding from secondary instances (<code>seedFrom</code>)</h4>
 <p>A repeatable Group MAY declare <code>seedFrom</code>
-(<code>instance</code> + <code>path</code>) to open one
-<code>$primary</code> repetition per element of a JSON array on a named
-secondary instance at <strong>new Response creation</strong> (one-shot;
-not continuous like <code>calculate</code>). Extended conformance
-(§1.4.2). This is an array path on a Definition-local instance, not FHIR
-SDC query-driven <code>itemPopulationContext</code>. Defined only for a
-Group with no repeatable ancestor; a nested <code>seedFrom</code> MUST
-be ignored.</p>
+(<code>instance</code>, <code>path</code>, optional <code>where</code>)
+to open one <code>$primary</code> repetition per element of a JSON array
+on a named secondary instance at <strong>new Response creation</strong>
+(one-shot; not continuous like <code>calculate</code>). Extended
+conformance (§1.4.2). This is an array path on a Definition-local
+instance, not FHIR SDC query-driven <code>itemPopulationContext</code>.
+Defined only for a Group with no repeatable ancestor; a nested
+<code>seedFrom</code> MUST be ignored.</p>
 <div class="sourceCode" id="cb38"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;employersOnRecord&quot;</span><span class="fu">,</span></span>
@@ -6875,8 +6882,41 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb38-1"><a href=
 <span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
 <span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
 <span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<p>Let <code>N</code> be the length of the JSON array at
-<code>seedFrom.path</code> when that value is an array; otherwise
+<p><strong>Filter.</strong> If <code>seedFrom.where</code> is present,
+the processor MUST evaluate the FEL predicate once per candidate, in
+source order, before applying repeat limits. Only Boolean
+<code>true</code> selects an element. The predicate sees the candidate
+as <code>$</code> (<code>$.closed</code> reads its <code>closed</code>
+field), the current Response subject via <code>subject(key)</code>, and
+declared secondary instances via <code>@instance('name')</code> or
+<code>instance('name', path)</code>. Instance names MUST be string
+literals. FEL <code>let</code> bindings and built-ins that operate on
+these inputs are available. The predicate MUST NOT reference primary
+fields, Definition variables, repeat navigation or state, validation
+state, the clock, host locale, runtime metadata, or host extension
+functions. A pending instance named by the predicate MUST keep the
+repeat absent even if the seed array has arrived.</p>
+<p>For example, given a declared <code>records</code> instance with:</p>
+<div class="sourceCode" id="seed-filter-data"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="seed-filter-data-1"><a href="#seed-filter-data-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;list&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="fu">{</span> <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;C&quot;</span><span class="fu">,</span> <span class="dt">&quot;closed&quot;</span><span class="fu">:</span> <span class="st">&quot;2020-01-01&quot;</span> <span class="fu">}</span><span class="ot">,</span> <span class="fu">{</span> <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;A&quot;</span><span class="fu">,</span> <span class="dt">&quot;closed&quot;</span><span class="fu">:</span> <span class="kw">null</span> <span class="fu">}</span><span class="ot">]</span> <span class="fu">}</span></span></code></pre></div>
+<p>this declaration MUST create only the repetition for <code>A</code>,
+even when the array arrives after creation starts. Relative
+<code>prePopulate</code> of <code>id</code> MUST copy <code>A</code>,
+including when <code>maxRepeat</code> is <code>1</code>.</p>
+<div class="sourceCode" id="seed-filter-declaration"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="seed-filter-declaration-1"><a href="#seed-filter-declaration-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;instance&quot;</span><span class="fu">:</span> <span class="st">&quot;records&quot;</span><span class="fu">,</span> <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;list&quot;</span><span class="fu">,</span> <span class="dt">&quot;where&quot;</span><span class="fu">:</span> <span class="st">&quot;empty($.closed)&quot;</span> <span class="fu">}</span></span></code></pre></div>
+<p>A processor MUST report syntax, arity and scope errors at the
+authored predicate as Definition errors (<code>SYNTAX_ERROR</code>,
+<code>ARITY_MISMATCH</code> and <code>SEED_PREDICATE_SCOPE</code>).
+During creation, a predicate evaluation error or a non-Boolean result
+MUST leave the repeat absent and report a diagnostic. Use the FEL error
+code when available, <code>SEED_PREDICATE_EVALUATION</code> otherwise,
+and <code>SEED_PREDICATE_TYPE</code> for a non-Boolean result. An error
+in any candidate aborts the selection, even after enough matches have
+been found for <code>maxRepeat</code>.</p>
+<p>Let <code>N</code> be the number of selected elements from the JSON
+array at <code>seedFrom.path</code>. Without <code>where</code>, select
+every element. If the path does not resolve to an array,
 <code>N = 0</code>. The processor MUST create
 <code>max(minRepeat, min(N, maxRepeat))</code> repetitions when
 <code>maxRepeat</code> is present, or <code>max(minRepeat, N)</code>

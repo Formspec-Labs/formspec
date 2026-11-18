@@ -1,0 +1,17 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:seed-predicate-scope",
+  "version": "1.0.0",
+  "title": "Seed predicate reads a primary field",
+  "instances": { "records": { "data": { "rows": [] } } },
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "repeatable": true,
+      "seedFrom": { "instance": "records", "path": "rows", "where": "$include" },
+      "children": [{ "key": "include", "type": "field", "label": "Include", "dataType": "boolean" }]
+    }
+  ]
+}

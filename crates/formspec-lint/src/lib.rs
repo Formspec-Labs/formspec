@@ -271,6 +271,7 @@ fn lint_definition(
         let compilation = expressions::compile_expressions(doc);
         diagnostics.extend(compilation.diagnostics);
         diagnostics.extend(expressions::initial_value_diagnostics(doc, &tree_index));
+        diagnostics.extend(expressions::seed_predicate_diagnostics(doc));
         repeat_references::check_definition(doc, &tree_index, &compilation.compiled, diagnostics);
         diagnostics.extend(dependencies::analyze_dependencies(
             &compilation.compiled,
@@ -433,6 +434,32 @@ mod tests {
             }],
             "phases": [{"phase": "module-resolution", "status": "completed"}]
         })
+    }
+
+    #[test]
+    fn seed_predicates_are_linted_at_the_authored_location() {
+        let mut doc = serde_json::json!({
+            "$formspec":"1.0", "url":"urn:test:seed-lint", "version":"1.0.0", "title":"Seed",
+            "instances":{"records":{"data":[]}},
+            "items":[{"key":"rows","type":"group","label":"Rows","repeatable":true,
+                      "children":[],"seedFrom":{"instance":"records","path":"","where":"empty($.closed)"}}]
+        });
+        let path = "$.items[0].seedFrom.where";
+        let diagnostics = |doc: &Value| lint(doc).diagnostics;
+        assert!(diagnostics(&doc).iter().all(|finding| finding.path != path));
+        for (source, code) in [
+            ("$.closed =", "E400"),
+            ("@answer", "E407"),
+            ("empty()", "E407"),
+        ] {
+            doc["items"][0]["seedFrom"]["where"] = serde_json::json!(source);
+            assert!(
+                diagnostics(&doc)
+                    .iter()
+                    .any(|finding| finding.path == path && finding.code.as_wire_str() == code),
+                "{source}"
+            );
+        }
     }
 
     /// Spec: spec.md §2.1 — "$formspec" key identifies a valid definition document

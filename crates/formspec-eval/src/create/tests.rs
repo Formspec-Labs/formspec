@@ -130,7 +130,7 @@ fn a_failed_seed_without_fallback_reports_a_diagnostic_and_pads() {
     let result = create_response(&def, json!({}), &CreateOptions::default());
     assert_eq!(result.data["rows"], json!([{}, {}]));
     assert_eq!(result.diagnostics.len(), 1);
-    assert!(result.diagnostics[0].contains("record.items"));
+    assert!(result.diagnostics[0].message.contains("record.items"));
     assert!(result.pending.is_empty());
 }
 
@@ -163,4 +163,124 @@ fn expression_initial_waits_for_its_visible_variable_source() {
         ready.data,
         json!({"sourceName":"p","value":22,"direct":null})
     );
+}
+
+#[test]
+fn filtered_seed_waits_for_its_instances_and_ignores_editing_data() {
+    let mut def = definition(json!({"source":"https://example.invalid/records"}), 1, 1);
+    def["instances"]["policy"] = json!({"source":"https://example.invalid/policy"});
+    def["items"][2]["seedFrom"]["where"] =
+        json!("$.name = subject('name') and $.age >= @instance('policy').minimum");
+    let records = json!({"items":[{"name":"A","age":2},{"name":"A","age":6}]});
+    let policy = json!({"minimum":4});
+    let subject = crate::EvalSubject {
+        keys: Some([("name".into(), fel_core::Value::String("A".into()))].into()),
+        ..Default::default()
+    };
+    let prefill = json!({"name":"Host value"});
+    let eager = create_response(
+        &def,
+        prefill.clone(),
+        &CreateOptions {
+            subject: Some(subject.clone()),
+            instances: [
+                ("record".into(), records.clone()),
+                ("policy".into(), policy.clone()),
+            ]
+            .into(),
+            ..Default::default()
+        },
+    );
+    for (available, value, waiting) in [
+        ("record", records.clone(), "policy"),
+        ("policy", policy.clone(), "record"),
+    ] {
+        let waiting_result = create_response(
+            &def,
+            prefill.clone(),
+            &CreateOptions {
+                subject: Some(subject.clone()),
+                instances: [(available.into(), value)].into(),
+                pending_instances: [waiting.into()].into(),
+                ..Default::default()
+            },
+        );
+        assert!(waiting_result.data.get("rows").is_none());
+        assert!(waiting_result.pending.iter().any(|path| path == "rows"));
+        let mut edited = waiting_result.data;
+        edited["name"] = json!("Edited while loading");
+        let late = create_response(
+            &def,
+            edited,
+            &CreateOptions {
+                subject: Some(subject.clone()),
+                instances: [
+                    ("record".into(), records.clone()),
+                    ("policy".into(), policy.clone()),
+                ]
+                .into(),
+                pending_paths: Some(waiting_result.pending.into_iter().collect()),
+                ..Default::default()
+            },
+        );
+        assert_eq!(late.data["rows"], eager.data["rows"]);
+        assert_eq!(late.data["name"], json!("Edited while loading"));
+        assert!(late.diagnostics.is_empty());
+    }
+    assert_eq!(eager.data["rows"], json!([{"name":"A","nested":[{}]}]));
+}
+
+#[test]
+fn filtered_seed_refuses_invalid_predicates_even_without_candidates() {
+    for (source, code, rows) in [
+        ("$.name =", "SYNTAX_ERROR", json!([])),
+        ("@shared", "SEED_PREDICATE_SCOPE", json!([])),
+        (
+            "instance('unlisted') = null",
+            "SEED_PREDICATE_SCOPE",
+            json!([]),
+        ),
+        ("'yes'", "SEED_PREDICATE_TYPE", json!([{}])),
+        (
+            "1 / $.divisor > 0",
+            "SEED_PREDICATE_EVALUATION",
+            json!([{"divisor":1},{"divisor":0}]),
+        ),
+    ] {
+        let mut def = definition(json!({"data":{"items":rows}}), 1, 1);
+        def["items"][2]["seedFrom"]["where"] = json!(source);
+        let created = create_response(&def, json!({}), &Default::default());
+        assert!(created.data.get("rows").is_none(), "{source}");
+        let diagnostics = serde_json::to_value(created.diagnostics).unwrap();
+        assert_eq!(diagnostics[0]["code"], code, "{source}");
+        assert_eq!(diagnostics[0]["path"], "rows", "{source}");
+    }
+}
+
+#[test]
+fn filtered_seed_uses_let_bindings_and_preserves_json_objects() {
+    let mut def = definition(
+        json!({"data":{"items":[{"name":"A","amount":20,"currency":"USD","closed":null}]}}),
+        1,
+        1,
+    );
+    def["instances"]["policy"] = json!({"data":{"minimum":10}});
+    for source in [
+        "let floor = 10 in $.amount >= $floor",
+        "empty($.closed) and @instance('policy').minimum = 10",
+        "empty(@instance('policy').minimum.missing) and empty(instance('policy', 'minimum.missing'))",
+    ] {
+        def["items"][2]["seedFrom"]["where"] = json!(source);
+        let created = create_response(&def, json!({}), &Default::default());
+        assert!(
+            created.diagnostics.is_empty(),
+            "{source}: {:?}",
+            created.diagnostics
+        );
+        assert_eq!(
+            created.data["rows"],
+            json!([{"name":"A","nested":[{}]}]),
+            "{source}"
+        );
+    }
 }

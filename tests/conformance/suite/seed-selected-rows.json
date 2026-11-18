@@ -1,0 +1,37 @@
+{
+  "id": "seed-from.selected-rows",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §4.2.2.1 source filtering before cardinality and relative pre-population",
+    "Core §4.2.2.1 ignores seed declarations under repeatable ancestors"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/seed-selected-rows.definition.json",
+  "origin": "new",
+  "mode": "continuous",
+  "inputData": {},
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "rows": [
+        {
+          "sourceId": "A",
+          "nested": [
+            {}
+          ]
+        },
+        {
+          "sourceId": "B",
+          "nested": [
+            {}
+          ]
+        }
+      ]
+    }
+  }
+}

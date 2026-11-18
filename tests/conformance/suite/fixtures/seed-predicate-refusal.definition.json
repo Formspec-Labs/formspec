@@ -1,0 +1,16 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:seed-predicate-refusal",
+  "version": "1.0.0",
+  "title": "Invalid seed predicates",
+  "instances": { "records": { "data": { "list": [] } } },
+  "items": [
+    { "type": "group", "key": "scope", "label": "Scope", "repeatable": true,
+      "seedFrom": { "instance": "records", "path": "list", "where": "$answer" }, "children": [] },
+    { "type": "group", "key": "arity", "label": "Arity", "repeatable": true,
+      "seedFrom": { "instance": "records", "path": "list", "where": "empty()" }, "children": [] },
+    { "type": "group", "key": "syntax", "label": "Syntax", "repeatable": true,
+      "seedFrom": { "instance": "records", "path": "list", "where": "$.closed =" }, "children": [] },
+    { "type": "field", "key": "answer", "label": "Answer", "dataType": "boolean" }
+  ]
+}

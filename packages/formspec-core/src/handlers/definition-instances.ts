@@ -102,6 +102,11 @@ export const definitionInstancesHandlers = {
     const walkItems = (items: FormItem[]) => {
       for (const item of items) {
         rewriteItemFelExpressions(item, rewrite);
+        if (item.seedFrom) {
+          if (item.seedFrom.instance === name) item.seedFrom.instance = newName;
+          if (item.seedFrom.where !== undefined) item.seedFrom.where = rewrite(item.seedFrom.where);
+        }
+        if (item.prePopulate?.instance === name) item.prePopulate.instance = newName;
         if (item.children) walkItems(item.children);
       }
     };
