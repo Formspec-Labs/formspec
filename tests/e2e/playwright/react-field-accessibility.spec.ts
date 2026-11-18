@@ -31,6 +31,23 @@ base('the keyboard and reader reach the readonly value and the named upload acti
   }
 });
 
+base('records the virtual reader announcement for a required native date', async ({ page }, info) => {
+  const walk = await Walk.open(page, { url: route });
+  try {
+    const date = page.getByLabel(/Due date/);
+    await expect(date).toHaveAttribute('type', 'date');
+    await expect(date).toHaveJSProperty('required', true);
+    await expect(date).toHaveAttribute('aria-required', 'true');
+    await page.getByRole('textbox', { name: 'Contact name' }).focus();
+    await walk.sr.clearSpokenPhraseLog();
+    await date.focus();
+    await expect.poll(() => walk.sr.lastSpokenPhrase()).toMatch(/due date/i);
+    await info.attach('virtual-date-speech', { body: await walk.sr.lastSpokenPhrase(), contentType: 'text/plain' });
+  } finally {
+    await walk.sr.stop();
+  }
+});
+
 if (process.env.FORMSPEC_WALK_SR === 'os') {
   const { screenReaderTest } = require('@guidepup/playwright') as typeof import('@guidepup/playwright');
   screenReaderTest.use({ headless: false });
