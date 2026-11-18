@@ -1,0 +1,102 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:people-served",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "People served",
+  "subject": {
+    "type": "urn:example:subject:agency-year",
+    "keys": {
+      "uei": {
+        "dataType": "string",
+        "authorizationParent": "agency"
+      },
+      "ffy": {
+        "dataType": "integer"
+      }
+    }
+  },
+  "items": [
+    {
+      "key": "people",
+      "type": "field",
+      "label": "People served this year",
+      "dataType": "integer"
+    }
+  ],
+  "instances": {
+    "module_2": {
+      "response": {
+        "definition": {
+          "url": "urn:example:forms:module-2"
+        },
+        "subject": [
+          {
+            "key": "uei",
+            "op": "eq",
+            "from": {
+              "subject": "uei"
+            }
+          },
+          {
+            "key": "ffy",
+            "op": "eq",
+            "from": {
+              "subject": "ffy"
+            }
+          }
+        ],
+        "status": "current",
+        "whenNone": "empty",
+        "cardinality": "latest",
+        "pin": "none"
+      },
+      "schema": {
+        "capacity": "integer"
+      },
+      "data": {}
+    },
+    "prior_year": {
+      "response": {
+        "definition": {
+          "url": "urn:example:forms:people-served"
+        },
+        "subject": [
+          {
+            "key": "uei",
+            "op": "eq",
+            "from": {
+              "subject": "uei"
+            }
+          },
+          {
+            "key": "ffy",
+            "op": "eq",
+            "from": {
+              "subject": "ffy"
+            },
+            "offset": -1
+          }
+        ],
+        "status": "completed",
+        "whenNone": "empty",
+        "cardinality": "latest",
+        "pin": "none"
+      },
+      "schema": {
+        "people": "integer"
+      },
+      "data": {}
+    }
+  },
+  "shapes": [
+    {
+      "id": "dep-14",
+      "target": "people",
+      "severity": "warning",
+      "constraint": "empty(@instance('module_2').capacity) or $ <= @instance('module_2').capacity",
+      "message": "People served exceeds the capacity reported for this agency and year.",
+      "code": "DEP-14"
+    }
+  ]
+}

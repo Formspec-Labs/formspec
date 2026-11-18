@@ -38,6 +38,8 @@ def _selection_schema():
 
 @pytest.mark.parametrize("name,valid", [
     ("valid-response-instance.definition.json", True),
+    ("agency-year/module-2.definition.json", True),
+    ("agency-year/people-served.definition.json", True),
     ("valid-subject.definition.json", True),
     ("invalid-doubly-sourced.definition.json", False),
 ])

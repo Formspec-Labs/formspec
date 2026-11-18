@@ -1,0 +1,33 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:module-2",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Agency service capacity",
+  "subject": {
+    "type": "urn:example:subject:agency-year",
+    "keys": {
+      "uei": {
+        "dataType": "string",
+        "authorizationParent": "agency"
+      },
+      "ffy": {
+        "dataType": "integer"
+      }
+    }
+  },
+  "items": [
+    {
+      "key": "capacity",
+      "type": "field",
+      "label": "People the agency can serve",
+      "dataType": "integer"
+    },
+    {
+      "key": "note",
+      "type": "field",
+      "label": "Planning note",
+      "dataType": "string"
+    }
+  ]
+}
