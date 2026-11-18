@@ -65,6 +65,59 @@ test('the tracker reads an IndexedDB roster through filing and reload', async ({
   await expect(alpha).toHaveCount(0);
 });
 
+test('starts two filing units and resumes each address after reload', async ({ page }) => {
+  const overview = '/overview/2025';
+  await page.goto(`/surface-drafts.html?form&minted#${overview}`);
+  const visit = (path: string) => page.evaluate(hash => { window.location.hash = hash; }, path);
+  const answer = page.getByLabel('Answer');
+  const addresses: string[] = [];
+  for (const value of ['First unit', 'Second unit']) {
+    await page.getByRole('button', { name: 'New filing' }).click();
+    await expect(page).toHaveURL(/#\/filing\/2025\/[^?]+\?slot=form/);
+    const address = new URL(page.url()).hash;
+    addresses.push(address);
+    await expect(answer).toHaveValue('');
+    await answer.fill(value);
+    await visit(overview);
+    await expect(page.getByRole('button', { name: 'New filing' })).toBeVisible();
+    await visit(address);
+    await expect(answer).toHaveValue(value);
+    await page.getByRole('button', { name: 'Save draft' }).click();
+    await expect(page.getByText('Draft saved in this browser.')).toBeVisible();
+    await visit(overview);
+  }
+  expect(new Set(addresses).size).toBe(2);
+  for (const [index, address] of addresses.entries()) {
+    await visit(address);
+    await page.reload();
+    await expect(answer).toHaveValue(index === 0 ? 'First unit' : 'Second unit');
+  }
+});
+
+test('upgrades IndexedDB and creates one unit per attempt across tabs', async ({ page, context }) => {
+  await page.goto('/surface-drafts.html');
+  await page.evaluate(async () => (await import('/surface-drafts-port.ts')).seedVersionTwoDraft());
+  const other = await context.newPage();
+  await other.goto('/surface-drafts.html');
+  const start = (tab: typeof page, id: string) => tab.evaluate(
+    async attempt => (await import('/surface-drafts-port.ts')).startUnit(attempt), id,
+  );
+  const [first, duplicate] = await Promise.all([start(page, 'same-attempt'), start(other, 'same-attempt')]);
+  expect(first).toMatchObject({ status: 'started' });
+  expect(duplicate).toEqual(first);
+  const second = await start(other, 'separate-attempt');
+  if (first.status !== 'started' || second.status !== 'started') throw new Error('Unable to initialize both units');
+  expect(first.subject.id).not.toBe(second.subject.id);
+
+  await page.reload();
+  const legacy = await page.evaluate(async () => (await import('/surface-drafts-port.ts')).loadUnit());
+  expect(legacy).toMatchObject({ status: 'loaded', draft: { revision: 'version-two-draft' } });
+  for (const { subject } of [first, second]) {
+    const opened = await page.evaluate(async id => (await import('/surface-drafts-port.ts')).loadUnit(id), subject);
+    expect(opened).toMatchObject({ status: 'initialized' });
+  }
+});
+
 test('retains unsaved edits when the host recreates the same preview edition list', async ({ page }) => {
   await page.goto('/surface-drafts.html?form');
   const answer = page.getByLabel('Answer');

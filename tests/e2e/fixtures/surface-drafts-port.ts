@@ -3,6 +3,7 @@ import { initFormspecEngine, initFormspecEngineTools, responseSubjectId } from '
 import * as browser from '../../../packages/formspec-surface-react/src/index';
 import type { FormDefinition, ResponseSelection, ResponseSelectionDelivery } from '@formspec-org/types';
 import { draftPortConformance } from '../../../packages/formspec-surface/src/draft-port-conformance';
+import type { DraftKey } from '../../../packages/formspec-surface/src/draft-port';
 
 export async function runConformance(name: keyof typeof draftPortConformance) {
   let allowed = true;
@@ -69,6 +70,43 @@ const placement = [{ id: 'main', fields: ['answer'] }];
 const query = { key: 'filing', definitionUrl: key.definitionUrl, definitionVersion: version, sections: placement };
 let commits = 0;
 
+const unitsDb = 'formspec-minted-units-upgrade';
+const unitDefinition: FormDefinition = {
+  $formspec: '1.0', url: 'urn:test:unit-form', version, title: 'Filing unit', items: [],
+  subject: { type: 'urn:test:filing-unit', keys: { year: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } } },
+};
+const unitDrafts = browser.createBrowserFilingStore({
+  databaseName: unitsDb, scope: key.scope, definitions: new Map([[unitDefinition.url, unitDefinition]]),
+}).drafts;
+
+export function seedVersionTwoDraft() {
+  return new Promise<void>((resolve, reject) => {
+    const request = indexedDB.open(unitsDb, 2);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      const drafts = db.createObjectStore('editable');
+      db.createObjectStore('summaries');
+      db.createObjectStore('filings');
+      drafts.put({
+        definitionVersion: version, revision: 'version-two-draft', snapshotJson: '{}', responseJson: '{}', pinsJson: '{}',
+      }, [key.scope, key.definitionUrl, 'respondent', '']);
+    };
+    request.onsuccess = () => { request.result.close(); resolve(); };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export function startUnit(attemptId: string) {
+  return unitDrafts.start({
+    scope: key.scope, definitionUrl: unitDefinition.url, definitionVersion: version, attemptId,
+    subject: { type: unitDefinition.subject!.type, keys: { year: 2025 } },
+  });
+}
+
+export function loadUnit(subject?: DraftKey['subject']) {
+  return unitDrafts.load(subject ? { scope: key.scope, definitionUrl: unitDefinition.url, subject } : key, version);
+}
+
 export function watchPreviewCommits() {
   preview.subscribe(() => { commits++; });
 }
@@ -134,7 +172,7 @@ export async function fileExactPreview() {
     exactText.replace('1.234567890123456789', '1.234567890123456780'));
 
   const database = await new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(databaseName, 2);
+    const request = indexedDB.open(databaseName);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
