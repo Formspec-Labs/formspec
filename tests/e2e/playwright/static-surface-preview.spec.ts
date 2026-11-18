@@ -1,7 +1,7 @@
 /** @filedesc Serve the built static entry and exercise two synthetic exports on the same page. */
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, symlink, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { build, preview } from 'vite';
@@ -91,6 +91,8 @@ test('the published preview runs the emitted walk for every form slot', async ({
   const generated = info.outputPath('generated');
   const bundle = resolve(assets, 'registration.bundle.json');
   await Promise.all([mkdir(assets, { recursive: true }), mkdir(generated, { recursive: true })]);
+  // Playwright's output directory can sit outside this checkout's dependency tree.
+  await symlink(resolve('node_modules'), resolve(generated, 'node_modules'), 'junction');
   await Promise.all([
     writeFile(bundle, JSON.stringify(surfaceWalkExport)),
     writeFile(resolve(assets, 'preview.json'), JSON.stringify({
