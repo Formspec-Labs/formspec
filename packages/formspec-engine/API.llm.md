@@ -111,15 +111,22 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 #### interface `EvalValidation`
 
-@filedesc Diffs batch evaluation snapshots into per-signal patch payloads.
-
 - **path**: `string`
 - **shapeId?**: `string`
+
+#### interface `EvalDiagnostic`
+
+Author-facing FEL error from a bind constraint or shape expression (Rust `EvalDiagnostic`); never shown to
+respondents. Evaluation errors (Core §3.10.2) pass as null; an undefined function (§3.10.1) also fails.
+
+- **path** (`string`): Resolved instance path of the bind or shape target (`#` for form-level shapes).
 
 #### interface `EvalResult`
 
 - **values**: `Record<string, unknown>`
+- **data**: `Record<string, unknown>`
 - **validations**: `EvalValidation[]`
+- **diagnostics**: `EvalDiagnostic[]`
 - **nonRelevant**: `string[]`
 - **variables**: `Record<string, unknown>`
 - **required**: `Record<string, boolean>`
@@ -139,9 +146,57 @@ When false, inherit master-table submit semantics (`block-on-error`).
 - **variables**: `Record<string, unknown>`
 - **removedVariables**: `string[]`
 
+## `prepareDocumentAttestations(input: {
+    response: FormResponse;
+    definition: FormDefinition;
+    resolvedDocuments: [ResolvedDocument, ...ResolvedDocument[]];
+    commitment: DocumentAttestationCommitment;
+}): Promise<{
+    response: FormResponse;
+    signedBytes: Uint8Array;
+    digest: string;
+}>`
+
+Prepare one immutable signing gesture. This does not sign or verify anything.
+The returned bytes use the maintained v1 rule; only top-level authoredSignatures
+is excluded. The caller must present these exact committed claims for assent.
+
+## `finalizeDocumentAttestations(input: DocumentAttestationVerification & {
+    signatureBytes: Uint8Array;
+}): Promise<VerifiedDocumentAttestations>`
+
+Emit all selected document records atomically only after genuine verification.
+
+## `verifyDocumentAttestations(input: DocumentAttestationVerification): Promise<VerifiedDocumentAttestations>`
+
+Verify serialized declared-document evidence and its explicitly retained witnesses.
+
+#### interface `DocumentAttestationWitness`
+
+A retained principal snapshot and the key the host actually expects for it.
+
+- **response**: `FormResponse`
+- **definition**: `FormDefinition`
+- **keyRef**: `KeyRef`
+
+#### interface `DocumentAttestationVerification`
+
+The verifier is a host capability; registry/key inputs are captured before awaits.
+
+- **registry**: `SignatureMethodRegistry`
+- **verifier**: `Verifier`
+- **witnesses?**: `readonly DocumentAttestationWitness[]`
+
+#### interface `VerifiedDocumentAttestations`
+
+- **receipt** (`VerificationReceipt`): Actual verifier output, separate from any authenticated receipt claim.
+
 #### class `FormEngine`
 
-##### `constructor(definition: FormDefinition, optionsOrRuntimeContext?: FormEngineOptions | FormEngineRuntimeContext, legacyRegistryEntries?: RegistryEntry[])`
+##### `constructor(definition: FormDefinition, options?: FormEngineOptions)`
+
+- **writeSources** (`Record<string, EngineSignal<WriteSource | null>>`): Who last wrote each field (`'user'` by default, `'assist'` for Assist-driven writes); null until written.
+- **instanceData** (`JsonRecord`): Own-key JSON data map; valid source names never inherit Object prototype values.
 
 ##### `resolvePinnedDefinition(response: PinnedResponseReference, definitions: T[]): T`
 
@@ -161,7 +216,7 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 ##### `waitForRemoteOptions(): Promise<void>`
 
-##### `waitForInstanceSources(): Promise<void>`
+##### `waitForInstanceSources(): Promise<Readonly<Record<string, InstanceSourceLoadOutcome>>>`
 
 ##### `setInstanceValue(name: string, path: string | undefined, value: FormFieldValue): void`
 
@@ -173,11 +228,24 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 ##### `addRepeatInstance(itemName: string): number | undefined`
 
+Appends a row and returns its index; `undefined` when the path is not repeatable or already at `maxRepeat` (Core §4.2.2).
+
 ##### `removeRepeatInstance(itemName: string, index: number): void`
+
+##### `loadResponseData(data: JsonRecord): void`
+
+Loads a Response `data` tree with one evaluation. Definition-directed: a repeatable group present in
+`data` gets exactly one row per array entry, past `maxRepeat` or below `minRepeat` included, so loaded
+data reports MAX_REPEAT / MIN_REPEAT instead of losing rows. Keys absent from `data` keep their state;
+calculated fields and undeclared keys are ignored.
+
+##### `getDraftSnapshot(): FormDraftSnapshot`
+
+##### `loadDraftSnapshot(snapshot: FormDraftSnapshot): void`
 
 ##### `compileExpression(expression: string, currentItemName?: string): () => FormFieldValue`
 
-##### `setValue(name: string, value: FormFieldValue): void`
+##### `setValue(name: string, value: FormFieldValue, options?: SetValueOptions): void`
 
 ##### `getValidationReport(): ValidationReport`
 
@@ -195,23 +263,24 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 ##### `isPathRelevant(path: string): boolean`
 
+##### `whyRelevant(path: string): RelevanceExplanation`
+
+##### `getDerivationTree(path: string): FelTraceStep[]`
+
+##### `getDownstreamImpact(path: string): string[]`
+
 ##### `getFieldPaths(): string[]`
 
 ##### `getProgress(): import('../interfaces.js').FormProgress`
 
-##### `getResponse(meta?: {
-        id?: string;
-        author?: {
-            id: string;
-            name?: string;
-        };
-        subject?: {
-            id: string;
-            type?: string;
-        };
-        authoredSignatures?: AuthoredSignatureInput[];
-        profile?: ValidationProfile;
-    }): FormResponse`
+##### `getResponse(meta?: Parameters<FormEngine['getResponseSnapshot']>[0]): FormResponse`
+
+##### `getResponseSnapshot(meta?: Parameters<IFormEngine['getResponse']>[0], validationProfile?: ValidationProfile): {
+        response: FormResponse;
+        validationReport: ValidationReport | null;
+    }`
+
+One evaluation and clock for response data and its requested validation report.
 
 ##### `getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot`
 
@@ -227,6 +296,26 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 ##### `getLabel(item: FormItem): string`
 
+Definition label for the active label context (no Locale, no `{{}}`); reactive to `setLabelContext`.
+
+##### `getItemLabelSignal(path: string): ReadonlyEngineSignal<string> | undefined`
+
+Reactive label a respondent sees for the Item at instance `path` — field, display, or group (a repeat row
+path such as `jobs[0]` names its group). Same cascade as `FieldViewModel.label` (Locale
+`<key>.label@context` → `<key>.label` → `labels[context]` → inline), `{{}}` interpolated in the Item's
+scope. `undefined` when no Item has that path.
+
+##### `getItemHintSignal(path: string): ReadonlyEngineSignal<string | null> | undefined`
+
+Reactive hint a respondent sees for the Item at instance `path` — field, display, or group. Same
+cascade as `FieldViewModel.hint` (Locale `<key>.hint@context` → `<key>.hint` → inline `hint`; no
+Definition-side context step), `{{}}` interpolated in the Item's scope. `null` when no source has
+one; `undefined` when no Item has that path.
+
+##### `getItemDescriptionSignal(path: string): ReadonlyEngineSignal<string | null> | undefined`
+
+{@link FormEngine.getItemHintSignal} for the Item's `description`.
+
 ##### `loadLocale(doc: LocaleDocument): void`
 
 ##### `setLocale(code: string): void`
@@ -239,9 +328,18 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 ##### `getFieldVM(path: string): FieldViewModel | undefined`
 
+##### `resolveValidationMessage(result: ValidationResult): string`
+
 ##### `getFormVM(): FormViewModel`
 
-##### `resolveLocaleString(key: string, fallback: string): string`
+##### `resolveLocaleString(key: string, fallback: string, itemPath?: string): string`
+
+##### `lookupLocaleString(key: string): string | null`
+
+Raw Locale string for `key`, or `null` when no loaded document (through the fallback cascade, §4)
+carries it. Unlike {@link resolveLocaleString}, this never runs `{{}}` through FEL — for chrome
+strings (Locale §3.1.10 `$ui.<ChromeStringKey>`), whose `{{$param}}` placeholders are renderer-
+supplied literals (`$label`, `$index`, ...), not form-scope FEL.
 
 ##### `injectExternalValidation(results: Array<{
         path: string;
@@ -255,6 +353,8 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 ##### `dispose(): void`
 
+##### `registerExtensionFunction(name: string, registration: FelExtensionFunctionRegistration): void`
+
 ##### `setRegistryEntries(entries: RegistryEntry[]): void`
 
 ##### `migrateResponse(responseData: JsonRecord, fromVersion: string): JsonRecord`
@@ -265,11 +365,51 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 ## `validateCalculateBindCycles(bindConfigs: Record<string, EngineBindConfig>): void`
 
+## `captureDraftData(items: FormItem[], fieldValue: (path: string) => JsonValue | undefined, repeatCount: (path: string) => number): JsonRecord`
+
+Match the Response data tree, where dependent questions share their scalar parent's object.
+
+## `felContextSchema(fieldDataTypes: Record<string, string | undefined>, bindConfigs: Record<string, EngineBindConfig>): FelContextSchema`
+
+## `felContextSnapshot(options: FelContextSnapshotInput): FelContextSnapshot`
+
+The whole form's FEL state in one payload, built O(fields + rows) per evaluation. Values stay untagged —
+the Rust context types leaves from `FelContextSchema.dataTypes` and infers money from `{amount, currency}`.
+
+#### interface `FelContextSchema`
+
+Per-Definition input to the WASM FEL context: what `dataTypes` a leaf carries (Core §2.1.3) and which
+binds render a non-relevant read as `null`. Changes only when the Definition does.
+
+- **dataTypes**: `Record<string, string>`
+- **excludedValueNull**: `string[]`
+
+#### interface `FelContextSnapshot`
+
+Form-scope state of one evaluation — what the WASM context holds between ad-hoc reads.
+
+- **values** (`Record<string, unknown>`): Field values by instance path; repeat group arrays are ignored in favour of their flat rows.
+- **mips** (`{
+        invalid: string[];
+        nonRelevant: string[];
+        readonly: string[];
+        required: string[];
+    }`): Instance paths whose MIP state departs from the default (valid, relevant, optional, writable).
+- **repeatCounts** (`Record<string, number>`): Row counts by repeat group instance path.
+- **variables** (`Record<string, Record<string, unknown>>`): Variable values by scope (`#` is form scope) and name.
+- **dateFormats** (`Record<string, string>`): The active Locale document's `formats.date` patterns by `formatDate` style (Locale §2.4).
+
+#### interface `FelContextSnapshotInput`
+
+- **dateFormats** (`Record<string, string>`): The active Locale document's `formats.date` patterns by `formatDate` style (Locale §2.4).
+
 ## `normalizeRemoteOptions(payload: unknown): OptionEntry[]`
 
 ## `makeValidationResult(result: Pick<ValidationResult, 'path' | 'severity' | 'constraintKind' | 'code' | 'message' | 'source'> & Partial<Pick<ValidationResult, 'shapeId' | 'context'>>): ValidationResult`
 
 ## `toValidationResult(result: EvalValidation): ValidationResult`
+
+Paths stay resolved instance paths with 0-based indexes (Core §4.3.3), exactly as WASM emits them.
 
 ## `toValidationResults(results: EvalValidation[]): ValidationResult[]`
 
@@ -282,23 +422,13 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 ## `emptyValueForItem(item: FormItem): FormFieldValue`
 
-## `coerceInitialValue(item: FormItem, value: FormFieldValue): FormFieldValue`
+## `coerceInitialValue(item: FormItem, value: FormFieldValue, definition: FormDefinition): FormFieldValue`
 
 ## `coerceFieldValue(item: FormItem, bind: EngineBindConfig | undefined, definition: FormDefinition, value: FormFieldValue): FormFieldValue`
 
 ## `validateDataType(value: FormFieldValue, dataType: string): boolean`
 
-## `cloneValue(value: T): T`
-
-## `isJsonRecord(value: unknown): value is JsonRecord`
-
 ## `normalizeWasmValue(value: T): T`
-
-## `tagMoneyByPath(path: string, value: FormFieldValue, bindConfigs: Record<string, EngineBindConfig>, fieldDataTypes?: Record<string, string | undefined>): FormFieldValue`
-
-## `toWasmContextValue(value: T): T`
-
-## `deepEqual(left: unknown, right: unknown): boolean`
 
 ## `resolveNowProvider(now: FormEngineRuntimeContext['now']): () => Date`
 
@@ -325,27 +455,11 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 ## `setNestedPathValue(target: JsonRecord, path: string, value: FormFieldValue): void`
 
-## `setExpressionContextValue(target: JsonRecord, path: string, value: FormFieldValue): void`
-
-## `setResponsePathValue(target: JsonRecord, path: string, value: FormFieldValue): void`
-
 ## `replaceBareCurrentFieldRefs(expression: string, currentFieldName: string): string`
 
 ## `flattenObject(value: JsonValue, prefix?: string, output?: JsonRecord): JsonRecord`
 
-## `buildGroupSnapshotForPath(prefix: string, signals: Record<string, EngineSignal<FormFieldValue>>): JsonRecord`
-
-## `buildRepeatCollection(groupPath: string, count: number, signals: Record<string, EngineSignal<FormFieldValue>>): JsonValue[]`
-
-## `getRepeatAncestors(currentItemPath: string, repeats: Record<string, EngineSignal<number>>): Array<{
-    groupPath: string;
-    index: number;
-    count: number;
-}>`
-
 ## `isEmptyValue(value: unknown): boolean`
-
-## `safeEvaluateExpression(expression: string, context: WasmFelContext): FormFieldValue`
 
 ## `extractInlineBind(item: FormItem, path: string): EngineBindConfig | null`
 
@@ -356,6 +470,8 @@ When false, inherit master-table submit semantics (`block-on-error`).
 ## `snapshotSignals(signals: Record<string, EngineSignal<FormFieldValue>>): JsonRecord`
 
 ## `toFelIndexedPath(path: string): string`
+
+FEL expression addressing only (`$repeat[n]` is 1-based, Core §4.3.3); never for ValidationResult paths.
 
 ## `buildRepeatValueAliases(valuesByPath: JsonRecord): Array<[string, FormFieldValue[]]>`
 
@@ -402,6 +518,41 @@ type RuntimeNowInput = Date | string | number;
 
 @filedesc Validate instance JSON against optional per-instance schema (datatype strings).
 
+## `collectSeedFromGroups(items: FormItem[], prefix?: string): SeedFromGroup[]`
+
+## `findRelativeSeedContext(fieldPath: string, seedFromGroups: SeedFromGroup[]): {
+    seedFrom: SeedFromGroup['seedFrom'];
+    rowIndex: number;
+} | null`
+
+## `repeatHasHostData(groupPath: string, data: Record<string, unknown>, signals: Record<string, {
+    value: FormFieldValue;
+}>, minRepeat: number): boolean`
+
+True when host primary data already sized this repeat.
+
+## `resolvePrePopulateFromInstance(item: FormItem, fieldPath: string, seedFromGroups: SeedFromGroup[], getInstanceData: (name: string, path?: string) => FormFieldValue, instanceDataRoot: (name: string) => unknown): FormFieldValue | undefined`
+
+#### type `SeedFromGroup`
+
+```ts
+type SeedFromGroup = {
+    path: string;
+    item: FormItem;
+    seedFrom: NonNullable<FormItem['seedFrom']>;
+};
+```
+
+## `sourceErrorMessage(error: unknown): string`
+
+## `freezeSourceMetadata(value: T): T`
+
+## `cloneSourceJson(value: unknown, ancestors?: Set<object>): JsonValue`
+
+Copy an acyclic JSON tree without invoking accessors or accepting non-JSON objects.
+
+## `readSourceResult(value: unknown): InstanceSourceResult`
+
 ## `patchValueSignalsFromWasm(options: {
     values: Record<string, unknown>;
     signals: Record<string, EngineSignal<any>>;
@@ -419,7 +570,6 @@ type RuntimeNowInput = Date | string | number;
     shapeResults: Record<string, EngineSignal<ValidationResult[]>>;
     variableSignals: Record<string, EngineSignal<any>>;
     variableSignalKeys: Map<string, string[]>;
-    prePopulateReadonly: Set<string>;
 }): void`
 
 ## `patchErrorSignalsFromWasm(rx: EngineReactiveRuntime, options: {
@@ -428,28 +578,61 @@ type RuntimeNowInput = Date | string | number;
 }): void`
 
 ## `clearRepeatIndexedSubtree(options: {
-    rootRepeatPath: string;
+    includesPath: (path: string) => boolean;
     signals: Record<string, EngineSignal<any>>;
     relevantSignals: Record<string, EngineSignal<boolean>>;
     requiredSignals: Record<string, EngineSignal<boolean>>;
     readonlySignals: Record<string, EngineSignal<boolean>>;
     errorSignals: Record<string, EngineSignal<string | null>>;
     validationResults: Record<string, EngineSignal<ValidationResult[]>>;
+    writeSources: Record<string, EngineSignal<WriteSource | null>>;
     optionSignals: Record<string, EngineSignal<OptionEntry[]>>;
     optionStateSignals: Record<string, EngineSignal<RemoteOptionsState>>;
     repeats: Record<string, EngineSignal<number>>;
     data: Record<string, any>;
 }): void`
 
-Remove indexed paths under a repeat root from signal stores and `_data` (reactive structure only).
+Remove the selected repeat paths from signal stores and primary data.
 
-## `snapshotRepeatGroupTree(items: FormItem[], prefix: string, readFieldValue: (path: string) => unknown, getRepeatCount: (path: string) => number): Record<string, unknown>`
+## `snapshotRepeatRow(items: FormItem[], rowPath: string, readField: (path: string) => RepeatFieldState, getRepeatCount: (path: string) => number): RepeatRowSnapshot`
 
-Snapshot nested field values under a repeat prefix (used when removing a repeat row).
+Capture paths relative to the row so the same state can be restored at its new index.
 
-## `applyRepeatGroupTreeSnapshot(items: FormItem[], prefix: string, snapshot: Record<string, unknown> | undefined, writeField: (path: string, value: unknown) => void): void`
+#### interface `RepeatFieldState`
 
-Restore nested field values after repeat rows were reindexed.
+- **value**: `FormFieldValue`
+- **writeSource**: `WriteSource | null`
+- **preserveSourceSeed**: `boolean`
+
+#### interface `RepeatRowSnapshot`
+
+- **fields**: `Array<RepeatFieldState & {
+        path: string;
+    }>`
+- **repeats**: `Array<{
+        path: string;
+        item: FormItem;
+        count: number;
+    }>`
+
+## `toNormalizedAuthoredSignatureRecord(signature: AuthoredSignatureInput, index: number, responseId: string, definitionUrl: string, definitionVersion: string, meta: {
+    author?: {
+        id: string;
+        name?: string;
+    };
+} | undefined): Record<string, unknown>`
+
+Emit only JSON-Schema–declared AuthoredSignature properties (additionalProperties: false).
+
+## `attachAuthoredSignature(response: T, signature: AuthoredSignatureInput): T & {
+    authoredSignatures: Record<string, unknown>[];
+}`
+
+Append whole-response signing evidence to an already emitted, completed JSON Response.
+Preserves all other Response content and returns independent nested objects. Does not
+emit a Response, read a clock, or verify COSE bytes, digests, identity or receipt claims.
+Callers must provide a valid Response snapshot and provider evidence; validate the
+resulting document against the Response schema before transport when required.
 
 ## `buildFormspecResponseEnvelope(options: {
     definition: FormDefinition;
@@ -461,15 +644,17 @@ Restore nested field values after repeat rows were reindexed.
         url: string;
         version: string;
     };
+    displayedLocale?: {
+        url?: string;
+        version: string;
+        locale: string;
+    };
+    subject?: FormEngineOptions['responseSubject'];
     meta?: {
         id?: string;
         author?: {
             id: string;
             name?: string;
-        };
-        subject?: {
-            id: string;
-            type?: string;
         };
         authoredSignatures?: AuthoredSignatureInput[];
     };
@@ -481,7 +666,7 @@ Shape validations for a specific timing, from a WASM eval with the matching trig
 
 ## `buildValidationReportEnvelope(results: ValidationResult[], timestamp: string, definitionUrl?: string, definitionVersion?: string): ValidationReport`
 
-Strip optional cardinality `source`, compute counts, and wrap the spec envelope.
+Compute counts and wrap the evaluator's results in the spec report.
 
 ## `migrateResponseData(definition: FormDefinition, responseData: Record<string, any>, fromVersion: string, options: {
     nowIso: string;
@@ -495,6 +680,8 @@ Strip optional cardinality `source`, compute counts, and wrap the spec envelope.
     previousResult: EvalResult | null;
     instances: Record<string, unknown>;
     registryDocuments: unknown[];
+    subjectType?: string | null;
+    subjectKeys?: ResponseSubjectKeys;
     /** Authoritative repeat row counts by group base path (matches engine repeat signals). */
     repeatCounts: Record<string, number>;
 }): {
@@ -504,6 +691,8 @@ Strip optional cardinality `source`, compute counts, and wrap the spec envelope.
     previousNonRelevant: string[] | undefined;
     instances: Record<string, unknown>;
     registryDocuments: unknown[];
+    subjectType?: string | null;
+    subjectKeys?: ResponseSubjectKeys;
     repeatCounts: Record<string, number>;
 }`
 
@@ -523,40 +712,7 @@ Append engine-owned validations (e.g. extension hooks) after WASM batch evaluati
     fieldSignals: Record<string, EngineSignal<any>>;
 }): string`
 
-## `resolveFelFieldValueForWasm(path: string, value: unknown, bindConfigs: Record<string, EngineBindConfig>, fieldIsIrrelevant: (path: string) => boolean): FormFieldValue`
-
-## `visibleScopedVariableValues(scopePath: string, variableDefs: FormVariable[], variableSignals: Record<string, EngineSignal<any>>, overrides?: Record<string, any>): Record<string, any>`
-
-## `buildFelRepeatWasmContext(options: {
-    currentItemPath: string;
-    repeats: Record<string, EngineSignal<number>>;
-    fieldSignals: Record<string, EngineSignal<any>>;
-}): WasmFelContext['repeatContext'] | undefined`
-
-## `buildWasmFelExpressionContext(options: WasmFelContextBuildInput): WasmFelContext`
-
-#### interface `WasmFelContextBuildInput`
-
-- **currentItemPath**: `string`
-- **data**: `Record<string, any>`
-- **fullResult**: `EvalResult | null`
-- **resultOverride?**: `EvalResult | null`
-- **dataOverride?**: `Record<string, any>`
-- **scopedVariableOverrides?**: `Record<string, any>`
-- **fieldSignals**: `Record<string, EngineSignal<any>>`
-- **validationResults**: `Record<string, EngineSignal<ValidationResult[]>>`
-- **relevantSignals**: `Record<string, EngineSignal<boolean>>`
-- **readonlySignals**: `Record<string, EngineSignal<boolean>>`
-- **requiredSignals**: `Record<string, EngineSignal<boolean>>`
-- **repeats**: `Record<string, EngineSignal<number>>`
-- **bindConfigs**: `Record<string, EngineBindConfig>`
-- **fieldDataTypes**: `Record<string, string | undefined>`
-- **variableDefs**: `FormVariable[]`
-- **variableSignals**: `Record<string, EngineSignal<any>>`
-- **instanceData**: `Record<string, unknown>`
-- **nowIso**: `string`
-- **locale?**: `string`
-- **meta?**: `Record<string, string | number | boolean>`
+## `visibleScopedVariableValues(scopePath: string, variableDefs: FormVariable[], variableSignals: Record<string, EngineSignal<any>>): Record<string, any>`
 
 #### type `WasmPreviousValidation`
 
@@ -569,7 +725,7 @@ type WasmPreviousValidation = Array<{
     constraintKind: string;
     code: string;
     message: string;
-    source: string;
+    source?: string;
     shapeId?: string;
     context?: Record<string, unknown>;
 }>;
@@ -624,6 +780,33 @@ type JsonObject = Record<string, unknown>;
 type ExperienceFindingCode = 'EXP-TARGET-DEFINITION-MISMATCH' | 'EXP-TARGET-DEFINITION-VERSION-MISMATCH' | 'EXP-REFERENTIAL-INTEGRITY' | 'EXP-ITEM-REF-UNRESOLVED' | 'EXP-COVERAGE-UNCOVERED-REQUIRED-ITEM';
 ```
 
+#### interface `FelExtensionFunctionRegistration`
+
+A registered extension: its implementation and optional arity bounds.
+
+- **implementation** (`(...args: any[]) => unknown`): Pure and total (Core §3.12): receives non-null JSON-like arguments, returns a JSON-like value.
+- **minArgs** (`number`): Minimum argument count (default 0).
+- **maxArgs** (`number`): Maximum argument count (default unbounded).
+
+#### class `FelExtensionFunctions`
+
+One engine's extension functions, in the shape Rust's evaluator calls (`FelExtensionHost`).
+
+Registration checks the name in Rust (built-ins and reserved words are refused). Rust
+keeps arity checks, null propagation, and a throw becoming an author diagnostic; this
+adapter only looks up and invokes, with arguments and results as JSON text.
+
+##### `register(name: string, registration: FelExtensionFunctionRegistration): void`
+
+Registers `name`, replacing an earlier registration; throws for a FEL built-in or reserved word.
+
+##### `arity(name: string): {
+        minArgs: number;
+        maxArgs?: number;
+    } | undefined`
+
+##### `invoke(name: string, argsJson: string): string`
+
 ## `analyzeFEL(expression: string): FELAnalysis`
 
 ## `analyzeFELWithFieldTypes(expression: string, fieldTypes: Record<string, string>): FELAnalysis`
@@ -652,6 +835,8 @@ Find the mutable parent/index/item triple for a dotted tree path.
 
 Evaluate a FEL expression and return a structured trace of evaluation steps.
 See `FelTraceStep` for the step variants; wire format matches Rust `fel_core::TraceStep`.
+
+## `evalFELWithContextTrace: typeof wasmEvalFelWithContextTrace`
 
 ## `evaluateDefinition: typeof wasmEvaluateDefinition`
 
@@ -710,6 +895,8 @@ Rewrite FEL references using callback options (bridges to WASM rewrite).
 
 ## `wellKnownRegistryUrl: typeof wasmWellKnownRegistryUrl`
 
+## `deriveJsonLdContext: typeof wasmDeriveJsonLdContext`
+
 ## `generateChangelog: typeof wasmGenerateChangelog`
 
 ## `printFEL: typeof wasmPrintFel`
@@ -748,7 +935,22 @@ type WasmFelAnalysisErrorWire = string | {
 
 #### interface `FieldViewModel`
 
-##### `setValue(value: any): void`
+- **writeSource** (`ReadonlyEngineSignal<WriteSource | null>`): Who last wrote this field; null until written.
+
+##### `interpolate(template: string): string`
+
+Resolve `{{expression}}` in this field's binding scope (Locale §3.3.1).
+
+##### `resolveMessage(result: {
+        code?: string;
+        constraintKind?: string;
+        message?: string;
+    }): string`
+
+The message a respondent reads for one of this field's validation results, through the Locale
+validation-message cascade — what `errors` shows, for a result from any report (a submit, a summary).
+
+##### `setValue(value: any, options?: SetValueOptions): void`
 
 #### interface `ResolvedValidationResult`
 
@@ -761,35 +963,13 @@ type WasmFelAnalysisErrorWire = string | {
 #### interface `ResolvedOption`
 
 - **keywords** (`string[]`): Abbreviations / alternate names for combobox type-ahead (from definition option.keywords).
+- **needAnchors** (`string[]`): Canonical Need anchors copied from the exact authored option label.
 
 #### interface `FieldViewModelDeps`
 
-- **rx**: `EngineReactiveRuntime`
-- **localeStore**: `LocaleStore`
-- **templatePath**: `string`
-- **instancePath**: `string`
-- **id**: `string`
-- **itemKey**: `string`
-- **dataType**: `string`
-- **getItemLabel**: `() => string`
-- **getItemHint**: `() => string | null`
-- **getItemDescription**: `() => string | null`
-- **getItemLabels**: `() => Record<string, string> | undefined`
-- **getLabelContext**: `() => string | null`
-- **getFieldValue**: `() => EngineSignal<any>`
-- **getRequired**: `() => EngineSignal<boolean>`
-- **getVisible**: `() => EngineSignal<boolean>`
-- **getReadonly**: `() => EngineSignal<boolean>`
-- **getDisabledDisplay**: `() => 'hidden' | 'protected'`
-- **getErrors**: `() => EngineSignal<any[]>`
-- **getOptions**: `() => EngineSignal<OptionEntry[]>`
-- **getOptionsState**: `() => EngineSignal<{
-        loading: boolean;
-        error: string | null;
-    }>`
-- **getOptionSetName**: `() => string | undefined`
-- **setFieldValue**: `(value: any) => void`
-- **evalFEL**: `(expr: string) => import('./wasm-bridge-runtime.js').FelEvalResult | unknown`
+- **getConstraintMessage** (`() => string | null`): The Bind's inline `constraintMessage` template for this field, before `{{}}` resolution.
+- **interpolate** (`(template: string) => string`): Resolves `{{expression}}` in the field's binding scope (Locale §3.3.1).
+- **interpolateMessage** (`(template: string) => string`): {@link FieldViewModelDeps.interpolate} with bare `$` bound to the field, as in its Bind: validation messages.
 
 ## `createFormViewModel(deps: FormViewModelDeps): FormViewModel`
 
@@ -805,7 +985,7 @@ type WasmFelAnalysisErrorWire = string | {
 - **getDefinitionDescription** (`() => string | undefined`): Returns definition.description
 - **getPageTitle** (`(pageId: string) => string | undefined`): Returns page title from theme pages array
 - **getPageDescription** (`(pageId: string) => string | undefined`): Returns page description from theme pages
-- **evalFEL** (`(expr: string) => import('./wasm-bridge-runtime.js').FelEvalResult | unknown`): Evaluates a FEL expression in the form-level (global) context
+- **interpolate** (`(template: string) => string`): Resolves `{{expression}}` in the form-level (global) context (Locale §3.3.1)
 - **getValidationCounts** (`() => {
         errors: number;
         warnings: number;
@@ -813,7 +993,7 @@ type WasmFelAnalysisErrorWire = string | {
     }`): Returns total validation error/warning/info counts
 - **getIsValid** (`() => boolean`): Returns whether form is valid (no errors)
 
-## `initFormspecEngine(): Promise<void>`
+## `initFormspecEngine(options?: InitWasmOptions): Promise<void>`
 
 Initialize the Formspec engine (loads and links the Rust/WASM module).
 
@@ -821,6 +1001,8 @@ Call once during app startup (e.g. `await initFormspecEngine()` or `await initEn
 Safe to call multiple times; concurrent calls share one load.
 
 Not required for `formspec-webcomponent` only: importing that package starts WASM load automatically.
+A host with no way to fetch the `.wasm` asset passes its bytes as `wasmBytes`; they win over the
+default load, but only if this is the first call to start one.
 
 ## `isFormspecEngineInitialized(): boolean`
 
@@ -920,6 +1102,7 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
 - **locale?**: `object`
 - **screener?**: `object`
 - **determination?**: `object`
+- **surface?**: `object`
 
 #### interface `SchemaValidator`
 
@@ -969,15 +1152,39 @@ One row in a lifted condition group (`tryLiftConditionGroup`).
 - **seed?**: `string | number`
 - **meta?**: `Record<string, string | number | boolean>`
 
+#### interface `InstanceSourceRequest`
+
+Detached metadata for one authored Definition-local instance source.
+
+- **instanceName**: `string`
+- **source**: `string`
+- **definition**: `Readonly<{
+        url?: string;
+        version: string;
+    }>`
+- **schema?**: `Readonly<FormInstance['schema']>`
+- **static**: `boolean`
+- **readonly**: `boolean`
+
 #### interface `FormEngineOptions`
 
 Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createFormEngine`](./engine/init.ts).
 
-- **runtimeContext?**: `FormEngineRuntimeContext`
-- **registryEntries?**: `RegistryEntry[]`
-- **reactiveRuntime?**: `import('./reactivity/types.js').EngineReactiveRuntime`
-- **issuerFetcher?**: `IssuerFetcher`
-- **issuerOverride?**: `IssuerSource`
+- **instanceSourceResolver** (`InstanceSourceResolver`): Exclusive source loader when supplied; injected values never use the shared URL cache.
+- **extensionFunctions** (`Record<string, import('./extension-functions.js').FelExtensionFunctionRegistration>`): FEL extension functions by name (Core §3.12), registered before the first evaluation.
+- **responseData** (`JsonRecord`): Host primary Response data installed before seedFrom.
+- **draftSnapshot** (`FormDraftSnapshot`): Resume an editable snapshot before the first evaluation. Mutually exclusive with responseData.
+- **responseSubject** (`Omit<NonNullable<FormResponse['subject']>, 'keys'> & {
+        keys?: ResponseSubjectKeys;
+    }`): Host-supplied Response identity, available to FEL from the first evaluation.
+
+#### interface `FormDraftSnapshot`
+
+Editable data pinned to a Definition, including hidden answers and exact repeat arrays.
+
+- **definitionUrl**: `string`
+- **definitionVersion**: `string`
+- **data**: `JsonRecord`
 
 #### interface `RegistryEntry`
 
@@ -1065,50 +1272,11 @@ Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createForm
 
 #### interface `AuthoredSignatureInput`
 
-- **signatureId**: `string`
-- **documentId**: `string`
-- **signingIntent**: `string`
-- **signatureValue**: `string`
-- **verificationReceipt?**: `string | VerificationReceiptInput`
-- **signerId?**: `string`
-- **signerName?**: `string`
-- **signedAt**: `string`
-- **consentAccepted**: `boolean`
-- **consentTextRef**: `string`
-- **consentVersion**: `string`
-- **affirmationText**: `string`
-- **signedPayload**: `AuthoredSignatureSignedPayload`
-- **documentHash**: `string`
-- **documentHashAlgorithm**: `string`
-- **identityProofRef?**: `string`
-- **identityBinding?**: `AuthoredSignatureIdentityBinding`
-- **signatureProvider**: `string`
-- **ceremonyId**: `string`
+- **signingActId** (`string`): Declared-document claims require the atomic tools-side signing route.
 
 #### interface `FormEngineDiagnosticsSnapshot`
 
-- **definition**: `{
-        url: string;
-        version: string;
-        title: string;
-    }`
-- **timestamp**: `string`
-- **structureVersion**: `number`
-- **repeats**: `Record<string, number>`
-- **values**: `JsonRecord`
-- **mips**: `Record<string, {
-        relevant: boolean;
-        required: boolean;
-        readonly: boolean;
-        error: string | null;
-    }>`
-- **validation**: `ValidationReport | null`
-- **runtimeContext**: `{
-        now: string;
-        locale?: string;
-        timeZone?: string;
-        seed?: string | number;
-    }`
+- **evaluationDiagnostics** (`EvalDiagnostic[]`): Expression errors from the evaluation behind `validation` (the latest live evaluation when `profile: 'off'`).
 
 #### interface `EngineReplayApplyResult`
 
@@ -1126,6 +1294,17 @@ Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createForm
         event: EngineReplayEvent;
         error: string;
     }>`
+
+#### interface `RelevanceExplanation`
+
+- **bindId**: `string | null`
+- **expression**: `string | null`
+- **dependsOn**: `string[]`
+- **evaluatedAs**: `boolean`
+
+#### interface `SetValueOptions`
+
+- **source** (`WriteSource`): Recorded on the field's `writeSource` signal; Assist uses it to refuse overwriting a respondent's own typing.
 
 #### interface `IFormEngine`
 
@@ -1155,7 +1334,7 @@ cascade so single-signal subscription is sufficient.
 
 ##### `waitForRemoteOptions(): Promise<void>`
 
-##### `waitForInstanceSources(): Promise<void>`
+##### `waitForInstanceSources(): Promise<Readonly<Record<string, InstanceSourceLoadOutcome>>>`
 
 ##### `setInstanceValue(name: string, path: string | undefined, value: FormFieldValue): void`
 
@@ -1167,11 +1346,25 @@ cascade so single-signal subscription is sufficient.
 
 ##### `addRepeatInstance(itemName: string): number | undefined`
 
+Appends a row; `undefined` when not repeatable or already at `maxRepeat`.
+
 ##### `removeRepeatInstance(itemName: string, index: number): void`
+
+##### `loadResponseData(data: JsonRecord): void`
+
+Loads Response `data` in one evaluation, one row per loaded array entry regardless of min/maxRepeat.
+
+##### `loadDraftSnapshot(snapshot: FormDraftSnapshot): void`
+
+Restores editable data from a draft pinned to this Definition.
+
+##### `getDraftSnapshot(): FormDraftSnapshot`
+
+Captures editable data without evaluation. Use exact JSON for persistence.
 
 ##### `compileExpression(expression: string, currentItemName?: string): () => FormFieldValue`
 
-##### `setValue(name: string, value: FormFieldValue): void`
+##### `setValue(name: string, value: FormFieldValue, options?: SetValueOptions): void`
 
 ##### `getValidationReport(): ValidationReport`
 
@@ -1189,6 +1382,12 @@ cascade so single-signal subscription is sufficient.
 
 ##### `isPathRelevant(path: string): boolean`
 
+##### `whyRelevant(path: string): RelevanceExplanation`
+
+##### `getDerivationTree(path: string): FelTraceStep[]`
+
+##### `getDownstreamImpact(path: string): string[]`
+
 ##### `getFieldPaths(): string[]`
 
 ##### `getProgress(): FormProgress`
@@ -1199,6 +1398,7 @@ cascade so single-signal subscription is sufficient.
             id: string;
             name?: string;
         };
+        /** Unkeyed subject metadata. Supply filing-unit identity through `FormEngineOptions.responseSubject`. */
         subject?: {
             id: string;
             type?: string;
@@ -1206,6 +1406,13 @@ cascade so single-signal subscription is sufficient.
         authoredSignatures?: AuthoredSignatureInput[];
         profile?: ValidationProfile;
     }): FormResponse`
+
+##### `getResponseSnapshot(meta?: Parameters<IFormEngine['getResponse']>[0], validationProfile?: ValidationProfile): {
+        response: FormResponse;
+        validationReport: ValidationReport | null;
+    }`
+
+Capture response data and validation from one evaluation and clock.
 
 ##### `getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot`
 
@@ -1221,6 +1428,18 @@ cascade so single-signal subscription is sufficient.
 
 ##### `getLabel(item: FormItem): string`
 
+##### `getItemLabelSignal(path: string): ReadonlyEngineSignal<string> | undefined`
+
+Reactive Locale-resolved, `{{}}`-interpolated label of the field, display, or group Item at `path`.
+
+##### `getItemHintSignal(path: string): ReadonlyEngineSignal<string | null> | undefined`
+
+The same for the Item's `hint`; `null` when neither Locale nor Definition has one.
+
+##### `getItemDescriptionSignal(path: string): ReadonlyEngineSignal<string | null> | undefined`
+
+The same for the Item's `description`; `null` when neither Locale nor Definition has one.
+
 ##### `loadLocale(doc: LocaleDocument): void`
 
 ##### `setLocale(code: string): void`
@@ -1233,11 +1452,24 @@ cascade so single-signal subscription is sufficient.
 
 ##### `getFieldVM(path: string): FieldViewModel | undefined`
 
+##### `resolveValidationMessage(result: ValidationResult): string`
+
+The message a respondent reads for `result`: its field's Locale validation-message cascade when the
+result's path is a field instance, else the processor's `message`. Summaries use it so they read what
+the field itself shows.
+
 ##### `getFormVM(): FormViewModel`
 
-##### `resolveLocaleString(key: string, fallback: string): string`
+##### `resolveLocaleString(key: string, fallback: string, itemPath?: string): string`
 
-Resolve a locale string key with fallback. For component-tier `$component.` keys.
+Resolve a Locale string key with fallback. `{{}}` interpolates in the binding scope
+of `itemPath` (an instance path, e.g. `rows[1].note`); form scope when omitted.
+
+##### `lookupLocaleString(key: string): string | null`
+
+Raw Locale string for `key` (fallback cascade, §4), or `null` when no loaded document carries it.
+No FEL interpolation — for chrome strings (Locale §3.1.10 `$ui.<ChromeStringKey>`), whose
+`{{$param}}` placeholders are renderer-supplied literals, not form-scope FEL.
 
 ##### `dispose(): void`
 
@@ -1252,6 +1484,11 @@ Resolve a locale string key with fallback. For component-tier `$component.` keys
 ##### `clearExternalValidation(path?: string): void`
 
 ##### `setRegistryEntries(entries: RegistryEntry[]): void`
+
+##### `registerExtensionFunction(name: string, registration: import('./extension-functions.js').FelExtensionFunctionRegistration): void`
+
+Register a FEL extension function (Core §3.12) and re-evaluate. Throws for a FEL built-in or
+reserved word. Unregistered calls stay definition errors (`CONSTRAINT_PARSE_ERROR` on binds).
 
 ##### `migrateResponse(responseData: JsonRecord, fromVersion: string): JsonRecord`
 
@@ -1286,7 +1523,7 @@ type JsonPrimitive = string | number | boolean | null;
 
 #### type `JsonValue`
 
-JSON-compatible value crossing engine / mapping boundaries.
+JSON-compatible value. Exact numbers use immutable raw JSON leaves; use jsonNumberText to read their digits.
 
 ```ts
 type JsonValue = JsonPrimitive | JsonValue[] | {
@@ -1334,7 +1571,58 @@ type DefinitionResolver = (url: string, version?: string) => FormDefinition | Pr
 type EngineNowInput = Date | string | number;
 ```
 
+#### type `InstanceSourceResult`
+
+```ts
+type InstanceSourceResult = {
+    status: 'loaded';
+    value: JsonValue;
+} | {
+    status: 'unavailable';
+    reason?: string;
+};
+```
+
+#### type `InstanceSourceLoadOutcome`
+
+Engine admission only; a loaded outcome does not establish provider authority.
+`failed` means applying a source unexpectedly failed: the engine has disposed
+itself and must be replaced. Its primary state may be partially seeded.
+
+```ts
+type InstanceSourceLoadOutcome = Readonly<{
+    status: 'loaded' | 'unavailable' | 'aborted' | 'failed';
+    reason?: string;
+}>;
+```
+
+#### type `InstanceSourceResolver`
+
+Host owns source qualification and a bounded deadline; disposal aborts the signal.
+
+```ts
+type InstanceSourceResolver = (request: Readonly<InstanceSourceRequest>, options: Readonly<{
+    signal: AbortSignal;
+}>) => InstanceSourceResult | Promise<InstanceSourceResult>;
+```
+
+#### type `ResponseSubjectKeys`
+
+Filing-unit keys, including exact integers represented by raw JSON numbers.
+
+```ts
+type ResponseSubjectKeys = Readonly<Record<string, string | number | ExactJsonNumber>>;
+```
+
 #### type `EngineReplayEvent`
+
+#### type `WriteSource`
+
+Who wrote a field: the respondent (`'user'`, the default) or an Assist tool (`'assist'`).
+
+```ts
+type WriteSource = 'user' | 'assist';
+```
 
 #### type `MappingDirection`
 
@@ -1344,18 +1632,18 @@ type MappingDirection = 'forward' | 'reverse';
 
 ## `interpolateMessage(template: string, evaluator: (expr: string) => unknown): InterpolateResult`
 
-Resolve `{{expr}}` sequences in a locale string.
+Resolve `{{expression}}` sequences with a host evaluator.
 
-Rules (§3.3.1):
-1. `{{{{` → literal `{{` (escape before scanning)
-2. Failed parse/eval → preserve literal `{{expr}}` + warning.
-   Includes any eval where WASM records error-severity diagnostics (side-channel check).
-3–4. Coerce values; `null` → "" except rule 3a (no `$`/`@` and not a static literal → preserve)
-5. Replacement text is NOT re-scanned for `{{`
+Rust owns the rules (Locale §3.3.1): `{{{{` escapes, a failed expression stays literal with a
+warning (a throw, error diagnostics on a {@link FelEvalResult}, or rule 3a's unexplained
+`null`), results coerce to strings, and replacement text is not re-scanned. `evaluator` returns
+a value or a `FelEvalResult` envelope. Requires the runtime WASM to be initialized.
+
+## `interpolateFELTemplate(template: string, context: WasmFelContext, extensions?: FelExtensionHost): InterpolateResult`
+
+Resolve `{{expression}}` sequences against a FEL context in one WASM call (Locale §3.3.1).
 
 #### interface `InterpolationWarning`
-
-@filedesc Template string interpolator for locale {{expr}} sequences (spec §3.3.1).
 
 - **expression**: `string`
 - **error**: `string`
@@ -1515,18 +1803,55 @@ type IssuerSource = {
 };
 ```
 
+## `isRawJson(value: unknown): value is {
+    readonly rawJSON: string;
+}`
+
+## `jsonNumberText(value: unknown): string | undefined`
+
+Return a number's exact text; strings and ordinary lookalike objects are not numbers.
+
+## `parseJsonNumber(text: string): number | ExactJsonNumber`
+
+Parse numeric input without sending significant digits through a JavaScript number.
+
+## `jsonValueText(value: unknown): string`
+
+Text for DOM controls and labels, including exact numeric primitives.
+
+## `isJsonRecord(value: unknown): value is JsonRecord`
+
+## `cloneValue(value: T): T`
+
+Preserve immutable raw primitives while detaching their surrounding containers.
+
+## `deepEqual(left: unknown, right: unknown): boolean`
+
+#### type `ExactJsonNumber`
+
+Immutable JSON.rawJSON numeric leaf; JSON.stringify emits its digits without quotes.
+
+```ts
+type ExactJsonNumber = {
+    readonly rawJSON: string;
+};
+```
+
 ## `normalizeBcp47(code: string): string`
 
 Normalize BCP 47: lowercase language, title-case script (4 chars),
 uppercase region (2 chars), lowercase variants/extensions.
 
+#### interface `LocaleTargetIdentity`
+
+- **kind**: `LocaleDocument['target']['kind']`
+- **url**: `string`
+
 #### interface `LookupResult`
 
 Rich lookup result exposing which cascade level produced the value.
 
-- **value**: `string | null`
-- **source**: `'regional' | 'fallback' | 'implicit' | null`
-- **localeCode?**: `string`
+- **needAnchors** (`string[]`): Direct canonical Need anchors for the exact localized string selected.
 
 #### class `LocaleStore`
 
@@ -1534,19 +1859,39 @@ Manages loaded locale documents, resolves string keys through the
 regional -> fallback -> implicit cascade, and exposes reactive signals
 for active locale and text direction.
 
-##### `constructor(rx: EngineReactiveRuntime, directionMode?: 'ltr' | 'rtl' | 'auto')`
+##### `constructor(rx: EngineReactiveRuntime, directionMode?: 'ltr' | 'rtl' | 'auto', activeTarget?: LocaleTargetIdentity)`
 
 ##### `setDirectionMode(mode: 'ltr' | 'rtl' | 'auto'): void`
 
 ##### `loadLocale(doc: LocaleDocument): void`
 
+##### `setTarget(target: LocaleTargetIdentity): void`
+
+##### `getActiveTarget(): LocaleTargetIdentity | null`
+
 ##### `setLocale(code: string): void`
 
-##### `getAvailableLocales(): string[]`
+##### `getAvailableLocales(target?: LocaleTargetIdentity | null): string[]`
 
 ##### `lookupKey(key: string): string | null`
 
 ##### `lookupKeyWithMeta(key: string): LookupResult`
+
+##### `lookupKeyForTarget(key: string, target: LocaleTargetIdentity, localeCode?: string): LookupResult`
+
+##### `getActiveDocument(): LocaleDocument | null`
+
+The Locale document actually resolved for the active locale tag — BCP 47 implicit
+(region-stripping) resolution of the requested tag to a *loaded* document, not the
+raw requested tag itself. Backs `Response.displayedLocale`: the document identity
+(target kind, target url, normalized locale) whose strings the respondent saw.
+Null when no target is set or no document answers the active tag or any of its
+implicit ancestors.
+
+##### `dateFormats(): Record<string, string> | null`
+
+The active locale's `formats.date` (Locale §2.4): the first document on the same cascade
+strings use — regional, explicit fallback, implicit language — that authored one. Null when none did.
 
 ##### `normalizeCode(code: string): string`
 
@@ -1562,6 +1907,14 @@ uppercase region (2 chars), lowercase variants/extensions.
 ##### `forward(source: JsonValue | string): RuntimeMappingResult`
 
 ##### `reverse(source: JsonValue | string): RuntimeMappingResult`
+
+## `clampJsonNumber(value: unknown, min?: unknown, max?: unknown): number | ExactJsonNumber`
+
+Clamp an entered number without rounding it through binary floating point.
+
+## `stepJsonNumber(value: unknown, step: unknown, direction: -1 | 1, min?: unknown, max?: unknown): number | ExactJsonNumber | undefined`
+
+Step by one authored increment; return undefined when it would cross a bound.
 
 #### interface `FormspecEnginePackage`
 
@@ -1639,6 +1992,44 @@ names are not registered. The check is lexical, not semantic — a
 fully FEL-aware evaluator built on fel-core's `ContextBindingCatalog`
 remains the eventual authoritative implementation.
 
+## `resolveItemHelpText(source: ItemHelpTextSource): ResolvedPresentationString<string | null>`
+
+Hint or description a respondent sees for any Item (Core §4.2.1, Locale §3.1.2): Locale
+`<key>.<property>@context` → Locale `<key>.<property>` → the inline property — the label cascade
+minus its Definition-side context step, since neither property has a `labels`-like sibling.
+`null` when no source has it.
+
+## `resolveItemLabel(source: ItemLabelSource): ResolvedPresentationString<string>`
+
+Label a respondent sees for any Item (Locale §3.1–3.3): Locale `<key>.label@context` → Locale
+`<key>.label` → Definition `labels[context]` → inline `label`, `{{}}` resolved through `interpolate`.
+
+## `resolveOptionLabel(localeStore: LocaleStore, itemKey: string, opt: {
+    value: string;
+    label: string;
+}, interpolate: (template: string) => string, optionSetName?: string): {
+    label: string;
+    needAnchors?: string[];
+}`
+
+#### interface `ResolvedPresentationString`
+
+- **template** (`T`): The winning string before `{{}}` interpolation — what the author wrote.
+
+#### interface `ItemLabelSource`
+
+Inputs to the Item label cascade; read inside a computed so every getter is a dependency.
+
+- **interpolate** (`(template: string) => string`): Resolves `{{expression}}` in the Item's binding scope (Locale §3.3.1).
+
+#### interface `ItemHelpTextSource`
+
+Inputs to the Item hint / description cascade, read inside a computed like {@link ItemLabelSource}.
+
+- **property** (`'hint' | 'description'`): Which help-text property to resolve.
+- **inlineText** (`string | null | undefined`): The Definition's inline `hint` / `description`, when it has one.
+- **interpolate** (`(template: string) => string`): Resolves `{{expression}}` in the Item's binding scope (Locale §3.3.1).
+
 ## `preactReactiveRuntime: EngineReactiveRuntime`
 
 #### interface `EngineSignal`
@@ -1662,11 +2053,65 @@ Pluggable batching + signal factory so FormEngine does not import `@preact/signa
 
 ##### `batch(fn: () => T): T`
 
+## `readRepeatAffordances(engine: Pick<IFormEngine, 'repeats' | 'relevantSignals'>, repeatPath: string, item: Pick<FormItem, 'minRepeat' | 'maxRepeat'> | null | undefined, locks?: RepeatAffordanceLocks): RepeatAffordanceState`
+
+Read repeat chrome state for the repeatable group at `repeatPath`. It reads the engine's count and
+relevance signals, so a caller inside a computed, effect, or subscription tracks both.
+Bounds gate presentation only; the engine still reports MIN_REPEAT / MAX_REPEAT cardinality results.
+
+#### interface `RepeatAffordanceState`
+
+What a repeat renderer needs to show or hide its heading, Add, and Remove controls.
+
+- **relevant** (`boolean`): False while the repeatable group is non-relevant (core Bind `relevant` hides the node and its descendants).
+- **canAdd** (`boolean`): False once count reaches `maxRepeat` (core §4.2.2: implementations MUST prevent adding beyond it), or when Add is locked.
+- **canRemove** (`boolean`): False while count is at or below `minRepeat` (component §4.4: remove affordances are subject to it), or when Remove is locked.
+
+#### interface `RepeatAffordanceLocks`
+
+Presentation-only Add/Remove locks (component §4.4): an Accordion's or DataTable's `allowAdd` / `allowRemove`
+props, or a theme `widgetConfig` on a repeatable group rendered without a Component Document (theme §4.2).
+Only `false` locks; cardinality validation and data-supplied instances are unaffected.
+
+- **allowAdd?**: `boolean`
+- **allowRemove?**: `boolean`
+
+## `evaluateResponseActionEffectExpression(expression: string, context: {
+    fields: Record<string, unknown>;
+    bindings?: Record<string, unknown>;
+    nowIso?: string;
+}): unknown`
+
+Native FEL evaluation of fields and effect-time object bindings. Requires
+initFormspecEngineTools(). Callable bindings (including
+
+## `isAppActionValidationTuple(value: unknown): value is ValidationOverride`
+
+## `classifyResponseActionEffect(effect: EffectRequest): ResponseActionEffectClass`
+
+Pure owner classification used by executors and admission gates.
+
+Unknown effect types are treated as durable. That fail-closed default means
+a schema-bypassing caller cannot obtain side effects merely by inventing a
+new transient-looking type.
+
+## `isDurableResponseActionEffect(effect: EffectRequest): boolean`
+
+## `planResponseActionEffects(action: ResponseAction): readonly PlannedResponseActionEffect[]`
+
+Pure, ordered effect plan. It never evaluates, dispatches, or authorizes.
+
 ## `missingSubmitActionFinding(): ActionRefFinding`
 
 Host finding when `onSubmit` is wired but no submit-intent Action is published.
 
 ## `resolveResponseAction(document: ResponseActionsDocumentInput | null | undefined, actionRef: string, nodeId?: string): ActionResolution`
+
+## `planResponseActionInvocation(document: ResponseActionsDocumentInput | null | undefined, actionRef: string, nodeId?: string): ResponseActionInvocationPlan`
+
+Resolve an Action and expose its complete effect plan without executing it.
+Admission layers use this before activation so all possible durable effects
+can be authorized as one fail-closed decision.
 
 ## `findResponseActionByIntent(document: ResponseActionsDocumentInput | null | undefined, intent: string): ResponseAction | null`
 
@@ -1678,9 +2123,19 @@ Host finding when `onSubmit` is wired but no submit-intent Action is published.
 
 ## `invokeResponseAction(document: ResponseActionsDocumentInput | null | undefined, actionRef: string, ports: ResponseActionInvocationPorts<TDetail>, nodeId?: string, invocationContext?: ResponseActionInvocationContext): ResponseActionInvocationResult<TDetail>`
 
-#### interface `ResponseActionsDocumentInput`
+Invoke an Action with synchronous effect adapters. Promise outcomes fail fast.
 
-- **actions?**: `ResponseAction[]`
+## `invokeResponseActionAsync(document: ResponseActionsDocumentInput | null | undefined, actionRef: string, ports: ResponseActionAsyncInvocationPorts<TDetail>, nodeId?: string, invocationContext?: ResponseActionInvocationContext): Promise<ResponseActionInvocationResult<TDetail>>`
+
+Invoke an Action while awaiting effect adapters in strict declaration order.
+
+## `APP_ACTION_VALIDATION_TUPLE: Readonly<ValidationOverride>`
+
+The only validation tuple an app-scoped Action may declare.
+
+App actions have no Response to validate or persist. Keeping this predicate
+next to the executor prevents build-time gates from restating a runtime
+invariant with subtly different defaults.
 
 #### interface `ActionRefFinding`
 
@@ -1689,7 +2144,7 @@ Host finding when `onSubmit` is wired but no submit-intent Action is published.
 - **kind**: `'actionRef'`
 - **nodeId?**: `string`
 - **target**: `string`
-- **reason?**: `'missing-actionRef' | 'no-response-actions-document' | 'missing-submit-action'`
+- **reason?**: `'missing-actionRef' | 'no-response-actions-document' | 'missing-submit-action' | 'ambiguous-actionRef'`
 
 #### interface `ActionResolution`
 
@@ -1712,6 +2167,14 @@ Host finding when `onSubmit` is wired but no submit-intent Action is published.
 - **reason?**: `string`
 - **replayToken?**: `string`
 
+#### interface `ResponseActionEffectDispatchResult`
+
+Host adapter result for one effect. Only allowlisted transition strings may
+cross into a completed invocation result; adapter-private data is ignored.
+
+- **outcome**: `ResponseActionEffectOutcome`
+- **transitionBindings?**: `Readonly<Record<string, string>>`
+
 #### interface `ResponseActionIdempotencyKeyContext`
 
 - **effectIndex**: `number`
@@ -1721,6 +2184,22 @@ Host finding when `onSubmit` is wired but no submit-intent Action is published.
 - **effectIndex**: `number`
 - **attempt**: `number`
 - **idempotencyKey?**: `string`
+
+#### interface `ResponseActionEffectExpressionContext`
+
+Effect-time inputs: only completed prior effects enter this snapshot.
+
+- **effectIndex**: `number`
+- **invocation**: `Readonly<{
+        id: string;
+        attempt: number;
+    }>`
+- **effects**: `readonly ResponseActionEffectOutcome[]`
+
+#### interface `PlannedResponseActionEffect`
+
+- **effectIndex** (`number`): Zero-based declaration order.
+- **effect** (`EffectRequest`): Exact authored effect. No copy or interpretation replaces owner data.
 
 #### interface `ResponseActionLifecyclePayload`
 
@@ -1749,9 +2228,24 @@ invokeResponseAction call. The engine uses `invocationId` and
 
 - **invocationId** (`string`): Stable invocation identifier; host-generated. Defaults to a synthesized id.
 - **priorInvocationRef** (`string`): When set, marks the invocation as a replay of a prior invocation.
+- **actionArtifact** (`{
+        artifactRef: string;
+        artifactDigest: string;
+    }`): Exact loaded Response Actions artifact identity. The engine adds the
+resolved Action id; renderers and runners must not infer this identity
+from projection metadata or visible copy.
 
 #### interface `ResponseActionInvocationPorts`
 
+- **submit** (`((options: ResponseActionSubmitOptions) => TDetail | null) | undefined`): Definition-scoped response submission. Required at runtime when the
+document scope is `response` (or omitted); never called for `app`.
+- **prepareAppAction** (`((action: ResponseAction) => TDetail | null) | undefined`): Application action input. Required at runtime for `scope: app`; this
+replaces form submission and gives effect adapters validated structured
+input without manufacturing a Response.
+- **evaluateEffectExpression** (`(expression: string, detail: TDetail, action: ResponseAction, context: ResponseActionEffectExpressionContext) => unknown`): Evaluate authored transient FEL using the immutable invocation detail.
+The host must enforce the §6.4 binding catalog and throw on errors or
+unsupported expressions. evaluateResponseActionEffectExpression provides
+a native adapter for fields and object bindings.
 - **recordActionLifecycle** (`(kind: ResponseActionLifecycleKind, payload: ResponseActionLifecyclePayload) => void`): Optional recorder for the four §11.3 / Ledger §8.5 action.* lifecycle
 kinds. Called at the invocation begin/terminal boundaries — never as a
 declared effect. Reference runtime emits in this order:
@@ -1762,27 +2256,40 @@ declared effect. Reference runtime emits in this order:
   - action.replayed (begin only — completion of a replayed happy path
     emits no further action.* kind; response.completed covers that)
 
+#### interface `ResponseActionOwnerFacts`
+
+- **artifactRef**: `string`
+- **artifactDigest**: `string`
+- **subjectKind**: `'response-action'`
+- **subjectRef**: `string`
+
 #### interface `ResponseActionInvocationResult`
 
-- **status**: `ResponseActionInvocationStatus`
+- **invocationId** (`string`): Present once an Action resolves and invocation begins.
+- **actionOwner** (`ResponseActionOwnerFacts`): Caller-paired artifact identity plus the engine-resolved Action id.
+- **transitionBindings** (`Readonly<Record<string, string>>`): Present only on completed invocations with declared transition outputs.
+
+#### interface `ResponseActionInvocationPlan`
+
 - **resolution**: `ActionResolution`
-- **validationTuple**: `ValidationOverride | null`
-- **detail**: `TDetail | null`
-- **effectTrace**: `ResponseActionEffectOutcome[]`
-- **finding?**: `ActionRefFinding`
-- **blockedCause?**: `'validation' | 'precondition'`
-- **blockedPreconditionId?**: `string`
-- **deferredPreconditionId?**: `string`
-- **failedPreconditionId?**: `string`
-- **failedEffectIndex?**: `number`
-- **deferredEffectIndex?**: `number`
-- **failureReason?**: `string`
-- **replayToken?**: `string`
+- **effects**: `readonly PlannedResponseActionEffect[]`
 
 #### type `StandardResponseActionIntent`
 
 ```ts
 type StandardResponseActionIntent = 'save-draft' | 'autosave' | 'review' | 'submit' | 'request-evidence';
+```
+
+#### type `ResponseActionsDocumentInput`
+
+The document accepted by the engine.
+
+The generated schema type is authoritative at this package boundary. Keep
+smaller, read-only views in the caller that needs them rather than widening
+this type and making schema-invalid documents appear supported.
+
+```ts
+type ResponseActionsDocumentInput = ResponseActionsDocument;
 ```
 
 #### type `ResponseActionPreconditionResult`
@@ -1796,8 +2303,22 @@ type ResponseActionPreconditionResult = boolean | {
 
 #### type `ResponseActionEffectStatus`
 
+Schema-owned closed vocabulary for one declared effect's outcome.
+
 ```ts
-type ResponseActionEffectStatus = 'succeeded' | 'failed' | 'deferred' | 'replayed' | 'not-invoked';
+type ResponseActionEffectStatus = EffectOutcomeStatus;
+```
+
+#### type `ResponseActionEffectDispatchValue`
+
+```ts
+type ResponseActionEffectDispatchValue = ResponseActionEffectOutcome | ResponseActionEffectDispatchResult | void;
+```
+
+#### type `ResponseActionEffectClass`
+
+```ts
+type ResponseActionEffectClass = 'transient' | 'browser-local' | 'durable';
 ```
 
 #### type `ResponseActionLifecycleKind`
@@ -1810,10 +2331,16 @@ declared effect chain.
 type ResponseActionLifecycleKind = 'action.invoked' | 'action.failed' | 'action.deferred' | 'action.replayed';
 ```
 
+#### type `ResponseActionAsyncInvocationPorts`
+
+Async counterpart whose effect adapter may return a Promise.
+
 #### type `ResponseActionInvocationStatus`
 
+Schema-owned complete invocation-status vocabulary.
+
 ```ts
-type ResponseActionInvocationStatus = 'unresolved' | 'blocked' | 'failed' | 'deferred' | 'completed';
+type ResponseActionInvocationStatus = ActionInvocationStatus;
 ```
 
 #### class `InvalidValidationTupleError`
@@ -1824,6 +2351,114 @@ lint pass identifier (formspec-lint VMAP-INVALID-OVERRIDE) so runtime
 findings line up with static-analysis output.
 
 ##### `constructor(actionId: string, override: Record<string, unknown>, message: string)`
+
+## `screenerOptionLocaleKey(itemKey: string, value: string): string`
+
+Escape a static option value using canonical Locale key addressing.
+
+## `createScreenerLocaleResolver(input: ScreenerLocaleInput): ScreenerLocaleAdmission`
+
+Admit exact-target Locale resources and reuse the existing same-target cascade.
+
+#### interface `ScreenerLocaleInput`
+
+- **chromeKeys** (`readonly string[]`): Schema-aligned renderer chrome suffixes from the caller's maintained inventory.
+
+#### interface `ScreenerLocaleText`
+
+##### `lookup(key: string): string | null`
+
+##### `text(key: string, fallback: string, answers: Record<string, unknown>, itemKey?: string, bindScope?: boolean): WasmInterpolated`
+
+#### type `ScreenerLocaleAdmission`
+
+```ts
+type ScreenerLocaleAdmission = {
+    status: 'ready';
+    resolver: ScreenerLocaleText;
+} | {
+    status: 'refused';
+    reason: string;
+};
+```
+
+## `resolveRuntimeValueSelector(selector: RuntimeValueSelector, sources: ServiceRequestSources): JsonValue`
+
+Resolve one closed runtime selector without evaluating code or inherited properties.
+
+## `resolveServiceRequest(catalog: RuntimeRequestCatalog | null | undefined, requestRef: string): RuntimeRequest`
+
+Resolve one request id exactly once; duplicate ids fail closed.
+
+## `planServiceRequest(request: RuntimeRequest, sources: ServiceRequestSources): PlannedServiceRequest`
+
+Assemble a transport-neutral request. This function performs no network I/O.
+
+## `extractServiceRequestOutputs(request: RuntimeRequest, responseBody: unknown): ExtractedServiceRequestOutputs`
+
+Extract only declared outputs; raw response data is never returned.
+
+#### interface `ServiceRequestSources`
+
+- **result** (`unknown`): Allowlisted internal outputs from prior effects in this invocation.
+
+#### interface `PlannedServiceRequest`
+
+- **path** (`string`): Same-origin absolute path, including an assembled query when declared.
+- **headers** (`Readonly<Record<string, string>>`): Authored, non-authority headers only. Host headers remain separate.
+- **successStatuses** (`readonly number[]`): Exact successful statuses, or undefined to admit any 2xx status.
+
+#### interface `ExtractedServiceRequestOutputs`
+
+- **internal** (`Readonly<Record<string, JsonValue>>`): Invocation-private outputs available to later `from: result` selectors.
+- **transitionBindings** (`Readonly<Record<string, string>>`): Public route-transition bindings.
+- **sessionBindings** (`Readonly<Record<string, string>>`): Host-private values to persist in the session store.
+
+#### class `ServiceRequestRuntimeError`
+
+##### `constructor(message: string)`
+
+## `resolveAuthoredSigningContent(input: ResolveAuthoredSigningContentInput): SigningContent`
+
+Resolve only an exact entry in the already loaded, Response-pinned Definition. No fetch or fallback.
+
+## `signingContentBytes(content: SigningContent, validateContent: SigningContentValidator): Uint8Array`
+
+UTF-8 RFC 8785 JCS of the entire schema-valid SigningContent; exact authored strings survive.
+
+## `hashSigningContent(content: SigningContent, validateContent: SigningContentValidator): Promise<string>`
+
+Content documentHash only. This does not sign a Response or verify a signature.
+
+#### interface `ResolveAuthoredSigningContentInput`
+
+- **definition** (`FormDefinition`): Already admitted immutable Definition; the host verifies its publication hash.
+
+#### type `SigningContentValidator`
+
+The host supplies its maintained common.schema.json SigningContent validator.
+
+```ts
+type SigningContentValidator = (value: unknown) => boolean;
+```
+
+## `createStaticResponseMetadataReader(input: StaticResponseMetadataInput): {
+    label(path: string): string;
+    options(path: string): readonly {
+        value: string;
+        label: string;
+    }[];
+}`
+
+Produce a reader for Surface captureResponseFieldMetadata's static subset.
+No original custody proof is created. Context alternatives, regional/fallback
+Locales, unresolved fragments and dynamic/remote options require captured
+original metadata instead. Snapshots isolate reads from later caller edits.
+
+#### interface `StaticResponseMetadataInput`
+
+- **definition** (`FormDefinition`): Original parsed artifacts; the host must qualify their bytes, hashes and historical association.
+- **locale** (`LocaleDocument | null`): Exact recorded base-language Locale; null only when the Response has no displayedLocale.
 
 ## `isNumericType(dataType: string): boolean`
 
@@ -1889,13 +2524,14 @@ Bridges the closed Validation Mapping profile enum to the engine's internal trig
 
 Whether the WASM module has been initialized and is ready for use.
 
-## `initWasm(): Promise<void>`
+## `initWasm(options?: InitWasmOptions): Promise<void>`
 
 Initialize the WASM module. Safe to call multiple times — subsequent calls
 return the same promise. Resolves when WASM is ready; rejects on failure.
 
-In Node.js, uses `initSync()` with bytes read from disk.
-In browsers, the generated wasm-bindgen loader fetches the sibling `.wasm` asset via URL.
+With `wasmBytes`, instantiates from those bytes.
+In Node.js, otherwise uses `initSync()` with bytes read from disk.
+In browsers, otherwise the generated wasm-bindgen loader fetches the sibling `.wasm` asset via URL.
 
 ## `getWasmModule(): WasmModule`
 
@@ -1906,13 +2542,13 @@ Not re-exported from the public `wasm-bridge` barrel.
 
 Evaluate a FEL expression with optional field values. Returns the evaluated value.
 
-## `wasmEvalFelWithContextEnvelope(expression: string, context: WasmFelContext): FelEvalResult`
+## `wasmEvalFelWithContextEnvelope(expression: string, context: WasmFelContext, extensions?: FelExtensionHost): FelEvalResult`
 
 Evaluate a FEL expression with full FormspecEnvironment context (value + diagnostics flag).
 
-## `wasmEvalFelWithContext(expression: string, context: WasmFelContext): any`
+## `wasmCheckFelExtensionName(name: string): void`
 
-Evaluate a FEL expression with full FormspecEnvironment context. Returns the value only.
+Throws when `name` may not be an extension function: a FEL built-in or reserved word (Core §3.12).
 
 ## `wasmEvalFelWithTrace(expression: string, fields?: Record<string, unknown>): FelTraceResult`
 
@@ -1922,13 +2558,29 @@ Opt-in tracing path — use when surfacing evaluation to humans or LLMs
 (MCP tools, error explainers). Values in the trace are projected to JSON,
 losing FEL type fidelity (money/date) but gaining universal readability.
 
-## `wasmFelExprIsInterpolationStaticLiteral(expression: string): boolean`
+## `wasmEvalFelWithContextTrace(expression: string, context: WasmFelContext, extensions?: FelExtensionHost): FelTraceResult`
 
-Locale §3.3.1 — true if the expression AST is only literals and unary `not` / `!` / `-`.
+Evaluate a FEL expression against full FormspecEnvironment context and trace each step.
+
+## `wasmInterpolateFelTemplate(template: string, context: WasmFelContext, extensions?: FelExtensionHost): WasmInterpolated`
+
+Locale §3.3.1: resolve every `{{expression}}` in `template` against a FEL context, in one call.
+
+## `wasmInterpolateTemplate(template: string, evaluate: (expression: string) => string): WasmInterpolated`
+
+Locale §3.3.1 with a host evaluator: Rust scans the template and applies the escape, failure,
+and coercion rules; `evaluate(expression)` returns JSON `{ value, hasErrorDiagnostics? }` or throws.
 
 ## `wasmPrepareFelExpression(optionsJson: string): string`
 
 Normalize FEL source before evaluation (bare `$`, repeat qualifiers, repeat aliases).
+
+## `wasmCreateFelContext(schema: {
+    dataTypes: Record<string, string>;
+    excludedValueNull: string[];
+}): WasmFelContextHandle`
+
+Creates a resident FEL context from a Definition's leaf typing and `excludedValue: "null"` binds.
 
 ## `wasmResolveOptionSetsOnDefinition(definitionJson: string): string`
 
@@ -1971,30 +2623,64 @@ Resolve an item's parent path, index, and value in a nested item tree.
         constraintKind: string;
         code: string;
         message: string;
-        source: string;
+        source?: string;
         shapeId?: string;
         context?: Record<string, unknown>;
     }>;
     previousNonRelevant?: string[];
     instances?: Record<string, unknown>;
     registryDocuments?: unknown[];
+    /** The current Response's subject type. Null means a subject was supplied without a type. */
+    subjectType?: string | null;
+    /** The current Response's filing-unit keys, available to `subject(key)`. */
+    subjectKeys?: import('./interfaces.js').ResponseSubjectKeys;
     /** Repeat row counts by group base path (authoritative for min/max repeat cardinality). */
     repeatCounts?: Record<string, number>;
-}): {
+    /** Ask for resolved Item text (Core §4.2.1); `localeStrings` are cascade-resolved Locale strings. */
+    itemText?: {
+        localeStrings?: Record<string, string>;
+    };
+}, extensions?: FelExtensionHost): {
+    /** Flat state keyed by path (`group.field`, `rows[0].name`), like `required` and `readonly`. */
     values: any;
+    /** The Response projection of `values` after `nonRelevantBehavior`: groups are objects, repeats are arrays of row objects. */
+    data: any;
     validations: any[];
+    diagnostics: Array<{
+        path: string;
+        expression: string;
+        shapeId?: string;
+        message: string;
+    }>;
     nonRelevant: string[];
     variables: any;
     required: Record<string, boolean>;
     readonly: Record<string, boolean>;
+    /**
+     * Resolved Item text by instance path; present only when `context.itemText` asked for it.
+     *
+     * `label` / `description` / `hint` are the context-less resolutions; `labels` / `descriptions` /
+     * `hints` carry the per-display-context ones (Locale §3.1.2), each omitted when empty.
+     */
+    itemText?: Record<string, {
+        label: string;
+        labels?: Record<string, string>;
+        description?: string;
+        descriptions?: Record<string, string>;
+        hint?: string;
+        hints?: Record<string, string>;
+    }>;
 }`
 
 Evaluate a Formspec definition against provided data.
 
-## `wasmEvaluateScreenerDocument(screener: unknown, answers: Record<string, unknown>, context?: Record<string, unknown>): import('@formspec-org/types').DeterminationRecord`
+## `wasmEvaluateScreenerDocument(screener: unknown, answers: Record<string, unknown>, context?: Record<string, unknown>, extensions?: FelExtensionHost): import('@formspec-org/types').DeterminationRecord`
 
 Evaluate a standalone Screener Document against respondent inputs.
 Returns a Determination Record (always non-null).
+
+`extensions` resolves host extension functions (Core §3.12) in route `condition` / `score` and
+phase `activeWhen`; without them such a call is a definition error and the route is eliminated.
 
 ## `wasmAnalyzeFel(expression: string): WasmFelAnalysisResultJson`
 
@@ -2019,6 +2705,13 @@ Sanitize a string into a valid FEL identifier.
 
 Compute dependency groups from recorded changeset entries (JSON round-trip to Rust).
 
+#### interface `InitWasmOptions`
+
+How the host supplies the WASM module.
+
+- **wasmBytes** (`BufferSource`): The runtime `.wasm` bytes, for a host that cannot fetch the sibling asset (a self-contained page,
+a sandbox with no network). Used in place of the Node file read and the browser fetch.
+
 #### interface `FelEvalResult`
 
 In-band result from `evalFEL` / `evalFELWithContext` (Locale §3.3.1 rule 2).
@@ -2031,6 +2724,7 @@ In-band result from `evalFEL` / `evalFELWithContext` (Locale §3.3.1 rule 2).
 FEL evaluation context for the richer WASM evaluator.
 
 - **locale** (`string`): Active locale code (BCP 47) — backs `locale()` and default for `pluralCategory()`.
+- **dateFormats** (`Record<string, string>`): The active Locale document's `formats.date` patterns by `formatDate` style (Locale §2.4).
 - **meta** (`Record<string, string | number | boolean>`): Runtime metadata bag — backs `runtimeMeta(key)`.
 
 #### interface `FelTraceResult`
@@ -2042,6 +2736,16 @@ Result of a traced FEL evaluation.
 - **diagnostics** (`Array<Record<string, unknown>>`): Diagnostics emitted during evaluation.
 - **trace** (`FelTraceStep[]`): Ordered trace steps, appended in evaluation order.
 
+#### interface `WasmInterpolated`
+
+Interpolation result from Rust: resolved text plus one warning per expression left literal.
+
+- **text**: `string`
+- **warnings**: `Array<{
+        expression: string;
+        message: string;
+    }>`
+
 #### type `WasmFelAnalysisResultJson`
 
 Parsed JSON from `fel_analysis_to_json_value` (Rust) — pass through to {@link normalizeFelAnalysisError}.
@@ -2052,6 +2756,14 @@ Parsed JSON from `fel_analysis_to_json_value` (Rust) — pass through to {@link 
 type WasmModule = typeof import('../wasm-pkg-runtime/formspec_wasm_runtime.js');
 ```
 
+#### type `FelExtensionHost`
+
+Host extension functions (Core §3.12) handed to evaluating exports; Rust calls `arity` and `invoke`.
+
+```ts
+type FelExtensionHost = import('../wasm-pkg-runtime/formspec_wasm_runtime.js').FelExtensionHost;
+```
+
 #### type `FelTraceStep`
 
 A single recorded event during FEL evaluation.
@@ -2059,6 +2771,17 @@ A single recorded event during FEL evaluation.
 Mirrors `fel_core::TraceStep` verbatim — the `kind` discriminant is the
 PascalCase Rust variant name. Extend this union only when the Rust enum
 grows a new variant; every variant here must exist in Rust.
+
+#### type `WasmFelContextHandle`
+
+One form's FEL state, resident in WASM across ad-hoc reads.
+
+`load` replaces the form-scope snapshot; each read names only its expression and Item path, so its cost is
+the scope it resolves against, not the size of the form. Call `free()` when the owning engine is disposed.
+
+```ts
+type WasmFelContextHandle = import('../wasm-pkg-runtime/formspec_wasm_runtime.js').FelContext;
+```
 
 ## `resolveWasmAssetPathForNode(relativeToThisModule: string): Promise<string>`
 
@@ -2179,6 +2902,10 @@ Execute a full mapping document (rules + defaults + autoMap).
     documentType: string | null;
     valid: boolean;
     diagnostics: any[];
+    appGraphReport?: {
+        ok: boolean;
+        diagnostics: any[];
+    };
 }`
 
 Lint a Formspec document.
@@ -2276,6 +3003,13 @@ Parse and validate a registry document, returning summary metadata.
 
 Find the highest-version registry entry matching a name and version constraint.
 
+## `wasmDeriveJsonLdContext(definition: unknown, ontology: unknown): {
+    context: Record<string, unknown>;
+    diagnostics: JsonLdContextDiagnostic[];
+}`
+
+Derive the JSON-LD `@context` for a definition from an ontology document's concept bindings (Ontology §6.2).
+
 ## `wasmValidateLifecycleTransition(from: string, to: string): boolean`
 
 Validate a lifecycle transition between two registry statuses.
@@ -2300,20 +3034,22 @@ Validate enabled x-extension usage in an item tree against registry entries.
 
 #### interface `WasmLintDocumentOptions`
 
-- **registryDocuments?**: `unknown[]`
-- **mode?**: `string`
-- **definitionDocument?**: `unknown`
 - **mappingSourceContext** (`{
         /** JSON Schema for the host metadata and the Definition data root. */
         schema: unknown;
         /** Dotted path to the Definition data object within the host input. */
         dataPath: string;
     }`): Host input for a Definition-associated Mapping. Requires the paired Definition.
-- **themeDocument?**: `unknown`
-- **componentDocuments?**: `unknown[]`
-- **localeDocuments?**: `unknown[]`
-- **schemaOnly?**: `boolean`
-- **noFel?**: `boolean`
+- **screenerDocument** (`unknown`): Exact paired freestanding Screener for Locale 2.1 item and target checks.
+
+#### interface `JsonLdContextDiagnostic`
+
+One thing the JSON-LD context derivation could not honor (Ontology spec §6.2).
+
+- **path** (`string`): Dotted Definition path of the item that could not be honored.
+- **key** (`string`): The item's JSON key.
+- **existingId** (`string`): Term definition that stays in the context (collisions only).
+- **newId** (`string`): Term definition the item needed.
 
 #### type `WasmToolsModule`
 
