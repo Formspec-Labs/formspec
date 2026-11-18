@@ -71,20 +71,21 @@ export function BrowserSurfaceApp({
   const localStore = !draftStorage && previewScope ? localStores.get(previewScope) : undefined;
   const localPort = localStore?.drafts;
   const port = draftStorage?.port ?? localPort;
+  const responses = draftStorage?.responses ?? localStore?.responses;
   const author = draftStorage?.author;
   const checkpoint = useRef(checkpointPorts);
   useLayoutEffect(() => { checkpoint.current = checkpointPorts; }, [checkpointPorts]);
   const sessions = useMemo(() => new Map<string, DraftSession>(),
-    [draftStorage?.port, localStores, props.sessionGeneration, author?.id, author?.name]);
+    [draftStorage?.port, draftStorage?.responses, localStores, props.sessionGeneration, author?.id, author?.name]);
   const scope = draftStorage?.scope ?? previewScope;
   const drafts = useMemo(() => {
     if (!scope || !port) return undefined;
     const retained = sessions.get(scope);
     if (retained) return retained;
-    const session = createDraftSession({ scope, port, ...(author && { author }) }, localPort, input => checkpoint.current?.(input) ?? input.ports);
+    const session = createDraftSession({ scope, port, responses, ...(author && { author }) }, localPort, input => checkpoint.current?.(input) ?? input.ports);
     sessions.set(scope, session);
     return session;
-  }, [scope, port, sessions, localPort, author?.id, author?.name]);
+  }, [scope, port, responses, sessions, localPort, author?.id, author?.name]);
   const attachedSessions = useRef(new Set<Map<string, DraftSession>>());
   useEffect(() => {
     const attached = attachedSessions.current;

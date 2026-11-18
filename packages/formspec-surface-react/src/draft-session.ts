@@ -5,12 +5,14 @@ import {
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import { resolvePageSequence } from '@formspec-org/layout';
 import type { BrowserDraftPort, DataSourceSubject, DraftKey, DraftLoadResult, DraftPort } from '@formspec-org/surface';
-import type { FormResponse } from '@formspec-org/types';
+import { definitionResponseRequests, resolveDefinitionReads } from './definition-response-reads.js';
+import type { FormResponse, ResponseSelector } from '@formspec-org/types';
 import { createDraftWriter, type DraftCheckpointPorts, type DraftNoticeReporter, type DraftWriter } from './draft-writer.js';
 import type { SurfaceDefinitionFormRenderInput } from './SurfaceSlot.js';
 
 export interface SurfaceDraftStorage {
   port: DraftPort;
+  responses?: ResponseSelector | undefined;
   scope: string;
   author?: { id: string; name?: string };
 }
@@ -97,7 +99,8 @@ export function createDraftSession(
           }
           const draft = loaded.status === 'loaded' ? loaded.draft : undefined;
           if (reusable) {
-            if (draft && draft.revision === reusable.writer.revision) {
+            if (draft && draft.revision === reusable.writer.revision &&
+                !Object.values(definition.instances ?? {}).some(instance => instance.response)) {
               return reusable;
             }
             reusable.writer.dispose();
@@ -109,7 +112,10 @@ export function createDraftSession(
           if (!draft && seed.draftSeed) return { status: seed.draftSeed };
           const response = draft && parseJsonExact(draft.responseJson) as FormResponse;
           const draftSnapshot = draft && parseJsonExact(draft.snapshotJson) as FormDraftSnapshot;
+          const requests = definitionResponseRequests(definition, key, draft?.pins);
+          const resolutions = await resolveDefinitionReads(storage.responses, requests, lifetime.signal);
           const engine = createFormEngine(definition, {
+            responseInstanceResolutions: resolutions,
             ...(key.subject && { responseSubject: key.subject }),
             ...(draftSnapshot && { draftSnapshot }),
             ...(!draftSnapshot && seed.initialData?.data !== undefined && {
@@ -119,6 +125,7 @@ export function createDraftSession(
           try {
             const writer = createDraftWriter({
               engine, key, draft, port: storage.port,
+              creationPins: Object.fromEntries(Object.entries(resolutions).filter(([, delivery]) => delivery.pinned)),
               responseId: response?.id ?? input.semanticControlScope?.responseId,
               author: response?.author ?? storage.author,
               locally: browserPort !== undefined,
@@ -193,6 +200,16 @@ export function createDraftSession(
         return opened.status !== 'ready' || await opened.writer.leave();
       }));
       return results.every(Boolean);
+    },
+
+    discardForReopen(writer: DraftWriter) {
+      for (const [id, entry] of entries) {
+        if (entry.opened?.status === 'ready' && entry.opened.writer === writer) {
+          entries.delete(id);
+          disposeEntry(entry);
+          break;
+        }
+      }
     },
 
     writerFor(key: DraftKey, version: string) {

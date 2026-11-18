@@ -72,6 +72,8 @@ export interface DraftSaveInput extends Omit<DraftRecord, 'revision' | 'pins'> {
   definitionVersion: string;
   /** Null means the caller observed no draft. */
   expectedRevision: string | null;
+  /** On creating save, refuse if the adapter selects a different pin from the one used to seed answers. */
+  creationPins?: DraftRecord['pins'];
   /** Null invalidates counts for this revision. */
   summary: { sections: readonly DraftSectionPlacement[]; progress: CurrentDraftProgress } | null;
 }

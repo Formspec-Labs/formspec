@@ -24,6 +24,7 @@ export interface DraftWriterOptions {
   key: DraftKey;
   port: DraftPort;
   draft?: DraftRecord | undefined;
+  creationPins?: DraftRecord['pins'];
   sections: readonly PageSequenceEntry[];
   actions?: ResponseActionsDocument | undefined;
   author?: { id: string; name?: string } | undefined;
@@ -177,6 +178,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
     const progress = summarizeFormProgress(options.sections, evaluated);
     const response = engine.getResponse({ id: responseId, ...(author && { author }), profile: 'off' });
     return {
+      ...(revision === null && options.creationPins && { creationPins: options.creationPins }),
       key, definitionVersion, expectedRevision: revision, snapshotJson: JSON.stringify(snapshot),
       responseJson: JSON.stringify(response),
       summary: {
@@ -199,7 +201,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
       const input = capture(expectedRevision);
       const result = await port.save(input);
       if (result.status !== 'saved') {
-        if (result.status === 'conflict') observeConflict();
+        if (result.status === 'conflict' || result.status === 'pin-unavailable') observeConflict();
         return false;
       }
       committed = { revision: result.revision };
@@ -232,15 +234,21 @@ export function createDraftWriter(options: DraftWriterOptions) {
     return drain(create);
   }
 
-  function resolveConflict(choice: 'load' | 'keep'): Promise<boolean> {
+  function resolveConflict(choice: 'load' | 'keep'): Promise<boolean | 'reopen'> {
     if (!conflicted || fence || pending) return Promise.resolve(false);
     const editAtConfirmation = edit;
     const run = Promise.resolve().then(async () => {
       const latest = await port.load(key, definitionVersion);
       if (!active) return false;
+      if (choice === 'load' && edit === editAtConfirmation &&
+          (latest.status === 'loaded' || latest.status === 'absent') &&
+          Object.values(engine.definition.instances ?? {}).some(instance => instance.response)) {
+        return 'reopen' as const;
+      }
       if (latest.status === 'absent' && choice === 'keep') return await checkpoint(null) && drain(false);
       if (latest.status !== 'loaded') return false;
       const { draft } = latest;
+      if (options.creationPins && !deepEqual(draft.pins ?? {}, options.creationPins)) return false;
       const response = parseJsonExact(draft.responseJson) as FormResponse;
       if (choice === 'load') {
         if (edit !== editAtConfirmation) return false;

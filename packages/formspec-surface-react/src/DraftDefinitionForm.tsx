@@ -101,8 +101,13 @@ export function DraftDefinitionForm({
     returnToForm.current = true;
     try {
       if (action === 'restart') await restart();
-      else if (open?.status === 'ready' && !await open.writer.resolveConflict(action) && live.current) {
-        latest.current.reportSave?.('draftConflict');
+      else if (open?.status === 'ready') {
+        const result = await open.writer.resolveConflict(action);
+        if (live.current && result === 'reopen') {
+          session.discardForReopen(open.writer);
+          setLoaded(undefined);
+          setAttempt(value => value + 1);
+        } else if (live.current && !result) latest.current.reportSave?.('draftConflict');
       }
     } finally {
       recoveryBusy.current = false;

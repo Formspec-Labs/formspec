@@ -1,4 +1,5 @@
 /** @filedesc Exercise preview filing ports with synthetic Responses and the real Rust selector. */
+import { createDraftSession } from '../src/draft-session.js';
 import { expect, it } from 'vitest';
 import { dereferenceBundleExport, prepareResponseFiling, responsePairKey, responseSourceLoader, catalogResponseDigest,
   validateSurfacePreviewScenario, type DataSourceLoadRequest, type DataSourceCatalogHandle, type DraftKey } from '@formspec-org/surface';
@@ -247,4 +248,68 @@ it('returns an authorized empty result for a disposition-filtered Definition wit
   const filtered = request(list, { disposition: 'urn:review:accepted', whenNone: 'empty' });
   expect((await store.responses.select([filtered])).get(list))
     .toMatchObject({ status: 'available', none: true, records: [] });
+});
+
+it('hydrates current and accepted reads before creation and reopens with the recorded pin', async () => {
+  const consumer: FormDefinition = { ...definition('urn:consumer', {}), instances: {
+    roster: { response: { ...request(list).selection, pin: 'at-open' }, schema: { answer: 'string' } },
+    accepted: { response: { ...request(list).selection, disposition: 'urn:accepted' }, schema: { answer: 'string' } },
+    sibling: { response: { ...request(report).selection, status: 'current' }, schema: { answer: 'string' } },
+  }, items: [
+    { key: 'rosterAnswer', type: 'field', dataType: 'string', prePopulate: { instance: 'roster', path: 'answer' } },
+    { key: 'acceptedAnswer', type: 'field', dataType: 'string', prePopulate: { instance: 'accepted', path: 'answer' } },
+    { key: 'siblingAnswer', type: 'field', dataType: 'string', prePopulate: { instance: 'sibling', path: 'answer' } },
+  ] };
+  const tools = await previewResponseRecordTools();
+  const other = { ...consumer, url: 'urn:other-consumer' };
+  const all = new Map(definitions).set(consumer.url, consumer).set(other.url, other);
+  const first = await responseText(list, {}, 'urn:list:first', 'first');
+  const newer = await responseText(list, {}, 'urn:list:newer', 'newer', '2026-02-01T00:00:00Z');
+  const store = createMemoryFilingStore({ scope, definitions: all, fixtures: {
+    filings: [{ responseJson: first }],
+    decisions: [first].map(text => {
+      const { responseId, responseHash } = prepareResponseFiling(scope, all, text, 'fixture', tools);
+      return { responseId, responseHash, decision: { status: 'decided', review: 'accepted', disposition: 'urn:accepted', comments: [] } };
+    }),
+  } });
+  await checkpoint(store, await responseText(report, reportingUnit, 'urn:sibling', 'editing'));
+  const key = { definitionUrl: consumer.url, scope, subject: { type: consumer.url, keys: {}, id: tools.subjectId(consumer.url, {}) } };
+  const input = { plan: { definition: consumer }, grant: {} } as Parameters<ReturnType<typeof createDraftSession>['acquire']>[1];
+  const deliveries = await store.responses.select(Object.entries(consumer.instances!).map(([key, { response }]) => ({
+    kind: 'definition', scope, key, selection: response!, consumerSubject: {}, projection: ['answer'],
+  })));
+  const server = createDraftSession({ scope, port: store.drafts, responses: {
+    select: async () => new Map(JSON.parse(JSON.stringify([...deliveries]))),
+  } });
+  const session = createDraftSession({ scope, port: store.drafts, responses: store.responses });
+  try {
+    const firstOpen = session.acquire(key, input, () => {});
+    const opened = await firstOpen.result;
+    if (opened.status !== 'ready') throw Error(opened.status);
+    expect(opened.engine.getResponse().data).toMatchObject({ rosterAnswer: 'first', acceptedAnswer: 'first', siblingAnswer: 'editing' });
+    const hosted = await server.acquire(key, input, () => {}).result;
+    if (hosted.status !== 'ready') throw Error(hosted.status);
+    expect(hosted.engine.getResponse().data).toEqual(opened.engine.getResponse().data);
+    expect(await opened.writer.flush(true)).toBe(true);
+    firstOpen.release();
+    const fence = await checkpoint(store, newer);
+    expect((await store.submit(fence, newer)).status).toBe('filed');
+    const stored = await store.drafts.load(key, version);
+    if (stored.status !== 'loaded') throw Error(stored.status);
+    const staleSave = await store.drafts.save({
+      key: { ...key, definitionUrl: other.url }, definitionVersion: version,
+      creationPins: stored.draft.pins,
+      expectedRevision: null, snapshotJson: '{}', responseJson: '{}', summary: null,
+    });
+    expect(staleSave).toEqual({ status: 'pin-unavailable', instance: 'roster' });
+    const resumed = await session.acquire(key, input, () => {}).result;
+    if (resumed.status !== 'ready') throw Error(resumed.status);
+    expect(resumed.engine.getResponse({ profile: 'on-submit' }).resolvedInstances).toEqual(expect.arrayContaining([
+      expect.objectContaining({ instance: 'roster', pinned: true, records: [expect.objectContaining({ responseId: 'urn:list:first' })] }),
+      expect.objectContaining({ instance: 'sibling', pinned: false }),
+    ]));
+  } finally {
+    server.dispose();
+    session.dispose();
+  }
 });

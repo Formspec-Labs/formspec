@@ -1,5 +1,5 @@
 /** @filedesc Preview drafts, immutable filings and review fixtures over one scoped store. */
-import { initFormspecEngine, initFormspecEngineTools, responseSubjectId, selectResponses } from '@formspec-org/engine';
+import { deepEqual, initFormspecEngine, initFormspecEngineTools, responseSubjectId, selectResponses } from '@formspec-org/engine';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import {
   prepareResponseFiling, prepareResponseFixtures, responseDraftKey, responsePairKey, responseSelectionRecord,
@@ -8,6 +8,7 @@ import {
   type FilingStatusObservation, type ResponseFiling, type ResponseFixtures, type ResponseRecordTools,
 } from '@formspec-org/surface';
 import type { DispositionAuthority, FormDefinition, FormResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
+import { definitionResponseRequests } from './definition-response-reads.js';
 import type { SurfaceDraftFence } from './draft-writer.js';
 
 type StoredDraft = Omit<DraftRecord, 'pins'> & {
@@ -295,18 +296,13 @@ function createFilingStore(
       }
     },
 
-    async save({ key, expectedRevision, definitionVersion, snapshotJson, responseJson, summary }) {
+    async save({ key, expectedRevision, creationPins, definitionVersion, snapshotJson, responseJson, summary }) {
       try {
         if (!await authorized(key, 'resume')) return { status: 'denied' };
         const id = storageKey(key);
         const definition = definitions.get(key.definitionUrl);
-        const requests: ResponseSelectionRequest[] = expectedRevision === null
-          ? Object.entries(definition?.instances ?? {}).flatMap(([instance, { response, schema, data }]) =>
-            response?.pin === 'at-open' ? [{
-              key: instance, scope, kind: 'definition' as const, selection: response,
-              ...(key.subject && { consumerSubject: key.subject.keys }),
-              ...(schema && { projection: Object.keys(schema) }), ...(data !== undefined && { fallback: data }),
-            }] : [])
+        const requests = expectedRevision === null && definition
+          ? definitionResponseRequests(definition, key).filter(request => request.selection.pin === 'at-open')
           : [];
         const selections = requests.length ? await responses.select(requests) : undefined;
         const pins = Object.create(null) as Record<string, DraftRecord['pins'][string]>;
@@ -318,6 +314,10 @@ function createFilingStore(
             break;
           }
           const { status: _status, newer: _newer, ...delivery } = outcome;
+          if (creationPins && !deepEqual(creationPins[instance], delivery)) {
+            missingPin = instance;
+            break;
+          }
           pins[instance] = delivery;
         }
         const result = await transaction(['editable', 'summaries'], 'readwrite', async tx => {
