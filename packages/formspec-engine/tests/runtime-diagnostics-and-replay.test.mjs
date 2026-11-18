@@ -1,7 +1,7 @@
 /** @filedesc Runtime diagnostics and replay: event log capture, replay from log, and diagnostic introspection */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FormEngine } from '../dist/index.js';
+import { FormEngine, evaluateDefinition } from '../dist/index.js';
 
 function buildReplayDefinition() {
   return {
@@ -203,4 +203,35 @@ test('an undefined function fails its constraint (Core §3.10.1) and still appea
   assert.deepEqual(snapshot.evaluationDiagnostics, [
     { path: 'qty', expression: 'nosuchfn($)', message: 'undefined function: nosuchfn' }
   ]);
+});
+
+test('a syntax error or arity mismatch refuses the Definition in both evaluators (Core §3.10.1)', () => {
+  for (const [calculate, code, message] of [
+    ['1 +', 'SYNTAX_ERROR', /"1 \+" at position 3/],
+    ['date(2027, 10, 1)', 'ARITY_MISMATCH', /^date: requires exactly 1 argument$/],
+  ]) {
+    const definition = {
+      $formspec: '1.0', url: 'urn:test:refusal', version: '1.0.0', title: 'Refusal',
+      items: [{ key: 'total', type: 'field', label: 'Total', dataType: 'integer' }],
+      binds: [{ path: 'total', calculate, readonly: 'true' }],
+    };
+    const batch = evaluateDefinition(definition, { total: 5 });
+    assert.deepEqual(batch.values, {}, 'a refused Definition keeps no supplied readonly value');
+    const engine = new FormEngine(definition);
+    try {
+      const snapshot = engine.getDiagnosticsSnapshot();
+      for (const [findings, diagnostics] of [
+        [batch.validations, batch.diagnostics],
+        [snapshot.validation.results, snapshot.evaluationDiagnostics],
+      ]) {
+        assert.deepEqual(findings.map(({ path, code, constraintKind, source }) => ({ path, code, constraintKind, source })), [
+          { path: '$.binds[0].calculate', code, constraintKind: 'definition', source: 'definition' },
+        ]);
+        assert.match(findings[0].message, message);
+        assert.deepEqual(diagnostics, []);
+      }
+    } finally {
+      engine.dispose();
+    }
+  }
 });

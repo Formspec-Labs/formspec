@@ -232,8 +232,9 @@ test('unknown validation report options are rejected at runtime', () => {
 
 test('on-demand reports a Definition refusal before Shape timing applies', () => {
   for (const [bind, code] of [
-    [{ calculate: '1 +' }, 'E400'],
-    [{ constraint: '1 +' }, 'CONSTRAINT_PARSE_ERROR'],
+    [{ calculate: '1 +' }, 'SYNTAX_ERROR'],
+    [{ constraint: '1 +' }, 'SYNTAX_ERROR'],
+    [{ calculate: 'date(2027, 10, 1)' }, 'ARITY_MISMATCH'],
   ]) {
     const definition = buildDefinition();
     definition.binds = [{ path: 'liveOk', ...bind }];

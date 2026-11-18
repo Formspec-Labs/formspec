@@ -1878,10 +1878,11 @@ recalculation guarantee, borrowed from XForms.
 1. For each relevant field that is in the affected subgraph or whose
    `required` / `relevant` state changed in Phase 2:
    a. If the field has a `constraint` Bind, evaluate the constraint expression.
-      If the expression fails to parse or calls an undefined function (both
-      definition errors, §3.10.1), record a ValidationResult with severity
+      If the expression calls an undefined function (a definition error,
+      §3.10.1), record a ValidationResult with severity
       `"error"`, code `CONSTRAINT_PARSE_ERROR`, and a processor-generated
-      message describing the failure. An evaluation error (§3.10.2) is not a
+      message describing the failure. A syntax error never reaches this
+      phase: Rebuild refuses it (§3.10.1). An evaluation error (§3.10.2) is not a
       definition error: its `null` result passes.
       If the result is `false`, record a ValidationResult with severity
       `"error"` and the Bind’s `constraintMessage`.
@@ -1982,7 +1983,9 @@ codes override the generic defaults.
 | `MIN_REPEAT` | `cardinality` | Fewer repeat instances than `minRepeat`. |
 | `MAX_REPEAT` | `cardinality` | More repeat instances than `maxRepeat`. |
 | `CONSTRAINT_FAILED` | `constraint` | Bind `constraint` returned `false`. |
-| `CONSTRAINT_PARSE_ERROR` | `constraint` | Bind `constraint` expression has a definition error (§3.10.1): it failed to parse or calls an undefined function. |
+| `CONSTRAINT_PARSE_ERROR` | `constraint` | Bind `constraint` expression calls an undefined function (§3.10.1). |
+| `SYNTAX_ERROR` | `definition` | An authored FEL expression does not conform to the grammar (§3.10.1). Rebuild refuses evaluation at the authored expression. A `{{}}` text interpolation is exempt: it renders literally (§4.2.1). |
+| `ARITY_MISMATCH` | `definition` | An authored FEL expression calls a built-in function with the wrong number of arguments (§3.10.1). Rebuild refuses evaluation at the authored expression. A `{{}}` text interpolation is exempt. |
 | `UNSUBSCRIPTED_REPEAT_REFERENCE` | `definition` | An authored field path continues past a repeatable Group without a subscript (§3.2.2). Rebuild refuses evaluation at the authored expression. |
 | `CIRCULAR_DEPENDENCY` | `definition` | The dependency graph contains a cycle (§3.6). |
 | `SHAPE_FAILED` | `shape` | Shape's constraint returned `false`. |
@@ -2898,6 +2901,8 @@ following and MUST NOT proceed to Recalculate:
 | **Arity mismatch** | A function is called with the wrong number of arguments. |
 | **Calculate target conflict** | A `calculate` Bind targets a field that is also targeted by another `calculate` Bind. Each field MUST have at most one `calculate` Bind. |
 | **Instance-path Bind** | A Bind `path` names a secondary instance (`instances.<name>…` or `@instance('<name>')…`) rather than an Item. Bind paths resolve to Items only (§4.3.3); no Bind writes an instance, whatever its `readonly` value (§4.4.1). |
+
+§2.5.1 lists the reserved ValidationResult codes for these errors.
 
 #### 3.10.2 Evaluation Errors
 
@@ -4621,9 +4626,10 @@ condition types:
 1. **Type mismatch** — the value does not conform to the Field's `dataType`.
 2. **Required violation** — a required node has an empty value.
 3. **Bind constraint failure** — a Bind's `constraint` evaluates to `false`.
-3a. **Bind constraint parse error** — a Bind's `constraint` expression fails to parse. Processors MUST surface this as a validation error rather than silently passing.
+3a. **Bind constraint definition error** — a Bind's `constraint` calls an undefined function. Processors MUST surface this as a validation error rather than silently passing.
 4. **Shape constraint failure** — a Shape's `constraint` or composition evaluates to invalid.
 5. **Repeat cardinality violation** — a repeatable Group has fewer than `minRepeat` or more than `maxRepeat` repetitions.
+6. **Definition error** — Rebuild detects a definition error (§3.10.1) and refuses evaluation, with the reserved code from §2.5.1.
 
 In `on-submit`, the explanation pass (§2.4) MUST emit results with
 `constraintKind: "explanation"` and `source: "shape"` as follows. The original

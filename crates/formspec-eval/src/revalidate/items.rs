@@ -172,9 +172,10 @@ impl Validation<'_> {
         {
             let env = self.state.site(self.index, &item.path);
 
-            // Core §3.10.1 definition errors (syntax error, undefined function) share
-            // CONSTRAINT_PARSE_ERROR with a processor-generated message (Phase 3 step 1a);
-            // only a `false` result is CONSTRAINT_FAILED, labeled by `constraintMessage`.
+            // An undefined function (Core §3.10.1) is CONSTRAINT_PARSE_ERROR with a
+            // processor-generated message (Phase 3 step 1a). `evaluate` refuses a syntax
+            // error at Rebuild; only a direct `revalidate` caller reaches the parse arm.
+            // Only a `false` result is CONSTRAINT_FAILED, labeled by `constraintMessage`.
             let site = ConstraintSite {
                 path: &item.path,
                 shape_id: None,

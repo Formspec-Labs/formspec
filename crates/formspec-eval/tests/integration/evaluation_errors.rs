@@ -1,5 +1,6 @@
-//! Core §3.8.1 / §3.10.2: evaluation errors in constraint position.
+//! Core §3.10: Definition errors and evaluation errors.
 //!
+//! A syntax error or arity mismatch refuses the Definition before Recalculate.
 //! A type error yields `null`, and a `null` constraint passes. The error is
 //! recorded as an author diagnostic on `EvaluationResult.diagnostics`, never as
 //! a `ValidationResult`.
@@ -92,26 +93,24 @@ fn bind_constraint_undefined_function_fails_and_records_diagnostic() {
 /// The Bind's `constraintMessage` describes a `false` result, so it never labels one.
 #[test]
 fn bind_constraint_definition_error_ignores_constraint_message() {
-    for constraint in ["bogusFunc($name)", "((( broken >>>"] {
-        let def = definition(
-            json!([{
-                "path": "name",
-                "constraint": constraint,
-                "constraintMessage": "Name is not allowed"
-            }]),
-            json!([]),
-        );
-        let result = evaluate(&def, &data(), &EvalOptions::default());
+    let def = definition(
+        json!([{
+            "path": "name",
+            "constraint": "bogusFunc($name)",
+            "constraintMessage": "Name is not allowed"
+        }]),
+        json!([]),
+    );
+    let result = evaluate(&def, &data(), &EvalOptions::default());
 
-        assert_eq!(result.validations.len(), 1, "{:?}", result.validations);
-        let failure = &result.validations[0];
-        assert_eq!(failure.code, "CONSTRAINT_PARSE_ERROR");
-        assert!(
-            failure.message.starts_with("Constraint expression error: "),
-            "{constraint}: {:?}",
-            failure.message
-        );
-    }
+    assert_eq!(result.validations.len(), 1, "{:?}", result.validations);
+    let failure = &result.validations[0];
+    assert_eq!(failure.code, "CONSTRAINT_PARSE_ERROR");
+    assert!(
+        failure.message.starts_with("Constraint expression error: "),
+        "{:?}",
+        failure.message
+    );
 }
 
 /// A `false` result keeps the author's `constraintMessage`.
@@ -240,21 +239,102 @@ fn composition_folds_null_as_kleene_unknown() {
     assert_eq!(failed, vec![Some("xoneTwoTrue"), Some("andFalse")]);
 }
 
-/// Syntax errors are definition errors (§3.10.1), not evaluation errors: they still fail.
+/// Core §3.10.1: a syntax error in any authored expression refuses the Definition before
+/// Recalculate, so a readonly calculate cannot keep a supplied value. Display text
+/// interpolation renders a broken expression literally (Core §4.2.1) and refuses nothing.
 #[test]
-fn shape_syntax_error_still_fails() {
+fn syntax_errors_refuse_the_definition_in_every_position() {
+    let def = json!({
+        "items": [
+            { "key": "x", "dataType": "integer", "label": "X {{1 +}}" },
+            { "key": "ok", "dataType": "integer", "initialValue": "=2 +" }
+        ],
+        "binds": [
+            { "path": "x", "calculate": "1 +", "readonly": "true", "constraint": "3 +" },
+            { "path": "ok", "relevant": "4 +", "default": "=5 +" }
+        ],
+        "shapes": [{
+            "id": "s", "target": "x", "constraint": "6 +", "activeWhen": "7 +",
+            "context": { "seen": "8 +" }, "message": "m"
+        }],
+        "variables": [{ "name": "v", "expression": "9 +" }]
+    });
+    let result = evaluate(
+        &def,
+        &HashMap::from([("x".into(), json!(5))]),
+        &EvalOptions::default(),
+    );
+
+    assert!(result.values.is_empty(), "{:?}", result.values);
+    assert_eq!(result.data, json!({}));
+    assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
+    let refused: Vec<(&str, &str)> = result
+        .validations
+        .iter()
+        .map(|v| (v.path.as_str(), v.constraint.as_deref().unwrap()))
+        .collect();
+    assert_eq!(
+        refused,
+        [
+            ("$.binds[0].calculate", "1 +"),
+            ("$.binds[0].constraint", "3 +"),
+            ("$.binds[1].relevant", "4 +"),
+            ("$.binds[1].default", "5 +"),
+            ("$.shapes[0].constraint", "6 +"),
+            ("$.shapes[0].activeWhen", "7 +"),
+            ("$.shapes[0].context.seen", "8 +"),
+            ("$.variables[0].expression", "9 +"),
+            ("$.items[1].initialValue", "2 +"),
+        ]
+    );
+    for finding in &result.validations {
+        assert_eq!(finding.code, "SYNTAX_ERROR");
+        assert_eq!(finding.constraint_kind, "definition");
+        assert_eq!(
+            finding.source.map(|source| source.as_wire_str()),
+            Some("definition")
+        );
+        let source = finding.constraint.as_deref().unwrap();
+        assert!(
+            finding
+                .message
+                .contains(&format!("{source:?} at position 3")),
+            "{}",
+            finding.message
+        );
+    }
+}
+
+/// Core §3.10.1: an arity mismatch is a Definition error, in any position.
+#[test]
+fn arity_mismatches_refuse_the_definition() {
     let def = definition(
-        json!([]),
-        json!([{ "id": "broken", "target": "#", "constraint": "((( broken >>>", "message": "broken" }]),
+        json!([{ "path": "name", "calculate": "string(date(2027, 10, 1))" }]),
+        json!([{ "id": "s", "target": "#", "constraint": "true", "activeWhen": "abs()", "message": "m" }]),
     );
     let result = evaluate(&def, &data(), &EvalOptions::default());
 
-    let shape_ids: Vec<Option<&str>> = result
+    assert!(result.values.is_empty(), "{:?}", result.values);
+    let refused: Vec<(&str, String, &str)> = result
         .validations
         .iter()
-        .map(|v| v.shape_id.as_deref())
+        .map(|v| (v.path.as_str(), v.code.to_string(), v.message.as_str()))
         .collect();
-    assert_eq!(shape_ids, vec![Some("broken")]);
+    assert_eq!(
+        refused,
+        [
+            (
+                "$.binds[0].calculate",
+                "ARITY_MISMATCH".into(),
+                "date: requires exactly 1 argument"
+            ),
+            (
+                "$.shapes[0].activeWhen",
+                "ARITY_MISMATCH".into(),
+                "abs: requires exactly 1 argument"
+            ),
+        ]
+    );
 }
 
 #[test]

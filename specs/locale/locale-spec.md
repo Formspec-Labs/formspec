@@ -549,11 +549,8 @@ constraint code (coarse) and per Bind (fine-grained).
 Where `<code>` matches the `code` property of the ValidationResult and
 is exactly one key segment.
 The `code` property provides machine-readable identifiers designed for
-localization key lookups. Core §2.5.1 reserves codes for built-in
-constraints: `REQUIRED`, `TYPE_MISMATCH`, `MIN_REPEAT`, `MAX_REPEAT`,
-`CONSTRAINT_FAILED`, `CONSTRAINT_PARSE_ERROR`, `SHAPE_FAILED`,
-`EXTERNAL_FAILED`, `EXPLANATION_REQUIRED`, `EXPLANATION_STALE`, and
-`EXPLANATION_UNUSED`. Shape rules
+localization key lookups. Core §2.5.1 lists the codes reserved for
+built-in constraints and Definition errors. Shape rules
 MAY define custom codes (e.g., `BUDGET_SUM_MISMATCH`). This replaces
 the message for all validation results with that code targeting the
 item.
@@ -571,9 +568,8 @@ constraint message, use:
 This key localizes the `constraintMessage` of the Item's effective Bind
 (core §4.3.1 merges several Binds on one path into one), and only for a
 `CONSTRAINT_FAILED` result — the constraint evaluated to `false`. A
-`CONSTRAINT_PARSE_ERROR` (the expression fails to parse or calls an
-undefined function — a definition error, core §3.10.1 and Phase 3 step
-1a) keeps its processor-generated message: the author's rule text
+`CONSTRAINT_PARSE_ERROR` (the expression calls an undefined function —
+a definition error, core §3.10.1 and Phase 3 step 1a) keeps its processor-generated message: the author's rule text
 describes data that broke the rule, not a broken rule. `TYPE_MISMATCH`,
 `MIN_REPEAT` / `MAX_REPEAT`, `SHAPE_FAILED`, and `EXTERNAL_FAILED`
 results likewise keep their processor or Shape message. Only the

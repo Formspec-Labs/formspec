@@ -255,7 +255,7 @@ fn subject_inputs_match_the_definition_on_native_and_json_paths() {
         "binds": [{"path": "agency", "calculate": "subject('uei')"}]
     });
     let mut undeclared = definition.clone();
-    undeclared.as_object_mut().unwrap().remove("subject");
+    undeclared.as_object_mut().unwrap().shift_remove("subject");
     let matching_type = "urn:example:agency-year";
     let cases = [
         (
@@ -1573,80 +1573,6 @@ fn repeatable_group_with_indexed_binds() {
         result.values.get("items.total"),
         Some(&json!(30)),
         "repeatable group child calculate should evaluate"
-    );
-}
-
-// ── Error resilience ─────────────────────────────────────────
-
-#[test]
-fn malformed_fel_in_calculate_degrades_gracefully() {
-    let def = json!({
-        "items": [
-            { "key": "x", "dataType": "integer" }
-        ],
-        "binds": {
-            "x": { "calculate": "!!! invalid ((( syntax" }
-        }
-    });
-
-    let data = HashMap::new();
-    let result = evaluate(&def, &data, &EvalOptions::default());
-    assert!(
-        result.values.get("x").is_none() || result.values.get("x") == Some(&Value::Null),
-        "malformed calculate should degrade gracefully"
-    );
-}
-
-#[test]
-fn malformed_fel_in_constraint_degrades_gracefully() {
-    let def = json!({
-        "items": [
-            { "key": "x", "dataType": "integer" }
-        ],
-        "binds": {
-            "x": { "constraint": "((( broken >>>" }
-        }
-    });
-
-    let mut data = HashMap::new();
-    data.insert("x".to_string(), json!(5));
-
-    let result = evaluate(&def, &data, &EvalOptions::default());
-    assert_eq!(
-        result.values.get("x"),
-        Some(&json!(5)),
-        "field value should still be present when bind constraint FEL is malformed"
-    );
-    let parse_errors: Vec<_> = result
-        .validations
-        .iter()
-        .filter(|v| v.code == "CONSTRAINT_PARSE_ERROR")
-        .collect();
-    assert_eq!(
-        parse_errors.len(),
-        1,
-        "malformed constraint FEL must surface CONSTRAINT_PARSE_ERROR (must not silently pass)"
-    );
-}
-
-#[test]
-fn malformed_fel_in_relevance_degrades_gracefully() {
-    let def = json!({
-        "items": [
-            { "key": "x", "dataType": "string" }
-        ],
-        "binds": {
-            "x": { "relevant": "<<< garbage >>>" }
-        }
-    });
-
-    let mut data = HashMap::new();
-    data.insert("x".to_string(), json!("hello"));
-
-    let result = evaluate(&def, &data, &EvalOptions::default());
-    assert!(
-        !result.non_relevant.contains(&"x".to_string()),
-        "malformed relevance should default to true (field stays relevant)"
     );
 }
 

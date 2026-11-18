@@ -168,8 +168,12 @@ pub enum ValidationCode {
     TypeMismatch,
     /// Constraint expression evaluated to false.
     ConstraintFailed,
-    /// Constraint expression could not be parsed.
+    /// A Bind constraint calls an undefined function (Core §3.10.1).
     ConstraintParseError,
+    /// An authored FEL expression does not conform to the grammar (Core §3.10.1).
+    SyntaxError,
+    /// A built-in function is called with the wrong number of arguments (Core §3.10.1).
+    ArityMismatch,
     /// A field reference traverses a repeatable group without a subscript.
     UnsubscriptedRepeatReference,
     /// A Group inclusion needs assembly before evaluation.
@@ -208,6 +212,8 @@ impl ValidationCode {
             "TYPE_MISMATCH" => Self::TypeMismatch,
             "CONSTRAINT_FAILED" => Self::ConstraintFailed,
             "CONSTRAINT_PARSE_ERROR" => Self::ConstraintParseError,
+            "SYNTAX_ERROR" => Self::SyntaxError,
+            "ARITY_MISMATCH" => Self::ArityMismatch,
             "UNSUBSCRIPTED_REPEAT_REFERENCE" => Self::UnsubscriptedRepeatReference,
             "UNASSEMBLED_DEFINITION_REFERENCE" => Self::UnassembledDefinitionReference,
             "MIN_REPEAT" => Self::MinRepeat,
@@ -232,6 +238,8 @@ impl ValidationCode {
             ValidationCode::TypeMismatch => "TYPE_MISMATCH",
             ValidationCode::ConstraintFailed => "CONSTRAINT_FAILED",
             ValidationCode::ConstraintParseError => "CONSTRAINT_PARSE_ERROR",
+            ValidationCode::SyntaxError => "SYNTAX_ERROR",
+            ValidationCode::ArityMismatch => "ARITY_MISMATCH",
             ValidationCode::UnsubscriptedRepeatReference => "UNSUBSCRIPTED_REPEAT_REFERENCE",
             ValidationCode::UnassembledDefinitionReference => "UNASSEMBLED_DEFINITION_REFERENCE",
             ValidationCode::MinRepeat => "MIN_REPEAT",

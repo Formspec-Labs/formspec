@@ -32,7 +32,7 @@ pub struct PreparedDefinition {
 }
 
 impl PreparedDefinition {
-    /// Resolve authored items and check Definition references once.
+    /// Resolve authored items and check Definition references and authored expressions once.
     pub fn new(definition: Value) -> Self {
         let definition_errors: Vec<_> = unassembled_definition_references(&definition)
             .into_iter()
@@ -59,7 +59,7 @@ impl PreparedDefinition {
         let mut resolved = definition.clone();
         formspec_core::resolve_option_sets_on_definition(&mut resolved);
         let items = rebuild_item_tree(&resolved);
-        let definition_errors = rebuild::check_repeat_references(&definition, &items);
+        let definition_errors = rebuild::check_expressions(&definition, &items);
         let calculate_order = if definition_errors.is_empty() {
             CalculateOrder::for_definition(&items, &definition)
         } else {

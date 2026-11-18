@@ -1034,15 +1034,11 @@ constraint code (coarse) and per Bind (fine-grained).</p>
 <p>Where <code>&lt;code&gt;</code> matches the <code>code</code>
 property of the ValidationResult and is exactly one key segment. The
 <code>code</code> property provides machine-readable identifiers
-designed for localization key lookups. Core §2.5.1 reserves codes for
-built-in constraints: <code>REQUIRED</code>, <code>TYPE_MISMATCH</code>,
-<code>MIN_REPEAT</code>, <code>MAX_REPEAT</code>,
-<code>CONSTRAINT_FAILED</code>, <code>CONSTRAINT_PARSE_ERROR</code>,
-<code>SHAPE_FAILED</code>, <code>EXTERNAL_FAILED</code>,
-<code>EXPLANATION_REQUIRED</code>, <code>EXPLANATION_STALE</code>, and
-<code>EXPLANATION_UNUSED</code>. Shape rules MAY define custom codes
-(e.g., <code>BUDGET_SUM_MISMATCH</code>). This replaces the message for
-all validation results with that code targeting the item.</p>
+designed for localization key lookups. Core §2.5.1 lists the codes
+reserved for built-in constraints and Definition errors. Shape rules MAY
+define custom codes (e.g., <code>BUDGET_SUM_MISMATCH</code>). This
+replaces the message for all validation results with that code targeting
+the item.</p>
 <h5 id="per-bind-constraintmessage-and-requiredmessage">Per Bind
 (<code>constraintMessage</code> and <code>requiredMessage</code>)</h5>
 <p>Individual Binds may define a <code>constraintMessage</code> (core
@@ -1053,13 +1049,13 @@ specific Bind’s constraint message, use:</p>
 effective Bind (core §4.3.1 merges several Binds on one path into one),
 and only for a <code>CONSTRAINT_FAILED</code> result — the constraint
 evaluated to <code>false</code>. A <code>CONSTRAINT_PARSE_ERROR</code>
-(the expression fails to parse or calls an undefined function — a
-definition error, core §3.10.1 and Phase 3 step 1a) keeps its
-processor-generated message: the author’s rule text describes data that
-broke the rule, not a broken rule. <code>TYPE_MISMATCH</code>,
-<code>MIN_REPEAT</code> / <code>MAX_REPEAT</code>,
-<code>SHAPE_FAILED</code>, and <code>EXTERNAL_FAILED</code> results
-likewise keep their processor or Shape message. Only the per-code key
+(the expression calls an undefined function — a definition error, core
+§3.10.1 and Phase 3 step 1a) keeps its processor-generated message: the
+author’s rule text describes data that broke the rule, not a broken
+rule. <code>TYPE_MISMATCH</code>, <code>MIN_REPEAT</code> /
+<code>MAX_REPEAT</code>, <code>SHAPE_FAILED</code>, and
+<code>EXTERNAL_FAILED</code> results likewise keep their processor or
+Shape message. Only the per-code key
 (<code>&lt;key&gt;.errors.&lt;code&gt;</code>) relabels those.</p>
 <p>To localize the required-field message for an item:</p>
 <pre><code>&lt;itemKey&gt;.requiredMessage</code></pre>

@@ -28,11 +28,11 @@ export interface ValidationResult {
    * - 'required': A required field (Bind required=true) is null, empty string, or empty array. Standard code: REQUIRED.
    * - 'type': The field's value does not conform to its declared dataType (e.g., 'abc' in an integer field). Standard code: TYPE_MISMATCH.
    * - 'cardinality': A repeatable group violates its minRepeat or maxRepeat bounds. Standard codes: MIN_REPEAT, MAX_REPEAT.
-   * - 'constraint': A Bind 'constraint' expression evaluated to false (e.g., '$ > 0' on a negative value), or has a definition error (it failed to parse or calls an undefined function). Standard codes: CONSTRAINT_FAILED, CONSTRAINT_PARSE_ERROR.
+   * - 'constraint': A Bind 'constraint' expression evaluated to false (e.g., '$ > 0' on a negative value), or calls an undefined function (a definition error). Standard codes: CONSTRAINT_FAILED, CONSTRAINT_PARSE_ERROR.
    * - 'shape': A named Validation Shape's constraint or composition evaluated to invalid. Standard code: SHAPE_FAILED. The shapeId property identifies which Shape.
    * - 'external': Injected by an external system (server-side API, third-party validator, business rule engine). Standard code: EXTERNAL_FAILED. The source property will be 'external' and sourceId identifies the system.
    * - 'explanation': Derived by the submit-profile check for a warning Shape answer. Codes: EXPLANATION_REQUIRED, EXPLANATION_STALE, EXPLANATION_UNUSED. See Core §5.3.1.
-   * - 'definition': An error in the authored Definition. Standard codes: UNSUBSCRIPTED_REPEAT_REFERENCE, CIRCULAR_DEPENDENCY.
+   * - 'definition': An error in the authored Definition. Standard codes: SYNTAX_ERROR, ARITY_MISMATCH, UNSUBSCRIPTED_REPEAT_REFERENCE, CIRCULAR_DEPENDENCY.
    */
   constraintKind:
     | 'required'
@@ -55,7 +55,9 @@ export interface ValidationResult {
    * - MIN_REPEAT — fewer repeat instances than minRepeat
    * - MAX_REPEAT — more repeat instances than maxRepeat
    * - CONSTRAINT_FAILED — Bind constraint returned false
-   * - CONSTRAINT_PARSE_ERROR — Bind constraint expression has a definition error: it failed to parse or calls an undefined function
+   * - CONSTRAINT_PARSE_ERROR — Bind constraint expression calls an undefined function
+   * - SYNTAX_ERROR — an authored FEL expression does not conform to the grammar
+   * - ARITY_MISMATCH — an authored FEL expression calls a built-in function with the wrong number of arguments
    * - UNSUBSCRIPTED_REPEAT_REFERENCE — a field path continues past a repeatable group without a subscript
    * - CIRCULAR_DEPENDENCY — the dependency graph contains a cycle
    * - SHAPE_FAILED — Shape constraint returned false (when no specific code declared)

@@ -166,7 +166,7 @@ Creation-time values are outside this cycle. Re-evaluating a Response MUST NOT p
 
 ### Phase 3: Revalidate
 **Trigger**: Phase 2 completed.
-**Action**: For affected relevant fields: evaluate `constraint` binds (`false` → `CONSTRAINT_FAILED` with the Bind's `constraintMessage`; parse error or undefined function → `CONSTRAINT_PARSE_ERROR` with a processor-generated message, never the author's text), check `required` state, evaluate intersecting shapes. Composed shapes (`and`/`or`/`not`/`xone`) evaluated by combining constituent results.
+**Action**: For affected relevant fields: evaluate `constraint` binds (`false` → `CONSTRAINT_FAILED` with the Bind's `constraintMessage`; undefined function → `CONSTRAINT_PARSE_ERROR` with a processor-generated message, never the author's text; a syntax error never reaches this phase), check `required` state, evaluate intersecting shapes. Composed shapes (`and`/`or`/`not`/`xone`) evaluated by combining constituent results.
 
 ### Phase 4: Notify
 **Trigger**: Phase 3 completed.
@@ -289,7 +289,7 @@ Missing field (exists in definition but no value) → `null`. Field key not in d
 
 ### Error Handling
 
-**Definition errors** (load-time, block processing): syntax errors, undefined references, undefined instances/functions, circular dependencies, arity mismatches, calculate target conflicts, instance-path Binds (`instances.<name>…` / `@instance('<name>')…` as a Bind `path`).
+**Definition errors** (load-time, block processing): syntax errors, undefined references, undefined instances/functions, circular dependencies, arity mismatches, calculate target conflicts, instance-path Binds (`instances.<name>…` / `@instance('<name>')…` as a Bind `path`). Rebuild refuses evaluation with a `definition` ValidationResult at the authored expression's JSONPath: `SYNTAX_ERROR` (message carries the expression and position), `ARITY_MISMATCH`, `UNSUBSCRIPTED_REPEAT_REFERENCE`, `CIRCULAR_DEPENDENCY`. `{{}}` text interpolation is exempt from the first two.
 
 **Evaluation errors** (runtime, produce `null` + diagnostic): type errors, division by zero, index out of bounds, date overflow, regex errors. Evaluation errors don't halt — they produce `null` so the rest of the form keeps working.
 

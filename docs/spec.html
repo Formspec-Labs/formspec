@@ -3128,14 +3128,15 @@ This is the minimal recalculation guarantee, borrowed from XForms.</p>
 <code>required</code> / <code>relevant</code> state changed in Phase 2:
 <ol type="a">
 <li>If the field has a <code>constraint</code> Bind, evaluate the
-constraint expression. If the expression fails to parse or calls an
-undefined function (both definition errors, §3.10.1), record a
-ValidationResult with severity <code>"error"</code>, code
-<code>CONSTRAINT_PARSE_ERROR</code>, and a processor-generated message
-describing the failure. An evaluation error (§3.10.2) is not a
-definition error: its <code>null</code> result passes. If the result is
-<code>false</code>, record a ValidationResult with severity
-<code>"error"</code> and the Bind’s <code>constraintMessage</code>.</li>
+constraint expression. If the expression calls an undefined function (a
+definition error, §3.10.1), record a ValidationResult with severity
+<code>"error"</code>, code <code>CONSTRAINT_PARSE_ERROR</code>, and a
+processor-generated message describing the failure. A syntax error never
+reaches this phase: Rebuild refuses it (§3.10.1). An evaluation error
+(§3.10.2) is not a definition error: its <code>null</code> result
+passes. If the result is <code>false</code>, record a ValidationResult
+with severity <code>"error"</code> and the Bind’s
+<code>constraintMessage</code>.</li>
 <li>If the field has a <code>required</code> Bind that evaluated to
 <code>true</code>, and the field’s value is empty (<code>null</code>,
 empty string <code>""</code>, or empty array <code>[]</code>), record a
@@ -3349,8 +3350,24 @@ Shape-level and external codes override the generic defaults.</p>
 <tr>
 <td><code>CONSTRAINT_PARSE_ERROR</code></td>
 <td><code>constraint</code></td>
-<td>Bind <code>constraint</code> expression has a definition error
-(§3.10.1): it failed to parse or calls an undefined function.</td>
+<td>Bind <code>constraint</code> expression calls an undefined function
+(§3.10.1).</td>
+</tr>
+<tr>
+<td><code>SYNTAX_ERROR</code></td>
+<td><code>definition</code></td>
+<td>An authored FEL expression does not conform to the grammar
+(§3.10.1). Rebuild refuses evaluation at the authored expression. A
+<code>{{}}</code> text interpolation is exempt: it renders literally
+(§4.2.1).</td>
+</tr>
+<tr>
+<td><code>ARITY_MISMATCH</code></td>
+<td><code>definition</code></td>
+<td>An authored FEL expression calls a built-in function with the wrong
+number of arguments (§3.10.1). Rebuild refuses evaluation at the
+authored expression. A <code>{{}}</code> text interpolation is
+exempt.</td>
 </tr>
 <tr>
 <td><code>UNSUBSCRIPTED_REPEAT_REFERENCE</code></td>
@@ -5448,6 +5465,8 @@ resolve to Items only (§4.3.3); no Bind writes an instance, whatever its
 </tr>
 </tbody>
 </table>
+<p>§2.5.1 lists the reserved ValidationResult codes for these
+errors.</p>
 <h4 id="evaluation-errors">3.10.2 Evaluation Errors</h4>
 <p>An evaluation error occurs during expression evaluation when operand
 values violate type or domain constraints. A conformant processor MUST
@@ -8921,14 +8940,17 @@ Field’s <code>dataType</code>.</li>
 value.</li>
 <li><strong>Bind constraint failure</strong> — a Bind’s
 <code>constraint</code> evaluates to <code>false</code>. 3a.
-<strong>Bind constraint parse error</strong> — a Bind’s
-<code>constraint</code> expression fails to parse. Processors MUST
+<strong>Bind constraint definition error</strong> — a Bind’s
+<code>constraint</code> calls an undefined function. Processors MUST
 surface this as a validation error rather than silently passing.</li>
 <li><strong>Shape constraint failure</strong> — a Shape’s
 <code>constraint</code> or composition evaluates to invalid.</li>
 <li><strong>Repeat cardinality violation</strong> — a repeatable Group
 has fewer than <code>minRepeat</code> or more than
 <code>maxRepeat</code> repetitions.</li>
+<li><strong>Definition error</strong> — Rebuild detects a definition
+error (§3.10.1) and refuses evaluation, with the reserved code from
+§2.5.1.</li>
 </ol>
 <p>In <code>on-submit</code>, the explanation pass (§2.4) MUST emit
 results with <code>constraintKind: "explanation"</code> and
