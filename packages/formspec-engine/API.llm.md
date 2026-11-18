@@ -271,7 +271,9 @@ calculated fields and undeclared keys are ignored.
 
 ##### `getFieldPaths(): string[]`
 
-##### `getProgress(): import('../interfaces.js').FormProgress`
+##### `getEvaluatedFormState(options?: ValidationReportOptions): EvaluatedFormState`
+
+Read the current field flags and the requested validation profile, which defaults to live.
 
 ##### `getResponse(meta?: Parameters<FormEngine['getResponseSnapshot']>[0]): FormResponse`
 
@@ -659,6 +661,10 @@ resulting document against the Response schema before transport when required.
         authoredSignatures?: AuthoredSignatureInput[];
     };
 }): Record<string, unknown>`
+
+## `collectRelevantValidationResults(result: EvalResult): ValidationResult[]`
+
+Keep findings visible in the report produced for evaluated response data.
 
 ## `collectTimedShapeValidationResults(evalResult: EvalResult, shapeTiming: Map<string, EvalShapeTiming>, timing: EvalShapeTiming): ValidationResult[]`
 
@@ -1210,15 +1216,6 @@ Editable data pinned to a Definition, including hidden answers and exact repeat 
 - **definitionUrl**: `string`
 - **definitionVersion**: `string`
 
-#### interface `FormProgress`
-
-- **total**: `number`
-- **filled**: `number`
-- **valid**: `number`
-- **required**: `number`
-- **requiredFilled**: `number`
-- **complete**: `boolean`
-
 #### interface `AuthoredSignatureIdentityBinding`
 
 - **method**: `string`
@@ -1390,7 +1387,7 @@ Captures editable data without evaluation. Use exact JSON for persistence.
 
 ##### `getFieldPaths(): string[]`
 
-##### `getProgress(): FormProgress`
+##### `getEvaluatedFormState(options?: ValidationReportOptions): EvaluatedFormState`
 
 ##### `getResponse(meta?: {
         id?: string;
@@ -2820,6 +2817,14 @@ Exported for unit tests; `initWasmTools` uses this after loading the tools modul
 
 @internal Reset import counter (use only in isolated test processes).
 
+## `responseSubjectId(subjectType: string, keys: NonNullable<NonNullable<FormResponse['subject']>['keys']>): string`
+
+Calculate a filing-unit id from the declared type and exact typed keys.
+
+## `isValidResponseAuthored(authored: string): boolean`
+
+Check whether authored specifies a valid Response ordering instant.
+
 ## `wasmParseFel(expression: string): boolean`
 
 Parse a FEL expression and return whether it's valid.
@@ -3031,6 +3036,11 @@ Generate a structured changelog between two definitions.
 }>`
 
 Validate enabled x-extension usage in an item tree against registry entries.
+
+## `selectResponses: SelectResponses`
+
+Execute an authorized preview Response selection after initializing tools WASM.
+Set `context.upstreamSubject` to null when the upstream Definition has no subject.
 
 #### interface `WasmLintDocumentOptions`
 
