@@ -10,7 +10,7 @@
   "mode": "continuous",
   "inputData": {
     "preserved": "   ",
-    "trimmed": "   "
+    "trimmed": ""
   },
   "expected": {
     "valid": false,
