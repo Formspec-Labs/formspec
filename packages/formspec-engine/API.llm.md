@@ -238,10 +238,7 @@ Appends a row and returns its index; `undefined` when the path is not repeatable
 
 ##### `loadResponseData(data: JsonRecord): void`
 
-Loads a Response `data` tree with one evaluation. Definition-directed: a repeatable group present in
-`data` gets exactly one row per array entry, past `maxRepeat` or below `minRepeat` included, so loaded
-data reports MAX_REPEAT / MIN_REPEAT instead of losing rows. Keys absent from `data` keep their state;
-calculated fields and undeclared keys are ignored.
+Resume saved Response data with its exact row counts and answered fields.
 
 ##### `getDraftSnapshot(): FormDraftSnapshot`
 
@@ -371,7 +368,7 @@ supplied literals (`$label`, `$index`, ...), not form-scope FEL.
 
 ## `validateCalculateBindCycles(bindConfigs: Record<string, EngineBindConfig>): void`
 
-## `captureDraftData(items: FormItem[], fieldValue: (path: string) => JsonValue | undefined, repeatCount: (path: string) => number): JsonRecord`
+## `captureDraftData(items: FormItem[], fieldValue: (path: string) => JsonValue | undefined, repeatCount: (path: string) => number | undefined): JsonRecord`
 
 Match the Response data tree, where dependent questions share their scalar parent's object.
 
@@ -426,10 +423,6 @@ Paths stay resolved instance paths with 0-based indexes (Core §4.3.3), exactly 
     rulesApplied: number;
     diagnostics: MappingDiagnostic[];
 }): RuntimeMappingResult`
-
-## `emptyValueForItem(item: FormItem): FormFieldValue`
-
-## `coerceInitialValue(item: FormItem, value: FormFieldValue, definition: FormDefinition): FormFieldValue`
 
 ## `coerceFieldValue(item: FormItem, bind: EngineBindConfig | undefined, definition: FormDefinition, value: FormFieldValue): FormFieldValue`
 
@@ -564,7 +557,6 @@ Copy an acyclic JSON tree without invoking accessors or accepting non-JSON objec
     values: Record<string, unknown>;
     signals: Record<string, EngineSignal<any>>;
     data: Record<string, any>;
-    fieldItems: Map<string, FormItem>;
     bindConfigs: Record<string, EngineBindConfig>;
     calculatedFields: Set<string>;
 }): void`
@@ -609,7 +601,6 @@ Capture paths relative to the row so the same state can be restored at its new i
 
 - **value**: `FormFieldValue`
 - **writeSource**: `WriteSource | null`
-- **preserveSourceSeed**: `boolean`
 
 #### interface `RepeatRowSnapshot`
 
@@ -693,8 +684,6 @@ Compute counts and wrap the evaluator's results in the spec report.
     registryDocuments: unknown[];
     subjectType?: string | null;
     subjectKeys?: ResponseSubjectKeys;
-    /** Authoritative repeat row counts by group base path (matches engine repeat signals). */
-    repeatCounts: Record<string, number>;
 }): {
     nowIso: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
@@ -704,7 +693,6 @@ Compute counts and wrap the evaluator's results in the spec report.
     registryDocuments: unknown[];
     subjectType?: string | null;
     subjectKeys?: ResponseSubjectKeys;
-    repeatCounts: Record<string, number>;
 }`
 
 Options object consumed by the WASM definition evaluator (JSON-serialized internally).
@@ -1174,8 +1162,9 @@ Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createForm
 - **loadExternalSources** (`boolean`): Set false to evaluate retained data without loading instance sources or remote options.
 - **instanceSourceResolver** (`InstanceSourceResolver`): Exclusive source loader when supplied; injected values never use the shared URL cache.
 - **extensionFunctions** (`Record<string, import('./extension-functions.js').FelExtensionFunctionRegistration>`): FEL extension functions by name (Core §3.12), registered before the first evaluation.
-- **responseData** (`JsonRecord`): Host primary Response data installed before seedFrom.
-- **draftSnapshot** (`FormDraftSnapshot`): Resume an editable snapshot before the first evaluation. Mutually exclusive with responseData.
+- **responseData** (`JsonRecord`): Host prefill for a new Response. Present values win over creation defaults.
+- **savedResponseData** (`JsonRecord`): Resume saved Response data without applying creation defaults.
+- **draftSnapshot** (`FormDraftSnapshot`): Resume an editable snapshot with a Definition pin. Supply only one data input.
 - **responseSubject** (`Omit<NonNullable<FormResponse['subject']>, 'keys'> & {
         keys?: ResponseSubjectKeys;
     }`): Host-supplied Response identity, available to FEL from the first evaluation.
@@ -1345,7 +1334,7 @@ Appends a row; `undefined` when not repeatable or already at `maxRepeat`.
 
 ##### `loadResponseData(data: JsonRecord): void`
 
-Loads Response `data` in one evaluation, one row per loaded array entry regardless of min/maxRepeat.
+Resumes saved Response `data`, replacing the current data without creation or repeat padding.
 
 ##### `loadDraftSnapshot(snapshot: FormDraftSnapshot): void`
 
@@ -2604,6 +2593,14 @@ Resolve an item in a nested item tree by dotted path.
 
 Resolve an item's parent path, index, and value in a nested item tree.
 
+## `wasmCreateResponse(definition: unknown, data: Record<string, unknown>, context?: WasmCreateOptions, extensions?: FelExtensionHost): WasmCreation`
+
+Apply creation-time values to a new Response or resolve its pending values.
+
+## `wasmCreateRepeatRow(definition: unknown, data: Record<string, unknown>, groupPath: string, context?: WasmCreateOptions, extensions?: FelExtensionHost): WasmCreation | null`
+
+Create a new row at the end of the given repeat.
+
 ## `wasmEvaluateDefinition(definition: unknown, data: Record<string, unknown>, context?: {
     nowIso?: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
@@ -2624,8 +2621,6 @@ Resolve an item's parent path, index, and value in a nested item tree.
     subjectType?: string | null;
     /** The current Response's filing-unit keys, available to `subject(key)`. */
     subjectKeys?: import('./interfaces.js').ResponseSubjectKeys;
-    /** Repeat row counts by group base path (authoritative for min/max repeat cardinality). */
-    repeatCounts?: Record<string, number>;
     /** Ask for resolved Item text (Core §4.2.1); `localeStrings` are cascade-resolved Locale strings. */
     itemText?: {
         localeStrings?: Record<string, string>;
@@ -2735,6 +2730,23 @@ Interpolation result from Rust: resolved text plus one warning per expression le
         expression: string;
         message: string;
     }>`
+
+#### interface `WasmCreateOptions`
+
+Sources and Response context available during creation.
+
+- **nowIso?**: `string`
+- **instances?**: `Record<string, unknown>`
+- **pendingInstances?**: `string[]`
+- **pendingPaths?**: `string[]`
+- **subjectType?**: `string | null`
+- **subjectKeys?**: `import('./interfaces.js').ResponseSubjectKeys`
+
+#### interface `WasmCreation`
+
+- **data**: `import('./interfaces.js').JsonRecord`
+- **pending**: `string[]`
+- **diagnostics**: `string[]`
 
 #### type `WasmFelAnalysisResultJson`
 
