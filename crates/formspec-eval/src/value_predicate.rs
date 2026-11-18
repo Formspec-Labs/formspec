@@ -22,7 +22,13 @@ mod tests {
         for empty in [Value::Null, json!(""), json!([])] {
             assert!(is_empty_bind_value(&empty));
         }
-        for present in [json!("   "), json!([null]), json!({}), json!(false), json!(0)] {
+        for present in [
+            json!("   "),
+            json!([null]),
+            json!({}),
+            json!(false),
+            json!(0),
+        ] {
             assert!(!is_empty_bind_value(&present));
         }
     }
