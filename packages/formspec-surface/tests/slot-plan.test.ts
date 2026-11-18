@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ExperienceDocument, FormDefinition } from '@formspec-org/types';
 import type { DataSourcesDocument, RegistryDocument } from '@formspec-org/types';
 import { composeSurfaceApp } from '../src/composition.js';
+import { createThemeAuthority } from '../src/theme-authority.js';
 import { planRoute } from '../src/slot-plan.js';
 import { slotSuppliedTriggers } from '../src/transitions.js';
 import { createWidgetRegistry, flattenRegistryEntries } from '../src/registry.js';
@@ -512,4 +513,32 @@ describe('planRoute — dispatch over the closed taxonomy', () => {
       'WIDGET-DATA-REQUIRED-UNAVAILABLE',
     );
   });
+});
+
+it('plans one band per page, including when the page embeds its declaring route', () => {
+  const pages = surface('app', 'home', [
+    route({ id: 'home', path: '/', slots: [
+      slot({ id: 'embedded', slotType: 'embed-route', binding: { routeRef: 'overview' } }),
+    ] }),
+    route({ id: 'overview', path: '/overview', slots: [
+      slot({ id: 'tracker', slotType: 'filing-status', binding: {
+        placement: 'band', groups: [{ id: 'unit', label: 'Unit', forms: [{ routeRef: 'overview', slotRef: 'form' }] }],
+      } }),
+      slot({ id: 'form', slotType: 'definition-form', binding: { definitionRef: 'https://example.test/def' } }),
+    ] }),
+  ], { $formspecSurface: '0.4' });
+  const app = composeSurfaceApp([pages]);
+  const filingStatus = { app, themeAuthority: createThemeAuthority() };
+  for (const handle of app.routes) {
+    const plan = planRoute({ ...contextFor(pages, handle.routeId), handle, filingStatus });
+    expect(plan.bands).toMatchObject([{ routeId: 'overview', slot: {
+      slotId: 'tracker', tracker: { status: 'ready', groups: [{ rows: [{ href: '/overview?slot=form' }] }] },
+    } }]);
+    expect(plan.slots.some(slot => slot.slotType === 'filing-status')).toBe(false);
+    const embedded = plan.slots.find(slot => slot.slotType === 'embed-route');
+    if (embedded) expect(embedded.slots.map(slot => slot.slotId)).toEqual(['form']);
+  }
+  // An invalid old-dialect binding receives its ordinary inline refusal, never a shell band.
+  const old = { ...pages, $formspecSurface: '0.3' as const };
+  expect(planRoute(contextFor(old, 'home')).bands).toEqual([]);
 });

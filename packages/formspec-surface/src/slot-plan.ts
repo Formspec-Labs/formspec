@@ -217,19 +217,20 @@ export interface RoutePlan<TComponent> {
   diagnostics: readonly SurfaceDiagnostic[];
 }
 
-function isTrackerBand(slot: SurfaceSlot): boolean {
-  return slot.slotType === 'filing-status' && ownRecord(slot, 'binding')?.placement === 'band';
+function isTrackerBand(slot: SurfaceSlot, handle: SurfaceRouteHandle): boolean {
+  return handle.surface.$formspecSurface === '0.4' && slot.slotType === 'filing-status'
+    && ownRecord(slot, 'binding')?.placement === 'band';
 }
 
 export function planRoute<TComponent>(context: SlotPlanContext<TComponent>): RoutePlan<TComponent> {
   const diagnostics: SurfaceDiagnostic[] = [];
   const base = context.headingBaseLevel ?? 2;
   const visited = new Set([context.handle.routeId]);
-  const slots = context.handle.route.slots.filter(slot => !isTrackerBand(slot)).map(slot =>
+  const slots = context.handle.route.slots.filter(slot => !isTrackerBand(slot, context.handle)).map(slot =>
     planSlot(slot, context, base, visited, diagnostics),
   );
   const bands = context.handle.surface.routes.flatMap(route =>
-    route.slots.filter(isTrackerBand).flatMap(slot => {
+    route.slots.filter(slot => isTrackerBand(slot, context.handle)).flatMap(slot => {
       const planned = planSlot(slot, context, base, visited, diagnostics, route);
       return planned.slotType === 'filing-status' ? [{ routeId: route.id, slot: planned }] : [];
     }),
@@ -630,7 +631,7 @@ function planSlot<TComponent>(
         if (value !== undefined) params.push([target, value]);
       }
       const childContext = { ...context, params: Object.fromEntries(params) };
-      const slots = embedded.slots.filter(slot => !isTrackerBand(slot)).map((child) =>
+      const slots = embedded.slots.filter(slot => !isTrackerBand(slot, context.handle)).map((child) =>
         planSlot(child, childContext, nestedBase, nested, diagnostics, embedded),
       );
       return { ...plan, slots, status: 'ready' };
