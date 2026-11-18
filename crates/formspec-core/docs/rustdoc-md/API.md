@@ -76,7 +76,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`fel_analysis`](fel_analysis.md)
 
-*6 structs, 7 functions*
+*6 functions, 6 structs*
 
 ### [`fel_condition_group_lift`](fel_condition_group_lift.md)
 
@@ -84,7 +84,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`fel_rewrite_exact`](fel_rewrite_exact.md)
 
-*2 functions*
+*3 functions*
 
 ### [`instance_projection`](instance_projection.md)
 
@@ -336,8 +336,7 @@ FEL static analysis and expression rewriting for field references and variables.
 Parses FEL to extract field references, variables, and function calls, and declares the
 rename callbacks ([`RewriteOptions`]) that `fel_rewrite_exact` applies to authored text.
 
-Private walkers (`collect_info`, `collect_rewrite_targets`) implement AST traversal; the
-public API wraps them.
+The private walker `collect_info` implements AST traversal; the public API wraps it.
 
 
 
@@ -352,6 +351,10 @@ Conservative: only homogeneous `and` / `or` chains and leaf patterns supported b
 ## Module: fel_rewrite_exact
 
 Exact-text rewriting using locations from the FEL parser.
+
+[`target`] is the one place that decides what a rename can reach: rewriting edits those
+sites, and [`collect_fel_rewrite_targets`] reports exactly the names the rewrite callbacks
+will be asked about (the WASM bridge turns JavaScript callbacks into a map over them).
 
 
 
@@ -1731,7 +1734,6 @@ fn validate_extension_usage<I>(items: &[I], registry: &dyn RegistryLookup) -> Ve
 
 - [`analyze_fel`](#analyze_fel) - Analyze a FEL expression string, extracting structural information.
 - [`analyze_fel_with_field_types`](#analyze_fel_with_field_types) - Analyze a FEL expression with field data type context for type-aware warnings.
-- [`collect_fel_rewrite_targets`](#collect_fel_rewrite_targets) - Collect every rewriteable target referenced by a FEL expression.
 - [`fel_analysis_to_json_value`](#fel_analysis_to_json_value) - Static analysis result as JSON (`valid`, `errors`, `warnings`, `references`, `variables`, `functions`).
 - [`fel_rewrite_targets_to_json_value`](#fel_rewrite_targets_to_json_value) - [`FelRewriteTargets`] as sorted JSON (camelCase keys) for `collectFelRewriteTargets`.
 - [`get_fel_dependencies`](#get_fel_dependencies) - Extract field dependencies from an expression (safe on parse failure).
@@ -1895,18 +1897,6 @@ fn analyze_fel_with_field_types(expression: &str, field_types: &std::collections
 
 
 
-## formspec_core::fel_analysis::collect_fel_rewrite_targets
-
-*Function*
-
-Collect every rewriteable target referenced by a FEL expression.
-
-```rust
-fn collect_fel_rewrite_targets(expression: &str) -> FelRewriteTargets
-```
-
-
-
 ## formspec_core::fel_analysis::fel_analysis_to_json_value
 
 *Function*
@@ -1993,10 +1983,23 @@ fn try_lift_condition_group(expression: &str) -> serde_json::Value
 
 **Functions**
 
+- [`collect_fel_rewrite_targets`](#collect_fel_rewrite_targets) - Collect every rewriteable target referenced by a FEL expression (empty when it does not parse).
 - [`rewrite_fel_source_references`](#rewrite_fel_source_references) - Rewrite reference spans, preserving other source text and returning invalid input verbatim.
 - [`rewrite_message_template`](#rewrite_message_template) - Rewrite each `{{ ... }}` FEL substring in a message template via [`rewrite_fel_source_references`].
 
 ---
+
+## formspec_core::fel_rewrite_exact::collect_fel_rewrite_targets
+
+*Function*
+
+Collect every rewriteable target referenced by a FEL expression (empty when it does not parse).
+
+```rust
+fn collect_fel_rewrite_targets(expression: &str) -> crate::fel_analysis::FelRewriteTargets
+```
+
+
 
 ## formspec_core::fel_rewrite_exact::rewrite_fel_source_references
 
@@ -2065,18 +2068,18 @@ Machine-readable reason a response instance fails projection validation.
 - `SubjectKeyTypeMismatch` - A predicate compares keys with incompatible declared types.
 - `SubjectIntegerRequired` - A predicate uses an integer-only operation on a non-integer key.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &InstanceProjectionCode) -> bool`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> InstanceProjectionCode`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -2179,14 +2182,14 @@ An available value together with the evidence needed to keep a pin.
 
 **Trait Implementations:**
 
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> DeliveredSelection`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
+- **Deserialize**
+  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 
 
 
@@ -2261,6 +2264,12 @@ Lowercase hexadecimal SHA-256 with the Core wire prefix.
 
 **Trait Implementations:**
 
+- **Hash**
+  - `fn hash<__H>(self: &Self, state: & mut __H)`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Deserialize**
+  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Display**
   - `fn fmt(self: &Self, formatter: & mut fmt::Formatter) -> fmt::Result`
 - **Clone**
@@ -2271,12 +2280,6 @@ Lowercase hexadecimal SHA-256 with the Core wire prefix.
   - `fn eq(self: &Self, other: &Sha256Digest) -> bool`
 - **TryFrom**
   - `fn try_from(value: String) -> Result<Self, <Self as >::Error>`
-- **Hash**
-  - `fn hash<__H>(self: &Self, state: & mut __H)`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 
 ---
 
@@ -2393,14 +2396,14 @@ A derived JSON-LD context plus everything the derivation could not honor.
 
 **Trait Implementations:**
 
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> JsonLdDerivation`
 - **PartialEq**
   - `fn eq(self: &Self, other: &JsonLdDerivation) -> bool`
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -2426,14 +2429,14 @@ For the other kinds `new_id` carries the lost binding's concept.
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> JsonLdDiagnostic`
 - **PartialEq**
   - `fn eq(self: &Self, other: &JsonLdDiagnostic) -> bool`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Clone**
-  - `fn clone(self: &Self) -> JsonLdDiagnostic`
 
 
 
@@ -2448,7 +2451,7 @@ Why a binding did not produce the term it named.
 - `UnboundRepeatable` - A bound item under an unbound repeatable group: nothing names the group's instances.
 - `UnsupportedType` - A bound field whose `dataType` has no JSON-LD representation (`attachment`).
 
-**Traits:** Copy, Eq
+**Traits:** Eq, Copy
 
 **Trait Implementations:**
 
@@ -2605,14 +2608,14 @@ Error returned when JSON cannot be parsed or recovered.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> JsonRecoveryError`
 - **PartialEq**
   - `fn eq(self: &Self, other: &JsonRecoveryError) -> bool`
 - **Display**
   - `fn fmt(self: &Self, f: & mut std::fmt::Formatter) -> std::fmt::Result`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> JsonRecoveryError`
 
 
 
@@ -2629,14 +2632,14 @@ The outcome of parsing JSON with error recovery.
 
 **Trait Implementations:**
 
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> ParsedJsonResult`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Deserialize**
+  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 
 
 
@@ -2733,10 +2736,6 @@ A parsed dotted path.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **FromStr**
-  - `fn from_str(s: &str) -> Result<Self, <Self as >::Err>`
 - **Default**
   - `fn default() -> Path`
 - **Clone**
@@ -2747,6 +2746,10 @@ A parsed dotted path.
   - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
 - **Hash**
   - `fn hash<__H>(self: &Self, state: & mut __H)`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **FromStr**
+  - `fn from_str(s: &str) -> Result<Self, <Self as >::Err>`
 
 
 
@@ -3088,7 +3091,7 @@ modules and the first published contribution category (`UnitKind` from
 - `TokenCategory` - Token category specification for design tokens.
 - `AccessClass` - Access-Class Registry token or deployment prefix (extension-registry.md §3.2.3).
 
-**Traits:** Copy, Eq
+**Traits:** Eq, Copy
 
 **Trait Implementations:**
 
@@ -3114,10 +3117,10 @@ Function/constraint parameter declaration.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> Parameter`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -3137,10 +3140,10 @@ Organization publishing a registry document.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> Publisher`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> Publisher`
 
 
 
@@ -3217,10 +3220,10 @@ callers that need typed access ship their own typed-shape deserializers
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> RegistryEntry`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -3239,14 +3242,14 @@ Errors from registry parsing and validation.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> RegistryError`
 - **PartialEq**
   - `fn eq(self: &Self, other: &RegistryError) -> bool`
 - **Display**
   - `fn fmt(self: &Self, f: & mut std::fmt::Formatter) -> std::fmt::Result`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> RegistryError`
 
 
 
@@ -3516,20 +3519,20 @@ How many of the ordered records are delivered.
 - `Latest` - One record overall.
 - `LatestPerSubject` - One record for each distinct subject, in selection order.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> Cardinality`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **PartialEq**
   - `fn eq(self: &Self, other: &Cardinality) -> bool`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
+- **Clone**
+  - `fn clone(self: &Self) -> Cardinality`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -3546,12 +3549,12 @@ One outcome from the caller's disposition authority.
 
 **Trait Implementations:**
 
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 
 
 
@@ -3567,10 +3570,10 @@ Identity of a different completed record that a fresh read would select.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -3584,20 +3587,20 @@ When to retain the selected value.
 - `None` - Select from the current inputs each time.
 - `AtOpen` - Use the value captured at open after checking availability.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
+- **PartialEq**
+  - `fn eq(self: &Self, other: &Pin) -> bool`
+- **Deserialize**
+  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> Pin`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &Pin) -> bool`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 
 
 
@@ -3612,10 +3615,12 @@ The comparison applied to the upstream key.
 - `Le` - Integer less than or equal.
 - `Ge` - Integer greater than or equal.
 
-**Traits:** Copy, Eq
+**Traits:** Eq, Copy
 
 **Trait Implementations:**
 
+- **Deserialize**
+  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> PredicateOp`
 - **Debug**
@@ -3624,8 +3629,6 @@ The comparison applied to the upstream key.
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **PartialEq**
   - `fn eq(self: &Self, other: &PredicateOp) -> bool`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 
 
 
@@ -3668,12 +3671,12 @@ A declared Response read (Core §2.1.6).
 
 **Trait Implementations:**
 
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 
 
 
@@ -3699,12 +3702,12 @@ Caller-supplied facts and delivery options for one read.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -3720,12 +3723,12 @@ The Mapping material resolved by the caller for an available read.
 
 **Trait Implementations:**
 
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 
 
 
@@ -3761,12 +3764,12 @@ A Response candidate with its storage scope and original JSON.
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -3780,20 +3783,20 @@ Where the Response selection was declared.
 - `Definition` - A Definition response instance.
 - `Catalog` - An app catalog data source.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **PartialEq**
   - `fn eq(self: &Self, other: &SelectionSource) -> bool`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> SelectionSource`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 
 
 
@@ -3811,16 +3814,16 @@ The lifecycle policy for candidate selection.
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> SelectionStatus`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **PartialEq**
   - `fn eq(self: &Self, other: &SelectionStatus) -> bool`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
-- **Clone**
-  - `fn clone(self: &Self) -> SelectionStatus`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -3856,12 +3859,12 @@ The key type in a Definition's subject declaration.
 
 **Trait Implementations:**
 
+- **Deserialize**
+  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 
 
 
@@ -3875,10 +3878,12 @@ The declared type of an upstream subject key.
 - `String` - Text.
 - `Integer` - Signed integer.
 
-**Traits:** Copy, Eq
+**Traits:** Eq, Copy
 
 **Trait Implementations:**
 
+- **Deserialize**
+  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> SubjectKeyType`
 - **Debug**
@@ -3887,8 +3892,6 @@ The declared type of an upstream subject key.
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **PartialEq**
   - `fn eq(self: &Self, other: &SubjectKeyType) -> bool`
-- **Deserialize**
-  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 
 
 
@@ -3906,12 +3909,12 @@ A typed comparison against a key on the upstream Response.
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -3927,12 +3930,12 @@ The upstream Definition reference.
 
 **Trait Implementations:**
 
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 
 
 
@@ -3946,12 +3949,10 @@ The result of a successful match with no eligible records.
 - `Unavailable` - Return unavailable.
 - `Empty` - Deliver a fallback, or JSON null.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> WhenNone`
 - **Default**
   - `fn default() -> WhenNone`
 - **Serialize**
@@ -3962,6 +3963,8 @@ The result of a successful match with no eligible records.
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
+- **Clone**
+  - `fn clone(self: &Self) -> WhenNone`
 
 
 
@@ -4256,10 +4259,10 @@ Array iteration descriptor.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> ArrayDescriptor`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -4274,16 +4277,16 @@ Array iteration mode.
 - `Indexed` - Access elements by index.
 - `Whole` - Treat the array as a single value (default).
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> ArrayMode`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &ArrayMode) -> bool`
+- **Clone**
+  - `fn clone(self: &Self) -> ArrayMode`
 
 
 
@@ -4302,16 +4305,16 @@ Target types for coercion.
 - `DateTime` - Coerce value to an ISO 8601 date-time string.
 - `Array` - Coerce value to an array, wrapping single scalars if needed.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &CoerceType) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> CoerceType`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -4330,10 +4333,10 @@ A diagnostic from mapping execution.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> MappingDiagnostic`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> MappingDiagnostic`
 
 
 
@@ -4347,16 +4350,16 @@ Transform direction.
 - `Forward` - Source to target (e.g. external data model into Formspec response).
 - `Reverse` - Target to source (e.g. Formspec response back to external data model).
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &MappingDirection) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> MappingDirection`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -4375,10 +4378,10 @@ A complete mapping document with rules, defaults, and autoMap.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> MappingDocument`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -4398,16 +4401,16 @@ Structured error codes for mapping diagnostics.
 
 - `fn as_str(self: &Self) -> &'static str` - Uppercase wire token for JSON diagnostics.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &MappingErrorCode) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> MappingErrorCode`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -4452,10 +4455,10 @@ A mapping rule — one transform in the pipeline.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> MappingRule`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -4472,10 +4475,10 @@ Versioned external source identity and its inline JSON Schema.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> MappingSourceSchema`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -4490,10 +4493,10 @@ Reverse-direction transform override.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> ReverseOverride`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> ReverseOverride`
 
 
 
@@ -4543,12 +4546,12 @@ The spec defines exactly four strategies: "error", "drop", "passthrough", "defau
 
 **Trait Implementations:**
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &UnmappedStrategy) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> UnmappedStrategy`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &UnmappedStrategy) -> bool`
 
 ---
 
@@ -4649,12 +4652,12 @@ A single component subtree node that needs host-side schema execution.
 
 **Trait Implementations:**
 
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> ComponentValidationTarget`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 
 
 
@@ -4695,18 +4698,18 @@ All recognized Formspec document types.
 - `fn schema_key(self: &Self) -> &'static str` - Schema key for this document type (used as discriminator).
 - `fn from_schema_key(key: &str) -> Option<Self>` - Parse the public schema key string used by the TS/Python layers.
 
-**Traits:** Copy, Eq
+**Traits:** Eq, Copy
 
 **Trait Implementations:**
 
+- **Hash**
+  - `fn hash<__H>(self: &Self, state: & mut __H)`
 - **Clone**
   - `fn clone(self: &Self) -> DocumentType`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &DocumentType) -> bool`
-- **Hash**
-  - `fn hash<__H>(self: &Self, state: & mut __H)`
 
 
 
@@ -4737,10 +4740,10 @@ A schema validation error with path and message.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> SchemaValidationError`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> SchemaValidationError`
 
 
 
@@ -4758,12 +4761,12 @@ Validation dispatch plan returned to host runtimes that execute JSON Schema loca
 
 **Trait Implementations:**
 
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Clone**
   - `fn clone(self: &Self) -> SchemaValidationPlan`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **Serialize**
-  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 
 
 
@@ -4779,10 +4782,10 @@ Result of schema validation.
 
 **Trait Implementations:**
 
-- **Clone**
-  - `fn clone(self: &Self) -> SchemaValidationResult`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Clone**
+  - `fn clone(self: &Self) -> SchemaValidationResult`
 
 
 
@@ -4870,16 +4873,16 @@ A filed unit's typed key value.
 
 **Trait Implementations:**
 
-- **Deserialize**
-  - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
-- **Clone**
-  - `fn clone(self: &Self) -> SubjectKey`
 - **PartialEq**
   - `fn eq(self: &Self, other: &SubjectKey) -> bool`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Deserialize**
+  - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
+- **Clone**
+  - `fn clone(self: &Self) -> SubjectKey`
 
 ---
 
