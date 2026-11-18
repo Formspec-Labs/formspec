@@ -700,3 +700,66 @@ fn catalog_prefill_compares_only_delivered_unmapped_fields() {
     source["schema"]["properties"] = json!({});
     assert!(check(&source, false, url, "1.1.0").is_empty());
 }
+
+#[test]
+fn direct_choice_reads_distinguish_single_repeat_values_from_array_projections() {
+    use formspec_core::ProjectionConsumer;
+    let mut source = instance();
+    source["schema"] = json!({"rows[*].stage": "choice"});
+    let mut upstream = upstream();
+    upstream["items"][1]["children"] = json!([
+        {"key":"stage", "type":"field", "dataType":"choice", "options":[{"value":"new"}]}
+    ]);
+    for (initializer, expected) in [
+        (
+            json!({"prePopulate":{"instance":"prior", "path":"rows[0].stage"}}),
+            1,
+        ),
+        (
+            json!({"initialValue":"=@instance('prior').rows[1].stage"}),
+            1,
+        ),
+        (
+            json!({"initialValue":"=@instance('prior').rows[stage = 'new'].stage"}),
+            1,
+        ),
+        (
+            json!({"initialValue":"=@instance('prior').rows[*].stage"}),
+            0,
+        ),
+        (
+            json!({"prePopulate":{"instance":"prior", "path":"rows[*].stage"}}),
+            0,
+        ),
+        (
+            json!({"initialValue":"=instance('prior', 'rows[*].stage')"}),
+            0,
+        ),
+        (
+            json!({"prePopulate":{"instance":"other", "path":"stage"},
+                "initialValue":"=@instance('prior').rows[1].stage"}),
+            1,
+        ),
+    ] {
+        let mut field =
+            json!({"key":"copy", "type":"field", "dataType":"choice", "options":[{"value":"old"}]});
+        field
+            .as_object_mut()
+            .unwrap()
+            .extend(initializer.as_object().unwrap().clone());
+        let consumer = ProjectionConsumer::Instance {
+            name: "prior".into(),
+            definition: json!({"subject":consumer_subject(), "items":[field]}),
+        };
+        let findings = formspec_core::check_instance_projection(
+            &source,
+            Some(&consumer),
+            std::slice::from_ref(&upstream),
+        );
+        assert_eq!(findings.len(), expected, "{initializer}");
+        if let Some(finding) = findings.first() {
+            assert_eq!(finding.code, Code::OptionValuesMismatch);
+            assert_eq!(finding.json_pointer, "/schema/rows[*].stage");
+        }
+    }
+}

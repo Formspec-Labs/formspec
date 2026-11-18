@@ -4175,9 +4175,11 @@ copies a projected field of the same type MUST use the same set of stored
 option values when both lists are statically known. Compare the receiving
 Field's effective options with each eligible upstream Field's options,
 ignoring labels and order (§4.6). Direct copies include `prePopulate`
-(with the seed element's path under §4.2.2.1) and a literal instance path
-read as the entire `initialValue` or effective Bind `calculate` expression. An external option source
-has no statically known value set. A transformed expression or Mapping
+(with the seed element's path under §4.2.2.1) and an instance field read
+returned by `initialValue` or the effective Bind `calculate` expression.
+A numeric index or keyed row lookup selects a single row. Use the corresponding
+`[*]` path from the instance schema to identify its Field. An external option
+source has no statically known value set. A transformed expression or Mapping
 does not establish a direct copy.
 
 When `response.definition.compatibleVersions` is present, the range and the
