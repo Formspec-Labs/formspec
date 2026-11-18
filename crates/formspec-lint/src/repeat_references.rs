@@ -12,12 +12,20 @@ use crate::tree::ItemTreeIndex;
 use crate::{LintCode, LintDiagnostic, metadata};
 
 /// Check parsed Definition expressions and templates outside the dependency census.
+///
+/// Templates are parsed here only, so their bare names (E406) are reported even when the
+/// Definition has no repeatable group.
 pub(crate) fn check_definition(
     document: &Value,
     items: &ItemTreeIndex,
     compiled: &[CompiledExpression],
     diagnostics: &mut Vec<LintDiagnostic>,
 ) {
+    visit_template_expressions(document, |source, target, path| {
+        if let Ok(parsed) = crate::expressions::parse_fel(source, path, diagnostics) {
+            check_expression(items, target, path, &parsed, diagnostics);
+        }
+    });
     if items.repeatable_groups.is_empty() {
         return;
     }
@@ -44,12 +52,6 @@ pub(crate) fn check_definition(
             diagnostics,
         );
     }
-
-    visit_template_expressions(document, |source, target, path| {
-        if let Ok(parsed) = fel_core::parse(source) {
-            check_expression(items, target, path, &parsed, diagnostics);
-        }
-    });
 }
 
 /// Report each repeatable group traversed without a subscript at this site.

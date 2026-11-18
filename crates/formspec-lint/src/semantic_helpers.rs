@@ -471,7 +471,7 @@ pub(crate) fn scan_interpolations(
                     path,
                     format!("{label} interpolation must contain a FEL expression"),
                 ));
-            } else if let Err(err) = fel_core::parse(expression) {
+            } else if let Err(err) = crate::expressions::parse_fel(expression, path, diags) {
                 diags.push(error(
                     code,
                     pass,

@@ -1,6 +1,6 @@
 //! Pass 4: Expression compilation — parses all FEL expression slots in a definition,
 //! producing `CompiledExpression` structs for downstream dependency analysis (pass 5)
-//! and E400 diagnostics for parse errors.
+//! and E400 (parse error) and E406 (bare field name) diagnostics.
 //!
 //! `walk_*` helpers traverse binds, shapes, and variables.
 #![allow(clippy::missing_docs_in_private_items)]
@@ -96,12 +96,12 @@ enum Owner {
 pub struct ExpressionCompilationResult {
     /// Successfully parsed expressions.
     pub compiled: Vec<CompiledExpression>,
-    /// E400 diagnostics for unparseable expressions.
+    /// E400 for unparseable expressions and E406 for bare field names.
     pub diagnostics: Vec<LintDiagnostic>,
 }
 
 /// Walk all FEL expression slots in a definition document, parse each,
-/// and return compiled expressions plus E400 diagnostics for parse failures.
+/// and return compiled expressions plus E400 and E406 diagnostics.
 pub fn compile_expressions(document: &Value) -> ExpressionCompilationResult {
     let mut compiled = Vec::new();
     let mut diagnostics = Vec::new();
@@ -234,32 +234,41 @@ fn try_parse(
     compiled.push(expression);
 }
 
-/// Parse one FEL slot for lint: E400 when it does not parse, E406 for each bare name no
-/// `let` binds (the grammar has no bare field reference; hosts read it as `$name`).
+/// Parse one FEL slot for lint: E400 when it does not parse, plus [`parse_fel`]'s E406.
 pub(crate) fn parse_expression(
     source: &str,
     expression_path: &str,
     diagnostics: &mut Vec<LintDiagnostic>,
 ) -> Option<fel_core::Expr> {
-    match fel_core::parser::parse_with_sites(source) {
-        Ok((parsed, sites)) => {
-            for site in sites {
-                if let SiteKind::UnboundName { name, .. } = site.kind {
-                    diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
-                        crate::LintCode::E406,
-                        4,
-                        expression_path,
-                        format!("FEL has no bare field reference: write ${name} instead of {name}"),
-                    )));
-                }
-            }
-            Some(parsed)
-        }
-        Err(error) => {
-            diagnostics.push(parse_error(expression_path, &error));
-            None
+    parse_fel(source, expression_path, diagnostics)
+        .map_err(|error| diagnostics.push(parse_error(expression_path, &error)))
+        .ok()
+}
+
+/// Parse FEL for lint, reporting E406 once per bare name no `let` binds: the grammar has no
+/// bare field reference, though hosts read `amount` as `$amount`. Every lint FEL slot parses
+/// here; the caller reports a parse error in its slot's own terms.
+pub(crate) fn parse_fel(
+    source: &str,
+    expression_path: &str,
+    diagnostics: &mut Vec<LintDiagnostic>,
+) -> Result<fel_core::Expr, fel_core::Error> {
+    let (parsed, sites) = fel_core::parser::parse_with_sites(source)?;
+    let mut reported = Vec::new();
+    for site in sites {
+        if let SiteKind::UnboundName { name, .. } = site.kind
+            && !reported.contains(&name)
+        {
+            diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
+                crate::LintCode::E406,
+                4,
+                expression_path,
+                format!("FEL has no bare field reference: write ${name} instead of {name}"),
+            )));
+            reported.push(name);
         }
     }
+    Ok(parsed)
 }
 
 /// The E400 finding for a FEL expression at `expression_path` that failed to parse.
