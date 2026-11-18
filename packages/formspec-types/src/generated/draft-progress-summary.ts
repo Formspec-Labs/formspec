@@ -11,6 +11,13 @@
  * via the `definition` "count".
  */
 export type DraftProgressCount = number;
+/**
+ * Null when validation was unavailable for this snapshot.
+ *
+ * This interface was referenced by `DraftProgressSummary`'s JSON-Schema
+ * via the `definition` "findingCount".
+ */
+export type DraftProgressFindingCount = DraftProgressCount | null;
 
 /**
  * Advisory progress for one committed draft, grouped by authored section ID.
@@ -31,6 +38,6 @@ export interface DraftProgressSummary {
 export interface DraftProgressCounts {
   total: DraftProgressCount;
   filled: DraftProgressCount;
-  toFix: DraftProgressCount;
-  toCheck: DraftProgressCount;
+  toFix: DraftProgressFindingCount;
+  toCheck: DraftProgressFindingCount;
 }

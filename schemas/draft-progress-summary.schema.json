@@ -37,10 +37,15 @@
       "properties": {
         "total": { "$ref": "#/$defs/count" },
         "filled": { "$ref": "#/$defs/count" },
-        "toFix": { "$ref": "#/$defs/count" },
-        "toCheck": { "$ref": "#/$defs/count" }
+        "toFix": { "$ref": "#/$defs/findingCount" },
+        "toCheck": { "$ref": "#/$defs/findingCount" }
       }
     },
-    "count": { "title": "DraftProgressCount", "type": "integer", "minimum": 0 }
+    "count": { "title": "DraftProgressCount", "type": "integer", "minimum": 0 },
+    "findingCount": {
+      "title": "DraftProgressFindingCount",
+      "description": "Null when validation was unavailable for this snapshot.",
+      "anyOf": [{ "$ref": "#/$defs/count" }, { "type": "null" }]
+    }
   }
 }

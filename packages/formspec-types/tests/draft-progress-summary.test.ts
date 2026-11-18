@@ -8,10 +8,16 @@ it('admits only advisory counts and readiness, including unknown readiness', () 
   const validate = new Ajv2020().compile(schema);
   expect(validate(summary)).toBe(true);
   expect(validate({ ...summary, form: { ...counts, ready: false }, sections: {} })).toBe(true);
+  const unavailable = { ...counts, toFix: null, toCheck: null };
+  expect(validate({
+    ...summary, form: { ...unavailable, ready: null }, sections: { contact: unavailable },
+  })).toBe(true);
   for (const invalid of [
     { ...summary, answers: {} },
     { ...summary, form: counts },
     { ...summary, form: { ...summary.form, filled: -1 } },
+    { ...summary, form: { ...summary.form, filled: null } },
+    { ...summary, form: { ...summary.form, toFix: -1 } },
     { ...summary, form: { ...summary.form, findings: ['field details'] } },
     { ...summary, sections: { contact: { ...counts, total: 1.5 } } },
     { ...summary, sections: { contact: { ...counts, ready: true } } },
