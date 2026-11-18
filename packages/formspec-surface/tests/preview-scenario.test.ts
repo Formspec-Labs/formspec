@@ -488,3 +488,22 @@ describe('createSurfacePreviewRuntime', () => {
     ).resolves.toEqual({ advanced: true });
   });
 });
+
+it('preserves the stored read evidence of a filed Response preview', async () => {
+  const document = scenario();
+  const request = loadRequest();
+  const evidence = {
+    records: [{ responseId: 'fixture-response', definitionVersion: '1.0.0', responseHash: 'sha256:' + 'a'.repeat(64) }],
+    valueDigest: 'sha256:' + 'b'.repeat(64),
+    none: false,
+  };
+  const profile = document.profiles.loaded!;
+  const source = profile.sources[0]!;
+  profile.sources[0] = { ...source, status: 'loaded', freshness: 'fresh', value: { answer: 'filed' }, ...evidence };
+  request.descriptor.source = { ...request.descriptor.source, kind: 'definition-response',
+    responseSelection: { definition: { url: 'urn:fixture' }, subject: [], status: 'completed', cardinality: 'latest', pin: 'none' },
+  };
+  expect(await createSurfacePreviewRuntime(document).loader(request)).toMatchObject({
+    status: 'loaded', catalogRef: source.catalogRef, sourceRef: source.sourceRef, ...evidence,
+  });
+});

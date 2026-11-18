@@ -7,6 +7,8 @@ import {
   type ResolvedArtifactHandle,
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
+import { exactDefinitionResolution } from './data-sources.js';
+import { escapeJsonPointerToken, ownProp } from './surface-widgets.js';
 
 interface ResolvedRoute {
   route: Record<string, unknown>;
@@ -18,6 +20,7 @@ interface DefinitionFormSlot {
   slotIndex: number;
   slotId?: string;
   definitionRef?: string;
+  subjectKeys?: unknown;
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -63,6 +66,7 @@ function definitionFormSlots(route: ResolvedRoute): DefinitionFormSlot[] {
       slotIndex,
       slotId: stringProp(slotRecord, 'id'),
       definitionRef: stringProp(record(slotRecord?.binding), 'definitionRef'),
+      subjectKeys: ownProp(record(slotRecord?.binding), 'subjectKeys'),
     }];
   });
 }
@@ -118,6 +122,54 @@ function undeclaredDiagnostic(
   };
 }
 
+function subjectKeyDiagnostics(
+  surface: ResolvedArtifactHandle,
+  slot: DefinitionFormSlot,
+  definition: ResolvedArtifactHandle,
+): AppGraphDiagnostic[] {
+  const declared = record(record(record(definition.document)?.subject)?.keys);
+  const bound = record(slot.subjectKeys) ?? {};
+  const params = Array.isArray(slot.route.route.params) ? slot.route.route.params : [];
+  const paramNames = new Set(params.map(param => stringProp(record(param), 'name')));
+  const diagnostics: AppGraphDiagnostic[] = [];
+  const pointer = `/routes/${slot.route.index}/slots/${slot.slotIndex}/binding/subjectKeys`;
+  function report(reason: string, message: string, key?: string, parameter?: unknown) {
+    diagnostics.push({
+      code: 'APP-GRAPH-SURFACE-SUBJECT-KEYS',
+      severity: 'error',
+      phase: 'cross-artifact',
+      origin: 'app-graph-validator',
+      message,
+      primarySource: diagnosticSourceForHandle(
+        surface,
+        key === undefined || reason === 'subject-key-unbound' ? pointer : `${pointer}/${escapeJsonPointerToken(key)}`,
+      ),
+      relatedSources: [diagnosticSourceForHandle(definition, '/subject')],
+      details: { reason, routeId: routeId(slot.route), slotId: slot.slotId, key, parameter },
+    });
+  }
+
+  if (!declared) {
+    if (slot.subjectKeys !== undefined) {
+      report('subject-not-declared', 'This Definition has no subject declaration. Omit subjectKeys.');
+    }
+    return diagnostics;
+  }
+  for (const key of Object.keys(declared)) {
+    if (ownProp(bound, key) === undefined) {
+      report('subject-key-unbound', `Bind the Definition subject key "${key}" to a route parameter.`, key);
+    }
+  }
+  for (const [key, parameter] of Object.entries(bound)) {
+    if (ownProp(declared, key) === undefined) {
+      report('subject-key-undeclared', `The Definition does not declare subject key "${key}".`, key, parameter);
+    } else if (typeof parameter !== 'string' || !paramNames.has(parameter)) {
+      report('subject-route-parameter-undeclared', `The route does not declare parameter "${String(parameter)}" for subject key "${key}".`, key, parameter);
+    }
+  }
+  return diagnostics;
+}
+
 /**
  * Surface `definition-form` slot binding URLs MUST appear in App Manifest
  * `definitions[].url` — every form-bearing slot in an app graph references a
@@ -139,8 +191,13 @@ export function validateSurfaceDefinitionSlots(context: AppGraphContext): AppGra
     for (const route of surfaceRoutes(surfaceHandle)) {
       for (const slot of definitionFormSlots(route)) {
         if (slot.definitionRef === undefined) continue;
-        if (declaredUrls.has(slot.definitionRef)) continue;
-        diagnostics.push(undeclaredDiagnostic(surfaceHandle, context.manifest, slot, declaredUrls));
+        if (!declaredUrls.has(slot.definitionRef)) {
+          diagnostics.push(undeclaredDiagnostic(surfaceHandle, context.manifest, slot, declaredUrls));
+          continue;
+        }
+        for (const definition of exactDefinitionResolution(context, slot.definitionRef).candidates) {
+          diagnostics.push(...subjectKeyDiagnostics(surfaceHandle, slot, definition));
+        }
       }
     }
   }

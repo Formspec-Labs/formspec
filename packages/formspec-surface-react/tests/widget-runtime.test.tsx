@@ -1424,3 +1424,59 @@ it('discards a pending delivery superseded by a qualified source revision', asyn
   await act(async () => { pending[1]!({ status: 'loaded', freshness: 'fresh', value: { value: 'current' } }); await Promise.resolve(); });
   expect(container.querySelector('[data-probe="latest-delivery"]')?.textContent).toContain('current');
 });
+
+it('selects widget data by route parameter and ignores an obsolete delivery', async () => {
+  const fixture = bundle(true);
+  const route = fixture.surfaces[0]!.routes[0]!;
+  route.path = '/receipt/{case}';
+  route.params = [{ name: 'case', type: 'string' }];
+  const source = fixture.dataSources[0]!.document.sources[0]!;
+  source.kind = 'definition-response';
+  source.responseSelection = {
+    definition: { url: 'urn:history' }, subject: [{ key: 'case', op: 'eq', from: { routeParam: 'case' } }],
+    cardinality: 'latest', status: 'completed', pin: 'none',
+  };
+  const pending = new Map<string, () => void>();
+  const loader = vi.fn<import('@formspec-org/surface').DataSourceLoader>(request => {
+    const key = String(request.context.params.case);
+    expect(request.context.subject).toBeUndefined();
+    expect(request.responseSelection).toBe(source.responseSelection);
+    return new Promise(resolve => pending.set(key, () => resolve({
+      catalogRef: CATALOG_REF, sourceRef: source.id, status: 'loaded', freshness: 'fresh', none: false,
+      valueDigest: 'sha256:' + 'a'.repeat(64), value: { key },
+      records: [{ responseId: key, definitionVersion: '1.0.0', responseHash: 'sha256:' + 'b'.repeat(64) }],
+    })));
+  });
+  const Widget: SurfaceWidget = ({ data }) =>
+    <p data-probe="filed-value">{(data.receipt as { key: string }).key}</p>;
+  const modules = runtimeModule(Widget);
+  const navigate = () => {};
+  const authorize = () => ({ status: 'authorized' as const });
+  const validate = () => ({ valid: true });
+  function Host() {
+    const [key, setKey] = useState('first');
+    const [reorder, setReorder] = useState(false);
+    return <>
+      <button data-probe="refresh-params" onClick={() => setReorder(true)}>Refresh parameters</button>
+      <button data-probe="change-filing-unit" onClick={() => setKey('second')}>Change filing unit</button>
+      <SurfaceApp bundle={fixture} location={`/receipt/${key}`} onNavigate={navigate} widgetModules={modules}
+        routeParams={reorder ? { region: 'north', case: key } : { case: key, region: 'north' }}
+        dataSourceLoader={loader} authorizeDataSource={authorize}
+        validateDataSourcePayload={validate} setDocumentTitle={false} />
+    </>;
+  }
+  const container = render(<Host />);
+  await act(async () => {});
+  expect(loader).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    container.querySelector<HTMLButtonElement>('[data-probe="refresh-params"]')!.click();
+  });
+  expect(loader).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    container.querySelector<HTMLButtonElement>('[data-probe="change-filing-unit"]')!.click();
+  });
+  expect(loader).toHaveBeenCalledTimes(2);
+  await act(async () => { pending.get('second')!(); });
+  await act(async () => { pending.get('first')!(); });
+  expect(container.querySelector('[data-probe="filed-value"]')?.textContent).toBe('second');
+});

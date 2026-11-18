@@ -21,6 +21,12 @@ const commonSchema = JSON.parse(
 const ajv = new Ajv2020({ strict: true });
 addFormats(ajv);
 ajv.addSchema(commonSchema);
+const responseSchema = JSON.parse(readFileSync(
+  resolve(here, '../../../schemas/response.schema.json'),
+  'utf8',
+));
+// Compile the reusable evidence definitions without the unrelated Response root rules.
+ajv.addSchema({ $id: responseSchema.$id, $defs: responseSchema.$defs });
 const validate = ajv.compile(schema);
 
 const generation = {

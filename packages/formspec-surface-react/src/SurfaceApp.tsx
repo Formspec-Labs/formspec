@@ -55,6 +55,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  canonicalFiniteJson,
   composeSurfaceApp,
   createThemeAuthority,
   createWidgetRegistry,
@@ -423,12 +424,18 @@ export function SurfaceApp(props: SurfaceAppProps) {
     ? routeNavigationScope(resolution.match.handle)
     : DEFAULT_NAVIGATION_SCOPE;
 
+  // Keep the route plan and its data inputs stable across equivalent parameter objects.
+  const routeParamsKey = canonicalFiniteJson(props.routeParams ?? {});
+  const routeParams = useMemo(
+    () => JSON.parse(routeParamsKey) as Readonly<Record<string, string>>,
+    [routeParamsKey],
+  );
   const runtimeGeneration = useMemo(() => deriveSurfaceRuntimeGeneration({
     sessionGeneration: props.sessionGeneration,
     location,
     app: model.app,
-    routeParams: props.routeParams,
-  }), [model.app, location, props.routeParams, props.sessionGeneration]);
+    routeParams,
+  }), [model.app, location, routeParams, props.sessionGeneration]);
 
   const routeInstance = useRef<
     | {
@@ -460,7 +467,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
     return planMatchedRoute<SurfaceWidget>({
       handle: resolution.match.handle,
       app: model.app,
-      params: { ...(props.routeParams ?? {}), ...resolution.match.params },
+      params: { ...routeParams, ...resolution.match.params },
       experiences: bundle.experiences,
       screenerHandles: bundle.screenerHandles,
       experienceHandles: bundle.experienceHandles,
@@ -483,7 +490,7 @@ export function SurfaceApp(props: SurfaceAppProps) {
     resolution,
     model,
     bundle,
-    props.routeParams,
+    routeParams,
     props.onFireTransition,
     props.widgetActionExecutor,
     props.evaluateTransitionCondition,

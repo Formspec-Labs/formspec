@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/dataSources/1.0",
   "title": "Formspec Data Sources",
-  "description": "Peer app-graph artifact declaring named Data Sources for app, route, slot, module, resource, and Definition-response availability. Definition-local instances remain the authority for @instance() lookup inside a Definition; this document is the app-level catalog consumed by App Manifest resolution and future AppGraphValidator work.",
+  "description": "Peer app-graph artifact declaring named Data Sources for app, route, slot, module, resource, and Definition-response availability. Definition-local instances remain the authority for @instance() lookup inside a Definition; this document is the app-level catalog for prefill, widget inputs, and other app consumers.",
   "type": "object",
   "required": ["$formspecDataSources", "version", "id", "sources"],
   "additionalProperties": false,
@@ -98,7 +98,6 @@
         {
           "if": { "properties": { "kind": { "const": "definition-response" } }, "required": ["kind"] },
           "then": {
-            "required": ["definitionRef"],
             "properties": {
               "id": { "pattern": "^response:[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$" },
               "runtime": {
@@ -125,7 +124,8 @@
             "required": ["kind", "runtime"]
           },
           "then": {
-            "required": ["definitionVersion", "responseSelection"]
+            "required": ["responseSelection"],
+            "not": { "required": ["definitionRef"] }
           }
         },
         {
@@ -138,7 +138,7 @@
           "then": {
             "not": {
               "anyOf": [
-                { "required": ["definitionVersion"] },
+                { "required": ["definitionRef"] },
                 { "required": ["responseSelection"] }
               ]
             }
@@ -215,6 +215,7 @@
             "required": ["runtime"]
           },
           "then": {
+            "required": ["definitionRef"],
             "properties": {
               "kind": { "const": "definition-response" },
               "runtime": {
@@ -239,16 +240,11 @@
         "definitionRef": {
           "type": "string",
           "format": "uri",
-          "description": "Canonical Definition URL when this source family reads or exposes Definition-response state."
-        },
-        "definitionVersion": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Exact Definition version used to partition non-draft Definition-response selection. The pair (definitionRef, definitionVersion) is immutable selection identity."
+          "description": "Canonical Definition URL for a session draft (runtime.delivery draft). Snapshot and live Response selections use responseSelection.definition."
         },
         "responseSelection": {
-          "$ref": "#/$defs/ResponseSelection",
-          "description": "Complete deterministic selection policy for a non-draft Definition-response source."
+          "$ref": "https://formspec.org/schemas/response/1.0#/$defs/ResponseSelection",
+          "description": "Shared subject-keyed selection for snapshot or live Definition-response sources. Predicates may use the consumer subject or active route parameters."
         },
         "owner": {
           "type": "string",
@@ -275,34 +271,6 @@
         },
         "extensions": {
           "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Extensions"
-        }
-      }
-    },
-    "ResponseSelection": {
-      "type": "object",
-      "required": ["status", "cardinality", "orderBy", "tieBreak", "partitionBy"],
-      "additionalProperties": false,
-      "properties": {
-        "status": {
-          "$ref": "https://formspec.org/schemas/response/1.0#/$defs/ResponseStatus",
-          "const": "completed",
-          "description": "Select only Responses whose owner-defined ResponseStatus is completed."
-        },
-        "cardinality": {
-          "const": "latest",
-          "description": "Return exactly the latest matching Response when one exists."
-        },
-        "orderBy": {
-          "const": "authored-desc",
-          "description": "Order matching Responses by the RFC 3339 instant represented by authored, newest first."
-        },
-        "tieBreak": {
-          "const": "response-id-asc",
-          "description": "Resolve equal authored instants by Response id ascending in unsigned UTF-8 byte order."
-        },
-        "partitionBy": {
-          "const": "definition",
-          "description": "Select only within the exact (definitionRef, definitionVersion) partition."
         }
       }
     },

@@ -37,14 +37,12 @@ function source(overrides: Partial<DataSource> = {}): DataSource {
   return {
     id: SOURCE_REF,
     kind: 'definition-response',
-    definitionRef: DEFINITION_REF,
-    definitionVersion: '1.0.0',
     responseSelection: {
+      definition: { url: DEFINITION_REF, compatibleVersions: '^1.0.0' },
+      subject: [],
       status: 'completed',
       cardinality: 'latest',
-      orderBy: 'authored-desc',
-      tieBreak: 'response-id-asc',
-      partitionBy: 'definition',
+      pin: 'none',
     },
     owner: 'formspec',
     scope: 'definition',
@@ -209,7 +207,7 @@ describe('planDefinitionFormInitialData', () => {
         binding: { catalogRef: CATALOG_REF, sourceRef: SOURCE_REF },
         definition,
         definitionRef: DEFINITION_REF,
-        catalogs: [catalog(source({ definitionVersion: '2.0.0' }))],
+        catalogs: [catalog(source({ responseSelection: { ...source().responseSelection!, definition: { url: DEFINITION_REF, compatibleVersions: '^2.0.0' } } }))],
         mappings: [],
         context: { routeId: 'edit', slotId: 'profile' },
       }),
@@ -269,6 +267,15 @@ describe('planDefinitionFormInitialData', () => {
   });
 });
 
+const digests = { responseHash: 'sha256:' + 'b'.repeat(64), valueDigest: 'sha256:' + 'a'.repeat(64) };
+function selectionEvidence(responseId: string) {
+  return {
+    catalogRef: CATALOG_REF, sourceRef: SOURCE_REF, none: false,
+    records: [{ responseId, definitionVersion: '1.0.0', responseHash: digests.responseHash }],
+    valueDigest: digests.valueDigest,
+  };
+}
+
 describe('loadDefinitionFormInitialData', () => {
   it('delivers Response.data and preserves identity, generation, and revision separately', async () => {
     const order: string[] = [];
@@ -287,7 +294,7 @@ describe('loadDefinitionFormInitialData', () => {
         return {
           status: 'loaded',
           freshness: 'fresh',
-          recordId: 'response-17',
+          ...selectionEvidence('response-17'),
           revision: 4,
           // Definition-response loaders deliver this Response.data object.
           value: responseData,
@@ -306,7 +313,7 @@ describe('loadDefinitionFormInitialData', () => {
       status: 'ready',
       data: { displayName: 'Ada' },
       freshness: 'fresh',
-      recordId: 'response-17',
+      selection: { records: selectionEvidence('response-17').records, valueDigest: digests.valueDigest, none: false },
       generation: 'route-generation-2',
       revision: 4,
       diagnostics: [],
@@ -316,6 +323,41 @@ describe('loadDefinitionFormInitialData', () => {
       expect(delivery.data).not.toHaveProperty('generation');
       expect(delivery.data).not.toHaveProperty('revision');
     }
+  });
+
+  it('opens without prefill after an authorized empty selection', async () => {
+    const authorize = vi.fn(() => ({ status: 'authorized' as const }));
+    const loader = vi.fn(() => ({
+      status: 'loaded' as const,
+      freshness: 'fresh' as const,
+      value: null,
+      records: [],
+      catalogRef: CATALOG_REF,
+      sourceRef: SOURCE_REF,
+      valueDigest: digests.valueDigest,
+      none: true,
+    }));
+    const validatePayload = vi.fn();
+    const map = vi.fn();
+    const emptySource = source({
+      responseSelection: { ...source().responseSelection!, whenNone: 'empty' },
+    });
+    const plan = readyPlan({ mappingRef: 'profileRecord', source: emptySource });
+    const result = await loadDefinitionFormInitialData({
+      plan, definition, definitionRef: DEFINITION_REF, context,
+      authorize, loader, validatePayload, map,
+      site: { routeId: 'edit', slotId: 'profile' },
+    });
+
+    expect(loader).toHaveBeenCalledWith(expect.objectContaining({
+      responseSelection: emptySource.responseSelection,
+    }));
+    expect(result).toMatchObject({
+      status: 'ready', selection: { none: true, records: [] },
+    });
+    expect(result).not.toHaveProperty('data');
+    expect(validatePayload).not.toHaveBeenCalled();
+    expect(map).not.toHaveBeenCalled();
   });
 
   it('runs the resolved Mapping DSL document only when mappingRef is authored', async () => {
@@ -383,7 +425,7 @@ describe('loadDefinitionFormInitialData', () => {
         loader: () => ({
           status: 'loaded',
           freshness: 'fresh',
-          recordId: 'response-18',
+          ...selectionEvidence('response-18'),
           value: { unexpected: true },
         }),
         validatePayload: () => ({ valid: false, reason: 'required property missing' }),

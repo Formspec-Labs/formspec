@@ -26,6 +26,7 @@ import type { SurfaceScreenerCompletionPolicy } from './screener-completion.js';
  */
 import { selectDataSourceRevisions, type DataSourceRevisionSelector } from './data-source-revision.js';
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -63,12 +64,14 @@ import {
   type ResponseActionsDocument as GeneratedResponseActionsDocument,
 } from '@formspec-org/types';
 import {
+  canonicalFiniteJson,
   loadWidgetDataInputs,
   loadDefinitionFormInitialData,
   responseActionsDocumentForDefinition,
   surfaceDiagnostic,
   type DataSourceAuthorizer,
   type DataSourceLoader,
+  type DataSourceSelectionEvidence,
   type DataSourcePayloadValidator,
   type DefinitionFormInitialDataDelivery,
   type DefinitionFormInitialDataPlan,
@@ -165,7 +168,8 @@ export interface SurfaceDefinitionFormRenderInput {
 }
 
 export interface SurfaceDefinitionFormInitialData {
-  data: Readonly<Record<string, unknown>>;
+  data?: Readonly<Record<string, unknown>> | undefined;
+  selection?: DataSourceSelectionEvidence | undefined;
   freshness: 'fresh' | 'stale';
   recordId?: string | undefined;
   generation?: string | number | undefined;
@@ -512,6 +516,11 @@ export function SurfaceSlot({
       if (plan.status === 'unresolved' || plan.definition === undefined) {
         return <UnavailableSlot>{strings('slotUnavailableDefinitionForm')}</UnavailableSlot>;
       }
+      // Form state belongs to the resolved filing unit, even on the same route and slot.
+      const subjectKey = plan.subject && canonicalFiniteJson({
+        type: plan.subject.type,
+        keys: plan.subject.keys,
+      });
       // This annotation is the compile-time cross-package contract: the
       // generated schema document must pass directly into React's engine seam.
       const responseActionsDocument: ReactResponseActionsDocument | undefined =
@@ -559,6 +568,7 @@ export function SurfaceSlot({
       if (plan.initialData?.status === 'ready') {
         return (
           <DefinitionFormDataSlot
+            key={subjectKey}
             input={renderInput}
             initialDataPlan={plan.initialData}
             strings={strings}
@@ -575,14 +585,16 @@ export function SurfaceSlot({
           />
         );
       }
-      return renderDefinitionForm
-        ? renderDefinitionForm(renderInput)
-        : (
+      return (
+        <Fragment key={subjectKey}>
+          {renderDefinitionForm ? renderDefinitionForm(renderInput) : (
             <DefaultDefinitionFormSlot
               input={renderInput}
               semanticOutputScope={slotSemanticOutputScope}
             />
-          );
+          )}
+        </Fragment>
+      );
     }
 
     case 'experience-unit': {
@@ -959,7 +971,7 @@ function DefinitionFormDataSlot({
     descriptor: initialDataPlan.descriptor,
     context: { surfaceId: input.route.surfaceId, surfaceRef: input.route.surfaceRef,
       routeId: input.route.routeId, slotId: input.plan.slotId,
-      definitionRef: input.plan.definitionRef, params: input.route.params,
+      definitionRef: input.plan.definitionRef, params: input.route.params, subject: input.plan.subject,
       sessionGeneration: runtimeGeneration },
   }], dataSourceRevision);
 
@@ -994,6 +1006,7 @@ function DefinitionFormDataSlot({
         slotId: input.plan.slotId,
         definitionRef: input.plan.definitionRef,
         params: input.route.params,
+        subject: input.plan.subject,
         sessionGeneration: requestedGeneration,
       },
       ...currentEffectDataSourcePorts(() => current, {
@@ -1036,6 +1049,7 @@ function DefinitionFormDataSlot({
     input.plan.definition,
     input.plan.definitionRef,
     input.plan.slotId,
+    input.plan.subject,
     input.route.params,
     input.route.routeId,
     input.route.surfaceId,
@@ -1067,7 +1081,8 @@ function DefinitionFormDataSlot({
   }
 
   const initialData: SurfaceDefinitionFormInitialData = {
-    data: delivery.data,
+    ...(delivery.data === undefined ? {} : { data: delivery.data }),
+    ...(delivery.selection === undefined ? {} : { selection: delivery.selection }),
     freshness: delivery.freshness,
     ...(delivery.recordId === undefined
       ? {}
@@ -1137,7 +1152,7 @@ function DefaultSurfaceDefinitionForm({
 }: SurfaceDefinitionFormRenderInput): ReactNode {
   const engine = useMemo(() => {
     const created = createFormEngine(plan.definition);
-    if (initialData) {
+    if (initialData?.data !== undefined) {
       // Before any field component subscribes; keeps every saved repeat row.
       created.loadResponseData(
         initialData.data as Parameters<IFormEngine['loadResponseData']>[0],

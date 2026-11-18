@@ -154,6 +154,7 @@ type FormDefinitionKnownFields = Pick<
   | 'metadata'
   | 'shapes'
   | 'instances'
+  | 'subject'
   | 'variables'
   | 'nonRelevantBehavior'
   | 'issuer'

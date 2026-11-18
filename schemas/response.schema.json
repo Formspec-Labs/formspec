@@ -302,7 +302,7 @@
             "routeParam": {
               "type": "string",
               "minLength": 1,
-              "description": "Catalog route parameter; prohibited in Definition-local response instances. Integer keys require ^-?[0-9]+$ converted exactly in base 10 before comparison or offset; reject fractions, exponents, whitespace, plus signs and unrepresentable integers as unavailable. String keys use the string unchanged."
+              "description": "Catalog route parameter; prohibited in Definition-local response instances. Integer keys require ^-?[0-9]+$ converted exactly in base 10 before comparison or offset. Reject malformed values and integers outside the I-JSON range of -9007199254740991 to 9007199254740991 as unavailable. String keys use the string unchanged."
             }
           },
           "oneOf": [
@@ -1259,9 +1259,11 @@
             "type": [
               "string",
               "integer"
-            ]
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           },
-          "description": "String or integer identity keys matching exactly the Definition subject declaration; an empty object identifies a per-scope singleton. Scope is not a key.",
+          "description": "String or integer identity keys matching exactly the Definition subject declaration. Integers must lie in the I-JSON interoperable range (RFC 7493 section 2.2). An empty object identifies a per-scope singleton. Scope is not a key.",
           "examples": [
             {
               "ffy": 2026,

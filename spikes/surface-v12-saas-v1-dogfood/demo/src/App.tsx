@@ -5,6 +5,7 @@
  * only from the preview set. This file supplies generic browser and runtime
  * adapters without interpreting any product identifier.
  */
+import { canonicalJsonBytes, canonicalResponseHandoffBytes } from '@formspec-org/integrity-canonical';
 import { useCallback, useMemo, useState } from 'react';
 import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020.js';
 import {
@@ -405,9 +406,7 @@ function definitionResponseBindingsFor(
         descriptor?.source !== source ||
         source.kind !== 'definition-response' ||
         source.runtime.delivery === 'draft' ||
-        source.definitionRef !== response.definitionUrl ||
-        source.definitionVersion !== response.definitionVersion ||
-        source.responseSelection?.status !== response.status
+        source.responseSelection?.definition.url !== response.definitionUrl
       ) {
         continue;
       }
@@ -460,6 +459,7 @@ export function App({ selection }: { selection: PreviewSelection }) {
     () =>
       createPreviewDefinitionResponseStore(
         selection.bundle.dataSources ?? [],
+        { canonicalJsonBytes, canonicalResponseHandoffBytes },
       ),
     [selection.bundle.dataSources],
   );

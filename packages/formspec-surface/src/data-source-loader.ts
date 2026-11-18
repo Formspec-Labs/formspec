@@ -17,8 +17,12 @@ import type {
   DataSourceFreshness,
   DataSourceLoadState,
   DataSourcesDocument,
+  ResolvedInstanceRecord,
+  ResponseSelection,
+  Sha256Digest,
   WidgetDataInput,
 } from "@formspec-org/types";
+import { satisfies } from "semver";
 import {
   surfaceDiagnostic,
   type SurfaceDiagnostic,
@@ -55,18 +59,39 @@ export interface DataSourceActiveContext {
   /** Present for a module-widget consumer. */
   widgetName?: string | undefined;
   params: Readonly<Record<string, string>>;
+  /** Typed keys of the consuming filing unit, when available. */
+  subject?: DataSourceSubject | undefined;
   sessionGeneration?: string | number | undefined;
+}
+
+export interface DataSourceSubject {
+  type: string;
+  keys: Readonly<Record<string, string | number>>;
 }
 
 export interface DataSourceLoadRequest {
   descriptor: DataSourceDescriptor;
   context: DataSourceActiveContext;
+  responseSelection?: ResponseSelection | undefined;
+}
+
+export interface DataSourceSelectionEvidence {
+  records: readonly ResolvedInstanceRecord[];
+  valueDigest: Sha256Digest;
+  none: boolean;
+  newer?: { responseId: string; responseHash: Sha256Digest } | undefined;
 }
 
 export type DataSourceLoadResult =
   | {
       status: Extract<DataSourceLoadState, "loaded">;
       value: unknown;
+      catalogRef?: string | undefined;
+      sourceRef?: string | undefined;
+      records?: DataSourceSelectionEvidence["records"] | undefined;
+      valueDigest?: Sha256Digest | undefined;
+      none?: boolean | undefined;
+      newer?: DataSourceSelectionEvidence["newer"] | undefined;
       /** Loaders must state staleness; the shell never infers it from time. */
       freshness: DataSourceFreshness;
       /**
@@ -80,7 +105,100 @@ export type DataSourceLoadResult =
   | {
       status: Extract<DataSourceLoadState, "unavailable">;
       reason: string;
+      catalogRef?: string | undefined;
+      sourceRef?: string | undefined;
     };
+
+export function isCatalogResponseSource(source: DataSource): boolean {
+  return source.kind === "definition-response" && source.runtime.delivery !== "draft";
+}
+
+/** The shared selector applies to catalog reads, while draft uses the session. */
+export function catalogResponseSelection(source: DataSource): ResponseSelection | undefined {
+  if (!isCatalogResponseSource(source)) return undefined;
+  const selection = source.responseSelection;
+  if (typeof selection?.definition?.url !== "string" || !selection.definition.url
+    || !Array.isArray(selection.subject)
+    || (selection.status !== "completed" && selection.status !== "current")
+    || (selection.cardinality !== "latest" && selection.cardinality !== "latest-per-subject")
+    || (selection.pin !== "none" && selection.pin !== "at-open")) return undefined;
+  return selection;
+}
+
+export function responseDefinitionVersionAdmitted(
+  selection: ResponseSelection,
+  version: string,
+): boolean {
+  const range = selection.definition.compatibleVersions;
+  return typeof version === "string" && version.length > 0
+    && (range === undefined || satisfies(version, range, { includePrerelease: true }));
+}
+
+export function dataSourceLoadRequest(
+  descriptor: DataSourceDescriptor,
+  context: DataSourceActiveContext
+): DataSourceLoadRequest {
+  const responseSelection = catalogResponseSelection(descriptor.source);
+  return { descriptor, context, ...(responseSelection === undefined ? {} : { responseSelection }) };
+}
+
+export function dataSourceSelectionInputIssue(request: DataSourceLoadRequest): string | undefined {
+  if (!isCatalogResponseSource(request.descriptor.source)) return undefined;
+  if (!request.responseSelection) return "the source has no valid Response selection";
+  for (const predicate of request.responseSelection.subject) {
+    const from = predicate?.from;
+    if (!from || Object.keys(from).length !== 1) return "a Response predicate has an invalid input";
+    if (typeof from.routeParam === "string"
+      && own(request.context.params, from.routeParam)
+      && typeof request.context.params[from.routeParam] === "string") continue;
+    const keys = request.context.subject?.keys;
+    if (typeof from.subject === "string" && keys && own(keys, from.subject)) {
+      const value = keys[from.subject];
+      if (typeof value === "string" || Number.isSafeInteger(value)) continue;
+    }
+    return "a Response predicate has no valid route parameter or subject key";
+  }
+  return undefined;
+}
+
+const SHA256_DIGEST = /^sha256:[a-f0-9]{64}$/u;
+
+export function readDataSourceSelection(
+  descriptor: DataSourceDescriptor,
+  loaded: Extract<DataSourceLoadResult, { status: "loaded" }>
+): DataSourceSelectionEvidence | undefined {
+  const responseSelection = catalogResponseSelection(descriptor.source);
+  const { records, valueDigest, none, newer } = loaded;
+  const value = loaded.value;
+  if (!responseSelection
+    || loaded.catalogRef !== descriptor.catalogRef || loaded.sourceRef !== descriptor.sourceRef
+    || (loaded.freshness !== "fresh" && loaded.freshness !== "stale")
+    || own(loaded, "recordId")
+    || !Array.isArray(records) || typeof valueDigest !== "string" || !SHA256_DIGEST.test(valueDigest)
+    || typeof none !== "boolean"
+    || (none && (records.length !== 0 || responseSelection.whenNone !== "empty" || loaded.value !== null))
+    || (!none && (records.length === 0
+      || (responseSelection.cardinality === "latest" && records.length !== 1)
+      || (responseSelection.mapping === undefined && (responseSelection.cardinality === "latest"
+        ? value === null || typeof value !== "object" || Array.isArray(value)
+        : !Array.isArray(value) || value.length !== records.length))))
+    || records.some(record => !record || typeof record.responseId !== "string" || !record.responseId
+      || !responseDefinitionVersionAdmitted(responseSelection, record.definitionVersion)
+      || (record.responseHash === undefined
+        ? responseSelection.status === "completed"
+        : typeof record.responseHash !== "string" || !SHA256_DIGEST.test(record.responseHash)))
+    || (newer !== undefined && (none || responseSelection.pin !== "at-open"
+      || !newer || typeof newer.responseId !== "string" || !newer.responseId
+      || typeof newer.responseHash !== "string" || !SHA256_DIGEST.test(newer.responseHash)))) {
+    return undefined;
+  }
+  return {
+    records: Object.freeze(records.map(record => Object.freeze({ ...record }))),
+    valueDigest,
+    none,
+    ...(newer === undefined ? {} : { newer: Object.freeze({ ...newer }) }),
+  };
+}
 
 /** The sole payload-loading port. Authorization is deliberately not folded in. */
 export type DataSourceLoader = (
@@ -158,6 +276,7 @@ export type WidgetDataDelivery =
       data: Readonly<Record<string, unknown>>;
       /** Optional `degraded-widget` failures omitted from `data`. */
       degradedInputs: readonly WidgetDataInputFailure[];
+      selections?: Readonly<Record<string, DataSourceSelectionEvidence>> | undefined;
       diagnostics: readonly SurfaceDiagnostic[];
     }
   | {
@@ -308,6 +427,7 @@ export async function loadWidgetDataInputs(
   request: LoadWidgetDataInputsRequest
 ): Promise<WidgetDataDelivery> {
   const data: Record<string, unknown> = {};
+  const selections = new Map<string, DataSourceSelectionEvidence>();
   const failures: WidgetDataInputFailure[] = [];
   const degradedInputs: WidgetDataInputFailure[] = [];
 
@@ -353,12 +473,10 @@ export async function loadWidgetDataInputs(
       continue;
     }
 
+    const loadRequest = dataSourceLoadRequest(input.descriptor, request.context);
     let authorization: DataSourceAuthorizationResult;
     try {
-      authorization = await request.authorize({
-        descriptor: input.descriptor,
-        context: request.context,
-      });
+      authorization = await request.authorize(loadRequest);
     } catch (error) {
       authorization = { status: "refused", reason: errorText(error) };
     }
@@ -376,11 +494,12 @@ export async function loadWidgetDataInputs(
       continue;
     }
 
-    if (!request.loader) {
+    const selectionIssue = dataSourceSelectionInputIssue(loadRequest);
+    if (selectionIssue || !request.loader) {
       const failure = runtimeFailure(
         input,
-        "load-failed",
-        "the host supplied no DataSourceLoader"
+        selectionIssue ? "unavailable" : "load-failed",
+        selectionIssue ?? "the host supplied no DataSourceLoader"
       );
       if (!input.required && failure.failureMode === "degraded-widget") {
         degradedInputs.push(failure);
@@ -392,10 +511,7 @@ export async function loadWidgetDataInputs(
 
     let loaded: DataSourceLoadResult;
     try {
-      loaded = await request.loader({
-        descriptor: input.descriptor,
-        context: request.context,
-      });
+      loaded = await request.loader(loadRequest);
     } catch (error) {
       const failure = runtimeFailure(input, "load-failed", errorText(error));
       if (!input.required && failure.failureMode === "degraded-widget") {
@@ -432,8 +548,11 @@ export async function loadWidgetDataInputs(
       continue;
     }
 
-    const schema = input.descriptor.source.schema;
-    if (schema !== undefined) {
+    const source = input.descriptor.source;
+    const selection = readDataSourceSelection(input.descriptor, loaded);
+    let invalid = isCatalogResponseSource(source) && !selection ? "the loader omitted or returned invalid selection evidence" : undefined;
+    const schema = source.schema;
+    if (!invalid && schema !== undefined && !selection?.none) {
       let validation: DataSourcePayloadValidationResult;
       if (!request.validatePayload) {
         validation = {
@@ -444,8 +563,7 @@ export async function loadWidgetDataInputs(
       } else {
         try {
           validation = await request.validatePayload({
-            descriptor: input.descriptor,
-            context: request.context,
+            ...loadRequest,
             schema,
             value: loaded.value,
           });
@@ -453,24 +571,22 @@ export async function loadWidgetDataInputs(
           validation = { valid: false, reason: errorText(error) };
         }
       }
-      if (!validation.valid) {
-        const failure = runtimeFailure(
-          input,
-          "payload-invalid",
-          validation.reason ?? "payload validation failed"
-        );
-        if (!input.required && failure.failureMode === "degraded-widget") {
-          degradedInputs.push(failure);
-        } else {
-          failures.push(failure);
-        }
-        continue;
+      if (!validation.valid) invalid = validation.reason ?? "payload validation failed";
+    }
+    if (invalid) {
+      const failure = runtimeFailure(input, "payload-invalid", invalid);
+      if (!input.required && failure.failureMode === "degraded-widget") {
+        degradedInputs.push(failure);
+      } else {
+        failures.push(failure);
       }
+      continue;
     }
 
     // The name came from a Registry declaration. `own` prevents a malformed
     // declaration named `__proto__` from mutating the result object.
     if (!own(data, input.name)) {
+      if (selection) selections.set(input.name, selection);
       Object.defineProperty(data, input.name, {
         value: loaded.value,
         enumerable: true,
@@ -496,6 +612,7 @@ export async function loadWidgetDataInputs(
     status: "ready",
     data: Object.freeze(data),
     degradedInputs,
+    ...(selections.size === 0 ? {} : { selections: Object.freeze(Object.fromEntries(selections)) }),
     diagnostics,
   };
 }

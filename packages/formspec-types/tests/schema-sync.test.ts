@@ -144,11 +144,11 @@ describe('generated types smoke test', () => {
 
   it('selection and Response observation types preserve exact required fields', () => {
     const selection = {
+      definition: { url: 'https://example.org/definition', compatibleVersions: '^1.0.0' },
+      subject: [{ key: 'year', op: 'eq', from: { routeParam: 'year' } }],
       status: 'completed',
       cardinality: 'latest',
-      orderBy: 'authored-desc',
-      tieBreak: 'response-id-asc',
-      partitionBy: 'definition',
+      pin: 'none',
     } satisfies ResponseSelection;
     const validationObservation = {
       definitionRef: 'https://example.org/definition',
@@ -183,6 +183,13 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+it('generates catalog and Definition response sources from the same selection type', () => {
+  const generated = readFileSync(resolve(__dirname, '../src/generated/data-sources.ts'), 'utf-8');
+  expect(generated).toContain("import type { ResponseSelection } from './response.js';");
+  expect(generated).toContain('responseSelection?: ResponseSelection;');
+  expect(generated).not.toContain('definitionVersion?:');
+});
 
 describe('generated types — tightness against permissive intersections', () => {
   it('App Graph conditional report types retain closed object shapes', () => {

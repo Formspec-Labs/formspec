@@ -88,7 +88,7 @@ export type FormResponse = {
      */
     type?: string;
     /**
-     * String or integer identity keys matching exactly the Definition subject declaration; an empty object identifies a per-scope singleton. Scope is not a key.
+     * String or integer identity keys matching exactly the Definition subject declaration. Integers must lie in the I-JSON interoperable range (RFC 7493 section 2.2). An empty object identifies a per-scope singleton. Scope is not a key.
      */
     keys?: {
       [k: string]: string | number;

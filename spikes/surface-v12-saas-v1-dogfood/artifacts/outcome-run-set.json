@@ -12,7 +12,7 @@
     },
     {
       "path": "outcome-cases/organization-values-visible.case.json",
-      "digest": "sha256:64fe13869c4bf5b59cfbe765bb5195b3ce715318dc1b312f4ad0aab69fe37872",
+      "digest": "sha256:5982f743ca59ab622a4a16b4c89e3c59498308ce4026453bed446e76eab8df3e",
       "required": true,
       "claimRequired": true
     },

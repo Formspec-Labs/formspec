@@ -24,20 +24,21 @@ FIXTURE_PATH = (
 )
 
 REQUIRED_CASES = {
+    "definition-form-subject-key-requires-declared-route-parameter",
     "definition-form-slot-resolves",
     "definition-form-slot-undeclared-fails-closed",
     "surface-without-definition-form-slots-no-diagnostic",
     "definition-form-slot-resolves-among-multiple-definitions",
 }
 
-EXPECTED_DIAGNOSTIC_COUNTS = {
-    "definition-form-slot-resolves": 0,
-    "definition-form-slot-undeclared-fails-closed": 1,
-    "surface-without-definition-form-slots-no-diagnostic": 0,
-    "definition-form-slot-resolves-among-multiple-definitions": 0,
+EXPECTED_DIAGNOSTICS = {
+    "definition-form-slot-undeclared-fails-closed": (
+        "APP-GRAPH-SURFACE-DEFINITION-SLOT", "definition-not-declared",
+    ),
+    "definition-form-subject-key-requires-declared-route-parameter": (
+        "APP-GRAPH-SURFACE-SUBJECT-KEYS", "subject-route-parameter-undeclared",
+    ),
 }
-
-EXPECTED_CODE = "APP-GRAPH-SURFACE-DEFINITION-SLOT"
 
 FORBIDDEN_KEYS = {
     "actor",
@@ -133,16 +134,16 @@ def test_surface_definition_slot_expected_diagnostics_are_app_graph_owned() -> N
         assert isinstance(expected["summary"], dict)
         assert set(expected["summary"]) == SUMMARY_KEYS
         diagnostics = expected["diagnostics"]
-        assert len(diagnostics) == EXPECTED_DIAGNOSTIC_COUNTS[case["id"]]
+        expected_diagnostic = EXPECTED_DIAGNOSTICS.get(case["id"])
+        assert len(diagnostics) == (0 if expected_diagnostic is None else 1)
         for diagnostic in diagnostics:
-            assert diagnostic["code"] == EXPECTED_CODE
+            assert (diagnostic["code"], diagnostic["details"]["reason"]) == expected_diagnostic
             source = diagnostic.get("primarySource")
             assert isinstance(source, dict)
             assert source.get("artifactKind") == "surface"
             assert isinstance(source.get("artifactSlot"), str)
             assert isinstance(source.get("source"), str)
             assert isinstance(source.get("jsonPointer"), str)
-            assert diagnostic["details"]["reason"] == "definition-not-declared"
 
 
 def test_surface_definition_slot_fixture_keeps_runtime_plan_trace_host_evidence_and_auth_out() -> None:

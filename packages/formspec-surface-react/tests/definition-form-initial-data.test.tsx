@@ -14,6 +14,7 @@ import type {
   SurfaceDocument,
 } from '@formspec-org/types';
 import type {
+  DataSourceLoader,
   DataSourceLoadResult,
   ResolvedBundle,
 } from '@formspec-org/surface';
@@ -68,14 +69,12 @@ function dataSource(): DataSource {
   return {
     id: SOURCE_REF,
     kind: 'definition-response',
-    definitionRef: DEFINITION_REF,
-    definitionVersion: '1.0.0',
     responseSelection: {
+      definition: { url: DEFINITION_REF, compatibleVersions: '^1.0.0' },
+      subject: [],
       status: 'completed',
       cardinality: 'latest',
-      orderBy: 'authored-desc',
-      tieBreak: 'response-id-asc',
-      partitionBy: 'definition',
+      pin: 'none',
     },
     owner: 'formspec',
     scope: 'definition',
@@ -189,6 +188,14 @@ function bundle(
   };
 }
 
+function selectionEvidence(responseId: string) {
+  return {
+    catalogRef: CATALOG_REF, sourceRef: SOURCE_REF, none: false,
+    records: [{ responseId, definitionVersion: '1.0.0', responseHash: 'sha256:' + 'b'.repeat(64) }],
+    valueDigest: 'sha256:' + 'a'.repeat(64),
+  };
+}
+
 function loaded(
   displayName: string,
   overrides: Partial<Extract<DataSourceLoadResult, { status: 'loaded' }>> = {},
@@ -196,7 +203,7 @@ function loaded(
   return {
     status: 'loaded',
     freshness: 'fresh',
-    recordId: `response:${displayName}`,
+    ...selectionEvidence(`response:${displayName}`),
     value: { displayName },
     ...overrides,
   };
@@ -224,13 +231,66 @@ function profileInput(container: HTMLElement): HTMLInputElement {
 }
 
 describe('definition-form initial data rendering', () => {
+  it.each([true, false])('isolates answers by filing unit on the same route (prefill: %s)', async (withPrefill) => {
+    const candidate = bundle(undefined, {
+      ...definition,
+      subject: { type: 'urn:unit', keys: { unit: { dataType: 'string' } } },
+    });
+    const route = candidate.surfaces[0]!.routes[0]!;
+    route.path = '/units/{unit}';
+    route.params = [{ name: 'unit', type: 'string' }];
+    const slot = route.slots[0]!;
+    if (slot.slotType !== 'definition-form') throw new Error('expected a definition-form slot');
+    const binding: Record<string, unknown> = { ...slot.binding, subjectKeys: { unit: 'unit' } };
+    if (!withPrefill) delete binding.initialData;
+    slot.binding = binding;
+
+    const second = deferred<DataSourceLoadResult>();
+    const loader = vi.fn<DataSourceLoader>(request =>
+      request.context.subject?.keys.unit === 'B' ? second.promise : loaded('Unit A'),
+    );
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const app = (location: string) => (
+      <SurfaceApp bundle={candidate} location={location} onNavigate={() => {}}
+        authorizeDataSource={() => ({ status: 'authorized' })}
+        dataSourceLoader={loader} validateDataSourcePayload={() => ({ valid: true })}
+        setDocumentTitle={false} />
+    );
+
+    try {
+      await act(async () => { root.render(app('/units/A')); await flush(); });
+      const input = profileInput(container);
+      expect(input.value).toBe(withPrefill ? 'Unit A' : '');
+      act(() => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, 'typed for A');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      expect(profileInput(container).value).toBe('typed for A');
+
+      await act(async () => { root.render(app('/units/B')); await flush(); });
+      if (withPrefill) {
+        expect(loader.mock.calls.map(([request]) => request.context.subject?.keys.unit)).toEqual(['A', 'B']);
+        expect(container.querySelector('input[name="displayName"]')).toBeNull();
+        await act(async () => { second.resolve(loaded('Unit B')); await flush(); });
+      } else {
+        expect(loader).not.toHaveBeenCalled();
+      }
+      expect(profileInput(container).value).toBe(withPrefill ? 'Unit B' : '');
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
   it('announces loading, mounts afterward, and passes separate record metadata', async () => {
     const pending = deferred<DataSourceLoadResult>();
     const renderer = vi.fn<SurfaceDefinitionFormRenderer>(({ initialData }) => (
       <div
         data-probe="hydrated-custom-form"
-        data-name={String(initialData?.data.displayName)}
-        data-record={initialData?.recordId}
+        data-name={String(initialData?.data?.displayName)}
+        data-record={initialData?.selection?.records[0]?.responseId}
         data-generation={String(initialData?.generation)}
         data-revision={String(initialData?.revision)}
       />
@@ -263,7 +323,7 @@ describe('definition-form initial data rendering', () => {
 
     await act(async () => {
       pending.resolve(
-        loaded('Ada', { recordId: 'response-7', revision: 12 }),
+        loaded('Ada', { ...selectionEvidence('response-7'), revision: 12 }),
       );
       await flush();
     });
@@ -421,7 +481,7 @@ describe('definition-form initial data rendering', () => {
           dataSourceLoader={() => ({
             status: 'loaded',
             freshness: 'fresh',
-            recordId: 'profile-record-9',
+            ...selectionEvidence('profile-record-9'),
             value: { display_name: 'Mapped Grace' },
           })}
           validateDataSourcePayload={() => ({ valid: true })}
@@ -464,7 +524,7 @@ describe('definition-form initial data rendering', () => {
           dataSourceLoader={() => ({
             status: 'loaded',
             freshness: 'fresh',
-            recordId: 'response-jobs',
+            ...selectionEvidence('response-jobs'),
             value: {
               jobs: [{ employer: 'ACME' }, { employer: 'Globex' }, { employer: 'Initech' }],
             },

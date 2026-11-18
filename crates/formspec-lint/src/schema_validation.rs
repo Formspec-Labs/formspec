@@ -11,9 +11,9 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use formspec_core::{json_pointer_to_jsonpath, visit_component_subtree, DocumentType};
+use formspec_core::{DocumentType, json_pointer_to_jsonpath, visit_component_subtree};
 use jsonschema::{Resource, Validator};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::types::LintDiagnostic;
 
@@ -741,16 +741,21 @@ mod tests {
     }
 
     #[test]
-    fn non_draft_definition_response_requires_version_and_selection() {
-        for field in ["definitionVersion", "responseSelection"] {
-            let mut doc = parse_fixture(VALID_DATA_SOURCES_FIXTURE);
-            source_mut(&mut doc, "response:latest-completed-matter")
-                .as_object_mut()
-                .expect("fixture source must be an object")
-                .remove(field);
+    fn non_draft_definition_response_requires_only_the_shared_selection() {
+        // The shared selector owns the target Definition and version range.
+        let mut missing = parse_fixture(VALID_DATA_SOURCES_FIXTURE);
+        source_mut(&mut missing, "response:latest-completed-matter")
+            .as_object_mut()
+            .expect("fixture source must be an object")
+            .remove("responseSelection");
+        let diags = validate_schema(&missing, DocumentType::DataSources);
+        assert_e101(&diags, "non-draft source without responseSelection");
 
-            let diags = validate_schema(&doc, DocumentType::DataSources);
-            assert_e101(&diags, &format!("non-draft source without {field}"));
+        for field in ["definitionVersion", "definitionRef"] {
+            let mut legacy = parse_fixture(VALID_DATA_SOURCES_FIXTURE);
+            source_mut(&mut legacy, "response:latest-completed-matter")[field] = json!("legacy");
+            let diags = validate_schema(&legacy, DocumentType::DataSources);
+            assert_e101(&diags, &format!("non-draft source with legacy {field}"));
         }
     }
 
@@ -759,6 +764,8 @@ mod tests {
         for (field, invalid_value) in [
             ("status", json!("amended")),
             ("cardinality", json!("all")),
+            ("whenNone", json!("fallback")),
+            ("pin", json!("always")),
             ("orderBy", json!("authored-asc")),
             ("tieBreak", json!("response-id-desc")),
             ("partitionBy", json!("catalog")),

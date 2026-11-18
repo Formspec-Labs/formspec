@@ -529,6 +529,12 @@ meaning change from a host entity identifier to a filing-unit identifier.
 `Response.id` still identifies the individual Response; multiple Definitions
 and Responses MAY concern the same filing unit.
 
+Integer subject key values MUST be in the interoperable Internet JSON
+(I-JSON) range from −(2^53−1) to 2^53−1 inclusive. Processors MUST refuse an
+out-of-range integer. Identifiers that can exceed the range or carry leading
+zeros MUST use string keys. See [RFC 7493 §2.2](https://www.rfc-editor.org/rfc/rfc7493#section-2.2)
+and [ADR 0172 §11 item 9](../../../thoughts/adr/0172-subject-keyed-response-selection.md#11-amendments).
+
 The identifier is unique only together with its storage scope. Every index
 and authorization key MUST pair the identifier with that scope. A per-scope
 singleton MUST declare a subject with an empty key set (`keys: {}`); its id
@@ -573,8 +579,9 @@ value before comparison and MUST be used only with integer keys.
 A route parameter for an integer key MUST match `^-?[0-9]+$` and be converted
 as an exact base-10 integer before comparison or offset. Whitespace, a fraction,
 an exponent, and a plus sign MUST be rejected; implementations MUST NOT round
-through a floating-point value. A malformed or unrepresentable integer makes
-the selection unavailable. String keys use the route parameter string unchanged.
+through a floating-point value. A malformed integer or one outside the I-JSON
+range makes the selection unavailable. String keys use the route parameter
+string unchanged.
 
 Authorization MUST precede the query. A reader needs `read` on the subject
 space named by the predicates, or on the whole scope for a list. List records
@@ -1475,9 +1482,8 @@ in `@instance('name')` references and MUST match
 `^[a-zA-Z_][a-zA-Z0-9_]*$`.
 
 The peer [Data Sources companion specification](../data-sources/data-sources-spec.md)
-defines app-level source catalogs for App Manifest graphs. It does not create
-`@instance()` names by default and does not replace Definition-local
-`instances`.
+defines app-level source catalogs for consumers such as Surface prefill and
+widget inputs. Only Definition-local `instances` supply FEL `@instance()` values.
 
 Each Data Source MUST also declare its content via one of the following
 mechanisms:

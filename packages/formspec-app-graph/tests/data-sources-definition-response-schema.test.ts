@@ -27,6 +27,7 @@ function handle(
 
 interface FixtureOptions {
   schema: unknown;
+  selection?: object;
   items?: unknown[];
   definitions?: ResolvedArtifactHandle[];
   manifestDefinitionRefs?: Array<{ url: string; version: string }>;
@@ -63,11 +64,11 @@ function fixture(options: FixtureOptions): AppGraphContext {
       sources: [{
         id: 'response:intake',
         kind: 'definition-response',
-        definitionRef: DEFINITION_URL,
+        ...(options.selection ? { responseSelection: options.selection } : { definitionRef: DEFINITION_URL }),
         owner: 'host',
         scope: 'definition',
         availability: { level: 'app' },
-        runtime: { delivery: 'draft', failure: 'block-render' },
+        runtime: { delivery: options.selection ? 'snapshot' : 'draft', failure: 'block-render' },
         cache: { mode: 'draft' },
         schema: options.schema,
       }],
@@ -85,18 +86,20 @@ function fixture(options: FixtureOptions): AppGraphContext {
 function definition(
   slot: string,
   items: unknown[],
+  version = '1.0.0',
 ): ResolvedArtifactHandle {
-  return handle(
+  const result = handle(
     slot,
     'definition',
     {
       $formspec: '1.0',
       url: DEFINITION_URL,
-      version: '1.0.0',
+      version,
       items,
     },
     DEFINITION_URL,
   );
+  return { ...result, ref: { url: DEFINITION_URL, version } };
 }
 
 describe('definition-response source.schema describes Response.data', () => {
@@ -311,6 +314,78 @@ describe('definition-response source.schema describes Response.data', () => {
         reason: 'top-level-schema-composition-unsupported',
         unsupportedKeywords: ['allOf'],
       },
+    }]);
+  });
+});
+
+it('checks list item keys against the Definition selected by URL and range', () => {
+  const diagnostics = validateDataSources(fixture({
+    selection: {
+      definition: { url: DEFINITION_URL, compatibleVersions: '^1.0.0' },
+      subject: [],
+      status: 'completed',
+      cardinality: 'latest-per-subject',
+      pin: 'none',
+    },
+    schema: { type: 'array', items: { type: 'object', properties: { missing: { type: 'string' } } } },
+  }));
+  expect(diagnostics).toMatchObject([{
+    code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
+    primarySource: { jsonPointer: '/sources/0/schema/items/properties/missing' },
+  }]);
+});
+
+describe('catalog Definition version range', () => {
+  function selection(compatibleVersions: string, mapping?: string) {
+    return {
+      definition: { url: DEFINITION_URL, compatibleVersions },
+      subject: [], status: 'completed', cardinality: 'latest', pin: 'none',
+      ...(mapping === undefined ? {} : { mapping }),
+    };
+  }
+
+  const schema = { type: 'object', properties: { name: { type: 'string' } } };
+
+  it.each(['^2.0.0', 'not a semver range'])('reports no admitted version for %s', range => {
+    expect(validateDataSources(fixture({ schema, selection: selection(range) }))).toMatchObject([{
+      code: DATA_SOURCE_CONTRACT_CODES.definitionSelectionUnresolved,
+      primarySource: { jsonPointer: '/sources/0/responseSelection/definition' },
+      details: { definitionRef: DEFINITION_URL, compatibleVersions: range },
+    }]);
+  });
+
+  it('reports duplicate loaded copies of an admitted version', () => {
+    expect(validateDataSources(fixture({
+      schema, selection: selection('^1.0.0'),
+      definitions: [definition('definitions[0]', []), definition('definitions[1]', [])],
+    }))).toMatchObject([{
+      code: DATA_SOURCE_CONTRACT_CODES.definitionSelectionUnresolved,
+      primarySource: { jsonPointer: '/sources/0/responseSelection/definition' },
+    }]);
+  });
+
+  it('checks every distinct admitted version and excludes versions outside the range', () => {
+    const definitions = [
+      definition('definitions[0]', [{ key: 'name', type: 'field' }]),
+      definition('definitions[1]', [], '1.1.0'),
+      definition('definitions[2]', [], '2.0.0'),
+    ];
+    expect(validateDataSources(fixture({
+      schema, selection: selection('^1.0.0'), definitions,
+      manifestDefinitionRefs: definitions.map(handle => ({ url: DEFINITION_URL, version: handle.ref!.version! })),
+    }))).toMatchObject([{
+      code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
+      relatedSources: [{ artifactSlot: 'definitions[1]', jsonPointer: '/items' }],
+    }]);
+  });
+
+  it('reports mapped payloads that need the Core projection check', () => {
+    expect(validateDataSources(fixture({
+      schema, selection: selection('^1.0.0', 'urn:mapping:intake'),
+    }))).toMatchObject([{
+      code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaIndeterminate,
+      primarySource: { jsonPointer: '/sources/0/responseSelection/mapping' },
+      details: { reason: 'mapped-payload-check-unavailable' },
     }]);
   });
 });

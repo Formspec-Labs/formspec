@@ -236,6 +236,15 @@
                     "type": "string",
                     "description": "OPTIONAL presentation hint (e.g. 'inline', 'wizard', 'modal'). Renderer-defined vocabulary at v0.2."
                   },
+                  "subjectKeys": {
+                    "type": "object",
+                    "propertyNames": { "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$" },
+                    "additionalProperties": {
+                      "$ref": "#/$defs/RouteParam/properties/name"
+                    },
+                    "description": "Maps each key declared by the bound Definition subject to a parameter declared by the containing route. App-graph validation checks the exact key set and route parameter references. The runtime converts integer keys using the Definition type. An empty map is valid for a per-scope singleton.",
+                    "examples": [{ "ffy": "year", "uei": "agencyId" }, {}]
+                  },
                   "initialData": {
                     "$ref": "#/$defs/DefinitionFormInitialDataBinding",
                     "description": "OPTIONAL qualified Data Sources binding used to hydrate this form before it mounts. The source identity is the exact (catalogRef, sourceRef) pair. Omit mappingRef when the delivered value already has the Definition's Response.data shape; otherwise mappingRef names one App Manifest mappings[].handle and the Mapping DSL runs in reverse. Inline field maps and literal initial data are not admitted."

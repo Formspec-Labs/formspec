@@ -154,6 +154,8 @@ export {
   type DataSourceLoadRequest,
   type DataSourceLoadResult,
   type DataSourceLoader,
+  type DataSourceSelectionEvidence,
+  type DataSourceSubject,
   type DataSourcePayloadValidationResult,
   type DataSourcePayloadValidator,
   type DeclaredWidgetDataInput,
@@ -172,6 +174,7 @@ export {
   type DefinitionResponseRecordResult,
   type DefinitionResponseSourceBinding,
   type PreviewDefinitionResponseStore,
+  type PreviewDefinitionResponseCanonicalization,
   type RecordDefinitionResponseInput,
 } from './definition-response-store.js';
 

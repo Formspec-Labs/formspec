@@ -58,6 +58,7 @@ import {
   type DataSourceCatalogHandle,
   type WidgetDataInputPlan,
   type DataSourceDescriptor,
+  type DataSourceSubject,
 } from './data-source-loader.js';
 import { generationNeedAnchors } from './need-trace.js';
 import {
@@ -88,6 +89,7 @@ export type SlotPlan<TComponent> = SlotPlanBase &
         /** Qualified Data Source plan used before the form engine mounts. */
         initialData?: DefinitionFormInitialDataPlan;
         definition?: FormDefinition;
+        subject?: DataSourceSubject;
         registryEntries: readonly RegistryEntry[];
         status: 'ready' | 'unresolved';
       }
@@ -135,6 +137,7 @@ const KNOWN_SLOT_TYPES = {
 
 export interface SlotPlanContext<TComponent> {
   handle: SurfaceRouteHandle;
+  params?: Readonly<Record<string, string>> | undefined;
   screenerHandles?: readonly ScreenerDocumentHandle[] | undefined;
   experiences: readonly ExperienceDocument[];
   /** Exact manifested source identity for qualified Experience bindings. */
@@ -207,6 +210,7 @@ function planSlot<TComponent>(
   headingBaseLevel: HeadingLevel,
   visitedRoutes: ReadonlySet<string>,
   diagnostics: SurfaceDiagnostic[],
+  bindingRoute: SurfaceRoute = context.handle.route,
 ): SlotPlan<TComponent> {
   const site = {
     surfaceId: context.handle.surfaceId,
@@ -282,7 +286,18 @@ function planSlot<TComponent>(
       };
       if (typeof binding.presentation === 'string') plan.presentation = binding.presentation;
       if (definition !== undefined) {
+        const subject = resolveFormSubject(definition, binding, bindingRoute, context.params ?? {});
+        if (subject === false) {
+          diagnostics.push(surfaceDiagnostic(
+            'SLOT-BINDING-INCOMPLETE',
+            'The form cannot open because its filing-unit keys do not match the route parameters.',
+            site,
+            { reason: 'subject-keys-invalid' },
+          ));
+          return { ...plan, status: 'unresolved' };
+        }
         plan.definition = definition;
+        if (subject) plan.subject = subject;
         if (binding.initialData !== undefined) {
           const initialData = planDefinitionFormInitialData({
             binding: binding.initialData,
@@ -542,8 +557,15 @@ function planSlot<TComponent>(
       // never outranks its host.
       const nested: ReadonlySet<string> = new Set([...visitedRoutes, routeRef]);
       const nestedBase = Math.min(headingBaseLevel + 1, 6) as HeadingLevel;
+      const supplied = ownRecord(binding, 'params') ?? {};
+      const params: [string, string][] = [];
+      for (const [target, source] of Object.entries(supplied)) {
+        const value = typeof source === 'string' ? ownString(context.params ?? {}, source) : undefined;
+        if (value !== undefined) params.push([target, value]);
+      }
+      const childContext = { ...context, params: Object.fromEntries(params) };
       const slots = embedded.slots.map((child) =>
-        planSlot(child, context, nestedBase, nested, diagnostics),
+        planSlot(child, childContext, nestedBase, nested, diagnostics, embedded),
       );
       return { ...plan, slots, status: 'ready' };
     }
@@ -612,6 +634,45 @@ function resolveWidgetAction(
     ...(needAnchors.length > 0 ? { needAnchors } : {}),
   };
   return { action: metadata, ...(responseContext ? { responseContext } : {}) };
+}
+
+function resolveFormSubject(
+  definition: FormDefinition,
+  binding: Record<string, unknown>,
+  route: SurfaceRoute,
+  params: Readonly<Record<string, string>>,
+): DataSourceSubject | false | undefined {
+  const hasBinding = Object.hasOwn(binding, 'subjectKeys');
+  if (definition.subject === undefined) return hasBinding ? false : undefined;
+  const declared = ownRecord(definition, 'subject');
+  const declaredKeys = ownRecord(declared, 'keys');
+  const type = declared && ownString(declared, 'type');
+  if (!declaredKeys || !type) return false;
+  const mapping = ownRecord(binding, 'subjectKeys');
+  if (hasBinding && mapping === undefined) return false;
+  const entries = Object.keys(declaredKeys);
+  if (Object.keys(mapping ?? {}).length !== entries.length) return false;
+  const declaredParams = new Set(route.params?.map(parameter => parameter.name));
+  const keys: [string, string | number][] = [];
+  for (const key of entries) {
+    const schema = ownRecord(declaredKeys, key);
+    const dataType = schema && ownString(schema, 'dataType');
+    const parameter = ownString(mapping ?? {}, key);
+    if (parameter === undefined || !declaredParams.has(parameter)) return false;
+    const value = ownString(params, parameter);
+    if (value === undefined) return false;
+    if (dataType === 'string') {
+      keys.push([key, value]);
+      continue;
+    }
+    if (dataType !== 'integer' || !/^(?:0|-?[1-9][0-9]*)$/u.test(value)) return false;
+    const integer = BigInt(value);
+    const number = Number(integer);
+    // Core §2.1.6 and ADR 0172 §11 item 9 require the I-JSON integer range.
+    if (!Number.isSafeInteger(number)) return false;
+    keys.push([key, number]);
+  }
+  return Object.freeze({ type, keys: Object.freeze(Object.fromEntries(keys)) });
 }
 
 function ownRecord(

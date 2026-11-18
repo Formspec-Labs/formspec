@@ -5,6 +5,7 @@ import type {
   AppGraphDiagnostic,
   ResolvedArtifactHandle,
 } from './types.js';
+import { satisfies, validRange } from 'semver';
 import { diagnosticSourceForHandle } from './report.js';
 import {
   escapeJsonPointerToken,
@@ -60,6 +61,7 @@ interface TopLevelSchemaProperties {
 }
 
 export const DATA_SOURCE_CONTRACT_CODES = {
+  definitionSelectionUnresolved: 'DATA-SOURCE-DEFINITION-SELECTION-UNRESOLVED',
   definitionDataSchemaMismatch: 'DATA-SOURCE-DEFINITION-DATA-SCHEMA',
   definitionDataSchemaIndeterminate: 'DATA-SOURCE-DEFINITION-DATA-SCHEMA-INDETERMINATE',
 } as const;
@@ -432,82 +434,141 @@ function definitionResponseSchemaDiagnostics(
   const diagnostics: AppGraphDiagnostic[] = [];
   for (const source of catalogSources(context)) {
     if (stringProp(source.source, 'kind') !== 'definition-response') continue;
-    if (!Object.prototype.hasOwnProperty.call(source.source, 'schema')) continue;
-    const definitionRef = stringProp(source.source, 'definitionRef');
+    const draft = stringProp(record(ownProp(source.source, 'runtime')), 'delivery') === 'draft';
+    const selection = record(ownProp(source.source, 'responseSelection'));
+    const target = record(ownProp(selection, 'definition'));
+    const definitionRef = draft ? stringProp(source.source, 'definitionRef') : stringProp(target, 'url');
     if (!definitionRef) continue;
     const resolution = exactDefinitionResolution(context, definitionRef);
-    if (resolution.status !== 'resolved' || !resolution.definition) continue;
+    if (draft) {
+      if (resolution.definition && Object.prototype.hasOwnProperty.call(source.source, 'schema')) {
+        diagnostics.push(...compareDefinitionResponseSchema(source, definitionRef, resolution.definition, false));
+      }
+      continue;
+    }
 
-    const dataKeys = definitionTopLevelDataKeys(resolution.definition);
-    const sourcePointer = `/sources/${source.sourceIndex}/schema`;
-    if (dataKeys.status === 'indeterminate') {
+    const range = stringProp(target, 'compatibleVersions');
+    const manifested = manifestRefs(context, 'definitions').filter(ref => stringProp(ref, 'url') === definitionRef);
+    const rangeOptions = { includePrerelease: true };
+    const rangeIsValid = range === undefined || validRange(range, rangeOptions) !== null;
+    const admitted = resolution.candidates.filter(definition => {
+      const version = stringProp(record(definition.document), 'version');
+      return rangeIsValid && version !== undefined
+        && manifested.some(ref => (stringProp(ref, 'version') ?? version) === version)
+        && (range === undefined || satisfies(version, range, rangeOptions));
+    });
+    const versions = admitted.map(definition => stringProp(record(definition.document), 'version'));
+    if (admitted.length === 0 || new Set(versions).size !== versions.length) {
+      diagnostics.push({
+        code: DATA_SOURCE_CONTRACT_CODES.definitionSelectionUnresolved,
+        severity: 'error',
+        phase: 'cross-artifact',
+        origin: 'app-graph-validator',
+        message: `Data source '${source.sourceId ?? '<unknown>'}' cannot resolve an unambiguous set of compatible Definition versions.`,
+        primarySource: diagnosticSourceForHandle(source.catalog, `/sources/${source.sourceIndex}/responseSelection/definition`),
+        details: { definitionRef, compatibleVersions: range },
+      });
+      continue;
+    }
+    if (!Object.prototype.hasOwnProperty.call(source.source, 'schema')) continue;
+    if (ownProp(selection, 'mapping') !== undefined) {
       diagnostics.push({
         code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaIndeterminate,
         severity: 'error',
         phase: 'cross-artifact',
         origin: 'app-graph-validator',
-        message: `Data source '${source.sourceId ?? '<unknown>'}' cannot be proven to describe the resolved Definition's Response.data shape.`,
-        primarySource: diagnosticSourceForHandle(source.catalog, sourcePointer),
-        relatedSources: [diagnosticSourceForHandle(resolution.definition, dataKeys.pointer)],
-        details: {
-          reason: dataKeys.reason,
-          catalogRef: source.catalogRef,
-          sourceRef: source.sourceId,
-          definitionRef,
-        },
+        message: `The mapped payload of Data Source '${source.sourceId ?? '<unknown>'}' requires the Core projection check.`,
+        primarySource: diagnosticSourceForHandle(source.catalog, `/sources/${source.sourceIndex}/responseSelection/mapping`),
+        details: { reason: 'mapped-payload-check-unavailable', definitionRef },
       });
       continue;
     }
-
-    const schemaProperties = topLevelSchemaProperties(ownProp(source.source, 'schema'));
-    if (schemaProperties.status === 'indeterminate') {
-      diagnostics.push({
-        code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaIndeterminate,
-        severity: 'error',
-        phase: 'cross-artifact',
-        origin: 'app-graph-validator',
-        message: `Data source '${source.sourceId ?? '<unknown>'}' uses a top-level schema shape that AppGraph cannot safely compare with Response.data.`,
-        primarySource: diagnosticSourceForHandle(
-          source.catalog,
-          `${sourcePointer}${schemaProperties.pointer}`,
-        ),
-        relatedSources: [diagnosticSourceForHandle(resolution.definition, '/items')],
-        details: {
-          reason: schemaProperties.reason,
-          catalogRef: source.catalogRef,
-          sourceRef: source.sourceId,
-          definitionRef,
-          ...(schemaProperties.unsupportedKeywords
-            ? { unsupportedKeywords: schemaProperties.unsupportedKeywords }
-            : {}),
-        },
-      });
-      continue;
+    for (const definition of admitted) {
+      diagnostics.push(...compareDefinitionResponseSchema(
+        source, definitionRef, definition, stringProp(selection, 'cardinality') === 'latest-per-subject',
+      ));
     }
+  }
+  return diagnostics;
+}
 
-    for (const property of schemaProperties.properties) {
-      if (dataKeys.keys.has(property)) continue;
-      diagnostics.push({
-        code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
-        severity: 'error',
-        phase: 'cross-artifact',
-        origin: 'app-graph-validator',
-        message: `Definition-response source '${source.sourceId ?? '<unknown>'}' declares top-level schema property '${property}', but the resolved Definition has no matching top-level Response.data key.`,
-        primarySource: diagnosticSourceForHandle(
-          source.catalog,
-          `${sourcePointer}/properties/${escapeJsonPointerToken(property)}`,
-        ),
-        relatedSources: [diagnosticSourceForHandle(resolution.definition, '/items')],
-        details: {
-          reason: 'schema-property-not-definition-data-key',
-          catalogRef: source.catalogRef,
-          sourceRef: source.sourceId,
-          definitionRef,
-          property,
-          definitionDataKeys: [...dataKeys.keys].sort(),
-        },
-      });
-    }
+function compareDefinitionResponseSchema(
+  source: CatalogSource,
+  definitionRef: string,
+  definition: ResolvedArtifactHandle,
+  list: boolean,
+): AppGraphDiagnostic[] {
+  const diagnostics: AppGraphDiagnostic[] = [];
+  const dataKeys = definitionTopLevelDataKeys(definition);
+  const payloadSchema = ownProp(source.source, 'schema');
+  const sourcePointer = `/sources/${source.sourceIndex}/schema${list ? '/items' : ''}`;
+  if (dataKeys.status === 'indeterminate') {
+    diagnostics.push({
+      code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaIndeterminate,
+      severity: 'error',
+      phase: 'cross-artifact',
+      origin: 'app-graph-validator',
+      message: `Data source '${source.sourceId ?? '<unknown>'}' cannot be proven to describe the resolved Definition's Response.data shape.`,
+      primarySource: diagnosticSourceForHandle(source.catalog, sourcePointer),
+      relatedSources: [diagnosticSourceForHandle(definition, dataKeys.pointer)],
+      details: {
+        reason: dataKeys.reason,
+        catalogRef: source.catalogRef,
+        sourceRef: source.sourceId,
+        definitionRef,
+      },
+    });
+    return diagnostics;
+  }
+
+  const schemaProperties = topLevelSchemaProperties(list ? ownProp(record(payloadSchema), 'items') : payloadSchema);
+  if (schemaProperties.status === 'indeterminate') {
+    diagnostics.push({
+      code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaIndeterminate,
+      severity: 'error',
+      phase: 'cross-artifact',
+      origin: 'app-graph-validator',
+      message: `Data source '${source.sourceId ?? '<unknown>'}' uses a top-level schema shape that AppGraph cannot safely compare with Response.data.`,
+      primarySource: diagnosticSourceForHandle(
+        source.catalog,
+        `${sourcePointer}${schemaProperties.pointer}`,
+      ),
+      relatedSources: [diagnosticSourceForHandle(definition, '/items')],
+      details: {
+        reason: schemaProperties.reason,
+        catalogRef: source.catalogRef,
+        sourceRef: source.sourceId,
+        definitionRef,
+        ...(schemaProperties.unsupportedKeywords
+          ? { unsupportedKeywords: schemaProperties.unsupportedKeywords }
+          : {}),
+      },
+    });
+    return diagnostics;
+  }
+
+  for (const property of schemaProperties.properties) {
+    if (dataKeys.keys.has(property)) continue;
+    diagnostics.push({
+      code: DATA_SOURCE_CONTRACT_CODES.definitionDataSchemaMismatch,
+      severity: 'error',
+      phase: 'cross-artifact',
+      origin: 'app-graph-validator',
+      message: `Definition-response source '${source.sourceId ?? '<unknown>'}' declares top-level schema property '${property}', but the resolved Definition has no matching top-level Response.data key.`,
+      primarySource: diagnosticSourceForHandle(
+        source.catalog,
+        `${sourcePointer}/properties/${escapeJsonPointerToken(property)}`,
+      ),
+      relatedSources: [diagnosticSourceForHandle(definition, '/items')],
+      details: {
+        reason: 'schema-property-not-definition-data-key',
+        catalogRef: source.catalogRef,
+        sourceRef: source.sourceId,
+        definitionRef,
+        property,
+        definitionDataKeys: [...dataKeys.keys].sort(),
+      },
+    });
   }
   return diagnostics;
 }

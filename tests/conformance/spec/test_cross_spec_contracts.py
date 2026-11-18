@@ -12,7 +12,7 @@ import re
 from copy import deepcopy
 
 import pytest
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, ValidationError
 
 from tests.unit.support.schema_fixtures import (
     ROOT_DIR, SCHEMA_DIR, SPEC_DIR, build_schema_registry,
@@ -534,6 +534,119 @@ class TestSubjectKeyedResponseSelection:
             for name, instance in example.get("instances", {}).items():
                 source = instance.get("source", "")
                 assert "{" not in source, f"Instance {name} must use a literal source URI: {source}"
+
+
+def test_catalog_subject_predicate_boundary():
+    fixtures = ROOT_DIR / "tests/conformance/fixtures/data-sources"
+    catalog = json.loads((fixtures / "valid-catalog.json").read_text())
+    invalid_instance = fixtures / "invalid-instance-route-param.definition.json"
+    definition = json.loads(invalid_instance.read_text())
+    selector = next(source["responseSelection"] for source in catalog["sources"]
+                    if "responseSelection" in source)
+    instance_selector = definition["instances"]["matter"]["response"]
+    catalog_schema = _load("data-sources.schema.json")
+    registry = build_schema_registry(COMMON_S, RESP_S, DEF_S, catalog_schema)
+
+    assert selector["subject"] == instance_selector["subject"]
+    Draft202012Validator(catalog_schema, registry=registry).validate(catalog)
+    # The Definition fixture is structurally valid. Core assigns the contextual
+    # routeParam refusal to Definition lint, which is implemented in fs-zki2.
+    Draft202012Validator(DEF_S, registry=registry).validate(definition)
+    core = (SPEC_DIR / "core/spec.md").read_text()
+    assert "Definition-local selection MUST NOT use `from.routeParam`." in core
+    spec = (SPEC_DIR / "data-sources/data-sources-spec.md").read_text()
+    assert invalid_instance.name in spec
+    assert "`from.routeParam` is allowed only in catalog sources" in spec
+
+
+def test_catalog_response_loader_uses_shared_result_evidence():
+    spec = (SPEC_DIR / "data-sources/data-sources-spec.md").read_text()
+    selection = spec.split("### 4.2 ", 1)[1].split("### 4.3 ", 1)[0]
+    loader = spec.split("### 12.1 ", 1)[1].split("### 12.2 ", 1)[0]
+    boundary = spec.split("### 12.4 ", 1)[1]
+    for term in ["`ResponseSelection`", "`whenNone`", "`unavailable`",
+                 "`latest-per-subject`", "`check_instance_projection`"]:
+        assert term in selection, term
+    for term in ["`records`", "`valueDigest`", "`none`", "`newer`",
+                 "`ResolvedInstanceRecord`", "`Sha256Digest`", "`formspec.instance.value.v1`"]:
+        assert term in loader, term
+    assert "Source-to-Definition-instance bridge" not in spec
+    assert "`instances.<name>.response`" in boundary
+    core = (SPEC_DIR / "core/spec.md").read_text()
+    assert "Only Definition-local `instances` supply FEL `@instance()` values." in core
+
+
+def _subject_keyed_surface():
+    return {
+        "$formspecSurface": "0.2",
+        "id": "grantApplication",
+        "entry": "intake",
+        "routes": [{
+            "id": "intake",
+            "path": "/years/{year}/agencies/{agencyId}",
+            "params": [{"name": "year", "type": "string"},
+                       {"name": "agencyId", "type": "string"}],
+            "slots": [{
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                    "definitionRef": "urn:example:forms:grant-application",
+                    "subjectKeys": {"ffy": "year", "uei": "agencyId"},
+                },
+            }],
+        }],
+    }
+
+
+@pytest.mark.parametrize("keys", [{"ffy": "year", "uei": "agencyId"}, {}])
+def test_surface_subject_keys_admit_route_names_and_singleton(keys):
+    schema = _load("surface.schema.json")
+    document = _subject_keyed_surface()
+    document["routes"][0]["slots"][0]["binding"]["subjectKeys"] = keys
+    Draft202012Validator(schema, registry=build_schema_registry(COMMON_S, schema)).validate(document)
+
+
+@pytest.mark.parametrize("keys", [
+    [], {"ffy": 2026}, {"ffy": ""}, {"ffy": "{year}"}, {"bad-key": "year"},
+])
+def test_surface_subject_keys_reject_non_identifier_bindings(keys):
+    schema = _load("surface.schema.json")
+    document = _subject_keyed_surface()
+    document["routes"][0]["slots"][0]["binding"]["subjectKeys"] = keys
+    with pytest.raises(ValidationError):
+        Draft202012Validator(schema, registry=build_schema_registry(COMMON_S, schema)).validate(document)
+
+
+def test_surface_subject_keys_graph_check_and_integer_coercion():
+    spec = (SPEC_DIR / "surface/surface-spec.md").read_text()
+    section = spec.split("### Definition-form subject keys", 1)[1].split("### ", 1)[0]
+    for term in ["`subjectKeys`", "`subject.keys`", "`params[]`", "AppGraphValidator",
+                 "`integer`", "base-10", "`0` or `-?[1-9][0-9]*`", "find-or-create"]:
+        assert term in section, term
+
+
+def test_surface_subject_key_values_reuse_route_parameter_names():
+    schema = _load("surface.schema.json")
+    slot = _def(schema, "Slot")
+    branch = _find_allof_branch(slot["allOf"], "slotType", "definition-form")
+    binding = branch["then"]["properties"]["binding"]["properties"]
+    assert binding["subjectKeys"]["additionalProperties"]["$ref"] == "#/$defs/RouteParam/properties/name"
+
+
+def test_catalog_mapping_inputs_and_delivered_schema_have_distinct_roles():
+    spec = (SPEC_DIR / "data-sources/data-sources-spec.md").read_text()
+    assert "the Mapping's declared upstream reads define its input projection" in spec
+    assert "`source.schema` validates the Mapping's output" in spec
+
+
+def test_app_graph_and_shell_delegate_subject_keyed_rules():
+    graph = (SPEC_DIR / "app-graph/app-graph-validator-spec.md").read_text()
+    shell = (SPEC_DIR / "surface/surface-shell-spec.md").read_text()
+    section = shell.split("### 3.1 `definition-form`", 1)[1].split("### 3.2 ", 1)[0]
+    assert "`definition-form.binding.subjectKeys`" in graph
+    assert "data-sources-spec.md#42-non-draft-definition-response-selection" in graph
+    assert "a successful empty selection supplies no prefill" in section
+    assert "Data Sources read evidence" in section
 
 # ===========================================================================
 # Definition Schema — OptionSet / OptionEntry (§4.6)

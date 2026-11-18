@@ -62,20 +62,25 @@
     {
       "id": "response:latest-completed-matter",
       "kind": "definition-response",
-      "definitionRef": "https://example.gov/apps/data-aware-workspace/definition",
-      "definitionVersion": "1.0.0",
       "responseSelection": {
+        "definition": {
+          "url": "https://example.gov/apps/data-aware-workspace/definition",
+          "compatibleVersions": ">=1.0.0 <2.0.0"
+        },
+        "subject": [
+          { "key": "matterId", "op": "eq", "from": { "routeParam": "matterId" } }
+        ],
         "status": "completed",
         "cardinality": "latest",
-        "orderBy": "authored-desc",
-        "tieBreak": "response-id-asc",
-        "partitionBy": "definition"
+        "pin": "none",
+        "whenNone": "empty"
       },
       "owner": "formspec",
-      "scope": "definition",
+      "scope": "route",
       "availability": {
-        "level": "definition",
-        "definitionRef": "https://example.gov/apps/data-aware-workspace/definition"
+        "level": "route",
+        "surfaceRef": "https://example.gov/apps/data-aware-workspace/surface",
+        "routeRef": "matterDetails"
       },
       "runtime": {
         "delivery": "snapshot",

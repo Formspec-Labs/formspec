@@ -2,6 +2,7 @@
 - Surface drafts are authoring projections, not source artifacts. `readSurfaceDraft` may expose incomplete state with diagnostics; `exportSurfaceDocument` is the fail-closed gate before a value becomes a published Surface document.
 - Surface-local conformance requires schema validity, publish/export diagnostics clean enough for publication, E606-clean route reachability from `entry`, and E607-clean embed-route bindings.
 - `static-content` images require authored `binding.alt`; an empty string marks an image decorative, and processors never synthesize alternative text from another field.
+- `definition-form` slots map route parameters to the bound Definition's filing-unit keys with `subjectKeys`. App-graph validation checks the map against the Definition and route.
 - `module-widget` slots bind declared module widgets by `moduleId` and `widgetName`; `binding.config` supplies declared props, named `dataBindings` resolve declared Registry 1.1 inputs through exact Data Sources references, and named `actionBindings` map declared outputs to exact Response Actions IDs.
 - A widget receives only `emitAction(outputName)`. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.
 - Component 1.2 `targetSurfaceRoutes[]` may point at Surface routes and optional slot ids, but Surface does not list mounted Components or own Component route/node identity; those stay with App Manifest resolution and app-graph validation.

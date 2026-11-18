@@ -64,25 +64,13 @@ class TestDataSourcesSchemaShape:
         assert boundary["enum"] == ["host", "formspec-session", "module"]
         assert "Fine-grained" in boundary["description"]
 
-    def test_response_selection_is_closed_and_uses_owner_status(self) -> None:
-        selection = DATA_SOURCES_SCHEMA["$defs"]["ResponseSelection"]
+    def test_response_selection_reuses_core(self) -> None:
+        # ADR 0172 replaces the catalog's local, fixed selection vocabulary.
+        definitions = DATA_SOURCES_SCHEMA["$defs"]
+        selection = definitions["DataSource"]["properties"]["responseSelection"]
 
-        assert selection["additionalProperties"] is False
-        assert selection["required"] == [
-            "status",
-            "cardinality",
-            "orderBy",
-            "tieBreak",
-            "partitionBy",
-        ]
-        assert selection["properties"]["status"]["$ref"].endswith(
-            "response/1.0#/$defs/ResponseStatus"
-        )
-        assert selection["properties"]["status"]["const"] == "completed"
-        assert selection["properties"]["cardinality"]["const"] == "latest"
-        assert selection["properties"]["orderBy"]["const"] == "authored-desc"
-        assert selection["properties"]["tieBreak"]["const"] == "response-id-asc"
-        assert selection["properties"]["partitionBy"]["const"] == "definition"
+        assert "ResponseSelection" not in definitions
+        assert selection["$ref"] == RESPONSE_SCHEMA["$id"] + "#/$defs/ResponseSelection"
 
     def test_valid_catalog_fixture_passes(self) -> None:
         _validator().validate(_fixture_doc("valid-catalog.json"))
@@ -126,13 +114,7 @@ def test_draft_definition_response_remains_valid_without_selection() -> None:
 def test_draft_definition_response_rejects_completed_selection_policy() -> None:
     doc = _fixture_doc("valid-catalog.json")
     source = _source(doc, "response:new-matter-draft")
-    source["responseSelection"] = {
-        "status": "completed",
-        "cardinality": "latest",
-        "orderBy": "authored-desc",
-        "tieBreak": "response-id-asc",
-        "partitionBy": "definition",
-    }
+    source["responseSelection"] = _source(doc, "response:latest-completed-matter")["responseSelection"]
 
     with pytest.raises(ValidationError):
         _validator().validate(doc)
@@ -153,11 +135,41 @@ def test_non_draft_definition_response_requires_complete_selection(
 
     _validator().validate(doc)
 
-    for field in ("definitionVersion", "responseSelection"):
-        invalid = _fixture_doc("valid-catalog.json")
-        del _source(invalid, "response:latest-completed-matter")[field]
-        with pytest.raises(ValidationError):
-            _validator().validate(invalid)
+    del source["responseSelection"]
+    with pytest.raises(ValidationError):
+        _validator().validate(doc)
+
+
+@pytest.mark.parametrize("source_id", ["response:latest-completed-matter", "response:new-matter-draft"])
+def test_catalog_rejects_source_level_definition_version(source_id: str) -> None:
+    # The source-level exact version is replaced by the selector's version range.
+    doc = _fixture_doc("valid-catalog.json")
+    _source(doc, source_id)["definitionVersion"] = "1.0.0"
+
+    with pytest.raises(ValidationError):
+        _validator().validate(doc)
+
+
+def test_catalog_uses_definition_ref_only_for_session_drafts() -> None:
+    doc = _fixture_doc("valid-catalog.json")
+    source = _source(doc, "response:latest-completed-matter")
+    source["definitionRef"] = source["responseSelection"]["definition"]["url"]
+    with pytest.raises(ValidationError):
+        _validator().validate(doc)
+
+    del source["definitionRef"]
+    del _source(doc, "response:new-matter-draft")["definitionRef"]
+    with pytest.raises(ValidationError):
+        _validator().validate(doc)
+
+
+def test_catalog_selection_allows_current_list_and_default_when_none() -> None:
+    doc = _fixture_doc("valid-catalog.json")
+    selection = _source(doc, "response:latest-completed-matter")["responseSelection"]
+    selection.update(status="current", cardinality="latest-per-subject")
+    del selection["whenNone"]
+
+    _validator().validate(doc)
 
 
 @pytest.mark.parametrize(
@@ -165,9 +177,10 @@ def test_non_draft_definition_response_requires_complete_selection(
     [
         ("status", "amended"),
         ("cardinality", "all"),
-        ("orderBy", "authored-asc"),
-        ("tieBreak", "response-id-desc"),
-        ("partitionBy", "catalog"),
+        ("orderBy", "authored-desc"),
+        ("tieBreak", "response-id-asc"),
+        ("partitionBy", "definition"),
+        ("whenNone", "skip"),
     ],
 )
 def test_response_selection_policy_is_exact(field: str, value: str) -> None:
@@ -197,14 +210,7 @@ def test_response_selection_rejects_extra_fields() -> None:
 def test_non_response_source_rejects_response_selection_fields() -> None:
     doc = _fixture_doc("valid-catalog.json")
     source = _source(doc, "host:open-matters")
-    source["definitionVersion"] = "1.0.0"
-    source["responseSelection"] = {
-        "status": "completed",
-        "cardinality": "latest",
-        "orderBy": "authored-desc",
-        "tieBreak": "response-id-asc",
-        "partitionBy": "definition",
-    }
+    source["responseSelection"] = _source(doc, "response:latest-completed-matter")["responseSelection"]
 
     with pytest.raises(ValidationError):
         _validator().validate(doc)

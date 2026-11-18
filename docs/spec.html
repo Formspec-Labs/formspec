@@ -1233,6 +1233,14 @@ property order. This is a meaning change from a host entity identifier
 to a filing-unit identifier. <code>Response.id</code> still identifies
 the individual Response; multiple Definitions and Responses MAY concern
 the same filing unit.</p>
+<p>Integer subject key values MUST be in the interoperable Internet JSON
+(I-JSON) range from −(2^53−1) to 2^53−1 inclusive. Processors MUST
+refuse an out-of-range integer. Identifiers that can exceed the range or
+carry leading zeros MUST use string keys. See <a
+href="https://www.rfc-editor.org/rfc/rfc7493#section-2.2">RFC 7493
+§2.2</a> and <a
+href="../../../thoughts/adr/0172-subject-keyed-response-selection.md#11-amendments">ADR
+0172 §11 item 9</a>.</p>
 <p>The identifier is unique only together with its storage scope. Every
 index and authorization key MUST pair the identifier with that scope. A
 per-scope singleton MUST declare a subject with an empty key set
@@ -1339,8 +1347,8 @@ route parameter for an integer key MUST match <code>^-?[0-9]+$</code>
 and be converted as an exact base-10 integer before comparison or
 offset. Whitespace, a fraction, an exponent, and a plus sign MUST be
 rejected; implementations MUST NOT round through a floating-point value.
-A malformed or unrepresentable integer makes the selection unavailable.
-String keys use the route parameter string unchanged.</p>
+A malformed integer or one outside the I-JSON range makes the selection
+unavailable. String keys use the route parameter string unchanged.</p>
 <p>Authorization MUST precede the query. A reader needs
 <code>read</code> on the subject space named by the predicates, or on
 the whole scope for a list. List records MUST be checked in a batch.
@@ -2515,10 +2523,10 @@ instances (§2.1.2) are populated.</p>
 the identifier used in <code>@instance('name')</code> references and
 MUST match <code>^[a-zA-Z_][a-zA-Z0-9_]*$</code>.</p>
 <p>The peer <a href="../data-sources/data-sources-spec.md">Data Sources
-companion specification</a> defines app-level source catalogs for App
-Manifest graphs. It does not create <code>@instance()</code> names by
-default and does not replace Definition-local
-<code>instances</code>.</p>
+companion specification</a> defines app-level source catalogs for
+consumers such as Surface prefill and widget inputs. Only
+Definition-local <code>instances</code> supply FEL
+<code>@instance()</code> values.</p>
 <p>Each Data Source MUST also declare its content via one of the
 following mechanisms:</p>
 <table>

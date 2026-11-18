@@ -1,0 +1,22 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.gov/definitions/matter-summary",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Matter summary",
+  "items": [],
+  "instances": {
+    "matter": {
+      "response": {
+        "definition": { "url": "https://example.gov/apps/data-aware-workspace/definition" },
+        "subject": [
+          { "key": "matterId", "op": "eq", "from": { "routeParam": "matterId" } }
+        ],
+        "status": "completed",
+        "cardinality": "latest",
+        "pin": "none"
+      },
+      "schema": { "matterName": "string" }
+    }
+  }
+}

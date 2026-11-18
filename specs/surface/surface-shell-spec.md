@@ -593,22 +593,22 @@ The slot renders the bound Definition as a live form.
   availability, obtains host authorization, loads, and validates the source in
   Data Sources 1.0 order. The shell SHOULD finish this work before mounting the
   form engine and MUST expose a perceivable, live loading status while no form
-  is mounted. A direct `definition-response` binding hydrates from
-  `Response.data`, never from the enclosing Form Response. When `mappingRef` is
-  present, the shell resolves that exact App Manifest Mapping handle and runs
-  the existing Mapping DSL in reverse; it MUST NOT interpret inline field maps.
-  The mapped result is Definition field data, and the shell hands it to the form
-  engine's response loader — the same entry a host uses to supply saved
-  `Response.data` directly. Loaded data replaces Definition `initialValue` and
+  is mounted. Under [Data Sources §12.2](../data-sources/data-sources-spec.md#122-delivery-order-and-fail-closed-behavior),
+  a successful empty selection supplies no prefill, and the form uses its
+  normal initialization. For a delivered payload, the shell produces one
+  `Response.data`-shaped object, applying the exact App Manifest Mapping named
+  by `mappingRef` in reverse when declared. It hands that object to the form
+  engine's response loader. Loaded data replaces Definition `initialValue` and
   `prePopulate` defaults (Core §4.2.3) for every key it carries; keys it omits
   keep their default. The binding is the shell's fetch-and-authorize path to that
   loader, not a third population model.
-- **Refresh safety.** The shell keeps loaded `recordId`, route/session
+- **Refresh safety.** The shell keeps Data Sources read evidence, route/session
   generation, and owner revision as separate metadata. A result from an
   obsolete generation MUST NOT mount or replace a form. Once a person has
   changed a mounted form, a later load or refresh MUST NOT reset that form.
   Navigating away may unmount it; revisiting repeats the qualified load and
   restores whatever the source currently selects.
+  A change of the resolved filing unit opens a fresh form; refresh safety applies within one unit.
 - **Response identity.** A route MAY carry more than one `definition-form` slot.
   Each live form instance is a separate Response instance owned by the Core
   Response contract ([surface-spec](surface-spec.md) §5.1). A

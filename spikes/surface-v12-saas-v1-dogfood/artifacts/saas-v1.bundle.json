@@ -6075,14 +6075,15 @@
         {
           "id": "response:organization-setup",
           "kind": "definition-response",
-          "definitionRef": "https://formspec.cloud/definitions/organization-setup",
-          "definitionVersion": "0.12.0",
           "responseSelection": {
+            "definition": {
+              "url": "https://formspec.cloud/definitions/organization-setup",
+              "compatibleVersions": "0.12.0"
+            },
+            "subject": [],
             "status": "completed",
             "cardinality": "latest",
-            "orderBy": "authored-desc",
-            "tieBreak": "response-id-asc",
-            "partitionBy": "definition"
+            "pin": "none"
           },
           "description": "Latest completed organization setup Response.",
           "schema": {

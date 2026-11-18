@@ -7,6 +7,7 @@
 
 /* eslint-disable */
 import type { Generation } from './common.js';
+import type { ResolvedInstanceRecord } from './response.js';
 /**
  * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema
  * via the `definition` "SurfaceScenarioCatalogRef".
@@ -181,6 +182,18 @@ export interface SurfaceScenarioLoadedSource {
   sourceRef: SurfaceScenarioSourceRef;
   status: 'loaded';
   freshness: 'fresh' | 'stale';
+  /**
+   * Selected record evidence for a non-draft Definition-response source.
+   */
+  records?: ResolvedInstanceRecord[];
+  /**
+   * Digest of the exact delivered selection value.
+   */
+  valueDigest?: string;
+  /**
+   * True when an authorized selection has no match and admits an empty result.
+   */
+  none?: boolean;
   'x-generation'?: Generation;
   value: unknown;
 }

@@ -18,6 +18,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
+import { canonicalJsonBytes, canonicalResponseHandoffBytes } from "@formspec-org/integrity-canonical";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1599,8 +1600,8 @@ function responseSourceBindings(catalogHandles, response) {
     (Array.isArray(document.sources) ? document.sources : []).flatMap(
       (source) =>
         source?.kind === "definition-response" &&
-        source?.definitionRef === response.definitionUrl &&
-        source?.definitionVersion === response.definitionVersion
+        source?.runtime?.delivery !== "draft" &&
+        source?.responseSelection?.definition?.url === response.definitionUrl
           ? [{ catalogRef, sourceRef: source.id }]
           : []
     )
@@ -1845,6 +1846,11 @@ async function observeExpectation({
       );
       if (matches.length !== 1) return undefined;
       const load = matches[0];
+      const recordId = load.result.status === "loaded"
+        ? load.result.records?.length === 1
+          ? load.result.records[0].responseId
+          : load.result.recordId
+        : undefined;
       return {
         ...common,
         source: {
@@ -1860,9 +1866,7 @@ async function observeExpectation({
             ? {
                 freshness: load.result.freshness,
                 valueDigest: await sha256Digest(load.result.value),
-                ...(typeof load.result.recordId === "string"
-                  ? { recordId: load.result.recordId }
-                  : {}),
+                ...(recordId === undefined ? {} : { recordId }),
               }
             : {}),
           requestId: load.requestId,
@@ -1957,7 +1961,9 @@ async function makeCaseRuntime({
       return document ? [{ catalogRef: ref.url, document }] : [];
     }
   );
-  const responseStore = createPreviewDefinitionResponseStore(catalogHandles);
+  const responseStore = createPreviewDefinitionResponseStore(catalogHandles, {
+    canonicalJsonBytes, canonicalResponseHandoffBytes,
+  });
   const routeRuntimes = new Map();
   const actionRuntimes = new Map();
   const pendingLoads = new Set();

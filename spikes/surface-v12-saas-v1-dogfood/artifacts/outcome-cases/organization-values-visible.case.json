@@ -292,7 +292,7 @@
           "kind": "artifact-declaration",
           "subject": {
             "artifactRef": "https://formspec.cloud/data-sources/saas-v1",
-            "artifactDigest": "sha256:a8c9ab06229b6f7f8ced8f4f435ff84e5f71c07eb7f3dc301a4ecd4886d9502d",
+            "artifactDigest": "sha256:7242e5af1aa73bf342f7ad994f47a2012ea1bd5c5e3d328178bcb2084bb1eb5a",
             "subjectKind": "data-source",
             "subjectRef": "response:organization-setup"
           }
@@ -318,7 +318,7 @@
       "stepRef": "open-administration",
       "recordStepRef": "finish-onboarding",
       "catalogRef": "https://formspec.cloud/data-sources/saas-v1",
-      "catalogDigest": "sha256:a8c9ab06229b6f7f8ced8f4f435ff84e5f71c07eb7f3dc301a4ecd4886d9502d",
+      "catalogDigest": "sha256:7242e5af1aa73bf342f7ad994f47a2012ea1bd5c5e3d328178bcb2084bb1eb5a",
       "sourceId": "response:organization-setup",
       "state": "loaded",
       "freshness": "fresh",

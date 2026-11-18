@@ -11,6 +11,7 @@ Source schema: `schemas/surface.schema.json`
 - Surface drafts are authoring projections, not source artifacts. `readSurfaceDraft` may expose incomplete state with diagnostics; `exportSurfaceDocument` is the fail-closed gate before a value becomes a published Surface document.
 - Surface-local conformance requires schema validity, publish/export diagnostics clean enough for publication, E606-clean route reachability from `entry`, and E607-clean embed-route bindings.
 - `static-content` images require authored `binding.alt`; an empty string marks an image decorative, and processors never synthesize alternative text from another field.
+- `definition-form` slots map route parameters to the bound Definition's filing-unit keys with `subjectKeys`. App-graph validation checks the map against the Definition and route.
 - `module-widget` slots bind declared module widgets by `moduleId` and `widgetName`; `binding.config` supplies declared props, named `dataBindings` resolve declared Registry 1.1 inputs through exact Data Sources references, and named `actionBindings` map declared outputs to exact Response Actions IDs.
 - A widget receives only `emitAction(outputName)`. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.
 - Component 1.2 `targetSurfaceRoutes[]` may point at Surface routes and optional slot ids, but Surface does not list mounted Components or own Component route/node identity; those stay with App Manifest resolution and app-graph validation.
@@ -31,7 +32,7 @@ Source schema: `schemas/surface.schema.json`
 - Route reachability is local to the Surface document: every route must be reachable from `entry` via transitions or embed-route slots, plus local native Screener allowedTargets in Surface 0.3; unresolved embed-route bindings fail E607.
 - Surface declares transition triggers only. Response Actions remains the executor for preconditions, validation tuple selection, effects, idempotency, replay, retry, blocking, and terminal state.
 - Surface 0.2 image bindings require alt exactly for kind=image, preserve it exactly, treat the empty string as decorative, and forbid alt on every other static-content kind; title, URL, and filename are never fallback text.
-- Surface 0.2 module-widget bindings map Registry 1.1 data input names to exact {catalogRef,sourceRef} Data Sources 1.0 pairs and action output names to exact {actionRef} Response Actions IDs; config remains static authored configuration.
+- Slots bind data by type. Module widgets bind named inputs to exact {catalogRef,sourceRef} pairs and outputs to exact {actionRef} IDs. Definition forms bind filing-unit keys to route parameters with subjectKeys.
 - Component 1.2 targetSurfaceRoutes[] may target Surface route and slot ids, but Surface does not list mounted Components or own Component membership; cross-artifact resolution belongs to App Manifest resolution and app-graph validation.
 - `routeClass` is an OPTIONAL closed, non-extensible vocabulary (`intake|proof|ceremony|verification|attestation|authentication|operation`) naming what a route presents. Exactly one value, `intake`, admits tenant chrome theming; every other value refuses. Rules derive from it and are enforced on consuming artifacts, not restated on the route; it is orthogonal to access posture and route lifecycle.
 
@@ -42,6 +43,6 @@ Source schema: `schemas/surface.schema.json`
 - E606 covers unreachable routes and E607 covers unresolved embed-route slot targets.
 - Surface module-widget slots must resolve moduleId and widgetName through loaded module contributions, validate binding.config against widgetShape.props, resolve every data/action binding by exact declared name, and never discover sources or actions from filenames, order, local ids, or same-named fields.
 - A missing required widget input makes the widget unavailable; an absent optional input is omitted from the read-only named input object.
-- Component targetSurfaceRoutes[] claims resolve against Surface route and slot ids in app-graph validation; Surface-local conformance does not synthesize Component membership.
+- App-graph validation resolves Component targetSurfaceRoutes[] against Surface route and slot ids, and checks definition-form subjectKeys against the Definition subject and route parameters. Convert integer keys from route strings exactly in base 10.
 - App Manifest Surface references use URL/version sibling identity, never local fixture paths, filenames, URL suffix conventions, or implicit sibling discovery.
 - `routeClass` has no default: absence means *unclassified*, a distinct state from `operation`, and processors must not treat absence as `operation`. At authoring time an unclassified route cannot fire a class-keyed refusal and remains publishable; at runtime the Surface Shell separately refuses tenant theming because silence does not grant theme authority.

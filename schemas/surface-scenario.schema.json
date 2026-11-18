@@ -140,6 +140,19 @@
             "stale"
           ]
         },
+        "records": {
+          "type": "array",
+          "items": { "$ref": "https://formspec.org/schemas/response/1.0#/$defs/ResolvedInstanceRecord" },
+          "description": "Selected record evidence for a non-draft Definition-response source."
+        },
+        "valueDigest": {
+          "$ref": "https://formspec.org/schemas/response/1.0#/$defs/Sha256Digest",
+          "description": "Digest of the exact delivered selection value."
+        },
+        "none": {
+          "type": "boolean",
+          "description": "True when an authorized selection has no match and admits an empty result."
+        },
         "x-generation": {
           "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
           "description": "Direct generation provenance for this qualified source outcome as one semantic unit. Strict data-only preview validation requires the outcome's own current adopted Need anchor and does not inspect rows, cells, or nested value members as separate nodes."

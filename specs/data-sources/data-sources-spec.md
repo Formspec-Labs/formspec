@@ -22,10 +22,9 @@ depends_on:
 
 This document is a draft normative companion to [Formspec v1.0 core specification](../core/spec.md) and [App Manifest](../bundle/app-manifest-spec.md). It defines a peer app-graph Data Sources catalog for sources that must be resolved across an app, route, slot, module, or external resource boundary.
 
-This document is additive. It does not replace Definition-local `instances` or
-authorize fine-grained access policy. Section 12 defines the narrow runtime
-loader boundary for admitted source descriptions; it does not define the
-server-side authorization policy behind that boundary.
+This document extends app-level delivery. Core owns Definition-local
+`instances`, and the server owns fine-grained data-access authorization.
+Section 12 defines how the runtime requests and qualifies a catalog value.
 
 ## Bottom Line Up Front
 
@@ -34,7 +33,7 @@ server-side authorization policy behind that boundary.
 - App Manifest v2.1 introduces `dataSources[]` sibling references by URL/version; v2.0 manifests remain valid but cannot carry `dataSources[]`.
 - Each source declares a closed source family, owner, scope, availability selector, runtime delivery/cache/failure/provenance behavior, and coarse authorization boundary.
 - Route or slot availability MUST include a Surface URL because App Manifests may compose multiple Surfaces and route ids are not graph-global.
-- A `definition-response` source delivers and validates the selected Response's `data` object, not the Form Response envelope; AppGraph checks direct top-level schema properties against the exact resolved Definition.
+- Snapshot and live `definition-response` sources use Core's subject-keyed `ResponseSelection` for prefill and widget inputs. A successful result carries data and separate record evidence.
 - The catalog never embeds local fixture paths, widget payload folklore, or runtime data. Cross-artifact resolution belongs to `ArtifactResolver` and `AppGraphValidator`.
 - Fine-grained actor, operation, route, widget, or field authorization stays fail-closed here by decision, not by deferral: runtime data-access authorization is server-side engine territory (ADR 0117, Zanzibar-lineage behind `AuthorizationPort`), and ADR 0152 (accepted) covers authoring-time write authority only.
 - ADR 0153 gate 5 "Closed" is the catalog contract. The availability validator (`fs-r2od`) and runtime loader (`fs-9d5e`) are now implemented; their durable source and test evidence lives in the linked tracker records.
@@ -56,7 +55,7 @@ In scope:
 - source family taxonomy,
 - source owner and scope metadata,
 - source-to-app, Definition, Surface, route, slot, or module availability,
-- deterministic non-draft Definition-response selection,
+- subject-keyed Definition-response selection for app consumers,
 - delivery, cache, staleness, failure-mode, and provenance declarations, and
 - a coarse authorization boundary that fails closed, leaving fine-grained runtime data access to the server-side engine (ADR 0117).
 
@@ -72,16 +71,15 @@ Out of scope:
 
 ## 2. Relationship to Definition Instances
 
-The core Definition spec already defines secondary instances. A Definition's top-level `instances` object is the authority for `@instance('name')` lookup inside that Definition. Form-only documents MAY keep using `instances` without an App Manifest Data Sources catalog.
+A Definition selects upstream Responses directly in `instances.<name>.response`
+under Core §4.4.1. Its top-level `instances` object is the sole authority for
+`@instance('name')` lookup. Form-only documents MAY use these instances
+without an App Manifest or Data Sources catalog.
 
-A Data Sources document does not create `@instance()` names by default. A processor MAY bridge a Data Source to a Definition instance only when a later app-graph validator or runtime loader explicitly defines that mapping. Until then, Definition-local `instances` and peer Data Sources are separate contracts:
-
-| Surface                | Owns                                                                                                     |
-| ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| Definition `instances` | form-local secondary data exposed to FEL `@instance()`                                                   |
-| Data Sources document  | app-level source family, availability, cache, failure, provenance, and coarse authorization declarations |
-
-This split preserves the simple-form path and prevents app-level source catalogs from silently changing Definition semantics.
+The catalog uses the same selection for app consumers such as Surface
+`initialData` prefill and widget lists. Catalog delivery MUST NOT create or
+populate a Definition instance. Prefill supplies editable initial answers
+through the Surface binding in §12.2.
 
 ## 3. Document Structure
 
@@ -117,28 +115,22 @@ A conforming Data Sources document MUST include `$formspecDataSources`, `id`, `v
 
 Every `sources[]` entry MUST have a unique `id`, a `kind`, an `owner`, a `scope`, an `availability` selector, and `runtime` behavior.
 
-<!-- schema-ref:start id=data-source-shape schema=schemas/data-sources.schema.json pointers=#/$defs/DataSource,#/$defs/ResponseSelection -->
+<!-- schema-ref:start id=data-source-shape schema=schemas/data-sources.schema.json pointers=#/$defs/DataSource -->
 <!-- generated:schema-ref id=data-source-shape -->
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
 | `#/$defs/DataSource/properties/availability` | `availability` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/Availability</code> | — |
-| `#/$defs/DataSource/properties/definitionRef` | `definitionRef` | <code>string</code> | no | — | Canonical Definition URL when this source family reads or exposes Definition-response state. |
-| `#/$defs/DataSource/properties/definitionVersion` | `definitionVersion` | <code>string</code> | no | — | Exact Definition version used to partition non-draft Definition-response selection. The pair (definitionRef, definitionVersion) is immutable selection identity. |
+| `#/$defs/DataSource/properties/definitionRef` | `definitionRef` | <code>string</code> | no | — | Canonical Definition URL for a session draft (runtime.delivery draft). Snapshot and live Response selections use responseSelection.definition. |
 | `#/$defs/DataSource/properties/description` | `description` | <code>string</code> | no | — | — |
 | `#/$defs/DataSource/properties/extensions` | `extensions` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Extensions</code> | — |
 | `#/$defs/DataSource/properties/id` | `id` | <code>string</code> | yes | pattern: <code>^(host&#124;response&#124;resource&#124;query&#124;conversation&#124;route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*&#36;</code> | Stable source id unique within this document. Prefix MUST match kind: host, response, resource, query, conversation, or route. |
 | `#/$defs/DataSource/properties/kind` | `kind` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/DataSourceKind</code> | — |
 | `#/$defs/DataSource/properties/owner` | `owner` | <code>string</code> | yes | enum: <code>"host"</code>, <code>"formspec"</code>, <code>"module"</code> | Runtime owner responsible for supplying this source. This is ownership metadata, not authorization. |
-| `#/$defs/DataSource/properties/responseSelection` | `responseSelection` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseSelection</code> | Complete deterministic selection policy for a non-draft Definition-response source. |
+| `#/$defs/DataSource/properties/responseSelection` | `responseSelection` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/response/1.0#/&#36;defs/ResponseSelection</code> | Shared subject-keyed selection for snapshot or live Definition-response sources. Predicates may use the consumer subject or active route parameters. |
 | `#/$defs/DataSource/properties/runtime` | `runtime` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/RuntimeBehavior</code> | — |
 | `#/$defs/DataSource/properties/schema` | `schema` | <code>object</code> | no | — | Optional JSON Schema fragment describing payload shape. This is a contract for hosts and validators, not inline source data. |
 | `#/$defs/DataSource/properties/scope` | `scope` | <code>string</code> | yes | enum: <code>"session"</code>, <code>"route"</code>, <code>"definition"</code>, <code>"resource"</code> | Lifetime or addressing scope for the source. |
 | `#/$defs/DataSource/properties/x-generation` | `x-generation` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Generation</code> | Direct generation provenance for this Data Source declaration. Strict data-only authoring profiles require this source's own current adopted Need anchor; catalog or consuming widget-binding anchors do not cover it. |
-| `#/$defs/ResponseSelection/properties/cardinality` | `cardinality` | <code>const</code> | yes | const: <code>"latest"</code> | Return exactly the latest matching Response when one exists. |
-| `#/$defs/ResponseSelection/properties/orderBy` | `orderBy` | <code>const</code> | yes | const: <code>"authored-desc"</code> | Order matching Responses by the RFC 3339 instant represented by authored, newest first. |
-| `#/$defs/ResponseSelection/properties/partitionBy` | `partitionBy` | <code>const</code> | yes | const: <code>"definition"</code> | Select only within the exact (definitionRef, definitionVersion) partition. |
-| `#/$defs/ResponseSelection/properties/status` | `status` | <code>const</code> | yes | const: <code>"completed"</code>; <code>&#36;ref</code>: <code>https://formspec.org/schemas/response/1.0#/&#36;defs/ResponseStatus</code> | Select only Responses whose owner-defined ResponseStatus is completed. |
-| `#/$defs/ResponseSelection/properties/tieBreak` | `tieBreak` | <code>const</code> | yes | const: <code>"response-id-asc"</code> | Resolve equal authored instants by Response id ascending in unsigned UTF-8 byte order. |
 <!-- schema-ref:end -->
 
 ### 4.1 Source Identity and Kind
@@ -148,62 +140,66 @@ Every `sources[]` entry MUST have a unique `id`, a `kind`, an `owner`, a `scope`
 | Kind                  | ID prefix       | Meaning                                                                                     |
 | --------------------- | --------------- | ------------------------------------------------------------------------------------------- |
 | `host-state`          | `host:`         | Host application state such as active matter, current user profile, or environment context. |
-| `definition-response` | `response:`     | Draft or completed Response state for a named Definition.                                   |
+| `definition-response` | `response:`     | The session draft or subject-keyed Responses for a named Definition.                         |
 | `document-resource`   | `resource:`     | External document, attachment, knowledge base, or reference resource.                       |
 | `conversation-stream` | `conversation:` | Conversation transcript or stream supplied by a host or module.                             |
 | `query-result`        | `query:`        | Materialized result of a host-defined query.                                                |
 | `route-params`        | `route:`        | Route parameter values made available to consumers on a Surface route.                      |
 
-The `id` prefix MUST match `kind`. A `definition-response` source MUST declare `definitionRef` as a canonical Definition URL.
+The `id` prefix MUST match `kind`. A session draft names its Definition with
+`definitionRef`. Snapshot and live selections name it with
+`responseSelection.definition`.
 
 Source ids MUST be unique within one Data Sources document. JSON Schema cannot enforce uniqueness by object property, so processors MUST reject duplicates.
 
 ### 4.2 Non-draft Definition-response selection
 
-A `definition-response` source with `runtime.delivery: "snapshot"` or
-`runtime.delivery: "live"` MUST declare `definitionVersion` and the complete
-closed `responseSelection` object:
+A `definition-response` source with snapshot or live delivery MUST declare
+the shared [`ResponseSelection`](../core/spec.md#response-selection) from
+`response.schema.json#/$defs/ResponseSelection`. Its `definition.url` and
+optional `definition.compatibleVersions` identify the upstream Definition and
+eligible versions. The source MUST omit a top-level `definitionRef`.
 
-| Field         | Required value    | Meaning                                                                                              |
-| ------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
-| `status`      | `completed`       | Uses the owner-defined `ResponseStatus`; amended, stopped, and in-progress Responses are ineligible. |
-| `cardinality` | `latest`          | Return at most one matching Response.                                                                |
-| `orderBy`     | `authored-desc`   | Prefer the newest RFC 3339 instant represented by Response `authored`, after applying its timezone.  |
-| `tieBreak`    | `response-id-asc` | For equal instants, prefer the smallest Response `id` in unsigned UTF-8 byte order.                  |
-| `partitionBy` | `definition`      | Restrict candidates to the exact `(definitionRef, definitionVersion)` pair.                          |
+`from.routeParam` is allowed only in catalog sources and refers to a parameter
+of the active route. `from.subject` reads a key of the consuming Response's
+subject. The loader MUST use the input named by each predicate. A missing or
+invalid input makes the source unavailable. A widget has no consuming subject,
+so a `from.subject` predicate makes its source unavailable. Use Core §2.1.6 to
+compare typed keys, parse integer route parameters exactly, and apply any integer offset.
+The selection service MUST apply Core's scope, read authorization, filtering,
+ordering, cardinality, and pin rules. Invalid ordering fields or distinct
+candidates with identical ordering keys make the source unavailable.
 
-The loader MUST filter by the exact Definition pair and completed status before
-ordering. It MUST parse `authored` as an RFC 3339 date-time; raw timestamp
-strings are not the ordering key. Every candidate after filtering MUST have a
-valid `authored` value and stable Response `id`. Two distinct candidates with
-the same authored instant and Response id are ambiguous. In any of these
-invalid or ambiguous cases, the host MUST report the source unavailable.
+`whenNone` defaults to `unavailable`. With `whenNone: "empty"`, an authorized
+query that finds no eligible record yields a loaded result with `none: true`,
+an empty `records` array, and a null value. The catalog supplies no fallback
+data and skips the Mapping on this path. Refusal or selection failure always
+yields `unavailable`.
 
-The loader MUST NOT substitute the newest Response across Definition versions,
-current-session state, array order, locale-sensitive string comparison, or
-host-specific default ordering. No eligible Response also produces an
-unavailable result; it does not produce an empty or sample Response.
+For a match, the payload is the selected record's `Response.data` for
+`latest`, or an array of those objects in selection order for
+`latest-per-subject`. With no Mapping, the direct `source.schema.properties`
+names, or `source.schema.items.properties` for a list, limit the root keys
+delivered per record when declared. When `responseSelection.mapping` is set,
+the Mapping's declared upstream reads define its input projection.
+Run the Mapping forward on the object or once on the whole array.
+`source.schema` validates the Mapping's output when declared. Response
+identity and read evidence travel as loader metadata (§12.1). See
+[ADR 0172 §11 item 8](../../../thoughts/adr/0172-subject-keyed-response-selection.md#11-amendments).
 
-A `definition-response` source with `runtime.delivery: "draft"` addresses the
-current-session draft. It remains valid without `definitionVersion` and MUST
-omit `responseSelection`; its `cache.mode` remains `draft`.
+AppGraphValidator MUST resolve the target URL and compatible versions for
+each selection and use Core's `check_instance_projection` to verify the
+upstream keys and types the source reads against every admitted Definition
+version. For an unmapped payload, compare direct properties of the record
+schema with root data-producing fields and groups. For a list, use the item
+schema. Children of a group stay nested under its key, and display items
+produce no data keys. For a mapped payload, check the Mapping's upstream
+reads and compare the declared payload shape with its output. Report an
+indeterminate error when unsupported schema composition prevents the check.
 
-The loaded source value for every `definition-response` delivery is the
-selected Form Response's `data` object. It is not the Form Response envelope.
-Response identity travels separately as the loader result's `recordId`; fields
-such as Response `id`, `definition`, `status`, and `authored` are not implicit
-properties of the delivered value. A source `schema`, when present, therefore
-describes `Response.data` directly.
-
-App-graph validation MUST resolve `definitionRef` exactly and compare every
-direct top-level `source.schema.properties` name with the resolved Definition's
-top-level data-producing item keys. Root fields and groups produce keys; root
-display items do not, and children of a group remain nested under the group's
-key even when the group is repeatable. A property with no matching Definition
-key is an error. A property named `status` or `data` remains valid when the
-Definition genuinely declares that root data key. Validators MUST report an
-indeterminate error for unsupported top-level schema compositions instead of
-guessing a flattened property set.
+A draft source declares `definitionRef` and omits `responseSelection`. Its
+payload schema describes the session draft's `Response.data`. Compare its
+direct properties against the exact Definition resolved for the session draft.
 
 ### 4.3 Owner and Scope
 
@@ -248,6 +244,11 @@ Schema validation verifies selector shape. Cross-artifact resolution - for examp
 | `snapshot` | any cache mode except rules forbidden by `CacheRule`           |
 | `live`     | `cache.mode: "subscribe"`                                      |
 | `draft`    | source `kind: "definition-response"` and `cache.mode: "draft"` |
+
+`delivery: "draft"` reads the session's own draft. A snapshot or live
+selection with `status: "current"` reads a matching filing unit's open draft,
+or its latest completed Response when it has no open draft. The unit may
+belong to another respondent and is subject to that unit's read authorization.
 
 `runtime.cache.mode` is one of:
 
@@ -309,15 +310,17 @@ A Data-Sources-Aware Processor MUST:
 4. Reject `cache.mode: "none"` with `staleAfter`.
 5. Reject `delivery: "live"` unless `cache.mode` is `subscribe`.
 6. Reject `delivery: "draft"` unless the source is `kind: "definition-response"` and `cache.mode` is `draft`.
-7. Require the exact closed `responseSelection` policy and `definitionVersion` for every non-draft Definition-response source.
-8. Reject `responseSelection` on draft sources and reject
-   `definitionVersion` or `responseSelection` on every other source kind.
+7. Require the shared `ResponseSelection` for every snapshot or live
+   Definition-response source, including the default unavailable no-match rule.
+8. Require a source-level `definitionRef` only for a session draft and allow
+   `responseSelection` only for snapshot or live Definition-response sources.
+   Reject the removed source-level `definitionVersion` field.
 9. Reject provenance kind drift.
 10. Reject route or slot availability without a Surface URL.
 11. Reject fine-grained authorization fields not declared by this schema.
-12. For a `definition-response` source schema, resolve `definitionRef` exactly
-    and reject top-level properties that are not top-level `Response.data` keys
-    in that Definition; fail closed when the schema shape cannot be compared.
+12. Validate a `definition-response` source's predicates and schema against its
+    upstream Definition versions as specified in §4.2. Refuse indeterminate
+    checks. For a session draft, resolve `definitionRef` as specified in §4.2.
 
 ### 10.1 Conformance Fixtures
 
@@ -325,7 +328,8 @@ The normative fixture corpus lives at `tests/conformance/fixtures/data-sources/`
 
 | Fixture                              | Posture  | Proves                                                                                                                      |
 | ------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `valid-catalog.json`                 | positive | App-level, slot-level, draft and latest-completed Definition-response, and module-level sources validate.                   |
+| `valid-catalog.json`                 | positive | App, slot, module and draft sources validate, along with a route-keyed Response selection with `whenNone: "empty"`.          |
+| `invalid-instance-route-param.definition.json` | negative (Core lint) | A Definition-local response instance using `from.routeParam` violates Core §4.4.1 even though it has the shared selection shape. |
 | `duplicate-id.json`                  | negative | Duplicate source ids are semantic errors.                                                                                   |
 | `id-prefix-mismatch.json`            | negative | Source id prefix must match `kind`.                                                                                         |
 | `cache-none-stale-after.json`        | negative | `cache.mode: "none"` forbids `staleAfter`.                                                                                  |
@@ -351,7 +355,7 @@ validation, and the reference runtime live in the named packages below.
 | `AppGraphValidator` availability cross-artifact checks              | **Closed**                           | `@formspec-org/app-graph`; stack ticket [`fs-r2od`](../../../.tickets/fs-r2od.md)              |
 | Payload fetch and host loader port                                  | **Closed for snapshot MVP**          | §12; `@formspec-org/surface` canonical port and HTTP document-resource bridge                  |
 | Full cache, subscription, and draft-delivery enforcement            | **Open**                             | Later runtime work; not implied by the snapshot MVP                                            |
-| Source-to-Definition-instance bridge                                | **Open**                             | Explicit mapping only; not implied by catalog                                                  |
+| Definition instance reads and app catalog delivery                  | **Closed** (specification)           | Core §4.4.1 owns native instance selection. This catalog serves Surface prefill and widgets (§12.4). |
 | Renderer fallback / query language                                  | **Out of scope**                     | —                                                                                              |
 | Fine-grained runtime data-access authorization                      | **Out of this artifact by decision** | ADR 0117 (server-side engine behind `AuthorizationPort`); ADR 0152 §4.3 / §6 declines the axis |
 
@@ -373,7 +377,10 @@ is:
 - the active Surface URL/id, route id, slot id, route parameters, and opaque
   route/session generation; plus the exact Definition URL for a
   `definition-form` consumer or module id and widget name for a module-widget
-  consumer.
+  consumer; and
+- the consuming filing-unit subject, including typed keys, when a selector
+  uses `from.subject`. Supply the active route parameters for predicates using
+  `from.routeParam`.
 
 The source identity is always `(catalogRef, sourceRef)`. The runtime MUST resolve
 the catalog and source exactly once before calling the loader. It MUST NOT pass
@@ -394,12 +401,21 @@ identity. Consumers MUST NOT infer a result, source identity, or freshness from
 catalog order, a filename, a widget name, or a local clock.
 
 For a non-draft `definition-response` source, the qualified request also carries
-the exact source-declared `definitionRef`, `definitionVersion`, and
-`responseSelection`. The loader MUST return only the Response selected by §4.2
-or report the source unavailable, and a loaded result MUST set `recordId` to
-that selected Response's exact `id`. A generic host MUST NOT invent a meaning
-for “latest completed,” and a consumer MUST NOT derive `recordId` from an
-expectation, request, or prior action.
+the exact source-declared `responseSelection`. The loader MUST deliver the
+selection outcome from §4.2. A loaded result for this source MUST include
+the read evidence defined below alongside the value.
+
+| Field | Meaning |
+|---|---|
+| `records` | Array of Core `ResolvedInstanceRecord` objects in selection order. Each carries `responseId` and the exact `definitionVersion`. A completed record includes its handoff `responseHash`; a draft omits it. |
+| `valueDigest` | Core `Sha256Digest` of the exact delivered value, including null for a successful empty match. Use `integrity-canonical-json-v1` under the Core domain tag `formspec.instance.value.v1`. |
+| `none` | True for a successful empty match, with empty `records`. False requires at least one selected record. |
+| `newer` | For a pinned selection, include `{responseId, responseHash}` when a fresh selection would choose a different completed record. Keep the pinned value and records in the result. |
+
+The `records` array supplies identity for a catalog selection. A selection
+result MUST omit `recordId`. Other source deliveries, including the session
+draft, may use `recordId` for owner-produced record identity. An unavailable
+response selection carries no read evidence.
 
 A loaded result MAY also carry an owner-produced `revision` as a string or
 number. Consumers MUST preserve `recordId`, the active request's opaque
@@ -421,19 +437,22 @@ order:
 2. obtain a host authorization verdict at
    `runtime.authorizationBoundary`;
 3. call `DataSourceLoader`; and
-4. when `source.schema` is present, validate the returned value with the host's
-   JSON Schema validator. For `definition-response`, that value is
-   `Response.data`, never the enclosing Form Response.
+4. when `source.schema` is present, validate the delivered payload with the
+   host's JSON Schema validator. For `definition-response`, use the data
+   value described in §4.2. A successful empty selection has no payload
+   to validate; pass through its explicit `none` evidence.
 
-A missing authorization port is a refusal. A declared payload schema with no
-validator is a validation failure. Exceptions at any stage are unavailable
-outcomes, not successful empty values. The runtime MUST NOT expose a partial
+A missing authorization port is a refusal. If a delivered payload has a
+declared schema, a missing validator is a validation failure. Exceptions at
+any stage yield an unavailable outcome. The runtime MUST NOT expose a partial
 named input object when a required input fails.
 
 For Surface module widgets:
 
 - the delivered object is read-only and keyed only by Registry-declared input
   names;
+- a successful empty selection supplies null under its declared input name.
+  Keep its `none` evidence in load metadata;
 - an unbound optional input is absent;
 - any failed required input makes the widget unavailable and reports
   `WIDGET-DATA-REQUIRED-UNAVAILABLE`;
@@ -450,10 +469,11 @@ For a Surface `definition-form` initial-data binding, the same ordered checks
 run before engine hydration. The runtime delivers one object shaped as the
 bound Definition's `Response.data`. When the source value already has that
 shape, the Surface binding omits `mappingRef`; otherwise it names one existing
-Mapping DSL document by App Manifest handle and the runtime applies that
-Mapping in reverse. The form SHOULD mount only after successful delivery. A
-late generation MUST NOT replace current data, and no refresh may reset a form
-after person-originated edits.
+Mapping document by App Manifest handle and the runtime applies that Mapping
+in reverse. A successful empty selection supplies no prefill, and the form
+uses its normal initialization. The form SHOULD mount only after successful
+delivery. A late generation MUST NOT replace current data, and no refresh may
+reset a form after person-originated edits.
 
 Full snapshot expiration, subscription lifetime, draft synchronization, and
 cross-process cache coordination remain outside this MVP. A loader MUST still
@@ -470,11 +490,11 @@ non-HTTP provenance and every other source family rather than guessing.
 
 ### 12.4 Definition-instance boundary
 
-Definition `instances` remain the authority for `@instance()` inside a
-Definition unless a separate, explicit bridge maps a catalog source id to an
-instance name. Definition-local URL / `formspec-fn:` loading in Core §2.1.7 and
-`FormEngine` stays valid for form-only apps without a peer catalog. Neither
-mechanism aliases the other by name, URL, or load order.
+Core §4.4.1 owns Definition instance loading, including native
+`instances.<name>.response` selection and literal URI sources. A catalog
+source is consumed through the app binding that names it. Surface
+`initialData` delivers editable prefill, and widget bindings deliver named
+inputs. FEL `@instance()` reads only Definition-local instances.
 
 Implementation tracking: `fs-r2od` closed graph validation and `fs-9d5e`
 closed this snapshot loader MVP on 2026-07-28. Neither ticket claims the full

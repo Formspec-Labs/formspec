@@ -102,6 +102,7 @@ export function planMatchedRoute<TComponent>(
 
   const route = planRoute<TComponent>({
     handle: input.handle,
+    params: input.params,
     experiences: input.experiences,
     screenerHandles: input.screenerHandles,
     experienceHandles: input.experienceHandles,

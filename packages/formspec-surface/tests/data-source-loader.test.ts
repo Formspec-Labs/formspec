@@ -332,3 +332,58 @@ describe('document-resource host bridge', () => {
     expect(read).not.toHaveBeenCalled();
   });
 });
+
+it('delivers an authorized empty catalog selection under the widget input name', async () => {
+  const selected = descriptor(source({
+    kind: 'definition-response',
+    responseSelection: {
+      definition: { url: 'urn:upstream' }, subject: [{ key: 'case', op: 'eq', from: { routeParam: 'caseRef' } }],
+      status: 'completed', cardinality: 'latest', pin: 'none', whenNone: 'empty',
+    },
+    schema: { type: 'object' },
+  }));
+  const validatePayload = vi.fn();
+  const loader = vi.fn(() => ({
+    status: 'loaded' as const,
+    freshness: 'fresh' as const,
+    catalogRef: selected.catalogRef,
+    sourceRef: selected.sourceRef,
+    value: null,
+    none: true,
+    records: [],
+    valueDigest: 'sha256:' + 'a'.repeat(64),
+  }));
+  const result = await loadWidgetDataInputs({
+    inputs: [{ name: 'prior', required: true, status: 'ready', descriptor: selected }],
+    context,
+    loader,
+    authorize: () => ({ status: 'authorized' }),
+    validatePayload,
+    site: { routeId: context.routeId, slotId: context.slotId },
+  });
+  expect(loader).toHaveBeenCalledWith(expect.objectContaining({
+    responseSelection: selected.source.responseSelection, context,
+  }));
+  expect(result).toMatchObject({
+    status: 'ready', data: { prior: null }, selections: { prior: { none: true, records: [] } },
+  });
+  expect(validatePayload).not.toHaveBeenCalled();
+});
+
+it('withholds a required catalog selection when the consumer subject key is missing', async () => {
+  const selected = descriptor(source({
+    kind: 'definition-response',
+    responseSelection: {
+      definition: { url: 'urn:upstream' }, subject: [{ key: 'case', op: 'eq', from: { subject: 'case' } }],
+      status: 'completed', cardinality: 'latest', pin: 'none',
+    },
+  }));
+  const loader = vi.fn(() => ({ status: 'unavailable' as const, reason: 'fixture' }));
+  await expect(loadWidgetDataInputs({
+    inputs: [{ name: 'prior', required: true, status: 'ready', descriptor: selected }],
+    context, loader,
+    authorize: () => ({ status: 'authorized' }),
+    site: { routeId: context.routeId, slotId: context.slotId },
+  })).resolves.toMatchObject({ status: 'unavailable' });
+  expect(loader).not.toHaveBeenCalled();
+});

@@ -198,6 +198,54 @@
         ]
       }
     },
+    "surface.subject-keys": {
+      "slot": "surface",
+      "artifactKind": "surface",
+      "status": "loaded",
+      "source": "memory://surface/subject-keys",
+      "ref": {
+        "url": "https://example.gov/apps/surface-definition-slots/surfaces/respondent",
+        "version": "1.0.0"
+      },
+      "document": {
+        "$formspecSurface": "0.2",
+        "id": "respondent",
+        "entry": "intake",
+        "routes": [
+          {
+            "id": "intake",
+            "path": "/intake/{unit}",
+            "params": [{ "name": "unit", "type": "string" }],
+            "slots": [
+              {
+                "id": "form",
+                "slotType": "definition-form",
+                "binding": {
+                  "definitionRef": "https://example.gov/forms/intake",
+                  "subjectKeys": { "year": "missing" }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "definition.intake-with-subject": {
+      "slot": "definition",
+      "artifactKind": "definition",
+      "status": "loaded",
+      "source": "memory://definition/intake-with-subject",
+      "ref": { "url": "https://example.gov/forms/intake", "version": "1.0.0" },
+      "document": {
+        "$formspec": "1.0",
+        "url": "https://example.gov/forms/intake",
+        "version": "1.0.0",
+        "status": "active",
+        "title": "Intake",
+        "subject": { "type": "urn:filing", "keys": { "year": { "dataType": "integer" } } },
+        "items": [{ "key": "name", "type": "field", "label": "Name", "dataType": "string" }]
+      }
+    },
     "definition.eligibility": {
       "slot": "definition",
       "artifactKind": "definition",
@@ -225,6 +273,64 @@
     }
   },
   "cases": [
+    {
+      "id": "definition-form-subject-key-requires-declared-route-parameter",
+      "description": "A subject key binding must name a parameter declared on the containing route.",
+      "request": {
+        "manifest": "manifest.base",
+        "artifacts": {
+          "surface": ["surface.subject-keys"],
+          "definition": ["definition.intake-with-subject"]
+        }
+      },
+      "expected": {
+        "ok": false,
+        "summary": {
+          "artifacts": 3,
+          "loadedArtifacts": 3,
+          "schemaFailures": 0,
+          "unvalidatedArtifacts": 0,
+          "graphErrors": 1,
+          "errors": 1,
+          "warnings": 0,
+          "infos": 0,
+          "importedDiagnostics": 0,
+          "unsupportedFeatures": 0,
+          "skippedPhases": 0
+        },
+        "diagnostics": [
+          {
+            "code": "APP-GRAPH-SURFACE-SUBJECT-KEYS",
+            "primarySource": {
+              "artifactSlot": "surface",
+              "artifactKind": "surface",
+              "ref": {
+                "url": "https://example.gov/apps/surface-definition-slots/surfaces/respondent",
+                "version": "1.0.0"
+              },
+              "source": "memory://surface/subject-keys",
+              "jsonPointer": "/routes/0/slots/0/binding/subjectKeys/year"
+            },
+            "relatedSources": [
+              {
+                "artifactSlot": "definition",
+                "artifactKind": "definition",
+                "ref": { "url": "https://example.gov/forms/intake", "version": "1.0.0" },
+                "source": "memory://definition/intake-with-subject",
+                "jsonPointer": "/subject"
+              }
+            ],
+            "details": {
+              "reason": "subject-route-parameter-undeclared",
+              "routeId": "intake",
+              "slotId": "form",
+              "key": "year",
+              "parameter": "missing"
+            }
+          }
+        ]
+      }
+    },
     {
       "id": "definition-form-slot-resolves",
       "description": "Surface definition-form slot binding definitionRef matches a loaded Definition handle URL.",

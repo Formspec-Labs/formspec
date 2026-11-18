@@ -349,8 +349,51 @@ value needs transformation, and then MUST exactly match one App Manifest
 whose `definitionVersion` admits the bound Definition version, and admits
 reverse execution. Mapping rules, field maps, and literal initial data MUST NOT
 be inlined in the Surface binding. A direct `definition-response` binding
-consumes the selected Response's `data` member; Response identity and revision
-metadata remain outside Definition field data.
+consumes the delivered data value defined in Data Sources §4.2. It MUST
+produce one object shaped as the bound Definition's `Response.data` after any
+Mapping. A successful empty selection supplies no prefill. Response read
+evidence and revision metadata stay outside the form fields.
+
+### Definition-form subject keys
+
+A `definition-form` slot binds the filing unit with `subjectKeys`. Each
+property names a key in the bound Definition's `subject.keys` and each value
+names a parameter in the containing route's `params[]`. The example binds
+two keys on the route `/years/{year}/agencies/{agencyId}`.
+
+```json
+{
+  "definitionRef": "https://example.gov/definitions/grant-application",
+  "subjectKeys": { "ffy": "year", "uei": "agencyId" }
+}
+```
+
+AppGraphValidator MUST check every loaded version of the bound Definition.
+For each version, every declared subject key MUST have a binding, every
+binding key MUST exist in the subject declaration, and every bound parameter
+MUST be declared on the containing route. A nonempty key set requires
+`subjectKeys`. A per-scope
+singleton has an empty key set and may omit the map or declare `{}`. A
+Definition without a subject declaration MUST omit `subjectKeys`.
+
+Route parameter values remain strings. When the Definition declares a
+`string` key, use the resolved parameter as-is. For an `integer` key, require
+the canonical decimal spelling `0` or `-?[1-9][0-9]*` and use exact base-10
+conversion. For example, reject `02026` and `+2026` so each filing unit has one
+URL spelling for its integer keys. A missing or malformed value, or
+an integer outside the Internet JSON (I-JSON) range ±(2^53−1), MUST make the
+binding unavailable before draft lookup. Pass the typed keys to the server's
+authorized find-or-create operation. The server determines the filing-unit
+identity and applies access policy. See [Core §2.1.6](../core/spec.md#filing-unit-subject)
+and [ADR 0172 §11 item 9](../../../thoughts/adr/0172-subject-keyed-response-selection.md#11-amendments).
+
+A draft-review route MUST declare the same subject parameters as the form
+route and resolve them for the same Definition using the target form slot's
+`subjectKeys` and the typed conversion above. Missing or mismatched parameters
+MUST make review unavailable before any draft read. The runtime MUST authorize
+the resolved subject before reading its draft. An absent or denied draft MUST
+make review unavailable without revealing whether the draft exists.
+[ADR 0175 §4.4](../../../thoughts/adr/0175-surface-multi-form-status-and-workspace.md#44-one-runtime-draft-writer-and-two-adapters).
 
 ### Static-content image alternative text
 
@@ -410,6 +453,11 @@ matching module level may cover the widget. Definition-only availability does
 not cover a module widget. Data Sources 1.0 remains authoritative for payload
 schema, runtime authorization, delivery, failure, cache, stale-data, and
 provenance rules.
+
+A module widget that selects Responses by subject keys MUST use catalog
+`from.routeParam` predicates with the active route parameters. The runtime
+passes those parameters to the loader. A `definition-form` slot can also
+supply its resolved consuming subject for `from.subject` predicates.
 
 At runtime, the widget receives one read-only object keyed by declared input
 name. An unbound optional input is absent. A required input that is unbound,
@@ -527,7 +575,7 @@ closes the v0.2 slot-type list at five values:
 
 | slotType | Binding shape | Renders |
 |---|---|---|
-| `definition-form` | `{ definitionRef: string, presentation?: string }` | The bound Definition form. |
+| `definition-form` | `{ definitionRef: string, presentation?: string, initialData?: DefinitionFormInitialDataBinding, subjectKeys?: Record<string, string> }` | The bound Definition form. |
 | `experience-unit` | `{ experienceRef?: string, unitRef: string }` | Review-only Experience reasoning. Customer renderers emit no slot DOM or copy; explicit authoring/debug mode may show the resolved title and Needs. |
 | `module-widget`   | `{ moduleId: string, widgetName: string, config?: object, dataBindings?: Record<inputName, {catalogRef, sourceRef}>, actionBindings?: Record<outputName, {actionRef}> }` | A widget supplied by a declared module. |
 | `static-content`  | `{ kind: heading\|text\|image\|divider, content: string, alt?: string, level?: 1..6 }`, with `alt` required exactly for `image` | Inline literal content or an authored image reference. |
@@ -693,8 +741,9 @@ A Surface document is conformance-coherent when:
    declaration (E603); `module-widget.config` against the contributing
    module's `widgetShape.props` (E604); every `module-widget.dataBindings`
    input through its exact `(catalogRef, sourceRef)` and allowed availability;
-   and every `module-widget.actionBindings` output through its exact loaded
-   Response Actions action id.
+   every `module-widget.actionBindings` output through its exact loaded
+   Response Actions action id; and each `definition-form.binding.subjectKeys`
+   map against the bound Definition and containing route.
 6. Component `targetSurfaceRoutes[]` claims resolve against Surface route and
    slot ids in app-graph validation. Surface-local conformance does not require
    or synthesize Component membership.

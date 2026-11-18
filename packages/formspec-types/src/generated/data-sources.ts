@@ -7,6 +7,7 @@
 
 /* eslint-disable */
 import type { Extensions, Generation } from './common.js';
+import type { ResponseSelection } from './response.js';
 /**
  * This interface was referenced by `DataSourcesDocument`'s JSON-Schema
  * via the `definition` "DataSource".
@@ -18,13 +19,9 @@ export type DataSource = {
   id: string;
   kind: DataSourceKind;
   /**
-   * Canonical Definition URL when this source family reads or exposes Definition-response state.
+   * Canonical Definition URL for a session draft (runtime.delivery draft). Snapshot and live Response selections use responseSelection.definition.
    */
   definitionRef?: string;
-  /**
-   * Exact Definition version used to partition non-draft Definition-response selection. The pair (definitionRef, definitionVersion) is immutable selection identity.
-   */
-  definitionVersion?: string;
   responseSelection?: ResponseSelection;
   /**
    * Runtime owner responsible for supplying this source. This is ownership metadata, not authorization.
@@ -142,7 +139,7 @@ export type DataSourceLoadState = 'loaded' | 'unavailable';
 export type DataSourceFreshness = 'fresh' | 'stale';
 
 /**
- * Peer app-graph artifact declaring named Data Sources for app, route, slot, module, resource, and Definition-response availability. Definition-local instances remain the authority for @instance() lookup inside a Definition; this document is the app-level catalog consumed by App Manifest resolution and future AppGraphValidator work.
+ * Peer app-graph artifact declaring named Data Sources for app, route, slot, module, resource, and Definition-response availability. Definition-local instances remain the authority for @instance() lookup inside a Definition; this document is the app-level catalog for prefill, widget inputs, and other app consumers.
  */
 export interface DataSourcesDocument {
   /**
@@ -175,30 +172,32 @@ export interface DataSourcesDocument {
    */
   [k: `x-${string}`]: unknown;
 }
-/**
- * Complete deterministic selection policy for a non-draft Definition-response source.
- */
-export interface ResponseSelection {
+export interface TargetDefinition {
   /**
-   * Select only Responses whose owner-defined ResponseStatus is completed.
+   * Canonical URL of the target Definition.
    */
-  status: 'completed';
+  url: string;
   /**
-   * Return exactly the latest matching Response when one exists.
+   * Semver range expression describing which Definition versions this document supports.
    */
-  cardinality: 'latest';
+  compatibleVersions?: string;
+}
+export interface SubjectPredicate {
   /**
-   * Order matching Responses by the RFC 3339 instant represented by authored, newest first.
+   * Upstream subject key to compare.
    */
-  orderBy: 'authored-desc';
+  key: string;
   /**
-   * Resolve equal authored instants by Response id ascending in unsigned UTF-8 byte order.
+   * Compare the upstream key with the referenced value plus any offset. le and ge are allowed only for integer keys; eq preserves the declared type.
    */
-  tieBreak: 'response-id-asc';
+  op: 'eq' | 'le' | 'ge';
+  from: {
+    [k: string]: unknown;
+  };
   /**
-   * Select only within the exact (definitionRef, definitionVersion) partition.
+   * Added to the referenced key before comparison; allowed only for integer keys.
    */
-  partitionBy: 'definition';
+  offset?: number;
 }
 /**
  * This interface was referenced by `DataSourcesDocument`'s JSON-Schema

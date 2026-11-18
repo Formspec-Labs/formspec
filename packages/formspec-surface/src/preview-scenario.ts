@@ -14,6 +14,7 @@ import type {
 } from '@formspec-org/types';
 import { composeSurfaceApp, matchRoute } from './composition.js';
 import type { ResolvedBundle } from './bundle.js';
+import { catalogResponseSelection, isCatalogResponseSource, readDataSourceSelection } from './data-source-loader.js';
 import type {
   DataSourceAuthorizer,
   DataSourceDescriptor,
@@ -264,6 +265,9 @@ function structureProblems(value: unknown): string[] {
                 'status',
                 'freshness',
                 'value',
+                'records',
+                'valueDigest',
+                'none',
                 'x-generation',
               ]) ||
               (entry.freshness !== 'fresh' && entry.freshness !== 'stale') ||
@@ -543,44 +547,58 @@ export async function validateSurfacePreviewScenario(
       });
     }
 
-    if (input.validatePayload) {
-      for (let index = 0; index < profile.sources.length; index += 1) {
-        const outcome = profile.sources[index];
-        if (!outcome || outcome.status !== 'loaded') continue;
-        const resolved = exactSource(
-          input.bundle,
-          outcome.catalogRef,
-          outcome.sourceRef,
-        );
-        const descriptor = resolved.descriptor;
-        const schema = descriptor?.source.schema;
-        if (!descriptor || schema === undefined) continue;
-        let result: DataSourcePayloadValidationResult;
-        try {
-          result = await input.validatePayload({
-            profileId,
-            descriptor,
-            schema,
-            value: outcome.value,
-          });
-        } catch (error) {
-          result = {
-            valid: false,
-            reason: error instanceof Error ? error.message : String(error),
-          };
-        }
-        if (!result.valid) {
+    for (let index = 0; index < profile.sources.length; index += 1) {
+      const outcome = profile.sources[index];
+      if (!outcome || outcome.status !== 'loaded') continue;
+      const resolved = exactSource(
+        input.bundle,
+        outcome.catalogRef,
+        outcome.sourceRef,
+      );
+      const descriptor = resolved.descriptor;
+      const schema = descriptor?.source.schema;
+      if (!descriptor) continue;
+      if (isCatalogResponseSource(descriptor.source)) {
+        const evidence = readDataSourceSelection(descriptor, outcome);
+        if (!evidence) {
           diagnostics.push({
             code: 'SURFACE-SCENARIO-PAYLOAD-SCHEMA',
-            message:
-              result.reason ??
-              `Loaded value for (${outcome.catalogRef}, ${outcome.sourceRef}) does not match its Data Source schema.`,
-            path: `$.profiles.${profileId}.sources[${index}].value`,
+            message: 'The preview outcome omitted or returned invalid Response selection evidence.',
+            path: `$.profiles.${profileId}.sources[${index}]`,
             profileId,
             catalogRef: outcome.catalogRef,
             sourceRef: outcome.sourceRef,
           });
+          continue;
         }
+        if (evidence.none) continue;
+      }
+      if (schema === undefined || !input.validatePayload) continue;
+      let result: DataSourcePayloadValidationResult;
+      try {
+        result = await input.validatePayload({
+          profileId,
+          descriptor,
+          schema,
+          value: outcome.value,
+        });
+      } catch (error) {
+        result = {
+          valid: false,
+          reason: error instanceof Error ? error.message : String(error),
+        };
+      }
+      if (!result.valid) {
+        diagnostics.push({
+          code: 'SURFACE-SCENARIO-PAYLOAD-SCHEMA',
+          message:
+            result.reason ??
+            `Loaded value for (${outcome.catalogRef}, ${outcome.sourceRef}) does not match its Data Source schema.`,
+          path: `$.profiles.${profileId}.sources[${index}].value`,
+          profileId,
+          catalogRef: outcome.catalogRef,
+          sourceRef: outcome.sourceRef,
+        });
       }
     }
   }
@@ -668,6 +686,16 @@ export function createSurfacePreviewRuntime(
       return { status: 'unavailable', reason: 'scenario outcome is unavailable' };
     }
     if (outcome.status === 'loaded') {
+      if (isCatalogResponseSource(descriptor.source)) {
+        const identity = { catalogRef: outcome.catalogRef, sourceRef: outcome.sourceRef };
+        if (catalogResponseSelection(descriptor.source)?.subject.length) {
+          return { ...identity, status: 'unavailable', reason: 'Static preview outcomes cannot resolve Response predicates.' };
+        }
+        const selection = readDataSourceSelection(descriptor, outcome);
+        return selection
+          ? { ...identity, ...selection, status: 'loaded', freshness: outcome.freshness, value: outcome.value }
+          : { ...identity, status: 'unavailable', reason: 'Invalid preview Response selection evidence.' };
+      }
       return {
         status: 'loaded',
         freshness: outcome.freshness,

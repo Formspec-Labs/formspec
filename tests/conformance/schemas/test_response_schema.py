@@ -312,6 +312,19 @@ class TestResponseAuthor:
 class TestResponseSubject:
     """Subject sub-object validation."""
 
+    @pytest.mark.parametrize("value", [-(2**53 - 1), 2**53 - 1, "09007199254740992"])
+    def test_subject_key_accepts_i_json_boundaries_and_string_identifiers(self, value):
+        doc = _minimal_response()
+        doc["subject"] = {"id": "a" * 64, "type": "urn:filing", "keys": {"unit": value}}
+        _validate_response(doc)
+
+    @pytest.mark.parametrize("value", [-(2**53), 2**53])
+    def test_subject_key_refuses_out_of_range_integer(self, value):
+        doc = _minimal_response()
+        doc["subject"] = {"id": "a" * 64, "type": "urn:filing", "keys": {"unit": value}}
+        with pytest.raises(ValidationError):
+            _validate_response(doc)
+
     def test_valid_subject_with_id(self):
         doc = _minimal_response()
         doc["subject"] = {"id": "subj-1"}
