@@ -292,3 +292,27 @@ test('loadResponseData keeps every loaded row so over- and under-limit data repo
   // A resumed row uses its saved children, even if the old session had more.
   assert.equal(engine.repeats['orders[0].lines'].value, 0);
 });
+
+test('row removal preserves prior relevance and validation for surviving rows', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0', url: 'urn:test:row-history', version: '1.0.0',
+    items: [{ key: 'rows', type: 'group', repeatable: true, children: [
+      { key: 'show', type: 'field', dataType: 'boolean' },
+      { key: 'detail', type: 'field', dataType: 'string' },
+      { key: 'answer', type: 'field', dataType: 'string' },
+      { key: 'ok', type: 'field', dataType: 'boolean' },
+    ] }],
+    binds: [
+      { path: 'rows.detail', relevant: '$show', default: 'DEFAULTED' },
+      { path: 'rows.answer', required: 'true' },
+      { path: 'rows.ok', calculate: 'valid($answer)' },
+    ],
+  }, { responseData: { rows: [
+    { show: false, answer: 'first' }, { show: true, detail: '', answer: '' },
+  ] } });
+  try {
+    engine.removeRepeatInstance('rows', 0);
+    assert.equal(engine.signals['rows[0].detail'].value, '');
+    assert.equal(engine.signals['rows[0].ok'].value, false);
+  } finally { engine.dispose(); }
+});

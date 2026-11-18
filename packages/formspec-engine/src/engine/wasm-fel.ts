@@ -21,7 +21,7 @@ export type WasmPreviousValidation = Array<{
 export function wasmEvaluateDefinitionPayload(options: {
     nowIso: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
-    previousResult: EvalResult | null;
+    previousResult: Pick<EvalResult, 'nonRelevant' | 'validations'> | null;
     instances: Record<string, unknown>;
     registryDocuments: unknown[];
     subjectType?: string | null;

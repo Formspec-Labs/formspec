@@ -452,14 +452,23 @@ export class FormEngine implements IFormEngine {
         }
         this.rebuildRepeatRows(path, item, index);
         const prefix = `${path}[`;
-        this._pendingCreationPaths = new Set([...this._pendingCreationPaths].flatMap(pending => {
-            if (!pending.startsWith(prefix)) return [pending];
-            const end = pending.indexOf(']', prefix.length);
-            const row = Number(pending.slice(prefix.length, end));
+        const shift = (fieldPath: string): string[] => {
+            if (!fieldPath.startsWith(prefix)) return [fieldPath];
+            const end = fieldPath.indexOf(']', prefix.length);
+            const row = Number(fieldPath.slice(prefix.length, end));
             if (row === index) return [];
-            return [row > index ? `${prefix}${row - 1}${pending.slice(end)}` : pending];
-        }));
-        this._evaluate();
+            return [row > index ? `${prefix}${row - 1}${fieldPath.slice(end)}` : fieldPath];
+        };
+        this._pendingCreationPaths = new Set([...this._pendingCreationPaths].flatMap(shift));
+        const shiftFindings = <T extends { path: string }>(findings: T[]): T[] =>
+            findings.flatMap(finding => shift(finding.path).map(path =>
+                path === finding.path ? finding : { ...finding, path }));
+        this._externalValidation.splice(0, this._externalValidation.length, ...shiftFindings(this._externalValidation));
+        const previous = this._fullResult;
+        this._evaluate(previous && {
+            nonRelevant: previous.nonRelevant.flatMap(shift),
+            validations: shiftFindings(previous.validations),
+        });
     }
 
     /** Resume saved Response data with its exact row counts and answered fields. */
@@ -1844,7 +1853,7 @@ export class FormEngine implements IFormEngine {
         });
     }
 
-    private _evaluate(previousResult: EvalResult | null = this._fullResult): void {
+    private _evaluate(previousResult: Pick<EvalResult, 'nonRelevant' | 'validations'> | null = this._fullResult): void {
         const baseResult = wasmEvaluateDefinition(
             this.definition,
             this.editingData(),
