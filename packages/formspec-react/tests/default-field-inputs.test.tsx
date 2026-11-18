@@ -1945,6 +1945,18 @@ describe('Select — clear button icon aria-hidden', () => {
 // ── FileUpload drop zone accessibility ─────────────────────────────
 
 describe('FileUpload — drop zone accessibility (axe, WCAG A/AA)', () => {
+    it('preserves authored FileUpload semantics around the named control group', () => {
+        const def = baseDef([{ key: 'doc', type: 'field', dataType: 'attachment', label: 'Evidence' }]);
+        const container = renderField(def, {
+            id: 'doc', component: 'FileUpload', category: 'field', bindPath: 'doc',
+            accessibility: { role: 'region', description: 'Evidence from the applicant' },
+            props: {}, cssClasses: [], children: [],
+        });
+        const region = container.querySelector('[role=region]')!;
+        expect(region?.getAttribute('aria-description')).toBe('Evidence from the applicant');
+        expect(region.querySelector('fieldset legend')?.textContent).toBe('Evidence');
+    });
+
     it.each([true, false])('names and describes the upload keyboard control (dragDrop %s)', (dragDrop) => {
         const def = {
             ...baseDef([{ key: 'doc', type: 'field', dataType: 'attachment', label: 'Evidence', hint: 'Attach a receipt' }]),

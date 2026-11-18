@@ -12,6 +12,7 @@ base('the keyboard and reader reach the readonly value and the named upload acti
     const toggle = page.getByRole('switch', { name: 'Approved' });
     await walk.field('intro.approved', { label: 'Approved' });
     await expect(toggle).toBeFocused();
+    expect(await walk.sr.lastSpokenPhrase()).toMatch(/(?:^|, )(checked|on)(?:,|$)/i);
     await expect(toggle).toBeChecked();
     await expect(toggle).toHaveAttribute('aria-readonly', 'true');
     await page.keyboard.press('Space');

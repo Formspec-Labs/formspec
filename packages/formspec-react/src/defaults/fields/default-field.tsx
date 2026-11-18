@@ -223,8 +223,9 @@ export function DefaultField({ field, node }: FieldComponentProps) {
             </>
         ) : requiredNode;
 
-        return (
+        const group = (
             <fieldset
+                aria-description={fileUpload && !node.accessibility?.role ? node.accessibility?.description : undefined}
                 className={['formspec-fieldset', fileUpload ? 'formspec-file-upload' : '', isReadonly ? 'formspec-field--readonly' : '', isProtected ? 'formspec-protected' : '', themeClass].filter(Boolean).join(' ').trim()}
                 style={node.style as React.CSSProperties | undefined}
                 data-name={field.path}
@@ -254,6 +255,10 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 {errorNode}
             </fieldset>
         );
+        if (fileUpload && node.accessibility?.role) {
+            return <div role={node.accessibility.role} aria-labelledby={labelId} aria-description={node.accessibility.description}>{group}</div>;
+        }
+        return group;
     }
 
     const controlSurfaceClass =
