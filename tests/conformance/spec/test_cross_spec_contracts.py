@@ -14,6 +14,7 @@ from copy import deepcopy
 import pytest
 from jsonschema import Draft202012Validator, ValidationError
 
+from formspec._rust import lint
 from tests.unit.support.schema_fixtures import (
     ROOT_DIR, SCHEMA_DIR, SPEC_DIR, build_schema_registry,
 )
@@ -549,9 +550,8 @@ def test_catalog_subject_predicate_boundary():
 
     assert selector["subject"] == instance_selector["subject"]
     Draft202012Validator(catalog_schema, registry=registry).validate(catalog)
-    # The Definition fixture is structurally valid. Core assigns the contextual
-    # routeParam refusal to Definition lint, which is implemented in fs-zki2.
     Draft202012Validator(DEF_S, registry=registry).validate(definition)
+    assert "E306" in {finding.code for finding in lint(definition, mode="authoring")}
     core = (SPEC_DIR / "core/spec.md").read_text()
     assert "Definition-local selection MUST NOT use `from.routeParam`." in core
     spec = (SPEC_DIR / "data-sources/data-sources-spec.md").read_text()

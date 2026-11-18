@@ -1,0 +1,21 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:report",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Response instance missing schema",
+  "items": [],
+  "instances": {
+    "priorYear": {
+      "response": {
+        "definition": {
+          "url": "urn:example:forms:previous-report"
+        },
+        "subject": [],
+        "status": "completed",
+        "cardinality": "latest",
+        "pin": "none"
+      }
+    }
+  }
+}

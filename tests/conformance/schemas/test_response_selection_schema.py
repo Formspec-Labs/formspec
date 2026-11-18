@@ -99,6 +99,17 @@ def test_subject_declaration_requires_type_and_keys(missing):
     assert _errors(DEFINITION, doc)
 
 
+@pytest.mark.parametrize("subject_type", ["relative/type", "urn:example:bad type", "urn:example:{name}"])
+def test_subject_type_rejects_non_literal_uri_without_format_checker(subject_type):
+    doc = _fixture("valid-subject.definition.json")
+    doc["subject"]["type"] = subject_type
+    validator = Draft202012Validator(DEFINITION, registry=REGISTRY)
+    errors = list(validator.iter_errors(doc))
+    assert [(error.validator, list(error.path)) for error in errors] == [
+        ("pattern", ["subject", "type"]),
+    ]
+
+
 def test_response_instance_requires_projection_schema():
     doc = _fixture("valid-response-instance.definition.json")
     del doc["instances"]["priorYear"]["schema"]

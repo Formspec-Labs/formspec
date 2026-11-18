@@ -1,4 +1,4 @@
-//! Pass 1b: JSON Schema validation — validates documents against embedded schemas (E101).
+//! Pass 1b: JSON Schema validation against embedded schemas.
 //!
 //! Component documents use per-node validation to avoid O(N^depth) backtracking
 //! from oneOf + unevaluatedProperties on recursive component trees. Each node is
@@ -306,7 +306,7 @@ fn component_node_validators() -> &'static ComponentNodeValidators {
 
 // ── Public API ───────────────────────────────────────────────────
 
-/// Validate a document against its JSON Schema, returning E101 diagnostics.
+/// Validate a document against its JSON Schema, using specific codes where defined.
 pub fn validate_schema(doc: &Value, doc_type: DocumentType) -> Vec<LintDiagnostic> {
     if doc_type == DocumentType::Component {
         return validate_component_schema(doc);
@@ -344,6 +344,11 @@ pub fn validate_schema(doc: &Value, doc_type: DocumentType) -> Vec<LintDiagnosti
     validator
         .iter_errors(doc)
         .map(|err| {
+            if doc_type == DocumentType::Definition
+                && let Some(diagnostic) = crate::response_instances::schema_diagnostic(doc, &err)
+            {
+                return diagnostic;
+            }
             let pointer = err.instance_path().as_str();
             let path = json_pointer_to_jsonpath(pointer);
             crate::metadata::with_metadata(LintDiagnostic::error(

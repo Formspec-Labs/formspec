@@ -1,0 +1,41 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:forms:report",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Response instance undeclared subject key",
+  "subject": {
+    "type": "urn:example:subject:agency-year",
+    "keys": {
+      "uei": {
+        "dataType": "string",
+        "authorizationParent": "agency"
+      }
+    }
+  },
+  "items": [],
+  "instances": {
+    "priorYear": {
+      "response": {
+        "definition": {
+          "url": "urn:example:forms:previous-report"
+        },
+        "subject": [
+          {
+            "key": "uei",
+            "op": "eq",
+            "from": {
+              "subject": "undeclared"
+            }
+          }
+        ],
+        "status": "completed",
+        "cardinality": "latest",
+        "pin": "none"
+      },
+      "schema": {
+        "agencies[*].uei": "string"
+      }
+    }
+  }
+}

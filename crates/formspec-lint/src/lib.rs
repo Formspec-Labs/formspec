@@ -1,9 +1,10 @@
 //! Formspec Linter — static analysis and validation pipeline.
 //!
 //! Pass 1 (E100): Document type detection
-//! Pass 1b (E101): JSON Schema validation against embedded schemas
+//! Pass 1b (E101; E305/E308/E309/E311 for specific Core requirements): JSON Schema validation against embedded schemas
 //! Pass 2 (E200/E201): Tree indexing, duplicate key/path detection
 //! Pass 3 (E300/E301/E302/W300): Reference validation — bind paths, shape targets, optionSets
+//! Pass 3 (E306/E307): Definition response selection predicates
 //! Pass 3b (E600/E601/E602): Extension resolution against registry documents
 //! Pass 3b (E613): Item `accessControl.class` resolution against the Access-Class Registry
 //! Pass 3c (E603/E604): Module contribution resolution + payload-schema validation (ADR 0150 §4.2/§4.3)
@@ -62,6 +63,7 @@ pub mod pass_response;
 pub mod pass_theme;
 pub mod references;
 mod repeat_references;
+mod response_instances;
 pub mod tree;
 
 use serde_json::Value;
@@ -243,6 +245,7 @@ fn lint_definition(
 
     diagnostics.extend(references::check_references(doc, &tree_index));
     diagnostics.extend(document_declarations::lint_documents(doc));
+    diagnostics.extend(response_instances::lint_definition(doc));
     diagnostics.extend(extensions::check_extensions(
         doc,
         &options.registry_documents,

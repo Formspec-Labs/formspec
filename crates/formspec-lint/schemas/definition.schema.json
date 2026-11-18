@@ -194,6 +194,7 @@
         "type": {
           "type": "string",
           "format": "uri",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s{}]+$",
           "description": "Canonical URI of the filing-unit type."
         },
         "keys": {
@@ -209,7 +210,6 @@
             "additionalProperties": false,
             "properties": {
               "dataType": {
-                "type": "string",
                 "enum": [
                   "string",
                   "integer"

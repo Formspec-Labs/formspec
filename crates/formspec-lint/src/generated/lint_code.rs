@@ -27,6 +27,18 @@ pub enum LintCode {
     E303,
     /// Registry code `E304`.
     E304,
+    /// Registry code `E305`.
+    E305,
+    /// Registry code `E306`.
+    E306,
+    /// Registry code `E307`.
+    E307,
+    /// Registry code `E308`.
+    E308,
+    /// Registry code `E309`.
+    E309,
+    /// Registry code `E311`.
+    E311,
     /// Registry code `W300`.
     W300,
     /// Registry code `E400`.
@@ -334,6 +346,12 @@ impl LintCode {
             LintCode::E302 => "E302",
             LintCode::E303 => "E303",
             LintCode::E304 => "E304",
+            LintCode::E305 => "E305",
+            LintCode::E306 => "E306",
+            LintCode::E307 => "E307",
+            LintCode::E308 => "E308",
+            LintCode::E309 => "E309",
+            LintCode::E311 => "E311",
             LintCode::W300 => "W300",
             LintCode::E400 => "E400",
             LintCode::E500 => "E500",
@@ -495,6 +513,12 @@ impl LintCode {
             LintCode::E302 => 3,
             LintCode::E303 => 3,
             LintCode::E304 => 3,
+            LintCode::E305 => 1,
+            LintCode::E306 => 3,
+            LintCode::E307 => 3,
+            LintCode::E308 => 1,
+            LintCode::E309 => 1,
+            LintCode::E311 => 1,
             LintCode::W300 => 3,
             LintCode::E400 => 4,
             LintCode::E500 => 5,
@@ -656,6 +680,12 @@ impl LintCode {
             "E302" => Some(LintCode::E302),
             "E303" => Some(LintCode::E303),
             "E304" => Some(LintCode::E304),
+            "E305" => Some(LintCode::E305),
+            "E306" => Some(LintCode::E306),
+            "E307" => Some(LintCode::E307),
+            "E308" => Some(LintCode::E308),
+            "E309" => Some(LintCode::E309),
+            "E311" => Some(LintCode::E311),
             "W300" => Some(LintCode::W300),
             "E400" => Some(LintCode::E400),
             "E500" => Some(LintCode::E500),
@@ -817,6 +847,12 @@ impl LintCode {
         LintCode::E302,
         LintCode::E303,
         LintCode::E304,
+        LintCode::E305,
+        LintCode::E306,
+        LintCode::E307,
+        LintCode::E308,
+        LintCode::E309,
+        LintCode::E311,
         LintCode::W300,
         LintCode::E400,
         LintCode::E500,
@@ -1022,6 +1058,6 @@ mod tests {
 
     #[test]
     fn registry_variant_count_matches_json() {
-        assert_eq!(LintCode::ALL.len(), 155);
+        assert_eq!(LintCode::ALL.len(), 161);
     }
 }

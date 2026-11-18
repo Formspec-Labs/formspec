@@ -113,6 +113,78 @@
       "state": "tested"
     },
     {
+      "code": "E305",
+      "pass": 1,
+      "severity": "error",
+      "title": "Invalid instance content source",
+      "specRef": "specs/core/spec.md#441-instance-properties",
+      "suggestedFix": "choose one of source, response, or data alone, and use data as an optional fallback for an external source",
+      "fixtures": [
+        "tests/fixtures/response-selection/invalid-doubly-sourced.definition.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E306",
+      "pass": 3,
+      "severity": "error",
+      "title": "Route parameter in a Definition instance predicate",
+      "specRef": "specs/core/spec.md#response-selection",
+      "suggestedFix": "replace from.routeParam with from.subject naming a key in this Definition's subject declaration",
+      "fixtures": [
+        "tests/fixtures/lint/E306-response-instance-route-param.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E307",
+      "pass": 3,
+      "severity": "error",
+      "title": "Predicate references an undeclared consuming subject key",
+      "specRef": "specs/core/spec.md#441-instance-properties",
+      "suggestedFix": "set from.subject to a key declared in this Definition's subject.keys, or declare the intended key",
+      "fixtures": [
+        "tests/fixtures/lint/E307-response-instance-undeclared-subject-key.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E308",
+      "pass": 1,
+      "severity": "error",
+      "title": "Response instance requires a path-keyed schema",
+      "specRef": "specs/core/spec.md#441-instance-properties",
+      "suggestedFix": "add a schema object mapping FieldRef paths to Core data types, with [*] to traverse repeats",
+      "fixtures": [
+        "tests/fixtures/lint/E308-response-instance-missing-schema.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E309",
+      "pass": 1,
+      "severity": "error",
+      "title": "Authorization parent on a non-string subject key",
+      "specRef": "specs/core/spec.md#filing-unit-subject-declaration",
+      "suggestedFix": "declare authorizationParent on the string key whose value identifies the authorization object",
+      "fixtures": [
+        "tests/fixtures/lint/E309-subject-key-authorization-parent.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E311",
+      "pass": 1,
+      "severity": "error",
+      "title": "Invalid subject key data type",
+      "specRef": "specs/core/spec.md#filing-unit-subject-declaration",
+      "suggestedFix": "declare dataType as string or integer for the subject key",
+      "fixtures": [
+        "tests/fixtures/lint/E311-subject-key-invalid-type.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W300",
       "pass": 3,
       "severity": "warning",

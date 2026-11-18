@@ -487,9 +487,10 @@ pub(crate) fn scan_interpolations(
 }
 
 pub(crate) fn json_path_member(base: &str, key: &str) -> String {
-    if key
-        .chars()
-        .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '$')
+    if !key.is_empty()
+        && key
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '$')
     {
         format!("{base}.{key}")
     } else {
