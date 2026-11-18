@@ -149,6 +149,18 @@
           },
           "strings": {
             "propertyNames": {
+              "not": {
+                "enum": [
+                  "$module.x-formspec-surface.shell.previewEditionLabel",
+                  "$module.x-formspec-surface.shell.appearanceLabel",
+                  "$module.x-formspec-surface.shell.appearanceSystem",
+                  "$module.x-formspec-surface.shell.appearanceLight",
+                  "$module.x-formspec-surface.shell.appearanceDark",
+                  "$module.x-formspec-surface.shell.saved",
+                  "$module.x-formspec-surface.shell.savedLocally",
+                  "$module.x-formspec-surface.shell.saveFailed"
+                ]
+              },
               "if": {
                 "pattern": "^\\$ui\\."
               },
@@ -627,7 +639,15 @@
         "$module.x-formspec-surface.shell.transitionTriggerAmbiguous",
         "$module.x-formspec-surface.shell.transitionNoExecutor",
         "$module.x-formspec-surface.shell.transitionSuppliedBySlot",
-        "$module.x-formspec-surface.shell.transitionFireable"
+        "$module.x-formspec-surface.shell.transitionFireable",
+        "$module.x-formspec-surface.shell.previewEditionLabel",
+        "$module.x-formspec-surface.shell.appearanceLabel",
+        "$module.x-formspec-surface.shell.appearanceSystem",
+        "$module.x-formspec-surface.shell.appearanceLight",
+        "$module.x-formspec-surface.shell.appearanceDark",
+        "$module.x-formspec-surface.shell.saved",
+        "$module.x-formspec-surface.shell.savedLocally",
+        "$module.x-formspec-surface.shell.saveFailed"
       ],
       "description": "Closed one-to-one mapping to SurfaceStringKey. A new shell string requires a Locale schema revision."
     },

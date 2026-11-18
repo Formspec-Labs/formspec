@@ -86,6 +86,14 @@ export const SURFACE_STRING_KEYS = [
   'transitionSuppliedBySlot',
   /** The trigger resolves and the shell's own control can raise it. */
   'transitionFireable',
+  'previewEditionLabel',
+  'appearanceLabel',
+  'appearanceSystem',
+  'appearanceLight',
+  'appearanceDark',
+  'saved',
+  'savedLocally',
+  'saveFailed',
 ] as const;
 
 export type SurfaceStringKey = (typeof SURFACE_STRING_KEYS)[number];
@@ -169,6 +177,14 @@ export const DEFAULT_SURFACE_STRINGS = {
   transitionSuppliedBySlot: (vars) =>
     `This page moves on once “${vars.trigger ?? ''}” has been done, using the control already on this page.`,
   transitionFireable: (vars) => `This page moves on once “${vars.trigger ?? ''}” has been done.`,
+  previewEditionLabel: () => 'Preview edition',
+  appearanceLabel: () => 'Appearance',
+  appearanceSystem: () => 'Match system',
+  appearanceLight: () => 'Light',
+  appearanceDark: () => 'Dark',
+  saved: () => 'Draft saved.',
+  savedLocally: () => 'Draft saved in this browser.',
+  saveFailed: () => 'Draft could not be saved.',
 } as const satisfies Record<SurfaceStringKey, SurfaceStringTemplate>;
 
 /**

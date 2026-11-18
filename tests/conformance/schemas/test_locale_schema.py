@@ -122,12 +122,23 @@ class TestLocaleSchema:
         assert shell_keys and len(shell_keys) == len(set(shell_keys))
         for key in shell_keys:
             doc = _minimal_locale()
+            # Locale 2.1 admits the current inventory. The frozen 2.0 schema predates the masthead.
+            doc["$formspecLocale"] = "2.1"
             doc["target"] = {
                 "kind": "app",
                 "url": "https://example.gov/apps/intake",
             }
             doc["strings"] = {key: "Texte {{locale()}}"}
             _validate(doc)
+
+    def test_masthead_keys_require_locale_2_1(self) -> None:
+        doc = _minimal_locale()
+        doc["target"] = {"kind": "app", "url": "https://example.gov/apps/intake"}
+        doc["strings"] = {"$module.x-formspec-surface.shell.saved": "Enregistré"}
+        with pytest.raises(ValidationError):
+            _validate(doc)
+        doc["$formspecLocale"] = "2.1"
+        _validate(doc)
 
     def test_ui_chrome_key_is_valid_on_a_definition_target(self) -> None:
         doc = _minimal_locale()

@@ -39,8 +39,9 @@ export interface NativeScreenerSlotProps {
   policy?: SurfaceScreenerCompletionPolicy | undefined;
   localeDocuments?: FormspecScreenerProps['localeDocuments'];
   activeLocale?: string | undefined;
+  appearance?: 'light' | 'dark' | undefined;
   checkTarget?: ((target: string) => ScreenerCompletionDisposition) | undefined;
-  navigate?: ((target: string) => ScreenerCompletionDisposition) | undefined;
+  navigate?: ((target: string) => ScreenerCompletionDisposition | Promise<ScreenerCompletionDisposition>) | undefined;
 }
 
 /** Keep answer state mounted across Locale and host port replacement. */
@@ -69,7 +70,7 @@ export function NativeScreenerSlot(props: NativeScreenerSlotProps) {
     const qualify = () => resolveScreenerDetermination({ ...input, nowIso: new Date().toISOString() });
     const result = qualify();
     if (result.status === 'refused') return refused(result.reason, 'new-act');
-    const navigate = (): ScreenerCompletionDisposition => {
+    const navigate = () => {
       if (stale()) return refused('screener-completion-stale');
       const fresh = qualify();
       if (fresh.status === 'refused') return refused(fresh.reason, 'new-act');
@@ -86,7 +87,7 @@ export function NativeScreenerSlot(props: NativeScreenerSlotProps) {
     context.signal.addEventListener('abort', abort, { once: true });
     epoch.pending.add(controller);
     const cleanup = () => { epoch.pending.delete(controller); context.signal.removeEventListener('abort', abort); };
-    const finish = (disposition: ScreenerCompletionDisposition): ScreenerCompletionDisposition => {
+    const finish = (disposition: ScreenerCompletionDisposition) => {
       if (controller.signal.aborted || stale()) return refused('screener-completion-stale');
       return disposition.status === 'accepted' ? navigate() : disposition;
     };
@@ -101,5 +102,6 @@ export function NativeScreenerSlot(props: NativeScreenerSlotProps) {
     } catch (error) { cleanup(); throw error; }
   }, [epoch, mode, key, complete]);
   return <FormspecScreener screenerDocument={props.document} localeDocuments={props.localeDocuments}
+    {...(props.appearance && { className: `formspec-appearance-${props.appearance}` })}
     activeLocale={props.activeLocale} completionKey={`${mode}/${key ?? ''}`} onDetermination={onDetermination} />;
 }

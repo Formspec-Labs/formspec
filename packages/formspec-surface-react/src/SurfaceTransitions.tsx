@@ -28,8 +28,8 @@ import {
 } from '@formspec-org/surface';
 import { needTraceAttributes } from './need-trace.js';
 import type {
+  AdvanceTransition,
   FireTransition,
-  SurfaceTransitionOutcome,
   SurfaceTransitionSource,
 } from './SurfaceApp.js';
 
@@ -45,7 +45,7 @@ export interface SurfaceTransitionsProps {
    */
   onFire?: FireTransition | undefined;
   /** Navigate. Called only after `onFire` reports the action actually succeeded. */
-  onAdvance?: ((transition: PlannedTransition, outcome: SurfaceTransitionOutcome) => void) | undefined;
+  onAdvance?: AdvanceTransition | undefined;
 }
 
 export function SurfaceTransitions({
@@ -92,7 +92,7 @@ function SurfaceTransition({
   transition: PlannedTransition;
   strings: SurfaceStrings;
   onFire?: FireTransition;
-  onAdvance?: (transition: PlannedTransition, outcome: SurfaceTransitionOutcome) => void;
+  onAdvance?: AdvanceTransition;
 }) {
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<string | undefined>(undefined);
@@ -138,8 +138,9 @@ function SurfaceTransition({
           setFailure(undefined);
           void onFire(transition, from)
             .then((outcome) => {
-              if (outcome.advanced) onAdvance?.(transition, outcome);
-              else setFailure(outcome.reason ?? strings('transitionFailed'));
+              if (outcome.advanced) return onAdvance?.(transition, outcome);
+              setFailure(outcome.reason ?? strings('transitionFailed'));
+              return undefined;
             })
             .catch((error: unknown) => {
               setFailure(error instanceof Error ? error.message : String(error));

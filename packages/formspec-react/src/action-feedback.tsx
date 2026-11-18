@@ -87,7 +87,7 @@ function captureFocusedOrigin(source: HTMLElement | null | undefined, onCancel: 
 }
 
 /** No response, payload, findings, translated copy or saved flag enters this store. */
-export function createActionFeedbackStore(engine: IFormEngine) {
+export function createActionFeedbackStore(engine: IFormEngine, draftSaveFeedback?: 'external') {
     const state = signal<OwnedFeedback>(undefined);
     const outlets = new Set<string>();
     let active = false;
@@ -126,6 +126,7 @@ export function createActionFeedbackStore(engine: IFormEngine) {
             retireFocus();
             const next = ++token;
             state.value = undefined;
+            if (draftSaveFeedback === 'external' && (intent === 'save-draft' || intent === 'autosave')) return undefined;
             if (!active || !outlets.has(outlet) || !refresh()) return undefined;
             if (intent !== undefined && intent.length > 256) return undefined;
             if (candidates.length > 128 || candidates.some(anchor => typeof anchor !== 'string')
@@ -162,10 +163,11 @@ type FeedbackStore = ReturnType<typeof createActionFeedbackStore>;
 const StoreContext = createContext<FeedbackStore | undefined>(undefined);
 const OutletContext = createContext<{ id: string; store: FeedbackStore } | undefined>(undefined);
 
-export function ActionFeedbackProvider({ engine, responseId, renderInstanceId, children }: {
-    engine: IFormEngine; responseId?: string; renderInstanceId?: string; children: ReactNode;
+export function ActionFeedbackProvider({ engine, responseId, renderInstanceId, draftSaveFeedback, children }: {
+    engine: IFormEngine; responseId?: string; renderInstanceId?: string; draftSaveFeedback?: 'external' | undefined; children: ReactNode;
 }) {
-    const store = useMemo(() => createActionFeedbackStore(engine), [engine, responseId, renderInstanceId]);
+    const store = useMemo(() => createActionFeedbackStore(engine, draftSaveFeedback),
+        [engine, responseId, renderInstanceId, draftSaveFeedback]);
     useLayoutEffect(() => store.connect(), [store]);
     return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
 }

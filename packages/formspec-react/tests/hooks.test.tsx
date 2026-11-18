@@ -1,5 +1,5 @@
 /** @filedesc Tests for formspec-react hooks: useSignal, useField, useFieldValue, useFieldError, useForm, useWhen, useRepeatCount. */
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
@@ -353,33 +353,23 @@ describe('useForm', () => {
     });
 
     it('submit uses the requested profile and keeps non-action snapshots in-progress', () => {
-        const engine = createFormEngine(testDefinition);
-        const getValidationReportSpy = vi.spyOn(engine, 'getValidationReport');
-        const getResponseSpy = vi.spyOn(engine, 'getResponse');
-        const result = { current: null as ReturnType<typeof useForm> | null };
-        const container = document.createElement('div');
-        document.body.appendChild(container);
-        const root = createRoot(container);
+        const { result } = renderHookWithProvider({
+            ...testDefinition,
+            binds: [],
+            shapes: [
+                { id: 'liveWarning', target: '#', timing: 'continuous', constraint: 'false', severity: 'warning', message: 'Live warning' },
+                { id: 'submitError', target: '#', timing: 'submit', constraint: 'false', message: 'Submit error' },
+            ],
+        }, () => useForm());
 
-        function TestComponent() {
-            result.current = useForm();
-            return null;
-        }
+        // Submit now returns both artifacts from one engine snapshot. Check its
+        // live findings and draft status directly.
+        const { response, validationReport } = result.current.submit({ profile: 'live' });
 
-        flushSync(() => {
-            root.render(
-                <FormspecProvider engine={engine}>
-                    <TestComponent />
-                </FormspecProvider>,
-            );
-        });
-
-        result.current?.submit({ profile: 'live' });
-
-        expect(getValidationReportSpy).toHaveBeenCalledWith(expect.objectContaining({ profile: 'live' }));
-        expect(getResponseSpy).toHaveBeenCalledWith(expect.objectContaining({ profile: 'off' }));
-        root.unmount();
-        container.remove();
+        expect(validationReport.valid).toBe(true);
+        expect(validationReport.results.map((finding: { shapeId?: string }) => finding.shapeId)).toEqual(['liveWarning']);
+        expect(response.status).toBe('in-progress');
+        expect(response).not.toHaveProperty('validationResults');
     });
 });
 

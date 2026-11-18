@@ -25,22 +25,50 @@ starter module-widget set.
 re-derive the slot taxonomy, the route graph or the theme boundary.
 
 ```tsx
-import { SurfaceApp, starterWidgetModule, useBrowserLocation } from '@formspec-org/surface-react';
+import { dereferenceBundleExport } from '@formspec-org/surface';
+import { BrowserSurfaceApp, starterWidgetModule } from '@formspec-org/surface-react';
 import '@formspec-org/surface-react/formspec-surface.css';
+import '@formspec-org/layout/formspec-default.css';
 
-const [location, navigate] = useBrowserLocation();
-
-<SurfaceApp
+<BrowserSurfaceApp
   bundle={dereferenceBundleExport(exported)}
-  location={location}
-  onNavigate={navigate}
+  mode="hash"
   widgetModules={[starterWidgetModule('x-formspec-tenant-chrome')]}
 />
 ```
 
-`location`/`onNavigate` are props, not an owned router — a shell that owned
-history could not be embedded. `useBrowserLocation` is there for hosts that have
-none.
+Initialize the Formspec engine before mounting a bundle with forms. Hash mode
+works on a static host. History mode uses `basePath` and needs the server to
+serve the same app at deep addresses under that mount. The binding opens the
+authored entry at a bare address and uses authored routes for links. In hash
+mode, a hash beginning with `/` or `?` addresses the app. Other non-empty
+hashes work as native in-page anchors.
+
+The appearance picker remembers its choice in browser storage. A host can
+set `data-fs-appearance="light"` or `data-fs-appearance="dark"` on an ancestor
+to set the scheme for the shell and its forms and hide the picker. To apply
+the saved choice before the app mounts, load `formspec-surface.css` in the page
+head and inline the exported script there from your HTML template or build
+step. The script is a fixed string, so a Content Security Policy (CSP) hash or
+nonce can authorize it.
+
+```tsx
+import { SURFACE_APPEARANCE_SCRIPT } from '@formspec-org/surface-react';
+
+// Render this in the initial HTML head, before the app's module script.
+<script dangerouslySetInnerHTML={{ __html: SURFACE_APPEARANCE_SCRIPT }} />
+```
+
+Use `previewEditions` to offer admitted bundles with distinct local draft
+scopes. The browser passes `previewScope` to the form renderer and starts at
+the selected edition's entry. A draft writer supplies `beforeLeave` to
+finish pending saves before controlled navigation. A form using the writer's
+Response Action invoker reports save outcomes through the form input's
+`reportSave`, which updates the masthead. Set `draftSaveFeedback="external"`
+on that `FormspecForm` so the masthead is the only save announcement.
+
+Hosts with their own router can mount controlled `SurfaceApp` with
+`location` and `onNavigate`.
 
 ## Navigation refusal
 

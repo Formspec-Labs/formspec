@@ -819,11 +819,21 @@ MUST contain these exact suffixes one-for-one:
 | `transitionNoExecutor` | `$trigger` |
 | `transitionSuppliedBySlot` | `$trigger` |
 | `transitionFireable` | `$trigger` |
+| `previewEditionLabel` | none |
+| `appearanceLabel` | none |
+| `appearanceSystem` | none |
+| `appearanceLight` | none |
+| `appearanceDark` | none |
+| `saved` | none |
+| `savedLocally` | none |
+| `saveFailed` | none |
 
 The shell-specific references form a read-only object supplied by the Surface
 processor. They carry strings only and expose no route table, navigation
 function, action executor, Response, or mutable host state. All ordinary FEL
 rules still apply.
+
+The preview edition, appearance and draft save keys require Locale 2.1.
 
 These keys are valid only for `target.kind: "app"` and the
 `x-formspec-surface` module. A processor MUST reject an unknown shell suffix and

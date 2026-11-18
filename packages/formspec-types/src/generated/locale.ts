@@ -108,7 +108,15 @@ export type SurfaceShellStringKey =
   | '$module.x-formspec-surface.shell.transitionTriggerAmbiguous'
   | '$module.x-formspec-surface.shell.transitionNoExecutor'
   | '$module.x-formspec-surface.shell.transitionSuppliedBySlot'
-  | '$module.x-formspec-surface.shell.transitionFireable';
+  | '$module.x-formspec-surface.shell.transitionFireable'
+  | '$module.x-formspec-surface.shell.previewEditionLabel'
+  | '$module.x-formspec-surface.shell.appearanceLabel'
+  | '$module.x-formspec-surface.shell.appearanceSystem'
+  | '$module.x-formspec-surface.shell.appearanceLight'
+  | '$module.x-formspec-surface.shell.appearanceDark'
+  | '$module.x-formspec-surface.shell.saved'
+  | '$module.x-formspec-surface.shell.savedLocally'
+  | '$module.x-formspec-surface.shell.saveFailed';
 /**
  * Closed one-to-one mapping to the renderer chrome string inventory (Locale spec §3.1.10, packages/formspec-layout/src/ui-strings.ts). A new chrome string requires a Locale schema revision.
  *

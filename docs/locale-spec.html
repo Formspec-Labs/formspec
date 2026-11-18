@@ -1441,12 +1441,46 @@ one-for-one:</p>
 <td><code>transitionFireable</code></td>
 <td><code>$trigger</code></td>
 </tr>
+<tr>
+<td><code>previewEditionLabel</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>appearanceLabel</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>appearanceSystem</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>appearanceLight</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>appearanceDark</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>saved</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>savedLocally</code></td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>saveFailed</code></td>
+<td>none</td>
+</tr>
 </tbody>
 </table>
 <p>The shell-specific references form a read-only object supplied by the
 Surface processor. They carry strings only and expose no route table,
 navigation function, action executor, Response, or mutable host state.
 All ordinary FEL rules still apply.</p>
+<p>The preview edition, appearance and draft save keys require Locale
+2.1.</p>
 <p>These keys are valid only for <code>target.kind: "app"</code> and the
 <code>x-formspec-surface</code> module. A processor MUST reject an
 unknown shell suffix and MUST NOT translate a shorter host key or legacy

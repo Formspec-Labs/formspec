@@ -10,7 +10,6 @@
 export {
   SurfaceApp,
   SurfaceNav,
-  useBrowserLocation,
   useSurfaceApp,
   type FireTransition,
   type SurfaceTransitionSource,
@@ -21,6 +20,14 @@ export {
   type SurfaceNavProps,
   type UseSurfaceAppInput,
 } from './SurfaceApp.js';
+export {
+  BrowserSurfaceApp,
+  type BrowserSurfaceAppProps,
+  type SurfaceBrowserVisit,
+  type SurfacePreviewEdition,
+} from './BrowserSurfaceApp.js';
+export { useBrowserLocation, type SurfaceBrowserMode } from './browser-location.js';
+export { SURFACE_APPEARANCE_SCRIPT } from './browser-appearance.js';
 
 export { SurfaceRouteView, type SurfaceRouteViewProps } from './SurfaceRoute.js';
 export {
@@ -46,6 +53,7 @@ export {
   type SurfaceSemanticControlScopeResolver,
   type SurfaceSemanticControlPairing,
   type SurfaceSlotProps,
+  type SurfaceSaveNotice,
 } from './SurfaceSlot.js';
 export { SurfaceTransitions, type SurfaceTransitionsProps } from './SurfaceTransitions.js';
 export { Heading, nextLevel, type HeadingProps } from './heading.js';

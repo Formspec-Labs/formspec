@@ -31,6 +31,15 @@ const en = 'Saving could not be confirmed. Keep this page open.';
 const es = 'No se pudo confirmar que se haya guardado. Mantenga esta página abierta.';
 
 describe('semantic action feedback', () => {
+    it.each(['save-draft', 'autosave', 'review'])('leaves %s feedback with its designated announcer', async intent => {
+        const onActionResult = vi.fn();
+        const { container } = mount(<FeedbackForm definition={definition} draftSaveFeedback="external"
+            responseActionsDocument={documentFor(intent)} onActionResult={onActionResult} />);
+        await click(container);
+        expect(onActionResult).toHaveBeenCalledWith(expect.objectContaining({ status: 'completed' }));
+        expect(message(container)).toBe(intent === 'review' ? 'Completed.' : '');
+    });
+
     it.each(['failed', 'unresolved'] as const)('uses canonical save-draft intent for %s, independent of IDs and labels', async status => {
         const onActionResult = vi.fn();
         const responseActionInvoker = vi.fn((input: ResponseActionInvokerInput) => ({

@@ -1314,6 +1314,19 @@ describe("navigation", () => {
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
+  it("reports whether the browser accepted a completed action's departure", async () => {
+    const target = composeSurfaceApp([{
+      $formspecSurface: "0.2", id: "staff", entry: "queue",
+      routes: [{ id: "queue", path: "/queue", slots: [] }],
+    } as SurfaceDocument]).entry!;
+    const transition: PlannedTransition = {
+      trigger: "submit", to: "queue", actionId: "submit", status: "fireable", reason: "ready", target,
+    };
+    const depart = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    expect(await navigateAfterCompletedAction(transition, {}, undefined, depart)).toBe("refused");
+    expect(await navigateAfterCompletedAction(transition, {}, undefined, depart)).toBe("advanced");
+  });
+
   it("does not fire a transition whose target URL is collision-refused", () => {
     const collisionSource = {
       $formspecSurface: "0.2",

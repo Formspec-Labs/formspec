@@ -7,6 +7,8 @@ import * as engine from '@formspec-org/engine';
 import { dereferenceBundleExport } from '@formspec-org/surface';
 import type { SurfaceScreenerCompletionPolicy } from '../src/screener-completion.js';
 import { SurfaceApp } from '../src/SurfaceApp.js';
+import { BrowserSurfaceApp } from '../src/BrowserSurfaceApp.js';
+import { render } from './render.js';
 beforeAll(() => initFormspecEngine());
 const screener = {$formspecScreener:'1.0',url:'urn:gate',version:'1.0.0',title:'Eligibility',items:[{type:'field',key:'eligible',dataType:'boolean',label:'Eligible?'}],binds:[{path:'eligible',required:'true'}],evaluation:[{id:'main',strategy:'first-match',routes:[{condition:'$eligible',target:'surface:apply'},{condition:'true',target:'surface:paper'}]}]};
 function mount(embedded = false, localized = false, routeClass: 'intake' | 'operation' = 'intake', themed = false, policy?: SurfaceScreenerCompletionPolicy) {
@@ -23,6 +25,34 @@ function mount(embedded = false, localized = false, routeClass: 'intake' | 'oper
  return {container,onNavigate,answer,submit,bundle,show,unmount:()=>act(()=>root.unmount())};
 }
 describe('native Screener Surface slot',()=>{
+ it('keeps a browser Screener available after a refused departure and uses the app appearance', async () => {
+   const originalAddress = window.location.href;
+   const fixture = mount();
+   fixture.unmount();
+   window.history.replaceState(null, '', '/screen');
+   const beforeLeave = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+   const container = render(<BrowserSurfaceApp bundle={fixture.bundle} beforeLeave={beforeLeave} />);
+   const change = (select: HTMLSelectElement, value: string) => act(() => {
+     select.value = value; select.dispatchEvent(new Event('change', { bubbles: true }));
+   });
+   try {
+     change(container.querySelector('[data-surface-appearance]')!, 'dark');
+     const form = container.querySelector('.formspec-screener')!;
+     expect(form.classList.contains('formspec-appearance-dark')).toBe(true);
+     const answer = form.querySelector('select')!;
+     change(answer, 'no');
+     const submit = () => (form.querySelector('.formspec-screener-continue') as HTMLButtonElement).click();
+     await act(async () => { submit(); });
+     expect(window.location.pathname).toBe('/screen');
+     expect(answer.isConnected).toBe(true);
+     expect(answer.disabled).toBe(false);
+     expect(answer.value).toBe('no');
+     await act(async () => { submit(); });
+     expect(window.location.pathname).toBe('/paper');
+   } finally {
+     window.history.replaceState(null, '', originalAddress);
+   }
+ });
  it('navigates a native Screener inside an embedded route',()=>{const m=mount(true);m.answer('no');m.submit();expect(m.onNavigate).toHaveBeenCalledExactlyOnceWith('/paper');});
  it('retires old completion callbacks on package replacement, route return and unmount',()=>{
   const Original=reactPackage.FormspecScreener;let captured:any;

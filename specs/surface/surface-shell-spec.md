@@ -493,6 +493,39 @@ make it unreachable, or prevent a transition from targeting it.
 
 ---
 
+### 2.9 Browser location and preview editions
+
+A browser binding matches the route pathname using §2.4. In history mode, the
+pathname and query live under the configured mount path. The server serves the
+same app for routes under that mount. In hash mode, the path and query live in
+the fragment so a static host can serve one page. A bare address opens the
+authored entry under §2.5. Links support native modified clicks and history.
+In history mode a query separator on the mount's slash-terminated path
+addresses an authored `/` route when present and otherwise opens the authored
+entry with the query intact. Native in-page hash anchors keep the current
+route, parameters and section.
+History links for paths containing a dot segment are unavailable because the
+browser removes those segments before matching can occur.
+
+The `slot` and `section` query values select a Definition-form workspace.
+They supply no route or subject parameter. A section without a slot targets
+the form only when the route has exactly one Definition-form slot. The
+workspace resolves missing and stale section keys to its first available
+section without restarting the form session. After the first render, a route
+change focuses the route heading or main landmark, and section changes leave
+route focus in place.
+
+A preview may offer several admitted editions. Its `edition` query value
+identifies the draft scope. Selecting an edition opens that edition's authored
+entry. The masthead uses the admitted bundle title for the entry link and
+edition labels. One polite region announces save outcomes when the draft
+writer reports them.
+Use the offered app Locale matching the browser language, or the first offered
+app Locale when none matches. Apply the current route's Theme grant and one
+system, light or dark preference to the app root. A host-pinned
+`data-fs-appearance` takes precedence over the saved browser preference and
+hides the appearance picker.
+
 ## 3. Slot Dispatch
 
 A route's `slots[]` is an ordered list, and the shell dispatches each entry on
@@ -532,7 +565,7 @@ complete. The placeholder MUST NOT describe or approximate the missing content;
 it states that something the bundle named is not here, which is all the shell
 knows.
 
-**Shell-authored strings use one closed Locale key family.** Locale 2.0 app
+**Shell-authored strings use one closed Locale key family.** Locale app
 targets MAY override the shell's person-facing text through
 `$module.x-formspec-surface.shell.<SurfaceStringKey>`. The allowed suffixes are
 exactly:
@@ -547,7 +580,10 @@ exactly:
 `transitionFailed`, `transitionTargetUnresolved`,
 `transitionTargetCollision`, `transitionNoResponseActions`,
 `transitionTriggerUnresolved`, `transitionTriggerAmbiguous`,
-`transitionNoExecutor`, `transitionSuppliedBySlot`, and `transitionFireable`.
+`transitionNoExecutor`, `transitionSuppliedBySlot`, `transitionFireable`,
+`previewEditionLabel`, `appearanceLabel`, `appearanceSystem`,
+`appearanceLight`, `appearanceDark`, `saved`, `savedLocally`, and `saveFailed`.
+The preview edition, appearance and draft save keys require Locale 2.1.
 
 The Locale schema and the runtime string inventory MUST contain the same set,
 one-for-one. No processor may add a free-form shell key or accept a compatibility

@@ -1,4 +1,4 @@
-import type { SurfaceScreenerCompletionPolicy } from './screener-completion.js';
+import type { NativeScreenerSlotProps, SurfaceScreenerCompletionPolicy } from './screener-completion.js';
 /**
  * @filedesc `SurfaceRouteView` — one route plan, rendered, with its theme
  * boundary.
@@ -34,8 +34,7 @@ import type { SurfaceScreenerCompletionPolicy } from './screener-completion.js';
  */
 import { presentedRouteTitle, type SurfaceRouteTitleResolver } from './title-presentation.js';
 import type { DataSourceRevisionSelector } from './data-source-revision.js';
-import { useLayoutEffect, useRef } from 'react';
-import { emitMergedThemeCssVars } from '@formspec-org/layout';
+import { useRef } from 'react';
 import {
   generationNeedAnchors,
   resolveRouteTitleLevel,
@@ -59,12 +58,13 @@ import {
   SurfaceSlotFrame,
   type SurfaceDefinitionFormRenderInput,
   type SurfaceDefinitionFormRenderer,
+  type SurfaceFormSession,
   type SurfaceSemanticControlScopeResolver,
 } from './SurfaceSlot.js';
 import { SurfaceTransitions } from './SurfaceTransitions.js';
 import type {
+  AdvanceTransition,
   FireTransition,
-  SurfaceTransitionOutcome,
 } from './SurfaceApp.js';
 import type {
   SurfaceWidget,
@@ -77,15 +77,17 @@ import type {
 } from './semantic-output.js';
 import type { WidgetActionCoordinator } from './widget-action-runtime.js';
 import { needTraceAttributes } from './need-trace.js';
+import { useSurfaceThemeTokens } from './surface-theme.js';
 
 export interface SurfaceRouteViewProps {
+  formSession?: SurfaceFormSession | undefined;
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
   screenerCompletion?: SurfaceScreenerCompletionPolicy | undefined;
   screenerInstanceId?: string | undefined;
   /** Pure destination check; required before host-required completion. */
   checkScreenerTarget?: ((target: string) => { status: 'accepted' } | { status: 'refused'; reason: string }) | undefined;
-  onScreenerTarget?: ((target: string) => { status: 'accepted' } | { status: 'refused'; reason: string }) | undefined;
+  onScreenerTarget?: NativeScreenerSlotProps['navigate'];
   /** Everything the core decided for this route. Nothing here re-decides it. */
   plan: SurfaceRoutePlan<SurfaceWidget>;
   resolveRouteTitle?: SurfaceRouteTitleResolver | undefined;
@@ -135,12 +137,7 @@ export interface SurfaceRouteViewProps {
    * authority — never on a click. The shell navigates; it does not decide that
    * the action succeeded.
    */
-  onAdvance?:
-    | ((
-        transition: PlannedTransition,
-        outcome?: Pick<SurfaceTransitionOutcome, 'transitionBindings'>,
-      ) => 'advanced' | 'refused' | void)
-    | undefined;
+  onAdvance?: AdvanceTransition | undefined;
 }
 
 export function SurfaceRouteView({
@@ -175,23 +172,17 @@ export function SurfaceRouteView({
   screenerCompletion,
   localeDocuments,
   activeLocale,
+  formSession,
 }: SurfaceRouteViewProps) {
   const container = useRef<HTMLElement>(null);
   const { handle, grant, params } = plan;
   const text = strings ?? resolveSurfaceStrings();
 
-  useLayoutEffect(() => {
-    const element = container.current;
-    if (!element) return;
-    const tokens = (grant.themeDocument as { tokens?: Record<string, string | number> }).tokens;
-    emitMergedThemeCssVars(element, { themeTokens: tokens ?? {} });
-    return () => {
-      for (let index = element.style.length - 1; index >= 0; index -= 1) {
-        const property = element.style[index];
-        if (property?.startsWith('--formspec-')) element.style.removeProperty(property);
-      }
-    };
-  }, [grant]);
+  useSurfaceThemeTokens(container, grant.themeDocument);
+
+  const workspace = formSession?.workspace;
+  const formSlots = plan.slots.filter(slot => slot.slotType === 'definition-form');
+  const activeSlot = workspace?.slot ?? (formSlots.length === 1 ? formSlots[0]?.slotId : undefined);
 
   const titleLevel = resolveRouteTitleLevel(plan.headingBaseLevel);
   const titleText = presentedRouteTitle(handle, resolveRouteTitle);
@@ -232,6 +223,7 @@ export function SurfaceRouteView({
       data-surface={handle.surfaceId}
       data-route-class={handle.route.routeClass ?? 'unclassified'}
       data-route-layout={routeLayout}
+      data-fs-appearance={formSession?.appearance}
       data-tenant-theme={grant.admitsTenantTheme ? 'admitted' : 'refused'}
       data-tenant-token-count={grant.tenantTokenKeys.length}
       {...needTraceAttributes(generationNeedAnchors(handle.route))}
@@ -268,6 +260,8 @@ export function SurfaceRouteView({
             screenerInstanceId={screenerInstanceId}
             localeDocuments={localeDocuments}
             activeLocale={activeLocale}
+            formSession={formSession}
+            activeSection={slotPlan.slotId === activeSlot ? workspace?.activeSection : undefined}
             grant={grant}
             route={route}
             strings={text}

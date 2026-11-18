@@ -387,6 +387,8 @@ export interface FormspecProviderProps {
      * when the documents place none. Off by default: a Component document decides where a summary goes.
      */
     showValidationSummary?: boolean;
+    /** The embedding draft writer announces Save Draft and autosave outcomes. */
+    draftSaveFeedback?: 'external' | undefined;
     /** Callback invoked for every declared hostEvent effect. */
     onHostEvent?: (eventName: string, detail: unknown, action: ResponseAction) => void;
     /** Callback for ActionButton actionRef resolution findings. */
@@ -748,7 +750,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
     return (
         <FormspecContext.Provider value={value}>
             <ActionFeedbackProvider engine={engine} responseId={semanticControlScope?.responseId}
-                renderInstanceId={semanticControlScope?.renderInstanceId}>
+                renderInstanceId={semanticControlScope?.renderInstanceId} draftSaveFeedback={props.draftSaveFeedback}>
             <div ref={themeScopeRef} className="formspec-theme-scope" style={THEME_SCOPE_STYLE}>
                 {children}
             </div>

@@ -1,5 +1,6 @@
 import { NativeScreenerSlot } from './screener-completion.js';
-import type { SurfaceScreenerCompletionPolicy } from './screener-completion.js';
+import type { AdvanceTransition } from './SurfaceApp.js';
+import type { NativeScreenerSlotProps, SurfaceScreenerCompletionPolicy } from './screener-completion.js';
 /**
  * @filedesc `SurfaceSlot` — one planned slot, rendered — and `SurfaceSlotFrame`,
  * the ONE place a slot's own title becomes a heading.
@@ -129,6 +130,20 @@ export type ResolvedDefinitionFormPlan = Extract<
   >;
 };
 
+export type SurfaceSaveNotice = 'saved' | 'savedLocally' | 'saveFailed';
+
+export interface SurfaceFormSession {
+  appearance: 'light' | 'dark';
+  previewScope: string | undefined;
+  reportSave: (notice: SurfaceSaveNotice) => void;
+  workspace?: {
+    slot: string | undefined;
+    activeSection: string | undefined;
+    hrefForSection: (slot: string, section: string) => string | undefined;
+    onActiveSectionChange: (slot: string, section: string) => void;
+  } | undefined;
+}
+
 export interface SurfaceDefinitionFormRenderInput {
   plan: ResolvedDefinitionFormPlan;
   grant: ThemeGrant;
@@ -141,6 +156,14 @@ export interface SurfaceDefinitionFormRenderInput {
   /** Host-admitted Locale documents; only matching Definition targets apply. */
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
+  appearance?: 'light' | 'dark' | undefined;
+  /** Exact local draft scope when the browser app is previewing an edition. */
+  previewScope?: string | undefined;
+  /** Report committed saves and failed writes to the single shell live region. */
+  reportSave?: ((notice: SurfaceSaveNotice) => void) | undefined;
+  activeSection?: string | undefined;
+  hrefForSection?: ((section: string) => string | undefined) | undefined;
+  onActiveSectionChange?: ((section: string) => void) | undefined;
   /**
    * Data Source payload admitted before mount. Record identity, route/session
    * generation, and owner revision remain separate from Definition field data.
@@ -248,13 +271,15 @@ export function createSurfaceSemanticControlScopeResolver(
 }
 
 export interface SurfaceSlotProps {
+  formSession?: SurfaceFormSession | undefined;
+  activeSection?: string | undefined;
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
   screenerCompletion?: SurfaceScreenerCompletionPolicy | undefined;
   screenerInstanceId?: string | undefined;
   /** Pure destination check; required before host-required completion. */
   checkScreenerTarget?: ((target: string) => { status: 'accepted' } | { status: 'refused'; reason: string }) | undefined;
-  onScreenerTarget?: ((target: string) => { status: 'accepted' } | { status: 'refused'; reason: string }) | undefined;
+  onScreenerTarget?: NativeScreenerSlotProps['navigate'];
   plan: SlotPlan<SurfaceWidget>;
   grant: ThemeGrant;
   route: SurfaceWidgetRouteContext;
@@ -305,15 +330,7 @@ export interface SurfaceSlotProps {
         result: ResponseActionInvocationResult<SubmitResult>,
       ) => void)
     | undefined;
-  onAdvance?:
-    | ((
-        transition: PlannedTransition,
-        result?: Pick<
-          ResponseActionInvocationResult<SurfaceWidgetActionDetail>,
-          'transitionBindings'
-        >,
-      ) => 'advanced' | 'refused' | void)
-    | undefined;
+  onAdvance?: AdvanceTransition | undefined;
 }
 
 /** Successful Response actions follow their resolved Validation Modes policy. */
@@ -491,6 +508,8 @@ export function SurfaceSlot({
   screenerCompletion,
   localeDocuments,
   activeLocale,
+  formSession,
+  activeSection,
 }: SurfaceSlotProps): ReactNode {
   const subjectPrefix = surfaceSemanticOutputSubjectRef(
     route.routeId,
@@ -509,7 +528,7 @@ export function SurfaceSlot({
       return <NativeScreenerSlot key={`${screenerInstanceId ?? runtimeGeneration ?? ''}/${plan.screener.ref.url}/${plan.screener.ref.version}`}
         document={plan.screener.document} screenerRef={{url: plan.screener.ref.url, version: plan.screener.document.version}} allowedTargets={plan.allowedTargets}
         route={route} slotId={plan.slotId} runtimeGeneration={runtimeGeneration} visitId={screenerInstanceId}
-        policy={screenerCompletion} localeDocuments={localeDocuments} activeLocale={activeLocale}
+        policy={screenerCompletion} localeDocuments={localeDocuments} activeLocale={activeLocale} appearance={formSession?.appearance}
         checkTarget={checkScreenerTarget} navigate={onScreenerTarget} />;
     }
     case 'definition-form': {
@@ -532,6 +551,7 @@ export function SurfaceSlot({
       // directly. On a refusing route that object was built from the platform
       // token registry and never saw a tenant token — which is what makes the
       // boundary structural rather than a styling choice.
+      const workspace = formSession?.workspace;
       const renderInput: SurfaceDefinitionFormRenderInput = {
         plan: {
           ...plan,
@@ -548,6 +568,16 @@ export function SurfaceSlot({
         responseActionInvoker: definitionActionInvoker,
         localeDocuments,
         activeLocale,
+        ...(formSession && {
+          appearance: formSession.appearance,
+          previewScope: formSession.previewScope,
+          reportSave: formSession.reportSave,
+        }),
+        ...(workspace && {
+          activeSection,
+          hrefForSection: section => workspace.hrefForSection(plan.slotId, section),
+          onActiveSectionChange: section => workspace.onActiveSectionChange(plan.slotId, section),
+        }),
       };
       const semanticControlScope = resolveSemanticControlScope?.({
         plan: renderInput.plan,
@@ -740,6 +770,7 @@ export function SurfaceSlot({
               screenerInstanceId={screenerInstanceId}
               localeDocuments={localeDocuments}
               activeLocale={activeLocale}
+              formSession={formSession && { ...formSession, workspace: undefined }}
               onAdvance={onAdvance}
             />
           ))}
@@ -832,40 +863,8 @@ function SurfaceStaticContent({
   }
 }
 
-export function renderDefaultDefinitionForm({
-  plan,
-  grant,
-  route,
-  initialData,
-  referencesDocuments,
-  ontologyDocuments,
-  responseActionsDocument,
-  semanticControlScope,
-  onDefinitionActionResult,
-  onActionCompleted,
-  responseActionInvoker,
-  componentDocument,
-  localeDocuments,
-  activeLocale,
-}: SurfaceDefinitionFormRenderInput): ReactNode {
-  return (
-    <DefaultSurfaceDefinitionForm
-      plan={plan}
-      grant={grant}
-      route={route}
-      initialData={initialData}
-      referencesDocuments={referencesDocuments}
-      ontologyDocuments={ontologyDocuments}
-      responseActionsDocument={responseActionsDocument}
-      semanticControlScope={semanticControlScope}
-      onDefinitionActionResult={onDefinitionActionResult}
-      onActionCompleted={onActionCompleted}
-      responseActionInvoker={responseActionInvoker}
-      componentDocument={componentDocument}
-      localeDocuments={localeDocuments}
-      activeLocale={activeLocale}
-    />
-  );
+export function renderDefaultDefinitionForm(input: SurfaceDefinitionFormRenderInput): ReactNode {
+  return <DefaultSurfaceDefinitionForm {...input} />;
 }
 
 type EffectDataSourcePorts = {
@@ -1149,6 +1148,7 @@ function DefaultSurfaceDefinitionForm({
   componentDocument,
   localeDocuments,
   activeLocale,
+  appearance,
 }: SurfaceDefinitionFormRenderInput): ReactNode {
   const engine = useMemo(() => {
     const created = createFormEngine(plan.definition);
@@ -1213,6 +1213,7 @@ function DefaultSurfaceDefinitionForm({
 
   return (
     <FormspecForm
+      {...(appearance && { className: `formspec-appearance-${appearance}` })}
       engine={engine}
       componentDocument={componentDocument}
       themeDocument={grant.themeDocument}
@@ -1262,15 +1263,7 @@ interface SurfaceWidgetSlotProps {
   onRuntimeDiagnosticsChange?:
     | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
     | undefined;
-  onAdvance?:
-    | ((
-        transition: PlannedTransition,
-        result?: Pick<
-          ResponseActionInvocationResult<SurfaceWidgetActionDetail>,
-          'transitionBindings'
-        >,
-      ) => 'advanced' | 'refused' | void)
-    | undefined;
+  onAdvance?: AdvanceTransition | undefined;
   semanticOutputScope?: SurfaceSemanticOutputPublisherScope | undefined;
 }
 
@@ -1604,7 +1597,7 @@ function SurfaceWidgetSlot({
         };
       }
       const completion = emission.completion
-        .then(({ invocationId, result }) => {
+        .then(async ({ invocationId, result }) => {
           if (activeGeneration.current !== emittedGeneration) {
             onWidgetActionReport?.({
               invocationId,
@@ -1682,7 +1675,7 @@ function SurfaceWidgetSlot({
             return { status: 'completed' as const };
           }
           navigatedInvocations.current.add(invocationId);
-          const navigation = onAdvance?.(
+          const navigation = await onAdvance?.(
             transition,
             bindingMerge.transitionBindings
               ? { transitionBindings: bindingMerge.transitionBindings }

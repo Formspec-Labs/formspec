@@ -2,7 +2,8 @@
 
 /*
  * Everything here paints through `--formspec-*` custom properties, which
- * `SurfaceRouteView` emits on the route element from the route's theme grant.
+ * The controlled binding emits on the route element from the route's Theme
+ * grant. The browser binding applies that grant to its app chrome as well.
  * That is what makes theme authority visible rather than merely structural: on a
  * refusing route the properties in scope were built from the platform token
  * registry and never saw a tenant token, so these rules cannot paint a tenant
@@ -10,19 +11,8 @@
  *
  * ## Why the alias layer exists, and why it is declared twice
  *
- * The token emitter writes onto `.fs-surface-route`. Everything ABOVE that
- * element — the navigation, the app frame — is outside the token scope, so a
- * `var(--formspec-color-foreground, …)` written up there can only ever resolve
- * to its fallback. The shipped stylesheet declared `color` on `.fs-surface-app`
- * and the route title inherited the computed value, which meant the whole route
- * painted the LIGHT-MODE fallback `#1a1a1a` no matter what: measured **1.06:1**
- * against the dark shell panel, an invisible page heading.
- *
- * So the alias block below is declared on both `.fs-surface-app` (chrome, where
- * only fallbacks are reachable) and `.fs-surface-route` (content, where the
- * emitted tokens are in scope and win). Custom-property substitution happens at
- * the element that DECLARES the property, so the route's copy re-resolves
- * against the tokens rather than inheriting the chrome's fallback.
+ * Aliases resolve where they are declared. Controlled chrome can use the
+ * platform fallbacks while route content resolves against its own grant.
  *
  * ## Both schemes, measured
  *
@@ -80,9 +70,20 @@
   }
 }
 
-/* A host with its own toggle pins the scheme, in both directions. */
-[data-fs-appearance='dark'] .fs-surface-app,
-[data-fs-appearance='dark'] .fs-surface-route,
+/* Let the browser paint the saved scheme while the app is loading. */
+html[data-fs-appearance='dark'],
+html[data-fs-saved-appearance='dark']:not([data-fs-appearance], :has(.fs-surface-app)) {
+  color-scheme: dark;
+}
+
+html[data-fs-appearance='light'],
+html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surface-app)) {
+  color-scheme: light;
+}
+
+/* The browser binding resolves the nearest host setting onto the app and route. */
+:where([data-fs-appearance='dark']) .fs-surface-app,
+:where([data-fs-appearance='dark']) .fs-surface-route,
 .fs-surface-app[data-fs-appearance='dark'],
 .fs-surface-route[data-fs-appearance='dark'] {
   --fs-surface-ink: var(--formspec-color-dark-foreground, #f3ecdf);
@@ -99,8 +100,8 @@
   color-scheme: dark;
 }
 
-[data-fs-appearance='light'] .fs-surface-app,
-[data-fs-appearance='light'] .fs-surface-route,
+:where([data-fs-appearance='light']) .fs-surface-app,
+:where([data-fs-appearance='light']) .fs-surface-route,
 .fs-surface-app[data-fs-appearance='light'],
 .fs-surface-route[data-fs-appearance='light'] {
   --fs-surface-ink: var(--formspec-color-foreground, #20241f);
@@ -149,6 +150,8 @@
     clamp(1rem, 3vw, 2.5rem);
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: var(--formspec-spacing-md, 0.75rem);
 }
 
 .fs-surface-brand {
@@ -156,6 +159,38 @@
   font-size: 1.0625rem;
   font-weight: var(--formspec-font-weight-bold, 700);
   letter-spacing: -0.01em;
+}
+
+.fs-surface-masthead-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--formspec-spacing-md, 0.75rem);
+  margin-inline-start: auto;
+}
+
+.fs-surface-masthead-controls label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--formspec-spacing-sm, 0.5rem);
+}
+
+.fs-surface-masthead-controls select {
+  font: inherit;
+  color: var(--fs-surface-ink);
+  background: var(--fs-surface-panel);
+  border: 1px solid var(--fs-surface-line-strong);
+  border-radius: var(--formspec-radius-sm, 0.35rem);
+  padding: var(--formspec-spacing-sm, 0.5rem);
+}
+
+.fs-surface-save-notice {
+  margin: 0;
+  color: var(--fs-surface-ink-quiet);
+}
+
+.fs-surface-save-notice:empty {
+  position: absolute;
 }
 
 .fs-surface-shell {
