@@ -241,7 +241,7 @@
   appearance: none;
   -webkit-appearance: none;
   background: none;
-  color: var(--formspec-default-text-subtle);
+  color: var(--formspec-default-text);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 500;
