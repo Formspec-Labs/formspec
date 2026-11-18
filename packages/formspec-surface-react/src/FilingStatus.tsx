@@ -18,7 +18,7 @@ type DraftReads = (query: FilingDraftQuery) => Observation;
 const unavailable = { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } } as const;
 
 export interface FilingStatusNavigation {
-  navigate: (href: string) => void;
+  navigate: (href: string) => void | boolean | Promise<void | boolean>;
   formatHref?: ((href: string) => string | undefined) | undefined;
   resolveRouteTitle?: SurfaceRouteTitleResolver | undefined;
 }

@@ -14,7 +14,7 @@ export type SurfaceDocument = {
   [k: string]: unknown;
 } & {
   /**
-   * Surface specification version. Screener slots require 0.3 or later. Filing-status slots and draft-review bindings require 0.4.
+   * Surface specification version. Screener slots require 0.3 or later. Filing-status slots, draft-start slots and draft-review bindings require 0.4.
    */
   $formspecSurface: '0.2' | '0.3' | '0.4';
   /**
@@ -60,7 +60,7 @@ export type Slot = {
    */
   id: string;
   /**
-   * Closed slot-type taxonomy; 0.3 adds native Screener presentation and 0.4 adds filing-status. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.
+   * Closed slot-type taxonomy; 0.3 adds native Screener presentation and 0.4 adds filing-status and draft-start. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.
    */
   slotType:
     | 'definition-form'
@@ -69,7 +69,8 @@ export type Slot = {
     | 'static-content'
     | 'embed-route'
     | 'screener'
-    | 'filing-status';
+    | 'filing-status'
+    | 'draft-start';
   /**
    * OPTIONAL renderer hint naming a layout position (e.g. 'left', 'main', 'right', 'header'). Author-defined; renderers consume per their layout model. v0.2 carries no normative position vocabulary.
    */
@@ -309,6 +310,21 @@ export interface RouteParamMap {
    * via the `patternProperty` "^[a-zA-Z][a-zA-Z0-9_-]*$".
    */
   [k: string]: string;
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "DraftStartBinding".
+ */
+export interface DraftStartBinding {
+  routeRef: string;
+  /**
+   * Id of a Definition-form slot on the referenced route.
+   */
+  slotRef: string;
+  /**
+   * Visible label for the control that starts a new draft.
+   */
+  label: string;
 }
 /**
  * An ordered overview of Definition forms in this Surface. Each group represents one filing unit.

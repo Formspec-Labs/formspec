@@ -101,10 +101,10 @@ Every route declared in `routes[]` MUST be reachable from the document's
 - from Surface 0.3, each reachable native `screener` slot's
   `binding.allowedTargets` entry using `surface:<route-id>`, when it names a
   route in the same Surface, and
-- in Surface 0.4, each reachable `filing-status` entry’s `routeRef`. A band's
-  links participate on every reachable route whose parameters supply the entry's
-  `routeParam` references. This walk checks possible destinations. A repeated
-  link also depends on an authorized roster delivery at runtime.
+- in Surface 0.4, each reachable `draft-start` binding's or `filing-status` entry's `routeRef`.
+  A band's links participate on every reachable route whose parameters supply
+  the entry's `routeParam` references. This walk checks possible destinations. A
+  repeated link also depends on an authorized roster delivery at runtime.
 
 A route that is not reached by this walk is invalid and MUST be reported as
 `E606` (`SURFACE-ROUTE-UNREACHABLE`). Producers SHOULD either add a transition
@@ -367,6 +367,25 @@ Processors MUST refuse unresolved or ambiguous targets and duplicate resolved
 route, slot, and parameter tuples within a tracker. Authoring tools MUST refuse
 removing a referenced route or slot, or changing a referenced slot's type away
 from `definition-form`, while a surviving entry still refers to it.
+
+### Start a draft with store-assigned keys
+
+In Surface 0.4, a `draft-start` slot declares a visible `label` and a
+`routeRef` and `slotRef` naming exactly one local Definition-form slot.
+The destination form's `subjectKeys` supplies the key-to-parameter mapping.
+At least one declared key MUST be minted. Each minted key MUST have its own
+destination parameter. The source route MUST supply every remaining destination
+parameter by name, and MUST omit the minted parameters.
+
+An explicit activation requests creation from the draft store under the supplied
+parents. Rendering or visiting the source route MUST NOT create a draft. The
+store applies Core §4.1 and §4.4.1, retains the initialized draft and its pins,
+and returns the complete subject. Retrying one activation MUST reuse its attempt
+identifier. The shell MUST verify the returned type and parents, fill only the
+minted parameters and resolve the resulting URL back to the declared route
+before navigating. On refusal it stays on the source route. A later visit to
+the keyed route resumes the initialized draft and applies initial data until
+an edited snapshot exists.
 
 ### Definition-form initial data
 

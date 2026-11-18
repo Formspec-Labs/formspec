@@ -507,6 +507,9 @@ fn check_route_reachability(
                 Some("screener") if matches!(dialect, Some("0.3" | "0.4")) => {
                     screener_targets(slot).map(|(_, target)| target).collect()
                 }
+                Some("draft-start") if dialect == Some("0.4") => {
+                    slot["binding"]["routeRef"].as_str().into_iter().collect()
+                }
                 Some("filing-status") if dialect == Some("0.4") => {
                     filing_targets(slot, &host_params).collect()
                 }

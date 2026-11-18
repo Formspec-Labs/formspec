@@ -39,6 +39,7 @@ import type { ExperienceDocument } from '@formspec-org/types';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
 import type { SurfaceRoute } from './route-path.js';
 import type { SurfaceApp, SurfaceRouteHandle } from './composition.js';
+import { planDraftStart, type DraftStartPlan } from './draft-start.js';
 import { planFilingStatus, type FilingSectionLocaleLookup, type FilingStatusPlan } from './filing-status.js';
 import type { ThemeAuthority } from './theme-authority.js';
 import {
@@ -97,6 +98,7 @@ export type SlotPlan<TComponent> = SlotPlanBase &
         status: 'ready' | 'unresolved';
       }
     | { slotType: 'screener'; screener?: ScreenerDocumentHandle; allowedTargets: readonly string[]; status: 'ready' | 'unresolved'; reason?: string }
+    | { slotType: 'draft-start'; start: DraftStartPlan | undefined }
     | { slotType: 'filing-status'; tracker: FilingStatusPlan }
     | { slotType: 'experience-unit'; unit: ExperienceUnitPlan }
     | {
@@ -135,6 +137,7 @@ export type SlotPlan<TComponent> = SlotPlanBase &
 const KNOWN_SLOT_TYPES = {
   'screener': true,
   'filing-status': true,
+  'draft-start': true,
   'definition-form': true,
   'experience-unit': true,
   'module-widget': true,
@@ -289,6 +292,13 @@ function planSlot<TComponent>(
         : !allowedTargets.length || new Set(allowedTargets).size !== allowedTargets.length || allowedTargets.some(t => !t.startsWith('surface:') || !authored.has(t)) ? 'allowed-target-invalid' : undefined;
       if (reason) diagnostics.push(surfaceDiagnostic('SLOT-BINDING-INCOMPLETE', 'The native Screener slot is unavailable.', site, { reason }));
       return { ...shared, slotType: 'screener', ...(handle ? { screener: handle } : {}), allowedTargets, status: reason ? 'unresolved' : 'ready', ...(reason ? { reason } : {}) };
+    }
+    case 'draft-start': {
+      const start = context.filingStatus && planDraftStart(context.filingStatus.app, context.handle,
+        bindingRoute, binding, context.definitions, context.params ?? {});
+      if (!start) diagnostics.push(surfaceDiagnostic('SLOT-BINDING-INCOMPLETE',
+        'The new draft target or its parent parameters are unavailable.', site));
+      return { ...shared, slotType: 'draft-start', start };
     }
     case 'filing-status': {
       const tracker: FilingStatusPlan = context.filingStatus ? planFilingStatus({

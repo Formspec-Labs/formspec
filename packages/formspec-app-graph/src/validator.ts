@@ -43,6 +43,7 @@ import { missingResponseProjectionChecks } from './instance-projection.js';
 import { validateLocaleAssociations } from './locale-associations.js';
 import { validateNeedsCoverage } from './needs-coverage.js';
 import { runRenderedNeedTrace } from './rendered-need-trace.js';
+import { validateDraftStartTargets } from './draft-start-target.js';
 import { validateFilingStatusTargets } from './filing-status-targets.js';
 import { validateScreenerSurfaceTargets } from './screener-surface-targets.js';
 import { validateSurfaceDefinitionSlots } from './surface-definition-slots.js';
@@ -346,6 +347,7 @@ function runCrossArtifactValidators(
     validateNeedsCoverage,
     validateScreenerSurfaceTargets,
     validateFilingStatusTargets,
+    validateDraftStartTargets,
     validateSurfaceDefinitionSlots,
     validateSurfaceExperienceUnits,
     validateSurfaceResponseActionTriggers,

@@ -89,6 +89,7 @@ import {
   type ThemeGrant,
   type WidgetDataDelivery,
 } from '@formspec-org/surface';
+import { DraftStart } from './DraftStart.js';
 import { DraftDefinitionForm } from './DraftDefinitionForm.js';
 import type { DraftSession } from './draft-session.js';
 import { loadDraftReviewInputs, type DraftReviewDelivery } from './draft-review.js';
@@ -552,6 +553,14 @@ export function SurfaceSlot({
       : undefined;
 
   switch (plan.slotType) {
+    case 'draft-start': {
+      const start = plan.start;
+      const session = formSession?.drafts;
+      if (!start || !session?.port.start || !filingStatus) return <UnavailableSlot>{strings('draftUnavailable')}</UnavailableSlot>;
+      const identity = JSON.stringify([runtimeGeneration, route.routeId, plan.slotId, start.destination.routeId,
+        start.slotId, start.definitionUrl, start.definitionVersion, start.params, start.subject, session.scope]);
+      return <DraftStart key={identity} plan={start} session={session} navigate={filingStatus.navigate} strings={strings} />;
+    }
     case 'filing-status':
       return <FilingStatus plan={plan.tracker} context={filingStatus}
         level={plan.title === undefined ? plan.headingBaseLevel : nextLevel(plan.headingBaseLevel)} text={strings} />;

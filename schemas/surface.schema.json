@@ -13,7 +13,7 @@
     "$formspecSurface": {
       "type": "string",
       "enum": ["0.2", "0.3", "0.4"],
-      "description": "Surface specification version. Screener slots require 0.3 or later. Filing-status slots and draft-review bindings require 0.4.",
+      "description": "Surface specification version. Screener slots require 0.3 or later. Filing-status slots, draft-start slots and draft-review bindings require 0.4.",
       "examples": ["0.2"],
       "x-lm": {
         "critical": true,
@@ -66,7 +66,7 @@
   },
   "allOf": [
     {"if": {"properties": {"$formspecSurface": {"const": "0.2"}}, "required": ["$formspecSurface"]}, "then": {"properties": {"routes": {"items": {"properties": {"slots": {"items": {"properties": {"slotType": {"not": {"const": "screener"}}}}}}}}}}},
-    {"if": {"properties": {"$formspecSurface": {"enum": ["0.2", "0.3"]}}, "required": ["$formspecSurface"]}, "then": {"properties": {"routes": {"items": {"properties": {"slots": {"items": {"properties": {"slotType": {"not": {"const": "filing-status"}}, "binding": {"not": {"required": ["draftReview"]}}}}}}}}}}}
+    {"if": {"properties": {"$formspecSurface": {"enum": ["0.2", "0.3"]}}, "required": ["$formspecSurface"]}, "then": {"properties": {"routes": {"items": {"properties": {"slots": {"items": {"properties": {"slotType": {"not": {"enum": ["filing-status", "draft-start"]}}, "binding": {"not": {"required": ["draftReview"]}}}}}}}}}}}
   ],
   "$defs": {
     "Route": {
@@ -191,10 +191,11 @@
             "static-content",
             "embed-route",
             "screener",
-            "filing-status"
+            "filing-status",
+            "draft-start"
           ],
           "examples": ["definition-form", "module-widget", "embed-route"],
-          "description": "Closed slot-type taxonomy; 0.3 adds native Screener presentation and 0.4 adds filing-status. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.",
+          "description": "Closed slot-type taxonomy; 0.3 adds native Screener presentation and 0.4 adds filing-status and draft-start. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.",
           "x-lm": {
             "critical": true,
             "intent": "Closed slot-type discriminator pinning binding shape per ADR 0150 §6.2"
@@ -453,6 +454,10 @@
           }
         },
         {
+          "if": { "properties": { "slotType": { "const": "draft-start" } }, "required": ["slotType"] },
+          "then": { "properties": { "binding": { "$ref": "#/$defs/DraftStartBinding" } } }
+        },
+        {
           "if": {
             "properties": { "slotType": { "const": "filing-status" } },
             "required": ["slotType"]
@@ -462,6 +467,16 @@
           }
         }
       ]
+    },
+    "DraftStartBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routeRef", "slotRef", "label"],
+      "properties": {
+        "routeRef": { "$ref": "#/$defs/FilingStatusEntry/properties/routeRef" },
+        "slotRef": { "$ref": "#/$defs/FilingStatusEntry/properties/slotRef" },
+        "label": { "type": "string", "minLength": 1, "description": "Visible label for the control that starts a new draft." }
+      }
     },
     "FilingStatusBinding": {
       "description": "An ordered overview of Definition forms in this Surface. Each group represents one filing unit.",

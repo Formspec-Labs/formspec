@@ -784,7 +784,7 @@ export function SurfaceAppView(props: SurfaceAppProps & {
               filingStatus={{
                 readSummaries: props.readSummaries,
                 revision: props.filingDraftRevision,
-                navigate: (href) => { if (browser) void browser.navigate(href); else onNavigate(href); },
+                navigate: (href) => browser ? browser.navigate(href) : onNavigate(href),
                 formatHref: props.resolveNavigationHref,
                 resolveRouteTitle: props.resolveRouteTitle,
               }}

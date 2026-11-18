@@ -1060,6 +1060,15 @@ In forced colors, the fill and both mark styles remain visible. Counts MUST
 stay outside live regions.
 The viewing route's Theme grant governs the tracker.
 
+### 3.7 `draft-start`
+
+Activating the authored control asks the draft store to open a new filing unit.
+The shell supplies the parent keys and retains the same attempt identifier when
+retrying that activation. The store returns the complete subject and records
+the opening pins before the shell navigates to the target form. Opening the
+form resumes the initialized draft and applies its initial data until the first
+checkpoint. A refusal leaves the user on the starting route.
+
 ## 4. The Theme Boundary
 
 This is the section the seam exists for. `THEME-ROUTE-CLASS`

@@ -1,5 +1,9 @@
 /** @filedesc A store creates independent units from one set of parents and resumes both. */
-import { expect, it } from 'vitest';
+import { act } from 'react';
+import { dereferenceBundleExport } from '@formspec-org/surface';
+import { BrowserSurfaceApp } from '../src/BrowserSurfaceApp.js';
+import { render } from './render.js';
+import { expect, it, vi } from 'vitest';
 import { createMemoryFilingStore } from '../src/browser-draft-port.js';
 import type { FormDefinition } from '@formspec-org/types';
 import { checkMintedDraftStart } from '../../formspec-surface/src/draft-port-conformance.js';
@@ -25,6 +29,80 @@ it('refuses supplied minted keys, incomplete parents, wrong scope and a refused 
   expect((await store.start({ ...input, scope: 'elsewhere', attemptId: 'two' })).status).toBe('denied');
   const restricted = createMemoryFilingStore({ scope: input.scope, definitions, authorize: () => false, authorizeOpen: () => false });
   expect((await restricted.drafts.start({ ...input, attemptId: 'three' })).status).toBe('denied');
+});
+
+it('opens two new units on their own URLs and resumes both through browser navigation', async () => {
+  const store = createMemoryFilingStore({ scope: input.scope, definitions });
+  const load = vi.spyOn(store.drafts, 'load');
+  const start = vi.spyOn(store.drafts, 'start');
+  const beforeLeave = vi.fn(() => true).mockReturnValueOnce(false);
+  const surface = 'urn:test:surface';
+  const bundle = dereferenceBundleExport({
+    manifest: { $formspecBundle: '2.4', id: 'urn:test:app', entrySurface: surface,
+      definitions: [{ url: definition.url }], surfaces: [{ url: surface }] },
+    documents: { [definition.url]: definition, [surface]: {
+      $formspecSurface: '0.4', id: 'projects', entry: 'list', routes: [
+        { id: 'list', path: '/list/{year}', params: [{ name: 'year', type: 'string' }], slots: [
+          { id: 'start', slotType: 'draft-start', binding: { label: 'Create project', routeRef: 'project', slotRef: 'form' } },
+        ] },
+        { id: 'project', path: '/edit/{year}/{unit}', params: [{ name: 'year', type: 'string' }, { name: 'unit', type: 'string' }], slots: [
+          { id: 'form', slotType: 'definition-form', binding: { definitionRef: definition.url, subjectKeys: { year: 'year', unit: 'unit' } } },
+        ] },
+      ],
+    } },
+  });
+  const original = window.location.href;
+  function visit(path: string) {
+    act(() => {
+      window.history.replaceState(null, '', path);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+  }
+  try {
+    visit('/list/2025');
+    const host = render(<BrowserSurfaceApp beforeLeave={beforeLeave} bundle={bundle} draftStorage={{ scope: input.scope, port: store.drafts }} />);
+    const addresses = [];
+    for (let i = 0; i < 2; ++i) {
+      await vi.waitFor(() => expect([...host.querySelectorAll('button')].some(node => node.textContent === 'Create project')).toBe(true));
+      const button = [...host.querySelectorAll('button')].find(node => node.textContent === 'Create project')!;
+      if (i === 0) {
+        await act(async () => { button.click(); });
+        await vi.waitFor(() => expect(beforeLeave).toHaveBeenCalledOnce());
+        expect(window.location.pathname).toBe('/list/2025');
+      }
+      await act(async () => { button.click(); button.click(); });
+      if (i === 0) {
+        expect(start).toHaveBeenCalledTimes(2);
+        expect(start.mock.calls[0][0].attemptId).toBe(start.mock.calls[1][0].attemptId);
+      }
+      await vi.waitFor(() => expect(window.location.pathname).toMatch(/^\/edit\/2025\/[^/]+$/));
+      await vi.waitFor(() => expect(host.querySelector('[data-name="answer"] input')).not.toBeNull());
+      // Save an answer through the port, then revisit through the real editor and read its rendered value.
+      const key = load.mock.lastCall![0];
+      const initial = await store.drafts.load(key, definition.version);
+      if (initial.status !== 'initialized') throw new Error('expected untouched unit');
+      const data = { answer: `Project ${i}` };
+      const saved = await store.drafts.save({ key, definitionVersion: definition.version, expectedRevision: initial.revision, summary: null,
+        snapshotJson: JSON.stringify({ definitionUrl: definition.url, definitionVersion: definition.version, data }),
+        responseJson: JSON.stringify({ $formspecResponse: '1.0', id: `urn:test:project:${i}`, status: 'in-progress',
+          authored: '2026-01-01T00:00:00Z', definitionUrl: definition.url, definitionVersion: definition.version, subject: key.subject, data }),
+      });
+      expect(saved.status).toBe('saved');
+      addresses.push(window.location.pathname);
+      visit('/list/2025');
+    }
+    expect(new Set(addresses).size).toBe(2);
+    for (const [i, path] of addresses.entries()) {
+      load.mockClear();
+      visit(path);
+      await vi.waitFor(() => expect(load).toHaveBeenCalledWith(expect.objectContaining({
+        subject: expect.objectContaining({ keys: { year: 2025, unit: path.split('/').at(-1) } }),
+      }), definition.version, expect.any(AbortSignal)));
+      await vi.waitFor(() => expect(host.querySelector<HTMLInputElement>('[data-name="answer"] input')?.value).toBe(`Project ${i}`));
+    }
+  } finally {
+    visit(original);
+  }
 });
 
 it('keeps a minted address on confirmed restart after a Definition version change', async () => {
