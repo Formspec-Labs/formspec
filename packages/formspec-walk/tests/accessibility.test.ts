@@ -184,7 +184,7 @@ describe('every page is visited, or the check fails', () => {
     });
 
     it.each(['wizard', 'tabs'])('checks a revealed repeat field on page two of a %s', async (mode) => {
-        const gate = { key: 'gate', type: 'field', label: 'Gate', dataType: 'boolean' };
+        const gate = { key: 'gate', type: 'field', label: 'Gate', dataType: 'boolean', initialValue: false };
         const rows = { ...group('rows', [gate, unlabelled('detail')]), repeatable: true, minRepeat: 2 };
         const definition = form(mode, [group('one', [field('a', 'A')]), group('two', [rows])], {
             binds: [{ path: 'two.rows[*].detail', relevant: '$gate' }],

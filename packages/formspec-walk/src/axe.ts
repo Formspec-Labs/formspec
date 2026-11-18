@@ -538,7 +538,8 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
 
 /** The page after `open`: drawn, or a renderer failure with its reason. */
 async function waitForForm(page: Page, rootSelector: string): Promise<void> {
-    await page.waitForSelector(`${rootSelector} :is([data-formspec-form], ${WORKSPACE}), html[data-formspec-host="error"]`, { state: 'attached' });
+    const ready = `:is([data-formspec-form], ${WORKSPACE}, ${WIZARD_PANEL}, ${TAB_PANEL})`;
+    await page.waitForSelector(`:is(${rootSelector}) ${ready}, html[data-formspec-host="error"]`, { state: 'attached' });
     const error = await page.evaluate(() => (window as { __formspecHost?: { error?: string } }).__formspecHost?.error);
     if (error) throw new RendererError(error);
 }
