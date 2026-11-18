@@ -112,6 +112,8 @@ RawProject (facade)
 **FEL & expressions:**
 `parseFEL(expression, context?)`, `felFunctionCatalog()`, `availableReferences(context?)`, `allExpressions()`, `expressionDependencies(expression)`, `fieldDependents(fieldPath)`, `variableDependents(variableName)`, `dependencyGraph()`
 
+Before calling the synchronous `parseFEL()` editor API, await `initFormspecEngine()` and then `initFormspecEngineTools()` from `@formspec-org/engine`. Passing a target path checks references in that Item's scope. Omitting the context checks syntax and called functions. The editor also suggests corrections for unknown names.
+
 **Diagnostics & versioning:**
 `diagnose()`, `diffFromBaseline(fromVersion?)`, `previewChangelog()`, `export()`
 

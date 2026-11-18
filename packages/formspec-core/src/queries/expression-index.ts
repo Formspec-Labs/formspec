@@ -3,13 +3,10 @@
  */
 import type { FormInstance, FormItem, FormShape, FormVariable } from '@formspec-org/types';
 import {
-  analyzeFEL,
-  analyzeFELWithFieldTypes,
   getFELDependencies,
   normalizeIndexedPath,
-  type FELAnalysis,
 } from '@formspec-org/engine/fel-runtime';
-import { getBuiltinFELFunctionCatalog } from '@formspec-org/engine/fel-tools';
+import { analyzeExpressionInDefinition, getBuiltinFELFunctionCatalog } from '@formspec-org/engine/fel-tools';
 import { getCurrentComponentDocument } from '../component-documents.js';
 import { forEachBindFelExpression, forEachItemFelExpression } from '../bind-fel.js';
 import { currentComponentTree } from '../component-tree.js';
@@ -26,10 +23,6 @@ import type {
   FELReferenceSet,
   FELFunctionEntry,
 } from '../types.js';
-
-function analyzeExpression(expression: string): FELAnalysis {
-  return analyzeFEL(expression);
-}
 
 function resolveParseContext(context?: string | FELParseContext): FELParseContext {
   if (!context) return {};
@@ -54,6 +47,12 @@ function editDistance(a: string, b: string): number {
   return dp[n];
 }
 
+function suggestions(candidates: string[]): string {
+  if (candidates.length === 1) return `. Did you mean ${candidates[0]}?`;
+  if (candidates.length > 1) return `. Did you mean one of: ${candidates.join(', ')}?`;
+  return '';
+}
+
 /** Detect common FEL mistakes and prepend a helpful hint to the error message. */
 function addFELHint(expression: string, message: string): string {
   if (/\btrue\s*\(/.test(expression) || /\bfalse\s*\(/.test(expression)) {
@@ -74,26 +73,18 @@ function parseAnalyzerWarning(raw: string): { code: string; message: string } {
  * Parse and validate a FEL expression without saving it to project state.
  */
 export function parseFEL(state: ProjectState, expression: string, context?: FELParseContext): FELParseResult {
-  // When context is available, compute available references once and run typed
-  // analysis to get type-mismatch warnings alongside the structural analysis.
   const resolved = context !== undefined ? resolveParseContext(context) : undefined;
-  const available = resolved !== undefined ? availableReferences(state, resolved) : undefined;
-
-  let analysis: FELAnalysis;
-  let typeWarnings: string[] = [];
-  if (available) {
-    const fieldTypeMap: Record<string, string> = {};
-    for (const field of available.fields) {
-      fieldTypeMap[field.path] = field.dataType;
-    }
-    analysis = analyzeFELWithFieldTypes(expression, fieldTypeMap);
-    // Separate type-mismatch warnings from arity warnings by message content.
-    typeWarnings = (analysis.warnings ?? []).filter(
-      (msg) => !msg.includes('requires at least') && !msg.includes('accepts at most'),
-    );
-  } else {
-    analysis = analyzeExpression(expression);
-  }
+  const registries = state.extensions.registries.map(registry => ({ entries: Object.values(registry.entries) }));
+  const analysis = analyzeExpressionInDefinition(
+    resolved ? state.definition : {}, expression, registries,
+    resolved === undefined ? undefined : resolved.targetPath ?? '', Boolean(resolved?.mappingContext),
+  );
+  // Completion candidates are needed only when the resolver reports an unknown field.
+  const available = resolved && analysis.findings.some(finding => finding.code === 'E402')
+    ? availableReferences(state, resolved) : undefined;
+  const typeWarnings = resolved === undefined ? [] : analysis.warnings.filter(
+    (message) => !message.includes('requires at least') && !message.includes('accepts at most'),
+  );
 
   const parseErrors: Diagnostic[] = analysis.errors.map((error) => ({
     artifact: 'definition',
@@ -108,70 +99,35 @@ export function parseFEL(state: ProjectState, expression: string, context?: FELP
 
   const semanticErrors: Diagnostic[] = [];
   const warnings: Diagnostic[] = [];
-  if (available && analysis.valid) {
-    const knownFieldPaths = new Set(available.fields.map((field) => normalizeIndexedPath(field.path)));
-    const knownVariables = new Set([
-      ...available.variables.map((variable) => variable.name),
-      ...available.contextRefs
-        .filter((entry) => entry.startsWith('@'))
-        .map((entry) => entry.slice(1)),
-    ]);
-
-    const target = normalizeIndexedPath(resolved?.targetPath ?? '');
-    const items = itemIndex(state.definition.items);
-    const scope = target.split('.').filter(Boolean);
-    if (items.get(target)?.type !== 'group') scope.pop();
-    const scopePrefixes = scope.map((_, index) => scope.slice(0, index + 1).join('.') + '.').reverse();
-    const resolvesReference = (reference: string) => {
-      const path = normalizeIndexedPath(reference);
-      const head = path.split('.')[0];
-      const prefix = scopePrefixes.find(scope => items.has(scope + head)) ?? '';
-      const item = items.get(prefix + path);
-      return item?.type === 'field' || item?.type === 'group';
-    };
-    for (const reference of analysis.references) {
-      if (!resolvesReference(reference)) {
-        let message = `Unknown field reference "$${reference}" in this editor context`;
-        const suffix = reference.split('.').pop()!;
-        const partialMatches = [...knownFieldPaths].filter(
-          (p) => p === suffix || p.endsWith(`.${suffix}`),
-        );
-        if (partialMatches.length === 1) {
-          message += `. Did you mean "$${partialMatches[0]}"?`;
-        } else if (partialMatches.length > 1) {
-          const quoted = partialMatches.map((p) => `"$${p}"`).join(', ');
-          message += `. Did you mean one of: ${quoted}?`;
-        }
-        semanticErrors.push({
-          artifact: 'definition',
-          path: 'expression',
-          severity: 'error',
-          code: 'FEL_UNKNOWN_REFERENCE',
-          message,
-        });
-        if (knownVariables.has(reference)) {
-          warnings.push({
-            artifact: 'definition',
-            path: 'expression',
-            severity: 'warning',
-            code: 'FEL_SIGIL_HINT',
-            message: `Did you mean @${reference}? '$${reference}' references a field, but '${reference}' is a known variable.`,
-          });
-        }
+  for (const finding of analysis.findings) {
+    const { name } = finding;
+    let code = finding.code;
+    let message = finding.message;
+    let severity = finding.severity;
+    if (code === 'E401') {
+      // Drafts may name a function before its extension is loaded.
+      code = 'FEL_UNKNOWN_FUNCTION';
+      severity = 'warning';
+      const prefix = name.slice(0, 3);
+      const candidates = felFunctionCatalog(state).map(entry => entry.name).filter(candidate =>
+        (prefix.length >= 3 && candidate.startsWith(prefix)) || editDistance(name, candidate) <= 2);
+      message += suggestions(candidates.map(candidate => `"${candidate}()"`));
+    } else if (code === 'E402' && available) {
+      code = 'FEL_UNKNOWN_REFERENCE';
+      const suffix = name.split('.').pop()!;
+      const candidates = available.fields.map(field => field.path)
+        .filter(path => path === suffix || path.endsWith(`.${suffix}`));
+      message += suggestions(candidates.map(path => `"$${path}"`));
+      if (finding.variableHint || available.contextRefs.includes(`@${name}`)) {
+        warnings.push({ artifact: 'definition', path: 'expression', severity: 'warning', code: 'FEL_SIGIL_HINT',
+          message: `Did you mean @${name}? '$${name}' references a field, but '${name}' is a known variable.` });
       }
+    } else if (code === 'E403') {
+      code = 'FEL_UNKNOWN_VARIABLE';
     }
-
-    for (const variable of analysis.variables) {
-      if (!knownVariables.has(variable)) {
-        semanticErrors.push({
-          artifact: 'definition',
-          path: 'expression',
-          severity: 'error',
-          code: 'FEL_UNKNOWN_VARIABLE',
-          message: `Unknown variable reference "@${variable}" in this editor context`,
-        });
-      }
-    }
+    (severity === 'warning' ? warnings : semanticErrors).push({
+      artifact: 'definition', path: 'expression', severity, code, message,
+    });
   }
 
   // Surface type-mismatch warnings from the typed analysis
@@ -198,35 +154,6 @@ export function parseFEL(state: ProjectState, expression: string, context?: FELP
       code: 'FEL_ARITY_MISMATCH',
       message: msg,
     });
-  }
-
-  // Cross-reference called functions against the known catalog
-  if (analysis.valid && analysis.functions.length > 0) {
-    const catalog = felFunctionCatalog(state);
-    const catalogNames = catalog.map((entry) => entry.name);
-    const knownFunctions = new Set(catalogNames);
-    for (const fn of analysis.functions) {
-      if (!knownFunctions.has(fn)) {
-        let message = `Unknown function "${fn}" — not a built-in or registered extension function`;
-        const prefix = fn.slice(0, 3);
-        const candidates = catalogNames.filter(
-          (name) => (prefix.length >= 3 && name.startsWith(prefix)) || editDistance(fn, name) <= 2,
-        );
-        if (candidates.length === 1) {
-          message += `. Did you mean "${candidates[0]}()"?`;
-        } else if (candidates.length > 1) {
-          const quoted = candidates.map((c) => `"${c}()"`).join(', ');
-          message += `. Did you mean one of: ${quoted}?`;
-        }
-        warnings.push({
-          artifact: 'definition',
-          path: 'expression',
-          severity: 'warning',
-          code: 'FEL_UNKNOWN_FUNCTION',
-          message,
-        });
-      }
-    }
   }
 
   return {

@@ -1,5 +1,6 @@
 /** @filedesc Tools WASM — lazy init and wrappers for `formspec_wasm_tools` (lint, mapping, assembly, FEL authoring helpers). */
 
+import { normalizeFelAnalysisError } from './fel/normalize-fel-analysis-error.js';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import type { ResponseSelectionRecord, SelectResponses } from '@formspec-org/types';
 import {
@@ -363,6 +364,19 @@ export interface WasmLintDocumentOptions {
     upstreamDefinitions?: readonly unknown[];
     /** The consuming form and how it receives data, or null for a widget. */
     projectionConsumer?: ProjectionConsumer | null;
+}
+
+/** Analyze an expression with the same Definition declarations used by document lint. */
+export function analyzeExpressionInDefinition(
+    definition: unknown, expression: string, registryDocuments: readonly unknown[],
+    target?: string, mapping = false,
+) {
+    const result: import('./wasm-bridge-runtime.js').WasmFelAnalysisResultJson & {
+        findings: Array<{ name: string; code: string; severity: 'error' | 'warning'; message: string; variableHint: boolean }>;
+    } = JSON.parse(wasmTools().analyzeExpressionInDefinition(
+        JSON.stringify(definition), expression, JSON.stringify(registryDocuments), target, mapping,
+    ));
+    return { ...result, errors: result.errors.map(error => normalizeFelAnalysisError(expression, error)) };
 }
 
 export interface InstanceProjectionDiagnostic {

@@ -78,16 +78,30 @@ pub struct NavigationTarget {
 
 /// Analyze a FEL expression string, extracting structural information.
 pub fn analyze_fel(expression: &str) -> FelAnalysis {
+    analyze_fel_with_field_types(expression, &HashMap::new())
+}
+
+/// Analyze once and let a caller resolve dependencies in an authored context.
+pub fn analyze_fel_with_dependencies(
+    expression: &str,
+    field_types: &HashMap<String, String>,
+    resolve: impl FnOnce(&fel_core::Dependencies),
+) -> FelAnalysis {
     match parse(expression) {
         Ok(expr) => {
             let dependencies = extract_dependencies(&expr);
+            resolve(&dependencies);
             let functions = dependencies.functions().map(str::to_owned).collect();
-            let variables = dependencies.context_names()
+            let variables = dependencies
+                .context_names()
                 .filter(|name| !RESERVED_CONTEXT_NAMES.contains(name))
-                .map(str::to_owned).collect();
+                .map(str::to_owned)
+                .collect();
             let mut warnings = check_function_arity(&dependencies.function_calls);
-            let empty_field_types: HashMap<String, String> = HashMap::new();
-            check_parameter_types(&expr, &empty_field_types, &mut warnings);
+            if !field_types.is_empty() {
+                check_comparison_types(&expr, field_types, &mut warnings);
+            }
+            check_parameter_types(&expr, field_types, &mut warnings);
 
             FelAnalysis {
                 valid: true,
@@ -564,18 +578,7 @@ pub fn analyze_fel_with_field_types(
     expression: &str,
     field_types: &HashMap<String, String>,
 ) -> FelAnalysis {
-    let mut result = analyze_fel(expression);
-    if result.valid
-        && let Ok(expr) = parse(expression)
-    {
-        let mut type_warnings = Vec::new();
-        if !field_types.is_empty() {
-            check_comparison_types(&expr, field_types, &mut type_warnings);
-        }
-        check_parameter_types(&expr, field_types, &mut type_warnings);
-        result.warnings.extend(type_warnings);
-    }
-    result
+    analyze_fel_with_dependencies(expression, field_types, |_| {})
 }
 
 /// Extract static dependencies, returning an empty set for unparsable runtime expressions.

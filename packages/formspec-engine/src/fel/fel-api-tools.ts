@@ -46,7 +46,7 @@ import {
     wasmWellKnownRegistryUrl,
 } from '../wasm-bridge-tools.js';
 
-export { getDefinitionInstanceReads, checkInstanceProjection, type InstanceProjectionDiagnostic, type ProjectionConsumer } from '../wasm-bridge-tools.js';
+export { analyzeExpressionInDefinition, getDefinitionInstanceReads, checkInstanceProjection, type InstanceProjectionDiagnostic, type ProjectionConsumer } from '../wasm-bridge-tools.js';
 
 export const tokenizeFEL = wasmTokenizeFel;
 

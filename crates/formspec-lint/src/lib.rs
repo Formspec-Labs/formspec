@@ -82,6 +82,7 @@ pub use app_graph_report::{
     AppGraphLintDiagnostic, AppGraphLintReport, AppGraphReportSchemaError,
     app_graph_lint_report_to_json_value, bridge_app_graph_report,
 };
+pub use expression_semantics::analyze_expression_in_definition;
 pub use generated::LintCode;
 pub use lint_json::lint_result_to_json_value;
 pub use metadata::wcag_criteria;

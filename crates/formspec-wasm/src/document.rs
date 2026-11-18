@@ -126,6 +126,29 @@ fn lint_options_from_wasm_json(options_json: Option<&str>) -> Result<LintOptions
     })
 }
 
+/// Analyze a draft FEL expression in its Definition or Mapping editor context.
+#[cfg(feature = "lint")]
+#[wasm_bindgen(js_name = "analyzeExpressionInDefinition")]
+pub fn analyze_expression_in_definition(
+    document_json: &str,
+    expression: &str,
+    registry_documents_json: &str,
+    target: Option<String>,
+    mapping: bool,
+) -> Result<String, JsError> {
+    let document = parse_value_str(document_json, "Definition").map_err(|e| JsError::new(&e))?;
+    let registries: Vec<Value> =
+        serde_json::from_str(registry_documents_json).map_err(|e| JsError::new(&e.to_string()))?;
+    let result = formspec_lint::analyze_expression_in_definition(
+        &document,
+        expression,
+        &registries,
+        target.as_deref(),
+        mapping,
+    );
+    to_json_string(&result).map_err(|e| JsError::new(&e))
+}
+
 /// Lint a Formspec document (7-pass static analysis).
 /// Returns JSON: { documentType, valid, diagnostics: [...] }
 #[cfg(feature = "lint")]

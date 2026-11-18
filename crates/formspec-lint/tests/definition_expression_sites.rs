@@ -41,3 +41,45 @@ fn each_authored_expression_is_checked_at_its_own_path() {
         result.diagnostics
     );
 }
+
+#[test]
+fn draft_resolution_uses_definition_scope_and_mapping_bindings() {
+    let definition = json!({"items":[{
+        "key":"rows","type":"group","repeatable":true,"children":[
+            {"key":"cost","type":"field","dataType":"decimal"}
+        ]
+    }]});
+    let inspect = |source: &str, target: Option<&str>, mapping| {
+        formspec_lint::analyze_expression_in_definition(&definition, source, &[], target, mapping)
+    };
+    let source = "$cost + @source + custom(1)";
+    let issues = |analysis: serde_json::Value| -> Vec<(String, String)> {
+        analysis["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|f| {
+                (
+                    f["code"].as_str().unwrap().to_owned(),
+                    f["name"].as_str().unwrap().to_owned(),
+                )
+            })
+            .collect()
+    };
+    assert_eq!(
+        issues(inspect(source, Some("rows[0].cost"), true)),
+        [("E401".to_owned(), "custom".to_owned()),]
+    );
+    assert_eq!(
+        issues(inspect(source, Some(""), false)),
+        [
+            ("E401".to_owned(), "custom".to_owned()),
+            ("E402".to_owned(), "cost".to_owned()),
+            ("E403".to_owned(), "source".to_owned()),
+        ]
+    );
+    assert_eq!(issues(inspect(source, None, false)).len(), 1);
+    let malformed = inspect("1 +", None, false);
+    assert_eq!(malformed["valid"], false);
+    assert!(malformed["errors"][0]["message"].is_string());
+}

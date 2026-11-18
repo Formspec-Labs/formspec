@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeSet, HashSet};
 
-use fel_core::{Expr, builtin_function_catalog, extract_dependencies};
+use fel_core::{Dependencies, Expr, builtin_function_catalog, extract_dependencies};
 use formspec_core::fel_analysis::RESERVED_CONTEXT_NAMES;
 use formspec_core::path_utils::{Path, PathSegment};
 use formspec_core::repeat_references::resolve_head;
@@ -59,50 +59,67 @@ impl<'a> ExpressionSemantics<'a> {
         migration: bool,
         diagnostics: &mut Vec<LintDiagnostic>,
     ) {
-        let dependencies = extract_dependencies(parsed);
+        self.check_reads(
+            &extract_dependencies(parsed),
+            path,
+            target,
+            migration,
+            |_, finding| diagnostics.push(finding),
+        );
+    }
+
+    fn check_reads(
+        &self,
+        dependencies: &Dependencies,
+        path: &str,
+        target: Option<&str>,
+        functions_only: bool,
+        mut emit: impl FnMut(&str, LintDiagnostic),
+    ) {
         for function in dependencies.functions().collect::<BTreeSet<_>>() {
             if !self.functions.contains(function) {
-                diagnostics.push(error(
-                    LintCode::E401,
-                    4,
-                    path,
-                    format!("Unknown FEL function {function}()"),
-                ));
+                emit(
+                    function,
+                    error(
+                        LintCode::E401,
+                        4,
+                        path,
+                        format!("Unknown FEL function {function}()"),
+                    ),
+                );
             }
         }
-        if migration {
+        if functions_only {
             return;
         }
 
-        let target = target
-            .map(formspec_core::normalize_indexed_path)
-            .unwrap_or_default();
-        let scope = self
-            .items
-            .by_full_path
-            .get(&target)
-            .or_else(|| self.items.by_key.get(&target))
-            .map_or("", |item| item.full_path.as_str());
+        let scope = self.scope(target);
         for field in dependencies.fields.iter().collect::<BTreeSet<_>>() {
             if !self.field_exists(scope, field) {
-                diagnostics.push(error(
-                    LintCode::E402,
-                    4,
-                    path,
-                    format!("Unknown field reference ${field}"),
-                ));
+                emit(
+                    field,
+                    error(
+                        LintCode::E402,
+                        4,
+                        path,
+                        format!("Unknown field reference ${field}"),
+                    ),
+                );
             }
         }
         if !scope.is_empty() {
             for read in &dependencies.self_reads {
                 if !self.item_members_exist(scope, &Path::parse(read).segments) {
                     let separator = if read.starts_with('[') { "" } else { "." };
-                    diagnostics.push(error(
-                        LintCode::E402,
-                        4,
-                        path,
-                        format!("Unknown field reference ${separator}{read}"),
-                    ));
+                    emit(
+                        read,
+                        error(
+                            LintCode::E402,
+                            4,
+                            path,
+                            format!("Unknown field reference ${separator}{read}"),
+                        ),
+                    );
                 }
             }
         }
@@ -112,23 +129,42 @@ impl<'a> ExpressionSemantics<'a> {
             .collect();
         for name in names {
             if !self.variable_visible(scope, name) {
-                diagnostics.push(error(
-                    LintCode::E403,
-                    4,
-                    path,
-                    format!("Variable @{name} is not declared in this scope"),
-                ));
+                emit(
+                    name,
+                    error(
+                        LintCode::E403,
+                        4,
+                        path,
+                        format!("Variable @{name} is not declared in this scope"),
+                    ),
+                );
             }
         }
         for (name, reads) in &dependencies.instance_reads {
             if self.document["instances"].get(name).is_none() {
-                self.check_instance_read(name, "", path, diagnostics);
+                if let Some(finding) = self.instance_read_finding(name, "", path) {
+                    emit(name, finding);
+                }
             } else {
                 for read in reads {
-                    self.check_instance_read(name, read, path, diagnostics);
+                    if let Some(finding) = self.instance_read_finding(name, read, path) {
+                        emit(name, finding);
+                    }
                 }
             }
         }
+    }
+
+    /// Resolve the editor or document target to its declared Item.
+    fn scope(&self, target: Option<&str>) -> &'a str {
+        let target = target
+            .map(formspec_core::normalize_indexed_path)
+            .unwrap_or_default();
+        self.items
+            .by_full_path
+            .get(&target)
+            .or_else(|| self.items.by_key.get(&target))
+            .map_or("", |item| item.full_path.as_str())
     }
 
     /// Read a field by lexical scope, then follow only declared group members.
@@ -184,22 +220,25 @@ impl<'a> ExpressionSemantics<'a> {
         path: &str,
         diagnostics: &mut Vec<LintDiagnostic>,
     ) {
+        diagnostics.extend(self.instance_read_finding(name, read, path));
+    }
+
+    fn instance_read_finding(&self, name: &str, read: &str, path: &str) -> Option<LintDiagnostic> {
         let Some(instance) = self.document["instances"].get(name) else {
-            diagnostics.push(error(
+            return Some(error(
                 LintCode::E404,
                 4,
                 path,
                 format!("Instance {name:?} is not declared"),
             ));
-            return;
         };
         let Some(schema) = instance["schema"].as_object() else {
-            return;
+            return None;
         };
         // A Mapping changes the shape after projecting input columns. Its output
         // cannot be checked against the upstream schema (Core §4.4.1).
         if read.is_empty() || instance.pointer("/response/mapping").is_some() {
-            return;
+            return None;
         }
         let normalized = Path::parse(read).to_wildcard_string();
         let column = if instance
@@ -224,14 +263,14 @@ impl<'a> ExpressionSemantics<'a> {
                             })
                 })
         }) {
-            return;
+            return None;
         }
         let message = format!("Path {read:?} on instance {name:?} is outside its declared schema");
-        diagnostics.push(if instance.get("response").is_some() {
+        Some(if instance.get("response").is_some() {
             error(LintCode::E405, 4, path, message)
         } else {
             warning(LintCode::W405, 4, path, message)
-        });
+        })
     }
 }
 
@@ -254,4 +293,62 @@ fn field_value_contains(data_type: &str, members: &[PathSegment]) -> bool {
 fn path_prefix(prefix: &str, path: &str) -> bool {
     path.strip_prefix(prefix)
         .is_some_and(|tail| tail.is_empty() || tail.starts_with(['.', '[']))
+}
+
+/// Check a draft expression against the same declarations as whole-Definition lint.
+///
+/// Without a target, only function names are resolved. An empty target selects the root.
+pub fn analyze_expression_in_definition(
+    document: &Value,
+    expression: &str,
+    registries: &[Value],
+    target: Option<&str>,
+    mapping: bool,
+) -> Value {
+    let items = crate::tree::build_item_index(document);
+    let semantics = ExpressionSemantics::new(document, &items, registries);
+    let field_types = if target.is_some() {
+        items
+            .by_full_path
+            .values()
+            .filter_map(|item| Some((item.full_path.clone(), item.data_type.clone()?)))
+            .collect()
+    } else {
+        Default::default()
+    };
+    let mut findings = Vec::new();
+    let analysis = formspec_core::fel_analysis::analyze_fel_with_dependencies(
+        expression,
+        &field_types,
+        |dependencies| {
+            semantics.check_reads(
+                dependencies,
+                "expression",
+                target,
+                target.is_none(),
+                |name, finding| {
+                    // Mapping expressions also bind @source and @target (Mapping §3).
+                    if mapping
+                        && finding.code == LintCode::E403
+                        && matches!(name, "source" | "target")
+                    {
+                        return;
+                    }
+                    let variable_hint = finding.code == LintCode::E402
+                        && (semantics.variable_visible(semantics.scope(target), name)
+                            || mapping && matches!(name, "source" | "target"));
+                    findings.push(serde_json::json!({
+                        "name": name,
+                        "code": finding.code,
+                        "severity": finding.severity.as_wire_str(),
+                        "message": finding.message,
+                        "variableHint": variable_hint,
+                    }));
+                },
+            );
+        },
+    );
+    let mut result = formspec_core::fel_analysis::fel_analysis_to_json_value(&analysis);
+    result["findings"] = Value::Array(findings);
+    result
 }

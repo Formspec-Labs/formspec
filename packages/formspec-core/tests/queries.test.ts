@@ -1148,12 +1148,16 @@ describe('parseFEL', () => {
   // Inside a group its fields resolve by their local names. From the root
   // these references still need qualification and the editor suggests it.
 
-  it('suggests full path when bare field name matches a nested field', () => {
+  it('accepts the current row field in its lexical scope', () => {
     const project = createRawProject();
     project.batch([
       { type: 'definition.addItem', payload: { type: 'group', key: 'rows', repeatable: true } },
       { type: 'definition.addItem', payload: { type: 'field', key: 'quantity', parentPath: 'rows', dataType: 'integer' } },
     ]);
+
+    const local = project.parseFEL('$quantity > 0', { targetPath: 'rows[0].quantity' });
+    expect(local.errors).toEqual([]);
+    expect(local.valid).toBe(true);
 
     const result = project.parseFEL('$quantity > 0', { targetPath: '#' });
     expect(result.valid).toBe(false);
@@ -1178,6 +1182,12 @@ describe('parseFEL', () => {
     expect(ref!.message).toContain('Did you mean one of:');
     expect(ref!.message).toContain('$rows.amount');
     expect(ref!.message).toContain('$extras.amount');
+  });
+
+  it('checks instance names in a Definition editor context', () => {
+    const project = createRawProject();
+    const result = project.parseFEL("@instance('missing').value", { targetPath: '' });
+    expect(result.errors.map(issue => issue.code)).toEqual(['E404']);
   });
 
   it('does not suggest paths when no partial match exists', () => {
