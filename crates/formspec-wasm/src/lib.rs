@@ -15,6 +15,7 @@
 //! - `changeset` — changeset dependency analysis (key extraction, connected components)
 //! - `document` — `document-api`: detect type, schema plan; `lint`: `lintDocument*`
 //! - `mapping` — `mapping-api`
+//! - `response_selection` — `response-selection-api` for preview reads
 //! - `registry` — `registry-api`
 //! - `ontology` — `ontology-api`: `deriveJsonLdContext` (Ontology §6.2)
 //! - `changelog` — `changelog-api`
@@ -39,6 +40,8 @@ mod mapping;
 mod ontology;
 #[cfg(feature = "registry-api")]
 mod registry;
+#[cfg(feature = "response-selection-api")]
+mod response_selection;
 mod split_abi;
 mod value_coerce;
 

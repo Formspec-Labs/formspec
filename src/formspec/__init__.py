@@ -36,4 +36,6 @@ __all__ = [
     "apply_migrations_to_response_data",
     "rewrite_fel_for_assembly",
     "canonical_item_path",
+    "select_responses_json",
+    "subject_id_json",
 ]

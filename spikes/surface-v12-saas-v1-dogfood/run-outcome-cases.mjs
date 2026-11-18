@@ -18,7 +18,6 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { canonicalJsonBytes, canonicalResponseHandoffBytes } from "@formspec-org/integrity-canonical";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,8 +33,11 @@ import {
 } from "@formspec-org/app-graph";
 import {
   initFormspecEngine,
-  planResponseActionInvocation,
-} from "@formspec-org/engine/render";
+  initFormspecEngineTools,
+  isValidResponseAuthored,
+  selectResponses,
+} from "@formspec-org/engine";
+import { planResponseActionInvocation } from "@formspec-org/engine/render";
 import { createSemanticControlRegistry } from "@formspec-org/react/semantic-controls";
 import {
   createPreviewDefinitionResponseStore,
@@ -1962,7 +1964,13 @@ async function makeCaseRuntime({
     }
   );
   const responseStore = createPreviewDefinitionResponseStore(catalogHandles, {
-    canonicalJsonBytes, canonicalResponseHandoffBytes,
+    selectResponses,
+    isValidResponseAuthored,
+    selectionContext: (_binding, policy) => {
+      const upstream = Array.from(bundle.definitions.values())
+        .find((definition) => definition.url === policy.definition.url);
+      return upstream && { upstreamSubject: upstream.subject ?? null };
+    },
   });
   const routeRuntimes = new Map();
   const actionRuntimes = new Map();
@@ -2626,6 +2634,7 @@ async function main() {
       await mkdir(outputDirectory, { recursive: true });
     }
     await initFormspecEngine();
+    await initFormspecEngineTools();
     const ajv = await createAjv();
     const targetIdentity = await resolveTestTargetIdentity({
       request: config.target,

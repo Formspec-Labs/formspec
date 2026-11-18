@@ -21,6 +21,7 @@ mod extensions;
 mod fel;
 mod mapping;
 mod registry;
+mod response_selection;
 
 #[cfg(test)]
 mod native_tests;
@@ -65,5 +66,10 @@ fn formspec_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(registry::well_known_url, m)?)?;
     m.add_function(wrap_pyfunction!(changelog::generate_changelog, m)?)?;
     m.add_function(wrap_pyfunction!(mapping::execute_mapping_doc, m)?)?;
+    m.add_function(wrap_pyfunction!(
+        response_selection::select_responses_json,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(response_selection::subject_id_json, m)?)?;
     Ok(())
 }

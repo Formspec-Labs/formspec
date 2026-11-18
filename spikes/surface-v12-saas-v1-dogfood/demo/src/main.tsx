@@ -3,7 +3,7 @@
  */
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
+import { initFormspecEngine, initFormspecEngineTools } from '@formspec-org/engine/init-formspec-engine';
 import '@formspec-org/layout/formspec-default.css';
 import '@formspec-org/surface-react/formspec-surface.css';
 import './app.css';
@@ -25,7 +25,7 @@ function Boot() {
   useEffect(() => {
     let live = true;
     void Promise.all([
-      initFormspecEngine(),
+      initFormspecEngine().then(() => initFormspecEngineTools()),
       loadPreviewSelection(window.location.search),
     ])
       .then(([, selection]) => {

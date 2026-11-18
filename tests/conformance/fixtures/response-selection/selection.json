@@ -1,0 +1,2936 @@
+{
+  "selection": {
+    "definition": {
+      "url": "urn:example:plan",
+      "compatibleVersions": ">=1.0.0 <2.0.0"
+    },
+    "subject": [],
+    "status": "completed",
+    "cardinality": "latest",
+    "pin": "none"
+  },
+  "context": {
+    "scope": "scope-a",
+    "authorized": true,
+    "source": "definition",
+    "upstreamSubject": {
+      "type": "urn:example:plan-term",
+      "keys": {
+        "agency": {
+          "dataType": "string"
+        },
+        "first": {
+          "dataType": "integer"
+        },
+        "last": {
+          "dataType": "integer"
+        }
+      }
+    },
+    "consumerSubject": {
+      "agency": "A",
+      "year": 2026
+    },
+    "projection": [
+      "result"
+    ]
+  },
+  "records": {
+    "old": {
+      "scope": "scope-a",
+      "response": {
+        "id": "old",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-09T00:00:00Z",
+        "data": {
+          "result": "old",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "filed": {
+      "scope": "scope-a",
+      "response": {
+        "id": "filed",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-11T00:00:00Z",
+        "data": {
+          "result": "filed",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        },
+        "authoredSignatures": [
+          {
+            "id": "signed-filed"
+          }
+        ]
+      }
+    },
+    "draft": {
+      "scope": "scope-a",
+      "response": {
+        "id": "draft",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "in-progress",
+        "authored": "2025-07-08T00:00:00Z",
+        "data": {
+          "result": "draft",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "amended-draft": {
+      "scope": "scope-a",
+      "response": {
+        "id": "amended-draft",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "amended",
+        "authored": "2025-07-09T00:00:00Z",
+        "data": {
+          "result": "amended-draft",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "other-agency": {
+      "scope": "scope-a",
+      "response": {
+        "id": "other-agency",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-12T00:00:00Z",
+        "data": {
+          "result": "other-agency",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "B",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "00b6bc133beed4992cf27bd39d3378c1e40d53528e5898f3a514fc9c0bfec92c"
+        }
+      }
+    },
+    "starts-late": {
+      "scope": "scope-a",
+      "response": {
+        "id": "starts-late",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-12T00:00:00Z",
+        "data": {
+          "result": "starts-late",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2027,
+            "last": 2028
+          },
+          "id": "5acc9830a095681adc9032dda7d098bad9e42d07b573c97b56c1638c47becf80"
+        }
+      }
+    },
+    "ends-early": {
+      "scope": "scope-a",
+      "response": {
+        "id": "ends-early",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-12T00:00:00Z",
+        "data": {
+          "result": "ends-early",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2024,
+            "last": 2025
+          },
+          "id": "fa645ed725c290e4e3bd0961d4eb280988bd4097e4e6a20b7fad3bcc69bb9e46"
+        }
+      }
+    },
+    "prior": {
+      "scope": "scope-a",
+      "response": {
+        "id": "prior",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-10T00:00:00Z",
+        "data": {
+          "result": "prior",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2024,
+            "last": 2028
+          },
+          "id": "a90a9e44ec1e2dd64ef0d8e6e43585f1d88b3aa78c7ac5cb5ff6348b1dc04fb2"
+        }
+      }
+    },
+    "wrong-version": {
+      "scope": "scope-a",
+      "response": {
+        "id": "wrong-version",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "2.0.0",
+        "status": "completed",
+        "authored": "2025-07-15T00:00:00Z",
+        "data": {
+          "result": "wrong-version",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "bad-version": {
+      "scope": "scope-a",
+      "response": {
+        "id": "bad-version",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "nonsense",
+        "status": "completed",
+        "authored": "2025-07-15T00:00:00Z",
+        "data": {
+          "result": "bad-version",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "wrong-url": {
+      "scope": "scope-a",
+      "response": {
+        "id": "wrong-url",
+        "definitionUrl": "urn:example:other",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-15T00:00:00Z",
+        "data": {
+          "result": "wrong-url",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "wrong-scope": {
+      "scope": "scope-b",
+      "response": {
+        "id": "wrong-scope",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-15T00:00:00Z",
+        "data": {
+          "result": "wrong-scope",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "wrong-type": {
+      "scope": "scope-a",
+      "response": {
+        "id": "wrong-type",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-15T00:00:00Z",
+        "data": {
+          "result": "wrong-type",
+          "internal": false
+        },
+        "subject": {
+          "id": "other",
+          "type": "urn:example:other",
+          "keys": {}
+        }
+      }
+    },
+    "stopped": {
+      "scope": "scope-a",
+      "response": {
+        "id": "stopped",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "stopped",
+        "authored": "2025-07-15T00:00:00Z",
+        "data": {
+          "result": "stopped",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "𐀀": {
+      "scope": "scope-a",
+      "response": {
+        "id": "𐀀",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-12T01:00:00.12345678902+01:00",
+        "data": {
+          "result": "𐀀",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "": {
+      "scope": "scope-a",
+      "response": {
+        "id": "",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-12T00:00:00.123456789020Z",
+        "data": {
+          "result": "",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "later-fraction": {
+      "scope": "scope-a",
+      "response": {
+        "id": "later-fraction",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-12T00:00:00.123456789021Z",
+        "data": {
+          "result": "later-fraction",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "wildcard-version": {
+      "scope": "scope-a",
+      "response": {
+        "id": "filed",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "*",
+        "status": "completed",
+        "authored": "2025-07-11T00:00:00Z",
+        "data": {
+          "result": "filed",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        },
+        "authoredSignatures": [
+          {
+            "id": "signed-filed"
+          }
+        ]
+      }
+    },
+    "precise-int": {
+      "scope": "scope-a",
+      "response": {
+        "id": "precise-int",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-10T00:00:00Z",
+        "data": {
+          "result": "precise-int",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": " A ",
+            "first": 9007199254740991,
+            "last": 9007199254740991
+          },
+          "id": "b57dc7c3a020d9edd34c4e84950db89a3898d8e13e07c66953f86cb93722eeed"
+        }
+      }
+    },
+    "unsafe-int": {
+      "scope": "scope-a",
+      "response": {
+        "id": "unsafe-int",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-10T00:00:00Z",
+        "data": {
+          "result": "precise-int",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": " A ",
+            "first": 9007199254740993,
+            "last": 9007199254741000
+          },
+          "id": "25997529e86b67007c01007203bbcaf96013c6fd2a168ea3ad787b82af705efe"
+        }
+      }
+    },
+    "projected": {
+      "scope": "scope-a",
+      "response": {
+        "id": "projected",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-10T00:00:00Z",
+        "data": {
+          "rows": [
+            {
+              "public": "first",
+              "secret": 1,
+              "nested": [
+                {
+                  "ok": true,
+                  "private": 4
+                }
+              ]
+            },
+            {
+              "secret": 2
+            },
+            {
+              "public": null
+            }
+          ],
+          "internal": 3
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "outside-projection": {
+      "scope": "scope-a",
+      "response": {
+        "id": "outside-projection",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-10T00:00:00Z",
+        "data": {
+          "rows": [
+            {
+              "public": "first",
+              "secret": 9,
+              "nested": [
+                {
+                  "ok": true,
+                  "private": 4
+                }
+              ]
+            },
+            {
+              "secret": 8
+            },
+            {
+              "public": null
+            }
+          ],
+          "internal": 4
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "precise-value": {
+      "scope": "scope-a",
+      "response": {
+        "id": "precise-value",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-10T00:00:00Z",
+        "data": {
+          "amount": 1.234567890123456789
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "integral-spelling": {
+      "scope": "scope-a",
+      "response": {
+        "id": "integral-spelling",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-10T00:00:00Z",
+        "data": {
+          "result": "integral-spelling",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025.0,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "implicit-a": {
+      "scope": "scope-a",
+      "response": {
+        "id": "implicit-a",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-10T00:00:00Z",
+        "data": {
+          "result": "implicit-a",
+          "internal": false
+        }
+      },
+      "implicitSubjectId": "respondent-a"
+    },
+    "implicit-b": {
+      "scope": "scope-a",
+      "response": {
+        "id": "implicit-b",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-10T00:00:00Z",
+        "data": {
+          "result": "implicit-b",
+          "internal": false
+        }
+      },
+      "implicitSubjectId": "respondent-b"
+    },
+    "implicit-unknown": {
+      "scope": "scope-a",
+      "response": {
+        "id": "implicit-unknown",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-10T00:00:00Z",
+        "data": {
+          "result": "implicit-unknown",
+          "internal": false
+        }
+      }
+    },
+    "replacement": {
+      "scope": "scope-a",
+      "response": {
+        "id": "old",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-13T00:00:00Z",
+        "data": {
+          "result": "replacement",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "other-definition-missing-id": {
+      "scope": "scope-a",
+      "response": {
+        "definitionUrl": "urn:example:other",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "authored": "2025-07-09T00:00:00Z",
+        "data": {
+          "result": "old",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "other-definition-missing-authored": {
+      "scope": "scope-a",
+      "response": {
+        "id": "old",
+        "definitionUrl": "urn:example:other",
+        "definitionVersion": "1.3.0",
+        "status": "completed",
+        "data": {
+          "result": "old",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "other-scope-malformed": {
+      "scope": "scope-b",
+      "response": {}
+    },
+    "stopped-malformed": {
+      "scope": "scope-a",
+      "response": {
+        "definitionUrl": "urn:example:plan",
+        "status": "stopped"
+      }
+    },
+    "draft-malformed": {
+      "scope": "scope-a",
+      "response": {
+        "definitionUrl": "urn:example:plan",
+        "status": "in-progress"
+      }
+    },
+    "completed-malformed": {
+      "scope": "scope-a",
+      "response": {
+        "definitionUrl": "urn:example:plan",
+        "status": "completed"
+      }
+    },
+    "negative-zero-offset": {
+      "scope": "scope-a",
+      "response": {
+        "id": "a-negative-zero-offset",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "in-progress",
+        "authored": "2025-07-08T00:00:00-00:00",
+        "data": {
+          "result": "draft",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "before-leap-second": {
+      "scope": "scope-a",
+      "response": {
+        "id": "before-leap-second",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "in-progress",
+        "authored": "2016-12-31T23:59:59.999999999Z",
+        "data": {
+          "result": "draft",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "leap-second": {
+      "scope": "scope-a",
+      "response": {
+        "id": "leap-second",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "in-progress",
+        "authored": "2017-01-01T00:59:60.1+01:00",
+        "data": {
+          "result": "draft",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    },
+    "after-leap-second": {
+      "scope": "scope-a",
+      "response": {
+        "id": "after-leap-second",
+        "definitionUrl": "urn:example:plan",
+        "definitionVersion": "1.3.0",
+        "status": "in-progress",
+        "authored": "2017-01-01T00:00:00Z",
+        "data": {
+          "result": "draft",
+          "internal": false
+        },
+        "subject": {
+          "type": "urn:example:plan-term",
+          "keys": {
+            "agency": "A",
+            "first": 2025,
+            "last": 2028
+          },
+          "id": "e5c3ea48a5f2bd3fdfedb11d8e5796ee0edde250b89c65806c79a9146a97bcdb"
+        }
+      }
+    }
+  },
+  "cases": [
+    {
+      "name": "typed equality with integer offset",
+      "records": [
+        "filed",
+        "other-agency",
+        "prior"
+      ],
+      "selection": {
+        "subject": [
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "subject": "agency"
+            }
+          },
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "subject": "year"
+            },
+            "offset": -1
+          }
+        ]
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "inclusive range covering a year",
+      "records": [
+        "starts-late",
+        "ends-early",
+        "other-agency",
+        "filed"
+      ],
+      "selection": {
+        "subject": [
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "subject": "agency"
+            }
+          },
+          {
+            "key": "first",
+            "op": "le",
+            "from": {
+              "subject": "year"
+            }
+          },
+          {
+            "key": "last",
+            "op": "ge",
+            "from": {
+              "subject": "year"
+            }
+          }
+        ]
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "range lower boundary",
+      "records": [
+        "filed"
+      ],
+      "selection": {
+        "subject": [
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "subject": "agency"
+            }
+          },
+          {
+            "key": "first",
+            "op": "le",
+            "from": {
+              "subject": "year"
+            }
+          },
+          {
+            "key": "last",
+            "op": "ge",
+            "from": {
+              "subject": "year"
+            }
+          }
+        ]
+      },
+      "context": {
+        "consumerSubject": {
+          "year": 2025,
+          "agency": "A"
+        }
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "range upper boundary",
+      "records": [
+        "filed"
+      ],
+      "selection": {
+        "subject": [
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "subject": "agency"
+            }
+          },
+          {
+            "key": "first",
+            "op": "le",
+            "from": {
+              "subject": "year"
+            }
+          },
+          {
+            "key": "last",
+            "op": "ge",
+            "from": {
+              "subject": "year"
+            }
+          }
+        ]
+      },
+      "context": {
+        "consumerSubject": {
+          "year": 2028,
+          "agency": "A"
+        }
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "scope definition version and type fences",
+      "records": [
+        "wrong-scope",
+        "wrong-type",
+        "wrong-url",
+        "wrong-version",
+        "bad-version",
+        "filed"
+      ],
+      "selection": {},
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "completed ignores drafts and stopped",
+      "records": [
+        "draft",
+        "filed",
+        "stopped"
+      ],
+      "selection": {},
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "current prefers draft before instant ordering",
+      "records": [
+        "filed",
+        "draft",
+        "stopped"
+      ],
+      "selection": {
+        "status": "current"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "draft",
+            "definitionVersion": "1.3.0"
+          }
+        ],
+        "value": {
+          "result": "draft"
+        },
+        "valueDigest": "sha256:d818aac9c3ecd6ba8a4ca69ce03c151841115d1af76e6a52d468755d3df59cc7",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "current includes reopened amended draft",
+      "records": [
+        "filed",
+        "amended-draft"
+      ],
+      "selection": {
+        "status": "current"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "amended-draft",
+            "definitionVersion": "1.3.0"
+          }
+        ],
+        "value": {
+          "result": "amended-draft"
+        },
+        "valueDigest": "sha256:2402c878d39c32e768911e11ba2ad780b90fcd767c8f1ee61714fa52a573d942",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "current falls back to latest completed",
+      "records": [
+        "old",
+        "filed",
+        "stopped"
+      ],
+      "selection": {
+        "status": "current"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "current ranks the winners by authored, across subjects",
+      "records": [
+        "filed",
+        "draft",
+        "other-agency"
+      ],
+      "selection": {
+        "status": "current",
+        "cardinality": "latest-per-subject"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "other-agency",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:ec3bc55ed1bbb6245a9e4116d57d1791deefc179f8fb2b23ea18746cfd6b2a06"
+          },
+          {
+            "responseId": "draft",
+            "definitionVersion": "1.3.0"
+          }
+        ],
+        "value": [
+          {
+            "result": "other-agency"
+          },
+          {
+            "result": "draft"
+          }
+        ],
+        "valueDigest": "sha256:c0dabcd2401c89e551ff262b07baffe43e110fa50582b058987fa92bac5509bf",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "authored instant desc then unsigned UTF-8 id asc",
+      "records": [
+        "𐀀",
+        "",
+        "filed"
+      ],
+      "selection": {},
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:77e1163908ea64dc46ff2886fddc51b8196c400ae158179a4826717c4a627df6"
+          }
+        ],
+        "value": {
+          "result": ""
+        },
+        "valueDigest": "sha256:e24586916d41dae53fe76f5cf9d5e38c38208292e070e18d796f98918282ddd8",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "authored order sees digits beyond nanoseconds",
+      "records": [
+        "",
+        "later-fraction",
+        "𐀀"
+      ],
+      "selection": {},
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "later-fraction",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9be7ab48ed35208fd063e1fb8eb38a65a4d5917a30c2de43471f06999bf04570"
+          }
+        ],
+        "value": {
+          "result": "later-fraction"
+        },
+        "valueDigest": "sha256:746e3659d70eb8f3b1cd886cc84e266ec80073ed4040e2793e09965f2a4dc564",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "identical rank is unavailable",
+      "records": [
+        "filed",
+        "filed"
+      ],
+      "selection": {
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "latest-per-subject preserves order and groups revisions",
+      "records": [
+        "old",
+        "filed",
+        "other-agency",
+        "draft"
+      ],
+      "selection": {
+        "cardinality": "latest-per-subject"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "other-agency",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:ec3bc55ed1bbb6245a9e4116d57d1791deefc179f8fb2b23ea18746cfd6b2a06"
+          },
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": [
+          {
+            "result": "other-agency"
+          },
+          {
+            "result": "filed"
+          }
+        ],
+        "valueDigest": "sha256:c497f38e12d5cad81a82a1d8145d59a4d277c7c3cab622abdef26c231b067d5f",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "default whenNone is unavailable",
+      "records": [],
+      "selection": {},
+      "context": {},
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "empty match delivers fallback as-is under either cardinality",
+      "records": [],
+      "selection": {
+        "whenNone": "empty",
+        "cardinality": "latest-per-subject",
+        "mapping": "urn:example:missing"
+      },
+      "context": {
+        "fallback": {
+          "fallback": true
+        }
+      },
+      "expected": {
+        "status": "available",
+        "records": [],
+        "value": {
+          "fallback": true
+        },
+        "valueDigest": "sha256:6eb7a2f1edc13618058f55e28581061301dc4e3eb5543ff3b9f351a882b1dd88",
+        "none": true,
+        "pinned": false
+      }
+    },
+    {
+      "name": "empty match without fallback delivers null",
+      "records": [],
+      "selection": {
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [],
+        "value": null,
+        "valueDigest": "sha256:738890ea0335d9d2e6485b69ef0137b2fb5d78162796d1513b20fee118e68b97",
+        "none": true,
+        "pinned": false
+      }
+    },
+    {
+      "name": "authorization refusal overrides fallback",
+      "records": [
+        "filed"
+      ],
+      "selection": {
+        "whenNone": "empty"
+      },
+      "context": {
+        "authorized": false,
+        "fallback": {
+          "fallback": true
+        }
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "matching disposition excludes newer amendment",
+      "records": [
+        "old",
+        "filed"
+      ],
+      "selection": {
+        "disposition": "urn:accepted"
+      },
+      "context": {
+        "dispositions": [
+          {
+            "responseId": "old",
+            "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b",
+            "value": "urn:accepted"
+          }
+        ]
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "old",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b"
+          }
+        ],
+        "value": {
+          "result": "old"
+        },
+        "valueDigest": "sha256:2f9ef2149c0e0e6e27392b93a6bb6ddb598b7f42d2dd628742bc7dae20664744",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "a disposition for same id and different hash is a no match",
+      "records": [
+        "filed"
+      ],
+      "selection": {
+        "disposition": "urn:accepted",
+        "whenNone": "empty"
+      },
+      "context": {
+        "dispositions": [
+          {
+            "responseId": "filed",
+            "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b",
+            "value": "urn:accepted"
+          }
+        ]
+      },
+      "expected": {
+        "status": "available",
+        "records": [],
+        "value": null,
+        "valueDigest": "sha256:738890ea0335d9d2e6485b69ef0137b2fb5d78162796d1513b20fee118e68b97",
+        "none": true,
+        "pinned": false
+      }
+    },
+    {
+      "name": "current chooses its status winner before consulting disposition",
+      "records": [
+        "old",
+        "filed"
+      ],
+      "selection": {
+        "status": "current",
+        "disposition": "urn:accepted",
+        "whenNone": "empty"
+      },
+      "context": {
+        "dispositions": [
+          {
+            "responseId": "old",
+            "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b",
+            "value": "urn:accepted"
+          }
+        ]
+      },
+      "expected": {
+        "status": "available",
+        "records": [],
+        "value": null,
+        "valueDigest": "sha256:738890ea0335d9d2e6485b69ef0137b2fb5d78162796d1513b20fee118e68b97",
+        "none": true,
+        "pinned": false
+      }
+    },
+    {
+      "name": "unavailable disposition authority cannot deliver fallback",
+      "records": [
+        "filed"
+      ],
+      "selection": {
+        "disposition": "urn:accepted",
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "route integers parsed exactly and strings left unchanged",
+      "records": [
+        "precise-int",
+        "filed"
+      ],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": 1
+          },
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "routeParam": "agency"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": "09007199254740990",
+          "agency": " A "
+        },
+        "consumerSubject": null
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "precise-int",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:7b391d2bf6cd6b2c870e47e22d18344047c195c6a8374cf3937e063f6e94fb52"
+          }
+        ],
+        "value": {
+          "result": "precise-int"
+        },
+        "valueDigest": "sha256:1e4d952eb214d1cd98af971653e0ca651a578837db0796033a86c5c9b6ea2f6b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "unavailable malformed route or overflow ' +9007199254740992'",
+      "records": [],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": 1
+          },
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "routeParam": "agency"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": " +9007199254740992",
+          "agency": " A "
+        },
+        "consumerSubject": null
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "unavailable malformed route or overflow '+9007199254740992'",
+      "records": [],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": 1
+          },
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "routeParam": "agency"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": "+9007199254740992",
+          "agency": " A "
+        },
+        "consumerSubject": null
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "unavailable malformed route or overflow '9007199254740992 '",
+      "records": [],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": 1
+          },
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "routeParam": "agency"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": "9007199254740992 ",
+          "agency": " A "
+        },
+        "consumerSubject": null
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "unavailable malformed route or overflow '9e1'",
+      "records": [],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": 1
+          },
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "routeParam": "agency"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": "9e1",
+          "agency": " A "
+        },
+        "consumerSubject": null
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "unavailable malformed route or overflow '1.0'",
+      "records": [],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": 1
+          },
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "routeParam": "agency"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": "1.0",
+          "agency": " A "
+        },
+        "consumerSubject": null
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "unavailable malformed route or overflow '9223372036854775808'",
+      "records": [],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": 1
+          },
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "routeParam": "agency"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": "9223372036854775808",
+          "agency": " A "
+        },
+        "consumerSubject": null
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "refuses a route subject key above the I-JSON range before applying its offset",
+      "records": [],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": -2
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": "9007199254740993"
+        }
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "refuses a route subject key below the I-JSON range",
+      "records": [],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": 0
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": "-9007199254740993"
+        }
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "a wildcard is not a concrete Definition version",
+      "records": [
+        "wildcard-version"
+      ],
+      "selection": {
+        "definition": {
+          "url": "urn:example:plan",
+          "compatibleVersions": "*"
+        },
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [],
+        "value": null,
+        "valueDigest": "sha256:738890ea0335d9d2e6485b69ef0137b2fb5d78162796d1513b20fee118e68b97",
+        "none": true,
+        "pinned": false
+      }
+    },
+    {
+      "name": "refuses a filed Response with an out-of-range subject key",
+      "records": [
+        "unsafe-int"
+      ],
+      "selection": {
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "unavailable malformed route or overflow '9223372036854775807'",
+      "records": [],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": 1
+          },
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "routeParam": "agency"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": "9223372036854775807",
+          "agency": " A "
+        },
+        "consumerSubject": null
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "unavailable malformed route or overflow '-'",
+      "records": [],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": 1
+          },
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "routeParam": "agency"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": "-",
+          "agency": " A "
+        },
+        "consumerSubject": null
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "route cannot substitute for a Definition-local subject",
+      "records": [
+        "filed"
+      ],
+      "selection": {
+        "subject": [
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            },
+            "offset": 1
+          },
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "routeParam": "agency"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {
+        "routeParams": {
+          "year": "2024",
+          "agency": "A"
+        }
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "string le is an invalid request",
+      "records": [
+        "filed"
+      ],
+      "selection": {
+        "subject": [
+          {
+            "key": "agency",
+            "op": "le",
+            "from": {
+              "subject": "agency"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "a missing predicate input is unavailable",
+      "records": [],
+      "selection": {
+        "subject": [
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "subject": "absent"
+            }
+          }
+        ],
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "at-open marks selected value pinned",
+      "records": [
+        "old"
+      ],
+      "selection": {
+        "pin": "at-open"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "old",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b"
+          }
+        ],
+        "value": {
+          "result": "old"
+        },
+        "valueDigest": "sha256:2f9ef2149c0e0e6e27392b93a6bb6ddb598b7f42d2dd628742bc7dae20664744",
+        "none": false,
+        "pinned": true
+      }
+    },
+    {
+      "name": "retained pin delivers the captured data and reports newer filing",
+      "records": [
+        "filed",
+        "old"
+      ],
+      "selection": {
+        "pin": "at-open"
+      },
+      "context": {
+        "pin": {
+          "status": "available",
+          "records": [
+            {
+              "responseId": "old",
+              "definitionVersion": "1.3.0",
+              "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b"
+            }
+          ],
+          "value": {
+            "result": "old"
+          },
+          "valueDigest": "sha256:2f9ef2149c0e0e6e27392b93a6bb6ddb598b7f42d2dd628742bc7dae20664744",
+          "none": false,
+          "pinned": true
+        }
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "old",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b"
+          }
+        ],
+        "value": {
+          "result": "old"
+        },
+        "valueDigest": "sha256:2f9ef2149c0e0e6e27392b93a6bb6ddb598b7f42d2dd628742bc7dae20664744",
+        "none": false,
+        "pinned": true,
+        "newer": {
+          "responseId": "filed",
+          "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+        }
+      }
+    },
+    {
+      "name": "missing retained record is unavailable",
+      "records": [
+        "filed"
+      ],
+      "selection": {
+        "pin": "at-open",
+        "whenNone": "empty"
+      },
+      "context": {
+        "pin": {
+          "status": "available",
+          "records": [
+            {
+              "responseId": "old",
+              "definitionVersion": "1.3.0",
+              "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b"
+            }
+          ],
+          "value": {
+            "result": "old"
+          },
+          "valueDigest": "sha256:2f9ef2149c0e0e6e27392b93a6bb6ddb598b7f42d2dd628742bc7dae20664744",
+          "none": false,
+          "pinned": true
+        }
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "a captured draft stays pinned when a fresh selection uses another draft",
+      "records": [
+        "draft",
+        "amended-draft"
+      ],
+      "selection": {
+        "pin": "at-open",
+        "status": "current"
+      },
+      "context": {
+        "pin": {
+          "status": "available",
+          "records": [
+            {
+              "responseId": "draft",
+              "definitionVersion": "1.3.0"
+            }
+          ],
+          "value": {
+            "result": "captured draft"
+          },
+          "valueDigest": "sha256:2d7e23e05523401e878a58569ace10134054a2570f6d420857ccab75256f203f",
+          "none": false,
+          "pinned": true
+        }
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "draft",
+            "definitionVersion": "1.3.0"
+          }
+        ],
+        "value": {
+          "result": "captured draft"
+        },
+        "valueDigest": "sha256:2d7e23e05523401e878a58569ace10134054a2570f6d420857ccab75256f203f",
+        "none": false,
+        "pinned": true
+      }
+    },
+    {
+      "name": "pin none ignores a retained pin",
+      "records": [
+        "filed",
+        "old"
+      ],
+      "selection": {},
+      "context": {
+        "pin": {
+          "status": "available",
+          "records": [
+            {
+              "responseId": "old",
+              "definitionVersion": "1.3.0",
+              "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b"
+            }
+          ],
+          "value": {
+            "result": "old"
+          },
+          "valueDigest": "sha256:2f9ef2149c0e0e6e27392b93a6bb6ddb598b7f42d2dd628742bc7dae20664744",
+          "none": false,
+          "pinned": true
+        }
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "at-open permits a successful empty pin",
+      "records": [],
+      "selection": {
+        "pin": "at-open",
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [],
+        "value": null,
+        "valueDigest": "sha256:738890ea0335d9d2e6485b69ef0137b2fb5d78162796d1513b20fee118e68b97",
+        "none": true,
+        "pinned": true
+      }
+    },
+    {
+      "name": "schema projection keeps repeated structure projected",
+      "records": [
+        "projected"
+      ],
+      "selection": {},
+      "context": {
+        "projection": [
+          "rows[*].public",
+          "rows[*].nested[*].ok"
+        ]
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "projected",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:bd932420ec2a66b88baf6ef03cc0e9a7dcded80ea63897a03712576a87a303d2"
+          }
+        ],
+        "value": {
+          "rows": [
+            {
+              "public": "first",
+              "nested": [
+                {
+                  "ok": true
+                }
+              ]
+            },
+            {},
+            {
+              "public": null
+            }
+          ]
+        },
+        "valueDigest": "sha256:c8ae8a619502e4b39c12aa8eb09c38bb4db5a108836f0d5e25a47e002526c269",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "schema projection keeps repeated structure outside-projection",
+      "records": [
+        "outside-projection"
+      ],
+      "selection": {},
+      "context": {
+        "projection": [
+          "rows[*].public",
+          "rows[*].nested[*].ok"
+        ]
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "outside-projection",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:3b4288b6cd1d28fa3a572f7cf7c4879966df204f256c6c04e01a0ad57c17b82a"
+          }
+        ],
+        "value": {
+          "rows": [
+            {
+              "public": "first",
+              "nested": [
+                {
+                  "ok": true
+                }
+              ]
+            },
+            {},
+            {
+              "public": null
+            }
+          ]
+        },
+        "valueDigest": "sha256:c8ae8a619502e4b39c12aa8eb09c38bb4db5a108836f0d5e25a47e002526c269",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "projected decimal retains exact source digits",
+      "records": [
+        "precise-value"
+      ],
+      "selection": {},
+      "context": {
+        "projection": [
+          "amount"
+        ]
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "precise-value",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:6fc8041bdba5d4fc63344ffd990fb1026d707160c7f9e8a9a0bd8c6e09081b48"
+          }
+        ],
+        "value": {
+          "amount": 1.234567890123456789
+        },
+        "valueDigest": "sha256:1f115b98aeec9d4241cd196cf8ff39af6f45422919caa5934e407fd2be80b3bd",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "overlapping record projection is unavailable",
+      "records": [
+        "projected"
+      ],
+      "selection": {},
+      "context": {
+        "projection": [
+          "rows[*].public",
+          "rows"
+        ]
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "mapping receives the whole projected array once",
+      "records": [
+        "old",
+        "filed",
+        "other-agency"
+      ],
+      "selection": {
+        "cardinality": "latest-per-subject",
+        "mapping": "urn:example:map"
+      },
+      "context": {
+        "mapping": {
+          "reference": {
+            "url": "urn:example:map",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "document": {
+            "rules": [
+              {
+                "sourcePath": "[0].result",
+                "targetPath": "first",
+                "transform": "preserve"
+              },
+              {
+                "sourcePath": "[1].result",
+                "targetPath": "second",
+                "transform": "preserve"
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "other-agency",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:ec3bc55ed1bbb6245a9e4116d57d1791deefc179f8fb2b23ea18746cfd6b2a06"
+          },
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "first": "other-agency",
+          "second": "filed"
+        },
+        "valueDigest": "sha256:2b52141cad01a2fff49f4f4ef8af7504c840595b1107a6bba99591f92f170b91",
+        "none": false,
+        "pinned": false,
+        "mapping": {
+          "url": "urn:example:map",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    },
+    {
+      "name": "missing selected-value mapping is unavailable",
+      "records": [
+        "filed"
+      ],
+      "selection": {
+        "mapping": "urn:example:map",
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "a retained pin still requires authorization",
+      "records": [
+        "filed",
+        "old"
+      ],
+      "selection": {
+        "pin": "at-open",
+        "whenNone": "empty"
+      },
+      "context": {
+        "pin": {
+          "status": "available",
+          "records": [
+            {
+              "responseId": "old",
+              "definitionVersion": "1.3.0",
+              "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b"
+            }
+          ],
+          "value": {
+            "result": "old"
+          },
+          "valueDigest": "sha256:2f9ef2149c0e0e6e27392b93a6bb6ddb598b7f42d2dd628742bc7dae20664744",
+          "none": false,
+          "pinned": true
+        },
+        "authorized": false
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "catalog selection can use route and consumer-subject keys in one request",
+      "records": [
+        "filed",
+        "other-agency"
+      ],
+      "selection": {
+        "subject": [
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "subject": "agency"
+            }
+          },
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "routeParam": "year"
+            }
+          }
+        ]
+      },
+      "context": {
+        "source": "catalog",
+        "routeParams": {
+          "year": "2025"
+        }
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "equal numeric key with integral decimal spelling",
+      "records": [
+        "integral-spelling"
+      ],
+      "selection": {
+        "subject": [
+          {
+            "key": "agency",
+            "op": "eq",
+            "from": {
+              "subject": "agency"
+            }
+          },
+          {
+            "key": "first",
+            "op": "eq",
+            "from": {
+              "subject": "year"
+            },
+            "offset": -1
+          }
+        ]
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "integral-spelling",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:0bc42fc8dc880307a26c433219937ab3cd00be7d3021a11ba21ca832fef760ee"
+          }
+        ],
+        "value": {
+          "result": "integral-spelling"
+        },
+        "valueDigest": "sha256:22a3c3754d441bf3128ad35ba346be806186419176ed6a1579b0dd22548d8720",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "implicit respondents are distinct units",
+      "records": [
+        "implicit-b",
+        "implicit-a"
+      ],
+      "selection": {
+        "status": "current",
+        "cardinality": "latest-per-subject"
+      },
+      "context": {
+        "upstreamSubject": null,
+        "includeInputPositions": true
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "implicit-a",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:41bed8153de1643f166364bee8f0bdbe4311977283cb064dca6272581eb73dce"
+          },
+          {
+            "responseId": "implicit-b",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:bc092f5090d2e465d07adfe6403a3e06ab1d8ee751adf649bbb56a3b8f7a0ab6"
+          }
+        ],
+        "value": [
+          {
+            "result": "implicit-a"
+          },
+          {
+            "result": "implicit-b"
+          }
+        ],
+        "valueDigest": "sha256:ddeac1bc8ccff051d72004670a539097212ae28ccab623abf3aa63cd0950e66c",
+        "none": false,
+        "pinned": false,
+        "inputPositions": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "name": "grouping undeclared subjects requires caller-owned respondent identity",
+      "records": [
+        "implicit-unknown"
+      ],
+      "selection": {
+        "status": "current",
+        "whenNone": "empty"
+      },
+      "context": {
+        "upstreamSubject": null
+      },
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "retained pin matches exact bytes before checking newer: old",
+      "records": [
+        "old",
+        "replacement"
+      ],
+      "selection": {
+        "pin": "at-open"
+      },
+      "context": {
+        "pin": {
+          "status": "available",
+          "records": [
+            {
+              "responseId": "old",
+              "definitionVersion": "1.3.0",
+              "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b"
+            }
+          ],
+          "value": {
+            "result": "old"
+          },
+          "valueDigest": "sha256:2f9ef2149c0e0e6e27392b93a6bb6ddb598b7f42d2dd628742bc7dae20664744",
+          "none": false,
+          "pinned": true
+        }
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "old",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b"
+          }
+        ],
+        "value": {
+          "result": "old"
+        },
+        "valueDigest": "sha256:2f9ef2149c0e0e6e27392b93a6bb6ddb598b7f42d2dd628742bc7dae20664744",
+        "none": false,
+        "pinned": true,
+        "newer": {
+          "responseId": "old",
+          "responseHash": "sha256:4e45e30d5282f84064caf9ea2a38f4b38324382e9e1fd8d831e8a7da43131f0d"
+        }
+      }
+    },
+    {
+      "name": "retained pin matches exact bytes before checking newer: replacement",
+      "records": [
+        "replacement",
+        "old"
+      ],
+      "selection": {
+        "pin": "at-open"
+      },
+      "context": {
+        "pin": {
+          "status": "available",
+          "records": [
+            {
+              "responseId": "old",
+              "definitionVersion": "1.3.0",
+              "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b"
+            }
+          ],
+          "value": {
+            "result": "old"
+          },
+          "valueDigest": "sha256:2f9ef2149c0e0e6e27392b93a6bb6ddb598b7f42d2dd628742bc7dae20664744",
+          "none": false,
+          "pinned": true
+        }
+      },
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "old",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:262c8fe611df623ca72949b56fdc8be8d45be4c0dbd3d1f3962000097a37c16b"
+          }
+        ],
+        "value": {
+          "result": "old"
+        },
+        "valueDigest": "sha256:2f9ef2149c0e0e6e27392b93a6bb6ddb598b7f42d2dd628742bc7dae20664744",
+        "none": false,
+        "pinned": true,
+        "newer": {
+          "responseId": "old",
+          "responseHash": "sha256:4e45e30d5282f84064caf9ea2a38f4b38324382e9e1fd8d831e8a7da43131f0d"
+        }
+      }
+    },
+    {
+      "name": "other Definition without id is ignored",
+      "records": [
+        "other-definition-missing-id",
+        "filed"
+      ],
+      "selection": {},
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "other Definition without authored is ignored",
+      "records": [
+        "filed",
+        "other-definition-missing-authored"
+      ],
+      "selection": {},
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "other scope is ignored before reading Response metadata",
+      "records": [
+        "other-scope-malformed",
+        "filed"
+      ],
+      "selection": {},
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "malformed stopped and draft records are ignored for completed reads",
+      "records": [
+        "stopped-malformed",
+        "filed",
+        "draft-malformed"
+      ],
+      "selection": {},
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "filed",
+            "definitionVersion": "1.3.0",
+            "responseHash": "sha256:9e5d0d1e43acbe654dec60ee7adeb09d08c6bf1ec58ebfc44bd2dbadf21581ac"
+          }
+        ],
+        "value": {
+          "result": "filed"
+        },
+        "valueDigest": "sha256:0860915b4589ab831eded23f4fc69c7e33d0521b4ff2d50435db526cc3a6996b",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "a malformed draft is unavailable for current reads",
+      "records": [
+        "filed",
+        "draft-malformed"
+      ],
+      "selection": {
+        "status": "current",
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "malformed matching completed record is unavailable",
+      "records": [
+        "filed",
+        "completed-malformed"
+      ],
+      "selection": {
+        "whenNone": "empty"
+      },
+      "context": {},
+      "expected": {
+        "status": "unavailable"
+      }
+    },
+    {
+      "name": "explicit null upstream subject permits a successful empty read",
+      "records": [],
+      "selection": {
+        "whenNone": "empty"
+      },
+      "context": {
+        "upstreamSubject": null
+      },
+      "expected": {
+        "status": "available",
+        "records": [],
+        "value": null,
+        "valueDigest": "sha256:738890ea0335d9d2e6485b69ef0137b2fb5d78162796d1513b20fee118e68b97",
+        "none": true,
+        "pinned": false
+      }
+    },
+    {
+      "name": "negative-zero offset ties with UTC and uses Response id",
+      "records": [
+        "negative-zero-offset",
+        "draft"
+      ],
+      "selection": {
+        "status": "current"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "a-negative-zero-offset",
+            "definitionVersion": "1.3.0"
+          }
+        ],
+        "value": {
+          "result": "draft"
+        },
+        "valueDigest": "sha256:d818aac9c3ecd6ba8a4ca69ce03c151841115d1af76e6a52d468755d3df59cc7",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "leap second follows the last fraction of the preceding second",
+      "records": [
+        "before-leap-second",
+        "leap-second"
+      ],
+      "selection": {
+        "status": "current"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "leap-second",
+            "definitionVersion": "1.3.0"
+          }
+        ],
+        "value": {
+          "result": "draft"
+        },
+        "valueDigest": "sha256:d818aac9c3ecd6ba8a4ca69ce03c151841115d1af76e6a52d468755d3df59cc7",
+        "none": false,
+        "pinned": false
+      }
+    },
+    {
+      "name": "the second after a leap second sorts later",
+      "records": [
+        "after-leap-second",
+        "leap-second"
+      ],
+      "selection": {
+        "status": "current"
+      },
+      "context": {},
+      "expected": {
+        "status": "available",
+        "records": [
+          {
+            "responseId": "after-leap-second",
+            "definitionVersion": "1.3.0"
+          }
+        ],
+        "value": {
+          "result": "draft"
+        },
+        "valueDigest": "sha256:d818aac9c3ecd6ba8a4ca69ce03c151841115d1af76e6a52d468755d3df59cc7",
+        "none": false,
+        "pinned": false
+      }
+    }
+  ],
+  "missingUpstreamSubject": {
+    "selection": {
+      "whenNone": "empty"
+    },
+    "context": {
+      "scope": "scope-a",
+      "authorized": true,
+      "source": "definition",
+      "projection": [
+        "result"
+      ]
+    },
+    "expectedError": "missing field `upstreamSubject`"
+  }
+}

@@ -1,7 +1,6 @@
 name: Publish PyPI
 
-# The wheels build from this repository plus its public `fel-core` sibling, checked out beside it: the
-# extension crate depends on fel-core by relative path (see Cargo.toml).
+# Wheels and source distributions use the fel-core and integrity-stack sibling paths.
 on:
   push:
     tags: ["py-v*"]
@@ -44,6 +43,11 @@ jobs:
         with:
           repository: Formspec-Labs/fel-core
           path: fel-core
+      - name: Check out the integrity-stack sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/integrity-stack
+          path: integrity-stack
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -73,6 +77,11 @@ jobs:
         with:
           repository: Formspec-Labs/fel-core
           path: fel-core
+      - name: Check out the integrity-stack sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/integrity-stack
+          path: integrity-stack
       - name: Build sdist
         uses: PyO3/maturin-action@v1
         with:

@@ -809,3 +809,16 @@ def canonical_item_path(path: str) -> str:
         trimmed = trimmed[1:]
     trimmed = trimmed.replace("/", ".")
     return ".".join(segment for segment in trimmed.split(".") if segment)
+
+
+def select_responses_json(records_json: str, selection_json: str, context_json: str) -> str:
+    """Select an authorized Response read using exact JSON text in and out.
+
+    Set `upstreamSubject` to JSON null when the upstream Definition declares no subject.
+    """
+    return formspec_rust.select_responses_json(records_json, selection_json, context_json)
+
+
+def subject_id_json(subject_type: str, keys_json: str) -> str:
+    """Calculate the filing-unit id from its type and typed keys as JSON."""
+    return formspec_rust.subject_id_json(subject_type, keys_json)

@@ -43,6 +43,11 @@ jobs:
         with:
           repository: Formspec-Labs/fel-core
           path: fel-core
+      - name: Check out the integrity-stack sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/integrity-stack
+          path: integrity-stack
       # The spec artifacts cite WOS specs by sibling path (scripts/spec-artifacts.config.json).
       - name: Check out the work-spec sibling
         uses: actions/checkout@v6

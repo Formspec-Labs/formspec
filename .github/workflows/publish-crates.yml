@@ -5,13 +5,9 @@ name: Publish crates
 # this workflow file, and rust-lang/crates-io-auth-action exchanges the job's identity token for a
 # short-lived publish token.
 #
-# The crates depend on fel-core by sibling path (see Cargo.toml); crates.io resolves that dependency by
-# its version, so the fel-core version the manifests name must be on crates.io first
-# (Formspec-Labs/fel-core, its own publish workflow). Publishing order follows the dependency chain,
-# and each crate is published only when its Cargo.toml version is not on crates.io yet, so re-running
-# a tag is safe. formspec-py and formspec-wasm are `publish = false`; the signature crates and the
-# cross-stack fixture harness stay `publish = false` until the integrity-stack crates they depend on
-# are on crates.io.
+# Cargo uses the published versions of fel-core and integrity-canonical when consumers install
+# formspec-core. Publish those dependencies before publishing a new formspec-core release.
+# The signature crates, cross-stack fixture harness and bindings have publish = false.
 on:
   push:
     tags: ["crates-v*"]
@@ -39,6 +35,11 @@ jobs:
         with:
           repository: Formspec-Labs/fel-core
           path: fel-core
+      - name: Check out the integrity-stack sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/integrity-stack
+          path: integrity-stack
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:

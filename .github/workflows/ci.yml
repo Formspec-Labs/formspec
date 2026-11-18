@@ -1,12 +1,7 @@
 name: CI
 
-# Every job checks this repository out into `formspec/` and its public sibling `fel-core/` beside it, because
-# the Rust crates depend on fel-core by relative path (`../../../fel-core`) — the stack couples siblings by
-# path until they are published. Jobs that build the npm packages also check out `integrity-stack/` and build
-# packages/integrity-canonical first: the root devDependency links it by path (`file:../integrity-stack/...`)
-# and the engine imports it, so its dist must exist before `npm run build`. The signature family, whose Rust dependencies live in the
-# `integrity-stack` sibling and are not on crates.io yet, is excluded from the workspace (Cargo.toml) and runs through `make test-rust`
-# wherever that sibling is checked out.
+# Rust crates use relative paths to the fel-core and integrity-stack siblings.
+# JavaScript build jobs also build the sibling integrity-canonical package before npm packages.
 
 on:
   pull_request:
@@ -83,6 +78,11 @@ jobs:
         with:
           repository: Formspec-Labs/fel-core
           path: fel-core
+      - name: Check out the integrity-stack sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/integrity-stack
+          path: integrity-stack
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -162,6 +162,11 @@ jobs:
         with:
           repository: Formspec-Labs/fel-core
           path: fel-core
+      - name: Check out the integrity-stack sibling
+        uses: actions/checkout@v6
+        with:
+          repository: Formspec-Labs/integrity-stack
+          path: integrity-stack
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"

@@ -20,10 +20,10 @@
       "id": "f2baf45b6bd4877cd1945bd6c30c8ac1b0656a174ee2110b7ab809a72697d32c"
     },
     {
-      "name": "plan",
+      "name": "integer bounds",
       "type": "urn:example:subject:plan",
-      "keys": {"first_ffy": 2025, "last_ffy": 2028},
-      "id": "1b59609cc5e52a96cdd23343b65f1b0f7df528c13447956da76fc524a58e9e88"
+      "keys": {"first_ffy": -9007199254740991, "last_ffy": 9007199254740991},
+      "id": "a2a4768208ae8f9ac37ece9d91a36f53b60925d3130ca5bc4e2020cb236aff76"
     },
     {
       "name": "per-scope singleton",
@@ -42,6 +42,24 @@
       "type": "urn:example:subject:agency-year",
       "keys": {"ffy": 2026, "uei": "A"},
       "id": "caa277818d95f7d8b3a85fb92be6d600536d7c66dfd11216a6c0bbaabecfa9e7"
+    }
+  ],
+  "refusals": [
+    {
+      "name": "integer exceeds the I-JSON maximum",
+      "type": "urn:example:subject:agency-year",
+      "keys": {
+        "ffy": 9007199254740993
+      },
+      "expectedError": "I-JSON integer range"
+    },
+    {
+      "name": "integer below the I-JSON minimum",
+      "type": "urn:example:subject:agency-year",
+      "keys": {
+        "ffy": -9007199254740993
+      },
+      "expectedError": "I-JSON integer range"
     }
   ]
 }

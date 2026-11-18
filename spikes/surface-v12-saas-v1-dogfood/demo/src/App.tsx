@@ -5,13 +5,14 @@
  * only from the preview set. This file supplies generic browser and runtime
  * adapters without interpreting any product identifier.
  */
-import { canonicalJsonBytes, canonicalResponseHandoffBytes } from '@formspec-org/integrity-canonical';
 import { useCallback, useMemo, useState } from 'react';
 import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020.js';
 import {
   invokeResponseAction,
+  isValidResponseAuthored,
   resolveResponseAction,
   resolveResponseActionValidationTuple,
+  selectResponses,
   type ResponseActionInvocationPorts,
   type ResponseActionInvocationResult,
 } from '@formspec-org/engine';
@@ -459,9 +460,17 @@ export function App({ selection }: { selection: PreviewSelection }) {
     () =>
       createPreviewDefinitionResponseStore(
         selection.bundle.dataSources ?? [],
-        { canonicalJsonBytes, canonicalResponseHandoffBytes },
+        {
+          selectResponses,
+          isValidResponseAuthored,
+          selectionContext: (_binding, policy) => {
+            const upstream = Array.from(selection.bundle.definitions.values())
+              .find((definition) => definition.url === policy.definition.url);
+            return upstream && { upstreamSubject: upstream.subject ?? null };
+          },
+        },
       ),
-    [selection.bundle.dataSources],
+    [selection.bundle.dataSources, selection.bundle.definitions],
   );
   const semanticControlRegistry = useMemo(
     () => createSemanticControlRegistry(),

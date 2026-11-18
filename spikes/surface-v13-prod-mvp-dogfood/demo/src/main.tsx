@@ -1,7 +1,7 @@
 /** @filedesc Browser boot for the generic Formspec bundle host. */
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
+import { initFormspecEngine, initFormspecEngineTools } from '@formspec-org/engine/init-formspec-engine';
 import '@formspec-org/layout/formspec-default.css';
 import '@formspec-org/surface-react/formspec-surface.css';
 import './app.css';
@@ -23,6 +23,7 @@ function Boot() {
   useEffect(() => {
     let live = true;
     void initFormspecEngine()
+      .then(() => initFormspecEngineTools())
       .then(() => loadBundleHost(window.location.search))
       .then((model) => {
         if (!live) return;

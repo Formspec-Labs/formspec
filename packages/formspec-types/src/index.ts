@@ -153,6 +153,7 @@ type FormDefinitionKnownFields = Pick<
   | 'date'
   | 'metadata'
   | 'shapes'
+  | 'subject'
   | 'instances'
   | 'subject'
   | 'variables'
@@ -233,3 +234,12 @@ export interface ProjectBundle {
    */
   references?: ReferencesDocument;
 }
+
+export type {
+  NewerSelectedResponse,
+  ResponseSelectionContext,
+  ResponseSelectionDelivery,
+  ResponseSelectionOutcome,
+  ResponseSelectionRecord,
+  SelectResponses,
+} from './response-selection.js';

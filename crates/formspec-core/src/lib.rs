@@ -27,8 +27,11 @@ pub mod parser_recovery;
 pub mod path_utils;
 pub mod registry_client;
 pub mod response_migration;
+#[cfg(feature = "response-selection")]
+pub mod response_selection;
 pub mod runtime_mapping;
 pub mod schema_validator;
+pub mod subject_key;
 pub mod validation_report;
 pub mod value_coerce;
 pub mod wire_keys;

@@ -16,6 +16,7 @@ use fel_core::{
     parse_datetime_literal, prepare_with_aliases, resolve_value_path,
 };
 use formspec_core::path_utils::{Path, PathSegment};
+use formspec_core::subject_key::SubjectKey;
 use rust_decimal::Decimal;
 
 use crate::fel_eval::Fel;
@@ -108,7 +109,7 @@ impl HostFelContext {
                 let requirement = match value {
                     Value::String(_) => return None,
                     Value::Number(number) if number.is_integer() => {
-                        if crate::pipeline::subject_integer_in_range(number) {
+                        if SubjectKey::is_integer_in_range(number) {
                             return None;
                         }
                         "an integer in the I-JSON range"

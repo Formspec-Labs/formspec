@@ -16,6 +16,8 @@ import {
   type ResponseActionEffectDispatchContext,
   type ResponseActionEffectDispatchResult,
   type ResponseActionInvocationResult,
+  isValidResponseAuthored,
+  selectResponses,
 } from '@formspec-org/engine';
 import {
   createSemanticControlRegistry,
@@ -977,8 +979,16 @@ function SessionBoundApp({ model }: { model: BundleHostModel }) {
     ],
   );
   const definitionResponseStore = useMemo(
-    () => createPreviewDefinitionResponseStore(model.bundle.dataSources ?? []),
-    [model.bundle.dataSources],
+    () => createPreviewDefinitionResponseStore(model.bundle.dataSources ?? [], {
+      selectResponses,
+      isValidResponseAuthored,
+      selectionContext: (_binding, policy) => {
+        const upstream = Array.from(model.bundle.definitions.values())
+          .find((definition) => definition.url === policy.definition.url);
+        return upstream && { upstreamSubject: upstream.subject ?? null };
+      },
+    }),
+    [model.bundle],
   );
   const runtime = useMemo(
     () => {

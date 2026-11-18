@@ -174,7 +174,7 @@ export {
   type DefinitionResponseRecordResult,
   type DefinitionResponseSourceBinding,
   type PreviewDefinitionResponseStore,
-  type PreviewDefinitionResponseCanonicalization,
+  type PreviewDefinitionResponseStoreOptions,
   type RecordDefinitionResponseInput,
 } from './definition-response-store.js';
 

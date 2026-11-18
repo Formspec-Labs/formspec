@@ -33,6 +33,7 @@ full-wasm = [
     "document-api",
     "definition-assembly",
     "mapping-api",
+    "response-selection-api",
     "registry-api",
     "ontology-api",
     "changelog-api",
@@ -47,6 +48,8 @@ document-api = []
 definition-assembly = []
 # Mapping rule + document execution (`executeMappingRules`, `executeMappingDocument`).
 mapping-api = []
+# Preview Response selection, including optional Mapping execution.
+response-selection-api = ["formspec-core/response-selection"]
 # Registry parse/lookup/lifecycle/extension usage validation.
 registry-api = []
 # Ontology JSON-LD context derivation (`deriveJsonLdContext`).
@@ -59,7 +62,7 @@ fel-authoring = []
 [dependencies]
 fel-core = { path = "../../../fel-core" }
 formspec-changeset = { path = "../formspec-changeset" }
-formspec-core = { path = "../formspec-core" }
+formspec-core = { path = "../formspec-core", default-features = false }
 formspec-eval = { path = "../formspec-eval" }
 formspec-lint = { path = "../formspec-lint", optional = true }
 serde = "1"

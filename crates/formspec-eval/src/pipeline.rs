@@ -16,7 +16,7 @@ use crate::runtime_seed::{
 use crate::types::{self, EvalSubject, EvaluationResult, ValidationResult};
 use fel_core::Value as FelValue;
 use fel_core::exact_json::Value;
-use rust_decimal::Decimal;
+use formspec_core::subject_key::SubjectKey;
 use std::collections::{BTreeSet, HashMap};
 
 /// Evaluate a definition through the full four-phase pipeline.
@@ -224,7 +224,7 @@ fn check_subject(definition: &Value, subject: &EvalSubject) -> Result<(), Valida
         match (declaration.get("dataType").and_then(Value::as_str), value) {
             (Some("string"), FelValue::String(_)) => (),
             (Some("integer"), FelValue::Number(number)) if number.is_integer() => {
-                if !subject_integer_in_range(number) {
+                if !SubjectKey::is_integer_in_range(number) {
                     return Err(error("Integer subject key must be in the I-JSON range"));
                 }
             }
@@ -238,12 +238,6 @@ fn check_subject(definition: &Value, subject: &EvalSubject) -> Result<(), Valida
         }
     }
     Ok(())
-}
-
-/// Checks the inclusive I-JSON bounds for an integer subject key (RFC 7493 §2.2).
-pub(crate) fn subject_integer_in_range(number: &Decimal) -> bool {
-    let max = Decimal::from((1_i64 << 53) - 1);
-    (-max..=max).contains(number)
 }
 
 fn type_error(path: &str, message: String) -> ValidationResult {

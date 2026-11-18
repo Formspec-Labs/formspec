@@ -1,21 +1,41 @@
 /** @filedesc Tests for the preview/test-only Definition Response store. */
 import { canonicalJsonBytes, canonicalResponseHandoffBytes } from "@formspec-org/integrity-canonical";
 import { createHash } from "node:crypto";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  initFormspecEngine, initFormspecEngineTools, isValidResponseAuthored, responseSubjectId, selectResponses,
+} from "@formspec-org/engine";
 import type {
   DataSource,
   DataSourcesDocument,
+  FormDefinition,
   FormResponse,
 } from "@formspec-org/types";
 import {
   createPreviewDefinitionResponseStore as createStore,
+  loadDefinitionFormInitialData,
+  planDefinitionFormInitialData,
+  type PreviewDefinitionResponseStoreOptions,
   type DataSourceCatalogHandle,
   type DataSourceLoadResult,
   type DefinitionResponseSourceBinding,
 } from "../src/index.js";
 
-function createPreviewDefinitionResponseStore(catalogs: readonly DataSourceCatalogHandle[]) {
-  return createStore(catalogs, { canonicalJsonBytes, canonicalResponseHandoffBytes });
+beforeAll(async () => {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+});
+
+function createPreviewDefinitionResponseStore(
+  catalogs: readonly DataSourceCatalogHandle[],
+  options: Partial<PreviewDefinitionResponseStoreOptions> = {},
+) {
+  return createStore(catalogs, {
+    selectResponses,
+    isValidResponseAuthored,
+    selectionContext: () => ({ upstreamSubject: null }),
+    ...options,
+  });
 }
 
 const CATALOG_A = "https://example.test/data-sources/a";
@@ -97,7 +117,105 @@ const freshBaseline: DataSourceLoadResult = {
 };
 
 describe("createPreviewDefinitionResponseStore", () => {
-  it("isolates records by the exact catalogRef and sourceRef pair", async () => {
+  it("uses route and consumer subject keys and reports native selection evidence", async () => {
+    const subjectType = "urn:example:organization-year";
+    const source = definitionResponseSource({
+      responseSelection: {
+        definition: { url: DEFINITION_REF },
+        subject: [
+          { key: "year", op: "eq", from: { routeParam: "year" }, offset: -1 },
+          { key: "year", op: "eq", from: { subject: "year" } },
+        ],
+        status: "current",
+        whenNone: "empty",
+        cardinality: "latest",
+        pin: "none",
+      },
+    });
+    const handle = catalog(CATALOG_A, [source]);
+    const store = createPreviewDefinitionResponseStore([handle], {
+      selectionContext: () => ({
+        upstreamSubject: { type: subjectType, keys: { year: { dataType: "integer" } } },
+      }),
+    });
+    const keys = { year: 2026 };
+    const subject = { type: subjectType, keys, id: responseSubjectId(subjectType, keys) };
+    for (const status of ["in-progress", "completed"] as const) {
+      store.record({
+        binding: BINDING_A,
+        invocationId: status,
+        response: response({ id: status, status, subject, data: { status } }),
+      });
+    }
+    const request = {
+      descriptor: { ...BINDING_A, catalog: handle.document, source },
+      context: {
+        surfaceId: "preview", routeId: "report", slotId: "summary",
+        params: { year: "2027" }, subject: { type: subjectType, keys },
+      },
+    };
+    const loader = store.wrapLoader(() => freshBaseline);
+    await expect(loader(request)).resolves.toEqual({
+      ...BINDING_A,
+      status: "loaded",
+      freshness: "fresh",
+      value: { status: "in-progress" },
+      records: [{ responseId: "in-progress", definitionVersion: DEFINITION_VERSION }],
+      valueDigest: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+      none: false,
+    });
+    await expect(loader({
+      ...request, context: { ...request.context, params: { year: "2028" } },
+    })).resolves.toMatchObject({ status: "loaded", value: null, records: [], none: true });
+    await expect(loader({
+      ...request, context: { ...request.context, params: { year: "+2027" } },
+    })).resolves.toEqual({ ...BINDING_A, status: "unavailable", reason: "Definition Response selection is unavailable." });
+  });
+
+  it("delivers selected data through the Definition form prefill entry point", async () => {
+    const handle = catalog(CATALOG_A);
+    const store = createPreviewDefinitionResponseStore([handle]);
+    const definition = {
+      $formspec: "1.0", url: DEFINITION_REF, version: DEFINITION_VERSION,
+      title: "Organization", items: [],
+    } satisfies FormDefinition;
+    const context = { surfaceId: "preview", routeId: "edit", slotId: "organization", params: {} };
+    const plan = planDefinitionFormInitialData({
+      binding: BINDING_A, definition, definitionRef: DEFINITION_REF,
+      context, catalogs: [handle], mappings: [],
+    });
+    expect(plan.status).toBe("ready");
+    if (plan.status !== "ready") throw new Error(plan.reason);
+    store.record({ binding: BINDING_A, invocationId: "prefill", response: response() });
+    const delivered = await loadDefinitionFormInitialData({
+      plan, definition, definitionRef: DEFINITION_REF, context,
+      authorize: () => ({ status: "authorized" }),
+      loader: store.wrapLoader(() => freshBaseline),
+      site: context,
+    });
+    expect(delivered).toMatchObject({
+      status: "ready",
+      data: { organizationName: "Acme" },
+      selection: {
+        records: [{ responseId: "response-b", definitionVersion: DEFINITION_VERSION }],
+        valueDigest: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+        none: false,
+      },
+    });
+  });
+
+  it("does not report a stale delivery of the same id as the winner", () => {
+    const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
+    expect(store.record({
+      binding: BINDING_A, invocationId: "new", response: response(),
+    })).toEqual({ status: "recorded", selected: true });
+    expect(store.record({
+      binding: BINDING_A, invocationId: "old",
+      response: response({ authored: "2026-07-30T14:00:00Z" }),
+    })).toEqual({ status: "recorded", selected: false });
+  });
+
+  it("isolates records by the exact catalogRef and sourceRef pair", () => {
     const store = createPreviewDefinitionResponseStore([
       catalog(CATALOG_A),
       catalog(CATALOG_B),
@@ -111,7 +229,7 @@ describe("createPreviewDefinitionResponseStore", () => {
       })
     ).toEqual({ status: "recorded", selected: true });
 
-    expect(await store.overlay(BINDING_A, freshBaseline)).toEqual({
+    expect(store.overlay(BINDING_A, freshBaseline)).toEqual({
       status: "loaded",
       freshness: "fresh",
       records: [{ responseId: "response-b", definitionVersion: DEFINITION_VERSION, responseHash: expect.stringMatching(/^sha256:[0-9a-f]{64}$/) }],
@@ -120,7 +238,9 @@ describe("createPreviewDefinitionResponseStore", () => {
       ...BINDING_A,
       value: { organizationName: "Catalog A" },
     });
-    expect(await store.overlay(BINDING_B, freshBaseline)).toBe(freshBaseline);
+    expect(store.overlay(BINDING_B, freshBaseline)).toEqual({
+      ...BINDING_B, status: "unavailable", reason: "Definition Response selection is unavailable.",
+    });
     expect(
       store.record({
         binding: BINDING_B,
@@ -128,7 +248,7 @@ describe("createPreviewDefinitionResponseStore", () => {
         response: response({ data: { organizationName: "Catalog B" } }),
       })
     ).toEqual({ status: "recorded", selected: true });
-    expect(await store.overlay(BINDING_B, freshBaseline)).toMatchObject({
+    expect(store.overlay(BINDING_B, freshBaseline)).toMatchObject({
       value: { organizationName: "Catalog B" },
     });
     expect(
@@ -143,7 +263,8 @@ describe("createPreviewDefinitionResponseStore", () => {
     ).toEqual({ status: "refused", reason: "source-unavailable" });
   });
 
-  it("refuses mismatched Definition versions and Response statuses", async () => {
+  it("excludes records outside the selection version or status policy", () => {
+    // Catalog deliveries are recorded first. The Rust selector filters them at read time.
     const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
 
     expect(
@@ -152,18 +273,20 @@ describe("createPreviewDefinitionResponseStore", () => {
         invocationId: "wrong-version",
         response: response({ definitionVersion: "2.0.0" }),
       })
-    ).toEqual({ status: "refused", reason: "response-version-mismatch" });
+    ).toEqual({ status: "recorded", selected: false });
     expect(
       store.record({
         binding: BINDING_A,
         invocationId: "wrong-status",
         response: response({ status: "in-progress" }),
       })
-    ).toEqual({ status: "refused", reason: "response-status-mismatch" });
-    expect(await store.overlay(BINDING_A, freshBaseline)).toBe(freshBaseline);
+    ).toEqual({ status: "recorded", selected: false });
+    expect(store.overlay(BINDING_A, freshBaseline)).toEqual({
+      ...BINDING_A, status: "unavailable", reason: "Definition Response selection is unavailable.",
+    });
   });
 
-  it("deduplicates only an exact replay within one exact source", async () => {
+  it("deduplicates only an exact replay within one exact source", () => {
     const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
     const delivered = response({ data: { organizationName: "First" } });
 
@@ -181,12 +304,12 @@ describe("createPreviewDefinitionResponseStore", () => {
         response: structuredClone(delivered),
       })
     ).toEqual({ status: "duplicate" });
-    expect(await store.overlay(BINDING_A, freshBaseline)).toMatchObject({
+    expect(store.overlay(BINDING_A, freshBaseline)).toMatchObject({
       value: { organizationName: "First" },
     });
   });
 
-  it("refuses one invocation id reused with different Response bytes", async () => {
+  it("refuses one invocation id reused with different Response bytes", () => {
     const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
 
     expect(
@@ -206,12 +329,12 @@ describe("createPreviewDefinitionResponseStore", () => {
       status: "refused",
       reason: "invocation-payload-conflict",
     });
-    expect(await store.overlay(BINDING_A, freshBaseline)).toMatchObject({
+    expect(store.overlay(BINDING_A, freshBaseline)).toMatchObject({
       value: { organizationName: "Accepted" },
     });
   });
 
-  it("keeps a detached finite-JSON snapshot across producer and consumer mutation", async () => {
+  it("keeps a detached finite-JSON snapshot across producer and consumer mutation", () => {
     const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
     const submittedData = {
       organizationName: "Original",
@@ -235,7 +358,7 @@ describe("createPreviewDefinitionResponseStore", () => {
     submittedData.settings.enabled = false;
     submittedData.settings.labels[0] = "producer";
 
-    const first = await store.overlay(BINDING_A, freshBaseline);
+    const first = store.overlay(BINDING_A, freshBaseline);
     expect(first).toEqual({
       status: "loaded",
       freshness: "fresh",
@@ -265,7 +388,7 @@ describe("createPreviewDefinitionResponseStore", () => {
     firstValue.settings.enabled = false;
     firstValue.settings.labels[0] = "consumer";
 
-    const second = await store.overlay(BINDING_A, freshBaseline);
+    const second = store.overlay(BINDING_A, freshBaseline);
     expect(second).toEqual({
       status: "loaded",
       freshness: "fresh",
@@ -291,7 +414,7 @@ describe("createPreviewDefinitionResponseStore", () => {
     expect(secondValue.settings.labels[1]).toBeNull();
   });
 
-  it("refuses Response data that cannot be safely snapshotted as finite JSON", async () => {
+  it("refuses Response data that cannot be safely snapshotted as finite JSON", () => {
     const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
     const cyclic: Record<string, unknown> = {};
     cyclic.self = cyclic;
@@ -322,10 +445,12 @@ describe("createPreviewDefinitionResponseStore", () => {
       });
     }
     expect(getterRead).toBe(false);
-    expect(await store.overlay(BINDING_A, freshBaseline)).toBe(freshBaseline);
+    expect(store.overlay(BINDING_A, freshBaseline)).toEqual({
+      ...BINDING_A, status: "unavailable", reason: "Definition Response selection is unavailable.",
+    });
   });
 
-  it("reports the selected Response id instead of an older delivered record", async () => {
+  it("reports the selected Response id instead of an older delivered record", () => {
     const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
 
     expect(
@@ -359,7 +484,7 @@ describe("createPreviewDefinitionResponseStore", () => {
         }),
       })
     ).toEqual({ status: "recorded", selected: true });
-    expect(await store.overlay(BINDING_A, freshBaseline)).toMatchObject({
+    expect(store.overlay(BINDING_A, freshBaseline)).toMatchObject({
       records: [{ responseId: "response-a" }],
       value: { organizationName: "Newer A" },
     });
@@ -372,7 +497,6 @@ describe("createPreviewDefinitionResponseStore", () => {
     "2026-07-31T14:00:00",
     "2026-07-31T24:00:00Z",
     "2026-07-31T14:00:00+24:00",
-    "2026-07-31T14:00:00-00:00",
   ])("refuses non-instant authored timestamp %s", (authored) => {
     const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
     expect(
@@ -387,7 +511,17 @@ describe("createPreviewDefinitionResponseStore", () => {
     });
   });
 
-  it("orders valid RFC 3339 instants beyond millisecond precision", async () => {
+  it("admits the RFC 3339 unknown-local-offset spelling of UTC", () => {
+    // -00:00 still locates the instant in UTC. The Rust validator accepts it.
+    const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
+    expect(store.record({
+      binding: BINDING_A,
+      invocationId: "utc",
+      response: response({ authored: "2026-07-31T14:00:00-00:00" }),
+    })).toEqual({ status: "recorded", selected: true });
+  });
+
+  it("orders valid RFC 3339 instants beyond millisecond precision", () => {
     const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
     store.record({
       binding: BINDING_A,
@@ -408,12 +542,12 @@ describe("createPreviewDefinitionResponseStore", () => {
       }),
     });
 
-    expect(await store.overlay(BINDING_A, freshBaseline)).toMatchObject({
+    expect(store.overlay(BINDING_A, freshBaseline)).toMatchObject({
       value: { organizationName: "Later fraction" },
     });
   });
 
-  it("orders equal instants by unsigned UTF-8 bytes rather than UTF-16 code units", async () => {
+  it("orders equal instants by unsigned UTF-8 bytes rather than UTF-16 code units", () => {
     const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
 
     store.record({
@@ -435,12 +569,12 @@ describe("createPreviewDefinitionResponseStore", () => {
 
     // UTF-16 would place the astral character first because its high
     // surrogate is below U+E000. Unsigned UTF-8 correctly places U+E000 first.
-    expect(await store.overlay(BINDING_A, freshBaseline)).toMatchObject({
+    expect(store.overlay(BINDING_A, freshBaseline)).toMatchObject({
       value: { organizationName: "BMP" },
     });
   });
 
-  it("makes a fresh source unavailable when distinct deliveries are selection-identical", async () => {
+  it("makes a fresh source unavailable when distinct deliveries are selection-identical", () => {
     const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A)]);
 
     expect(
@@ -457,11 +591,10 @@ describe("createPreviewDefinitionResponseStore", () => {
         response: response({ data: { organizationName: "Second" } }),
       })
     ).toEqual({ status: "recorded", selected: false });
-    expect(await store.overlay(BINDING_A, freshBaseline)).toEqual({
+    expect(store.overlay(BINDING_A, freshBaseline)).toEqual({
       status: "unavailable",
       ...BINDING_A,
-      reason:
-        "Definition Response selection is ambiguous because candidates share the same authored instant and Response id.",
+      reason: "Definition Response selection is unavailable.",
     });
   });
 
@@ -482,9 +615,9 @@ describe("createPreviewDefinitionResponseStore", () => {
       value: { organizationName: "Cached" },
     };
 
-    expect(await store.overlay(BINDING_A, unavailable)).toBe(unavailable);
-    expect(await store.overlay(BINDING_A, stale)).toBe(stale);
-    expect(await store.overlay(BINDING_A, freshBaseline)).toEqual({
+    expect(store.overlay(BINDING_A, unavailable)).toBe(unavailable);
+    expect(store.overlay(BINDING_A, stale)).toBe(stale);
+    expect(store.overlay(BINDING_A, freshBaseline)).toEqual({
       status: "loaded",
       freshness: "fresh",
       records: [{ responseId: "response-b", definitionVersion: DEFINITION_VERSION, responseHash: expect.stringMatching(/^sha256:[0-9a-f]{64}$/) }],
@@ -540,7 +673,8 @@ describe("createPreviewDefinitionResponseStore", () => {
       reason: "No host adapter is needed for a current-session draft.",
     };
 
-    expect(await store.overlay(BINDING_A, unavailable)).toEqual({
+    expect(store.overlay(BINDING_A, unavailable)).toEqual({
+      ...BINDING_A,
       status: "unavailable",
       reason: "No current-session Definition Response draft is available.",
     });
@@ -551,7 +685,8 @@ describe("createPreviewDefinitionResponseStore", () => {
         response: response({ status: "in-progress" }),
       })
     ).toEqual({ status: "recorded", selected: true });
-    expect(await store.overlay(BINDING_A, unavailable)).toEqual({
+    expect(store.overlay(BINDING_A, unavailable)).toEqual({
+      ...BINDING_A,
       status: "loaded",
       freshness: "fresh",
       recordId: "response-b",
@@ -583,10 +718,7 @@ describe("createPreviewDefinitionResponseStore", () => {
   });
 
   it("does not admit incomplete non-draft Definition Response declarations", () => {
-    const incomplete = {
-      ...definitionResponseSource(),
-      responseSelection: undefined,
-    } as unknown as DataSource;
+    const { responseSelection: _selection, ...incomplete } = definitionResponseSource();
     const store = createPreviewDefinitionResponseStore([
       catalog(CATALOG_B, [incomplete]),
     ]);
@@ -601,7 +733,7 @@ describe("createPreviewDefinitionResponseStore", () => {
   });
 });
 
-it("qualifies the projected value and hashes the complete selected record", async () => {
+it("qualifies the projected value and hashes the complete selected record", () => {
   const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A, [
     definitionResponseSource({ schema: { type: "object", properties: { organizationName: {} } } }),
   ])]);
@@ -615,14 +747,89 @@ it("qualifies the projected value and hashes the complete selected record", asyn
   const expectedHandoff = createHash("sha256").update(canonicalResponseHandoffBytes(filed)).digest("hex");
   const expectedValue = createHash("sha256").update("formspec.instance.value.v1\0")
     .update(canonicalJsonBytes(value)).digest("hex");
-  expect(await store.overlay(BINDING_A, freshBaseline)).toEqual({
+  expect(store.overlay(BINDING_A, freshBaseline)).toEqual({
     ...BINDING_A, status: "loaded", freshness: "fresh", value,
     records: [{ responseId: filed.id, definitionVersion: filed.definitionVersion, responseHash: "sha256:" + expectedHandoff }],
     valueDigest: "sha256:" + expectedValue, none: false,
   });
 });
 
-it("leaves selectors with route predicates to a loader that can resolve them", async () => {
+it("limits each list record to the declared item properties", () => {
+  const base = definitionResponseSource();
+  const source = definitionResponseSource({
+    responseSelection: { ...base.responseSelection!, cardinality: "latest-per-subject" },
+    schema: { type: "array", items: { type: "object", properties: { organizationName: {} } } },
+  });
+  const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A, [source])]);
+  for (const [id, organizationName] of [["response-a", "Acme"], ["response-b", "Baker"]] as const) {
+    const result = store.record({
+      binding: BINDING_A,
+      invocationId: id,
+      implicitSubjectId: id,
+      response: response({ id, data: { organizationName, privateAnswer: id } }),
+    });
+    expect(result).toEqual({ status: "recorded", selected: true });
+  }
+  const value = [{ organizationName: "Acme" }, { organizationName: "Baker" }];
+  const digest = createHash("sha256").update("formspec.instance.value.v1\0")
+    .update(canonicalJsonBytes(value)).digest("hex");
+  expect(store.overlay(BINDING_A, freshBaseline)).toMatchObject({
+    status: "loaded", value, valueDigest: "sha256:" + digest, none: false,
+  });
+});
+
+it("refuses a Mapping even when the host supplies its expected input projection", () => {
+  const base = definitionResponseSource();
+  const mappingUrl = "urn:example:organization-mapping";
+  const source = definitionResponseSource({
+    responseSelection: { ...base.responseSelection!, mapping: mappingUrl },
+    schema: { type: "object", properties: { name: {} } },
+  });
+  const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A, [source])], {
+    selectionContext: () => ({
+      upstreamSubject: null,
+      projection: ["organizationName"],
+      mapping: {
+        reference: { url: mappingUrl, digest: `sha256:${"a".repeat(64)}` },
+        document: { rules: [{ sourcePath: "organizationName", targetPath: "name", transform: "preserve" }] },
+      },
+    }),
+  });
+  // Keep catalog reads unavailable until Rust can prove the Mapping's input and output shapes (fs-fea7).
+  expect(store.record({ binding: BINDING_A, invocationId: "mapped", response: response() }))
+    .toEqual({ status: "recorded", selected: false });
+  expect(store.overlay(BINDING_A, freshBaseline)).toMatchObject({
+    status: "unavailable",
+  });
+});
+
+it("refuses a Mapping that requests an undeclared answer through the host context", () => {
+  const base = definitionResponseSource();
+  const mappingUrl = "urn:example:organization-mapping";
+  const source = definitionResponseSource({
+    responseSelection: { ...base.responseSelection!, mapping: mappingUrl },
+    schema: { type: "object", properties: { name: {} } },
+  });
+  const selectionContext = () => ({
+    upstreamSubject: null,
+    projection: ["privateAnswer"],
+    mapping: {
+      reference: { url: mappingUrl, digest: `sha256:${"a".repeat(64)}` },
+      document: { rules: [{ sourcePath: "privateAnswer", targetPath: "name", transform: "preserve" }] },
+    },
+  });
+  const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A, [source])], { selectionContext });
+  store.record({
+    binding: BINDING_A,
+    invocationId: "mapped-private-answer",
+    response: response({ data: { organizationName: "Acme", privateAnswer: "private" } }),
+  });
+  expect(store.overlay(BINDING_A, freshBaseline)).toEqual({
+    ...BINDING_A, status: "unavailable", reason: "Definition Response selection is unavailable.",
+  });
+});
+
+it("evaluates route selectors against recorded deliveries", () => {
   const base = definitionResponseSource();
   const source = definitionResponseSource({
     responseSelection: { ...base.responseSelection!,
@@ -630,8 +837,37 @@ it("leaves selectors with route predicates to a loader that can resolve them", a
   });
   const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A, [source])]);
   expect(store.record({ binding: BINDING_A, invocationId: "unscoped", response: response() }))
-    .toEqual({ status: "refused", reason: "selection-unsupported" });
-  expect(await store.overlay(BINDING_A, freshBaseline)).toBe(freshBaseline);
+    .toEqual({ status: "recorded", selected: false });
+  expect(store.overlay(BINDING_A, freshBaseline)).toEqual({
+    ...BINDING_A,
+    status: "unavailable",
+    reason: "Definition Response selection is unavailable.",
+  });
+});
+
+it("resolves a fresh empty bucket synchronously according to whenNone", () => {
+  const source = definitionResponseSource();
+  source.responseSelection!.whenNone = "empty";
+  const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A, [source])]);
+  const result = store.overlay(BINDING_A, freshBaseline);
+  expect(result).toMatchObject({
+    ...BINDING_A, status: "loaded", freshness: "fresh", records: [], none: true,
+  });
+  expect(result).not.toHaveProperty("recordId");
+});
+
+it("returns unavailable when the upstream Definition is missing, even with whenNone empty", () => {
+  const source = definitionResponseSource();
+  source.responseSelection!.whenNone = "empty";
+  const selectionContext = vi.fn(() => undefined);
+  const store = createPreviewDefinitionResponseStore([catalog(CATALOG_A, [source])], { selectionContext });
+  const unavailable = {
+    ...BINDING_A, status: "unavailable", reason: "Definition Response selection is unavailable.",
+  };
+  expect(store.overlay(BINDING_A, freshBaseline)).toEqual(unavailable);
+  expect(store.record({ binding: BINDING_A, invocationId: "unknown-definition", response: response() }))
+    .toEqual({ status: "recorded", selected: false });
+  expect(store.overlay(BINDING_A, freshBaseline)).toEqual(unavailable);
 });
 
 it.each([

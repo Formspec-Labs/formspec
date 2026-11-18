@@ -6,7 +6,18 @@ license.workspace = true
 description = "Formspec core processing — FEL analysis, path utils, schema validation, assembler"
 repository = "https://github.com/Formspec-Labs/formspec"
 
+[features]
+default = ["response-selection"]
+# The respondent WASM build omits the selector and its JSON parsing and hashing dependencies.
+response-selection = [
+    "dep:chrono",
+    "dep:integrity-canonical",
+    "serde_json/raw_value",
+]
+
 [dependencies]
+chrono = { version = "0.4", default-features = false, features = ["std"], optional = true }
+integrity-canonical = { version = "0.1.0", path = "../../../integrity-stack/crates/integrity-canonical", optional = true }
 fel-core = { version = "0.3.0", path = "../../../fel-core" }
 rust_decimal = "~1.41"
 semver_rs = "0.2.0"
@@ -15,3 +26,7 @@ serde_json = { version = "1", features = ["preserve_order"] }
 
 [dev-dependencies]
 proptest = "1"
+
+[[test]]
+name = "response_selection"
+required-features = ["response-selection"]
