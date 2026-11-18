@@ -38,7 +38,8 @@ export async function hydrationStorage(definitions: ReadonlyMap<string, FormDefi
     filings: [{ responseJson }], decisions: [{ responseId, responseHash,
       decision: { status: 'decided', review: 'accepted', disposition: 'urn:accepted', comments: [] } }],
   } });
-  const next = { $formspecResponse: '1.0', ...current, status: 'completed', authored: '2026-02-01T00:00:00Z' };
+  const next = { $formspecResponse: '1.0', ...current, status: 'completed', authored: '2026-02-01T00:00:00Z',
+    data: { ...current.data, result: 'updated' } };
   const draftJson = JSON.stringify({ $formspecResponse: '1.0', ...current });
   const latest = await store.responses.select([{ key: 'latest', scope, kind: 'definition', projection: ['result'],
     selection: { definition: { url: upstreamUrl }, status: 'completed', subject: [], cardinality: 'latest', pin: 'none' } }]);
@@ -47,7 +48,7 @@ export async function hydrationStorage(definitions: ReadonlyMap<string, FormDefi
       (await store.drafts.load(key, upstream.version)).status === 'absent') {
     const saved = await store.drafts.save({ key, definitionVersion: upstream.version, expectedRevision: null,
       responseJson: draftJson, snapshotJson: JSON.stringify({ definitionUrl: upstreamUrl, definitionVersion: upstream.version,
-        data: next.data }), summary: null });
+        data: current.data }), summary: null });
     if (saved.status !== 'saved') throw Error(saved.status);
   }
   return {

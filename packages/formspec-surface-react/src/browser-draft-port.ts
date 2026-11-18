@@ -314,7 +314,7 @@ function createFilingStore(
             break;
           }
           const { status: _status, newer: _newer, ...delivery } = outcome;
-          if (creationPins && !deepEqual(creationPins[instance], delivery)) {
+          if (!creationPins || !Object.hasOwn(creationPins, instance) || !deepEqual(creationPins[instance], delivery)) {
             missingPin = instance;
             break;
           }

@@ -54,8 +54,9 @@ export async function runConformance(name: keyof typeof draftPortConformance) {
       instance: 'list', initialResponseId: 'urn:list:1', newerResponseId: 'urn:list:2',
       addInitial: () => file('urn:list:1', '2026-01-01T00:00:00Z'),
       addNewer: () => file('urn:list:2', '2026-01-02T00:00:00Z'),
-      async select(pin: ResponseSelectionDelivery) {
-        return (await store.responses.select([{ key: 'list', scope, kind: 'definition', selection, projection: ['answer'], pin }])).get('list')!;
+      async select(pin?: ResponseSelectionDelivery) {
+        return (await store.responses.select([{ key: 'list', scope, kind: 'definition', selection, projection: ['answer'],
+          ...(pin && { pin }) }])).get('list')!;
       },
     },
   });

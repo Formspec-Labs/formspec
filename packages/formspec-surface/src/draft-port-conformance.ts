@@ -48,8 +48,15 @@ export interface DraftPortFixture {
     newerResponseId: string;
     addInitial(): Promise<void>;
     addNewer(): Promise<void>;
-    select(pin: ResponseSelectionDelivery): Promise<ResponseSelectionOutcome>;
+    select(pin?: ResponseSelectionDelivery): Promise<ResponseSelectionOutcome>;
   };
+}
+
+async function creationPins(fixture: NonNullable<DraftPortFixture['pins']>) {
+  const outcome = await fixture.select();
+  check(outcome.status === 'available' && outcome.pinned, 'fixture selection did not deliver a pin');
+  const { status: _status, newer: _newer, ...delivery } = outcome;
+  return { [fixture.instance]: delivery };
 }
 
 export const draftPortConformance = {
@@ -161,7 +168,7 @@ export const draftPortConformance = {
 
   async 'records an empty at-open pin'({ port, key: address = key, pins }: DraftPortFixture) {
     check(pins, 'supply a Definition with an at-open Response instance and whenNone empty');
-    const created = await port.save(saveInput(null, 'first', address));
+    const created = await port.save({ ...saveInput(null, 'first', address), creationPins: await creationPins(pins) });
     check(created.status === 'saved', 'a successful empty selection refused draft creation');
     const loaded = await port.load(address, '1.0.0');
     const pin = loaded.status === 'loaded' && loaded.draft.pins[pins.instance];
@@ -175,11 +182,14 @@ export const draftPortConformance = {
   async 'records an at-open pin once and reports a newer filing without changing the pin'({ port, key: address = key, pins }: DraftPortFixture) {
     check(pins, 'supply a Definition with an at-open Response instance');
     await pins.addInitial();
-    const staleSeed = await port.save({ ...saveInput(null, 'stale seed', address), creationPins: {} });
-    check(staleSeed.status === 'pin-unavailable' && staleSeed.instance === pins.instance,
-      'creating save admitted answers seeded before the filing was available');
-    check((await port.load(address, '1.0.0')).status === 'absent', 'pin mismatch committed a partial draft');
-    const created = await port.save(saveInput(null, 'first', address));
+    for (const observed of [undefined, {}]) {
+      const staleSeed = await port.save({ ...saveInput(null, 'stale seed', address),
+        ...(observed && { creationPins: observed }) });
+      check(staleSeed.status === 'pin-unavailable' && staleSeed.instance === pins.instance,
+        'creating save admitted answers without the observed filing');
+      check((await port.load(address, '1.0.0')).status === 'absent', 'pin mismatch committed a partial draft');
+    }
+    const created = await port.save({ ...saveInput(null, 'first', address), creationPins: await creationPins(pins) });
     check(created.status === 'saved', 'the available filing did not admit creation');
     const original = await port.load(address, '1.0.0');
     const pin = original.status === 'loaded' && original.draft.pins[pins.instance];
