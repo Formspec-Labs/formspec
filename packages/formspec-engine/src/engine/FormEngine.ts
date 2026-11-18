@@ -450,24 +450,26 @@ export class FormEngine implements IFormEngine {
         if (!item?.repeatable || index < 0 || index >= count) {
             return;
         }
-        this.rebuildRepeatRows(path, item, index);
-        const prefix = `${path}[`;
-        const shift = (fieldPath: string): string[] => {
-            if (!fieldPath.startsWith(prefix)) return [fieldPath];
-            const end = fieldPath.indexOf(']', prefix.length);
-            const row = Number(fieldPath.slice(prefix.length, end));
-            if (row === index) return [];
-            return [row > index ? `${prefix}${row - 1}${fieldPath.slice(end)}` : fieldPath];
-        };
-        this._pendingCreationPaths = new Set([...this._pendingCreationPaths].flatMap(shift));
-        const shiftFindings = <T extends { path: string }>(findings: T[]): T[] =>
-            findings.flatMap(finding => shift(finding.path).map(path =>
-                path === finding.path ? finding : { ...finding, path }));
-        this._externalValidation.splice(0, this._externalValidation.length, ...shiftFindings(this._externalValidation));
-        const previous = this._fullResult;
-        this._evaluate(previous && {
-            nonRelevant: previous.nonRelevant.flatMap(shift),
-            validations: shiftFindings(previous.validations),
+        this._rx.batch(() => {
+            this.rebuildRepeatRows(path, item, index);
+            const prefix = `${path}[`;
+            const shift = (fieldPath: string): string[] => {
+                if (!fieldPath.startsWith(prefix)) return [fieldPath];
+                const end = fieldPath.indexOf(']', prefix.length);
+                const row = Number(fieldPath.slice(prefix.length, end));
+                if (row === index) return [];
+                return [row > index ? `${prefix}${row - 1}${fieldPath.slice(end)}` : fieldPath];
+            };
+            this._pendingCreationPaths = new Set([...this._pendingCreationPaths].flatMap(shift));
+            const shiftFindings = <T extends { path: string }>(findings: T[]): T[] =>
+                findings.flatMap(finding => shift(finding.path).map(path =>
+                    path === finding.path ? finding : { ...finding, path }));
+            this._externalValidation.splice(0, this._externalValidation.length, ...shiftFindings(this._externalValidation));
+            const previous = this._fullResult;
+            this._evaluate(previous && {
+                nonRelevant: previous.nonRelevant.flatMap(shift),
+                validations: shiftFindings(previous.validations),
+            });
         });
     }
 
@@ -622,7 +624,7 @@ export class FormEngine implements IFormEngine {
                     required: keepFlags(previous.required),
                     readonly: keepFlags(previous.readonly),
                     validations: previous.validations.filter(({ path: resultPath, shapeId }) =>
-                        shapeId || keepPath(resultPath)),
+                        shapeId || !resultPath.startsWith(prefix)),
                 };
             }
             this.structureVersion.value += 1;

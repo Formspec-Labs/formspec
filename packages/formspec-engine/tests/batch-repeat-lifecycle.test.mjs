@@ -316,3 +316,43 @@ test('row removal preserves prior relevance and validation for surviving rows', 
     assert.equal(engine.signals['rows[0].ok'].value, false);
   } finally { engine.dispose(); }
 });
+
+test('row removal reindexes the previous findings used by valid() in a Shape', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0', url: 'urn:test:row-validation-history', version: '1.0.0',
+    items: [{ key: 'rows', type: 'group', repeatable: true, children: [
+      { key: 'answer', type: 'field', dataType: 'string' },
+    ] }],
+    binds: [{ path: 'rows.answer', required: 'true' }],
+    shapes: [{ id: 'previousError', target: 'rows[*].answer', severity: 'warning',
+      activeWhen: 'valid($answer) = false', constraint: 'false', message: 'Previous error' }],
+  }, { responseData: { rows: [{ answer: 'first' }, { answer: '' }] } });
+  try {
+    engine.removeRepeatInstance('rows', 0);
+    assert.deepEqual(engine.shapeResults.previousError.value.map(result => result.path), ['rows[0].answer']);
+  } finally { engine.dispose(); }
+});
+
+test('row removal publishes shifted calculations and external findings with the new structure', () => {
+  const engine = createRepeatEngine();
+  engine.addRepeatInstance('rows');
+  engine.setValue('rows[1].qty', 3);
+  engine.setValue('rows[1].price', 7);
+  engine.injectExternalValidation(['rows[0]', 'rows[1]'].map(path => ({
+    path, severity: 'error', code: 'EXT', message: 'Review this row',
+  })));
+  const snapshots = [];
+  const unsubscribe = engine.structureVersion.subscribe(() => {
+    snapshots.push({
+      count: engine.repeats.rows.value,
+      total: engine.signals['rows[0].total'].value,
+      findings: (engine.validationResults['rows[0]']?.value ?? []).map(result => result.code),
+    });
+  });
+  try {
+    engine.removeRepeatInstance('rows', 0);
+    assert.deepEqual(snapshots.slice(1), [{ count: 1, total: 21, findings: ['EXT'] }]);
+    assert.deepEqual(engine.validationResults['rows[0]'].value.map(result => result.code), ['EXT']);
+    assert.equal(engine.validationResults['rows[1]'], undefined);
+  } finally { unsubscribe(); engine.dispose(); }
+});
