@@ -317,6 +317,8 @@ Optional: `versionAlgorithm` ("semver"/"date"/"integer"/"natural", default "semv
 
 Creation runs once for a new Response. Host prefill wins key by key, including `null` fields and `[]` groups. Resume uses saved data as given. A pending `seedFrom` repeat stays absent until arrival or failure. A pending `prePopulate` field waits before considering `initialValue`. An expression initial value waits for referenced instances, including references through visible variables. On failure, use the authored fallback. Without a fallback, `seedFrom` uses zero source rows and the processor SHOULD emit a diagnostic. Person edits win throughout.
 
+To read the current source record after removal or resume, copy a stable key with relative `prePopulate` and use keyed FEL lookup (§4.4.2). Comparing with the value at creation requires a captured value or pinned source version.
+
 **Field-specific**: `dataType` (REQUIRED), `precision`, `prefix`/`suffix` (display only), `options` (array of `{value, label}` or URI), `optionSet` (reference to top-level named set), `initialValue` (literal or `=expression`, evaluated once), `semanticType` (metadata annotation), `prePopulate` (creation-time source value with an optional readonly lock), `children` (for dependent sub-questions).
 
 **Extended dataTypes** (beyond conceptual model): `string`, `text`, `integer`, `decimal`, `boolean`, `date`, `dateTime`, `time`, `uri`, `attachment`, `choice`, `multiChoice`, `money`.

@@ -3653,6 +3653,13 @@ expression has no row context. Absolute instance-root lookups remain available
 via `initialValue`. A relative miss (index ≥ `N`) stays empty; the processor
 MUST NOT fall back to the instance root.
 
+To read the current source record after creation, a Definition can copy a
+stable source key into a declared field using relative `prePopulate`. For
+example, `@instance('records').list[id = $sourceId].name` looks up the row
+by its stored key (§4.4.2). Removing an earlier row preserves this lookup.
+Comparisons with the value as it stood at creation require a captured value
+or a pinned source version.
+
 **Host data wins; creation is one-shot.** Install host prefill before
 creating values for a new Response. Every present key wins, including a
 present `null` field or a present `[]` Group (zero rows). Creation fills

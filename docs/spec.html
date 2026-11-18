@@ -6892,6 +6892,13 @@ element <code>i</code>’s <code>name</code>) and MUST NOT be rewritten as
 no row context. Absolute instance-root lookups remain available via
 <code>initialValue</code>. A relative miss (index ≥ <code>N</code>)
 stays empty; the processor MUST NOT fall back to the instance root.</p>
+<p>To read the current source record after creation, a Definition can
+copy a stable source key into a declared field using relative
+<code>prePopulate</code>. For example,
+<code>@instance('records').list[id = $sourceId].name</code> looks up the
+row by its stored key (§4.4.2). Removing an earlier row preserves this
+lookup. Comparisons with the value as it stood at creation require a
+captured value or a pinned source version.</p>
 <p><strong>Host data wins; creation is one-shot.</strong> Install host
 prefill before creating values for a new Response. Every present key
 wins, including a present <code>null</code> field or a present
@@ -6902,15 +6909,16 @@ rows.</p>
 <p>A repeat whose <code>seedFrom</code> source is pending MUST stay
 absent until loading succeeds or fails. A field whose
 <code>prePopulate</code> source is pending MUST NOT receive
-<code>initialValue</code> while it waits. An expression <code>initialValue</code> MUST remain
-pending while any instance it references directly or through a visible Definition
-variable is loading (§4.5.1). When the expression computes an instance
-name, a processor MAY wait for all outstanding instance sources to settle.
-A processor MAY use authored fallback data for FEL while loading. On success, apply still-pending
-values from the loaded data. On failure, apply them from authored
-fallback data when present. Without fallback data, <code>seedFrom</code>
-uses <code>N = 0</code> and the processor SHOULD emit a diagnostic. Host
-data and person edits still win (FH-064).</p>
+<code>initialValue</code> while it waits. An expression
+<code>initialValue</code> MUST remain pending while any instance it
+references directly or through a visible Definition variable is loading
+(§4.5.1). When the expression computes an instance name, a processor MAY
+wait for all outstanding instance sources to settle. A processor MAY use
+authored fallback data for FEL while loading. On success, apply
+still-pending values from the loaded data. On failure, apply them from
+authored fallback data when present. Without fallback data,
+<code>seedFrom</code> uses <code>N = 0</code> and the processor SHOULD
+emit a diagnostic. Host data and person edits still win (FH-064).</p>
 <h4 id="field-items">4.2.3 Field Items</h4>
 <p>A <strong>Field</strong> Item represents a single data-entry point.
 Each Field produces exactly one value in the Response data (or one value
