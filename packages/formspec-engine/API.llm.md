@@ -116,10 +116,11 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 #### interface `EvalDiagnostic`
 
-Author-facing FEL error from a bind constraint or shape expression (Rust `EvalDiagnostic`); never shown to
-respondents. Evaluation errors (Core §3.10.2) pass as null; an undefined function (§3.10.1) also fails.
+Author-facing FEL error from a calculate, bind constraint or shape expression (Rust `EvalDiagnostic`); never
+shown to respondents. Evaluation errors (Core §3.10.2) yield null; an undefined function (§3.10.1) also fails.
 
 - **path** (`string`): Resolved instance path of the bind or shape target (`#` for form-level shapes).
+- **code** (`string`): FEL diagnostic code, such as `FEL_AMBIGUOUS_ROW_LOOKUP`, when the error has one.
 
 #### interface `EvalResult`
 
@@ -639,7 +640,7 @@ Keep findings visible in the report produced for evaluated response data.
 
 ## `collectTimedShapeValidationResults(evalResult: EvalResult, shapeTiming: Map<string, EvalShapeTiming>, timing: EvalShapeTiming): ValidationResult[]`
 
-Shape validations for a specific timing, from a WASM eval with the matching trigger.
+Definition errors precede Shape timing. Keep them in every enabled report.
 
 ## `buildValidationReportEnvelope(results: ValidationResult[], timestamp: string, definitionUrl?: string, definitionVersion?: string): ValidationReport`
 

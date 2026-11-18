@@ -843,7 +843,7 @@ Definition work shared across evaluations of different Response data.
 
 **Methods:**
 
-- `fn new(definition: Value) -> Self` - Resolve authored items and check Definition references once.
+- `fn new(definition: Value) -> Self` - Resolve authored items and check Definition references and authored expressions once.
 - `fn evaluate(self: &Self, data: &HashMap<String, Value>, options: &EvalOptions) -> EvaluationResult` - Evaluate Response data against this prepared Definition.
 
 **Trait Implementations:**
@@ -1746,7 +1746,7 @@ fn parse_answer_state(s: &str) -> AnswerState
 **Structs**
 
 - [`EvalContext`](#evalcontext) - Optional runtime context injected into a single evaluation cycle.
-- [`EvalDiagnostic`](#evaldiagnostic) - Evaluation error from a constraint or shape expression (Core §3.10.2).
+- [`EvalDiagnostic`](#evaldiagnostic) - Evaluation error from a calculate, constraint, or shape expression (Core §3.10.2).
 - [`EvalSubject`](#evalsubject) - The parts of `Response.subject` that the evaluator checks and reads.
 - [`EvaluationResult`](#evaluationresult) - Result of the full evaluation cycle.
 - [`ItemText`](#itemtext) - Display text for one Item instance, `{{expression}}` resolved in its scope.
@@ -1786,10 +1786,10 @@ Optional runtime context injected into a single evaluation cycle.
 
 *Struct*
 
-Evaluation error from a constraint or shape expression (Core §3.10.2).
+Evaluation error from a calculate, constraint, or shape expression (Core §3.10.2).
 
-The expression evaluated to `null`, so the constraint passed (§3.8.1). The
-diagnostic is for Definition authors (debug consoles, previews) and MUST NOT
+The expression evaluated to `null`; in constraint position that passes (§3.8.1).
+The diagnostic is for Definition authors (debug consoles, previews) and MUST NOT
 be shown to end users as a validation error, so it never enters
 [`EvaluationResult::validations`].
 
@@ -1797,6 +1797,7 @@ be shown to end users as a validation error, so it never enters
 - `path: String` - Resolved path of the bind or shape target (`#` for form-level shapes).
 - `expression: String` - FEL expression that raised the error, as evaluated.
 - `shape_id: Option<String>` - Shape ID when a shape expression raised the error.
+- `code: Option<String>` - fel-core diagnostic code, such as `FEL_AMBIGUOUS_ROW_LOOKUP`, when it has one.
 - `message: String` - fel-core diagnostic message.
 
 **Traits:** Eq
@@ -1877,7 +1878,7 @@ Result of the full evaluation cycle.
 - `values: std::collections::HashMap<String, fel_core::exact_json::Value>` - All field values after recalculation (post-NRB): flat state keyed by path
 - `data: fel_core::exact_json::Value` - The Response projection of [`Self::values`]: groups are nested objects and repeats arrays of
 - `validations: Vec<ValidationResult>` - Validation results.
-- `diagnostics: Vec<EvalDiagnostic>` - Author-facing evaluation errors from constraint and shape expressions.
+- `diagnostics: Vec<EvalDiagnostic>` - Author-facing evaluation errors from calculate, constraint, and shape expressions.
 - `non_relevant: Vec<String>` - Fields marked non-relevant.
 - `variables: std::collections::HashMap<String, fel_core::exact_json::Value>` - Evaluated variable values.
 - `scoped_variables: std::collections::HashMap<String, std::collections::HashMap<String, fel_core::Value>>` - Variables by concrete scope and name, with FEL types.
@@ -2313,7 +2314,9 @@ Machine validation code (known codes + definition-authored shape codes).
 - `Required` - Required field has no value.
 - `TypeMismatch` - Value type does not match field definition.
 - `ConstraintFailed` - Constraint expression evaluated to false.
-- `ConstraintParseError` - Constraint expression could not be parsed.
+- `ConstraintParseError` - A Bind constraint calls an undefined function (Core §3.10.1).
+- `SyntaxError` - An authored FEL expression does not conform to the grammar (Core §3.10.1).
+- `ArityMismatch` - A built-in function is called with the wrong number of arguments (Core §3.10.1).
 - `UnsubscriptedRepeatReference` - A field reference traverses a repeatable group without a subscript.
 - `UnassembledDefinitionReference` - A Group inclusion needs assembly before evaluation.
 - `MinRepeat` - Repeat count below minimum.
