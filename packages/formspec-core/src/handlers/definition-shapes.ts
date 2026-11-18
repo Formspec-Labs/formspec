@@ -39,7 +39,7 @@ export const definitionShapesHandlers = {
 
     if (p.constraint) shape.constraint = p.constraint as string;
     if (p.explanation !== undefined) shape.explanation = p.explanation as FormShape['explanation'];
-    if (p.code) shape.code = p.code as string;
+    if (p.code !== undefined) shape.code = p.code as string;
     if (p.activeWhen) shape.activeWhen = p.activeWhen as string;
     if (p.timing) shape.timing = p.timing as 'continuous' | 'submit' | 'demand';
     if (p.context) shape.context = p.context as Record<string, string>;

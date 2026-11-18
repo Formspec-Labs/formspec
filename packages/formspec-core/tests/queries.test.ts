@@ -1145,7 +1145,8 @@ describe('parseFEL', () => {
     expect(typeMismatch).toBeUndefined();
   });
 
-  // ── U6: "did you mean" for partial path matches in repeat context ──
+  // Inside a group its fields resolve by their local names. From the root
+  // these references still need qualification and the editor suggests it.
 
   it('suggests full path when bare field name matches a nested field', () => {
     const project = createRawProject();
@@ -1154,7 +1155,7 @@ describe('parseFEL', () => {
       { type: 'definition.addItem', payload: { type: 'field', key: 'quantity', parentPath: 'rows', dataType: 'integer' } },
     ]);
 
-    const result = project.parseFEL('$quantity > 0', { targetPath: 'rows[0].quantity' });
+    const result = project.parseFEL('$quantity > 0', { targetPath: '#' });
     expect(result.valid).toBe(false);
     const ref = result.errors.find((e) => e.code === 'FEL_UNKNOWN_REFERENCE');
     expect(ref).toBeDefined();
@@ -1170,7 +1171,7 @@ describe('parseFEL', () => {
       { type: 'definition.addItem', payload: { type: 'field', key: 'amount', parentPath: 'extras', dataType: 'decimal' } },
     ]);
 
-    const result = project.parseFEL('$amount > 0', { targetPath: 'rows[0].amount' });
+    const result = project.parseFEL('$amount > 0', { targetPath: '#' });
     expect(result.valid).toBe(false);
     const ref = result.errors.find((e) => e.code === 'FEL_UNKNOWN_REFERENCE');
     expect(ref).toBeDefined();

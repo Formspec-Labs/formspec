@@ -16,7 +16,7 @@ import { currentComponentTree } from '../component-tree.js';
 import { registryEntry } from '../registry-entry.js';
 import type { MappingState } from '../types.js';
 import { fieldPaths as getFieldPaths } from './field-queries.js';
-import { itemAtIndexedPath } from '../item-index.js';
+import { itemAtIndexedPath, itemIndex } from '../item-index.js';
 import type {
   ProjectState,
   Diagnostic,
@@ -117,8 +117,20 @@ export function parseFEL(state: ProjectState, expression: string, context?: FELP
         .map((entry) => entry.slice(1)),
     ]);
 
+    const target = normalizeIndexedPath(resolved?.targetPath ?? '');
+    const items = itemIndex(state.definition.items);
+    const scope = target.split('.').filter(Boolean);
+    if (items.get(target)?.type !== 'group') scope.pop();
+    const scopePrefixes = scope.map((_, index) => scope.slice(0, index + 1).join('.') + '.').reverse();
+    const resolvesReference = (reference: string) => {
+      const path = normalizeIndexedPath(reference);
+      const head = path.split('.')[0];
+      const prefix = scopePrefixes.find(scope => items.has(scope + head)) ?? '';
+      const item = items.get(prefix + path);
+      return item?.type === 'field' || item?.type === 'group';
+    };
     for (const reference of analysis.references) {
-      if (!knownFieldPaths.has(normalizeIndexedPath(reference))) {
+      if (!resolvesReference(reference)) {
         let message = `Unknown field reference "$${reference}" in this editor context`;
         const suffix = reference.split('.').pop()!;
         const partialMatches = [...knownFieldPaths].filter(
