@@ -22,3 +22,23 @@ it('refuses an unresolved parameter, missing Definition or empty walk', () => {
     for (const route of (empty.documents['urn:example:surface:registration'] as any).routes) route.slots = [];
     expect(() => surfaceWalkTargets(empty, options)).toThrow(/no form routes/i);
 });
+
+it('derives sparse regional wording and navigation from the engine Locale cascade', () => {
+    const bundle = structuredClone(surfaceWalkExport);
+    for (const form of ['contact', 'equipment']) {
+        for (const [locale, strings] of [
+            ['fr', { 'name.label': 'Nom', '$ui.wizard.next': 'Suivant' }],
+            ['fr-CA', { 'city.label': 'Ville' }],
+        ] as const) {
+            const url = `urn:example:locale:${form}:${locale}`;
+            (bundle.manifest.locales ??= []).push({ url, locale });
+            (bundle.documents as Record<string, unknown>)[url] = {
+                $formspecLocale: '2.0', version: '1.0.0', locale,
+                target: { kind: 'definition', url: `urn:example:form:${form}` }, strings,
+            };
+        }
+    }
+    const targets = surfaceWalkTargets(bundle, { ...options, locale: 'fr-CA' });
+    expect(targets).toHaveLength(3);
+    expect(targets[0].locale.strings).toEqual({ 'name.label': 'Nom', 'city.label': 'Ville', '$ui.wizard.next': 'Suivant' });
+});

@@ -1,8 +1,32 @@
 /** @filedesc Derive Definition Walk targets from the routes of an exported static Surface preview. */
 import { composeSurfaceApp, createThemeAuthority, createWidgetRegistry, dereferenceBundleExport, matchRoute, planRoute, routeHref } from '@formspec-org/surface';
+import { LocaleStore, preactReactiveRuntime } from '@formspec-org/engine';
 import { targetDefinitionMatches } from '@formspec-org/types';
 
 const attribute = (key, value) => `[${key}=${JSON.stringify(value)}]`;
+
+/** Resolve planned labels and navigation strings with the same store as the mounted form. */
+function wordingFor(definition, documents, requested, title) {
+    const target = { kind: 'definition', url: definition.url };
+    const store = new LocaleStore(preactReactiveRuntime, undefined, target);
+    const keys = new Set();
+    for (const doc of documents) {
+        if (doc.target.kind !== target.kind || !targetDefinitionMatches(doc.target, definition)) continue;
+        store.loadLocale(doc);
+        for (const key of Object.keys(doc.strings)) keys.add(key);
+    }
+    const codes = requested ? [requested] : store.getAvailableLocales();
+    return codes.length ? codes.map(code => {
+        store.setLocale(code);
+        const doc = store.getActiveDocument();
+        if (!doc) throw new Error(`${title}: no Definition Locale for ${code}`);
+        const strings = Object.fromEntries([...keys].flatMap(key => {
+            const value = store.lookupKey(key);
+            return value === null ? [] : [[key, value]];
+        }));
+        return { ...doc, locale: store.activeLocale.value, strings };
+    }) : [undefined];
+}
 
 export function surfaceWalkTargets(exported, { url, params = {}, locale }) {
     const preview = new URL(url);
@@ -49,10 +73,7 @@ export function surfaceWalkTargets(exported, { url, params = {}, locale }) {
                 throw new Error(`${title}: ${address.href} resolves to another route or no route`);
             }
             const theme = authority.grantFor(handle.route).themeDocument;
-            const locales = (bundle.localeDocuments ?? []).filter(doc => doc.target.kind === 'definition'
-                && targetDefinitionMatches(doc.target, definition) && (!locale || doc.locale === locale));
-            if (locale && !locales.length) throw new Error(`${title}: no Definition Locale for ${locale}`);
-            for (const doc of locales.length ? locales : [undefined]) {
+            for (const doc of wordingFor(definition, bundle.localeDocuments ?? [], locale, title)) {
                 targets.push({ title: doc ? `${title} (${doc.locale})` : title, url: address.href,
                     root: `${selector} [data-formspec-render-root]`, definition, theme, locale: doc });
             }
