@@ -174,7 +174,11 @@ impl CreationVariables<'_> {
         while let Some((expr, site)) = work.pop() {
             let deps = extract_dependencies(expr);
             if !instances.is_empty()
-                && (deps.has_dynamic_instance || !deps.instance_refs.is_disjoint(instances))
+                && (deps.has_dynamic_instance
+                    || deps
+                        .instance_reads
+                        .keys()
+                        .any(|name| instances.contains(name)))
             {
                 return false;
             }

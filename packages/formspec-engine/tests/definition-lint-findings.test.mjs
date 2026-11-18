@@ -7,7 +7,7 @@ import { lintDocument } from '../dist/index.js';
 test('FEL and Shape diagnostics survive the tools WASM boundary in every lint mode', () => {
     const registry = JSON.parse(readFileSync(new URL('../../../specs/lint-codes.json', import.meta.url), 'utf8'));
     const expectedPaths = {
-        E313: '$.shapes[1].id', E314: '$.shapes[0].explanation',
+        E315: '$.shapes[1].id', E314: '$.shapes[0].explanation',
         E401: '$.items[0].initialValue', E402: '$.items[0].initialValue',
         E403: '$.items[0].initialValue', E404: '$.items[0].initialValue',
         E405: '$.items[0].initialValue', W405: '$.items[0].initialValue',
