@@ -51,6 +51,7 @@ declare global {
  */
 export function virtualScreenReader(page: Page, rootSelector = 'formspec-render'): ScreenReader {
     let position: ReadingPosition | undefined;
+    let firstPhrase: string | undefined;
     return {
         name: 'virtual',
         async start() {
@@ -61,24 +62,30 @@ export function virtualScreenReader(page: Page, rootSelector = 'formspec-render'
                     window.__formspecVirtualScreenReader = mod.virtual;
                 }, readFileSync(virtualBuild.virtualBrowserBuild(), 'utf8'));
             }
-            await page.evaluate(async (selector) => {
+            firstPhrase = await page.evaluate(async (selector) => {
                 const v = window.__formspecVirtualScreenReader!;
+                await v.stop();
                 await v.start({ container: document.querySelector(selector)! });
                 window.__formspecVirtualFirst = null;
+                return v.lastSpokenPhrase();
             }, rootSelector);
         },
         // The cursor wraps silently inside a container: the wrap is being back at the first thing it said
         // after start, on the same node. (A node may be announced more than once on the way — on entry, on
         // exit — so a repeated node alone is not the signal.)
         async next() {
-            const next = await page.evaluate(async () => {
+            // Guidepup speaks the first node during start. Consume it before moving the cursor.
+            const next = await page.evaluate(async firstPhrase => {
                 const v = window.__formspecVirtualScreenReader!;
-                await v.next();
-                const node = v.activeNode ?? document;
-                const phrase = await v.lastSpokenPhrase();
-                const first = window.__formspecVirtualFirst;
-                if (first && first.node === node && first.phrase === phrase) return undefined;
-                if (!first) window.__formspecVirtualFirst = { node, phrase };
+                if (firstPhrase === undefined) await v.next();
+                const node = v.activeNode;
+                if (!node) return undefined;
+                const phrase = firstPhrase ?? await v.lastSpokenPhrase();
+                if (firstPhrase === undefined) {
+                    const first = window.__formspecVirtualFirst;
+                    if (first?.node === node && first.phrase === phrase) return undefined;
+                    if (!first) window.__formspecVirtualFirst = { node, phrase };
+                }
                 const el = node instanceof Element ? node : node.parentElement;
                 const path = el?.closest<HTMLElement>('[data-name]')?.dataset.name ?? null;
                 if (!phrase.startsWith('heading, ')) return { phrase, path };
@@ -88,7 +95,8 @@ export function virtualScreenReader(page: Page, rootSelector = 'formspec-render'
                 while (scope && !scope.querySelector('[data-name]')) scope = scope.parentElement;
                 const heads = Array.from(scope?.querySelectorAll<HTMLElement>('[data-name]') ?? [], f => f.dataset.name!);
                 return { phrase, path, heads };
-            });
+            }, firstPhrase);
+            firstPhrase = undefined;
             position = next;
             return Boolean(next);
         },

@@ -100,13 +100,13 @@ const GROUP_CONTROL = 'fieldset, [role="group"], [role="radiogroup"]';
 const MAX_TABS = 800;
 const MAX_PHRASES = 4000;
 
-const norm = (s: string) => s.replace(/\s+/g, ' ').replace(/\s*\*\s*$/, '').trim();
+const norm = (s: string) => s.replace(/\s+/g, ' ').trim();
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** A pattern's anchors dropped, so it can be searched for inside a longer text. */
 const loose = (w: ExpectedText) => new RegExp(w.pattern ? w.pattern.source.replace(/^\^\\s\*/, '').replace(/\[\\s\\S\]\*\$$/, '') : escapeRe(w.text).replace(/\s+/g, '\\s+'));
 /** Match the normalized authored name, allowing the renderer's required marker. */
 const asRegex = (w: ExpectedText, suffix = '') => w.pattern ?? new RegExp(
-    `^\\s*${escapeRe(norm(w.text)).replace(/\s+/g, '\\s+')}(?:\\s*\\*)*${suffix}\\s*$`);
+    `^\\s*${escapeRe(norm(w.text)).replace(/\s+/g, '\\s+')}(?:\\s*\\*)?${suffix}\\s*$`);
 /** `w` appears somewhere in `text`. */
 const contains = (text: string, w: ExpectedText) => loose(w).test(text);
 /** Words only: a hint rendered as a list loses its separators in `textContent`. */
