@@ -343,8 +343,9 @@ port, including an empty set when none are loaded. Core selects eligible version
 and checks paths, types, directly carried choice values and subject predicates.
 The caller supplies the consuming Definition and instance name for an instance
 read. A catalog form prefill supplies the receiving Definition and whether the
-slot applies a reverse Mapping. For direct prefill, Core compares the stored
-option values at matching delivered data paths. Widget inputs have no receiving
+slot applies a reverse Mapping. For an unmapped single-record selection that
+targets the receiving Definition URL and admits its version, Core compares
+stored option values at matching delivered data paths. Widget inputs have no receiving
 Definition and pass `null`. Session drafts use the exact Definition resolved by
 the catalog's `definitionRef`.
 

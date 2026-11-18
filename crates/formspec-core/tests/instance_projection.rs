@@ -678,10 +678,10 @@ fn catalog_prefill_compares_only_delivered_unmapped_fields() {
     upstream["items"] = json!([field]);
     let mut destination = field;
     destination["options"][0]["value"] = json!("b");
-    let check = |source: &Value, mapped| {
+    let check = |source: &Value, mapped, url, version| {
         let consumer = ProjectionConsumer::Prefill {
             mapped,
-            definition: json!({"items":[destination], "subject":consumer_subject()}),
+            definition: json!({"url":url, "version":version, "items":[destination], "subject":consumer_subject()}),
         };
         formspec_core::check_instance_projection(
             source,
@@ -689,11 +689,14 @@ fn catalog_prefill_compares_only_delivered_unmapped_fields() {
             std::slice::from_ref(&upstream),
         )
     };
-    let findings = check(&source, false);
+    let url = "urn:example:report";
+    let findings = check(&source, false, url, "1.1.0");
     assert_eq!(findings.len(), 1);
     assert_eq!(findings[0].code, Code::OptionValuesMismatch);
     assert_eq!(findings[0].json_pointer, "/schema/properties/stage");
-    assert!(check(&source, true).is_empty());
+    assert!(check(&source, true, url, "1.1.0").is_empty());
+    assert!(check(&source, false, "urn:example:unrelated", "1.1.0").is_empty());
+    assert!(check(&source, false, url, "2.0.0").is_empty());
     source["schema"]["properties"] = json!({});
-    assert!(check(&source, false).is_empty());
+    assert!(check(&source, false, url, "1.1.0").is_empty());
 }

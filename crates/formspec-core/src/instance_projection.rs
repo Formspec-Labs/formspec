@@ -127,7 +127,7 @@ impl InstanceProjectionDiagnostic {
 /// version order when ranged and in byte order of the version text otherwise.
 ///
 /// Pass the consuming Definition and its authored instance or prefill binding.
-/// Catalog selections using `from.routeParam` pass `None`.
+/// Pass `None` for catalog reads without a receiving form.
 /// The Definition schema and document lint check the local response instance declaration.
 /// Inline and URI-backed instances return no findings.
 /// A `definition-response` catalog source uses its own `responseSelection` and
@@ -154,7 +154,6 @@ pub fn check_instance_projection(
     use InstanceProjectionCode as Code;
 
     let consumer_subject = consumer.and_then(|value| value.definition().get("subject"));
-    let carries = ChoiceCarry::from_source(instance, consumer);
     let catalog = instance["kind"] == "definition-response";
     let draft = catalog && instance["runtime"]["delivery"] == "draft";
     let member = if catalog {
@@ -189,7 +188,7 @@ pub fn check_instance_projection(
         )];
     };
     if draft {
-        return check_catalog_draft(instance, url, upstream_definitions, &carries);
+        return check_catalog_draft(instance, url, upstream_definitions);
     }
     let range = match target.get("compatibleVersions") {
         Some(raw) => {
@@ -260,6 +259,24 @@ pub fn check_instance_projection(
     } else {
         None
     };
+    let choice_consumer = consumer.filter(|consumer| match consumer {
+        ProjectionConsumer::Instance { .. } => !catalog,
+        ProjectionConsumer::Prefill { definition, .. } => {
+            catalog
+                && definition["url"] == url
+                && definition["version"]
+                    .as_str()
+                    .filter(|version| !version.is_empty())
+                    .is_some_and(|version| {
+                        range.as_ref().is_none_or(|range| {
+                            parse_definition_version(version)
+                                .is_some_and(|version| range.test(&version))
+                        })
+                    })
+                && (instance.get("schema").is_none() || catalog_fields.is_some())
+        }
+    });
+    let carries = ChoiceCarry::from_source(instance, choice_consumer);
     let projected_fields = instance["schema"].as_object().filter(|_| !catalog);
     eligible.sort_unstable_by(|(a, a_text, _), (b, b_text, _)| {
         a.cmp(b).then_with(|| a_text.cmp(b_text))
@@ -343,7 +360,6 @@ fn check_catalog_draft(
     source: &Value,
     url: &str,
     upstream: &[Value],
-    carries: &[ChoiceCarry],
 ) -> Vec<InstanceProjectionDiagnostic> {
     use InstanceProjectionCode as Code;
 
@@ -361,9 +377,6 @@ fn check_catalog_draft(
                     version,
                     &mut diagnostics,
                 );
-            }
-            for carry in carries {
-                carry.check(definition, version, &mut diagnostics);
             }
             diagnostics
         }

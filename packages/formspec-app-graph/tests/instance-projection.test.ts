@@ -12,7 +12,8 @@ const selection = {
 };
 
 function handle(artifactKind: string, slot: string, document: unknown, url?: string): ResolvedArtifactHandle {
-  return { artifactKind, slot, status: 'loaded', document, ref: { url } };
+  const version = (document as { version?: string }).version;
+  return { artifactKind, slot, status: 'loaded', document, ref: { url, version } };
 }
 
 function upstream(version: string, field = 'amount') {
@@ -134,7 +135,9 @@ it('uses the consuming Definition subject for catalog form prefill', () => {
   }] }] });
   const first = upstream('1.0.0');
   const lint = vi.fn(lintDocument);
-  const findings = documentLintValidator(lint)(graph(catalog, form, surface, first));
+  const context = graph(catalog, form, surface, first);
+  context.manifest.document = { definitions: [form.ref] };
+  const findings = documentLintValidator(lint)(context);
   expect(lint).toHaveBeenCalledWith(source, { projectionConsumer: { kind: 'prefill', definition: form.document, mapped: false }, upstreamDefinitions: [first.document] });
   expect(findings.filter((finding) => finding.code.startsWith('INSTANCE-PROJECTION-'))).toEqual([]);
 });
@@ -158,9 +161,11 @@ it('reports each missing catalog path once per version across two forms and a wi
     { slotType: 'module-widget', binding: { dataBindings: { report: dataBinding } } },
   ] }] });
   const validate = documentLintValidator(lintDocument);
-  const findMissing = (...versions: ResolvedArtifactHandle[]) =>
-    validate(graph(catalog, formA, formB, surface, ...versions))
-      .filter((finding) => finding.code === 'INSTANCE-PROJECTION-PATH-MISSING');
+  const findMissing = (...versions: ResolvedArtifactHandle[]) => {
+    const context = graph(catalog, formA, formB, surface, ...versions);
+    context.manifest.document = { definitions: [formA.ref, formB.ref] };
+    return validate(context).filter((finding) => finding.code === 'INSTANCE-PROJECTION-PATH-MISSING');
+  };
   expect(findMissing(upstream('1.0.0'))).toMatchObject([{
     primarySource: { artifactSlot: 'catalog', jsonPointer: '/sources/0/schema/properties/missing' },
     details: { upstreamVersion: '1.0.0' },
@@ -196,16 +201,21 @@ it('reports changed stored values only for the upstream version feeding the carr
   }]);
 });
 
-it('checks the form receiving direct catalog prefill even without a subject predicate', () => {
+it.each([
+  [upstreamUrl, '1.1.0', 'new', true],
+  [upstreamUrl, '1.1.0', 'old', false],
+  ['urn:example:other', '1.1.0', 'new', false],
+  [upstreamUrl, '2.0.0', 'new', false],
+] as const)('checks direct catalog prefill for receiving form %s@%s and upstream value %s', (url, formVersion, upstreamValue, mismatch) => {
   const catalogUrl = 'urn:example:catalog';
   const source = {
     kind: 'definition-response', id: 'response:stage',
     responseSelection: { ...selection, subject: [] },
   };
   const catalog = handle('dataSources', 'catalog', { sources: [source] }, catalogUrl);
-  const form = handle('definition', 'form', { url: 'urn:example:form', items: [{
-    key: 'stage', type: 'field', dataType: 'choice', options: [{ value: 'old', label: 'Old' }],
-  }] }, 'urn:example:form');
+  const form = handle('definition', 'form', { url, version: formVersion, subject, items: [{
+    key: 'stage', label: 'Stage', type: 'field', dataType: 'choice', options: [{ value: 'old', label: 'Old' }],
+  }] }, url);
   const surface = handle('surface', 'surface', { routes: [{ slots: [{
     slotType: 'definition-form', binding: {
       definitionRef: form.ref?.url, initialData: { catalogRef: catalogUrl, sourceRef: source.id },
@@ -213,11 +223,16 @@ it('checks the form receiving direct catalog prefill even without a subject pred
   }] }] });
   const version = upstream('1.0.0');
   Object.assign(version.document as object, { items: [{
-    key: 'stage', type: 'field', dataType: 'choice', options: [{ value: 'new', label: 'New' }],
+    key: 'stage', label: 'Stage', type: 'field', dataType: 'choice', options: [{ value: upstreamValue, label: 'New' }],
   }] });
-  expect(documentLintValidator(lintDocument)(graph(catalog, form, surface, version))).toContainEqual(expect.objectContaining({
+  const context = graph(catalog, form, surface, version);
+  context.manifest.document = { definitions: [form.ref] };
+  const findings = documentLintValidator(lintDocument)(context).filter(
+    (finding) => finding.code === 'INSTANCE-PROJECTION-OPTION-VALUES-MISMATCH',
+  );
+  expect(findings).toEqual(mismatch ? [expect.objectContaining({
     code: 'INSTANCE-PROJECTION-OPTION-VALUES-MISMATCH',
     primarySource: expect.objectContaining({ artifactSlot: 'catalog', jsonPointer: '/sources/0' }),
     details: { upstreamVersion: '1.0.0' },
-  }));
+  })] : []);
 });

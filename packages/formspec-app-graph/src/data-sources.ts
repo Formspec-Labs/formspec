@@ -135,11 +135,14 @@ export function exactDefinitionResolution(
   context: AppGraphContext,
   definitionRef: string,
 ): DefinitionResolution {
-  const manifestMatches = manifestRefs(context, 'definitions')
-    .filter((ref) => stringProp(ref, 'url') === definitionRef).length;
+  const declared = manifestRefs(context, 'definitions')
+    .filter((ref) => stringProp(ref, 'url') === definitionRef);
+  const manifestMatches = declared.length;
+  const version = manifestMatches === 1 ? stringProp(declared[0], 'version') : undefined;
   const candidates = handlesByKind(context.handles, 'definition').filter((definition) => {
     const documentUrl = stringProp(record(definition.document), 'url');
-    return definition.ref?.url === definitionRef && documentUrl === definitionRef;
+    return definition.ref?.url === definitionRef && documentUrl === definitionRef
+      && (version === undefined || definition.ref.version === version);
   });
   if (manifestMatches > 1 || candidates.length > 1) {
     return {

@@ -6,7 +6,7 @@ import { diagnosticSourceForHandle } from './report.js';
 import { escapeJsonPointerToken, handlesByKind, ownProp, record, recordArray, stringProp, type JsonRecord } from './surface-widgets.js';
 import type { AppGraphContext, AppGraphDiagnostic, ResolvedArtifactHandle } from './types.js';
 
-function definitionsForUrl(context: { handles: readonly ResolvedArtifactHandle[] }, url: string | undefined): ResolvedArtifactHandle[] {
+function definitionsForUrl(context: AppGraphContext, url: string | undefined): ResolvedArtifactHandle[] {
   if (url === undefined) return [];
   return handlesByKind(context.handles, 'definition').filter((handle) =>
     handle.ref?.url === url && stringProp(record(handle.document), 'url') === url);
@@ -60,7 +60,7 @@ function projectionDiagnostics(
 }
 
 function catalogConsumers(
-  context: { handles: readonly ResolvedArtifactHandle[] },
+  context: AppGraphContext,
   catalog: ResolvedArtifactHandle,
   source: JsonRecord,
 ): Array<AppGraphDocumentLintContext['projectionConsumer']> {
@@ -77,7 +77,9 @@ function catalogConsumers(
         const binding = record(ownProp(slot, 'binding'));
         const type = stringProp(slot, 'slotType');
         if (type === 'definition-form' && matchesSource(ownProp(binding, 'initialData'))) {
-          for (const definition of definitionsForUrl(context, stringProp(binding, 'definitionRef'))) {
+          const ref = stringProp(binding, 'definitionRef');
+          const definition = ref === undefined ? undefined : exactDefinitionResolution(context, ref).definition;
+          if (definition) {
             const initialData = record(ownProp(binding, 'initialData'));
             const mapped = ownProp(initialData, 'mappingRef') !== undefined;
             // One direct binding is enough to check the receiving fields.
@@ -101,7 +103,7 @@ function isDraft(source: JsonRecord): boolean {
   return stringProp(record(ownProp(source, 'runtime')), 'delivery') === 'draft';
 }
 
-function projectionSources(handle: ResolvedArtifactHandle, handles: readonly ResolvedArtifactHandle[]): Array<{ source: JsonRecord; pointer: string; name?: string }> {
+function projectionSources(handle: ResolvedArtifactHandle): Array<{ source: JsonRecord; pointer: string; name?: string }> {
   if (handle.status !== 'loaded') return [];
   const document = record(handle.document);
   if (handle.artifactKind === 'definition') {
@@ -119,16 +121,15 @@ function projectionSources(handle: ResolvedArtifactHandle, handles: readonly Res
   return sources.flatMap((value, index) => {
     const source = record(value);
     if (!source || stringProp(source, 'kind') !== 'definition-response') return [];
-    // A schema-less draft still delivers fields to a directly bound form.
-    if (isDraft(source) && ownProp(source, 'schema') === undefined &&
-        !catalogConsumers({ handles }, handle, source).some(consumer => consumer?.kind === 'prefill' && !consumer.mapped)) return [];
+    // A session draft originates from the exact Definition receiving it.
+    if (isDraft(source) && ownProp(source, 'schema') === undefined) return [];
     return [{ source, pointer: `/sources/${index}` }];
   });
 }
 
 export function missingResponseProjectionChecks(handles: readonly ResolvedArtifactHandle[]): AppGraphDiagnostic[] {
   return handles.flatMap((handle) => {
-    const first = projectionSources(handle, handles)[0];
+    const first = projectionSources(handle)[0];
     return first ? [missingProjectionCheck(handle, first.pointer)] : [];
   });
 }
@@ -138,7 +139,7 @@ export function responseProjectionDiagnostics(
   context: AppGraphContext,
   handle: ResolvedArtifactHandle,
 ): AppGraphDiagnostic[] {
-  return projectionSources(handle, context.handles).flatMap(({ source, pointer, name }) => {
+  return projectionSources(handle).flatMap(({ source, pointer, name }) => {
     if (name !== undefined) {
       const upstream = definitionsForUrl(context, targetUrl(record(ownProp(source, 'response'))));
       return projectionDiagnostics(lint, handle, pointer, source, { kind: 'instance', definition: handle.document, name }, upstream);
