@@ -135,7 +135,10 @@ describe('FormspecForm — @formspec-org/walk DOM inspection contract', () => {
                 count: async () => host.querySelectorAll(sel).length,
             }),
             waitForSelector: async (sel: string) => {
-                expect(host.querySelector(sel)).toBeTruthy();
+                // The simulated DOM has CSS selectors but no Playwright visibility engine.
+                const visible = ':visible';
+                expect(sel.endsWith(visible)).toBe(true);
+                expect(host.querySelector(sel.slice(0, -visible.length))).toBeTruthy();
             },
             waitForTimeout: async () => {
                 await settleAct();

@@ -173,9 +173,9 @@ export class Walk {
         if (options.url) await page.goto(options.url);
         if (options.mount) await options.mount(page);
         // A display-only pager can mount without fields. Hidden earlier tabs may already be in the DOM.
-        await page.locator(rootSelector)
-            .locator(':is([data-name], .formspec-repeat, .formspec-workspace, .formspec-wizard-panel, [role="tabpanel"]):visible')
-            .first().waitFor();
+        const ready = ':is([data-name], .formspec-repeat, .formspec-workspace, .formspec-wizard-panel, [role="tabpanel"]):visible';
+        const root = options.root === undefined ? rootSelector : `:is(${rootSelector})`;
+        await page.waitForSelector(`${root} ${ready}`);
         if (options.locale) {
             await page.evaluate(({ selector, code }) => { (document.querySelector(selector) as any).locale = code; }, { selector: rootSelector, code: options.locale });
             await page.waitForTimeout(150);
