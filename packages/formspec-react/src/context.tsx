@@ -58,7 +58,7 @@ import type {
     SemanticControlScope,
     SemanticResponseBinding,
 } from './semantic-controls';
-import { planPageMode, type WorkspacePage } from './plan-page-mode';
+import { planPageMode, type WorkspacePage } from '@formspec-org/layout';
 import { useSignal } from './use-signal';
 import { chromeText } from './use-chrome-text';
 

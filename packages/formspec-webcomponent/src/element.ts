@@ -38,6 +38,8 @@ import {
     PresentationBlock,
     ItemDescriptor,
     planComponentTree,
+    planPageMode,
+    type LayoutNode,
     planDefinitionFallback,
     ensureActionButton,
     ensureValidationSummary,
@@ -1111,53 +1113,17 @@ export class FormspecRender extends HTMLElement {
             isComponentAvailable: (type: string) => !!globalRegistry.get(type),
         });
 
-        if (this._componentDocument && this._componentDocument.tree) {
-            const plan = planComponentTree(
-                this._componentDocument.tree as unknown as Parameters<typeof planComponentTree>[0],
-                planCtx,
-            );
-            const pageMode = pageModeFromPresentation(planCtx.formPresentation);
-            // §10: only inject when a submit-intent Action actually
-            // exists. An empty/absent actionRef would render an inert button.
-            if (this._showSubmit) {
-                const injectedRef = this.injectedSubmitActionRef();
-                if (injectedRef) {
-                    ensureActionButton(plan, planCtx.nextId, {
-                        pageMode,
-                        actionRef: injectedRef,
-                    });
-                }
-            }
-            if (this._showValidationSummary) ensureValidationSummary(plan, planCtx.nextId);
-            return plan;
-        } else {
-            const plans = planDefinitionFallback(this._definition.items, planCtx);
-            const pageMode = pageModeFromPresentation(planCtx.formPresentation);
-            // Always wrap in a root Stack — needed for pageMode detection and submit button injection
-            const wrapperNode: import('@formspec-org/layout').LayoutNode = {
-                id: '_root-stack',
-                component: 'Stack',
-                category: 'layout',
-                props: {},
-                cssClasses: [],
-                children: plans,
-                pageMode: pageMode && plans.some((node) => node.component === 'Section')
-                    ? pageMode
-                    : undefined,
-            };
-            // §10: see comment above. Skip when no submit Action exists.
-            if (this._showSubmit) {
-                const injectedRef = this.injectedSubmitActionRef();
-                if (injectedRef) {
-                    ensureActionButton(wrapperNode, planCtx.nextId, {
-                        pageMode,
-                        actionRef: injectedRef,
-                    });
-                }
-            }
-            if (this._showValidationSummary) ensureValidationSummary(wrapperNode, planCtx.nextId);
-            return wrapperNode;
-        }
+        const mode = pageModeFromPresentation(planCtx.formPresentation);
+        const paged = mode && planPageMode(this._definition, planCtx, mode);
+        const tree = this._componentDocument?.tree;
+        const root: LayoutNode = paged?.root ?? (tree
+            ? planComponentTree(tree as Parameters<typeof planComponentTree>[0], planCtx)
+            : { id: '_root-stack', component: 'Stack', category: 'layout', props: {}, cssClasses: [],
+                children: planDefinitionFallback(this._definition.items, planCtx) });
+        const actionRef = this._showSubmit && this.injectedSubmitActionRef();
+        if (actionRef) ensureActionButton(root, planCtx.nextId, { pageMode: root.pageMode, actionRef });
+        if (this._showValidationSummary) ensureValidationSummary(root, planCtx.nextId);
+        return root;
     }
 
     /**

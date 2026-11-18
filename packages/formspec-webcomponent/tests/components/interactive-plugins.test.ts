@@ -494,7 +494,7 @@ describe('pageMode tabs (Stack + Pages + formPresentation)', () => {
         expect(panelIndex).toBeLessThan(barIndex);
     });
 
-    it('renders non-Section orphan children in a final fallback tab', () => {
+    it('keeps a leading banner in the first authored tab', () => {
         const el = document.createElement('formspec-render') as any;
         document.body.appendChild(el);
         el.componentDocument = minimalComponentDoc({
@@ -516,8 +516,8 @@ describe('pageMode tabs (Stack + Pages + formPresentation)', () => {
         el.render();
 
         const buttons = el.querySelectorAll('.formspec-tab');
-        expect(buttons.length).toBe(3);
-        expect(buttons[2].textContent).toBe('Additional items');
+        // Shared sections keep headingless content on its neighboring page.
+        expect([...buttons].map(button => button.textContent)).toEqual(['Tab A', 'Tab B']);
 
         const tabsContainer = el.querySelector('.formspec-tabs') as HTMLElement;
         expect(tabsContainer).not.toBeNull();

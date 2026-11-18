@@ -25,7 +25,6 @@ import {
     findComponentNodeByPath,
     findNodeByBindPath,
 } from './planner-path-utils.js';
-import { applyGeneratedPageMode } from './planner-page-mode.js';
 import {
     buildThemePageNodes,
     collectAssignedTopLevelKeys,
@@ -49,7 +48,7 @@ export function planComponentTree(
         const themed = planThemePagesFromComponentTree(tree, planCtx, customComponentStack);
         if (themed) {
             return finalizeRouteProjectionRoot(
-                applyGeneratedPageMode(themed, themed.component, planCtx),
+                themed,
                 planCtx,
                 prefix,
                 graphPathSegments,
@@ -216,15 +215,6 @@ export function planComponentTree(
                 planComponentTree(child, planCtx, childPrefix, customComponentStack, false, nextGraphPathSegments),
             );
         }
-    }
-
-    if (applyThemePages) {
-        return finalizeRouteProjectionRoot(
-            applyGeneratedPageMode(node, componentType, planCtx),
-            planCtx,
-            prefix,
-            graphPathSegments,
-        );
     }
 
     return finalizeRouteProjectionRoot(node, planCtx, prefix, graphPathSegments);

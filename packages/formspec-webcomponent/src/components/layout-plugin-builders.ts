@@ -24,7 +24,7 @@ function hostWithTitleDescription(comp: any, ctx: RenderContext) {
     return {
         comp,
         host: layoutHostSlice(ctx),
-        titleText: comp.title || comp.titleBind || comp.titleKey ? plannedTitle(ctx, comp) : null,
+        titleText: comp.title || comp.titleBind || comp.titleKey || comp.titleLocaleKey ? plannedTitle(ctx, comp) : null,
         descriptionText: comp.description ? compText(ctx, comp, 'description', comp.description) : null,
     };
 }

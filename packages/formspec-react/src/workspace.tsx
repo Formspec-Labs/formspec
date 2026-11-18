@@ -10,7 +10,7 @@ import {
 import type { IFormEngine } from '@formspec-org/engine';
 import { useFormspecContext } from './context';
 import { FormspecNode } from './node-renderer';
-import type { WorkspacePage } from './plan-page-mode';
+import type { WorkspacePage } from '@formspec-org/layout';
 import { useChromeText } from './use-chrome-text';
 import { useFocusField } from './use-focus-field';
 import { useSignal } from './use-signal';

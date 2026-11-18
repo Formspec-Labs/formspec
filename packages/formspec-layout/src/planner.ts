@@ -20,15 +20,6 @@ export {
 } from './planner-theme-pages.js';
 
 export {
-    applyDefinitionPageMode,
-    applyGeneratedPageMode,
-    buildDefinitionPages,
-    emitPageModePages,
-    isStudioGeneratedComponentDoc,
-    stripTitleFromGroupNode,
-} from './planner-page-mode.js';
-
-export {
     classifyComponent,
     createNodeIdGenerator,
     ensureActionButton,

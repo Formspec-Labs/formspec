@@ -52,19 +52,25 @@ export function compText(
  */
 export function plannedTitle(
     ctx: Pick<RenderContext, 'engine' | 'prefix'>,
-    comp: { id?: string; title?: unknown; titleBind?: unknown; titleKey?: unknown; props?: Record<string, unknown> },
+    comp: { id?: string; title?: unknown; titleBind?: unknown; titleLocaleKey?: unknown; titleKey?: unknown; props?: Record<string, unknown> },
 ): ReadonlySignal<string> {
-    const prop = (name: 'title' | 'titleBind' | 'titleKey') => {
+    const prop = (name: 'title' | 'titleBind' | 'titleKey' | 'titleLocaleKey') => {
         const value = comp[name] ?? comp.props?.[name];
         return typeof value === 'string' ? value : undefined;
     };
     const titleBind = prop('titleBind');
     const titleKey = prop('titleKey');
+    const localeKey = prop('titleLocaleKey');
     const inline = compText(ctx, comp, 'title', prop('title') ?? '');
-    return computed(() =>
-        (titleBind && ctx.engine.getItemLabelSignal(titleBind)?.value)
+    return computed(() => {
+        ctx.engine.localeSignal.value;
+        return (localeKey && (localeKey.startsWith('$ui.')
+            ? uiText(ctx.engine, localeKey.slice(4) as ChromeStringKey).value
+            : ctx.engine.resolveLocaleString(localeKey, prop('title') ?? '')))
+        || (titleBind && ctx.engine.getItemLabelSignal(titleBind)?.value)
         || (titleKey && uiText(ctx.engine, titleKey as ChromeStringKey).value)
-        || inline.value);
+        || inline.value;
+    });
 }
 
 export function runLayoutAdapter<T>(type: string, behavior: T, parent: HTMLElement, ctx: RenderContext): void {

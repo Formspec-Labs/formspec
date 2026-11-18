@@ -1,6 +1,7 @@
-/** @filedesc Materialize React's page modes from the same section sequence as Assist. */
+/** @filedesc Materialize renderer page modes from the same section sequence as Assist. */
 import type { FormDefinition } from '@formspec-org/types';
-import { findAuthoredPageSection, hasWizardSections, resolvePageSequence, type LayoutNode, type PageSequenceEntry, type PlanContext } from '@formspec-org/layout';
+import { findAuthoredPageSection, hasWizardSections, resolvePageSequence, type PageSequenceEntry } from './page-sequence.js';
+import type { LayoutNode, PlanContext } from './types.js';
 
 export interface WorkspacePage extends PageSequenceEntry {
     content: LayoutNode;

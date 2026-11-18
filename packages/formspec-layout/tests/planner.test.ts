@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { AppGraphValidationReport } from '@formspec-org/types';
+import type { AppGraphValidationReport, FormDefinition } from '@formspec-org/types';
 import { findItemAtPath } from '../src/planner-path-utils.js';
 import {
     planComponentTree,
+    planPageMode,
     planDefinitionFallback,
     createNodeIdGenerator,
     preparePlanContext,
@@ -18,6 +19,11 @@ function makeCtx(overrides: Partial<PlanContext> = {}): PlanContext {
         findItem: () => null,
         ...overrides,
     });
+}
+
+function pagedRoot(ctx: PlanContext) {
+    const definition = { url: 'urn:test:pages', version: '1', title: 'Pages', items: ctx.items } as FormDefinition;
+    return planPageMode(definition, ctx, ctx.formPresentation!.pageMode as 'wizard' | 'tabs')!.root;
 }
 
 const UI_GRAPH_POLICY_SCHEMA_ID = 'https://formspec.org/schemas/uiGraphPolicy/0.1';
@@ -1607,7 +1613,7 @@ describe('planComponentTree', () => {
             findItem: (key) => findItemByPath(items, key) ?? findItems(items, key),
         });
 
-        const node = planComponentTree(tree, ctx);
+        const node = pagedRoot(ctx);
 
         // No Wizard node anywhere in the tree
         function countWizards(n: LayoutNode): number {
@@ -1644,7 +1650,7 @@ describe('planComponentTree', () => {
             findItem: (key) => findItems(items, key),
         });
 
-        const node = planComponentTree(tree, ctx);
+        const node = pagedRoot(ctx);
 
         expect(node.component).toBe('Stack');
         expect(node.pageMode).toBe('tabs');
@@ -1699,7 +1705,7 @@ describe('planComponentTree', () => {
             findItem: (key) => findItemByPath(items, key) ?? findItems(items, key),
         });
 
-        const node = planComponentTree(tree, ctx);
+        const node = pagedRoot(ctx);
 
         // Pages are direct children of the root Stack (no Wizard wrapper)
         const pages = node.children.filter(c => c.component === 'Section');
@@ -1712,7 +1718,7 @@ describe('planComponentTree', () => {
         }
     });
 
-    it('wraps generated top-level groups in wizard mode with orphan fields in a final fallback section', () => {
+    it('wraps generated top-level groups in wizard mode with leading loose fields kept in place', () => {
         const items = [
             { key: 'intro', type: 'field', dataType: 'string', label: 'Intro' },
             {
@@ -1753,20 +1759,21 @@ describe('planComponentTree', () => {
             findItem: (key) => findItemByPath(items, key) ?? findItems(items, key),
         });
 
-        const node = planComponentTree(tree, ctx);
+        const node = pagedRoot(ctx);
 
         expect(node.component).toBe('Stack');
         // Page is a direct child of the root Stack (no Wizard wrapper)
         expect(node.children[0].component).toBe('Section');
         expect(node.children[0].props.title).toBe('Page One');
-        expect(node.children[0].children[0].component).toBe('Stack');
-        expect(node.children[0].children[0].bindPath).toBe('pageOne');
-        expect(node.children[0].children[0].children[0].component).toBe('RadioGroup');
-        expect(node.children[0].children[0].children[0].bindPath).toBe('pageOne.priority');
-        expect(node.children[1].component).toBe('Section');
-        expect(node.children[1].props.title).toBe('Additional items');
-        expect(node.children[1].children[0].component).toBe('TextInput');
-        expect(node.children[1].children[0].bindPath).toBe('intro');
+        // The shared plan attaches a headingless leading run to the first group in authored order.
+        expect(node.children).toHaveLength(1);
+        const [intro, group] = node.children[0].children;
+        expect(intro.component).toBe('TextInput');
+        expect(intro.bindPath).toBe('intro');
+        expect(group.component).toBe('Stack');
+        expect(group.bindPath).toBe('pageOne');
+        expect(group.children[0].component).toBe('RadioGroup');
+        expect(group.children[0].bindPath).toBe('pageOne.priority');
     });
 
     it('sets scopeChange on group nodes from the component tree', () => {
@@ -2290,7 +2297,7 @@ describe('planDefinitionFallback', () => {
             isComponentAvailable: () => true,
         });
 
-        const nodes = planDefinitionFallback(items, ctx);
+        const nodes = pagedRoot(ctx).children;
 
         // Pages are direct children (no Wizard wrapper). Unassigned items move to a final fallback section.
         expect(nodes).toHaveLength(3);
@@ -2356,26 +2363,24 @@ describe('planDefinitionFallback', () => {
             isComponentAvailable: () => true,
         });
 
-        const nodes = planDefinitionFallback(items, ctx);
+        const nodes = pagedRoot(ctx).children;
 
-        // Sections are direct children (no Wizard wrapper). Orphan intro moves to a final fallback section.
-        expect(nodes).toHaveLength(4);
+        // A headingless intro stays in front of its neighboring group.
+        expect(nodes).toHaveLength(3);
         expect(nodes[0].component).toBe('Section');
         expect(nodes[0].props.title).toBe('Applicant Details');
-        expect(nodes[0].children).toHaveLength(1);
-        expect(nodes[0].children[0].bindPath).toBe('applicant');
-        expect(nodes[0].children[0].children[1].component).toBe('Stack');
-        expect(nodes[0].children[0].children[1].bindPath).toBe('applicant.address');
-        expect(nodes[0].children[0].children[1].children[0].bindPath).toBe('applicant.address.city');
+        expect(nodes[0].children).toHaveLength(2);
+        expect(nodes[0].children[0].bindPath).toBe('intro');
+        expect(nodes[0].children[1].bindPath).toBe('applicant');
+        expect(nodes[0].children[1].children[1].component).toBe('Stack');
+        expect(nodes[0].children[1].children[1].bindPath).toBe('applicant.address');
+        expect(nodes[0].children[1].children[1].children[0].bindPath).toBe('applicant.address.city');
         expect(nodes[1].component).toBe('Section');
         expect(nodes[1].props.title).toBe('Attachments');
         expect(nodes[1].children[0].bindPath).toBe('attachments');
         expect(nodes[2].component).toBe('Section');
         expect(nodes[2].props.title).toBe('Review');
         expect(nodes[2].children[0].bindPath).toBe('review');
-        expect(nodes[3].component).toBe('Section');
-        expect(nodes[3].props.title).toBe('Additional items');
-        expect(nodes[3].children[0].bindPath).toBe('intro');
     });
 });
 

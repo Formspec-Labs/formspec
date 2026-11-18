@@ -16,11 +16,6 @@ import {
     findItemPathByKey,
     getParentPath,
 } from './planner-path-utils.js';
-import {
-    applyDefinitionPageMode,
-    emitPageModePages,
-    type PlannedPage,
-} from './planner-page-mode.js';
 import { buildThemePageNodes, collectAssignedTopLevelKeys } from './planner-theme-pages.js';
 import { carryWidthStop } from './planner-width-stops.js';
 
@@ -45,7 +40,7 @@ export function planDefinitionFallback(
         nodes.push(planDefinitionItem(item, planCtx, prefix));
     }
 
-    return !prefix ? applyDefinitionPageMode(nodes, planCtx) : nodes;
+    return nodes;
 }
 
 /**
@@ -237,16 +232,6 @@ function planThemePagesFromDefinitionItems(items: FormItem[], ctx: PlanContext):
     const unassigned = items
         .filter((item) => !assignedTopLevelKeys.has(item.key))
         .map((item) => planDefinitionItem(item, ctx, ''));
-
-    const pageMode = ctx.formPresentation?.pageMode;
-    if ((pageMode === 'wizard' || pageMode === 'tabs') && pageNodes.length > 0) {
-        const pages: PlannedPage[] = pageNodes.map((pn) => ({
-            id: typeof pn.props?.id === 'string' ? pn.props.id : undefined,
-            title: String(pn.props?.title || ''),
-            children: pn.children,
-        }));
-        return emitPageModePages(unassigned, pages, ctx.nextId);
-    }
 
     return [...pageNodes, ...unassigned];
 }
