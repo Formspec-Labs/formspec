@@ -2,10 +2,8 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
-import { dereferenceBundleExport } from '@formspec-org/surface';
 import type { ComponentDocument } from '@formspec-org/types';
-import { BrowserSurfaceApp, createBrowserFilingStore, previewFilingInvoker } from '../../../packages/formspec-surface-react/src/index';
-import { starterWidgetModule } from '../../../packages/formspec-surface-react/src/widgets/index';
+import { BrowserSurfaceApp, createSurfacePreviewEdition } from '../../../packages/formspec-surface-react/src/index';
 import { reviewModule, reviewRegistry, reviewSlot } from './surface-draft-review';
 
 import { hydrationInstances, hydrationStorage, upstream, upstreamUrl } from './surface-hydration';
@@ -32,11 +30,11 @@ const component: ComponentDocument = {
     ...(submit ? [{ component: 'ActionButton' as const, actionRef: 'submit' }] : []),
   ] },
 };
-const bundle = dereferenceBundleExport({
+const source = {
   manifest: {
     $formspecBundle: '2.4', id, definitions: [{ url: definition }, ...(hydration ? [{ url: upstreamUrl }] : [])], surfaces: [{ url: surface }],
     entrySurface: surface, responseActionDocuments: [{ url: actions }],
-    ...(review && { registries: [{ url: registry }] }),
+    ...(review && { registries: [{ url: registry }], modules: [{ id: reviewModule, version: '1.0.0' }] }),
   },
   documents: {
     [surface]: {
@@ -85,25 +83,26 @@ const bundle = dereferenceBundleExport({
       ],
     },
   },
-});
+};
 
 if (query.has('form')) {
   await initFormspecEngine();
   const root = createRoot(document.getElementById('root')!);
-  const reads = hydration ? await hydrationStorage(bundle.definitions) : undefined;
-  function edition(scope: string) {
-    const store = createBrowserFilingStore({ scope, definitions: bundle.definitions, catalogs: bundle.dataSources });
-    return { scope, bundle, initialPath: keyed ? '/filing/2025' : '/filing', adapters: {
-      draftStorage: { scope, port: reads?.storage.port ?? store.drafts },
-      responses: reads?.storage.responses ?? store.responses,
-      definitionActionInvoker: submit ? previewFilingInvoker(store.submit) : undefined,
-      routeParams: keyed ? { year: "2025" } : undefined,
-      widgetModules: review ? [starterWidgetModule(reviewModule)] : undefined,
+  const reads = hydration ? await hydrationStorage(dereferenceBundleExport(source).definitions) : undefined;
+  async function edition(scope: string) {
+    const preview = await createSurfacePreviewEdition({ scope, source, scenario: keyed ? {
+      $formspecSurfaceScenario: '0.1', version: '1', initialPath: '/filing/2025', routeParams: { year: '2025' },
+      defaultProfile: 'local', profiles: { local: { authorization: { default: 'authorized' }, sources: [] } },
+      actions: { default: { status: 'complete' } },
+    } : undefined });
+    return { ...preview, adapters: {
+      ...preview.adapters,
+      ...(reads && { draftStorage: { scope, port: reads.storage.port }, responses: reads.storage.responses }),
       resolveDefinitionComponent: () => component,
     } };
   }
-  const first = edition('edition');
-  const editions = submit ? [first, edition('edition-b')] as const : [first] as const;
+  const first = await edition('edition');
+  const editions = submit ? [first, await edition('edition-b')] as const : [first] as const;
   const mount = (visit: number) => root.render(<>
     <span hidden data-fixture-render={visit} />
     {reads && <button onClick={async event => {

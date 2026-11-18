@@ -44,7 +44,7 @@
     "wasm:twiggy": "bash scripts/twiggy-wasm.sh",
     "check:deps": "node scripts/check-dep-fences.mjs",
     "check:changesets": "node scripts/check-changeset-tier-placement.mjs",
-    "test:scripts": "node --test scripts/tests/*.test.mjs && npm run check:data-only-dogfood && npm run check:outcome-dogfood",
+    "test:scripts": "node --test scripts/tests/*.test.mjs && npm run check:surface-host-inputs && npm run check:outcome-dogfood",
     "build:surface-preview": "vite build --config examples/surface-preview/vite.config.ts",
     "check:surface-host-inputs": "npm test --workspace=@formspec-org/surface-react -- tests/preview-host.test.tsx",
     "check:surface-v12-artifacts": "node spikes/surface-v12-saas-v1-dogfood/verify-artifacts.mjs",

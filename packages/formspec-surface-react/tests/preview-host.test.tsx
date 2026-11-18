@@ -1,4 +1,6 @@
 /** @filedesc Exercise the maintained host by swapping its bundle and scenario inputs. */
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { act } from 'react';
 import { describe, expect, it } from 'vitest';
 import { BrowserSurfaceApp } from '../src/BrowserSurfaceApp.js';
@@ -52,4 +54,16 @@ describe('static preview inputs', () => {
       .rejects.toThrow('no resolved entry');
   });
 
+});
+
+// The stack publishes these synthetic examples in a sibling repository.
+const examples = resolve(import.meta.dirname, '../../../../tools/deployment-tools/examples/packages');
+it.skipIf(!existsSync(examples)).each([
+  ['passport-renewal-governance/applicant.surface.bundle.json', '/eligibility'],
+  ['service-request-intake/surface.bundle.json', '/intake'],
+])('admits the published example %s through the static validators', async (file, initialPath) => {
+  const source = JSON.parse(readFileSync(resolve(examples, file), 'utf8'));
+  const edition = await createSurfacePreviewEdition({ source, scope: 'example', ...previewValidators });
+  expect(edition.initialPath).toBe(initialPath);
+  expect(edition.bundle.title).toBe(source.manifest.title);
 });

@@ -15,11 +15,14 @@ test('passport and service-request run from published assets with hash navigatio
     await page.goto(`http://127.0.0.1:${address.port}/`);
     await expect(page.getByRole('complementary', { name: 'Preview posture' })).toBeVisible();
     await expect(page.locator('[data-route="eligibility"]')).toBeVisible();
+    await expect(page.getByLabel('The passport had ten-year validity')).toBeVisible();
     await expect(page).toHaveTitle(/Complete fictional passport renewal/);
     const picker = page.locator('select[data-surface-edition]');
     await picker.selectOption('service-request');
     await expect(page).toHaveURL(/#\/intake\?edition=service-request$/);
     await expect(page.locator('[data-route="intake"]')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Submit a Municipal Service Request' })).toBeVisible();
+    await page.getByRole('textbox', { name: 'Requester Name' }).fill('Sample requester');
     await expect(page).toHaveTitle(/Municipal Service Request Intake/);
     await page.reload();
     await expect(picker).toHaveValue('service-request');
