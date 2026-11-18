@@ -615,7 +615,7 @@ pub fn collect_fel_rewrite_targets(expression: &str) -> FelRewriteTargets {
 
 // ── AST walking ─────────────────────────────────────────────────
 
-const RESERVED_CONTEXT_NAMES: &[&str] = &["current", "index", "count", "instance"];
+pub(crate) const RESERVED_CONTEXT_NAMES: &[&str] = &["current", "index", "count", "instance"];
 
 fn postfix_base(mut expr: &Expr) -> &Expr {
     while let Expr::PostfixAccess { expr: inner, .. } = expr {
@@ -775,33 +775,6 @@ pub struct RewriteOptions {
 /// Returns a new AST with transformed references.
 pub fn rewrite_fel_references(expr: &Expr, options: &RewriteOptions) -> Expr {
     rewrite_expr(expr, options)
-}
-
-// A keyed selector reads one row of the source field's repeat path.
-fn lookup_source_path(expr: &Expr) -> Option<String> {
-    let (mut full_path, segments) = match expr {
-        Expr::FieldRef {
-            name: Some(name),
-            path,
-        }
-        | Expr::VarRef { name, path } => (name.clone(), path),
-        Expr::PostfixAccess { expr, path } => (lookup_source_path(expr)?, path),
-        Expr::RowLookup { source, .. } => {
-            return Some(format!("{}[*]", lookup_source_path(source)?));
-        }
-        _ => return None,
-    };
-    for segment in segments {
-        match segment {
-            PathSegment::Dot(name) => {
-                full_path.push('.');
-                full_path.push_str(name);
-            }
-            PathSegment::Index(index) => full_path.push_str(&format!("[{index}]")),
-            PathSegment::Wildcard => full_path.push_str("[*]"),
-        }
-    }
-    Some(full_path)
 }
 
 pub(crate) fn rewrite_row_tail(
@@ -987,7 +960,7 @@ fn rewrite_expr(expr: &Expr, opts: &RewriteOptions) -> Expr {
             key,
         } => Expr::RowLookup {
             source: Box::new(rewrite_expr(source, opts)),
-            key_path: lookup_source_path(source)
+            key_path: fel_core::dependencies::source_field_path(source)
                 .and_then(|source_path| {
                     let row_path = format!("{source_path}[*]");
                     let tail = format!(".{}", key_path.join("."));
