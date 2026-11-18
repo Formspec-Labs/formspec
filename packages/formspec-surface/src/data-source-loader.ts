@@ -189,7 +189,7 @@ export function readDataSourceSelection(
       || (record.responseHash === undefined
         ? responseSelection.status === "completed"
         : typeof record.responseHash !== "string" || !SHA256_DIGEST.test(record.responseHash)))
-    || (newer !== undefined && (none || responseSelection.pin !== "at-open"
+    || (newer !== undefined && (responseSelection.pin !== "at-open"
       || !newer || typeof newer.responseId !== "string" || !newer.responseId
       || typeof newer.responseHash !== "string" || !SHA256_DIGEST.test(newer.responseHash)))) {
     return undefined;

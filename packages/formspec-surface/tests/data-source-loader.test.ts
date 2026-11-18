@@ -368,12 +368,15 @@ it('hashes a catalog document once across concurrent and later selections', asyn
   }
 });
 
-it('delivers an authorized empty catalog selection under the widget input name', async () => {
+it.each([
+  { pin: 'none' as const, newer: undefined },
+  { pin: 'at-open' as const, newer: { responseId: 'first-filing', responseHash: 'sha256:' + 'b'.repeat(64) } },
+])('delivers the empty $pin selection and any newer filing notice to the widget', async ({ pin, newer }) => {
   const selected = descriptor(source({
     kind: 'definition-response',
     responseSelection: {
       definition: { url: 'urn:upstream' }, subject: [{ key: 'case', op: 'eq', from: { routeParam: 'caseRef' } }],
-      status: 'completed', cardinality: 'latest', pin: 'none', whenNone: 'empty',
+      status: 'completed', cardinality: 'latest', pin, whenNone: 'empty',
     },
     schema: { type: 'object' },
   }));
@@ -386,6 +389,7 @@ it('delivers an authorized empty catalog selection under the widget input name',
     value: null,
     none: true,
     records: [],
+    ...(newer && { newer }),
     valueDigest: 'sha256:' + 'a'.repeat(64),
   }));
   const result = await loadWidgetDataInputs({
@@ -400,7 +404,7 @@ it('delivers an authorized empty catalog selection under the widget input name',
     responseSelection: selected.source.responseSelection, context,
   }));
   expect(result).toMatchObject({
-    status: 'ready', data: { prior: null }, selections: { prior: { none: true, records: [] } },
+    status: 'ready', data: { prior: null }, selections: { prior: { none: true, records: [], ...(newer && { newer }) } },
   });
   expect(validatePayload).not.toHaveBeenCalled();
 });
