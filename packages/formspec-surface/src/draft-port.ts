@@ -1,6 +1,5 @@
 /** @filedesc Qualified draft storage and progress reads for Surface hosts. */
-import type { DecidedDisposition, ResponseSelectionDelivery, Sha256Digest } from '@formspec-org/types';
-import type { ProgressCounts } from '@formspec-org/layout';
+import type { DecidedDisposition, DraftProgressCounts, DraftProgressSummary, ResponseSelectionDelivery, Sha256Digest } from '@formspec-org/types';
 import type { DataSourceSubject } from './data-source-loader.js';
 
 export interface DraftKey {
@@ -10,7 +9,7 @@ export interface DraftKey {
   subject?: (DataSourceSubject & { id: string }) | undefined;
 }
 
-export type FilingProgressCounts = Readonly<Pick<ProgressCounts, 'total' | 'filled' | 'toFix' | 'toCheck'>>;
+export type FilingProgressCounts = Readonly<DraftProgressCounts>;
 export interface DraftSectionPlacement {
   id?: string;
   fields: readonly string[];
@@ -25,11 +24,7 @@ export interface FilingDraftQuery {
   sections: readonly DraftSectionPlacement[];
 }
 
-export type CurrentDraftProgress = {
-  status: 'current';
-  form: FilingProgressCounts & { ready: boolean | null };
-  sections: Readonly<Record<string, FilingProgressCounts>>;
-};
+export type CurrentDraftProgress = DraftProgressSummary;
 
 export type FilingDraftObservation =
   | CurrentDraftProgress

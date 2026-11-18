@@ -33,7 +33,7 @@ const URI_TO_LOCAL = {};
 // TokenType $defs inlined into theme.schema.json. No standalone schema to load.
 for (const f of ['common', 'issuer', 'definition', 'component', 'theme', 'mapping', 'registry',
   'ontology', 'references', 'validation-mapping', 'experience', 'needs', 'changelog',
-  'response-actions', 'response', 'response-selection', 'intake-handoff', 'validation-report', 'validation-result',
+  'response-actions', 'response', 'response-selection', 'draft-progress-summary', 'intake-handoff', 'validation-report', 'validation-result',
   'fel-functions', 'screener', 'determination', 'surface', 'surface-scenario', 'data-sources',
   'outcome-verification-case', 'outcome-verification-report',
   'app-graph-validation-report', 'module-resolution-report', 'ui-graph-policy',
@@ -143,6 +143,7 @@ const SCHEMA_SOURCES = [
   { file: 'validation-result.schema.json', title: 'ValidationResult' },
   { file: 'verification-receipt.schema.json', title: 'VerificationReceipt' },
   { file: 'response.schema.json', title: 'FormResponse' },
+  { file: 'draft-progress-summary.schema.json', title: 'DraftProgressSummary' },
   { file: 'response-selection.schema.json', title: 'ResponseSelectionPayloads' },
   { file: 'intake-handoff.schema.json', title: 'IntakeHandoff' },
   { file: 'validation-report.schema.json', title: 'ValidationReport' },

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://formspec.org/schemas/draft-progress-summary/1.0",
+  "title": "DraftProgressSummary",
+  "description": "Advisory progress for one committed draft, grouped by authored section ID.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "form", "sections"],
+  "properties": {
+    "status": { "const": "current" },
+    "form": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/counts" },
+        {
+          "type": "object",
+          "required": ["ready"],
+          "properties": { "ready": { "type": ["boolean", "null"] } }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "sections": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "allOf": [{ "$ref": "#/$defs/counts" }],
+        "unevaluatedProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "counts": {
+      "title": "DraftProgressCounts",
+      "type": "object",
+      "required": ["total", "filled", "toFix", "toCheck"],
+      "properties": {
+        "total": { "$ref": "#/$defs/count" },
+        "filled": { "$ref": "#/$defs/count" },
+        "toFix": { "$ref": "#/$defs/count" },
+        "toCheck": { "$ref": "#/$defs/count" }
+      }
+    },
+    "count": { "title": "DraftProgressCount", "type": "integer", "minimum": 0 }
+  }
+}
