@@ -283,7 +283,7 @@ Read the current field flags and the requested validation profile, which default
         validationReport: ValidationReport | null;
     }`
 
-One evaluation and clock for response data and its requested validation report.
+Capture response data and its requested validation report with one clock.
 
 ##### `getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot`
 
@@ -633,7 +633,7 @@ resulting document against the Response schema before transport when required.
     };
 }): Record<string, unknown>`
 
-## `collectRelevantValidationResults(result: EvalResult): ValidationResult[]`
+## `collectRelevantValidationResults(result: EvalResult, validations?: import("../diff.js").EvalValidation[]): ValidationResult[]`
 
 Keep findings visible in the report produced for evaluated response data.
 
@@ -803,6 +803,8 @@ See `FelTraceStep` for the step variants; wire format matches Rust `fel_core::Tr
 ## `evalFELWithContextTrace: typeof wasmEvalFelWithContextTrace`
 
 ## `evaluateDefinition: typeof wasmEvaluateDefinition`
+
+## `evaluateFiled: typeof wasmEvaluateFiled`
 
 ## `isValidFELIdentifier: typeof wasmIsValidFelIdentifier`
 
@@ -1329,6 +1331,8 @@ Captures editable data without evaluation. Use exact JSON for persistence.
         profile?: EnabledValidationProfile;
     }): ValidationReport`
 
+Throws if the on-submit data do not converge.
+
 ##### `getValidationReport(options: {
         profile: 'off';
     }): null`
@@ -1364,12 +1368,15 @@ Captures editable data without evaluation. Use exact JSON for persistence.
         profile?: ValidationProfile;
     }): FormResponse`
 
+Returns data for the Response profile. Throws if on-submit data do not converge.
+
 ##### `getResponseSnapshot(meta?: Parameters<IFormEngine['getResponse']>[0], validationProfile?: ValidationProfile): {
         response: FormResponse;
         validationReport: ValidationReport | null;
     }`
 
-Capture response data and validation from one evaluation and clock.
+Capture data for the Response profile and a report for the validation profile with one clock.
+Throws if on-submit data do not converge.
 
 ##### `getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot`
 
@@ -2576,63 +2583,13 @@ Apply creation-time values to a new Response or resolve its pending values.
 
 Create a new row at the end of the given repeat.
 
-## `wasmEvaluateDefinition(definition: unknown, data: Record<string, unknown>, context?: {
-    nowIso?: string;
-    trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
-    previousValidations?: Array<{
-        path: string;
-        severity: string;
-        constraintKind: string;
-        code: string;
-        message: string;
-        source?: string;
-        shapeId?: string;
-        context?: Record<string, unknown>;
-    }>;
-    previousNonRelevant?: string[];
-    instances?: Record<string, unknown>;
-    registryDocuments?: unknown[];
-    /** The current Response's subject type. Null means a subject was supplied without a type. */
-    subjectType?: string | null;
-    /** The current Response's filing-unit keys, available to `subject(key)`. */
-    subjectKeys?: import('./interfaces.js').ResponseSubjectKeys;
-    /** Ask for resolved Item text (Core §4.2.1); `localeStrings` are cascade-resolved Locale strings. */
-    itemText?: {
-        localeStrings?: Record<string, string>;
-    };
-}, extensions?: FelExtensionHost): {
-    /** Flat state keyed by path (`group.field`, `rows[0].name`), like `required` and `readonly`. */
-    values: any;
-    /** The Response projection of `values` after `nonRelevantBehavior`: groups are objects, repeats are arrays of row objects. */
-    data: any;
-    validations: any[];
-    diagnostics: Array<{
-        path: string;
-        expression: string;
-        shapeId?: string;
-        message: string;
-    }>;
-    nonRelevant: string[];
-    variables: any;
-    required: Record<string, boolean>;
-    readonly: Record<string, boolean>;
-    /**
-     * Resolved Item text by instance path; present only when `context.itemText` asked for it.
-     *
-     * `label` / `description` / `hint` are the context-less resolutions; `labels` / `descriptions` /
-     * `hints` carry the per-display-context ones (Locale §3.1.2), each omitted when empty.
-     */
-    itemText?: Record<string, {
-        label: string;
-        labels?: Record<string, string>;
-        description?: string;
-        descriptions?: Record<string, string>;
-        hint?: string;
-        hints?: Record<string, string>;
-    }>;
-}`
+## `wasmEvaluateDefinition(definition: unknown, data: Record<string, unknown>, context?: WasmEvaluationContext, extensions?: FelExtensionHost): WasmEvaluation`
 
 Evaluate a Formspec definition against provided data.
+
+## `wasmEvaluateFiled(definition: unknown, data: Record<string, unknown>, context?: WasmEvaluationContext, extensions?: FelExtensionHost): WasmEvaluation`
+
+Prepare stable Response data and its submit verdict. Throws if the data do not converge.
 
 ## `wasmEvaluateScreenerDocument(screener: unknown, answers: Record<string, unknown>, context?: Record<string, unknown>, extensions?: FelExtensionHost): import('@formspec-org/types').DeterminationRecord`
 
@@ -2759,6 +2716,10 @@ the scope it resolves against, not the size of the form. Call `free()` when the 
 ```ts
 type WasmFelContextHandle = import('../wasm-pkg-runtime/formspec_wasm_runtime.js').FelContext;
 ```
+
+#### type `WasmEvaluationContext`
+
+#### type `WasmEvaluation`
 
 ## `resolveWasmAssetPathForNode(relativeToThisModule: string): Promise<string>`
 
