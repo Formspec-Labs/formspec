@@ -88,7 +88,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`instance_projection`](instance_projection.md)
 
-*1 enum, 1 function, 1 struct*
+*1 function, 1 struct, 2 enums*
 
 ### [`instance_resolution`](instance_resolution.md)
 
@@ -2055,6 +2055,7 @@ fn rewrite_message_template(message: &str, options: &crate::fel_analysis::Rewrit
 **Enums**
 
 - [`InstanceProjectionCode`](#instanceprojectioncode) - Machine-readable reason a response instance fails projection validation.
+- [`ProjectionConsumer`](#projectionconsumer) - The authored link from a response source to a consuming form.
 
 **Functions**
 
@@ -2076,6 +2077,7 @@ Machine-readable reason a response instance fails projection validation.
 - `SchemaUnsupported` - A catalog schema or mapped output cannot be compared statically.
 - `PathMissing` - A projected path has no corresponding upstream data field.
 - `FieldTypeMismatch` - A projected field declares a different type from the upstream field.
+- `OptionValuesMismatch` - Directly carried choices have different sets of stored option values.
 - `SubjectMissing` - The upstream Definition lacks a subject declaration.
 - `SubjectTypeMismatch` - Eligible upstream versions declare different subject types.
 - `SubjectKeyTypeDrift` - Eligible upstream versions declare different sets of subject keys or key types.
@@ -2125,6 +2127,25 @@ One error in a response instance's projection or subject predicates.
 
 
 
+## formspec_core::instance_projection::ProjectionConsumer
+
+*Enum*
+
+The authored link from a response source to a consuming form.
+
+**Variants:**
+- `Instance{ definition: serde_json::Value, name: String }` - Named secondary instance in this Definition.
+- `Prefill{ definition: serde_json::Value, mapped: bool }` - A Surface form slot bound to this source through initialData.
+
+**Trait Implementations:**
+
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Deserialize**
+  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
+
+
+
 ## formspec_core::instance_projection::check_instance_projection
 
 *Function*
@@ -2137,8 +2158,8 @@ version is eligible. It checks the fields and predicates against each eligible
 version. For subject drift, it uses the first version with a subject in semantic
 version order when ranged and in byte order of the version text otherwise.
 
-Pass the consuming Definition's `subject` declaration for `from.subject` predicates.
-Catalog selections using `from.routeParam` pass `None`.
+Pass the consuming Definition and its authored instance or prefill binding.
+Pass `None` for catalog reads without a receiving form.
 The Definition schema and document lint check the local response instance declaration.
 Inline and URI-backed instances return no findings.
 A `definition-response` catalog source uses its own `responseSelection` and
@@ -2159,7 +2180,7 @@ assert!(check_instance_projection(&instance, None, &[]).is_empty());
 ```
 
 ```rust
-fn check_instance_projection(instance: &serde_json::Value, consumer_subject: Option<&serde_json::Value>, upstream_definitions: &[serde_json::Value]) -> Vec<InstanceProjectionDiagnostic>
+fn check_instance_projection(instance: &serde_json::Value, consumer: Option<&ProjectionConsumer>, upstream_definitions: &[serde_json::Value]) -> Vec<InstanceProjectionDiagnostic>
 ```
 
 ---
