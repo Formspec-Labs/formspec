@@ -43,6 +43,7 @@ fn formspec_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fel::analyze_expression, m)?)?;
     m.add_function(wrap_pyfunction!(fel::list_builtin_functions, m)?)?;
     m.add_function(wrap_pyfunction!(fel::rewrite_fel_for_assembly_py, m)?)?;
+    m.add_function(wrap_pyfunction!(document::definition_instance_reads, m)?)?;
     m.add_function(wrap_pyfunction!(document::detect_type, m)?)?;
     m.add_function(wrap_pyfunction!(document::lint_document, m)?)?;
     m.add_function(wrap_pyfunction!(document::evaluate_def, m)?)?;

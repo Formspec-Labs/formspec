@@ -34,6 +34,21 @@ pub fn assemble_definition_wasm(
     to_json_string(&json).map_err(|e| JsError::new(&e))
 }
 
+/// Collect instance reads from every authored expression and creation declaration.
+///
+/// # Errors
+///
+/// Returns the authored location of an invalid expression or an input JSON error.
+#[cfg(feature = "document-api")]
+#[wasm_bindgen(js_name = "getDefinitionInstanceReads")]
+pub fn definition_instance_reads_wasm(definition_json: &str) -> Result<String, JsError> {
+    let definition =
+        parse_value_str(definition_json, "definition JSON").map_err(|e| JsError::new(&e))?;
+    let reads = formspec_core::definition_instance_reads::definition_instance_reads(&definition)
+        .map_err(|e| JsError::new(&e))?;
+    to_json_string(&reads).map_err(|e| JsError::new(&e))
+}
+
 /// Return projection diagnostics for every eligible published upstream Definition version.
 ///
 /// Pass the instance or prefill consumer as JSON, or `null` for widget route

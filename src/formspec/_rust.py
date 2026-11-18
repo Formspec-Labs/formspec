@@ -451,6 +451,11 @@ def extract_dependencies(source: str) -> DependencySet:
     )
 
 
+def definition_instance_reads(document: dict) -> dict[str, list[str]]:
+    """Return the instance-relative paths a Definition reads, including creation-time sources."""
+    return formspec_rust.definition_instance_reads(document)
+
+
 def builtin_function_catalog() -> list[dict[str, str]]:
     """Return Rust-exported builtin function metadata."""
     return list(formspec_rust.list_builtin_functions())

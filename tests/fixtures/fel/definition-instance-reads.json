@@ -1,0 +1,28 @@
+{
+  "definition": {
+    "$formspec": "1.0", "url": "urn:test:reads", "version": "1.0.0", "status": "draft", "title": "Instance reads",
+    "instances": {"record": {"data": {}}, "defaults": {"data": {}}},
+    "items": [
+      {
+        "type": "group", "key": "rows", "label": "Rows", "repeatable": true,
+        "seedFrom": {"instance": "record", "path": "entries"},
+        "children": [
+          {"type": "group", "key": "details", "label": "Details", "children": [
+            {"type": "field", "key": "name", "label": "Name", "dataType": "string",
+             "prePopulate": {"instance": "record", "path": "contact.name"}},
+            {"type": "field", "key": "region", "label": "Region", "dataType": "string",
+             "prePopulate": {"instance": "defaults", "path": "region"}}
+          ]}
+        ]
+      },
+      {"type": "field", "key": "label", "dataType": "string", "label": "Label",
+       "initialValue": "=@instance('defaults').title"}
+    ],
+    "shapes": [{"id": "title", "target": "#", "constraint": "true", "message": "Expected {{@instance('defaults').title}}"}],
+    "variables": [{"name": "lastName", "expression": "@instance('record').entries[id = 'last'].name"}]
+  },
+  "instanceReads": {
+    "defaults": ["region", "title"],
+    "record": ["entries", "entries[*].contact.name", "entries[*].id", "entries[*].name"]
+  }
+}

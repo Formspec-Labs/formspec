@@ -14,6 +14,7 @@ pub mod changelog;
 mod compatible_versions;
 pub mod component_tree;
 pub mod definition_expressions;
+pub mod definition_instance_reads;
 pub mod definition_items;
 pub mod dependency_order;
 pub mod dependency_reads;

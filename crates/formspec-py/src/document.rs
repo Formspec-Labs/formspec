@@ -37,6 +37,20 @@ pub fn detect_type(document: &Bound<'_, PyAny>) -> PyResult<Option<String>> {
     Ok(detect_document_type(&doc).map(|dt| dt.schema_key().to_string()))
 }
 
+/// Collect instance-relative paths and reject incomplete inventories with a location.
+#[pyfunction]
+pub fn definition_instance_reads(
+    document: &Bound<'_, PyAny>,
+) -> PyResult<std::collections::BTreeMap<String, Vec<String>>> {
+    let doc: Value = depythonize_json(document)?;
+    let reads = formspec_core::definition_instance_reads::definition_instance_reads(&doc)
+        .map_err(pyo3::exceptions::PyValueError::new_err)?;
+    Ok(reads
+        .into_iter()
+        .map(|(name, paths)| (name, paths.into_iter().collect()))
+        .collect())
+}
+
 // ── Linting ─────────────────────────────────────────────────────
 
 /// Lint a Formspec document (7-pass static analysis).

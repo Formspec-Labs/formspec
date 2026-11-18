@@ -18,6 +18,11 @@ let _wasmTools: WasmToolsModule | null = null;
 /** Count of `import()` executions for tools glue (excludes early-return paths). For tests only. */
 let _toolsWasmDynamicImportCount = 0;
 
+/** Return each instance's sorted paths across FEL and creation-time declarations. */
+export function getDefinitionInstanceReads(definition: unknown): Record<string, string[]> {
+    return JSON.parse(wasmTools().getDefinitionInstanceReads(JSON.stringify(definition)));
+}
+
 /** Whether the tools WASM module has been initialized and is ready for use. */
 export function isWasmToolsReady(): boolean {
     return _wasmToolsReady;

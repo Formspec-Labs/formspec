@@ -40,7 +40,7 @@ export {
 } from './fel/fel-api.js';
 
 export type { TreeItemLike, ItemLocation } from './fel/fel-api.js';
-export { checkInstanceProjection, type InstanceProjectionDiagnostic, type ProjectionConsumer } from './fel/fel-api-tools.js';
+export { getDefinitionInstanceReads, checkInstanceProjection, type InstanceProjectionDiagnostic, type ProjectionConsumer } from './fel/fel-api-tools.js';
 
 export { createMappingEngine, RuntimeMappingEngine } from './mapping/RuntimeMappingEngine.js';
 export { attachVerifiedJsonToken, isValidResponseAuthored, parseVerifiedJsonObject, selectResponses } from './wasm-bridge-tools.js';
