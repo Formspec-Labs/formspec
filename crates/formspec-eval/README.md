@@ -28,7 +28,7 @@ Cross-cutting:
 
 ## Architecture
 
-**Authoritative API** is `cargo doc -p formspec-eval --no-deps`. A **single-file Markdown mirror** is [`docs/rustdoc-md/API.md`](docs/rustdoc-md/API.md), produced by [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md) and `scripts/bundle-rustdoc-md.mjs`.
+**Authoritative API** is `cargo doc -p formspec-eval --no-deps`. A **single-file Markdown mirror** is [`docs/rustdoc-md/API.md`](docs/rustdoc-md/API.md), produced by [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md) and the shared `fel-core/scripts/bundle-rustdoc-md.mjs` bundler.
 
 ### Primary entry points
 

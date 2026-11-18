@@ -1076,6 +1076,6 @@ mod tests {
 
     #[test]
     fn registry_variant_count_matches_json() {
-        assert_eq!(LintCode::ALL.len(), 163);
+        assert_eq!(LintCode::ALL.len(), 164);
     }
 }

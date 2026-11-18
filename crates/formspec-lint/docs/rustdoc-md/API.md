@@ -26,13 +26,16 @@ Generated with [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md)
 
 # formspec_lint
 
-Formspec Linter — 9-pass static analysis and validation pipeline.
+Formspec Linter — static analysis and validation pipeline.
 
 Pass 1 (E100): Document type detection
-Pass 1b (E101): JSON Schema validation against embedded schemas
+Pass 1b (E101; E305/E308/E309/E311/E312 for specific Core requirements): JSON Schema validation against embedded schemas
 Pass 2 (E200/E201): Tree indexing, duplicate key/path detection
 Pass 3 (E300/E301/E302/W300): Reference validation — bind paths, shape targets, optionSets
+Pass 3 (E306/E307): Definition response selection predicates
+Pass 3 (E313): Definition Groups that still need assembly
 Pass 3b (E600/E601/E602): Extension resolution against registry documents
+Pass 3b (E613): Item `accessControl.class` resolution against the Access-Class Registry
 Pass 3c (E603/E604): Module contribution resolution + payload-schema validation (ADR 0150 §4.2/§4.3)
 Pass 3e (E608/E609): Posture admission — module field-equality + actor URN scan (ADR 0150 §4.4/§5.4)
 Pass 4 (E400): FEL expression compilation
@@ -43,7 +46,8 @@ Pass 8 (E606-E607/E610, E900-E902): Surface route graph and Response
 cross-field invariants (ADR 0150 §6)
 Registry-only E611 is emitted by the TypeScript AppGraphValidator, not this crate.
 Pass 9 (E1100-E1805/W1100-W1802): Companion document semantic lint
-Pass 10 (E1900-E1904/W1900-W1905): Accessibility document rules, WCAG-tagged (`check_accessibility`)
+Additional checks: accessibility rules (E1900-E1904/W1900-W1905) and
+Definition/Screener Bind advisories (W900-W902, Core §3.10.3).
 
 ## Documentation
 
@@ -71,7 +75,7 @@ Pass 10 (E1900-E1904/W1900-W1905): Accessibility document rules, WCAG-tagged (`c
 
 ### [`expressions`](expressions.md)
 
-*2 functions, 2 structs*
+*2 functions, 4 structs*
 
 ### [`extensions`](extensions.md)
 
@@ -111,7 +115,7 @@ Pass 10 (E1900-E1904/W1900-W1905): Accessibility document rules, WCAG-tagged (`c
 
 ### [`pass_response`](pass_response.md)
 
-*1 function*
+*2 functions*
 
 ### [`pass_theme`](pass_theme.md)
 
@@ -135,7 +139,7 @@ Pass 10 (E1900-E1904/W1900-W1905): Accessibility document rules, WCAG-tagged (`c
 
 ### [`types`](types.md)
 
-*1 function, 2 enums, 3 structs*
+*1 function, 2 enums, 4 structs*
 
 ---
 
@@ -151,14 +155,14 @@ Pass 10 (E1900-E1904/W1900-W1905): Accessibility document rules, WCAG-tagged (`c
 
 - [`app_graph_report`](#app_graph_report) - Bridges completed AppGraph reports into lint-facing diagnostics.
 - [`component_matrix`](#component_matrix) - Component/dataType compatibility accessors for built-in input components.
-- [`dependencies`](#dependencies) - Pass 5: Dependency analysis — builds a dependency graph from compiled expressions and detects cycles via DFS.
+- [`dependencies`](#dependencies) - Pass 5: dependency analysis — E500 for every cycle in the Core §3.6.1 dependency graph.
 - [`expressions`](#expressions) - Pass 4: Expression compilation — parses all FEL expression slots in a definition,
 - [`extensions`](#extensions) - Pass 3b: Extension validation (E600/E601/E602).
-- [`pass_component`](#pass_component) - Pass 7: Component document semantic checks (E800-E807, W800-W807).
+- [`pass_component`](#pass_component) - Pass 7: Component document semantic checks (E800-E807, W800-W807), and E400 for `when`.
 - [`pass_mapping`](#pass_mapping) - Pass 9: Mapping document semantic checks and static-analysis facts.
 - [`pass_modules`](#pass_modules) - Pass 3c: Module contribution resolution (E603 / E604) and bundle-graph
 - [`pass_ontology`](#pass_ontology) - Pass 9: Ontology document semantic checks and static-analysis facts.
-- [`pass_response`](#pass_response) - Pass 8 — Response cross-field invariants.
+- [`pass_response`](#pass_response) - Pass 8 — Response cross-field invariants and signature method validation.
 - [`pass_theme`](#pass_theme) - Pass 6: Theme document semantic checks (W700-W714, E710).
 - [`posture_admission`](#posture_admission) - ADR 0150 §4.4/§5.4 posture admission matchers — Rust authority for lint;
 - [`references`](#references) - Pass 3: Reference validation — checks bind paths and shape targets resolve against the item tree.
@@ -196,13 +200,31 @@ Rust lint consume the same policy artifact.
 
 ## Module: dependencies
 
-Pass 5: Dependency analysis — builds a dependency graph from compiled expressions and detects cycles via DFS.
+Pass 5: dependency analysis — E500 for every cycle in the Core §3.6.1 dependency graph.
 
-Only dataflow expressions (`bind_target = Some(key)`) create graph edges.
-Constraint expressions are excluded since they allow self-reference without
-creating a dataflow dependency.
+The graph has vertices for Item values, Bind/variable expressions, and Shape validity.
 
-Graph building, DFS cycle detection, and diagnostic emission are internal.
+- An expression depends on every value it references, and on what each MIP query
+  function reads of the queried Item X (§4.3.2 inheritance, §5.6):
+  - `relevant(X)`: X's and its ancestors' `relevant`;
+  - `readonly(X)`: X's and its ancestors' `readonly`;
+  - `required(X)`: X's `required`, and X's and its ancestors' `relevant`;
+  - `valid(X)`: X's value, `required` and `constraint`, X's and its ancestors'
+    `relevant`, and every Shape targeting X (`constraint`, `activeWhen`, composed members).
+- A value depends on the expressions that write it:
+  - `calculate` and an `=`-prefixed `default` write their Item's value;
+  - `relevant` writes the value of its Item, and of every descendant (relevance inherits,
+    §4.3.2), whose effective Bind sets `excludedValue` to `"null"` (§4.3.1) or declares a
+    `default` (restored on re-relevance, §5.6 rule 5): only then does relevance change
+    what other expressions read;
+  - `required`, `readonly` and `constraint` write nothing.
+
+Variables resolve lexically (Core §4.5.1); Shape composition follows ids before FEL
+(§5.2.2). Routes cannot feed values or validity, so they do not enter the graph.
+
+Paths resolve to Item keys, which E200 makes unique before this pass runs. A path that
+names no Item is its own vertex, which nothing writes. One E500 is emitted per distinct
+cycle of Item keys. Graph building, cycle detection and diagnostic emission are internal.
 
 
 
@@ -210,9 +232,9 @@ Graph building, DFS cycle detection, and diagnostic emission are internal.
 
 Pass 4: Expression compilation — parses all FEL expression slots in a definition,
 producing `CompiledExpression` structs for downstream dependency analysis (pass 5)
-and E400 diagnostics for parse errors.
+and E400 (parse error) and E406 (bare field name) diagnostics.
 
-`walk_*` helpers traverse binds, shapes, variables, and screener slots.
+`walk_*` helpers traverse binds, shapes, and variables.
 
 
 
@@ -287,7 +309,7 @@ fn lint_with_options(doc: &serde_json::Value, options: &LintOptions) -> LintResu
 
 ## Module: pass_component
 
-Pass 7: Component document semantic checks (E800-E807, W800-W807).
+Pass 7: Component document semantic checks (E800-E807, W800-W807), and E400 for `when`.
 
 
 
@@ -363,16 +385,19 @@ Pass 9: Ontology document semantic checks and static-analysis facts.
 
 ## Module: pass_response
 
-Pass 8 — Response cross-field invariants.
+Pass 8 — Response cross-field invariants and signature method validation.
 
 Validates the `authoredSignatures[*].signedPayload` pin triple against the
-top-level Response pins. JSON Schema cannot encode the equality constraint;
-Core spec §2.1.6 ("When `authoredSignatures` is present") lists it MUST.
+top-level Response pins, and validates signature method URIs against the
+canonical signature-method registry. JSON Schema cannot encode the equality
+constraint; Core spec §2.1.6 ("When `authoredSignatures` is present") lists
+it MUST.
 
 Emits:
 - E900: `signedPayload.responseId` != top-level `id`
 - E901: `signedPayload.definitionUrl` != top-level `definitionUrl`
 - E902: `signedPayload.definitionVersion` != top-level `definitionVersion`
+- E905: Signature method URI not registered in signature-method-registry.json or deprecated (FORMSPEC-SIG-METHOD-REGISTERED-001)
 
 Parity target: Python `_pass_signed_payload_validation` in
 `src/formspec/validate.py` (SIGNED_PAYLOAD_RESPONSE_ID_MISMATCH and
@@ -458,12 +483,12 @@ An app-graph diagnostic preserved for lint consumers.
 
 **Trait Implementations:**
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &AppGraphLintDiagnostic) -> bool`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> AppGraphLintDiagnostic`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &AppGraphLintDiagnostic) -> bool`
 
 
 
@@ -479,12 +504,12 @@ A lint-facing view of a completed app-graph validation report.
 
 **Trait Implementations:**
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &AppGraphLintReport) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> AppGraphLintReport`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &AppGraphLintReport) -> bool`
 
 
 
@@ -503,12 +528,12 @@ Schema validation errors for an app-graph report bridge input.
 
 - **Clone**
   - `fn clone(self: &Self) -> AppGraphReportSchemaError`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &AppGraphReportSchemaError) -> bool`
-- **Display**
-  - `fn fmt(self: &Self, formatter: & mut std::fmt::Formatter) -> std::fmt::Result`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Display**
+  - `fn fmt(self: &Self, formatter: & mut std::fmt::Formatter) -> std::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &AppGraphReportSchemaError) -> bool`
 
 
 
@@ -578,16 +603,16 @@ Result of checking a component against a dataType.
 - `Incompatible` - Incompatible — always an error.
 - `NotApplicable` - Not an input component (layout, display, etc.) — skip check.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> Compatibility`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **PartialEq**
   - `fn eq(self: &Self, other: &Compatibility) -> bool`
-- **Clone**
-  - `fn clone(self: &Self) -> Compatibility`
 
 
 
@@ -653,7 +678,7 @@ fn requires_options_source(component: &str) -> bool
 
 **Functions**
 
-- [`analyze_dependencies`](#analyze_dependencies) - Analyze compiled expressions for dependency cycles.
+- [`analyze_dependencies`](#analyze_dependencies) - Report every dependency cycle among `compiled` as one E500 per distinct cycle.
 
 ---
 
@@ -661,14 +686,13 @@ fn requires_options_source(component: &str) -> bool
 
 *Function*
 
-Analyze compiled expressions for dependency cycles.
+Report every dependency cycle among `compiled` as one E500 per distinct cycle.
 
-Builds a directed graph where each bind key points to the set of bind keys
-its expression references. Runs DFS cycle detection and emits one E500
-diagnostic per unique cycle (canonically deduplicated).
+`items` resolves paths to Item keys and ancestors. `document` supplies effective Binds
+and Shape composition references.
 
 ```rust
-fn analyze_dependencies(compiled: &[crate::expressions::CompiledExpression]) -> Vec<crate::types::LintDiagnostic>
+fn analyze_dependencies(compiled: &[crate::expressions::CompiledExpression], items: &crate::tree::ItemTreeIndex, document: &serde_json::Value) -> Vec<crate::types::LintDiagnostic>
 ```
 
 ---
@@ -683,8 +707,10 @@ fn analyze_dependencies(compiled: &[crate::expressions::CompiledExpression]) -> 
 
 **Structs**
 
+- [`BindSlot`](#bindslot) - The Bind an expression belongs to: its `path` spelling and property.
 - [`CompiledExpression`](#compiledexpression) - A successfully parsed FEL expression with its location metadata.
 - [`ExpressionCompilationResult`](#expressioncompilationresult) - Result of compiling all FEL expression slots in a definition document.
+- [`VariableSlot`](#variableslot) - A variable declaration's lexical identity (Core §4.5.1).
 
 **Functions**
 
@@ -692,6 +718,29 @@ fn analyze_dependencies(compiled: &[crate::expressions::CompiledExpression]) -> 
 - [`compile_screener_expressions`](#compile_screener_expressions) - Walk all FEL expression slots in a standalone Screener Document.
 
 ---
+
+## formspec_lint::expressions::BindSlot
+
+*Struct*
+
+The Bind an expression belongs to: its `path` spelling and property.
+
+**Fields:**
+- `path: String` - The Bind's target path as written (`name`, `group.name`, `rows[*].amount`).
+- `property: BindProperty` - The Bind property holding the expression.
+
+**Traits:** Eq
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> BindSlot`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &BindSlot) -> bool`
+
+
 
 ## formspec_lint::expressions::CompiledExpression
 
@@ -702,7 +751,10 @@ A successfully parsed FEL expression with its location metadata.
 **Fields:**
 - `expression: String` - The original FEL source text.
 - `expression_path: String` - JSONPath to the expression slot, e.g. `$.binds.name.calculate`.
-- `bind_target: Option<String>` - The bind key this expression targets for dependency graph edges.
+- `bind: Option<BindSlot>` - The Bind slot holding this expression; `None` for Shapes, variables and routes.
+- `shape_target: Option<String>` - The `target` of the Shape whose validity this expression decides (`constraint`,
+- `shape_index: Option<usize>` - Index of the Shape owning this validity-deciding expression.
+- `variable: Option<VariableSlot>` - Variable declaration computed by this expression, if any.
 
 **Trait Implementations:**
 
@@ -721,10 +773,29 @@ Result of compiling all FEL expression slots in a definition document.
 
 **Fields:**
 - `compiled: Vec<CompiledExpression>` - Successfully parsed expressions.
-- `diagnostics: Vec<crate::types::LintDiagnostic>` - E400 diagnostics for unparseable expressions.
+- `diagnostics: Vec<crate::types::LintDiagnostic>` - E400 for unparseable expressions and E406 for bare field names.
 
 **Trait Implementations:**
 
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+
+
+
+## formspec_lint::expressions::VariableSlot
+
+*Struct*
+
+A variable declaration's lexical identity (Core §4.5.1).
+
+**Fields:**
+- `name: String` - The name used by `@name` references.
+- `scope: String` - Item key defining visibility; `"#"` means definition-wide.
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> VariableSlot`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
@@ -735,7 +806,7 @@ Result of compiling all FEL expression slots in a definition document.
 *Function*
 
 Walk all FEL expression slots in a definition document, parse each,
-and return compiled expressions plus E400 diagnostics for parse failures.
+and return compiled expressions plus E400 and E406 diagnostics.
 
 ```rust
 fn compile_expressions(document: &serde_json::Value) -> ExpressionCompilationResult
@@ -819,8 +890,19 @@ Canonical lint diagnostic code (registry-driven).
 - `E300` - Registry code `E300`.
 - `E301` - Registry code `E301`.
 - `E302` - Registry code `E302`.
+- `E303` - Registry code `E303`.
+- `E304` - Registry code `E304`.
+- `E305` - Registry code `E305`.
+- `E306` - Registry code `E306`.
+- `E307` - Registry code `E307`.
+- `E308` - Registry code `E308`.
+- `E309` - Registry code `E309`.
+- `E311` - Registry code `E311`.
+- `E312` - Registry code `E312`.
+- `E313` - Registry code `E313`.
 - `W300` - Registry code `W300`.
 - `E400` - Registry code `E400`.
+- `E406` - Registry code `E406`.
 - `E500` - Registry code `E500`.
 - `E600` - Registry code `E600`.
 - `E601` - Registry code `E601`.
@@ -830,6 +912,7 @@ Canonical lint diagnostic code (registry-driven).
 - `E605` - Registry code `E605`.
 - `E608` - Registry code `E608`.
 - `E609` - Registry code `E609`.
+- `E613` - Registry code `E613`.
 - `E606` - Registry code `E606`.
 - `E607` - Registry code `E607`.
 - `E610` - Registry code `E610`.
@@ -845,6 +928,7 @@ Canonical lint diagnostic code (registry-driven).
 - `W707` - Registry code `W707`.
 - `W708` - Registry code `W708`.
 - `W709` - Registry code `W709`.
+- `W710` - Registry code `W710`.
 - `E710` - Registry code `E710`.
 - `W711` - Registry code `W711`.
 - `W712` - Registry code `W712`.
@@ -930,6 +1014,7 @@ Canonical lint diagnostic code (registry-driven).
 - `E1505` - Registry code `E1505`.
 - `E1506` - Registry code `E1506`.
 - `E1507` - Registry code `E1507`.
+- `E1508` - Registry code `E1508`.
 - `W1500` - Registry code `W1500`.
 - `W1600` - Registry code `W1600`.
 - `E1700` - Registry code `E1700`.
@@ -945,6 +1030,12 @@ Canonical lint diagnostic code (registry-driven).
 - `E1804` - Registry code `E1804`.
 - `E1805` - Registry code `E1805`.
 - `W1802` - Registry code `W1802`.
+- `E903` - Registry code `E903`.
+- `E904` - Registry code `E904`.
+- `E905` - Registry code `E905`.
+- `W900` - Registry code `W900`.
+- `W901` - Registry code `W901`.
+- `W902` - Registry code `W902`.
 - `E1900` - Registry code `E1900`.
 - `E1901` - Registry code `E1901`.
 - `E1902` - Registry code `E1902`.
@@ -963,30 +1054,30 @@ Canonical lint diagnostic code (registry-driven).
 - `fn pass(self: Self) -> u8` - Lint pass number from the registry.
 - `fn parse_wire(s: &str) -> Option<Self>` - Parse a wire code; returns `None` for unknown values.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
 - **Clone**
   - `fn clone(self: &Self) -> LintCode`
-- **Display**
-  - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &&str) -> bool`
-- **FromStr**
-  - `fn from_str(s: &str) -> Result<Self, <Self as >::Err>`
-- **Deserialize**
-  - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
-- **Serialize**
-  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &str) -> bool`
+- **Deserialize**
+  - `fn deserialize<D>(deserializer: D) -> Result<Self, <D as >::Error>`
+- **Display**
+  - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
+- **FromStr**
+  - `fn from_str(s: &str) -> Result<Self, <Self as >::Err>`
 - **Hash**
   - `fn hash<__H>(self: &Self, state: & mut __H)`
 - **PartialEq**
+  - `fn eq(self: &Self, other: &&str) -> bool`
+- **PartialEq**
   - `fn eq(self: &Self, other: &LintCode) -> bool`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &str) -> bool`
+- **Serialize**
+  - `fn serialize<S>(self: &Self, serializer: S) -> Result<<S as >::Ok, <S as >::Error>`
 
 ---
 
@@ -1084,10 +1175,10 @@ The document half of the accessibility report (ADR 0166 §3 `documentChecks`).
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> AccessibilityChecks`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1103,10 +1194,10 @@ One diagnostic and the pinned document it came from (`definition`, `theme` or `l
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> AccessibilityFinding`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1125,16 +1216,16 @@ A rule's result over the pinned documents.
 
 - `fn as_wire_str(self: Self) -> &'static str` - Wire string: `passed`, `failed` or `needs-review`.
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &AccessibilityOutcome) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> AccessibilityOutcome`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &AccessibilityOutcome) -> bool`
 
 
 
@@ -1153,10 +1244,10 @@ One accessibility rule's outcome across the pinned documents.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> AccessibilityRuleResult`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1285,10 +1376,10 @@ fn lint_component(component: &serde_json::Value, definition: Option<&serde_json:
 
 - **Clone**
   - `fn clone(self: &Self) -> TransformClass`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &TransformClass) -> bool`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &TransformClass) -> bool`
 
 
 
@@ -1393,10 +1484,10 @@ fn check_module_contributions(doc: &serde_json::Value, doc_type_name: &str, regi
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> OntologyConceptSystemFact`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1488,15 +1579,28 @@ fn lint_ontology(ontology: &serde_json::Value, definition: Option<&serde_json::V
 
 **Functions**
 
-- [`lint_response`](#lint_response) - Run the Response pass: cross-field signature pin invariants.
+- [`is_registered_signature_method`](#is_registered_signature_method) - Returns `true` if `uri` is an active, registered signature method in the registry.
+- [`lint_response`](#lint_response) - Run the Response pass: cross-field signature pin invariants and signature method checks.
 
 ---
+
+## formspec_lint::pass_response::is_registered_signature_method
+
+*Function*
+
+Returns `true` if `uri` is an active, registered signature method in the registry.
+
+```rust
+fn is_registered_signature_method(uri: &str) -> bool
+```
+
+
 
 ## formspec_lint::pass_response::lint_response
 
 *Function*
 
-Run the Response pass: cross-field signature pin invariants.
+Run the Response pass: cross-field signature pin invariants and signature method checks.
 
 Returns no diagnostics for Response documents that omit `authoredSignatures`.
 
@@ -1582,10 +1686,10 @@ Why a document module failed posture admission.
 
 - **Clone**
   - `fn clone(self: &Self) -> ModulePostureAdmissionFailure`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &ModulePostureAdmissionFailure) -> bool`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &ModulePostureAdmissionFailure) -> bool`
 
 
 
@@ -1605,12 +1709,12 @@ Parsed module reference fields used by posture admission.
 
 **Trait Implementations:**
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &ModuleRefFields) -> bool`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> ModuleRefFields`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &ModuleRefFields) -> bool`
 
 
 
@@ -1785,7 +1889,7 @@ Metadata for one item in the definition tree.
 - `json_path: String` - JSONPath for diagnostics (e.g., `$.items[0].children[1]`).
 - `parent_full_path: Option<String>` - The parent's full dotted path, if nested.
 - `data_type: Option<String>` - The item's `dataType` value, if present.
-- `is_repeatable: bool` - Whether this item is a repeatable group (`"repeatable": true` or legacy `"repeat": {…}`).
+- `is_repeatable: bool` - Whether this item declares a repeatable Group.
 
 **Trait Implementations:**
 
@@ -1843,6 +1947,7 @@ fn build_item_index(document: &serde_json::Value) -> ItemTreeIndex
 - [`LintDiagnostic`](#lintdiagnostic) - A lint diagnostic.
 - [`LintOptions`](#lintoptions) - Options for the lint pipeline.
 - [`LintResult`](#lintresult) - Result of linting.
+- [`MappingSourceContext`](#mappingsourcecontext) - Host-owned input containing genuine Definition data at a declared path.
 
 **Enums**
 
@@ -1863,7 +1968,7 @@ A lint diagnostic.
 
 **Fields:**
 - `code: crate::generated::LintCode` - Error/warning code (e.g., `E100`, `E201`, `W300`).
-- `pass: u8` - Pass number (1-9).
+- `pass: u8` - Phase number from the canonical lint registry.
 - `severity: LintSeverity` - Severity: error, warning, info.
 - `path: String` - JSONPath to the problematic element.
 - `message: String` - Human-readable message.
@@ -1909,14 +2014,14 @@ Controls which diagnostics are emitted.
 
 **Trait Implementations:**
 
-- **PartialEq**
-  - `fn eq(self: &Self, other: &LintMode) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> LintMode`
-- **Default**
-  - `fn default() -> LintMode`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Default**
+  - `fn default() -> LintMode`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &LintMode) -> bool`
 
 
 
@@ -1930,6 +2035,7 @@ Options for the lint pipeline.
 - `mode: LintMode` - Lint mode (Runtime, Authoring, or Strict).
 - `registry_documents: Vec<serde_json::Value>` - Optional registry documents for extension resolution (E600).
 - `definition_document: Option<serde_json::Value>` - Optional paired definition document for cross-artifact validation.
+- `mapping_source_context: Option<MappingSourceContext>` - Host-defined representation for a Definition-associated Mapping.
 - `screener_document: Option<serde_json::Value>` - Optional paired Screener for target-qualified Locale presentation checks.
 - `theme_document: Option<serde_json::Value>` - Optional paired Theme document for Locale `$page.*` string-key checks.
 - `component_documents: Vec<serde_json::Value>` - Optional paired Component documents for Locale `$component.*` string-key checks.
@@ -1944,10 +2050,10 @@ Options for the lint pipeline.
 
 - **Clone**
   - `fn clone(self: &Self) -> LintOptions`
-- **Default**
-  - `fn default() -> LintOptions`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Default**
+  - `fn default() -> LintOptions`
 
 
 
@@ -1965,10 +2071,10 @@ Result of linting.
 
 **Trait Implementations:**
 
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Clone**
   - `fn clone(self: &Self) -> LintResult`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 
@@ -1987,20 +2093,42 @@ Severity of a lint diagnostic (sorting, validity, and JSON wire values).
 
 - `fn as_wire_str(self: Self) -> &'static str` - Wire string for JSON diagnostics (`error` / `warning` / `info`).
 
-**Traits:** Eq, Copy
+**Traits:** Copy, Eq
 
 **Trait Implementations:**
 
-- **Ord**
-  - `fn cmp(self: &Self, other: &Self) -> Ordering`
-- **Debug**
-  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
-- **PartialEq**
-  - `fn eq(self: &Self, other: &LintSeverity) -> bool`
 - **Clone**
   - `fn clone(self: &Self) -> LintSeverity`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Ord**
+  - `fn cmp(self: &Self, other: &Self) -> Ordering`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &LintSeverity) -> bool`
 - **PartialOrd**
   - `fn partial_cmp(self: &Self, other: &Self) -> Option<Ordering>`
+
+
+
+## formspec_lint::types::MappingSourceContext
+
+*Struct*
+
+Host-owned input containing genuine Definition data at a declared path.
+
+This describes input representation, not a document source association. The
+selected Definition remains authoritative for every path below `data_path`.
+
+**Fields:**
+- `schema: serde_json::Value` - JSON Schema declaring the host metadata and the Definition data root.
+- `data_path: String` - Dotted path to the genuine Definition data object in the host input.
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> MappingSourceContext`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
 
 

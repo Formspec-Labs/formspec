@@ -22,7 +22,7 @@ Normative behavior lives in the repo under `specs/` and `schemas/`; this crate m
 
 ## Architecture
 
-**Authoritative API** is `cargo doc -p formspec-core --no-deps`. A **single-file Markdown mirror** is [`docs/rustdoc-md/API.md`](docs/rustdoc-md/API.md), generated with [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md) and `scripts/bundle-rustdoc-md.mjs`.
+**Authoritative API** is `cargo doc -p formspec-core --no-deps`. A **single-file Markdown mirror** is [`docs/rustdoc-md/API.md`](docs/rustdoc-md/API.md), generated with [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md) and the shared `fel-core/scripts/bundle-rustdoc-md.mjs` bundler.
 
 ### Typical data flow
 
