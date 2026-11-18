@@ -72,7 +72,8 @@ describe('Layout chrome parity', () => {
     });
 
     it('gives tabs a stronger active surface and readable inactive text', () => {
-        expect(extractRuleProp(layoutCSS, '.formspec-tab', 'color')).toBe('var(--formspec-default-text-subtle)');
+        // Muted foreground reached only 4.13:1 on the Surface tab bar in Chromium.
+        expect(extractRuleProp(layoutCSS, '.formspec-tab', 'color')).toBe('var(--formspec-default-text)');
         expect(extractRuleProp(layoutCSS, '.formspec-tab--active', 'background')).toBe('var(--formspec-default-primary-fill)');
         expect(extractRuleProp(layoutCSS, '.formspec-tab--active', 'color')).toBe('var(--formspec-default-text-inverse)');
     });
