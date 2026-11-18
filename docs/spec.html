@@ -3377,6 +3377,13 @@ subscript (§3.2.2). Rebuild refuses evaluation at the authored
 expression.</td>
 </tr>
 <tr>
+<td><code>UNASSEMBLED_DEFINITION_REFERENCE</code></td>
+<td><code>definition</code></td>
+<td>A Group still carries a <code>$ref</code> inclusion that assembly
+(§6.6.2) has not resolved. Rebuild refuses evaluation at the authored
+reference.</td>
+</tr>
+<tr>
 <td><code>CIRCULAR_DEPENDENCY</code></td>
 <td><code>definition</code></td>
 <td>The dependency graph contains a cycle (§3.6).</td>
@@ -5466,8 +5473,8 @@ resolve to Items only (§4.3.3); no Bind writes an instance, whatever its
 </tbody>
 </table>
 <p>§2.5.1 lists the reserved ValidationResult codes for syntax errors,
-arity mismatches, unsubscripted repeat references, and circular
-dependencies.</p>
+arity mismatches, unsubscripted repeat references, unassembled
+Definition references, and circular dependencies.</p>
 <h4 id="evaluation-errors">3.10.2 Evaluation Errors</h4>
 <p>An evaluation error occurs during expression evaluation when operand
 values violate type or domain constraints. A conformant processor MUST

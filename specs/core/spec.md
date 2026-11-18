@@ -1987,6 +1987,7 @@ codes override the generic defaults.
 | `SYNTAX_ERROR` | `definition` | An authored FEL expression does not conform to the grammar (§3.10.1). Rebuild refuses evaluation at the authored expression. A `{{}}` text interpolation is exempt: it renders literally (§4.2.1). |
 | `ARITY_MISMATCH` | `definition` | An authored FEL expression calls a built-in function with the wrong number of arguments (§3.10.1). Rebuild refuses evaluation at the authored expression. A `{{}}` text interpolation is exempt. |
 | `UNSUBSCRIPTED_REPEAT_REFERENCE` | `definition` | An authored field path continues past a repeatable Group without a subscript (§3.2.2). Rebuild refuses evaluation at the authored expression. |
+| `UNASSEMBLED_DEFINITION_REFERENCE` | `definition` | A Group still carries a `$ref` inclusion that assembly (§6.6.2) has not resolved. Rebuild refuses evaluation at the authored reference. |
 | `CIRCULAR_DEPENDENCY` | `definition` | The dependency graph contains a cycle (§3.6). |
 | `SHAPE_FAILED` | `shape` | Shape's constraint returned `false`. |
 | `EXTERNAL_FAILED` | `external` | External validation source reported a failure. |
@@ -2903,7 +2904,8 @@ following and MUST NOT proceed to Recalculate:
 | **Instance-path Bind** | A Bind `path` names a secondary instance (`instances.<name>…` or `@instance('<name>')…`) rather than an Item. Bind paths resolve to Items only (§4.3.3); no Bind writes an instance, whatever its `readonly` value (§4.4.1). |
 
 §2.5.1 lists the reserved ValidationResult codes for syntax errors, arity
-mismatches, unsubscripted repeat references, and circular dependencies.
+mismatches, unsubscripted repeat references, unassembled Definition
+references, and circular dependencies.
 
 #### 3.10.2 Evaluation Errors
 
