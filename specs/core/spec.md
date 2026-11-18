@@ -2902,7 +2902,8 @@ following and MUST NOT proceed to Recalculate:
 | **Calculate target conflict** | A `calculate` Bind targets a field that is also targeted by another `calculate` Bind. Each field MUST have at most one `calculate` Bind. |
 | **Instance-path Bind** | A Bind `path` names a secondary instance (`instances.<name>…` or `@instance('<name>')…`) rather than an Item. Bind paths resolve to Items only (§4.3.3); no Bind writes an instance, whatever its `readonly` value (§4.4.1). |
 
-§2.5.1 lists the reserved ValidationResult codes for these errors.
+§2.5.1 lists the reserved ValidationResult codes for syntax errors, arity
+mismatches, unsubscripted repeat references, and circular dependencies.
 
 #### 3.10.2 Evaluation Errors
 
@@ -2914,7 +2915,7 @@ evaluation errors as follows:
 |-------|-------------|-------------------|
 | **Type error** | An operator or function receives an operand of an unexpected type (e.g., `'hello' + 5`). | The expression result is `null`. The processor MUST record a diagnostic. The diagnostic SHOULD be surfaced to Definition authors (e.g., in a debug console) but MUST NOT be surfaced to end users as a validation error. |
 | **Division by zero** | The `/` or `%` operator has a zero right operand. | Same as type error: result is `null`, diagnostic recorded. |
-| **Arithmetic overflow** | An operator, aggregate, or numeric or money function produces a value outside the supported decimal range (§3.4). | The result is `null` and the processor MUST record `FEL_ARITHMETIC_OVERFLOW`. |
+| **Arithmetic overflow** | An operator, a numeric or money function, or an aggregate's running total produces a value outside the supported decimal range (§3.4). | The result is `null` and the processor MUST record `FEL_ARITHMETIC_OVERFLOW`. |
 | **Index out of bounds** | An explicit repeat index (`$repeat[n].field`) references a position that does not exist. | Same as type error: result is `null`, diagnostic recorded. |
 | **Ambiguous row lookup** | More than one row has the requested key (§4.4.2). | The lookup yields `null` and emits `FEL_AMBIGUOUS_ROW_LOOKUP`. Formspec surfaces the diagnostic message from Bind constraints and Shapes. |
 | **Date overflow** | A `dateAdd()` operation produces an invalid date that cannot be normalized (e.g., adding 1 month to January 31 is normalized to February 28/29, which is valid — but implementation-specific edge cases may arise). | Processor MUST normalize to the nearest valid date. If normalization is not possible, result is `null`, diagnostic recorded. |

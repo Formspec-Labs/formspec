@@ -305,6 +305,36 @@ fn syntax_errors_refuse_the_definition_in_every_position() {
     }
 }
 
+/// Display text renders a broken `{{}}` expression literally (Core §4.2.1), so only Shape
+/// composition members, which are FEL, refuse. The repeat group makes Rebuild visit templates.
+#[test]
+fn template_errors_never_refuse_but_composition_members_do() {
+    let templates = definition(
+        json!([{ "path": "name", "constraint": "$name = 'x'", "constraintMessage": "Bad {{1 +}}" }]),
+        json!([{ "id": "s", "target": "#", "constraint": "true", "message": "{{abs()}} and {{2 +}}" }]),
+    );
+    let result = evaluate(&templates, &data(), &EvalOptions::default());
+    let codes: Vec<String> = result
+        .validations
+        .iter()
+        .map(|v| v.code.to_string())
+        .collect();
+    assert_eq!(codes, ["CONSTRAINT_FAILED"], "{:?}", result.validations);
+    assert_eq!(result.values["name"], json!("abc"));
+
+    let member = definition(
+        json!([]),
+        json!([{ "id": "s", "target": "#", "and": ["true", "3 +"], "message": "m" }]),
+    );
+    let result = evaluate(&member, &data(), &EvalOptions::default());
+    let refused: Vec<(&str, String)> = result
+        .validations
+        .iter()
+        .map(|v| (v.path.as_str(), v.code.to_string()))
+        .collect();
+    assert_eq!(refused, [("$.shapes[0].and[1]", "SYNTAX_ERROR".to_owned())]);
+}
+
 /// Core §3.10.1: an arity mismatch is a Definition error, in any position.
 #[test]
 fn arity_mismatches_refuse_the_definition() {

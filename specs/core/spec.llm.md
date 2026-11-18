@@ -289,9 +289,9 @@ Missing field (exists in definition but no value) → `null`. Field key not in d
 
 ### Error Handling
 
-**Definition errors** (load-time, block processing): syntax errors, undefined references, undefined instances/functions, circular dependencies, arity mismatches, calculate target conflicts, instance-path Binds (`instances.<name>…` / `@instance('<name>')…` as a Bind `path`). Rebuild refuses evaluation with a `definition` ValidationResult at the authored expression's JSONPath: `SYNTAX_ERROR` (message carries the expression and position), `ARITY_MISMATCH`, `UNSUBSCRIPTED_REPEAT_REFERENCE`, `CIRCULAR_DEPENDENCY`. `{{}}` text interpolation is exempt from the first two.
+**Definition errors** (load-time, block processing): syntax errors, undefined references, undefined instances/functions, circular dependencies, arity mismatches, calculate target conflicts, instance-path Binds (`instances.<name>…` / `@instance('<name>')…` as a Bind `path`). Rebuild refuses evaluation with a `definition` ValidationResult at the authored expression's JSONPath: `SYNTAX_ERROR` (message carries the expression and position), `ARITY_MISMATCH`, `UNSUBSCRIPTED_REPEAT_REFERENCE`; `{{}}` text interpolation is exempt from the first two. A dependency cycle is `CIRCULAR_DEPENDENCY` with an empty path.
 
-**Evaluation errors** (runtime, produce `null` + diagnostic): type errors, division by zero, arithmetic overflow (`FEL_ARITHMETIC_OVERFLOW`), index out of bounds, date overflow, regex errors. Evaluation errors don't halt — they produce `null` so the rest of the form keeps working.
+**Evaluation errors** (runtime, produce `null` + diagnostic): type errors, division by zero, arithmetic overflow, including an aggregate's running total (`FEL_ARITHMETIC_OVERFLOW`), index out of bounds, date overflow, regex errors. Evaluation errors don't halt — they produce `null` so the rest of the form keeps working.
 
 ### Extension Functions
 

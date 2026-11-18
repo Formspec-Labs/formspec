@@ -5465,8 +5465,9 @@ resolve to Items only (§4.3.3); no Bind writes an instance, whatever its
 </tr>
 </tbody>
 </table>
-<p>§2.5.1 lists the reserved ValidationResult codes for these
-errors.</p>
+<p>§2.5.1 lists the reserved ValidationResult codes for syntax errors,
+arity mismatches, unsubscripted repeat references, and circular
+dependencies.</p>
 <h4 id="evaluation-errors">3.10.2 Evaluation Errors</h4>
 <p>An evaluation error occurs during expression evaluation when operand
 values violate type or domain constraints. A conformant processor MUST
@@ -5503,8 +5504,8 @@ recorded.</td>
 </tr>
 <tr>
 <td><strong>Arithmetic overflow</strong></td>
-<td>An operator, aggregate, or numeric or money function produces a
-value outside the supported decimal range (§3.4).</td>
+<td>An operator, a numeric or money function, or an aggregate’s running
+total produces a value outside the supported decimal range (§3.4).</td>
 <td>The result is <code>null</code> and the processor MUST record
 <code>FEL_ARITHMETIC_OVERFLOW</code>.</td>
 </tr>
