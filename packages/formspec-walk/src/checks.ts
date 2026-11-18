@@ -147,7 +147,7 @@ declare global {
 export const DEFAULT_WALK_ROOT_SELECTOR =
     ':is(formspec-render, [data-formspec-render-root], .formspec-container:not(formspec-render .formspec-container):has([data-formspec-form]))';
 export const WALK_FORM_CONTENT_SELECTOR =
-    ':is([data-formspec-form], [data-name], .formspec-repeat, .formspec-workspace, .formspec-wizard-panel, [role="tabpanel"])';
+    ':is([data-formspec-form], [data-name], .formspec-repeat, .formspec-workspace, .formspec-wizard-panel, [role="tabpanel"]):not(.formspec-skeleton, .formspec-skeleton *)';
 
 /**
  * One rendered form under test. Each method checks one thing the documents promise and records what

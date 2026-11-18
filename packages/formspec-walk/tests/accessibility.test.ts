@@ -114,6 +114,31 @@ describe('failure is never a pass', () => {
         await page.close();
     });
 
+    it('waits for the mounted form when the host first draws a loading skeleton', async () => {
+        const context = await browser.newContext();
+        try {
+            const page = await context.newPage();
+            const report = await checkAccessibility(page, {
+                open: async page => {
+                    // The renderer's placeholder uses the same data-name as the finished control.
+                    await page.setContent('<formspec-render><div class="formspec-skeleton" aria-busy="true"><input data-name="name"></div></formspec-render>');
+                    await page.evaluate(() => {
+                        window.setTimeout(() => {
+                            const root = document.querySelector('formspec-render')!;
+                            Object.assign(root, { engine: { repeats: {}, getFieldPaths: () => [] }, submit: () => undefined });
+                            root.innerHTML = '<form data-formspec-form><input data-name="name"></form>';
+                        }, 1_000);
+                    });
+                },
+                timeoutMs: 10_000,
+            });
+            expect(report, report.failure?.message).toMatchObject({ status: 'completed', pages: { visited: 1 } });
+            expect(report.violations.map(finding => finding.rule)).toContain('label');
+        } finally {
+            await context.close();
+        }
+    });
+
     it('a browser that will not start is a 503 with Retry-After and a failed report', async () => {
         const broken = new AccessibilityServer({ launch: async () => { throw new Error('browserType.launch: Executable doesn\'t exist'); } });
         await broken.listen(0);
