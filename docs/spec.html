@@ -5502,10 +5502,10 @@ operand.</td>
 recorded.</td>
 </tr>
 <tr>
-<td><strong>Aggregate overflow</strong></td>
-<td>The running numeric or monetary total in an aggregate exceeds the
-supported decimal range (§3.4).</td>
-<td>The aggregate MUST return <code>null</code> and record
+<td><strong>Arithmetic overflow</strong></td>
+<td>An operator, aggregate, or numeric or money function produces a
+value outside the supported decimal range (§3.4).</td>
+<td>The result is <code>null</code> and the processor MUST record
 <code>FEL_ARITHMETIC_OVERFLOW</code>.</td>
 </tr>
 <tr>
