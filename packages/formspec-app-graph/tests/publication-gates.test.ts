@@ -229,17 +229,20 @@ it('sends each Definition its own trace and Surface mounts within the Source bod
   const slot = (def: typeof defs[number]) => ({
     id: 'slot' + defs.indexOf(def), slotType: 'definition-form', binding: { definitionRef: def.url }, ...generation,
   });
+  const embed = (routeRef: string) => ({ id: 'embed-' + routeRef, slotType: 'embed-route', binding: {routeRef}, ...generation });
   const surface = {
-    $formspecSurface: '0.2', id: 'publish', entry: 'shared', ...generation,
+    $formspecSurface: '0.2', id: 'publish', entry: 'root', ...generation,
     routes: [
       { id: 'shared', path: '/', slots: [slot(defs[0]), slot(defs[1])], navigation: { visible: true, ...generation }, ...generation },
       { id: 'other', path: '/other', slots: [slot(defs[1])], navigation: { visible: false, ...generation }, ...generation },
+      { id: 'middle', path: '/middle', slots: [embed('shared')], navigation: { visible: false, ...generation }, ...generation },
+      { id: 'root', path: '/root', slots: [embed('middle'), embed('other')], navigation: { visible: true, ...generation }, ...generation },
     ],
   };
   const componentUrl = 'https://example.gov/components/shared';
   const component = {
     $formspecComponent: '1.2', url: componentUrl, version: '1.0.0',
-    targetSurfaceRoutes: [{ surface: { url: surfaceUrl, version: '1.0.0' }, route: 'shared', role: 'route' }],
+    targetSurfaceRoutes: [{ surface: { url: surfaceUrl, version: '1.0.0' }, route: 'root', role: 'route' }],
     tree: { component: 'Stack', id: 'layout', ...generation },
   };
   const docs = {
@@ -268,7 +271,9 @@ it('sends each Definition its own trace and Surface mounts within the Source bod
     const nodes = report.renderedNeedTrace!.nodes;
     expect(nodes.filter(n => n.kind === 'definition-item')).toHaveLength(641);
     expect(nodes.filter(n => n.kind === 'surface-slot').map(n => n.source.jsonPointer))
-      .toEqual(index === 0 ? ['/routes/0/slots/0'] : index === 1 ? ['/routes/0/slots/1', '/routes/1/slots/0'] : []);
+      .toEqual(index === 0
+        ? ['/routes/0/slots/0', '/routes/2/slots/0', '/routes/3/slots/0']
+        : index === 1 ? ['/routes/0/slots/1', '/routes/1/slots/0', '/routes/2/slots/0', '/routes/3/slots/0', '/routes/3/slots/1'] : []);
     expect(nodes.some(n => n.source.artifactKind === 'component')).toBe(index < 2);
     expect(nodes.some(n => n.source.artifactKind === 'locale')).toBe(index === 0);
     expect(bytes({

@@ -46,7 +46,7 @@ function routeId(route: ResolvedRoute): string | undefined {
   return stringProp(route.route, 'id');
 }
 
-export function surfaceRoutes(handle: ResolvedArtifactHandle): ResolvedRoute[] {
+function surfaceRoutes(handle: ResolvedArtifactHandle): ResolvedRoute[] {
   const routes = record(handle.document)?.routes;
   if (!Array.isArray(routes)) return [];
   return routes.flatMap((route, index): ResolvedRoute[] => {
@@ -55,7 +55,7 @@ export function surfaceRoutes(handle: ResolvedArtifactHandle): ResolvedRoute[] {
   });
 }
 
-export function definitionFormSlots(route: ResolvedRoute): DefinitionFormSlot[] {
+function definitionFormSlots(route: ResolvedRoute): DefinitionFormSlot[] {
   const slots = route.route.slots;
   if (!Array.isArray(slots)) return [];
   return slots.flatMap((slot, slotIndex): DefinitionFormSlot[] => {
@@ -69,6 +69,33 @@ export function definitionFormSlots(route: ResolvedRoute): DefinitionFormSlot[] 
       subjectKeys: ownProp(record(slotRecord?.binding), 'subjectKeys'),
     }];
   });
+}
+
+/** Direct mounts and the embed slots through which the same Surface renders this Definition. */
+export function renderingSlots(surface: ResolvedArtifactHandle, definitionUrl: string) {
+  const mounts: Pick<DefinitionFormSlot, 'route' | 'slotIndex' | 'slotId'>[] = [];
+  const parents = new Map<string, typeof mounts>();
+  for (const route of surfaceRoutes(surface)) {
+    mounts.push(...definitionFormSlots(route).filter(slot => slot.definitionRef === definitionUrl));
+    if (!Array.isArray(route.route.slots)) continue;
+    route.route.slots.forEach((value, slotIndex) => {
+      const slot = record(value);
+      if (stringProp(slot, 'slotType') !== 'embed-route') return;
+      const target = stringProp(record(slot?.binding), 'routeRef');
+      if (!target) return;
+      const entries = parents.get(target) ?? [];
+      entries.push({ route, slotIndex, slotId: stringProp(slot, 'id') });
+      parents.set(target, entries);
+    });
+  }
+  const visited = new Set<string>();
+  for (let cursor = 0; cursor < mounts.length; cursor++) {
+    const id = routeId(mounts[cursor].route);
+    if (!id || visited.has(id)) continue;
+    visited.add(id);
+    mounts.push(...(parents.get(id) ?? []));
+  }
+  return mounts;
 }
 
 function declaredDefinitionUrls(manifest: ResolvedArtifactHandle): Set<string> {

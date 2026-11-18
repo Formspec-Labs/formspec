@@ -6,7 +6,7 @@ import { RENDERED_NEED_TRACE_CODES } from './rendered-need-trace.js';
 import { createAppGraphReport } from './report.js';
 import { record, stringProp } from './surface-widgets.js';
 import { routeTargets } from './component-routes.js';
-import { definitionFormSlots, surfaceRoutes } from './surface-definition-slots.js';
+import { renderingSlots } from './surface-definition-slots.js';
 
 /**
  * Retains the admission evidence from the whole bundle, with each form's trace inventory
@@ -36,16 +36,13 @@ export function definitionPublicationReports(
       }
       if (handle.artifactKind !== 'surface') continue;
       const pointers = new Set<string>();
-      for (const route of surfaceRoutes(handle)) {
-        const routePointer = `/routes/${route.index}`;
-        for (const slot of definitionFormSlots(route)) {
-          if (slot.definitionRef !== definition.url) continue;
-          mounts.push({ surface: handle.ref?.url, route: stringProp(route.route, 'id'), slot: slot.slotId });
-          pointers.add('');
-          pointers.add(routePointer);
-          pointers.add(`${routePointer}/navigation`);
-          pointers.add(`${routePointer}/slots/${slot.slotIndex}`);
-        }
+      for (const slot of renderingSlots(handle, definition.url)) {
+        const routePointer = `/routes/${slot.route.index}`;
+        mounts.push({ surface: handle.ref?.url, route: stringProp(slot.route.route, 'id'), slot: slot.slotId });
+        pointers.add('');
+        pointers.add(routePointer);
+        pointers.add(`${routePointer}/navigation`);
+        pointers.add(`${routePointer}/slots/${slot.slotIndex}`);
       }
       surfacePointers.set(handle.slot, pointers);
     }
