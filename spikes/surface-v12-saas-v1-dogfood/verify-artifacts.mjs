@@ -8,8 +8,8 @@
  * instead of duplicating their resolution rules in this spike.
  *
  * Run on demand (`npm run check:surface-v12-artifacts`), not in the CI chain:
- * the evidence is sealed to the inputs it reviewed, so it fails closed once the
- * platform moves on — a true statement about the July review, not a build error.
+ * compare the retained evidence and screenshots against the historical review.
+ * The static preview browser test exercises the maintained host today.
  */
 
 import { createHash } from 'node:crypto';
@@ -37,7 +37,6 @@ import {
   flattenRegistryEntries,
 } from '@formspec-org/surface';
 import { starterWidgetModule } from '@formspec-org/surface-react/widgets';
-import { computeReviewedInputDigest } from './demo/scripts/evidence-digest.mjs';
 import {
   buildBundleReasoningReview,
   reasoningReviewDocument,
@@ -399,8 +398,9 @@ function checkClaim(scope, actual, expected) {
 }
 
 async function verifyEvidence(expectedReview) {
-  const digest = await computeReviewedInputDigest();
-  const reviewedInputDigest = `${digest.algorithm}:${digest.digest}`;
+  // The reviewed host was retired in fs-n81c. Check the archived claims against
+  // their recorded seal. Recompute a host digest only in the historical checkout.
+  const reviewedInputDigest = 'sha256:767fa3e3dad5337db78726ae69d89fa0c259c67e9d090996d7895c851fc99163';
   const [runManifest, scorecard, playwrightReview, result] = await Promise.all([
     json(join(EVIDENCE, 'run-manifest.json')),
     json(join(EVIDENCE, 'scorecard.json')),

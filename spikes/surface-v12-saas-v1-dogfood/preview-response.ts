@@ -1,5 +1,5 @@
 import { responseSubjectId } from '@formspec-org/engine';
-import { checkpointPreviewResponse } from '../../../preview-draft-checkpoint.ts';
+import { checkpointPreviewResponse } from '../preview-draft-checkpoint.ts';
 import type { PreviewFilingStore } from '@formspec-org/surface-react';
 import type { FormDefinition, FormResponse } from '@formspec-org/types';
 
