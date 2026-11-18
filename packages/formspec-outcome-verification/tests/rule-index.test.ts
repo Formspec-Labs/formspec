@@ -46,12 +46,13 @@ describe("OUTCOME_V01_SPECIFICATION_RULE_INDEX", () => {
           )
         ) ?? [];
       expect(declarations, rule.ruleId).toHaveLength(1);
-      expect(document).toMatch(
-        new RegExp(
-          `^version: ${escapeRegularExpression(rule.specVersion)}$`,
-          "m"
-        )
-      );
+      const header = document.split("---", 3)[1]?.split(/\r?\n/) ?? [];
+      // An additive dialect can keep a published rule's exact observation version.
+      expect(
+        header.includes(`version: ${rule.specVersion}`) ||
+          header.includes(`  ${rule.ruleId}: ${rule.specVersion}`),
+        `${rule.ruleId} at ${rule.specVersion}`
+      ).toBe(true);
       identities.add(
         `${rule.specRef}\u0000${rule.specVersion}\u0000${rule.ruleId}`
       );
