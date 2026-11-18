@@ -1,7 +1,7 @@
 /** @filedesc Registry constraints: extension fields with registry entries enforce pattern and length constraints */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FormEngine } from '../dist/index.js';
+import { FormEngine, evaluateDefinition } from '../dist/index.js';
 
 /**
  * Registry extension constraints: when a field declares an extension
@@ -163,6 +163,28 @@ test('UNRESOLVED_EXTENSION reports extension name in message', () => {
   const err = report.results.find(r => r.code === 'UNRESOLVED_EXTENSION');
   assert.ok(err, 'Unknown extension should produce UNRESOLVED_EXTENSION');
   assert.ok(err.message.includes('x-acme-widget'), 'Message should name the unresolved extension');
+});
+
+test('submit keeps both findings when two extensions on one field fail with the same code', () => {
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'http://example.org/registry-test',
+    version: '1.0.0',
+    title: 'Unresolved Extensions',
+    items: [{
+      key: 'answer',
+      type: 'field',
+      dataType: 'string',
+      extensions: { 'x-acme-first': true, 'x-acme-second': true },
+    }],
+  }, { savedResponseData: { answer: 'value' } });
+
+  const { response, validationReport } = engine.getResponseSnapshot({ profile: 'on-submit' });
+  const recheck = evaluateDefinition(engine.definition, response.data, { trigger: 'submit' });
+  assert.equal(validationReport.counts.error, 2);
+  assert.deepEqual(validationReport.results.map(({ code, message }) => [code, message]),
+    recheck.validations.map(({ code, message }) => [code, message]));
+  assert.deepEqual(engine.getValidationReport({ profile: 'on-submit' }).results, validationReport.results);
 });
 
 test('disabled extension (false) does not produce UNRESOLVED_EXTENSION', () => {

@@ -414,35 +414,31 @@ export function wasmCreateRepeatRow(
     ));
 }
 
-/** Evaluate a Formspec definition against provided data. */
-export function wasmEvaluateDefinition(
-    definition: unknown,
-    data: Record<string, unknown>,
-    context?: {
-        nowIso?: string;
-        trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
-        previousValidations?: Array<{
-            path: string;
-            severity: string;
-            constraintKind: string;
-            code: string;
-            message: string;
-            source?: string;
-            shapeId?: string;
-            context?: Record<string, unknown>;
-        }>;
-        previousNonRelevant?: string[];
-        instances?: Record<string, unknown>;
-        registryDocuments?: unknown[];
-        /** The current Response's subject type. Null means a subject was supplied without a type. */
-        subjectType?: string | null;
-        /** The current Response's filing-unit keys, available to `subject(key)`. */
-        subjectKeys?: import('./interfaces.js').ResponseSubjectKeys;
-        /** Ask for resolved Item text (Core §4.2.1); `localeStrings` are cascade-resolved Locale strings. */
-        itemText?: { localeStrings?: Record<string, string> };
-    },
-    extensions?: FelExtensionHost,
-): {
+type WasmEvaluationContext = {
+    nowIso?: string;
+    trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
+    previousValidations?: Array<{
+        path: string;
+        severity: string;
+        constraintKind: string;
+        code: string;
+        message: string;
+        source?: string;
+        shapeId?: string;
+        context?: Record<string, unknown>;
+    }>;
+    previousNonRelevant?: string[];
+    instances?: Record<string, unknown>;
+    registryDocuments?: unknown[];
+    /** The current Response's subject type. Null means a subject was supplied without a type. */
+    subjectType?: string | null;
+    /** The current Response's filing-unit keys, available to `subject(key)`. */
+    subjectKeys?: import('./interfaces.js').ResponseSubjectKeys;
+    /** Ask for resolved Item text (Core §4.2.1); `localeStrings` are cascade-resolved Locale strings. */
+    itemText?: { localeStrings?: Record<string, string> };
+};
+
+type WasmEvaluation = {
     /** Flat state keyed by path (`group.field`, `rows[0].name`), like `required` and `readonly`. */
     values: any;
     /** The Response projection of `values` after `nonRelevantBehavior`: groups are objects, repeats are arrays of row objects. */
@@ -467,8 +463,36 @@ export function wasmEvaluateDefinition(
         hint?: string;
         hints?: Record<string, string>;
     }>;
-} {
-    const resultJson = wasm().evaluateDefinition(
+};
+
+/** Evaluate a Formspec definition against provided data. */
+export function wasmEvaluateDefinition(
+    definition: unknown,
+    data: Record<string, unknown>,
+    context?: WasmEvaluationContext,
+    extensions?: FelExtensionHost,
+): WasmEvaluation {
+    return runWasmEvaluation(wasm().evaluateDefinition, definition, data, context, extensions);
+}
+
+/** Prepare stable Response data and its submit verdict. Throws if the data do not converge. */
+export function wasmEvaluateFiled(
+    definition: unknown,
+    data: Record<string, unknown>,
+    context?: WasmEvaluationContext,
+    extensions?: FelExtensionHost,
+): WasmEvaluation {
+    return runWasmEvaluation(wasm().evaluateFiled, definition, data, context, extensions);
+}
+
+function runWasmEvaluation(
+    evaluate: WasmModule['evaluateDefinition'],
+    definition: unknown,
+    data: Record<string, unknown>,
+    context?: WasmEvaluationContext,
+    extensions?: FelExtensionHost,
+): WasmEvaluation {
+    const resultJson = evaluate(
         JSON.stringify(definition),
         JSON.stringify(data),
         context ? JSON.stringify(context) : undefined,

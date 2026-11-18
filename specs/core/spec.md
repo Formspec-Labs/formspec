@@ -4755,6 +4755,20 @@ rules apply:
    Bind, the `default` value MUST be applied. If no `default` is declared,
    the node retains whatever value it had before becoming non-relevant.
 
+Before filing a Response, the processor MUST evaluate in the submit profile
+and feed each pass's output `data` into the next pass until the output equals
+the input. A single pass can leave answers whose relevance depends on an
+answer pruned in that pass. A later pass sees answers omitted from its input
+as `null` and recomputes calculations. All passes use the same evaluation time. The filer
+MUST use the settled evaluation's `data` and validation results, including
+any external validation results under §5.7.
+
+When rechecking a submitted Response, the processor MUST evaluate the filed
+`data` in the submit profile and refuse the Response if re-evaluation changes
+its data. For this comparison, an omitted declared repeat is equivalent to
+an empty array, including any enclosing group objects that exist only to hold
+such arrays.
+
 ### 5.7 External Validation Results
 
 External systems — server-side APIs, third-party validators, business rule

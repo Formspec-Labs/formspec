@@ -4,12 +4,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FormEngine, createResponse, evaluateDefinition } from '../dist/index.js';
+import { FormEngine, createResponse, evaluateDefinition, evaluateFiled } from '../dist/index.js';
 
 // The guard (tests/conformance/suite, schema schemas/conformance-suite.schema.json) runs each case through
 // legs that must agree (thoughts/plans/evaluator-parity.md §2.7):
 //   P        evaluate created data for a new Response, or the payload for a saved Response; for continuous cases it must equal `expected`.
-//   S        evaluate(def, P.data, submit): the verdict on the filed bytes; for submit cases it must equal
+//   S        evaluateFiled(def, P.data): the settled submit verdict; for submit cases it must equal
 //            `expected` and be a fixpoint.
 //   F        FormEngine's live report and data must equal P in the continuous trigger (every case).
 //   F_submit FormEngine's submit report and getResponse(submit).data must equal S.
@@ -331,6 +331,12 @@ async function runProcessingCase(caseDoc, legs) {
     for (const p of inventions(definition, data, raw)) inventionProblems.push(`${label}: ${p}`);
     return outcome(raw.validations, raw.data, raw.undeclaredDataPaths);
   };
+  const settle = (data) => {
+    const raw = evaluateFiled(clone(definition), clone(data), { nowIso: NOW });
+    const verdict = outcome(raw.validations, raw.data, raw.undeclaredDataPaths);
+    const again = evaluate('S(fixpoint)', verdict.data, 'submit', { server: true });
+    return { verdict, problems: [...againstExpected(verdict, expected), ...betweenLegs('fixpoint', again, verdict)] };
+  };
   const roundTrip = (data) => dataDiff(evaluate('P(round trip)', data, 'continuous').data, data)
     .map((d) => `round trip of expected.data ${d}`);
 
@@ -341,7 +347,7 @@ async function runProcessingCase(caseDoc, legs) {
     const liveFromFiled = evaluate('P(FormEngine live data)', liveSession.data, 'continuous');
     const liveProblems = betweenLegs('FormEngine live vs P', liveSession, liveFromFiled);
     if (submit) {
-      legs.set('S', againstExpected(evaluate('S(expected.data)', expected.data, 'submit', { server: true }), expected));
+      legs.set('S', settle(expected.data).problems);
       legs.set('F', liveProblems);
       legs.set('F_submit', againstExpected(engineOutcome(engine, 'on-submit'), expected));
     } else {
@@ -367,9 +373,8 @@ async function runProcessingCase(caseDoc, legs) {
     legs.set('F', liveProblems);
     if (submit) {
       const inSession = evaluate('P(submit)', sessionInput, 'submit');
-      const verdict = evaluate('S', inSession.data, 'submit', { server: true });
-      const again = evaluate('S(fixpoint)', verdict.data, 'submit', { server: true });
-      legs.set('S', [...againstExpected(verdict, expected), ...betweenLegs('fixpoint', again, verdict)]);
+      const { verdict, problems } = settle(inSession.data);
+      legs.set('S', problems);
       const session = engineOutcome(engine, 'on-submit');
       const fSubmit = betweenLegs('FormEngine submit vs S', session, verdict, { data: compareDraftData });
       if (caseDoc.kind === 'RESPONSE_VALIDATION') {

@@ -509,6 +509,7 @@ export interface IFormEngine {
     setValue(name: string, value: FormFieldValue, options?: SetValueOptions): void;
 
     getValidationReport(): ValidationReport;
+    /** Throws if the on-submit data do not converge. */
     getValidationReport(options: { profile?: EnabledValidationProfile }): ValidationReport;
     getValidationReport(options: { profile: 'off' }): null;
     getValidationReport(options: ValidationReportOptions): ValidationReport | null;
@@ -519,6 +520,7 @@ export interface IFormEngine {
     getDownstreamImpact(path: string): string[];
     getFieldPaths(): string[];
     getEvaluatedFormState(options?: ValidationReportOptions): EvaluatedFormState;
+    /** Returns data for the Response profile. Throws if on-submit data do not converge. */
     getResponse(meta?: {
         id?: string;
         author?: { id: string; name?: string };
@@ -528,7 +530,10 @@ export interface IFormEngine {
         profile?: ValidationProfile;
     }): FormResponse;
 
-    /** Capture response data and validation from one evaluation and clock. */
+    /**
+     * Capture data for the Response profile and a report for the validation profile with one clock.
+     * Throws if on-submit data do not converge.
+     */
     getResponseSnapshot(meta?: Parameters<IFormEngine['getResponse']>[0], validationProfile?: ValidationProfile): { response: FormResponse; validationReport: ValidationReport | null };
 
     getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot;

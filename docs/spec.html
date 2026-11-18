@@ -9250,6 +9250,19 @@ node becomes relevant again, its value is restored. If a
 is declared, the node retains whatever value it had before becoming
 non-relevant.</p></li>
 </ol>
+<p>Before filing a Response, the processor MUST evaluate in the submit
+profile and feed each pass’s output <code>data</code> into the next pass
+until the output equals the input. A single pass can leave answers whose
+relevance depends on an answer pruned in that pass. A later pass sees
+answers omitted from its input as <code>null</code> and recomputes
+calculations. All passes use the same evaluation time. The filer MUST
+use the settled evaluation’s <code>data</code> and validation results,
+including any external validation results under §5.7.</p>
+<p>When rechecking a submitted Response, the processor MUST evaluate the
+filed <code>data</code> in the submit profile and refuse the Response if
+re-evaluation changes its data. For this comparison, an omitted declared
+repeat is equivalent to an empty array, including any enclosing group
+objects that exist only to hold such arrays.</p>
 <h3 id="external-validation-results">5.7 External Validation
 Results</h3>
 <p>External systems — server-side APIs, third-party validators, business

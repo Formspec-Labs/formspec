@@ -14,7 +14,7 @@ use formspec_core::{
 };
 use formspec_eval::{
     AnswerInput, AnswerState, EvalContext, EvalOptions, eval_context_from_json_object, evaluate,
-    evaluate_screener_document, evaluation_result_to_json_value_styled,
+    evaluate_filed, evaluate_screener_document, evaluation_result_to_json_value_styled,
     extension_constraints_from_registry_documents, item_text_request_from_json_object,
     parse_answer_state,
 };
@@ -180,12 +180,13 @@ pub fn lint_document(
 ///     context: Optional dict with now_iso / previous_validations / itemText
 ///         (snake or camel keys), and subjectType and subjectKeys from the Response subject
 ///     extension_functions: Optional dict of FEL extension name → callable (Core §3.12)
+///     settle: Run submit evaluation until the Response data are stable.
 ///
 /// Returns:
 ///     A dict with: values, validations, diagnostics, nonRelevant, variables, required, readonly
 ///     (camelCase validation and diagnostic fields), plus `itemText` when `context` carried
 ///     `itemText: { localeStrings? }` (Core §4.2.1).
-#[pyfunction(signature = (definition, data, trigger=None, registry_documents=None, instances=None, context=None, extension_functions=None))]
+#[pyfunction(signature = (definition, data, trigger=None, registry_documents=None, instances=None, context=None, extension_functions=None, *, settle=false))]
 #[expect(
     clippy::too_many_arguments,
     reason = "mirrors the Python keyword signature; each argument is an optional keyword"
@@ -199,6 +200,7 @@ pub fn evaluate_def(
     instances: Option<&Bound<'_, PyAny>>,
     context: Option<&Bound<'_, PyAny>>,
     extension_functions: Option<&Bound<'_, PyDict>>,
+    settle: bool,
 ) -> PyResult<PyObject> {
     let definition: fel_core::exact_json::Value = crate::convert::depythonize_exact(definition)?;
     let data_val: fel_core::exact_json::Value = crate::convert::depythonize_exact(data)?;
@@ -253,7 +255,12 @@ pub fn evaluate_def(
         options = options.item_text(request);
     }
 
-    let result = evaluate(&definition, &data, &options);
+    let result = if settle {
+        evaluate_filed(&definition, &data, &options)
+            .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?
+    } else {
+        evaluate(&definition, &data, &options)
+    };
 
     // Match TypeScript/WASM and Python tests: validation results use constraintKind / shapeId (see schemas).
     let json = evaluation_result_to_json_value_styled(&result, JsonWireStyle::JsCamel);

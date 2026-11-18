@@ -46,7 +46,7 @@ impl PreparedDefinition {
         data: &HashMap<String, Value>,
         options: &EvalOptions<'_>,
     ) -> EvaluationResult {
-        evaluate_prepared(self, data, options)
+        evaluate_prepared(self, data, options).unwrap_or_else(refuse_input)
     }
 }
 
@@ -103,16 +103,85 @@ pub fn evaluate(
     prepared_definition(definition).evaluate(data, options)
 }
 
+/// Submission data kept changing during evaluation.
+#[derive(Debug)]
+pub struct EvaluateFiledError;
+
+impl std::fmt::Display for EvaluateFiledError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Submit evaluation did not converge on stable Response data")
+    }
+}
+
+impl std::error::Error for EvaluateFiledError {}
+
+/// Prepare the data and verdict for filing a Response.
+///
+/// Runs in submit mode and uses the supplied clock throughout. Editing state
+/// can affect the initial pass only. The returned successful evaluation runs
+/// on its own output data with no editing state. An input refusal retains its
+/// findings and empty data.
+///
+/// # Errors
+///
+/// Returns [`EvaluateFiledError`] if the data do not settle within the pass limit.
+pub fn evaluate_filed(
+    definition: &Value,
+    data: &HashMap<String, Value>,
+    options: &EvalOptions<'_>,
+) -> Result<EvaluationResult, EvaluateFiledError> {
+    let prepared = prepared_definition(definition);
+    let mut options = options.clone();
+    options.trigger = types::EvalTrigger::Submit;
+    let mut result = match evaluate_prepared(&prepared, data, &options) {
+        Ok(result) => result,
+        Err(findings) => return Ok(refuse_input(findings)),
+    };
+    let previous_validations = options.context.previous_validations.take();
+    let previous_non_relevant = options.context.previous_non_relevant.take();
+    if previous_validations.is_none_or(|findings| findings.is_empty())
+        && previous_non_relevant.is_none_or(|paths| paths.is_empty())
+        && filed_data_is_stable(data, &result.data)
+    {
+        return Ok(result);
+    }
+    // Allow one pass per concrete item for cascaded pruning, plus recalculation and verification.
+    let max_passes = result.required.len() + 2;
+    for _ in 0..max_passes {
+        let Value::Object(output) = result.data else {
+            unreachable!("evaluation always produces a Response data object");
+        };
+        let input = output.into_iter().collect();
+        result = match evaluate_prepared(&prepared, &input, &options) {
+            Ok(result) => result,
+            Err(findings) => return Ok(refuse_input(findings)),
+        };
+        if filed_data_is_stable(&input, &result.data) {
+            return Ok(result);
+        }
+    }
+    Err(EvaluateFiledError)
+}
+
+fn filed_data_is_stable(input: &HashMap<String, Value>, output: &Value) -> bool {
+    output.as_object().is_some_and(|output| {
+        input.len() == output.len()
+            && input
+                .iter()
+                .all(|(key, value)| output.get(key) == Some(value))
+    })
+}
+
 fn evaluate_prepared(
     prepared: &PreparedDefinition,
     data: &HashMap<String, Value>,
     options: &EvalOptions,
-) -> EvaluationResult {
+) -> Result<EvaluationResult, Vec<ValidationResult>> {
     let definition = &prepared.definition;
     if let Some(subject) = &options.context.subject
         && let Err(refusal) = check_subject(definition, subject)
     {
-        return refuse_input(vec![refusal]);
+        return Err(vec![refusal]);
     }
     let mut options = options.clone();
     hydrate_inline_instances(definition, &mut options.instances);
@@ -126,16 +195,20 @@ fn evaluate_prepared(
         )
     {
         if let Err(message) = fel_core::exact_json::check_decimal_range(value) {
-            return refuse_input(vec![type_error(path, message)]);
+            return Err(vec![type_error(path, message)]);
         }
     }
     if !prepared.definition_errors.is_empty() {
-        return refuse_input(prepared.definition_errors.clone());
+        return Err(prepared.definition_errors.clone());
     }
     let mut items = prepared.items.clone();
     let flat = match rebuild::flatten_response_data(&items, data) {
         Ok(flat) => flat,
-        Err(conflicts) => return refuse_ambiguous_input(&conflicts),
+        Err(conflicts) => {
+            return Err(conflicts.iter().map(|path| type_error(path, format!(
+                "`{path}` is supplied both as a flat dotted key and inside its group object; supply it once"
+            ))).collect());
+        }
     };
     let mut counts = flat.repeat_counts;
     rebuild::expand_repeat_instances_counted(&mut items, &mut counts);
@@ -239,7 +312,7 @@ fn evaluate_prepared(
         .map(|(name, value)| (name.clone(), fel_core::exact_json::from_fel(value)))
         .collect();
 
-    EvaluationResult {
+    Ok(EvaluationResult {
         values,
         host_values,
         data,
@@ -252,7 +325,7 @@ fn evaluate_prepared(
         required,
         readonly,
         item_text,
-    }
+    })
 }
 
 /// Check a supplied subject against Core §2.1.6 before any FEL expression runs.
@@ -345,13 +418,6 @@ fn type_error(path: &str, message: String) -> ValidationResult {
         shape_id: None,
         context: None,
     }
-}
-
-/// Refuse ambiguous flat and nested input before any evaluation takes place.
-fn refuse_ambiguous_input(paths: &[String]) -> EvaluationResult {
-    refuse_input(paths.iter().map(|path| type_error(path, format!(
-        "`{path}` is supplied both as a flat dotted key and inside its group object; supply it once"
-    ))).collect())
 }
 
 fn refuse_input(validations: Vec<ValidationResult>) -> EvaluationResult {

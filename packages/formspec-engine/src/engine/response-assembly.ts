@@ -378,8 +378,11 @@ export function buildFormspecResponseEnvelope(options: {
 }
 
 /** Keep findings visible in the report produced for evaluated response data. */
-export function collectRelevantValidationResults(result: EvalResult): ValidationResult[] {
-    return result.validations.filter(validation => validation.shapeId || !result.nonRelevant.some(path =>
+export function collectRelevantValidationResults(
+    result: EvalResult,
+    validations = result.validations,
+): ValidationResult[] {
+    return validations.filter(validation => validation.shapeId || !result.nonRelevant.some(path =>
         validation.path === path || validation.path.startsWith(`${path}.`) || validation.path.startsWith(`${path}[`),
     )).map(toValidationResult);
 }

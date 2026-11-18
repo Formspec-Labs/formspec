@@ -24,6 +24,7 @@ __all__ = [
     "LintDiagnostic",
     "RegistryInfo",
     "evaluate_definition",
+    "evaluate_filed",
     "lint",
     "lint_report",
     "detect_document_type",

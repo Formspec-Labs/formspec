@@ -7,7 +7,8 @@ use fel_core::exact_json::Value;
 use formspec_core::json_object_to_string_map;
 use formspec_eval::{
     AnswerInput, AnswerState, EvalOptions, eval_host_context_from_json_map, evaluate,
-    evaluate_screener_document, evaluation_result_to_host_snapshot_json_value, parse_answer_state,
+    evaluate_filed, evaluate_screener_document, evaluation_result_to_host_snapshot_json_value,
+    parse_answer_state,
 };
 use wasm_bindgen::prelude::*;
 
@@ -43,6 +44,38 @@ pub(crate) fn evaluate_definition_inner(
     context_json: Option<String>,
     extensions: Option<&dyn ExtensionFunctions>,
 ) -> Result<String, String> {
+    evaluate_definition_json(definition_json, data_json, context_json, extensions, false)
+}
+
+/// Prepare stable Response data and its submit verdict with the supplied clock.
+///
+/// # Errors
+///
+/// Returns an error for invalid JSON, invalid context, or data that do not settle.
+#[wasm_bindgen(js_name = "evaluateFiled")]
+pub fn evaluate_filed_wasm(
+    definition_json: &str,
+    data_json: &str,
+    context_json: Option<String>,
+    extensions: Option<FelExtensionHost>,
+) -> Result<String, JsError> {
+    evaluate_definition_json(
+        definition_json,
+        data_json,
+        context_json,
+        extensions.as_ref().map(|e| e as &dyn ExtensionFunctions),
+        true,
+    )
+    .map_err(|e| JsError::new(&e))
+}
+
+fn evaluate_definition_json(
+    definition_json: &str,
+    data_json: &str,
+    context_json: Option<String>,
+    extensions: Option<&dyn ExtensionFunctions>,
+    settle: bool,
+) -> Result<String, String> {
     let definition: Value = parse_json_as(definition_json, "definition JSON")?;
     let data_val: Value = parse_json_as(data_json, "data JSON")?;
 
@@ -76,7 +109,11 @@ pub(crate) fn evaluate_definition_inner(
         },
     };
 
-    let result = evaluate(&definition, &data, &options);
+    let result = if settle {
+        evaluate_filed(&definition, &data, &options).map_err(|e| e.to_string())?
+    } else {
+        evaluate(&definition, &data, &options)
+    };
 
     let json = evaluation_result_to_host_snapshot_json_value(&result);
     to_json_string(&json)

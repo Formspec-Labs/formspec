@@ -410,6 +410,13 @@ Per-shape `timing` interacts with global mode: disabled overrides all; deferred 
 4. Calculate continues evaluating (value available to other expressions); `excludedValue` controls what downstream sees
 5. Re-relevance restores value; `default` applied if declared
 
+Before filing, evaluate in the submit profile with one clock until a pass
+returns the same `data` it received. A later pass sees answers omitted from its
+input as `null` and recomputes calculations. File the settled data and findings, including
+external validation results under §5.7. On recheck, refuse a Response whose
+data change. Omitted declared repeats compare equal to empty arrays, including
+group objects that exist only to hold those arrays.
+
 ### External Validation
 
 External systems inject results with `source: "external"` and optional `sourceId`. Merged into ValidationReport, participate in `valid` determination. Same path+code → idempotent replacement.

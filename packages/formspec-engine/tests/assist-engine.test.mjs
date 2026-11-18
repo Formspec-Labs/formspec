@@ -83,11 +83,7 @@ test('evaluated state adds no edit evaluation and includes submit-only findings 
   }));
   const engine = new FormEngine(definition);
   const liveEvaluation = t.mock.method(engine, '_evaluate');
-  const evaluateTimed = engine.evaluateResultForTrigger.bind(engine);
-  const timedEvaluation = t.mock.method(engine, 'evaluateResultForTrigger', (...args) => {
-    const evaluation = evaluateTimed(...args);
-    return { ...evaluation, validations: [...evaluation.validations, ...evaluation.validations] };
-  });
+  const timedEvaluation = t.mock.method(engine, 'evaluateResultForTrigger');
   engine.setValue('zero', 0);
   engine.setValue('false', false);
   const state = engine.getEvaluatedFormState();
@@ -98,8 +94,9 @@ test('evaluated state adds no edit evaluation and includes submit-only findings 
   assert.deepEqual(state.report.results.filter(result => result.shapeId).map(result => result.shapeId), ['continuous']);
 
   const saved = engine.getEvaluatedFormState({ profile: 'on-submit' });
-  assert.equal(timedEvaluation.mock.callCount(), 1);
-  assert.equal(timedEvaluation.mock.calls[0].arguments[0], 'submit');
+  // Rust handles projection and the final recheck in a single engine call.
+  assert.deepEqual(timedEvaluation.mock.calls.map(call => call.arguments[0]), ['submit']);
+  assert.equal(Object.hasOwn(timedEvaluation.mock.calls[0].result.data, 'hidden'), false);
   assert.deepEqual(saved.report.results.filter(result => result.shapeId).map(result => result.shapeId), ['continuous', 'submit']);
   assert.deepEqual(saved.fields, state.fields);
 
@@ -107,7 +104,8 @@ test('evaluated state adds no edit evaluation and includes submit-only findings 
   const noSubmitCalls = t.mock.method(noSubmit, 'evaluateResultForTrigger');
   assert.deepEqual(noSubmit.getEvaluatedFormState({ profile: 'on-submit' }).report.results.filter(result => result.shapeId).map(result => result.shapeId), ['continuous']);
   assert.deepEqual(noSubmit.getValidationReport({ profile: 'on-submit' }).results, noSubmit.getValidationReport().results);
-  assert.equal(noSubmitCalls.mock.callCount(), 0);
+  // A form without submit-timed Shapes can still have different draft and filed verdicts.
+  assert.deepEqual(noSubmitCalls.mock.calls.map(call => call.arguments[0]), ['submit', 'submit']);
 });
 
 for (const [source, definitionOptions, shapeOptions] of [
@@ -129,13 +127,15 @@ for (const [source, definitionOptions, shapeOptions] of [
     const evaluate = engine.evaluateResultForTrigger.bind(engine);
     const calls = t.mock.method(engine, 'evaluateResultForTrigger', (...args) => {
       const evaluation = evaluate(...args);
-      return { ...evaluation, validations: [...evaluation.validations, explanation, explanation] };
+      // The settled evaluator will supply the acknowledgement alongside its final findings.
+      return { ...evaluation, validations: [...evaluation.validations, explanation] };
     });
 
     assert.equal(engine.getEvaluatedFormState().report.valid, true);
     assert.equal(calls.mock.callCount(), 0);
     const saved = engine.getEvaluatedFormState({ profile: 'on-submit' }).report;
-    assert.equal(calls.mock.callCount(), 1);
+    // The acknowledgement error must survive the fresh pass over the filed answers.
+    assert.deepEqual(calls.mock.calls.map(call => call.arguments[0]), ['submit']);
     assert.equal(saved.valid, false);
     assert.deepEqual(saved.results.map(result => result.code), ['CHECK', 'EXPLANATION_REQUIRED']);
     assert.deepEqual(saved.results, engine.getValidationReport({ profile: 'on-submit' }).results);
@@ -145,7 +145,7 @@ for (const [source, definitionOptions, shapeOptions] of [
   });
 }
 
-test('on-submit report skips evaluation when both explanation modes are none', (t) => {
+test('on-submit report checks filed data when both explanation modes are none', (t) => {
   const engine = new FormEngine({
     ...makeDefinition(), warningExplanation: 'none',
     shapes: [{ id: 'check', target: '#', explanation: 'none', severity: 'warning',
@@ -153,7 +153,8 @@ test('on-submit report skips evaluation when both explanation modes are none', (
   });
   const calls = t.mock.method(engine, 'evaluateResultForTrigger');
   assert.deepEqual(engine.getValidationReport({ profile: 'on-submit' }).results, engine.getValidationReport().results);
-  assert.equal(calls.mock.callCount(), 0);
+  // A disabled explanation mode does not skip the filed-data check.
+  assert.deepEqual(calls.mock.calls.map(call => call.arguments[0]), ['submit']);
 });
 
 test('a write records who made it, so assist can guard a respondent\'s own typing', () => {

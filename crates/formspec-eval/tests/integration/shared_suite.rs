@@ -6,7 +6,7 @@
 //! engine (`formspec/thoughts/plans/evaluator-parity.md` §2.7):
 //!
 //! - `P`: evaluate the created data for a new Response, or the payload for a saved Response; for continuous cases it equals `expected`.
-//! - `S`: `evaluate(def, P.data, submit)`, the verdict on the filed bytes; for submit cases it
+//! - `S`: `evaluate_filed(def, P.data)`, the settled submit verdict; for submit cases it
 //!   equals `expected` and is a fixpoint.
 //! - `noInvention`: no evaluate call adds a key or changes a value, except calculated fields, the
 //!   `nonRelevantBehavior` projection of non-relevant fields, and declared repeats absent from the
@@ -22,10 +22,11 @@ use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 
 use fel_core::exact_json::Value;
+use formspec_core::json_object_to_string_map;
 use formspec_eval::{
-    CreateOptions, EvalOptions, EvalTrigger, HostFelContext, ItemTextRequest, create_response,
-    evaluate, evaluation_result_to_json_value, extension_constraints_from_registry_documents,
-    filed_response_data_matches,
+    CreateOptions, EvalOptions, EvalTrigger, EvaluationResult, HostFelContext, ItemTextRequest,
+    create_response, evaluate, evaluate_filed, evaluation_result_to_json_value,
+    extension_constraints_from_registry_documents, filed_response_data_matches,
 };
 
 /// The runner's name in the ledger.
@@ -106,6 +107,16 @@ struct Outcome {
 }
 
 impl Outcome {
+    fn from_evaluation(result: &EvaluationResult) -> Self {
+        let json = evaluation_result_to_json_value(result);
+        Self {
+            results: sorted_results(json["validations"].as_array().map_or(&[], Vec::as_slice)),
+            data: json["data"].clone(),
+            undeclared: json.get("undeclaredDataPaths").cloned(),
+            non_relevant: result.non_relevant.clone(),
+        }
+    }
+
     fn count(&self, severity: &str) -> u64 {
         self.results
             .iter()
@@ -180,11 +191,25 @@ struct Evaluator<'a> {
 }
 
 impl Evaluator<'_> {
+    fn check_filed(&mut self, data: &Value, expected: &Value) -> Vec<String> {
+        let mut options = EvalOptions::default().trigger(EvalTrigger::Submit);
+        options.context.now_iso = Some(NOW.to_owned());
+        let result = evaluate_filed(self.definition, &json_object_to_string_map(data), &options)
+            .expect("suite filing should settle");
+        let verdict = Outcome::from_evaluation(&result);
+        let again = self.run(
+            "S(fixpoint)",
+            &verdict.data,
+            EvalTrigger::Submit,
+            Caller::Server,
+        );
+        let mut problems = against_expected(&verdict, expected);
+        problems.extend(between_legs("fixpoint", &again, &verdict));
+        problems
+    }
+
     fn run(&mut self, label: &str, data: &Value, trigger: EvalTrigger, caller: Caller) -> Outcome {
-        let fields: HashMap<String, Value> = data
-            .as_object()
-            .map(|m| m.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
-            .unwrap_or_default();
+        let fields = json_object_to_string_map(data);
         let mut options = EvalOptions::default().trigger(trigger);
         if matches!(caller, Caller::Session) {
             options = options.extension_constraints(extension_constraints_from_registry_documents(
@@ -192,20 +217,7 @@ impl Evaluator<'_> {
             ));
         }
         options.context.now_iso = Some(NOW.to_string());
-        let json = evaluation_result_to_json_value(&evaluate(self.definition, &fields, &options));
-        let outcome = Outcome {
-            results: sorted_results(json["validations"].as_array().map_or(&[], Vec::as_slice)),
-            data: json["data"].clone(),
-            undeclared: json.get("undeclaredDataPaths").cloned(),
-            non_relevant: json["nonRelevant"]
-                .as_array()
-                .map(|a| {
-                    a.iter()
-                        .filter_map(|p| p.as_str().map(str::to_string))
-                        .collect()
-                })
-                .unwrap_or_default(),
-        };
+        let outcome = Outcome::from_evaluation(&evaluate(self.definition, &fields, &options));
         let problems = inventions(self.definition, data, &outcome);
         if !problems.is_empty() && filed_response_data_matches(self.definition, data, &outcome.data)
         {
@@ -696,9 +708,10 @@ fn run_processing(case: &Value, legs: &mut Legs) {
     if case.get("operations").is_some() {
         // The filed record is `expected.data`; the session that produced it runs in TypeScript.
         if submit {
-            let verdict =
-                evaluator.run("S(expected.data)", &expected["data"], mode, Caller::Server);
-            legs.insert("S".to_string(), against_expected(&verdict, &expected));
+            legs.insert(
+                "S".to_string(),
+                evaluator.check_filed(&expected["data"], &expected),
+            );
         } else {
             let recheck =
                 evaluator.run("P(expected.data)", &expected["data"], mode, Caller::Session);
@@ -729,16 +742,10 @@ fn run_processing(case: &Value, legs: &mut Legs) {
         if submit {
             let in_session =
                 evaluator.run("P(submit)", &payload, EvalTrigger::Submit, Caller::Session);
-            let verdict = evaluator.run("S", &in_session.data, EvalTrigger::Submit, Caller::Server);
-            let again = evaluator.run(
-                "S(fixpoint)",
-                &verdict.data,
-                EvalTrigger::Submit,
-                Caller::Server,
+            legs.insert(
+                "S".to_string(),
+                evaluator.check_filed(&in_session.data, &expected),
             );
-            let mut problems = against_expected(&verdict, &expected);
-            problems.extend(between_legs("fixpoint", &again, &verdict));
-            legs.insert("S".to_string(), problems);
         } else {
             let mut problems = against_expected(&live, &expected);
             if let Some(data) = expected.get("data") {

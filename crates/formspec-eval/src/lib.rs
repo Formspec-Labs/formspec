@@ -66,7 +66,7 @@ pub use eval_options::EvalOptions;
 pub use host_context::HostFelContext;
 pub use nrb::{apply_nrb, resolve_nrb};
 pub use output_data::filed_response_data_matches;
-pub use pipeline::{PreparedDefinition, evaluate};
+pub use pipeline::{EvaluateFiledError, PreparedDefinition, evaluate, evaluate_filed};
 pub use rebuild::parse_variables;
 pub use rebuild::{expand_repeat_instances, expand_wildcard_path, rebuild_item_tree};
 pub use recalculate::recalculate;

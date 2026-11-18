@@ -62,6 +62,8 @@ def evaluate_def(
     instances: dict[str, Any] | None = None,
     context: dict[str, Any] | None = None,
     extension_functions: dict[str, Any] | None = None,
+    *,
+    settle: bool = False,
 ) -> dict[str, Any]: ...
 
 def coerce_field_value(

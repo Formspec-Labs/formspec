@@ -1,7 +1,9 @@
 """Tests for the _rust bridge module — verifies Python↔Rust boundary."""
 
 import inspect
+import json
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from formspec import _native as formspec_rust
@@ -89,7 +91,10 @@ def test_formspec_rust_exports_expected_contract():
         "instances",
         "context",
         "extension_functions",
+        "settle",
     ]
+    assert signature.parameters["settle"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert signature.parameters["settle"].default is False
 
     signature = inspect.signature(formspec_rust.lint_document)
     assert list(signature.parameters.keys()) == [
@@ -367,6 +372,49 @@ def test_evaluate_definition_simple():
     assert isinstance(result, ProcessingResult)
     assert isinstance(result.valid, bool)
     assert isinstance(result.data, dict)
+
+
+def test_evaluate_filed_settles_relevance_chain():
+    from formspec import evaluate_filed
+
+    suite = Path(__file__).parents[1] / "conformance/suite"
+    case = json.loads((suite / "parity-nrb-relevance-chain.json").read_text())
+    definition = json.loads((suite.parents[2] / case["definitionPath"]).read_text())
+    data = case["inputData"]
+
+    assert evaluate_definition(definition, data, mode="submit").data == {"y": 6, "z": 7}
+    filed = evaluate_filed(definition, data)
+    assert filed.valid
+    assert filed.data == case["expected"]["data"]
+    assert evaluate_definition(definition, filed.data, mode="submit") == filed
+
+
+def test_evaluate_filed_keeps_a_refusal_for_ambiguous_data():
+    from formspec import evaluate_filed
+
+    definition = {
+        "items": [{
+            "type": "group", "key": "g",
+            "children": [{"type": "field", "key": "x", "dataType": "integer"}],
+        }],
+    }
+    result = evaluate_filed(definition, {"g": {"x": 1}, "g.x": 2})
+    assert not result.valid
+    assert result.data == {}
+    assert [finding["code"] for finding in result.results] == ["TYPE_MISMATCH"]
+
+
+def test_evaluate_filed_refuses_non_convergence():
+    from formspec import evaluate_filed
+
+    definition = {
+        "items": [{"type": "field", "key": "x", "dataType": "integer"}],
+        "binds": [{"path": "x", "relevant": "not(present($x))", "calculate": "1"}],
+    }
+    assert evaluate_definition(definition, {}, mode="submit").data == {"x": 1}
+    assert evaluate_definition(definition, {"x": 1}, mode="submit").data == {}
+    with pytest.raises(ValueError, match="did not converge"):
+        evaluate_filed(definition, {})
 
 
 def test_evaluate_definition_validation_keys_match_wasm_camel_case():

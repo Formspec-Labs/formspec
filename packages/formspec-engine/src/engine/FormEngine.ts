@@ -1,6 +1,5 @@
 /** @filedesc Reactive FormEngine: field signals, WASM-backed FEL evaluation, validation, and response assembly. */
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
-import { validationResultIdentity } from '@formspec-org/types';
 
 
 import type {
@@ -63,6 +62,7 @@ import {
     wasmCreateRepeatRow,
     wasmCreateResponse,
     wasmEvaluateDefinition,
+    wasmEvaluateFiled,
 } from '../wasm-bridge-runtime.js';
 import {
     resolveOptionSetsOnDefinition,
@@ -694,15 +694,11 @@ export class FormEngine implements IFormEngine {
         report: ValidationReport;
         diagnostics: EvalDiagnostic[];
     } {
-        const results: ValidationResult[] = [];
+        let results: ValidationResult[] = [];
         let diagnostics = this._fullResult?.diagnostics ?? [];
         const timestamp = this.nowISO();
 
-        if (trigger === 'demand') {
-            const demandResult = this.evaluateResultForTrigger('demand', timestamp);
-            diagnostics = demandResult.diagnostics;
-            results.push(...collectTimedShapeValidationResults(demandResult, this._shapeTiming, 'demand'));
-        } else {
+        if (trigger === 'continuous') {
             for (const [path, signalRef] of Object.entries(this.validationResults)) {
                 if (this.isPathRelevant(path)) {
                     results.push(...signalRef.value);
@@ -712,18 +708,10 @@ export class FormEngine implements IFormEngine {
             for (const signalRef of Object.values(this.shapeResults)) {
                 results.push(...signalRef.value);
             }
-
-            if (trigger === 'submit' && this.hasSubmitValidation()) {
-                const submitResult = this.evaluateResultForTrigger('submit', timestamp);
-                diagnostics = submitResult.diagnostics;
-                const seen = new Set(results.map(validationResultIdentity));
-                for (const result of collectRelevantValidationResults(submitResult)) {
-                    const identity = validationResultIdentity(result);
-                    if (seen.has(identity)) continue;
-                    seen.add(identity);
-                    results.push(result);
-                }
-            }
+        } else {
+            const result = this.evaluateResultForTrigger(trigger, timestamp);
+            diagnostics = result.diagnostics;
+            results = this.collectResponseValidationResults(result, trigger);
         }
 
         return {
@@ -737,13 +725,20 @@ export class FormEngine implements IFormEngine {
         };
     }
 
-    private hasSubmitValidation(): boolean {
-        const { warningExplanation, shapes } = this.definition;
-        if (warningExplanation && warningExplanation !== 'none') {
-            return true;
+    private collectResponseValidationResults(
+        result: EvalResult,
+        trigger: Exclude<ValidationTrigger, 'disabled'>,
+    ): ValidationResult[] {
+        if (trigger === 'demand') {
+            return collectTimedShapeValidationResults(result, this._shapeTiming, 'demand');
         }
-        return shapes?.some(({ timing, explanation }) => timing === 'submit'
-            || (explanation && explanation !== 'none')) ?? false;
+        if (trigger === 'submit') {
+            return [
+                ...result.validations.map(toValidationResult),
+                ...collectRelevantValidationResults(result, this._externalValidation as unknown as EvalValidation[]),
+            ];
+        }
+        return collectRelevantValidationResults(result);
     }
 
     public evaluateShape(shapeId: string): ValidationResult[] {
@@ -876,7 +871,7 @@ export class FormEngine implements IFormEngine {
         return this.getResponseSnapshot(meta).response;
     }
 
-    /** One evaluation and clock for response data and its requested validation report. */
+    /** Capture response data and its requested validation report with one clock. */
     public getResponseSnapshot(
         meta?: Parameters<IFormEngine['getResponse']>[0],
         validationProfile?: ValidationProfile,
@@ -889,20 +884,15 @@ export class FormEngine implements IFormEngine {
         const responseTrigger = this._validationProfileResolver.resolve(profile);
         const trigger = this._validationProfileResolver.resolve(validationProfile ?? profile);
         const timestamp = this.nowISO();
-        const result = this.evaluateResultForTrigger(trigger, timestamp);
-        const data = cloneValue(result.data);
-        for (const path of this._pendingCreationPaths) {
-            if (!this.repeats[path]) continue;
-            const parentPath = parentPathOf(path);
-            const parent = getNestedValue(data, parentPath);
-            if (isJsonRecord(parent)) {
-                delete parent[path.slice(parentPath ? parentPath.length + 1 : 0)];
-            }
-        }
+        const responseResult = this.evaluateResultForTrigger(responseTrigger, timestamp);
+        const data = responseTrigger === 'submit'
+            ? cloneValue(responseResult.data)
+            : this.draftResponseData(responseResult);
         const report = trigger === 'disabled' ? null : buildValidationReportEnvelope(
-            (trigger === 'demand'
-                ? collectTimedShapeValidationResults(result, this._shapeTiming, 'demand')
-                : collectRelevantValidationResults(result)),
+            this.collectResponseValidationResults(
+                trigger === responseTrigger ? responseResult : this.evaluateResultForTrigger(trigger, timestamp),
+                trigger,
+            ),
             timestamp,
             this.definition.url,
             this.definition.version,
@@ -919,6 +909,19 @@ export class FormEngine implements IFormEngine {
             meta,
         }) as unknown as FormResponse;
         return { response, validationReport: report };
+    }
+
+    private draftResponseData(result: EvalResult): Record<string, unknown> {
+        const data = cloneValue(result.data);
+        for (const path of this._pendingCreationPaths) {
+            if (!this.repeats[path]) continue;
+            const parentPath = parentPathOf(path);
+            const parent = getNestedValue(data, parentPath);
+            if (isJsonRecord(parent)) {
+                delete parent[path.slice(parentPath ? parentPath.length + 1 : 0)];
+            }
+        }
+        return data;
     }
 
     public getDiagnosticsSnapshot(options: ValidationReportOptions = { profile: 'live' }): FormEngineDiagnosticsSnapshot {
@@ -1860,21 +1863,32 @@ export class FormEngine implements IFormEngine {
         });
     }
 
-    private evaluateResultForTrigger(trigger: 'continuous' | 'submit' | 'demand' | 'disabled', nowIso = this.nowISO()): EvalResult {
-        return this.shapedEvalResult(wasmEvaluateDefinition(
+    private evaluateResultForTrigger(
+        trigger: ValidationTrigger,
+        nowIso = this.nowISO(),
+        options: { data?: Record<string, unknown>; instances?: Record<string, unknown> } = {},
+    ): EvalResult {
+        const data = options.data ?? this.editingData();
+        if (trigger === 'submit') {
+            // A reactive report depends on edits, even if every answer was pruned from its data.
+            this._evaluationVersion.value;
+        }
+        const evaluate = trigger === 'submit' ? wasmEvaluateFiled : wasmEvaluateDefinition;
+        const result = evaluate(
             this.definition,
-            this.editingData(),
+            data,
             wasmEvaluateDefinitionPayload({
                 nowIso,
                 trigger,
-                previousResult: this._fullResult,
-                instances: this.instanceData,
+                previousResult: options.data === undefined ? this._fullResult : null,
+                instances: options.instances ?? this.instanceData,
                 registryDocuments: this._registryDocuments,
                 subjectType: this._responseSubject && (this._responseSubject.type ?? null),
                 subjectKeys: this._responseSubject?.keys,
             }),
             this._extensionFunctions,
-        ) as EvalResult);
+        ) as EvalResult;
+        return trigger === 'submit' ? result : this.shapedEvalResult(result);
     }
 
     private resolveRepeatPath(itemName: string): string {

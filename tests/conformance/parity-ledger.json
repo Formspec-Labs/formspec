@@ -270,18 +270,6 @@
         }
       }
     },
-    "parity.nrb-pruned-calc-input": {
-      "ts": {
-        "F_submit": {
-          "ticket": "fs-6be9",
-          "why": "FormEngine's submit report evaluates in-session data (x preserved, c 6, valid) instead of the filed bytes (x pruned, c null, y CONSTRAINT_FAILED) (N10, owner ruling Q6)",
-          "problems": [
-            "FormEngine submit vs S results only there {\"code\":\"CONSTRAINT_FAILED\",\"constraint\":\"$ = $c\",\"constraintKind\":\"constraint\",\"message\":\"y must equal c\",\"path\":\"y\",\"severity\":\"error\",\"source\":\"bind\"}",
-            "FormEngine submit vs S data c: 6 vs null"
-          ]
-        }
-      }
-    },
     "parity.undeclared-keys-kept-in-place": {
       "ts": {
         "P": {

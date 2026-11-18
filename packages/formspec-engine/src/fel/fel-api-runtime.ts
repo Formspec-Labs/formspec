@@ -10,6 +10,7 @@ import {
     wasmEvalFelWithTrace,
     wasmEvalFelWithContextTrace,
     wasmEvaluateDefinition,
+    wasmEvaluateFiled,
     wasmGetFelDependencies,
     wasmIsValidFelIdentifier,
     wasmItemAtPath,
@@ -101,6 +102,7 @@ export const evalFELWithTrace = wasmEvalFelWithTrace;
 export const evalFELWithContextTrace = wasmEvalFelWithContextTrace;
 
 export const evaluateDefinition = wasmEvaluateDefinition;
+export const evaluateFiled = wasmEvaluateFiled;
 
 /** Check if a string is a valid FEL identifier (canonical Rust lexer rule). */
 export const isValidFELIdentifier = wasmIsValidFelIdentifier;

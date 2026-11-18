@@ -29,6 +29,7 @@ export {
     printFEL,
     tryLiftConditionGroup,
     evaluateDefinition,
+    evaluateFiled,
     getBuiltinFELFunctionCatalog,
     getFELDependencies,
     isValidFELIdentifier,

@@ -91,6 +91,7 @@ def _assert_rust_extension_contract() -> None:
         "instances",
         "context",
         "extension_functions",
+        "settle",
     ]
     actual_params = list(signature.parameters.keys())
     if actual_params != expected_params:
@@ -653,6 +654,40 @@ def evaluate_definition(
         context,
         dict(extension_functions) if extension_functions is not None else None,
     )
+    return _processing_result(raw)
+
+
+def evaluate_filed(
+    definition: dict,
+    data: dict,
+    *,
+    registry_documents: list[dict] | None = None,
+    instances: dict[str, dict] | None = None,
+    context: dict | None = None,
+    extension_functions: Mapping[str, Callable[..., Any]] | None = None,
+) -> ProcessingResult:
+    """Prepare stable Response data and its submit verdict using one clock.
+
+    Use ``evaluate_definition(..., mode="submit")`` to recheck an existing
+    filing. The other inputs have the same meaning as in that function.
+
+    Raises:
+        ValueError: The Response data did not converge.
+    """
+    raw = formspec_rust.evaluate_def(
+        definition,
+        data,
+        "submit",
+        registry_documents,
+        instances,
+        context,
+        dict(extension_functions) if extension_functions is not None else None,
+        settle=True,
+    )
+    return _processing_result(raw)
+
+
+def _processing_result(raw: dict) -> ProcessingResult:
     validations = raw.get("validations", [])
     is_valid = not any(v.get("severity") == "error" for v in validations)
     return ProcessingResult(

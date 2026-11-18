@@ -3,6 +3,7 @@
 export {
     analyzeFEL,
     evaluateDefinition,
+    evaluateFiled,
     getFELDependencies,
     isValidFELIdentifier,
     itemAtPath,

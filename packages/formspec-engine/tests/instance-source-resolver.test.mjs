@@ -1,7 +1,7 @@
 /** Host source loading through the public engine; controlled fixtures are not provider evidence. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createFormEngine } from '../dist/index.js';
+import { createFormEngine, evaluateDefinition } from '../dist/index.js';
 import { initFormspecEngine } from '../dist/init-formspec-engine.js';
 
 await initFormspecEngine();
@@ -96,6 +96,25 @@ test('saving during source loading omits pending repeats and leaves active creat
   assert.deepEqual(resumed.getResponse().data.people, []);
   engine.dispose();
   resumed.dispose();
+});
+
+test('submit files the evaluated empty repeat while draft save can still omit it', async () => {
+  const source = deferred();
+  const def = definition();
+  const engine = createFormEngine(def, { instanceSourceResolver: () => source.promise });
+
+  assert.equal(Object.hasOwn(engine.getResponse({ profile: 'off' }).data, 'people'), false);
+  const draftWithSubmitReport = engine.getResponseSnapshot({ profile: 'off' }, 'on-submit');
+  assert.equal(Object.hasOwn(draftWithSubmitReport.response.data, 'people'), false);
+  assert.ok(draftWithSubmitReport.validationReport);
+  const response = engine.getResponse({ profile: 'on-submit' });
+  assert.deepEqual(response.data.people, []);
+  assert.deepEqual(response.data, evaluateDefinition(def, response.data, { trigger: 'submit' }).data);
+
+  source.resolve({ status: 'loaded', value: loaded });
+  await engine.waitForInstanceSources();
+  assert.deepEqual(engine.getResponse({ profile: 'on-submit' }).data.people, loaded.people);
+  engine.dispose();
 });
 
 test('removing a row reindexes pending creation in later rows', async () => {

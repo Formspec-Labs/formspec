@@ -235,9 +235,7 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
                             touchCurrentStep();
                             if (currentStepHasErrors()) return;
                             if (onSubmit) {
-                                const response = engine.getResponse({ profile: 'on-submit' });
-                                const validationReport = engine.getValidationReport({ profile: 'on-submit' });
-                                onSubmit({ response, validationReport });
+                                onSubmit(engine.getResponseSnapshot({ profile: 'on-submit' }));
                             }
                         }}
                     >

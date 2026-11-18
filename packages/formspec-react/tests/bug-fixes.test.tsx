@@ -6,7 +6,7 @@ import { flushSync } from 'react-dom';
 import { initFormspecEngine, createFormEngine } from '@formspec-org/engine';
 import type { LayoutNode } from '@formspec-org/layout';
 import { FormspecNode } from '../src/node-renderer';
-import { FormspecProvider, useFormspecContext } from '../src/context';
+import { FormspecProvider, useFormspecContext, type SubmitResult } from '../src/context';
 import { FormspecForm } from '../src/renderer';
 import { planContains } from '@formspec-org/layout';
 import type { DisplayComponentProps, ComponentMap } from '../src/component-map';
@@ -497,8 +497,8 @@ describe('Item 25: Alert role and severity', () => {
 
 // ── Item 6: Wizard submit mode ────────────────────────────────────────────
 
-describe('Item 6: Wizard submit calls engine with mode submit', () => {
-    function wizardWithSteps(onSubmit: () => void): LayoutNode {
+describe('Item 6: Wizard submit uses a single submit snapshot', () => {
+    function wizardWithSteps(): LayoutNode {
         return {
             id: 'wiz-submit',
             component: 'Wizard',
@@ -518,10 +518,14 @@ describe('Item 6: Wizard submit calls engine with mode submit', () => {
         };
     }
 
-    it('calls getResponse({ profile: "on-submit" }) when submit is clicked', () => {
-        const engine = createFormEngine(simpleDef);
-        const spy = vi.spyOn(engine, 'getResponse');
-        const submitted: any[] = [];
+    it('captures the Response and submit-only findings with one clock read', () => {
+        let clockReads = 0;
+        const engine = createFormEngine({
+            ...simpleDef,
+            shapes: [{ id: 'submit-only', target: '#', timing: 'submit', constraint: 'false', message: 'Submit check' }],
+        }, { runtimeContext: { now: () => new Date(Date.UTC(2026, 10, 18, 12, 0, clockReads++)) } });
+        const snapshot = vi.spyOn(engine, 'getResponseSnapshot');
+        const submitted: SubmitResult[] = [];
 
         const container = document.createElement('div');
         document.body.appendChild(container);
@@ -529,38 +533,24 @@ describe('Item 6: Wizard submit calls engine with mode submit', () => {
         flushSync(() => {
             root.render(
                 <FormspecProvider engine={engine} onSubmit={(r) => submitted.push(r)}>
-                    <FormspecNode node={wizardWithSteps(() => {})} />
+                    <FormspecNode node={wizardWithSteps()} />
                 </FormspecProvider>
             );
         });
 
         const submitBtn = container.querySelector('.formspec-wizard-submit') as HTMLButtonElement;
         expect(submitBtn).toBeTruthy();
+        const readsBeforeSubmit = clockReads;
         flushSync(() => { submitBtn.click(); });
 
-        expect(spy).toHaveBeenCalledWith(expect.objectContaining({ profile: 'on-submit' }));
-    });
-
-    it('calls getValidationReport({ profile: "on-submit" }) when submit is clicked', () => {
-        const engine = createFormEngine(simpleDef);
-        const spy = vi.spyOn(engine, 'getValidationReport');
-        const submitted: any[] = [];
-
-        const container = document.createElement('div');
-        document.body.appendChild(container);
-        const root = createRoot(container);
-        flushSync(() => {
-            root.render(
-                <FormspecProvider engine={engine} onSubmit={(r) => submitted.push(r)}>
-                    <FormspecNode node={wizardWithSteps(() => {})} />
-                </FormspecProvider>
-            );
-        });
-
-        const submitBtn = container.querySelector('.formspec-wizard-submit') as HTMLButtonElement;
-        flushSync(() => { submitBtn.click(); });
-
-        expect(spy).toHaveBeenCalledWith(expect.objectContaining({ profile: 'on-submit' }));
+        // The single snapshot replaces separate Response and validation calls.
+        expect(snapshot).toHaveBeenCalledExactlyOnceWith({ profile: 'on-submit' });
+        expect(clockReads - readsBeforeSubmit).toBe(1);
+        expect(submitted).toHaveLength(1);
+        const [{ response, validationReport }] = submitted;
+        expect(response.authored).toBe(validationReport?.timestamp);
+        expect(response.validationResults).toEqual(validationReport?.results);
+        expect(validationReport?.results.map(result => result.shapeId)).toEqual(['submit-only']);
     });
 });
 
