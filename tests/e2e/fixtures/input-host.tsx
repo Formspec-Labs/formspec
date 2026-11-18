@@ -7,15 +7,16 @@ import { FormspecForm } from '../../../packages/formspec-react/src/renderer';
 await initFormspecEngine();
 const options = [{ value: 'AK', label: 'Alaska' }, { value: 'CA', label: 'California' }];
 const field = (key: string) => ({ key, type: 'field', dataType: 'choice', label: 'State', options });
-const engine = createFormEngine({ $formspec: '1.0', url: 'urn:test:input-host', version: '1.0.0', title: 'Input host', items: [
+const mode = new URLSearchParams(location.search);
+const items = mode.has('display') ? [{ type: 'display', key: 'intro', label: 'Instructions' }] : [
     field('state'),
     { key: 'offices', type: 'group', label: 'Offices', repeatable: true, minRepeat: 1, children: [field('state')] },
     { key: 'amount', type: 'field', dataType: 'decimal', label: 'Amount', options: [
         { value: '0.5', label: 'Half' }, { value: '1.0', label: 'Full' },
         { value: '1.50', label: 'One and a half' }, { value: '02', label: 'Two' },
     ] },
-] } as never);
-const mode = new URLSearchParams(location.search);
+];
+const engine = createFormEngine({ $formspec: '1.0', url: 'urn:test:input-host', version: '1.0.0', title: 'Input host', items } as never);
 const tree = mode.has('numeric') ? { component: 'Select', bind: 'amount' }
     : mode.has('table') ? { component: 'DataTable', bind: 'offices', columns: [{ bind: 'state', header: 'State' }] }
     : undefined;

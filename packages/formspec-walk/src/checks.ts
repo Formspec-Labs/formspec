@@ -144,10 +144,15 @@ declare global {
 }
 
 /** Default selector matching `<formspec-render>` or a React `<FormspecForm>` root container. */
-export const DEFAULT_WALK_ROOT_SELECTOR =
-    ':is(formspec-render, [data-formspec-render-root], .formspec-container:not(formspec-render .formspec-container):has([data-formspec-form]))';
-export const WALK_FORM_CONTENT_SELECTOR =
-    ':is([data-formspec-form], [data-name], .formspec-repeat, .formspec-workspace, .formspec-wizard-panel, [role="tabpanel"]):not(.formspec-skeleton, .formspec-skeleton *)';
+export const DEFAULT_WALK_ROOT_SELECTOR = ':is(formspec-render, [data-formspec-render-root])';
+
+/** Ready forms carry the renderer marker on the root or its content. */
+export function renderedFormSelector(rootSelector: string, visible = false): string {
+    const root = rootSelector === DEFAULT_WALK_ROOT_SELECTOR ? rootSelector : `:is(${rootSelector})`;
+    const content = ':is([data-formspec-form], [data-name], .formspec-repeat, .formspec-workspace, .formspec-wizard-panel, [role="tabpanel"])';
+    const ready = `:not(.formspec-skeleton, .formspec-skeleton *)${visible ? ':visible' : ''}`;
+    return `${root}[data-formspec-form]${ready}, ${root} ${content}${ready}`;
+}
 
 /**
  * One rendered form under test. Each method checks one thing the documents promise and records what
@@ -176,9 +181,8 @@ export class Walk {
         const rootSelector = options.root ?? DEFAULT_WALK_ROOT_SELECTOR;
         if (options.url) await page.goto(options.url);
         if (options.mount) await options.mount(page);
-        // A display-only pager can mount without fields. Hidden earlier tabs may already be in the DOM.
-        const root = options.root === undefined ? rootSelector : `:is(${rootSelector})`;
-        await page.waitForSelector(`${root} ${WALK_FORM_CONTENT_SELECTOR}:visible`);
+        // Display-only forms can mount without fields. Hidden earlier tabs may already be in the DOM.
+        await page.waitForSelector(renderedFormSelector(rootSelector, true));
         if (options.expectedDefinition) {
             const expected = options.expectedDefinition;
             const matches = await page.locator(rootSelector).evaluate((element, target) => {

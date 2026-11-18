@@ -316,11 +316,16 @@ export function FormspecFormContent({ className }: FormspecFormContentProps) {
         );
     }
 
+    const definition = engine.getDefinition();
     return (
         <div
             ref={containerRef}
             className={containerClass}
             data-formspec-render-root=""
+            data-formspec-form=""
+            data-formspec-url={definition.url}
+            data-formspec-version={definition.version}
+            data-formspec-title={definition.title ?? ''}
             lang={activeLocale || undefined}
             dir={activeLocale ? direction : undefined}
         >

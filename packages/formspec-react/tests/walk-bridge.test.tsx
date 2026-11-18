@@ -121,8 +121,10 @@ describe('FormspecForm — @formspec-org/walk DOM inspection contract', () => {
             },
         });
 
-        const host = actRender(<FormspecForm engine={engine} />);
-        const container = host.querySelector(DEFAULT_WALK_ROOT_SELECTOR) as HTMLElement;
+        const host = actRender(<main className="formspec-container"><FormspecForm engine={engine} /></main>);
+        const roots = host.querySelectorAll<HTMLElement>(DEFAULT_WALK_ROOT_SELECTOR);
+        expect(roots).toHaveLength(1);
+        const container = roots[0];
         expect(container).toBeTruthy();
         if (typeof (container as any).checkVisibility !== 'function') {
             for (const node of host.querySelectorAll<HTMLElement>('[data-name]')) {
@@ -136,9 +138,8 @@ describe('FormspecForm — @formspec-org/walk DOM inspection contract', () => {
             }),
             waitForSelector: async (sel: string) => {
                 // The simulated DOM has CSS selectors but no Playwright visibility engine.
-                const visible = ':visible';
-                expect(sel.endsWith(visible)).toBe(true);
-                expect(host.querySelector(sel.slice(0, -visible.length))).toBeTruthy();
+                expect(sel.match(/:visible(?=, |$)/g)).toHaveLength(2);
+                expect(host.querySelector(sel.replaceAll(':visible', ''))).toBeTruthy();
             },
             waitForTimeout: async () => {
                 await settleAct();

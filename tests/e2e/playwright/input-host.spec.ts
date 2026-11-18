@@ -40,6 +40,18 @@ test('axe visits a single-page React form on its host', async ({ page }) => {
     expect(report, report.failure?.message).toMatchObject({ status: 'completed', pages: { kind: 'single', visited: 1 } });
 });
 
+test('axe visits a display-only React form on its host', async ({ page }) => {
+    await page.goto('/input-host.html?display');
+    await expect(page.getByText('Instructions', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-name]')).toHaveCount(0);
+    await page.locator('main').evaluate(host => host.classList.add('formspec-container'));
+    const report = await checkAccessibility(page, {
+        open: page => Walk.openPage(page, { expectedDefinition: { url: 'urn:test:input-host', version: '1.0.0' } }),
+        scanWholePage: true, timeoutMs: 5_000,
+    });
+    expect(report, report.failure?.message).toMatchObject({ status: 'completed', pages: { kind: 'single', visited: 1 } });
+});
+
 for (const [key, shown, saved] of [['f', '1.0', 1], ['o', '1.50', 1.5], ['t', '02', 2]] as const) {
     test(`numeric choice ${shown} keeps its authored spelling and saved number through a host input rerender`, async ({ page }) => {
         // A fresh page gives each one-action case a fresh native typeahead search buffer.
