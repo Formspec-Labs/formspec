@@ -721,7 +721,7 @@
         "E611 warns when a resolved transition trigger has no validator-readable control source on the route, including transitive embed-route slots.",
         "Runtime diagnostics include exact fire conditions and stable identifiers for unresolved documents, routes, slots, widgets, tokens, transitions, and verification failures.",
         "Bindings expose unavailable, unmatched, ambiguous, and unfireable states without inventing content or live marker URLs.",
-        "Native filing-status renders authorized draft observations and links to sections of the shared form plan. Counts stay outside live regions."
+        "Native filing-status renders authorized draft observations and links to sections of the shared form plan. Counts stay outside live regions. A draftReview binding resolves the target form's typed subject, waits for pending saves, and delivers the bundled Definition, full authorized committed Response, and wording derived from the Definition and active Locale. Absent, denied, and version-mismatch keep the widget unavailable."
       ]
     },
     {

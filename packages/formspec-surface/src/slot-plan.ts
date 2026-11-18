@@ -34,7 +34,7 @@
 import { admitScreenerPresentation, type ScreenerDocumentHandle } from './screener-slot.js';
 import type { ComponentDocument, FormDefinition, RegistryEntry } from '@formspec-org/types';
 import { targetDefinitionMatches } from '@formspec-org/types';
-import { parseRouteSubjectKey, widgetActionScopeMatches } from '@formspec-org/app-graph';
+import { parseRouteSubjectKey, resolveDraftReviewTarget, widgetActionScopeMatches } from '@formspec-org/app-graph';
 import type { ExperienceDocument } from '@formspec-org/types';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
 import type { SurfaceRoute } from './route-path.js';
@@ -105,6 +105,8 @@ export type SlotPlan<TComponent> = SlotPlanBase &
         config?: Readonly<Record<string, unknown>>;
         /** Registry-declared inputs after exact qualified-source resolution. */
         dataInputs: readonly WidgetDataInputPlan[];
+        /** Authored supplier for all three committed draft review inputs. */
+        draftReview?: DraftReviewPlan;
         /** Registry-declared outputs with their exact authored mappings, if any. */
         actionOutputs: readonly WidgetActionOutputPlan[];
         resolution: WidgetResolution<TComponent>;
@@ -203,6 +205,10 @@ export interface WidgetActionResponsePlan {
   definition: FormDefinition;
   descriptor: DataSourceDescriptor;
 }
+
+export type DraftReviewPlan =
+  | { status: 'ready'; definition: FormDefinition; subject?: DataSourceSubject }
+  | { status: 'unresolved'; reason: 'invalid-binding' | 'form-unresolved' | 'subject-keys-invalid' };
 
 export interface RoutePlan<TComponent> {
   handle: SurfaceRouteHandle;
@@ -423,7 +429,9 @@ function planSlot<TComponent>(
         : [];
       const dataBindings = ownRecord(binding, 'dataBindings');
       const actionBindings = ownRecord(binding, 'actionBindings');
-      const dataInputs: WidgetDataInputPlan[] = declaredInputs.map((declared) => {
+      const draftReview = Object.hasOwn(binding, 'draftReview')
+        ? planDraftReview(context, binding, widgetShape) : undefined;
+      const dataInputs: WidgetDataInputPlan[] = (draftReview ? [] : declaredInputs).map((declared) => {
         const authored = ownRecord(dataBindings, declared.name);
         if (!authored) {
           return {
@@ -517,6 +525,7 @@ function planSlot<TComponent>(
         slotType: 'module-widget',
         key,
         dataInputs,
+        ...(draftReview && { draftReview }),
         actionOutputs,
         resolution,
       };
@@ -677,6 +686,16 @@ function resolveWidgetAction(
     ...(needAnchors.length > 0 ? { needAnchors } : {}),
   };
   return { action: metadata, ...(responseContext ? { responseContext } : {}) };
+}
+
+function planDraftReview<TComponent>(context: SlotPlanContext<TComponent>, binding: Record<string, unknown>, widgetShape: unknown): DraftReviewPlan {
+  const target = resolveDraftReviewTarget(context.handle.surface, context.handle.route, binding, widgetShape);
+  if (target.status === 'unresolved') return target;
+  const definition = context.definitions.get(target.definitionRef);
+  if (!definition) return { status: 'unresolved', reason: 'form-unresolved' };
+  const subject = resolveFormSubject(definition, target.formBinding, context.handle.route, context.params ?? {});
+  if (subject === false) return { status: 'unresolved', reason: 'subject-keys-invalid' };
+  return { status: 'ready', definition, ...(subject && { subject }) };
 }
 
 function resolveFormSubject(

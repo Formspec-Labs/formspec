@@ -383,6 +383,35 @@ describe('ADR 0174 effective publication trace', () => {
 });
 
 describe('validateRenderedNeedTrace', () => {
+  it('requires a direct Need trace on the draft-review binding', () => {
+    const current = 'need:current@2';
+    const pointer = '/routes/0/slots/0/binding/draftReview';
+    const kind = 'surface-draft-review-binding';
+    const draftReview = { routeRef: 'form', slotRef: 'filing', ...generation(current) };
+    const surface = handle('surface', 'surface', {
+      $formspecSurface: '0.4', ...generation(current),
+      routes: [{
+        id: 'review', ...generation(current),
+        navigation: { visible: false, ...generation(current) },
+        slots: [{
+          id: 'review', slotType: 'module-widget', ...generation(current),
+          binding: { moduleId: 'x-standard', widgetName: 'ResponseReview', draftReview },
+        }],
+      }],
+    });
+    const graph = context([surface]);
+
+    expect(collectRenderedNeedTraceNodes(graph)).toContainEqual(expect.objectContaining({
+      kind, pointer, anchors: [expect.objectContaining({ pointer: `${pointer}/x-generation/anchors/0` })],
+    }));
+    expect(validateRenderedNeedTrace(graph)).toEqual([]);
+
+    draftReview['x-generation'].anchors = [];
+    expect(validateRenderedNeedTrace(graph)).toContainEqual(expect.objectContaining({
+      code: RENDERED_NEED_TRACE_CODES.missing, details: expect.objectContaining({ renderedNodeKind: kind }),
+    }));
+  });
+
   it('exposes the authoritative direct-anchor inventory for navigation, nested Definition options, and StructuredPanel children', () => {
     const current = 'need:current@2';
     const surface = handle('surface', 'surface', {

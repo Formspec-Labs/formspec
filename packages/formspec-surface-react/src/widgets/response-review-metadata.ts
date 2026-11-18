@@ -50,6 +50,16 @@ export interface ResponseReviewData {
   response: FormResponse;
   presentation: ResponseReviewPresentation;
 }
+/** Display-only presentation for a session draft. The revision is opaque to the shell. */
+export interface DraftResponseReviewPresentation {
+  phase: 'draft-review';
+  revision: string;
+  locale: string;
+  fields: CapturedResponseFields;
+}
+export interface DraftResponseReviewData extends Omit<ResponseReviewData, 'presentation'> {
+  presentation: DraftResponseReviewPresentation;
+}
 export interface ResponseReviewState {
   status: "pending" | "ready" | "unavailable";
   responseHash: string;
@@ -113,8 +123,8 @@ export interface AcceptedTaskResponseReviewDataV011 extends Omit<AcceptedTaskRes
 }
 export type AcceptedResponseReviewInput = AcceptedResponseReviewData | AcceptedTaskResponseReviewData | AcceptedResponseReviewDataV011 | AcceptedTaskResponseReviewDataV011;
 export type AcceptedResponseReviewStateInput = AcceptedResponseReviewState | AcceptedTaskResponseReviewState;
-export type ResponseReviewInput = ResponseReviewData | AcceptedResponseReviewInput;
-export type ResponseReviewPresentationInput = ResponseReviewPresentation | AcceptedResponseReviewPresentation | AcceptedTaskResponseReviewPresentation | AcceptedResponseReviewPresentationV011 | AcceptedTaskResponseReviewPresentationV011;
+export type ResponseReviewInput = ResponseReviewData | AcceptedResponseReviewInput | DraftResponseReviewData;
+export type ResponseReviewPresentationInput = ResponseReviewPresentation | AcceptedResponseReviewPresentation | AcceptedTaskResponseReviewPresentation | AcceptedResponseReviewPresentationV011 | AcceptedTaskResponseReviewPresentationV011 | DraftResponseReviewPresentation;
 export interface AcceptedResponseReviewAttachmentRequest extends AcceptedResponseReviewData {
   path: string;
   descriptor: FiniteJsonValue;

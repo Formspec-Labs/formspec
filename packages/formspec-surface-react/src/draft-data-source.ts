@@ -1,17 +1,15 @@
 /** @filedesc Deliver only committed filtered Response data to authorized draft consumers. */
 import { initFormspecEngine, initFormspecEngineTools, selectResponses } from '@formspec-org/engine';
-import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import { catalogResponseProjection, type DataSourceLoader, type DataSourceLoadRequest, type DataSourceLoadResult } from '@formspec-org/surface';
-import type { FormDefinition, FormResponse } from '@formspec-org/types';
-import { deriveDraftSubject, type DraftSession } from './draft-session.js';
+import type { FormDefinition } from '@formspec-org/types';
+import type { DraftSession } from './draft-session.js';
 
 const unavailable = { status: 'unavailable', reason: 'Draft unavailable' } as const;
 
 async function loadDraft(session: DraftSession, definition: FormDefinition, request: DataSourceLoadRequest) {
   const { subject } = request.context;
   if (definition.subject && (!subject || subject.type !== definition.subject.type)) return { status: 'unavailable' } as const;
-  const resolved = definition.subject ? await deriveDraftSubject(subject) : undefined;
-  return session.port.load({ scope: session.scope, definitionUrl: definition.url, subject: resolved }, definition.version);
+  return session.readCommitted(definition, definition.subject ? subject : undefined);
 }
 
 export async function readSessionDraft(
@@ -23,8 +21,7 @@ export async function readSessionDraft(
   try {
     const loaded = await loadDraft(session, definition, request);
     if (loaded.status !== 'loaded') return unavailable;
-    const response = parseJsonExact(loaded.draft.responseJson) as FormResponse;
-    return { status: 'loaded', value: response.data, recordId: response.id, revision: loaded.draft.revision, freshness: 'fresh' };
+    return { status: 'loaded', value: loaded.response.data, recordId: loaded.response.id, revision: loaded.revision, freshness: 'fresh' };
   } catch {
     return unavailable;
   }
@@ -49,7 +46,7 @@ export async function readCurrentDraft(
   try {
     const loaded = await loadDraft(session, definition, request);
     if (loaded.status === 'loaded') {
-      const response = parseJsonExact(loaded.draft.responseJson) as FormResponse;
+      const { response, revision } = loaded;
       await initFormspecEngine();
       await initFormspecEngineTools();
       const projection = catalogResponseProjection(descriptor.source.schema, selection.cardinality);
@@ -65,7 +62,7 @@ export async function readCurrentDraft(
         const { value, records, valueDigest, none } = selected;
         return {
           catalogRef: descriptor.catalogRef, sourceRef: descriptor.sourceRef,
-          status: 'loaded', freshness: 'fresh', value, records, valueDigest, none, revision: loaded.draft.revision,
+          status: 'loaded', freshness: 'fresh', value, records, valueDigest, none, revision,
         };
       }
     } else if (loaded.status !== 'absent') return unavailable;

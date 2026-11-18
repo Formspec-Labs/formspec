@@ -14,7 +14,7 @@ export type SurfaceDocument = {
   [k: string]: unknown;
 } & {
   /**
-   * Surface specification version. Screener slots require 0.3 or later. Filing-status slots require 0.4.
+   * Surface specification version. Screener slots require 0.3 or later. Filing-status slots and draft-review bindings require 0.4.
    */
   $formspecSurface: '0.2' | '0.3' | '0.4';
   /**
@@ -353,6 +353,15 @@ export interface FilingStatusEntry {
   params?: {
     [k: string]: FilingStatusParamSource;
   };
+  'x-generation'?: Generation;
+}
+/**
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "DraftReviewBinding".
+ */
+export interface DraftReviewBinding {
+  routeRef: string;
+  slotRef: string;
   'x-generation'?: Generation;
 }
 /**

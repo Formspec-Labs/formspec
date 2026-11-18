@@ -8,6 +8,41 @@ import {
   type ResolvedArtifactHandle,
 } from '../src/index.js';
 
+it.each([
+  { name: 'a matching form and subject' },
+  { name: 'mismatched route parameters', parameter: 'other', reason: 'subject-keys-invalid' },
+  { name: 'an absent form slot', slotRef: 'missing', reason: 'form-unresolved' },
+  { name: 'a bundled Definition that did not resolve', definitionRef: 'https://example.gov/unknown', reason: 'form-unresolved' },
+  { name: 'a different widget contract', contract: 'test/other@1', reason: 'invalid-binding' },
+  { name: 'a legacy Surface dialect', dialect: '0.3', reason: 'invalid-binding' },
+  { name: 'legacy authored presentation', extra: { presentation: { locale: 'en', fields: {} } }, reason: 'invalid-binding' },
+])('validates draft review with $name', ({
+  parameter = 'unit', slotRef = 'report', definitionRef = DEFINITION_URL,
+  contract = '@formspec-org/surface-react/ResponseReview@0.1', dialect = '0.4', extra, reason,
+}) => {
+  const definitionHandle = handle('definitions[0]', 'definition', {
+    $formspec: '1.0', url: DEFINITION_URL, version: '1.0.0',
+    subject: { type: 'urn:test:report', keys: { year: { dataType: 'integer' } } }, items: [],
+  }, DEFINITION_URL);
+  const base = fixture({ schema: { type: 'object' }, definitions: [definitionHandle] });
+  const surfaceHandle = handle('surfaces[0]', 'surface', { $formspecSurface: dialect, routes: [
+    { id: 'form', path: '/form/{unit}', params: [{ name: 'unit' }], slots: [{ id: 'report', slotType: 'definition-form',
+      binding: { definitionRef, subjectKeys: { year: 'unit' } } }] },
+    { id: 'review', path: `/review/{${parameter}}`, params: [{ name: parameter }], slots: [{ id: 'review', slotType: 'module-widget',
+      binding: { moduleId: 'x-reports', widgetName: 'ResponseReview', draftReview: { routeRef: 'form', slotRef, ...extra } } }] },
+  ] }, 'https://example.gov/surface');
+  const registry = handle('registries[0]', 'registry', { entries: [
+    { name: 'x-reports', category: 'module', version: '1.0.0', status: 'stable', contributes: ['x-review'] },
+    { name: 'x-review', category: 'widget', version: '0.1.0', status: 'stable', widgetShape: {
+      widgetName: 'ResponseReview', deliveryContractId: contract,
+      dataInputs: ['definition', 'response', 'presentation'].map(name => ({ name, required: true })),
+    } },
+  ] }, 'https://example.gov/registry');
+  const result = validateDataSources({ ...base, handles: [...base.handles, surfaceHandle, registry] });
+  expect(result.filter(entry => entry.primarySource?.jsonPointer?.endsWith('/binding/draftReview'))
+    .map(diagnostic => diagnostic.details?.reason)).toEqual(reason ? [reason] : []);
+});
+
 const DEFINITION_URL = 'https://example.gov/forms/intake';
 const subject = { type: 'urn:example:filing', keys: {} };
 const CATALOG_URL = 'https://example.gov/data/intake';

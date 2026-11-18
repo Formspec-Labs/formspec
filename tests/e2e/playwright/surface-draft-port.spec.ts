@@ -2,6 +2,27 @@
 import { expect, test } from '@playwright/test';
 import { draftPortConformance } from '../../../packages/formspec-surface/src/draft-port-conformance';
 
+test('review reads the last saved Response with Definition wording for each filing subject', async ({ page }) => {
+  const fixture = '/surface-drafts.html?form&auto&subject&review';
+  for (const [year, answer] of [[2025, 'First filing'], [2026, 'Second filing']] as const) {
+    await page.goto(`${fixture}#/filing/${year}`);
+    await page.getByLabel('Answer').fill(answer);
+    await page.locator('.formspec-repeat-add').click();
+    await page.getByLabel('Row value').fill(`Row ${year}`);
+    await page.getByRole('link', { name: 'Review draft' }).click();
+    const review = page.getByRole('region', { name: 'Review your saved answers' });
+    await expect(review.locator('[data-response-path="answer"]')).toHaveText(`Answer${answer}`);
+    await expect(review.locator('[data-response-path="rows[0].row"]')).toHaveText(`Row valueRow ${year}`);
+  }
+  await page.goto(`${fixture}#/review/2025`);
+  await expect(page.locator('[data-response-path="answer"] dd')).toHaveText('First filing');
+  await page.goto(`${fixture}#/review/2027`);
+  await expect(page.locator('[data-draft-review-reason="absent"]')).toBeVisible();
+  await page.goto(`${fixture}&version=2.0.0#/review/2025`);
+  await expect(page.locator('[data-draft-review-reason="version-mismatch"]')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Review your saved answers' })).toHaveCount(0);
+});
+
 for (const name of Object.keys(draftPortConformance)) {
   test(name, async ({ page }) => {
     await page.goto('/surface-drafts.html');

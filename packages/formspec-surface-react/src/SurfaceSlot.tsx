@@ -90,6 +90,7 @@ import {
 } from '@formspec-org/surface';
 import { DraftDefinitionForm } from './DraftDefinitionForm.js';
 import type { DraftSession } from './draft-session.js';
+import { loadDraftReviewInputs, type DraftReviewDelivery } from './draft-review.js';
 import type { DraftActionInvoker, DraftWriter } from './draft-writer.js';
 import { Heading, nextLevel } from './heading.js';
 import { FilingStatus, type FilingStatusViewContext } from './FilingStatus.js';
@@ -721,6 +722,9 @@ export function SurfaceSlot({
           route={route}
           strings={strings}
           dataSourceLoader={dataSourceLoader}
+          draftSession={plan.draftReview ? formSession?.drafts : undefined}
+          localeDocuments={plan.draftReview ? localeDocuments : undefined}
+          activeLocale={plan.draftReview ? activeLocale : undefined}
           dataSourceRevision={dataSourceRevision}
           authorizeDataSource={authorizeDataSource}
           validateDataSourcePayload={validateDataSourcePayload}
@@ -1370,6 +1374,9 @@ interface SurfaceWidgetSlotProps {
   route: SurfaceWidgetRouteContext;
   strings: SurfaceStrings;
   dataSourceLoader?: DataSourceLoader | undefined;
+  draftSession?: DraftSession | undefined;
+  localeDocuments?: readonly LocaleDocument[] | undefined;
+  activeLocale?: string | undefined;
   /** Pure per-source scheduling hints; evaluated on host renders, never authority. */
   dataSourceRevision?: DataSourceRevisionSelector | undefined;
   authorizeDataSource?: DataSourceAuthorizer | undefined;
@@ -1396,7 +1403,7 @@ const READY_WITH_NO_DATA: WidgetDataDelivery = {
   diagnostics: [],
 };
 
-type WidgetDataState = WidgetDataDelivery | { status: 'loading' };
+type WidgetDataState = WidgetDataDelivery | DraftReviewDelivery | { status: 'loading' };
 
 function SurfaceWidgetSlot({
   plan,
@@ -1404,6 +1411,9 @@ function SurfaceWidgetSlot({
   route,
   strings,
   dataSourceLoader,
+  draftSession,
+  localeDocuments,
+  activeLocale,
   dataSourceRevision,
   authorizeDataSource,
   validateDataSourcePayload,
@@ -1418,9 +1428,12 @@ function SurfaceWidgetSlot({
   onAdvance,
   semanticOutputScope,
 }: SurfaceWidgetSlotProps): ReactNode {
-  const [delivery, setDelivery] = useState<WidgetDataState>(
-    plan.dataInputs.length === 0 ? READY_WITH_NO_DATA : { status: 'loading' },
-  );
+  const draftVisit = useMemo(() => plan.draftReview ? {} : undefined,
+    [plan.draftReview, draftSession, runtimeGeneration, localeDocuments, activeLocale]);
+  const [settled, setSettled] = useState<{ draftVisit: object | undefined; delivery: WidgetDataState }>({
+    draftVisit, delivery: plan.dataInputs.length === 0 && !plan.draftReview ? READY_WITH_NO_DATA : { status: 'loading' },
+  });
+  const delivery: WidgetDataState = settled.draftVisit === draftVisit ? settled.delivery : { status: 'loading' };
   const [dataLoadAttempt, setDataLoadAttempt] = useState(0);
   const responseContexts = useRef<{ generation: string; values: ReadonlyMap<string, SurfaceWidgetResponseContext> } | undefined>(undefined);
   const activeGeneration = useRef<string | undefined>(runtimeGeneration);
@@ -1445,11 +1458,16 @@ function SurfaceWidgetSlot({
 
   useEffect(() => {
     let current = true;
+    const controller = new AbortController();
+    const setDelivery = (delivery: WidgetDataState) => setSettled({ draftVisit, delivery });
     responseContexts.current = undefined;
-    if (plan.dataInputs.length > 0) setDelivery({ status: 'loading' });
+    if (plan.dataInputs.length > 0 || plan.draftReview) setDelivery({ status: 'loading' });
     onRuntimeDiagnosticsChange?.(dataDiagnosticScope, []);
 
-    void loadWidgetDataInputs({
+    const site = { surfaceId: route.surfaceId, routeId: route.routeId, slotId: plan.slotId };
+    const load = plan.draftReview ? loadDraftReviewInputs(plan.draftReview, {
+      session: draftSession, site, signal: controller.signal, localeDocuments, activeLocale,
+    }) : loadWidgetDataInputs({
       inputs: plan.dataInputs.map(input => input.status === 'ready'
         && sourceRevisions.failures.some(failure =>
           failure.descriptor.catalogRef === input.descriptor.catalogRef
@@ -1472,12 +1490,9 @@ function SurfaceWidgetSlot({
         authorize: authorizeDataSource,
         validatePayload: validateDataSourcePayload,
       }),
-      site: {
-        surfaceId: route.surfaceId,
-        routeId: route.routeId,
-        slotId: plan.slotId,
-      },
-    }).then(async (result) => {
+      site,
+    });
+    void load.then(async (result) => {
       if (!current) return;
       if (result.status === 'ready') {
         const contexts = new Map<string, SurfaceWidgetResponseContext>();
@@ -1519,15 +1534,21 @@ function SurfaceWidgetSlot({
 
     return () => {
       current = false;
+      controller.abort();
       onRuntimeDiagnosticsChange?.(dataDiagnosticScope, []);
     };
   }, [
     authorizeDataSource,
     dataDiagnosticScope,
     dataSourceLoader,
+    draftSession,
+    draftVisit,
+    localeDocuments,
+    activeLocale,
     sourceRevisions.key,
     onRuntimeDiagnosticsChange,
     plan.dataInputs,
+    plan.draftReview,
     plan.actionOutputs,
     plan.key.moduleId,
     plan.key.widgetName,
@@ -1885,6 +1906,7 @@ function SurfaceWidgetSlot({
     return stateView(technicalFailure ? 'error' : 'unavailable', (
       <div
         data-widget-data="unavailable"
+        data-draft-review-reason={'draftReviewReason' in delivery ? delivery.draftReviewReason : undefined}
         data-widget-failure-mode={modes.join(' ')}
       >
         <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>

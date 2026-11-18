@@ -140,6 +140,7 @@ export {
   type WidgetActionMetadataPlan,
   type WidgetActionOutputPlan,
   type WidgetActionResponsePlan,
+  type DraftReviewPlan,
 } from './slot-plan.js';
 
 export {

@@ -415,7 +415,7 @@ route and resolve them for the same Definition using the target form slot's
 `subjectKeys` and the typed conversion above. Missing or mismatched parameters
 MUST make review unavailable before any draft read. The runtime MUST authorize
 the resolved subject before reading its draft. An absent or denied draft MUST
-make review unavailable without revealing whether the draft exists.
+make review unavailable. A denial MUST conceal existence and version information.
 [ADR 0175 §4.4](../../../thoughts/adr/0175-surface-multi-form-status-and-workspace.md#44-one-runtime-draft-writer-and-two-adapters).
 
 ### Static-content image alternative text
@@ -455,7 +455,7 @@ A module widget has three separate authored channels:
 | Channel | Registry declaration | Surface binding | Purpose |
 |---|---|---|---|
 | Configuration | `widgetShape.props` | `binding.config` | Static authored configuration. |
-| Runtime data | `widgetShape.dataInputs[]` | `binding.dataBindings` | Authorized values loaded through Data Sources 1.0. |
+| Runtime data | `widgetShape.dataInputs[]` | `binding.dataBindings` or `binding.draftReview` | Qualified Data Sources values or the committed draft inputs described below. |
 | Action events | `widgetShape.actionOutputs[]` | `binding.actionBindings` | Named events delegated to Response Actions. |
 
 Processors MUST NOT treat `config` as runtime data. A widget-name switch, inline
@@ -476,6 +476,16 @@ matching module level may cover the widget. Definition-only availability does
 not cover a module widget. Data Sources 1.0 remains authoritative for payload
 schema, runtime authorization, delivery, failure, cache, stale-data, and
 provenance rules.
+
+In Surface 0.4, `draftReview` explicitly supplies the `definition`, `response`,
+and `presentation` inputs of the `@formspec-org/surface-react/ResponseReview@0.1`
+delivery contract. The binding names an exact Definition form slot in the same
+Surface through `routeRef` and `slotRef`. The review route MUST declare and
+address the same parameters used by the form slot's `subjectKeys`. An optional
+`x-generation` records the binding's direct Need trace. This binding owns all
+three inputs and is mutually exclusive with `dataBindings`. The [Surface
+Shell](surface-shell-spec.md) defines how the shell reads the committed draft
+and derives the presentation from the Definition and active Locale.
 
 A module widget that selects Responses by subject keys MUST use catalog
 `from.routeParam` predicates with the active route parameters. The runtime
@@ -712,9 +722,9 @@ authority follows from a successful Screener destination.
 
 The canonical schema URI is `https://formspec.org/schemas/surface/0.4`.
 The 0.3 schema remains at its published URI.
-Surface 0.4 retains the native Screener slot and adds the filing-status binding
-defined in §4. Surface 0.2 and 0.3 MUST refuse filing-status slots. The existing
-Outcome Verification rules retain the revisions pinned in this document.
+Surface 0.4 retains the native Screener slot and adds the filing-status and draft
+review bindings defined in §4. Surface 0.2 and 0.3 MUST refuse both additions.
+Outcome Verification retains the revisions pinned in this document.
 
 ## 6. The `surface:<route-id>` URI scheme
 

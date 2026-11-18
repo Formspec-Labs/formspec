@@ -277,6 +277,8 @@ export type InstanceSourceResolver = (
 /** Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createFormEngine`](./engine/init.ts). */
 export interface FormEngineOptions {
     runtimeContext?: FormEngineRuntimeContext;
+    /** Set false to evaluate retained data without loading instance sources or remote options. */
+    loadExternalSources?: boolean;
     /** Exclusive source loader when supplied; injected values never use the shared URL cache. */
     instanceSourceResolver?: InstanceSourceResolver;
     registryEntries?: RegistryEntry[];

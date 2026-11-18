@@ -22,6 +22,10 @@ export async function deriveDraftSubject(subject: DataSourceSubject | undefined)
   return { ...subject, id: responseSubjectId(subject.type, subject.keys) };
 }
 
+type CommittedDraft =
+  | { status: 'loaded'; response: FormResponse; revision: string; key: DraftKey }
+  | { status: 'absent' | 'denied' | 'version-mismatch' | 'unavailable' | 'save-failed' };
+
 type DraftOpen =
   | { status: 'ready'; engine: IFormEngine; writer: DraftWriter }
   | (Extract<DraftLoadResult, { status: 'version-mismatch' }> & { key: DraftKey })
@@ -43,6 +47,13 @@ export function createDraftSession(
 ) {
   const entries = new Map<string, Entry>();
   const lifetime = new AbortController();
+
+  async function load(key: DraftKey, version: string, signal: AbortSignal) {
+    signal.throwIfAborted();
+    const result = await storage.port.load(key, version, signal);
+    signal.throwIfAborted();
+    return result;
+  }
 
   function release(entry: Entry) {
     if (entry.consumers.size === 0 && entry.opened?.status === 'ready') entry.opened.writer.setMounted(false);
@@ -76,8 +87,7 @@ export function createDraftSession(
         const opened = async (): Promise<DraftOpen> => {
           let loaded: DraftLoadResult;
           try {
-            loaded = await storage.port.load(key, definition.version, lifetime.signal);
-            lifetime.signal.throwIfAborted();
+            loaded = await load(key, definition.version, lifetime.signal);
           } catch (error) {
             if (reusable) {
               reusable.writer.dispose();
@@ -154,6 +164,27 @@ export function createDraftSession(
           release(tracked);
         },
       };
+    },
+
+    async readCommitted(
+      definition: { url: string; version: string }, subject: DataSourceSubject | undefined,
+      options?: { afterPendingSaves?: boolean; signal?: AbortSignal },
+    ): Promise<CommittedDraft> {
+      try {
+        const signal = options?.signal ? AbortSignal.any([lifetime.signal, options.signal]) : lifetime.signal;
+        signal.throwIfAborted();
+        const key = { scope: storage.scope, definitionUrl: definition.url, subject: await deriveDraftSubject(subject) };
+        if (options?.afterPendingSaves) {
+          const entry = await entries.get(sessionKey(key, definition.version))?.result;
+          if (entry?.status === 'ready' && !await entry.writer.waitForSaves()) return { status: 'save-failed' };
+        }
+        const result = await load(key, definition.version, signal);
+        if (result.status !== 'loaded') return { status: result.status };
+        const response = parseJsonExact(result.draft.responseJson) as FormResponse;
+        return { status: 'loaded', response, revision: result.draft.revision, key };
+      } catch {
+        return { status: 'unavailable' };
+      }
     },
 
     async leave() {

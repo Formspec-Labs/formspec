@@ -13,7 +13,7 @@
     "$formspecSurface": {
       "type": "string",
       "enum": ["0.2", "0.3", "0.4"],
-      "description": "Surface specification version. Screener slots require 0.3 or later. Filing-status slots require 0.4.",
+      "description": "Surface specification version. Screener slots require 0.3 or later. Filing-status slots and draft-review bindings require 0.4.",
       "examples": ["0.2"],
       "x-lm": {
         "critical": true,
@@ -66,7 +66,7 @@
   },
   "allOf": [
     {"if": {"properties": {"$formspecSurface": {"const": "0.2"}}, "required": ["$formspecSurface"]}, "then": {"properties": {"routes": {"items": {"properties": {"slots": {"items": {"properties": {"slotType": {"not": {"const": "screener"}}}}}}}}}}},
-    {"if": {"properties": {"$formspecSurface": {"enum": ["0.2", "0.3"]}}, "required": ["$formspecSurface"]}, "then": {"properties": {"routes": {"items": {"properties": {"slots": {"items": {"properties": {"slotType": {"not": {"const": "filing-status"}}}}}}}}}}}
+    {"if": {"properties": {"$formspecSurface": {"enum": ["0.2", "0.3"]}}, "required": ["$formspecSurface"]}, "then": {"properties": {"routes": {"items": {"properties": {"slots": {"items": {"properties": {"slotType": {"not": {"const": "filing-status"}}, "binding": {"not": {"required": ["draftReview"]}}}}}}}}}}}
   ],
   "$defs": {
     "Route": {
@@ -296,6 +296,7 @@
                 "required": ["moduleId", "widgetName"],
                 "additionalProperties": false,
                 "patternProperties": { "^x-": {} },
+                "not": { "required": ["draftReview", "dataBindings"] },
                 "properties": {
                   "moduleId": {
                     "type": "string",
@@ -313,6 +314,10 @@
                   "dataBindings": {
                     "$ref": "#/$defs/WidgetDataBindings",
                     "description": "OPTIONAL named runtime-data bindings. Each key exactly matches one Registry widgetShape.dataInputs[].name. Each value selects one source by the qualified (catalogRef, sourceRef) identity; Data Sources 1.0 owns payload shape, availability, runtime delivery, failure, cache, and provenance."
+                  },
+                  "draftReview": {
+                    "$ref": "#/$defs/DraftReviewBinding",
+                    "description": "OPTIONAL Surface 0.4 supplier for the three ResponseReview inputs, exclusive with dataBindings."
                   },
                   "actionBindings": {
                     "$ref": "#/$defs/WidgetActionBindings",
@@ -584,6 +589,16 @@
           "minLength": 1,
           "description": "Name of the runtime, host, prior route param, or response binding whose value supplies this target route parameter."
         }
+      }
+    },
+    "DraftReviewBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routeRef", "slotRef"],
+      "properties": {
+        "routeRef": { "type": "string", "minLength": 1 },
+        "slotRef": { "type": "string", "minLength": 1 },
+        "x-generation": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation" }
       }
     },
     "WidgetDataBindings": {

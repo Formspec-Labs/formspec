@@ -45,7 +45,9 @@ it('uses the authorized same-unit current Response and its selection evidence', 
   });
   const baseline = vi.fn(() => ({ status: 'unavailable' as const, reason: 'baseline' }));
   const result = await reads.readCurrentDraft(session, definitions, request, baseline);
-  expect(load).toHaveBeenCalledWith({ scope: 'edition', definitionUrl: definition.url, subject: address }, definition.version);
+  // The shared committed read can now cancel when its session ends.
+  expect(load).toHaveBeenCalledWith({ scope: 'edition', definitionUrl: definition.url, subject: address },
+    definition.version, expect.any(AbortSignal));
   expect(result).toMatchObject({
     status: 'loaded', value: { visible: 'saved' }, records: [{ responseId: 'draft-1', definitionVersion: '1.0.0' }], none: false,
   });

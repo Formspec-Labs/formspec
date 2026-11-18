@@ -6,6 +6,7 @@ import type {
   ResolvedArtifactHandle,
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
+import { resolveDraftReviewTarget } from './surface-draft-review.js';
 import {
   escapeJsonPointerToken,
   handlesByKind,
@@ -414,6 +415,18 @@ function widgetDataBindingDiagnostics(context: AppGraphContext): AppGraphDiagnos
   for (const surface of handlesByKind(context.handles, 'surface')) {
     for (const widget of surfaceWidgetSlots(surface)) {
       const contribution = resolvedWidgetContributionFromEntries(widget, registryEntries);
+      if (Object.prototype.hasOwnProperty.call(widget.binding, 'draftReview')) {
+        const review = resolveDraftReviewTarget(surface.document, widget.route, widget.binding, widgetShape(contribution));
+        const reason = review.status === 'unresolved' ? review.reason :
+          exactDefinitionCount(context, review.definitionRef) !== 1 ? 'form-unresolved' : undefined;
+        if (reason) diagnostics.push({
+          code: 'WIDGET-DATA-REQUIRED-UNAVAILABLE', severity: 'error', phase: 'cross-artifact', origin: 'app-graph-validator',
+          message: 'The draft review binding cannot supply its required inputs.',
+          primarySource: diagnosticSourceForHandle(surface, `/routes/${widget.routeIndex}/slots/${widget.slotIndex}/binding/draftReview`),
+          details: { reason },
+        });
+        continue;
+      }
       if (!contribution) continue;
       const inputs = recordArray(ownProp(widgetShape(contribution), 'dataInputs'));
       const inputsByName = new Map<string, JsonRecord[]>();

@@ -65,6 +65,48 @@ test('should preserve fallback options and expose error state when remote option
   assert.match(engine.getOptionsState('status').error || '', /network down/);
 });
 
+test('keeps inline data and options without fetching external sources when disabled', async () => {
+  const instanceUrl = 'https://api.example.org/records/review';
+  const optionsUrl = 'https://api.example.org/options/review';
+  const fetched = [];
+  globalThis.fetch = async url => {
+    fetched.push(String(url));
+    return {
+      ok: true,
+      text: async () => '{"name":"Remote"}',
+      json: async () => [{ value: 'remote', label: 'Remote' }],
+    };
+  };
+
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'https://example.org/offline-review',
+    version: '1.0.0',
+    title: 'Offline review',
+    instances: { record: { source: instanceUrl, data: { name: 'Inline' } } },
+    items: [{
+      key: 'status',
+      type: 'field',
+      dataType: 'choice',
+      label: 'Status',
+      options: [{ value: 'inline', label: 'Inline' }],
+    }],
+    binds: [{ path: 'status', remoteOptions: optionsUrl }],
+  }, { loadExternalSources: false });
+
+  try {
+    await engine.waitForInstanceSources();
+    await engine.waitForRemoteOptions();
+
+    assert.deepEqual(fetched, []);
+    assert.equal(engine.getInstanceData('record', 'name'), 'Inline');
+    assert.deepEqual(engine.getOptions('status'), [{ value: 'inline', label: 'Inline' }]);
+  } finally {
+    engine.dispose();
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test.after(() => {
   globalThis.fetch = originalFetch;
 });

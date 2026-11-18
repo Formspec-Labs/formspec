@@ -63,6 +63,24 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+it('waits for an explicit save in progress before leaving a form without autosave', async () => {
+  const { engine, save, writer } = fixture(false);
+  let commit!: () => void;
+  save.mockImplementationOnce(() => new Promise(resolve => { commit = () => resolve({ status: 'saved', revision: '1' }); }));
+  engine.setValue('answer', 'edited just before review');
+  const saving = writer.flush(true);
+  const left = vi.fn();
+  const departure = writer.leave().then(left);
+  await Promise.resolve();
+  try {
+    expect(left).not.toHaveBeenCalled();
+  } finally {
+    commit();
+    await Promise.all([saving, departure]);
+  }
+  expect(left).toHaveBeenCalledWith(true);
+});
+
 it('debounces programmatic edits and commits the filtered Response with the latest counts and editable snapshot', async () => {
   vi.useFakeTimers();
   const { engine, save } = fixture();

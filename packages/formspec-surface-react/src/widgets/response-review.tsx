@@ -8,7 +8,9 @@ import {
   type ReactNode,
 } from "react";
 import canonicalize from "canonicalize";
+import { isQualifiedDraftReview } from '../internal/draft-review-qualification.js';
 import {
+  canonicalFiniteJson,
   snapshotFiniteJson,
   type FiniteJsonValue,
 } from "@formspec-org/surface";
@@ -111,10 +113,10 @@ type Capture = {
 function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' | 'selected'): Capture | undefined {
   try {
     // Reject accessors/cycles before reading values; detach everything the display can consume.
-    const data = snapshotFiniteJson(
-      props.data
-    ) as unknown as ResponseReviewData;
-    const config = snapshotFiniteJson(props.config) as unknown as Obj;
+    const dataSnapshot = snapshotFiniteJson(props.data);
+    const configSnapshot = snapshotFiniteJson(props.config);
+    const data = dataSnapshot as unknown as ResponseReviewData;
+    const config = configSnapshot as unknown as Obj;
     const { definition: d, response: r, presentation: p } = data;
     const acceptedAlias = props.widgetName === "AcceptedResponseReview" || props.widgetName === "x-accepted-response-review";
     if (!object(p) || acceptedAlias !== (p.phase === "accepted-record")) return undefined;
@@ -132,19 +134,18 @@ function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' 
       !object(p) ||
       d.url !== r.definitionUrl ||
       d.version !== r.definitionVersion ||
-      p.definitionUrl !== d.url ||
-      p.definitionVersion !== d.version ||
-      !hash(p.responseHash) ||
       !text(p.locale) ||
-      !object(p.fields) ||
-      !["before-sign", "before-submit", "accepted-record"].includes(p.phase) ||
-      !object(r.displayedLocale) ||
-      r.displayedLocale.locale !== p.locale ||
-      (p.phase === "before-submit" &&
-        (!Array.isArray(r.authoredSignatures) ||
-          r.authoredSignatures.length === 0))
+      !object(p.fields)
     )
       return undefined;
+    if (p.phase === 'draft-review') {
+      if (!isQualifiedDraftReview(props.data) || r.status !== 'in-progress' || !text(p.revision)) return undefined;
+    } else if (
+      !['before-sign', 'before-submit', 'accepted-record'].includes(p.phase) ||
+      p.definitionUrl !== d.url || p.definitionVersion !== d.version || !hash(p.responseHash) ||
+      !object(r.displayedLocale) || r.displayedLocale.locale !== p.locale ||
+      (p.phase === 'before-submit' && (!Array.isArray(r.authoredSignatures) || r.authoredSignatures.length === 0))
+    ) return undefined;
     const selected = own(config, 'fieldSelection');
     if ((acceptedSelectionProfile === 'selected' && !selected) ||
       (acceptedSelectionProfile === 'legacy' && selected)) return undefined;
@@ -168,10 +169,10 @@ function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' 
           p.taskSign.recordRef !== `urn:formspec:task-draft-sign:${p.taskSign.recordHash}` ||
           !Array.isArray(r.authoredSignatures) || r.authoredSignatures.length === 0) return undefined;
       } else if (!text(p.handoffId)) return undefined;
-    } else if (
+    } else if (p.phase !== 'draft-review' && (
       !text(p.actorRef) || !object(p.draft) || !text(p.draft.id) ||
       !Number.isSafeInteger(p.draft.version) || p.draft.version < 0 || (own(p, "handoffId") || own(p, "taskSign"))
-    ) return undefined;
+    )) return undefined;
     for (const m of Object.values(p.fields)) {
       if (
         !object(m) ||
@@ -210,11 +211,7 @@ function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' 
       copy,
       nodes,
       attachments,
-      identity: canonicalize({
-        data,
-        config,
-        headingLevel: props.headingLevel,
-      })!,
+      identity: canonicalFiniteJson({ data: dataSnapshot, config: configSnapshot, headingLevel: props.headingLevel }),
     };
   } catch {
     return undefined;
@@ -517,11 +514,12 @@ function AttachmentPreview({
     let url: string | undefined;
     setView({ state: read ? "pending" : "unavailable" });
     onStatus(path, read ? "pending" : "unavailable");
-    if (read)
+    if (read && c.data.presentation.phase !== 'draft-review') {
+      const request = { ...c.data, path, descriptor } as ReviewAttachmentRequest;
       void (async () => {
         try {
           const blob = await read(
-            { ...c.data, path, descriptor },
+            request,
             { signal: controller.signal }
           );
           if (!active) return;
@@ -537,6 +535,7 @@ function AttachmentPreview({
           }
         }
       })();
+    }
     return () => {
       active = false;
       activeUrl.current = undefined;
@@ -587,13 +586,14 @@ function ReviewBody({
   capture: Capture;
   options: ResponseReviewOptions;
 }) {
-  const [admitted, setAdmitted] = useState(false);
+  const { presentation: p, response: r } = c.data;
+  const [admitted, setAdmitted] = useState(p.phase === 'draft-review');
   const [failed, setFailed] = useState(false);
   const [identity, setIdentity] = useState<string>();
   const [previews, setPreviews] = useState<Record<string, PreviewStatus>>({});
-  const { presentation: p, response: r } = c.data;
   const report = useCallback(
     (status: ResponseReviewState["status"], contextIdentity?: string) => {
+      if (p.phase === 'draft-review') return;
       const common = { status, responseHash: p.responseHash, locale: p.locale,
         ...(contextIdentity ? { contextIdentity } : {}) };
       if (p.phase === "accepted-record") {
@@ -607,6 +607,7 @@ function ReviewBody({
     [options.onReviewState, options.onAcceptedReviewState, p]
   );
   const readAttachment = useMemo<ReviewAttachmentReader | undefined>(() => {
+    if (p.phase === 'draft-review') return undefined;
     if (p.phase === "accepted-record") {
       const read = options.readAcceptedAttachment;
       return read ? (request, context) => acceptedAttachment(request)
@@ -622,6 +623,7 @@ function ReviewBody({
     []
   );
   useEffect(() => {
+    if (p.phase === 'draft-review') return;
     let active = true;
     report("pending");
     void Promise.all([
@@ -706,12 +708,12 @@ function ReviewBody({
       lang={p.locale}
     >
       <Heading level={c.headingLevel}>{c.copy.heading}</Heading>
-      <p className="fs-response-review-intro">
+      {p.phase !== 'draft-review' && <p className="fs-response-review-intro">
         {p.phase === "accepted-record" ? c.copy.acceptedRecord
           : p.phase === "before-sign" ? c.copy.beforeSign : c.copy.beforeSubmit}
-      </p>
+      </p>}
       <dl className="fs-response-review-context fs-response-review__meta">
-        {p.phase !== "accepted-record" ? <div>
+        {p.phase !== "accepted-record" && p.phase !== 'draft-review' ? <div>
           <dt>{c.copy.draftVersion}</dt>
           <dd>{p.draft.version}</dd>
         </div> : null}

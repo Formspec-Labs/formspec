@@ -623,6 +623,10 @@ function surfaceNodes(
           });
         }
         if (stringProp(slot, 'slotType') !== 'module-widget') return;
+        const draftReview = record(binding?.draftReview);
+        if (draftReview) {
+          out.push(generationNode(handle, 'surface-draft-review-binding', `${slotPointer}/binding/draftReview`, draftReview, 'Draft review'));
+        }
         const dataBindings = record(binding?.dataBindings);
         if (dataBindings) {
           Object.keys(dataBindings).sort().forEach((inputName) => {

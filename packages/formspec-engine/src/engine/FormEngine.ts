@@ -264,7 +264,7 @@ export class FormEngine implements IFormEngine {
 
         this._seedFromGroups = collectSeedFromGroups(this.definition.items);
         this.initializeOptionSignals();
-        this.initializeInstances();
+        this.initializeInstances(options.loadExternalSources !== false);
         this.initializeBindConfigs(this.definition.items);
         this.rejectInstancePathBinds();
         validateVariableDefinitionCycles(this._variableDefs, scope => this.variableScopePath(scope));
@@ -282,7 +282,7 @@ export class FormEngine implements IFormEngine {
             this.dispose();
             throw error;
         }
-        this.initializeRemoteOptions();
+        if (options.loadExternalSources !== false) this.initializeRemoteOptions();
 
         // Create form-level view model (after first evaluate so validation is available)
         this._formViewModel = createFormViewModel({
@@ -1252,7 +1252,7 @@ export class FormEngine implements IFormEngine {
         visit(resolveOptionSetsOnDefinition(this.definition).items);
     }
 
-    private initializeInstances(): void {
+    private initializeInstances(loadExternalSources: boolean): void {
         const instances = this.definition.instances;
         if (!instances) {
             return;
@@ -1264,7 +1264,7 @@ export class FormEngine implements IFormEngine {
                 this.validateInstanceSchema(name, seedData);
                 this.instanceData[name] = seedData;
             }
-            this.initializeInstanceSource(name, instance);
+            if (loadExternalSources) this.initializeInstanceSource(name, instance);
         }
     }
 

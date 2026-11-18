@@ -5,6 +5,8 @@ import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
 import { dereferenceBundleExport } from '@formspec-org/surface';
 import type { ComponentDocument } from '@formspec-org/types';
 import { BrowserSurfaceApp } from '../../../packages/formspec-surface-react/src/index';
+import { starterWidgetModule } from '../../../packages/formspec-surface-react/src/widgets/index';
+import { reviewModule, reviewRegistry, reviewSlot } from './surface-draft-review';
 
 const query = new URLSearchParams(location.search);
 const id = 'https://example.test/drafts';
@@ -13,6 +15,8 @@ const definition = id + '/definition';
 const surface = id + '/surface';
 const actions = id + '/actions';
 const tracker = query.has('tracker');
+const review = query.has('review');
+const registry = id + '/registry';
 const component: ComponentDocument = {
   $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition },
   tree: { component: 'Stack', children: [
@@ -27,10 +31,12 @@ const bundle = dereferenceBundleExport({
   manifest: {
     $formspecBundle: '2.4', id, definitions: [{ url: definition }], surfaces: [{ url: surface }],
     entrySurface: surface, responseActionDocuments: [{ url: actions }],
+    ...(review && { registries: [{ url: registry }] }),
   },
   documents: {
     [surface]: {
-      $formspecSurface: tracker ? '0.4' : '0.2', id: 'drafts', entry: 'form', routes: [
+      $formspecSurface: tracker || review ? '0.4' : '0.2', id: 'drafts', entry: 'form',
+      ...(review && { modules: [{ id: reviewModule, version: '1.0.0' }] }), routes: [
         { id: 'overview', path: '/overview', title: 'Overview', routeClass: 'intake', slots: tracker ? [{
           id: 'tracker', slotType: 'filing-status', binding: { groups: [{
             id: 'reports', label: 'Reports', forms: [{
@@ -43,8 +49,11 @@ const bundle = dereferenceBundleExport({
           slots: [{ id: 'form', slotType: 'definition-form', binding: {
             definitionRef: definition, ...(keyed && { subjectKeys: { year: 'year' } }),
           } }] },
+        ...(review ? [{ id: 'review', path: keyed ? '/review/{year}' : '/review', title: 'Review draft',
+          routeClass: 'intake', ...(keyed && { params: [{ name: 'year', type: 'string' }] }), slots: [reviewSlot] }] : []),
       ],
     },
+    ...(review && { [registry]: reviewRegistry }),
     [definition]: {
       $formspec: '1.0', url: definition, version: query.get('version') ?? '1.0.0', title: 'Filing',
       nonRelevantBehavior: 'remove',
@@ -73,6 +82,7 @@ if (query.has('form')) {
   createRoot(document.getElementById('root')!).render(<BrowserSurfaceApp
     previewEditions={[{ scope: 'edition', bundle }]}
     mode="hash" routeParams={keyed ? { year: "2025" } : undefined}
+    widgetModules={review ? [starterWidgetModule(reviewModule)] : undefined}
     resolveDefinitionComponent={() => component}
   />);
 }

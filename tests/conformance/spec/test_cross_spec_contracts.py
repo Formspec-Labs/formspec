@@ -637,6 +637,26 @@ def test_surface_subject_key_values_reuse_route_parameter_names():
     assert binding["subjectKeys"]["additionalProperties"]["$ref"] == "#/$defs/RouteParam/properties/name"
 
 
+def test_surface_draft_review_accepts_a_traced_pointer_in_dialect_0_4():
+    schema = _load("surface.schema.json")
+    validator = Draft202012Validator(schema, registry=build_schema_registry(COMMON_S, schema))
+    document = _subject_keyed_surface()
+    document["$formspecSurface"] = "0.4"
+    target = {"routeRef": document["entry"], "slotRef": "form",
+              "x-generation": {"anchors": ["need:review-saved-filing@1"]}}
+    document["routes"][0]["slots"].append({
+        "id": "review", "slotType": "module-widget",
+        "binding": {"moduleId": "x-report", "widgetName": "ResponseReview", "draftReview": target},
+    })
+    validator.validate(document)
+
+    document["$formspecSurface"] = "0.3"
+    assert not validator.is_valid(document)
+    document["$formspecSurface"] = "0.4"
+    target["presentation"] = {"locale": "en", "fields": {}}
+    assert not validator.is_valid(document)
+
+
 def test_catalog_mapping_inputs_and_delivered_schema_have_distinct_roles():
     spec = (SPEC_DIR / "data-sources/data-sources-spec.md").read_text()
     assert "the Mapping's declared upstream reads define its input projection" in spec

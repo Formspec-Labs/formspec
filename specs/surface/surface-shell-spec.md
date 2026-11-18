@@ -785,6 +785,30 @@ only runtime extension point inside a route.
   reports `WIDGET-DATA-REQUIRED-UNAVAILABLE`. The shell MUST NOT substitute
   `null`, `{}`, a sample, `config`, or another source. Data Sources stays at
   version 1.0; this channel does not create a Data Sources 1.1 alias.
+- **Draft review.** An authored `draftReview` binding supplies the three
+  `ResponseReview` inputs together. Resolve `definition` from the bundle's
+  referenced Definition form slot. Resolve the review address through that
+  slot's `subjectKeys` using the same parameter names and typed values as the
+  form route. Wait for pending saves for this session, Definition and subject,
+  then call `DraftPort.load` with that key and the Definition version. The port
+  authorizes before checking existence or the version pin. Supply `response`
+  as the full committed in-progress Response. Derive `presentation.fields`
+  through the engine's Definition and Locale lookup for the saved answers,
+  including each saved repeat instance. Use the active Locale for
+  `presentation.locale`, defaulting to `en` when the shell has selected no
+  Locale. The widget's `copy` configuration supplies its text for that language.
+  The engine evaluates label templates at review time from bundled data and the
+  committed Response without fetching external instances or options. The stored
+  Response supplies the displayed answers. Include the committed revision and
+  `draft-review` phase. This phase grants display only.
+
+  A refused read makes the whole widget unavailable and reports
+  `WIDGET-DATA-REQUIRED-UNAVAILABLE` with a typed reason. Preserve `absent`,
+  `denied`, and `version-mismatch` as distinct reasons without exposing the
+  stored version or revision on refusal. An invalid subject or a failed save
+  also makes review unavailable. The supplier reads only committed data and
+  creates no draft. Data Sources `delivery: draft` supplies only `Response.data`.
+  Filed and federal review retain their existing qualified sources and authority.
 - **Actions.** Registry 1.1 declares each output as
   `{name, description?}` in `widgetShape.actionOutputs[]`. Surface 0.2 binds
   that exact name through

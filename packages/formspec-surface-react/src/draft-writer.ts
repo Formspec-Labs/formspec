@@ -107,6 +107,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
   let savedEdit = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let pending: Promise<boolean> | undefined;
+  const checkpoints = new Set<Promise<boolean>>();
   let autosaving: Promise<boolean> | undefined;
   let fence: Promise<unknown> | undefined;
   let preparedEdit: number | undefined;
@@ -143,12 +144,23 @@ export function createDraftWriter(options: DraftWriterOptions) {
     return autosaving;
   }
 
+  async function waitForSaves(): Promise<boolean> {
+    let saved = true;
+    while (fence || autosaving || pending || checkpoints.size) {
+      const results = await Promise.all([
+        fence?.then(() => true, () => true) ?? true,
+        autosaving ?? true, pending ?? true, ...checkpoints,
+      ]);
+      saved = saved && results.every(Boolean);
+    }
+    return active && saved;
+  }
+
   async function leave(): Promise<boolean> {
-    if (!authoredAutosave) return true;
     clearTimer();
-    if (fence) await fence.catch(() => undefined);
-    const canLeave = (!autosaving || await autosaving) && (!pending || await pending) &&
-      active && !conflicted && (edit === savedEdit || await saveAutomatically());
+    const settled = await waitForSaves();
+    if (!authoredAutosave) return settled;
+    const canLeave = settled && !conflicted && (edit === savedEdit || await saveAutomatically());
     if (!canLeave && conflicted) report?.('draftConflict', { focusConflict: true });
     return canLeave;
   }
@@ -289,7 +301,14 @@ export function createDraftWriter(options: DraftWriterOptions) {
     if (current && !current()) throw new Error('The form visit ended.');
     const { action } = resolveResponseAction(input.document, input.actionRef, input.nodeId);
     const kind = filingAction(input.document, action);
-    if (!kind && action && input.document?.scope !== 'app' && usesDraftCheckpoint(action)) return invokeCheckpoint(input);
+    if (!kind && action && input.document?.scope !== 'app' && usesDraftCheckpoint(action)) {
+      const invocation = invokeCheckpoint(input);
+      const checkpoint = invocation.then(result => result.detail !== null &&
+        (result.status === 'completed' || result.status === 'deferred'), () => false)
+        .finally(() => { checkpoints.delete(checkpoint); });
+      checkpoints.add(checkpoint);
+      return invocation;
+    }
 
     const dispatch = async (draftFence?: Readonly<SurfaceDraftFence>, isCurrent?: () => boolean): Promise<DraftActionInvokerResult<SubmitResult>> => {
       if (isCurrent && !isCurrent()) throw new Error('The filing action visit ended.');
@@ -375,9 +394,9 @@ export function createDraftWriter(options: DraftWriterOptions) {
   return {
     invoke, flush, runFenced, resolveConflict, captureActionResponse,
     get conflict() { return conflicted; },
-    get dirty() { return edit !== savedEdit || pending !== undefined || fence !== undefined; },
+    get dirty() { return edit !== savedEdit || pending !== undefined || fence !== undefined || checkpoints.size > 0; },
     get revision() { return committed?.revision; },
-    leave,
+    leave, waitForSaves,
     setMounted(value: boolean) { mounted = value; schedule(); },
     dispose() { active = false; clearTimer(); unsubscribe(); },
   };
