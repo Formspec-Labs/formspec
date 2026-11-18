@@ -288,3 +288,18 @@ test('a form reads an accepted filing and current sibling, retaining its open pi
   await page.reload();
   await expect(page.getByLabel('Answer', { exact: true })).toHaveValue('old/updated');
 });
+
+test('native Back and Forward retain an unsaved draft in its original edition', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&submit');
+  const edition = page.locator('select[data-surface-edition]');
+  await edition.selectOption('edition-b');
+  await expect(edition).toHaveValue('edition-b');
+  const answer = page.getByLabel('Answer');
+  await answer.fill('Only in the second edition');
+  await page.goBack();
+  await expect(edition).toHaveValue('edition');
+  await expect(answer).toHaveValue('');
+  await page.goForward();
+  await expect(edition).toHaveValue('edition-b');
+  await expect(answer).toHaveValue('Only in the second edition');
+});

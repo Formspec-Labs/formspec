@@ -60,6 +60,9 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
   const previewEditions = input.previewEditions;
   if (previewEditions && (!previewEditions.length || new Set(previewEditions.map(entry => entry.scope)).size !== previewEditions.length ||
     previewEditions.some(entry => !entry.scope))) throw new Error('Preview editions require distinct, non-empty draft scopes.');
+  if (previewEditions?.some(({ scope, adapters }) => adapters.draftStorage && scope !== adapters.draftStorage.scope)) {
+    throw new Error('Preview edition and storage scopes must match.');
+  }
   const mode = input.adapters?.mode ?? (previewEditions ? 'hash' : 'history');
   const basePath = input.bundle ? input.adapters.basePath ?? '/' : '/';
   const browser = surfaceBrowserLocation(mode, basePath);
@@ -75,16 +78,34 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
   const port = draftStorage?.port;
   const localPort = isBrowserPort(port) ? port : undefined;
   const author = draftStorage?.author;
-  const checkpoint = useRef(checkpointPorts);
-  useLayoutEffect(() => { checkpoint.current = checkpointPorts; }, [checkpointPorts]);
+  // Native history can leave a dirty editor without running controlled navigation.
+  // Keep its writer until the host replaces the edition's storage or identity.
+  const [retainedEditions, retainEditions] = useState(previewEditions);
+  if (retainedEditions !== previewEditions && (
+    retainedEditions?.length !== previewEditions?.length ||
+    retainedEditions?.some(previous => !previewEditions?.some(current =>
+      previous.scope === current.scope && previous.bundle === current.bundle &&
+      previous.adapters.draftStorage?.port === current.adapters.draftStorage?.port &&
+      previous.adapters.responses === current.adapters.responses &&
+      previous.adapters.draftStorage?.author?.id === current.adapters.draftStorage?.author?.id &&
+      previous.adapters.draftStorage?.author?.name === current.adapters.draftStorage?.author?.name &&
+      previous.adapters.sessionGeneration === current.adapters.sessionGeneration))
+  )) retainEditions(previewEditions);
+  const checkpoint = useRef({ checkpointPorts, previewEditions });
+  useLayoutEffect(() => { checkpoint.current = { checkpointPorts, previewEditions }; }, [checkpointPorts, previewEditions]);
   const sessions = useMemo(() => new Map<string, DraftSession>(),
-    [port, responses, props.sessionGeneration, author?.id, author?.name]);
+    [retainedEditions, previewEditions ? undefined : port, previewEditions ? undefined : responses, previewEditions ? undefined : props.sessionGeneration,
+      previewEditions ? undefined : author?.id, previewEditions ? undefined : author?.name]);
   const scope = draftStorage?.scope ?? previewScope;
   const drafts = useMemo(() => {
     if (!scope || !port) return undefined;
     const retained = sessions.get(scope);
     if (retained) return retained;
-    const session = createDraftSession({ scope, port, responses, ...(author && { author }) }, localPort, input => checkpoint.current?.(input) ?? input.ports);
+    const session = createDraftSession({ scope, port, responses, ...(author && { author }) }, localPort, input => {
+      const current = checkpoint.current;
+      const ports = current.previewEditions ? current.previewEditions.find(entry => entry.scope === scope)?.adapters.checkpointPorts : current.checkpointPorts;
+      return ports?.(input) ?? input.ports;
+    });
     sessions.set(scope, session);
     return session;
   }, [scope, port, responses, sessions, localPort, author?.id, author?.name]);

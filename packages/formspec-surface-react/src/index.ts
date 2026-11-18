@@ -27,6 +27,7 @@ export {
   type SurfaceBrowserVisit,
   type SurfacePreviewEdition,
 } from './BrowserSurfaceApp.js';
+export { createSurfacePreviewEdition } from './preview-host.js';
 export { useBrowserLocation, type SurfaceBrowserMode } from './browser-location.js';
 export { SURFACE_APPEARANCE_SCRIPT } from './browser-appearance.js';
 

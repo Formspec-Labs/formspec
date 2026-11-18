@@ -111,7 +111,7 @@ if (query.has('form')) {
       await reads.fileNewer();
       button.textContent = 'Updated filing stored';
     }}>File updated directory</button>}
-    <BrowserSurfaceApp previewEditions={editions} />
+    <BrowserSurfaceApp previewEditions={[...editions]} />
   </>);
   mount(0);
   window.addEventListener('rerender-draft-fixture', () => mount(1), { once: true });
