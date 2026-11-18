@@ -5198,6 +5198,11 @@ considered violated. The <code>required</code> Bind, not the
 a value.</td>
 </tr>
 <tr>
+<td>Shape <code>activeWhen</code></td>
+<td><code>false</code> (inactive)</td>
+<td>The Shape runs only when its activation condition is true (§5.2).</td>
+</tr>
+<tr>
 <td><code>if()</code> condition</td>
 <td>The processor MUST signal an evaluation error.</td>
 <td>Unlike Bind contexts, <code>if()</code> is a general-purpose
@@ -8622,8 +8627,8 @@ evaluated in the Shape’s target context at the time of failure.</td>
 <td>When present, the shape is evaluated only when this expression
 evaluates to <code>true</code> in the Shape’s target context. When
 absent or <code>true</code>, the shape is always evaluated (subject to
-non-relevant suppression). When <code>false</code>, the shape is skipped
-entirely — it produces no results of any severity.
+non-relevant suppression). When <code>false</code> or <code>null</code>,
+the shape is skipped entirely — it produces no results of any severity.
 <code>activeWhen</code> is evaluated during the Revalidate phase, before
 the shape’s <code>constraint</code>. <code>activeWhen</code> is
 independent of the target’s relevance; non-relevant suppression (§5.6

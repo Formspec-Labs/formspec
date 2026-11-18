@@ -1,0 +1,22 @@
+{
+  "id": "parity.shape-null-active",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Core §3.8.1 null in required and activeWhen",
+    "Core §5.2 Shape activation"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-shape-null-active.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {},
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {}
+  }
+}

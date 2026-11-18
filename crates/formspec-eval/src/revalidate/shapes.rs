@@ -188,11 +188,10 @@ impl Composition<'_> {
             return Some(Truth::True);
         }
 
-        // activeWhen follows the existing batch evaluator contract: null defaults to active.
         let inactive = shape
             .get("activeWhen")
             .and_then(|v| v.as_str())
-            .is_some_and(|active_when| !self.fel.eval_bool(active_when, self.env, true));
+            .is_some_and(|active_when| !self.fel.eval_bool(active_when, self.env, false));
         let truth = if inactive {
             Some(Truth::True)
         } else {

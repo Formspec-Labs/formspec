@@ -279,7 +279,7 @@ Example: `sum($lineItems[*].quantity * $lineItems[*].unitPrice)` → element-wis
 
 General rule: null propagates (e.g., `null + 5` → `null`, `null < 5` → `null`).
 
-**Special handling in bind contexts**: `relevant` null → `true` (show field), `required` null → `false` (don't block), `readonly` null → `false` (editable), `constraint` null → `true` (passes). But `if()` condition null → evaluation error.
+**Boolean contexts**: `relevant` null → `true` (show field), `required` null → `false` (don't block), `readonly` null → `false` (editable), `constraint` null → `true` (passes), Shape `activeWhen` null → `false` (skip). But `if()` condition null → evaluation error.
 
 Functions with special null handling: `coalesce`, `empty`, `present`, `isNull`, `typeOf`, aggregates (skip nulls), `??`, `string(null)` → `""`, `boolean(null)` → `false`, `length(null)` → `0`.
 

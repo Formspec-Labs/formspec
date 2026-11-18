@@ -1,0 +1,43 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:shape-null-active",
+  "version": "1.0.0",
+  "title": "An unknown Shape activation condition",
+  "status": "active",
+  "items": [
+    {
+      "key": "a",
+      "type": "field",
+      "label": "A",
+      "dataType": "integer"
+    },
+    {
+      "key": "b",
+      "type": "field",
+      "label": "B",
+      "dataType": "string"
+    }
+  ],
+  "binds": [
+    {
+      "path": "b",
+      "required": "$a > 0"
+    }
+  ],
+  "shapes": [
+    {
+      "id": "needs-b",
+      "target": "b",
+      "constraint": "present($b)",
+      "message": "B is missing",
+      "activeWhen": "$a > 0"
+    },
+    {
+      "id": "literal-null",
+      "target": "b",
+      "constraint": "false",
+      "message": "Literal null does not activate a Shape",
+      "activeWhen": "null"
+    }
+  ]
+}
