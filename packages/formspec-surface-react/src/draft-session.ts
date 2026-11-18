@@ -34,7 +34,7 @@ type DraftOpen =
   | { status: 'denied' | 'unavailable' | 'loading' };
 
 type Entry = {
-  consumers: Set<DraftNoticeReporter>;
+  consumers: Map<DraftNoticeReporter, (() => void) | undefined>;
   result: Promise<DraftOpen>;
   seed: Pick<SurfaceDefinitionFormRenderInput, 'initialData' | 'draftSeed'>;
   opened?: DraftOpen;
@@ -73,7 +73,7 @@ export function createDraftSession(
     port: storage.port,
     restart: browserPort?.restart,
 
-    acquire(key: DraftKey, input: SurfaceDefinitionFormRenderInput, report: DraftNoticeReporter) {
+    acquire(key: DraftKey, input: SurfaceDefinitionFormRenderInput, report: DraftNoticeReporter, onReopen?: () => void) {
       const definition = input.plan.definition;
       const id = sessionKey(key, definition.version);
       let entry = entries.get(id);
@@ -85,7 +85,7 @@ export function createDraftSession(
       }
       if (!entry) {
         const reusable = previous?.status === 'ready' ? previous : undefined;
-        const consumers = previousConsumers ?? new Set<DraftNoticeReporter>();
+        const consumers = previousConsumers ?? new Map<DraftNoticeReporter, (() => void) | undefined>();
         const opened = async (): Promise<DraftOpen> => {
           let loaded: DraftLoadResult;
           try {
@@ -136,7 +136,7 @@ export function createDraftSession(
               actions: input.responseActionsDocument,
               invoker: input.responseActionInvoker,
               checkpointPorts,
-              report: (notice, options) => { for (const notify of consumers) notify(notice, options); },
+              report: (notice, options) => { for (const notify of consumers.keys()) notify(notice, options); },
             });
             return { status: 'ready', engine, writer };
           } catch (error) {
@@ -162,7 +162,7 @@ export function createDraftSession(
       if (tracked.consumers.size === 0) {
         tracked.seed = { initialData: input.initialData, draftSeed: input.draftSeed };
       }
-      tracked.consumers.add(report);
+      tracked.consumers.set(report, onReopen);
       if (tracked.opened?.status === 'ready') tracked.opened.writer.setMounted(true);
       return {
         result: tracked.result,
@@ -207,6 +207,7 @@ export function createDraftSession(
         if (entry.opened?.status === 'ready' && entry.opened.writer === writer) {
           entries.delete(id);
           disposeEntry(entry);
+          for (const reopen of entry.consumers.values()) reopen?.();
           break;
         }
       }

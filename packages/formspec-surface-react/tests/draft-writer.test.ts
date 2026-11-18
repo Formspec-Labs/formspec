@@ -382,6 +382,35 @@ it('qualifies filing actions on a reloaded widget-only route with no mounted for
   expect(JSON.parse(executor.mock.calls[0][0].draftFence!.responseJson).data.answer).toBe('persisted before reload');
 });
 
+it('reopens every mounted editor when loading a conflicting draft with Response reads', async () => {
+  const { engine, writer, port, save } = fixture(false);
+  const readingDefinition: FormDefinition = { ...definition, instances: { sibling: {
+    response: { definition: { url: 'urn:sibling' }, subject: [], status: 'current', cardinality: 'latest', pin: 'none' },
+    schema: { answer: 'string' },
+  } } };
+  const input = { plan: { definition: readingDefinition }, grant: {} } as Parameters<DraftSession['acquire']>[1];
+  const session = createDraftSession({ scope: key.scope, port });
+  cleanup.push(() => session.dispose());
+  expect(await writer.flush(true)).toBe(true);
+  const reopen = [vi.fn(), vi.fn()];
+  const editors = reopen.map(onReopen => session.acquire(key, input, vi.fn(), onReopen));
+  const [first, second] = await Promise.all(editors.map(editor => editor.result));
+  if (first.status !== 'ready' || second.status !== 'ready') throw Error('editors did not open');
+  expect(first.writer).toBe(second.writer);
+  engine.setValue('answer', 'saved in another visit');
+  expect(await writer.flush()).toBe(true);
+  first.engine.setValue('answer', 'unsaved');
+  save.mockResolvedValueOnce({ status: 'conflict' });
+  expect(await first.writer.flush()).toBe(false);
+  expect(await first.writer.resolveConflict('load')).toBe('reopen');
+  session.discardForReopen(first.writer);
+  for (const notify of reopen) expect(notify).toHaveBeenCalledOnce();
+  for (const editor of editors) editor.release();
+  const reopened = await session.acquire(key, input, vi.fn()).result;
+  if (reopened.status !== 'ready') throw Error('draft did not reopen');
+  expect(reopened.engine.getResponse().data.answer).toBe('saved in another visit');
+});
+
 it('refuses widget Submit after an edit replaces the revision seen by Sign', async () => {
   const { engine, writer } = fixture(false);
   const { executor, run } = widget(writer, engine);

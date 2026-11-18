@@ -70,6 +70,10 @@ export function DraftDefinitionForm({
       const acquired = session.acquire(key, opening, (kind, options) => {
         setNotice({ kind, ...options });
         latest.current.reportSave?.(kind);
+      }, () => {
+        if (!active) return;
+        setLoaded(undefined);
+        setAttempt(value => value + 1);
       });
       release = acquired.release;
       const result = await acquired.result;
@@ -105,8 +109,6 @@ export function DraftDefinitionForm({
         const result = await open.writer.resolveConflict(action);
         if (live.current && result === 'reopen') {
           session.discardForReopen(open.writer);
-          setLoaded(undefined);
-          setAttempt(value => value + 1);
         } else if (live.current && !result) latest.current.reportSave?.('draftConflict');
       }
     } finally {
