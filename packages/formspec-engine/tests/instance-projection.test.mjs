@@ -44,8 +44,9 @@ test('the engine evaluates the projected rows from its own latest completed fili
         const keys = { cycle };
         return { type: definition.subject.type, keys, id: engine.responseSubjectId(definition.subject.type, keys) };
     };
-    const record = (id, authored, cycle, status, rows) => ({
+    const record = (id, authored, cycle, kind, status, rows) => ({
         scope,
+        kind,
         response: {
             $formspecResponse: '1.0',
             id,
@@ -60,10 +61,10 @@ test('the engine evaluates the projected rows from its own latest completed fili
     const currentSubject = subject(2);
     const mixedRows = [prior.data.rows[0], { tags: ['other'] }];
     const delivery = engine.selectResponses([
-        record('old', '2025-07-01T00:00:00Z', 1, 'completed', prior.data.rows),
-        record('latest', '2025-07-02T00:00:00Z', 1, 'completed', mixedRows),
-        record('draft', '2025-07-03T00:00:00Z', 1, 'in-progress', prior.data.rows),
-        record('current-cycle', '2025-07-04T00:00:00Z', 2, 'completed', prior.data.rows),
+        record('old', '2025-07-01T00:00:00Z', 1, 'filing', 'completed', prior.data.rows),
+        record('latest', '2025-07-02T00:00:00Z', 1, 'filing', 'completed', mixedRows),
+        record('draft', '2025-07-03T00:00:00Z', 1, 'open-draft', 'in-progress', prior.data.rows),
+        record('current-cycle', '2025-07-04T00:00:00Z', 2, 'filing', 'completed', prior.data.rows),
     ], prior.response, {
         scope,
         authorized: true,
