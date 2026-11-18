@@ -64,6 +64,7 @@ export {
 
 export {
   composeSurfaceApp,
+  formHref,
   matchRoute,
   routeHref,
   routeInSurface,

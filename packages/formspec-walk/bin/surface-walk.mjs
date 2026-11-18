@@ -1,5 +1,5 @@
 /** @filedesc Derive Definition Walk targets from the routes of an exported static Surface preview. */
-import { composeSurfaceApp, createThemeAuthority, createWidgetRegistry, dereferenceBundleExport, matchRoute, planRoute, routeHref } from '@formspec-org/surface';
+import { composeSurfaceApp, createThemeAuthority, createWidgetRegistry, dereferenceBundleExport, flattenRegistryEntries, formHref, matchRoute, planMatchedRoute, routeHref } from '@formspec-org/surface';
 import { LocaleStore, preactReactiveRuntime } from '@formspec-org/engine';
 import { targetDefinitionMatches } from '@formspec-org/types';
 
@@ -43,16 +43,22 @@ export function surfaceWalkTargets(exported, { url, params = {}, locale }) {
     }
     const bundle = dereferenceBundleExport(exported);
     const app = composeSurfaceApp(bundle.surfaces, { entrySurface: bundle.entrySurface });
-    const errors = [...bundle.diagnostics, ...app.diagnostics].filter(d => d.severity === 'error');
+    const registry = flattenRegistryEntries(bundle.registries);
+    const errors = [...bundle.diagnostics, ...app.diagnostics, ...registry.diagnostics].filter(d => d.severity === 'error');
     if (errors.length) throw new Error(errors.map(d => d.message).join('\n'));
     const authority = createThemeAuthority({ tenantTheme: bundle.tenantTheme });
-    const widgets = createWidgetRegistry();
+    const widgets = createWidgetRegistry({ registryEntries: registry.entries });
     const targets = [];
-    const mounted = new Set();
     for (const handle of app.routes) {
         const routeId = `${handle.surfaceId}/${handle.routeId}`;
-        const plan = planRoute({ ...bundle, handle, params, registryEntries: [], widgets, surfaceRef: bundle.surfaceRefs?.get(handle.surface) });
-        const visit = (slot, parent, scope) => {
+        const route = routeHref(handle, params);
+        const pathname = route.href;
+        const match = route.refusal ? undefined : matchRoute(app, pathname).match;
+        const plan = planMatchedRoute({
+            ...bundle, handle, app, params: { ...params, ...match?.params }, registryEntries: registry.entries, widgets,
+            surfaceRef: bundle.surfaceRefs?.get(handle.surface), themeAuthority: authority,
+        });
+        const visit = (slot, parent, scope, topLevel) => {
             const title = `${parent}/${slot.slotId}`;
             const selector = `${scope} > ${attribute('data-slot', slot.slotId)}`;
             if (slot.slotType === 'embed-route') {
@@ -64,27 +70,24 @@ export function surfaceWalkTargets(exported, { url, params = {}, locale }) {
             const definition = slot.definition;
             if (!definition || slot.status !== 'ready') throw new Error(`${title}: unresolved form ${slot.definitionRef}`);
             if (slot.initialData && slot.initialData.status !== 'ready') throw new Error(`${title}: unresolved initial data (${slot.initialData.reason})`);
-            mounted.add(slot.definitionRef);
-            const route = routeHref(handle, params);
             if (route.refusal) throw new Error(`${title}: ${route.diagnostics.map(d => d.message).join('; ') || route.refusal}`);
+            if (match?.handle !== handle) throw new Error(`${title}: ${route.href} resolves to another route or no route`);
             const address = new URL(preview);
-            address.hash = route.href + (query.size ? `?${query}` : '');
-            if (matchRoute(app, address.hash.slice(1).split('?')[0]).match?.handle !== handle) {
-                throw new Error(`${title}: ${address.href} resolves to another route or no route`);
-            }
-            const theme = authority.grantFor(handle.route).themeDocument;
+            const targetPath = topLevel ? formHref(pathname, slot.slotId) : pathname;
+            const [path, slotQuery] = targetPath.split('?');
+            const targetQuery = new URLSearchParams(query);
+            for (const [key, value] of new URLSearchParams(slotQuery)) targetQuery.set(key, value);
+            address.hash = path + (targetQuery.size ? `?${targetQuery}` : '');
+            const theme = plan.grant.themeDocument;
             for (const doc of wordingFor(definition, bundle.localeDocuments ?? [], locale, title)) {
                 targets.push({ title: doc ? `${title} (${doc.locale})` : title, url: address.href,
                     root: `${selector} [data-formspec-render-root]`, definition, theme, locale: doc });
             }
         };
         const scope = attribute('data-surface', handle.surfaceId) + attribute('data-route', handle.routeId);
-        for (const slot of plan.slots) visit(slot, routeId, `${scope} > .fs-surface-route__slots`);
+        for (const slot of plan.slots) visit(slot, routeId, `${scope} > .fs-surface-route__slots`, true);
     }
     if (!targets.length) throw new Error('No form routes to walk in this export');
-    for (const url of bundle.definitions.keys()) {
-        if (!mounted.has(url)) throw new Error(`${url}: exported Definition has no form route to walk`);
-    }
     return targets;
 }
 
@@ -96,7 +99,10 @@ import { checkSurfaceForm } from ${JSON.stringify(from)};
 const targets: Parameters<typeof checkSurfaceForm>[1][] = ${JSON.stringify(targets, null, 2)};
 for (const target of targets) {
     test(target.title, async ({ page }) => {
-        await checkSurfaceForm(page, target);
+        const { report } = await checkSurfaceForm(page, target);
+        for (const description of report.uncovered) {
+            test.info().annotations.push({ type: 'uncovered', description });
+        }
     });
 }
 `;
