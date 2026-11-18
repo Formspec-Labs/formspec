@@ -10,7 +10,89 @@ use std::collections::{HashMap, HashSet};
 
 use fel_core::exact_json::{Map, Value};
 
+use crate::rebuild::rebuild_item_tree;
 use crate::types::{ItemInfo, NrbMode};
+
+/// Checks whether a filed Response's data matches its evaluation.
+///
+/// Pass the Definition used to produce `evaluated` (the evaluation's `data` field).
+/// The evaluation may add `[]` for an omitted declared repeat and non-repeatable
+/// group objects that contain only those additions. All filed values, including
+/// calculated fields, and the number and order of repeat rows must match. Callers
+/// handle validation findings separately.
+pub fn filed_response_data_matches(definition: &Value, filed: &Value, evaluated: &Value) -> bool {
+    filed == evaluated
+        || object_matches(
+            &collect_group_items(&rebuild_item_tree(definition)),
+            Some(filed),
+            evaluated,
+        )
+}
+
+/// Checks one object scope, including a group object absent from the filed data.
+fn object_matches(
+    groups: &HashMap<&str, &ItemInfo>,
+    filed: Option<&Value>,
+    evaluated: &Value,
+) -> bool {
+    let Value::Object(evaluated) = evaluated else {
+        return false;
+    };
+    let empty = Map::new();
+    let filed = match filed {
+        Some(Value::Object(filed)) => filed,
+        None if !evaluated.is_empty() => &empty,
+        _ => return false,
+    };
+    if filed.keys().any(|key| !evaluated.contains_key(key)) {
+        return false;
+    }
+
+    evaluated.iter().all(|(key, value)| {
+        let prior = filed.get(key);
+        prior == Some(value)
+            || groups
+                .get(key.as_str())
+                .is_some_and(|group| group_matches(group, prior, value))
+    })
+}
+
+/// Collects group declarations that `emit` represents in this object scope.
+fn collect_group_items(items: &[ItemInfo]) -> HashMap<&str, &ItemInfo> {
+    fn walk<'a>(items: &'a [ItemInfo], groups: &mut HashMap<&'a str, &'a ItemInfo>) {
+        for item in items {
+            match item.item_type.as_str() {
+                "group" => {
+                    groups.insert(item.key.as_str(), item);
+                }
+                "display" => {}
+                // Dependent questions share their parent's object.
+                _ => walk(&item.children, groups),
+            }
+        }
+    }
+    let mut groups = HashMap::new();
+    walk(items, &mut groups);
+    groups
+}
+
+/// Allows omitted empty repeats and requires filed rows to match in count and order.
+fn group_matches(item: &ItemInfo, filed: Option<&Value>, evaluated: &Value) -> bool {
+    match (item.repeatable, filed, evaluated) {
+        (false, _, _) => object_matches(&collect_group_items(&item.children), filed, evaluated),
+        (true, None, Value::Array(rows)) => rows.is_empty(),
+        (true, Some(Value::Array(filed)), Value::Array(evaluated))
+            if filed.len() == evaluated.len() =>
+        {
+            let groups = collect_group_items(&item.children);
+            filed
+                .iter()
+                .zip(evaluated)
+                .all(|(prior, row)| prior == row || object_matches(&groups, Some(prior), row))
+        }
+        _ => false,
+    }
+}
 
 /// Build the nested projection of `values` through the evaluated `items`.
 pub(crate) fn build_output_data(
@@ -36,6 +118,7 @@ pub(crate) fn build_output_data(
 
 /// `inherited` is the nearest enclosing `nonRelevantBehavior` (the Definition's at the root), the
 /// same resolution [`crate::nrb::apply_nrb`] used to shape `values`.
+/// Keep the object scope rules in sync with `collect_group_items`.
 fn emit(
     items: &[ItemInfo],
     values: &HashMap<String, Value>,

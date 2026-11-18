@@ -24,7 +24,7 @@ use std::path::{Path, PathBuf};
 use fel_core::exact_json::Value;
 use formspec_eval::{
     EvalOptions, EvalTrigger, ItemTextRequest, evaluate, evaluation_result_to_json_value,
-    extension_constraints_from_registry_documents,
+    extension_constraints_from_registry_documents, filed_response_data_matches,
 };
 
 /// The runner's name in the ledger.
@@ -205,7 +205,14 @@ impl Evaluator<'_> {
                 })
                 .unwrap_or_default(),
         };
-        for problem in inventions(self.definition, data, &outcome) {
+        let problems = inventions(self.definition, data, &outcome);
+        if !problems.is_empty() && filed_response_data_matches(self.definition, data, &outcome.data)
+        {
+            self.inventions.push(format!(
+                "{label}: filed_response_data_matches accepted data with inventions"
+            ));
+        }
+        for problem in problems {
             self.inventions.push(format!("{label}: {problem}"));
         }
         outcome
@@ -415,13 +422,21 @@ fn item_index(definition: &Value) -> ItemIndex {
             } else {
                 format!("{prefix}.{key}")
             };
-            if item["type"].as_str() == Some("field") {
-                index.fields.push(path.clone());
-            }
-            if item.get("repeatable").and_then(Value::as_bool) == Some(true) {
-                index.repeats.push(path.clone());
-            }
-            walk(item.get("children"), &path, index);
+            let child_scope = match item["type"].as_str() {
+                Some("group") => {
+                    if item["repeatable"].as_bool() == Some(true) {
+                        index.repeats.push(path.clone());
+                    }
+                    path.as_str()
+                }
+                Some("field") => {
+                    index.fields.push(path);
+                    // Dependent questions share the field's enclosing Response object.
+                    prefix
+                }
+                _ => continue,
+            };
+            walk(item.get("children"), child_scope, index);
         }
     }
     let mut index = ItemIndex {
@@ -480,15 +495,14 @@ fn inventions(definition: &Value, input: &Value, output: &Outcome) -> Vec<String
         map.keys()
             .any(|k| k.len() > segs.len() && k.starts_with(segs))
     };
-    let reaches = |segs: &[Seg]| before.keys().any(|k| k.starts_with(segs));
-    // A calculated value may appear or change, but only in rows the input already has: a calculated
-    // child must not hide a row evaluate invented (minRepeat padding, seedFrom).
+    // Calculations and empty repeat projections can only add data within existing rows.
+    let in_existing_rows = |segs: &[Seg]| {
+        segs.iter().enumerate().all(|(i, seg)| {
+            !matches!(seg, Seg::Index(_)) || before.keys().any(|k| k.starts_with(&segs[..=i]))
+        })
+    };
     let calculated_in_existing_rows = |segs: &[Seg]| {
-        owning_field(segs).is_some_and(|f| index.calculated.contains(&f))
-            && segs
-                .iter()
-                .enumerate()
-                .all(|(i, s)| !matches!(s, Seg::Index(_)) || reaches(&segs[..=i]))
+        owning_field(segs).is_some_and(|f| index.calculated.contains(&f)) && in_existing_rows(segs)
     };
     let mut problems = Vec::new();
     for (segs, value) in &after {
@@ -502,7 +516,8 @@ fn inventions(definition: &Value, input: &Value, output: &Outcome) -> Vec<String
         }
         let projected_repeat = prior.is_none()
             && matches!(value, Value::Array(a) if a.is_empty())
-            && index.repeats.contains(&template(segs));
+            && index.repeats.contains(&template(segs))
+            && in_existing_rows(segs);
         let emptied = prior.is_none() && is_empty_container(value) && under(&before, segs);
         if projected_repeat || emptied {
             continue;
@@ -523,6 +538,76 @@ fn inventions(definition: &Value, input: &Value, output: &Outcome) -> Vec<String
         problems.push(format!("removed {} = {}", concrete(segs), text(value)));
     }
     problems
+}
+
+#[test]
+fn no_invention_allows_empty_repeat_under_a_field() {
+    let definition = parse(
+        r#"{"items":[{"key":"control","type":"field","dataType":"string","children":[
+            {"key":"rows","type":"group","repeatable":true,"children":[
+                {"key":"answer","type":"field","dataType":"string"}
+            ]}
+        ]}]}"#,
+    );
+    let mut evaluator = Evaluator {
+        definition: &definition,
+        registries: Vec::new(),
+        inventions: Vec::new(),
+    };
+    for (filed, expected) in [
+        (r#"{"control":"a"}"#, r#"{"control":"a","rows":[]}"#),
+        ("{}", r#"{"rows":[]}"#),
+    ] {
+        let input = parse(filed);
+        let outcome = evaluator.run(filed, &input, EvalTrigger::Submit, Caller::Server);
+        assert_eq!(outcome.data, parse(expected));
+        assert!(filed_response_data_matches(
+            &definition,
+            &input,
+            &outcome.data
+        ));
+    }
+    assert!(
+        evaluator.inventions.is_empty(),
+        "{:?}",
+        evaluator.inventions
+    );
+}
+
+#[test]
+fn no_invention_refuses_a_new_row_with_only_an_empty_repeat() {
+    let definition = parse(
+        r#"{"items":[{"key":"rows","type":"group","repeatable":true,"minRepeat":1,"children":[
+            {"key":"nested","type":"group","repeatable":true,"children":[
+                {"key":"answer","type":"field","dataType":"string"}
+            ]}
+        ]}]}"#,
+    );
+    // Pin the padded output so the oracle is still tested when evaluation stops padding (fs-i731).
+    let outcome = Outcome {
+        results: Vec::new(),
+        data: parse(r#"{"rows":[{"nested":[]}]}"#),
+        undeclared: None,
+        non_relevant: Vec::new(),
+    };
+    let observed: Vec<_> = ["{}", r#"{"rows":[]}"#, r#"{"rows":[{}]}"#]
+        .into_iter()
+        .map(|filed| {
+            let input = parse(filed);
+            (
+                filed_response_data_matches(&definition, &input, &outcome.data),
+                inventions(&definition, &input, &outcome),
+            )
+        })
+        .collect();
+    assert_eq!(
+        observed,
+        [
+            (false, vec!["added rows[0].nested = []".to_string()]),
+            (false, vec!["added rows[0].nested = []".to_string()]),
+            (true, Vec::new()),
+        ]
+    );
 }
 
 // --- Runs ------------------------------------------------------------------------------------
