@@ -88,7 +88,6 @@ const source = {
 if (query.has('form')) {
   await initFormspecEngine();
   const root = createRoot(document.getElementById('root')!);
-  const reads = hydration ? await hydrationStorage(dereferenceBundleExport(source).definitions) : undefined;
   async function edition(scope: string) {
     const preview = await createSurfacePreviewEdition({ scope, source, scenario: keyed ? {
       $formspecSurfaceScenario: '0.1', version: '1', initialPath: '/filing/2025', routeParams: { year: '2025' },
@@ -97,11 +96,15 @@ if (query.has('form')) {
     } : undefined });
     return { ...preview, adapters: {
       ...preview.adapters,
-      ...(reads && { draftStorage: { scope, port: reads.storage.port }, responses: reads.storage.responses }),
       resolveDefinitionComponent: () => component,
     } };
   }
   const first = await edition('edition');
+  const reads = hydration ? await hydrationStorage(first.bundle.definitions) : undefined;
+  if (reads) {
+    first.adapters.draftStorage = { scope: first.scope, port: reads.storage.port };
+    first.adapters.responses = reads.storage.responses;
+  }
   const editions = submit ? [first, await edition('edition-b')] as const : [first] as const;
   const mount = (visit: number) => root.render(<>
     <span hidden data-fixture-render={visit} />
