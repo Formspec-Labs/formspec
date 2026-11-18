@@ -246,7 +246,7 @@ Phase 1: Rebuild — build the item tree from a definition JSON.
 Phase 2: Recalculate — evaluate computed values and bind expressions.
 
 Submodules follow data flow: `json_fel` (coercion) → `variables` / `repeats` →
-`bind_pass` (relevance, required, readonly, whitespace) → ordered calculates.
+`bind_pass` (input normalization, relevance, required, readonly) → ordered calculates.
 
 
 
@@ -2058,6 +2058,7 @@ A node in the evaluation item tree.
 - `required_expr: Option<String>` - Required expression (if any).
 - `readonly_expr: Option<String>` - Readonly expression (if any).
 - `whitespace: Option<super::modes::WhitespaceMode>` - Whitespace normalization mode (if any).
+- `letter_case: Option<formspec_core::value_coerce::LetterCase>` - Letter-case conversion on input, when enabled for a text field.
 - `nrb: Option<super::modes::NrbMode>` - Non-relevant behavior override for this bind.
 - `excluded_value: Option<super::modes::ExcludedValueMode>` - Excluded value behavior when non-relevant.
 - `default_value: Option<fel_core::exact_json::Value>` - Default value to apply on non-relevant → relevant transition when field is empty.
@@ -2320,6 +2321,7 @@ Machine validation code (known codes + definition-authored shape codes).
 - `SeedPredicateScope` - A seed predicate reads an input outside its creation scope.
 - `UnsubscriptedRepeatReference` - A field reference traverses a repeatable group without a subscript.
 - `UnassembledDefinitionReference` - A Group inclusion needs assembly before evaluation.
+- `CalculateTargetConflict` - Multiple calculate Binds can write the same Item.
 - `MinRepeat` - Repeat count below minimum.
 - `MaxRepeat` - Repeat count above maximum.
 - `UnresolvedExtension` - Extension URI not in registry.

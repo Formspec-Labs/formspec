@@ -8,7 +8,7 @@
 //!   - `readonly(X)`: X's and its ancestors' `readonly`;
 //!   - `required(X)`: X's `required`, and X's and its ancestors' `relevant`;
 //!   - `valid(X)`: X's value, `required` and `constraint`, X's and its ancestors'
-//!     `relevant`, and every Shape targeting X (`constraint`, `activeWhen`, composed members).
+//!     `relevant`, and error Shapes targeting X (`constraint`, `activeWhen`, composed members).
 //! - A value depends on the expressions that write it:
 //!   - `calculate` and an `=`-prefixed `default` write their Item's value;
 //!   - `relevant` writes the value of its Item, and of every descendant (relevance inherits,

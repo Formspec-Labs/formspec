@@ -36,7 +36,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`formspec_core`](formspec_core.md)
 
-*30 modules*
+*32 modules*
 
 ### [`assembler`](assembler.md)
 
@@ -48,7 +48,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`bind_targets`](bind_targets.md)
 
-*1 struct, 1 type alias*
+*1 function, 1 struct, 1 type alias*
 
 ### [`changelog`](changelog.md)
 
@@ -69,6 +69,14 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 ### [`definition_items`](definition_items.md)
 
 *1 enum, 1 struct, 8 functions*
+
+### [`dependency_order`](dependency_order.md)
+
+*1 function*
+
+### [`dependency_reads`](dependency_reads.md)
+
+*1 function, 2 structs, 3 enums*
 
 ### [`extension_analysis`](extension_analysis.md)
 
@@ -217,6 +225,8 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 - [`component_tree`](#component_tree) - Pre-order traversal for component/theme JSON nodes (`component` + `children`).
 - [`definition_expressions`](#definition_expressions) - Authored FEL expression sites in Definition documents.
 - [`definition_items`](#definition_items) - Depth-first traversal of definition `items` / `children` JSON arrays.
+- [`dependency_order`](#dependency_order) - Order dependency vertices and identify the vertices in cycles.
+- [`dependency_reads`](#dependency_reads) - Reads extracted from parsed FEL before resolving each evaluation site.
 - [`extension_analysis`](#extension_analysis) - Validates extension usage in item trees against a registry catalog.
 - [`fel_analysis`](#fel_analysis) - FEL static analysis and expression rewriting for field references and variables.
 - [`fel_condition_group_lift`](#fel_condition_group_lift) - Lift parsed FEL into the structured condition-group shape used by Studio (`fel-condition-builder`).
@@ -321,6 +331,18 @@ Conformant definitions: Item `key` is required with pattern `^[a-zA-Z][a-zA-Z0-9
 `schemas/definition.schema.json`. The two policies here are **tooling/runtime** choices for
 walking JSON before or aside from full schema validation: skip ill-formed nodes vs coerce and
 keep descending.
+
+
+
+## Module: dependency_order
+
+Order dependency vertices and identify the vertices in cycles.
+
+
+
+## Module: dependency_reads
+
+Reads extracted from parsed FEL before resolving each evaluation site.
 
 
 
@@ -800,6 +822,10 @@ fn rewrite_message_template_for_assembly(message: &str, map: &AssemblyFelRewrite
 
 - [`BindTargets`](#bindtargets) - Bind entries by target Item path, each list in document order.
 
+**Functions**
+
+- [`bind_row_index`](#bind_row_index) - Translate a Bind selector's one-based `@index = N` into a zero-based row.
+
 **Type Aliases**
 
 - [`BindEntry`](#bindentry) - One Bind entry: its `path` spelling and its properties.
@@ -834,6 +860,21 @@ object-style `binds` are both read; object keys keep document order.
 - `fn entries(self: &Self, item_path: &str) -> &[BindEntry<'a, V>]` - Entries targeting the Item at `item_path`, in document order.
 - `fn merged(self: &Self, item_path: &str) -> <V as >::Object` - The effective Bind: properties merged in document order, later values winning.
 - `fn winning_path(self: &Self, item_path: &str, property: &str) -> Option<&'a str>` - The `path` spelling of the entry whose `property` wins for `item_path`.
+- `fn merged_concrete(self: &Self, item_path: &str) -> Option<<V as >::Object>` - Merge Binds for an indexed Item when a row-specific Bind applies.
+- `fn has_indexed(self: &Self) -> bool` - Whether the Definition has row-specific Binds to apply after row expansion.
+- `fn has_calculate_conflict(self: &Self, item_path: &str) -> bool` - Whether two calculate Binds can write the same instance of this Item.
+
+
+
+## formspec_core::bind_targets::bind_row_index
+
+*Function*
+
+Translate a Bind selector's one-based `@index = N` into a zero-based row.
+
+```rust
+fn bind_row_index(selector: &str) -> Option<usize>
+```
 
 ---
 
@@ -1485,6 +1526,194 @@ Visit definition items under a JSON array with an explicit key policy.
 
 ```rust
 fn visit_definition_items_json_with_policy<V, impl FnMut(&DefinitionItemVisitCtx<'_, V>)>(items: &[V], json_array_parent: &str, parent_dotted: Option<&str>, policy: DefinitionItemKeyPolicy, visitor: & mut impl Trait)
+```
+
+---
+
+## Source: formspec_core/dependency_order.md
+
+**formspec_core > dependency_order**
+
+# Module: dependency_order
+
+## Contents
+
+**Functions**
+
+- [`dependency_order`](#dependency_order) - Return dependency-first order, or the vertices that participate in cycles.
+
+---
+
+## formspec_core::dependency_order::dependency_order
+
+*Function*
+
+Return dependency-first order, or the vertices that participate in cycles.
+
+Each input list contains the indices of dependencies of that vertex. Shared
+projections can supply one input list for several readers.
+
+# Panics
+
+Panics when a dependency index is outside the vertex list.
+
+```rust
+fn dependency_order(inputs: &[Vec<usize>]) -> Result<Vec<usize>, Vec<usize>>
+```
+
+---
+
+## Source: formspec_core/dependency_reads.md
+
+**formspec_core > dependency_reads**
+
+# Module: dependency_reads
+
+## Contents
+
+**Structs**
+
+- [`Read`](#read) - A field or row reference, with its parsed path kept intact.
+- [`Reads`](#reads) - Instance values, Definition variables and model-item properties read by FEL.
+
+**Enums**
+
+- [`Property`](#property) - The model-item property addressed by a FEL query.
+- [`PropertyInput`](#propertyinput) - Data or state needed by a model-item property query.
+- [`Root`](#root) - The point from which a FEL value read is resolved.
+
+**Functions**
+
+- [`predicate_value_paths`](#predicate_value_paths) - Member reads of the array element bound to bare dollar in a predicate.
+
+---
+
+## formspec_core::dependency_reads::Property
+
+*Enum*
+
+The model-item property addressed by a FEL query.
+
+**Variants:**
+- `Required` - The `required()` query.
+- `Relevant` - The `relevant()` query.
+- `Readonly` - The `readonly()` query.
+- `Valid` - The `valid()` query.
+
+**Methods:**
+
+- `fn inputs(self: Self) -> &'static [PropertyInput]` - Return the Core dependencies of a model-item property query.
+
+**Traits:** Copy, Eq
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> Property`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Hash**
+  - `fn hash<__H>(self: &Self, state: & mut __H)`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &Property) -> bool`
+
+
+
+## formspec_core::dependency_reads::PropertyInput
+
+*Enum*
+
+Data or state needed by a model-item property query.
+
+**Variants:**
+- `Value` - The target Item's value.
+- `Inherited(Property)` - A property inherited through the Item and its ancestors.
+- `Own(Property)` - A property on the target Item itself.
+- `Constraint` - The target Item's constraint expression.
+- `ErrorShapes` - Error-severity Shapes targeting this Item.
+
+**Traits:** Copy
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> PropertyInput`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+
+
+
+## formspec_core::dependency_reads::Read
+
+*Struct*
+
+A field or row reference, with its parsed path kept intact.
+
+**Fields:**
+- `root: Root` - The lexical reference root.
+- `path: Vec<fel_core::ast::PathSegment>` - FEL selectors and members after the root.
+- `row_count: bool` - The operation can read just row count when this path names a repeat array.
+
+**Trait Implementations:**
+
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+
+
+
+## formspec_core::dependency_reads::Reads
+
+*Struct*
+
+Instance values, Definition variables and model-item properties read by FEL.
+
+**Fields:**
+- `values: Vec<Read>` - Instance values read by the expression.
+- `variables: Vec<String>` - Definition variables read by name, before lexical scope resolution.
+- `properties: Vec<(Property, Read)>` - Model-item properties queried and their targets.
+
+**Methods:**
+
+- `fn new(expr: &Expr) -> Self` - Extract reads, accounting for local variables and predicate scope.
+
+**Trait Implementations:**
+
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Default**
+  - `fn default() -> Reads`
+
+
+
+## formspec_core::dependency_reads::Root
+
+*Enum*
+
+The point from which a FEL value read is resolved.
+
+**Variants:**
+- `Field(String)` - A lexical Item name.
+- `Target` - The expression's own target.
+- `Current` - The current repeat row.
+- `Previous` - The previous repeat row.
+- `Next` - The next repeat row.
+- `Parent` - The containing row or group.
+
+**Trait Implementations:**
+
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+
+
+
+## formspec_core::dependency_reads::predicate_value_paths
+
+*Function*
+
+Member reads of the array element bound to bare dollar in a predicate.
+
+```rust
+fn predicate_value_paths(expr: &fel_core::Expr) -> Vec<Vec<fel_core::ast::PathSegment>>
 ```
 
 ---

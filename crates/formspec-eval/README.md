@@ -15,7 +15,7 @@ For interactive, signal-driven UI state, use the TypeScript engine instead.
 | Phase | Module(s) | Role |
 |-------|-----------|------|
 | 1 | `rebuild` | Read `items` and `binds`, expand the repeat rows present in the input. |
-| 2 | `recalculate` | Relevance, required, readonly, whitespace, variables, calculated fields (fixpoint). |
+| 2 | `recalculate` | Relevance, required, readonly, whitespace, variables, and dependency-ordered calculations. |
 | 3 | `revalidate` | Required / type / bind constraints, registry extension checks, shape rules. |
 | 4 | `nrb` | Non-relevant behavior on output values (remove / empty / keep). |
 

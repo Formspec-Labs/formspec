@@ -210,7 +210,7 @@ The graph has vertices for Item values, Bind/variable expressions, and Shape val
   - `readonly(X)`: X's and its ancestors' `readonly`;
   - `required(X)`: X's `required`, and X's and its ancestors' `relevant`;
   - `valid(X)`: X's value, `required` and `constraint`, X's and its ancestors'
-    `relevant`, and every Shape targeting X (`constraint`, `activeWhen`, composed members).
+    `relevant`, and error Shapes targeting X (`constraint`, `activeWhen`, composed members).
 - A value depends on the expressions that write it:
   - `calculate` and an `=`-prefixed `default` write their Item's value;
   - `relevant` writes the value of its Item, and of every descendant (relevance inherits,
@@ -428,6 +428,7 @@ Uses [`ItemTreeIndex`] from pass 2 for path resolution. Emits:
 - **E300**: Bind path references an unknown item
 - **E301**: Shape target references an unknown item
 - **E302**: Item's `optionSet` references an undefined option set
+- **E316**: Bind uses `letterCase` on a non-text target
 - **W300**: Item's `dataType` is incompatible with `optionSet`
 
 Private helpers validate bind paths, shapes, and option sets against the item index.
@@ -901,6 +902,9 @@ Canonical lint diagnostic code (registry-driven).
 - `E311` - Registry code `E311`.
 - `E312` - Registry code `E312`.
 - `E313` - Registry code `E313`.
+- `E314` - Registry code `E314`.
+- `E315` - Registry code `E315`.
+- `E316` - Registry code `E316`.
 - `W300` - Registry code `W300`.
 - `E400` - Registry code `E400`.
 - `E406` - Registry code `E406`.
