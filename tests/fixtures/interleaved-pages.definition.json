@@ -1,0 +1,13 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:planned-titles",
+  "version": "1.0.0",
+  "title": "Planned titles",
+  "items": [
+    { "key": "intro", "type": "display", "label": "Instructions", "presentation": { "widgetHint": "Heading" } },
+    { "key": "contact", "type": "group", "label": "Contact", "children": [
+      { "key": "name", "type": "field", "dataType": "string", "label": "Name" }
+    ] },
+    { "key": "notes", "type": "field", "dataType": "string", "label": "Notes" }
+  ]
+}

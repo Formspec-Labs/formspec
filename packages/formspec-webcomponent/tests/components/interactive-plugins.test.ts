@@ -531,7 +531,8 @@ describe('pageMode tabs (Stack + Pages + formPresentation)', () => {
         ]);
         const buttons = el.querySelectorAll('.formspec-tab');
         expect(buttons[0].textContent).toBe('Personal Info');
-        expect(buttons[1].textContent).toBe('Tab 2');
+        // Planned tabs share the localized step ordinal with the React renderer.
+        expect(buttons[1].textContent).toBe('Step 2');
     });
 });
 

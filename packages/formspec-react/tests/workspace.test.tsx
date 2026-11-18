@@ -8,6 +8,7 @@ import type { FieldComponentProps } from '../src/component-map';
 import { FormspecProvider, useFormspecContext } from '../src/context';
 import { FormspecNode } from '../src/node-renderer';
 import { FormspecForm, type WalkBridgeElement } from '../src/renderer';
+import interleavedPages from '../../../tests/fixtures/interleaved-pages.definition.json';
 import { actRender } from './render-utils';
 
 beforeAll(async () => { await initFormspecEngine(); });
@@ -278,6 +279,13 @@ const pageModes = [
     ['wizard', '.formspec-wizard-step-label'],
     ['tabs', '[role="tab"]'],
 ] as const;
+
+it.each(pageModes)('matches the shared renderer fixture in %s', (pageMode, selector) => {
+    const host = actRender(<FormspecForm definition={{
+        ...interleavedPages as FormDefinition, formPresentation: { pageMode },
+    }} />);
+    expect(Array.from(host.querySelectorAll(selector), node => node.textContent)).toEqual(['Instructions', 'Contact']);
+});
 
 it.each(pageModes)('attaches loose content to authored Component Sections in %s', (pageMode) => {
     const host = actRender(<FormspecForm definition={{ ...definition, formPresentation: { pageMode } }}

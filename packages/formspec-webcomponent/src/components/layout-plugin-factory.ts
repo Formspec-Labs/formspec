@@ -52,7 +52,7 @@ export function compText(
  */
 export function plannedTitle(
     ctx: Pick<RenderContext, 'engine' | 'prefix'>,
-    comp: { id?: string; title?: unknown; titleBind?: unknown; titleLocaleKey?: unknown; titleKey?: unknown; props?: Record<string, unknown> },
+    comp: { id?: string; title?: unknown; titleBind?: unknown; titleLocaleKey?: unknown; titleIndex?: unknown; titleKey?: unknown; props?: Record<string, unknown> },
 ): ReadonlySignal<string> {
     const prop = (name: 'title' | 'titleBind' | 'titleKey' | 'titleLocaleKey') => {
         const value = comp[name] ?? comp.props?.[name];
@@ -61,6 +61,8 @@ export function plannedTitle(
     const titleBind = prop('titleBind');
     const titleKey = prop('titleKey');
     const localeKey = prop('titleLocaleKey');
+    const index = comp.titleIndex ?? comp.props?.titleIndex;
+    const ordinal = typeof index === 'number' ? uiText(ctx.engine, 'wizard.stepTitle', { index }) : undefined;
     const inline = compText(ctx, comp, 'title', prop('title') ?? '');
     return computed(() => {
         ctx.engine.localeSignal.value;
@@ -69,7 +71,7 @@ export function plannedTitle(
             : ctx.engine.resolveLocaleString(localeKey, prop('title') ?? '')))
         || (titleBind && ctx.engine.getItemLabelSignal(titleBind)?.value)
         || (titleKey && uiText(ctx.engine, titleKey as ChromeStringKey).value)
-        || inline.value;
+        || inline.value || ordinal?.value || '';
     });
 }
 

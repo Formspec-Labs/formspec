@@ -1,6 +1,8 @@
 /** @filedesc Wizard and tabs follow the shared section order and localized titles. */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 
+import DEFINITION from '../../../../tests/fixtures/interleaved-pages.definition.json';
+
 let FormspecRender: any;
 
 beforeAll(async () => {
@@ -13,19 +15,10 @@ afterEach(() => {
     document.body.querySelectorAll('formspec-render').forEach((el) => el.remove());
 });
 
-const DEFINITION = {
-    $formspec: '1.0', url: 'urn:test:planned-titles', version: '1.0.0', title: 'Planned titles',
-    items: [
-        { key: 'intro', type: 'display', label: 'Instructions', presentation: { widgetHint: 'Heading' } },
-        { key: 'contact', type: 'group', label: 'Contact', children: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }] },
-        { key: 'notes', type: 'field', dataType: 'string', label: 'Notes' },
-    ],
-};
-
 const LOCALE = {
     $formspecLocale: '2.0', locale: 'fr', version: '1.0.0',
     target: { kind: 'definition', url: 'urn:test:planned-titles' },
-    strings: { 'contact.label': 'Coordonnées', 'intro.label': 'Consignes', '$ui.wizard.otherItems': 'Autres éléments' },
+    strings: { 'contact.label': 'Coordonnées', 'intro.label': 'Consignes', '$ui.wizard.otherItems': 'Autres éléments', '$ui.wizard.stepTitle': 'Étape {{$index}}' },
 };
 
 function mount(pageMode: 'wizard' | 'tabs', locale?: string): any {
@@ -56,6 +49,7 @@ describe('planned titles follow the Locale', () => {
         const el = mount('tabs', 'fr');
         expect(texts(el, '.formspec-tab')).toEqual(['Consignes', 'Coordonnées']);
     });
+
     it('localizes a Theme remainder section', () => {
         const el = mount('tabs', 'fr');
         el.themeDocument = { pages: [{ id: 'details', title: 'Details', regions: [{ key: 'intro' }, { key: 'contact' }] }] };
@@ -63,4 +57,14 @@ describe('planned titles follow the Locale', () => {
         expect(texts(el, '.formspec-tab')).toEqual(['Details', 'Autres éléments']);
     });
 
+    it('uses the shared localized ordinal for an untitled authored section', () => {
+        const el = mount('tabs', 'fr');
+        el.componentDocument = {
+            $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: DEFINITION.url },
+            tree: { component: 'Stack', children: [{ component: 'Section', id: 'first',
+                children: [{ component: 'TextInput', bind: 'notes' }] }] },
+        };
+        el.render();
+        expect(texts(el, '.formspec-tab')).toEqual(['Étape 1']);
+    });
 });
