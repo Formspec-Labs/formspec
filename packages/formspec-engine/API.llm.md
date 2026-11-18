@@ -1171,6 +1171,7 @@ Detached metadata for one authored Definition-local instance source.
 
 Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createFormEngine`](./engine/init.ts).
 
+- **loadExternalSources** (`boolean`): Set false to evaluate retained data without loading instance sources or remote options.
 - **instanceSourceResolver** (`InstanceSourceResolver`): Exclusive source loader when supplied; injected values never use the shared URL cache.
 - **extensionFunctions** (`Record<string, import('./extension-functions.js').FelExtensionFunctionRegistration>`): FEL extension functions by name (Core §3.12), registered before the first evaluation.
 - **responseData** (`JsonRecord`): Host primary Response data installed before seedFrom.
@@ -2895,6 +2896,10 @@ Execute a mapping transform.
 
 Execute a full mapping document (rules + defaults + autoMap).
 
+## `checkInstanceProjection(source: unknown, consumerSubject: unknown, upstreamDefinitions: readonly unknown[]): InstanceProjectionDiagnostic[]`
+
+Check an instance or catalog source against every eligible upstream Definition.
+
 ## `wasmLintDocument(doc: unknown, options?: WasmLintDocumentOptions): {
     documentType: string | null;
     valid: boolean;
@@ -2903,9 +2908,10 @@ Execute a full mapping document (rules + defaults + autoMap).
         ok: boolean;
         diagnostics: any[];
     };
+    instanceProjectionDiagnostics?: InstanceProjectionDiagnostic[];
 }`
 
-Lint a Formspec document.
+Lint a Formspec document, or check a response projection when given upstream Definitions.
 
 ## `wasmLintDocumentWithRegistries(doc: unknown, registries: unknown[]): {
     documentType: string | null;
@@ -3043,6 +3049,15 @@ Set `context.upstreamSubject` to null when the upstream Definition has no subjec
         dataPath: string;
     }`): Host input for a Definition-associated Mapping. Requires the paired Definition.
 - **screenerDocument** (`unknown`): Exact paired freestanding Screener for Locale 2.1 item and target checks.
+- **upstreamDefinitions** (`readonly unknown[]`): For an AppGraph projection check, pass all loaded Definitions for the selected URL.
+- **consumerSubject** (`unknown`): Subject declaration of the consuming Definition, or null when there is none.
+
+#### interface `InstanceProjectionDiagnostic`
+
+- **code**: `string`
+- **jsonPointer**: `string`
+- **upstreamVersion**: `string | null`
+- **message**: `string`
 
 #### interface `JsonLdContextDiagnostic`
 
