@@ -272,7 +272,15 @@ The assembler prefixes keys, rewrites bind paths, rewrites shape targets, rewrit
 **FEL analysis** — static analysis without a running engine:
 
 ```typescript
-import { analyzeFEL, getFELDependencies, rewriteFELReferences } from 'formspec-engine';
+import { getFELDependencies, getDefinitionInstanceReads } from '@formspec-org/engine';
+
+// After initFormspecEngine():
+const deps = getFELDependencies("countWhere(@instance('catalog').rows, $.open = $wanted)");
+deps.fields;        // ['wanted']
+deps.instanceReads; // { catalog: ['rows', 'rows[*].open'] }
+
+// After initFormspecEngineTools(), include creation-time seedFrom and prePopulate:
+const reads = getDefinitionInstanceReads(definition);
 ```
 
 **Extension validation** — checks `extensions` fields against loaded registry entries:
