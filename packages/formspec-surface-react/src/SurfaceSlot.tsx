@@ -556,10 +556,11 @@ export function SurfaceSlot({
     case 'draft-start': {
       const start = plan.start;
       const session = formSession?.drafts;
-      if (!start || !session?.port.start || !filingStatus) return <UnavailableSlot>{strings('draftUnavailable')}</UnavailableSlot>;
+      const navigate = filingStatus?.navigate;
+      if (!start || !session?.port.start || !navigate) return <UnavailableSlot>{strings('draftUnavailable')}</UnavailableSlot>;
       const identity = JSON.stringify([runtimeGeneration, route.routeId, plan.slotId, start.destination.routeId,
         start.slotId, start.definitionUrl, start.definitionVersion, start.params, start.subject, session.scope]);
-      return <DraftStart key={identity} plan={start} session={session} navigate={filingStatus.navigate} strings={strings} />;
+      return <DraftStart key={identity} plan={start} session={session} navigate={navigate} strings={strings} />;
     }
     case 'filing-status':
       return <FilingStatus plan={plan.tracker} context={filingStatus}
