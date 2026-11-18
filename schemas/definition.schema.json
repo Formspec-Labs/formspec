@@ -317,6 +317,12 @@
         ]
       ]
     },
+    "warningExplanation": {
+      "$ref": "#/$defs/WarningExplanationMode",
+      "default": "none",
+      "description": "Default answer mode for warning Shapes. A Shape may override this mode through explanation. See Core §4.1 and §5.2.1.",
+      "examples": ["explain"]
+    },
     "instances": {
       "type": "object",
       "additionalProperties": {
@@ -604,6 +610,27 @@
     "^x-": true
   },
   "additionalProperties": false,
+  "if": {
+    "required": ["warningExplanation"],
+    "properties": { "warningExplanation": { "const": "acknowledge" } }
+  },
+  "then": {
+    "properties": {
+      "shapes": {
+        "items": {
+          "if": {
+            "required": ["severity"],
+            "properties": { "severity": { "const": "warning" } },
+            "not": { "required": ["explanation"] }
+          },
+          "then": {
+            "required": ["code"],
+            "properties": { "code": { "minLength": 1 } }
+          }
+        }
+      }
+    }
+  },
   "$defs": {
     "DataType": {
       "type": "string",
@@ -1648,6 +1675,11 @@
       },
       "additionalProperties": false
     },
+    "WarningExplanationMode": {
+      "type": "string",
+      "enum": ["none", "confirm", "explain", "acknowledge"],
+      "description": "How a respondent answers a warning Shape. None records no entry. Confirm and explain record one entry per firing, with text optional for confirm and required for explain. Acknowledge covers all current firings sharing a Shape code in one review action. See Core §5.2.1."
+    },
     "Shape": {
       "type": "object",
       "description": "A named, composable validation rule set (inspired by W3C SHACL). Shapes provide cross-field and form-level validation beyond per-field Bind constraints. Each Shape targets data node(s) by path, evaluates a FEL constraint expression, and produces structured ValidationResult entries on failure. Shapes compose via logical operators (and, or, not, xone) where elements can be either shape IDs (referencing other shapes) or inline FEL boolean expressions. MUST have at least one of: constraint, and, or, not, xone.",
@@ -1714,6 +1746,11 @@
             "DATE_RANGE_001",
             "EIN_NOT_FOUND"
           ]
+        },
+        "explanation": {
+          "$ref": "#/$defs/WarningExplanationMode",
+          "description": "Answer mode for this warning Shape. Overrides the Definition's warningExplanation, including an explicit none. Acknowledge requires a code. Non-warning Shapes may only specify none. See Core §5.2.1.",
+          "examples": ["acknowledge", "none"]
         },
         "context": {
           "type": "object",
@@ -1808,6 +1845,14 @@
         }
       },
       "additionalProperties": false,
+      "if": {
+        "required": ["explanation"],
+        "properties": { "explanation": { "const": "acknowledge" } }
+      },
+      "then": {
+        "required": ["code"],
+        "properties": { "code": { "minLength": 1 } }
+      },
       "anyOf": [
         {
           "required": [

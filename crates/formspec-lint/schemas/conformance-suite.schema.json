@@ -40,6 +40,9 @@
         "CONSTRAINT_PARSE_ERROR",
         "SHAPE_FAILED",
         "EXTERNAL_FAILED",
+        "EXPLANATION_REQUIRED",
+        "EXPLANATION_STALE",
+        "EXPLANATION_UNUSED",
         "PATTERN_MISMATCH",
         "MAX_LENGTH_EXCEEDED",
         "RANGE_UNDERFLOW",
@@ -49,7 +52,7 @@
         "EXTENSION_RETIRED",
         "EXTENSION_DEPRECATED"
       ],
-      "description": "Standard validation result codes that every runtime MUST emit identically. The leading codes are the RESERVED built-in codes (core spec §2.5.1), as in validation-result.schema.json: REQUIRED, TYPE_MISMATCH, MIN_REPEAT, MAX_REPEAT, CONSTRAINT_FAILED, CONSTRAINT_PARSE_ERROR, SHAPE_FAILED, EXTERNAL_FAILED. The remaining are registry extension codes. Shape-level and external codes (e.g., 'BUDGET_SUM_MISMATCH', 'EIN_NOT_FOUND') are user-defined and not constrained here."
+      "description": "Standard validation result codes that every runtime MUST emit identically. The leading codes are the reserved built-in codes in Core §2.5.1 and validation-result.schema.json. The remaining codes are registry extensions. Shape-level and external codes such as BUDGET_SUM_MISMATCH and EIN_NOT_FOUND are user-defined."
     }
   },
   "type": "object",

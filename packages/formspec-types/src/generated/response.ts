@@ -62,19 +62,7 @@ export type FormResponse = {
    * A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId.
    */
   id?: string;
-  /**
-   * Identifier and display name of the person or system that authored the Response. For human authors, 'id' is typically a user account identifier; for automated systems, 'id' identifies the service or integration.
-   */
-  author?: {
-    /**
-     * Unique identifier of the author within the host system.
-     */
-    id: string;
-    /**
-     * Display name of the author. For human authors, typically their full name.
-     */
-    name?: string;
-  };
+  author?: Author;
   /**
    * The entity this Response concerns, distinct from its author. For a subject-declaring Definition this is the filing unit: type and typed keys are required and id is derived canonically from (type, keys). An implicit respondent identity is server-only and is never serialized here.
    */
@@ -108,6 +96,10 @@ export type FormResponse = {
    * @minItems 1
    */
   resolvedDocuments?: [ResolvedDocument, ...ResolvedDocument[]];
+  /**
+   * Respondent explanations, confirmations and grouped acknowledgements of warning Shapes. Completion carries exactly the current entries for the submit-profile findings. Whole-Response signatures and the handoff responseHash cover these entries. See Core §2.1.6 and §5.3.1.
+   */
+  explanations?: Explanation[];
   /**
    * Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act under its named whole-response or section signing profile through signedPayload.digest. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations.
    *
@@ -176,6 +168,34 @@ export type ResolvedInstance = {
  * via the `definition` "PresentationHash".
  */
 export type PresentationHash = string;
+/**
+ * A response to a warning Shape under Core §2.1.6. Entry identity, sorted group paths, effective mode, and basis matching are checked against the pinned Definition and submit-profile findings.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "Explanation".
+ */
+export type Explanation = InstanceExplanation | GroupedAcknowledgement;
+/**
+ * Resolved path of a warning Shape finding, relative to Response.data. Uses dot notation and concrete zero-based repeat indexes, or # for a finding at the Response root. The pinned Definition determines the target.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ExplanationPath".
+ */
+export type ExplanationPath = ResolvedItemPath | '#';
+/**
+ * Canonical resolved Field item path relative to Response.data, using dot notation and concrete zero-based repeat indexes (Core §4.3.3). No wildcards, JSON Pointer aliases, group shorthand or metadata paths. Resolution to a Field in the pinned Definition and signed Response revision is a semantic check.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "ResolvedItemPath".
+ */
+export type ResolvedItemPath = string;
+/**
+ * SHA-256 digest encoded with the sha256: prefix and lowercase hexadecimal.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "Sha256Digest".
+ */
+export type Sha256Digest = string;
 /**
  * Canonical authored-signature evidence attached to a Response. Each record binds one signer/document act under signedPayload.canonicalization through signedPayload.digest. The signature value may be a drawn-image reference, a typed-signature token, a detached cryptographic signature blob, or a provider-managed ceremony reference, but a signature value alone is not sufficient signing intent.
  *
@@ -288,20 +308,6 @@ export type AuthoredSignature =
       };
     });
 /**
- * Canonical resolved Field item path relative to Response.data, using dot notation and concrete zero-based repeat indexes (Core §4.3.3). No wildcards, JSON Pointer aliases, group shorthand or metadata paths. Resolution to a Field in the pinned Definition and signed Response revision is a semantic check.
- *
- * This interface was referenced by `undefined`'s JSON-Schema
- * via the `definition` "ResolvedItemPath".
- */
-export type ResolvedItemPath = string;
-/**
- * SHA-256 digest encoded with the sha256: prefix and lowercase hexadecimal.
- *
- * This interface was referenced by `undefined`'s JSON-Schema
- * via the `definition` "Sha256Digest".
- */
-export type Sha256Digest = string;
-/**
  * The current lifecycle status of a Response. A completed Response has no error-severity validation results; saving data remains allowed in every status.
  *
  * This interface was referenced by `undefined`'s JSON-Schema
@@ -412,6 +418,19 @@ export interface ResponseDisclosureShownEntry {
   channel?: string;
 }
 /**
+ * Person or system that authored the Response. A human author's id typically identifies a user account. An automated author's id identifies the service or integration.
+ */
+export interface Author {
+  /**
+   * Unique identifier of the author within the host system.
+   */
+  id: string;
+  /**
+   * Display name of the author. For human authors, typically their full name.
+   */
+  name?: string;
+}
+/**
  * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "ResolvedInstanceRecord".
  */
@@ -475,6 +494,43 @@ export interface ResolvedDocument {
    */
   pinnedAt: string;
   presentationHash?: PresentationHash;
+}
+export interface InstanceExplanation {
+  shapeId: string;
+  path: ExplanationPath;
+  basis: Sha256Digest;
+  /**
+   * Required and nonempty for explain, optional for confirm.
+   */
+  text?: string;
+  author: Author;
+  /**
+   * Server date-time stamped at draft save.
+   */
+  recorded: string;
+}
+export interface GroupedAcknowledgement {
+  /**
+   * The shared code of the acknowledged warning Shapes.
+   */
+  code: string;
+  group: true;
+  /**
+   * Resolved paths covered by the acknowledgement, sorted in UTF-8 byte order.
+   *
+   * @minItems 1
+   */
+  paths: [ExplanationPath, ...ExplanationPath[]];
+  basis: Sha256Digest;
+  author: Author;
+  /**
+   * Server date-time stamped at draft save.
+   */
+  recorded: string;
+  /**
+   * Stable host reference to the bound party whose targets the group covers. Required when the pinned Definition declares parties, omitted otherwise.
+   */
+  partyRef?: string;
 }
 /**
  * One declared document variant in the Response-pinned Definition. Document identity is case-sensitive; locale identity is case-insensitive.

@@ -1,5 +1,6 @@
 - This section defines the canonical Response document shape for persisted form submissions.
 - A valid response requires `$formspecResponse`, `definitionUrl`, `definitionVersion`, `status`, `data`, and `authored`.
+- `explanations` records server-stamped answers to warning Shapes. Completed Responses carry exactly the current answers from the submit profile (§2.1.6).
 - Authored signatures retain the whole-response profile and add explicit party/Field coverage for the section profile; schema acceptance does not prove signed-byte conformance.
 - Response validation and replay must always honor the pinned `(definitionUrl, definitionVersion)` tuple.
 - This BLUF is governed by `schemas/response.schema.json`; generated references are the structural contract.

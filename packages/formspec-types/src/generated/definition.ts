@@ -122,6 +122,10 @@ export type Shape = Shape1 & {
    */
   code?: string;
   /**
+   * Answer mode for this warning Shape. Overrides the Definition's warningExplanation, including an explicit none. Acknowledge requires a code. Non-warning Shapes may only specify none. See Core §5.2.1.
+   */
+  explanation?: 'none' | 'confirm' | 'explain' | 'acknowledge';
+  /**
    * Additional context data included in the ValidationResult on failure. Keys are context field names; values are FEL expression strings evaluated in the Shape's target context at failure time. Useful for diagnostic and programmatic handling.
    */
   context?: {
@@ -314,6 +318,13 @@ export type DataType =
  */
 export type DocumentId = string;
 /**
+ * How a respondent answers a warning Shape. None records no entry. Confirm and explain record one entry per firing, with text optional for confirm and required for explain. Acknowledge covers all current firings sharing a Shape code in one review action. See Core §5.2.1.
+ *
+ * This interface was referenced by `FormDefinition`'s JSON-Schema
+ * via the `definition` "WarningExplanationMode".
+ */
+export type WarningExplanationMode = 'none' | 'confirm' | 'explain' | 'acknowledge';
+/**
  * Closed role-class taxonomy per ADR-0155 §4. `coEqual`: parties sign on their own behalf with equal downstream obligations. `asymmetricPrimary`: primary party with obligations or visibility distinct from secondary parties. `asymmetricSecondary`: secondary party with obligations or visibility distinct from primary. `guardianFor`: party signs or acts for a protected subject; capacity/governance checks apply. Inventing new classes (e.g., `witness`, `notary`) is a definition error — use `extensions` for domain-specific party metadata.
  *
  * This interface was referenced by `FormDefinition`'s JSON-Schema
@@ -429,6 +440,10 @@ export interface FormDefinition {
    * Named, composable validation rule sets (inspired by W3C SHACL). Shapes provide cross-field and form-level validation beyond per-field Bind constraints. Each Shape targets a data path, evaluates a FEL constraint expression, and produces structured ValidationResult entries with severity, message, and code on failure. Shapes compose via 'and', 'or', 'not', 'xone' operators. Only error-severity results block submission; warnings and info are advisory.
    */
   shapes?: Shape[];
+  /**
+   * Default answer mode for warning Shapes. A Shape may override this mode through explanation. See Core §4.1 and §5.2.1.
+   */
+  warningExplanation?: 'none' | 'confirm' | 'explain' | 'acknowledge';
   /**
    * Named secondary data sources available to FEL expressions at runtime via @instance('name'). Instances provide lookup tables, prior-year data, and external reference data. The property name is the instance identifier used in @instance() references. Secondary instances are read-only by default during form completion.
    */

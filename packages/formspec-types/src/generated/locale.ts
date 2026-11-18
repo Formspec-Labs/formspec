@@ -62,7 +62,7 @@ export type LocaleDocument = {
   };
   target: LocaleTarget;
   /**
-   * Map of string keys to localized values. Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification.
+   * Map of string keys to localized values. Shape keys include $shape.<shapeId>.message and $shape.<shapeId>.explanationPrompt (Locale §3.1.6). Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification.
    */
   strings: {
     [k: string]: string;

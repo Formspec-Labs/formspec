@@ -1,0 +1,19 @@
+{
+  "$formspec": "1.0",
+  "url": "https://example.org/forms/annual-report",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Annual Report",
+  "items": [{ "type": "field", "key": "narrative", "dataType": "string", "label": "Narrative" }],
+  "shapes": [
+    {
+      "id": "missingNarrative",
+      "target": "narrative",
+      "constraint": "present($)",
+      "message": "Narrative left unanswered.",
+      "severity": "warning",
+      "timing": "submit",
+      "explanation": "acknowledge"
+    }
+  ]
+}

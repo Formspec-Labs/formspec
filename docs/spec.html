@@ -1008,13 +1008,12 @@ generated from <code>schemas/response.schema.json</code>:</p>
 <tr>
 <td><code>#/properties/author</code></td>
 <td><code>author</code></td>
-<td><code>object</code></td>
+<td><code>$ref</code></td>
 <td>no</td>
-<td>—</td>
-<td>Identifier and display name of the person or system that authored
-the Response. For human authors, ‘id’ is typically a user account
-identifier; for automated systems, ‘id’ identifies the service or
-integration.</td>
+<td><code>$ref</code>: <code>#/$defs/Author</code></td>
+<td>Person or system that authored the Response. A human author’s id
+typically identifies a user account. An automated author’s id identifies
+the service or integration.</td>
 </tr>
 <tr>
 <td><code>#/properties/authored</code></td>
@@ -1105,6 +1104,17 @@ loaded: the Definition’s inline wording was shown instead. Inside the
 whole-response formspec-response-signing-v1 preimage by the
 authoredSignatures-only omission rule (specs/core/spec.md §Signed
 Response Payload).</td>
+</tr>
+<tr>
+<td><code>#/properties/explanations</code></td>
+<td><code>explanations</code></td>
+<td><code>array</code></td>
+<td>no</td>
+<td>—</td>
+<td>Respondent explanations, confirmations and grouped acknowledgements
+of warning Shapes. Completion carries exactly the current entries for
+the submit-profile findings. Whole-Response signatures and the handoff
+responseHash cover these entries. See Core §2.1.6 and §5.3.1.</td>
 </tr>
 <tr>
 <td><code>#/properties/extensions</code></td>
@@ -1415,6 +1425,191 @@ that falls back to a completed record includes that record’s hash. A
 current draft’s read value is cited by <code>valueDigest</code> and
 retained under that digest in the server evaluation receipt; no draft
 revision history is required.</p>
+<h5 id="warning-explanations">Warning Explanations</h5>
+<p><code>Response.explanations[]</code> records the respondent’s answers
+to warning Shapes under §5.2.1. <code>response.schema.json</code>
+defines two forms of <code>Explanation</code>.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Entry</th>
+<th>Fields</th>
+<th>Identity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Instance (<code>confirm</code>, <code>explain</code>)</td>
+<td><code>shapeId</code>, <code>path</code>, <code>basis</code>,
+optional <code>text</code>, <code>author</code>,
+<code>recorded</code></td>
+<td><code>(shapeId, path)</code></td>
+</tr>
+<tr>
+<td>Group (<code>acknowledge</code>)</td>
+<td><code>code</code>, <code>group: true</code>, <code>paths</code>,
+<code>basis</code>, <code>author</code>, <code>recorded</code>,
+<code>partyRef</code> for multi-party Definitions</td>
+<td><code>code</code>, or <code>(code, partyRef)</code> for multi-party
+Definitions</td>
+</tr>
+</tbody>
+</table>
+<p><code>path</code> is the finding’s resolved path (§4.3.3), with
+concrete zero-based repeat indexes or <code>#</code> for the Response
+root. Group <code>paths</code> MUST be the nonempty, unique set of these
+paths for the covered firings, sorted by UTF-8 byte order. A group MAY
+cover several Shapes with the same <code>code</code>, including multiple
+firings at the same path. Group entries carry no <code>text</code>.
+<code>confirm</code> allows optional text and <code>explain</code>
+requires a nonempty string.</p>
+<p>At draft save, the server MUST stamp each new or replaced entry’s
+<code>author</code> with the authenticated actor (<code>id</code> and
+optional <code>name</code>) and <code>recorded</code> with the server’s
+date-time. An entry is retained when its identity, <code>basis</code>,
+<code>text</code> and <code>paths</code> match the saved entry, as
+applicable. An entry with the same identity that changes any of those
+values is replaced. The server MUST preserve the stamps of retained
+entries and refuse duplicate entry identities. For multi-party
+Definitions, the server MUST check the authenticated actor’s authority
+to write the instance entry’s target or every target in the group. The
+group’s <code>partyRef</code> MUST be the stable host reference to the
+bound party the actor is authorized to act for. Definitions without
+<code>parties</code> omit <code>partyRef</code>.</p>
+<p>Drafts retain unused and stale entries (VE-05, §5.5). For a completed
+Response, <code>assemble_candidate</code> MUST write exactly the current
+entries matching the submit-profile findings (§2.4, §5.3.1). It drops
+unused entries and preserves the order of the retained entries. A
+missing or stale required entry prevents completion. Before Sign, the
+client assembles the candidate. At Sign and Submit the server MUST
+evaluate the candidate’s Response data against the saved draft’s
+explanation entries and re-assemble from those entries. It MUST refuse
+if there is any difference in the candidate entries, including identity,
+<code>basis</code>, <code>text</code>, <code>paths</code>,
+<code>author</code> and <code>recorded</code> as applicable, or if an
+explanation error remains. The checked entries are inside the
+whole-Response signature and <code>IntakeHandoff.responseHash</code>
+(§2.1.6.1).</p>
+<h5 id="explanation-basis">Explanation Basis</h5>
+<p>The <code>basis</code> binds an entry to what the warning read in the
+<code>on-submit</code> evaluation of the Response data (§2.4). The entry
+is stamped with that basis when the respondent acts. Evaluation compares
+the supplied entry and MUST leave it unchanged.</p>
+<p>The reference set comes from §3.6.1 extraction over the firing
+Shape’s <code>constraint</code>, <code>activeWhen</code> and composition
+expressions, including recursively composed Shapes (§5.2.2). Resolve
+each read in its expression’s evaluation scope. Use one
+<code>[ref, refDigest]</code> pair per distinct resolved reference, and
+sort the <code>inputs</code> array by <code>ref</code> in UTF-8 byte
+order. All concrete repeat indexes in basis keys are zero-based,
+regardless of FEL’s one-based indexes.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Read</th>
+<th><code>ref</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary data, including <code>$</code> and <code>@current</code> in
+row scope</td>
+<td><code>$</code> followed by the resolved data path, for example
+<code>$lines[2].amount</code>. Use <code>$</code> alone for a root read.
+A wildcard stays <code>[*]</code> and its value is the ordered result
+array. A bare repeat collection such as <code>$rows</code> uses its
+equivalent wildcard key <code>$rows[*]</code> (§3.2.2).</td>
+</tr>
+<tr>
+<td>Repeat navigation with <code>prev()</code>, <code>next()</code> or
+<code>parent()</code> (§3.5.10)</td>
+<td>The primary data key for the path the read resolves to. In
+<code>lines[2]</code>, <code>prev().total</code> uses
+<code>$lines[1].total</code>. At a top-level repeat, a bare
+<code>parent()</code> uses <code>$</code>. A missing neighbouring row
+contributes no pair.</td>
+</tr>
+<tr>
+<td>Definition variable</td>
+<td><code>variable:</code> followed by the variable name and any
+resolved path suffix.</td>
+</tr>
+<tr>
+<td>Secondary instance</td>
+<td><code>@instance("name")</code> followed by any resolved path suffix.
+The argument is the canonical JSON string of the resolved instance
+name.</td>
+</tr>
+<tr>
+<td><code>subject()</code></td>
+<td><code>subject("key")</code>, with the resolved subject key encoded
+as a canonical JSON string.</td>
+</tr>
+</tbody>
+</table>
+<p>Bind each <code>refDigest</code> to the resolved value in its JSON
+representation (§3.4), using <code>null</code> for a read that resolves
+to null. Preserve exact decimal values. Local variables bound within FEL
+contribute the references in the expressions that define them. Clock,
+locale, <code>runtimeMeta</code>, model item property state
+(<code>valid</code>, <code>relevant</code>, <code>readonly</code>,
+<code>required</code>), <code>message</code> and <code>context</code>
+are excluded. References in function arguments, such as <code>$x</code>
+in <code>valid($x)</code>, are included.</p>
+<p>Hash the bytes
+<code>UTF-8(domain) || 0x00 || integrity-canonical-json-v1(value)</code>
+with SHA-256. Each digest string is <code>sha256:</code> followed by 64
+lowercase hexadecimal characters. Use the following domains and
+values.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Digest</th>
+<th>Domain</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>refDigest</code></td>
+<td><code>formspec.explanation.ref.v1</code></td>
+<td>The resolved reference value.</td>
+</tr>
+<tr>
+<td>Instance <code>basis</code></td>
+<td><code>formspec.explanation.basis.v1</code></td>
+<td><code>{shapeId, path, inputs}</code>.</td>
+</tr>
+<tr>
+<td>Group <code>basis</code></td>
+<td><code>formspec.explanation.group-basis.v1</code></td>
+<td><code>{code, firings}</code>. Each firing is
+<code>[shapeId, path, inputs]</code>. Include every current firing with
+that <code>code</code> at the entry’s stored <code>paths</code>, ordered
+by <code>(shapeId, path)</code> in UTF-8 byte order.</td>
+</tr>
+</tbody>
+</table>
+<p>For each <code>acknowledge</code> code, the union of the group
+entries’ stored <code>paths</code> MUST equal the set of current firing
+paths. Each entry’s <code>basis</code> MUST match the firings at its own
+<code>paths</code>. <a
+href="../tests/conformance/fixtures/explanations/basis-vectors.json"><code>basis-vectors.json</code></a>
+pins the encoded bytes and digests for both forms.</p>
 <h5 id="response-instance-ownership">Response Instance Ownership</h5>
 <p>A live Response instance is owned by the Core Response contract. It
 is identified by its Response id when present, and is always pinned to
@@ -1996,6 +2191,11 @@ identity and ceremony evidence MUST describe what that party saw and
 affirmed. An independently entered shared answer MUST retain its party
 attribution; one party’s edit MUST NOT silently replace another party’s
 attested value.</p>
+<p>Whole-Response signatures cover <code>explanations</code>. The
+decision on whether an instance entry joins a section when its
+<code>path</code> lies in <code>coveredPaths</code>, or a group entry
+joins when every stored path lies there, is deferred to the next section
+signature profile revision.</p>
 <p>A change to a covered value, role or covered-path set makes that
 signature insufficient for the revised section and requires its owner to
 sign again. Changes outside that section MUST NOT invalidate an
@@ -2943,6 +3143,13 @@ ValidationResult entries for any failures.</li>
 <code>not</code>, <code>xone</code>) MUST be evaluated by evaluating
 their constituent Shapes and combining results according to the
 composition operator.</li>
+<li>In the <code>on-submit</code> validation profile (<a
+href="../specs/core/validation-mapping.md">Validation Mapping §3</a>), run the
+explanation pass over the warning Shape findings from evaluation of the
+candidate Response data. Compare the supplied <code>explanations</code>
+against those findings using the basis in §2.1.6 and emit the derived
+results in §5.3.1. Evaluation MUST leave the Response and explanation
+entries unchanged.</li>
 </ol>
 <p><strong>Postcondition:</strong> A complete, current set of
 ValidationResult entries exists for all affected nodes.</p>
@@ -3040,39 +3247,39 @@ mechanism is implementation-defined.</td>
 <td><code>constraintKind</code></td>
 <td>string</td>
 <td>REQUIRED</td>
-<td>The category of constraint that produced this result. MUST be one
-of: <code>"required"</code> (required field has no value),
+<td>The category of constraint that produced this result. MUST be one of
+<code>"required"</code> (required field has no value),
 <code>"type"</code> (value does not conform to declared
 <code>dataType</code>), <code>"cardinality"</code> (repeatable group
 violates <code>minRepeat</code>/<code>maxRepeat</code>),
 <code>"constraint"</code> (Bind <code>constraint</code> evaluated to
 <code>false</code>), <code>"shape"</code> (named Shape’s constraint
 evaluated to <code>false</code>), <code>"external"</code> (external
-system injected this result).</td>
+system injected this result), or <code>"explanation"</code> (warning
+answer check, §5.3.1).</td>
 </tr>
 <tr>
 <td><code>code</code></td>
 <td>string</td>
 <td>RECOMMENDED</td>
 <td>A machine-readable identifier for this class of finding. Processors
-SHOULD include this using the standard built-in codes (see below) when
-no specific code is declared. Codes enable programmatic handling (e.g.,
-suppressing known warnings, mapping to external error catalogs).</td>
+SHOULD include this using the standard built-in codes when no specific
+code is declared. REQUIRED for <code>"explanation"</code> results.</td>
 </tr>
 <tr>
 <td><code>source</code></td>
 <td>string</td>
 <td>OPTIONAL</td>
-<td>Identifies the origin of the finding: <code>"bind"</code> (from a
-Bind <code>constraint</code> or <code>required</code> check) or
-<code>"shape"</code> (from a Validation Shape).</td>
+<td>Identifies the origin of the finding: <code>"bind"</code>,
+<code>"shape"</code>, or <code>"external"</code>. REQUIRED with value
+<code>"shape"</code> for <code>"explanation"</code> results.</td>
 </tr>
 <tr>
 <td><code>shapeId</code></td>
 <td>string</td>
 <td>OPTIONAL</td>
-<td>If <code>source</code> is <code>"shape"</code>, the <code>id</code>
-of the Validation Shape that produced this entry.</td>
+<td>The <code>id</code> of the Validation Shape that produced this entry
+or whose instance explanation is being checked.</td>
 </tr>
 <tr>
 <td><code>constraint</code></td>
@@ -3143,6 +3350,23 @@ Shape-level and external codes override the generic defaults.</p>
 <td><code>EXTERNAL_FAILED</code></td>
 <td><code>external</code></td>
 <td>External validation source reported a failure.</td>
+</tr>
+<tr>
+<td><code>EXPLANATION_REQUIRED</code></td>
+<td><code>explanation</code></td>
+<td>A required warning answer is missing, or <code>explain</code> text
+is absent or empty.</td>
+</tr>
+<tr>
+<td><code>EXPLANATION_STALE</code></td>
+<td><code>explanation</code></td>
+<td>The entry’s <code>basis</code> or its grouped <code>paths</code>
+differ from the current finding set.</td>
+</tr>
+<tr>
+<td><code>EXPLANATION_UNUSED</code></td>
+<td><code>explanation</code></td>
+<td>A stored entry has no current finding requiring it.</td>
 </tr>
 </tbody>
 </table>
@@ -4677,6 +4901,13 @@ any syntactic construct that resolves to an Instance value:</p>
 <li><code>@current.field</code></li>
 <li><code>@instance('name').field</code></li>
 </ul>
+<p>For a warning explanation basis (§2.1.6), extraction also includes
+reads of the current node (<code>$</code>), the current row
+(<code>@current</code>), Definition variables, secondary instances
+through <code>instance()</code>, subject keys through
+<code>subject()</code>, and data reached through <code>prev()</code>,
+<code>next()</code> or <code>parent()</code>. Resolve these reads in the
+expression’s evaluation scope and use the resolved keys in §2.1.6.</p>
 <p>The processor MUST build a <strong>dependency graph</strong> — a
 directed graph <code>G = (V, E)</code> where:</p>
 <ul>
@@ -5384,6 +5615,9 @@ form structure and behavior declarations.</li>
 <li>Definition identity is the immutable tuple
 <code>(url, version)</code>; processors must not silently substitute
 versions.</li>
+<li><code>warningExplanation</code> sets the default answer mode for
+warning Shapes. A Shape can override it with <code>explanation</code>
+(§5.2.1).</li>
 <li>This BLUF is governed by
 <code>schemas/definition.schema.json</code>; generated references are
 the structural contract. <!-- bluf:end --></li>
@@ -5392,6 +5626,10 @@ the structural contract. <!-- bluf:end --></li>
 <p>A Formspec Definition is a JSON object. Conforming implementations
 MUST recognize the following top-level properties and MUST reject any
 Definition that omits a REQUIRED property.</p>
+<p><code>warningExplanation</code> sets the default answer mode for
+warning Shapes (§5.2.1). Its values are <code>none</code>,
+<code>confirm</code>, <code>explain</code>, and
+<code>acknowledge</code>. Omission means <code>none</code>.</p>
 <div class="sourceCode" id="cb33"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$formspec&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0&quot;</span><span class="fu">,</span></span>
@@ -5766,6 +6004,16 @@ MAJOR.MINOR.PATCH per semver.org (pre-release labels supported). ‘date’:
 YYYY.MM.DD chronological comparison. ‘integer’: numeric comparison of
 non-negative integers. ‘natural’: equality-only comparison, no ordering
 defined.</td>
+</tr>
+<tr>
+<td><code>#/properties/warningExplanation</code></td>
+<td><code>warningExplanation</code></td>
+<td><code>$ref</code></td>
+<td>no</td>
+<td>default: <code>“none”</code>; <code>$ref</code>:
+<code>#/$defs/WarningExplanationMode</code></td>
+<td>Default answer mode for warning Shapes. A Shape may override this
+mode through explanation. See Core §4.1 and §5.2.1.</td>
 </tr>
 <tr>
 <td><code>#/properties/x-generation</code></td>
@@ -8223,6 +8471,14 @@ for programmatic error handling, localization lookups, and API
 responses.</td>
 </tr>
 <tr>
+<td><code>explanation</code></td>
+<td>string</td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>Warning answer mode. Overrides the Definition’s
+<code>warningExplanation</code>, including an explicit
+<code>none</code>.</td>
+</tr>
+<tr>
 <td><code>context</code></td>
 <td>object</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
@@ -8268,6 +8524,51 @@ change Shape evaluation.</td>
 </tr>
 </tbody>
 </table>
+<p>A non-warning Shape MUST omit <code>explanation</code> or set it to
+<code>none</code>. For a warning Shape, the effective mode comes from
+<code>explanation</code> when supplied and otherwise from
+<code>warningExplanation</code> (§4.1).</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Response entry for a firing (§2.1.6)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>none</code></td>
+<td>No entry.</td>
+</tr>
+<tr>
+<td><code>confirm</code></td>
+<td>One entry per <code>(shapeId, path)</code>, with optional
+<code>text</code>.</td>
+</tr>
+<tr>
+<td><code>explain</code></td>
+<td>One entry per <code>(shapeId, path)</code>, with nonempty
+<code>text</code>.</td>
+</tr>
+<tr>
+<td><code>acknowledge</code></td>
+<td>One review action per explicit, nonempty <code>code</code>, covering
+all its current firings. Group entries record the covered paths
+(§2.1.6).</td>
+</tr>
+</tbody>
+</table>
+<p>An <code>acknowledge</code> Shape MUST declare <code>code</code>.
+When any Shape with a given code has effective mode
+<code>acknowledge</code>, all warning Shapes sharing that code MUST have
+that effective mode. A renderer MAY use the Locale prompt for
+<code>confirm</code> or <code>explain</code> (<a
+href="locale-spec.html#shape-rule-messages-and-explanation-prompts">Locale
+§3.1.6</a>).</p>
 <h4 id="composition-operators">5.2.2 Composition Operators</h4>
 <p>Shapes MAY be composed from other Shapes using the following
 operators, borrowed from SHACL’s logical constraint components:</p>
@@ -8411,10 +8712,11 @@ distinction.</td>
 <td><code>constraintKind</code></td>
 <td>string</td>
 <td><strong>1..1</strong> (REQUIRED)</td>
-<td>The category of constraint that produced this result. MUST be one
-of: <code>"required"</code>, <code>"type"</code>,
+<td>The category of constraint that produced this result. MUST be one of
+<code>"required"</code>, <code>"type"</code>,
 <code>"cardinality"</code>, <code>"constraint"</code>,
-<code>"shape"</code>, <code>"external"</code>. See §2.5.1.</td>
+<code>"shape"</code>, <code>"external"</code>, or
+<code>"explanation"</code>. See §2.5.1.</td>
 </tr>
 <tr>
 <td><code>message</code></td>
@@ -8429,8 +8731,15 @@ before this value is surfaced.</td>
 <td>string</td>
 <td><strong>0..1</strong> (RECOMMENDED)</td>
 <td>Machine-readable error code. Processors SHOULD include this using
-the standard built-in codes (§2.5.1) when no specific code is
-declared.</td>
+the standard built-in codes (§2.5.1) when no specific code is declared.
+Explanation results MUST carry their reserved code.</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>string</td>
+<td><strong>0..1</strong> (OPTIONAL)</td>
+<td>The origin of the finding (§2.5.1). Explanation results MUST use
+<code>"shape"</code>.</td>
 </tr>
 <tr>
 <td><code>shapeId</code></td>
@@ -8461,9 +8770,9 @@ display raw constraint expressions to end users.</td>
 <td><code>context</code></td>
 <td>object</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
-<td>Additional context data, propagated from the Shape’s
-<code>context</code> property. Keys are context field names; values are
-the evaluated results of the context expressions.</td>
+<td>Additional context data. For a Shape failure, these are the
+evaluated values of its <code>context</code> expressions. For a group
+explanation result, this object identifies the group.</td>
 </tr>
 </tbody>
 </table>
@@ -8485,6 +8794,57 @@ surface this as a validation error rather than silently passing.</li>
 has fewer than <code>minRepeat</code> or more than
 <code>maxRepeat</code> repetitions.</li>
 </ol>
+<p>In <code>on-submit</code>, the explanation pass (§2.4) MUST emit
+results with <code>constraintKind: "explanation"</code> and
+<code>source: "shape"</code> as follows. The original Shape findings
+keep severity <code>warning</code> (VC-01).</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Code</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>An instance requires an entry and none matches its identity, or an
+<code>acknowledge</code> code fires and has no group entries.</td>
+<td><code>EXPLANATION_REQUIRED</code></td>
+<td><code>error</code></td>
+</tr>
+<tr>
+<td>An instance entry’s basis differs, or a firing
+<code>acknowledge</code> code has group entries whose combined paths or
+individual bases fail the checks in §2.1.6.</td>
+<td><code>EXPLANATION_STALE</code></td>
+<td><code>error</code></td>
+</tr>
+<tr>
+<td>The basis matches but an <code>explain</code> entry has absent or
+empty <code>text</code>.</td>
+<td><code>EXPLANATION_REQUIRED</code></td>
+<td><code>error</code></td>
+</tr>
+<tr>
+<td>A saved instance entry has no current finding that requires it, or
+group entries remain for a code with no current acknowledge firings.</td>
+<td><code>EXPLANATION_UNUSED</code></td>
+<td><code>info</code></td>
+</tr>
+</tbody>
+</table>
+<p>Emit at most one result per instance identity and one group result
+per <code>acknowledge</code> code. Instance results identify the
+<code>shapeId</code> and resolved <code>path</code>. Group results use
+<code>path: "#"</code>, omit <code>shapeId</code>, and carry only the
+Shape code in <code>context.code</code>. Results at non-relevant item
+paths are suppressed (§5.6).</p>
 <h3 id="validation-report-schema">5.4 Validation Report Schema</h3>
 <p>A <strong>ValidationReport</strong> aggregates all ValidationResults
 for a given Response at a point in time.</p>

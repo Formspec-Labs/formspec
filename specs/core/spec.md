@@ -485,7 +485,7 @@ The canonical structural contract for Response properties is generated from
 | Pointer | Field | Type | Required | Notes | Description |
 |---|---|---|---|---|---|
 | `#/properties/$formspecResponse` | `$formspecResponse` | <code>string</code> | yes | const: <code>"1.0"</code>; critical | Response specification version. MUST be '1.0'. |
-| `#/properties/author` | `author` | <code>object</code> | no | — | Identifier and display name of the person or system that authored the Response. For human authors, 'id' is typically a user account identifier; for automated systems, 'id' identifies the service or integration. |
+| `#/properties/author` | `author` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Author</code> | Person or system that authored the Response. A human author's id typically identifies a user account. An automated author's id identifies the service or integration. |
 | `#/properties/authored` | `authored` | <code>string</code> | yes | critical | When the Response was last modified (ISO 8601 date-time with timezone). Updated on every save, not just on status transitions. Used for conflict detection, audit trails, and ordering Responses chronologically. |
 | `#/properties/authoredSignatures` | `authoredSignatures` | <code>array</code> | no | — | Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act under its named whole-response or section signing profile through signedPayload.digest. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations. |
 | `#/properties/data` | `data` | <code>object</code> | yes | critical | The primary Instance — the form data. Structure mirrors the Definition's item tree: field Items produce scalar properties, non-repeatable group Items produce nested objects, repeatable group Items produce arrays of objects, display Items have no representation. Non-relevant fields are handled per the Definition's nonRelevantBehavior setting: 'remove' (default) omits them entirely, 'empty' retains the key with null value, 'keep' retains the last value. Calculated fields (those with a 'calculate' Bind) are included with their computed values. |
@@ -493,6 +493,7 @@ The canonical structural contract for Response properties is generated from
 | `#/properties/definitionVersion` | `definitionVersion` | <code>string</code> | yes | critical | The exact version of the Definition against which this Response was created. Interpretation of the version string is governed by the Definition's versionAlgorithm (default: semver). A Response is always validated against this specific version, never against a newer version — even if one exists (Pinning Rule VP-01). Once set, this value MUST NOT change for the lifetime of the Response. |
 | `#/properties/displayedIssuer` | `displayedIssuer` | <code>object</code> | no | critical | Submit-time pin of the resolved Issuer (post-cascade). Inside the whole-response formspec-response-signing-v1 preimage by the authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer pinning is a v1 non-goal. |
 | `#/properties/displayedLocale` | `displayedLocale` | <code>object</code> | no | critical | Submit-time pin of the Locale document whose strings the respondent saw: its normalized locale tag and version — the document's identity within the pinned Definition (Locale §identity is target + locale) — and its url when it declares one. Omitted only when no Locale document was loaded: the Definition's inline wording was shown instead. Inside the whole-response formspec-response-signing-v1 preimage by the authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). |
+| `#/properties/explanations` | `explanations` | <code>array</code> | no | — | Respondent explanations, confirmations and grouped acknowledgements of warning Shapes. Completion carries exactly the current entries for the submit-profile findings. Whole-Response signatures and the handoff responseHash cover these entries. See Core §2.1.6 and §5.3.1. |
 | `#/properties/extensions` | `extensions` | <code>object</code> | no | — | Implementor-specific extension data. All keys MUST be prefixed with 'x-'. Processors MUST ignore unrecognized extensions and MUST preserve them during round-tripping. Extensions MUST NOT alter core semantics (validation, calculation, relevance, required state). |
 | `#/properties/id` | `id` | <code>string</code> | no | — | A globally unique identifier for this Response (e.g., UUID v4). While optional in the schema, implementations SHOULD generate an id for every Response to support cross-system correlation, audit trails, amendment chains, and deduplication. When authoredSignatures are present, id becomes REQUIRED so each authored signature can bind through signedPayload.responseId. |
 | `#/properties/metadata` | `metadata` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseMetadata</code> | Optional response metadata envelope for per-field provenance, derivation traces, and disclosures shown. |
@@ -642,6 +643,92 @@ a task-transition digest or a signer-assented-payload digest. A `current`
 selection that falls back to a completed record includes that record's hash.
 A current draft's read value is cited by `valueDigest` and retained under that
 digest in the server evaluation receipt; no draft revision history is required.
+
+##### Warning Explanations
+
+`Response.explanations[]` records the respondent's answers to warning Shapes
+under §5.2.1. `response.schema.json` defines two forms of `Explanation`.
+
+| Entry | Fields | Identity |
+|---|---|---|
+| Instance (`confirm`, `explain`) | `shapeId`, `path`, `basis`, optional `text`, `author`, `recorded` | `(shapeId, path)` |
+| Group (`acknowledge`) | `code`, `group: true`, `paths`, `basis`, `author`, `recorded`, `partyRef` for multi-party Definitions | `code`, or `(code, partyRef)` for multi-party Definitions |
+
+`path` is the finding's resolved path (§4.3.3), with concrete zero-based
+repeat indexes or `#` for the Response root. Group `paths` MUST be the
+nonempty, unique set of these paths for the covered firings, sorted by UTF-8
+byte order. A group MAY cover several Shapes with the same `code`, including
+multiple firings at the same path. Group entries carry no `text`. `confirm`
+allows optional text and `explain` requires a nonempty string.
+
+At draft save, the server MUST stamp each new or replaced entry's `author`
+with the authenticated actor (`id` and optional `name`) and `recorded` with
+the server's date-time. An entry is retained when its identity, `basis`,
+`text` and `paths` match the saved entry, as applicable. An entry with the
+same identity that changes any of those values is replaced. The server MUST
+preserve the stamps of retained entries and refuse duplicate entry identities.
+For multi-party Definitions, the server MUST check the authenticated actor's
+authority to write the instance entry's target or every target in the group.
+The group's `partyRef` MUST be the stable host reference to the bound party
+the actor is authorized to act for. Definitions without `parties` omit `partyRef`.
+
+Drafts retain unused and stale entries (VE-05, §5.5). For a completed Response,
+`assemble_candidate` MUST write exactly the current entries matching the
+submit-profile findings (§2.4, §5.3.1). It drops unused entries and preserves
+the order of the retained entries. A missing or stale required entry prevents
+completion. Before Sign, the client assembles the candidate. At Sign and Submit
+the server MUST evaluate the candidate's Response data against the saved draft's
+explanation entries and re-assemble from those entries. It MUST refuse if there
+is any difference in the candidate entries, including identity, `basis`, `text`,
+`paths`, `author` and `recorded` as applicable, or if an explanation error
+remains. The checked entries are inside the whole-Response signature and
+`IntakeHandoff.responseHash` (§2.1.6.1).
+
+##### Explanation Basis
+
+The `basis` binds an entry to what the warning read in the `on-submit`
+evaluation of the Response data (§2.4). The entry is stamped with that basis
+when the respondent acts. Evaluation compares the supplied entry and MUST
+leave it unchanged.
+
+The reference set comes from §3.6.1 extraction over the firing Shape's
+`constraint`, `activeWhen` and composition expressions, including recursively
+composed Shapes (§5.2.2). Resolve each read in its expression's evaluation
+scope. Use one `[ref, refDigest]` pair per distinct resolved reference, and sort
+the `inputs` array by `ref` in UTF-8 byte order. All concrete repeat indexes
+in basis keys are zero-based, regardless of FEL's one-based indexes.
+
+| Read | `ref` |
+|---|---|
+| Primary data, including `$` and `@current` in row scope | `$` followed by the resolved data path, for example `$lines[2].amount`. Use `$` alone for a root read. A wildcard stays `[*]` and its value is the ordered result array. A bare repeat collection such as `$rows` uses its equivalent wildcard key `$rows[*]` (§3.2.2). |
+| Repeat navigation with `prev()`, `next()` or `parent()` (§3.5.10) | The primary data key for the path the read resolves to. In `lines[2]`, `prev().total` uses `$lines[1].total`. At a top-level repeat, a bare `parent()` uses `$`. A missing neighbouring row contributes no pair. |
+| Definition variable | `variable:` followed by the variable name and any resolved path suffix. |
+| Secondary instance | `@instance("name")` followed by any resolved path suffix. The argument is the canonical JSON string of the resolved instance name. |
+| `subject()` | `subject("key")`, with the resolved subject key encoded as a canonical JSON string. |
+
+Bind each `refDigest` to the resolved value in its JSON representation
+(§3.4), using `null` for a read that resolves to null. Preserve exact decimal
+values. Local variables bound within FEL contribute the references in the
+expressions that define them. Clock, locale, `runtimeMeta`, model item
+property state (`valid`, `relevant`, `readonly`, `required`), `message` and
+`context` are excluded. References in function arguments, such as `$x` in
+`valid($x)`, are included.
+
+Hash the bytes `UTF-8(domain) || 0x00 || integrity-canonical-json-v1(value)`
+with SHA-256. Each digest string is `sha256:` followed by 64 lowercase
+hexadecimal characters. Use the following domains and values.
+
+| Digest | Domain | Value |
+|---|---|---|
+| `refDigest` | `formspec.explanation.ref.v1` | The resolved reference value. |
+| Instance `basis` | `formspec.explanation.basis.v1` | `{shapeId, path, inputs}`. |
+| Group `basis` | `formspec.explanation.group-basis.v1` | `{code, firings}`. Each firing is `[shapeId, path, inputs]`. Include every current firing with that `code` at the entry's stored `paths`, ordered by `(shapeId, path)` in UTF-8 byte order. |
+
+For each `acknowledge` code, the union of the group entries' stored `paths`
+MUST equal the set of current firing paths. Each entry's `basis` MUST match
+the firings at its own `paths`.
+[`basis-vectors.json`](../../tests/conformance/fixtures/explanations/basis-vectors.json)
+pins the encoded bytes and digests for both forms.
 
 ##### Response Instance Ownership
 
@@ -1144,6 +1231,11 @@ consent, identity and ceremony evidence MUST describe what that party saw and
 affirmed. An independently entered shared answer MUST retain its party
 attribution; one party's edit MUST NOT silently replace another party's
 attested value.
+
+Whole-Response signatures cover `explanations`. The decision on whether an
+instance entry joins a section when its `path` lies in `coveredPaths`, or a
+group entry joins when every stored path lies there, is deferred to the next
+section signature profile revision.
 
 A change to a covered value, role or covered-path set makes that signature
 insufficient for the revised section and requires its owner to sign again.
@@ -1796,6 +1888,11 @@ recalculation guarantee, borrowed from XForms.
 3. Composed Shapes (`and`, `or`, `not`, `xone`) MUST be evaluated by
    evaluating their constituent Shapes and combining results according to
    the composition operator.
+4. In the `on-submit` validation profile ([Validation Mapping §3](validation-mapping.md)),
+   run the explanation pass over the warning Shape findings from evaluation of
+   the candidate Response data. Compare the supplied `explanations` against
+   those findings using the basis in §2.1.6 and emit the derived results in
+   §5.3.1. Evaluation MUST leave the Response and explanation entries unchanged.
 
 **Postcondition:** A complete, current set of ValidationResult entries exists
 for all affected nodes.
@@ -1858,10 +1955,10 @@ A single ValidationResult entry is a JSON object with the following properties:
 | `severity` | string | REQUIRED | One of `"error"`, `"warning"`, or `"info"`. See §2.5.2 for severity semantics. |
 | `path` | string | REQUIRED | The dot-notation path to the data node that produced this result (e.g., `"demographics.dob"`, `"lineItems[2].amount"`). For repeat instances, the path MUST include the concrete 0-based index (not the `[*]` wildcard). See §4.3.3 for the distinction between definition-time FieldRef paths and resolved instance paths. |
 | `message` | string | REQUIRED | A human-readable description of the finding. Suitable for display to end users. Processors SHOULD support localization of messages, but the mechanism is implementation-defined. |
-| `constraintKind` | string | REQUIRED | The category of constraint that produced this result. MUST be one of: `"required"` (required field has no value), `"type"` (value does not conform to declared `dataType`), `"cardinality"` (repeatable group violates `minRepeat`/`maxRepeat`), `"constraint"` (Bind `constraint` evaluated to `false`), `"shape"` (named Shape's constraint evaluated to `false`), `"external"` (external system injected this result). |
-| `code` | string | RECOMMENDED | A machine-readable identifier for this class of finding. Processors SHOULD include this using the standard built-in codes (see below) when no specific code is declared. Codes enable programmatic handling (e.g., suppressing known warnings, mapping to external error catalogs). |
-| `source` | string | OPTIONAL | Identifies the origin of the finding: `"bind"` (from a Bind `constraint` or `required` check) or `"shape"` (from a Validation Shape). |
-| `shapeId` | string | OPTIONAL | If `source` is `"shape"`, the `id` of the Validation Shape that produced this entry. |
+| `constraintKind` | string | REQUIRED | The category of constraint that produced this result. MUST be one of `"required"` (required field has no value), `"type"` (value does not conform to declared `dataType`), `"cardinality"` (repeatable group violates `minRepeat`/`maxRepeat`), `"constraint"` (Bind `constraint` evaluated to `false`), `"shape"` (named Shape's constraint evaluated to `false`), `"external"` (external system injected this result), or `"explanation"` (warning answer check, §5.3.1). |
+| `code` | string | RECOMMENDED | A machine-readable identifier for this class of finding. Processors SHOULD include this using the standard built-in codes when no specific code is declared. REQUIRED for `"explanation"` results. |
+| `source` | string | OPTIONAL | Identifies the origin of the finding: `"bind"`, `"shape"`, or `"external"`. REQUIRED with value `"shape"` for `"explanation"` results. |
+| `shapeId` | string | OPTIONAL | The `id` of the Validation Shape that produced this entry or whose instance explanation is being checked. |
 | `constraint` | string | OPTIONAL | The FEL constraint expression that failed. Included for diagnostic purposes. Processors MAY omit this in production to reduce payload size. |
 
 **Standard Built-in Constraint Codes:**
@@ -1880,6 +1977,9 @@ codes override the generic defaults.
 | `CONSTRAINT_PARSE_ERROR` | `constraint` | Bind `constraint` expression has a definition error (§3.10.1): it failed to parse or calls an undefined function. |
 | `SHAPE_FAILED` | `shape` | Shape's constraint returned `false`. |
 | `EXTERNAL_FAILED` | `external` | External validation source reported a failure. |
+| `EXPLANATION_REQUIRED` | `explanation` | A required warning answer is missing, or `explain` text is absent or empty. |
+| `EXPLANATION_STALE` | `explanation` | The entry's `basis` or its grouped `paths` differ from the current finding set. |
+| `EXPLANATION_UNUSED` | `explanation` | A stored entry has no current finding requiring it. |
 
 **Normative rule `validation.constraint-result`.** When a Bind `constraint`
 evaluates to `false`, a conforming processor MUST emit an error-severity
@@ -2439,6 +2539,12 @@ an Instance value:
 - `@current.field`
 - `@instance('name').field`
 
+For a warning explanation basis (§2.1.6), extraction also includes reads of
+the current node (`$`), the current row (`@current`), Definition variables,
+secondary instances through `instance()`, subject keys through `subject()`,
+and data reached through `prev()`, `next()` or `parent()`. Resolve these reads
+in the expression's evaluation scope and use the resolved keys in §2.1.6.
+
 The processor MUST build a **dependency graph** — a directed graph `G = (V, E)`
 where:
 
@@ -2947,6 +3053,7 @@ time rather than at evaluation time:
 - This section defines the canonical Definition document shape for form structure and behavior declarations.
 - A valid definition requires `$formspec`, `url`, `version`, `status`, `title`, and `items`.
 - Definition identity is the immutable tuple `(url, version)`; processors must not silently substitute versions.
+- `warningExplanation` sets the default answer mode for warning Shapes. A Shape can override it with `explanation` (§5.2.1).
 - This BLUF is governed by `schemas/definition.schema.json`; generated references are the structural contract.
 <!-- bluf:end -->
 
@@ -2955,6 +3062,10 @@ time rather than at evaluation time:
 A Formspec Definition is a JSON object. Conforming implementations MUST
 recognize the following top-level properties and MUST reject any Definition
 that omits a REQUIRED property.
+
+`warningExplanation` sets the default answer mode for warning Shapes (§5.2.1).
+Its values are `none`, `confirm`, `explain`, and `acknowledge`. Omission means
+`none`.
 
 ```json
 {
@@ -3023,6 +3134,7 @@ generated from `schemas/definition.schema.json`:
 | `#/properties/variables` | `variables` | <code>array</code> | no | — | Named computed values with lexical scoping, continuously recalculated when dependencies change. Variables provide intermediate calculations reusable across Binds, Shapes, and other expressions without repetition. Referenced in FEL expressions as @variableName. MUST NOT form circular dependencies. |
 | `#/properties/version` | `version` | <code>string</code> | yes | critical | Version identifier of this specific Definition document. Interpretation governed by versionAlgorithm (default: semver). Once a Definition reaches 'active' status, its content MUST NOT be modified — any change requires a new version. |
 | `#/properties/versionAlgorithm` | `versionAlgorithm` | <code>string</code> | no | enum: <code>"semver"</code>, <code>"date"</code>, <code>"integer"</code>, <code>"natural"</code>; default: <code>"semver"</code> | Controls how version strings are interpreted and compared. 'semver': MAJOR.MINOR.PATCH per semver.org (pre-release labels supported). 'date': YYYY.MM.DD chronological comparison. 'integer': numeric comparison of non-negative integers. 'natural': equality-only comparison, no ordering defined. |
+| `#/properties/warningExplanation` | `warningExplanation` | <code>&#36;ref</code> | no | default: <code>"none"</code>; <code>&#36;ref</code>: <code>#/&#36;defs/WarningExplanationMode</code> | Default answer mode for warning Shapes. A Shape may override this mode through explanation. See Core §4.1 and §5.2.1. |
 | `#/properties/x-generation` | `x-generation` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>https://formspec.org/schemas/common/1.0#/&#36;defs/Generation</code> | Generation provenance for the rendered Definition title and form-level copy. Strict data-only authoring profiles require a direct current adopted Need anchor. |
 <!-- schema-ref:end -->
 
@@ -4292,10 +4404,27 @@ JSON data.
 | `constraint` | string (FEL expression → boolean) | **0..1** (OPTIONAL) | Validity predicate evaluated in the Shape's target context. The expression evaluates to `true` when the data is valid and `false` when it is invalid. REQUIRED unless the Shape uses composition operators (`and`, `or`, `not`, `xone`). |
 | `message` | string | **1..1** (REQUIRED) | Human-readable failure message displayed when the Shape's constraint evaluates to `false`. MAY contain `{{expression}}` interpolation sequences, where `expression` is a FEL expression evaluated in the Shape's target context. |
 | `code` | string | **0..1** (OPTIONAL) | Machine-readable error code. Implementations SHOULD use these codes for programmatic error handling, localization lookups, and API responses. |
+| `explanation` | string | **0..1** (OPTIONAL) | Warning answer mode. Overrides the Definition's `warningExplanation`, including an explicit `none`. |
 | `context` | object | **0..1** (OPTIONAL) | Additional context data included in the ValidationResult when the Shape fails. Keys are context field names; values are FEL expressions evaluated in the Shape's target context at the time of failure. |
 | `activeWhen` | string (FEL → boolean) | **0..1** (OPTIONAL) | When present, the shape is evaluated only when this expression evaluates to `true` in the Shape's target context. When absent or `true`, the shape is always evaluated (subject to non-relevant suppression). When `false`, the shape is skipped entirely — it produces no results of any severity. `activeWhen` is evaluated during the Revalidate phase, before the shape's `constraint`. `activeWhen` is independent of the target's relevance; non-relevant suppression (§5.6 rule 1) takes precedence. |
 | `timing` | string | **0..1** (OPTIONAL) | Controls when this shape is evaluated. MUST be one of: `"continuous"` (evaluated whenever any dependency changes — **DEFAULT**), `"submit"` (evaluated only when submission is requested), `"demand"` (evaluated only when explicitly requested by the consuming application). The global validation mode (§5.5) acts as an override: when `"disabled"`, no shapes fire; when `"deferred"`, all shapes are deferred; when `"continuous"`, shapes fire per their individual `timing`. |
 | `x-generation` | [Generation](../../schemas/common.schema.json) | **0..1** (OPTIONAL) | Authoring provenance for this Shape. A strict data-only authoring profile requires a direct current adopted Need anchor. It does not change Shape evaluation. |
+
+A non-warning Shape MUST omit `explanation` or set it to `none`. For a
+warning Shape, the effective mode comes from `explanation` when supplied and
+otherwise from `warningExplanation` (§4.1).
+
+| Mode | Response entry for a firing (§2.1.6) |
+|---|---|
+| `none` | No entry. |
+| `confirm` | One entry per `(shapeId, path)`, with optional `text`. |
+| `explain` | One entry per `(shapeId, path)`, with nonempty `text`. |
+| `acknowledge` | One review action per explicit, nonempty `code`, covering all its current firings. Group entries record the covered paths (§2.1.6). |
+
+An `acknowledge` Shape MUST declare `code`. When any Shape with a given code
+has effective mode `acknowledge`, all warning Shapes sharing that code MUST
+have that effective mode. A renderer MAY use the Locale prompt for `confirm` or
+`explain` ([Locale §3.1.6](../locale/locale-spec.md#shape-rule-messages-and-explanation-prompts)).
 
 #### 5.2.2 Composition Operators
 
@@ -4385,13 +4514,14 @@ The schema is borrowed from SHACL's Validation Result vocabulary.
 |---|---|---|---|
 | `path` | string | **1..1** (REQUIRED) | The resolved instance path of the node that failed validation. For repeat instances, the path MUST include the concrete 0-based index (e.g., `line_items[2].amount`), not the wildcard `[*]`. See §4.3.3 for the FieldRef/resolved-path distinction. |
 | `severity` | string | **1..1** (REQUIRED) | The severity level. MUST be one of `"error"`, `"warning"`, `"info"`. |
-| `constraintKind` | string | **1..1** (REQUIRED) | The category of constraint that produced this result. MUST be one of: `"required"`, `"type"`, `"cardinality"`, `"constraint"`, `"shape"`, `"external"`. See §2.5.1. |
+| `constraintKind` | string | **1..1** (REQUIRED) | The category of constraint that produced this result. MUST be one of `"required"`, `"type"`, `"cardinality"`, `"constraint"`, `"shape"`, `"external"`, or `"explanation"`. See §2.5.1. |
 | `message` | string | **1..1** (REQUIRED) | Human-readable description of the failure. All `{{expression}}` interpolation sequences MUST be resolved before this value is surfaced. |
-| `code` | string | **0..1** (RECOMMENDED) | Machine-readable error code. Processors SHOULD include this using the standard built-in codes (§2.5.1) when no specific code is declared. |
+| `code` | string | **0..1** (RECOMMENDED) | Machine-readable error code. Processors SHOULD include this using the standard built-in codes (§2.5.1) when no specific code is declared. Explanation results MUST carry their reserved code. |
+| `source` | string | **0..1** (OPTIONAL) | The origin of the finding (§2.5.1). Explanation results MUST use `"shape"`. |
 | `shapeId` | string | **0..1** (OPTIONAL) | The `id` of the Shape that produced this result, if applicable. MUST be absent for results produced by Bind constraints, type checks, or required checks. |
 | `value` | any | **0..1** (OPTIONAL) | The actual value of the node at the time of validation failure. Implementations SHOULD include this for debugging purposes. For attachment fields, the value SHOULD be omitted or replaced with metadata (filename, size) to avoid excessive payload size. |
 | `constraint` | string | **0..1** (OPTIONAL) | The constraint expression that failed, as authored in the Definition. Included for debugging and logging. Implementations MUST NOT display raw constraint expressions to end users. |
-| `context` | object | **0..1** (OPTIONAL) | Additional context data, propagated from the Shape's `context` property. Keys are context field names; values are the evaluated results of the context expressions. |
+| `context` | object | **0..1** (OPTIONAL) | Additional context data. For a Shape failure, these are the evaluated values of its `context` expressions. For a group explanation result, this object identifies the group. |
 
 Implementations MUST produce ValidationResults for all of the following
 condition types:
@@ -4402,6 +4532,22 @@ condition types:
 3a. **Bind constraint parse error** — a Bind's `constraint` expression fails to parse. Processors MUST surface this as a validation error rather than silently passing.
 4. **Shape constraint failure** — a Shape's `constraint` or composition evaluates to invalid.
 5. **Repeat cardinality violation** — a repeatable Group has fewer than `minRepeat` or more than `maxRepeat` repetitions.
+
+In `on-submit`, the explanation pass (§2.4) MUST emit results with
+`constraintKind: "explanation"` and `source: "shape"` as follows. The original
+Shape findings keep severity `warning` (VC-01).
+
+| Situation | Code | Severity |
+|---|---|---|
+| An instance requires an entry and none matches its identity, or an `acknowledge` code fires and has no group entries. | `EXPLANATION_REQUIRED` | `error` |
+| An instance entry's basis differs, or a firing `acknowledge` code has group entries whose combined paths or individual bases fail the checks in §2.1.6. | `EXPLANATION_STALE` | `error` |
+| The basis matches but an `explain` entry has absent or empty `text`. | `EXPLANATION_REQUIRED` | `error` |
+| A saved instance entry has no current finding that requires it, or group entries remain for a code with no current acknowledge firings. | `EXPLANATION_UNUSED` | `info` |
+
+Emit at most one result per instance identity and one group result per
+`acknowledge` code. Instance results identify the `shapeId` and resolved
+`path`. Group results use `path: "#"`, omit `shapeId`, and carry only the Shape
+code in `context.code`. Results at non-relevant item paths are suppressed (§5.6).
 
 ### 5.4 Validation Report Schema
 

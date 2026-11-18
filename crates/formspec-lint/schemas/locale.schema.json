@@ -510,7 +510,7 @@
         ],
         "description": "String keys are dot-delimited. Item strings use <itemKey>.<property>, where <itemKey> is the bare Item key at any depth (amount.label for lineItems[*].amount); dotted template paths such as lineItems.amount.label are not valid item keys. The $module.x-formspec-surface.shell.<SurfaceStringKey> family is closed to the exact SurfaceShellStringKey enum. The $ui.<ChromeStringKey> family (target.kind: definition or screener) is closed to the exact ChromeStringKey enum \u2014 renderer chrome strings, {{$param}} filled literally, never FEL. Other module keys retain $module.<modId>.<nodeId>.<prop> addressing."
       },
-      "description": "Map of string keys to localized values. Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification.",
+      "description": "Map of string keys to localized values. Shape keys include $shape.<shapeId>.message and $shape.<shapeId>.explanationPrompt (Locale §3.1.6). Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification.",
       "examples": [
         {
           "$form.title": "Rapport annuel sur les subventions",
@@ -526,6 +526,7 @@
           "email.errors.CONSTRAINT_FAILED": "Veuillez entrer une adresse courriel valide",
           "ssn.constraintMessage": "Le NAS doit \u00eatre au format 000-000-000",
           "$shape.budget-balance.message": "Le total doit correspondre au financement",
+          "$shape.budget-balance.explanationPrompt": "Expliquez cet écart dans le budget.",
           "$page.info.title": "Informations du projet",
           "$page.review.title": "R\u00e9vision et soumission",
           "$component.submitBtn.label": "Soumettre la demande",

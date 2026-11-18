@@ -192,6 +192,18 @@ it('generates catalog and Definition response sources from the same selection ty
 });
 
 describe('generated types — tightness against permissive intersections', () => {
+  it('keeps the conditional acknowledgement code constraint out of the public types', () => {
+    const definitionSrc = readFileSync(resolve(__dirname, '../src/generated/definition.ts'), 'utf-8');
+    const indexSrc = readFileSync(resolve(__dirname, '../src/generated/index.ts'), 'utf-8');
+    expect(definitionSrc).not.toContain('AcknowledgementCode');
+    expect(indexSrc).not.toContain('AcknowledgementCode');
+  });
+
+  it('shares one author type across the Response and both warning answer forms', () => {
+    const responseSrc = readFileSync(resolve(__dirname, '../src/generated/response.ts'), 'utf-8');
+    expect(responseSrc.match(/\bauthor\??: Author;/g)).toHaveLength(3);
+  });
+
   it('App Graph conditional report types retain closed object shapes', () => {
     const src = readFileSync(resolve(__dirname, '../src/generated/app-graph-validation-report.ts'), 'utf-8');
     for (const name of ['Diagnostic', 'RenderedNeedTraceRecord']) {

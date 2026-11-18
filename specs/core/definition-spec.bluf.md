@@ -1,4 +1,5 @@
 - This section defines the canonical Definition document shape for form structure and behavior declarations.
 - A valid definition requires `$formspec`, `url`, `version`, `status`, `title`, and `items`.
 - Definition identity is the immutable tuple `(url, version)`; processors must not silently substitute versions.
+- `warningExplanation` sets the default answer mode for warning Shapes. A Shape can override it with `explanation` (§5.2.1).
 - This BLUF is governed by `schemas/definition.schema.json`; generated references are the structural contract.

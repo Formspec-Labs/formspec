@@ -10,6 +10,8 @@ Naming convention: test_s{section}__{assertion}
 import json
 import re
 from copy import deepcopy
+from decimal import Decimal
+from hashlib import sha256
 
 import pytest
 from jsonschema import Draft202012Validator, ValidationError
@@ -230,6 +232,7 @@ class TestDefinitionTopLevel:
             "metadata", "fees", "extensions", "formPresentation",
             "documents", "modules", "subject",  # ADR 0172 filing-unit declaration.
             "parties", "multiParty",
+            "warningExplanation",  # ADR 0173 Definition-wide warning answer default.
             "x-generation",
         }
         assert _prop_keys(DEF_S) == expected
@@ -422,6 +425,7 @@ class TestDefinitionShape:
         expected = {
             "id", "target", "severity", "constraint", "message", "code",
             "context", "activeWhen", "timing",
+            "explanation",  # ADR 0173 per-Shape mode override.
             "and", "or", "not", "xone",
             "extensions", "x-generation",
         }
@@ -731,7 +735,9 @@ class TestResponseSchema:
         assert RESP_S["properties"]["data"]["type"] == "object"
 
     def test_s2_1_6__author_requires_id(self):
-        author = RESP_S["properties"]["author"]
+        # ADR 0173 shares the author object with both explanation forms.
+        assert RESP_S["properties"]["author"]["$ref"] == "#/$defs/Author"
+        author = _def(RESP_S, "Author")
         assert "id" in author["required"]
         assert author["additionalProperties"] is False
 
@@ -750,8 +756,9 @@ class TestResponseSchema:
         assert VR_RESULT_S["properties"]["severity"]["enum"] == ["error", "warning", "info"]
 
     def test_s5_3__constraint_kind_enum(self):
+        # ADR 0173 adds derived explanation findings to the closed enum.
         assert VR_RESULT_S["properties"]["constraintKind"]["enum"] == [
-            "required", "type", "cardinality", "constraint", "shape", "external"
+            "required", "type", "cardinality", "constraint", "shape", "external", "explanation"
         ]
 
     def test_s5_3__source_enum(self):
@@ -761,12 +768,84 @@ class TestResponseSchema:
         assert VR_RESULT_S["additionalProperties"] is False
 
     def test_s2_1_6__closed_world_property_set(self):
+        # ADR 0173 carries the warning answers in the Response itself.
         expected = {
             "$formspecResponse", "definitionUrl", "definitionVersion", "status", "data",
             "authored", "displayedIssuer", "displayedLocale", "id", "author", "subject",
-            "authoredSignatures", "resolvedDocuments", "resolvedInstances", "metadata", "validationResults", "extensions",
+            "authoredSignatures", "resolvedDocuments", "resolvedInstances", "explanations", "metadata", "validationResults", "extensions",
         }
         assert _prop_keys(RESP_S) == expected
+
+
+class TestWarningExplanationContract:
+    """ADR 0173 warning answers bind to the submit-profile findings and their inputs."""
+
+    def test_s2_1_6__explanation_entry_reference(self):
+        assert RESP_S["properties"]["explanations"]["items"]["$ref"] == "#/$defs/Explanation"
+        assert "Explanation" in RESP_S["$defs"]
+        core = (SPEC_DIR / "core/spec.md").read_text()
+        assert "##### Warning Explanations" in core
+        assert "exactly the current entries" in core
+        assert "`(code, partyRef)`" in core
+        assert "the saved draft's explanation entries" in " ".join(core.split())
+
+    def test_s4_1_and_s5_2_1__warning_explanation_modes(self):
+        properties = DEF_S["properties"]
+        mode = DEF_S["$defs"]["WarningExplanationMode"]
+        shape = DEF_S["$defs"]["Shape"]["properties"]
+        assert properties["warningExplanation"]["$ref"] == shape["explanation"]["$ref"]
+        assert properties["warningExplanation"]["default"] == "none"
+        assert "default" not in shape["explanation"]
+        assert mode["enum"] == ["none", "confirm", "explain", "acknowledge"]
+
+    def test_s2_5_1__reserved_codes_are_documented(self):
+        core = (SPEC_DIR / "core/spec.md").read_text()
+        description = VR_RESULT_S["properties"]["code"]["description"]
+        for code in ("EXPLANATION_REQUIRED", "EXPLANATION_STALE", "EXPLANATION_UNUSED"):
+            assert f"| `{code}` | `explanation` |" in core
+            assert code in description
+
+    def test_s3_1_6__localized_explanation_prompt(self):
+        locale = (SPEC_DIR / "locale/locale-spec.md").read_text()
+        assert "$shape.<shapeId>.explanationPrompt" in locale
+
+    def test_s2_1_6__basis_vector_bytes(self):
+        fixture = ROOT_DIR / "tests/conformance/fixtures/explanations/basis-vectors.json"
+        vectors = json.loads(fixture.read_text())
+        core = (SPEC_DIR / "core/spec.md").read_text()
+
+        def verify(domain, vector):
+            assert f"`{domain}`" in core
+            preimage = bytes.fromhex(vector["preimageHex"])
+            frame, payload = preimage.split(b"\0", maxsplit=1)
+            assert frame.decode() == domain
+            assert vector["digest"] == "sha256:" + sha256(preimage).hexdigest()
+            return payload
+
+        def verify_inputs(inputs):
+            keys = [ref for ref, _ in inputs]
+            assert keys == sorted(set(keys), key=str.encode)
+            for ref, digest in inputs:
+                assert digest == vectors["refDigests"][ref]["digest"]
+
+        for vector in vectors["refDigests"].values():
+            payload = verify("formspec.explanation.ref.v1", vector)
+            assert json.loads(payload, parse_float=Decimal) == json.loads(vector["json"], parse_float=Decimal)
+
+        instance = vectors["instance"]
+        payload = verify("formspec.explanation.basis.v1", instance)
+        # These basis objects contain only ASCII keys and string leaves.
+        assert payload == json.dumps(instance["input"], sort_keys=True, separators=(",", ":")).encode()
+        verify_inputs(instance["input"]["inputs"])
+
+        group = vectors["group"]
+        payload = verify("formspec.explanation.group-basis.v1", group)
+        assert payload == json.dumps(group["input"], sort_keys=True, separators=(",", ":")).encode()
+        firings = group["input"]["firings"]
+        keys = [(shape_id.encode(), path.encode()) for shape_id, path, _ in firings]
+        assert keys == sorted(set(keys))
+        for _, _, inputs in firings:
+            verify_inputs(inputs)
 
 
 # ===========================================================================

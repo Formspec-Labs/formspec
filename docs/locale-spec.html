@@ -563,11 +563,12 @@ carry a same-key direct current adopted Need anchor.</td>
 <td><code>object</code></td>
 <td>yes</td>
 <td>critical</td>
-<td>Map of string keys to localized values. Values are strings and MAY
-contain FEL interpolation only through {{expression}} syntax.
-Surface-only {name} placeholders are not a second template language.
-Shell keys use the read-only shell variable context defined by the
-Locale specification.</td>
+<td>Map of string keys to localized values. Shape keys include
+$shape.<shapeId>.message and $shape.<shapeId>.explanationPrompt (Locale
+§3.1.6). Values are strings and MAY contain FEL interpolation only
+through {{expression}} syntax. Surface-only {name} placeholders are not
+a second template language. Shell keys use the read-only shell variable
+context defined by the Locale specification.</td>
 </tr>
 <tr>
 <td><code>#/properties/target</code></td>
@@ -1037,10 +1038,11 @@ designed for localization key lookups. Core §2.5.1 reserves codes for
 built-in constraints: <code>REQUIRED</code>, <code>TYPE_MISMATCH</code>,
 <code>MIN_REPEAT</code>, <code>MAX_REPEAT</code>,
 <code>CONSTRAINT_FAILED</code>, <code>CONSTRAINT_PARSE_ERROR</code>,
-<code>SHAPE_FAILED</code>, <code>EXTERNAL_FAILED</code>. Shape rules MAY
-define custom codes (e.g., <code>BUDGET_SUM_MISMATCH</code>). This
-replaces the message for all validation results with that code targeting
-the item.</p>
+<code>SHAPE_FAILED</code>, <code>EXTERNAL_FAILED</code>,
+<code>EXPLANATION_REQUIRED</code>, <code>EXPLANATION_STALE</code>, and
+<code>EXPLANATION_UNUSED</code>. Shape rules MAY define custom codes
+(e.g., <code>BUDGET_SUM_MISMATCH</code>). This replaces the message for
+all validation results with that code targeting the item.</p>
 <h5 id="per-bind-constraintmessage-and-requiredmessage">Per Bind
 (<code>constraintMessage</code> and <code>requiredMessage</code>)</h5>
 <p>Individual Binds may define a <code>constraintMessage</code> (core
@@ -1087,11 +1089,10 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href=
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;budget.errors.TYPE_MISMATCH&quot;</span><span class="fu">:</span> <span class="st">&quot;Le budget doit être un nombre&quot;</span></span>
 <span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h5 id="code-synthesis">Code synthesis</h5>
-<p>The <code>code</code> property is optional on
-<code>ValidationResult</code>. When a result lacks an explicit
-<code>code</code>, processors MUST synthesize it from the
-<code>constraintKind</code> property using the reserved code
-mapping:</p>
+<p>Explanation results carry their reserved <code>code</code> (Core
+§5.3.1). When another result lacks an explicit <code>code</code>,
+processors MUST synthesize it from the <code>constraintKind</code>
+property using the reserved code mapping:</p>
 <table>
 <thead>
 <tr>
@@ -1143,15 +1144,22 @@ for form-level and shape-level keys respectively. These prefixes cannot
 collide with item keys because the core Definition schema restricts item
 keys to the pattern <code>[a-zA-Z][a-zA-Z0-9_]*</code>, which excludes
 the <code>$</code> character.</p>
-<h4 id="shape-rule-messages">3.1.6 Shape Rule Messages</h4>
+<h4 id="shape-rule-messages-and-explanation-prompts">3.1.6 Shape Rule
+Messages and Explanation Prompts</h4>
 <p>Shape rules (cross-field validations) are addressed by the shape’s
 <code>id</code>:</p>
-<pre><code>$shape.&lt;shapeId&gt;.message</code></pre>
+<pre><code>$shape.&lt;shapeId&gt;.message
+$shape.&lt;shapeId&gt;.explanationPrompt</code></pre>
+<p><code>explanationPrompt</code> supplies the prompt for a Shape in
+<code>confirm</code> or <code>explain</code> mode (Core §5.2.1). It uses
+the Shape’s target scope. When the Locale supplies no prompt, use the
+renderer’s default.</p>
 <p>Example:</p>
 <div class="sourceCode" id="cb19"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$shape.budget-balance.message&quot;</span><span class="fu">:</span> <span class="st">&quot;Le total du budget doit correspondre au financement demandé&quot;</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$shape.budget-balance.message&quot;</span><span class="fu">:</span> <span class="st">&quot;Le total du budget doit correspondre au financement demandé&quot;</span><span class="fu">,</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;$shape.budget-balance.explanationPrompt&quot;</span><span class="fu">:</span> <span class="st">&quot;Expliquez cet écart dans le budget.&quot;</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <h4 id="page-layout-strings">3.1.7 Page Layout Strings</h4>
 <p>Theme Documents define pages via <code>PageLayout</code> objects with
 <code>id</code>, <code>title</code>, and <code>description</code>

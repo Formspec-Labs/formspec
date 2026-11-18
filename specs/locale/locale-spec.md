@@ -208,7 +208,7 @@ Locale Document that omits a REQUIRED property.
 | `#/properties/modules` | `modules` | <code>array</code> | no | — | OPTIONAL declaration of substrate modules this document depends on. Each entry is a canonical ModuleRef. Module-contributed Locale string keys use $module.<modId>.<nodeId>.<prop>. The x-formspec-surface module reserves the closed $module.x-formspec-surface.shell.<SurfaceStringKey> family for app-targeted shell text. |
 | `#/properties/name` | `name` | <code>string</code> | no | — | Machine-friendly short identifier for programmatic use. |
 | `#/properties/stringGeneration` | `stringGeneration` | <code>object</code> | no | — | Generation provenance keyed exactly like strings. In strict data-only authoring profiles, strings localizing a Definition or Screener node, a bound Component node, or the Definition's own text MAY inherit per Needs §10.3 from the localized node. Other strings MUST carry a same-key direct current adopted Need anchor. |
-| `#/properties/strings` | `strings` | <code>object</code> | yes | critical | Map of string keys to localized values. Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification. |
+| `#/properties/strings` | `strings` | <code>object</code> | yes | critical | Map of string keys to localized values. Shape keys include $shape.<shapeId>.message and $shape.<shapeId>.explanationPrompt (Locale §3.1.6). Values are strings and MAY contain FEL interpolation only through {{expression}} syntax. Surface-only {name} placeholders are not a second template language. Shell keys use the read-only shell variable context defined by the Locale specification. |
 | `#/properties/target` | `target` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/LocaleTarget</code>; critical | Exact Definition, App Manifest, or Screener target. Loaded Locale identity is (target.kind, target.url, normalized locale). A processor MUST NOT apply this document to another target or cross target identity during fallback. |
 | `#/properties/title` | `title` | <code>string</code> | no | — | Human-readable display name for the Locale Document. |
 | `#/properties/url` | `url` | <code>string</code> | no | — | Canonical identifier for this Locale Document. Stable across versions — the tuple (url, version) SHOULD be globally unique. |
@@ -552,7 +552,8 @@ The `code` property provides machine-readable identifiers designed for
 localization key lookups. Core §2.5.1 reserves codes for built-in
 constraints: `REQUIRED`, `TYPE_MISMATCH`, `MIN_REPEAT`, `MAX_REPEAT`,
 `CONSTRAINT_FAILED`, `CONSTRAINT_PARSE_ERROR`, `SHAPE_FAILED`,
-`EXTERNAL_FAILED`. Shape rules
+`EXTERNAL_FAILED`, `EXPLANATION_REQUIRED`, `EXPLANATION_STALE`, and
+`EXPLANATION_UNUSED`. Shape rules
 MAY define custom codes (e.g., `BUDGET_SUM_MISMATCH`). This replaces
 the message for all validation results with that code targeting the
 item.
@@ -614,8 +615,8 @@ Examples:
 
 ##### Code synthesis
 
-The `code` property is optional on `ValidationResult`. When a result
-lacks an explicit `code`, processors MUST synthesize it from the
+Explanation results carry their reserved `code` (Core §5.3.1). When another
+result lacks an explicit `code`, processors MUST synthesize it from the
 `constraintKind` property using the reserved code mapping:
 
 | `constraintKind` | Synthesized `code` |
@@ -647,20 +648,26 @@ shape-level keys respectively. These prefixes cannot collide with item
 keys because the core Definition schema restricts item keys to the
 pattern `[a-zA-Z][a-zA-Z0-9_]*`, which excludes the `$` character.
 
-#### 3.1.6 Shape Rule Messages
+#### 3.1.6 Shape Rule Messages and Explanation Prompts
 
 Shape rules (cross-field validations) are addressed by the shape's
 `id`:
 
 ```
 $shape.<shapeId>.message
+$shape.<shapeId>.explanationPrompt
 ```
+
+`explanationPrompt` supplies the prompt for a Shape in `confirm` or `explain`
+mode (Core §5.2.1). It uses the Shape's target scope. When the Locale supplies
+no prompt, use the renderer's default.
 
 Example:
 
 ```json
 {
-  "$shape.budget-balance.message": "Le total du budget doit correspondre au financement demandé"
+  "$shape.budget-balance.message": "Le total du budget doit correspondre au financement demandé",
+  "$shape.budget-balance.explanationPrompt": "Expliquez cet écart dans le budget."
 }
 ```
 

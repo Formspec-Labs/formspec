@@ -82,18 +82,22 @@ Shapes compose via: `and` (all pass), `or` (any pass), `not` (must fail), `xone`
 
 Produces structured `ValidationResult` entries (not booleans) with shape name, target path, severity, message, code.
 
+Warning Shapes use the Definition's `warningExplanation` (`none` by default), overridden by the Shape's `explanation`. `confirm` records an entry per firing with optional text. `explain` requires text per firing. `acknowledge` requires an explicit Shape `code` and covers all current firings sharing that code in one review action. All warning Shapes sharing an acknowledgement code use `acknowledge` mode. See Core §5.2.1 and Locale §3.1.6 for `explanationPrompt`.
+
 ### 6. Response
 A completed/in-progress instance pinned to a specific definition version.
 
 Required: `definitionUrl`, `definitionVersion`, `status` (in-progress | completed | amended | stopped), `data` (the instance), `authored` (ISO 8601 datetime).
 
-Optional: `id` (UUID), `author`, `subject`, `resolvedInstances`, `displayedIssuer` (submit-time resolved Issuer pin), `validationResults`, `authoredSignatures`.
+Optional: `id` (UUID), `author`, `subject`, `resolvedInstances`, `explanations`, `displayedIssuer` (submit-time resolved Issuer pin), `validationResults`, `authoredSignatures`.
 
 When Definition `subject` declares `{type, keys: {name: {dataType, authorizationParent?}}}`, Response `subject` requires `{id, type, keys}`. Keys are string or integer only. `id` is 64 lowercase hex SHA-256 characters, no prefix, over integrity-canonical-json-v1 bytes of {type, keys} framed with UTF-8 `formspec.subject.id.v1` then NUL. It identifies the filing unit independently of Response.id and editable answers, and is unique only with its scope; indexes and authorization keys pair them. A per-scope singleton declares empty keys and takes relations through its scope parent. Scope is not a key. Authorization parents require string keys and derive from stored keys and scope on each check; they are never persisted as duplicate relationships. An implicit respondent identity for a Definition without a declaration stays server-only.
 
 Integer subject keys must be within ±(2^53−1), the I-JSON interoperable range ([RFC 7493 §2.2](https://www.rfc-editor.org/rfc/rfc7493#section-2.2)). Refuse out-of-range integers. Use string keys for identifiers that can exceed the bound or carry leading zeros.
 
 `resolvedInstances[]` records `{instance, records: [{responseId, definitionVersion, responseHash?}], valueDigest, none, pinned, mapping?: {url, digest}}`. Only `assemble_candidate` writes it, before Sign; the server re-runs it at Sign and Submit and refuses differences. `valueDigest` covers the delivered value: latest gives one projection; latest-per-subject gives an ordered array of per-record projections, with Mapping applied once to the whole array. none true gives the data fallback or null without Mapping. Hash under `integrity-canonical-json-v1` / `formspec.instance.value.v1`. Completed records include `ResponseJson::handoff_hash()` as `responseHash`; current drafts omit it and retain the delivered value in evaluation receipts. These fields remain inside the signed Response. Review outcome comes from the WOS determination; read evidence comes from `Response.resolvedInstances`.
+
+`explanations[]` stores instance `{shapeId, path, basis, text?, author, recorded}` or group `{code, group: true, paths, basis, author, recorded, partyRef?}` entries. The server stamps the actor and time and checks party authority at save. For each acknowledgement code, the stored group paths together must equal the current firing paths. Each entry's `basis` must match the firings at its own paths (Core §2.1.6). Candidate assembly keeps exactly the current entries for completion. Whole-Response signatures and the handoff hash cover the stored entries.
 
 ### 7. Data Source
 Declares external/supplemental data available to FEL expressions at runtime. Populates secondary instances.
@@ -168,13 +172,15 @@ Structured JSON objects, not booleans. Every ValidationResult entry has:
 - `severity` (REQUIRED): `error` | `warning` | `info`
 - `path` (REQUIRED): dot-notation with concrete 0-based indices for repeats (e.g., `lineItems[2].amount` is the third instance; FEL `@index` is 1-based)
 - `message` (REQUIRED): human-readable
-- `constraintKind` (REQUIRED): `required` | `type` | `cardinality` | `constraint` | `shape` | `external`
+- `constraintKind` (REQUIRED): `required` | `type` | `cardinality` | `constraint` | `shape` | `external` | `explanation`
 - `code` (RECOMMENDED): machine-readable identifier
 - `source` (OPTIONAL): `bind` | `shape`
-- `shapeId` (OPTIONAL): if source is shape
+- `shapeId` (OPTIONAL): Shape failure or instance explanation result
 - `constraint` (OPTIONAL): the failed FEL expression
 
 **Standard codes**: `REQUIRED`, `TYPE_MISMATCH`, `MIN_REPEAT`, `MAX_REPEAT`, `CONSTRAINT_FAILED`, `SHAPE_FAILED`, `EXTERNAL_FAILED`.
+
+In `on-submit`, `explanation` findings use `source: "shape"` and `EXPLANATION_REQUIRED` or `EXPLANATION_STALE` (errors) or `EXPLANATION_UNUSED` (info). The processor emits at most one group finding per code, using `path: "#"` and `context.code`. Explanation errors use `block-on-error` and the original warning keeps its severity (Core §5.3.1).
 
 **Severity semantics**:
 - `error` → invalid, must resolve before response can be `completed`

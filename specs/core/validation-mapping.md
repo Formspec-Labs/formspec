@@ -192,6 +192,8 @@ A processor MUST NOT discard Response data on a blocked submission. The Response
 
 `block-on-error` is keyed off `error` severity only. Findings of `warning` or `info` severity NEVER block, regardless of policy. This aligns with Core §5.3.1 ("only error blocks completion") and the `validation-report.schema.json` invariant `valid = (counts.error === 0)`.
 
+Derived explanation errors in `on-submit` use `block-on-error` (Core §5.3.1).
+
 Blocking Policy values are closed. A Response Actions document MUST NOT add author-specific Blocking Policy values (e.g., `x-acme-block-on-warning`). Publisher-specific behavior MUST use an `x-` ActionIntent paired with one of this section's two blocking policies, or wait for a future revision of this spec.
 
 ## 5. Persistence Policy

@@ -672,6 +672,28 @@
         }
       }
     },
+    "Author": {
+      "type": "object",
+      "description": "Identifier and optional display name of an author within the host system.",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the author within the host system.",
+          "examples": ["user-42", "system:batch-import", "urn:oid:2.16.840.1.113883.4.6"]
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the author. For human authors, typically their full name.",
+          "examples": ["Dr. Grace Hopper", "Batch Import Service"]
+        }
+      },
+      "examples": [
+        { "id": "user-42", "name": "Dr. Grace Hopper" },
+        { "id": "system:etl-pipeline" }
+      ]
+    },
     "ResolvedItemPath": {
       "type": "string",
       "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\[(?:0|[1-9][0-9]*)\\])?(?:\\.[A-Za-z][A-Za-z0-9_]*(?:\\[(?:0|[1-9][0-9]*)\\])?)*$",
@@ -680,6 +702,52 @@
         "student.name",
         "parents[0].income",
         "photo"
+      ]
+    },
+    "ExplanationPath": {
+      "description": "Resolved path of a warning Shape finding, relative to Response.data. Uses dot notation and concrete zero-based repeat indexes, or # for a finding at the Response root. The pinned Definition determines the target.",
+      "anyOf": [{ "$ref": "#/$defs/ResolvedItemPath" }, { "const": "#" }]
+    },
+    "Explanation": {
+      "description": "A response to a warning Shape under Core §2.1.6. Entry identity, sorted group paths, effective mode, and basis matching are checked against the pinned Definition and submit-profile findings.",
+      "oneOf": [
+        {
+          "title": "Instance Explanation",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["shapeId", "path", "basis", "author", "recorded"],
+          "properties": {
+            "shapeId": { "type": "string", "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$" },
+            "path": { "$ref": "#/$defs/ExplanationPath" },
+            "basis": { "$ref": "#/$defs/Sha256Digest" },
+            "text": { "type": "string", "description": "Required and nonempty for explain, optional for confirm." },
+            "author": { "$ref": "#/$defs/Author", "description": "Authenticated actor stamped by the server at draft save." },
+            "recorded": { "type": "string", "format": "date-time", "description": "Server date-time stamped at draft save." }
+          }
+        },
+        {
+          "title": "Grouped Acknowledgement",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "group", "paths", "basis", "author", "recorded"],
+          "properties": {
+            "code": { "type": "string", "minLength": 1, "description": "The shared code of the acknowledged warning Shapes." },
+            "group": { "const": true },
+            "paths": {
+              "type": "array", "minItems": 1, "uniqueItems": true,
+              "items": { "$ref": "#/$defs/ExplanationPath" },
+              "description": "Resolved paths covered by the acknowledgement, sorted in UTF-8 byte order."
+            },
+            "basis": { "$ref": "#/$defs/Sha256Digest" },
+            "author": { "$ref": "#/$defs/Author", "description": "Authenticated actor stamped by the server at draft save." },
+            "recorded": { "type": "string", "format": "date-time", "description": "Server date-time stamped at draft save." },
+            "partyRef": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Stable host reference to the bound party whose targets the group covers. Required when the pinned Definition declares parties, omitted otherwise."
+            }
+          }
+        }
       ]
     },
     "DocumentReference": {
@@ -1202,26 +1270,8 @@
       ]
     },
     "author": {
-      "type": "object",
-      "description": "Identifier and display name of the person or system that authored the Response. For human authors, 'id' is typically a user account identifier; for automated systems, 'id' identifies the service or integration.",
-      "required": ["id"],
-      "additionalProperties": false,
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier of the author within the host system.",
-          "examples": ["user-42", "system:batch-import", "urn:oid:2.16.840.1.113883.4.6"]
-        },
-        "name": {
-          "type": "string",
-          "description": "Display name of the author. For human authors, typically their full name.",
-          "examples": ["Dr. Grace Hopper", "Batch Import Service"]
-        }
-      },
-      "examples": [
-        { "id": "user-42", "name": "Dr. Grace Hopper" },
-        { "id": "system:etl-pipeline" }
-      ]
+      "$ref": "#/$defs/Author",
+      "description": "Person or system that authored the Response. A human author's id typically identifies a user account. An automated author's id identifies the service or integration."
     },
     "subject": {
       "type": "object",
@@ -1383,6 +1433,11 @@
       "uniqueItems": true,
       "items": { "$ref": "#/$defs/ResolvedDocument" },
       "description": "Exact document variants resolved from the pinned Definition. Duplicate document/locale identities refuse. Passive selections alone do not establish assent, fetching, viewing or reading; declared-document assent uses the typed signed root commitment."
+    },
+    "explanations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Explanation" },
+      "description": "Respondent explanations, confirmations and grouped acknowledgements of warning Shapes. Completion carries exactly the current entries for the submit-profile findings. Whole-Response signatures and the handoff responseHash cover these entries. See Core §2.1.6 and §5.3.1."
     },
     "authoredSignatures": {
       "type": "array",

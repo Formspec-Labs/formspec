@@ -1,0 +1,26 @@
+{
+  "$formspecResponse": "1.0",
+  "definitionUrl": "https://example.org/forms/annual-report",
+  "definitionVersion": "1.0.0",
+  "status": "completed",
+  "data": { "lines": [{}, {}, { "amount": 12000 }], "narrative": null },
+  "authored": "2026-11-17T15:06:12Z",
+  "explanations": [
+    {
+      "shapeId": "variance",
+      "path": "lines[2].amount",
+      "basis": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "text": "Two programs merged during the reporting year.",
+      "author": { "id": "user-42", "name": "A. Preparer" },
+      "recorded": "2026-11-17T15:04:05Z"
+    },
+    {
+      "code": "NOT_ANSWERED",
+      "group": true,
+      "paths": ["lines[0].amount", "narrative"],
+      "basis": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "author": { "id": "user-42" },
+      "recorded": "2026-11-17T15:06:12Z"
+    }
+  ]
+}
