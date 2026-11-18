@@ -56,10 +56,23 @@ function isBrowserPort(port: SurfaceDraftStorage['port'] | undefined): port is B
   return !!port && 'subscribe' in port && 'restart' in port;
 }
 
+function samePreviewSession(previous: SurfacePreviewEdition, current: SurfacePreviewEdition): boolean {
+  const before = previous.adapters;
+  const after = current.adapters;
+  return previous.scope === current.scope && previous.bundle === current.bundle &&
+    before.draftStorage?.port === after.draftStorage?.port && before.responses === after.responses &&
+    before.draftStorage?.author?.id === after.draftStorage?.author?.id &&
+    before.draftStorage?.author?.name === after.draftStorage?.author?.name &&
+    before.sessionGeneration === after.sessionGeneration;
+}
+
 export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
   const previewEditions = input.previewEditions;
   if (previewEditions && (!previewEditions.length || new Set(previewEditions.map(entry => entry.scope)).size !== previewEditions.length ||
     previewEditions.some(entry => !entry.scope))) throw new Error('Preview editions require distinct, non-empty draft scopes.');
+  if (previewEditions?.some(({ scope, adapters }) => adapters.draftStorage && adapters.draftStorage.scope !== scope)) {
+    throw new Error('Preview draft storage must match its edition scope.');
+  }
   if (previewEditions?.some(({ scope, adapters }) => adapters.draftStorage && scope !== adapters.draftStorage.scope)) {
     throw new Error('Preview edition and storage scopes must match.');
   }
@@ -80,22 +93,25 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
   const author = draftStorage?.author;
   // Native history can leave a dirty editor without running controlled navigation.
   // Keep its writer until the host replaces the edition's storage or identity.
-  const [retainedEditions, retainEditions] = useState(previewEditions);
-  if (retainedEditions !== previewEditions && (
-    retainedEditions?.length !== previewEditions?.length ||
-    retainedEditions?.some(previous => !previewEditions?.some(current =>
-      previous.scope === current.scope && previous.bundle === current.bundle &&
-      previous.adapters.draftStorage?.port === current.adapters.draftStorage?.port &&
-      previous.adapters.responses === current.adapters.responses &&
-      previous.adapters.draftStorage?.author?.id === current.adapters.draftStorage?.author?.id &&
-      previous.adapters.draftStorage?.author?.name === current.adapters.draftStorage?.author?.name &&
-      previous.adapters.sessionGeneration === current.adapters.sessionGeneration))
-  )) retainEditions(previewEditions);
+  const [retained, retain] = useState(() => ({ editions: previewEditions, sessions: new Map<string, DraftSession>() }));
+  if (retained.editions !== previewEditions && (
+    retained.editions?.length !== previewEditions?.length ||
+    retained.editions?.some(previous => !previewEditions?.some(current => samePreviewSession(previous, current)))
+  )) {
+    const sessions = new Map<string, DraftSession>();
+    for (const previous of retained.editions ?? []) {
+      const session = retained.sessions.get(previous.scope);
+      if (session && previewEditions?.some(current => samePreviewSession(previous, current))) {
+        sessions.set(previous.scope, session);
+      }
+    }
+    retain({ editions: previewEditions, sessions });
+  }
   const checkpoint = useRef({ checkpointPorts, previewEditions });
   useLayoutEffect(() => { checkpoint.current = { checkpointPorts, previewEditions }; }, [checkpointPorts, previewEditions]);
-  const sessions = useMemo(() => new Map<string, DraftSession>(),
-    [retainedEditions, previewEditions ? undefined : port, previewEditions ? undefined : responses, previewEditions ? undefined : props.sessionGeneration,
-      previewEditions ? undefined : author?.id, previewEditions ? undefined : author?.name]);
+  const liveSessions = useMemo(() => new Map<string, DraftSession>(),
+    [port, responses, props.sessionGeneration, author?.id, author?.name]);
+  const sessions = previewEditions ? retained.sessions : liveSessions;
   const scope = draftStorage?.scope ?? previewScope;
   const drafts = useMemo(() => {
     if (!scope || !port) return undefined;
@@ -109,14 +125,15 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
     sessions.set(scope, session);
     return session;
   }, [scope, port, responses, sessions, localPort, author?.id, author?.name]);
-  const attachedSessions = useRef(new Set<Map<string, DraftSession>>());
+  const attachedSessions = useRef<Map<string, DraftSession> | undefined>(undefined);
   useEffect(() => {
-    const attached = attachedSessions.current;
-    attached.add(sessions);
+    attachedSessions.current = sessions;
     return () => {
-      attached.delete(sessions);
+      attachedSessions.current = undefined;
       queueMicrotask(() => {
-        if (!attached.has(sessions)) for (const session of sessions.values()) session.dispose();
+        for (const [scope, session] of sessions) {
+          if (attachedSessions.current?.get(scope) !== session) session.dispose();
+        }
       });
     };
   }, [sessions]);
@@ -145,7 +162,7 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
   const { preference, appearance, choose } = useBrowserAppearance();
   const [save, setSave] = useState<{ scope: string | undefined; notice: SurfaceSaveNotice }>();
   const request = useRef(0);
-  const visit = useMemo(() => ({}), [address, bundle, props.sessionGeneration]);
+  const visit = useMemo(() => ({}), [address, bundle, drafts, previewScope, props.sessionGeneration]);
   const currentVisit = useRef<typeof visit | undefined>(undefined);
   useLayoutEffect(() => {
     currentVisit.current = visit;

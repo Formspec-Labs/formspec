@@ -332,6 +332,42 @@ describe('BrowserSurfaceApp', () => {
     expect(beforeLeave).toHaveBeenCalledTimes(2);
   });
 
+  it('refuses preview draft storage scoped to a different edition', () => {
+    address('/#/overview');
+    const port = { load: vi.fn(), save: vi.fn(), readSummaries: vi.fn() };
+    expect(() => render(<BrowserSurfaceApp previewEditions={[{
+      scope: 'current', bundle: bundle(), initialPath: '/overview',
+      adapters: { draftStorage: { scope: 'other', port } },
+    }]} />)).toThrow('Preview draft storage must match its edition scope.');
+  });
+
+  it('keeps the active draft when another preview edition is replaced', async () => {
+    address('/#/forms/mi?edition=first');
+    const load = vi.fn(async () => ({ status: 'absent' as const }));
+    const first = {
+      scope: 'first', bundle: bundle(), initialPath: '/overview',
+      adapters: { draftStorage: { scope: 'first', port: { load, save: vi.fn(), readSummaries: vi.fn() } } },
+    };
+    const second = { scope: 'second', bundle: bundle('Second'), initialPath: '/start', adapters: {} };
+    const replacement = { ...second, bundle: bundle('Replacement') };
+    let replaceEdition!: () => void;
+    function Host() {
+      const [edition, setEdition] = useState(second);
+      replaceEdition = () => setEdition(replacement);
+      return <BrowserSurfaceApp previewEditions={[first, edition]} />;
+    }
+    const container = render(<Host />);
+    await act(async () => {});
+    const input = container.querySelector('input')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'unsaved');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => { replaceEdition(); });
+    expect(container.querySelector('input')?.value).toBe('unsaved');
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
   it('negotiates an offered language, cascades shell and Definition copy, and falls back to the app default', () => {
     address('/forms/mi');
     vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['fr-CA']);
