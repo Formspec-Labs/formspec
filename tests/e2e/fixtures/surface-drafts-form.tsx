@@ -100,7 +100,7 @@ if (query.has('form')) {
     } };
   }
   const first = await edition('edition');
-  const reads = hydration ? await hydrationStorage(first.bundle.definitions) : undefined;
+  const reads = hydration ? await hydrationStorage(first.scope, first.bundle.definitions) : undefined;
   if (reads) {
     first.adapters.draftStorage = { scope: first.scope, port: reads.storage.port };
     first.adapters.responses = reads.storage.responses;

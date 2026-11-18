@@ -26,9 +26,8 @@ export const hydrationInstances = {
   sibling: instance({ status: 'current' }),
 };
 
-export async function hydrationStorage(definitions: ReadonlyMap<string, FormDefinition>) {
+export async function hydrationStorage(scope: string, definitions: ReadonlyMap<string, FormDefinition>) {
   const tools = await previewResponseRecordTools();
-  const scope = 'edition';
   const subject = current.subject;
   const key = { scope, definitionUrl: upstreamUrl, subject };
   const original = { $formspecResponse: '1.0', ...prior };
