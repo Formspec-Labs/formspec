@@ -4159,8 +4159,9 @@ money arrays.</td>
 <td><code>count</code></td>
 <td><code>count(array&lt;T&gt;) → number</code></td>
 <td><code>number</code></td>
-<td>Number of non-null elements. <code>count([])</code> returns
-<code>0</code>.</td>
+<td>Number of non-null elements. Zero, false, and the empty string each
+count. <code>count([])</code> returns <code>0</code>. A null array
+returns null.</td>
 </tr>
 <tr>
 <td><code>countWhere</code></td>

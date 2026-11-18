@@ -213,8 +213,8 @@
         }
       ],
       "returns": "number",
-      "description": "Returns the number of elements in the array, including nulls.",
-      "nullHandling": "Null argument returns 0. Null elements ARE counted.",
+      "description": "Counts non-null values in an array. Zero, false, and the empty string each count as one value.",
+      "nullHandling": "A null array returns null. An empty array or an array containing only nulls returns 0.",
       "examples": [
         {
           "expression": "count($items[*].name)",
@@ -222,7 +222,7 @@
         },
         {
           "expression": "count([1, null, 3])",
-          "result": 3
+          "result": 2
         }
       ]
     },

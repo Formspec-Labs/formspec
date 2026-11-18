@@ -2366,7 +2366,7 @@ Aggregate functions operate on arrays and reduce them to a single value.
 | Function | Signature | Returns | Description |
 |----------|-----------|---------|------------|
 | `sum` | `sum(array<number>) → number` | `number` | Sum of all numeric elements. `sum([])` returns `0`. Null elements are skipped. Arrays containing `money` MUST be rejected with diagnostic code `FEL_SUM_REJECTS_MONEY`; use `moneySum()` for money arrays. |
-| `count` | `count(array<T>) → number` | `number` | Number of non-null elements. `count([])` returns `0`. |
+| `count` | `count(array<T>) → number` | `number` | Number of non-null elements. Zero, false, and the empty string each count. `count([])` returns `0`. A null array returns null. |
 | `countWhere` | `countWhere(array, boolean) → number` | `number` | Count of elements where the expression evaluates to `true`. Within the expression, `$` refers to the current element. E.g., `countWhere($line_items[*].amount, $ > 10000)`. |
 | `sumWhere` | `sumWhere(array<number>, boolean) → number` | `number` | Sum of numeric elements whose predicate evaluates to `true`. Within the expression, `$` refers to the current element. Non-numeric matches are skipped. |
 | `avgWhere` | `avgWhere(array<number>, boolean) → number` | `number` | Arithmetic mean of numeric elements whose predicate evaluates to `true`. Returns `null` when no elements match. |
