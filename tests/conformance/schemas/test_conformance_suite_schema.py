@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator, ValidationError
+from referencing import Registry
 
 from tests.unit.support.schema_fixtures import load_schema
 
@@ -34,8 +35,10 @@ def conformance_suite_schema() -> dict:
     return load_schema("conformance-suite.schema.json")
 
 
-def test_suite_cases_validate_against_schema(conformance_suite_schema: dict) -> None:
-    validator = Draft202012Validator(conformance_suite_schema)
+def test_suite_cases_validate_against_schema(
+    conformance_suite_schema: dict, schema_registry: Registry,
+) -> None:
+    validator = Draft202012Validator(conformance_suite_schema, registry=schema_registry)
     for case_path in sorted(SUITE_DIR.glob("*.json")):
         if case_path.name == MANIFEST_PATH.name:
             continue
@@ -49,6 +52,21 @@ def test_manifest_references_real_case_files() -> None:
     assert listed
     for rel_name in listed:
         assert (SUITE_DIR / rel_name).is_file(), rel_name
+
+
+def test_expected_candidate_requires_a_submit_case_and_a_response(
+    conformance_suite_schema: dict, schema_registry: Registry,
+) -> None:
+    case = _load_json(SUITE_DIR / "parity-subject-keys.json")
+    validator = Draft202012Validator(conformance_suite_schema, registry=schema_registry)
+    validator.validate(case)
+    with pytest.raises(ValidationError):
+        validator.validate({**case, "mode": "continuous"})
+    with pytest.raises(ValidationError):
+        validator.validate({
+            **case,
+            "expectedCandidate": {**case["expectedCandidate"], "status": "unknown"},
+        })
 
 
 def test_non_fel_case_requires_payload_or_input_data(conformance_suite_schema: dict) -> None:

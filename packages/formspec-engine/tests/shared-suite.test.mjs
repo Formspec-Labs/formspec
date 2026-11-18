@@ -342,17 +342,25 @@ async function runProcessingCase(caseDoc, legs) {
     const again = evaluate(server ? 'S(fixpoint)' : 'P(fixpoint)', verdict.data, 'submit', { server });
     return { verdict, problems: [...againstExpected(verdict, expected), ...betweenLegs('fixpoint', again, verdict)] };
   };
+  const checkSubmitLegs = (data) => {
+    const server = settle(data);
+    legs.set('S', server.problems);
+    if (!caseDoc.subject) return server.verdict;
+    const session = settle(data, { server: false });
+    legs.set('P', session.problems);
+    return session.verdict;
+  };
   const roundTrip = (data) => dataDiff(evaluate('P(round trip)', data, 'continuous').data, data)
     .map((d) => `round trip of expected.data ${d}`);
 
   // An invalid filing unit is refused before a browser session or filed Response exists.
   const refusal = expected.results?.find(({ path }) => path.startsWith('#subject'));
   if (refusal && caseDoc.subject) {
+    assert.equal(caseDoc.expectedCandidate, undefined, 'a refused subject cannot produce a filing');
     await assert.rejects(openEngine(caseDoc, definition, payload), {
       message: `${refusal.path}: ${refusal.message}`,
     });
-    legs.set('P', settle(payload, { server: false }).problems);
-    legs.set('S', settle(payload).problems);
+    checkSubmitLegs(payload);
     legs.set('noInvention', inventionProblems);
     return;
   }
@@ -363,7 +371,7 @@ async function runProcessingCase(caseDoc, legs) {
     const liveFromFiled = evaluate('P(FormEngine live data)', liveSession.data, 'continuous');
     const liveProblems = betweenLegs('FormEngine live vs P', liveSession, liveFromFiled);
     if (submit) {
-      legs.set('S', settle(expected.data).problems);
+      checkSubmitLegs(expected.data);
       legs.set('F', liveProblems);
       legs.set('F_submit', againstExpected(engineOutcome(engine, 'on-submit'), expected));
     } else {
@@ -389,13 +397,10 @@ async function runProcessingCase(caseDoc, legs) {
     legs.set('F', liveProblems);
     if (submit) {
       const inSession = evaluate('P(submit)', sessionInput, 'submit');
-      const { verdict, problems } = settle(inSession.data);
-      legs.set('S', problems);
+      const reference = checkSubmitLegs(inSession.data);
       const session = engineOutcome(engine, 'on-submit');
-      const reference = caseDoc.subject ? settle(inSession.data, { server: false }) : { verdict };
-      if (caseDoc.subject) legs.set('P', reference.problems);
       const fSubmit = betweenLegs(caseDoc.subject ? 'FormEngine submit vs P' : 'FormEngine submit vs S',
-        session, reference.verdict, { data: compareDraftData });
+        session, reference, { data: compareDraftData });
       if (caseDoc.kind === 'RESPONSE_VALIDATION') {
         const filedResults = outcome(session.response.validationResults ?? [], session.data);
         fSubmit.push(...againstExpected(filedResults, { results: caseDoc.expected.response.validationResults ?? [] })
@@ -403,7 +408,7 @@ async function runProcessingCase(caseDoc, legs) {
       }
       legs.set('F_submit', fSubmit);
       const filed = evaluate('FR', session.data, 'submit', { server: true });
-      legs.set('FR', betweenLegs(`recheck of FormEngine submit data vs ${caseDoc.subject ? 'P' : 'S'}`, filed, reference.verdict));
+      legs.set('FR', betweenLegs(`recheck of FormEngine submit data vs ${caseDoc.subject ? 'P' : 'S'}`, filed, reference));
     }
   }
   if (caseDoc.expectedCandidate) {

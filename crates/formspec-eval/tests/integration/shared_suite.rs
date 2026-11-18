@@ -215,6 +215,19 @@ impl Evaluator<'_> {
         problems
     }
 
+    fn check_submit_legs(&mut self, legs: &mut Legs, data: &Value, expected: &Value) {
+        if self.context.subject.is_some() {
+            legs.insert(
+                "P".to_string(),
+                self.check_filed(data, expected, Caller::Session),
+            );
+        }
+        legs.insert(
+            "S".to_string(),
+            self.check_filed(data, expected, Caller::Server),
+        );
+    }
+
     fn run(&mut self, label: &str, data: &Value, trigger: EvalTrigger, caller: Caller) -> Outcome {
         let fields = json_object_to_string_map(data);
         let options = self.options(trigger, caller);
@@ -719,10 +732,7 @@ fn run_processing(case: &Value, legs: &mut Legs) {
     if case.get("operations").is_some() {
         // The filed record is `expected.data`; the session that produced it runs in TypeScript.
         if submit {
-            legs.insert(
-                "S".to_string(),
-                evaluator.check_filed(&expected["data"], &expected, Caller::Server),
-            );
+            evaluator.check_submit_legs(legs, &expected["data"], &expected);
         } else {
             let recheck =
                 evaluator.run("P(expected.data)", &expected["data"], mode, Caller::Session);
@@ -754,16 +764,7 @@ fn run_processing(case: &Value, legs: &mut Legs) {
         if submit {
             let in_session =
                 evaluator.run("P(submit)", &payload, EvalTrigger::Submit, Caller::Session);
-            if case.get("subject").is_some() {
-                legs.insert(
-                    "P".to_string(),
-                    evaluator.check_filed(&in_session.data, &expected, Caller::Session),
-                );
-            }
-            legs.insert(
-                "S".to_string(),
-                evaluator.check_filed(&in_session.data, &expected, Caller::Server),
-            );
+            evaluator.check_submit_legs(legs, &in_session.data, &expected);
         } else {
             let mut problems = against_expected(&live, &expected);
             if let Some(data) = expected.get("data") {

@@ -107,8 +107,7 @@
       "description": "Filing-unit identity supplied by the host. Refusal cases may intentionally supply invalid keys."
     },
     "expectedCandidate": {
-      "type": "object",
-      "required": ["$formspecResponse", "definitionUrl", "definitionVersion", "status", "authored", "data"],
+      "$ref": "https://formspec.org/schemas/response/1.0",
       "description": "Complete expected filed Response at the fixture clock, compared as canonical JSON."
     },
     "inputData": {
@@ -210,6 +209,16 @@
     }
   },
   "allOf": [
+    {
+      "if": { "required": ["expectedCandidate"] },
+      "then": {
+        "required": ["mode"],
+        "properties": {
+          "mode": { "const": "submit" },
+          "kind": { "enum": ["ENGINE_PROCESSING", "VALIDATION_REPORT", "RESPONSE_VALIDATION"] }
+        }
+      }
+    },
     {
       "if": {
         "properties": { "kind": { "const": "FEL_EVALUATION" } },
