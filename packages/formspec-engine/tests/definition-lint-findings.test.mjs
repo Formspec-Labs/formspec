@@ -11,6 +11,7 @@ test('FEL and Shape diagnostics survive the tools WASM boundary in every lint mo
         E401: '$.items[0].initialValue', E402: '$.items[0].initialValue',
         E403: '$.items[0].initialValue', E404: '$.items[0].initialValue',
         E405: '$.items[0].initialValue', W405: '$.items[0].initialValue',
+        E407: '$.items[0].initialValue',
     };
     for (const [code, path] of Object.entries(expectedPaths)) {
         const rule = registry.rules.find(entry => entry.code === code);
