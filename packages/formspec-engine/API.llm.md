@@ -129,6 +129,10 @@ respondents. Evaluation errors (Core §3.10.2) pass as null; an undefined functi
 - **diagnostics**: `EvalDiagnostic[]`
 - **nonRelevant**: `string[]`
 - **variables**: `Record<string, unknown>`
+- **scopedVariables?**: `Record<string, Record<string, unknown>>`
+- **preservedValues?**: `Record<string, unknown>`
+- **filingOnlyPaths?**: `string[]`
+- **repeatCounts?**: `Record<string, number>`
 - **required**: `Record<string, boolean>`
 - **readonly**: `Record<string, boolean>`
 
@@ -363,7 +367,7 @@ supplied literals (`$label`, `$index`, ...), not form-scope FEL.
 
 ## `resolveOptionSetsOnDefinition(definition: FormDefinition): FormDefinition`
 
-## `validateVariableDefinitionCycles(variableDefs: FormVariable[]): void`
+## `validateVariableDefinitionCycles(variableDefs: FormVariable[], resolveScope: (scope?: string) => string): void`
 
 ## `validateCalculateBindCycles(bindConfigs: Record<string, EngineBindConfig>): void`
 
@@ -371,7 +375,7 @@ supplied literals (`$label`, `$index`, ...), not form-scope FEL.
 
 Match the Response data tree, where dependent questions share their scalar parent's object.
 
-## `felContextSchema(fieldDataTypes: Record<string, string | undefined>, bindConfigs: Record<string, EngineBindConfig>): FelContextSchema`
+## `felContextSchema(fieldDataTypes: Record<string, string | undefined>, bindConfigs: Record<string, EngineBindConfig>, itemPaths: string[]): FelContextSchema`
 
 ## `felContextSnapshot(options: FelContextSnapshotInput): FelContextSnapshot`
 
@@ -383,6 +387,7 @@ the Rust context types leaves from `FelContextSchema.dataTypes` and infers money
 Per-Definition input to the WASM FEL context: what `dataTypes` a leaf carries (Core §2.1.3) and which
 binds render a non-relevant read as `null`. Changes only when the Definition does.
 
+- **itemPaths**: `string[]`
 - **dataTypes**: `Record<string, string>`
 - **excludedValueNull**: `string[]`
 
@@ -709,16 +714,6 @@ Options object consumed by the WASM definition evaluator (JSON-serialized intern
 }): EvalResult`
 
 Append engine-owned validations (e.g. extension hooks) after WASM batch evaluation.
-
-## `normalizeExpressionForWasmEvaluation(options: {
-    expression: string;
-    currentItemPath: string;
-    replaceSelfRef: boolean;
-    repeats: Record<string, EngineSignal<number>>;
-    fieldSignals: Record<string, EngineSignal<any>>;
-}): string`
-
-## `visibleScopedVariableValues(scopePath: string, variableDefs: FormVariable[], variableSignals: Record<string, EngineSignal<any>>): Record<string, any>`
 
 #### type `WasmPreviousValidation`
 
@@ -2568,11 +2563,8 @@ Locale §3.3.1: resolve every `{{expression}}` in `template` against a FEL conte
 Locale §3.3.1 with a host evaluator: Rust scans the template and applies the escape, failure,
 and coercion rules; `evaluate(expression)` returns JSON `{ value, hasErrorDiagnostics? }` or throws.
 
-## `wasmPrepareFelExpression(optionsJson: string): string`
-
-Normalize FEL source before evaluation (bare `$`, repeat qualifiers, repeat aliases).
-
 ## `wasmCreateFelContext(schema: {
+    itemPaths?: string[];
     dataTypes: Record<string, string>;
     excludedValueNull: string[];
 }): WasmFelContextHandle`
