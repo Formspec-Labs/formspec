@@ -1953,11 +1953,11 @@ A single ValidationResult entry is a JSON object with the following properties:
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `severity` | string | REQUIRED | One of `"error"`, `"warning"`, or `"info"`. See §2.5.2 for severity semantics. |
-| `path` | string | REQUIRED | The dot-notation path to the data node that produced this result (e.g., `"demographics.dob"`, `"lineItems[2].amount"`). For repeat instances, the path MUST include the concrete 0-based index (not the `[*]` wildcard). See §4.3.3 for the distinction between definition-time FieldRef paths and resolved instance paths. |
+| `path` | string | REQUIRED | The dot-notation path to the data node that produced this result (e.g., `"demographics.dob"`, `"lineItems[2].amount"`). For repeat instances, the path MUST include the concrete 0-based index (not the `[*]` wildcard). See §4.3.3 for the distinction between definition-time FieldRef paths and resolved instance paths. Definition findings identify the authored slot with a JSONPath, or use an empty string for a dependency cycle. |
 | `message` | string | REQUIRED | A human-readable description of the finding. Suitable for display to end users. Processors SHOULD support localization of messages, but the mechanism is implementation-defined. |
-| `constraintKind` | string | REQUIRED | The category of constraint that produced this result. MUST be one of `"required"` (required field has no value), `"type"` (value does not conform to declared `dataType`), `"cardinality"` (repeatable group violates `minRepeat`/`maxRepeat`), `"constraint"` (Bind `constraint` evaluated to `false`), `"shape"` (named Shape's constraint evaluated to `false`), `"external"` (external system injected this result), or `"explanation"` (warning answer check, §5.3.1). |
+| `constraintKind` | string | REQUIRED | The category of constraint that produced this result. MUST be one of `"required"` (required field has no value), `"type"` (value does not conform to declared `dataType`), `"cardinality"` (repeatable group violates `minRepeat`/`maxRepeat`), `"constraint"` (Bind `constraint` evaluated to `false`), `"shape"` (named Shape's constraint evaluated to `false`), `"external"` (external system injected this result), `"explanation"` (warning answer check, §5.3.1), or `"definition"` (an authored Definition error). |
 | `code` | string | RECOMMENDED | A machine-readable identifier for this class of finding. Processors SHOULD include this using the standard built-in codes when no specific code is declared. REQUIRED for `"explanation"` results. |
-| `source` | string | OPTIONAL | Identifies the origin of the finding: `"bind"`, `"shape"`, or `"external"`. REQUIRED with value `"shape"` for `"explanation"` results. |
+| `source` | string | OPTIONAL | Identifies the origin of the finding: `"bind"`, `"shape"`, `"external"`, or `"definition"`. REQUIRED with value `"shape"` for `"explanation"` results. |
 | `shapeId` | string | OPTIONAL | The `id` of the Validation Shape that produced this entry or whose instance explanation is being checked. |
 | `constraint` | string | OPTIONAL | The FEL constraint expression that failed. Included for diagnostic purposes. Processors MAY omit this in production to reduce payload size. |
 
@@ -1975,6 +1975,8 @@ codes override the generic defaults.
 | `MAX_REPEAT` | `cardinality` | More repeat instances than `maxRepeat`. |
 | `CONSTRAINT_FAILED` | `constraint` | Bind `constraint` returned `false`. |
 | `CONSTRAINT_PARSE_ERROR` | `constraint` | Bind `constraint` expression has a definition error (§3.10.1): it failed to parse or calls an undefined function. |
+| `UNSUBSCRIPTED_REPEAT_REFERENCE` | `definition` | An authored field path continues past a repeatable Group without a subscript (§3.2.2). Rebuild refuses evaluation at the authored expression. |
+| `CIRCULAR_DEPENDENCY` | `definition` | The dependency graph contains a cycle (§3.6). |
 | `SHAPE_FAILED` | `shape` | Shape's constraint returned `false`. |
 | `EXTERNAL_FAILED` | `external` | External validation source reported a failure. |
 | `EXPLANATION_REQUIRED` | `explanation` | A required warning answer is missing, or `explain` text is absent or empty. |

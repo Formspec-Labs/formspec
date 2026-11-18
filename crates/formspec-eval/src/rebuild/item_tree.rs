@@ -26,6 +26,7 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 use fel_core::exact_json::Value;
+use formspec_core::repeat_references::is_repeatable_group;
 use formspec_core::{
     DefinitionItemKeyPolicy, DefinitionItemVisitCtx, visit_definition_items_json_shallow,
 };
@@ -235,10 +236,7 @@ fn build_item_info_from_ctx(
             .map(|s| s[1..].to_string()),
         initial_value: item.get("initialValue").cloned(),
         parent_path: ctx.parent_dotted.clone(),
-        repeatable: item
-            .get("repeatable")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
+        repeatable: is_repeatable_group(item["type"].as_str(), item["repeatable"].as_bool()),
         repeat_min: item.get("minRepeat").and_then(|v| v.as_u64()),
         repeat_max: item.get("maxRepeat").and_then(|v| v.as_u64()),
         option_values: item

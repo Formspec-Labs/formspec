@@ -756,13 +756,14 @@ class TestResponseSchema:
         assert VR_RESULT_S["properties"]["severity"]["enum"] == ["error", "warning", "info"]
 
     def test_s5_3__constraint_kind_enum(self):
-        # ADR 0173 adds derived explanation findings to the closed enum.
+        # Core §2.5.1 includes authored Definition errors alongside explanation findings.
         assert VR_RESULT_S["properties"]["constraintKind"]["enum"] == [
-            "required", "type", "cardinality", "constraint", "shape", "external", "explanation"
+            "required", "type", "cardinality", "constraint", "shape", "external", "explanation", "definition"
         ]
 
     def test_s5_3__source_enum(self):
-        assert VR_RESULT_S["properties"]["source"]["enum"] == ["bind", "shape", "external"]
+        # Definition errors are attributed to the authored Definition in Core §2.5.1.
+        assert VR_RESULT_S["properties"]["source"]["enum"] == ["bind", "shape", "external", "definition"]
 
     def test_s5_3__validation_result_additional_properties_false(self):
         assert VR_RESULT_S["additionalProperties"] is False

@@ -9,11 +9,12 @@
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
+use fel_core::ast::PathSegment as FelPathSegment;
 use fel_core::exact_json::{Map, Value as JsonValue};
 use fel_core::{
-    Date, Environment, EvalResult, EvaluatorOptions, ExtensionFunctions, MipState,
+    Date, Environment, EvalResult, EvaluatorOptions, ExtensionFunctions, FieldError, MipState,
     MissingTimezoneContextError, RepeatAliases, Trace, Value, evaluate_with, parse,
-    parse_datetime_literal, prepare_with_aliases, resolve_value_path,
+    parse_datetime_literal, prepare_with_aliases, resolve_value_path, resolve_value_segments,
 };
 use formspec_core::path_utils::{Path, PathSegment};
 use formspec_core::subject_key::SubjectKey;
@@ -566,15 +567,20 @@ fn repeat_ancestors(path: &Path, counts: &HashMap<String, u32>) -> Vec<RepeatAnc
     ancestors
 }
 
-impl Environment for ScopedEnv<'_> {
-    fn resolve_field(&self, segments: &[String]) -> Value {
-        if segments.is_empty() {
+impl ScopedEnv<'_> {
+    /// Resolve a dotted field prefix in lexical scope before applying subscripts.
+    fn lookup_dotted(&self, root: Option<&str>, keys: &[String]) -> Value {
+        let Some(root) = root else {
             return self
                 .innermost_repeat()
                 .map(|ancestor| self.row(ancestor, ancestor.index))
                 .unwrap_or(Value::Null);
-        }
-        let key = segments.join(".");
+        };
+        let key = if keys.is_empty() {
+            root.to_owned()
+        } else {
+            format!("{root}.{}", keys.join("."))
+        };
         for scope in &self.scopes {
             if let Some(value) = self.scoped(scope, &key) {
                 return value;
@@ -593,8 +599,32 @@ impl Environment for ScopedEnv<'_> {
         }
         self.ctx
             .nested(&key)
-            .or_else(|| self.ctx.project_repeat(segments))
+            .or_else(|| {
+                self.ctx
+                    .project_repeat(&key.split('.').map(str::to_owned).collect::<Vec<_>>())
+            })
             .unwrap_or(Value::Null)
+    }
+}
+
+impl Environment for ScopedEnv<'_> {
+    fn resolve_field(
+        &self,
+        root: Option<&str>,
+        path: &[FelPathSegment],
+    ) -> Result<Value, FieldError> {
+        let dots: Vec<_> = path
+            .iter()
+            .map_while(|segment| match segment {
+                FelPathSegment::Dot(key) if root.is_some() => Some(key.clone()),
+                _ => None,
+            })
+            .collect();
+        let value = self.lookup_dotted(root, &dots);
+        if dots.len() == path.len() {
+            return Ok(value);
+        }
+        resolve_value_segments(&value, &path[dots.len()..])
     }
 
     fn resolve_context(&self, name: &str, arg: Option<&str>, tail: &[String]) -> Value {

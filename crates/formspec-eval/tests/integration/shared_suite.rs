@@ -479,6 +479,19 @@ fn item_index(definition: &Value) -> ItemIndex {
 
 /// Ways `evaluate` changed `input` that the processing cycle does not permit.
 fn inventions(definition: &Value, input: &Value, output: &Outcome) -> Vec<String> {
+    // An authored-slot refusal stops in Rebuild. A cycle finding can accompany evaluated data.
+    if output.results.iter().any(|result| {
+        result["constraintKind"] == "definition"
+            && result["path"]
+                .as_str()
+                .is_some_and(|path| path.starts_with("$."))
+    }) {
+        return if same(&output.data, &parse("{}")) {
+            Vec::new()
+        } else {
+            vec![format!("refusal data {}, expected {{}}", output.data)]
+        };
+    }
     let index = item_index(definition);
     let owning_field = |segs: &[Seg]| {
         (1..=segs.len())

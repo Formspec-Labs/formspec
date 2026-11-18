@@ -50,6 +50,10 @@ pub fn evaluate(
         formspec_core::resolve_option_sets_on_definition(&mut resolved);
         rebuild_item_tree(&resolved)
     };
+    let definition_errors = rebuild::check_repeat_references(definition, &items);
+    if !definition_errors.is_empty() {
+        return refuse_input(definition_errors);
+    }
     let flat = match rebuild::flatten_response_data(&items, data) {
         Ok(flat) => flat,
         Err(conflicts) => return refuse_ambiguous_input(&conflicts),

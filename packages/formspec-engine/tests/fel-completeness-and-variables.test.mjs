@@ -49,7 +49,8 @@ test('should expose repeat instance count via @count when repeat groups change s
     ],
     binds: [
       { path: 'items[*].position', calculate: "string(@index) & ' of ' & string(@count)" },
-      { path: 'total', calculate: 'string(count(items.label))' }
+      // Count rows explicitly, including rows with no label (Core §3.2.2).
+      { path: 'total', calculate: 'string(count($items[*]))' }
     ]
   });
 
@@ -79,7 +80,8 @@ test('should count matching elements when countWhere predicate expressions are e
       },
       { key: 'passing', type: 'field', dataType: 'integer', label: 'Passing' }
     ],
-    binds: [{ path: 'passing', calculate: 'countWhere(rows.score, $ >= 50)' }]
+    // Core §3.2.2 requires a wildcard to read scores across rows.
+    binds: [{ path: 'passing', calculate: 'countWhere($rows[*].score, $ >= 50)' }]
   });
 
   engine.setValue('rows[0].score', 80);

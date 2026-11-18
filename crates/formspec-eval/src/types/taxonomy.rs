@@ -170,6 +170,8 @@ pub enum ValidationCode {
     ConstraintFailed,
     /// Constraint expression could not be parsed.
     ConstraintParseError,
+    /// A field reference traverses a repeatable group without a subscript.
+    UnsubscriptedRepeatReference,
     /// Repeat count below minimum.
     MinRepeat,
     /// Repeat count above maximum.
@@ -204,6 +206,7 @@ impl ValidationCode {
             "TYPE_MISMATCH" => Self::TypeMismatch,
             "CONSTRAINT_FAILED" => Self::ConstraintFailed,
             "CONSTRAINT_PARSE_ERROR" => Self::ConstraintParseError,
+            "UNSUBSCRIPTED_REPEAT_REFERENCE" => Self::UnsubscriptedRepeatReference,
             "MIN_REPEAT" => Self::MinRepeat,
             "MAX_REPEAT" => Self::MaxRepeat,
             "UNRESOLVED_EXTENSION" => Self::UnresolvedExtension,
@@ -226,6 +229,7 @@ impl ValidationCode {
             ValidationCode::TypeMismatch => "TYPE_MISMATCH",
             ValidationCode::ConstraintFailed => "CONSTRAINT_FAILED",
             ValidationCode::ConstraintParseError => "CONSTRAINT_PARSE_ERROR",
+            ValidationCode::UnsubscriptedRepeatReference => "UNSUBSCRIPTED_REPEAT_REFERENCE",
             ValidationCode::MinRepeat => "MIN_REPEAT",
             ValidationCode::MaxRepeat => "MAX_REPEAT",
             ValidationCode::UnresolvedExtension => "UNRESOLVED_EXTENSION",

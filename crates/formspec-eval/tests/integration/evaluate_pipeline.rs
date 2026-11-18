@@ -6,6 +6,92 @@ use formspec_eval::{
     EvalContext, EvalOptions, EvalSubject, EvalTrigger, ValidationResult, evaluate,
 };
 use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+#[test]
+fn unsubscripted_repeat_reference_stops_before_recalculate() {
+    let definition = json!({
+        "items": [
+            {"key": "total", "type": "field", "dataType": "integer"},
+            {"key": "rows", "type": "group", "repeatable": true, "minRepeat": 0,
+             "children": [{"key": "amount", "type": "field", "dataType": "integer"}]}
+        ],
+        "binds": [
+            {"path": "total", "calculate": "recordRecalculate()"},
+            {"path": "rows[*].amount", "constraint": "$ <= ($rows).amount"}
+        ]
+    });
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut extensions = fel_core::ExtensionRegistry::new();
+    let observed_calls = Arc::clone(&calls);
+    extensions
+        .register("recordRecalculate", 0, Some(0), move |_| {
+            observed_calls.fetch_add(1, Ordering::Relaxed);
+            fel_core::Value::Number(42.into())
+        })
+        .unwrap();
+    let options = EvalOptions::new()
+        .trigger(EvalTrigger::Submit)
+        .extensions(&extensions);
+    for rows in [json!([]), json!([{"amount": 1}, {"amount": 2}])] {
+        let result = evaluate(
+            &definition,
+            &HashMap::from([("rows".to_string(), rows)]),
+            &options,
+        );
+        assert_eq!(
+            result.validations.len(),
+            1,
+            "expected one refusal at the authored constraint: {:?}",
+            result.validations
+        );
+        let error = &result.validations[0];
+        assert_eq!(error.path, "$.binds[1].constraint");
+        assert_eq!(error.code.as_wire_str(), "UNSUBSCRIPTED_REPEAT_REFERENCE");
+        assert_eq!(error.constraint_kind.as_wire_str(), "definition");
+        assert_eq!(error.source, Some(ValidationSource::Definition));
+        assert_eq!(error.constraint.as_deref(), Some("$ <= ($rows).amount"));
+        assert!(!result.values.contains_key("total"), "Recalculate ran");
+        assert_eq!(calls.load(Ordering::Relaxed), 0, "Calculate was called");
+    }
+    let mut control = definition;
+    control["binds"].as_array_mut().unwrap().pop();
+    let evaluated = evaluate(&control, &HashMap::new(), &options);
+    assert_eq!(evaluated.values.get("total"), Some(&json!(42)));
+    assert!(calls.load(Ordering::Relaxed) > 0);
+}
+
+#[test]
+fn repeat_variable_scope_uses_the_item_key() {
+    let mut definition = json!({
+        "items": [{
+            "key": "section", "type": "group", "children": [{
+                "key": "rows", "type": "group", "repeatable": true, "children": [{
+                    "key": "lines", "type": "group", "repeatable": true, "children": [{
+                        "key": "amount", "type": "field", "dataType": "integer"
+                    }]
+                }]
+            }]
+        }],
+        "variables": [{"name": "probe", "scope": "rows", "expression": "@current.lines.amount"}]
+    });
+    let evaluate_definition = |definition: &Value| {
+        evaluate(definition, &HashMap::new(), &EvalOptions::default())
+            .validations
+            .into_iter()
+            .filter(|finding| finding.code.as_wire_str() == "UNSUBSCRIPTED_REPEAT_REFERENCE")
+            .collect::<Vec<_>>()
+    };
+
+    let errors = evaluate_definition(&definition);
+    assert_eq!(errors.len(), 1);
+    assert_eq!(errors[0].path, "$.variables[0].expression");
+    assert!(errors[0].message.contains("'section.rows.lines'"));
+
+    definition["variables"][0]["scope"] = json!("section.rows");
+    assert!(evaluate_definition(&definition).is_empty());
+}
 
 #[test]
 fn subject_keys_feed_seed_calculate_and_validation() {
@@ -2370,6 +2456,7 @@ fn host_repeat_counts_satisfy_min_repeat_with_sparse_flat_values() {
 
 #[test]
 fn repeat_field_projection_supports_count_where() {
+    // Core §3.2.2 requires an explicit wildcard to read across rows.
     let def = json!({
         "$formspec": "1.0",
         "url": "test",
@@ -2388,7 +2475,7 @@ fn repeat_field_projection_supports_count_where() {
             { "key": "passing", "type": "field", "dataType": "integer", "label": "Passing" }
         ],
         "binds": [
-            { "path": "passing", "calculate": "countWhere(rows.score, $ >= 50)" }
+            { "path": "passing", "calculate": "countWhere($rows[*].score, $ >= 50)" }
         ]
     });
 
@@ -2402,7 +2489,8 @@ fn repeat_field_projection_supports_count_where() {
 }
 
 #[test]
-fn qualified_repeat_refs_resolve_to_same_instance() {
+fn sibling_refs_resolve_to_same_instance() {
+    // Core §3.2.2 spells this-row references with the sibling key.
     let def = json!({
         "$formspec": "1.0",
         "url": "test",
@@ -2422,7 +2510,7 @@ fn qualified_repeat_refs_resolve_to_same_instance() {
             }
         ],
         "binds": [
-            { "path": "line_items[*].total", "calculate": "$line_items.qty * $line_items.price" }
+            { "path": "line_items[*].total", "calculate": "$qty * $price" }
         ]
     });
 
@@ -2438,7 +2526,8 @@ fn qualified_repeat_refs_resolve_to_same_instance() {
 }
 
 #[test]
-fn qualified_repeat_refs_resolve_to_enclosing_instance() {
+fn sibling_refs_resolve_to_enclosing_instance() {
+    // Core §3.2.2 resolves the outer row field through its enclosing scope.
     let def = json!({
         "$formspec": "1.0",
         "url": "test",
@@ -2469,7 +2558,7 @@ fn qualified_repeat_refs_resolve_to_enclosing_instance() {
         "binds": [
             {
                 "path": "orders[*].items[*].discounted_total",
-                "calculate": "$qty * $unit_price * (1 - $orders.discount_pct / 100)"
+                "calculate": "$qty * $unit_price * (1 - $discount_pct / 100)"
             }
         ]
     });
@@ -2494,7 +2583,8 @@ fn qualified_repeat_refs_resolve_to_enclosing_instance() {
 }
 
 #[test]
-fn qualified_repeat_refs_apply_in_relevance_expressions() {
+fn sibling_refs_apply_in_relevance_expressions() {
+    // Core §3.2.2 uses the sibling key for a same-row read.
     let def = json!({
         "$formspec": "1.0",
         "url": "test",
@@ -2513,7 +2603,7 @@ fn qualified_repeat_refs_apply_in_relevance_expressions() {
             }
         ],
         "binds": [
-            { "path": "rows[*].detail", "relevant": "$rows.show_detail = true" }
+            { "path": "rows[*].detail", "relevant": "$show_detail = true" }
         ]
     });
 

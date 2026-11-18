@@ -1,10 +1,5 @@
 /**
- * B4/B6: Repeat-scope-aware path resolution
- *
- * FEL expressions using qualified group paths (e.g., $line_items.qty) inside
- * repeat groups must resolve to the current instance, not all instances.
- * The interpreter's candidateLookupPaths needs a "repeat scope rebase" strategy
- * between sibling resolution and root-relative fallback.
+ * Core §3.2.2 resolves an unqualified sibling key within its enclosing repeat row.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -14,7 +9,7 @@ import { FormEngine } from '../dist/index.js';
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Single-level repeat group with a calculated field using qualified $group.field ref */
+/** Single-level repeat group with a calculated field using sibling fields */
 function singleRepeatDefinition() {
   return {
     $formspec: '1.0',
@@ -38,14 +33,14 @@ function singleRepeatDefinition() {
     binds: [
       {
         path: 'line_items[*].total',
-        calculate: '$line_items.qty * $line_items.price',
+        calculate: '$qty * $price',
         readonly: 'true',
       },
     ],
   };
 }
 
-/** Nested repeat groups with qualified cross-level references */
+/** Nested repeat groups with sibling references */
 function nestedRepeatDefinition() {
   return {
     $formspec: '1.0',
@@ -78,16 +73,16 @@ function nestedRepeatDefinition() {
     ],
     binds: [
       {
-        // Qualified ref to innermost group fields
+        // Read the fields declared in the innermost row.
         path: 'orders[*].items[*].line_total',
-        calculate: '$items.qty * $items.unit_price',
+        calculate: '$qty * $unit_price',
         readonly: 'true',
       },
     ],
   };
 }
 
-/** Nested repeat: inner field references outer group's field via qualified path */
+/** Nested repeat: inner field references outer group's field through the enclosing scope */
 function crossLevelDefinition() {
   return {
     $formspec: '1.0',
@@ -120,9 +115,9 @@ function crossLevelDefinition() {
     ],
     binds: [
       {
-        // Cross-level: inner field references outer group field via $orders.discount_pct
+        // Read the discount field declared in the outer row.
         path: 'orders[*].items[*].discounted_total',
-        calculate: '$qty * $unit_price * (1 - $orders.discount_pct / 100)',
+        calculate: '$qty * $unit_price * (1 - $discount_pct / 100)',
         readonly: 'true',
       },
     ],
@@ -130,10 +125,10 @@ function crossLevelDefinition() {
 }
 
 // ---------------------------------------------------------------------------
-// Scenario 1: Single-level repeat with qualified group path refs
+// Scenario 1: Single-level repeat with sibling field references
 // ---------------------------------------------------------------------------
 
-test('qualified $group.field resolves to same instance in single repeat', () => {
+test('sibling field resolves to same instance in single repeat', () => {
   const engine = new FormEngine(singleRepeatDefinition());
 
   engine.setValue('line_items[0].qty', 3);
@@ -142,11 +137,11 @@ test('qualified $group.field resolves to same instance in single repeat', () => 
   assert.equal(
     engine.signals['line_items[0].total'].value,
     30,
-    '$line_items.qty should resolve to line_items[0].qty within instance 0'
+    '$qty should resolve to line_items[0].qty within instance 0'
   );
 });
 
-test('qualified $group.field resolves independently per instance', () => {
+test('sibling field resolves independently per instance', () => {
   const engine = new FormEngine(singleRepeatDefinition());
 
   engine.setValue('line_items[0].qty', 3);
@@ -161,10 +156,10 @@ test('qualified $group.field resolves independently per instance', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Scenario 2: Nested repeats with qualified inner-group refs
+// Scenario 2: Nested repeats with inner sibling refs
 // ---------------------------------------------------------------------------
 
-test('qualified $inner_group.field resolves within nested repeat', () => {
+test('inner sibling field resolves within nested repeat', () => {
   const engine = new FormEngine(nestedRepeatDefinition());
 
   engine.setValue('orders[0].items[0].qty', 4);
@@ -173,11 +168,11 @@ test('qualified $inner_group.field resolves within nested repeat', () => {
   assert.equal(
     engine.signals['orders[0].items[0].line_total'].value,
     100,
-    '$items.qty should resolve to orders[0].items[0].qty'
+    '$qty should resolve to orders[0].items[0].qty'
   );
 });
 
-test('qualified inner refs resolve independently across outer instances', () => {
+test('inner sibling refs resolve independently across outer instances', () => {
   const engine = new FormEngine(nestedRepeatDefinition());
 
   engine.setValue('orders[0].items[0].qty', 2);
@@ -267,10 +262,10 @@ test('bare $field refs still resolve as siblings in repeat group', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Scenario 5: Relevance with qualified group path
+// Scenario 5: Relevance with sibling field
 // ---------------------------------------------------------------------------
 
-test('relevance condition using qualified $group.field works in repeat', () => {
+test('relevance condition using a sibling field works in repeat', () => {
   const engine = new FormEngine({
     $formspec: '1.0',
     url: 'http://example.org/relevant-scope',
@@ -290,7 +285,7 @@ test('relevance condition using qualified $group.field works in repeat', () => {
       },
     ],
     binds: [
-      { path: 'rows[*].detail', relevant: '$rows.show_detail = true' },
+      { path: 'rows[*].detail', relevant: '$show_detail = true' },
     ],
   });
 

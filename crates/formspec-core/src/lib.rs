@@ -13,6 +13,7 @@ pub mod bind_targets;
 pub mod changelog;
 mod compatible_versions;
 pub mod component_tree;
+pub mod definition_expressions;
 pub mod definition_items;
 pub mod extension_analysis;
 pub mod fel_analysis;
@@ -26,6 +27,7 @@ pub mod option_sets;
 pub mod parser_recovery;
 pub mod path_utils;
 pub mod registry_client;
+pub mod repeat_references;
 pub mod response_migration;
 #[cfg(feature = "response-selection")]
 pub mod response_selection;

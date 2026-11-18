@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use formspec_core::repeat_references::is_repeatable_group;
 use formspec_core::visit_definition_items_from_document;
 use serde_json::Value;
 
@@ -52,7 +53,10 @@ pub(crate) fn build_field_lookup(definition: &Value) -> HashMap<String, FieldInf
         let info = FieldInfo {
             full_path: full.clone(),
             kind,
-            repeatable: crate::tree::is_repeatable(ctx.item),
+            repeatable: is_repeatable_group(
+                ctx.item["type"].as_str(),
+                ctx.item["repeatable"].as_bool(),
+            ),
             data_type,
             has_options,
         };

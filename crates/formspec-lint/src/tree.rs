@@ -8,6 +8,7 @@ use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
 
+use formspec_core::repeat_references::is_repeatable_group;
 use formspec_core::visit_definition_items_from_document;
 
 use crate::types::LintDiagnostic;
@@ -25,7 +26,7 @@ pub struct ItemRef {
     pub parent_full_path: Option<String>,
     /// The item's `dataType` value, if present.
     pub data_type: Option<String>,
-    /// Whether this item is a repeatable group (`"repeatable": true` or legacy `"repeat": {…}`).
+    /// Whether this item declares a repeatable Group.
     pub is_repeatable: bool,
 }
 
@@ -42,16 +43,6 @@ pub struct ItemTreeIndex {
     pub ambiguous_keys: HashSet<String>,
     /// E200/E201 diagnostics emitted during indexing.
     pub diagnostics: Vec<LintDiagnostic>,
-}
-
-/// Whether a Definition item is a repeatable group.
-///
-/// `"repeatable": true` is canonical; the legacy `"repeat": {…}` object also counts.
-pub(crate) fn is_repeatable(item: &Value) -> bool {
-    item.get("repeatable")
-        .and_then(Value::as_bool)
-        .unwrap_or(false)
-        || item.get("repeat").is_some()
 }
 
 /// Build an `ItemTreeIndex` from a definition document.
@@ -72,7 +63,8 @@ pub fn build_item_index(document: &Value) -> ItemTreeIndex {
             .get("dataType")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
-        let is_repeatable = is_repeatable(ctx.item);
+        let is_repeatable =
+            is_repeatable_group(ctx.item["type"].as_str(), ctx.item["repeatable"].as_bool());
 
         let item_ref = ItemRef {
             key: ctx.key.to_string(),
@@ -265,11 +257,12 @@ mod tests {
     }
 
     #[test]
-    fn repeatable_group_tracking_legacy_repeat_object() {
+    fn legacy_repeat_object_does_not_make_a_group_repeatable() {
         let doc = json!({
             "items": [
                 {
                     "key": "lines",
+                    "type": "group",
                     "repeat": { "min": 1, "max": 10 },
                     "children": [
                         { "key": "amount", "dataType": "decimal" }
@@ -279,9 +272,10 @@ mod tests {
         });
         let index = build_item_index(&doc);
 
-        assert!(index.repeatable_groups.contains("lines"));
+        // Core §4.2.4 only defines the repeatable boolean.
+        assert!(!index.repeatable_groups.contains("lines"));
         let lines = &index.by_key["lines"];
-        assert!(lines.is_repeatable);
+        assert!(!lines.is_repeatable);
     }
 
     #[test]

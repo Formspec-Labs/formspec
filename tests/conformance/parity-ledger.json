@@ -1143,32 +1143,6 @@
         }
       }
     },
-    "parity.row-unsubscripted-repeat-ref": {
-      "ts": {
-        "S": {
-          "ticket": "fs-rxih",
-          "why": "$rows.lo is rewritten to the current row and then read 0-based (N3); owner ruling Q3 makes it a definition error (CONSTRAINT_PARSE_ERROR per site)",
-          "problems": [
-            "counts {\"error\":1,\"info\":0,\"warning\":0}, expected {\"error\":2,\"info\":0,\"warning\":0}",
-            "expected result missing {\"code\":\"CONSTRAINT_PARSE_ERROR\",\"constraintKind\":\"constraint\",\"path\":\"rows[0].hi\",\"severity\":\"error\"}",
-            "expected result missing {\"code\":\"CONSTRAINT_PARSE_ERROR\",\"constraintKind\":\"constraint\",\"path\":\"rows[1].hi\",\"severity\":\"error\"}",
-            "unexpected result {\"code\":\"CONSTRAINT_FAILED\",\"constraint\":\"$ >= $rows.lo\",\"constraintKind\":\"constraint\",\"message\":\"Constraint failed: $ >= $rows.lo\",\"path\":\"rows[0].hi\",\"severity\":\"error\",\"source\":\"bind\"}"
-          ]
-        }
-      },
-      "rust": {
-        "S": {
-          "ticket": "fs-rxih",
-          "why": "$rows.lo is rewritten to the current row and then read 0-based (N3); owner ruling Q3 makes it a definition error (CONSTRAINT_PARSE_ERROR per site)",
-          "problems": [
-            "error count 1, expected 2",
-            "expected result missing {\"code\":\"CONSTRAINT_PARSE_ERROR\",\"constraintKind\":\"constraint\",\"path\":\"rows[0].hi\",\"severity\":\"error\"}",
-            "expected result missing {\"code\":\"CONSTRAINT_PARSE_ERROR\",\"constraintKind\":\"constraint\",\"path\":\"rows[1].hi\",\"severity\":\"error\"}",
-            "unexpected result {\"code\":\"CONSTRAINT_FAILED\",\"constraint\":\"$ >= $rows.lo\",\"constraintKind\":\"constraint\",\"message\":\"Constraint failed: $ >= $rows.lo\",\"path\":\"rows[0].hi\",\"severity\":\"error\",\"source\":\"bind\"}"
-          ]
-        }
-      }
-    },
     "parity.saved-response-not-created-again": {
       "ts": {
         "S": {

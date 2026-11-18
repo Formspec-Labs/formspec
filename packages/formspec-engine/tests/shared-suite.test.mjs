@@ -213,8 +213,16 @@ const concrete = (segs) => segs.reduce((acc, s) => {
   return acc ? `${acc}.${key}` : key;
 }, '') || '(root)';
 
+/** Rebuild refuses at an authored slot. A cycle finding can accompany evaluated data. */
+function isDefinitionRefusal({ constraintKind, path }) {
+  return constraintKind === 'definition' && path?.startsWith('$.');
+}
+
 /** Ways `evaluate` changed `input` into `output` that the processing cycle does not permit. */
 function inventions(definition, input, output) {
+  if (output.validations.some(isDefinitionRefusal)) {
+    return same(output.data, {}) ? [] : [`refusal data ${show(output.data)}, expected {}`];
+  }
   const { items, calculated } = itemIndex(definition);
   const nonRelevant = new Set(output.nonRelevant ?? []);
   const owningField = (segs) => {
@@ -313,6 +321,8 @@ async function runProcessingCase(caseDoc, legs) {
     ? { ...caseDoc.expected.report, ...(caseDoc.compareResponseData ? { data: caseDoc.expected.response.data } : {}) }
     : caseDoc.expected;
   const submit = caseDoc.mode === 'submit';
+  // A Rebuild refusal has no evaluated data. FormEngine still holds the person's draft inputs.
+  const compareDraftData = !expected.results?.some(isDefinitionRefusal);
   const inventionProblems = [];
   // The session (P, F) loads the case's registries as the browser does. The server legs (S, the fixpoint,
   // FR) use exactly the options every server recheck builds today: the trigger and the clock, nothing else
@@ -349,14 +359,18 @@ async function runProcessingCase(caseDoc, legs) {
     if (!submit) {
       legs.set('P', [...againstExpected(live, expected), ...('data' in expected ? roundTrip(expected.data) : [])]);
     }
-    legs.set('F', betweenLegs('FormEngine live vs P', engineOutcome(engine, 'live'), live));
+    const liveProblems = betweenLegs('FormEngine live vs P', engineOutcome(engine, 'live'), live, { data: compareDraftData });
+    if (!compareDraftData) {
+      liveProblems.push(...dataDiff(engine.getDraftSnapshot().data, payload).map((p) => `retained draft data ${p}`));
+    }
+    legs.set('F', liveProblems);
     if (submit) {
       const inSession = evaluate('P(submit)', payload, 'submit');
       const verdict = evaluate('S', inSession.data, 'submit', { server: true });
       const again = evaluate('S(fixpoint)', verdict.data, 'submit', { server: true });
       legs.set('S', [...againstExpected(verdict, expected), ...betweenLegs('fixpoint', again, verdict)]);
       const session = engineOutcome(engine, 'on-submit');
-      const fSubmit = betweenLegs('FormEngine submit vs S', session, verdict);
+      const fSubmit = betweenLegs('FormEngine submit vs S', session, verdict, { data: compareDraftData });
       if (caseDoc.kind === 'RESPONSE_VALIDATION') {
         const filedResults = outcome(session.response.validationResults ?? [], session.data);
         fSubmit.push(...againstExpected(filedResults, { results: caseDoc.expected.response.validationResults ?? [] })

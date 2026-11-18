@@ -5,40 +5,14 @@
 //! `walk_*` helpers traverse binds, shapes, and variables.
 #![allow(clippy::missing_docs_in_private_items)]
 
-use std::collections::HashMap;
-
+pub use formspec_core::definition_expressions::BindProperty;
+use formspec_core::definition_expressions::{
+    ExpressionSite, visit_bind_expressions, visit_expressions, visit_initial_value_expressions,
+};
+pub(crate) use formspec_core::definition_expressions::{ShapeMember, shape_members};
 use serde_json::Value;
 
 use crate::types::LintDiagnostic;
-
-/// A Bind property that holds a FEL expression.
-///
-/// Which of these write the targeted Item's value is a dependency-graph question
-/// (Core §3.6.1), answered in [`crate::dependencies`], not here.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum BindProperty {
-    /// `calculate`: computes the Item's value.
-    Calculate,
-    /// `relevant`: decides whether the Item is relevant.
-    Relevant,
-    /// `required`: decides whether the Item needs an answer.
-    Required,
-    /// `readonly`: decides whether the Item can be edited.
-    Readonly,
-    /// `constraint`: validates the Item's value.
-    Constraint,
-    /// `default` written as `=expr`: the value restored when the Item becomes relevant again.
-    Default,
-}
-
-/// The expression-bearing Bind properties, in the order they are walked.
-const BIND_EXPRESSION_PROPERTIES: &[(&str, BindProperty)] = &[
-    ("calculate", BindProperty::Calculate),
-    ("relevant", BindProperty::Relevant),
-    ("required", BindProperty::Required),
-    ("readonly", BindProperty::Readonly),
-    ("constraint", BindProperty::Constraint),
-];
 
 /// The Bind an expression belongs to: its `path` spelling and property.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,6 +54,25 @@ pub struct CompiledExpression {
     pub variable: Option<VariableSlot>,
 }
 
+fn definition_owner(site: ExpressionSite<'_>) -> Owner {
+    match site {
+        ExpressionSite::Bind(target, property) => Owner::Bind(BindSlot {
+            path: target.to_owned(),
+            property,
+        }),
+        ExpressionSite::Shape(index, target) => Owner::Shape {
+            index,
+            target: target.map(str::to_owned),
+        },
+        ExpressionSite::ShapeContext(target) => Owner::ShapeContext(target.map(str::to_owned)),
+        ExpressionSite::Variable(Some(name), scope) => Owner::Variable(VariableSlot {
+            name: name.to_owned(),
+            scope: scope.to_owned(),
+        }),
+        ExpressionSite::Variable(None, _) => Owner::None,
+    }
+}
+
 /// What an expression belongs to, as recorded on [`CompiledExpression`].
 enum Owner {
     /// Routes and expressions without a site.
@@ -112,9 +105,15 @@ pub fn compile_expressions(document: &Value) -> ExpressionCompilationResult {
     let mut compiled = Vec::new();
     let mut diagnostics = Vec::new();
 
-    walk_binds(document.get("binds"), "$", &mut compiled, &mut diagnostics);
-    walk_shapes(document.get("shapes"), &mut compiled, &mut diagnostics);
-    walk_variables(document.get("variables"), &mut compiled, &mut diagnostics);
+    visit_expressions(document, |source, location, site| {
+        try_parse(
+            source,
+            location,
+            definition_owner(site),
+            &mut compiled,
+            &mut diagnostics,
+        );
+    });
 
     ExpressionCompilationResult {
         compiled,
@@ -134,275 +133,19 @@ pub(crate) fn initial_value_diagnostics(
     items: &crate::tree::ItemTreeIndex,
 ) -> Vec<LintDiagnostic> {
     let mut diagnostics = Vec::new();
-    formspec_core::visit_definition_items_from_document(document, &mut |ctx| {
-        if let Some(fel_source) = ctx
-            .item
-            .get("initialValue")
-            .and_then(Value::as_str)
-            .and_then(|value| value.strip_prefix('='))
-        {
-            let path = format!("{}.initialValue", ctx.json_path);
-            match fel_core::parse(fel_source) {
-                Ok(parsed) => crate::repeat_references::check_expression(
-                    items,
-                    Some(&ctx.dotted_path),
-                    &path,
-                    &parsed,
-                    &mut diagnostics,
-                ),
-                Err(error) => diagnostics.push(parse_error(&path, &error)),
-            }
+    visit_initial_value_expressions(document, |source, target, path| {
+        match fel_core::parse(source) {
+            Ok(parsed) => crate::repeat_references::check_expression(
+                items,
+                Some(target),
+                path,
+                &parsed,
+                &mut diagnostics,
+            ),
+            Err(error) => diagnostics.push(parse_error(path, &error)),
         }
     });
     diagnostics
-}
-
-// ── Binds ────────────────────────────────────────────────────────
-
-/// Dispatch to object or array format handler.
-fn walk_binds(
-    binds: Option<&Value>,
-    path_prefix: &str,
-    compiled: &mut Vec<CompiledExpression>,
-    diagnostics: &mut Vec<LintDiagnostic>,
-) {
-    if binds.and_then(|v| v.as_object()).is_some() {
-        walk_binds_object(binds, path_prefix, compiled, diagnostics);
-    } else if let Some(arr) = binds.and_then(|v| v.as_array()) {
-        walk_binds_array(arr, path_prefix, compiled, diagnostics);
-    }
-}
-
-fn walk_binds_object(
-    binds: Option<&Value>,
-    path_prefix: &str,
-    compiled: &mut Vec<CompiledExpression>,
-    diagnostics: &mut Vec<LintDiagnostic>,
-) {
-    let binds = match binds.and_then(|v| v.as_object()) {
-        Some(obj) => obj,
-        None => return,
-    };
-
-    for (bind_key, bind_val) in binds {
-        if let Some(bind) = bind_val.as_object() {
-            let bind_json_path = format!("{path_prefix}.binds.{bind_key}");
-            walk_bind(bind, bind_key, &bind_json_path, compiled, diagnostics);
-        }
-    }
-}
-
-fn walk_binds_array(
-    binds: &[Value],
-    path_prefix: &str,
-    compiled: &mut Vec<CompiledExpression>,
-    diagnostics: &mut Vec<LintDiagnostic>,
-) {
-    for (i, bind) in binds.iter().enumerate() {
-        let obj = match bind.as_object() {
-            Some(o) => o,
-            None => continue,
-        };
-
-        let bind_key = match obj.get("path").and_then(|v| v.as_str()) {
-            Some(k) => k,
-            None => continue,
-        };
-
-        let bind_json_path = format!("{path_prefix}.binds[{i}]");
-        walk_bind(obj, bind_key, &bind_json_path, compiled, diagnostics);
-    }
-}
-
-/// Parse every expression-bearing property of one Bind, recording its path and property.
-///
-/// The object-form walk, the array-form walk and standalone Screener Binds all route through
-/// here, so the property list and the `=`-prefixed `default` rule have one owner.
-fn walk_bind(
-    bind: &serde_json::Map<String, Value>,
-    bind_path: &str,
-    bind_json_path: &str,
-    compiled: &mut Vec<CompiledExpression>,
-    diagnostics: &mut Vec<LintDiagnostic>,
-) {
-    let slot = |property| {
-        Owner::Bind(BindSlot {
-            path: bind_path.to_string(),
-            property,
-        })
-    };
-    for &(name, property) in BIND_EXPRESSION_PROPERTIES {
-        if let Some(expr_str) = bind.get(name).and_then(Value::as_str) {
-            let expression_path = format!("{bind_json_path}.{name}");
-            try_parse(
-                expr_str,
-                expression_path,
-                slot(property),
-                compiled,
-                diagnostics,
-            );
-        }
-    }
-
-    // `default` — only when the value starts with `=` (FEL heuristic)
-    if let Some(default_str) = bind.get("default").and_then(Value::as_str)
-        && let Some(fel_source) = default_str.strip_prefix('=')
-    {
-        let expression_path = format!("{bind_json_path}.default");
-        try_parse(
-            fel_source,
-            expression_path,
-            slot(BindProperty::Default),
-            compiled,
-            diagnostics,
-        );
-    }
-}
-
-// ── Shapes ──────────────────────────────────────────────────────
-
-/// A composition member resolved according to Core §5.2.2.
-pub(crate) enum ShapeMember<'a> {
-    Reference(usize),
-    Expression {
-        operator: &'static str,
-        index: Option<usize>,
-        source: &'a str,
-    },
-}
-
-/// Resolve composition members as Shape ids first, otherwise inline FEL.
-pub(crate) fn shape_members<'a>(
-    shape: &'a Value,
-    ids: &'a HashMap<&'a str, usize>,
-) -> impl Iterator<Item = ShapeMember<'a>> {
-    ["and", "or", "xone"]
-        .into_iter()
-        .flat_map(move |op| {
-            shape
-                .get(op)
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-                .enumerate()
-                .filter_map(move |(index, value)| {
-                    value.as_str().map(|source| (op, Some(index), source))
-                })
-        })
-        .chain(
-            shape
-                .get("not")
-                .and_then(Value::as_str)
-                .map(|source| ("not", None, source)),
-        )
-        .map(|(op, index, source)| match ids.get(source) {
-            Some(&index) => ShapeMember::Reference(index),
-            None => ShapeMember::Expression {
-                operator: op,
-                index,
-                source,
-            },
-        })
-}
-
-fn walk_shapes(
-    shapes: Option<&Value>,
-    compiled: &mut Vec<CompiledExpression>,
-    diagnostics: &mut Vec<LintDiagnostic>,
-) {
-    let shapes = match shapes.and_then(|v| v.as_array()) {
-        Some(arr) => arr,
-        None => return,
-    };
-
-    let shape_ids: HashMap<&str, usize> = shapes
-        .iter()
-        .enumerate()
-        .filter_map(|(index, shape)| Some((shape.get("id")?.as_str()?, index)))
-        .collect();
-    for (i, shape) in shapes.iter().enumerate() {
-        let target = shape.get("target").and_then(Value::as_str);
-        let owner = || Owner::Shape {
-            index: i,
-            target: target.map(str::to_owned),
-        };
-
-        // Direct expression slots
-        for &slot in &["constraint", "activeWhen"] {
-            if let Some(expr_str) = shape.get(slot).and_then(|v| v.as_str()) {
-                let expression_path = format!("$.shapes[{i}].{slot}");
-                try_parse(expr_str, expression_path, owner(), compiled, diagnostics);
-            }
-        }
-
-        // Context object: all values are FEL strings
-        if let Some(ctx) = shape.get("context").and_then(|v| v.as_object()) {
-            for (ctx_key, ctx_val) in ctx {
-                if let Some(expr_str) = ctx_val.as_str() {
-                    let expression_path = format!("$.shapes[{i}].context.{ctx_key}");
-                    try_parse(
-                        expr_str,
-                        expression_path,
-                        Owner::ShapeContext(target.map(str::to_owned)),
-                        compiled,
-                        diagnostics,
-                    );
-                }
-            }
-        }
-
-        for member in shape_members(shape, &shape_ids) {
-            if let ShapeMember::Expression {
-                operator,
-                index,
-                source,
-            } = member
-            {
-                let expression_path = match index {
-                    Some(index) => format!("$.shapes[{i}].{operator}[{index}]"),
-                    None => format!("$.shapes[{i}].{operator}"),
-                };
-                try_parse(source, expression_path, owner(), compiled, diagnostics);
-            }
-        }
-    }
-}
-
-// ── Variables ───────────────────────────────────────────────────
-
-fn walk_variables(
-    variables: Option<&Value>,
-    compiled: &mut Vec<CompiledExpression>,
-    diagnostics: &mut Vec<LintDiagnostic>,
-) {
-    let variables = match variables.and_then(|v| v.as_array()) {
-        Some(arr) => arr,
-        None => return,
-    };
-
-    for (i, var) in variables.iter().enumerate() {
-        if let Some(expr_str) = var.get("expression").and_then(|v| v.as_str()) {
-            let expression_path = format!("$.variables[{i}].expression");
-            try_parse(
-                expr_str,
-                expression_path,
-                var.get("name")
-                    .and_then(Value::as_str)
-                    .map_or(Owner::None, |name| {
-                        Owner::Variable(VariableSlot {
-                            name: name.to_owned(),
-                            scope: var
-                                .get("scope")
-                                .and_then(Value::as_str)
-                                .unwrap_or("#")
-                                .to_owned(),
-                        })
-                    }),
-                compiled,
-                diagnostics,
-            );
-        }
-    }
 }
 
 // ── Standalone Screener Document ────────────────────────────────
@@ -415,7 +158,15 @@ pub fn compile_screener_expressions(document: &Value) -> ExpressionCompilationRe
     let mut diagnostics = Vec::new();
 
     // Screener-scoped binds
-    walk_binds(document.get("binds"), "$", &mut compiled, &mut diagnostics);
+    visit_bind_expressions(document, |source, location, site| {
+        try_parse(
+            source,
+            location,
+            definition_owner(site),
+            &mut compiled,
+            &mut diagnostics,
+        );
+    });
 
     // Evaluation pipeline
     if let Some(phases) = document.get("evaluation").and_then(Value::as_array) {

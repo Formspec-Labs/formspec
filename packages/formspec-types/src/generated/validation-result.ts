@@ -7,7 +7,7 @@
 
 /* eslint-disable */
 /**
- * A single structured validation finding produced by constraint evaluation during the Revalidate phase (§2.4 Phase 3). Every failed constraint — whether from a Bind 'constraint' expression, a Bind 'required' check, a dataType type check, a repeatable group cardinality violation, a named Validation Shape, an explanation check, or an external system injection — produces exactly one ValidationResult entry. Results are structured JSON objects carrying severity, a resolved instance path, a human-readable message, and machine-readable codes — never boolean pass/fail flags. The absence of a result for a given path means all constraints on that path passed. The constraintKind identifies which check produced the result. Results from all sources (bind, shape, external) participate equally in conformance determination: any error-severity result blocks completion regardless of source.
+ * A single structured finding from checking the Definition or evaluating a constraint (§2.4). Every failed constraint — whether from a Bind 'constraint' expression, a Bind 'required' check, a dataType type check, a repeatable group cardinality violation, a named Validation Shape, an explanation check, or an external system injection — produces exactly one ValidationResult entry. Results are structured JSON objects carrying severity, a resolved instance path, a human-readable message, and machine-readable codes — never boolean pass/fail flags. The absence of a result for a given path means all constraints on that path passed. The constraintKind identifies which check produced the result. Results from all sources (bind, shape, external, definition) participate equally in conformance determination: any error-severity result blocks completion regardless of source.
  */
 export interface ValidationResult {
   /**
@@ -15,7 +15,7 @@ export interface ValidationResult {
    */
   $formspecValidationResult: '1.0';
   /**
-   * The resolved instance path to the data node that produced this result. Uses dot-notation for nesting and 0-based bracket notation for repeat instances (core §4.3.3): 'lineItems[2].amount' is the third instance, while FEL '@index' for that instance is 3. MUST use concrete indexes, NOT definition-time wildcards ('lineItems[*].amount'). This unambiguously identifies the specific data node that failed, even within deeply nested repeatable groups. For root-level fields, the path is just the field key. Form-level Shapes targeting '#' and grouped explanation findings use '#'.
+   * The resolved instance path to the data node that produced this result. Uses dot-notation for nesting and 0-based bracket notation for repeat instances (core §4.3.3): 'lineItems[2].amount' is the third instance, while FEL '@index' for that instance is 3. MUST use concrete indexes, NOT definition-time wildcards ('lineItems[*].amount'). This unambiguously identifies the specific data node that failed, even within deeply nested repeatable groups. For root-level fields, the path is just the field key. Form-level Shapes targeting '#' and grouped explanation findings use '#'. Definition findings identify the authored slot with a JSONPath, or use an empty string for a dependency cycle.
    */
   path: string;
   /**
@@ -32,8 +32,17 @@ export interface ValidationResult {
    * - 'shape': A named Validation Shape's constraint or composition evaluated to invalid. Standard code: SHAPE_FAILED. The shapeId property identifies which Shape.
    * - 'external': Injected by an external system (server-side API, third-party validator, business rule engine). Standard code: EXTERNAL_FAILED. The source property will be 'external' and sourceId identifies the system.
    * - 'explanation': Derived by the submit-profile check for a warning Shape answer. Codes: EXPLANATION_REQUIRED, EXPLANATION_STALE, EXPLANATION_UNUSED. See Core §5.3.1.
+   * - 'definition': An error in the authored Definition. Standard codes: UNSUBSCRIPTED_REPEAT_REFERENCE, CIRCULAR_DEPENDENCY.
    */
-  constraintKind: 'required' | 'type' | 'cardinality' | 'constraint' | 'shape' | 'external' | 'explanation';
+  constraintKind:
+    | 'required'
+    | 'type'
+    | 'cardinality'
+    | 'constraint'
+    | 'shape'
+    | 'external'
+    | 'explanation'
+    | 'definition';
   /**
    * A human-readable description of the finding, suitable for display to end users. All '{{expression}}' interpolation sequences from Shape messages MUST be fully resolved before this value is surfaced — consumers receive final text, never templates. Processors SHOULD support localization of messages but the mechanism is implementation-defined. For required violations, a processor-generated default (e.g., 'This field is required.') is used unless the Bind declares a requiredMessage. For constraint violations, the Bind's constraintMessage is used. For Shape violations, the Shape's message (with interpolation resolved) is used.
    */
@@ -47,6 +56,8 @@ export interface ValidationResult {
    * - MAX_REPEAT — more repeat instances than maxRepeat
    * - CONSTRAINT_FAILED — Bind constraint returned false
    * - CONSTRAINT_PARSE_ERROR — Bind constraint expression has a definition error: it failed to parse or calls an undefined function
+   * - UNSUBSCRIPTED_REPEAT_REFERENCE — a field path continues past a repeatable group without a subscript
+   * - CIRCULAR_DEPENDENCY — the dependency graph contains a cycle
    * - SHAPE_FAILED — Shape constraint returned false (when no specific code declared)
    * - EXTERNAL_FAILED — external system reported failure (when no specific code declared)
    * - EXPLANATION_REQUIRED — a required warning answer is missing, or explain text is absent or empty
@@ -66,10 +77,11 @@ export interface ValidationResult {
    * - 'bind': Produced by a Bind constraint expression returning false, a Bind required check, or a dataType type check. These are per-field, definition-authored validations.
    * - 'shape': Produced by a Validation Shape or a submit-profile explanation check. Required for explanation results.
    * - 'external': Injected by an external system outside the Formspec processing model (server-side API, third-party validator, business rule engine). External results are merged into the report and participate equally in conformance determination — an external error blocks submission identically to a local error.
+   * - 'definition': Produced by checking the authored Definition.
    *
    * Distinguishing source enables UIs to display origin badges, analytics to track validation hit rates by source, and systems to selectively clear external results when the external system confirms resolution.
    */
-  source?: 'bind' | 'shape' | 'external';
+  source?: 'bind' | 'shape' | 'external' | 'definition';
   /**
    * Identifies the specific origin of the finding within its source category. For external results, this is the identifier of the external system or validation endpoint (e.g., 'x-irs-validation'). For bind results, this MAY be the bind path. For shape results, this is typically the same as shapeId. Supports audit trails, debugging, and selective clearing of external results (clear all results from a specific sourceId when the external system confirms resolution).
    */

@@ -3233,7 +3233,8 @@ properties:</p>
 <code>"lineItems[2].amount"</code>). For repeat instances, the path MUST
 include the concrete 0-based index (not the <code>[*]</code> wildcard).
 See §4.3.3 for the distinction between definition-time FieldRef paths
-and resolved instance paths.</td>
+and resolved instance paths. Definition findings identify the authored
+slot with a JSONPath, or use an empty string for a dependency cycle.</td>
 </tr>
 <tr>
 <td><code>message</code></td>
@@ -3255,8 +3256,9 @@ violates <code>minRepeat</code>/<code>maxRepeat</code>),
 <code>"constraint"</code> (Bind <code>constraint</code> evaluated to
 <code>false</code>), <code>"shape"</code> (named Shape’s constraint
 evaluated to <code>false</code>), <code>"external"</code> (external
-system injected this result), or <code>"explanation"</code> (warning
-answer check, §5.3.1).</td>
+system injected this result), <code>"explanation"</code> (warning
+answer check, §5.3.1), or <code>"definition"</code> (an authored
+Definition error).</td>
 </tr>
 <tr>
 <td><code>code</code></td>
@@ -3271,7 +3273,8 @@ code is declared. REQUIRED for <code>"explanation"</code> results.</td>
 <td>string</td>
 <td>OPTIONAL</td>
 <td>Identifies the origin of the finding: <code>"bind"</code>,
-<code>"shape"</code>, or <code>"external"</code>. REQUIRED with value
+<code>"shape"</code>, <code>"external"</code>, or
+<code>"definition"</code>. REQUIRED with value
 <code>"shape"</code> for <code>"explanation"</code> results.</td>
 </tr>
 <tr>
@@ -3340,6 +3343,18 @@ Shape-level and external codes override the generic defaults.</p>
 <td><code>constraint</code></td>
 <td>Bind <code>constraint</code> expression has a definition error
 (§3.10.1): it failed to parse or calls an undefined function.</td>
+</tr>
+<tr>
+<td><code>UNSUBSCRIPTED_REPEAT_REFERENCE</code></td>
+<td><code>definition</code></td>
+<td>An authored field path continues past a repeatable Group without a
+subscript (§3.2.2). Rebuild refuses evaluation at the authored
+expression.</td>
+</tr>
+<tr>
+<td><code>CIRCULAR_DEPENDENCY</code></td>
+<td><code>definition</code></td>
+<td>The dependency graph contains a cycle (§3.6).</td>
 </tr>
 <tr>
 <td><code>SHAPE_FAILED</code></td>

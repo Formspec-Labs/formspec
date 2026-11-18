@@ -108,6 +108,23 @@ fn valid_repeat_reference_spellings_are_clean() {
 }
 
 #[test]
+fn postfix_on_wildcard_result_does_not_extend_the_field_path() {
+    let mut document = definition();
+    document["items"][2]["children"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({
+            "key": "detail", "type": "group", "label": "Details", "repeatable": true,
+            "children": [{ "key": "cost", "type": "field", "dataType": "decimal", "label": "Cost" }]
+        }));
+    document["binds"] = json!([
+        { "path": "name", "calculate": "($rows[*].detail)[1][1].cost" },
+        { "path": "name", "constraint": "($rows[*].detail).cost" }
+    ]);
+    assert!(coded(&lint(&document).diagnostics, LintCode::E304).is_empty());
+}
+
+#[test]
 fn unsubscripted_repeat_paths_are_e304_in_component_guards() {
     let mut document = component(json!([
         { "component": "Text", "text": "Shown", "when": "rows.amount > 0" },

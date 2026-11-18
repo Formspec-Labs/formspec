@@ -27,7 +27,8 @@ function buildReplayDefinition() {
     ],
     binds: [
       { path: 'rows.subtotal', calculate: 'qty * price', readonly: 'true' },
-      { path: 'total', calculate: 'sum(rows.subtotal)', readonly: 'true' },
+      // Core §3.2.2 requires a wildcard to read subtotals across rows.
+      { path: 'total', calculate: 'sum($rows[*].subtotal)', readonly: 'true' },
       { path: 'name', required: 'true' }
     ],
     shapes: [
