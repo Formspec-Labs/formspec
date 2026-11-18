@@ -112,7 +112,7 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
   // destination using the same Definition, Theme, and Component.
   type Placement = ReturnType<typeof layout>;
   type ComponentPlacements = Map<ComponentDocument | undefined, Placement>;
-  type ThemePlacements = Map<ThemeDocument | undefined, ComponentPlacements>;
+  type ThemePlacements = Map<string | undefined, ComponentPlacements>;
   const layouts = new Map<SurfaceRouteHandle, Map<string, Placement>>();
   const byDefinition = new Map<FormDefinition, ThemePlacements>();
   function layout(definition: FormDefinition, theme: ThemeDocument | undefined, component: ComponentDocument | undefined) {
@@ -130,13 +130,16 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
     const theme = input.themeAuthority.grantFor(route.route, {
       surfaceId: route.surfaceId, routeId: route.routeId,
     }).themeDocument;
+    // Grants copy their tokens so one consumer cannot mutate another route's Theme.
+    // Compare the effective contents once per destination, before expanding members.
+    const themeKey = JSON.stringify(theme);
     const component = input.resolveDefinitionComponent?.({
       surfaceRef: input.surfaceRef, routeId: route.routeId, slotId, definition,
     });
-    const byTheme = byDefinition.get(definition) ?? new Map<ThemeDocument | undefined, ComponentPlacements>();
+    const byTheme: ThemePlacements = byDefinition.get(definition) ?? new Map();
     byDefinition.set(definition, byTheme);
-    const byComponent = byTheme.get(theme) ?? new Map<ComponentDocument | undefined, Placement>();
-    byTheme.set(theme, byComponent);
+    const byComponent = byTheme.get(themeKey) ?? new Map<ComponentDocument | undefined, Placement>();
+    byTheme.set(themeKey, byComponent);
     const result = byComponent.get(component) ?? layout(definition, theme, component);
     byComponent.set(component, result);
     bySlot.set(slotId, result);
