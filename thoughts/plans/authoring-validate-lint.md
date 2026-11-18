@@ -125,7 +125,7 @@ app-graph is layer 1 and has no engine. `document-lint.ts` replaces `locale-lint
   | `LOCALE_LINT_ORIGIN` | `DOCUMENT_LINT_ORIGIN` (same value) |
 
 - Deleted: `validateThemeTokenRegistry`. Lint W708, rescoped by fs-i29t, is the one owner (§3).
-- **Amendment (ADR 0172).** AppGraph calls the Rust `check_instance_projection` through the same linter port. The projection context passes the consuming subject or explicit `null` and every loaded Definition at the selected URL, for both response instances and catalog selections. Core owns projection diagnostics and version filtering.
+- **Amendment (ADR 0172).** AppGraph calls the Rust `check_instance_projection` through the same linter port. See [App Graph Validator, Response projection context](../../specs/app-graph/app-graph-validator-spec.md#response-projection-context) for the receiving form and upstream Definitions passed to Core. Core owns projection diagnostics and version filtering.
 - `WireframesMcpServerOptions.localeLinter` becomes `documentLinter`, still required.
 
 ### D3. Where the linter is bound

@@ -188,7 +188,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`value_coerce`](value_coerce.md)
 
-*1 function*
+*1 enum, 1 function*
 
 ### [`wire_keys`](wire_keys.md)
 
@@ -5037,17 +5037,48 @@ fn format_diagnostic_report(report: &serde_json::Value) -> Result<String, String
 
 ## Contents
 
+**Enums**
+
+- [`LetterCase`](#lettercase) - A case conversion for free-text input.
+
 **Functions**
 
-- [`coerce_field_value`](#coerce_field_value) - Coerce an inbound field value (whitespace, numeric strings, money shape, `precision` rounding).
+- [`coerce_field_value`](#coerce_field_value) - Normalize inbound text and coerce numbers, money, and precision.
 
 ---
+
+## formspec_core::value_coerce::LetterCase
+
+*Enum*
+
+A case conversion for free-text input.
+
+**Variants:**
+- `Upper` - Apply full Unicode uppercase conversion.
+- `Lower` - Apply full Unicode lowercase conversion.
+
+**Methods:**
+
+- `fn supports(data_type: Option<&str>) -> bool` - Whether a data type permits letter-case normalization.
+- `fn for_field(data_type: Option<&str>, mode: Option<&str>) -> Option<Self>` - Read the effective mode, returning `None` when the field preserves case.
+- `fn apply(self: Self, value: &str) -> String` - Apply locale-independent Unicode case conversion.
+
+**Traits:** Copy
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> LetterCase`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+
+
 
 ## formspec_core::value_coerce::coerce_field_value
 
 *Function*
 
-Coerce an inbound field value (whitespace, numeric strings, money shape, `precision` rounding).
+Normalize inbound text and coerce numbers, money, and precision.
 
 Matches TypeScript `coerceFieldValue(item, bind, definition, value)` in `packages/formspec-engine`.
 
