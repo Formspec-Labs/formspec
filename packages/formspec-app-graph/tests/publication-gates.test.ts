@@ -5,6 +5,7 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 import {
   appManifestVersionAtLeast,
+  definitionPublicationReports,
   produceBundleExportAppGraphValidationReport,
 } from '../src/index.js';
 
@@ -207,4 +208,73 @@ describe('renderedNeedTrace binds content', () => {
     expect(inherited.renderedNeedTrace?.nodes.find((node) => node.kind === 'screener-item')?.effective)
       .toEqual({ needIds: ['collect-name'], via: [expect.objectContaining({ artifactSlot: 'screeners[0]', jsonPointer: '' })] });
   });
+});
+
+it('sends each Definition its own trace and Surface mounts within the Source body cap', async () => {
+  const anchor = 'need:collect-name@1';
+  const generation = { 'x-generation': { anchors: [anchor] } };
+  const needs = { $formspecNeeds: '1.0', version: '1.0.0', needs: [
+    { id: 'collect-name', status: 'adopted', revision: 1, adoptedBy: { kind: 'human', id: 'reviewer' },
+      ungroundedReason: { code: 'not-yet-researched', explanation: 'Test fixture.' } },
+  ] };
+  const base = bundle(definition(anchor), { needs, locale: true });
+  const defs = Array.from({ length: 8 }, (_, index) => ({
+    ...definition(anchor),
+    url: index ? definitionUrl + index : definitionUrl,
+    items: [{ key: 'group', type: 'group', label: 'Questions', children: Array.from({ length: 640 }, (_, field) => ({
+      key: 'field' + field, type: 'field', dataType: 'string', label: 'Question ' + field, readOnly: true,
+    })) }],
+  }));
+  const surfaceUrl = 'https://example.gov/surfaces/publish';
+  const slot = (def: typeof defs[number]) => ({
+    id: 'slot' + defs.indexOf(def), slotType: 'definition-form', binding: { definitionRef: def.url }, ...generation,
+  });
+  const surface = {
+    $formspecSurface: '0.2', id: 'publish', entry: 'shared', ...generation,
+    routes: [
+      { id: 'shared', path: '/', slots: [slot(defs[0]), slot(defs[1])], navigation: { visible: true, ...generation }, ...generation },
+      { id: 'other', path: '/other', slots: [slot(defs[1])], navigation: { visible: false, ...generation }, ...generation },
+    ],
+  };
+  const componentUrl = 'https://example.gov/components/shared';
+  const component = {
+    $formspecComponent: '1.2', url: componentUrl, version: '1.0.0',
+    targetSurfaceRoutes: [{ surface: { url: surfaceUrl, version: '1.0.0' }, route: 'shared', role: 'route' }],
+    tree: { component: 'Stack', id: 'layout', ...generation },
+  };
+  const docs = {
+    ...base.documents, [componentUrl]: component, [surfaceUrl]: surface, [themeUrl]: { ...theme, ...generation },
+    [localeUrl]: { ...locale, strings: { 'field0.label': 'Nombre' }, stringGeneration: { 'field0.label': { anchors: [anchor] } } },
+    ...Object.fromEntries(defs.map(def => [def.url, def])),
+  };
+  const result = await produceBundleExportAppGraphValidationReport({
+    manifest: {
+      ...base.manifest,
+      components: [{ url: componentUrl, version: '1.0.0', handle: 'shared' }],
+      definitions: defs.map(({ url, version }) => ({ url, version })),
+      surfaces: [{ url: surfaceUrl, version: '1.0.0' }],
+    },
+    documents: docs,
+    ...permissive, renderedNeedTrace: whenDeclared,
+  });
+  expect(result.report.diagnostics.filter(d => d.severity === 'error')).toEqual([]);
+  const bytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
+  expect(bytes(result.report)).toBeGreaterThan(2 ** 21);
+  const reports = definitionPublicationReports(result);
+  expect(reports).toHaveLength(defs.length);
+  for (const [index, report] of reports.entries()) {
+    expect(validateReport(JSON.parse(JSON.stringify(report))), validateReport.errors?.[0]?.message).toBe(true);
+    expect(report.renderedNeedTrace?.definitions.map(d => d.url)).toEqual([defs[index].url]);
+    const nodes = report.renderedNeedTrace!.nodes;
+    expect(nodes.filter(n => n.kind === 'definition-item')).toHaveLength(641);
+    expect(nodes.filter(n => n.kind === 'surface-slot').map(n => n.source.jsonPointer))
+      .toEqual(index === 0 ? ['/routes/0/slots/0'] : index === 1 ? ['/routes/0/slots/1', '/routes/1/slots/0'] : []);
+    expect(nodes.some(n => n.source.artifactKind === 'component')).toBe(index < 2);
+    expect(nodes.some(n => n.source.artifactKind === 'locale')).toBe(index === 0);
+    expect(bytes({
+      definition: defs[index], locale_documents: index === 0 ? [docs[localeUrl]] : [],
+      app_graph_validation_report: report, runtime_config: {}, created_by: 'publisher',
+    })).toBeLessThan(2 ** 21);
+  }
+  expect(definitionPublicationReports({ ...result, report: { ...result.report, ok: false } })).toEqual([]);
 });

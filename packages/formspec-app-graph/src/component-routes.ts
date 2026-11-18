@@ -176,7 +176,7 @@ function componentVersion(document: unknown): string | undefined {
   return stringProp(record(document), '$formspecComponent');
 }
 
-function routeTargets(document: unknown): RouteTarget[] {
+export function routeTargets(document: unknown): RouteTarget[] {
   const targets = record(document)?.targetSurfaceRoutes;
   if (!Array.isArray(targets)) return [];
   return targets.map((target) => {

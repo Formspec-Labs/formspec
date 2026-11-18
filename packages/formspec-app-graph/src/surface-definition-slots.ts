@@ -46,7 +46,7 @@ function routeId(route: ResolvedRoute): string | undefined {
   return stringProp(route.route, 'id');
 }
 
-function surfaceRoutes(handle: ResolvedArtifactHandle): ResolvedRoute[] {
+export function surfaceRoutes(handle: ResolvedArtifactHandle): ResolvedRoute[] {
   const routes = record(handle.document)?.routes;
   if (!Array.isArray(routes)) return [];
   return routes.flatMap((route, index): ResolvedRoute[] => {
@@ -55,7 +55,7 @@ function surfaceRoutes(handle: ResolvedArtifactHandle): ResolvedRoute[] {
   });
 }
 
-function definitionFormSlots(route: ResolvedRoute): DefinitionFormSlot[] {
+export function definitionFormSlots(route: ResolvedRoute): DefinitionFormSlot[] {
   const slots = route.route.slots;
   if (!Array.isArray(slots)) return [];
   return slots.flatMap((slot, slotIndex): DefinitionFormSlot[] => {
