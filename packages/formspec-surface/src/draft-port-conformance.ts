@@ -1,4 +1,5 @@
 /** @filedesc Reusable behavioral checks for authorized Surface draft storage. */
+import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import type { ResponseSelectionDelivery, ResponseSelectionOutcome } from '@formspec-org/types';
 import type { DraftKey, DraftPort, DraftSaveInput, DraftStartInput } from './draft-port.js';
 
@@ -13,17 +14,20 @@ const subject = { id: 'unit-a', type: 'urn:test:unit', keys: { year: 2025 } };
 const key: DraftKey = { definitionUrl, scope: 'scope-a', subject };
 const counts = { total: 1, filled: 1, toFix: 0, toCheck: 0 };
 
-function saveInput(revision: string | null, answer = 'first', address = key): DraftSaveInput {
+function saveInput(
+  revision: string | null, answer = 'first', address = key,
+  data?: { editable: Record<string, unknown>; filtered: Record<string, unknown> },
+): DraftSaveInput {
   const progress = { ...counts, filled: answer ? 1 : 0 };
   return {
     key: address,
     definitionVersion: '1.0.0',
     expectedRevision: revision,
-    snapshotJson: JSON.stringify({ definitionUrl: address.definitionUrl, definitionVersion: '1.0.0', data: { answer } }),
+    snapshotJson: JSON.stringify({ definitionUrl: address.definitionUrl, definitionVersion: '1.0.0', data: data?.editable ?? { answer } }),
     responseJson: JSON.stringify({
       $formspecResponse: '1.0', id: 'urn:uuid:55146a6e-46fc-43db-956c-b03de240f971', definitionUrl: address.definitionUrl,
       definitionVersion: '1.0.0', status: 'in-progress', authored: '2026-01-01T00:00:00Z',
-      subject: address.subject, data: { answer },
+      subject: address.subject, data: data?.filtered ?? { answer },
     }),
     summary: {
       sections: query.sections,
@@ -117,6 +121,19 @@ export const draftPortConformance = {
       loaded.draft.revision === winner.revision &&
       JSON.parse(loaded.draft.snapshotJson).data.answer === (left.status === 'saved' ? 'left' : 'right'),
     'create race did not preserve the winning revision');
+  },
+
+  async 'round-trips editable and filtered draft data separately'({ port, key: address = key }: DraftPortFixture) {
+    const filtered = { answer: 'visible', amount: parseJsonExact('1.234567890123456789') };
+    const editable = { ...filtered, hidden: 'retained', rows: [{}] };
+    const input = { ...saveInput(null, filtered.answer, address, { editable, filtered }), summary: null };
+    const { snapshotJson, responseJson } = input;
+    const saved = await port.save(input);
+    check(saved.status === 'saved', 'save refused distinct editable and filtered data');
+    const loaded = await port.load(address, input.definitionVersion);
+    check(loaded.status === 'loaded' && loaded.draft.revision === saved.revision, 'load returned the wrong revision');
+    check(loaded.draft.snapshotJson === snapshotJson, 'editable snapshot changed');
+    check(loaded.draft.responseJson === responseJson, 'filtered response changed');
   },
 
   async 'commits answers and summary at the winning revision'({ port, key: address = key }: DraftPortFixture) {
