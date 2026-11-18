@@ -1,7 +1,7 @@
 /** @filedesc AppGraph pairs response projections with every loaded upstream version. */
 import { beforeAll, expect, it, vi } from 'vitest';
 import { initFormspecEngine, initFormspecEngineTools, lintDocument } from '@formspec-org/engine';
-import { documentLintValidator, validateAppGraph, type AppGraphContext, type AppGraphDocumentLinter, type ResolvedArtifactHandle } from '../src/index.js';
+import { documentLintValidator, produceBundleExportAppGraphValidationReport, validateAppGraph, type AppGraphContext, type AppGraphDocumentLinter, type ResolvedArtifactHandle } from '../src/index.js';
 
 const upstreamUrl = 'https://example.gov/definitions/upstream';
 const subject = { type: 'urn:example:filing', keys: { year: { dataType: 'integer' } } };
@@ -241,4 +241,24 @@ it.each([
     primarySource: expect.objectContaining({ artifactSlot: 'catalog', jsonPointer: '/sources/0' }),
     details: { upstreamVersion: '1.0.0' },
   })] : []);
+});
+
+it('loads the host linter only for reads, admits a valid projection and returns the Rust refusal for drift', async () => {
+  const loadProjectionLinter = vi.fn(async () => lintDocument);
+  const validate = (...handles: ResolvedArtifactHandle[]) => produceBundleExportAppGraphValidationReport({
+    manifest: {
+      $formspecBundle: '2.2', id: 'https://example.gov/app', version: '1.0.0',
+      definitions: handles.map(handle => ({ url: handle.ref!.url, version: '1.0.0' })),
+    },
+    documents: Object.fromEntries(handles.map(handle => [handle.ref!.url!, handle.document])),
+    schemaValidators: () => ({ ok: true }),
+    loadProjectionLinter,
+  });
+  await validate(upstream('1.0.0'));
+  expect(loadProjectionLinter).not.toHaveBeenCalled();
+  const valid = await validate(consumer(), upstream('1.0.0'));
+  expect(loadProjectionLinter).toHaveBeenCalledOnce();
+  expect(valid.report.diagnostics.filter(d => d.severity === 'error')).toEqual([]);
+  const broken = await validate(consumer(), upstream('1.0.0', 'renamed'));
+  expect(broken.report.diagnostics.filter(d => d.code === 'INSTANCE-PROJECTION-PATH-MISSING')).toHaveLength(1);
 });

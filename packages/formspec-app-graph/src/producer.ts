@@ -29,6 +29,8 @@ import type {
   AppGraphValidationOptions,
   AppGraphValidationReport,
 } from './types.js';
+import { documentLintValidator, type AppGraphDocumentLinter } from './document-lint.js';
+import { requiresResponseProjectionCheck } from './instance-projection.js';
 import { validateAppGraph } from './validator.js';
 import { prepareComponentRouteResolver, type ComponentRouteResolver } from './component-route-resolution.js';
 
@@ -43,6 +45,8 @@ export interface AppGraphReportProducerRequest extends ArtifactResolverRequest {
   schemaValidators: AppGraphSchemaValidators;
   evidenceSchemaValidators?: AppGraphEvidenceSchemaValidators;
   crossArtifactValidators?: AppGraphCrossArtifactValidator[];
+  /** Load tools only when the resolved graph has a filed read and no supplied checker. */
+  loadProjectionLinter?: () => Promise<AppGraphDocumentLinter>;
   /** See `AppGraphValidationRequest.hostWidgetContracts`. */
   hostWidgetContracts?: HostWidgetContracts;
   /** See `AppGraphValidationRequest.renderedNeedTrace`. */
@@ -75,12 +79,17 @@ export type BundleExportAppGraphReportProducerRequest = Omit<
   documents: Readonly<Record<string, unknown>>;
 };
 
-function finishAppGraphValidationReport(
+async function finishAppGraphValidationReport(
   request: Omit<AppGraphReportProducerRequest, 'manifest' | 'loader'>,
   artifactResolutionReport: ArtifactResolutionReport,
   manifestDiagnostics: readonly AppGraphDiagnostic[] = [],
-): PreparedAppGraphReportProducerResult {
+): Promise<PreparedAppGraphReportProducerResult> {
   const graphInput = artifactResolutionGraphInput(artifactResolutionReport);
+  let validators = request.crossArtifactValidators;
+  if (request.loadProjectionLinter && !validators?.some(validator => validator.checksResponseProjections)
+    && graphInput.handles.some(requiresResponseProjectionCheck)) {
+    validators = [...(validators ?? []), documentLintValidator(await request.loadProjectionLinter())];
+  }
   const moduleResolutionReport = resolveModules(moduleResolverInputFromAppGraph({
     manifest: graphInput.manifest,
     handles: graphInput.handles,
@@ -104,7 +113,7 @@ function finishAppGraphValidationReport(
     ...(request.unsupported ? { unsupported: request.unsupported } : {}),
     schemaValidators: request.schemaValidators,
     ...(request.evidenceSchemaValidators ? { evidenceSchemaValidators: request.evidenceSchemaValidators } : {}),
-    ...(request.crossArtifactValidators ? { crossArtifactValidators: request.crossArtifactValidators } : {}),
+    ...(validators ? { crossArtifactValidators: validators } : {}),
     ...(request.hostWidgetContracts ? { hostWidgetContracts: request.hostWidgetContracts } : {}),
     ...(request.renderedNeedTrace ? { renderedNeedTrace: request.renderedNeedTrace } : {}),
     ...(request.validationOptions ? { options: request.validationOptions } : {}),

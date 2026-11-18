@@ -128,6 +128,10 @@ function projectionSources(handle: ResolvedArtifactHandle): Array<{ source: Json
   });
 }
 
+export function requiresResponseProjectionCheck(handle: ResolvedArtifactHandle): boolean {
+  return projectionSources(handle).length > 0;
+}
+
 export function missingResponseProjectionChecks(handles: readonly ResolvedArtifactHandle[]): AppGraphDiagnostic[] {
   return handles.flatMap((handle) => {
     const first = projectionSources(handle)[0];
