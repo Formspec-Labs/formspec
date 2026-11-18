@@ -63,6 +63,13 @@ export function planPageMode(definition: FormDefinition, ctx: PlanContext, mode:
     if (!hasWizardSections(sequence)) return undefined;
     const container = sequence[0]?.container;
     const root = container?.component === 'Stack' ? { ...container } : stack(ctx.nextId('root'), []);
+    let inner: LayoutNode | undefined;
+    if (container && container.component !== 'Stack') {
+        const { componentGraphIdentity, uiGraphRoutePolicy, accessibility, needAnchors, ...layout } = container;
+        const { id, ...props } = layout.props;
+        Object.assign(root, { props: id ? { id } : {}, componentGraphIdentity, uiGraphRoutePolicy, accessibility, needAnchors });
+        inner = { ...layout, props };
+    }
     root.pageMode = mode;
     root.children = sequence.flatMap((page, index) => {
         const controls = page.nodes.filter(isSharedControl);
@@ -85,7 +92,7 @@ export function planPageMode(definition: FormDefinition, ctx: PlanContext, mode:
             if (node !== authored) return [node];
             return separate ? [withoutTitle(node)] : node.children;
         });
-        const children = container && container.component !== 'Stack' ? [{ ...container, children: nodes }] : nodes;
+        const children = inner ? [{ ...inner, children: nodes }] : nodes;
         return [...controls, { ...section, props, children }];
     });
     // Keep trailing instructions next to the shared actions, outside the active page.

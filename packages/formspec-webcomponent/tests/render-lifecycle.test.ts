@@ -216,7 +216,7 @@ describe('render lifecycle', () => {
         expect(stack.getAttribute('tabindex')).toBeNull();
     });
 
-    it('maps validated region route policy to role and aria-label on layout route root', () => {
+    it.each(['single', 'tabs', 'wizard'] as const)('maps validated region policy to the %s route root only', (pageMode) => {
         el.componentGraph = {
             component: {
                 handle: 'respondent',
@@ -262,13 +262,19 @@ describe('render lifecycle', () => {
             tree: {
                 component: 'Stack',
                 id: 'root',
-                children: [{ component: 'TextInput', bind: 'name', id: 'nameField' }],
+                children: pageMode === 'single' ? [{ component: 'TextInput', bind: 'name', id: 'nameField' }] : [
+                    { component: 'Section', title: 'Name', children: [{ component: 'TextInput', bind: 'name', id: 'nameField' }] },
+                    { component: 'ValidationSummary' },
+                ],
             },
         };
-        el.definition = singleFieldDef();
+        el.definition = { ...singleFieldDef(), formPresentation: { pageMode } };
         el.render();
 
-        const stack = el.querySelector('.formspec-stack') as HTMLElement;
+        const roots = el.querySelectorAll<HTMLElement>('[data-formspec-ui-policy-route="review"]');
+        expect(roots).toHaveLength(1);
+        const stack = roots[0];
+        expect(stack.classList.contains(`formspec-${pageMode === 'single' ? 'stack' : pageMode}`)).toBe(true);
         expect(stack.getAttribute('role')).toBe('region');
         expect(stack.getAttribute('aria-label')).toBe('Application review');
         expect(stack.dataset.formspecUiPolicyKeyboardNavigation).toBe('true');

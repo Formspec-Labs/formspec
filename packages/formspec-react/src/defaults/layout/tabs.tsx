@@ -146,6 +146,7 @@ export function Tabs({ node, children }: LayoutComponentProps) {
 
     return (
         <div
+            id={node.props.id as string | undefined}
             className={cssClass}
             style={{
                 ...style,

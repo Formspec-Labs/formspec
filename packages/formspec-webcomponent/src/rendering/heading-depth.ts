@@ -9,6 +9,11 @@
  * depth — a flat outline, never a skipped level. A wizard's step heading is its Section's title, drawn at
  * the Section's depth, so the Section rule covers it.
  */
-export function headsChildren(comp: { component: string; title?: unknown }): boolean {
-    return (comp.component === 'Section' || comp.component === 'Card') && typeof comp.title === 'string' && comp.title !== '';
+export function hasLayoutTitle(comp: { title?: unknown; titleBind?: unknown; titleLocaleKey?: unknown; titleIndex?: unknown }): boolean {
+    return [comp.title, comp.titleBind, comp.titleLocaleKey].some(value => typeof value === 'string' && value !== '')
+        || typeof comp.titleIndex === 'number';
+}
+
+export function headsChildren(comp: Parameters<typeof hasLayoutTitle>[0] & { component: string }): boolean {
+    return (comp.component === 'Section' || comp.component === 'Card') && hasLayoutTitle(comp);
 }

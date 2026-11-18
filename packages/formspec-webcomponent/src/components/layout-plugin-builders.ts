@@ -8,6 +8,7 @@ import { repeatAffordances, renderRepeatRows } from '../rendering/repeat-afforda
 import { itemLabel } from '../rendering/item-label';
 import { uiText } from '../adapters/ui-text.js';
 import { resolveDisplayItem } from '../adapters/display-host';
+import { hasLayoutTitle } from '../rendering/heading-depth';
 import type {
     SectionLayoutBehavior,
     StackLayoutBehavior,
@@ -24,7 +25,7 @@ function hostWithTitleDescription(comp: any, ctx: RenderContext) {
     return {
         comp,
         host: layoutHostSlice(ctx),
-        titleText: comp.title || comp.titleBind || comp.titleKey || comp.titleLocaleKey || comp.titleIndex ? plannedTitle(ctx, comp) : null,
+        titleText: hasLayoutTitle(comp) ? plannedTitle(ctx, comp) : null,
         descriptionText: comp.description ? compText(ctx, comp, 'description', comp.description) : null,
     };
 }

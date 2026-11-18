@@ -47,19 +47,18 @@ export function compText(
 /**
  * The live title of a node the planner titled: a page made from a group is titled by that group's label
  * (`titleBind`, so a Locale's `<key>.label` and a `{{}}` reach it); a page nobody authored by its `$ui`
- * chrome key (`titleKey`); anything else by its `$component.<id>.title` string, else the inline title.
+ * locale key (`titleLocaleKey`); anything else by its `$component.<id>.title` string, else the inline title.
  * A node arrives either flattened (`comp.title`) or as a layout node (`comp.props.title`).
  */
 export function plannedTitle(
     ctx: Pick<RenderContext, 'engine' | 'prefix'>,
-    comp: { id?: string; title?: unknown; titleBind?: unknown; titleLocaleKey?: unknown; titleIndex?: unknown; titleKey?: unknown; props?: Record<string, unknown> },
+    comp: { id?: string; title?: unknown; titleBind?: unknown; titleLocaleKey?: unknown; titleIndex?: unknown; props?: Record<string, unknown> },
 ): ReadonlySignal<string> {
-    const prop = (name: 'title' | 'titleBind' | 'titleKey' | 'titleLocaleKey') => {
+    const prop = (name: 'title' | 'titleBind' | 'titleLocaleKey') => {
         const value = comp[name] ?? comp.props?.[name];
         return typeof value === 'string' ? value : undefined;
     };
     const titleBind = prop('titleBind');
-    const titleKey = prop('titleKey');
     const localeKey = prop('titleLocaleKey');
     const index = comp.titleIndex ?? comp.props?.titleIndex;
     const ordinal = typeof index === 'number' ? uiText(ctx.engine, 'wizard.stepTitle', { index }) : undefined;
@@ -70,7 +69,6 @@ export function plannedTitle(
             ? uiText(ctx.engine, localeKey.slice(4) as ChromeStringKey).value
             : ctx.engine.resolveLocaleString(localeKey, prop('title') ?? '')))
         || (titleBind && ctx.engine.getItemLabelSignal(titleBind)?.value)
-        || (titleKey && uiText(ctx.engine, titleKey as ChromeStringKey).value)
         || inline.value || ordinal?.value || '';
     });
 }

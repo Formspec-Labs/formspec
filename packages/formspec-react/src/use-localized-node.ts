@@ -33,17 +33,15 @@ const UNCHANGED = signal<Record<string, unknown> | null>(null);
 /**
  * The live title of a node the planner titled (same rule as the web component's `plannedTitle`): a page
  * made from a group is titled by that group's label (`titleBind`), a page nobody authored by its `$ui`
- * chrome key (`titleKey`); undefined for any other node. Read inside a locale-signal subscription.
+ * locale key (`titleLocaleKey`); undefined for any other node. Read inside a locale-signal subscription.
  */
 export function plannedTitle(engine: IFormEngine, props: {
     title?: unknown;
     titleBind?: unknown;
-    titleKey?: unknown;
     titleLocaleKey?: unknown;
     titleIndex?: unknown;
 } | undefined): string | undefined {
     const titleBind = typeof props?.titleBind === 'string' ? props.titleBind : undefined;
-    const titleKey = typeof props?.titleKey === 'string' ? props.titleKey : undefined;
     const localeKey = typeof props?.titleLocaleKey === 'string' ? props.titleLocaleKey : undefined;
     if (localeKey) {
         if (localeKey.startsWith('$ui.')) return chromeText(engine, localeKey.slice(4) as ChromeStringKey);
@@ -51,7 +49,6 @@ export function plannedTitle(engine: IFormEngine, props: {
         if (localized) return localized;
     }
     return (titleBind && engine.getItemLabelSignal(titleBind)?.value)
-        || (titleKey && chromeText(engine, titleKey as ChromeStringKey))
         || (typeof props?.titleIndex === 'number' ? chromeText(engine, 'wizard.stepTitle', { index: props.titleIndex }) : undefined);
 }
 
@@ -77,7 +74,7 @@ export function useLocalizedNode(node: LayoutNode): LayoutNode {
         const props = node.props ?? {};
         const id = typeof props.id === 'string' ? props.id : null;
         const groupPath = node.scopeChange && node.bindPath && typeof props.title === 'string' ? node.bindPath : null;
-        const planned = typeof props.titleBind === 'string' || typeof props.titleKey === 'string' || typeof props.titleLocaleKey === 'string' || typeof props.titleIndex === 'number';
+        const planned = typeof props.titleBind === 'string' || typeof props.titleLocaleKey === 'string' || typeof props.titleIndex === 'number';
         if (!id && !groupPath && !planned) return UNCHANGED;
         const group = groupPath ? findItemByKey(engine.getDefinition().items ?? [], groupPath) : null;
         return computed(() => {

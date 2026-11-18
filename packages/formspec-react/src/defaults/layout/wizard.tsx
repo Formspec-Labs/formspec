@@ -251,6 +251,7 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
     );
 
     const rootProps = {
+        id: node.props.id as string | undefined,
         className: cx('formspec-wizard', showSideNav && 'formspec-wizard--with-sidenav'),
         role: 'group' as const,
         'aria-label': `Wizard: Step ${currentStep + 1} of ${totalSteps}`,

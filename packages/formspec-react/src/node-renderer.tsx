@@ -486,6 +486,7 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
                     component: 'Wizard',
                     category: 'layout',
                     props: {
+                        id: node.props.id,
                         showProgress: fp.showProgress !== false,
                         allowSkip: !!fp.allowSkip,
                         sidenav: fp.sidenav,
@@ -513,6 +514,7 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
                     component: 'Tabs',
                     category: 'layout',
                     props: {
+                        id: node.props.id,
                         placement: (fp.tabPosition as string | undefined) || 'top',
                         defaultTab: (fp.defaultTab as number | undefined) ?? 0,
                     },

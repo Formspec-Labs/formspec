@@ -139,16 +139,11 @@ function emitThroughAdapter<B>(
     }
 }
 
-function renderActualComponentWithProjectionMetadata(
-    host: RenderHost,
-    comp: ComponentDescriptor,
+function applyRenderedProjection(
     parent: HTMLElement,
-    prefix: string,
-    cleanupFns: Array<() => void>,
-    headingLevel: number,
+    firstNewChildIndex: number,
+    comp: ComponentDescriptor,
 ): void {
-    const firstNewChildIndex = parent.childElementCount;
-    renderActualComponent(host, comp, parent, prefix, cleanupFns, headingLevel);
     if (!comp.componentGraphIdentity && !comp.uiGraphRoutePolicy) return;
     const added = Array.from(parent.children).slice(firstNewChildIndex);
     for (const child of added) {
@@ -248,7 +243,7 @@ export function emitNode(
     }
 
     const comp = nodeDescriptor(node);
-    renderActualComponentWithProjectionMetadata(host, comp, target, prefix, cleanupFns, headingLevel);
+    renderActualComponent(host, comp, target, prefix, cleanupFns, headingLevel);
 }
 
 /**
@@ -353,7 +348,9 @@ export function renderActualComponent(
     }
 
     if (plugin) {
+        const firstNewChildIndex = parent.childElementCount;
         plugin.render(comp as LayoutNode, parent, ctx);
+        applyRenderedProjection(parent, firstNewChildIndex, comp);
     } else {
         console.warn(`Unknown component type: ${componentType} (custom components should be expanded by planner)`);
     }
@@ -429,7 +426,9 @@ function renderPageModeWizard(host: RenderHost, comp: ComponentDescriptor, paren
 
     const behavior = useWizard(ctx.behaviorContext, wizardComp);
     const adapterFn = globalRegistry.resolveAdapterFn('Wizard', ctx.adapterName);
+    const firstNewChildIndex = parent.childElementCount;
     if (adapterFn) adapterFn(behavior, parent, ctx.adapterContext);
+    applyRenderedProjection(parent, firstNewChildIndex, comp);
 }
 
 /**
@@ -458,7 +457,9 @@ function renderPageModeTabs(host: RenderHost, comp: ComponentDescriptor, parent:
 
     const behavior = useTabs(ctx.behaviorContext, tabsComp);
     const adapterFn = globalRegistry.resolveAdapterFn('Tabs', ctx.adapterName);
+    const firstNewChildIndex = parent.childElementCount;
     if (adapterFn) adapterFn(behavior, parent, ctx.adapterContext);
+    applyRenderedProjection(parent, firstNewChildIndex, comp);
 
     // Keep non-page siblings, such as an injected ActionButton, after the tabs.
     for (const orphan of orphans) {

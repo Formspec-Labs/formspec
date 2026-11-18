@@ -62,9 +62,26 @@ describe('planned titles follow the Locale', () => {
         el.componentDocument = {
             $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: DEFINITION.url },
             tree: { component: 'Stack', children: [{ component: 'Section', id: 'first',
-                children: [{ component: 'TextInput', bind: 'notes' }] }] },
+                children: [{ component: 'Section', title: 'Details', children: [{ component: 'TextInput', bind: 'notes' }] }] }] },
         };
         el.render();
         expect(texts(el, '.formspec-tab')).toEqual(['Étape 1']);
+        const title = el.querySelector('.formspec-section-title');
+        const heading = [...el.querySelectorAll('h1,h2,h3,h4,h5,h6')].find(node => node.textContent === 'Details');
+        expect(Number(heading?.tagName.slice(1))).toBe(Number(title?.tagName.slice(1)) + 1);
+    });
+
+    it('preserves one authored Grid ID when both tab panels are mounted', () => {
+        const el = mount('tabs');
+        el.componentDocument = {
+            $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: DEFINITION.url },
+            tree: { component: 'Grid', id: 'form-grid', columns: 2, children: [
+                { component: 'Section', title: 'Contact', children: [{ component: 'TextInput', bind: 'contact.name' }] },
+                { component: 'Section', title: 'Notes', children: [{ component: 'TextInput', bind: 'notes' }] },
+            ] },
+        };
+        el.render();
+        expect(texts(el, '.formspec-tab')).toEqual(['Contact', 'Notes']);
+        expect(el.querySelectorAll('#form-grid')).toHaveLength(1);
     });
 });

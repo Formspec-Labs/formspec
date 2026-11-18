@@ -6,7 +6,7 @@ import { globalRegistry } from '../registry';
 import type { AdapterContext } from '../adapters/types';
 import { uiText } from '../adapters/ui-text';
 import type { DisplayHostSlice } from '../adapters/display-host';
-import { headsChildren } from './heading-depth';
+import { hasLayoutTitle, headsChildren } from './heading-depth';
 import type { LayoutHostSlice } from '../adapters/layout-host';
 import { nodeDescriptor, repeatAdapterType } from './emit-node';
 
@@ -204,7 +204,7 @@ export function renderSkeleton(node: LayoutNode, parent: HTMLElement, options: S
         const drew = attempt(current.component, {
             comp: { ...current, children: [] },
             host: layoutHost(into, headingLevel, childLevel),
-            titleText: title ? signal(pendingText(title)) : null,
+            titleText: hasLayoutTitle(descriptor) ? signal(pendingText(title ?? '')) : null,
             descriptionText: current.props?.description ? signal(pendingText(String(current.props.description))) : null,
             headingLevel: `h${Math.min(headingLevel, 6)}`,
         }, into);
