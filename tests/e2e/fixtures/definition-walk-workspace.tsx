@@ -23,7 +23,7 @@ if (options.has('revealCases')) {
         ] },
       ] },
     ],
-  }], binds: [...(definition.binds ?? []), { path: 'details.people[*].phones[*].number', relevant: '$show' }] };
+  }], binds: [...(definition.binds ?? []), { path: 'details.people[*].phones[*].number', relevant: '$show = true' }] };
 }
 if (options.has('wizard')) form = wizardWithMiddleTarget(form);
 if (options.has('continuous')) {
