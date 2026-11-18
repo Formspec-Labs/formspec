@@ -1,7 +1,7 @@
 /** @filedesc Plans exact filing-status destinations and section links without opening forms. */
 import { resolveFilingStatusTargets } from '@formspec-org/app-graph';
 import { fillUiParams, resolvePageSequence, UI_STRINGS } from '@formspec-org/layout';
-import type { FormDefinition } from '@formspec-org/types';
+import type { ComponentDocument, FormDefinition, ThemeDocument } from '@formspec-org/types';
 import { matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
 import { planFilingRoster } from './filing-roster.js';
 import type { DataSourceCatalogHandle, DataSourceLoadRequest, LoadWidgetDataInputsRequest, DataSourceSubject } from './data-source-loader.js';
@@ -108,17 +108,14 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
   if (!result.groups.length) return unresolved('invalid-binding');
   const issues = new Map(result.issues.map(issue => [issue.pointer, issue.reason]));
 
-  // One immutable placement per admitted destination in this plan. The batch key is
-  // process-local; DraftPort separately compares the actual saved section placement.
-  const layouts = new Map<SurfaceRouteHandle, Map<string, ReturnType<typeof layout>>>();
-  function layout(destination: SurfaceRouteHandle, slotId: string, definition: FormDefinition) {
-    const route = destination.route;
-    const theme = input.themeAuthority.grantFor(route, {
-      surfaceId: destination.surfaceId, routeId: destination.routeId,
-    }).themeDocument;
-    const component = input.resolveDefinitionComponent?.({
-      surfaceRef: input.surfaceRef, routeId: route.id, slotId, definition,
-    });
+  // Resolve each destination once and share its immutable placement with every
+  // destination using the same Definition, Theme, and Component.
+  type Placement = ReturnType<typeof layout>;
+  type ComponentPlacements = Map<ComponentDocument | undefined, Placement>;
+  type ThemePlacements = Map<ThemeDocument | undefined, ComponentPlacements>;
+  const layouts = new Map<SurfaceRouteHandle, Map<string, Placement>>();
+  const byDefinition = new Map<FormDefinition, ThemePlacements>();
+  function layout(definition: FormDefinition, theme: ThemeDocument | undefined, component: ComponentDocument | undefined) {
     const sequence = resolvePageSequence(definition, {
       ...(theme ? { theme } : {}), ...(component ? { component } : {}),
     });
@@ -126,11 +123,22 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
     return { sequence, sections, id: placementId(definition, sections) };
   }
   function placementFor(route: SurfaceRouteHandle, slotId: string, definition: FormDefinition) {
-    const bySlot = layouts.get(route) ?? new Map<string, ReturnType<typeof layout>>();
+    const bySlot = layouts.get(route) ?? new Map<string, Placement>();
     layouts.set(route, bySlot);
     const cached = bySlot.get(slotId);
     if (cached) return cached;
-    const result = layout(route, slotId, definition);
+    const theme = input.themeAuthority.grantFor(route.route, {
+      surfaceId: route.surfaceId, routeId: route.routeId,
+    }).themeDocument;
+    const component = input.resolveDefinitionComponent?.({
+      surfaceRef: input.surfaceRef, routeId: route.routeId, slotId, definition,
+    });
+    const byTheme = byDefinition.get(definition) ?? new Map<ThemeDocument | undefined, ComponentPlacements>();
+    byDefinition.set(definition, byTheme);
+    const byComponent = byTheme.get(theme) ?? new Map<ComponentDocument | undefined, Placement>();
+    byTheme.set(theme, byComponent);
+    const result = byComponent.get(component) ?? layout(definition, theme, component);
+    byComponent.set(component, result);
     bySlot.set(slotId, result);
     return result;
   }

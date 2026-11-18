@@ -77,7 +77,12 @@ it('loads the authorized roster from its keyed draft and then its filed Response
   const fileMember = await checkpoint(report, { unit: 'a' }, { answer: 'Complete' });
   expect((await fileMember()).status).toBe('filed');
 
-  const app = composeSurfaceApp(bundle.surfaces);
+  const document = structuredClone(bundle.surfaces[0]!);
+  const binding = document.routes[0]!.slots[0]!.binding as FilingStatusBinding;
+  const group = binding.groups[0]!;
+  group.forms.push({ ...group.forms[0]!, routeRef: 'alternate' });
+  document.routes.push({ ...document.routes[1]!, id: 'alternate', path: '/alternate/{unit}' });
+  const app = composeSurfaceApp([document]);
   const validate = new Ajv().compile(schema);
   const load = async (region: string) => {
     const plan = planMatchedRoute({ handle: app.entry!, app, params: { region }, definitions: bundle.definitions,
@@ -93,7 +98,14 @@ it('loads the authorized roster from its keyed draft and then its filed Response
   async function expectMembers() {
     const groups = await load('north');
     expect(groups.map(g => g.member?.label)).toEqual(['Beta', 'Alpha']);
-    const rows = groups.flatMap(group => group.rows);
+    for (const { rows } of groups) {
+      const [primary, alternate] = rows;
+      if (primary?.status !== 'ready' || alternate?.status !== 'ready') throw Error('Expected both form links');
+      expect(primary.query.sections).toBe(alternate.query.sections);
+      expect(primary.query.key).toBe(alternate.query.key);
+      expect(primary.href).not.toBe(alternate.href);
+    }
+    const rows = groups.flatMap(group => group.rows.slice(0, 1));
     const queries = rows.flatMap(row => row.status === 'ready' ? [row.query] : []);
     expect(queries.map(q => q.subject?.keys.unit)).toEqual(['b', 'a']);
     expect(queries[0]?.sections).toBe(queries[1]?.sections);
