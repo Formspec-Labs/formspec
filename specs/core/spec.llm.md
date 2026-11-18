@@ -189,17 +189,20 @@ A small, deterministic, side-effect-free expression language for form logic. No 
 
 | Syntax | Meaning |
 |--------|---------|
-| `$fieldKey` | Value of field, resolved in nearest scope |
+| `$fieldKey` | Value of field in the nearest enclosing scope that declares it |
 | `$parent.child` | Nested field via dot-notation |
 | `$` | Current node's own value (used in constraints) |
 | `$repeat[n].field` | Value at 1-based index in repeat |
-| `$repeat[*].field` | Array of all values across repeat instances |
+| `$repeat` or `$repeat[*]` | Array of row objects in order, including empty rows; `[]` for zero rows |
+| `$repeat[*].field` | Array of values across repeat instances, with `null` for missing values |
 | `@current` | Current repeat instance object |
 | `@index` | 1-based position in current repeat |
 | `@count` | Total instances in current repeat |
 | `@instance('name')` | Secondary instance by data source name |
 
-References are **lexically scoped** — inside a repeat, `$siblingField` resolves within the same repeat instance.
+Lexical scoping applies at every expression site, including Binds, Shapes, Item text, variables, and component `when`. A field declared in the nearest scope resolves to `null` when it has no value. A sibling reference inside a repeat reads the same row, which mirrors XForms scoping. `@current`, `@index`, and `@count` exist only inside a repeat.
+
+A path that continues past a repeatable Group requires a subscript on that Group at any depth. `$rows.amount` and `$outer[*].inner.amount` are definition errors. Use `$amount` or `@current.amount` for the current row and `$rows[*].amount` for all rows.
 
 ### Operators (lowest to highest precedence)
 
@@ -332,7 +335,7 @@ Tier 1 hints can be overridden by Theme spec (Tier 2) and Component spec (Tier 3
 Named computed values with lexical scoping. Declared in top-level `variables` array.
 - `name`: referenced as `@name` in FEL
 - `expression`: FEL expression, continuously recalculated
-- `scope`: item key or `"#"` for definition-wide (default)
+- `scope`: item key or `"#"` for definition-wide (default). A variable scoped to a repeatable Group or an item inside one is evaluated once per repeat instance in that instance's context.
 
 Variables must not form circular dependencies. Evaluation respects dependency graph order.
 
@@ -350,6 +353,8 @@ Optional `screener` section with `items` (classification fields), optional `bind
 
 Required: `id` (unique), `target` (path or `"#"` for root), `message`.
 Optional: `severity` (default "error"), `constraint` (FEL boolean), `code`, `context` (additional data as FEL expressions), `activeWhen` (conditional evaluation), `timing` ("continuous"/"submit"/"demand").
+
+The Shape's target supplies the evaluation context for `constraint`, `activeWhen`, `message` interpolation, and `context` expressions.
 
 Composition: `and`/`or`/`not`/`xone` referencing other shape IDs. May nest. Circular references → definition error. If both `constraint` and composition present, combined with implicit AND.
 

@@ -61,6 +61,7 @@ pub mod pass_component;
 pub mod pass_response;
 pub mod pass_theme;
 pub mod references;
+mod repeat_references;
 pub mod tree;
 
 use serde_json::Value;
@@ -256,7 +257,8 @@ fn lint_definition(
     if !options.no_fel {
         let compilation = expressions::compile_expressions(doc);
         diagnostics.extend(compilation.diagnostics);
-        diagnostics.extend(expressions::initial_value_parse_errors(doc));
+        diagnostics.extend(expressions::initial_value_diagnostics(doc, &tree_index));
+        repeat_references::check_definition(doc, &tree_index, &compilation.compiled, diagnostics);
         diagnostics.extend(dependencies::analyze_dependencies(
             &compilation.compiled,
             &tree_index,

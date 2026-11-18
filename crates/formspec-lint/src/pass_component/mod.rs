@@ -66,6 +66,7 @@ pub(crate) fn lint_component_with_context(
     }
 
     let field_lookup = definition.map(field_lookup::build_field_lookup);
+    let items = definition.map(crate::tree::build_item_index);
 
     let mut state = walk::WalkState {
         custom_names,
@@ -78,7 +79,13 @@ pub(crate) fn lint_component_with_context(
     };
 
     state.walk_node(tree, "$.tree");
-    check_when::check_templates(state.custom_defs, &mut state.diags);
+    check_when::check(
+        tree,
+        state.custom_defs,
+        items.as_ref(),
+        state.field_lookup.as_ref(),
+        &mut state.diags,
+    );
     if let Some(theme) = theme {
         check_theme_alignment::check(component, theme, definition, &mut state.diags);
     }

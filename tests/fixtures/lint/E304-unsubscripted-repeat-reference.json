@@ -1,0 +1,22 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:unsubscripted-repeat-reference",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Repeat expression checks",
+  "items": [
+    {
+      "key": "rows",
+      "type": "group",
+      "label": "Rows",
+      "repeatable": true,
+      "children": [
+        { "key": "amount", "type": "field", "label": "Amount", "dataType": "decimal" }
+      ]
+    },
+    { "key": "total", "type": "field", "label": "Total", "dataType": "decimal" }
+  ],
+  "binds": [
+    { "path": "total", "calculate": "sum(rows.amount)" }
+  ]
+}

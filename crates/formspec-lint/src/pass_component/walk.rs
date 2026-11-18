@@ -7,10 +7,10 @@ use serde_json::Value;
 
 use crate::types::LintDiagnostic;
 
-use super::field_lookup::{self, FieldInfo, ItemKind};
+use super::field_lookup::{self, FieldInfo};
 use super::{
     check_duplicate_bind, check_forbidden_bind, check_input_compat, check_options_source,
-    check_params, check_responsive, check_textinput_variant, check_unknown, check_when,
+    check_params, check_responsive, check_textinput_variant, check_unknown,
 };
 
 pub(crate) struct WalkState<'a> {
@@ -38,26 +38,17 @@ impl<'a> WalkState<'a> {
         self.repeat_scopes.last().map(|(_, group)| group.as_str())
     }
 
-    /// A DataTable or Accordion bound to a repeatable group opens a repeat template (§4.4).
     fn open_repeat_scope(&mut self, path: &str, comp_type: &str, bind: &str) {
-        if !matches!(comp_type, "DataTable" | "Accordion") {
-            return;
-        }
-        let Some(lookup) = self.field_lookup.as_ref() else {
-            return;
-        };
-        if let Some(group) = field_lookup::resolve(lookup, self.repeat_group(), bind)
-            && group.kind == ItemKind::Group
-            && group.repeatable
+        if let Some(lookup) = self.field_lookup.as_ref()
+            && let Some(group_path) =
+                field_lookup::repeat_group_path(lookup, self.repeat_group(), comp_type, bind)
         {
-            let group_path = group.full_path.clone();
-            self.repeat_scopes.push((path.to_string(), group_path));
+            self.repeat_scopes
+                .push((path.to_owned(), group_path.to_owned()));
         }
     }
 
     fn apply_component_rules(&mut self, node: &Value, path: &str) {
-        check_when::check(node, path, &mut self.diags);
-
         while let Some((scope_path, _)) = self.repeat_scopes.last()
             && !path.starts_with(&format!("{scope_path}.children["))
         {

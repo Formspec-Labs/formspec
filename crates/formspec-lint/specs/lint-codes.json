@@ -101,6 +101,18 @@
       "state": "tested"
     },
     {
+      "code": "E304",
+      "pass": 3,
+      "severity": "error",
+      "title": "Unsubscripted reference to a repeatable group",
+      "specRef": "specs/core/spec.md#322-repeat-references",
+      "suggestedFix": "use `$field` or `@current.field` for the current row, `$group[*].field` for all rows, or `$group[n].field` for one row",
+      "fixtures": [
+        "tests/fixtures/lint/E304-unsubscripted-repeat-reference.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W300",
       "pass": 3,
       "severity": "warning",

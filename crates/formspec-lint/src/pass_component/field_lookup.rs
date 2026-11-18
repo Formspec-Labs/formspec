@@ -75,3 +75,17 @@ pub(crate) fn resolve<'l>(
         .and_then(|group| lookup.get(&format!("{group}.{bind}")))
         .or_else(|| lookup.get(bind))
 }
+
+/// Resolve the group opened by a repeat template (Component §4.4).
+pub(crate) fn repeat_group_path<'l>(
+    lookup: &'l HashMap<String, FieldInfo>,
+    repeat_group: Option<&str>,
+    component: &str,
+    bind: &str,
+) -> Option<&'l str> {
+    if !matches!(component, "DataTable" | "Accordion") {
+        return None;
+    }
+    let group = resolve(lookup, repeat_group, bind)?;
+    (group.kind == ItemKind::Group && group.repeatable).then_some(group.full_path.as_str())
+}

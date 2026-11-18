@@ -3322,8 +3322,8 @@ field in the Instance.</p>
 <tbody>
 <tr>
 <td><code>$fieldKey</code></td>
-<td>The value of the field with the given key, resolved against the
-nearest enclosing scope.</td>
+<td>The value of the field with the given key in the nearest enclosing
+scope that declares it.</td>
 <td><code>$firstName</code> → <code>"Ada"</code></td>
 </tr>
 <tr>
@@ -3341,14 +3341,20 @@ positive)</td>
 </tr>
 </tbody>
 </table>
-<p>Field references are <strong>lexically scoped</strong>. When a
-reference appears inside a Bind targeting a field within a repeatable
-group, <code>$siblingField</code> resolves to the sibling field within
-the <strong>same repeat instance</strong> — not across all instances.
-This mirrors XForms scoping behavior.</p>
+<p>Field references are <strong>lexically scoped</strong> at every
+expression site, including Binds, Shapes, Item text, variables, and
+component <code>when</code> expressions. The processor searches the
+enclosing Groups and repeat instances from the innermost scope through
+the Response root. The first scope that declares the reference’s first
+key determines its meaning. A declared field with no value resolves to
+<code>null</code> (§3.8.3).</p>
 <h4 id="repeat-references">3.2.2 Repeat References</h4>
-<p>Within repeatable contexts, additional reference forms are
-available:</p>
+<p>Within a repeat, <code>$siblingField</code> reads the sibling in the
+same instance. This mirrors XForms scoping. <code>@current</code>,
+<code>@index</code>, and <code>@count</code> exist only inside a
+repeat.</p>
+<p>An expression can reference a repeat collection or an indexed
+instance from any site.</p>
 <table style="width:100%;">
 <colgroup>
 <col style="width: 28%" />
@@ -3368,6 +3374,12 @@ available:</p>
 <td>The value of <code>fieldKey</code> in the repeat instance at the
 given 1-based <code>index</code>.</td>
 <td><code>$lineItems[1].amount</code> → <code>100.00</code></td>
+</tr>
+<tr>
+<td><code>$repeatKey[*]</code> or <code>$repeatKey</code></td>
+<td>The array of repeat instance objects in row order, including rows
+with no answers. Zero rows produce <code>[]</code>.</td>
+<td><code>count($lineItems)</code> → <code>3</code> for three rows</td>
 </tr>
 <tr>
 <td><code>$repeatKey[*].fieldKey</code></td>
@@ -3398,6 +3410,15 @@ parent collection.</td>
 <p>A conformant processor MUST signal an error if an explicit index is
 out of bounds (less than 1 or greater than the number of repeat
 instances).</p>
+<p>When a field path continues past a repeatable Group, a subscript
+(<code>[n]</code> or <code>[*]</code>) MUST immediately follow that
+Group’s key. Omitting the subscript is a definition error (§3.10.1) at
+any depth, as in <code>$rows.amount</code>,
+<code>$section.rows.amount</code>, or
+<code>$outer[*].inner.amount</code>. Use <code>$amount</code> or
+<code>@current.amount</code> for the current row and
+<code>$rows[*].amount</code> for all rows. A projected field contributes
+<code>null</code> for each row that has no value for it.</p>
 <h4 id="cross-instance-references">3.2.3 Cross-Instance References</h4>
 <p>To reference data in a secondary instance, use the
 <code>@instance()</code> accessor:</p>
@@ -5092,6 +5113,11 @@ the error.</td>
 <td><strong>Undefined reference</strong></td>
 <td>A field reference (<code>$key</code> or <code>$parent.child</code>)
 does not correspond to any Item in the Definition.</td>
+</tr>
+<tr>
+<td><strong>Unsubscripted repeat reference</strong></td>
+<td>A field path continues past a repeatable Group without a subscript
+immediately after that Group’s key (§3.2.2).</td>
 </tr>
 <tr>
 <td><strong>Undefined instance</strong></td>
@@ -7710,8 +7736,10 @@ context of the scope item.</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
 <td>The Item <code>key</code> this variable is scoped to. The variable
 is visible to expressions evaluated on that Item and all of its
-descendants. The special value <code>"#"</code> denotes definition-wide
-scope (visible everywhere). Default: <code>"#"</code>.</td>
+descendants. A variable scoped to a repeatable Group or an Item inside
+one is evaluated once per repeat instance in that instance’s context.
+The special value <code>"#"</code> denotes definition-wide scope
+(visible everywhere). Default: <code>"#"</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -8163,10 +8191,11 @@ MUST be one of <code>"error"</code>, <code>"warning"</code>,
 <td><code>constraint</code></td>
 <td>string (FEL expression → boolean)</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
-<td>Validity predicate. The expression evaluates to <code>true</code>
-when the data is valid and <code>false</code> when it is invalid.
-REQUIRED unless the Shape uses composition operators (<code>and</code>,
-<code>or</code>, <code>not</code>, <code>xone</code>).</td>
+<td>Validity predicate evaluated in the Shape’s target context. The
+expression evaluates to <code>true</code> when the data is valid and
+<code>false</code> when it is invalid. REQUIRED unless the Shape uses
+composition operators (<code>and</code>, <code>or</code>,
+<code>not</code>, <code>xone</code>).</td>
 </tr>
 <tr>
 <td><code>message</code></td>
@@ -8198,13 +8227,14 @@ evaluated in the Shape’s target context at the time of failure.</td>
 <td>string (FEL → boolean)</td>
 <td><strong>0..1</strong> (OPTIONAL)</td>
 <td>When present, the shape is evaluated only when this expression
-evaluates to <code>true</code>. When absent or <code>true</code>, the
-shape is always evaluated (subject to non-relevant suppression). When
-<code>false</code>, the shape is skipped entirely — it produces no
-results of any severity. <code>activeWhen</code> is evaluated during the
-Revalidate phase, before the shape’s <code>constraint</code>.
-<code>activeWhen</code> is independent of the target’s relevance;
-non-relevant suppression (§5.6 rule 1) takes precedence.</td>
+evaluates to <code>true</code> in the Shape’s target context. When
+absent or <code>true</code>, the shape is always evaluated (subject to
+non-relevant suppression). When <code>false</code>, the shape is skipped
+entirely — it produces no results of any severity.
+<code>activeWhen</code> is evaluated during the Revalidate phase, before
+the shape’s <code>constraint</code>. <code>activeWhen</code> is
+independent of the target’s relevance; non-relevant suppression (§5.6
+rule 1) takes precedence.</td>
 </tr>
 <tr>
 <td><code>timing</code></td>

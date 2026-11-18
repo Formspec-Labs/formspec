@@ -1996,22 +1996,30 @@ The `$` sigil introduces a field reference:
 
 | Syntax | Resolves to | Example |
 |--------|------------|--------|
-| `$fieldKey` | The value of the field with the given key, resolved against the nearest enclosing scope. | `$firstName` → `"Ada"` |
+| `$fieldKey` | The value of the field with the given key in the nearest enclosing scope that declares it. | `$firstName` → `"Ada"` |
 | `$parentKey.childKey` | The value of a nested field. Dot-separated path segments correspond to group keys. | `$demographics.dob` → `"1815-12-10"` |
 | `$` | The current node’s own value. Used in `constraint` expressions where the Bind’s target is the field being validated. | `$ > 0` (the current field’s value must be positive) |
 
-Field references are **lexically scoped**. When a reference appears inside a
-Bind targeting a field within a repeatable group, `$siblingField` resolves to
-the sibling field within the **same repeat instance** — not across all
-instances. This mirrors XForms scoping behavior.
+Field references are **lexically scoped** at every expression site, including
+Binds, Shapes, Item text, variables, and component `when` expressions. The
+processor searches the enclosing Groups and repeat instances from the innermost
+scope through the Response root. The first scope that declares the reference's
+first key determines its meaning. A declared field with no value resolves to
+`null` (§3.8.3).
 
 #### 3.2.2 Repeat References
 
-Within repeatable contexts, additional reference forms are available:
+Within a repeat, `$siblingField` reads the sibling in the same instance. This
+mirrors XForms scoping. `@current`, `@index`, and `@count` exist only inside a
+repeat.
+
+An expression can reference a repeat collection or an indexed instance from
+any site.
 
 | Syntax | Resolves to | Example |
 |--------|------------|--------|
 | `$repeatKey[index].fieldKey` | The value of `fieldKey` in the repeat instance at the given 1-based `index`. | `$lineItems[1].amount` → `100.00` |
+| `$repeatKey[*]` or `$repeatKey` | The array of repeat instance objects in row order, including rows with no answers. Zero rows produce `[]`. | `count($lineItems)` → `3` for three rows |
 | `$repeatKey[*].fieldKey` | An **array** of all values of `fieldKey` across all instances of the repeat. Intended for use with aggregate functions. | `sum($lineItems[*].amount)` → `350.00` |
 | `@current` | An explicit reference to the current repeat instance object. Useful for disambiguation. | `@current.quantity * @current.unitPrice` |
 | `@index` | The 1-based position of the current repeat instance within its parent collection. | `if(@index = 1, 'First', 'Subsequent')` |
@@ -2019,6 +2027,13 @@ Within repeatable contexts, additional reference forms are available:
 
 A conformant processor MUST signal an error if an explicit index is out of
 bounds (less than 1 or greater than the number of repeat instances).
+
+When a field path continues past a repeatable Group, a subscript (`[n]` or
+`[*]`) MUST immediately follow that Group's key. Omitting the subscript is a
+definition error (§3.10.1) at any depth, as in `$rows.amount`,
+`$section.rows.amount`, or `$outer[*].inner.amount`. Use `$amount` or
+`@current.amount` for the current row and `$rows[*].amount` for all rows.
+A projected field contributes `null` for each row that has no value for it.
 
 #### 3.2.3 Cross-Instance References
 
@@ -2739,6 +2754,7 @@ following and MUST NOT proceed to Recalculate:
 |-------|-------------|
 | **Syntax error** | A FEL expression does not conform to the grammar (§3.7). The error message MUST include the expression text and the approximate position of the error. |
 | **Undefined reference** | A field reference (`$key` or `$parent.child`) does not correspond to any Item in the Definition. |
+| **Unsubscripted repeat reference** | A field path continues past a repeatable Group without a subscript immediately after that Group's key (§3.2.2). |
 | **Undefined instance** | An `@instance('name')` reference names a Data Source that is not declared in the Definition. |
 | **Undefined function** | A function call names a function that is neither a built-in (§3.5) nor a registered extension function. |
 | **Circular dependency** | The dependency graph (§3.6) contains a cycle. The error message MUST identify at least one field key in the cycle. |
@@ -3970,7 +3986,7 @@ Variables are declared in the top-level `variables` array.
 |---|---|---|---|
 | `name` | string | **1..1** (REQUIRED) | Variable name. MUST match `[a-zA-Z][a-zA-Z0-9_]*`. Referenced in FEL expressions as `@name` (e.g., `@totalBudget`). MUST be unique within its scope. |
 | `expression` | string (FEL expression) | **1..1** (REQUIRED) | The expression that computes this variable's value. Evaluated in the context of the scope item. |
-| `scope` | string | **0..1** (OPTIONAL) | The Item `key` this variable is scoped to. The variable is visible to expressions evaluated on that Item and all of its descendants. The special value `"#"` denotes definition-wide scope (visible everywhere). Default: `"#"`. |
+| `scope` | string | **0..1** (OPTIONAL) | The Item `key` this variable is scoped to. The variable is visible to expressions evaluated on that Item and all of its descendants. A variable scoped to a repeatable Group or an Item inside one is evaluated once per repeat instance in that instance's context. The special value `"#"` denotes definition-wide scope (visible everywhere). Default: `"#"`. |
 
 #### 4.5.2 Evaluation Semantics
 
@@ -4267,11 +4283,11 @@ JSON data.
 | `id` | string | **1..1** (REQUIRED) | Unique identifier for this Shape. MUST be unique across all Shapes in the Definition. MUST match `[a-zA-Z][a-zA-Z0-9_\-]*`. |
 | `target` | string | **1..1** (REQUIRED) | Path expression identifying the data node(s) this Shape validates. Uses the same path syntax as Binds (§4.3.3). The special value `"#"` targets the entire Response root. |
 | `severity` | string | **0..1** (OPTIONAL) | Severity of the validation result produced when this Shape fails. MUST be one of `"error"`, `"warning"`, `"info"`. Default: `"error"`. |
-| `constraint` | string (FEL expression → boolean) | **0..1** (OPTIONAL) | Validity predicate. The expression evaluates to `true` when the data is valid and `false` when it is invalid. REQUIRED unless the Shape uses composition operators (`and`, `or`, `not`, `xone`). |
+| `constraint` | string (FEL expression → boolean) | **0..1** (OPTIONAL) | Validity predicate evaluated in the Shape's target context. The expression evaluates to `true` when the data is valid and `false` when it is invalid. REQUIRED unless the Shape uses composition operators (`and`, `or`, `not`, `xone`). |
 | `message` | string | **1..1** (REQUIRED) | Human-readable failure message displayed when the Shape's constraint evaluates to `false`. MAY contain `{{expression}}` interpolation sequences, where `expression` is a FEL expression evaluated in the Shape's target context. |
 | `code` | string | **0..1** (OPTIONAL) | Machine-readable error code. Implementations SHOULD use these codes for programmatic error handling, localization lookups, and API responses. |
 | `context` | object | **0..1** (OPTIONAL) | Additional context data included in the ValidationResult when the Shape fails. Keys are context field names; values are FEL expressions evaluated in the Shape's target context at the time of failure. |
-| `activeWhen` | string (FEL → boolean) | **0..1** (OPTIONAL) | When present, the shape is evaluated only when this expression evaluates to `true`. When absent or `true`, the shape is always evaluated (subject to non-relevant suppression). When `false`, the shape is skipped entirely — it produces no results of any severity. `activeWhen` is evaluated during the Revalidate phase, before the shape's `constraint`. `activeWhen` is independent of the target's relevance; non-relevant suppression (§5.6 rule 1) takes precedence. |
+| `activeWhen` | string (FEL → boolean) | **0..1** (OPTIONAL) | When present, the shape is evaluated only when this expression evaluates to `true` in the Shape's target context. When absent or `true`, the shape is always evaluated (subject to non-relevant suppression). When `false`, the shape is skipped entirely — it produces no results of any severity. `activeWhen` is evaluated during the Revalidate phase, before the shape's `constraint`. `activeWhen` is independent of the target's relevance; non-relevant suppression (§5.6 rule 1) takes precedence. |
 | `timing` | string | **0..1** (OPTIONAL) | Controls when this shape is evaluated. MUST be one of: `"continuous"` (evaluated whenever any dependency changes — **DEFAULT**), `"submit"` (evaluated only when submission is requested), `"demand"` (evaluated only when explicitly requested by the consuming application). The global validation mode (§5.5) acts as an override: when `"disabled"`, no shapes fire; when `"deferred"`, all shapes are deferred; when `"continuous"`, shapes fire per their individual `timing`. |
 | `x-generation` | [Generation](../../schemas/common.schema.json) | **0..1** (OPTIONAL) | Authoring provenance for this Shape. A strict data-only authoring profile requires a direct current adopted Need anchor. It does not change Shape evaluation. |
 

@@ -274,7 +274,7 @@
     },
     {
       "path": "grandTotal",
-      "calculate": "sum(lineItems.lineSubtotal)",
+      "calculate": "sum($lineItems[*].lineSubtotal)",
       "readonly": "true"
     },
     {

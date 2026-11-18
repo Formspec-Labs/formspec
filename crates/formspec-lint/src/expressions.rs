@@ -74,13 +74,15 @@ pub struct CompiledExpression {
     pub shape_target: Option<String>,
     /// Index of the Shape owning this validity-deciding expression.
     pub shape_index: Option<usize>,
+    /// Lexical target for a Shape context slot, which does not decide Shape validity.
+    pub(crate) shape_context_target: Option<String>,
     /// Variable declaration computed by this expression, if any.
     pub variable: Option<VariableSlot>,
 }
 
 /// What an expression belongs to, as recorded on [`CompiledExpression`].
 enum Owner {
-    /// Routes and Shape `context` values.
+    /// Routes and expressions without a site.
     None,
     /// A Bind property.
     Bind(BindSlot),
@@ -89,6 +91,8 @@ enum Owner {
         index: usize,
         target: Option<String>,
     },
+    /// A context value evaluated at the Shape target after validation.
+    ShapeContext(Option<String>),
     /// A scoped variable declaration.
     Variable(VariableSlot),
 }
@@ -120,12 +124,15 @@ pub fn compile_expressions(document: &Value) -> ExpressionCompilationResult {
 
 // ── Item initialValue ───────────────────────────────────────────
 
-/// E400 for each Item `initialValue` written as `=expr` that fails to parse (Core §4.2.3).
+/// Check Item `initialValue` expressions for parse and repeat-reference errors.
 ///
 /// Kept out of [`compile_expressions`]: an `initialValue` is a creation seed, evaluated
 /// once, so it is neither a dependency-graph vertex (Core §3.6.1) nor part of the
 /// evaluation-time expression census callers such as wos-server read from `compiled`.
-pub(crate) fn initial_value_parse_errors(document: &Value) -> Vec<LintDiagnostic> {
+pub(crate) fn initial_value_diagnostics(
+    document: &Value,
+    items: &crate::tree::ItemTreeIndex,
+) -> Vec<LintDiagnostic> {
     let mut diagnostics = Vec::new();
     formspec_core::visit_definition_items_from_document(document, &mut |ctx| {
         if let Some(fel_source) = ctx
@@ -133,12 +140,18 @@ pub(crate) fn initial_value_parse_errors(document: &Value) -> Vec<LintDiagnostic
             .get("initialValue")
             .and_then(Value::as_str)
             .and_then(|value| value.strip_prefix('='))
-            && let Err(error) = fel_core::parse(fel_source)
         {
-            diagnostics.push(parse_error(
-                &format!("{}.initialValue", ctx.json_path),
-                &error,
-            ));
+            let path = format!("{}.initialValue", ctx.json_path);
+            match fel_core::parse(fel_source) {
+                Ok(parsed) => crate::repeat_references::check_expression(
+                    items,
+                    Some(&ctx.dotted_path),
+                    &path,
+                    &parsed,
+                    &mut diagnostics,
+                ),
+                Err(error) => diagnostics.push(parse_error(&path, &error)),
+            }
         }
     });
     diagnostics
@@ -330,7 +343,7 @@ fn walk_shapes(
                     try_parse(
                         expr_str,
                         expression_path,
-                        Owner::None,
+                        Owner::ShapeContext(target.map(str::to_owned)),
                         compiled,
                         diagnostics,
                     );
@@ -446,21 +459,27 @@ fn try_parse(
 ) {
     match fel_core::parse(source) {
         Ok(parsed) => {
-            let (bind, shape_target, shape_index, variable) = match owner {
-                Owner::None => (None, None, None, None),
-                Owner::Bind(slot) => (Some(slot), None, None, None),
-                Owner::Shape { index, target } => (None, target, Some(index), None),
-                Owner::Variable(slot) => (None, None, None, Some(slot)),
-            };
-            compiled.push(CompiledExpression {
+            let mut expression = CompiledExpression {
                 expression: source.to_string(),
                 parsed,
                 expression_path,
-                bind,
-                shape_target,
-                shape_index,
-                variable,
-            });
+                bind: None,
+                shape_target: None,
+                shape_index: None,
+                shape_context_target: None,
+                variable: None,
+            };
+            match owner {
+                Owner::None => {}
+                Owner::Bind(slot) => expression.bind = Some(slot),
+                Owner::Shape { index, target } => {
+                    expression.shape_target = target;
+                    expression.shape_index = Some(index);
+                }
+                Owner::ShapeContext(target) => expression.shape_context_target = target,
+                Owner::Variable(slot) => expression.variable = Some(slot),
+            }
+            compiled.push(expression);
         }
         Err(e) => diagnostics.push(parse_error(&expression_path, &e)),
     }
@@ -520,10 +539,13 @@ mod tests {
         };
         let well_formed = item("=today()");
         assert!(compile_expressions(&well_formed).compiled.is_empty());
-        assert!(initial_value_parse_errors(&well_formed).is_empty());
+        assert!(
+            initial_value_diagnostics(&well_formed, &crate::tree::build_item_index(&well_formed))
+                .is_empty()
+        );
 
         let broken = item("=today( +");
-        let malformed = initial_value_parse_errors(&broken);
+        let malformed = initial_value_diagnostics(&broken, &crate::tree::build_item_index(&broken));
         assert_eq!(malformed.len(), 1);
         assert_eq!(malformed[0].path, "$.items[0].initialValue");
         assert!(compile_expressions(&broken).diagnostics.is_empty());

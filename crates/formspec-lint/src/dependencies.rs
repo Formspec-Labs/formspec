@@ -732,6 +732,7 @@ mod tests {
             }),
             shape_target: None,
             shape_index: None,
+            shape_context_target: None,
             variable: None,
         }
     }
