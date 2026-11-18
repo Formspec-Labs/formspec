@@ -299,22 +299,49 @@ pub(crate) fn subject_keys_from_json_object(
     let keys = keys
         .as_object()
         .ok_or("subjectKeys must be a JSON object")?;
-    Ok(Some(
-        keys.iter()
-            .map(|(name, value)| {
-                // Keep exact numbers for the shared subject-key range check. Preserve invalid
-                // keys as null values so they take part in the same sorted validation order.
-                let value = match value {
-                    Value::String(value) => FelValue::String(value.clone()),
-                    Value::Number(number) => {
-                        number.as_decimal().map_or(FelValue::Null, FelValue::Number)
-                    }
-                    _ => FelValue::Null,
-                };
-                (name.clone(), value)
-            })
-            .collect(),
-    ))
+    Ok(Some(decode_subject_keys(keys)))
+}
+
+impl EvalSubject {
+    /// Bind a stored Response's subject for a Definition recheck.
+    ///
+    /// A missing declared subject enters the evaluator's ordinary subject-type check.
+    pub fn for_response(definition: &Value, subject: Option<&Value>) -> Option<Self> {
+        subject
+            .map(Self::from_response_subject)
+            .or_else(|| definition.get("subject").map(|_| Self::default()))
+    }
+
+    /// Read the filed subject without converting numeric keys through floating point.
+    fn from_response_subject(subject: &Value) -> Self {
+        Self {
+            subject_type: subject
+                .get("type")
+                .and_then(Value::as_str)
+                .map(str::to_owned),
+            keys: subject
+                .get("keys")
+                .and_then(Value::as_object)
+                .map(decode_subject_keys),
+        }
+    }
+}
+
+fn decode_subject_keys(keys: &Map<String, Value>) -> HashMap<String, FelValue> {
+    keys.iter()
+        .map(|(name, value)| {
+            // Keep exact numbers for the shared subject-key range check. Preserve invalid
+            // keys as null values so they take part in the same sorted validation order.
+            let value = match value {
+                Value::String(value) => FelValue::String(value.clone()),
+                Value::Number(number) => {
+                    number.as_decimal().map_or(FelValue::Null, FelValue::Number)
+                }
+                _ => FelValue::Null,
+            };
+            (name.clone(), value)
+        })
+        .collect()
 }
 
 /// Parses [`EvalContext`] fields from a host JSON object (clock, prior validations, …).

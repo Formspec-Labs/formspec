@@ -4767,3 +4767,27 @@ fn host_snapshot_agrees_on_declared_fields_preserved_values_and_row_counts() {
     assert_eq!(read("$"), json!(10));
     assert_eq!(read("@count"), json!(2));
 }
+
+#[test]
+fn recheck_uses_the_filed_subject_and_distinguishes_input_refusal() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../../tests/conformance/fixtures/subject-recheck.json"
+    )).unwrap();
+    let definition = &fixture["definition"];
+    let mut subject = fixture["response"]["subject"].clone();
+    for (year, refused) in [(9_007_199_254_740_991_i64, false), (9_007_199_254_740_993, true)] {
+        subject["keys"]["serial"] = json!(year);
+        let context = formspec_eval::EvalContext {
+            subject: formspec_eval::EvalSubject::for_response(definition, Some(&subject)),
+            ..Default::default()
+        };
+        let result = evaluate(definition, &Default::default(), &EvalOptions::new().context(context));
+        assert_eq!(result.refused, refused);
+        if refused {
+            assert_eq!(result.validations[0].path, "#subjectKeys.serial");
+        } else {
+            assert!(result.validations.is_empty());
+            assert_eq!(result.data, fixture["response"]["data"]);
+        }
+    }
+}

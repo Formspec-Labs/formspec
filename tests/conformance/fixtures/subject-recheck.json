@@ -1,0 +1,54 @@
+{
+  "definition": {
+    "$formspec": "1.0",
+    "url": "urn:test:subject-recheck",
+    "version": "1.0.0",
+    "title": "Subject recheck",
+    "status": "active",
+    "subject": {
+      "type": "urn:test:filing-unit",
+      "keys": {
+        "serial": {
+          "dataType": "integer"
+        },
+        "tag": {
+          "dataType": "string"
+        }
+      }
+    },
+    "items": [
+      {
+        "key": "serial",
+        "type": "field",
+        "dataType": "integer",
+        "label": "Serial"
+      }
+    ],
+    "binds": [
+      {
+        "path": "serial",
+        "calculate": "subject('serial')",
+        "constraint": "subject('tag') = '9007199254740993'"
+      }
+    ]
+  },
+  "response": {
+    "$formspecResponse": "1.0",
+    "id": "subject-test",
+    "definitionUrl": "urn:test:subject-recheck",
+    "definitionVersion": "1.0.0",
+    "status": "completed",
+    "authored": "2025-04-01T12:00:00Z",
+    "subject": {
+      "type": "urn:test:filing-unit",
+      "keys": {
+        "serial": 9007199254740991,
+        "tag": "9007199254740993"
+      },
+      "id": "9d2581175b8534a12024fe1fbd133719b142939f610b5b2014bfb86b2920830f"
+    },
+    "data": {
+      "serial": 9007199254740991
+    }
+  }
+}
