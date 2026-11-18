@@ -341,7 +341,7 @@ test('Definition Walk finds the right empty repeat when two workspace sections u
   const walk = await Walk.open(page, {});
   try {
     await walk.repeat('details.rows', {
-      firstField: 'details.rows.entry', rowName: 'Rows', addLabel: 'Add Rows', removeLabel: 'Remove Rows 1',
+      rowName: 'Rows', addLabel: 'Add Rows', removeLabel: 'Remove Rows 1',
     });
     expect(walk.findings).toEqual([]);
     await expect(page.getByRole('button', { name: 'Add Rows' })).toBeVisible();

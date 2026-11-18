@@ -83,7 +83,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
     if (!relevant) return null;
 
     return (
-        <div className="formspec-repeat" data-bind={node.repeatGroup} ref={containerRef}>
+        <div className="formspec-repeat" data-bind={repeatPath} ref={containerRef}>
             <div className="formspec-repeat-list">
                 {instances.map((children, idx) => (
                     <div key={idx} className="formspec-repeat-instance"

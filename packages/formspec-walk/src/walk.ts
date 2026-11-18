@@ -32,8 +32,6 @@ export async function walkDefinition(page: Page, plan: Plan, options: OpenOption
     const byBase = new Map(plan.fields.map((f) => [f.path, f]));
     const order = new Map(plan.fields.map((f, i) => [f.path, i]));
     const covered = new Set<string>();
-    const revealTried = new Set<string>();
-    const repeatDone = new Set<string>();
     const everVisible = new Set<string>();
 
     for (let step = 0; step < 50; step += 1) {
@@ -53,34 +51,31 @@ export async function walkDefinition(page: Page, plan: Plan, options: OpenOption
         await walk.tabOrder(visible.map((f) => f.path), Object.fromEntries(visible.map((f) => [f.path, fieldWant(byBase.get(baseOf(f.path))!)])));
         for (const f of visible) { covered.add(baseOf(f.path)); report.fields += 1; }
 
-        // Repeats whose rows are shown on this step.
-        for (const g of plan.groups.filter((g) => g.repeat?.addLabel && !repeatDone.has(g.path))) {
-            const first = visible.find((f) => baseOf(f.path).startsWith(`${g.path}.`));
-            if (!first) continue;
-            await walk.repeat(g.path, { rowName: g.repeat!.rowName, addLabel: g.repeat!.addLabel, removeLabel: g.repeat!.removeLabel, maxRepeat: g.repeat!.maxRepeat, firstField: first.path });
-            repeatDone.add(g.path);
-            report.repeats += 1;
-        }
-
-        for (const field of plan.fields.filter((f) => f.conditional && !covered.has(f.path))) {
-            const target = live.find((f) => baseOf(f.path) === field.path && !f.inDom);
-            if (!target || revealTried.has(target.path)) continue;
-            const here = await walk.reveal(target.path, { ...fieldWant(field), shownBy: 'engine' }, { stay: true });
-            if (!here) continue; // another step's field; tried again there
-            revealTried.add(target.path);
-            covered.add(field.path);
-            report.revealed += 1;
-        }
-
         if (!(await walk.nextStep())) break;
     }
 
-    // Repeats inside a conditional group: shown by the values that reveal them, on whichever step holds them.
-    for (const g of plan.groups.filter((g) => g.repeat?.addLabel && !repeatDone.has(g.path))) {
-        const first = (await walk.state()).find((f) => baseOf(f.path).startsWith(`${g.path}.`));
-        if (!first) continue;
-        await walk.repeat(g.path, { rowName: g.repeat!.rowName, addLabel: g.repeat!.addLabel, removeLabel: g.repeat!.removeLabel, maxRepeat: g.repeat!.maxRepeat, firstField: first.path, shownBy: 'engine' });
-        repeatDone.add(g.path);
+    // Check changed states after the baseline traversal. A reveal can navigate to any section.
+    const live = await walk.state();
+    for (const field of plan.fields) {
+        const instances = live.filter(f => baseOf(f.path) === field.path);
+        if (field.conditional) {
+            const hidden = instances.filter(f => !f.relevant).map(f => f.path);
+            if (!instances.length) hidden.push(field.path);
+            for (const path of hidden) {
+                await walk.reveal(path, fieldWant(field));
+                covered.add(field.path);
+                report.revealed += 1;
+            }
+        } else if (!instances.length && field.repeatOf) {
+            await walk.field(field.path, fieldWant(field));
+            covered.add(field.path);
+            report.fields += 1;
+        }
+    }
+
+    for (const g of plan.groups.filter(g => g.repeat?.addLabel)) {
+        const r = g.repeat!;
+        await walk.repeat(g.path, { rowName: r.rowName, addLabel: r.addLabel, removeLabel: r.removeLabel, maxRepeat: r.maxRepeat, shownBy: 'engine' });
         report.repeats += 1;
     }
 

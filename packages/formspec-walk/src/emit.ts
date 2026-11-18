@@ -162,10 +162,7 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
         const r = g.repeat!;
         push(`    test(${q(`${repeatTitles[i]} — ${r.addLabel!.text}, focus lands in the new row${r.removeLabel ? `, ${r.removeLabel.text}` : ''}`)}, async ({ page }) => {`);
         push('        const walk = await open(page);');
-        const firstField = plan.fields.find((f) => f.repeatOf === g.path);
-        const recipe = firstField ? recipes.get(firstField.path) : undefined;
-        const shownBy = !firstField?.conditional ? '' : recipe?.length ? `, shownBy: [${recipe.map((s) => `{ path: ${q(s.path)}, value: ${JSON.stringify(s.value)} }`).join(', ')}]` : ", shownBy: 'engine'";
-        push(`        await walk.repeat(${q(g.path)}, { rowName: ${text(r.rowName)}, addLabel: ${text(r.addLabel!)}${r.removeLabel ? `, removeLabel: ${text(r.removeLabel)}` : ''}${r.maxRepeat !== undefined ? `, maxRepeat: ${r.maxRepeat}` : ''}${firstField ? `, firstField: ${q(firstField.path)}` : ''}${shownBy} });`);
+        push(`        await walk.repeat(${q(g.path)}, { rowName: ${text(r.rowName)}, addLabel: ${text(r.addLabel!)}${r.removeLabel ? `, removeLabel: ${text(r.removeLabel)}` : ''}${r.maxRepeat !== undefined ? `, maxRepeat: ${r.maxRepeat}` : ''} });`);
         push('        walk.expectClean();');
         push('    });');
         push();

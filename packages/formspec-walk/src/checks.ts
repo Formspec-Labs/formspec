@@ -45,8 +45,6 @@ export interface RepeatWant {
     maxRepeat?: number;
     /** For a repeat inside a conditional group: the values that show it, or `'engine'` to search. */
     shownBy?: Array<{ path: string; value: unknown }> | 'engine';
-    /** A field inside the group, for the search and for bringing its step into view. */
-    firstField?: string;
 }
 
 export interface SummaryRowWant {
@@ -243,24 +241,32 @@ export class Walk {
         return all.find((f) => f.path === path) ?? all.filter((f) => baseOf(f.path) === path).sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))[0];
     }
 
-    /** Materialize the first instance of an empty enclosing repeat for a field check. */
-    private async withRows(path: string): Promise<LiveField | undefined> {
-        const added = await this.page.evaluate(({ selector, path }) => {
+    /** Check one concrete path, creating and then removing only its missing parent rows. */
+    private async withRows<T>(path: string, check: (path: string) => Promise<T>): Promise<T> {
+        const sample = await this.page.evaluate(({ selector, path }) => {
             const engine = (document.querySelector(selector) as any).engine;
-            let prefix = '';
-            let added = false;
-            for (const key of path.split('.').slice(0, -1)) {
-                prefix = prefix ? `${prefix}.${key}` : key;
-                const count = engine.repeats?.[prefix];
+            const added: string[] = [];
+            const parts = path.split('.');
+            let concrete = '';
+            for (const [i, key] of parts.entries()) {
+                concrete = concrete ? `${concrete}.${key}` : key;
+                if (i === parts.length - 1) break;
+                const count = engine.repeats?.[concrete];
                 if (!count) continue;
-                if (count.value === 0) { engine.addRepeatInstance(prefix); added = true; }
-                prefix += '[0]';
+                if (!count.value && engine.addRepeatInstance(concrete) !== undefined) added.push(concrete);
+                concrete += '[0]';
             }
-            return added;
+            return { concrete, added };
         }, { selector: this.rootSelector, path });
-        if (!added) return undefined;
-        await this.page.waitForTimeout(100);
-        return this.live(path);
+        try {
+            if (sample.added.length) await this.page.waitForTimeout(100);
+            return await check(sample.concrete);
+        } finally {
+            if (sample.added.length) await this.page.evaluate(({ selector, added }) => {
+                const engine = (document.querySelector(selector) as any).engine;
+                for (const group of added.reverse()) engine.removeRepeatInstance(group, 0);
+            }, { selector: this.rootSelector, added: sample.added });
+        }
     }
 
     /** Bring the step that holds `path` into view — forward through a wizard, then from its first step; whether it is visible now. */
@@ -336,7 +342,7 @@ export class Walk {
     }
 
     /** Press Tab through the form from before it; each stop is the field root the focus landed in and what was heard. */
-    async tabWalk(): Promise<Stop[]> {
+    async tabWalk(throughPath?: string): Promise<Stop[]> {
         await this.focusBeforeForm();
         const stops: Stop[] = [];
         let entered = false;
@@ -356,6 +362,7 @@ export class Walk {
             dwell = 0;
             entered = true;
             stops.push({ path: at.path, phrase: at.phrase, descs: at.descs });
+            if (at.path === throughPath) break;
             if (i === MAX_TABS - 1) this.found(`Tab walk: still inside the form after ${MAX_TABS} presses; the form may trap focus`);
         }
         return stops;
@@ -376,8 +383,16 @@ export class Walk {
      * every option. Brings its wizard step into view first.
      */
     async field(pathOrBase: string, w: FieldWant, stop?: Stop, live?: LiveField): Promise<void> {
-        const f = live ?? await this.live(pathOrBase) ?? await this.withRows(pathOrBase);
-        if (!f) { this.found(`${pathOrBase}: the engine has no such field`); return; }
+        const existing = live ?? await this.live(pathOrBase);
+        if (existing) return this.checkField(existing, w, stop);
+        await this.withRows(pathOrBase, async path => {
+            const f = await this.live(path);
+            if (f) await this.checkField(f, w, stop);
+            else this.found(`${pathOrBase}: the engine has no such field`);
+        });
+    }
+
+    private async checkField(f: LiveField, w: FieldWant, stop?: Stop): Promise<void> {
         if (!(await this.show(f.path))) { this.found(`${f.path}: never shown on any step`); return; }
         const label = want(w.label);
         const fieldRoot = this.root.locator(`[data-name="${f.path}"]`).filter({ visible: true });
@@ -564,60 +579,40 @@ export class Walk {
         return phrases;
     }
 
-    /**
-     * A conditional field: shown by the given values (or by values searched at runtime), then reachable by
-     * Tab right after its last driver, heard and named like any field, and gone again when they are reset.
-     * A field on a later wizard step is reached by stepping forward — or, with `stay`, left for that step
-     * (false: not on this one).
-     */
+    /** Check a conditional field in the section where the respondent can reach it. */
     async reveal(pathOrBase: string, w: RevealWant, options: { stay?: boolean } = {}): Promise<boolean> {
-        const f = await this.live(pathOrBase);
-        if (!f) { this.found(`${pathOrBase}: the engine has no such field`); return true; }
-        if (f.inDom) { await this.field(f.path, w, undefined, f); return true; }
-        const recipe = await this.applyRecipe(f.path, w.shownBy ?? 'engine');
-        if (!recipe) return true;
-        const fieldRoot = this.root.locator(`[data-name="${f.path}"]`);
-        // Relevant now; on this step it renders at once, on another it stays hidden until that step shows.
-        let shown = await fieldRoot.waitFor({ state: 'visible', timeout: 300 }).then(() => true, () => false);
-        if (!shown && options.stay) { await this.restore(recipe); return false; }
-        if (!shown) shown = await this.show(f.path);
-        if (!shown) { this.found(`${f.path}: relevant after ${describe(recipe)} but never shown on any step`); await this.restore(recipe); return true; }
-        const driver = this.root.locator(`[data-name="${recipe[recipe.length - 1].path}"]`);
-        await driver.locator('input, select, textarea, button').first().focus();
-        let reached: Stop | undefined;
-        await this.page.evaluate(() => { window.__formspecWalkSeen = new Set<Element>(); });
-        for (let i = 0; i < 80; i += 1) {
-            await this.sr.clearSpokenPhraseLog();
-            await this.page.keyboard.press('Tab');
-            const at = await this.focusStop();
-            if (!at) break;
-            if (at.path === f.path) { reached = at; break; }
-        }
-        if (!reached) this.found(`${f.path}: shown by ${describe(recipe)} but not reachable by Tab after its driver`);
-        await this.field(f.path, w, reached);
-        await this.restore(recipe);
-        const hidden = await fieldRoot.waitFor({ state: 'hidden', timeout: 1500 }).then(() => true, () => false);
-        if (!hidden) this.found(`${f.path}: still shown after its driver was reset`);
-        return true;
+        return this.withRows(pathOrBase, async path => {
+            const f = await this.live(path);
+            if (!f) { this.found(`${path}: the engine has no such field`); return true; }
+            const recipe = f.relevant ? [] : await this.applyRecipe(f.path, w.shownBy ?? 'engine');
+            if (!recipe) return true;
+            const fieldRoot = this.root.locator(`[data-name="${f.path}"]`);
+            try {
+                if (options.stay && !(await fieldRoot.waitFor({ state: 'visible', timeout: 300 }).then(() => true, () => false))) return false;
+                if (!(await this.show(f.path))) {
+                    this.found(`${f.path}: never shown on any step`);
+                    return true;
+                }
+                const reached = (await this.tabWalk(f.path)).find(stop => stop.path === f.path);
+                if (!reached) this.found(`${f.path}: not reachable by Tab in its section`);
+                await this.field(f.path, w, reached);
+            } finally {
+                if (recipe.length) await this.restore(recipe);
+            }
+            if (!f.relevant && !(await fieldRoot.waitFor({ state: 'hidden', timeout: 1500 }).then(() => true, () => false))) {
+                this.found(`${f.path}: still shown after its driver was reset`);
+            }
+            return true;
+        });
     }
 
     /** Set the values that reveal `path` — given, or searched against the page's engine. Null when none do. */
     private async applyRecipe(path: string, shownBy: Array<{ path: string; value: unknown }> | RecipeStep[] | 'engine'): Promise<RecipeStep[] | null> {
-        if (shownBy !== 'engine') {
-            return this.page.evaluate(({ selector, steps }) => {
-                const engine = (document.querySelector(selector) as any).engine;
-                return steps.map(({ path, value }) => {
-                    const previous = engine.getFieldVM(path)?.value?.value ?? null;
-                    engine.setValue(path, value);
-                    return { path, value, previous };
-                });
-            }, { selector: this.rootSelector, steps: shownBy });
-        }
-        const result = await this.page.evaluate(({ selector, src, path, optionValues }) => {
+        const result = await this.page.evaluate(({ selector, src, path, steps }) => {
             const engine = (document.querySelector(selector) as any).engine;
             const search = new Function(`return ${src}`)();
-            return { recipe: search(engine, path, optionValues) as RecipeStep[] | null, expression: engine.whyRelevant(path).expression as string | null };
-        }, { selector: this.rootSelector, src: revealSearch.toString(), path, optionValues: {} });
+            return { recipe: search(engine, path, {}, steps) as RecipeStep[] | null, expression: engine.whyRelevant(path).expression as string | null };
+        }, { selector: this.rootSelector, src: revealSearch.toString(), path, steps: shownBy === 'engine' ? undefined : shownBy });
         if (result.recipe) return result.recipe;
         if (needsHostData(result.expression)) this.uncover(`${path}: shown only with host data (${result.expression}); not derivable from the documents`);
         else this.found(`${path}: nothing enumerable reveals it (${result.expression}); a relevance the documents cannot exercise`);
@@ -635,48 +630,53 @@ export class Walk {
     async repeat(groupPath: string, w: RepeatWant): Promise<void> {
         if (!w.addLabel) return;
         const addLabel = want(w.addLabel);
-        // An identically named repeat may be visible on a different section.
-        // The React renderer stamps repeat bindings, even when there are no rows yet.
-        const itemKey = baseOf(groupPath).split('.').at(-1);
-        const scope = await this.root.locator('.formspec-workspace').count()
-            ? this.root.locator(`:is(.formspec-repeat, .formspec-data-table-wrapper):is([data-bind="${groupPath}"], [data-bind="${itemKey}"])`)
-            : this.root;
-        const add = scope.getByRole('button', { name: asRegex(addLabel) });
-        let recipe: RecipeStep[] | null = null;
-        if (w.firstField) {
-            const f = await this.live(w.firstField);
-            if (f && !f.relevant && w.shownBy) { recipe = await this.applyRecipe(f.path, w.shownBy); if (!recipe) return; }
-            // An empty repeat has an Add control but no field instance to navigate to yet.
-            const shown = f ? await this.show(f.path) : await this.showControl(add.first());
-            if (!shown) { this.found(`${groupPath}: never shown on any step`); if (recipe) await this.restore(recipe); return; }
-        }
-        await this.repeatShown(groupPath, w, scope, add, addLabel);
-        if (recipe) await this.restore(recipe);
+        await this.withRows(groupPath, async concrete => {
+            const scope = await this.root.locator('.formspec-workspace').count()
+                ? this.root.locator(`:is(.formspec-repeat, .formspec-data-table-wrapper)[data-bind="${concrete}"]`)
+                : this.root;
+            const add = scope.getByRole('button', { name: asRegex(addLabel) });
+            // The group may be empty. Its own relevance and Add control do not depend on its first child.
+            const relevant = await this.page.evaluate(({ selector, path }) =>
+                (document.querySelector(selector) as any).engine.isPathRelevant(path), { selector: this.rootSelector, path: concrete });
+            const recipe = relevant ? [] : await this.applyRecipe(concrete, w.shownBy ?? 'engine');
+            if (!recipe) return;
+            try {
+                if (w.maxRepeat !== undefined && await this.repeatCount(concrete) >= w.maxRepeat) return;
+                if (!await this.showControl(add.first())) this.found(`${concrete}: never shown on any step`);
+                else await this.repeatShown(concrete, w, scope, add, addLabel);
+            } finally {
+                if (recipe.length) await this.restore(recipe);
+            }
+        });
+    }
+
+    private repeatCount(path: string): Promise<number> {
+        return this.page.evaluate(({ selector, path }) =>
+            (document.querySelector(selector) as any).engine.repeats[path]?.value ?? 0, { selector: this.rootSelector, path });
     }
 
     private async repeatShown(groupPath: string, w: RepeatWant, scope: Locator, add: Locator, addLabel: ExpectedText): Promise<void> {
-        const rows = () => this.root.locator(`[data-name^="${groupPath}["]`).evaluateAll((els) => new Set(els.map((e) => /\[(\d+)\]/.exec((e as HTMLElement).dataset.name ?? '')?.[1])).size);
+        const rows = () => this.repeatCount(groupPath);
         if (!(await add.count())) { this.found(`${groupPath}: no Add control named "${addLabel.text}"`); return; }
         const before = await rows();
-        if (w.maxRepeat !== undefined && before >= w.maxRepeat) return;
         await this.sr.clearSpokenPhraseLog();
         await add.first().click();
         await this.page.waitForTimeout(50);
         const after = await rows();
         if (after !== before + 1) { this.found(`${groupPath}: Add went from ${before} to ${after} rows`); return; }
         const rowPrefix = `[data-name^="${groupPath}[${after - 1}]"]`;
-        const focusInRow = await this.page.evaluate((sel) => Boolean((document.activeElement as HTMLElement | null)?.closest(sel)), `${rowPrefix}, fieldset:has(${rowPrefix}), [aria-label]:has(${rowPrefix})`);
-        if (!focusInRow) this.found(`${groupPath}: focus did not move into the new row after Add`);
-        // The row's accessible name: the nearest named ancestor — a fieldset's legend, or an aria-label(ledby).
-        const rowName = await this.root.locator(rowPrefix).first().evaluate((el, selector) => {
-            for (let n: HTMLElement | null = (el as HTMLElement).parentElement; n && !n.matches(selector); n = n.parentElement) {
-                const legend = n.tagName === 'FIELDSET' ? n.querySelector(':scope > legend') : null;
-                if (legend) return legend.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-                if (n.getAttribute('aria-label')) return n.getAttribute('aria-label');
-                if (n.getAttribute('aria-labelledby')) return document.getElementById(n.getAttribute('aria-labelledby')!)?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-            }
-            return null;
-        }, this.rootSelector);
+        const rowState = await add.first().evaluate((button, { rowPrefix, after }) => {
+            const container = button.closest('.formspec-repeat');
+            const row = container?.querySelectorAll(':scope > .formspec-repeat-list > .formspec-repeat-instance')[after - 1];
+            const field = document.querySelector(rowPrefix);
+            const owner = row ?? field?.parentElement?.closest('fieldset, [aria-label], [aria-labelledby]');
+            if (!owner) return null;
+            const legend = owner.querySelector(':scope > legend');
+            const labelled = (owner.getAttribute('aria-labelledby') ?? '').split(/\s+/).map(id => document.getElementById(id)?.textContent ?? '').join(' ').trim();
+            return { focused: owner.contains(document.activeElement), name: legend?.textContent ?? owner.getAttribute('aria-label') ?? labelled };
+        }, { rowPrefix, after });
+        if (!rowState?.focused) this.found(`${groupPath}: focus did not move into the new row after Add`);
+        const rowName = rowState?.name;
         const rowWant = want(w.rowName);
         if (!rowName || !nameOpensWith(rowName, rowWant)) this.found(`${groupPath}: new row named "${rowName}", expected "${rowWant.text}"`);
         if (w.removeLabel) {
@@ -732,5 +732,3 @@ export class Walk {
         return checked;
     }
 }
-
-const describe = (recipe: Array<{ path: string; value: unknown }>) => recipe.map((r) => `${r.path}=${JSON.stringify(r.value)}`).join(', ');

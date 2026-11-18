@@ -11,6 +11,20 @@ await initFormspecEngine();
 const options = new URLSearchParams(location.search);
 const mixedRepeat = options.has('mixedRepeat');
 let form: FormDefinition = mixedRepeat ? mixedRepeatDefinition : definition;
+if (options.has('revealCases')) {
+  form = { ...definition, items: [...definition.items.slice(0, 2), {
+    key: 'details', type: 'group', label: 'Details', children: [
+      ...Array.from({ length: 85 }, (_, i) => ({ key: `answer${i}`, type: 'field' as const, dataType: 'string' as const, label: `Answer ${i}` })),
+      { key: 'extra', type: 'field', dataType: 'string', label: 'Extra' },
+      { key: 'people', type: 'group', repeatable: true, label: 'People', children: [
+        { key: 'phones', type: 'group', repeatable: true, label: 'Phones', children: [
+          { key: 'show', type: 'field', dataType: 'boolean', label: 'Show number' },
+          { key: 'number', type: 'field', dataType: 'string', label: 'Number' },
+        ] },
+      ] },
+    ],
+  }], binds: [...(definition.binds ?? []), { path: 'details.people[*].phones[*].number', relevant: '$show' }] };
+}
 if (options.has('continuous')) {
   form = { ...definition, items: [], binds: [] };
 }
