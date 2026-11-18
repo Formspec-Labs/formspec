@@ -1,5 +1,6 @@
 /** @filedesc Run the shared draft storage fixtures against real browser IndexedDB. */
 import { expect, test } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { draftPortConformance } from '../../../packages/formspec-surface/src/draft-port-conformance';
 
 test('review reads the last saved Response with Definition wording for each filing subject', async ({ page }) => {
@@ -32,6 +33,37 @@ for (const name of Object.keys(draftPortConformance)) {
     }, name);
   });
 }
+
+test('the tracker reads an IndexedDB roster through filing and reload', async ({ page }) => {
+  const fixture = '/surface-drafts.html?form&subject&tracker&submit&roster';
+  await page.goto(`${fixture}#/overview/2025`);
+  const band = page.locator('details[data-filing-band]');
+  const alpha = band.locator('a[aria-describedby][href*="/filing/2025?"]');
+  const denied = band.locator('a[aria-describedby][href*="/filing/2027?"]');
+  const waiting = band.getByRole('list', { name: 'Waiting for' });
+  await expect(alpha).toHaveAccessibleDescription(/^Not started/);
+  await expect(denied).toHaveAccessibleDescription('Progress unavailable');
+  await expect(waiting.getByRole('listitem')).toHaveText(['Alpha']);
+  const audit = await new AxeBuilder({ page }).include('details[data-filing-band]').analyze();
+  expect(audit.violations).toEqual([]);
+  await page.getByRole('button', { name: 'File directory', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Directory filed' })).toBeVisible();
+  await page.reload();
+  await expect(waiting.getByRole('listitem')).toHaveText(['Alpha']);
+  await alpha.click();
+  await page.getByLabel('Answer').fill('Filed member answer');
+  await page.getByRole('button', { name: 'Submit report' }).click();
+  await expect(alpha).toHaveAccessibleDescription('Filed');
+  await page.reload();
+  await expect(alpha).toHaveAccessibleDescription('Filed');
+  await expect(band.getByText(/^Receipt reference: urn:uuid:/)).toHaveCount(1);
+  await expect(waiting).toHaveCount(0);
+  await page.goto(`${fixture}#/help`);
+  await expect(band.getByRole('heading', { name: 'Members' })).toBeVisible();
+  await expect(band.getByText('Progress unavailable', { exact: true })).toBeVisible();
+  await expect(band.locator('a[aria-describedby][href*="/filing/2099?"]')).toBeVisible();
+  await expect(alpha).toHaveCount(0);
+});
 
 test('retains unsaved edits when the host recreates the same preview edition list', async ({ page }) => {
   await page.goto('/surface-drafts.html?form');
