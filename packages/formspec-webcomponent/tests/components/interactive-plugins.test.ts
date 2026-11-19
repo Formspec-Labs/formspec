@@ -805,6 +805,7 @@ describe('ActionButton plugin', () => {
         el.responseActionsDocument = {
             $formspecResponseActions: '1.0',
             version: '1.0.0',
+            targetDefinition: { url: 'urn:test:form' },
             actions: [{
                 id: 'complete',
                 intent: 'submit',
@@ -856,6 +857,7 @@ describe('ActionButton plugin', () => {
         el.responseActionsDocument = {
             $formspecResponseActions: '1.0',
             version: '1.0.0',
+            targetDefinition: { url: 'urn:test:form' },
             actions: [{
                 id: 'complete',
                 intent: 'submit',
@@ -1457,6 +1459,24 @@ describe('ActionButton label resolution', () => {
             };
             el.render();
             expect(el.querySelectorAll('button.formspec-submit')).toHaveLength(0);
+
+            // Explicit authored ActionButton must also be disabled and refuse invocation on an incompatible sidecar
+            el.componentDocument = minimalComponentDoc({
+                component: 'Stack',
+                children: [
+                    { component: 'TextInput', bind: 'answer' },
+                    { component: 'ActionButton', actionRef: 'send', label: { literal: 'Send' } },
+                ],
+            }, { targetDefinition: { url: 'urn:review:submit-guard' } });
+            const events: string[] = [];
+            el.addEventListener('checked', () => events.push('checked'));
+            el.render();
+            const authoredBtn = el.querySelector('button.formspec-submit') as HTMLButtonElement;
+            expect(authoredBtn).not.toBeNull();
+            expect(authoredBtn.disabled).toBe(true);
+            authoredBtn.click();
+            await el.invokeAction('send');
+            expect(events).toEqual([]);
         } finally {
             el.remove();
         }

@@ -35,6 +35,7 @@ import {
     createFormEngine,
     findResponseActionByIntent,
     invokeResponseActionAsync,
+    isValidDefinitionResponseActionsDocument,
     missingSubmitActionFinding,
     resolveResponseAction,
     subscribeResponseActionAutosave,
@@ -499,6 +500,13 @@ export function FormspecProvider(props: FormspecProviderProps) {
 
     const [showValidationSummaryAttr, setShowValidationSummaryAttr] = useState(false);
     const effectiveShowValidationSummary = showValidationSummary || showValidationSummaryAttr;
+    const activeDefinition = engine ? engine.getDefinition() : definition;
+    const admittedResponseActionsDocument = useMemo(
+        () => (activeDefinition && isValidDefinitionResponseActionsDocument(responseActionsDocument, activeDefinition))
+            ? responseActionsDocument
+            : null,
+        [activeDefinition, responseActionsDocument],
+    );
 
     const { root: layoutPlan, workspace } = useMemo(() => {
         if (!engine) return { root: null, workspace: undefined };
@@ -509,7 +517,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
                 ? 'when-unauthored'
                 : 'never';
         const autoPlacedActionRefs = autoPlaceControls !== 'never'
-            ? autoPlacedDefinitionActions(responseActionsDocument, def).map((action) => action.id)
+            ? autoPlacedDefinitionActions(admittedResponseActionsDocument, def).map((action) => action.id)
             : [];
         return planDefinitionLayout({
             definition: def,
@@ -522,15 +530,15 @@ export function FormspecProvider(props: FormspecProviderProps) {
             autoPlaceControls,
             showValidationSummary: effectiveShowValidationSummary,
         });
-    }, [engine, componentDocument, componentGraph, hostEvidence, effectiveThemeDocument, activeBreakpoint, onSubmit, responseActionInvoker, effectiveShowValidationSummary, responseActionsDocument]);
+    }, [engine, componentDocument, componentGraph, hostEvidence, effectiveThemeDocument, activeBreakpoint, onSubmit, responseActionInvoker, effectiveShowValidationSummary, admittedResponseActionsDocument]);
 
     // §10: surface a finding when the host wires onSubmit but no submit Action
     // is published — otherwise auto-inject silently no-ops.
     useEffect(() => {
         if (!onSubmit || !onActionFinding) return;
-        if (findResponseActionByIntent(responseActionsDocument, 'submit')) return;
+        if (findResponseActionByIntent(admittedResponseActionsDocument, 'submit')) return;
         onActionFinding(missingSubmitActionFinding());
-    }, [onSubmit, onActionFinding, responseActionsDocument]);
+    }, [onSubmit, onActionFinding, admittedResponseActionsDocument]);
 
     // Touched tracking — stable across re-renders
     const touchedFieldsRef = useRef(new Set<string>());
@@ -562,8 +570,8 @@ export function FormspecProvider(props: FormspecProviderProps) {
     }, []);
 
     const resolveActionRef = useCallback((actionRef: string, nodeId?: string): ActionResolution =>
-        resolveResponseAction(responseActionsDocument, actionRef, nodeId),
-    [responseActionsDocument]);
+        resolveResponseAction(admittedResponseActionsDocument, actionRef, nodeId),
+    [admittedResponseActionsDocument]);
 
     // Auto-emit theme tokens as CSS custom properties onto the provider's OWN
     // element — never the document root. See `themeScopeRef` below for why.
@@ -608,7 +616,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             componentDocument,
             componentGraph,
             hostEvidence,
-            responseActionsDocument,
+            responseActionsDocument: admittedResponseActionsDocument,
             semanticControlScope,
             onSubmit,
             onHostEvent,
@@ -636,7 +644,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             formPresentation: mergedFormPresentation,
             setShowValidationSummaryAttr,
         }),
-        [engine, layoutPlan, workspace, workspaceNavigation, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, responseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, onControlActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, latestSubmitSignal, recordSubmit, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation, setShowValidationSummaryAttr],
+        [engine, layoutPlan, workspace, workspaceNavigation, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, admittedResponseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, onControlActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, latestSubmitSignal, recordSubmit, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation, setShowValidationSummaryAttr],
     );
 
     return (

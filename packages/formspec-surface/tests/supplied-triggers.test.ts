@@ -710,4 +710,91 @@ it('matches canonical JSON Schema + format validation, enforces compatibleVersio
     actionId: 'checkpoint',
     status: 'fireable',
   });
+
+  // Shared in-memory JSON objects (DAG, non-cyclic) must be accepted identically to serialized JSON
+  const sharedDefaults = { language: 'en' };
+  const sharedDagDoc = {
+    $formspecResponseActions: '1.0' as const,
+    version: '1.0.0',
+    targetDefinition: { url: def.url },
+    actions: [button, check],
+    'x-formspec-runtime': {
+      version: '1.0' as const,
+      requests: [{
+        id: 'prepare',
+        adapter: 'http-json' as const,
+        request: {
+          method: 'POST' as const,
+          pathTemplate: '/forms',
+          bodyDefaults: { source: sharedDefaults, destination: sharedDefaults },
+        },
+      }],
+    },
+  };
+  expect(validateSchema(sharedDagDoc)).toBe(true);
+  expect({
+    guard: isValidDefinitionResponseActionsDocument(sharedDagDoc, def),
+    manual: autoPlacedDefinitionActions(sharedDagDoc as never, def).map((a) => a.id),
+    auto: resolveAutosaveResponseAction(sharedDagDoc as never, def).action?.id,
+  }).toEqual({ guard: true, manual: ['manual'], auto: 'checkpoint' });
+
+  // True cycles in runtime JSON values still fail closed without throwing
+  const cyclicDefaults: Record<string, unknown> = {};
+  cyclicDefaults.self = cyclicDefaults;
+  const cyclicDoc = {
+    ...sharedDagDoc,
+    'x-formspec-runtime': {
+      version: '1.0' as const,
+      requests: [{
+        id: 'prepare',
+        adapter: 'http-json' as const,
+        request: { method: 'POST' as const, pathTemplate: '/forms', bodyDefaults: cyclicDefaults },
+      }],
+    },
+  };
+  expect(isValidDefinitionResponseActionsDocument(cyclicDoc, def)).toBe(false);
+
+  // `visibility: 'hidden'`, uppercase `display: 'NONE'`, and closed auto-Modal (`when: 'false'`) do not supply transitions
+  for (const hiddenTree of [
+    {
+      component: 'Stack',
+      children: [{ component: 'ActionButton', actionRef: 'checkpoint', label: { literal: 'Checkpoint now' }, style: { visibility: 'hidden' } }],
+    },
+    {
+      component: 'Stack',
+      children: [{ component: 'ActionButton', actionRef: 'checkpoint', label: { literal: 'Checkpoint now' }, style: { display: 'NONE' } }],
+    },
+    {
+      component: 'Stack',
+      children: [{
+        component: 'Modal',
+        title: 'Checkpoint',
+        trigger: 'auto',
+        when: 'false',
+        children: [{ component: 'ActionButton', actionRef: 'checkpoint', label: { literal: 'Checkpoint now' } }],
+      }],
+    },
+  ]) {
+    const hiddenPlan = planMatchedRoute({
+      handle: filingHandle,
+      app: conditionalApp,
+      experiences: [],
+      definitions: new Map([[def.url, def as never]]),
+      registryEntries: [],
+      widgets: createWidgetRegistry({ modules: [], registryEntries: [] }),
+      resolveDefinitionComponent: () => ({
+        $formspecComponent: '1.0',
+        version: '1.0.0',
+        targetDefinition: { url: def.url },
+        tree: hiddenTree,
+      }) as never,
+      responseActions: [doc],
+      themeAuthority: createThemeAuthority(),
+      hasExecutor: true,
+    });
+    expect(hiddenPlan.transitions[0]).toMatchObject({
+      actionId: 'checkpoint',
+      status: 'fireable',
+    });
+  }
 });

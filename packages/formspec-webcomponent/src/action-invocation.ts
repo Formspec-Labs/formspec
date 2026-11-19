@@ -2,6 +2,7 @@
 import {
     invokeResponseAction,
     invokeResponseActionAsync,
+    isValidDefinitionResponseActionsDocument,
     resolveResponseAction,
     type ActionRefFinding,
     type ActionResolution,
@@ -43,12 +44,22 @@ export interface ActionHost extends SubmitHost {
     dispatchEvent(event: Event): boolean;
 }
 
+function admittedDocumentForHost(
+    host: Pick<ActionHost, '_responseActionsDocument' | '_definition' | 'engine'>,
+): ResponseActionsDocument | null {
+    const activeDefinition = host.engine?.getDefinition() ?? host._definition;
+    if (!activeDefinition || !isValidDefinitionResponseActionsDocument(host._responseActionsDocument, activeDefinition)) {
+        return null;
+    }
+    return host._responseActionsDocument;
+}
+
 export function resolveActionRef(
-    host: Pick<ActionHost, '_responseActionsDocument'>,
+    host: Pick<ActionHost, '_responseActionsDocument' | '_definition' | 'engine'>,
     actionRef: string,
     nodeId?: string,
 ): ActionResolution {
-    return resolveResponseAction(host._responseActionsDocument, actionRef, nodeId);
+    return resolveResponseAction(admittedDocumentForHost(host), actionRef, nodeId);
 }
 
 export function emitActionFinding(host: Pick<ActionHost, 'dispatchEvent'>, finding: ActionRefFinding): void {
@@ -186,9 +197,10 @@ export function invokeAction(
     nodeId?: string,
 ): SubmitDetail | null | Promise<SubmitDetail | null> {
     const ports = buildActionPorts(host);
-    if (host._responseActionInvoker) {
+    const document = admittedDocumentForHost(host);
+    if (host._responseActionInvoker && document) {
         const result = host._responseActionInvoker({
-            document: host._responseActionsDocument,
+            document,
             actionRef,
             nodeId,
             ports,
@@ -199,7 +211,7 @@ export function invokeAction(
         return finishInvocation(host, normalizeInvokerResult(result));
     }
 
-    const result = invokeResponseAction(host._responseActionsDocument, actionRef, ports, nodeId);
+    const result = invokeResponseAction(document, actionRef, ports, nodeId);
     return finishInvocation(host, result);
 }
 
@@ -208,24 +220,25 @@ export async function invokeAutosaveAction(
     actionRef: string,
 ): Promise<ResponseActionInvocationResult<SubmitDetail>> {
     const ports = buildActionPorts(host, { touchFields: false });
+    const document = admittedDocumentForHost(host);
     const settle = (result: ResponseActionInvocationResult<SubmitDetail>) => {
         finishInvocation(host, result, 'autosave');
         return result;
     };
     try {
-        if (host._responseActionInvoker) {
+        if (host._responseActionInvoker && document) {
             const raw = await host._responseActionInvoker({
-                document: host._responseActionsDocument,
+                document,
                 actionRef,
                 ports,
             });
             return settle(normalizeInvokerResult(raw));
         }
-        return settle(await invokeResponseActionAsync(host._responseActionsDocument, actionRef, ports));
+        return settle(await invokeResponseActionAsync(document, actionRef, ports));
     } catch (error) {
         return settle({
             status: 'failed',
-            resolution: resolveResponseAction(host._responseActionsDocument, actionRef),
+            resolution: resolveResponseAction(document, actionRef),
             validationTuple: null,
             detail: null,
             effectTrace: [],

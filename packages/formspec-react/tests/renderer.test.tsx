@@ -1573,6 +1573,7 @@ describe('ActionButton', () => {
         const saveActionsDocument = {
             $formspecResponseActions: '1.0',
             version: '1.0.0',
+            targetDefinition: { url: testDefinition.url },
             actions: [{
                 id: 'save',
                 intent: 'save-draft',
@@ -1621,6 +1622,7 @@ describe('ActionButton', () => {
         const durableActionsDocument = {
             $formspecResponseActions: '1.0',
             version: '1.0.0',
+            targetDefinition: { url: testDefinition.url },
             actions: [{
                 id: 'complete',
                 intent: 'submit',
@@ -1680,6 +1682,7 @@ describe('ActionButton', () => {
         const saveActionsDocument = {
             $formspecResponseActions: '1.0',
             version: '1.0.0',
+            targetDefinition: { url: testDefinition.url },
             actions: [{
                 id: 'save',
                 intent: 'save-draft',
@@ -1732,6 +1735,7 @@ describe('ActionButton', () => {
         const saveActionsDocument = {
             $formspecResponseActions: '1.0',
             version: '1.0.0',
+            targetDefinition: { url: testDefinition.url },
             actions: [{
                 id: 'save',
                 intent: 'save-draft',

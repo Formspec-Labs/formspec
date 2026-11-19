@@ -66,6 +66,18 @@ describe('targetDefinitionMatches', () => {
     expect(targetDefinitionMatches({ url: FORM_URL, compatibleVersions: range }, definition))
       .toBe(expected);
   });
+
+  it.each([
+    ['^0.1.0', '0.2.0', false],
+    ['^0.1.0', '0.1.5', true],
+    ['^0.0.3', '0.0.4', false],
+    ['^0.0.3', '0.0.3', true],
+    ['>=1.0.0 <2.0.0', '2.0.0-rc.1', true],
+    ['>=1.0.0 <2.0.0', '2.0.0', false],
+  ])('matches Core semver caret and prerelease semantics for %j against %s -> %s', (range, version, expected) => {
+    expect(targetDefinitionMatches({ url: FORM_URL, compatibleVersions: range }, { url: FORM_URL, version }))
+      .toBe(expected);
+  });
 });
 
 describe('resolveFieldReferences', () => {

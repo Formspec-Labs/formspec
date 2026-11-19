@@ -1801,6 +1801,103 @@ describe("navigation", () => {
       expect(matches).toHaveLength(1);
       expect(matches[0]?.code).toBe("BUNDLE-DOCUMENT-SHAPE");
     });
+
+    // 3. Reopening a saved clean draft that reuses its writer replays the retained finding
+    const storedDrafts = new Map<string, { revision: string; snapshotJson: string; responseJson: string }>();
+    const reusableStorage = {
+      scope: "ambiguous-reopen-scope",
+      port: {
+        load: vi.fn(async (key: { definitionUrl: string }) => {
+          const existing = storedDrafts.get(key.definitionUrl);
+          return existing ? { status: "loaded" as const, draft: existing } : { status: "absent" as const };
+        }),
+        save: vi.fn(async (input: { key: { definitionUrl: string }; snapshotJson: string; responseJson: string }) => {
+          const revision = `rev-${storedDrafts.size + 1}`;
+          storedDrafts.set(input.key.definitionUrl, {
+            revision,
+            snapshotJson: input.snapshotJson,
+            responseJson: input.responseJson,
+          });
+          return { status: "saved" as const, revision };
+        }),
+        discard: vi.fn(async () => ({ status: "discarded" as const })),
+        readSummaries: vi.fn(async () => new Map()),
+      },
+    };
+    const reopenSurface = {
+      ...filingSurface,
+      routes: [
+        ...filingSurface.routes,
+        { id: "overview", path: "/overview", title: "Overview", routeClass: "intake", slots: [] },
+      ],
+    } as unknown as SurfaceDocument;
+    const reopenBundle: ResolvedBundle = {
+      ...ambiguousBundle,
+      surfaces: [reopenSurface],
+      responseActions: [
+        {
+          $formspecResponseActions: "1.0",
+          version: "1.0.0",
+          targetDefinition: { url: definitionUrl },
+          actions: [
+            {
+              id: "save",
+              intent: "save-draft",
+              label: { literal: "Save draft" },
+              effects: [{ type: "hostEvent", eventName: "saved" }],
+            },
+            ...ambiguousBundle.responseActions[0]!.actions,
+          ],
+        } as ResponseActionsDocument,
+      ],
+    };
+    let currentReopenDiagnostics: readonly SurfaceDiagnostic[] = [];
+    window.history.replaceState(null, "", "#/filing");
+    const reopenView = render(
+      <BrowserSurfaceApp
+        bundle={reopenBundle}
+        adapters={{
+          mode: "hash",
+          draftStorage: reusableStorage,
+          onDiagnostics: (batch) => {
+            currentReopenDiagnostics = batch;
+          },
+        }}
+      />,
+    );
+    await vi.waitFor(() => {
+      expect(
+        currentReopenDiagnostics.filter((d) => d.details?.reason === "ambiguous-autosave-action"),
+      ).toHaveLength(1);
+    });
+    const saveBtn = [...reopenView.querySelectorAll<HTMLButtonElement>("button")].find(
+      (b) => b.textContent?.trim() === "Save draft",
+    );
+    expect(saveBtn).toBeDefined();
+    await act(async () => {
+      saveBtn!.click();
+    });
+    await vi.waitFor(() => expect(reusableStorage.port.save).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      window.location.hash = "/overview";
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    await vi.waitFor(() => {
+      expect(
+        currentReopenDiagnostics.filter((d) => d.details?.reason === "ambiguous-autosave-action"),
+      ).toHaveLength(0);
+    });
+
+    await act(async () => {
+      window.location.hash = "/filing";
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    await vi.waitFor(() => {
+      expect(
+        currentReopenDiagnostics.filter((d) => d.details?.reason === "ambiguous-autosave-action"),
+      ).toHaveLength(1);
+    });
   });
 
   it("keeps exactly one transition control visible when an authored ActionButton toggles live FEL when visibility", async () => {

@@ -254,7 +254,7 @@ describe('submit-intent ActionButton is the tool form\'s native submit button, w
 
     it('never becomes the native submit button for a non-submit-intent Action (e.g. Save Draft)', () => {
         const el = mountTool();
-        el.responseActionsDocument = responseActionsDoc([{ id: 'save-draft', intent: 'save' }]);
+        el.responseActionsDocument = responseActionsDoc([{ id: 'save-draft', intent: 'save-draft' }]);
         el.componentDocument = minimalComponentDoc({
             component: 'Stack',
             children: [

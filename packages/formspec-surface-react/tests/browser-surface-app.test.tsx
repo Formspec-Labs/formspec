@@ -45,7 +45,7 @@ function bundle(title = 'FY25 Filing', multipleForms = false, withRoot = false) 
       [actionsUrl]: {
         $formspecResponseActions: '1.0', version: '1.0.0', scope: 'response',
         targetDefinition: { url: definitionUrl },
-        actions: [{ id: 'save', intent: 'save-draft', label: { literal: 'Save draft' } }],
+        actions: [{ id: 'save', intent: 'save-draft', label: { literal: 'Save draft' }, effects: [{ type: 'hostEvent', eventName: 'draft-saved' }] }],
       },
       [`${appId}/theme`]: { tokens: { 'color.primary': '#123456' } },
       ...Object.fromEntries(locales.map((locale, index) => [`${appId}/locale/${index}`, {

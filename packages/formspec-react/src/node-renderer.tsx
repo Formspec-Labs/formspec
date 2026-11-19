@@ -235,7 +235,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             return result;
         };
 
-        if (responseActionInvoker) {
+        if (responseActionInvoker && responseActionsDocument) {
             const result = responseActionInvoker({
                 document: responseActionsDocument,
                 actionRef,

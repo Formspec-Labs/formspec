@@ -514,7 +514,7 @@ it('keeps trailing instructions beside shared Save on every Wizard step', () => 
         responseActionsDocument={{
             $formspecResponseActions: '1.0', version: '1.0.0', scope: 'response',
             targetDefinition: { url: definition.url },
-            actions: [{ id: 'save', intent: 'save-draft', label: { literal: 'Save draft' } }],
+            actions: [{ id: 'save', intent: 'save-draft', label: { literal: 'Save draft' }, effects: [{ type: 'hostEvent', eventName: 'draft-saved' }] }],
         }} />);
     clickText(host, 'Next');
     expect(control(host, 'intro.name')).not.toBeNull();
@@ -545,7 +545,7 @@ it('renders root Save and validation summary once across authored workspace sect
         responseActionsDocument={{
             $formspecResponseActions: '1.0', version: '1.0.0', scope: 'response',
             targetDefinition: { url: definition.url },
-            actions: [{ id: 'save', intent: 'save-draft', label: { literal: 'Save draft' } }],
+            actions: [{ id: 'save', intent: 'save-draft', label: { literal: 'Save draft' }, effects: [{ type: 'hostEvent', eventName: 'draft-saved' }] }],
         }} />);
     const saves = () => Array.from(host.querySelectorAll('button')).filter(button => button.textContent === 'Save draft');
     const summaries = () => Array.from(host.querySelectorAll('.formspec-validation-summary'));

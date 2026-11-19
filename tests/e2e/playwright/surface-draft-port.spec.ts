@@ -344,13 +344,14 @@ test('background edit stays on the filing route in a Surface without a draft wri
   await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
 });
 
-for (const which of ['styled', 'conditional'] as const) {
+for (const which of ['styled', 'conditional', 'visibility', 'upperDisplay', 'autoModal'] as const) {
   test(`a ${which} hidden authored checkpoint leaves exactly one working transition`, async ({ page }) => {
     await page.goto(`/surface-drafts.html?form&authoredAutosave&${which}#/filing`);
     await expect(page.getByLabel('Answer')).toBeEditable();
-    const ways = page.getByRole('button', { name: /^(Checkpoint now|Continue to Overview)$/ });
-    await expect(ways).toHaveCount(1);
-    await ways.click();
+    await expect(page.getByRole('button', { name: 'Checkpoint now', exact: true })).toHaveCount(0);
+    const fallback = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+    await expect(fallback).toHaveCount(1);
+    await fallback.click();
     await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
   });
 }
@@ -368,6 +369,28 @@ for (const writer of [true, false] as const) {
     expect(JSON.stringify(seen.diagnostics)).toContain('ambiguous-autosave-action');
   });
 }
+
+test('reports ambiguous autosave again when returning to a saved draft with browser Back', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&auto&ambiguous#/filing');
+  const matches = () =>
+    page.evaluate(
+      () =>
+        ((window as unknown as { currentDiagnostics?: Array<{ code?: string; details?: { reason?: string } }> }).currentDiagnostics ?? [])
+          .filter((d) => d.code === 'BUNDLE-DOCUMENT-SHAPE' && d.details?.reason === 'ambiguous-autosave-action').length,
+    );
+  await expect.poll(matches).toBe(1);
+  await page.getByLabel('Answer', { exact: true }).fill('Preserved value');
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await expect(page.getByText('Draft saved in this browser.', { exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    location.hash = '/overview';
+  });
+  await expect(page.getByLabel('Answer', { exact: true })).toHaveCount(0);
+  await expect.poll(matches).toBe(0);
+  await page.goBack();
+  await expect(page.getByLabel('Answer', { exact: true })).toHaveValue('Preserved value');
+  await expect.poll(matches).toBe(1);
+});
 
 test('opens the draft for the resolved filing unit', async ({ page }) => {
   await page.goto('/surface-drafts.html?form&subject#/filing/2025');

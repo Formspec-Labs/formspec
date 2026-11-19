@@ -42,7 +42,16 @@ const authoredButton = component.tree.children?.find(
     node.component === 'ActionButton' && node.actionRef === 'autosave',
 );
 if (authoredButton && query.has('styled')) authoredButton.style = { display: 'none' };
+if (authoredButton && query.has('visibility')) authoredButton.style = { visibility: 'hidden' };
+if (authoredButton && query.has('upperDisplay')) authoredButton.style = { display: 'NONE' };
 if (authoredButton && query.has('conditional')) authoredButton.when = 'false';
+if (authoredButton && query.has('autoModal')) {
+  component.tree.children = component.tree.children!.map((node) =>
+    node === authoredButton
+      ? { component: 'Modal', title: 'Checkpoint', trigger: 'auto', when: 'false', children: [node] }
+      : node,
+  );
+}
 if (query.has('responsiveProbe')) {
   component.breakpoints = { wide: 700 };
   const button = component.tree.children?.find(
@@ -162,6 +171,7 @@ if (query.has('form')) {
       adapters: {
         ...preview.adapters,
         onDiagnostics: (batch) => {
+          (window as unknown as { currentDiagnostics?: readonly unknown[] }).currentDiagnostics = batch;
           ((window as unknown as { observedDiagnostics?: unknown[] }).observedDiagnostics ??= []).push(...batch);
           const win = window as unknown as { numDeliveries?: number };
           win.numDeliveries = (win.numDeliveries ?? 0) + 1;

@@ -495,10 +495,22 @@ function collectRenderedActionRefs(
   node: LayoutNode,
   out: Set<string>,
   evalEngine: IFormEngine | undefined,
+  inheritedHiddenVisibility = false,
 ): void {
-  if (node.props?.hidden === true || node.style?.display === 'none') {
+  const rawDisplay = typeof node.style?.display === 'string'
+    ? node.style.display.trim().toLowerCase()
+    : '';
+  if (node.props?.hidden === true || rawDisplay === 'none') {
     return;
   }
+  const rawVisibility = typeof node.style?.visibility === 'string'
+    ? node.style.visibility.trim().toLowerCase()
+    : '';
+  const hiddenVisibility = rawVisibility === 'hidden' || rawVisibility === 'collapse'
+    ? true
+    : rawVisibility === 'visible'
+      ? false
+      : inheritedHiddenVisibility;
 
   const repeatPath = node.isRepeatTemplate && node.repeatPath
     ? node.repeatPath
@@ -510,14 +522,18 @@ function collectRenderedActionRefs(
     const count = evalEngine.repeats[repeatPath]?.value ?? 0;
     for (let index = 0; index < count; index += 1) {
       for (const child of node.children) {
-        collectRenderedActionRefs(rewriteRepeatInstance(child, repeatPath, index), out, evalEngine);
+        collectRenderedActionRefs(
+          rewriteRepeatInstance(child, repeatPath, index),
+          out,
+          evalEngine,
+          hiddenVisibility,
+        );
       }
     }
     return;
   }
 
-  const modalAutoSkipsWhenGuard = node.component === 'Modal' && node.props?.trigger === 'auto';
-  if (typeof node.when === 'string' && node.when.length > 0 && !modalAutoSkipsWhenGuard) {
+  if (typeof node.when === 'string' && node.when.length > 0) {
     if (!evalEngine) return;
     try {
       if (!evalEngine.compileExpression(node.when, node.whenPrefix ?? '')()) {
@@ -542,16 +558,18 @@ function collectRenderedActionRefs(
   }
 
   if (node.component === 'ActionButton') {
-    const actionRef = node.props?.actionRef;
-    if (typeof actionRef === 'string' && actionRef.length > 0) {
-      out.add(actionRef);
+    if (!hiddenVisibility) {
+      const actionRef = node.props?.actionRef;
+      if (typeof actionRef === 'string' && actionRef.length > 0) {
+        out.add(actionRef);
+      }
     }
     // ActionButton is a leaf widget; it never renders `node.children`.
     return;
   }
 
   for (const child of node.children) {
-    collectRenderedActionRefs(child, out, evalEngine);
+    collectRenderedActionRefs(child, out, evalEngine, hiddenVisibility);
   }
 }
 

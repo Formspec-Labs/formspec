@@ -723,16 +723,22 @@ function isValidGeneration(value: unknown): boolean {
         && (gen.extensions === undefined || isValidExtensions(gen.extensions));
 }
 
-function isValidJsonValue(value: unknown, seen = new WeakSet<object>()): boolean {
+function isValidJsonValue(value: unknown, activeStack = new WeakSet<object>()): boolean {
     if (value === null || typeof value === 'boolean' || typeof value === 'string') return true;
     if (typeof value === 'number') return Number.isFinite(value);
     if (typeof value !== 'object') return false;
-    if (seen.has(value)) return false;
-    seen.add(value);
-    if (Array.isArray(value)) {
-        return value.every((item) => isValidJsonValue(item, seen));
+    if (activeStack.has(value)) return false;
+    activeStack.add(value);
+    try {
+        if (Array.isArray(value)) {
+            return value.every((item) => isValidJsonValue(item, activeStack));
+        }
+        const proto = Object.getPrototypeOf(value);
+        if (proto !== Object.prototype && proto !== null) return false;
+        return Object.values(value as Record<string, unknown>).every((item) => isValidJsonValue(item, activeStack));
+    } finally {
+        activeStack.delete(value);
     }
-    return Object.values(value as Record<string, unknown>).every((item) => isValidJsonValue(item, seen));
 }
 
 function isValidRuntimeValueSelector(value: unknown): boolean {

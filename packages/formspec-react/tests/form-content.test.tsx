@@ -68,7 +68,7 @@ describe('FormspecFormContent under an existing provider', () => {
                 { id: 'save', intent: 'save-draft', label: { literal: 'Save' },
                     validation: { profile: 'off', blocking: 'non-blocking', persistence: 'none' },
                     effects: [{ type: 'hostEvent', eventName: 'saved' }] },
-                { id: 'prepare', intent: 'complete', label: { literal: 'Prepare' },
+                { id: 'prepare', intent: 'x-complete', label: { literal: 'Prepare' },
                     validation: { profile: 'on-submit', blocking: 'block-on-error', persistence: 'complete-response' },
                     effects: [{ type: 'hostEvent', eventName: 'prepared' }] },
                 ...['sign', 'submit', 'paper'].map(id => ({ id, intent: id === 'submit' ? 'submit' : 'review',

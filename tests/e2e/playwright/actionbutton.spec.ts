@@ -172,4 +172,45 @@ test.describe('ActionButton', () => {
     await expect(page.getByRole('button', { name: 'Send unbound', exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => (window as any).reviewEvents)).toEqual([]);
   });
+
+  test('explicit WebComponent ActionButton rejects an incompatible sidecar', async ({ page }) => {
+    await gotoHarness(page);
+    await page.evaluate(() => {
+      const el = document.querySelector('formspec-render') as any;
+      const url = 'urn:fixture:bound';
+      el.definition = {
+        $formspec: '1.0',
+        url,
+        version: '1.0.0',
+        title: 'Bound',
+        items: [{ key: 'answer', label: 'Answer', type: 'field', dataType: 'string' }],
+      };
+      el.componentDocument = {
+        $formspecComponent: '1.0',
+        version: '1.0.0',
+        targetDefinition: { url },
+        tree: {
+          component: 'Stack',
+          children: [
+            { component: 'TextInput', bind: 'answer' },
+            { component: 'ActionButton', actionRef: 'send', label: { literal: 'Send' } },
+          ],
+        },
+      };
+      el.responseActionsDocument = {
+        $formspecResponseActions: '1.0',
+        version: '1.0.0',
+        targetDefinition: { url, compatibleVersions: '>=9.0.0' },
+        actions: [{ id: 'send', intent: 'review', effects: [{ type: 'hostEvent', eventName: 'review-clicked' }] }],
+      };
+      (window as any).calls = 0;
+      el.addEventListener('review-clicked', () => {
+        (window as any).calls += 1;
+      });
+    });
+    await expect(page.getByLabel('Answer', { exact: true })).toBeEditable();
+    const button = page.getByRole('button', { name: 'Send', exact: true });
+    await expect(button).toBeDisabled();
+    expect(await page.evaluate(() => (window as any).calls)).toBe(0);
+  });
 });

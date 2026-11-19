@@ -1054,4 +1054,85 @@ describe('React Response Actions parity', () => {
             vi.useRealTimers();
         }
     });
+
+    it('matches Core compatibleVersions range and prerelease semantics and disables authored buttons on incompatible documents', async () => {
+        const {
+            autoPlacedDefinitionActions,
+            isValidDefinitionResponseActionsDocument,
+            resolveAutosaveResponseAction,
+        } = await import('@formspec-org/engine');
+        const { satisfies } = await import('semver');
+        const baseDef = {
+            $formspec: '1.0' as const,
+            url: 'urn:review:binding',
+            version: '1.0.0',
+            title: 'Form',
+            items: [],
+        };
+        const actions = [
+            {
+                id: 'manual',
+                intent: 'review' as const,
+                label: { literal: 'Manual' },
+                effects: [{ type: 'hostEvent' as const, eventName: 'processed' }],
+            },
+            {
+                id: 'checkpoint',
+                intent: 'autosave' as const,
+                effects: [{ type: 'hostEvent' as const, eventName: 'auto' }],
+            },
+        ];
+        const makeDoc = (range: string) => ({
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url: baseDef.url, compatibleVersions: range },
+            actions,
+        });
+
+        for (const [range, version, expected] of [
+            ['>=9.0.0', '1.0.0', false],
+            ['^0.1.0', '0.2.0', false],
+            ['>=1.0.0 <2.0.0', '2.0.0-rc.1', true],
+        ] as const) {
+            const def = { ...baseDef, version };
+            const doc = makeDoc(range);
+            expect(satisfies(version, range, { includePrerelease: true })).toBe(expected);
+            expect({
+                accepted: isValidDefinitionResponseActionsDocument(doc, def),
+                manual: autoPlacedDefinitionActions(doc as never, def).map((a) => a.id),
+                automatic: resolveAutosaveResponseAction(doc as never, def).action?.id ?? null,
+            }).toEqual({
+                accepted: expected,
+                manual: expected ? ['manual'] : [],
+                automatic: expected ? 'checkpoint' : null,
+            });
+        }
+
+        const onHostEvent = vi.fn();
+        const { container, root } = renderInto(
+            <FormspecForm
+                definition={baseDef}
+                responseActionsDocument={makeDoc('>=9.0.0')}
+                componentDocument={{
+                    $formspecComponent: '1.0',
+                    version: '1.0.0',
+                    targetDefinition: { url: baseDef.url },
+                    tree: { component: 'ActionButton', actionRef: 'manual' },
+                }}
+                onHostEvent={onHostEvent}
+            />,
+        );
+        try {
+            const btn = container.querySelector<HTMLButtonElement>('button[data-action-ref="manual"]');
+            expect(btn).not.toBeNull();
+            expect(btn!.disabled).toBe(true);
+            await act(async () => {
+                btn!.click();
+            });
+            expect(onHostEvent).not.toHaveBeenCalled();
+        } finally {
+            root.unmount();
+            container.remove();
+        }
+    });
 });

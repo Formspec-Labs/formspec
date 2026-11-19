@@ -82,6 +82,7 @@ export function createDraftSession(
       let entry = entries.get(id);
       const previous = entry?.opened;
       const previousConsumers = entry?.consumers;
+      const previousAutosaveFinding = entry?.autosaveFinding;
       if (entry && previous && entry.consumers.size === 0 && (previous.status !== 'ready' || !previous.writer.dirty)) {
         entries.delete(id);
         entry = undefined;
@@ -105,6 +106,10 @@ export function createDraftSession(
           if (reusable) {
             if (draft && draft.revision === reusable.writer.revision &&
                 !Object.values(definition.instances ?? {}).some(instance => instance.response)) {
+              if (previousAutosaveFinding) {
+                created.autosaveFinding = previousAutosaveFinding;
+                for (const notifyFinding of findingListeners) notifyFinding(previousAutosaveFinding);
+              }
               return reusable;
             }
             reusable.writer.dispose();
