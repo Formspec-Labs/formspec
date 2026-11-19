@@ -1,7 +1,7 @@
 /** @filedesc End-to-end verification of filed/returned/blocked lifecycles, ResponseReview formatting, filing map rollups, and shell accessibility. */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { act } from 'react';
+import { act, useState } from 'react';
 import { initFormspecEngine, initFormspecEngineTools, responseSubjectId } from '@formspec-org/engine';
 import {
   dereferenceBundleExport,
@@ -10,12 +10,13 @@ import {
 } from '@formspec-org/surface';
 import type { FormDefinition, ResponseActionsDocument } from '@formspec-org/types';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import canonicalize from 'canonicalize';
 import { BrowserSurfaceApp } from '../src/BrowserSurfaceApp.js';
 import { SurfaceApp } from '../src/SurfaceApp.js';
 import { createMemoryFilingStore, previewResponseRecordTools } from '../src/browser-draft-port.js';
 import { previewFilingInvoker } from '../src/preview-filing-invoker.js';
 import { RESPONSE_REVIEW_COPY_KEYS, RESPONSE_REVIEW_WIDGET_SHAPE } from '../src/widget-metadata.js';
-import { starterWidgetModule } from '../src/widgets/index.js';
+import { createResponseReviewWidget, responseReviewHandoffHash, starterWidgetModule } from '../src/widgets/index.js';
 import { render } from './render.js';
 
 const SURFACE_URL = 'https://example.test/surface';
@@ -1145,7 +1146,320 @@ describe('Filing map KPIs, completed strips, shell accessibility, and responsive
     expect(css).toMatch(/\.fs-surface-brand\s*\{[^}]*min-width:\s*0;[^}]*overflow-wrap:\s*break-word;/s);
     expect(css).toMatch(/\.fs-surface-masthead-controls select\s*\{[^}]*max-width:\s*min\(100%,\s*34rem\);/s);
     expect(css).toMatch(/@media\s*\(max-width:\s*64rem\)\s*\{[^}]*\.fs-surface-header\s*\{[^}]*position:\s*static;/s);
+    expect(css).toMatch(/\.fs-surface-skip-link\s*\{[^}]*transform:\s*translateY\(-200%\);/s);
+    expect(css).toMatch(/\.fs-surface-skip-link:focus,\s*\.fs-surface-skip-link:focus-visible\s*\{[^}]*transform:\s*none;/s);
     expect(css).not.toContain('.fs-surface-filing__sections li:not(:last-child)::after');
     expect(css).toContain('.fs-surface-draft-start__button');
+  });
+
+  it('filters static and dynamic non-relevant items on draft-review without inflating unanswered counts, supports [*] binds and defaultCurrency, and keeps ceremony money lossless', async () => {
+    const conditionalDef: FormDefinition = {
+      $formspec: '1.0',
+      url: 'https://example.test/conditional-review',
+      version: '1.0.0',
+      title: 'Conditional Report',
+      formPresentation: { defaultCurrency: 'EUR' },
+      subject: { type: 'urn:test:cond', keys: { year: { dataType: 'integer' } } },
+      items: [
+        { key: 'show_extra', type: 'field', dataType: 'boolean', label: 'Include extra details' },
+        { key: 'budget', type: 'field', dataType: 'decimal', prefix: '$', label: 'Budget amount' },
+        { key: 'precise_fee', type: 'field', dataType: 'money', label: 'Precise fee' },
+        { key: 'optional_note', type: 'field', dataType: 'string', label: 'Optional note' },
+        {
+          key: 'rows',
+          type: 'group',
+          repeatable: true,
+          label: 'Entries',
+          children: [
+            { key: 'count', type: 'field', dataType: 'integer', label: 'Count' },
+            { key: 'rate', type: 'field', dataType: 'decimal', suffix: '%', label: 'Rate' },
+          ],
+        },
+        {
+          key: 'dynamic_hidden',
+          type: 'group',
+          label: 'Dynamic hidden group',
+          children: [
+            { key: 'kept_val', type: 'field', dataType: 'string', label: 'Kept dynamic value' },
+            { key: 'empty_val', type: 'field', dataType: 'string', label: 'Empty dynamic value' },
+          ],
+        },
+        {
+          key: 'static_hidden',
+          type: 'group',
+          label: 'Hidden calculation group',
+          children: [
+            { key: 'flag', type: 'field', dataType: 'boolean', label: 'Internal flag' },
+            { key: 'shadow_null', type: 'field', dataType: 'string', label: 'Shadow null' },
+          ],
+        },
+      ],
+      binds: [
+        { path: 'rows[*].rate', readonly: 'true', calculate: 'null' },
+        { path: 'dynamic_hidden', relevant: 'show_extra = true' },
+        { path: 'static_hidden', relevant: 'false' },
+        { path: 'static_hidden.flag', calculate: 'true', nonRelevantBehavior: 'keep' },
+      ],
+    };
+
+    const bundle = dereferenceBundleExport({
+      manifest: {
+        $formspecBundle: '2.4',
+        id: 'https://example.test/cond-app',
+        entrySurface: SURFACE_URL,
+        definitions: [{ url: conditionalDef.url }],
+        surfaces: [{ url: SURFACE_URL }],
+        registries: [{ url: REGISTRY_URL }],
+      },
+      documents: {
+        [conditionalDef.url]: conditionalDef,
+        [REGISTRY_URL]: makeRegistry(),
+        [SURFACE_URL]: {
+          $formspecSurface: '0.4',
+          id: 'cond',
+          entry: 'review',
+          modules: [{ id: REVIEW_MODULE, version: '1.0.0' }],
+          routes: [
+            {
+              id: 'form',
+              path: '/form/{year}',
+              title: 'Conditional Report',
+              params: [{ name: 'year', type: 'string' }],
+              slots: [{
+                id: 'form',
+                slotType: 'definition-form',
+                binding: { definitionRef: conditionalDef.url, subjectKeys: { year: 'year' } },
+              }],
+            },
+            {
+              id: 'review',
+              path: '/review/{year}',
+              title: 'Review Conditional Report',
+              params: [{ name: 'year', type: 'string' }],
+              slots: [reviewSlot('form')],
+            },
+          ],
+        },
+      },
+    });
+
+    const load = vi.fn(async (key: any) => ({
+      status: 'loaded' as const,
+      draft: {
+        revision: 'rev-cond',
+        snapshotJson: '{}',
+        responseJson: JSON.stringify({
+          $formspecResponse: '1.0',
+          id: 'urn:test:cond:2026',
+          definitionUrl: conditionalDef.url,
+          definitionVersion: conditionalDef.version,
+          status: 'in-progress',
+          subject: key.subject,
+          data: {
+            show_extra: false,
+            budget: 2500,
+            precise_fee: { amount: '10.125', currency: 'USD' },
+            optional_note: null,
+            rows: [{ count: 5, rate: null }],
+            dynamic_hidden: { kept_val: 'Should hide', empty_val: null },
+            static_hidden: { flag: true, shadow_null: null },
+          },
+        }),
+        pins: {},
+      },
+    }));
+
+    navigateBrowser('/review/2026');
+    const container = render(
+      <BrowserSurfaceApp
+        bundle={bundle}
+        adapters={{
+          routeParams: { year: '2026' },
+          draftStorage: { scope: 'cond-scope', port: { load, save: vi.fn(), readSummaries: vi.fn() } },
+          widgetModules: [starterWidgetModule(REVIEW_MODULE)],
+        }}
+      />,
+    );
+
+    await vi.waitFor(() => expect(container.querySelector('.fs-response-review')).not.toBeNull());
+    // Neither static relevant="false" (even with nonRelevantBehavior="keep") nor dynamic relevant===false appear.
+    expect(container.textContent).not.toContain('Hidden calculation group');
+    expect(container.textContent).not.toContain('Internal flag');
+    expect(container.textContent).not.toContain('Dynamic hidden group');
+    expect(container.textContent).not.toContain('Should hide');
+    // Unanswered count includes ONLY relevant empty optional_note (1), NOT shadow_null or empty_val.
+    const toggle = container.querySelector<HTMLButtonElement>('.fs-response-review-toggle')!;
+    expect(toggle.textContent).toBe('Show 1 unanswered item');
+    act(() => toggle.click());
+    expect(container.textContent).toContain('Optional note');
+    expect(container.textContent).not.toContain('Shadow null');
+    expect(container.textContent).not.toContain('Empty dynamic value');
+    // Wildcard rows[*].rate bind hint renders em-dash for calculated null inside answered repeat row.
+    expect(container.querySelector('[data-response-path="rows[0].rate"] dd')?.textContent).toBe('—');
+    // formPresentation.defaultCurrency EUR applied to numeric currency field, and 3-decimal money preserved without rounding.
+    expect(container.querySelector('[data-response-path="budget"] dd')?.textContent).toContain('2,500');
+    expect(container.querySelector('[data-response-path="budget"] dd')?.textContent).toMatch(/€|EUR/);
+    expect(container.querySelector('[data-response-path="precise_fee"] dd')?.textContent).toBe('$10.125');
+
+    // Verify lossless money formatting in cryptographic before-sign ceremony (>2 decimals and >2^53).
+    const handoffBytes = (res: unknown) => new TextEncoder().encode(`formspec.response.handoff.v1\0${canonicalize(res)}`);
+    const ceremonyDef = {
+      $formspec: '1.0',
+      url: 'urn:test:ceremony-money',
+      version: '1.0.0',
+      items: [
+        { key: 'precise', type: 'field', dataType: 'money', label: 'Precise' },
+        { key: 'huge', type: 'field', dataType: 'money', label: 'Huge' },
+      ],
+    };
+    const ceremonyResponse = {
+      $formspecResponse: '1.0',
+      id: 'resp-money-1',
+      definitionUrl: ceremonyDef.url,
+      definitionVersion: ceremonyDef.version,
+      status: 'completed',
+      authored: '2026-01-01T00:00:00Z',
+      displayedLocale: { locale: 'en' },
+      data: {
+        precise: { amount: '10.125', currency: 'USD' },
+        huge: { amount: '9007199254740993.25', currency: 'USD' },
+      },
+    };
+    const responseHash = await responseReviewHandoffHash(ceremonyResponse, handoffBytes);
+    const CeremonyWidget = createResponseReviewWidget({ canonicalResponseHandoffBytes: handoffBytes });
+    const ceremonyDom = render(
+      <CeremonyWidget
+        moduleId="x-starter"
+        widgetName="ResponseReview"
+        slot={{ id: 'review' }}
+        route={{ surfaceId: 's', routeId: 'r', params: {} }}
+        headingLevel={2}
+        admitsTenantTheme={false}
+        config={{ copy: { en: REVIEW_COPY } }}
+        data={{
+          definition: ceremonyDef,
+          response: ceremonyResponse,
+          presentation: {
+            responseHash,
+            definitionUrl: ceremonyDef.url,
+            definitionVersion: ceremonyDef.version,
+            locale: 'en',
+            actorRef: 'actor-1',
+            draft: { id: 'draft-1', version: 1 },
+            phase: 'before-sign',
+            fields: {
+              precise: { label: 'Precise' },
+              huge: { label: 'Huge' },
+            },
+          },
+        }}
+        emitAction={vi.fn()}
+      />,
+    );
+    await vi.waitFor(() => expect(ceremonyDom.querySelector('[data-response-path="precise"] dd')).not.toBeNull());
+    expect(ceremonyDom.querySelector('[data-response-path="precise"] dd')?.textContent).toBe('$10.125');
+    expect(ceremonyDom.querySelector('[data-response-path="huge"] dd')?.textContent).toBe('$9,007,199,254,740,993.25');
+  });
+
+  it('triggers blocked and submitted actionBanner on Wizard-mode forms and clears stale save notices on sessionGeneration reset', async () => {
+    const wizardDef: FormDefinition = {
+      $formspec: '1.0',
+      url: 'https://example.test/wizard-form',
+      version: '1.0.0',
+      title: 'Guided Filing',
+      formPresentation: { pageMode: 'wizard' },
+      subject: { type: 'urn:test:wizard', keys: { year: { dataType: 'integer' } } },
+      items: [{
+        key: 'step1',
+        type: 'group',
+        label: 'Step 1',
+        children: [{ key: 'name', type: 'field', dataType: 'string', label: 'Applicant name' }],
+      }],
+      binds: [{ path: 'step1.name', required: 'true' }],
+    };
+    const wizardActions: ResponseActionsDocument = {
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      scope: 'response',
+      targetDefinition: { url: wizardDef.url },
+      actions: [
+        { id: 'autosave', intent: 'autosave', label: { literal: 'Autosave' }, effects: [{ type: 'hostEvent', eventName: 'saved' }] },
+        {
+          id: 'submit-wizard',
+          intent: 'submit',
+          label: { literal: 'Submit filing' },
+          validation: { profile: 'on-submit', blocking: 'block-on-error', persistence: 'complete-response' },
+          effects: [{ type: 'hostEvent', eventName: 'submitted' }],
+        },
+      ],
+    };
+    const bundle = dereferenceBundleExport({
+      manifest: {
+        $formspecBundle: '2.4',
+        id: 'https://example.test/wizard-app',
+        entrySurface: SURFACE_URL,
+        definitions: [{ url: wizardDef.url }],
+        surfaces: [{ url: SURFACE_URL }],
+        responseActionDocuments: [{ url: 'https://example.test/wizard-actions' }],
+      },
+      documents: {
+        [wizardDef.url]: wizardDef,
+        'https://example.test/wizard-actions': wizardActions,
+        [SURFACE_URL]: {
+          $formspecSurface: '0.4',
+          id: 'wizard-app',
+          entry: 'wizard',
+          routes: [{
+            id: 'wizard',
+            path: '/wizard/{year}',
+            title: 'Guided Filing',
+            params: [{ name: 'year', type: 'string' }],
+            slots: [{
+              id: 'form',
+              slotType: 'definition-form',
+              binding: { definitionRef: wizardDef.url, subjectKeys: { year: 'year' } },
+            }],
+          }],
+        },
+      },
+    });
+    const store = createMemoryFilingStore({ scope: 'wiz-scope', definitions: new Map([[wizardDef.url, wizardDef]]) });
+    navigateBrowser('/wizard/2026');
+    let setGen!: (next: string) => void;
+    function Host() {
+      const [gen, updateGen] = useState('gen-1');
+      setGen = updateGen;
+      return (
+        <BrowserSurfaceApp
+          bundle={bundle}
+          adapters={{
+            routeParams: { year: '2026' },
+            sessionGeneration: gen,
+            draftStorage: { scope: 'wiz-scope', port: store.drafts },
+            responses: store.responses,
+            definitionActionInvoker: previewFilingInvoker(store.submit),
+          }}
+        />
+      );
+    }
+    const container = render(<Host />);
+
+    await vi.waitFor(() => expect(container.querySelector('[data-name="step1.name"] input')).not.toBeNull());
+    const submitBtn = () => [...container.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Submit filing')!;
+    await act(async () => { submitBtn().click(); });
+    await vi.waitFor(() => expect(container.querySelector('.fs-surface-action-banner--blocked[role="alert"]')).not.toBeNull());
+
+    const input = container.querySelector<HTMLInputElement>('[data-name="step1.name"] input')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Ada Lovelace');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => { submitBtn().click(); });
+    await vi.waitFor(() => expect(container.querySelector('.fs-surface-action-banner--submitted')).not.toBeNull());
+    expect(container.querySelector('.fs-surface-save-notice')?.textContent).toBe('Submitted in this browser.');
+
+    // Changing sessionGeneration on the same mounted BrowserSurfaceApp clears the stale masthead save notice.
+    await act(async () => { setGen('gen-2'); });
+    expect(container.querySelector('.fs-surface-save-notice')?.textContent).toBe('');
   });
 });

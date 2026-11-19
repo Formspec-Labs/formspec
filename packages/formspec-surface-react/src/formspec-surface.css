@@ -151,9 +151,10 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 
 .fs-surface-skip-link {
   position: fixed;
-  top: -4rem;
+  top: 0.75rem;
   left: 0.75rem;
   z-index: 100;
+  transform: translateY(-200%);
   padding: 0.55rem 0.9rem;
   border: 2px solid var(--fs-surface-accent-ink);
   border-radius: var(--formspec-radius-sm, 2px);
@@ -167,7 +168,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 
 .fs-surface-skip-link:focus,
 .fs-surface-skip-link:focus-visible {
-  top: 0.75rem;
+  transform: none;
   outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
 }

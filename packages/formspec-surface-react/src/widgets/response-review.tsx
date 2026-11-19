@@ -9,7 +9,7 @@ import {
 } from "react";
 import canonicalize from "canonicalize";
 import type { Explanation } from "@formspec-org/types";
-import { isQualifiedDraftReview } from '../internal/draft-review-qualification.js';
+import { getDraftReviewIrrelevantPaths, isQualifiedDraftReview } from '../internal/draft-review-qualification.js';
 import {
   canonicalFiniteJson,
   snapshotFiniteJson,
@@ -112,7 +112,12 @@ type ReviewNode =
 type BindHint = {
   readonly?: boolean;
   calculate?: boolean;
+  relevantFalse?: boolean;
 };
+
+function isStaticRelevantFalse(value: unknown): boolean {
+  return value === false || (typeof value === "string" && value.trim().toLowerCase() === "false");
+}
 
 function collectBindHints(definition: Obj): Map<string, BindHint> {
   const hints = new Map<string, BindHint>();
@@ -122,14 +127,25 @@ function collectBindHints(definition: Obj): Map<string, BindHint> {
     if (!object(bind) || !text(bind.path)) continue;
     const isReadonly = bind.readonly !== undefined && bind.readonly !== false && bind.readonly !== "false";
     const isCalculate = bind.calculate !== undefined && bind.calculate !== "";
-    if (!isReadonly && !isCalculate) continue;
+    const isRelevantFalse = isStaticRelevantFalse(bind.relevant);
+    if (!isReadonly && !isCalculate && !isRelevantFalse) continue;
     const prev = hints.get(bind.path);
     hints.set(bind.path, {
       readonly: Boolean(prev?.readonly || isReadonly),
       calculate: Boolean(prev?.calculate || isCalculate),
+      relevantFalse: Boolean(prev?.relevantFalse || isRelevantFalse),
     });
   }
   return hints;
+}
+
+function lookupBindHint(bindHints: Map<string, BindHint> | undefined, path: string): BindHint | undefined {
+  if (!bindHints) return undefined;
+  return (
+    bindHints.get(path) ??
+    bindHints.get(path.replace(/\[\d+\]/g, "[*]")) ??
+    bindHints.get(path.replace(/\[\d+\]/g, ""))
+  );
 }
 
 function isMoneyObject(value: unknown): value is { amount: string | number; currency: string } {
@@ -139,23 +155,73 @@ function isMoneyObject(value: unknown): value is { amount: string | number; curr
   const { amount, currency } = value;
   const validAmount =
     (typeof amount === "number" && Number.isFinite(amount)) ||
-    (typeof amount === "string" && amount.trim().length > 0 && Number.isFinite(Number(amount.trim())));
+    (typeof amount === "string" && /^-?\d+(?:\.\d+)?$/.test(amount.trim()));
   return validAmount && typeof currency === "string" && /^[A-Z]{3}$/.test(currency);
 }
 
-function formatMoneyValue(amount: string | number, currency: string, locale: string): string {
-  const raw = typeof amount === "number" ? amount : Number(amount.trim());
-  if (!Number.isFinite(raw)) return `${currency} ${String(amount)}`;
-  const hasFraction = !Number.isInteger(raw);
+function formatMoneyValue(
+  amount: string | number,
+  currency: string,
+  locale: string,
+  options?: { lossless?: boolean }
+): string {
+  const rawStr = typeof amount === "number" ? String(amount) : amount.trim();
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(rawStr);
+  const effectiveLocale = locale || "en-US";
+  if (match) {
+    const [, sign, intPart, fracPart] = match;
+    const trimmedFrac = fracPart ? fracPart.replace(/0+$/, "") : "";
+    const exactFracLen = fracPart ? fracPart.length : 0;
+    const significantDigits = intPart!.replace(/^0+/, "").length + (fracPart?.length ?? 0);
+    // Preserve exact precision for high-precision or >2-decimal amounts without silent rounding.
+    if (significantDigits <= 15) {
+      const numeric = Number(rawStr);
+      if (Number.isFinite(numeric)) {
+        const minFrac = options?.lossless
+          ? exactFracLen
+          : trimmedFrac.length > 0
+            ? Math.max(2, trimmedFrac.length)
+            : 0;
+        const maxFrac = options?.lossless
+          ? exactFracLen
+          : Math.max(2, trimmedFrac.length);
+        try {
+          return new Intl.NumberFormat(effectiveLocale, {
+            style: "currency",
+            currency,
+            minimumFractionDigits: minFrac,
+            maximumFractionDigits: maxFrac,
+          }).format(numeric);
+        } catch {
+          return `${currency} ${rawStr}`;
+        }
+      }
+    }
+    // High-precision (>15 significant digits) lossless formatting via BigInt grouping.
+    try {
+      const groupedInt = new Intl.NumberFormat(effectiveLocale, { useGrouping: true }).format(BigInt(intPart!));
+      const parts = new Intl.NumberFormat(effectiveLocale, { style: "currency", currency }).formatToParts(0);
+      const currencyPart = parts.find((part) => part.type === "currency")?.value ?? `${currency} `;
+      const decimalSep = parts.find((part) => part.type === "decimal")?.value ?? ".";
+      const fractionSuffix = fracPart !== undefined
+        ? (options?.lossless ? `${decimalSep}${fracPart}` : trimmedFrac ? `${decimalSep}${trimmedFrac}` : "")
+        : "";
+      return `${sign}${currencyPart}${groupedInt}${fractionSuffix}`;
+    } catch {
+      return `${currency} ${rawStr}`;
+    }
+  }
+  const num = typeof amount === "number" ? amount : Number(rawStr);
+  if (!Number.isFinite(num)) return `${currency} ${String(amount)}`;
   try {
-    return new Intl.NumberFormat(locale || "en-US", {
+    return new Intl.NumberFormat(effectiveLocale, {
       style: "currency",
       currency,
-      minimumFractionDigits: hasFraction ? 2 : 0,
+      minimumFractionDigits: Number.isInteger(num) ? 0 : 2,
       maximumFractionDigits: 2,
-    }).format(raw);
+    }).format(num);
   } catch {
-    return `${currency} ${raw.toLocaleString(locale || "en-US")}`;
+    return `${currency} ${rawStr}`;
   }
 }
 
@@ -370,6 +436,14 @@ function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' 
     const copy = c as unknown as ResponseReviewCopy & { acceptedRecord?: string };
     const attachments: string[] = [];
     const bindHints = collectBindHints(d as unknown as Obj);
+    const defaultCurrency =
+      object((d as unknown as Obj).formPresentation) &&
+      text(((d as unknown as Obj).formPresentation as Obj).defaultCurrency)
+        ? (((d as unknown as Obj).formPresentation as Obj).defaultCurrency as string)
+        : undefined;
+    const irrelevantPaths = p.phase === "draft-review"
+      ? getDraftReviewIrrelevantPaths(props.data)
+      : undefined;
     const nodes = walk(
       d.items as unknown as Obj[],
       r.data as Obj,
@@ -378,7 +452,9 @@ function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' 
       copy,
       attachments,
       selection,
-      bindHints
+      bindHints,
+      irrelevantPaths,
+      defaultCurrency
     );
     const explanations = p.phase === 'accepted-record' ? (r.explanations ?? []).filter(entry => {
       if (!object(entry) || !object(entry.author) || !text(entry.author.id) || !text(entry.recorded) ||
@@ -431,11 +507,14 @@ function walk(
   copy: ResponseReviewCopy,
   attachments: string[],
   selection?: AcceptedReviewFieldSelection,
-  bindHints?: Map<string, BindHint>
+  bindHints?: Map<string, BindHint>,
+  irrelevantPaths?: ReadonlySet<string>,
+  defaultCurrency?: string
 ): ReviewNode[] {
   const nodes: ReviewNode[] = [];
   const consumed = new Set<string>();
   const keys = new Set<string>();
+  const isDraftReview = p.phase === "draft-review";
   for (const item of items) {
     if (
       !object(item) ||
@@ -449,6 +528,14 @@ function walk(
     const path = prefix ? `${prefix}.${item.key}` : item.key;
     if (selection && !(item.type === 'field' && selection.includes(path)) &&
       !(item.type === 'group' && selection.contains(path))) continue;
+    const bindHint = lookupBindHint(bindHints, path);
+    if (
+      isDraftReview &&
+      (irrelevantPaths?.has(path) || isStaticRelevantFalse(item.relevant) || bindHint?.relevantFalse)
+    ) {
+      consumed.add(item.key);
+      continue;
+    }
     const value = values[item.key] as FiniteJsonValue;
     const metadata = own(p.fields as unknown as Obj, path)
       ? p.fields[path]
@@ -465,21 +552,28 @@ function walk(
           kind: "group",
           path,
           label: metadata.label,
-          children: value.flatMap((row, i) => selection && !selection.contains(`${path}[${i}]`) ? [] : [{
-            kind: "group" as const,
-            path: `${path}[${i}]`,
-            label: `${metadata.label} ${i + 1}`,
-            children: walk(
-              item.children as Obj[],
-              row as Obj,
-              `${path}[${i}]`,
-              p,
-              copy,
-              attachments,
-              selection,
-              bindHints
-            ),
-          }]).filter(row => !selection || row.children.length > 0),
+          children: value.flatMap((row, i) => {
+            const rowPath = `${path}[${i}]`;
+            if (isDraftReview && irrelevantPaths?.has(rowPath)) return [];
+            if (selection && !selection.contains(rowPath)) return [];
+            return [{
+              kind: "group" as const,
+              path: rowPath,
+              label: `${metadata.label} ${i + 1}`,
+              children: walk(
+                item.children as Obj[],
+                row as Obj,
+                rowPath,
+                p,
+                copy,
+                attachments,
+                selection,
+                bindHints,
+                irrelevantPaths,
+                defaultCurrency
+              ),
+            }];
+          }).filter(row => !selection || row.children.length > 0),
         });
         // An empty repeated group is still a recorded value.
         if (!value.length && !selection)
@@ -499,7 +593,9 @@ function walk(
           copy,
           attachments,
           selection,
-          bindHints
+          bindHints,
+          irrelevantPaths,
+          defaultCurrency
         );
         if (selection && !children.length) continue;
         nodes.push(
@@ -533,8 +629,6 @@ function walk(
             ? value.map((_, i) => `${path}[${i}]`)
             : [path])
         );
-      const templatePath = path.replace(/\[\d+\]/g, "");
-      const bindHint = bindHints?.get(path) ?? bindHints?.get(templatePath);
       const itemReadonly =
         item.readonly !== undefined && item.readonly !== false && item.readonly !== "false";
       const itemCalculate = item.calculate !== undefined && item.calculate !== "";
@@ -542,18 +636,23 @@ function walk(
         itemCalculate || bindHint?.calculate || (itemReadonly || bindHint?.readonly)
       );
       const presentationObj = object(item.presentation) ? item.presentation : undefined;
-      const currency =
-        text(item.currency)
-          ? item.currency
-          : presentationObj && text(presentationObj.currency)
-            ? presentationObj.currency
-            : undefined;
       const prefixText =
         text(item.prefix)
           ? item.prefix
           : presentationObj && text(presentationObj.prefix)
             ? presentationObj.prefix
             : undefined;
+      const explicitCurrency =
+        text(item.currency)
+          ? item.currency
+          : presentationObj && text(presentationObj.currency)
+            ? presentationObj.currency
+            : undefined;
+      const isCurrencyField =
+        item.dataType === "money" ||
+        prefixText === "$" ||
+        (presentationObj && presentationObj.format === "currency");
+      const currency = explicitCurrency ?? (isCurrencyField ? defaultCurrency : undefined);
       const suffixText =
         text(item.suffix)
           ? item.suffix
@@ -629,7 +728,7 @@ function Value({
   if (isMoneyObject(v)) {
     return (
       <span className="fs-response-review-number">
-        {formatMoneyValue(v.amount, v.currency, locale ?? "en-US")}
+        {formatMoneyValue(v.amount, v.currency, locale ?? "en-US", { lossless: !isDraftReview })}
       </span>
     );
   }

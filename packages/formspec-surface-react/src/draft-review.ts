@@ -128,6 +128,42 @@ export async function loadDraftReviewInputs(
         options: path => (engine.getFieldVM(path)?.options.value ?? [])
           .filter(option => option.value.length > 0 && option.label.length > 0),
       });
+      const irrelevantPaths = new Set<string>();
+      for (const field of engine.getEvaluatedFormState({ profile: 'off' }).fields) {
+        if (!field.relevant) irrelevantPaths.add(field.path);
+      }
+      const collectIrrelevantGroups = (
+        items: readonly import('@formspec-org/types').FormItem[],
+        values: Record<string, unknown>,
+        prefix: string,
+      ) => {
+        for (const item of items) {
+          if (!item || typeof item.key !== 'string' || !Object.prototype.hasOwnProperty.call(values, item.key)) {
+            continue;
+          }
+          const path = prefix ? `${prefix}.${item.key}` : item.key;
+          if (!engine.isPathRelevant(path)) {
+            irrelevantPaths.add(path);
+            continue;
+          }
+          if (item.type === 'group' && Array.isArray(item.children)) {
+            const val = values[item.key];
+            if (item.repeatable && Array.isArray(val)) {
+              val.forEach((row, index) => {
+                const rowPath = `${path}[${index}]`;
+                if (!engine.isPathRelevant(rowPath)) {
+                  irrelevantPaths.add(rowPath);
+                } else if (row && typeof row === 'object' && !Array.isArray(row)) {
+                  collectIrrelevantGroups(item.children!, row as Record<string, unknown>, rowPath);
+                }
+              });
+            } else if (val && typeof val === 'object' && !Array.isArray(val)) {
+              collectIrrelevantGroups(item.children, val as Record<string, unknown>, path);
+            }
+          }
+        }
+      };
+      collectIrrelevantGroups(definition.items, response.data as Record<string, unknown>, '');
       const hrefForPath = (targetPath: string): string | null => {
         if (targetPath === '#') return null;
         const section = plan.sections?.find(sec => sec.fields.some(bind => placementCovers(bind, targetPath)));
@@ -168,7 +204,7 @@ export async function loadDraftReviewInputs(
       const data: DraftResponseReviewData = { definition, response,
         presentation: { phase: 'draft-review', revision, locale: engine.getActiveLocale(), fields } };
       const captured = snapshotFiniteJson(data) as Readonly<Record<string, unknown>>;
-      qualifyDraftReview(captured);
+      qualifyDraftReview(captured, irrelevantPaths);
       return {
         status: 'ready',
         degradedInputs: [],

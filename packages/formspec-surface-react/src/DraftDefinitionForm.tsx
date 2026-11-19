@@ -77,15 +77,15 @@ export function DraftDefinitionForm({
   }, [notice]);
   useEffect(() => {
     const report = latest.current.onDraftAvailabilityChange;
-    if (!report) return;
     if (!open || open.status === 'loading') {
-      report('loading');
+      report?.('loading');
     } else if (open.status === 'ready') {
-      report('ready');
+      report?.('ready');
     } else if (open.status === 'filed') {
-      report('filed');
+      report?.('filed');
+      latest.current.reportSave?.('cleared');
     } else {
-      report('blocked');
+      report?.('blocked');
     }
   }, [open?.status]);
   useEffect(() => {

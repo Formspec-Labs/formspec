@@ -1836,9 +1836,12 @@ function DefaultSurfaceDefinitionForm(
     }
   }, [actionBanner]);
 
+  const lastHandledActionResultRef = useRef<ResponseActionInvocationResult<SubmitResult> | undefined>(undefined);
   const handleActionOutcome = useCallback(
     (result: ResponseActionInvocationResult<SubmitResult>) => {
-      if (!engine) return;
+      if (!engine || lastHandledActionResultRef.current === result) return;
+      lastHandledActionResultRef.current = result;
+      if (result.resolution.action?.intent === 'autosave') return;
       if (result.status === 'blocked') {
         const evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
         const progress = summarizeDraftProgress([], evaluated);
@@ -1926,14 +1929,10 @@ function DefaultSurfaceDefinitionForm(
               // `onSubmit` requests the renderer's declared submit control. It is
               // a no-op because durable effects have not reached a terminal yet.
               onSubmit: () => {},
-              ...(onDefinitionActionResult
-                ? {
-                    onActionResult: (result: ResponseActionInvocationResult<SubmitResult>) => {
-                      if (!onActionCompleted) handleActionOutcome(result);
-                      onDefinitionActionResult(result);
-                    },
-                  }
-                : {}),
+              onActionResult: (result: ResponseActionInvocationResult<SubmitResult>) => {
+                handleActionOutcome(result);
+                onDefinitionActionResult?.(result);
+              },
               ...(onActionCompleted
                 ? {
                     onControlActionResult: (
