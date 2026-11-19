@@ -8,7 +8,7 @@ import {
 } from './types.js';
 import { diagnosticSourceForHandle } from './report.js';
 import { exactDefinitionResolution } from './data-sources.js';
-import { escapeJsonPointerToken, ownProp } from './surface-widgets.js';
+import { embedRouteRefFromSlot, escapeJsonPointerToken, ownProp, walkEmbeddedRoutes } from './surface-widgets.js';
 
 interface ResolvedRoute {
   route: Record<string, unknown>;
@@ -74,26 +74,25 @@ function definitionFormSlots(route: ResolvedRoute): DefinitionFormSlot[] {
 /** Direct mounts and the embed slots through which the same Surface renders this Definition. */
 export function renderingSlots(surface: ResolvedArtifactHandle, definitionUrl: string) {
   const mounts: Pick<DefinitionFormSlot, 'route' | 'slotIndex' | 'slotId'>[] = [];
-  const parents = new Map<string, typeof mounts>();
-  for (const route of surfaceRoutes(surface)) {
+  const parents = new Map<ResolvedRoute, typeof mounts>();
+  const routes = surfaceRoutes(surface);
+  const routesById = new Map(routes.map(route => [routeId(route), route]));
+  for (const route of routes) {
     mounts.push(...definitionFormSlots(route).filter(slot => slot.definitionRef === definitionUrl));
     if (!Array.isArray(route.route.slots)) continue;
     route.route.slots.forEach((value, slotIndex) => {
       const slot = record(value);
-      if (stringProp(slot, 'slotType') !== 'embed-route') return;
-      const target = stringProp(record(slot?.binding), 'routeRef');
+      const target = routesById.get(embedRouteRefFromSlot(slot) ?? '');
       if (!target) return;
       const entries = parents.get(target) ?? [];
       entries.push({ route, slotIndex, slotId: stringProp(slot, 'id') });
       parents.set(target, entries);
     });
   }
-  const visited = new Set<string>();
-  for (let cursor = 0; cursor < mounts.length; cursor++) {
-    const id = routeId(mounts[cursor].route);
-    if (!id || visited.has(id)) continue;
-    visited.add(id);
-    mounts.push(...(parents.get(id) ?? []));
+  const mountedRoutes = walkEmbeddedRoutes(mounts.map(mount => mount.route), route =>
+    (parents.get(route) ?? []).map(mount => mount.route));
+  for (const route of mountedRoutes.keys()) {
+    mounts.push(...(parents.get(route) ?? []));
   }
   return mounts;
 }

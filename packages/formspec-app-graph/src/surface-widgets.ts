@@ -1,4 +1,4 @@
-/** @filedesc Shared extraction for qualified Surface module-widget bindings. */
+/** @filedesc Shared extraction for Surface slots and embedded routes. */
 
 import type {
   AppGraphContext,
@@ -58,6 +58,27 @@ export function recordArray(value: unknown): JsonRecord[] {
     if (item) items.push(item);
   }
   return items;
+}
+
+export function embedRouteRefFromSlot(value: unknown): string | undefined {
+  const slot = record(value);
+  if (stringProp(slot, 'slotType') !== 'embed-route') return undefined;
+  return stringProp(record(ownProp(slot, 'binding')), 'routeRef');
+}
+
+/** Visit each reachable route once and remember the preceding route in its shortest path. */
+export function walkEmbeddedRoutes<Route>(
+  roots: readonly Route[],
+  neighbors: (route: Route) => Iterable<Route>,
+): Map<Route, Route | undefined> {
+  const predecessors = new Map<Route, Route | undefined>();
+  for (const root of roots) predecessors.set(root, undefined);
+  for (const route of predecessors.keys()) {
+    for (const neighbor of neighbors(route)) {
+      if (!predecessors.has(neighbor)) predecessors.set(neighbor, route);
+    }
+  }
+  return predecessors;
 }
 
 export function handlesByKind(

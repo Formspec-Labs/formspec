@@ -11,6 +11,7 @@ import {
   appGraphSourceFromModuleSource,
   diagnosticSourceForHandle,
 } from './report.js';
+import { embedRouteRefFromSlot, walkEmbeddedRoutes } from './surface-widgets.js';
 import { satisfies, valid, validRange } from 'semver';
 
 import type {
@@ -217,14 +218,6 @@ function moduleWidgetFromSlot(
   const { moduleId, widgetName } = binding as { moduleId?: unknown; widgetName?: unknown };
   if (typeof moduleId !== 'string' || typeof widgetName !== 'string') return undefined;
   return { moduleId, widgetName };
-}
-
-function embedRouteRefFromSlot(slot: { slotType?: unknown; binding?: unknown }): string | undefined {
-  if (slot.slotType !== 'embed-route') return undefined;
-  const binding = slot.binding;
-  if (!binding || typeof binding !== 'object') return undefined;
-  const routeRef = (binding as { routeRef?: unknown }).routeRef;
-  return typeof routeRef === 'string' ? routeRef : undefined;
 }
 
 function policyEvidences(context: AppGraphContext): UiGraphPolicyEvidence[] {
@@ -773,25 +766,20 @@ function widgetBindingsRenderedBy(
   routesById: ReadonlyMap<string, SurfaceRoute>,
 ): RenderedWidgetBinding[] {
   const bindings: RenderedWidgetBinding[] = [];
-  const visited = new Set<string>([root.id]);
-  const frontier: { route: SurfaceRoute; embedChain: string[] }[] = [
-    { route: root, embedChain: [root.id] },
-  ];
+  const reachable = walkEmbeddedRoutes([root], route => route.slots.flatMap(slot => {
+    const embedded = slot.embedRouteRef === undefined ? undefined : routesById.get(slot.embedRouteRef);
+    return embedded ? [embedded] : [];
+  }));
 
-  for (let cursor = 0; cursor < frontier.length; cursor += 1) {
-    const { route, embedChain } = frontier[cursor];
-    for (const routeSlot of route.slots) {
-      if (routeSlot.moduleWidget) {
-        bindings.push({ route, routeSlot, embedChain });
-        continue;
-      }
-      const embedded = routeSlot.embedRouteRef === undefined
-        ? undefined
-        : routesById.get(routeSlot.embedRouteRef);
-      if (!embedded || visited.has(embedded.id)) continue;
-      visited.add(embedded.id);
-      frontier.push({ route: embedded, embedChain: [...embedChain, embedded.id] });
+  for (const route of reachable.keys()) {
+    const widgetSlots = route.slots.filter(slot => slot.moduleWidget);
+    if (widgetSlots.length === 0) continue;
+    const embedChain: string[] = [];
+    for (let origin: SurfaceRoute | undefined = route; origin; origin = reachable.get(origin)) {
+      embedChain.push(origin.id);
     }
+    embedChain.reverse();
+    bindings.push(...widgetSlots.map(routeSlot => ({ route, routeSlot, embedChain })));
   }
   return bindings;
 }
