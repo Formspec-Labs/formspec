@@ -916,3 +916,55 @@ test('navigating away from Filing disconnects the reachability observer and clos
   expect(counts?.add).toBeGreaterThan(0);
   expect(counts?.add).toBe(counts?.remove);
 });
+
+test('an overriding author stylesheet restores the checkpoint as the only Filing transition', async ({ page }) => {
+  await page.addInitScript(() => {
+    const style = document.createElement('style');
+    style.textContent = '[style*="content-visibility"] { content-visibility: visible !important; }';
+    document.addEventListener('DOMContentLoaded', () => document.head.append(style));
+  });
+  await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter&content#/filing');
+  const button = page.getByRole('button', { name: 'Checkpoint now', exact: true });
+  const fallback = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+  await expect(button).toBeVisible();
+  const observed = await button.evaluate((el) => {
+    const ancestor = el.closest<HTMLElement>('[style*="content-visibility"]')!;
+    return {
+      specified: ancestor.style.getPropertyValue('content-visibility').trim(),
+      computed: getComputedStyle(ancestor).contentVisibility,
+      visible: el.checkVisibility({ visibilityProperty: true }),
+    };
+  });
+  expect(observed).toEqual({ specified: 'hidden', computed: 'visible', visible: true });
+  await expect(fallback).toHaveCount(0, { timeout: 2000 });
+  await button.click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+});
+
+test('narrow viewport hiding the outer Surface slot shell leaves one reachable transition outside it', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 700 });
+  await page.addInitScript(() => {
+    const style = document.createElement('style');
+    style.textContent = '@media (max-width: 600px) { .fs-surface-slot[data-slot-type="definition-form"] { display: none !important; } }';
+    document.addEventListener('DOMContentLoaded', () => document.head.append(style));
+  });
+  await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter#/filing');
+  const button = page.getByRole('button', { name: 'Checkpoint now', exact: true });
+  const fallback = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+  await expect(button).toBeVisible();
+  await expect(fallback).toHaveCount(0);
+
+  await page.setViewportSize({ width: 520, height: 700 });
+  const observed = await page.evaluate(() => {
+    const slot = document.querySelector<HTMLElement>('.fs-surface-slot[data-slot-type="definition-form"]')!;
+    const btn = document.querySelector<HTMLElement>('button[data-action-ref="autosave"]')!;
+    return {
+      slot: getComputedStyle(slot).display === 'none' ? 'hidden' : 'visible',
+      checkpointReachable: btn.checkVisibility({ visibilityProperty: true }),
+    };
+  });
+  expect(observed).toEqual({ slot: 'hidden', checkpointReachable: false });
+  await expect(fallback).toHaveCount(1, { timeout: 2000 });
+  await fallback.click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+});

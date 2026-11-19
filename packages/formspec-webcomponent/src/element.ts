@@ -770,11 +770,27 @@ export class FormspecRender extends HTMLElement {
             event.preventDefault();
             if (event.agentInvoked !== true) {
                 const submitter = event.submitter;
+                const disabledByFieldset = (element: HTMLElement): boolean => {
+                    let current = element.parentElement;
+                    while (current) {
+                        if (current.tagName === 'FIELDSET' && (current as HTMLFieldSetElement).disabled) {
+                            const firstLegend = Array.from(current.children).find((child) => child.tagName === 'LEGEND');
+                            if (!firstLegend || !firstLegend.contains(element)) return true;
+                        }
+                        current = current.parentElement;
+                    }
+                    return false;
+                };
+                const effectivelyDisabled = submitter instanceof HTMLButtonElement && (
+                    submitter.disabled
+                    || submitter.getAttribute('aria-disabled') === 'true'
+                    || (typeof submitter.matches === 'function' && submitter.matches(':disabled'))
+                    || disabledByFieldset(submitter)
+                );
                 if (
                     submitter instanceof HTMLButtonElement
                     && submitter.type === 'submit'
-                    && !submitter.disabled
-                    && submitter.getAttribute('aria-disabled') !== 'true'
+                    && !effectivelyDisabled
                 ) {
                     const submitterActionRef = getActionButtonActionRef(submitter);
                     if (submitterActionRef) {

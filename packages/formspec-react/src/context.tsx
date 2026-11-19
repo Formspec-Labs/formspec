@@ -709,12 +709,20 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
         if (draftSaveFeedback === 'external' || !engine) {
             return;
         }
-        const activeTickets = new Set<NonNullable<ReturnType<NonNullable<typeof feedbackStore>['start']>>>();
+        type AutosaveFeedbackTicket = NonNullable<ReturnType<NonNullable<typeof feedbackStore>['start']>>;
+        const activeTickets = new Set<AutosaveFeedbackTicket>();
+        let settledTicket: AutosaveFeedbackTicket | undefined;
         const cancelActiveTickets = () => {
             for (const pendingTicket of activeTickets) {
                 latestRef.current.feedbackStore?.cancel(pendingTicket);
             }
             activeTickets.clear();
+        };
+        const cancelSettledTicket = () => {
+            if (settledTicket) {
+                latestRef.current.feedbackStore?.cancel(settledTicket);
+                settledTicket = undefined;
+            }
         };
         const controller = createResponseActionAutosaveController({
             engine,
@@ -722,7 +730,12 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
             onFinding: (finding) => {
                 latestRef.current.onActionFinding?.(finding);
             },
-            onDocumentChange: cancelActiveTickets,
+            onDocumentChange: ({ equivalentAction }) => {
+                cancelActiveTickets();
+                if (!equivalentAction) {
+                    cancelSettledTicket();
+                }
+            },
             invoke: async (action, context) => {
                 const invokedDoc = context.document;
                 const current = latestRef.current;
@@ -731,6 +744,7 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
                     ? current.feedbackStore?.start(outletId, action.intent, generationNeedAnchors(action))
                     : undefined;
                 if (ticket) {
+                    settledTicket = undefined;
                     activeTickets.add(ticket);
                 }
 
@@ -767,6 +781,9 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
                     }
                     if (context.isCurrent()) {
                         current.feedbackStore?.settle(ticket, result.status);
+                        if (ticket) {
+                            settledTicket = ticket;
+                        }
                     }
                     current.onActionResult?.(result);
                     if (result.finding) {
@@ -821,6 +838,7 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
                 controllerRef.current = null;
             }
             cancelActiveTickets();
+            cancelSettledTicket();
             controller.dispose();
         };
     }, [engine, draftSaveFeedback]);

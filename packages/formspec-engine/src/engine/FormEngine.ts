@@ -69,6 +69,7 @@ import {
     resolveOptionSetsOnDefinition,
 } from './definition-setup.js';
 import { captureDraftData } from './draft-snapshot.js';
+import { registerDraftEditVersionSignal } from './draft-edit-signal.js';
 import { validateInstanceDataAgainstSchema } from './instance-schema.js';
 import {
     patchDeltaSignalsFromWasm,
@@ -145,6 +146,8 @@ export class FormEngine implements IFormEngine {
 
     private readonly _rx: EngineReactiveRuntime;
     private readonly _evaluationVersion: EngineSignal<number>;
+    private readonly _draftEditVersion: EngineSignal<number>;
+    private _draftEditDirty = false;
     private readonly _bindConfigs: Record<string, EngineBindConfig> = {};
     private readonly _fieldItems = new Map<string, FormItem>();
     /** `dataType` of every field Item by base path, from the definition (FEL value tagging, scope checks). */
@@ -233,6 +236,8 @@ export class FormEngine implements IFormEngine {
         this.instanceVersion = this._rx.signal(0);
         this.structureVersion = this._rx.signal(0);
         this._evaluationVersion = this._rx.signal(0);
+        this._draftEditVersion = this._rx.signal(0);
+        registerDraftEditVersionSignal(this, this._draftEditVersion);
         this._labelContextSignal = this._rx.signal(null);
         this.definition = cloneValue(definition);
         if ([options.responseData, options.savedResponseData, options.draftSnapshot].filter(value => value !== undefined).length > 1) {
@@ -534,6 +539,7 @@ export class FormEngine implements IFormEngine {
                     if (this.repeats[path].value > rows.length) {
                         this.clearRepeatSubtree(path, rows.length);
                         this.repeats[path].value = rows.length;
+                        this._draftEditDirty = true;
                         this.structureVersion.value += 1;
                     }
                     while (this.repeats[path].value < rows.length) {
@@ -582,6 +588,7 @@ export class FormEngine implements IFormEngine {
 
     private appendRepeatRow(path: string, item: FormItem): void {
         const index = this.repeats[path].value;
+        this._draftEditDirty = true;
         this._rx.batch(() => {
             this.repeats[path].value = index + 1;
             this.registerItems(item.children ?? [], `${path}[${index}]`);
@@ -591,6 +598,7 @@ export class FormEngine implements IFormEngine {
 
     /** Reindex the surviving rows with their nested shape, values and prefill protection. */
     private rebuildRepeatRows(path: string, item: FormItem, removedIndex: number): void {
+        this._draftEditDirty = true;
         const children = item.children ?? [];
         const rows: RepeatRowSnapshot[] = [];
         for (let current = 0; current < this.repeats[path].value; current += 1) {
@@ -712,9 +720,16 @@ export class FormEngine implements IFormEngine {
     }
 
     private storeFieldValue(path: string, value: FormFieldValue): void {
+        const hadKey = Object.prototype.hasOwnProperty.call(this._data, path);
         if (value === undefined) {
-            delete this._data[path];
+            if (hadKey) {
+                delete this._data[path];
+                this._draftEditDirty = true;
+            }
         } else {
+            if (!hadKey || !deepEqual(this._data[path], value)) {
+                this._draftEditDirty = true;
+            }
             this._data[path] = cloneValue(value);
         }
     }
@@ -1927,7 +1942,10 @@ export class FormEngine implements IFormEngine {
             // A resumed Response may carry a result for a newly resolved indexed
             // calculation. Discard that result from the editable draft.
             for (const path of this._calculatedPaths) {
-                delete this._data[path];
+                if (Object.prototype.hasOwnProperty.call(this._data, path)) {
+                    delete this._data[path];
+                    this._draftEditDirty = true;
+                }
                 if (this._displaySignalPaths.has(path)) this.signals[path] ??= this._rx.signal(null);
             }
         }
@@ -1954,6 +1972,10 @@ export class FormEngine implements IFormEngine {
                 validationResults: this.validationResults,
                 errorSignals: this.errorSignals,
             });
+            if (this._draftEditDirty) {
+                this._draftEditDirty = false;
+                this._draftEditVersion.value += 1;
+            }
             this._evaluationVersion.value += 1;
         });
     }

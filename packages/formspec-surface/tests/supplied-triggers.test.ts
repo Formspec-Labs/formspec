@@ -977,4 +977,108 @@ it('matches canonical JSON Schema + format validation, enforces compatibleVersio
   expect(captureResult(() => [...slotSuppliedTriggers([directSlot] as never, [getterTargetDoc])])).toEqual([]);
   const inheritedDoc = Object.create(baseStructuralDoc());
   expect(captureResult(() => [...slotSuppliedTriggers([directSlot] as never, [inheritedDoc])])).toEqual([]);
+
+  // Foreign-realm symbol accessor, inherited prototype ID/target getter, and non-enumerable required ID all fail closed without throwing
+  const activeAll = (d: unknown) => [
+    ...allThree(d),
+    captureResult(() => [...slotSuppliedTriggers([directSlot] as never, [d as never])]),
+  ];
+  const invalidAll = [false, [], null, []];
+
+  const foreignSymDoc = vm.runInNewContext(`JSON.parse(${JSON.stringify(JSON.stringify(baseStructuralDoc()))})`);
+  Object.defineProperty(foreignSymDoc.actions[0], Symbol.toStringTag, {
+    enumerable: true,
+    configurable: true,
+    get: () => { throw new Error('read Symbol.toStringTag'); },
+  });
+  expect(activeAll(foreignSymDoc), 'foreign action with own symbol accessor').toEqual(invalidAll);
+
+  const foreignInheritedIdCtx = vm.createContext({ text: JSON.stringify(baseStructuralDoc()) });
+  const foreignInheritedIdDoc = vm.runInContext(
+    'const d = JSON.parse(text); delete d.actions[0].id; Object.defineProperty(Object.prototype, "id", { value: "save", configurable: true }); d',
+    foreignInheritedIdCtx,
+  );
+  expect(activeAll(foreignInheritedIdDoc), 'foreign inherited ID on plain action').toEqual(invalidAll);
+
+  const foreignInheritedTargetCtx = vm.createContext({ text: JSON.stringify(baseStructuralDoc()) });
+  const foreignInheritedTargetDoc = vm.runInContext(
+    'const d = JSON.parse(text); delete d.targetDefinition; Object.defineProperty(Object.prototype, "targetDefinition", { get() { throw new Error("read inherited target"); }, configurable: true }); d',
+    foreignInheritedTargetCtx,
+  );
+  expect(activeAll(foreignInheritedTargetDoc), 'foreign inherited target getter').toEqual(invalidAll);
+
+  const nonEnumIdDoc = baseStructuralDoc();
+  Object.defineProperty(nonEnumIdDoc.actions[0], 'id', { enumerable: false });
+  expect(activeAll(nonEnumIdDoc), 'non-enumerable required ID').toEqual(invalidAll);
+
+  // Widget route planner rejects malformed widget docs and survives unrelated Definition docs with action getters
+  const { flattenRegistryEntries } = await import('../src/index.js');
+  const appDoc = (): any => ({
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    scope: 'app',
+    actions: [{ id: 'save', intent: 'save-draft', label: { literal: 'Save' }, effects: [{ type: 'hostEvent', eventName: 'saved' }] }],
+  });
+  const widgetSlot = {
+    id: 'w',
+    slotType: 'module-widget',
+    binding: { moduleId: 'x-demo', widgetName: 'Demo', actionBindings: { save: { actionRef: 'save' } } },
+  };
+  const widgetSurface = {
+    $formspecSurface: '0.2',
+    id: 's',
+    entry: 'start',
+    modules: [{ id: 'x-demo', version: '1.0.0' }],
+    routes: [
+      { id: 'start', path: '/', slots: [widgetSlot], transitions: [{ trigger: 'save', to: 'done' }] },
+      { id: 'done', path: '/done', slots: [] },
+    ],
+  };
+  const widgetApp = composeSurfaceApp([widgetSurface as never]);
+  const widgetEntries = flattenRegistryEntries([{
+    $formspecRegistry: '1.1',
+    entries: [
+      { name: 'x-demo', category: 'module', version: '1.0.0', status: 'stable', contributes: ['x-demo-widget'] },
+      { name: 'x-demo-widget', category: 'widget', version: '1.0.0', status: 'stable', widgetShape: { widgetName: 'Demo', actionOutputs: [{ name: 'save' }] } },
+    ],
+  } as never]).entries;
+  const planWithDocs = (docs: unknown[]) =>
+    planMatchedRoute({
+      app: widgetApp,
+      handle: widgetApp.routes.find((r) => r.routeId === 'start')!,
+      experiences: [],
+      definitions: new Map([[def.url, def]]),
+      widgets: createWidgetRegistry({ modules: [{ moduleId: 'x-demo', widgets: { Demo: () => null } }], registryEntries: widgetEntries }),
+      registryEntries: widgetEntries,
+      responseActions: docs as never,
+      themeAuthority: createThemeAuthority(),
+      hasWidgetActionExecutor: true,
+      hasExecutor: true,
+    });
+  const widgetActionRefOf = (docs: unknown[]) =>
+    (planWithDocs(docs).slots[0] as any)?.actionOutputs?.[0]?.action?.actionRef ?? null;
+
+  expect(widgetActionRefOf([appDoc()]), 'widget route control').toBe('save');
+  const malformedWidgetCases: Array<[string, (d: any) => any]> = [
+    ['actions accessor', (d) => { addGetter(d, 'actions'); return d; }],
+    ['id accessor', (d) => { addGetter(d.actions[0], 'id'); return d; }],
+    ['target accessor', (d) => { addGetter(d, 'targetDefinition'); return d; }],
+    ['plain class action', (d) => { d.actions[0] = makeBadRecord(d.actions[0]); return d; }],
+    ['inherited document', (d) => Object.create(d)],
+    ['array subclass', (d) => { d.actions = makeArraySubclass(d.actions); return d; }],
+    ['array index accessor', (d) => { addGetter(d.actions, '0'); return d; }],
+  ];
+  for (const [label, mutate] of malformedWidgetCases) {
+    expect(captureResult(() => widgetActionRefOf([mutate(appDoc())])), `widget route ${label}`).toBeNull();
+  }
+
+  const unrelatedDefDoc = () => {
+    const d = baseStructuralDoc();
+    d.actions[0].id = 'otherSave';
+    return d;
+  };
+  expect(widgetActionRefOf([appDoc(), unrelatedDefDoc()]), 'route valid unrelated Definition').toBe('save');
+  const brokenUnrelated = unrelatedDefDoc();
+  addGetter(brokenUnrelated.actions[1], 'id');
+  expect(captureResult(() => widgetActionRefOf([appDoc(), brokenUnrelated])), 'route unrelated Definition with action id accessor').toBe('save');
 });

@@ -1416,3 +1416,67 @@ test('isValidDefinitionResponseActionsDocument and findAutosaveResponseAction re
     engine.dispose();
   }
 });
+
+test('createResponseActionAutosaveController avoids form evaluations and draft snapshots when no autosave action exists', async (t) => {
+  const { createFormEngine, createResponseActionAutosaveController } = await import('../dist/index.js');
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+
+  const def = {
+    $formspec: '1.0',
+    url: 'https://example.test/forms/perf-200',
+    version: '1.0.0',
+    title: 'Perf 200',
+    items: Array.from({ length: 200 }, (_, i) => ({
+      type: 'field',
+      key: `f${i}`,
+      dataType: 'string',
+      label: `Field ${i}`,
+    })),
+  };
+
+  const engine = createFormEngine(def);
+  let snapshotCount = 0;
+  let evaluateCount = 0;
+  let invokeCount = 0;
+  const origSnapshot = engine.getDraftSnapshot.bind(engine);
+  const origEval = engine.getEvaluatedFormState.bind(engine);
+  engine.getDraftSnapshot = (...args) => { snapshotCount += 1; return origSnapshot(...args); };
+  engine.getEvaluatedFormState = (...args) => { evaluateCount += 1; return origEval(...args); };
+
+  const controller = createResponseActionAutosaveController({
+    engine,
+    document: undefined,
+    debounceMs: 50,
+    invoke: () => { invokeCount += 1; },
+  });
+  try {
+    assert.deepEqual(
+      { snapshot: snapshotCount, evaluate: evaluateCount, invoke: invokeCount },
+      { snapshot: 0, evaluate: 0, invoke: 0 },
+    );
+    for (let i = 0; i < 50; i += 1) {
+      engine.setValue(`f${i}`, `v${i}`);
+    }
+    t.mock.timers.tick(200);
+    await Promise.resolve();
+    assert.deepEqual(
+      { snapshot: snapshotCount, evaluate: evaluateCount, invoke: invokeCount },
+      { snapshot: 0, evaluate: 0, invoke: 0 },
+    );
+
+    // Replacing undefined with a valid autosave document still flushes the edits made while no autosave was active.
+    controller.setDocument({
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: def.url },
+      actions: [{ id: 'auto', intent: 'autosave', effects: [{ type: 'hostEvent', eventName: 'autosaved' }] }],
+    });
+    t.mock.timers.tick(100);
+    await Promise.resolve();
+    assert.equal(invokeCount, 1);
+    assert.deepEqual({ snapshot: snapshotCount, evaluate: evaluateCount }, { snapshot: 0, evaluate: 0 });
+  } finally {
+    controller.dispose();
+    engine.dispose();
+  }
+});

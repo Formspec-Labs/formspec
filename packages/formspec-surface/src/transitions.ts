@@ -227,26 +227,60 @@ interface ResolvedTriggers {
   documentCount: number;
 }
 
-function ownDataPropertyValue(obj: unknown, key: string): { present: boolean; value: unknown } {
+export function ownDataPropertyValue(obj: unknown, key: string): { present: boolean; value: unknown } {
   if (!isPlainJsonObject(obj)) return { present: false, value: undefined };
   const descriptor = Object.getOwnPropertyDescriptor(obj, key);
-  if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+  if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value') || !descriptor.enumerable) {
     return { present: false, value: undefined };
   }
   return { present: true, value: descriptor.value };
 }
 
-function ownPlainActions(document: unknown): readonly Record<string, unknown>[] {
+export function isStrictPlainRecord(obj: unknown): obj is Record<string, unknown> {
+  if (!isPlainJsonObject(obj)) return false;
+  for (const key of Object.getOwnPropertyNames(obj)) {
+    const descriptor = Object.getOwnPropertyDescriptor(obj, key);
+    if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value') || !descriptor.enumerable) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function ownPlainActions(document: unknown): readonly Record<string, unknown>[] {
+  if (!isStrictPlainRecord(document)) return [];
   const prop = ownDataPropertyValue(document, 'actions');
   if (!prop.present || !isPlainJsonArray(prop.value)) return [];
   const actions: Record<string, unknown>[] = [];
   for (let index = 0; index < prop.value.length; index += 1) {
     const descriptor = Object.getOwnPropertyDescriptor(prop.value, String(index));
-    if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) return [];
-    if (!isPlainJsonObject(descriptor.value)) continue;
+    if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value') || !descriptor.enumerable) return [];
+    if (!isStrictPlainRecord(descriptor.value)) return [];
     actions.push(descriptor.value);
   }
   return actions;
+}
+
+/**
+ * Find the unique strict plain-JSON action matching `actionRef` across loaded
+ * Response Actions documents without invoking structural getters or trusting
+ * inherited/class/non-plain wrappers. Malformed documents are skipped without
+ * throwing so unrelated broken documents cannot abort valid action lookup.
+ */
+export function findUniquePlainAction<TDocument extends ResponseActionsDocumentLike>(
+  documents: readonly TDocument[],
+  actionRef: string,
+): { document: TDocument; action: Record<string, unknown> } | undefined {
+  const matches: Array<{ document: TDocument; action: Record<string, unknown> }> = [];
+  for (const document of documents) {
+    for (const action of ownPlainActions(document)) {
+      const idProp = ownDataPropertyValue(action, 'id');
+      if (idProp.present && idProp.value === actionRef) {
+        matches.push({ document, action });
+      }
+    }
+  }
+  return matches.length === 1 ? matches[0] : undefined;
 }
 
 function indexTriggers(documents: readonly ResponseActionsDocumentLike[]): ResolvedTriggers {
@@ -269,20 +303,22 @@ function indexTriggers(documents: readonly ResponseActionsDocumentLike[]): Resol
 }
 
 function targetDefinitionUrl(document: ResponseActionsDocumentLike): string | undefined {
+  if (!isStrictPlainRecord(document)) return undefined;
   const targetProp = ownDataPropertyValue(document, 'targetDefinition');
-  if (!targetProp.present) return undefined;
+  if (!targetProp.present || !isStrictPlainRecord(targetProp.value)) return undefined;
   const urlProp = ownDataPropertyValue(targetProp.value, 'url');
   return urlProp.present && typeof urlProp.value === 'string' ? urlProp.value : undefined;
 }
 
 function isApplicationScoped(document: ResponseActionsDocumentLike): boolean {
-  if (!isPlainJsonObject(document)) return false;
+  if (!isStrictPlainRecord(document)) return false;
   const scopeProp = ownDataPropertyValue(document, 'scope');
-  return scopeProp.present && scopeProp.value === 'app' && targetDefinitionUrl(document) === undefined;
+  const targetProp = ownDataPropertyValue(document, 'targetDefinition');
+  return scopeProp.present && scopeProp.value === 'app' && targetProp.value === undefined;
 }
 
 function isDefinitionScoped(document: ResponseActionsDocumentLike): boolean {
-  if (!isPlainJsonObject(document)) return false;
+  if (!isStrictPlainRecord(document)) return false;
   const hasScope = Object.prototype.hasOwnProperty.call(document, 'scope');
   if (hasScope) {
     const scopeProp = ownDataPropertyValue(document, 'scope');

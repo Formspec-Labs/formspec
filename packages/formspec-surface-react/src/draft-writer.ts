@@ -142,11 +142,29 @@ export function createDraftWriter(options: DraftWriterOptions) {
   function saveAutomatically(): Promise<boolean> {
     if (autosaving) return autosaving;
     if (!authoredAutosave || !active || conflicted) return Promise.resolve(false);
-    autosaving = invoke({
-      document: currentActions,
-      actionRef: authoredAutosave.id,
-      ports: { submit: captureActionResponse, dispatchHostEvent: () => {} },
-    }, { automatic: true }).then(result => result.detail !== null && (result.status === 'completed' || result.status === 'deferred'))
+    autosaving = (async () => {
+      let lastSucceeded = true;
+      while (active && !conflicted && authoredAutosave && (edit !== savedEdit || !committed)) {
+        const actionToRun: ResponseAction = authoredAutosave;
+        const documentToRun: ResponseActionsDocument | undefined = currentActions;
+        const attemptEdit = edit;
+        clearTimer();
+        const result = await invoke({
+          document: documentToRun,
+          actionRef: actionToRun.id,
+          ports: { submit: captureActionResponse, dispatchHostEvent: () => {} },
+        }, { automatic: true });
+        lastSucceeded = result.detail !== null && (result.status === 'completed' || result.status === 'deferred');
+        if (!lastSucceeded) {
+          if (edit === attemptEdit && currentActions === documentToRun && authoredAutosave === actionToRun) {
+            return false;
+          }
+          continue;
+        }
+        if (edit === savedEdit && committed) break;
+      }
+      return active && lastSucceeded;
+    })()
       .catch(() => { report?.('saveFailed'); return false; })
       .finally(() => { autosaving = undefined; });
     return autosaving;
@@ -238,12 +256,35 @@ export function createDraftWriter(options: DraftWriterOptions) {
     return pending;
   }
 
-  async function drain(create: boolean, { automatic = false }: { automatic?: boolean } = {}): Promise<boolean> {
+  type AutomaticFlushGuard = {
+    expectedEdit: number;
+    expectedDocument: ResponseActionsDocument | undefined;
+    expectedAction: ResponseAction | undefined;
+  };
+
+  async function drain(create: boolean, automatic?: AutomaticFlushGuard): Promise<boolean> {
     clearTimer();
     if (pending && !await pending) return false;
     if (conflicted) return false;
+    if (automatic) {
+      if (!active || !authoredAutosave) return active;
+      if (edit === savedEdit && (!create || committed)) {
+        clearTimer();
+        return active;
+      }
+      // Never persist a newer edit or superseded action under a prior automatic invocation.
+      if (
+        edit !== automatic.expectedEdit
+        || currentActions !== automatic.expectedDocument
+        || authoredAutosave !== automatic.expectedAction
+      ) {
+        return false;
+      }
+      const saved = await checkpoint();
+      clearTimer();
+      return saved && active;
+    }
     while (active && (edit !== savedEdit || (create && !committed))) {
-      if (automatic && !authoredAutosave) break;
       if (!await checkpoint()) return false;
       clearTimer();
     }
@@ -251,9 +292,9 @@ export function createDraftWriter(options: DraftWriterOptions) {
     return active;
   }
 
-  async function flush(create = false, options?: { automatic?: boolean }): Promise<boolean> {
+  async function flush(create = false, automatic?: AutomaticFlushGuard): Promise<boolean> {
     if (fence) await fence.catch(() => undefined);
-    return drain(create, options);
+    return drain(create, automatic);
   }
 
   function resolveConflict(choice: 'load' | 'keep'): Promise<boolean | 'reopen'> {
@@ -298,6 +339,9 @@ export function createDraftWriter(options: DraftWriterOptions) {
   }
 
   async function invokeCheckpoint(input: DraftActionInput, { automatic = false }: { automatic?: boolean } = {}) {
+    const expectedEdit = edit;
+    const expectedDocument = currentActions;
+    const expectedAction = authoredAutosave;
     const invocationId = input.invocationContext?.invocationId ?? `urn:uuid:${crypto.randomUUID()}`;
     const invocationContext = { ...input.invocationContext, invocationId };
     const ports = options.checkpointPorts?.({ ...input, invocationContext }) ?? input.ports;
@@ -306,7 +350,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
       if (!conflicted) report?.('saveFailed');
       return invocation;
     }
-    if (await flush(true, { automatic })) return invocation;
+    if (await flush(true, automatic ? { expectedEdit, expectedDocument, expectedAction } : undefined)) return invocation;
     return { ...invocation, status: 'failed' as const, failureReason: 'Draft could not be saved.' };
   }
 

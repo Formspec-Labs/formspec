@@ -18,6 +18,7 @@ import type {
 import { targetDefinitionMatches, VALIDATION_MAPPING_MASTER_TABLE } from '@formspec-org/types';
 import { ResponseActionsPreconditionCatalog } from './precondition-catalog.js';
 import { isPlainJsonArray, isPlainJsonObject, isValidPlainJsonValue } from './service-request-runtime.js';
+import { getDraftEditVersionSignal } from './engine/draft-edit-signal.js';
 
 /**
  * Singleton precondition catalog. Spec §4.1 publishes a closed catalog of
@@ -614,13 +615,15 @@ export function isValidResponseActionIntent(intent: unknown): intent is Response
 function asRecord(value: unknown): Record<string, unknown> | null {
     if (!isPlainJsonObject(value)) return null;
     if (Object.getOwnPropertySymbols(value).length > 0) return null;
+    const out: Record<string, unknown> = Object.create(null);
     for (const key of Object.getOwnPropertyNames(value)) {
         const descriptor = Object.getOwnPropertyDescriptor(value, key);
-        if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+        if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value') || !descriptor.enumerable) {
             return null;
         }
+        out[key] = descriptor.value;
     }
-    return value;
+    return out;
 }
 
 function hasMinLength1(value: unknown): value is string {
@@ -965,8 +968,10 @@ function hasValidResponseActionShape(value: unknown): value is ResponseAction {
         return false;
     }
 
-    if (action.validation !== undefined) {
-        const validationRecord = asRecord(action.validation);
+    let validationRecord: Record<string, unknown> | null = null;
+    const hasValidation = Object.prototype.hasOwnProperty.call(action, 'validation');
+    if (hasValidation && action.validation !== undefined) {
+        validationRecord = asRecord(action.validation);
         if (!validationRecord || !hasOnlyAllowedKeys(validationRecord, VALIDATION_OVERRIDE_KEYS)) {
             return false;
         }
@@ -984,7 +989,10 @@ function hasValidResponseActionShape(value: unknown): value is ResponseAction {
     }
 
     try {
-        resolveResponseActionValidationTuple(value as ResponseAction);
+        const sanitizedAction = hasValidation
+            ? Object.assign(Object.create(null), action, { validation: validationRecord ?? action.validation })
+            : action;
+        resolveResponseActionValidationTuple(sanitizedAction as unknown as ResponseAction);
     } catch {
         return false;
     }
@@ -992,7 +1000,8 @@ function hasValidResponseActionShape(value: unknown): value is ResponseAction {
 }
 
 function hasActionLabel(action: ResponseAction): boolean {
-    const label = asRecord(action.label);
+    const record = asRecord(action);
+    const label = record ? asRecord(record.label) : null;
     return label ? hasNonEmptyString(label.literal) || hasNonEmptyString(label.ref) : false;
 }
 
@@ -1166,12 +1175,18 @@ export interface ResponseActionAutosaveInvokeContext {
     isCurrent: () => boolean;
 }
 
+export interface ResponseActionAutosaveDocumentChange {
+    previousAction: ResponseAction | null;
+    nextAction: ResponseAction | null;
+    equivalentAction: boolean;
+}
+
 export interface ResponseActionAutosaveOptions {
     engine: Pick<IFormEngine, 'getDraftSnapshot' | 'getEvaluatedFormState'> & Partial<Pick<IFormEngine, 'getDefinition'>>;
     document: ResponseActionsDocumentInput | null | undefined;
     debounceMs?: number | undefined;
     onFinding?: ((finding: ActionRefFinding) => void) | undefined;
-    onDocumentChange?: (() => void) | undefined;
+    onDocumentChange?: ((change: ResponseActionAutosaveDocumentChange) => void) | undefined;
     invoke: (action: ResponseAction, context: ResponseActionAutosaveInvokeContext) => unknown | Promise<unknown>;
 }
 
@@ -1189,9 +1204,10 @@ export function createResponseActionAutosaveController(
     options: ResponseActionAutosaveOptions,
 ): ResponseActionAutosaveController {
     const debounceMs = options.debounceMs ?? 400;
+    const draftEditVersionSignal = getDraftEditVersionSignal(options.engine);
     let currentDocument = options.document;
     let resolvedAutosave: ResponseAction | null = null;
-    let snapshot = options.engine.getDraftSnapshot();
+    let snapshot: ReturnType<IFormEngine['getDraftSnapshot']> | undefined;
     let edit = 0;
     let savedEdit = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -1199,6 +1215,7 @@ export function createResponseActionAutosaveController(
     let pendingFlushAfterInFlight = false;
     let active = true;
     let generation = 0;
+    let unsubscribe: (() => void) | undefined;
 
     function clearTimer(): void {
         if (timer !== undefined) {
@@ -1215,6 +1232,37 @@ export function createResponseActionAutosaveController(
             timer = undefined;
             void run();
         }, debounceMs);
+    }
+
+    function ensureSubscribed(shouldTrackFallback: boolean): void {
+        if (unsubscribe || !active) return;
+        if (draftEditVersionSignal) {
+            let lastVersion: number | undefined;
+            unsubscribe = preactReactiveRuntime.effect(() => {
+                const currentVersion = draftEditVersionSignal.value;
+                if (lastVersion === undefined) {
+                    lastVersion = currentVersion;
+                    return;
+                }
+                if (currentVersion !== lastVersion) {
+                    lastVersion = currentVersion;
+                    edit += 1;
+                    schedule();
+                }
+            });
+            return;
+        }
+        if (!shouldTrackFallback) return;
+        snapshot = options.engine.getDraftSnapshot();
+        unsubscribe = preactReactiveRuntime.effect(() => {
+            options.engine.getEvaluatedFormState({ profile: 'off' });
+            const latest = options.engine.getDraftSnapshot();
+            if (!deepEqual(latest, snapshot)) {
+                snapshot = latest;
+                edit += 1;
+                schedule();
+            }
+        });
     }
 
     function run(): Promise<void> {
@@ -1264,19 +1312,29 @@ export function createResponseActionAutosaveController(
     function reconcileDocument(nextDocument: ResponseActionsDocumentInput | null | undefined, initial: boolean): void {
         if (!active) return;
         if (!initial && nextDocument === currentDocument) return;
-        if (!initial) {
-            generation += 1;
-            options.onDocumentChange?.();
-        }
+        const previousAction = resolvedAutosave;
         currentDocument = nextDocument;
         const resolution = resolveAutosaveResponseAction(
             currentDocument,
             options.engine.getDefinition?.(),
         );
-        resolvedAutosave = resolution.action;
+        const nextAction = resolution.action;
+        resolvedAutosave = nextAction;
+        if (!initial) {
+            generation += 1;
+            const equivalentAction = previousAction !== null
+                && nextAction !== null
+                && deepEqual(previousAction, nextAction);
+            options.onDocumentChange?.({
+                previousAction,
+                nextAction,
+                equivalentAction,
+            });
+        }
         if (resolution.finding) {
             options.onFinding?.(resolution.finding);
         }
+        ensureSubscribed(resolvedAutosave !== null || Boolean(resolution.finding));
         if (!resolvedAutosave) {
             clearTimer();
             pendingFlushAfterInFlight = false;
@@ -1293,16 +1351,6 @@ export function createResponseActionAutosaveController(
 
     reconcileDocument(options.document, true);
 
-    const unsubscribe = preactReactiveRuntime.effect(() => {
-        options.engine.getEvaluatedFormState({ profile: 'off' });
-        const latest = options.engine.getDraftSnapshot();
-        if (!deepEqual(latest, snapshot)) {
-            snapshot = latest;
-            edit += 1;
-            schedule();
-        }
-    });
-
     return {
         setDocument(nextDocument) {
             reconcileDocument(nextDocument, false);
@@ -1312,7 +1360,8 @@ export function createResponseActionAutosaveController(
             generation += 1;
             pendingFlushAfterInFlight = false;
             clearTimer();
-            unsubscribe();
+            unsubscribe?.();
+            unsubscribe = undefined;
         },
     };
 }

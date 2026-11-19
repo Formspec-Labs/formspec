@@ -217,6 +217,7 @@ export {
   planTransitions,
   plannedDefinitionFormActionRefs,
   responseActionsDocumentForDefinition,
+  findUniquePlainAction,
   slotSuppliedTriggers,
   type PlannedTransition,
   type ResponseActionsDocumentLike,

@@ -54,7 +54,12 @@ import {
   type SurfaceStaticAssetResolver,
 } from './static-content.js';
 import type { WidgetKey, WidgetRegistry, WidgetResolution } from './registry.js';
-import type { ResponseActionsDocumentLike } from './transitions.js';
+import {
+  findUniquePlainAction,
+  isStrictPlainRecord,
+  ownDataPropertyValue,
+  type ResponseActionsDocumentLike,
+} from './transitions.js';
 import {
   dataSourceAvailableToWidget,
   resolveDataSourceDescriptor,
@@ -664,39 +669,46 @@ function resolveWidgetAction(
   inputs: readonly WidgetDataInputPlan[],
   definitions: ReadonlyMap<string, FormDefinition>,
 ): { action: WidgetActionMetadataPlan; responseContext?: WidgetActionResponsePlan } | undefined {
-  const matches = documents.flatMap((document) =>
-    (Array.isArray(document?.actions) ? document.actions : [])
-      .filter((action): action is NonNullable<typeof action> =>
-        Boolean(action && typeof action === 'object' && !Array.isArray(action) && action.id === actionRef))
-      .map((action) => ({ document, action })),
-  );
-  if (matches.length !== 1) return undefined;
-  const match = matches[0];
+  const match = findUniquePlainAction(documents, actionRef);
   if (!match) return undefined;
   const selectedInputs = inputs.filter((input) => input.name === responseInput);
   const selected = selectedInputs.length === 1 ? selectedInputs[0] : undefined;
   const descriptor = selected?.status === 'ready' ? selected.descriptor : undefined;
-  const target = match.document.targetDefinition;
-  const targetPin = target && typeof target.url === 'string'
-    ? { url: target.url, ...(ownString(target, 'compatibleVersions') ? { compatibleVersions: ownString(target, 'compatibleVersions')! } : {}) }
+  const targetProp = ownDataPropertyValue(match.document, 'targetDefinition');
+  const target = isStrictPlainRecord(targetProp.value) ? targetProp.value : undefined;
+  const targetUrlProp = target ? ownDataPropertyValue(target, 'url') : undefined;
+  const targetCompatProp = target ? ownDataPropertyValue(target, 'compatibleVersions') : undefined;
+  const targetPin = targetUrlProp?.present && typeof targetUrlProp.value === 'string'
+    ? {
+        url: targetUrlProp.value,
+        ...(targetCompatProp?.present && typeof targetCompatProp.value === 'string' && targetCompatProp.value.length > 0
+          ? { compatibleVersions: targetCompatProp.value }
+          : {}),
+      }
     : undefined;
   const candidates = [...definitions.values()].filter((definition) =>
     targetDefinitionMatches(targetPin, definition));
   const definition = candidates.length === 1 ? candidates[0] : undefined;
   if (!widgetActionScopeMatches({ document: match.document, responseInput, inputs,
     sourceSchema: descriptor?.source.schema, definition })) return undefined;
-  const responseContext = match.document.scope === 'app' ? undefined
+  const scopeProp = ownDataPropertyValue(match.document, 'scope');
+  const responseContext = scopeProp.value === 'app' ? undefined
     : descriptor && definition && typeof responseInput === 'string' ? { inputName: responseInput, descriptor, definition } : undefined;
-  if (match.document.scope !== 'app' && !responseContext) return undefined;
+  if (scopeProp.value !== 'app' && !responseContext) return undefined;
   const { action } = match;
-  if (!action || typeof action.intent !== 'string') return undefined;
+  const intentProp = ownDataPropertyValue(action, 'intent');
+  if (!intentProp.present || typeof intentProp.value !== 'string') return undefined;
 
-  const labelRecord =
-    typeof action.label === 'object' && action.label !== null && !Array.isArray(action.label)
-      ? (action.label as Readonly<Record<string, unknown>>)
-      : undefined;
-  const literal = labelRecord ? ownString(labelRecord, 'literal') : undefined;
-  const ref = labelRecord ? ownString(labelRecord, 'ref') : undefined;
+  const labelProp = ownDataPropertyValue(action, 'label');
+  const labelRecord = isStrictPlainRecord(labelProp.value) ? labelProp.value : undefined;
+  const literalProp = labelRecord ? ownDataPropertyValue(labelRecord, 'literal') : undefined;
+  const refProp = labelRecord ? ownDataPropertyValue(labelRecord, 'ref') : undefined;
+  const literal = literalProp?.present && typeof literalProp.value === 'string' && literalProp.value.length > 0
+    ? literalProp.value
+    : undefined;
+  const ref = refProp?.present && typeof refProp.value === 'string' && refProp.value.length > 0
+    ? refProp.value
+    : undefined;
   const label: WidgetActionLabelPlan | undefined =
     literal !== undefined && ref === undefined
       ? { literal }
@@ -707,7 +719,7 @@ function resolveWidgetAction(
 
   const metadata: WidgetActionMetadataPlan = {
     actionRef,
-    intent: action.intent,
+    intent: intentProp.value,
     ...(label !== undefined ? { label } : {}),
     ...(needAnchors.length > 0 ? { needAnchors } : {}),
   };

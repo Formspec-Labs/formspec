@@ -525,6 +525,43 @@ describe('wizard page mode: the native submit button is only actionable on the l
         invokerEl.responseActionsDocument = doc(['third']);
         staleBtn.click();
         expect(hookCalls).toEqual([]);
+
+        // 3. Disabled fieldset blocks requestSubmit on descendants while allowing buttons inside the first <legend>
+        for (const mode of ['enabled', 'first-legend', 'own-disabled', 'disabled-fieldset', 'aria-only'] as const) {
+            const fsEl = mountTool(emptyDef);
+            fsEl.showSubmit = false;
+            fsEl.componentDocument = minimalComponentDoc(
+                { component: 'ActionButton', id: 'source', actionRef: 'second' },
+                { targetDefinition: { url: 'urn:test:webmcp' } },
+            );
+            fsEl.responseActionsDocument = doc(['first', 'second']);
+            fsEl.render();
+            const btn = fsEl.querySelector('#source') as HTMLButtonElement;
+            const form = btn.form!;
+            const events: string[] = [];
+            fsEl.addEventListener('record-second', () => events.push('second'));
+            if (mode === 'own-disabled') {
+                btn.disabled = true;
+            } else if (mode === 'aria-only') {
+                btn.setAttribute('aria-disabled', 'true');
+            } else if (mode === 'disabled-fieldset' || mode === 'first-legend') {
+                const fieldset = document.createElement('fieldset');
+                fieldset.disabled = true;
+                form.append(fieldset);
+                if (mode === 'first-legend') {
+                    const legend = document.createElement('legend');
+                    legend.append(btn);
+                    fieldset.append(legend);
+                } else {
+                    fieldset.append(btn);
+                }
+            }
+            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+            Object.defineProperty(submitEvent, 'submitter', { value: btn });
+            form.dispatchEvent(submitEvent);
+            expect(events, mode).toEqual(mode === 'enabled' || mode === 'first-legend' ? ['second'] : []);
+            fsEl.remove();
+        }
     });
 
     it('preserves pending dirty autosave across equivalent or corrected document replacement in WebComponent', async () => {

@@ -1340,20 +1340,46 @@ function DefaultDefinitionFormSlot({
   );
 }
 
-function hasHiddenContentVisibility(element: HTMLElement, computed?: CSSStyleDeclaration | null): boolean {
-  const inline = (
-    element.style.getPropertyValue('content-visibility')
-    || (element.style as CSSStyleDeclaration & { contentVisibility?: string }).contentVisibility
-    || ''
-  ).trim().toLowerCase();
-  if (inline === 'hidden') return true;
-  if (!computed) return false;
+function effectiveStyleValue(
+  element: HTMLElement,
+  property: string,
+  camelProp: 'display' | 'contentVisibility' | 'visibility',
+  computed?: CSSStyleDeclaration | null,
+): string {
   const computedValue = (
-    computed.getPropertyValue('content-visibility')
-    || (computed as CSSStyleDeclaration & { contentVisibility?: string }).contentVisibility
+    computed?.getPropertyValue(property)
+    || (computed as (CSSStyleDeclaration & { contentVisibility?: string }) | null | undefined)?.[camelProp]
     || ''
   ).trim().toLowerCase();
-  return computedValue === 'hidden';
+  if (computedValue) return computedValue;
+  return (
+    element.style.getPropertyValue(property)
+    || (element.style as CSSStyleDeclaration & { contentVisibility?: string })[camelProp]
+    || ''
+  ).trim().toLowerCase();
+}
+
+function hasHiddenContentVisibility(element: HTMLElement, computed?: CSSStyleDeclaration | null): boolean {
+  return effectiveStyleValue(element, 'content-visibility', 'contentVisibility', computed) === 'hidden';
+}
+
+function isEffectivelyDisabled(element: HTMLElement): boolean {
+  if ((element as HTMLButtonElement).disabled) return true;
+  if (element.getAttribute('aria-disabled') === 'true') return true;
+  if (typeof element.matches === 'function') {
+    try {
+      if (element.matches(':disabled')) return true;
+    } catch {
+      // Ignore selector engines without :disabled support.
+    }
+  }
+  for (let current = element.parentElement; current; current = current.parentElement) {
+    if (current.tagName === 'FIELDSET' && (current as HTMLFieldSetElement).disabled) {
+      const firstLegend = Array.from(current.children).find((child) => child.tagName === 'LEGEND');
+      if (!firstLegend || !firstLegend.contains(element)) return true;
+    }
+  }
+  return false;
 }
 
 function isElementReachable(
@@ -1364,21 +1390,29 @@ function isElementReachable(
   if (visiting.has(element)) return false;
   visiting.add(element);
   const view = element.ownerDocument.defaultView;
-  const computedVisibility = (
-    view?.getComputedStyle(element).visibility ?? element.style.visibility
-  ).trim().toLowerCase();
+  const computedVisibility = effectiveStyleValue(
+    element,
+    'visibility',
+    'visibility',
+    view?.getComputedStyle(element),
+  );
   if (computedVisibility === 'hidden' || computedVisibility === 'collapse') {
     return false;
   }
 
   let current: HTMLElement | null = element;
-  while (current && current !== root) {
-    if (current !== element) {
+  let insideForm = true;
+  while (current) {
+    if (current === root) {
+      insideForm = false;
+    }
+    const computedStyle = view?.getComputedStyle(current);
+    if (insideForm && current !== element) {
       if (current.tagName === 'DIALOG' && !(current as HTMLDialogElement).open) {
         if (
           current.hidden
           || current.style.display.trim().toLowerCase() === 'none'
-          || hasHiddenContentVisibility(current)
+          || hasHiddenContentVisibility(current, computedStyle)
         ) {
           return false;
         }
@@ -1387,14 +1421,17 @@ function isElementReachable(
           trigger instanceof HTMLElement
           && trigger.tagName === 'BUTTON'
           && trigger.classList.contains('formspec-modal-trigger')
-          && !(trigger as HTMLButtonElement).disabled
+          && !isEffectivelyDisabled(trigger)
         ) {
           return isElementReachable(trigger, root, visiting);
         }
         return false;
       }
       if (current.classList.contains('formspec-popover-content') && current.hidden) {
-        if (current.style.display.trim().toLowerCase() === 'none' || hasHiddenContentVisibility(current)) {
+        if (
+          current.style.display.trim().toLowerCase() === 'none'
+          || hasHiddenContentVisibility(current, computedStyle)
+        ) {
           return false;
         }
         const trigger = current.previousElementSibling;
@@ -1402,14 +1439,17 @@ function isElementReachable(
           trigger instanceof HTMLElement
           && trigger.tagName === 'BUTTON'
           && trigger.classList.contains('formspec-popover-trigger')
-          && !(trigger as HTMLButtonElement).disabled
+          && !isEffectivelyDisabled(trigger)
         ) {
           return isElementReachable(trigger, root, visiting);
         }
         return false;
       }
       if (current.getAttribute('role') === 'tabpanel' && current.hidden) {
-        if (current.style.display.trim().toLowerCase() === 'none' || hasHiddenContentVisibility(current)) {
+        if (
+          current.style.display.trim().toLowerCase() === 'none'
+          || hasHiddenContentVisibility(current, computedStyle)
+        ) {
           return false;
         }
         const tabId = current.getAttribute('aria-labelledby');
@@ -1418,7 +1458,7 @@ function isElementReachable(
           : null;
         if (
           tab instanceof HTMLElement
-          && !(tab as HTMLButtonElement).disabled
+          && !isEffectivelyDisabled(tab)
           && isElementReachable(tab, root, visiting)
         ) {
           current = current.parentElement;
@@ -1427,7 +1467,10 @@ function isElementReachable(
         return false;
       }
       if (current.classList.contains('formspec-wizard-panel') && current.hidden) {
-        if (current.style.display.trim().toLowerCase() === 'none' || hasHiddenContentVisibility(current)) {
+        if (
+          current.style.display.trim().toLowerCase() === 'none'
+          || hasHiddenContentVisibility(current, computedStyle)
+        ) {
           return false;
         }
         current = current.parentElement;
@@ -1436,10 +1479,7 @@ function isElementReachable(
     }
 
     if (current.hidden) return false;
-    if (current.style.display.trim().toLowerCase() === 'none') return false;
-    const computedStyle = view?.getComputedStyle(current);
-    const computedDisplay = computedStyle?.display.trim().toLowerCase();
-    if (computedDisplay === 'none') return false;
+    if (effectiveStyleValue(current, 'display', 'display', computedStyle) === 'none') return false;
     if (hasHiddenContentVisibility(current, computedStyle)) return false;
     current = current.parentElement;
   }
@@ -1450,7 +1490,7 @@ function collectMountedReachableActionRefs(root: HTMLElement): ReadonlySet<strin
   const refs = new Set<string>();
   for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-action-ref]')) {
     const actionRef = button.dataset.actionRef;
-    if (!actionRef || button.disabled) continue;
+    if (!actionRef || isEffectivelyDisabled(button)) continue;
     if (isElementReachable(button, root)) {
       refs.add(actionRef);
     }
@@ -1571,15 +1611,38 @@ function DefaultSurfaceDefinitionForm(
 
     measure();
 
-    const observer = typeof MutationObserver === 'function'
-      ? new MutationObserver(measure)
-      : null;
-    observer?.observe(root, {
-      subtree: true,
-      childList: true,
-      attributes: true,
-      attributeFilter: ['open', 'hidden', 'style', 'class', 'disabled', 'data-action-ref'],
-    });
+    const observers: MutationObserver[] = [];
+    if (typeof MutationObserver === 'function') {
+      const rootObserver = new MutationObserver(measure);
+      rootObserver.observe(root, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['open', 'hidden', 'style', 'class', 'disabled', 'data-action-ref'],
+      });
+      observers.push(rootObserver);
+
+      let sharedAncestorObserver: MutationObserver | undefined;
+      for (let ancestor = root.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        if (ancestor.style.display === 'contents') {
+          const contentsObserver = new MutationObserver(measure);
+          contentsObserver.observe(ancestor, {
+            attributes: true,
+            attributeFilter: ['open', 'hidden', 'style', 'class'],
+          });
+          observers.push(contentsObserver);
+        } else {
+          if (!sharedAncestorObserver) {
+            sharedAncestorObserver = new MutationObserver(measure);
+            observers.push(sharedAncestorObserver);
+          }
+          sharedAncestorObserver.observe(ancestor, {
+            attributes: true,
+            attributeFilter: ['open', 'hidden', 'style', 'class'],
+          });
+        }
+      }
+    }
     const onDialogClose = () => measure();
     root.addEventListener('close', onDialogClose, true);
     const view = root.ownerDocument.defaultView;
@@ -1592,7 +1655,9 @@ function DefaultSurfaceDefinitionForm(
 
     return () => {
       disposed = true;
-      observer?.disconnect();
+      for (const observer of observers) {
+        observer.disconnect();
+      }
       root.removeEventListener('close', onDialogClose, true);
       view?.removeEventListener('resize', onViewportResize);
       stopReactive();

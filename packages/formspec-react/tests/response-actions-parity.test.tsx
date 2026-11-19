@@ -1271,4 +1271,71 @@ describe('React Response Actions parity', () => {
             vi.useRealTimers();
         }
     });
+
+    it('retires settled autosave Completed feedback when replacement removes or ambiguates autosave, while preserving it for equivalent replacement', async () => {
+        vi.useFakeTimers();
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            version: '1.0.0',
+            url: 'urn:review7:settled-feedback',
+            title: 'Settled feedback',
+            items: [{ type: 'field', key: 'name', dataType: 'string', label: 'Name' }],
+        };
+        const makeDoc = (count: number) => ({
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url: def.url },
+            actions: Array.from({ length: count }, (_, index) => ({
+                id: `auto${index}`,
+                intent: 'autosave' as const,
+                effects: [{ type: 'hostEvent' as const, eventName: 'saved' }],
+            })),
+        });
+        const removedDoc = {
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url: def.url },
+            actions: [
+                {
+                    id: 'submit',
+                    intent: 'submit' as const,
+                    label: { literal: 'Submit' },
+                    effects: [{ type: 'hostEvent' as const, eventName: 'submitted' }],
+                },
+            ],
+        };
+
+        try {
+            for (const mode of ['same', 'clone', 'ambiguous', 'removed', 'undefined'] as const) {
+                const engine = createFormEngine(def);
+                const first = makeDoc(1);
+                const { container, root } = renderInto(
+                    <FormspecForm engine={engine} responseActionsDocument={first} />,
+                );
+                const status = () => (container.querySelector('[role="status"]')?.textContent ?? '').trim();
+                try {
+                    await act(async () => { engine.setValue('name', 'Ada'); });
+                    await act(async () => { await vi.advanceTimersByTimeAsync(600); });
+                    expect(status(), `${mode}: initial`).toBe('Completed.');
+
+                    const nextDoc =
+                        mode === 'same' ? first
+                            : mode === 'clone' ? makeDoc(1)
+                                : mode === 'ambiguous' ? makeDoc(2)
+                                    : mode === 'removed' ? removedDoc
+                                        : undefined;
+                    await act(async () => {
+                        root.render(<FormspecForm engine={engine} responseActionsDocument={nextDoc} />);
+                    });
+                    expect(status(), `${mode}: after`).toBe(mode === 'same' || mode === 'clone' ? 'Completed.' : '');
+                } finally {
+                    await act(async () => { root.unmount(); });
+                    container.remove();
+                    engine.dispose();
+                }
+            }
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });

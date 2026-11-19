@@ -333,4 +333,51 @@ describe('createWidgetActionCoordinator', () => {
     await Promise.all([first.completion, duplicate.completion]);
     expect(executor).toHaveBeenCalledTimes(1);
   });
+
+  it('rejects malformed widget action documents without invoking getters and survives unrelated Definition action getters', () => {
+    const addGetter = (obj: object, key: string) =>
+      Object.defineProperty(obj, key, {
+        enumerable: true,
+        configurable: true,
+        get: () => { throw new Error(`read ${key}`); },
+      });
+    const appDoc = (): any => ({
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      scope: 'app',
+      actions: [{ id: 'save', intent: 'save-draft', label: { literal: 'Save' }, effects: [{ type: 'hostEvent', eventName: 'saved' }] }],
+    });
+    const unrelatedDoc = (): any => ({
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: 'https://example.test/forms/demo' },
+      actions: [
+        { id: 'otherSave', intent: 'save-draft', label: { literal: 'Other' }, effects: [{ type: 'hostEvent', eventName: 'other' }] },
+        { id: 'auto', intent: 'autosave', effects: [{ type: 'hostEvent', eventName: 'autosaved' }] },
+      ],
+    });
+    const resolveSave = (docs: unknown[]) =>
+      responseActionsDocumentForAction(docs as ResponseActionsDocument[], 'save')?.actions?.[0]?.id ?? null;
+
+    expect(resolveSave([appDoc()])).toBe('save');
+    const malformedCases: Array<[string, (d: any) => any]> = [
+      ['actions accessor', (d) => { addGetter(d, 'actions'); return d; }],
+      ['id accessor', (d) => { addGetter(d.actions[0], 'id'); return d; }],
+      ['target accessor', (d) => { addGetter(d, 'targetDefinition'); return d; }],
+      ['plain class action', (d) => { d.actions[0] = Object.assign(new (class {})(), d.actions[0]); return d; }],
+      ['inherited document', (d) => Object.create(d)],
+      ['array subclass', (d) => { d.actions = new (class extends Array {})(...d.actions); return d; }],
+      ['array index accessor', (d) => { addGetter(d.actions, '0'); return d; }],
+    ];
+    for (const [label, mutate] of malformedCases) {
+      expect(() => resolveSave([mutate(appDoc())]), label).not.toThrow();
+      expect(resolveSave([mutate(appDoc())]), label).toBeNull();
+    }
+
+    expect(resolveSave([appDoc(), unrelatedDoc()])).toBe('save');
+    const brokenUnrelated = unrelatedDoc();
+    addGetter(brokenUnrelated.actions[1], 'id');
+    expect(() => resolveSave([appDoc(), brokenUnrelated])).not.toThrow();
+    expect(resolveSave([appDoc(), brokenUnrelated])).toBe('save');
+  });
 });

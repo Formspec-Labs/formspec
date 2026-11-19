@@ -416,4 +416,66 @@ test.describe('ActionButton', () => {
       expect(events).toEqual(expected ? ['retained'] : []);
     });
   }
+
+  for (const mode of ['enabled', 'first-legend', 'own-disabled', 'disabled-fieldset', 'aria-only'] as const) {
+    test(`WebComponent native tool form respects HTML :disabled state and ARIA: ${mode}`, async ({ page }) => {
+      await gotoHarness(page);
+      const observed = await page.evaluate(async (variant) => {
+        const el = document.createElement('formspec-render') as any;
+        const url = 'urn:review7:fieldset-disabled';
+        let sent = 0;
+        el.setAttribute('tool-name', 'edge');
+        el.showSubmit = false;
+        el.definition = { $formspec: '1.0', version: '1.0.0', url, title: 'Edge', items: [] };
+        el.componentDocument = {
+          $formspecComponent: '1.0',
+          version: '1.0.0',
+          targetDefinition: { url },
+          tree: { component: 'ActionButton', id: 'source', actionRef: 'second' },
+        };
+        el.responseActionsDocument = {
+          $formspecResponseActions: '1.0',
+          version: '1.0.0',
+          targetDefinition: { url },
+          actions: [
+            { id: 'first', intent: 'submit', label: { literal: 'first' }, effects: [{ type: 'hostEvent', eventName: 'record-first' }] },
+            { id: 'second', intent: 'submit', label: { literal: 'second' }, effects: [{ type: 'hostEvent', eventName: 'record-second' }] },
+          ],
+        };
+        el.addEventListener('record-second', () => { sent += 1; });
+        document.body.append(el);
+        for (let i = 0; i < 60 && !(el.querySelector('#source')?.type === 'submit'); i += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        const btn = el.querySelector('#source') as HTMLButtonElement;
+        const form = btn.form!;
+        if (variant === 'own-disabled') {
+          btn.disabled = true;
+        } else if (variant === 'aria-only') {
+          btn.setAttribute('aria-disabled', 'true');
+        } else if (variant === 'disabled-fieldset' || variant === 'first-legend') {
+          const fieldset = document.createElement('fieldset');
+          fieldset.disabled = true;
+          form.append(fieldset);
+          if (variant === 'first-legend') {
+            const legend = document.createElement('legend');
+            legend.append(btn);
+            fieldset.append(legend);
+          } else {
+            fieldset.append(btn);
+          }
+        }
+        const ownDisabled = btn.disabled;
+        const effectiveDisabled = btn.matches(':disabled');
+        const ariaDisabled = btn.getAttribute('aria-disabled') === 'true';
+        form.requestSubmit(btn);
+        el.remove();
+        return { ownDisabled, effectiveDisabled, ariaDisabled, sent };
+      }, mode);
+      expect(observed.ownDisabled).toBe(mode === 'own-disabled');
+      expect(observed.ariaDisabled).toBe(mode === 'aria-only');
+      expect(observed.effectiveDisabled).toBe(mode === 'own-disabled' || mode === 'disabled-fieldset');
+      expect(observed.sent, JSON.stringify(observed)).toBe(mode === 'enabled' || mode === 'first-legend' ? 1 : 0);
+    });
+  }
 });

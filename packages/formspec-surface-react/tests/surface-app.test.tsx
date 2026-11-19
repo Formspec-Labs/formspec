@@ -2650,4 +2650,210 @@ describe("navigation", () => {
       }
     }
   });
+
+  it("rechecks response-dependent autosave precondition and replacement action on every queued automatic write", async () => {
+    const { createFormEngine } = await import("@formspec-org/engine");
+    const { createDraftWriter } = await import("../src/draft-writer.js");
+    const definitionUrl = "https://example.test/forms/overlap-precondition";
+    const def = {
+      $formspec: "1.0",
+      version: "1.0.0",
+      url: definitionUrl,
+      title: "Overlap precondition",
+      items: [{ key: "answer", type: "field", dataType: "string", label: "Answer" }],
+    } as unknown as FormDefinition;
+
+    // 1. Same-document response-dependent precondition: both separate AND overlap edits must recheck
+    for (const timing of ["overlap", "separate"] as const) {
+      const engine = createFormEngine(def);
+      let releaseFirst!: () => void;
+      const firstGate = new Promise<void>((resolve) => { releaseFirst = resolve; });
+      const writes: string[] = [];
+      const checked: string[] = [];
+      let rev = 0;
+      const actionDoc = {
+        $formspecResponseActions: "1.0",
+        version: "1.0.0",
+        targetDefinition: { url: definitionUrl },
+        actions: [
+          {
+            id: "auto",
+            intent: "autosave",
+            preconditions: [{ id: "nonempty", expression: "@response.data.answer != ''", severity: "block" }],
+            effects: [{ type: "hostEvent", eventName: "auto-saved" }],
+          },
+        ],
+      } as unknown as ResponseActionsDocument;
+      const writer = createDraftWriter({
+        engine,
+        key: { scope: `overlap-${timing}`, definitionUrl },
+        port: {
+          load: async () => ({ status: "absent" as const }),
+          save: async (input) => {
+            const val = JSON.parse(input.responseJson).data.answer ?? "";
+            writes.push(val);
+            rev += 1;
+            if (rev === 1 && timing === "overlap") await firstGate;
+            return { status: "saved" as const, revision: String(rev) };
+          },
+          discard: async () => ({ status: "discarded" as const }),
+          readSummaries: async () => new Map(),
+        },
+        sections: [],
+        actions: actionDoc,
+        debounceMs: 10,
+        checkpointPorts: (input) => ({
+          ...input.ports,
+          evaluatePrecondition: () => {
+            const val = String((engine.getResponse({ profile: "off" }).data as Record<string, unknown>).answer ?? "");
+            checked.push(val);
+            return val.length > 0;
+          },
+        }),
+      });
+      try {
+        engine.setValue("answer", "old");
+        await vi.waitFor(() => expect(writes).toEqual(["old"]), { timeout: 2000 });
+        if (timing === "separate") {
+          await writer.waitForSaves();
+        }
+        engine.setValue("answer", "");
+        if (timing === "overlap") {
+          releaseFirst();
+        }
+        await writer.waitForSaves();
+        await new Promise((resolve) => setTimeout(resolve, 60));
+        expect({ checked, writes, dirty: writer.dirty }, timing).toEqual({
+          checked: ["old", ""],
+          writes: ["old"],
+          dirty: true,
+        });
+      } finally {
+        releaseFirst?.();
+        writer.dispose();
+        engine.dispose();
+      }
+    }
+
+    // 2. Mid-flight action replacement: guarded replacement blocks second write, permitted replacement emits its new event
+    const makeDoc = (opts: { id?: string; eventName: string; guarded?: boolean; ambiguous?: boolean }) => ({
+      $formspecResponseActions: "1.0",
+      version: "1.0.0",
+      targetDefinition: { url: definitionUrl },
+      actions: [
+        {
+          id: "manual",
+          intent: "save-draft",
+          label: { literal: "Save draft" },
+          effects: [{ type: "hostEvent", eventName: "manual" }],
+        },
+        {
+          id: opts.id ?? "auto",
+          intent: "autosave",
+          ...(opts.guarded
+            ? { preconditions: [{ id: "guard", expression: "@response.data.answer != ''", severity: "block" }] }
+            : {}),
+          effects: [{ type: "hostEvent", eventName: opts.eventName }],
+        },
+        ...(opts.ambiguous
+          ? [{
+              id: "auto-dup",
+              intent: "autosave",
+              effects: [{ type: "hostEvent", eventName: "dup" }],
+            }]
+          : []),
+      ],
+    }) as unknown as ResponseActionsDocument;
+
+    for (const mode of [
+      "replace-guarded",
+      "same-id-guarded",
+      "replace-permitted",
+      "manual-explicit",
+      "correct-ambiguous",
+    ] as const) {
+      const engine = createFormEngine(def);
+      let releaseFirst!: () => void;
+      const firstGate = new Promise<void>((resolve) => { releaseFirst = resolve; });
+      const writes: string[] = [];
+      const events: string[] = [];
+      const guards = vi.fn(() => false);
+      let rev = 0;
+      const initialDoc = makeDoc({ id: "auto", eventName: "old" });
+      const writer = createDraftWriter({
+        engine,
+        key: { scope: `policy-${mode}`, definitionUrl },
+        port: {
+          load: async () => ({ status: "absent" as const }),
+          save: async (input) => {
+            writes.push(String(JSON.parse(input.responseJson).data.answer ?? ""));
+            rev += 1;
+            if (rev === 1) await firstGate;
+            return { status: "saved" as const, revision: String(rev) };
+          },
+          discard: async () => ({ status: "discarded" as const }),
+          readSummaries: async () => new Map(),
+        },
+        sections: [],
+        actions: initialDoc,
+        debounceMs: 10,
+        checkpointPorts: (input) => ({
+          ...input.ports,
+          evaluatePrecondition: () => guards(),
+          dispatchHostEvent: (eventName) => { events.push(eventName); },
+        }),
+      });
+      try {
+        engine.setValue("answer", "before");
+        await vi.waitFor(() => expect(writes).toEqual(["before"]), { timeout: 2000 });
+        if (mode === "replace-guarded") {
+          writer.setActions(makeDoc({ id: "auto-guarded", eventName: "new", guarded: true }));
+        } else if (mode === "same-id-guarded") {
+          writer.setActions(makeDoc({ id: "auto", eventName: "new", guarded: true }));
+        } else if (mode === "replace-permitted") {
+          writer.setActions(makeDoc({ id: "auto-new", eventName: "new" }));
+        } else {
+          writer.setActions(makeDoc({ id: "auto", eventName: "old", ambiguous: true }));
+        }
+        engine.setValue("answer", "after");
+        const manualPromise = mode === "manual-explicit"
+          ? writer.invoke({
+              document: makeDoc({ id: "auto", eventName: "old", ambiguous: true }),
+              actionRef: "manual",
+              ports: {
+                submit: ({ profile }) => engine.getResponseSnapshot({ profile: "off" }, profile),
+                dispatchHostEvent: (eventName) => { events.push(eventName); },
+              },
+            })
+          : undefined;
+        releaseFirst();
+        await writer.waitForSaves();
+        if (mode === "correct-ambiguous") {
+          writer.setActions(makeDoc({ id: "auto-new", eventName: "new" }));
+          await new Promise((resolve) => setTimeout(resolve, 60));
+          await writer.waitForSaves();
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 60));
+          await writer.waitForSaves();
+        }
+        if (mode.endsWith("guarded")) {
+          expect({ writes, events, guards: guards.mock.calls.length, dirty: writer.dirty }, mode).toEqual({
+            writes: ["before"],
+            events: ["old"],
+            guards: 1,
+            dirty: true,
+          });
+        } else {
+          if (manualPromise) expect((await manualPromise).status).toBe("completed");
+          expect(writes, mode).toEqual(["before", "after"]);
+          expect(writer.dirty, mode).toBe(false);
+          expect(events, mode).toEqual(["old", mode === "manual-explicit" ? "manual" : "new"]);
+        }
+      } finally {
+        releaseFirst();
+        writer.dispose();
+        engine.dispose();
+      }
+    }
+  });
 });

@@ -85,7 +85,25 @@ function bindActionButtonSubmit(
         bindNativeSubmitEligibility(button, disposers);
     }
     const handleClick = () => {
-        if (button.type === 'submit') return;
+        let disabledByFieldset = false;
+        for (let current = button.parentElement; current; current = current.parentElement) {
+            if (current.tagName === 'FIELDSET' && (current as HTMLFieldSetElement).disabled) {
+                const firstLegend = Array.from(current.children).find((child) => child.tagName === 'LEGEND');
+                if (!firstLegend || !firstLegend.contains(button)) {
+                    disabledByFieldset = true;
+                    break;
+                }
+            }
+        }
+        if (
+            button.type === 'submit'
+            || button.disabled
+            || button.getAttribute('aria-disabled') === 'true'
+            || (typeof button.matches === 'function' && button.matches(':disabled'))
+            || disabledByFieldset
+        ) {
+            return;
+        }
         invoke();
     };
     button.addEventListener('click', handleClick);

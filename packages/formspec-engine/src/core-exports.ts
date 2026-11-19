@@ -119,6 +119,7 @@ export {
     subscribeResponseActionAutosave,
     validationProfileForAction,
     type ResponseActionAutosaveController,
+    type ResponseActionAutosaveDocumentChange,
     type ResponseActionAutosaveInvokeContext,
 } from './response-actions.js';
 export type {

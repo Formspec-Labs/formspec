@@ -11,7 +11,7 @@ import type {
   ResponseActionInvokerResult,
 } from '@formspec-org/react';
 import type { ResponseActionsDocument } from '@formspec-org/types';
-import { snapshotFiniteJson, canonicalFiniteJson } from '@formspec-org/surface';
+import { findUniquePlainAction, snapshotFiniteJson, canonicalFiniteJson } from '@formspec-org/surface';
 import { widgetActionScopeMatches, CANONICAL_RESPONSE_SCHEMA_REF } from '@formspec-org/app-graph';
 import type {
   SurfaceWidgetActionExecutor,
@@ -205,13 +205,7 @@ export function responseActionsDocumentForAction(
   actionRef: string,
   responseContext?: SurfaceWidgetResponseContext,
 ): ResponseActionsDocument | undefined {
-  const matches = documents.flatMap((document) =>
-    (Array.isArray(document?.actions) ? document.actions : [])
-      .filter((action): action is NonNullable<typeof action> =>
-        Boolean(action && typeof action === 'object' && !Array.isArray(action) && action.id === actionRef))
-      .map(() => document),
-  );
-  const match = matches.length === 1 ? matches[0] : undefined;
+  const match = findUniquePlainAction(documents, actionRef)?.document;
   return match && widgetActionScopeMatches({ document: match,
     responseInput: responseContext?.inputName,
     inputs: responseContext ? [{ name: responseContext.inputName, required: true }] : [],

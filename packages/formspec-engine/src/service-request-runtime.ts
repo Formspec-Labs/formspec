@@ -84,16 +84,19 @@ function isRawJson(value: unknown): boolean {
 
 export function isPlainJsonObject(value: unknown): value is Record<string, unknown> {
     if (value === null || typeof value !== 'object' || Array.isArray(value) || isRawJson(value)) return false;
+    if (Object.getOwnPropertySymbols(value).length > 0) return false;
     const prototype = Object.getPrototypeOf(value);
     if (prototype === Object.prototype || prototype === null) return true;
     // Plain object created in another JavaScript realm (e.g. iframe / node:vm):
     // its prototype is that realm's Object.prototype, whose own prototype is null.
     if (Object.getPrototypeOf(prototype) !== null) return false;
-    if (Object.prototype.toString.call(value) !== '[object Object]') return false;
-    const ctor = Object.getOwnPropertyDescriptor(prototype, 'constructor')?.value;
-    return typeof ctor === 'function'
-        && ctor.prototype === prototype
-        && Object.prototype.hasOwnProperty.call(prototype, 'hasOwnProperty');
+    if (Object.getOwnPropertyDescriptor(prototype, Symbol.toStringTag) !== undefined) return false;
+    const ctorDesc = Object.getOwnPropertyDescriptor(prototype, 'constructor');
+    if (!ctorDesc || !Object.prototype.hasOwnProperty.call(ctorDesc, 'value')) return false;
+    const ctor = ctorDesc.value;
+    if (typeof ctor !== 'function' || ctor.prototype !== prototype) return false;
+    if (!Object.prototype.hasOwnProperty.call(prototype, 'hasOwnProperty')) return false;
+    return Object.prototype.toString.call(value) === '[object Object]';
 }
 
 export function isPlainJsonArray(value: unknown): value is unknown[] {
@@ -103,7 +106,9 @@ export function isPlainJsonArray(value: unknown): value is unknown[] {
         if (!prototype || typeof prototype !== 'object') return false;
         const objProto = Object.getPrototypeOf(prototype);
         if (!objProto || Object.getPrototypeOf(objProto) !== null) return false;
-        const ctor = Object.getOwnPropertyDescriptor(prototype, 'constructor')?.value;
+        const ctorDesc = Object.getOwnPropertyDescriptor(prototype, 'constructor');
+        if (!ctorDesc || !Object.prototype.hasOwnProperty.call(ctorDesc, 'value')) return false;
+        const ctor = ctorDesc.value;
         if (typeof ctor !== 'function' || ctor.prototype !== prototype) return false;
         if (!Array.isArray(prototype)) return false;
     }
@@ -112,7 +117,7 @@ export function isPlainJsonArray(value: unknown): value is unknown[] {
     if (ownKeys.length !== value.length + 1) return false;
     for (let index = 0; index < value.length; index += 1) {
         const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
-        if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+        if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value') || !descriptor.enumerable) {
             return false;
         }
     }
