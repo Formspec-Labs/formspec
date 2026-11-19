@@ -1951,14 +1951,16 @@ export class FormEngine implements IFormEngine {
         }
 
         this._rx.batch(() => {
-            patchValueSignalsFromWasm({
+            if (patchValueSignalsFromWasm({
                 values: evalResult.values,
                 signals: this.signals,
                 data: this._data,
                 bindAt: (path, basePath) => this.bindAt(path, basePath),
                 isCalculated: (path, basePath) => this.isCalculated(path, basePath),
                 refused: evalResult.refused,
-            });
+            })) {
+                this._draftEditDirty = true;
+            }
             patchDeltaSignalsFromWasm(this._rx, delta, {
                 relevantSignals: this.relevantSignals,
                 requiredSignals: this.requiredSignals,

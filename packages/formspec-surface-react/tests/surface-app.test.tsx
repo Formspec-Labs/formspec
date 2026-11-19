@@ -2856,4 +2856,98 @@ describe("navigation", () => {
       }
     }
   });
+
+  it("evaluates autosave preconditions before any storage write even for prepare or sign service requests", async () => {
+    const { createFormEngine, invokeResponseActionAsync, resolveAutosaveResponseAction } = await import("@formspec-org/engine");
+    const { createDraftWriter } = await import("../src/draft-writer.js");
+    const definition = {
+      $formspec: "1.0",
+      url: "urn:review8:checkpoint-fenced",
+      version: "1.0.0",
+      title: "Form",
+      items: [{ key: "answer", type: "field", dataType: "string" }],
+    } as unknown as FormDefinition;
+
+    for (const operation of ["prepare", "sign", "uncategorized"] as const) {
+      const action = {
+        id: "auto",
+        intent: "autosave",
+        preconditions: [{ id: "blocked", expression: "false", severity: "block" }],
+        effects: [{ type: "serviceRequest", requestRef: "candidate", idempotencyKey: "@invocation.id", onError: "fail" }],
+      };
+      const doc = {
+        $formspecResponseActions: "1.0",
+        version: "1.0.0",
+        targetDefinition: { url: definition.url },
+        "x-formspec-runtime": {
+          version: "1.0",
+          requests: [
+            {
+              id: "candidate",
+              ...(operation === "uncategorized" ? {} : { operation }),
+              adapter: "http-json",
+              request: { method: "POST", pathTemplate: "/candidate" },
+            },
+          ],
+        },
+        actions: [action],
+      } as unknown as ResponseActionsDocument;
+      const engine = createFormEngine(definition);
+      const writes: string[] = [];
+      const trace: string[] = [];
+      let committed: { revision: string; responseJson: string; snapshotJson: string } | undefined;
+      const evaluate = () => {
+        trace.push("precondition:false");
+        return false;
+      };
+      const writer = createDraftWriter({
+        engine,
+        key: { scope: `review8-${operation}`, definitionUrl: definition.url },
+        sections: [],
+        actions: doc,
+        debounceMs: 10,
+        port: {
+          save: async (input) => {
+            writes.push(String(JSON.parse(input.responseJson).data.answer ?? ""));
+            trace.push("storage");
+            committed = { revision: "1", responseJson: input.responseJson, snapshotJson: input.snapshotJson };
+            return { status: "saved" as const, revision: "1" };
+          },
+          load: async () =>
+            committed
+              ? {
+                  status: "loaded" as const,
+                  draft: {
+                    key: { scope: `review8-${operation}`, definitionUrl: definition.url },
+                    definitionVersion: definition.version,
+                    revision: committed.revision,
+                    responseJson: committed.responseJson,
+                    snapshotJson: committed.snapshotJson,
+                    updatedAt: new Date().toISOString(),
+                  },
+                }
+              : { status: "absent" as const },
+          discard: async () => ({ status: "discarded" as const }),
+          readSummaries: async () => new Map(),
+        },
+        checkpointPorts: ({ ports }) => ({ ...ports, evaluatePrecondition: evaluate }),
+        invoker: ({ ports, document, actionRef }) =>
+          invokeResponseActionAsync(document, actionRef, { ...ports, evaluatePrecondition: evaluate }),
+      });
+      try {
+        expect(resolveAutosaveResponseAction(doc, definition).action?.id, operation).toBe("auto");
+        engine.setValue("answer", "new");
+        await vi.waitFor(() => expect(trace).toContain("precondition:false"), { timeout: 2000 });
+        await writer.waitForSaves();
+        expect({ writes, trace, dirty: writer.dirty }, operation).toEqual({
+          writes: [],
+          trace: ["precondition:false"],
+          dirty: true,
+        });
+      } finally {
+        writer.dispose();
+        engine.dispose();
+      }
+    }
+  });
 });

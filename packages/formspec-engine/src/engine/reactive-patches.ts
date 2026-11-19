@@ -20,7 +20,8 @@ export function patchValueSignalsFromWasm(options: {
     bindAt: (path: string, basePath: string) => EngineBindConfig | undefined;
     isCalculated: (path: string, basePath: string) => boolean;
     refused: boolean;
-}): void {
+}): boolean {
+    let mutatedEditableData = false;
     for (const [path, sig] of Object.entries(options.signals)) {
         const basePath = toBasePath(path);
         const calculated = options.isCalculated(path, basePath);
@@ -41,6 +42,7 @@ export function patchValueSignalsFromWasm(options: {
             && isEmptyValue(options.data[path])
             && !deepEqual(options.data[path], normalizedValue)) {
             options.data[path] = cloneValue(normalizedValue);
+            mutatedEditableData = true;
         }
         let rawValue: any;
         if (!calculated
@@ -51,6 +53,7 @@ export function patchValueSignalsFromWasm(options: {
         }
         sig.value = normalizeWasmValue(rawValue ?? null);
     }
+    return mutatedEditableData;
 }
 
 export function patchDeltaSignalsFromWasm(

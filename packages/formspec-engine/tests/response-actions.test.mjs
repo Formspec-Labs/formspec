@@ -1480,3 +1480,98 @@ test('createResponseActionAutosaveController avoids form evaluations and draft s
     engine.dispose();
   }
 });
+
+test('createResponseActionAutosaveController detaches per-edit wrapper observer when policy is removed and tracks evaluation-applied defaults', async (t) => {
+  const { createFormEngine, createResponseActionAutosaveController } = await import('../dist/index.js');
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+
+  const def = {
+    $formspec: '1.0',
+    url: 'https://example.test/forms/perf-wrapper',
+    version: '1.0.0',
+    title: 'Perf wrapper',
+    items: Array.from({ length: 200 }, (_, i) => ({
+      type: 'field',
+      key: `field${i}`,
+      dataType: 'string',
+      label: `Field ${i}`,
+    })),
+  };
+  const doc = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: def.url },
+    actions: [{ id: 'auto', intent: 'autosave', effects: [{ type: 'hostEvent', eventName: 'saved' }] }],
+  };
+
+  for (const mode of ['registered', 'adapter']) {
+    const engine = createFormEngine(def);
+    let snapshots = 0;
+    let evaluations = 0;
+    let invoked = 0;
+    const origSnap = engine.getDraftSnapshot.bind(engine);
+    const origEval = engine.getEvaluatedFormState.bind(engine);
+    engine.getDraftSnapshot = (...args) => { snapshots += 1; return origSnap(...args); };
+    engine.getEvaluatedFormState = (...args) => { evaluations += 1; return origEval(...args); };
+    const supplied = mode === 'registered'
+      ? engine
+      : {
+          getDefinition: engine.getDefinition.bind(engine),
+          getDraftSnapshot: (...args) => engine.getDraftSnapshot(...args),
+          getEvaluatedFormState: (...args) => engine.getEvaluatedFormState(...args),
+        };
+    const ctrl = createResponseActionAutosaveController({
+      engine: supplied,
+      document: doc,
+      debounceMs: 10,
+      invoke: () => { invoked += 1; },
+    });
+    try {
+      ctrl.setDocument(undefined);
+      snapshots = 0;
+      evaluations = 0;
+      for (let i = 0; i < 50; i += 1) engine.setValue('field0', String(i));
+      t.mock.timers.tick(500);
+      await Promise.resolve();
+      assert.deepEqual({ snapshots, evaluations, invoked }, { snapshots: 0, evaluations: 0, invoked: 0 }, mode);
+
+      // Re-enabling policy flushes edits that happened while inactive!
+      ctrl.setDocument(doc);
+      t.mock.timers.tick(100);
+      await Promise.resolve();
+      assert.equal(invoked, 1, `${mode}: flush edits after policy restored`);
+    } finally {
+      ctrl.dispose();
+      engine.dispose();
+    }
+  }
+
+  // Evaluation-applied editable default on instance update advances draft revision and triggers autosave
+  const defaultDef = {
+    $formspec: '1.0',
+    url: 'https://example.test/forms/default-edit',
+    version: '1.0.0',
+    title: 'Default edit',
+    items: [{ type: 'field', key: 'answer', dataType: 'string', label: 'Answer' }],
+    instances: { flags: { readonly: false, data: { show: false }, schema: { show: 'boolean' } } },
+    binds: [{ path: 'answer', relevant: "instance('flags', 'show') = true", default: 'Relevant default' }],
+  };
+  const defaultEngine = createFormEngine(defaultDef);
+  let defaultSaves = 0;
+  const defaultCtrl = createResponseActionAutosaveController({
+    engine: defaultEngine,
+    document: { ...doc, targetDefinition: { url: defaultDef.url } },
+    debounceMs: 10,
+    invoke: () => { defaultSaves += 1; },
+  });
+  try {
+    defaultEngine.setInstanceValue('flags', 'show', true);
+    t.mock.timers.tick(100);
+    await Promise.resolve();
+    assert.equal(defaultEngine.getDraftSnapshot().data.answer, 'Relevant default');
+    assert.equal(defaultSaves, 1);
+  } finally {
+    defaultCtrl.dispose();
+    defaultEngine.dispose();
+  }
+});

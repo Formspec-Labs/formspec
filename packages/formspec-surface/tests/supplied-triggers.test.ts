@@ -1081,4 +1081,29 @@ it('matches canonical JSON Schema + format validation, enforces compatibleVersio
   const brokenUnrelated = unrelatedDefDoc();
   addGetter(brokenUnrelated.actions[1], 'id');
   expect(captureResult(() => widgetActionRefOf([appDoc(), brokenUnrelated])), 'route unrelated Definition with action id accessor').toBe('save');
+
+  // Widget planning reads x-generation.anchors strictly via own enumerable data properties
+  const markers = ['need:save-draft@1'];
+  const widgetNeedAnchorsOf = (generation: unknown) => {
+    const d = appDoc();
+    d.actions[0]['x-generation'] = generation;
+    return (planWithDocs([d]).slots[0] as any)?.actionOutputs?.[0]?.action?.needAnchors ?? [];
+  };
+  expect(widgetNeedAnchorsOf({ anchors: markers }), 'authored widget Need anchors survive planning').toEqual(markers);
+  expect(
+    widgetNeedAnchorsOf(Object.defineProperty({}, 'anchors', { enumerable: false, value: markers })),
+    'non-enumerable widget Need anchors stay omitted',
+  ).toEqual([]);
+  let generationReads = 0;
+  const getterGeneration = {
+    get anchors() {
+      generationReads += 1;
+      return markers;
+    },
+  };
+  expect(widgetNeedAnchorsOf(getterGeneration), 'getter widget Need anchors stay omitted').toEqual([]);
+  expect(generationReads, 'widget planning never invokes generation metadata getters').toBe(0);
+  const indexGetterAnchors = ['need:save-draft@1'];
+  addGetter(indexGetterAnchors, '0');
+  expect(captureResult(() => widgetNeedAnchorsOf({ anchors: indexGetterAnchors })), 'array index getter on anchors fails closed').toEqual([]);
 });

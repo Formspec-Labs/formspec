@@ -609,4 +609,70 @@ describe('wizard page mode: the native submit button is only actionable on the l
             vi.useRealTimers();
         }
     });
+
+    it('mounted WebComponent incurs zero per-edit reads without autosave and preserves settled feedback across equivalent replacements', async () => {
+        const def200 = {
+            $formspec: '1.0',
+            url: 'urn:review8:wc-mounted',
+            version: '1.0.0',
+            title: 'Mounted WC',
+            items: Array.from({ length: 200 }, (_, i) => ({
+                key: `field${i}`,
+                label: `Field ${i}`,
+                type: 'field',
+                dataType: 'string',
+            })),
+        };
+        const makeAutoDoc = () => ({
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url: def200.url },
+            actions: [{ id: 'periodic', intent: 'autosave' as const, effects: [{ type: 'hostEvent' as const, eventName: 'recorded' }] }],
+        });
+
+        // 1. Zero evaluated-state reads and draft snapshots on 50 edits with no autosave document
+        const perfEl = mount(def200);
+        const evalSpy = vi.spyOn(perfEl.engine, 'getEvaluatedFormState');
+        const draftSpy = vi.spyOn(perfEl.engine, 'getDraftSnapshot');
+        const eventSpy = vi.fn();
+        perfEl.addEventListener('formspec-action-result', eventSpy);
+        for (let i = 0; i < 50; i += 1) {
+            perfEl.engine.setValue('field0', String(i));
+        }
+        expect([evalSpy.mock.calls.length, draftSpy.mock.calls.length, eventSpy.mock.calls.length]).toEqual([0, 0, 0]);
+        perfEl.remove();
+
+        // 2. Settled Completed. feedback survives same & equivalent clone replacements, clears on ambiguous/removed
+        vi.useFakeTimers();
+        try {
+            for (const mode of ['same', 'clone', 'ambiguous', 'removed'] as const) {
+                const el = mount(def200);
+                const initial = makeAutoDoc();
+                el.responseActionsDocument = initial;
+                el.render();
+                el.engine.setValue('field0', 'edit');
+                await vi.advanceTimersByTimeAsync(800);
+                const status = () => (el.querySelector('.formspec-action-status')?.textContent ?? '').trim();
+                const before = status();
+                expect(before, `${mode}: before`).toBe('Completed.');
+                el.responseActionsDocument =
+                    mode === 'same' ? initial
+                        : mode === 'clone' ? makeAutoDoc()
+                            : mode === 'ambiguous'
+                                ? {
+                                    ...makeAutoDoc(),
+                                    actions: [
+                                        ...makeAutoDoc().actions,
+                                        { id: 'periodic2', intent: 'autosave' as const, effects: [{ type: 'hostEvent' as const, eventName: 'recorded2' }] },
+                                    ],
+                                }
+                                : undefined;
+                await vi.advanceTimersByTimeAsync(800);
+                expect(status(), `${mode}: after`).toBe(mode === 'same' || mode === 'clone' ? 'Completed.' : '');
+                el.remove();
+            }
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });

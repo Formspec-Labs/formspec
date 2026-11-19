@@ -1406,6 +1406,9 @@ function isElementReachable(
     if (current === root) {
       insideForm = false;
     }
+    if ((current as HTMLElement & { inert?: boolean }).inert || current.hasAttribute('inert')) {
+      return false;
+    }
     const computedStyle = view?.getComputedStyle(current);
     if (insideForm && current !== element) {
       if (current.tagName === 'DIALOG' && !(current as HTMLDialogElement).open) {
@@ -1618,17 +1621,18 @@ function DefaultSurfaceDefinitionForm(
         subtree: true,
         childList: true,
         attributes: true,
-        attributeFilter: ['open', 'hidden', 'style', 'class', 'disabled', 'data-action-ref'],
+        attributeFilter: ['open', 'hidden', 'style', 'class', 'disabled', 'aria-disabled', 'inert', 'data-action-ref'],
       });
       observers.push(rootObserver);
 
+      const ancestorAttributeFilter = ['open', 'hidden', 'style', 'class', 'disabled', 'aria-disabled', 'inert'];
       let sharedAncestorObserver: MutationObserver | undefined;
       for (let ancestor = root.parentElement; ancestor; ancestor = ancestor.parentElement) {
         if (ancestor.style.display === 'contents') {
           const contentsObserver = new MutationObserver(measure);
           contentsObserver.observe(ancestor, {
             attributes: true,
-            attributeFilter: ['open', 'hidden', 'style', 'class'],
+            attributeFilter: ancestorAttributeFilter,
           });
           observers.push(contentsObserver);
         } else {
@@ -1638,7 +1642,7 @@ function DefaultSurfaceDefinitionForm(
           }
           sharedAncestorObserver.observe(ancestor, {
             attributes: true,
-            attributeFilter: ['open', 'hidden', 'style', 'class'],
+            attributeFilter: ancestorAttributeFilter,
           });
         }
       }

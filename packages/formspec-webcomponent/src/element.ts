@@ -3,11 +3,9 @@ import { signal } from '@preact/signals-core';
 import {
     createFormEngine,
     createResponseActionAutosaveController,
-    deepEqual,
     findAutosaveResponseAction,
     findResponseActionByIntent,
     isValidDefinitionResponseActionsDocument,
-    preactReactiveRuntime,
     type FormEngine,
     type IFormEngine,
     type LocaleDocument,
@@ -1452,10 +1450,6 @@ export class FormspecRender extends HTMLElement {
                 return;
             }
             this._autosaveDoc = this._responseActionsDocument;
-            this._autosaveStatusEpoch += 1;
-            if (this.actionStatusEl) {
-                this.actionStatusEl.textContent = '';
-            }
             this._autosaveController.setDocument(this._responseActionsDocument);
             return;
         }
@@ -1467,23 +1461,24 @@ export class FormspecRender extends HTMLElement {
             this.actionStatusEl.textContent = '';
         }
         const engine = this.engine;
-        let lastSnapshot = engine.getDraftSnapshot();
-        const disposeFreshness = preactReactiveRuntime.effect(() => {
-            engine.getEvaluatedFormState({ profile: 'off' });
-            const current = engine.getDraftSnapshot();
-            if (!deepEqual(current, lastSnapshot)) {
-                lastSnapshot = current;
-                this._autosaveStatusEpoch += 1;
-                if (this.actionStatusEl) {
-                    this.actionStatusEl.textContent = '';
-                }
-            }
-        });
+        let inFlightAutosave = false;
         const controller = createResponseActionAutosaveController({
             engine,
             document: this._responseActionsDocument,
             onFinding: (finding) => {
                 emitActionFinding(this._actionHost, finding);
+            },
+            onEdit: () => {
+                this._autosaveStatusEpoch += 1;
+                if (this.actionStatusEl) {
+                    this.actionStatusEl.textContent = '';
+                }
+            },
+            onDocumentChange: ({ equivalentAction }) => {
+                this._autosaveStatusEpoch += 1;
+                if ((inFlightAutosave || !equivalentAction) && this.actionStatusEl) {
+                    this.actionStatusEl.textContent = '';
+                }
             },
             invoke: async (action, context) => {
                 const invokedDoc = context.document;
@@ -1495,25 +1490,29 @@ export class FormspecRender extends HTMLElement {
                     return;
                 }
                 const epoch = this._autosaveStatusEpoch;
-                const statusEl = this.ensureActionStatus();
-                statusEl.textContent = uiText(this.engine ?? undefined, 'action.inProgress').value;
-                const result = await invokeAutosaveAction(this._actionHost, action.id);
-                if (
-                    this.isConnected
-                    && this._autosaveStatusEpoch === epoch
-                    && this._autosaveEngine === engine
-                    && context.isCurrent()
-                    && this._autosaveDoc === invokedDoc
-                ) {
-                    statusEl.textContent = this.formatAutosaveSettledStatus(result.status);
+                inFlightAutosave = true;
+                try {
+                    const statusEl = this.ensureActionStatus();
+                    statusEl.textContent = uiText(this.engine ?? undefined, 'action.inProgress').value;
+                    const result = await invokeAutosaveAction(this._actionHost, action.id);
+                    if (
+                        this.isConnected
+                        && this._autosaveStatusEpoch === epoch
+                        && this._autosaveEngine === engine
+                        && context.isCurrent()
+                        && this._autosaveDoc === invokedDoc
+                    ) {
+                        statusEl.textContent = this.formatAutosaveSettledStatus(result.status);
+                    }
+                    return result;
+                } finally {
+                    inFlightAutosave = false;
                 }
-                return result;
             },
         });
         this._autosaveController = controller;
         this._autosaveCleanup = () => {
             controller.dispose();
-            disposeFreshness();
         };
     }
 

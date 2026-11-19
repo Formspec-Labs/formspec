@@ -1187,6 +1187,7 @@ export interface ResponseActionAutosaveOptions {
     debounceMs?: number | undefined;
     onFinding?: ((finding: ActionRefFinding) => void) | undefined;
     onDocumentChange?: ((change: ResponseActionAutosaveDocumentChange) => void) | undefined;
+    onEdit?: (() => void) | undefined;
     invoke: (action: ResponseAction, context: ResponseActionAutosaveInvokeContext) => unknown | Promise<unknown>;
 }
 
@@ -1207,7 +1208,9 @@ export function createResponseActionAutosaveController(
     const draftEditVersionSignal = getDraftEditVersionSignal(options.engine);
     let currentDocument = options.document;
     let resolvedAutosave: ResponseAction | null = null;
-    let snapshot: ReturnType<IFormEngine['getDraftSnapshot']> | undefined;
+    // Conforming wrapper engines without the internal edit-version signal keep
+    // a single baseline snapshot across inactive periods (no per-edit polling).
+    let baselineSnapshot = draftEditVersionSignal ? undefined : options.engine.getDraftSnapshot();
     let edit = 0;
     let savedEdit = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -1224,6 +1227,11 @@ export function createResponseActionAutosaveController(
         }
     }
 
+    function detachSubscription(): void {
+        unsubscribe?.();
+        unsubscribe = undefined;
+    }
+
     function schedule(): void {
         if (!active || !resolvedAutosave || edit === savedEdit) return;
         pendingFlushAfterInFlight = false;
@@ -1234,9 +1242,10 @@ export function createResponseActionAutosaveController(
         }, debounceMs);
     }
 
-    function ensureSubscribed(shouldTrackFallback: boolean): void {
-        if (unsubscribe || !active) return;
+    function syncSubscription(shouldTrackFallback: boolean): void {
+        if (!active) return;
         if (draftEditVersionSignal) {
+            if (unsubscribe) return;
             let lastVersion: number | undefined;
             unsubscribe = preactReactiveRuntime.effect(() => {
                 const currentVersion = draftEditVersionSignal.value;
@@ -1247,19 +1256,35 @@ export function createResponseActionAutosaveController(
                 if (currentVersion !== lastVersion) {
                     lastVersion = currentVersion;
                     edit += 1;
+                    options.onEdit?.();
                     schedule();
                 }
             });
             return;
         }
-        if (!shouldTrackFallback) return;
-        snapshot = options.engine.getDraftSnapshot();
+        if (!shouldTrackFallback) {
+            detachSubscription();
+            return;
+        }
+        const latest = options.engine.getDraftSnapshot();
+        if (!deepEqual(latest, baselineSnapshot)) {
+            baselineSnapshot = latest;
+            edit += 1;
+            options.onEdit?.();
+        }
+        if (unsubscribe) return;
+        let initialized = false;
         unsubscribe = preactReactiveRuntime.effect(() => {
             options.engine.getEvaluatedFormState({ profile: 'off' });
-            const latest = options.engine.getDraftSnapshot();
-            if (!deepEqual(latest, snapshot)) {
-                snapshot = latest;
+            if (!initialized) {
+                initialized = true;
+                return;
+            }
+            const current = options.engine.getDraftSnapshot();
+            if (!deepEqual(current, baselineSnapshot)) {
+                baselineSnapshot = current;
                 edit += 1;
+                options.onEdit?.();
                 schedule();
             }
         });
@@ -1334,7 +1359,7 @@ export function createResponseActionAutosaveController(
         if (resolution.finding) {
             options.onFinding?.(resolution.finding);
         }
-        ensureSubscribed(resolvedAutosave !== null || Boolean(resolution.finding));
+        syncSubscription(resolvedAutosave !== null);
         if (!resolvedAutosave) {
             clearTimer();
             pendingFlushAfterInFlight = false;
@@ -1360,8 +1385,7 @@ export function createResponseActionAutosaveController(
             generation += 1;
             pendingFlushAfterInFlight = false;
             clearTimer();
-            unsubscribe?.();
-            unsubscribe = undefined;
+            detachSubscription();
         },
     };
 }

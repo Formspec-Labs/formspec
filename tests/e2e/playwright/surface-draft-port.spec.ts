@@ -968,3 +968,84 @@ test('narrow viewport hiding the outer Surface slot shell leaves one reachable t
   await fallback.click();
   await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
 });
+
+for (const mode of ['button-aria', 'shell-fieldset', 'shell-inert'] as const) {
+  test(`host disabling checkpoint (${mode}) immediately surfaces fallback without waiting for resize`, async ({ page }) => {
+    if (mode === 'shell-fieldset') {
+      await page.addInitScript(() => {
+        const insert = Node.prototype.appendChild;
+        Node.prototype.appendChild = function <T extends Node>(child: T): T {
+          if (child instanceof HTMLElement && child.matches('.fs-surface-slot[data-slot-type="definition-form"]')) {
+            const wrapper = document.createElement('fieldset');
+            wrapper.id = 'host-filing-fieldset';
+            insert.call(wrapper, child);
+            insert.call(this, wrapper);
+            return child;
+          }
+          return insert.call(this, child) as T;
+        };
+      });
+    }
+    await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter#/filing');
+    const checkpoint = page.locator('button[data-action-ref="autosave"]');
+    const fallback = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+    await expect(checkpoint).toBeEnabled();
+    await expect(fallback).toHaveCount(0);
+    const state = await checkpoint.evaluate((btn, kind) => {
+      const el = btn as HTMLButtonElement;
+      const slot = btn.closest<HTMLElement>('.fs-surface-slot')!;
+      if (kind === 'button-aria') btn.setAttribute('aria-disabled', 'true');
+      else if (kind === 'shell-inert') slot.inert = true;
+      else (btn.closest('#host-filing-fieldset') as HTMLFieldSetElement).disabled = true;
+      el.blur();
+      el.focus();
+      return {
+        focusable: document.activeElement === el,
+        nativeDisabled: el.matches(':disabled'),
+        ariaDisabled: el.getAttribute('aria-disabled'),
+      };
+    }, mode);
+    if (mode === 'shell-fieldset') expect(state.nativeDisabled).toBe(true);
+    if (mode === 'shell-inert') expect(state.focusable).toBe(false);
+    if (mode === 'button-aria') await expect(checkpoint).toBeDisabled();
+    await expect(fallback).toHaveCount(1, { timeout: 1000 });
+    await fallback.click();
+    await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+  });
+}
+
+test('all reachability observers including the shared ancestor observer disconnect when Filing unmounts', async ({ page }) => {
+  await page.addInitScript(() => {
+    const tracked = new Set<MutationObserver>();
+    const disconnected = new Set<MutationObserver>();
+    const targets = new Set<string>();
+    const originalObserve = MutationObserver.prototype.observe;
+    const originalDisconnect = MutationObserver.prototype.disconnect;
+    MutationObserver.prototype.observe = function (target, opts) {
+      if (target instanceof HTMLElement && opts?.attributes && opts.attributeFilter?.includes('open') && opts.attributeFilter?.includes('hidden')) {
+        tracked.add(this);
+        targets.add(target.tagName);
+      }
+      return originalObserve.call(this, target, opts);
+    };
+    MutationObserver.prototype.disconnect = function () {
+      if (tracked.has(this)) disconnected.add(this);
+      return originalDisconnect.call(this);
+    };
+    (window as unknown as { reviewObserver?: () => unknown }).reviewObserver = () => ({
+      count: tracked.size,
+      stopped: disconnected.size,
+      targets: [...targets],
+    });
+  });
+  await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter#/filing');
+  const checkpoint = page.locator('button[data-action-ref="autosave"]');
+  await expect(checkpoint).toBeVisible();
+  const before = await page.evaluate(() => (window as unknown as { reviewObserver: () => { count: number; stopped: number; targets: string[] } }).reviewObserver());
+  expect(before.targets).toContain('HTML');
+  expect(before.count).toBeGreaterThan(before.stopped);
+  await checkpoint.click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+  const after = await page.evaluate(() => (window as unknown as { reviewObserver: () => { count: number; stopped: number } }).reviewObserver());
+  expect(after.count).toBe(after.stopped);
+});

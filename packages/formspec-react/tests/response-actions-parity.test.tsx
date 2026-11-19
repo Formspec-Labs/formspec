@@ -1338,4 +1338,90 @@ describe('React Response Actions parity', () => {
             vi.useRealTimers();
         }
     });
+
+    it('flushes pre-policy edits for both registered FormEngine and conforming wrapper, and autosaves when evaluation applies an editable default', async () => {
+        vi.useFakeTimers();
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            version: '1.0.0',
+            url: 'urn:review8:consumer-react',
+            title: 'Consumer',
+            items: [{ type: 'field', key: 'answer', label: 'Answer', dataType: 'string' }],
+        };
+        const doc = {
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url: def.url },
+            actions: [{ id: 'automatic', intent: 'autosave' as const, effects: [{ type: 'hostEvent' as const, eventName: 'saved' }] }],
+        };
+
+        try {
+            // 1. Both registered engine and conforming Proxy wrapper flush edits typed before autosave policy arrives
+            for (const mode of ['registered', 'adapter'] as const) {
+                const engine = createFormEngine(def);
+                const supplied = mode === 'registered'
+                    ? engine
+                    : new Proxy(engine, {
+                        get(target, prop) {
+                            const entry = Reflect.get(target, prop, target);
+                            return typeof entry === 'function' ? entry.bind(target) : entry;
+                        },
+                    });
+                const events: string[] = [];
+                const { container, root } = renderInto(
+                    <FormspecForm engine={supplied} responseActionsDocument={undefined} onHostEvent={(name) => events.push(name)} />,
+                );
+                try {
+                    await act(async () => {
+                        supplied.setValue('answer', 'Saved when a policy arrives');
+                        await vi.advanceTimersByTimeAsync(500);
+                    });
+                    await act(async () => {
+                        root.render(
+                            <FormspecForm engine={supplied} responseActionsDocument={doc} onHostEvent={(name) => events.push(name)} />,
+                        );
+                    });
+                    await act(async () => {
+                        await vi.advanceTimersByTimeAsync(500);
+                    });
+                    expect(engine.getDraftSnapshot().data.answer, mode).toBe('Saved when a policy arrives');
+                    expect(events, mode).toEqual(['saved']);
+                } finally {
+                    await act(async () => { root.unmount(); });
+                    container.remove();
+                    engine.dispose();
+                }
+            }
+
+            // 2. Changing a named instance makes a field relevant and applies its editable default -> autosave fires once
+            const defaultDef: FormDefinition = {
+                ...def,
+                instances: {
+                    flags: { readonly: false, data: { show: false }, schema: { show: 'boolean' } },
+                },
+                binds: [
+                    { path: 'answer', relevant: "instance('flags', 'show') = true", default: 'Relevant default' },
+                ],
+            } as unknown as FormDefinition;
+            const defaultEngine = createFormEngine(defaultDef);
+            const defaultEvents: string[] = [];
+            const { container, root } = renderInto(
+                <FormspecForm engine={defaultEngine} responseActionsDocument={doc} onHostEvent={(name) => defaultEvents.push(name)} />,
+            );
+            try {
+                await act(async () => {
+                    defaultEngine.setInstanceValue('flags', 'show', true);
+                    await vi.advanceTimersByTimeAsync(500);
+                });
+                expect(defaultEngine.getDraftSnapshot().data.answer).toBe('Relevant default');
+                expect(defaultEvents).toEqual(['saved']);
+            } finally {
+                await act(async () => { root.unmount(); });
+                container.remove();
+                defaultEngine.dispose();
+            }
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });
