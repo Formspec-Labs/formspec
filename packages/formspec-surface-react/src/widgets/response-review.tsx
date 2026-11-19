@@ -255,6 +255,32 @@ function formatDateValue(value: string, locale: string): string {
   }
 }
 
+function isYearIntegerField(
+  value: number,
+  node: Extract<ReviewNode, { kind: "value" }>
+): boolean {
+  if (
+    !Number.isInteger(value) ||
+    value < 1900 ||
+    value > 2199 ||
+    node.currency ||
+    node.prefix ||
+    node.suffix
+  ) {
+    return false;
+  }
+  if (/\b(?:count|total|number\s+of|amount|participants|people|individuals|households|clients|hours|days|months)\b/i.test(node.label)) {
+    return false;
+  }
+  const leafKey = node.path.split(".").pop()?.replace(/\[\d+\]/g, "") ?? "";
+  return (
+    /\b(?:fiscal|calendar|tax|birth|reporting|program|grant|school|award|graduation|model|plan)\s+year\b|^\s*year\b|\byear\s*(?:\([^)]*\))?\s*:?\s*$/i.test(
+      node.label
+    ) ||
+    /(?:^|[_-])(?:year|fy)(?:$|[_-])|year$/i.test(leafKey)
+  );
+}
+
 function formatNumericValue(
   value: number,
   node: Extract<ReviewNode, { kind: "value" }>,
@@ -262,6 +288,9 @@ function formatNumericValue(
 ): string {
   if (node.currency || node.prefix === "$") {
     return formatMoneyValue(value, node.currency ?? "USD", locale);
+  }
+  if (isYearIntegerField(value, node)) {
+    return String(value);
   }
   const effectiveLocale = locale || "en-US";
   let formatted: string;
@@ -1078,7 +1107,7 @@ function ReviewBody({
   const displayedNodes = isDraftReview && !showUnanswered ? filtered.answered : c.nodes;
   const signatureCount = r.authoredSignatures?.length ?? 0;
   const showContext = !isDraftReview || signatureCount > 0;
-  const showRecordDetails = !isDraftReview || (r.status !== "in-progress" && text(r.id));
+  const showRecordDetails = !isDraftReview;
 
   const render = (
     nodes: ReviewNode[],

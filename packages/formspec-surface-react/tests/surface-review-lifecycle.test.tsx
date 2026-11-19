@@ -704,6 +704,107 @@ describe('ResponseReview human formatting, filtering, and chrome cleanup (P0-2)'
     // Sidebar keeps active highlight resolved to the owning form route on /review.
     expect(container.querySelector('a[data-nav-route="form"]')?.getAttribute('aria-current')).toBe('page');
   });
+
+  it('formats year integers without comma grouping and omits redundant Form reference disclosure on submitted draft-review', async () => {
+    const yearDef: FormDefinition = {
+      $formspec: '1.0',
+      url: 'https://example.test/year-review',
+      version: '1.0.0',
+      title: 'Annual Filing',
+      subject: {
+        type: 'urn:example:annual-filing',
+        keys: { year: { dataType: 'integer' } },
+      },
+      items: [
+        { key: 'reporting_year', type: 'field', dataType: 'integer', label: 'Fiscal Year' },
+        { key: 'participants_this_year', type: 'field', dataType: 'integer', label: 'Number of participants served this year' },
+      ],
+    };
+    const bundle = dereferenceBundleExport({
+      manifest: {
+        $formspecBundle: '2.4',
+        id: 'https://example.test/year-app',
+        entrySurface: SURFACE_URL,
+        definitions: [{ url: yearDef.url }],
+        surfaces: [{ url: SURFACE_URL }],
+        registries: [{ url: REGISTRY_URL }],
+      },
+      documents: {
+        [yearDef.url]: yearDef,
+        [REGISTRY_URL]: makeRegistry(),
+        [SURFACE_URL]: {
+          $formspecSurface: '0.4',
+          id: 'year-review',
+          entry: 'review',
+          modules: [{ id: REVIEW_MODULE, version: '1.0.0' }],
+          routes: [
+            {
+              id: 'form',
+              path: '/annual/{year}',
+              title: 'Annual Filing',
+              params: [{ name: 'year', type: 'string' }],
+              slots: [{
+                id: 'form',
+                slotType: 'definition-form',
+                binding: { definitionRef: yearDef.url, subjectKeys: { year: 'year' } },
+              }],
+            },
+            {
+              id: 'review',
+              path: '/annual/{year}/review',
+              title: 'Review Annual Filing',
+              params: [{ name: 'year', type: 'string' }],
+              navigation: { visible: false },
+              slots: [reviewSlot('form')],
+            },
+          ],
+        },
+      },
+    });
+    const store = createMemoryFilingStore({
+      scope: 'year-scope',
+      definitions: new Map([[yearDef.url, yearDef]]),
+      fixtures: {
+        filings: [{
+          responseJson: JSON.stringify({
+            $formspecResponse: '1.0',
+            id: 'urn:example:annual:2028',
+            definitionUrl: yearDef.url,
+            definitionVersion: yearDef.version,
+            status: 'completed',
+            authored: '2028-04-01T12:00:00Z',
+            subject: {
+              id: responseSubjectId(yearDef.subject!.type, { year: 2028 }),
+              type: yearDef.subject!.type,
+              keys: { year: 2028 },
+            },
+            data: {
+              reporting_year: 2028,
+              participants_this_year: 2028,
+            },
+          }),
+        }],
+      },
+    });
+
+    navigateBrowser('/annual/2028/review');
+    const container = render(
+      <BrowserSurfaceApp
+        bundle={bundle}
+        adapters={{
+          routeParams: { year: '2028' },
+          draftStorage: { scope: 'year-scope', port: store.drafts },
+          responses: store.responses,
+          widgetModules: [starterWidgetModule(REVIEW_MODULE)],
+        }}
+      />,
+    );
+
+    await vi.waitFor(() => expect(container.querySelector('.fs-response-review')).not.toBeNull());
+    expect(container.querySelector('[data-response-path="reporting_year"] dd')?.textContent).toBe('2028');
+    expect(container.querySelector('[data-response-path="participants_this_year"] dd')?.textContent).toBe('2,028');
+    expect(container.querySelector('.fs-response-review-record-details')).toBeNull();
+  });
 });
 
 describe('Filing map KPIs, completed strips, shell accessibility, and responsive CSS (P1-4, P1-5, P1-10, P1-13, P2-2, P2-4, P3-1)', () => {
