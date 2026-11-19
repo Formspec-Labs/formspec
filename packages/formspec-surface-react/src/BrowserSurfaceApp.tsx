@@ -157,7 +157,11 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
   const localeDocuments = props.localeDocuments ?? bundle.localeDocuments;
   const locale = useMemo(() => resolveBrowserLocale(bundle, localeDocuments), [bundle, localeDocuments]);
   const { preference, appearance, choose } = useBrowserAppearance();
-  const [save, setSave] = useState<{ scope: string | undefined; notice: SurfaceSaveNotice }>();
+  const [save, setSave] = useState<{
+    scope: string | undefined;
+    generation: string | number | undefined;
+    notice: SurfaceSaveNotice;
+  }>();
   const request = useRef(0);
   const visit = useMemo(() => ({}), [address, bundle, drafts, previewScope, props.sessionGeneration]);
   const currentVisit = useRef<typeof visit | undefined>(undefined);
@@ -245,7 +249,7 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
           ? browser.read(currentRouteAddress())?.query.get('edition') ?? previewEditions[0].scope
           : undefined;
         if (currentScope === previewScope && currentVisit.current === visit) {
-          setSave({ scope: previewScope, notice });
+          setSave({ scope: previewScope, generation: props.sessionGeneration, notice });
           if (!localPort && drafts && notice === 'saved') setDraftRevision(revision => revision + 1);
         }
       },
@@ -276,7 +280,13 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
           </select>
         </label>
       ),
-      saveNotice: save && save.scope === previewScope ? locale.strings(save.notice) : '',
+      saveNotice: save && save.scope === previewScope && save.generation === props.sessionGeneration
+        ? save.notice === 'submitted'
+          ? (localPort ? 'Submitted in this browser.' : 'Submitted.')
+          : save.notice === 'cleared'
+            ? ''
+            : locale.strings(save.notice)
+        : '',
     }}
     sessionGeneration={JSON.stringify([previewScope, props.sessionGeneration])}
   />;

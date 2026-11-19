@@ -98,8 +98,10 @@ import { isPlainLinkClick } from './browser-location.js';
 import type { DraftSession } from './draft-session.js';
 import { loadDraftReviewInputs, type DraftReviewDelivery, type DraftReviewReadyDelivery } from './draft-review.js';
 import type { DraftActionInvoker, DraftWriter } from './draft-writer.js';
+import { summarizeDraftProgress } from './draft-progress.js';
 import { Heading, nextLevel } from './heading.js';
 import { FilingStatus, type FilingStatusViewContext } from './FilingStatus.js';
+import { FormattedReceiptRef, filingStatusLabel } from './receipt-ref.js';
 import type {
   SurfaceWidget,
   SurfaceWidgetActionExecutor,
@@ -143,11 +145,20 @@ export type ResolvedDefinitionFormPlan = Extract<
   >;
 };
 
-export type SurfaceSaveNotice = 'saved' | 'savedLocally' | 'saveFailed' | 'draftConflict' | 'draftLoaded';
+export type SurfaceSaveNotice =
+  | 'saved'
+  | 'savedLocally'
+  | 'saveFailed'
+  | 'draftConflict'
+  | 'draftLoaded'
+  | 'submitted'
+  | 'cleared';
 
 export interface SurfaceFormSession {
   appearance: 'light' | 'dark';
   previewScope: string | undefined;
+  entryPath?: string | undefined;
+  navigate?: ((href: string) => void | boolean | Promise<boolean | void>) | undefined;
   drafts?: DraftSession | undefined;
   draftRevision?: number | undefined;
   reportSave: (notice: SurfaceSaveNotice) => void;
@@ -186,6 +197,12 @@ export interface SurfaceDefinitionFormRenderInput {
   draftStrings?: SurfaceStrings | undefined;
   /** Report committed saves and failed writes to the single shell live region. */
   reportSave?: ((notice: SurfaceSaveNotice) => void) | undefined;
+  /** Route navigation helpers for filed summaries, prerequisite notices, and submit confirmations. */
+  navigate?: ((href: string) => void | boolean | Promise<boolean | void>) | undefined;
+  formatHref?: ((href: string) => string | undefined) | undefined;
+  overviewDestination?: string | undefined;
+  reviewDestination?: string | undefined;
+  onDraftAvailabilityChange?: ((status: 'loading' | 'ready' | 'filed' | 'blocked' | undefined) => void) | undefined;
   activeSection?: string | undefined;
   focusField?: string | undefined;
   sectionNavigationActive?: boolean | undefined;
@@ -354,6 +371,10 @@ export interface SurfaceSlotProps {
     | undefined;
   onSlotVisibilityChange?:
     | ((slotKey: string, nextRefs: ReadonlySet<string> | undefined, baselineKey: string) => void)
+    | undefined;
+  reviewDestination?: string | undefined;
+  onSlotDraftAvailabilityChange?:
+    | ((slotId: string, status: 'loading' | 'ready' | 'filed' | 'blocked' | undefined) => void)
     | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   definitionActionInvoker?: DraftActionInvoker | undefined;
@@ -539,6 +560,8 @@ export function SurfaceSlot({
   embedSlotPrefix,
   onSlotFormEngineChange,
   onSlotVisibilityChange,
+  reviewDestination,
+  onSlotDraftAvailabilityChange,
   renderDefinitionForm,
   definitionActionInvoker,
   resolveSemanticControlScope,
@@ -643,6 +666,14 @@ export function SurfaceSlot({
           draftSession: formSession.drafts,
           draftStrings: strings,
           reportSave: formSession.reportSave,
+          overviewDestination: formSession.entryPath,
+          navigate: formSession.navigate ?? filingStatus?.navigate,
+        }),
+        ...(filingStatus?.formatHref && { formatHref: filingStatus.formatHref }),
+        ...(reviewDestination && { reviewDestination }),
+        ...(onSlotDraftAvailabilityChange && {
+          onDraftAvailabilityChange: (status: 'loading' | 'ready' | 'filed' | 'blocked' | undefined) =>
+            onSlotDraftAvailabilityChange(plan.slotId, status),
         }),
         ...(workspace && {
           sectionNavigationActive,
@@ -1787,9 +1818,89 @@ function DefaultSurfaceDefinitionForm(
     [references],
   );
 
+  const [actionBanner, setActionBanner] = useState<
+    | { kind: 'blocked'; errors: number; warnings: number; missing: number; detail: string }
+    | { kind: 'failed'; detail: string }
+    | { kind: 'submitted'; receiptRef?: string; label?: string }
+    | undefined
+  >(undefined);
+  const bannerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setActionBanner(undefined);
+  }, [engine]);
+  useEffect(() => {
+    if (!actionBanner || !bannerRef.current) return;
+    bannerRef.current.focus({ preventScroll: false });
+    if (typeof bannerRef.current.scrollIntoView === 'function') {
+      bannerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [actionBanner]);
+
+  const lastHandledActionResultRef = useRef<ResponseActionInvocationResult<SubmitResult> | undefined>(undefined);
+  const handleActionOutcome = useCallback(
+    (result: ResponseActionInvocationResult<SubmitResult>) => {
+      if (!engine || lastHandledActionResultRef.current === result) return;
+      lastHandledActionResultRef.current = result;
+      if (result.resolution.action?.intent === 'autosave') return;
+      if (result.status === 'blocked') {
+        const evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
+        const progress = summarizeDraftProgress([], evaluated);
+        const errors = progress.form.toFix ?? 0;
+        const warnings = progress.form.toCheck ?? 0;
+        const missing = progress.form.missing;
+        const parts: string[] = [];
+        if (missing > 0) parts.push(`${missing} required ${missing === 1 ? 'question' : 'questions'} unanswered`);
+        if (errors > 0) parts.push(`${errors} ${errors === 1 ? 'error' : 'errors'} to fix`);
+        if (warnings > 0) parts.push(`${warnings} ${warnings === 1 ? 'warning' : 'warnings'} to review`);
+        const detail = parts.length > 0
+          ? `Cannot submit yet: ${parts.join(', ')}. Use the Findings list to jump directly to each item.`
+          : 'Cannot submit yet: please review the highlighted items before submitting.';
+        setActionBanner({ kind: 'blocked', errors, warnings, missing, detail });
+        return;
+      }
+      if (result.status === 'failed') {
+        setActionBanner({
+          kind: 'failed',
+          detail: result.failureReason || 'This action could not be completed. Please try again.',
+        });
+        return;
+      }
+      if (result.status === 'completed') {
+        const isSubmitAction =
+          result.validationTuple?.persistence === 'complete-response'
+          || result.resolution.action?.intent === 'submit'
+          || Boolean((result.detail as { previewFiling?: unknown } | null)?.previewFiling);
+        if (isSubmitAction) {
+          const previewFiling = (
+            result.detail as { previewFiling?: { receiptRef?: string; label?: string } } | null
+          )?.previewFiling;
+          setActionBanner({
+            kind: 'submitted',
+            ...(previewFiling?.receiptRef ? { receiptRef: previewFiling.receiptRef } : {}),
+            ...(previewFiling?.label ? { label: previewFiling.label } : {}),
+          });
+          input.reportSave?.('submitted');
+        } else {
+          setActionBanner(undefined);
+        }
+      }
+    },
+    [engine, input.reportSave],
+  );
+
   if (!engine) {
     return <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
   }
+
+  const reviewDest = input.reviewDestination;
+  const reviewHref = reviewDest !== undefined
+    ? (input.formatHref ? input.formatHref(reviewDest) : reviewDest)
+    : undefined;
+  const overviewDest = input.overviewDestination;
+  const overviewHref = overviewDest !== undefined
+    ? (input.formatHref ? input.formatHref(overviewDest) : overviewDest)
+    : undefined;
+
   return (
     <div ref={formRootRef} style={{ display: 'contents' }}>
       <FormspecForm
@@ -1818,14 +1929,16 @@ function DefaultSurfaceDefinitionForm(
               // `onSubmit` requests the renderer's declared submit control. It is
               // a no-op because durable effects have not reached a terminal yet.
               onSubmit: () => {},
-              ...(onDefinitionActionResult
-                ? { onActionResult: onDefinitionActionResult }
-                : {}),
+              onActionResult: (result: ResponseActionInvocationResult<SubmitResult>) => {
+                handleActionOutcome(result);
+                onDefinitionActionResult?.(result);
+              },
               ...(onActionCompleted
                 ? {
                     onControlActionResult: (
                       result: ResponseActionInvocationResult<SubmitResult>,
                     ) => {
+                      handleActionOutcome(result);
                       const action = completedFormAction(result);
                       if (action) onActionCompleted(action, result);
                     },
@@ -1834,6 +1947,67 @@ function DefaultSurfaceDefinitionForm(
             }
           : {})}
       />
+      {actionBanner && (
+        <div
+          ref={bannerRef}
+          tabIndex={-1}
+          role={actionBanner.kind === 'submitted' ? 'status' : 'alert'}
+          className={`fs-surface-action-banner fs-surface-action-banner--${actionBanner.kind}`}
+          data-action-banner={actionBanner.kind}
+        >
+          {actionBanner.kind === 'submitted' ? (
+            <>
+              <p className="fs-surface-action-banner__title">Submitted</p>
+              <p className="fs-surface-action-banner__detail">
+                Your submission has been recorded.
+                {actionBanner.label ? ` (${actionBanner.label})` : ''}
+              </p>
+              {actionBanner.receiptRef && (
+                <p className="fs-surface-filing__meta" data-receipt-ref="">
+                  Receipt reference: <FormattedReceiptRef reference={actionBanner.receiptRef} />
+                </p>
+              )}
+              {(reviewHref || overviewHref) && (
+                <div className="fs-surface-action-banner__actions">
+                  {reviewDest && reviewHref && (
+                    <a
+                      className="fs-surface-action-link fs-surface-action-link--primary"
+                      href={reviewHref}
+                      onClick={event => {
+                        if (!input.navigate || !isPlainLinkClick(event)) return;
+                        event.preventDefault();
+                        void input.navigate(reviewDest);
+                      }}
+                    >
+                      Review submitted answers
+                    </a>
+                  )}
+                  {overviewDest && overviewHref && (
+                    <a
+                      className="fs-surface-action-link fs-surface-action-link--secondary"
+                      href={overviewHref}
+                      onClick={event => {
+                        if (!input.navigate || !isPlainLinkClick(event)) return;
+                        event.preventDefault();
+                        void input.navigate(overviewDest);
+                      }}
+                    >
+                      Return to overview
+                    </a>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="fs-surface-action-banner__title">
+                {actionBanner.kind === 'blocked' ? 'Submission blocked' : 'Action failed'}
+              </p>
+              <p className="fs-surface-action-banner__detail">{actionBanner.detail}</p>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -2379,6 +2553,10 @@ function SurfaceWidgetSlot({
       failure.reason === 'stale-disallowed' ||
       failure.reason === 'payload-invalid'
     );
+    const reviewBackDest = plan.draftReview?.status === 'ready' ? plan.draftReview.formHref : undefined;
+    const reviewBackHref = reviewBackDest !== undefined
+      ? (filingStatus?.formatHref ? filingStatus.formatHref(reviewBackDest) : reviewBackDest)
+      : undefined;
     return stateView(technicalFailure ? 'error' : 'unavailable', (
       <div
         data-widget-data="unavailable"
@@ -2386,6 +2564,21 @@ function SurfaceWidgetSlot({
         data-widget-failure-mode={modes.join(' ')}
       >
         <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>
+        {reviewBackDest && reviewBackHref && 'draftReviewReason' in delivery && delivery.draftReviewReason === 'absent' && (
+          <div className="fs-surface-prerequisite-notice__actions">
+            <a
+              className="fs-surface-action-link fs-surface-action-link--secondary"
+              href={reviewBackHref}
+              onClick={event => {
+                if (!filingStatus?.navigate || !isPlainLinkClick(event)) return;
+                event.preventDefault();
+                void filingStatus.navigate(reviewBackDest);
+              }}
+            >
+              Back to form
+            </a>
+          </div>
+        )}
       </div>
     ));
   }
@@ -2406,8 +2599,71 @@ function SurfaceWidgetSlot({
   const draftReviewReady = plan.draftReview?.status === 'ready' && 'warningGroups' in delivery
     ? { plan: plan.draftReview, delivery }
     : undefined;
+  const reviewFiling = draftReviewReady?.delivery.filing;
+  const reviewValidation = draftReviewReady?.delivery.validationSummary;
+  const reviewFormDest = draftReviewReady?.plan.formHref;
+  const reviewFormHref = reviewFormDest !== undefined
+    ? (filingStatus?.formatHref ? filingStatus.formatHref(reviewFormDest) : reviewFormDest)
+    : undefined;
+  const validationParts: string[] = [];
+  if (reviewValidation) {
+    if (reviewValidation.missing > 0) {
+      validationParts.push(`${reviewValidation.missing} required ${reviewValidation.missing === 1 ? 'question' : 'questions'} unanswered`);
+    }
+    if (reviewValidation.toFix > 0) {
+      validationParts.push(`${reviewValidation.toFix} ${reviewValidation.toFix === 1 ? 'error' : 'errors'} to fix`);
+    }
+    if (reviewValidation.toCheck > 0) {
+      validationParts.push(`${reviewValidation.toCheck} ${reviewValidation.toCheck === 1 ? 'warning' : 'warnings'} to review`);
+    }
+  }
   return (
     <>
+      {reviewFiling && (
+        <section
+          className="fs-surface-filing-banner"
+          data-filing-status={reviewFiling.status}
+          role="region"
+          aria-label={filingStatusLabel(reviewFiling.status, strings)}
+        >
+          <div className="fs-surface-filing-banner__header">
+            <span className="fs-surface-filing__badge" data-filing-status={reviewFiling.status}>
+              {filingStatusLabel(reviewFiling.status, strings)}
+            </span>
+            <p className="fs-surface-filing-banner__lead">
+              {draftReviewReady?.delivery.isFiledRecord
+                ? 'Showing the submitted answers on file.'
+                : 'Showing your in-progress revision alongside the previous decision.'}
+            </p>
+          </div>
+          <p className="fs-surface-filing__meta" data-receipt-ref="">
+            Receipt reference: <FormattedReceiptRef reference={reviewFiling.receiptRef} />
+          </p>
+          {reviewFiling.comments.map((comment, index) => (
+            <p key={index} className="fs-surface-filing__comment">{comment}</p>
+          ))}
+        </section>
+      )}
+      {validationParts.length > 0 && (
+        <section className="fs-surface-review-validation" role="region" aria-label="Items needing attention">
+          <p className="fs-surface-review-validation__summary">
+            Before submitting: {validationParts.join(', ')}.
+          </p>
+          {reviewFormDest && reviewFormHref && (
+            <a
+              className="fs-surface-action-link fs-surface-action-link--secondary"
+              href={reviewFormHref}
+              onClick={event => {
+                if (!filingStatus?.navigate || !isPlainLinkClick(event)) return;
+                event.preventDefault();
+                void filingStatus.navigate(reviewFormDest);
+              }}
+            >
+              Back to form
+            </a>
+          )}
+        </section>
+      )}
       <Widget
         moduleId={plan.key.moduleId}
         widgetName={plan.key.widgetName}
@@ -2484,45 +2740,48 @@ function DraftReviewWarningAcknowledgements({
       {delivery.warningGroups.map(group => (
         <fieldset
           key={group.code}
-          className="formspec-warning-explanation formspec-warning-acknowledgement"
+          className="fs-surface-review-ack formspec-warning-explanation formspec-warning-acknowledgement"
           data-explanation-code={group.code}
         >
-          <legend>{group.legend}</legend>
-          <ul>
-            {group.items.map(item => {
-              const destination = item.jumpHref ?? undefined;
-              const href = destination !== undefined
-                ? (filingStatus?.formatHref ? filingStatus.formatHref(destination) : destination)
-                : undefined;
-              return (
-                <li key={item.path}>
-                  {destination && href ? (
-                    <a
-                      href={href}
-                      onClick={event => {
-                        if (!filingStatus?.navigate || !isPlainLinkClick(event)) return;
-                        event.preventDefault();
-                        void filingStatus.navigate(destination);
-                      }}
-                    >
-                      {item.label}
-                    </a>
-                  ) : (
-                    <span>{item.label}</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          {group.addedText && <p className="formspec-warning-acknowledgement-added">{group.addedText}</p>}
-          {group.removedText && <p className="formspec-warning-acknowledgement-removed">{group.removedText}</p>}
-          <button
-            type="button"
-            disabled={group.current || savingCode !== null}
-            onClick={() => void acknowledge(group.code, group.basis ?? '')}
-          >
-            {group.buttonLabel}
-          </button>
+          <legend className="fs-surface-review-ack__legend">{group.legend}</legend>
+          <div className="fs-surface-review-ack__body">
+            <ul>
+              {group.items.map(item => {
+                const destination = item.jumpHref ?? undefined;
+                const href = destination !== undefined
+                  ? (filingStatus?.formatHref ? filingStatus.formatHref(destination) : destination)
+                  : undefined;
+                return (
+                  <li key={item.path}>
+                    {destination && href ? (
+                      <a
+                        href={href}
+                        onClick={event => {
+                          if (!filingStatus?.navigate || !isPlainLinkClick(event)) return;
+                          event.preventDefault();
+                          void filingStatus.navigate(destination);
+                        }}
+                      >
+                        {item.label}
+                      </a>
+                    ) : (
+                      <span>{item.label}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            {group.addedText && <p className="formspec-warning-acknowledgement-added">{group.addedText}</p>}
+            {group.removedText && <p className="formspec-warning-acknowledgement-removed">{group.removedText}</p>}
+            <button
+              type="button"
+              className="fs-surface-review-ack__button"
+              disabled={group.current || savingCode !== null}
+              onClick={() => void acknowledge(group.code, group.basis ?? '')}
+            >
+              {group.buttonLabel}
+            </button>
+          </div>
         </fieldset>
       ))}
     </>

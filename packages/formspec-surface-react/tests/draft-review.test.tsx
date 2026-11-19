@@ -133,7 +133,7 @@ it('shows the saved answer when other Definition options have an empty value or 
   } }));
   const { container } = mount(load, undefined, { bundle: reviewBundle('fr', choice), useNativeReview: true });
   await act(async () => { await vi.waitFor(() => expect(load).toHaveBeenCalled()); });
-  await vi.waitFor(() => expect(container.querySelector('[data-response-path="answer"] dd')?.textContent).toBe('Yes (yes)'));
+  await vi.waitFor(() => expect(container.querySelector('[data-response-path="answer"] dd')?.textContent).toBe('Yes'));
 });
 
 it('uses bundled wording without requesting external instances or options', async () => {

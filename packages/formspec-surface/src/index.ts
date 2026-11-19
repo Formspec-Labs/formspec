@@ -277,7 +277,7 @@ export {
   matchesFilingSubjectPredicates,
   type BrowserDraftPort, type CurrentDraftProgress, type DraftKey, type DraftLoadResult, type DraftPort, type DraftRecord,
   type DraftStartInput, type DraftStartResult, type DraftRestartResult, type DraftSaveInput, type DraftSaveResult, type DraftSectionPlacement,
-  type FilingDraftObservation, type FilingDraftQuery, type FilingObservation, type FilingProgressCounts, type FilingStatusObservation, type FilingStatusReader,
+  type FilingDraftObservation, type FilingDraftQuery, type FilingLoadResult, type FilingObservation, type FilingProgressCounts, type FilingStatusObservation, type FilingStatusReader,
   type FilingSubjectMatch, type FilingSubjectPredicate, type MatchedFilingDraftObservation, type MatchedFilingObservation,
 } from './draft-port.js';
 export { canonicalDraftProgress } from './draft-port.js';

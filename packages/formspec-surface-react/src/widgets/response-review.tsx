@@ -9,7 +9,7 @@ import {
 } from "react";
 import canonicalize from "canonicalize";
 import type { Explanation } from "@formspec-org/types";
-import { isQualifiedDraftReview } from '../internal/draft-review-qualification.js';
+import { getDraftReviewIrrelevantPaths, isQualifiedDraftReview } from '../internal/draft-review-qualification.js';
 import {
   canonicalFiniteJson,
   snapshotFiniteJson,
@@ -100,8 +100,243 @@ type ReviewNode =
       value: FiniteJsonValue;
       attachment: boolean;
       options?: readonly { value: string; label: string }[];
+      dataType?: string;
+      currency?: string;
+      prefix?: string;
+      suffix?: string;
+      precision?: number;
+      calculatedReadonly?: boolean;
     }
   | { kind: "group"; path: string; label: string; children: ReviewNode[] };
+
+type BindHint = {
+  readonly?: boolean;
+  calculate?: boolean;
+  relevantFalse?: boolean;
+};
+
+function isStaticRelevantFalse(value: unknown): boolean {
+  return value === false || (typeof value === "string" && value.trim().toLowerCase() === "false");
+}
+
+function collectBindHints(definition: Obj): Map<string, BindHint> {
+  const hints = new Map<string, BindHint>();
+  const binds = definition.binds;
+  if (!Array.isArray(binds)) return hints;
+  for (const bind of binds) {
+    if (!object(bind) || !text(bind.path)) continue;
+    const isReadonly = bind.readonly !== undefined && bind.readonly !== false && bind.readonly !== "false";
+    const isCalculate = bind.calculate !== undefined && bind.calculate !== "";
+    const isRelevantFalse = isStaticRelevantFalse(bind.relevant);
+    if (!isReadonly && !isCalculate && !isRelevantFalse) continue;
+    const prev = hints.get(bind.path);
+    hints.set(bind.path, {
+      readonly: Boolean(prev?.readonly || isReadonly),
+      calculate: Boolean(prev?.calculate || isCalculate),
+      relevantFalse: Boolean(prev?.relevantFalse || isRelevantFalse),
+    });
+  }
+  return hints;
+}
+
+function lookupBindHint(bindHints: Map<string, BindHint> | undefined, path: string): BindHint | undefined {
+  if (!bindHints) return undefined;
+  return (
+    bindHints.get(path) ??
+    bindHints.get(path.replace(/\[\d+\]/g, "[*]")) ??
+    bindHints.get(path.replace(/\[\d+\]/g, ""))
+  );
+}
+
+function isMoneyObject(value: unknown): value is { amount: string | number; currency: string } {
+  if (!object(value)) return false;
+  const keys = Object.keys(value);
+  if (keys.length !== 2 || !own(value, "amount") || !own(value, "currency")) return false;
+  const { amount, currency } = value;
+  const validAmount =
+    (typeof amount === "number" && Number.isFinite(amount)) ||
+    (typeof amount === "string" && /^-?\d+(?:\.\d+)?$/.test(amount.trim()));
+  return validAmount && typeof currency === "string" && /^[A-Z]{3}$/.test(currency);
+}
+
+function formatMoneyValue(
+  amount: string | number,
+  currency: string,
+  locale: string,
+  options?: { lossless?: boolean }
+): string {
+  const rawStr = typeof amount === "number" ? String(amount) : amount.trim();
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(rawStr);
+  const effectiveLocale = locale || "en-US";
+  if (match) {
+    const [, sign, intPart, fracPart] = match;
+    const trimmedFrac = fracPart ? fracPart.replace(/0+$/, "") : "";
+    const exactFracLen = fracPart ? fracPart.length : 0;
+    const significantDigits = intPart!.replace(/^0+/, "").length + (fracPart?.length ?? 0);
+    // Preserve exact precision for high-precision or >2-decimal amounts without silent rounding.
+    if (significantDigits <= 15) {
+      const numeric = Number(rawStr);
+      if (Number.isFinite(numeric)) {
+        const minFrac = options?.lossless
+          ? exactFracLen
+          : trimmedFrac.length > 0
+            ? Math.max(2, trimmedFrac.length)
+            : 0;
+        const maxFrac = options?.lossless
+          ? exactFracLen
+          : Math.max(2, trimmedFrac.length);
+        try {
+          return new Intl.NumberFormat(effectiveLocale, {
+            style: "currency",
+            currency,
+            minimumFractionDigits: minFrac,
+            maximumFractionDigits: maxFrac,
+          }).format(numeric);
+        } catch {
+          return `${currency} ${rawStr}`;
+        }
+      }
+    }
+    // High-precision (>15 significant digits) lossless formatting via BigInt grouping.
+    try {
+      const groupedInt = new Intl.NumberFormat(effectiveLocale, { useGrouping: true }).format(BigInt(intPart!));
+      const parts = new Intl.NumberFormat(effectiveLocale, { style: "currency", currency }).formatToParts(0);
+      const currencyPart = parts.find((part) => part.type === "currency")?.value ?? `${currency} `;
+      const decimalSep = parts.find((part) => part.type === "decimal")?.value ?? ".";
+      const fractionSuffix = fracPart !== undefined
+        ? (options?.lossless ? `${decimalSep}${fracPart}` : trimmedFrac ? `${decimalSep}${trimmedFrac}` : "")
+        : "";
+      return `${sign}${currencyPart}${groupedInt}${fractionSuffix}`;
+    } catch {
+      return `${currency} ${rawStr}`;
+    }
+  }
+  const num = typeof amount === "number" ? amount : Number(rawStr);
+  if (!Number.isFinite(num)) return `${currency} ${String(amount)}`;
+  try {
+    return new Intl.NumberFormat(effectiveLocale, {
+      style: "currency",
+      currency,
+      minimumFractionDigits: Number.isInteger(num) ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+  } catch {
+    return `${currency} ${rawStr}`;
+  }
+}
+
+function formatDateValue(value: string, locale: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value;
+  const [, year, month, day] = match;
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
+  const parsed = new Date(Date.UTC(y, m - 1, d));
+  if (
+    parsed.getUTCFullYear() !== y ||
+    parsed.getUTCMonth() !== m - 1 ||
+    parsed.getUTCDate() !== d
+  ) {
+    return value;
+  }
+  if (!locale || /^en\b/i.test(locale)) {
+    return `${month}/${day}/${year}`;
+  }
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "UTC",
+    }).format(parsed);
+  } catch {
+    return `${month}/${day}/${year}`;
+  }
+}
+
+function formatNumericValue(
+  value: number,
+  node: Extract<ReviewNode, { kind: "value" }>,
+  locale: string
+): string {
+  if (node.currency || node.prefix === "$") {
+    return formatMoneyValue(value, node.currency ?? "USD", locale);
+  }
+  const effectiveLocale = locale || "en-US";
+  let formatted: string;
+  try {
+    formatted = new Intl.NumberFormat(effectiveLocale, {
+      maximumFractionDigits: node.precision ?? 4,
+    }).format(value);
+  } catch {
+    formatted = String(value);
+  }
+  const inferredPercent =
+    !node.suffix &&
+    node.dataType === "decimal" &&
+    /(?:\(%|\bpercentage\b|%)/i.test(node.label);
+  const suffix = node.suffix ?? (inferredPercent ? "%" : undefined);
+  const prefix = node.prefix ?? "";
+  if (suffix) {
+    const glue = suffix === "%" || suffix.startsWith(" ") ? "" : " ";
+    return `${prefix}${formatted}${glue}${suffix}`;
+  }
+  return `${prefix}${formatted}`;
+}
+
+function isEmptyReviewValue(value: FiniteJsonValue): boolean {
+  return (
+    value === null ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0) ||
+    (object(value) && Object.keys(value).length === 0)
+  );
+}
+
+function filterEmptyReviewNodes(nodes: readonly ReviewNode[]): {
+  answered: ReviewNode[];
+  unansweredCount: number;
+  hasConcreteAnswer: boolean;
+} {
+  let unansweredCount = 0;
+  let hasConcreteAnswer = false;
+  const pendingCalculated: ReviewNode[] = [];
+  const entries: Array<{ node: ReviewNode; calculatedEmpty?: boolean }> = [];
+
+  for (const node of nodes) {
+    if (node.kind === "value") {
+      if (isEmptyReviewValue(node.value)) {
+        if (node.calculatedReadonly) {
+          pendingCalculated.push(node);
+          entries.push({ node, calculatedEmpty: true });
+        } else {
+          unansweredCount += 1;
+        }
+      } else {
+        hasConcreteAnswer = true;
+        entries.push({ node });
+      }
+    } else {
+      const childResult = filterEmptyReviewNodes(node.children);
+      unansweredCount += childResult.unansweredCount;
+      if (childResult.hasConcreteAnswer && childResult.answered.length > 0) {
+        hasConcreteAnswer = true;
+        entries.push({ node: { ...node, children: childResult.answered } });
+      }
+    }
+  }
+
+  if (!hasConcreteAnswer) {
+    unansweredCount += pendingCalculated.length;
+    return { answered: [], unansweredCount, hasConcreteAnswer: false };
+  }
+  return {
+    answered: entries.map((entry) => entry.node),
+    unansweredCount,
+    hasConcreteAnswer: true,
+  };
+}
 type Capture = {
   headingLevel: SurfaceWidgetProps["headingLevel"];
   data: ResponseReviewData;
@@ -141,7 +376,7 @@ function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' 
     )
       return undefined;
     if (p.phase === 'draft-review') {
-      if (!isQualifiedDraftReview(props.data) || r.status !== 'in-progress' || !text(p.revision)) return undefined;
+      if (!isQualifiedDraftReview(props.data) || !['in-progress', 'completed', 'amended'].includes(r.status) || !text(p.revision)) return undefined;
     } else if (
       !['before-sign', 'before-submit', 'accepted-record'].includes(p.phase) ||
       p.definitionUrl !== d.url || p.definitionVersion !== d.version || !hash(p.responseHash) ||
@@ -200,6 +435,15 @@ function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' 
     if (p.phase === "accepted-record" && !text(c.acceptedRecord)) return undefined;
     const copy = c as unknown as ResponseReviewCopy & { acceptedRecord?: string };
     const attachments: string[] = [];
+    const bindHints = collectBindHints(d as unknown as Obj);
+    const defaultCurrency =
+      object((d as unknown as Obj).formPresentation) &&
+      text(((d as unknown as Obj).formPresentation as Obj).defaultCurrency)
+        ? (((d as unknown as Obj).formPresentation as Obj).defaultCurrency as string)
+        : undefined;
+    const irrelevantPaths = p.phase === "draft-review"
+      ? getDraftReviewIrrelevantPaths(props.data)
+      : undefined;
     const nodes = walk(
       d.items as unknown as Obj[],
       r.data as Obj,
@@ -207,7 +451,10 @@ function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' 
       p,
       copy,
       attachments,
-      selection
+      selection,
+      bindHints,
+      irrelevantPaths,
+      defaultCurrency
     );
     const explanations = p.phase === 'accepted-record' ? (r.explanations ?? []).filter(entry => {
       if (!object(entry) || !object(entry.author) || !text(entry.author.id) || !text(entry.recorded) ||
@@ -259,11 +506,15 @@ function walk(
   p: ResponseReviewPresentation,
   copy: ResponseReviewCopy,
   attachments: string[],
-  selection?: AcceptedReviewFieldSelection
+  selection?: AcceptedReviewFieldSelection,
+  bindHints?: Map<string, BindHint>,
+  irrelevantPaths?: ReadonlySet<string>,
+  defaultCurrency?: string
 ): ReviewNode[] {
   const nodes: ReviewNode[] = [];
   const consumed = new Set<string>();
   const keys = new Set<string>();
+  const isDraftReview = p.phase === "draft-review";
   for (const item of items) {
     if (
       !object(item) ||
@@ -277,6 +528,14 @@ function walk(
     const path = prefix ? `${prefix}.${item.key}` : item.key;
     if (selection && !(item.type === 'field' && selection.includes(path)) &&
       !(item.type === 'group' && selection.contains(path))) continue;
+    const bindHint = lookupBindHint(bindHints, path);
+    if (
+      isDraftReview &&
+      (irrelevantPaths?.has(path) || isStaticRelevantFalse(item.relevant) || bindHint?.relevantFalse)
+    ) {
+      consumed.add(item.key);
+      continue;
+    }
     const value = values[item.key] as FiniteJsonValue;
     const metadata = own(p.fields as unknown as Obj, path)
       ? p.fields[path]
@@ -293,20 +552,28 @@ function walk(
           kind: "group",
           path,
           label: metadata.label,
-          children: value.flatMap((row, i) => selection && !selection.contains(`${path}[${i}]`) ? [] : [{
-            kind: "group" as const,
-            path: `${path}[${i}]`,
-            label: `${metadata.label} ${i + 1}`,
-            children: walk(
-              item.children as Obj[],
-              row as Obj,
-              `${path}[${i}]`,
-              p,
-              copy,
-              attachments,
-              selection
-            ),
-          }]).filter(row => !selection || row.children.length > 0),
+          children: value.flatMap((row, i) => {
+            const rowPath = `${path}[${i}]`;
+            if (isDraftReview && irrelevantPaths?.has(rowPath)) return [];
+            if (selection && !selection.contains(rowPath)) return [];
+            return [{
+              kind: "group" as const,
+              path: rowPath,
+              label: `${metadata.label} ${i + 1}`,
+              children: walk(
+                item.children as Obj[],
+                row as Obj,
+                rowPath,
+                p,
+                copy,
+                attachments,
+                selection,
+                bindHints,
+                irrelevantPaths,
+                defaultCurrency
+              ),
+            }];
+          }).filter(row => !selection || row.children.length > 0),
         });
         // An empty repeated group is still a recorded value.
         if (!value.length && !selection)
@@ -325,7 +592,10 @@ function walk(
           p,
           copy,
           attachments,
-          selection
+          selection,
+          bindHints,
+          irrelevantPaths,
+          defaultCurrency
         );
         if (selection && !children.length) continue;
         nodes.push(
@@ -359,6 +629,43 @@ function walk(
             ? value.map((_, i) => `${path}[${i}]`)
             : [path])
         );
+      const itemReadonly =
+        item.readonly !== undefined && item.readonly !== false && item.readonly !== "false";
+      const itemCalculate = item.calculate !== undefined && item.calculate !== "";
+      const calculatedReadonly = Boolean(
+        itemCalculate || bindHint?.calculate || (itemReadonly || bindHint?.readonly)
+      );
+      const presentationObj = object(item.presentation) ? item.presentation : undefined;
+      const prefixText =
+        text(item.prefix)
+          ? item.prefix
+          : presentationObj && text(presentationObj.prefix)
+            ? presentationObj.prefix
+            : undefined;
+      const explicitCurrency =
+        text(item.currency)
+          ? item.currency
+          : presentationObj && text(presentationObj.currency)
+            ? presentationObj.currency
+            : undefined;
+      const isCurrencyField =
+        item.dataType === "money" ||
+        prefixText === "$" ||
+        (presentationObj && presentationObj.format === "currency");
+      const currency = explicitCurrency ?? (isCurrencyField ? defaultCurrency : undefined);
+      const suffixText =
+        text(item.suffix)
+          ? item.suffix
+          : presentationObj && text(presentationObj.suffix)
+            ? presentationObj.suffix
+            : presentationObj && text(presentationObj.unit)
+              ? presentationObj.unit
+              : text(item.unit)
+                ? item.unit
+                : undefined;
+      const precision = typeof item.precision === "number" && Number.isInteger(item.precision) && item.precision >= 0
+        ? item.precision
+        : undefined;
       nodes.push({
         kind: "value",
         path,
@@ -366,6 +673,12 @@ function walk(
         value,
         attachment,
         ...(metadata.options ? { options: metadata.options } : {}),
+        ...(text(item.dataType) ? { dataType: item.dataType } : {}),
+        ...(currency ? { currency } : {}),
+        ...(prefixText ? { prefix: prefixText } : {}),
+        ...(suffixText ? { suffix: suffixText } : {}),
+        ...(precision !== undefined ? { precision } : {}),
+        ...(calculatedReadonly ? { calculatedReadonly: true } : {}),
       });
     }
   }
@@ -386,51 +699,80 @@ function walk(
 function Value({
   node,
   copy,
+  phase,
+  locale,
 }: {
   node: Extract<ReviewNode, { kind: "value" }>;
   copy: ResponseReviewCopy;
+  phase?: ResponseReviewPresentation["phase"];
+  locale?: string;
 }) {
   const v = node.value;
-  if (v === null) return <>{copy.nullValue}</>;
+  const isDraftReview = phase === "draft-review";
+  if (v === null) {
+    if (isDraftReview && node.calculatedReadonly) {
+      return <span className="fs-response-review-calculated-empty">—</span>;
+    }
+    return <>{copy.nullValue}</>;
+  }
   if (typeof v === "boolean")
     return <>{v ? copy.trueValue : copy.falseValue}</>;
-  if (v === "") return <>{copy.emptyString}</>;
+  if (v === "") {
+    if (isDraftReview && node.calculatedReadonly) {
+      return <span className="fs-response-review-calculated-empty">—</span>;
+    }
+    return <>{copy.emptyString}</>;
+  }
   if (Array.isArray(v) && !v.length) return <>{copy.emptyArray}</>;
   if (object(v) && !Object.keys(v).length) return <>{copy.emptyObject}</>;
+  if (isMoneyObject(v)) {
+    return (
+      <span className="fs-response-review-number">
+        {formatMoneyValue(v.amount, v.currency, locale ?? "en-US", { lossless: !isDraftReview })}
+      </span>
+    );
+  }
+  if (typeof v === "number" && isDraftReview) {
+    return (
+      <span className="fs-response-review-number">
+        {formatNumericValue(v, node, locale ?? "en-US")}
+      </span>
+    );
+  }
   if (typeof v === "string") {
     const option = node.options?.filter((o) => o.value === v);
-    return (
-      <>
-        {option?.length === 1 ? (
-          <>
-            {option[0]!.label}{" "}
-            <span className="fs-response-review-code">({v})</span>
-          </>
-        ) : (
-          v
-        )}
-      </>
-    );
+    if (option?.length === 1) {
+      if (isDraftReview) return <>{option[0]!.label}</>;
+      return (
+        <>
+          {option[0]!.label}{" "}
+          <span className="fs-response-review-code">({v})</span>
+        </>
+      );
+    }
+    if (isDraftReview && node.dataType === "date") {
+      return <>{formatDateValue(v, locale ?? "en-US")}</>;
+    }
+    return <>{v}</>;
   }
   if (Array.isArray(v) && node.options)
     return (
-      <>
-        <ul>
-          {v.map((entry, i) => {
-            const option = node.options?.filter((o) => o.value === entry);
-            return (
-              <li key={i}>
-                {option?.length === 1
-                  ? `${option[0]!.label} (${String(entry)})`
+      <ul className="fs-response-review-list">
+        {v.map((entry, i) => {
+          const option = node.options?.filter((o) => o.value === entry);
+          return (
+            <li key={i}>
+              {option?.length === 1
+                ? isDraftReview
+                  ? option[0]!.label
+                  : `${option[0]!.label} (${String(entry)})`
+                : isDraftReview && typeof entry === "string"
+                  ? entry
                   : JSON.stringify(entry)}
-              </li>
-            );
-          })}
-        </ul>
-        <pre className="fs-response-review-json fs-surface-review__structured">
-          {JSON.stringify(v, null, 2)}
-        </pre>
-      </>
+            </li>
+          );
+        })}
+      </ul>
     );
   // JSON preserves all keys, values, array order and scalar types without string coercion.
   return (
@@ -516,7 +858,7 @@ function Attachment({
       ))}
       <details>
         <summary>{c.copy.attachmentDetails}</summary>
-        <Value node={node} copy={c.copy} />
+        <Value node={node} copy={c.copy} phase={c.data.presentation.phase} locale={c.data.presentation.locale} />
       </details>
     </>
   );
@@ -621,10 +963,18 @@ function ReviewBody({
   options: ResponseReviewOptions;
 }) {
   const { presentation: p, response: r } = c.data;
-  const [admitted, setAdmitted] = useState(p.phase === 'draft-review');
+  const isDraftReview = p.phase === "draft-review";
+  const [admitted, setAdmitted] = useState(isDraftReview);
   const [failed, setFailed] = useState(false);
   const [identity, setIdentity] = useState<string>();
   const [previews, setPreviews] = useState<Record<string, PreviewStatus>>({});
+  const [showUnanswered, setShowUnanswered] = useState(false);
+  const filtered = useMemo(
+    () => (isDraftReview
+      ? filterEmptyReviewNodes(c.nodes)
+      : { answered: c.nodes, unansweredCount: 0, hasConcreteAnswer: true }),
+    [isDraftReview, c.nodes]
+  );
   const report = useCallback(
     (status: ResponseReviewState["status"], contextIdentity?: string) => {
       if (p.phase === 'draft-review') return;
@@ -725,6 +1075,11 @@ function ReviewBody({
     instances.delete(path);
     return notes;
   }
+  const displayedNodes = isDraftReview && !showUnanswered ? filtered.answered : c.nodes;
+  const signatureCount = r.authoredSignatures?.length ?? 0;
+  const showContext = !isDraftReview || signatureCount > 0;
+  const showRecordDetails = !isDraftReview || (r.status !== "in-progress" && text(r.id));
+
   const render = (
     nodes: ReviewNode[],
     level: SurfaceWidgetProps["headingLevel"]
@@ -752,7 +1107,7 @@ function ReviewBody({
                 onStatus={onStatus}
               />
             ) : (
-              <Value node={node} copy={c.copy} />
+              <Value node={node} copy={c.copy} phase={p.phase} locale={p.locale} />
             )}
             {notesFor(node.path)}
           </dd>
@@ -766,33 +1121,59 @@ function ReviewBody({
       lang={p.locale}
     >
       <Heading level={c.headingLevel}>{c.copy.heading}</Heading>
-      {p.phase !== 'draft-review' && <p className="fs-response-review-intro">
+      {!isDraftReview && <p className="fs-response-review-intro">
         {p.phase === "accepted-record" ? c.copy.acceptedRecord
           : p.phase === "before-sign" ? c.copy.beforeSign : c.copy.beforeSubmit}
       </p>}
-      <dl className="fs-response-review-context fs-response-review__meta">
-        {p.phase !== "accepted-record" && p.phase !== 'draft-review' ? <div>
-          <dt>{c.copy.draftVersion}</dt>
-          <dd>{p.draft.version}</dd>
-        </div> : null}
-        <div>
-          <dt>{c.copy.locale}</dt>
-          <dd>{p.locale}</dd>
+      {showContext && (
+        <dl className="fs-response-review-context fs-response-review__meta">
+          {p.phase !== "accepted-record" && !isDraftReview ? <div>
+            <dt>{c.copy.draftVersion}</dt>
+            <dd>{p.draft.version}</dd>
+          </div> : null}
+          {!isDraftReview && (
+            <div>
+              <dt>{c.copy.locale}</dt>
+              <dd>{p.locale}</dd>
+            </div>
+          )}
+          <div>
+            <dt>{c.copy.signatures}</dt>
+            <dd>{signatureCount}</dd>
+          </div>
+        </dl>
+      )}
+      {isDraftReview && filtered.unansweredCount > 0 && (
+        <div className="fs-response-review-controls">
+          <button
+            type="button"
+            className="fs-response-review-toggle"
+            aria-expanded={showUnanswered}
+            onClick={() => setShowUnanswered((current) => !current)}
+          >
+            {showUnanswered
+              ? `Hide ${filtered.unansweredCount} unanswered ${filtered.unansweredCount === 1 ? "item" : "items"}`
+              : `Show ${filtered.unansweredCount} unanswered ${filtered.unansweredCount === 1 ? "item" : "items"}`}
+          </button>
         </div>
-        <div>
-          <dt>{c.copy.signatures}</dt>
-          <dd>{r.authoredSignatures?.length ?? 0}</dd>
-        </div>
-      </dl>
-      {render(c.nodes, nextLevel(c.headingLevel))}
+      )}
+      {displayedNodes.length > 0 ? (
+        render(displayedNodes, nextLevel(c.headingLevel))
+      ) : (
+        isDraftReview && (
+          <p className="fs-response-review-empty">No answers recorded yet.</p>
+        )
+      )}
       {[...instances].map(([path, notes]) => <div key={path}>
         <strong>{path === '#' ? c.copy.heading : p.fields[path]!.label}</strong>{notes}
       </div>)}
       {groups}
-      <details className="fs-response-review-record-details">
-        <summary>{c.copy.responseId}</summary>
-        <p>{r.id}</p>
-      </details>
+      {showRecordDetails && (
+        <details className="fs-response-review-record-details">
+          <summary>{c.copy.responseId}</summary>
+          <p>{r.id}</p>
+        </details>
+      )}
     </section>
   );
 }

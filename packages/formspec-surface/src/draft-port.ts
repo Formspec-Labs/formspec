@@ -215,6 +215,18 @@ export type DraftLoadResult =
   | { status: 'absent' }
   | { status: 'version-mismatch'; storedVersion: string; revision: string }
   | DraftRefusal;
+
+export type FilingLoadResult =
+  | {
+      status: 'loaded';
+      filing: {
+        responseJson: string;
+        definitionVersion: string;
+        observation: Extract<MatchedFilingObservation, { receiptRef: string }>;
+      };
+    }
+  | { status: 'absent' }
+  | DraftRefusal;
 export type DraftSaveResult =
   | { status: 'saved'; revision: string; explanations?: readonly Explanation[] }
   | { status: 'pin-unavailable'; instance: string }
@@ -241,6 +253,8 @@ export interface DraftPort {
   start?(input: DraftStartInput): Promise<DraftStartResult>;
   /** Authorize before looking up a draft or disclosing its pin. */
   load(key: DraftKey, definitionVersion: string, signal?: AbortSignal): Promise<DraftLoadResult>;
+  /** Authorize and load the latest completed filing (response JSON + decision observation) for this filing unit. */
+  loadFiling?(key: DraftKey, definitionVersion: string, signal?: AbortSignal): Promise<FilingLoadResult>;
   /** Compare the revision and commit both draft pieces and progress atomically. */
   save(input: DraftSaveInput): Promise<DraftSaveResult>;
   readSummaries: FilingStatusReader;

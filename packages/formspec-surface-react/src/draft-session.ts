@@ -4,9 +4,13 @@ import {
   type ActionRefFinding, type FormDraftSnapshot, type IFormEngine,
 } from '@formspec-org/engine';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
-import { resolvePageSequence, summarizeFormProgress, type PageSequenceEntry, type ProgressCounts } from '@formspec-org/layout';
-import type { BrowserDraftPort, DataSourceSubject, DraftKey, DraftLoadResult, DraftPort, DraftRecord, DraftSaveInput, FilingProgressCounts } from '@formspec-org/surface';
+import { resolvePageSequence, type PageSequenceEntry, type ProgressCounts } from '@formspec-org/layout';
+import type {
+  BrowserDraftPort, DataSourceSubject, DraftKey, DraftLoadResult, DraftPort, DraftRecord, DraftSaveInput,
+  FilingLoadResult, FilingProgressCounts, MatchedFilingObservation,
+} from '@formspec-org/surface';
 import { definitionResponseRequests, resolveDefinitionReads } from './definition-response-reads.js';
+import { summarizeDraftProgress } from './draft-progress.js';
 import type { FormDefinition, FormResponse, ResponseSelector } from '@formspec-org/types';
 import {
   createDraftWriter, readCommittedExplanationsAtRevision,
@@ -29,12 +33,19 @@ export async function deriveDraftSubject(subject: DataSourceSubject | undefined)
   return { ...subject, id: responseSubjectId(subject.type, subject.keys) };
 }
 
+export type FiledObservation = Extract<MatchedFilingObservation, { receiptRef: string }>;
+
 type CommittedDraft =
   | { status: 'loaded'; response: FormResponse; pins?: DraftRecord['pins']; revision: string; key: DraftKey }
   | { status: 'initialized' | 'absent' | 'denied' | 'version-mismatch' | 'unavailable' | 'save-failed' };
 
+type CommittedFiling =
+  | { status: 'loaded'; response: FormResponse; definitionVersion: string; observation: FiledObservation; key: DraftKey }
+  | { status: 'absent' | 'denied' | 'unavailable' };
+
 type DraftOpen =
-  | { status: 'ready'; engine: IFormEngine; writer: DraftWriter }
+  | { status: 'ready'; engine: IFormEngine; writer: DraftWriter; filing?: FiledObservation }
+  | { status: 'filed'; filing: FiledObservation; response: FormResponse; canRevise: boolean }
   | (Extract<DraftLoadResult, { status: 'version-mismatch' }> & { key: DraftKey })
   | { status: 'pin-unavailable'; instance: string; prerequisiteTitle?: string; requiresAccepted?: boolean }
   | { status: 'denied' | 'unavailable' | 'loading' };
@@ -72,6 +83,14 @@ export function createDraftSession(
     return result;
   }
 
+  async function loadFilingRecord(key: DraftKey, version: string, signal: AbortSignal): Promise<FilingLoadResult> {
+    if (!storage.port.loadFiling) return { status: 'absent' };
+    signal.throwIfAborted();
+    const result = await storage.port.loadFiling(key, version, signal);
+    signal.throwIfAborted();
+    return result;
+  }
+
   function release(entry: Entry) {
     if (entry.consumers.size === 0 && entry.opened?.status === 'ready') entry.opened.writer.setMounted(false);
   }
@@ -89,13 +108,22 @@ export function createDraftSession(
     definitions: storage.definitions,
     restart: browserPort?.restart,
 
-    acquire(key: DraftKey, input: SurfaceDefinitionFormRenderInput, report: DraftNoticeReporter, onReopen?: () => void) {
+    acquire(
+      key: DraftKey,
+      input: SurfaceDefinitionFormRenderInput,
+      report: DraftNoticeReporter,
+      onReopen?: () => void,
+      options?: { allowReviseFiled?: boolean },
+    ) {
       const definition = input.plan.definition;
       const id = sessionKey(key, definition.version);
       let entry = entries.get(id);
       const previous = entry?.opened;
       const previousConsumers = entry?.consumers;
-      if (entry && previous && entry.consumers.size === 0 && (previous.status !== 'ready' || !previous.writer.dirty)) {
+      if (entry && previous && (
+        (previous.status === 'filed' && options?.allowReviseFiled) ||
+        (entry.consumers.size === 0 && (previous.status !== 'ready' || !previous.writer.dirty))
+      )) {
         entries.delete(id);
         entry = undefined;
       }
@@ -159,11 +187,39 @@ export function createDraftSession(
             }
             if (loaded.status === 'version-mismatch') return publish({ ...loaded, key });
             if (loaded.status === 'denied' || loaded.status === 'unavailable') return publish({ status: loaded.status });
-            if (loaded.status === 'absent' && Object.values(definition.subject?.keys ?? {}).some(key => key.minted)) {
-              return publish({ status: 'unavailable' });
+            const isMinted = Object.values(definition.subject?.keys ?? {}).some(field => field.minted);
+            const filedLookup = await loadFilingRecord(key, definition.version, lifetime.signal).catch(
+              (): FilingLoadResult => ({ status: 'absent' }),
+            );
+            const afterFilingEpoch = commitEpoch.get(id) ?? 0;
+            if (afterFilingEpoch !== epoch) {
+              epoch = afterFilingEpoch;
+              continue;
+            }
+            const loadedFiling = filedLookup.status === 'loaded' ? filedLookup.filing : undefined;
+            const filedResponse = loadedFiling ? parseJsonExact(loadedFiling.responseJson) as FormResponse : undefined;
+            const filingObservation = loadedFiling?.observation;
+
+            if (loaded.status === 'absent') {
+              if (filedResponse && filingObservation) {
+                const terminalStatus =
+                  filingObservation.status === 'filed'
+                  || filingObservation.status === 'accepted'
+                  || filingObservation.status === 'closed-without-acceptance';
+                if (isMinted || (terminalStatus && !options?.allowReviseFiled)) {
+                  return publish({
+                    status: 'filed',
+                    filing: filingObservation,
+                    response: filedResponse,
+                    canRevise: !isMinted && filingObservation.status !== 'closed-without-acceptance',
+                  });
+                }
+              } else if (isMinted) {
+                return publish({ status: 'unavailable' });
+              }
             }
             const seed = created.seed;
-            if (!draft && seed.draftSeed) return publish({ status: seed.draftSeed });
+            if (!draft && !filedResponse && seed.draftSeed) return publish({ status: seed.draftSeed });
             response = draft && parseJsonExact(draft.responseJson) as FormResponse;
             draftSnapshot = draft && parseJsonExact(draft.snapshotJson) as FormDraftSnapshot;
             const pins = loaded.status === 'initialized' ? loaded.pins : draft?.pins;
@@ -174,7 +230,7 @@ export function createDraftSession(
               epoch = afterReadsEpoch;
               continue;
             }
-            if (loaded.status === 'absent' && storage.responses) {
+            if (loaded.status === 'absent' && !filedResponse && storage.responses) {
               const missingPin = requests.find(req => req.selection.pin === 'at-open' && !resolutions[req.key]?.pinned);
               if (missingPin) {
                 const upstreamTitle = storage.definitions?.get(missingPin.selection.definition.url)?.title;
@@ -187,13 +243,17 @@ export function createDraftSession(
                 });
               }
             }
+            const hydrationData = !draftSnapshot
+              ? (filedResponse?.data ?? seed.initialData?.data)
+              : undefined;
+            const savedExplanations = response?.explanations ?? (!draftSnapshot ? filedResponse?.explanations : undefined);
             const engine = createFormEngine(definition, {
               responseInstanceResolutions: resolutions,
               ...(key.subject && { responseSubject: key.subject }),
               ...(draftSnapshot && { draftSnapshot }),
-              ...(response?.explanations && { savedExplanations: response.explanations }),
-              ...(!draftSnapshot && seed.initialData?.data !== undefined && {
-                responseData: seed.initialData.data as Parameters<IFormEngine['loadResponseData']>[0],
+              ...(savedExplanations && { savedExplanations }),
+              ...(hydrationData !== undefined && {
+                responseData: hydrationData as Parameters<IFormEngine['loadResponseData']>[0],
               }),
             });
             if (engine.hasSubjectRefusal()) {
@@ -230,7 +290,12 @@ export function createDraftSession(
                 epoch = beforePublishEpoch;
                 continue;
               }
-              return publish({ status: 'ready', engine, writer });
+              return publish({
+                status: 'ready',
+                engine,
+                writer,
+                ...(filingObservation ? { filing: filingObservation } : {}),
+              });
             } catch (error) {
               engine.dispose();
               throw error;
@@ -310,6 +375,29 @@ export function createDraftSession(
         if (result.status !== 'loaded') return { status: result.status };
         const response = parseJsonExact(result.draft.responseJson) as FormResponse;
         return { status: 'loaded', response, pins: result.draft.pins, revision: result.draft.revision, key };
+      } catch {
+        return { status: 'unavailable' };
+      }
+    },
+
+    async readFiling(
+      definition: { url: string; version: string }, subject: DataSourceSubject | undefined,
+      options?: { signal?: AbortSignal },
+    ): Promise<CommittedFiling> {
+      try {
+        const signal = options?.signal ? AbortSignal.any([lifetime.signal, options.signal]) : lifetime.signal;
+        signal.throwIfAborted();
+        const key = { scope: storage.scope, definitionUrl: definition.url, subject: await deriveDraftSubject(subject) };
+        const result = await loadFilingRecord(key, definition.version, signal);
+        if (result.status !== 'loaded') return { status: result.status };
+        const response = parseJsonExact(result.filing.responseJson) as FormResponse;
+        return {
+          status: 'loaded',
+          response,
+          definitionVersion: result.filing.definitionVersion,
+          observation: result.filing.observation,
+          key,
+        };
       } catch {
         return { status: 'unavailable' };
       }
@@ -441,7 +529,7 @@ export function createDraftSession(
             }
             const currentExplanations = engine.getExplanationEntries();
             const evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
-            const progress = summarizeFormProgress(sections, evaluated);
+            const progress = summarizeDraftProgress(sections, evaluated);
             const placements = sections.map(({ id: sectionId, fields }) => ({
               ...(sectionId === undefined ? {} : { id: sectionId }),
               fields,

@@ -7,8 +7,9 @@ import {
   type ResponseActionEffectDispatchContext, type ResponseActionInvocationPorts, type ResponseActionInvocationResult,
 } from '@formspec-org/engine';
 import {
-  summarizeFormProgress, type PageSequenceEntry, type ProgressCounts,
+  type PageSequenceEntry, type ProgressCounts,
 } from '@formspec-org/layout';
+import { summarizeDraftProgress } from './draft-progress.js';
 import { filingAction, type DraftFencedAction, type DraftKey, type DraftPort, type DraftRecord, type DraftSaveInput, type FilingProgressCounts } from '@formspec-org/surface';
 export type { DraftFencedAction } from '@formspec-org/surface';
 import type {
@@ -506,7 +507,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
 
   function capture(revision: string | null, staged?: StagedReconciliation): DraftSaveInput {
     const evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
-    const progress = summarizeFormProgress(options.sections, evaluated);
+    const progress = summarizeDraftProgress(options.sections, evaluated);
     const response = engine.getResponse({ id: responseId, ...(author && { author }), profile: 'off' });
     const rawExplanations = engine.getExplanationEntries();
     const currentExplanations = staged
