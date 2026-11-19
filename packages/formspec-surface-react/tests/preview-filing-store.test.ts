@@ -981,3 +981,29 @@ it('identifies candidate ordering winners by input position and handles persiste
     expect(child.draft.pins.parent?.records).toEqual([expect.objectContaining({ responseId: 'urn:test:filed-parent' })]);
   }
 });
+
+it('notifies draft subscribers once when initial seeding commits staged drafts, and stays quiet when none are staged', async () => {
+  const url = 'urn:test:seed-notify';
+  const def: FormDefinition = {
+    $formspec: '1.0', url, version, title: 'Notify', items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+  };
+  const definitions = new Map([[url, def]]);
+
+  const seeded = createMemoryFilingStore({
+    scope: 'seed-notify',
+    definitions,
+    fixtures: { drafts: [{ definitionUrl: url, data: { answer: 'Hello' } }] },
+  });
+  let seededNotifications = 0;
+  const unsubSeeded = seeded.drafts.subscribe(() => { seededNotifications += 1; });
+  await seeded.ready();
+  unsubSeeded();
+  expect(seededNotifications).toBe(1);
+
+  const unseeded = createMemoryFilingStore({ scope: 'seed-quiet', definitions });
+  let quietNotifications = 0;
+  const unsubQuiet = unseeded.drafts.subscribe(() => { quietNotifications += 1; });
+  await unseeded.ready();
+  unsubQuiet();
+  expect(quietNotifications).toBe(0);
+});

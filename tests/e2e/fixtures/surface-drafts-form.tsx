@@ -109,7 +109,14 @@ if (query.has('form')) {
     const preview = await createSurfacePreviewEdition({ scope, source, scenario: keyed ? {
       $formspecSurfaceScenario: '0.1', version: '1', initialPath: minted ? '/overview/2025' : '/filing/2025',
       ...(!useRoster && { routeParams: { year: '2025' } }),
-      defaultProfile: 'local', profiles: { local: { authorization: { default: 'authorized' }, sources: [] } },
+      defaultProfile: 'local', profiles: { local: {
+        authorization: { default: 'authorized' }, sources: [],
+        ...(query.has('seed') && { drafts: [{
+          definitionUrl: definition,
+          subject: { type: 'urn:test:filing-year', keys: { year: 2025 } },
+          data: { answer: 'Seeded answer' },
+        }] }),
+      } },
       actions: { default: { status: 'complete' } },
     } : undefined });
     return { ...preview, adapters: {

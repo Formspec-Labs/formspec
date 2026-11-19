@@ -427,7 +427,10 @@ function createFilingStore(
         }
         return 'committed' as const;
       });
-      if (outcome === 'committed') return;
+      if (outcome === 'committed') {
+        if (staged.length > 0) committed();
+        return;
+      }
     }
     throw new Error('Seeded drafts could not commit because the preview store kept changing.');
   }

@@ -596,3 +596,18 @@ test('only declared section IDs persist for a plan while canonicalDraftProgress 
   expect(result.protoForm).toMatchObject({ toFix: null, toCheck: null, ready: null });
   expect(result.protoSections).toEqual(['__proto__', 'normal']);
 });
+
+test('an open tracker refreshes after another tab first imports a scenario draft for its edition', async ({ page, context }) => {
+  const fixture = '/surface-drafts.html?form&subject&tracker';
+  const task = (tab: typeof page) => tab.locator('[data-slot-type="filing-status"]').getByRole('link', { name: 'Filing', exact: true });
+  await page.goto(`${fixture}#/overview`);
+  await expect(task(page)).toHaveAccessibleDescription(/^Not started/);
+  const other = await context.newPage();
+  try {
+    await other.goto(`${fixture}&seed#/overview`);
+    await expect(task(other)).toHaveAccessibleDescription(/^(Ready|In progress)/i);
+    await expect(task(page)).toHaveAccessibleDescription(/^(Ready|In progress)/i, { timeout: 2500 });
+  } finally {
+    await other.close();
+  }
+});
