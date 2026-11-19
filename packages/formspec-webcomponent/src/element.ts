@@ -1,4 +1,5 @@
 /** @filedesc The <formspec-render> custom element that orchestrates form rendering. */
+import { bindWarningExplanations } from './rendering/warning-explanations';
 import { signal } from '@preact/signals-core';
 import {
     createFormEngine,
@@ -1155,7 +1156,16 @@ export class FormspecRender extends HTMLElement {
         this.ensureAssistAnnouncer();
 
         const plan = this.buildPlan();
-        if (plan) emitNodeFn(this._renderHost, plan, container, '', this._headingLevel);
+        if (plan) {
+            emitNodeFn(this._renderHost, plan, container, '', this._headingLevel);
+            this.cleanupFns.push(bindWarningExplanations(
+                container,
+                this.engine,
+                () => this._latestSubmitDetailSignal.value !== null,
+                path => this.touchedVersion.value > 0 && (!path || path === '#' || this.touchedFields.has(path)),
+                path => { this.focusField(path); },
+            ));
+        }
         this.syncAutosaveSubscription();
         if (findAutosaveResponseAction(this._responseActionsDocument, this._definition) || this.actionStatusEl?.textContent) {
             container.appendChild(this.ensureActionStatus());

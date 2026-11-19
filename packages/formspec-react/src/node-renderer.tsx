@@ -28,6 +28,7 @@ import { useForm } from './use-form';
 import { useWhen } from './use-when';
 import { focusFirstInvalidField } from './use-focus-field';
 import type { FieldComponentProps, LayoutComponentProps } from './component-map';
+import { WarningExplanations } from './warning-explanations';
 import { DefaultField } from './defaults/fields/default-field';
 import { DefaultLayout } from './defaults/layout/default-layout';
 import { Wizard } from './defaults/layout/wizard';
@@ -457,7 +458,10 @@ function FieldNode({ node }: { node: LayoutNode }) {
         (fallbackName ? components.fields?.[fallbackName] : undefined) ??
         DefaultField;
 
-    return <Component field={field} node={node} />;
+    return <>
+        <Component field={field} node={node} />
+        {field.visible && <WarningExplanations path={field.path}/>}
+    </>;
 }
 
 function LayoutNodeRenderer({ node }: { node: LayoutNode }) {

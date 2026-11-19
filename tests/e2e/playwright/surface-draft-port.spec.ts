@@ -1135,3 +1135,83 @@ for (const backgroundInert of [false, true]) {
     await expect(page).toHaveURL(/#\/overview(?:\?|$)/, { timeout: 1500 });
   });
 }
+
+test('draft-review route acknowledges grouped blank-answer warnings, jumps across sections, and shows set difference', async ({ page }) => {
+  const fixture = '/surface-drafts.html?form&auto&subject&review&warnings';
+  await page.goto(`${fixture}#/filing/2025`);
+  await page.getByLabel('Answer').fill('Initial summary');
+  await page.getByLabel('Show detail').check();
+  await page.getByRole('link', { name: 'Review draft' }).click();
+
+  const panel = page.locator('fieldset[data-explanation-code="UNANSWERED_QUESTIONS"]');
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Accept 2 unanswered questions' })).toBeEnabled();
+
+  const audit = await new AxeBuilder({ page }).include('fieldset[data-explanation-code="UNANSWERED_QUESTIONS"]').analyze();
+  expect(audit.violations).toEqual([]);
+
+  await panel.getByRole('button', { name: 'Accept 2 unanswered questions' }).click();
+  await expect(panel.getByRole('button', { name: 'Accepted 2 unanswered questions' })).toBeDisabled();
+
+  await panel.getByRole('link', { name: 'Detail' }).click();
+  await expect(page.locator('.formspec-workspace__content[data-formspec-section="followup"]')).toBeVisible();
+  await page.getByLabel('Detail').fill('Provided detail');
+
+  await page.getByRole('link', { name: 'Summary' }).click();
+  await page.getByLabel('Answer').fill('');
+  await page.getByRole('link', { name: 'Review draft' }).click();
+
+  await expect(panel.locator('.formspec-warning-acknowledgement-added')).toHaveText('Newly unanswered: Answer');
+  await expect(panel.locator('.formspec-warning-acknowledgement-removed')).toHaveText('Now answered: Detail');
+  await panel.getByRole('button', { name: 'Accept 2 unanswered questions' }).click();
+  await expect(panel.getByRole('button', { name: 'Accepted 2 unanswered questions' })).toBeDisabled();
+});
+
+test('explicit-save respondent cannot commit unsaved edits from review and preserves them on return', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&subject&review&warnings#/filing/2025');
+  const answer = page.getByLabel('Answer');
+  await answer.fill('Shown as answered on the committed review');
+  await page.getByLabel('Show detail').check();
+  await page.getByRole('button', { name: 'Save draft' }).click();
+  await expect(page.getByRole('banner').getByRole('status')).toContainText('Draft saved');
+
+  // Keep one unsaved edit in this form's retained writer. Only explicitly saved data belongs to the review.
+  await answer.fill('');
+  await page.getByRole('link', { name: 'Review draft' }).click();
+  const group = page.locator('fieldset[data-explanation-code="UNANSWERED_QUESTIONS"]');
+  await expect(group.getByRole('button', { name: 'Accept 2 unanswered questions' })).toBeEnabled();
+  expect(await group.getByRole('link').allTextContents()).toEqual(['Detail', 'Notes']);
+
+  await group.getByRole('button', { name: 'Accept 2 unanswered questions' }).click();
+  await expect.poll(async () =>
+    (await group.getByRole('button').innerText()).startsWith('Accepted ') ||
+    /conflict|changed somewhere else|could not be saved|save failed|could not save/i.test(
+      await page.getByRole('banner').getByRole('status').innerText(),
+    ),
+  ).toBeTruthy();
+  expect(await group.innerText()).not.toContain('Accepted 3 unanswered questions');
+
+  // Returning to the form must preserve the unsaved edit in the retained writer.
+  await page.getByRole('link', { name: 'Filing', exact: true }).click();
+  await expect(page.getByLabel('Answer')).toHaveValue('');
+});
+
+test('a respondent review link carries its field path and focuses the requested second field on the destination section', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&auto&subject&review&warnings#/filing/2025');
+  await page.getByLabel('Answer').fill('Summary filed');
+  await page.getByLabel('Show detail').check();
+  await page.getByRole('link', { name: 'Review draft' }).click();
+
+  const group = page.locator('fieldset[data-explanation-code="UNANSWERED_QUESTIONS"]');
+  const detail = group.getByRole('link', { name: 'Detail' });
+  const notes = group.getByRole('link', { name: 'Notes' });
+  const detailHref = await detail.getAttribute('href');
+  const notesHref = await notes.getAttribute('href');
+  expect(detailHref).toBeTruthy();
+  expect(notesHref).toBeTruthy();
+  expect(notesHref).not.toBe(detailHref);
+
+  await notes.click();
+  await expect(page.locator('.formspec-workspace__content[data-formspec-section="followup"]')).toBeVisible();
+  await expect(page.getByLabel('Notes')).toBeFocused({ timeout: 2000 });
+});

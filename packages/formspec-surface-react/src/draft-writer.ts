@@ -37,6 +37,8 @@ export interface DraftWriterOptions {
   invoker?: DraftActionInvoker | undefined;
   checkpointPorts?: DraftCheckpointPorts | undefined;
   responseId?: string | undefined;
+  /** Wait for an in-flight session review save for this draft key before sending a local checkpoint. */
+  waitForReview?: (() => Promise<void> | undefined) | undefined;
 }
 
 /** Pass the expected revision through to the durable Prepare, Sign or Submit operation. */
@@ -77,6 +79,39 @@ export function usesDraftCheckpoint(action: ResponseAction): boolean {
   }
 }
 
+type SavedExplanation = NonNullable<FormResponse['explanations']>[number];
+
+export type CommittedExplanationsReadback =
+  | { status: 'loaded'; explanations: readonly SavedExplanation[] }
+  | { status: 'superseded' }
+  | { status: 'unavailable' };
+
+/** Read back stamped explanations from storage when a port returns a revision-only save reply. */
+export async function readCommittedExplanationsAtRevision(
+  port: DraftPort,
+  key: DraftKey,
+  definitionVersion: string,
+  revision: string,
+  signal?: AbortSignal,
+): Promise<CommittedExplanationsReadback> {
+  try {
+    signal?.throwIfAborted();
+    const reloaded = await port.load(key, definitionVersion, signal);
+    signal?.throwIfAborted();
+    if (reloaded.status === 'loaded') {
+      if (reloaded.draft.revision !== revision) return { status: 'superseded' };
+      const reloadedResponse = parseJsonExact(reloaded.draft.responseJson) as FormResponse;
+      return { status: 'loaded', explanations: reloadedResponse.explanations ?? [] };
+    }
+    if (reloaded.status === 'absent' || reloaded.status === 'version-mismatch' || reloaded.status === 'initialized') {
+      return { status: 'superseded' };
+    }
+    return { status: 'unavailable' };
+  } catch {
+    return { status: 'unavailable' };
+  }
+}
+
 function counts({ total, filled, toFix, toCheck }: ProgressCounts): FilingProgressCounts {
   return { total, filled, toFix, toCheck };
 }
@@ -94,6 +129,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
   let committed: Pick<DraftRecord, 'revision'> | undefined = options.draft;
   let author = options.author;
   let snapshot = engine.getDraftSnapshot();
+  let explanations = engine.getExplanationEntries();
   let edit = 0;
   let savedEdit = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -200,16 +236,263 @@ export function createDraftWriter(options: DraftWriterOptions) {
     return canLeave;
   }
 
+  type DraftExplanationEntry = ReturnType<IFormEngine['getExplanationEntries']>[number];
+  type ExplanationKey = Parameters<IFormEngine['removeExplanation']>[0];
+  type ReconciliationBaseline = {
+    baseExplanations?: readonly DraftExplanationEntry[];
+    committedAnswers?: readonly DraftExplanationEntry[];
+  };
+  type PendingReconciliation = ReconciliationBaseline & {
+    revision: string;
+  };
+  type StagedReconciliation = {
+    stamped: readonly SavedExplanation[];
+    base?: readonly DraftExplanationEntry[];
+  };
+  let pendingReconciliation: PendingReconciliation | undefined;
+  let supersededReconciliation: ReconciliationBaseline | undefined;
+  let activeStaged: StagedReconciliation | undefined;
+  const retractedKeys: ExplanationKey[] = [];
+
+  function matchesExplanationKey(entry: DraftExplanationEntry, key: ExplanationKey): boolean {
+    return 'shapeId' in key
+      ? 'shapeId' in entry && entry.shapeId === key.shapeId && entry.path === key.path
+      : 'group' in entry && entry.code === key.code && entry.partyRef === key.partyRef;
+  }
+
+  function filterRetracted<T extends DraftExplanationEntry>(entries: readonly T[]): T[] {
+    return retractedKeys.length === 0
+      ? [...entries]
+      : entries.filter(entry => !retractedKeys.some(key => matchesExplanationKey(entry, key)));
+  }
+
+  const ownRemoveDescriptor = Object.getOwnPropertyDescriptor(engine, 'removeExplanation');
+  const originalRemoveExplanation = typeof engine.removeExplanation === 'function'
+    ? engine.removeExplanation.bind(engine)
+    : undefined;
+  let wrappedRemoveExplanation = false;
+  if (originalRemoveExplanation && Object.isExtensible(engine)) {
+    try {
+      Object.defineProperty(engine, 'removeExplanation', {
+        configurable: true,
+        writable: true,
+        value(key: ExplanationKey) {
+          if (pendingReconciliation || supersededReconciliation || activeStaged || options.waitForReview?.()) {
+            retractedKeys.push(key);
+            if (activeStaged?.stamped.some(entry => matchesExplanationKey(entry, key))) {
+              edit++;
+            }
+          }
+          return originalRemoveExplanation(key);
+        },
+      });
+      wrappedRemoveExplanation = true;
+    } catch {
+      // Non-configurable engine wrapper; fall back to reactive explanation tracking.
+    }
+  }
+
   const unsubscribe = preactReactiveRuntime.effect(() => {
     // Track evaluation so hidden answers and empty repeat changes participate.
     engine.getEvaluatedFormState({ profile: 'off' });
     const latest = engine.getDraftSnapshot();
-    if (!deepEqual(latest, snapshot)) {
+    const latestExplanations = engine.getExplanationEntries();
+    if (retractedKeys.length > 0 && latestExplanations.length > 0) {
+      for (let i = retractedKeys.length - 1; i >= 0; i--) {
+        if (latestExplanations.some(entry => matchesExplanationKey(entry, retractedKeys[i]!))) {
+          retractedKeys.splice(i, 1);
+        }
+      }
+    }
+    if (!deepEqual(latest, snapshot) || !deepEqual(latestExplanations, explanations)) {
+      explanations = latestExplanations;
       snapshot = latest;
       edit++;
       schedule();
     }
   });
+
+  let hadExplanations = explanations.length > 0;
+
+  function sameExplanationIdentity(left: DraftExplanationEntry, right: DraftExplanationEntry): boolean {
+    if ('group' in left && 'group' in right) {
+      return left.code === right.code && left.partyRef === right.partyRef;
+    }
+    if (!('group' in left) && !('group' in right)) {
+      return left.shapeId === right.shapeId && left.path === right.path;
+    }
+    return false;
+  }
+
+  function sameExplanationAnswer(left: DraftExplanationEntry, right: DraftExplanationEntry): boolean {
+    if ('group' in left && 'group' in right) {
+      return left.code === right.code
+        && left.partyRef === right.partyRef
+        && left.basis === right.basis
+        && deepEqual(left.paths, right.paths);
+    }
+    if (!('group' in left) && !('group' in right)) {
+      return left.shapeId === right.shapeId
+        && left.path === right.path
+        && left.basis === right.basis
+        && left.text === right.text;
+    }
+    return false;
+  }
+
+  function mergeExplanations(
+    current: readonly DraftExplanationEntry[],
+    stamped: readonly SavedExplanation[],
+    base?: readonly DraftExplanationEntry[],
+  ): DraftExplanationEntry[] {
+    if (base === undefined) {
+      return current.map(entry => stamped.find(saved => sameExplanationAnswer(entry, saved)) ?? entry);
+    }
+    const merged: DraftExplanationEntry[] = [];
+    for (const local of current) {
+      const committedEntry = stamped.find(saved => sameExplanationIdentity(local, saved));
+      const baseEntry = base.find(entry => sameExplanationIdentity(local, entry));
+      if (committedEntry && sameExplanationAnswer(local, committedEntry)) {
+        merged.push(committedEntry);
+      } else if (baseEntry && sameExplanationAnswer(local, baseEntry)) {
+        if (committedEntry) merged.push(committedEntry);
+      } else {
+        merged.push(local);
+      }
+    }
+    for (const committedEntry of stamped) {
+      if (merged.some(existing => sameExplanationIdentity(existing, committedEntry))) continue;
+      const baseEntry = base.find(entry => sameExplanationIdentity(committedEntry, entry));
+      if (!baseEntry || !sameExplanationAnswer(baseEntry, committedEntry)) {
+        merged.push(committedEntry);
+      }
+    }
+    return merged;
+  }
+
+  function acceptStamps(
+    stamped: readonly SavedExplanation[],
+    base?: readonly DraftExplanationEntry[],
+  ) {
+    const before = engine.getExplanationEntries();
+    // Sync our local mirror before mutating engine state so adopting server stamps
+    // or a committed review acknowledgement does not bump `edit` or schedule another autosave.
+    explanations = mergeExplanations(before, stamped, base);
+    engine.acceptSavedExplanations([...stamped], base !== undefined ? { base } : undefined);
+    explanations = engine.getExplanationEntries();
+  }
+
+  function applyCommittedReview(
+    fromRevision: string,
+    toRevision: string,
+    baseExplanations: readonly DraftExplanationEntry[],
+    committedExplanations?: readonly SavedExplanation[],
+  ): boolean {
+    if (!active || conflicted || committed?.revision !== fromRevision) return false;
+    committed = { revision: toRevision };
+    preparedEdit = signedEdit = undefined;
+    pendingReconciliation = undefined;
+    supersededReconciliation = undefined;
+    if (committedExplanations !== undefined) {
+      const surviving = filterRetracted(committedExplanations);
+      acceptStamps(surviving, baseExplanations);
+      if (surviving.length !== committedExplanations.length) edit++;
+      hadExplanations = explanations.length > 0 || committedExplanations.length > 0;
+    }
+    retractedKeys.length = 0;
+    return true;
+  }
+
+  function deferCommittedReview(
+    fromRevision: string,
+    toRevision: string,
+    baseExplanations: readonly DraftExplanationEntry[],
+    committedAnswers?: readonly DraftExplanationEntry[],
+  ): boolean {
+    if (!active || conflicted || committed?.revision !== fromRevision) return false;
+    committed = { revision: toRevision };
+    preparedEdit = signedEdit = undefined;
+    supersededReconciliation = undefined;
+    pendingReconciliation = {
+      revision: toRevision,
+      baseExplanations: [...baseExplanations],
+      ...(committedAnswers !== undefined && { committedAnswers: [...committedAnswers] }),
+    };
+    return true;
+  }
+
+  function supersedeCommittedReview(
+    fromRevision: string,
+    toRevision: string,
+    baseExplanations: readonly DraftExplanationEntry[],
+    committedAnswers?: readonly DraftExplanationEntry[],
+  ): boolean {
+    if (!active || committed?.revision !== fromRevision) return false;
+    committed = { revision: toRevision };
+    preparedEdit = signedEdit = undefined;
+    pendingReconciliation = undefined;
+    supersededReconciliation = {
+      baseExplanations: [...baseExplanations],
+      ...(committedAnswers !== undefined && { committedAnswers: [...committedAnswers] }),
+    };
+    observeConflict();
+    report?.('draftConflict');
+    return true;
+  }
+
+  async function reconcilePendingReadback(): Promise<boolean> {
+    if (!pendingReconciliation) return true;
+    const target = pendingReconciliation;
+    const readback = await readCommittedExplanationsAtRevision(port, key, definitionVersion, target.revision);
+    if (!active) return false;
+    if (pendingReconciliation !== target) return true;
+    if (readback.status === 'loaded') {
+      const surviving = filterRetracted(readback.explanations);
+      acceptStamps(surviving, target.baseExplanations);
+      if (surviving.length !== readback.explanations.length) edit++;
+      hadExplanations = explanations.length > 0 || readback.explanations.length > 0;
+      pendingReconciliation = undefined;
+      supersededReconciliation = undefined;
+      retractedKeys.length = 0;
+      return true;
+    }
+    if (readback.status === 'superseded') {
+      supersededReconciliation = {
+        ...(target.baseExplanations !== undefined && { baseExplanations: target.baseExplanations }),
+        ...(target.committedAnswers !== undefined && { committedAnswers: target.committedAnswers }),
+      };
+      pendingReconciliation = undefined;
+      observeConflict();
+      return false;
+    }
+    return false;
+  }
+
+  function reconcilePending(): Promise<boolean> {
+    if (pending) return pending;
+    if (!pendingReconciliation) return Promise.resolve(true);
+    failureNotice = 'saveFailed';
+    pending = (async () => {
+      if (options.waitForReview?.()) await waitForPendingReview();
+      if (!active || conflicted) return false;
+      const ok = await reconcilePendingReadback();
+      if (ok) report?.(options.locally ? 'savedLocally' : 'saved');
+      return ok;
+    })().catch(() => false).then(ok => {
+      pending = undefined;
+      if (!ok) report?.(failureNotice);
+      return ok;
+    });
+    return pending;
+  }
+
+  async function waitForPendingReview(): Promise<void> {
+    while (active) {
+      const review = options.waitForReview?.();
+      if (!review) break;
+      await review;
+    }
+  }
 
   function captureActionResponse({ profile }: Parameters<NonNullable<DraftActionPorts['submit']>>[0]) {
     return engine.getResponseSnapshot({ id: responseId, ...(author && { author }), profile: 'off' }, profile);
@@ -221,13 +504,22 @@ export function createDraftWriter(options: DraftWriterOptions) {
     failureNotice = 'draftConflict';
   }
 
-  function capture(revision: string | null): DraftSaveInput {
+  function capture(revision: string | null, staged?: StagedReconciliation): DraftSaveInput {
     const evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
     const progress = summarizeFormProgress(options.sections, evaluated);
     const response = engine.getResponse({ id: responseId, ...(author && { author }), profile: 'off' });
+    const rawExplanations = engine.getExplanationEntries();
+    const currentExplanations = staged
+      ? mergeExplanations(rawExplanations, staged.stamped, staged.base)
+      : rawExplanations;
+    const includeExplanations = currentExplanations.length > 0 || hadExplanations;
+    const persistedSnapshot = currentExplanations.length > 0
+      ? { ...snapshot, explanations: currentExplanations }
+      : snapshot;
     return {
       ...(revision === null && options.creationPins && { creationPins: options.creationPins }),
-      key, definitionVersion, expectedRevision: revision, snapshotJson: JSON.stringify(snapshot),
+      ...(includeExplanations && { explanations: currentExplanations }),
+      key, definitionVersion, expectedRevision: revision, snapshotJson: JSON.stringify(persistedSnapshot),
       responseJson: JSON.stringify(response),
       summary: {
         sections: placements,
@@ -241,12 +533,22 @@ export function createDraftWriter(options: DraftWriterOptions) {
     };
   }
 
-  function checkpoint(expectedRevision = committed?.revision ?? options.initializedRevision ?? null): Promise<boolean> {
+  function checkpoint(explicitRevision?: string | null, staged?: StagedReconciliation): Promise<boolean> {
     if (pending) return pending;
     failureNotice = 'saveFailed';
-    const savingEdit = edit;
+    activeStaged = staged;
     pending = (async () => {
-      const input = capture(expectedRevision);
+      if (options.waitForReview?.()) await waitForPendingReview();
+      if (!active || (explicitRevision === undefined && conflicted)) return false;
+      if (explicitRevision === undefined && pendingReconciliation) {
+        if (!await reconcilePendingReadback()) return false;
+      }
+      const savingEdit = edit;
+      const expectedRevision = explicitRevision !== undefined
+        ? explicitRevision
+        : (committed?.revision ?? options.initializedRevision ?? null);
+      const input = capture(expectedRevision, staged);
+      const retractionsBeforeSave = retractedKeys.length;
       const result = await port.save(input);
       if (result.status !== 'saved') {
         if (result.status === 'conflict' || result.status === 'pin-unavailable') observeConflict();
@@ -255,9 +557,54 @@ export function createDraftWriter(options: DraftWriterOptions) {
       committed = { revision: result.revision };
       savedEdit = savingEdit;
       conflicted = false;
+      const postSaveRetractions = retractedKeys.slice(retractionsBeforeSave);
+      const adopt = (entries: readonly SavedExplanation[]) => {
+        const surviving = postSaveRetractions.length === 0
+          ? entries
+          : entries.filter(entry => !postSaveRetractions.some(k => matchesExplanationKey(entry, k)));
+        acceptStamps(surviving, staged?.base);
+      };
+      if (result.explanations !== undefined) {
+        adopt(result.explanations);
+        pendingReconciliation = undefined;
+        supersededReconciliation = undefined;
+        retractedKeys.length = 0;
+      } else if (input.explanations && input.explanations.length > 0) {
+        const readback = await readCommittedExplanationsAtRevision(port, key, definitionVersion, result.revision);
+        if (!active) return false;
+        if (readback.status === 'loaded') {
+          adopt(readback.explanations);
+          pendingReconciliation = undefined;
+          supersededReconciliation = undefined;
+          retractedKeys.length = 0;
+        } else if (readback.status === 'superseded') {
+          supersededReconciliation = {
+            ...(staged?.base !== undefined && { baseExplanations: staged.base }),
+            committedAnswers: [...input.explanations],
+          };
+          pendingReconciliation = undefined;
+          observeConflict();
+          return false;
+        } else {
+          hadExplanations = explanations.length > 0 || input.explanations.length > 0;
+          pendingReconciliation = {
+            revision: result.revision,
+            ...(staged?.base !== undefined && { baseExplanations: staged.base }),
+            committedAnswers: [...input.explanations],
+          };
+          supersededReconciliation = undefined;
+          return false;
+        }
+      } else {
+        pendingReconciliation = undefined;
+        supersededReconciliation = undefined;
+        retractedKeys.length = 0;
+      }
+      hadExplanations = explanations.length > 0 || (input.explanations?.length ?? 0) > 0;
       report?.(options.locally ? 'savedLocally' : 'saved');
       return true;
     })().catch(() => false).then(saved => {
+      activeStaged = undefined;
       pending = undefined;
       if (!saved) report?.(failureNotice);
       return saved;
@@ -274,6 +621,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
   async function drain(create: boolean, automatic?: AutomaticFlushGuard): Promise<boolean> {
     clearTimer();
     if (pending && !await pending) return false;
+    if (options.waitForReview?.()) await waitForPendingReview();
     if (conflicted) return false;
     if (automatic) {
       // Never persist a newer edit or superseded action under a prior automatic invocation.
@@ -287,12 +635,16 @@ export function createDraftWriter(options: DraftWriterOptions) {
         return false;
       }
       if (edit === savedEdit && (!create || committed)) {
+        if (pendingReconciliation && !await reconcilePending()) return false;
         clearTimer();
         return active;
       }
       const saved = await checkpoint();
       clearTimer();
       return saved && active;
+    }
+    if (pendingReconciliation && edit === savedEdit && !(create && !committed)) {
+      if (!await reconcilePending()) return false;
     }
     while (active && (edit !== savedEdit || (create && !committed))) {
       if (!await checkpoint()) return false;
@@ -325,12 +677,16 @@ export function createDraftWriter(options: DraftWriterOptions) {
       const response = parseJsonExact(draft.responseJson) as FormResponse;
       if (choice === 'load') {
         if (edit !== editAtConfirmation) return false;
-        engine.loadDraftSnapshot(parseJsonExact(draft.snapshotJson) as FormDraftSnapshot);
+        engine.loadDraftSnapshot(parseJsonExact(draft.snapshotJson) as FormDraftSnapshot, response.explanations);
+        hadExplanations = engine.getExplanationEntries().length > 0;
         committed = draft;
         savedEdit = edit;
         preparedEdit = signedEdit = undefined;
+        pendingReconciliation = undefined;
+        supersededReconciliation = undefined;
+        retractedKeys.length = 0;
         responseId = response.id ?? responseId;
-        author = response.author;
+        author = options.author ?? response.author;
         conflicted = false;
         report?.('draftLoaded');
         return true;
@@ -338,8 +694,24 @@ export function createDraftWriter(options: DraftWriterOptions) {
       const oldId = responseId;
       const oldAuthor = author;
       responseId = response.id ?? responseId;
-      author = response.author;
-      if (await checkpoint(draft.revision)) return drain(false);
+      author = options.author ?? response.author;
+      let staged: StagedReconciliation | undefined;
+      if (supersededReconciliation && response.explanations && response.explanations.length > 0) {
+        const baseline = supersededReconciliation;
+        const matching = filterRetracted(
+          baseline.committedAnswers
+            ? response.explanations.filter(saved =>
+              baseline.committedAnswers!.some(own => sameExplanationAnswer(own, saved)))
+            : response.explanations,
+        );
+        if (matching.length > 0) {
+          staged = {
+            stamped: matching,
+            ...(baseline.baseExplanations !== undefined && { base: baseline.baseExplanations }),
+          };
+        }
+      }
+      if (await checkpoint(draft.revision, staged)) return drain(false);
       responseId = oldId;
       author = oldAuthor;
       return false;
@@ -662,6 +1034,8 @@ export function createDraftWriter(options: DraftWriterOptions) {
         throw new Error('Sign this draft before submitting.');
       }
       const draft = Object.freeze({ key, definitionVersion, revision, responseJson: latest.draft.responseJson });
+      const latestResponse = parseJsonExact(latest.draft.responseJson) as FormResponse;
+      if (latestResponse.explanations) acceptStamps(latestResponse.explanations);
       const result = await operation(draft, isCurrent);
       if (active && kind !== 'submit' && (completed?.(result) ?? true)) {
         const actionRevision = committedRevision?.(result) ?? revision;
@@ -683,7 +1057,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
   }
 
   return {
-    invoke, flush, runFenced, resolveConflict, captureActionResponse,
+    invoke, flush, runFenced, resolveConflict, captureActionResponse, applyCommittedReview, deferCommittedReview, supersedeCommittedReview,
     get actions() { return currentActions; },
     get autosaveFinding() { return autosaveFinding; },
     get conflict() { return conflicted; },
@@ -694,7 +1068,15 @@ export function createDraftWriter(options: DraftWriterOptions) {
     },
     leave, waitForSaves,
     setMounted(value: boolean) { mounted = value; schedule(); },
-    dispose() { active = false; clearTimer(); unsubscribe(); },
+    dispose() {
+      active = false;
+      clearTimer();
+      unsubscribe();
+      if (wrappedRemoveExplanation) {
+        if (ownRemoveDescriptor) Object.defineProperty(engine, 'removeExplanation', ownRemoveDescriptor);
+        else delete (engine as unknown as Record<string, unknown>).removeExplanation;
+      }
+    },
   };
 }
 

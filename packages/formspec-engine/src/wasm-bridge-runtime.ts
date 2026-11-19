@@ -391,14 +391,18 @@ export interface WasmCreation {
     diagnostics: Array<import('./diff.js').EvalDiagnostic & { code: string }>;
 }
 
-/** Assemble the Response instance evidence before the candidate is signed. */
+/** Assemble the Response instance and explanation evidence before the candidate is signed. */
 export function wasmAssembleCandidate(
     definition: FormDefinition,
     response: FormResponse,
     resolution: Readonly<Record<string, ResponseSelectionDelivery>>,
+    evaluation?: { candidateExplanations?: import('./engine/warning-explanations.js').DraftExplanation[] } | null,
 ): FormResponse {
     return parseWasmJson(wasm().assembleCandidate(
-        JSON.stringify(definition), JSON.stringify(response), 'null', JSON.stringify(resolution),
+        JSON.stringify(definition),
+        JSON.stringify(response),
+        JSON.stringify(evaluation ?? null),
+        JSON.stringify(resolution),
     ));
 }
 
@@ -442,6 +446,7 @@ type WasmEvaluationContext = {
     }>;
     previousNonRelevant?: string[];
     instances?: Record<string, unknown>;
+    explanations?: import('./engine/warning-explanations.js').DraftExplanation[];
     registryDocuments?: unknown[];
     /** The current Response's subject type. Null means a subject was supplied without a type. */
     subjectType?: string | null;
@@ -459,6 +464,8 @@ type WasmEvaluation = {
     /** The Response projection of `values` after `nonRelevantBehavior`: groups are objects, repeats are arrays of row objects. */
     data: any;
     validations: any[];
+    explanationFindings?: import('./engine/warning-explanations.js').ExplanationFinding[];
+    candidateExplanations?: import('./engine/warning-explanations.js').DraftExplanation[];
     diagnostics: import('./diff.js').EvalDiagnostic[];
     nonRelevant: string[];
     variables: any;

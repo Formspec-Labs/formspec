@@ -97,6 +97,18 @@ fn evaluation_report(result: &EvaluationResult, style: JsonWireStyle) -> Map<Str
         fel_core::exact_json::to_value(&result.values).expect("evaluation values serialize"),
     );
     root.insert("data".into(), result.data.clone());
+    if !result.explanation_actions.is_empty() {
+        root.insert(
+            "explanationFindings".into(),
+            Value::Array(result.explanation_actions.clone()),
+        );
+    }
+    if let Some(entries) = &result.candidate_explanations {
+        root.insert(
+            "candidateExplanations".into(),
+            Value::Array(entries.clone()),
+        );
+    }
     root.insert("validations".into(), Value::Array(validations));
     root.insert(
         "diagnostics".into(),
@@ -275,6 +287,13 @@ fn parse_eval_context(ctx_obj: &Map<String, Value>) -> Result<EvalContext, Strin
     };
 
     Ok(EvalContext {
+        explanations: match ctx_obj.get("explanations") {
+            None => Vec::new(),
+            Some(value) => value
+                .as_array()
+                .ok_or("explanations must be an array")?
+                .clone(),
+        },
         subject,
         now_iso: ctx_obj
             .get("nowIso")

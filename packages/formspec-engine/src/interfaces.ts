@@ -4,6 +4,7 @@ import type { EngineSignal, ReadonlyEngineSignal } from './reactivity/types.js';
 import type {
     EvaluatedFormState,
     FormDefinition,
+    Explanation,
     FormInstance,
     FormItem,
     FormResponse,
@@ -33,6 +34,7 @@ import type { FormViewModel } from './form-view-model.js';
 import type { IssuerFetcher } from './issuer/IssuerFetcher.js';
 import type { IssuerSource, ResolvedIssuer } from './issuer/types.js';
 import type { FelTraceStep } from './fel/fel-api-runtime.js';
+import type { DraftExplanation, ExplanationKey, ExplanationState } from './engine/warning-explanations.js';
 import type { EvalDiagnostic } from './diff.js';
 import type { ExactJsonNumber } from './json-values.js';
 
@@ -294,6 +296,8 @@ export interface FormEngineOptions {
     savedResponseData?: JsonRecord;
     /** Resume an editable snapshot with a Definition pin. Supply only one data input. */
     draftSnapshot?: FormDraftSnapshot;
+    /** Warning entries from the saved Response paired with these answers. */
+    savedExplanations?: Explanation[];
     /** Host-supplied Response identity, available to FEL from the first evaluation. */
     responseSubject?: Omit<NonNullable<FormResponse['subject']>, 'keys'> & { keys?: ResponseSubjectKeys };
     /** Available, host-qualified deliveries of Definition Response instances, keyed by instance name. */
@@ -305,6 +309,7 @@ export interface FormDraftSnapshot {
     definitionUrl: string;
     definitionVersion: string;
     data: JsonRecord;
+    explanations?: DraftExplanation[];
 }
 
 /** Filing-unit keys, including exact integers represented by raw JSON numbers. */
@@ -501,11 +506,21 @@ export interface IFormEngine {
     addRepeatInstance(itemName: string): number | undefined;
     removeRepeatInstance(itemName: string, index: number): void;
     /** Resumes saved Response `data`, replacing the current data without creation or repeat padding. */
-    loadResponseData(data: JsonRecord): void;
+    loadResponseData(data: JsonRecord, explanations?: Explanation[]): void;
     /** Restores editable data from a draft pinned to this Definition. */
-    loadDraftSnapshot(snapshot: FormDraftSnapshot): void;
+    loadDraftSnapshot(snapshot: FormDraftSnapshot, explanations?: Explanation[]): void;
     /** Captures editable data without evaluation. Use exact JSON for persistence. */
     getDraftSnapshot(): FormDraftSnapshot;
+    /** Read editing state, including pending answers without server stamps. */
+    getExplanationEntries(): DraftExplanation[];
+    /** Review warning firings evaluated against the Submit data. */
+    getExplanationState(): ExplanationState;
+    setExplanation(shapeId: string, path: string, answer: { text?: string }): void;
+    /** Record a grouped blank-answer acknowledgement for `code`. When `expectedBasis` is given, returns `false` without mutating if a fresh Submit evaluation no longer matches that basis. */
+    acknowledge(code: string, options?: { expectedBasis?: string }): boolean;
+    removeExplanation(key: ExplanationKey): void;
+    /** Apply server stamps to matching edits after an acknowledged draft save, optionally 3-way merging against a reviewed `base`. */
+    acceptSavedExplanations(entries: Explanation[], options?: { mergeMissing?: boolean; base?: readonly DraftExplanation[] }): void;
 
     compileExpression(expression: string, currentItemName?: string): () => FormFieldValue;
 
@@ -538,6 +553,16 @@ export interface IFormEngine {
      * Throws if on-submit data do not converge.
      */
     getResponseSnapshot(meta?: Parameters<IFormEngine['getResponse']>[0], validationProfile?: ValidationProfile): { response: FormResponse; validationReport: ValidationReport | null };
+
+    /**
+     * Evaluate Submit once at the current clock and return either the assembled completed candidate
+     * or an in-progress draft snapshot when selected candidate explanations still need server stamps.
+     * Preserves unsigned-candidate guards and refreshes visible warning state on pending stamps.
+     */
+    captureSubmitSnapshot?(meta?: Parameters<IFormEngine['getResponse']>[0]): {
+        snapshot: { response: FormResponse; validationReport: ValidationReport | null };
+        pendingExplanationStamps: boolean;
+    };
 
     getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot;
     applyReplayEvent(event: EngineReplayEvent): EngineReplayApplyResult;

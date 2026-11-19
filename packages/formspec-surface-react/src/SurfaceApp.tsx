@@ -829,11 +829,11 @@ export function SurfaceAppView(props: SurfaceAppProps & {
   useLayoutEffect(() => {
     const previous = previousRoute.current;
     previousRoute.current = routeIdentity;
-    if (routeIdentity === undefined || previous === undefined || routeIdentity === previous || browser?.anchor) return;
+    if (routeIdentity === undefined || previous === undefined || routeIdentity === previous || browser?.anchor || browser?.workspace?.focusField) return;
     const target = main.current?.querySelector<HTMLElement>('.fs-surface-route__title, h1, [role="heading"][aria-level="1"]') ?? main.current;
     target?.setAttribute('tabindex', '-1');
     target?.focus({ preventScroll: true });
-  }, [routeIdentity, browser?.anchor]);
+  }, [routeIdentity, browser?.anchor, browser?.workspace?.focusField]);
 
   return (
     <div

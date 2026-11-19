@@ -1,6 +1,11 @@
 /** @filedesc Supply all ResponseReview inputs from one authorized committed draft. */
 import { createFormEngine, initFormspecEngine, type FormDraftSnapshot } from '@formspec-org/engine';
 import {
+  placementCovers,
+  readWarningAcknowledgementGroups,
+  type WarningAcknowledgementGroupView,
+} from '@formspec-org/layout';
+import {
   canonicalFiniteJson, captureResponseFieldMetadata, snapshotFiniteJson, surfaceDiagnostic,
   type DraftReviewPlan, type SurfaceDiagnosticSite, type WidgetDataDelivery,
 } from '@formspec-org/surface';
@@ -12,7 +17,12 @@ import type { DraftResponseReviewData } from './widgets/response-review-metadata
 type DraftReviewFailure = Extract<DraftReviewPlan, { status: 'unresolved' }>['reason'] |
   'initialized' | 'absent' | 'denied' | 'version-mismatch' | 'unavailable' | 'save-failed' | 'response-invalid' | 'presentation-invalid';
 
-export type DraftReviewDelivery = Extract<WidgetDataDelivery, { status: 'ready' }> |
+export type DraftReviewReadyDelivery = Extract<WidgetDataDelivery, { status: 'ready' }> & {
+  revision: string;
+  warningGroups: readonly WarningAcknowledgementGroupView[];
+};
+
+export type DraftReviewDelivery = DraftReviewReadyDelivery |
   (Extract<WidgetDataDelivery, { status: 'unavailable' }> & { draftReviewReason: DraftReviewFailure });
 
 export async function loadDraftReviewInputs(
@@ -55,8 +65,15 @@ export async function loadDraftReviewInputs(
   try {
     await initFormspecEngine();
     signal.throwIfAborted();
+    const hasResponseInstances = Object.values(definition.instances ?? {}).some(inst => Boolean(inst.response));
+    const responseInstanceResolutions = hasResponseInstances && session.resolveReads
+      ? await session.resolveReads(definition, key, draft.pins, signal)
+      : undefined;
+    signal.throwIfAborted();
     const engine = createFormEngine(definition, {
-      responseData: response.data as FormDraftSnapshot['data'], loadExternalSources: false,
+      savedResponseData: response.data as FormDraftSnapshot['data'], loadExternalSources: false,
+      ...(responseInstanceResolutions && { responseInstanceResolutions }),
+      ...(response.explanations && { savedExplanations: response.explanations }),
       ...(key.subject && { responseSubject: key.subject }),
     });
     try {
@@ -73,11 +90,35 @@ export async function loadDraftReviewInputs(
         options: path => (engine.getFieldVM(path)?.options.value ?? [])
           .filter(option => option.value.length > 0 && option.label.length > 0),
       });
+      const hrefForPath = (targetPath: string): string | null => {
+        if (targetPath === '#') return null;
+        const section = plan.sections?.find(sec => sec.fields.some(bind => placementCovers(bind, targetPath)));
+        const destination = section?.href ?? plan.formHref ?? null;
+        if (!destination) return null;
+        const queryIndex = destination.indexOf('?');
+        const base = queryIndex >= 0 ? destination.slice(0, queryIndex) : destination;
+        const search = new URLSearchParams(queryIndex >= 0 ? destination.slice(queryIndex + 1) : '');
+        search.set('field', targetPath);
+        return `${base}?${search.toString()}`;
+      };
+      const warningGroups = readWarningAcknowledgementGroups(engine.getExplanationState(), {
+        field: (targetPath) => {
+          const vm = engine.getFieldVM(targetPath);
+          const label = vm?.label.value ?? engine.getItemLabelSignal(targetPath)?.value;
+          if (!vm && label === undefined) return null;
+          return { label: label || targetPath, controlId: vm?.id || null };
+        },
+        rootLabel: () => definition.title || 'Form',
+        resolveText: (localeKey, fallback) => engine.resolveLocaleString(localeKey, fallback),
+        lookupUi: (uiKey) => engine.lookupLocaleString(`$ui.${uiKey}`),
+        jumpable: (targetPath) => hrefForPath(targetPath) !== null,
+        hrefForPath,
+      });
       const data: DraftResponseReviewData = { definition, response,
         presentation: { phase: 'draft-review', revision, locale: engine.getActiveLocale(), fields } };
       const captured = snapshotFiniteJson(data) as Readonly<Record<string, unknown>>;
       qualifyDraftReview(captured);
-      return { status: 'ready', degradedInputs: [], diagnostics: [], data: captured };
+      return { status: 'ready', degradedInputs: [], diagnostics: [], data: captured, revision, warningGroups };
     } finally {
       engine.dispose();
     }

@@ -149,3 +149,16 @@ test('a raw numeric answer cannot supply a group object through its implementati
     '"name":"Ana","amount":1234567890.123456789'));
   assert.throws(() => createStaticResponseMetadataReader(input).label('people[0].amount.rawJSON'), /path-/);
 });
+
+test('recorded explanations retain qualified labels for blank questions', () => {
+  const input = inputs();
+  delete input.response.data.people[0].name;
+  input.response.explanations = [{
+    group: true, code: 'UNANSWERED', paths: ['people[0].name'],
+    basis: 'sha256:' + '0'.repeat(64), author: { id: 'staff' }, recorded: '2026-01-01T00:00:00Z',
+  }];
+  const reader = createStaticResponseMetadataReader(input);
+  assert.equal(reader.label('people[0].name'), 'Nombre');
+  assert.throws(() => reader.options('people[0].name'), /path-unavailable/);
+  assert.throws(() => reader.label('people[9].name'), /path-invalid/);
+});

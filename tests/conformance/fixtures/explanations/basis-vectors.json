@@ -30,6 +30,71 @@
       "json": "9e3",
       "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e76310039303030",
       "digest": "sha256:a4f0e961d13709a1d7d34aad2204072aa7a3bb3c921a7ced025fa0806c93a3e4"
+    },
+    "$entry": {
+      "json": "\"draft-code\"",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631002264726166742d636f646522",
+      "digest": "sha256:b42bae0652b790b2e7706f188043b9cf80936b9d741e77f972179ac8d8af7ff2"
+    },
+    "$rows[0].cap": {
+      "json": "{\"amount\": \"25\", \"currency\": \"USD\"}",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631007b22616d6f756e74223a223235222c2263757272656e6379223a22555344227d",
+      "digest": "sha256:27937730e29e01e2a520e29a8cc94f89c8d0b86c3d02d0d8338f4d06741c9dac"
+    },
+    "$rows[0].parts[0].fee": {
+      "json": "{\"amount\": \"10\", \"currency\": \"USD\"}",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631007b22616d6f756e74223a223130222c2263757272656e6379223a22555344227d",
+      "digest": "sha256:88c5c2035ede06df881dcc6aab8e1eb1cce8bfad38e8c5662a967a08f1ea213f"
+    },
+    "$rows[0].parts[1].fee": {
+      "json": "{\"amount\": \"11.5\", \"currency\": \"USD\"}",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631007b22616d6f756e74223a2231312e35222c2263757272656e6379223a22555344227d",
+      "digest": "sha256:d0c9e32b6c10aa9c6ac05879e14f99ab678d7ffb59ac3b9d535e2ac86e199f01"
+    },
+    "$rows[0].parts[2].fee": {
+      "json": "{\"amount\": \"12.25\", \"currency\": \"USD\"}",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631007b22616d6f756e74223a2231322e3235222c2263757272656e6379223a22555344227d",
+      "digest": "sha256:723e849c5977761cc2126486be703829f0b62f66cffd59ef2394b12022e3cd1a"
+    },
+    "$": {
+      "json": "{\"items\": [{\"amount\": 10}], \"limit\": 100}",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631007b226974656d73223a5b7b22616d6f756e74223a31307d5d2c226c696d6974223a3130307d",
+      "digest": "sha256:d7c7833182411a50c5e2b66147cdd33d088cd86281b1c829236e018115273466"
+    },
+    "$items[0].amount": {
+      "json": "10",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631003130",
+      "digest": "sha256:c8b4f07b309b71e805702cf37e1826e3c1f5dc0ceb85fb5dde8459f1cdd3b970"
+    },
+    "$limit": {
+      "json": "100",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e763100313030",
+      "digest": "sha256:be9dfe498fa5488b41611f6773387df7f2bbd68529b0730208e65282f35ac851"
+    },
+    "$entries[*]": {
+      "json": "[{\"amount\": 10}, {\"amount\": 20}]",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631005b7b22616d6f756e74223a31307d2c7b22616d6f756e74223a32307d5d",
+      "digest": "sha256:b25b12eeb778fdc925bc6d71ab23543f46722bdb3591e074aa75676e17c4ea3b"
+    },
+    "$records[0]": {
+      "json": "{\"amount\": 10}",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631007b22616d6f756e74223a31307d",
+      "digest": "sha256:100b972d16b2203e435ed3f4a8b4bae91b224a2919fb0611ed527972c8287c6f"
+    },
+    "$records[1].amount": {
+      "json": "20",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631003230",
+      "digest": "sha256:46df9a6ed63506b2738ed5157a889b196b82202cbb320fd590fa4c59abcf0ae3"
+    },
+    "$shifts[1].amount": {
+      "json": "20",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631003230",
+      "digest": "sha256:46df9a6ed63506b2738ed5157a889b196b82202cbb320fd590fa4c59abcf0ae3"
+    },
+    "$shifts[0].amount": {
+      "json": "20",
+      "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e7265662e7631003230",
+      "digest": "sha256:46df9a6ed63506b2738ed5157a889b196b82202cbb320fd590fa4c59abcf0ae3"
     }
   },
   "instance": {
@@ -90,5 +155,483 @@
     },
     "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e67726f75702d62617369732e7631007b22636f6465223a224e4f545f414e535745524544222c22666972696e6773223a5b5b22656d7074794c696e65222c226c696e65735b325d2e616d6f756e74222c5b5b22246c696e65735b325d2e616d6f756e74222c227368613235363a62633930353535633139613634326564316132626166643432616232616333396665646536633933636133333639373563336436306335393238643336623936225d5d5d2c5b226d697373696e674e6172726174697665222c226e6172726174697665222c5b5b22246e6172726174697665222c227368613235363a31393662306530336131303163633838363334336363353566343130343662386366303661363837343831396530376665313038316166633834376133663766225d5d5d5d7d",
     "digest": "sha256:ad638772d5586079621acf3e702f5224a8012bf809472f0a4d7f230d258d6d61"
-  }
+  },
+  "evaluatedCases": [
+    {
+      "name": "navigationAndExactMoney",
+      "definition": {
+        "$formspec": "1.0",
+        "url": "https://example.org/forms/vectors-money/1.0.0",
+        "version": "1.0.0",
+        "status": "draft",
+        "title": "Money navigation vectors",
+        "warningExplanation": "confirm",
+        "items": [
+          {
+            "key": "rows",
+            "type": "group",
+            "label": "Rows",
+            "repeatable": true,
+            "children": [
+              {
+                "key": "cap",
+                "type": "field",
+                "label": "Cap",
+                "dataType": "money"
+              },
+              {
+                "key": "parts",
+                "type": "group",
+                "label": "Parts",
+                "repeatable": true,
+                "children": [
+                  {
+                    "key": "fee",
+                    "type": "field",
+                    "label": "Fee",
+                    "dataType": "money"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "shapes": [
+          {
+            "id": "moneyStep",
+            "target": "rows[*].parts[*].fee",
+            "severity": "warning",
+            "timing": "submit",
+            "activeWhen": "present(prev().fee) and present(next().fee)",
+            "constraint": "@current.fee == parent().cap",
+            "message": "Row fee below cap."
+          }
+        ]
+      },
+      "data": {
+        "rows": [
+          {
+            "cap": {
+              "amount": "25.00",
+              "currency": "USD"
+            },
+            "parts": [
+              {
+                "fee": {
+                  "amount": "10.00",
+                  "currency": "USD"
+                }
+              },
+              {
+                "fee": {
+                  "amount": "11.50",
+                  "currency": "USD"
+                }
+              },
+              {
+                "fee": {
+                  "amount": "12.25",
+                  "currency": "USD"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "expectedInstance": {
+        "input": {
+          "shapeId": "moneyStep",
+          "path": "rows[0].parts[1].fee",
+          "inputs": [
+            [
+              "$rows[0].cap",
+              "sha256:27937730e29e01e2a520e29a8cc94f89c8d0b86c3d02d0d8338f4d06741c9dac"
+            ],
+            [
+              "$rows[0].parts[0].fee",
+              "sha256:88c5c2035ede06df881dcc6aab8e1eb1cce8bfad38e8c5662a967a08f1ea213f"
+            ],
+            [
+              "$rows[0].parts[1].fee",
+              "sha256:d0c9e32b6c10aa9c6ac05879e14f99ab678d7ffb59ac3b9d535e2ac86e199f01"
+            ],
+            [
+              "$rows[0].parts[2].fee",
+              "sha256:723e849c5977761cc2126486be703829f0b62f66cffd59ef2394b12022e3cd1a"
+            ]
+          ]
+        },
+        "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e62617369732e7631007b22696e70757473223a5b5b2224726f77735b305d2e636170222c227368613235363a32373933373733306532396530316532613532306532396138636339346638396338643062383663336430326430643833333866346430363734316339646163225d2c5b2224726f77735b305d2e70617274735b305d2e666565222c227368613235363a38386335633230333565646530366466383831646363366161623865316562316363653862666164333865386335363632613936376130386631656132313366225d2c5b2224726f77735b305d2e70617274735b315d2e666565222c227368613235363a64306339653332623663313061613963366163303538373965313466393961623637386437666662353961633362396435333565326163383665313939663031225d2c5b2224726f77735b305d2e70617274735b325d2e666565222c227368613235363a37323365383439633539373737363163633231323634383662653730333832396630623632663636636666643539656632333934623132303232653363643161225d5d2c2270617468223a22726f77735b305d2e70617274735b315d2e666565222c2273686170654964223a226d6f6e657953746570227d",
+        "digest": "sha256:64429b72bacf578ef0caa32d65d7fd2304951410c90a2fa36243155e3a76beb6"
+      }
+    },
+    {
+      "name": "modelItemPropertyArgument",
+      "definition": {
+        "$formspec": "1.0",
+        "url": "https://example.org/forms/vectors-mip/1.0.0",
+        "version": "1.0.0",
+        "status": "draft",
+        "title": "MIP vectors",
+        "warningExplanation": "confirm",
+        "items": [
+          {
+            "key": "entry",
+            "type": "field",
+            "label": "Entry",
+            "dataType": "string"
+          }
+        ],
+        "shapes": [
+          {
+            "id": "checkValidEntry",
+            "target": "#",
+            "severity": "warning",
+            "timing": "submit",
+            "constraint": "not valid($entry)",
+            "message": "Review the value of this valid field."
+          }
+        ]
+      },
+      "data": {
+        "entry": "draft-code"
+      },
+      "expectedInstance": {
+        "input": {
+          "shapeId": "checkValidEntry",
+          "path": "#",
+          "inputs": [
+            [
+              "$entry",
+              "sha256:b42bae0652b790b2e7706f188043b9cf80936b9d741e77f972179ac8d8af7ff2"
+            ]
+          ]
+        },
+        "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e62617369732e7631007b22696e70757473223a5b5b2224656e747279222c227368613235363a62343262616530363532623739306232653737303666313838303433623963663830393336623964373431653737663937323137396163386438616637666632225d5d2c2270617468223a2223222c2273686170654964223a22636865636b56616c6964456e747279227d",
+        "digest": "sha256:609994a3f9fe6911a7683a4382becbea81cf8200d43903a7425ddff8121df246"
+      }
+    },
+    {
+      "name": "missingNeighborsAndTopLevelParent",
+      "definition": {
+        "$formspec": "1.0",
+        "url": "https://example.org/forms/vectors-neighbors-parent/1.0.0",
+        "version": "1.0.0",
+        "status": "draft",
+        "title": "Missing neighbors and top-level parent vectors",
+        "warningExplanation": "confirm",
+        "items": [
+          {
+            "key": "limit",
+            "type": "field",
+            "label": "Limit",
+            "dataType": "integer"
+          },
+          {
+            "key": "items",
+            "type": "group",
+            "label": "Items",
+            "repeatable": true,
+            "children": [
+              {
+                "key": "amount",
+                "type": "field",
+                "label": "Amount",
+                "dataType": "integer"
+              }
+            ]
+          }
+        ],
+        "shapes": [
+          {
+            "id": "firstRowCheck",
+            "target": "items[*].amount",
+            "severity": "warning",
+            "timing": "submit",
+            "activeWhen": "not present(prev().amount) and not present(next().amount)",
+            "constraint": "@current.amount > parent().limit and present(parent())",
+            "message": "Single row amount is below the top-level limit."
+          }
+        ]
+      },
+      "data": {
+        "limit": 100,
+        "items": [
+          {
+            "amount": 10
+          }
+        ]
+      },
+      "expectedInstance": {
+        "input": {
+          "shapeId": "firstRowCheck",
+          "path": "items[0].amount",
+          "inputs": [
+            [
+              "$",
+              "sha256:d7c7833182411a50c5e2b66147cdd33d088cd86281b1c829236e018115273466"
+            ],
+            [
+              "$items[0].amount",
+              "sha256:c8b4f07b309b71e805702cf37e1826e3c1f5dc0ceb85fb5dde8459f1cdd3b970"
+            ],
+            [
+              "$limit",
+              "sha256:be9dfe498fa5488b41611f6773387df7f2bbd68529b0730208e65282f35ac851"
+            ]
+          ]
+        },
+        "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e62617369732e7631007b22696e70757473223a5b5b2224222c227368613235363a64376337383333313832343131613530633565326236363134376364643333643038386364383632383162316338323932333665303138313135323733343636225d2c5b22246974656d735b305d2e616d6f756e74222c227368613235363a63386234663037623330396237316538303537303263663337653138323665336331663564633063656238356662356464653834353966316364643362393730225d2c5b22246c696d6974222c227368613235363a62653964666534393866613534383862343136313166363737333338376466376632626264363835323962303733303230386536353238326633356163383531225d5d2c2270617468223a226974656d735b305d2e616d6f756e74222c2273686170654964223a226669727374526f77436865636b227d",
+        "digest": "sha256:6fe2a9a2b4363301fd35a2d00edae2c424b1ffb4442fe784331f5e890ecf0cc2"
+      }
+    },
+    {
+      "name": "bareRepeatCollection",
+      "definition": {
+        "$formspec": "1.0",
+        "url": "https://example.org/forms/vectors-bare-repeat/1.0.0",
+        "version": "1.0.0",
+        "status": "draft",
+        "title": "Bare repeat collection vectors",
+        "warningExplanation": "confirm",
+        "items": [
+          {
+            "key": "entries",
+            "type": "group",
+            "label": "Entries",
+            "repeatable": true,
+            "children": [
+              {
+                "key": "amount",
+                "type": "field",
+                "label": "Amount",
+                "dataType": "integer"
+              }
+            ]
+          }
+        ],
+        "shapes": [
+          {
+            "id": "minimumEntries",
+            "target": "#",
+            "severity": "warning",
+            "timing": "submit",
+            "constraint": "count($entries) >= 3",
+            "message": "Provide at least three entries."
+          }
+        ]
+      },
+      "data": {
+        "entries": [
+          {
+            "amount": 10
+          },
+          {
+            "amount": 20
+          }
+        ]
+      },
+      "expectedInstance": {
+        "input": {
+          "shapeId": "minimumEntries",
+          "path": "#",
+          "inputs": [
+            [
+              "$entries[*]",
+              "sha256:b25b12eeb778fdc925bc6d71ab23543f46722bdb3591e074aa75676e17c4ea3b"
+            ]
+          ]
+        },
+        "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e62617369732e7631007b22696e70757473223a5b5b2224656e74726965735b2a5d222c227368613235363a62323562313265656237373866646339323562633664373161623233353433663436373232626462333539316530373461613735363736653137633465613362225d5d2c2270617468223a2223222c2273686170654964223a226d696e696d756d456e7472696573227d",
+        "digest": "sha256:59b24d0566c18cdebee4bd39ee67006a099d9a0eab9d7ad99b9eefaa21c1525b"
+      }
+    },
+    {
+      "name": "rowObjectRead",
+      "definition": {
+        "$formspec": "1.0",
+        "url": "https://example.org/forms/vectors-row-object/1.0.0",
+        "version": "1.0.0",
+        "status": "draft",
+        "title": "Row-object read vectors",
+        "warningExplanation": "confirm",
+        "items": [
+          {
+            "key": "records",
+            "type": "group",
+            "label": "Records",
+            "repeatable": true,
+            "children": [
+              {
+                "key": "amount",
+                "type": "field",
+                "label": "Amount",
+                "dataType": "integer"
+              }
+            ]
+          }
+        ],
+        "shapes": [
+          {
+            "id": "priorRecordObject",
+            "target": "records[*].amount",
+            "severity": "warning",
+            "timing": "submit",
+            "activeWhen": "present(prev())",
+            "constraint": "@current.amount > 100",
+            "message": "Record amount below threshold."
+          }
+        ]
+      },
+      "data": {
+        "records": [
+          {
+            "amount": 10
+          },
+          {
+            "amount": 20
+          }
+        ]
+      },
+      "expectedInstance": {
+        "input": {
+          "shapeId": "priorRecordObject",
+          "path": "records[1].amount",
+          "inputs": [
+            [
+              "$records[0]",
+              "sha256:100b972d16b2203e435ed3f4a8b4bae91b224a2919fb0611ed527972c8287c6f"
+            ],
+            [
+              "$records[1].amount",
+              "sha256:46df9a6ed63506b2738ed5157a889b196b82202cbb320fd590fa4c59abcf0ae3"
+            ]
+          ]
+        },
+        "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e62617369732e7631007b22696e70757473223a5b5b22247265636f7264735b305d222c227368613235363a31303062393732643136623232303365343335656433663461386234626165393162323234613239313966623036313165643532373937326338323837633666225d2c5b22247265636f7264735b315d2e616d6f756e74222c227368613235363a34366466396136656436333530366232373338656435313537613838396231393662383232303263626233323066643539306661346335396162636630616533225d5d2c2270617468223a227265636f7264735b315d2e616d6f756e74222c2273686170654964223a227072696f725265636f72644f626a656374227d",
+        "digest": "sha256:e9fc7c97b2346d363c8bb6178e2ba05196068ab3324bb33bd2c5847414f5a8cb"
+      }
+    },
+    {
+      "name": "shiftedRepeatRowBefore",
+      "definition": {
+        "$formspec": "1.0",
+        "url": "https://example.org/forms/vectors-shifted-row/1.0.0",
+        "version": "1.0.0",
+        "status": "draft",
+        "title": "Shifted repeat row vectors",
+        "warningExplanation": "confirm",
+        "items": [
+          {
+            "key": "shifts",
+            "type": "group",
+            "label": "Shifts",
+            "repeatable": true,
+            "children": [
+              {
+                "key": "amount",
+                "type": "field",
+                "label": "Amount",
+                "dataType": "integer"
+              }
+            ]
+          }
+        ],
+        "shapes": [
+          {
+            "id": "shiftCap",
+            "target": "shifts[*].amount",
+            "severity": "warning",
+            "timing": "submit",
+            "activeWhen": "$ >= 15",
+            "constraint": "$ >= 50",
+            "message": "Shift amount below cap."
+          }
+        ]
+      },
+      "data": {
+        "shifts": [
+          {
+            "amount": 10
+          },
+          {
+            "amount": 20
+          }
+        ]
+      },
+      "expectedInstance": {
+        "input": {
+          "shapeId": "shiftCap",
+          "path": "shifts[1].amount",
+          "inputs": [
+            [
+              "$shifts[1].amount",
+              "sha256:46df9a6ed63506b2738ed5157a889b196b82202cbb320fd590fa4c59abcf0ae3"
+            ]
+          ]
+        },
+        "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e62617369732e7631007b22696e70757473223a5b5b22247368696674735b315d2e616d6f756e74222c227368613235363a34366466396136656436333530366232373338656435313537613838396231393662383232303263626233323066643539306661346335396162636630616533225d5d2c2270617468223a227368696674735b315d2e616d6f756e74222c2273686170654964223a227368696674436170227d",
+        "digest": "sha256:824351a8195107f38e778e7923d148bb64e67fc203ea3e661eba3eab96d1bcd3"
+      }
+    },
+    {
+      "name": "shiftedRepeatRowAfter",
+      "definition": {
+        "$formspec": "1.0",
+        "url": "https://example.org/forms/vectors-shifted-row/1.0.0",
+        "version": "1.0.0",
+        "status": "draft",
+        "title": "Shifted repeat row vectors",
+        "warningExplanation": "confirm",
+        "items": [
+          {
+            "key": "shifts",
+            "type": "group",
+            "label": "Shifts",
+            "repeatable": true,
+            "children": [
+              {
+                "key": "amount",
+                "type": "field",
+                "label": "Amount",
+                "dataType": "integer"
+              }
+            ]
+          }
+        ],
+        "shapes": [
+          {
+            "id": "shiftCap",
+            "target": "shifts[*].amount",
+            "severity": "warning",
+            "timing": "submit",
+            "activeWhen": "$ >= 15",
+            "constraint": "$ >= 50",
+            "message": "Shift amount below cap."
+          }
+        ]
+      },
+      "data": {
+        "shifts": [
+          {
+            "amount": 20
+          }
+        ]
+      },
+      "expectedInstance": {
+        "input": {
+          "shapeId": "shiftCap",
+          "path": "shifts[0].amount",
+          "inputs": [
+            [
+              "$shifts[0].amount",
+              "sha256:46df9a6ed63506b2738ed5157a889b196b82202cbb320fd590fa4c59abcf0ae3"
+            ]
+          ]
+        },
+        "preimageHex": "666f726d737065632e6578706c616e6174696f6e2e62617369732e7631007b22696e70757473223a5b5b22247368696674735b305d2e616d6f756e74222c227368613235363a34366466396136656436333530366232373338656435313537613838396231393662383232303263626233323066643539306661346335396162636630616533225d5d2c2270617468223a227368696674735b305d2e616d6f756e74222c2273686170654964223a227368696674436170227d",
+        "digest": "sha256:dc01670a5bb51c45135c548425d2719ea99fba9740df599d54feda1c2159bde4"
+      }
+    }
+  ]
 }

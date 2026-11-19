@@ -210,6 +210,7 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
     const search = new URLSearchParams(query);
     search.set('slot', slot);
     search.set('section', section);
+    search.delete('field');
     return `${path}?${search}`;
   }
 
@@ -251,6 +252,7 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
       workspace: {
         slot: query.get('slot') ?? undefined,
         activeSection: query.get('section') ?? undefined,
+        focusField: query.get('field') ?? undefined,
         hrefForSection: (slot, section) => resolveHref(sectionDestination(slot, section)),
         onActiveSectionChange: (slot, section) => navigate(sectionDestination(slot, section)),
       },

@@ -25,7 +25,24 @@ const useRoster = query.has('roster');
 const autoButtons = query.has('autoButtons');
 const authoredAutosave = query.has('authoredAutosave');
 const idCollision = query.has('idCollision');
-const component: ComponentDocument = {
+const warnings = query.has('warnings');
+const component: ComponentDocument = warnings ? {
+  $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition },
+  formPresentation: { pageMode: 'workspace' },
+  tree: { component: 'Stack', children: [
+    { component: 'Section', id: 'summary', title: 'Summary', children: [
+      { component: 'TextInput', bind: 'answer' },
+      { component: 'Toggle', bind: 'show' },
+    ] },
+    { component: 'Section', id: 'followup', title: 'Follow-up', children: [
+      { component: 'TextInput', bind: 'detail' },
+      { component: 'TextInput', bind: 'notes' },
+    ] },
+    { component: 'ActionButton', actionRef: 'save' },
+    ...(authoredAutosave ? [{ component: 'ActionButton' as const, actionRef: 'autosave', label: { literal: 'Checkpoint now' } }] : []),
+    ...(submit ? [{ component: 'ActionButton' as const, actionRef: 'submit' }] : []),
+  ] },
+} : {
   $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition },
   tree: { component: 'Stack', children: [
     { component: 'TextInput', bind: 'answer' },
@@ -175,9 +192,18 @@ const source = {
         { key: 'show', type: 'field', dataType: 'boolean', label: 'Show detail' },
         { key: 'detail', type: 'field', dataType: 'string', label: 'Detail',
           ...(hydration && { prePopulate: { instance: 'accepted', path: 'result' } }) },
+        ...(warnings ? [{ key: 'notes', type: 'field', dataType: 'string', label: 'Notes' }] : []),
         { key: 'rows', type: 'group', repeatable: true, label: 'Rows',
           children: [{ key: 'row', type: 'field', dataType: 'string', label: 'Row value' }] },
       ],
+      ...(warnings && {
+        warningExplanation: 'acknowledge',
+        shapes: [
+          { id: 'blankAnswer', target: 'answer', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Answer is unanswered.' },
+          { id: 'blankDetail', target: 'detail', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Detail is unanswered.' },
+          { id: 'blankNotes', target: 'notes', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Notes is unanswered.' },
+        ],
+      }),
       binds: hydration ? [{ path: 'answer', calculate: "@instance('roster').result & '/' & @instance('sibling').result" }]
         : [{ path: 'detail', relevant: '$show = true' }],
     },

@@ -121,17 +121,8 @@ for (const [source, definitionOptions, shapeOptions] of [
       shapes: [{ id: 'check', target: '#', code: 'CHECK', timing: 'continuous', severity: 'warning',
         constraint: 'false', message: 'Check this answer', ...shapeOptions }],
     });
-    // fs-g8fr supplies these evaluator results. Exercise the engine boundary with its Core §5.3.1 shape.
-    const explanation = {
-      path: '#', source: 'shape', severity: 'error', constraintKind: 'explanation',
-      code: 'EXPLANATION_REQUIRED', context: { code: 'CHECK' }, message: 'Acknowledge these findings',
-    };
-    const evaluate = engine.evaluateResultForTrigger.bind(engine);
-    const calls = t.mock.method(engine, 'evaluateResultForTrigger', (...args) => {
-      const evaluation = evaluate(...args);
-      // The settled evaluator will supply the acknowledgement alongside its final findings.
-      return { ...evaluation, validations: [...evaluation.validations, explanation] };
-    });
+    // fs-g8fr now supplies the real Core §5.3.1 acknowledgement error from the settled Rust evaluator.
+    const calls = t.mock.method(engine, 'evaluateResultForTrigger');
 
     assert.equal(engine.getEvaluatedFormState().report.valid, true);
     assert.equal(calls.mock.callCount(), 0);

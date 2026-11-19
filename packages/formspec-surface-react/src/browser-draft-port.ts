@@ -1,5 +1,18 @@
 /** @filedesc Preview drafts, immutable filings and review fixtures over one scoped store. */
-import { createFormEngine, deepEqual, initFormspecEngine, initFormspecEngineTools, isValidResponseAuthored, responseSubjectId, selectResponses, type FormDraftSnapshot } from '@formspec-org/engine';
+import {
+  createFormEngine,
+  deepEqual,
+  initFormspecEngine,
+  initFormspecEngineTools,
+  isStamped,
+  isValidResponseAuthored,
+  matchesEntry,
+  responseSubjectId,
+  sameAnswer,
+  selectResponses,
+  type DraftExplanation,
+  type FormDraftSnapshot,
+} from '@formspec-org/engine';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import { resolvePageSequence, summarizeFormProgress, type PageSequenceEntry } from '@formspec-org/layout';
 import {
@@ -8,7 +21,7 @@ import {
   type BrowserDraftPort, type CurrentDraftProgress, type DraftStartInput, type DraftStartResult, type DataSourceCatalogHandle, type DraftKey, type DraftRecord, type DraftSaveInput, type DraftSectionPlacement,
   type FilingStatusObservation, type PreparedDraftFixture, type ResponseFiling, type ResponseFixtures, type ResponseRecordTools,
 } from '@formspec-org/surface';
-import type { DispositionAuthority, EvaluatedFormState, FormDefinition, FormResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionDelivery, ResponseSelectionOutcome, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
+import type { DispositionAuthority, EvaluatedFormState, Explanation, FormDefinition, FormResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionDelivery, ResponseSelectionOutcome, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
 import { definitionResponseRequests } from './definition-response-reads.js';
 import type { SurfaceDraftFence } from './draft-writer.js';
 
@@ -199,6 +212,53 @@ async function buildSectionSummaries(
     if (progress) out.push({ planId: await sectionPlanId(placements), progress });
   }
   return out;
+}
+
+function stampDraftExplanations(
+  incoming: readonly DraftExplanation[],
+  previousResponseJson: string | undefined,
+  currentResponseJson: string,
+): { responseJson: string; explanations: Explanation[] } {
+  for (let i = 0; i < incoming.length; i++) {
+    for (let j = 0; j < i; j++) {
+      if (matchesEntry(incoming[j]!, incoming[i]!)) {
+        throw new Error('Duplicate warning explanation identity.');
+      }
+    }
+  }
+  const currentResponse = parseJsonExact(currentResponseJson) as FormResponse;
+  const previousExplanations: Explanation[] = previousResponseJson
+    ? ((parseJsonExact(previousResponseJson) as FormResponse).explanations ?? [])
+    : [];
+  const defaultAuthor = currentResponse.author ?? { id: 'local-preview' };
+  const recordedNow = new Date().toISOString();
+  const stamped: Explanation[] = incoming.map(entry => {
+    const prior = previousExplanations.find(prev => isStamped(prev) && sameAnswer(entry, prev));
+    const author = prior ? prior.author : defaultAuthor;
+    const recorded = prior ? prior.recorded : recordedNow;
+    if ('group' in entry) {
+      return {
+        group: true,
+        code: entry.code,
+        ...(entry.partyRef !== undefined ? { partyRef: entry.partyRef } : {}),
+        paths: [...entry.paths] as [string, ...string[]],
+        basis: entry.basis,
+        author,
+        recorded,
+      };
+    }
+    return {
+      shapeId: entry.shapeId,
+      path: entry.path,
+      basis: entry.basis,
+      ...(entry.text !== undefined ? { text: entry.text } : {}),
+      author,
+      recorded,
+    };
+  });
+  const { explanations: _omit, ...rest } = currentResponse;
+  const nextResponse: FormResponse = stamped.length > 0 ? { ...rest, explanations: stamped } : rest;
+  return { responseJson: JSON.stringify(nextResponse), explanations: stamped };
 }
 
 function createFilingStore(
@@ -813,7 +873,7 @@ function createFilingStore(
       }
     },
 
-    async save({ key, expectedRevision, creationPins, definitionVersion, snapshotJson, responseJson, summary }) {
+    async save({ key, expectedRevision, creationPins, definitionVersion, snapshotJson, responseJson, explanations, summary }) {
       try {
         if (!await authorized(key, 'resume')) return { status: 'denied' };
         if (hasSeededDrafts) await settledReady();
@@ -845,12 +905,41 @@ function createFilingStore(
           if ((previous?.revision ?? null) !== expectedRevision ||
               (previous && previous.definitionVersion !== definitionVersion)) return { status: 'conflict' } as const;
           if (missingPin !== undefined) return { status: 'pin-unavailable', instance: missingPin } as const;
+          const responseExplanations = explanations === undefined
+            ? (() => {
+                const parsed = parseJsonExact(responseJson);
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && 'explanations' in parsed) {
+                  const raw = (parsed as { explanations?: unknown }).explanations;
+                  if (raw !== undefined) {
+                    if (!Array.isArray(raw)) throw new Error('Response explanations must be an array.');
+                    return raw as DraftExplanation[];
+                  }
+                }
+                return undefined;
+              })()
+            : undefined;
+          const incomingExplanations = explanations ?? responseExplanations;
+          const stamped = incomingExplanations !== undefined
+            ? stampDraftExplanations(
+                incomingExplanations,
+                previous && 'responseJson' in previous ? previous.responseJson : undefined,
+                responseJson,
+              )
+            : undefined;
           const revision = crypto.randomUUID();
           const pinsJson = previous ? previous.pinsJson : JSON.stringify(pins);
-          tx.put('editable', id, { revision, definitionVersion, snapshotJson, responseJson, pinsJson });
+          tx.put('editable', id, {
+            revision,
+            definitionVersion,
+            snapshotJson,
+            responseJson: stamped ? stamped.responseJson : responseJson,
+            pinsJson,
+          });
           tx.put('summaries', id, { definitionVersion, plans });
           tx.put('seeds', id, { seeded: true });
-          return { status: 'saved', revision } as const;
+          return stamped
+            ? { status: 'saved', revision, explanations: stamped.explanations } as const
+            : { status: 'saved', revision } as const;
         });
         if (result.status === 'saved') committed();
         return result;

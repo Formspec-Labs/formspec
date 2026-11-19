@@ -1,6 +1,7 @@
 /** @filedesc WASM definition-eval payload, EvalResult merge, and validation merge. */
 
 import type { EvalResult, EvalValidation } from '../diff.js';
+import type { DraftExplanation } from './warning-explanations.js';
 import type { ResponseSubjectKeys } from '../interfaces.js';
 
 // --- wasmEvaluateDefinition payload -------------------------------------------------------------
@@ -26,6 +27,7 @@ export function wasmEvaluateDefinitionPayload(options: {
     registryDocuments: unknown[];
     subjectType?: string | null;
     subjectKeys?: ResponseSubjectKeys;
+    explanations?: DraftExplanation[];
 }): {
     nowIso: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
@@ -35,6 +37,7 @@ export function wasmEvaluateDefinitionPayload(options: {
     registryDocuments: unknown[];
     subjectType?: string | null;
     subjectKeys?: ResponseSubjectKeys;
+    explanations?: DraftExplanation[];
 } {
     return {
         nowIso: options.nowIso,
@@ -45,6 +48,7 @@ export function wasmEvaluateDefinitionPayload(options: {
         registryDocuments: options.registryDocuments,
         subjectType: options.subjectType,
         subjectKeys: options.subjectKeys,
+        explanations: options.explanations,
     };
 }
 

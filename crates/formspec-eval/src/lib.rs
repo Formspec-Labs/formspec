@@ -27,6 +27,7 @@ mod fel_json;
 mod value_predicate;
 
 pub mod convert;
+pub mod explanations;
 pub mod host_context;
 pub mod interpolation;
 pub mod nrb;

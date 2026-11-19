@@ -94,8 +94,9 @@ import {
 } from '@formspec-org/surface';
 import { DraftStart } from './DraftStart.js';
 import { DraftDefinitionForm } from './DraftDefinitionForm.js';
+import { isPlainLinkClick } from './browser-location.js';
 import type { DraftSession } from './draft-session.js';
-import { loadDraftReviewInputs, type DraftReviewDelivery } from './draft-review.js';
+import { loadDraftReviewInputs, type DraftReviewDelivery, type DraftReviewReadyDelivery } from './draft-review.js';
 import type { DraftActionInvoker, DraftWriter } from './draft-writer.js';
 import { Heading, nextLevel } from './heading.js';
 import { FilingStatus, type FilingStatusViewContext } from './FilingStatus.js';
@@ -153,6 +154,7 @@ export interface SurfaceFormSession {
   workspace?: {
     slot: string | undefined;
     activeSection: string | undefined;
+    focusField?: string | undefined;
     hrefForSection: (slot: string, section: string) => string | undefined;
     onActiveSectionChange: (slot: string, section: string) => void;
     reportSectionTitle?: ((slot: string, title: string | undefined) => void) | undefined;
@@ -185,6 +187,7 @@ export interface SurfaceDefinitionFormRenderInput {
   /** Report committed saves and failed writes to the single shell live region. */
   reportSave?: ((notice: SurfaceSaveNotice) => void) | undefined;
   activeSection?: string | undefined;
+  focusField?: string | undefined;
   sectionNavigationActive?: boolean | undefined;
   hrefForSection?: ((section: string) => string | undefined) | undefined;
   onActiveSectionChange?: ((section: string) => void) | undefined;
@@ -301,6 +304,7 @@ export interface SurfaceSlotProps {
   filingStatus?: FilingStatusViewContext | undefined;
   formSession?: SurfaceFormSession | undefined;
   activeSection?: string | undefined;
+  focusField?: string | undefined;
   sectionNavigationActive?: boolean | undefined;
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
@@ -550,6 +554,7 @@ export function SurfaceSlot({
   activeLocale,
   formSession,
   activeSection,
+  focusField,
   sectionNavigationActive,
 }: SurfaceSlotProps): ReactNode {
   const reportSectionTitle = formSession?.workspace?.reportSectionTitle;
@@ -628,7 +633,10 @@ export function SurfaceSlot({
         localeDocuments,
         activeLocale,
         onSectionTitleChange,
-        ...(sectionNavigationActive && workspace && { activeSection }),
+        ...(sectionNavigationActive && workspace && {
+          activeSection,
+          ...(focusField !== undefined && { focusField }),
+        }),
         ...(formSession && {
           appearance: formSession.appearance,
           previewScope: formSession.previewScope,
@@ -762,6 +770,8 @@ export function SurfaceSlot({
           strings={strings}
           dataSourceLoader={dataSourceLoader}
           draftSession={plan.draftReview ? formSession?.drafts : undefined}
+          filingStatus={plan.draftReview ? filingStatus : undefined}
+          reportSave={plan.draftReview ? formSession?.reportSave : undefined}
           localeDocuments={plan.draftReview ? localeDocuments : undefined}
           activeLocale={plan.draftReview ? activeLocale : undefined}
           dataSourceRevision={dataSourceRevision}
@@ -1572,6 +1582,7 @@ function DefaultSurfaceDefinitionForm(
     draftWriter,
     semanticOutputScope,
     activeSection,
+    focusField,
     sectionNavigationActive,
     hrefForSection,
     onActiveSectionChange,
@@ -1785,6 +1796,7 @@ function DefaultSurfaceDefinitionForm(
         {...(appearance && { className: `formspec-appearance-${appearance}` })}
         engine={engine}
         {...('activeSection' in input && { activeSection })}
+        {...(focusField !== undefined && { focusField })}
         onActiveSectionChange={onActiveSectionChange}
         sectionNavigationActive={sectionNavigationActive}
         hrefForSection={hrefForSection}
@@ -1835,6 +1847,8 @@ interface SurfaceWidgetSlotProps {
   strings: SurfaceStrings;
   dataSourceLoader?: DataSourceLoader | undefined;
   draftSession?: DraftSession | undefined;
+  filingStatus?: FilingStatusViewContext | undefined;
+  reportSave?: ((notice: SurfaceSaveNotice) => void) | undefined;
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
   /** Pure per-source scheduling hints; evaluated on host renders, never authority. */
@@ -1872,6 +1886,8 @@ function SurfaceWidgetSlot({
   strings,
   dataSourceLoader,
   draftSession,
+  filingStatus,
+  reportSave,
   localeDocuments,
   activeLocale,
   dataSourceRevision,
@@ -2387,20 +2403,129 @@ function SurfaceWidgetSlot({
   if (!Widget) {
     return <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
   }
+  const draftReviewReady = plan.draftReview?.status === 'ready' && 'warningGroups' in delivery
+    ? { plan: plan.draftReview, delivery }
+    : undefined;
   return (
-    <Widget
-      moduleId={plan.key.moduleId}
-      widgetName={plan.key.widgetName}
-      slot={{ id: plan.slotId, title: plan.title }}
-      route={route}
-      headingLevel={plan.headingBaseLevel}
-      config={plan.config ?? {}}
-      data={delivery.data}
-      actions={resolvedActions}
-      emitAction={emitAction}
-      admitsTenantTheme={grant.admitsTenantTheme}
-      semanticOutputScope={semanticOutputScope}
-    />
+    <>
+      <Widget
+        moduleId={plan.key.moduleId}
+        widgetName={plan.key.widgetName}
+        slot={{ id: plan.slotId, title: plan.title }}
+        route={route}
+        headingLevel={plan.headingBaseLevel}
+        config={plan.config ?? {}}
+        data={delivery.data}
+        actions={resolvedActions}
+        emitAction={emitAction}
+        admitsTenantTheme={grant.admitsTenantTheme}
+        semanticOutputScope={semanticOutputScope}
+      />
+      {draftReviewReady && draftReviewReady.delivery.warningGroups.length > 0 && draftSession && (
+        <DraftReviewWarningAcknowledgements
+          plan={draftReviewReady.plan}
+          delivery={draftReviewReady.delivery}
+          draftSession={draftSession}
+          filingStatus={filingStatus}
+          reportSave={reportSave}
+          onSaved={retryDataLoad}
+        />
+      )}
+    </>
+  );
+}
+
+function DraftReviewWarningAcknowledgements({
+  plan,
+  delivery,
+  draftSession,
+  filingStatus,
+  reportSave,
+  onSaved,
+}: {
+  plan: Extract<NonNullable<ModuleWidgetPlan['draftReview']>, { status: 'ready' }>;
+  delivery: DraftReviewReadyDelivery;
+  draftSession: DraftSession;
+  filingStatus: FilingStatusViewContext | undefined;
+  reportSave: ((notice: SurfaceSaveNotice) => void) | undefined;
+  onSaved: () => void;
+}) {
+  const [savingCode, setSavingCode] = useState<string | null>(null);
+  const sections = useMemo(
+    () => (plan.sections ?? []).map(sec => ({
+      ...(sec.id === undefined ? {} : { id: sec.id }),
+      fields: [...sec.fields],
+      fieldTemplates: [...sec.fields],
+      nodes: [],
+      groups: [],
+    })),
+    [plan.sections],
+  );
+  const acknowledge = async (code: string, expectedBasis: string) => {
+    if (savingCode !== null) return;
+    setSavingCode(code);
+    try {
+      const outcome = await draftSession.acknowledgeWarningGroup({
+        definition: plan.definition,
+        subject: plan.subject,
+        expectedRevision: delivery.revision,
+        expectedBasis,
+        code,
+        sections,
+        report: reportSave,
+      });
+      if (outcome === 'saved' || outcome === 'mismatch') onSaved();
+    } finally {
+      setSavingCode(null);
+    }
+  };
+  return (
+    <>
+      {delivery.warningGroups.map(group => (
+        <fieldset
+          key={group.code}
+          className="formspec-warning-explanation formspec-warning-acknowledgement"
+          data-explanation-code={group.code}
+        >
+          <legend>{group.legend}</legend>
+          <ul>
+            {group.items.map(item => {
+              const destination = item.jumpHref ?? undefined;
+              const href = destination !== undefined
+                ? (filingStatus?.formatHref ? filingStatus.formatHref(destination) : destination)
+                : undefined;
+              return (
+                <li key={item.path}>
+                  {destination && href ? (
+                    <a
+                      href={href}
+                      onClick={event => {
+                        if (!filingStatus?.navigate || !isPlainLinkClick(event)) return;
+                        event.preventDefault();
+                        void filingStatus.navigate(destination);
+                      }}
+                    >
+                      {item.label}
+                    </a>
+                  ) : (
+                    <span>{item.label}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {group.addedText && <p className="formspec-warning-acknowledgement-added">{group.addedText}</p>}
+          {group.removedText && <p className="formspec-warning-acknowledgement-removed">{group.removedText}</p>}
+          <button
+            type="button"
+            disabled={group.current || savingCode !== null}
+            onClick={() => void acknowledge(group.code, group.basis ?? '')}
+          >
+            {group.buttonLabel}
+          </button>
+        </fieldset>
+      ))}
+    </>
   );
 }
 

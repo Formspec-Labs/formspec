@@ -1,4 +1,5 @@
 /** @filedesc Diffs batch evaluation snapshots into per-signal patch payloads. */
+import type { DraftExplanation, ExplanationFinding } from './engine/warning-explanations.js';
 import { deepEqual } from './json-values.js';
 import type { EngineBindConfig } from './engine/helpers.js';
 
@@ -28,6 +29,8 @@ export interface EvalResult {
     data: Record<string, unknown>;
     validations: EvalValidation[];
     diagnostics: EvalDiagnostic[];
+    explanationFindings?: ExplanationFinding[];
+    candidateExplanations?: DraftExplanation[];
     nonRelevant: string[];
     variables: Record<string, unknown>;
     scopedVariables?: Record<string, Record<string, unknown>>;

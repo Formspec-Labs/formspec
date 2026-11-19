@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import canonicalize from "canonicalize";
+import type { Explanation } from "@formspec-org/types";
 import { isQualifiedDraftReview } from '../internal/draft-review-qualification.js';
 import {
   canonicalFiniteJson,
@@ -106,6 +107,7 @@ type Capture = {
   data: ResponseReviewData;
   copy: ResponseReviewCopy & { acceptedRecord?: string };
   nodes: ReviewNode[];
+  explanations: Explanation[];
   attachments: string[];
   identity: string;
 };
@@ -150,11 +152,13 @@ function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' 
     if ((acceptedSelectionProfile === 'selected' && !selected) ||
       (acceptedSelectionProfile === 'legacy' && selected)) return undefined;
     let selection: AcceptedReviewFieldSelection | undefined;
+    let permittedPaths: Set<string> | undefined;
     if (selected) {
       if (p.phase !== 'accepted-record' || !own(p, 'fieldSelection')) return undefined;
       const policy = config.fieldSelection as unknown as AcceptedResponseReviewFieldSelectionPolicy;
       const expected = resolveAcceptedResponseReviewFieldSelection(d, r, policy);
       if (canonicalize(expected) !== canonicalize((p as unknown as Obj).fieldSelection)) return undefined;
+      permittedPaths = new Set(expected.permittedPaths);
       selection = createAcceptedReviewFieldSelection(d.items, policy.fieldPaths);
     } else if (own(p, 'fieldSelection')) return undefined;
     if (p.phase === "accepted-record") {
@@ -205,7 +209,37 @@ function capture(props: SurfaceWidgetProps, acceptedSelectionProfile?: 'legacy' 
       attachments,
       selection
     );
+    const explanations = p.phase === 'accepted-record' ? (r.explanations ?? []).filter(entry => {
+      if (!object(entry) || !object(entry.author) || !text(entry.author.id) || !text(entry.recorded) ||
+          (entry.author.name !== undefined && typeof entry.author.name !== 'string')) {
+        throw Error("Invalid recorded explanation stamp");
+      }
+      let paths: string[];
+      if ('group' in entry) {
+        if (entry.group !== true || !text(entry.code) || !Array.isArray(entry.paths) ||
+            !entry.paths.length || !entry.paths.every(text) ||
+            (entry.partyRef !== undefined && !text(entry.partyRef))) throw Error("Invalid acknowledgement");
+        paths = entry.paths;
+      } else {
+        if (!text(entry.shapeId) || !text(entry.path) ||
+            (entry.text !== undefined && typeof entry.text !== 'string')) throw Error("Invalid explanation");
+        paths = [entry.path];
+      }
+      if (selection) {
+        const authorized = paths.every(path => {
+          if (path === '#' || path.includes('*')) return false;
+          if (permittedPaths!.has(path)) return true;
+          try { return selection.includes(path); } catch { return false; }
+        });
+        if (!authorized) return false;
+      }
+      if (!paths.every(path => path === '#' || own(p.fields as unknown as Obj, path))) {
+        throw Error("Missing recorded explanation label");
+      }
+      return true;
+    }) : [];
     return {
+      explanations,
       headingLevel: props.headingLevel,
       data,
       copy,
@@ -669,6 +703,28 @@ function ReviewBody({
         {failed ? c.copy.unavailable : c.copy.pending}
       </WidgetEmptyState>
     );
+  const instances = new Map<string, ReactNode[]>();
+  const groups: ReactNode[] = [];
+  for (const entry of c.explanations) {
+    const stamp = <>{entry.author.name ?? entry.author.id} · <time dateTime={entry.recorded}>{entry.recorded}</time></>;
+    if ('group' in entry) {
+      const count = entry.paths.length;
+      const summaryLabel = `${count} ${count === 1 ? 'question' : 'questions'} left unanswered (${entry.code})`;
+      groups.push(<details key={JSON.stringify([entry.code, entry.partyRef])} data-explanation-code={entry.code}>
+        <summary>{summaryLabel} — accepted by {entry.author.name ?? entry.author.id} at <time dateTime={entry.recorded}>{entry.recorded}</time></summary>
+        <ul>{entry.paths.map(path => <li key={path}>{path === '#' ? c.copy.heading : p.fields[path]!.label}</li>)}</ul>
+      </details>);
+    } else {
+      const notes = instances.get(entry.path) ?? [];
+      notes.push(<p key={entry.shapeId}>{entry.text && <>{entry.text} · </>}{stamp}</p>);
+      instances.set(entry.path, notes);
+    }
+  }
+  function notesFor(path: string) {
+    const notes = instances.get(path);
+    instances.delete(path);
+    return notes;
+  }
   const render = (
     nodes: ReviewNode[],
     level: SurfaceWidgetProps["headingLevel"]
@@ -677,6 +733,7 @@ function ReviewBody({
       node.kind === "group" ? (
         <section key={node.path} className="fs-response-review-group">
           <Heading level={level}>{node.label}</Heading>
+          {notesFor(node.path)}
           {render(node.children, nextLevel(level))}
         </section>
       ) : (
@@ -697,6 +754,7 @@ function ReviewBody({
             ) : (
               <Value node={node} copy={c.copy} />
             )}
+            {notesFor(node.path)}
           </dd>
         </dl>
       )
@@ -727,6 +785,10 @@ function ReviewBody({
         </div>
       </dl>
       {render(c.nodes, nextLevel(c.headingLevel))}
+      {[...instances].map(([path, notes]) => <div key={path}>
+        <strong>{path === '#' ? c.copy.heading : p.fields[path]!.label}</strong>{notes}
+      </div>)}
+      {groups}
       <details className="fs-response-review-record-details">
         <summary>{c.copy.responseId}</summary>
         <p>{r.id}</p>

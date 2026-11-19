@@ -61,7 +61,7 @@ function useSectionTitle(
 }
 
 export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspacePage[] }) {
-    const { engine, workspaceNavigation, touchField } = useFormspecContext();
+    const { engine, workspaceNavigation, touchField, registerFieldJump } = useFormspecContext();
     const chrome = useChromeText();
     const formTitle = useSignal(useMemo(() => engine.getFormVM(), [engine]).title);
     const [localSection, setLocalSection] = useState<string>();
@@ -131,19 +131,19 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
         });
     }), [term, engine, relevant, resolvePage, chrome, titles, pages]));
 
-    function select(page: WorkspacePage) {
+    function select(page: WorkspacePage, notifyRoute = true) {
         if (page.id === undefined) return;
         if (!controlled) setLocalSection(page.id);
-        workspaceNavigation?.onActiveSectionChange?.(page.id);
+        if (notifyRoute) workspaceNavigation?.onActiveSectionChange?.(page.id);
     }
 
     function navigate(page: WorkspacePage) {
         setJump(undefined);
         setNotice('');
-        select(page);
+        select(page, true);
     }
 
-    function jumpTo(path: string) {
+    function jumpTo(path: string, notifyRoute = true) {
         const section = resolvePage(path);
         if (!section) {
             setNotice(chrome('workspace.targetUnavailable'));
@@ -152,8 +152,19 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
         }
         setNotice('');
         setJump({ path, section });
-        if (section !== active || workspaceNavigation?.sectionNavigationActive === false) select(section);
+        if (section !== active || workspaceNavigation?.sectionNavigationActive === false) {
+            select(section, notifyRoute);
+        }
     }
+
+    useLayoutEffect(() => {
+        if (!registerFieldJump) return;
+        registerFieldJump((path: string, options?: { notifyRoute?: boolean }) => {
+            jumpTo(path, options?.notifyRoute !== false);
+            return true;
+        });
+        return () => registerFieldJump(null);
+    });
 
     const previousPage = useRef({ section: active?.id, navigationActive });
     useLayoutEffect(() => {

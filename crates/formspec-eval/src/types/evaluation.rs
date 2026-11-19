@@ -99,6 +99,8 @@ impl EvalTrigger {
 /// Optional runtime context injected into a single evaluation cycle.
 #[derive(Debug, Clone, Default)]
 pub struct EvalContext {
+    /// Stored warning answers to compare on Submit.
+    pub explanations: Vec<Value>,
     /// Current Response identity supplied by the host.
     pub subject: Option<EvalSubject>,
     /// Wall-clock instant for FEL `now()` / date helpers (ISO-8601 string).
@@ -169,6 +171,10 @@ pub struct ItemText {
 pub struct EvaluationResult {
     /// Evaluation stopped before Recalculate because the Definition or input was refused.
     pub refused: bool,
+    /// Explainable Shape firings from this submit evaluation.
+    pub explanation_actions: Vec<Value>,
+    /// Entries selected for assembly by the submit evaluation.
+    pub candidate_explanations: Option<Vec<Value>>,
     /// All field values after recalculation (post-NRB): flat state keyed by path
     /// (`group.field`, `rows[0].name`), like [`Self::required`] and [`Self::readonly`].
     pub values: HashMap<String, Value>,

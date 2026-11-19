@@ -14,6 +14,10 @@ const vectors: {
   refDigests: Record<string, Vector & { json: string }>;
   instance: Vector & { input: { shapeId: string; path: string; inputs: Input[] } };
   group: Vector & { input: { code: string; firings: [string, string, Input[]][] } };
+  evaluatedCases: Array<{
+    name: string;
+    expectedInstance: Vector & { input: { shapeId: string; path: string; inputs: Input[] } };
+  }>;
 } = JSON.parse(readFileSync(new URL(
   '../../../tests/conformance/fixtures/explanations/basis-vectors.json', import.meta.url,
 ), 'utf8'));
@@ -52,4 +56,20 @@ test('group basis commits to each firing and its resolved reference digests', ()
   const value = { code: input.code, firings };
   expect(value).toEqual(input);
   checkVector('formspec.explanation.group-basis.v1', value, vectors.group);
+});
+
+test.each(vectors.evaluatedCases.map(c => [c.name, c.expectedInstance] as const))(
+  'evaluated case %s matches its exact reference and basis preimages',
+  (_name, expected) => {
+    const value = { ...expected.input, inputs: checkedInputs(expected.input.inputs) };
+    expect(value).toEqual(expected.input);
+    checkVector('formspec.explanation.basis.v1', value, expected);
+  },
+);
+
+test('shifted repeat rows produce distinct preimages and digests for the surviving value', () => {
+  const before = vectors.evaluatedCases.find(c => c.name === 'shiftedRepeatRowBefore')!.expectedInstance;
+  const after = vectors.evaluatedCases.find(c => c.name === 'shiftedRepeatRowAfter')!.expectedInstance;
+  expect(before.preimageHex).not.toBe(after.preimageHex);
+  expect(before.digest).not.toBe(after.digest);
 });

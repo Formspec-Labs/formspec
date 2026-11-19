@@ -1,5 +1,6 @@
 /** @filedesc Qualified draft storage and progress reads for Surface hosts. */
-import type { DecidedDisposition, DraftProgressCounts, DraftProgressSummary, ResponseSelectionDelivery, Sha256Digest } from '@formspec-org/types';
+import type { DraftExplanation } from '@formspec-org/engine';
+import type { DecidedDisposition, DraftProgressCounts, DraftProgressSummary, Explanation, ResponseSelectionDelivery, Sha256Digest } from '@formspec-org/types';
 import type { DataSourceSubject } from './data-source-loader.js';
 
 export interface DraftKey {
@@ -111,6 +112,8 @@ export interface DraftSaveInput extends Omit<DraftRecord, 'revision' | 'pins'> {
   expectedRevision: string | null;
   /** Required on a creating save for at-open reads. The adapter compares these with its own selection. */
   creationPins?: DraftRecord['pins'];
+  /** Pending and stamped warning explanations edited in the draft session. */
+  explanations?: readonly DraftExplanation[];
   /** Null invalidates counts for this revision. */
   summary: { sections: readonly DraftSectionPlacement[]; progress: CurrentDraftProgress } | null;
 }
@@ -124,7 +127,10 @@ export type DraftLoadResult =
   | { status: 'absent' }
   | { status: 'version-mismatch'; storedVersion: string; revision: string }
   | DraftRefusal;
-export type DraftSaveResult = { status: 'saved'; revision: string } | { status: 'pin-unavailable'; instance: string } | DraftWriteRefusal;
+export type DraftSaveResult =
+  | { status: 'saved'; revision: string; explanations?: readonly Explanation[] }
+  | { status: 'pin-unavailable'; instance: string }
+  | DraftWriteRefusal;
 export type DraftRestartResult = { status: 'discarded' } | DraftWriteRefusal;
 
 /** Parent keys only. The same attempt must recover the same initialized unit. */

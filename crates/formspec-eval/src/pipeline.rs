@@ -275,6 +275,7 @@ fn evaluate_prepared(
         rebuild::apply_indexed_binds(&mut items, &binds, &mut indexed_binds);
     }
     let mut index = ScopeIndex::new(&items, counts);
+    index.add_template_repeats(&prepared.items);
     for path in flat.values.keys() {
         index.add_value_path(path);
     }
@@ -364,6 +365,38 @@ fn evaluate_prepared(
     let mut non_relevant = Vec::new();
     types::collect_non_relevant(&items, &mut non_relevant);
 
+    let mut explanation_actions = Vec::new();
+    let mut candidate_explanations = None;
+    if options.trigger == types::EvalTrigger::Submit {
+        let explanation_findings = crate::revalidate::explanation_findings(
+            &items,
+            &index,
+            &values,
+            &scoped_variables,
+            definition,
+            options,
+            &mut validations,
+        );
+        match crate::explanations::action_rows(&explanation_findings) {
+            Ok(actions) => explanation_actions = actions,
+            Err(message) => validations.push(type_error("#", message)),
+        }
+        match crate::explanations::compare(
+            &explanation_findings,
+            &context.explanations,
+            &non_relevant,
+        ) {
+            Ok(results) => {
+                validations.extend(results);
+                candidate_explanations = Some(crate::explanations::candidate_entries(
+                    &context.explanations,
+                    &explanation_findings,
+                ));
+            }
+            Err(message) => validations.push(type_error("#", message)),
+        }
+    }
+
     let mut required = HashMap::new();
     let mut readonly = HashMap::new();
     types::collect_mip_state(&items, &mut required, &mut readonly);
@@ -385,6 +418,8 @@ fn evaluate_prepared(
 
     Ok(EvaluationResult {
         refused: false,
+        explanation_actions,
+        candidate_explanations,
         values,
         host_values,
         calculated_paths,
@@ -575,6 +610,8 @@ fn type_error(path: &str, message: String) -> ValidationResult {
 fn refuse_input(validations: Vec<ValidationResult>) -> EvaluationResult {
     EvaluationResult {
         refused: true,
+        explanation_actions: Vec::new(),
+        candidate_explanations: None,
         values: HashMap::new(),
         host_values: HashMap::new(),
         calculated_paths: Vec::new(),

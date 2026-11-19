@@ -25,6 +25,7 @@ pub(crate) struct ScopeIndex {
     pub(crate) counts: RowCounts,
     children: HashMap<String, BTreeSet<String>>,
     declarations: HashSet<String>,
+    repeats: HashSet<String>,
     instances: HashMap<String, Vec<String>>,
     paths_by_key: HashMap<String, String>,
     data_types: HashMap<String, String>,
@@ -80,8 +81,25 @@ impl ScopeIndex {
         index.add_items(items);
         for group in index.counts.keys() {
             Self::add_path(&mut index.children, group);
+            index.repeats.insert(strip_indices(group));
         }
         index
+    }
+
+    pub(crate) fn add_template_repeats(&mut self, items: &[ItemInfo]) {
+        for item in items {
+            if item.repeatable {
+                self.repeats.insert(strip_indices(&item.path));
+            }
+            self.add_template_repeats(&item.children);
+        }
+    }
+
+    pub(crate) fn is_repeat(&self, path: &str) -> bool {
+        !path.is_empty()
+            && !path.ends_with(']')
+            && (self.counts.contains_key(path)
+                || self.repeats.contains(strip_indices(path).as_str()))
     }
 
     pub(crate) fn snapshot(
@@ -144,6 +162,7 @@ impl ScopeIndex {
                 self.data_types.insert(template.clone(), data_type.clone());
             }
             if item.repeatable {
+                self.repeats.insert(template.clone());
                 let count = self.count(&item.path);
                 self.instances
                     .entry(template)
@@ -437,8 +456,16 @@ impl ScopeData {
             bind_self: true,
             hoist: true,
             now: None,
+            locals: None,
         }
     }
+}
+
+/// Stack-allocated lexical variable or predicate element binding for explanation reference evaluation.
+pub(crate) struct LocalBinding<'a> {
+    pub(crate) name: &'a str,
+    pub(crate) value: Value,
+    pub(crate) parent: Option<&'a LocalBinding<'a>>,
 }
 
 /// FEL's view of one site. The underlying data stays borrowed during evaluation.
@@ -450,6 +477,7 @@ pub(crate) struct Site<'a> {
     pub(crate) bind_self: bool,
     hoist: bool,
     now: Option<Date>,
+    pub(crate) locals: Option<&'a LocalBinding<'a>>,
 }
 
 /// A concrete site's scope chain, innermost first.
@@ -466,6 +494,69 @@ impl Site<'_> {
         } else {
             parse_datetime_literal(&format!("@{iso}"))
         };
+    }
+
+    /// Target of a bare self reference, using an empty path for the root.
+    pub(crate) fn self_path(&self) -> &str {
+        if self.path == "#" { "" } else { self.path }
+    }
+
+    /// Whether the path names a repeat collection in this response.
+    pub(crate) fn is_repeat(&self, path: &str) -> bool {
+        self.index.is_repeat(path)
+    }
+
+    pub(crate) fn with_local<'b>(&'b self, binding: &'b LocalBinding<'b>) -> Site<'b> {
+        Site {
+            data: self.data,
+            index: self.index,
+            path: self.path,
+            bind_self: self.bind_self,
+            hoist: false,
+            now: self.now.clone(),
+            locals: Some(binding),
+        }
+    }
+
+    pub(crate) fn read_data(&self, base_path: &str, segments: &[PathSegment]) -> Value {
+        if base_path.is_empty() && segments.is_empty() {
+            self.object("")
+        } else {
+            self.read(base_path.to_owned(), segments)
+                .unwrap_or(Value::Null)
+        }
+    }
+
+    pub(crate) fn read_variable(&self, scope: &str, name: &str, segments: &[PathSegment]) -> Value {
+        let base = self
+            .data
+            .variables
+            .get(scope)
+            .and_then(|vars| vars.get(name))
+            .unwrap_or(&Value::Null);
+        resolve_value_segments(base, segments).unwrap_or(Value::Null)
+    }
+
+    pub(crate) fn read_instance(&self, name: &str, segments: &[PathSegment]) -> Value {
+        let base = self.data.env.instances.get(name).unwrap_or(&Value::Null);
+        resolve_value_segments(base, segments).unwrap_or(Value::Null)
+    }
+
+    pub(crate) fn read_subject(&self, key: &str, segments: &[PathSegment]) -> Value {
+        let base = self.data.env.subject_key(key);
+        resolve_value_segments(&base, segments).unwrap_or(Value::Null)
+    }
+
+    /// Lexical declaration supplying a Definition variable at this site.
+    pub(crate) fn variable_scope(&self, name: &str) -> Option<&str> {
+        lexical_scopes(self.path)
+            .chain(std::iter::once("#"))
+            .find(|scope| {
+                self.data
+                    .variables
+                    .get(*scope)
+                    .is_some_and(|vars| vars.contains_key(name))
+            })
     }
 
     pub(crate) fn head(&self, name: &str) -> String {
@@ -494,7 +585,13 @@ impl Site<'_> {
         if let Some(value) = self.data.objects.borrow().get(path) {
             return value.clone();
         }
-        let value = if let Some(&count) = self.index.counts.get(path) {
+        let value = if let Some(count) = self
+            .index
+            .counts
+            .get(path)
+            .copied()
+            .or_else(|| self.index.is_repeat(path).then_some(0))
+        {
             Value::Array(
                 (0..count)
                     .map(|row| self.object(&format!("{path}[{row}]")))
@@ -533,7 +630,12 @@ impl Site<'_> {
 
     fn read(&self, mut path: String, segments: &[PathSegment]) -> Result<Value, FieldError> {
         for (position, part) in segments.iter().enumerate() {
-            let group_count = self.index.counts.get(&path).copied();
+            let group_count = self
+                .index
+                .counts
+                .get(&path)
+                .copied()
+                .or_else(|| self.index.is_repeat(&path).then_some(0));
             match (group_count, part) {
                 (Some(count), PathSegment::Index(index)) => {
                     if *index == 0 || *index as u64 > count {
@@ -570,7 +672,7 @@ impl Site<'_> {
                 }
             }
         }
-        if self.index.counts.contains_key(&path) {
+        if self.index.counts.contains_key(&path) || self.index.is_repeat(&path) {
             return Ok(self.object(&path));
         }
         if let Some(value) = self.data.env.data.get(&path) {
@@ -655,10 +757,19 @@ impl Site<'_> {
 
 impl Environment for Site<'_> {
     fn resolve_field(&self, root: Option<&str>, path: &[PathSegment]) -> Result<Value, FieldError> {
+        let local_key = root.unwrap_or("$");
+        let mut cursor = self.locals;
+        while let Some(binding) = cursor {
+            if binding.name == local_key {
+                return resolve_value_segments(&binding.value, path);
+            }
+            cursor = binding.parent;
+        }
         match root {
             Some(name) => self.read(self.head(name), path),
-            None if self.bind_self && !self.path.is_empty() && self.path != "#" => {
-                self.read(self.path.to_owned(), path)
+            None if self.bind_self && self.path == "#" && path.is_empty() => Ok(self.object("")),
+            None if self.bind_self && !self.path.is_empty() => {
+                self.read(self.self_path().to_owned(), path)
             }
             None => Ok(Value::Null),
         }
@@ -667,7 +778,7 @@ impl Environment for Site<'_> {
     fn precomputed(&self, expr: &Expr) -> Option<Value> {
         // Only pure scalar builtins whose dependency is a field projection. FEL
         // bypasses this hook under let bindings and while tracing.
-        if !self.hoist || !self.path.contains('[') {
+        if !self.hoist || self.locals.is_some() || !self.path.contains('[') {
             return None;
         }
         let Expr::FunctionCall { name, args } = expr else {
@@ -811,9 +922,9 @@ impl Environment for Site<'_> {
             "instance" => arg
                 .and_then(|name| self.data.env.instances.get(name))
                 .map_or(Value::Null, |value| resolve_value_path(value, tail)),
-            _ => lexical_scopes(self.path)
-                .chain(std::iter::once("#"))
-                .find_map(|scope| self.data.variables.get(scope)?.get(name))
+            _ => self
+                .variable_scope(name)
+                .and_then(|scope| self.data.variables.get(scope)?.get(name))
                 .map_or(Value::Null, |value| resolve_value_path(value, tail)),
         }
     }

@@ -8,6 +8,7 @@ const defaultThemeJson = buildPlatformTheme();
 import { FormspecProvider } from './context';
 import type { FormspecProviderProps, SubmitResult } from './context';
 import { useFormspecContext } from './context';
+import { WarningExplanations } from './warning-explanations';
 import { FormspecNode } from './node-renderer';
 import { ActionFeedbackContent } from './action-feedback.js';
 import { IssuerChromeSlot, parseQueryIssuerOverride } from './issuer';
@@ -15,7 +16,7 @@ import { FormspecScreener } from './screener/FormspecScreener';
 import type { ScreenerRoute, ScreenerRouteType } from './screener/types';
 import { useForm, type SubmitOptions } from './use-form';
 import { useLocale } from './use-locale';
-import { focusFirstInvalidField } from './use-focus-field';
+import { focusFieldIn, focusFirstInvalidField } from './use-focus-field';
 
 /** Match `<formspec-render>`: emit theme + component tokens on `.formspec-container` so CSS variables resolve the same as the web component (e.g. radio group border). */
 function syncSystemAppearanceClass(el: HTMLDivElement | null, systemPrefersDark: boolean): void {
@@ -237,6 +238,9 @@ export function FormspecFormContent({ className }: FormspecFormContentProps) {
     const {
         engine,
         layoutPlan,
+        workspaceNavigation,
+        touchField,
+        jumpToField,
         recordSubmit,
         onSubmit,
         setShowValidationSummaryAttr,
@@ -244,6 +248,26 @@ export function FormspecFormContent({ className }: FormspecFormContentProps) {
     const { submit: submitForm } = useForm();
     const { activeLocale, direction } = useLocale();
     const containerRef = useEmitThemeTokensOnFormspecContainerRef();
+    const handledFocusField = useRef<string | undefined>(undefined);
+
+    useLayoutEffect(() => {
+        const target = workspaceNavigation?.sectionNavigationActive !== false ? workspaceNavigation?.focusField : undefined;
+        if (!target) {
+            handledFocusField.current = undefined;
+            return;
+        }
+        if (handledFocusField.current === target) return;
+        const el = containerRef.current;
+        if (!el) return;
+        handledFocusField.current = target;
+        if (!jumpToField?.(target, { notifyRoute: false })) {
+            touchField(target);
+            focusFieldIn(el, target);
+        }
+        return () => {
+            handledFocusField.current = undefined;
+        };
+    }, [workspaceNavigation?.sectionNavigationActive, workspaceNavigation?.focusField, jumpToField, touchField]);
 
     useLayoutEffect(() => {
         const el = containerRef.current as WalkBridgeElement | null;
@@ -335,6 +359,7 @@ export function FormspecFormContent({ className }: FormspecFormContentProps) {
                 mode={issuerChromeModeFromClassName(className)}
             />
             <ActionFeedbackContent><FormspecNode node={layoutPlan} /></ActionFeedbackContent>
+            <WarningExplanations />
         </div>
     );
 }

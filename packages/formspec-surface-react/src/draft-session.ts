@@ -4,11 +4,14 @@ import {
   type ActionRefFinding, type FormDraftSnapshot, type IFormEngine,
 } from '@formspec-org/engine';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
-import { resolvePageSequence } from '@formspec-org/layout';
-import type { BrowserDraftPort, DataSourceSubject, DraftKey, DraftLoadResult, DraftPort } from '@formspec-org/surface';
+import { resolvePageSequence, summarizeFormProgress, type PageSequenceEntry, type ProgressCounts } from '@formspec-org/layout';
+import type { BrowserDraftPort, DataSourceSubject, DraftKey, DraftLoadResult, DraftPort, DraftRecord, DraftSaveInput, FilingProgressCounts } from '@formspec-org/surface';
 import { definitionResponseRequests, resolveDefinitionReads } from './definition-response-reads.js';
-import type { FormResponse, ResponseSelector } from '@formspec-org/types';
-import { createDraftWriter, type DraftCheckpointPorts, type DraftNoticeReporter, type DraftWriter } from './draft-writer.js';
+import type { FormDefinition, FormResponse, ResponseSelector } from '@formspec-org/types';
+import {
+  createDraftWriter, readCommittedExplanationsAtRevision,
+  type CommittedExplanationsReadback, type DraftCheckpointPorts, type DraftNoticeReporter, type DraftWriter,
+} from './draft-writer.js';
 import type { SurfaceDefinitionFormRenderInput } from './SurfaceSlot.js';
 
 export interface SurfaceDraftStorage {
@@ -26,7 +29,7 @@ export async function deriveDraftSubject(subject: DataSourceSubject | undefined)
 }
 
 type CommittedDraft =
-  | { status: 'loaded'; response: FormResponse; revision: string; key: DraftKey }
+  | { status: 'loaded'; response: FormResponse; pins?: DraftRecord['pins']; revision: string; key: DraftKey }
   | { status: 'initialized' | 'absent' | 'denied' | 'version-mismatch' | 'unavailable' | 'save-failed' };
 
 type DraftOpen =
@@ -48,10 +51,16 @@ function sessionKey(key: DraftKey, version: string): string {
   return JSON.stringify([key.scope, key.definitionUrl, key.subject?.id ?? null, version]);
 }
 
+function progressCounts({ total, filled, toFix, toCheck }: ProgressCounts): FilingProgressCounts {
+  return { total, filled, toFix, toCheck };
+}
+
 export function createDraftSession(
   storage: SurfaceDraftStorage, browserPort?: BrowserDraftPort, checkpointPorts?: DraftCheckpointPorts,
 ) {
   const entries = new Map<string, Entry>();
+  const commitEpoch = new Map<string, number>();
+  const pendingReviews = new Map<string, Promise<void>>();
   const lifetime = new AbortController();
 
   async function load(key: DraftKey, version: string, signal: AbortSignal) {
@@ -88,97 +97,131 @@ export function createDraftSession(
         entry = undefined;
       }
       if (!entry) {
-        const reusable = previous?.status === 'ready' ? previous : undefined;
+        let pendingReusable = previous?.status === 'ready' ? previous : undefined;
+        const disposeReusable = () => {
+          if (!pendingReusable) return;
+          pendingReusable.writer.dispose();
+          pendingReusable.engine.dispose();
+          pendingReusable = undefined;
+        };
         const consumers = previousConsumers ?? new Map<DraftNoticeReporter, (() => void) | undefined>();
         const findingListeners = new Set<(finding: ActionRefFinding) => void>();
-        const opened = async (): Promise<DraftOpen> => {
-          let loaded: DraftLoadResult;
-          try {
-            loaded = await load(key, definition.version, lifetime.signal);
-          } catch (error) {
-            if (reusable) {
-              reusable.writer.dispose();
-              reusable.engine.dispose();
-            }
-            throw error;
-          }
-          const draft = loaded.status === 'loaded' ? loaded.draft : undefined;
-          if (reusable) {
-            if (draft && draft.revision === reusable.writer.revision &&
-                !Object.values(definition.instances ?? {}).some(instance => instance.response)) {
-              const nextFinding = reusable.writer.setActions(created.actions);
-              created.autosaveFinding = nextFinding;
-              if (nextFinding) {
-                for (const notifyFinding of findingListeners) notifyFinding(nextFinding);
-              }
-              return reusable;
-            }
-            reusable.writer.dispose();
-            reusable.engine.dispose();
-          }
-          if (loaded.status === 'version-mismatch') return { ...loaded, key };
-          if (loaded.status === 'denied' || loaded.status === 'unavailable') return { status: loaded.status };
-          if (loaded.status === 'absent' && Object.values(definition.subject?.keys ?? {}).some(key => key.minted)) {
-            return { status: 'unavailable' };
-          }
-          const seed = created.seed;
-          if (!draft && seed.draftSeed) return { status: seed.draftSeed };
-          const response = draft && parseJsonExact(draft.responseJson) as FormResponse;
-          const draftSnapshot = draft && parseJsonExact(draft.snapshotJson) as FormDraftSnapshot;
-          const pins = loaded.status === 'initialized' ? loaded.pins : draft?.pins;
-          const requests = definitionResponseRequests(definition, key, pins);
-          const resolutions = await resolveDefinitionReads(storage.responses, requests, lifetime.signal);
-          const engine = createFormEngine(definition, {
-            responseInstanceResolutions: resolutions,
-            ...(key.subject && { responseSubject: key.subject }),
-            ...(draftSnapshot && { draftSnapshot }),
-            ...(!draftSnapshot && seed.initialData?.data !== undefined && {
-              responseData: seed.initialData.data as Parameters<IFormEngine['loadResponseData']>[0],
-            }),
-          });
-          if (engine.hasSubjectRefusal()) {
-            engine.dispose();
-            return { status: 'unavailable' };
-          }
-          try {
-            const writer = createDraftWriter({
-              engine, key, draft, port: storage.port,
-              initializedRevision: loaded.status === 'initialized' ? loaded.revision : undefined,
-              creationPins: Object.fromEntries(Object.entries(resolutions).filter(([, delivery]) => delivery.pinned)),
-              responseId: response?.id ?? input.semanticControlScope?.responseId,
-              author: response?.author ?? storage.author,
-              locally: browserPort !== undefined,
-              sections: resolvePageSequence(definition, {
-                ...(input.componentDocument ? { component: input.componentDocument } : {}),
-                ...(input.grant.themeDocument ? { theme: input.grant.themeDocument } : {}),
-              }),
-              actions: created.actions,
-              invoker: input.responseActionInvoker,
-              checkpointPorts,
-              report: (notice, options) => { for (const notify of consumers.keys()) notify(notice, options); },
-              onActionFinding: (finding) => {
-                created.autosaveFinding = finding;
-                for (const notifyFinding of findingListeners) notifyFinding(finding);
-              },
-            });
-            return { status: 'ready', engine, writer };
-          } catch (error) {
-            engine.dispose();
-            throw error;
-          }
-        };
         const created: Entry = {
           consumers,
           findingListeners,
           seed: { initialData: input.initialData, draftSeed: input.draftSeed },
           actions: input.responseActionsDocument,
-          result: opened().catch((): DraftOpen => ({ status: 'unavailable' })).then(result => {
-            created.opened = result;
-            if (lifetime.signal.aborted) disposeEntry(created);
-            else if (result.status === 'ready') result.writer.setMounted(consumers.size > 0);
-            return result;
-          }),
+          result: undefined as unknown as Promise<DraftOpen>,
         };
+        const publish = (result: DraftOpen): DraftOpen => {
+          created.opened = result;
+          if (lifetime.signal.aborted) disposeEntry(created);
+          else if (result.status === 'ready') result.writer.setMounted(consumers.size > 0);
+          return result;
+        };
+        const opened = async (): Promise<DraftOpen> => {
+          let epoch = commitEpoch.get(id) ?? 0;
+          let loaded: DraftLoadResult;
+          let draft: DraftRecord | undefined;
+          let response: FormResponse | undefined;
+          let draftSnapshot: FormDraftSnapshot | undefined;
+          let resolutions: Awaited<ReturnType<typeof resolveDefinitionReads>>;
+          while (true) {
+            try {
+              loaded = await load(key, definition.version, lifetime.signal);
+            } catch (error) {
+              disposeReusable();
+              throw error;
+            }
+            const afterLoadEpoch = commitEpoch.get(id) ?? 0;
+            if (afterLoadEpoch !== epoch) {
+              epoch = afterLoadEpoch;
+              disposeReusable();
+              continue;
+            }
+            draft = loaded.status === 'loaded' ? loaded.draft : undefined;
+            if (pendingReusable) {
+              if (draft && draft.revision === pendingReusable.writer.revision &&
+                  !Object.values(definition.instances ?? {}).some(instance => instance.response)) {
+                const reused = pendingReusable;
+                pendingReusable = undefined;
+                const nextFinding = reused.writer.setActions(created.actions);
+                created.autosaveFinding = nextFinding;
+                if (nextFinding) {
+                  for (const notifyFinding of findingListeners) notifyFinding(nextFinding);
+                }
+                return publish(reused);
+              }
+              disposeReusable();
+            }
+            if (loaded.status === 'version-mismatch') return publish({ ...loaded, key });
+            if (loaded.status === 'denied' || loaded.status === 'unavailable') return publish({ status: loaded.status });
+            if (loaded.status === 'absent' && Object.values(definition.subject?.keys ?? {}).some(key => key.minted)) {
+              return publish({ status: 'unavailable' });
+            }
+            const seed = created.seed;
+            if (!draft && seed.draftSeed) return publish({ status: seed.draftSeed });
+            response = draft && parseJsonExact(draft.responseJson) as FormResponse;
+            draftSnapshot = draft && parseJsonExact(draft.snapshotJson) as FormDraftSnapshot;
+            const pins = loaded.status === 'initialized' ? loaded.pins : draft?.pins;
+            const requests = definitionResponseRequests(definition, key, pins);
+            resolutions = await resolveDefinitionReads(storage.responses, requests, lifetime.signal);
+            const afterReadsEpoch = commitEpoch.get(id) ?? 0;
+            if (afterReadsEpoch !== epoch) {
+              epoch = afterReadsEpoch;
+              continue;
+            }
+            const engine = createFormEngine(definition, {
+              responseInstanceResolutions: resolutions,
+              ...(key.subject && { responseSubject: key.subject }),
+              ...(draftSnapshot && { draftSnapshot }),
+              ...(response?.explanations && { savedExplanations: response.explanations }),
+              ...(!draftSnapshot && seed.initialData?.data !== undefined && {
+                responseData: seed.initialData.data as Parameters<IFormEngine['loadResponseData']>[0],
+              }),
+            });
+            if (engine.hasSubjectRefusal()) {
+              engine.dispose();
+              return publish({ status: 'unavailable' });
+            }
+            try {
+              const writer = createDraftWriter({
+                engine, key, draft, port: storage.port,
+                initializedRevision: loaded.status === 'initialized' ? loaded.revision : undefined,
+                creationPins: Object.fromEntries(Object.entries(resolutions).filter(([, delivery]) => delivery.pinned)),
+                responseId: response?.id ?? input.semanticControlScope?.responseId,
+                author: storage.author ?? response?.author,
+                locally: browserPort !== undefined,
+                sections: resolvePageSequence(definition, {
+                  ...(input.componentDocument ? { component: input.componentDocument } : {}),
+                  ...(input.grant.themeDocument ? { theme: input.grant.themeDocument } : {}),
+                }),
+                actions: created.actions,
+                invoker: input.responseActionInvoker,
+                checkpointPorts,
+                waitForReview: () => pendingReviews.get(id),
+                report: (notice, options) => { for (const notify of consumers.keys()) notify(notice, options); },
+                onActionFinding: (finding) => {
+                  created.autosaveFinding = finding;
+                  for (const notifyFinding of findingListeners) notifyFinding(finding);
+                },
+              });
+              // Recheck synchronously with zero intervening microtasks before publishing created.opened.
+              const beforePublishEpoch = commitEpoch.get(id) ?? 0;
+              if (beforePublishEpoch !== epoch) {
+                writer.dispose();
+                engine.dispose();
+                epoch = beforePublishEpoch;
+                continue;
+              }
+              return publish({ status: 'ready', engine, writer });
+            } catch (error) {
+              engine.dispose();
+              throw error;
+            }
+          }
+        };
+        created.result = opened().catch((): DraftOpen => publish({ status: 'unavailable' }));
         entries.set(id, created);
         entry = created;
       }
@@ -242,15 +285,274 @@ export function createDraftSession(
         signal.throwIfAborted();
         const key = { scope: storage.scope, definitionUrl: definition.url, subject: await deriveDraftSubject(subject) };
         if (options?.afterPendingSaves) {
-          const entry = await entries.get(sessionKey(key, definition.version))?.result;
+          const id = sessionKey(key, definition.version);
+          while (pendingReviews.has(id)) await pendingReviews.get(id);
+          const entry = await entries.get(id)?.result;
           if (entry?.status === 'ready' && !await entry.writer.waitForSaves()) return { status: 'save-failed' };
         }
         const result = await load(key, definition.version, signal);
         if (result.status !== 'loaded') return { status: result.status };
         const response = parseJsonExact(result.draft.responseJson) as FormResponse;
-        return { status: 'loaded', response, revision: result.draft.revision, key };
+        return { status: 'loaded', response, pins: result.draft.pins, revision: result.draft.revision, key };
       } catch {
         return { status: 'unavailable' };
+      }
+    },
+
+    async resolveReads(
+      definition: FormDefinition,
+      key: DraftKey,
+      pins: DraftRecord['pins'] | undefined,
+      signal?: AbortSignal,
+    ) {
+      const mergedSignal = signal ? AbortSignal.any([lifetime.signal, signal]) : lifetime.signal;
+      return resolveDefinitionReads(storage.responses, definitionResponseRequests(definition, key, pins), mergedSignal);
+    },
+
+    async acknowledgeWarningGroup({
+      definition,
+      subject,
+      expectedRevision,
+      expectedBasis,
+      code,
+      sections = [],
+      report,
+    }: {
+      definition: FormDefinition;
+      subject: DataSourceSubject | undefined;
+      expectedRevision: string;
+      expectedBasis: string;
+      code: string;
+      sections?: readonly PageSequenceEntry[] | undefined;
+      report?: DraftNoticeReporter | undefined;
+    }): Promise<'saved' | 'mismatch' | 'failed'> {
+      try {
+        lifetime.signal.throwIfAborted();
+        if (!expectedBasis) {
+          report?.('draftConflict');
+          return 'mismatch';
+        }
+        const key: DraftKey = { scope: storage.scope, definitionUrl: definition.url, subject: await deriveDraftSubject(subject) };
+        const id = sessionKey(key, definition.version);
+        let releaseReview!: () => void;
+        let reviewPromise!: Promise<void>;
+        while (true) {
+          lifetime.signal.throwIfAborted();
+          const priorReview = pendingReviews.get(id);
+          if (priorReview) {
+            await priorReview;
+            continue;
+          }
+          const existing = entries.get(id);
+          if (existing) {
+            const opened = await existing.result;
+            if (pendingReviews.has(id) || entries.get(id) !== existing) continue;
+            if (opened.status === 'ready') {
+              const saved = await opened.writer.waitForSaves();
+              if (pendingReviews.has(id) || entries.get(id) !== existing) continue;
+              if (!saved) {
+                report?.('saveFailed');
+                return 'failed';
+              }
+              if (opened.writer.dirty || opened.writer.conflict) {
+                // Preserve unsaved edits in the retained writer; never commit unshown changes from review.
+                report?.('draftConflict');
+                return 'mismatch';
+              }
+              if (opened.writer.revision !== expectedRevision) {
+                if (existing.consumers.size === 0) {
+                  entries.delete(id);
+                  disposeEntry(existing);
+                } else {
+                  report?.('draftConflict');
+                  return 'mismatch';
+                }
+              }
+            }
+          }
+          // Reserve this draft's review turn synchronously before loading storage so neither an
+          // overlapping review nor a local Save/autosave can race against expectedRevision.
+          reviewPromise = new Promise<void>(resolve => { releaseReview = resolve; });
+          pendingReviews.set(id, reviewPromise);
+          break;
+        }
+        try {
+          const loaded = await load(key, definition.version, lifetime.signal);
+          if (loaded.status !== 'loaded') {
+            report?.('saveFailed');
+            return 'failed';
+          }
+          if (loaded.draft.revision !== expectedRevision) {
+            const stale = entries.get(id);
+            if (stale && stale.opened?.status === 'ready' && !stale.opened.writer.dirty && stale.consumers.size === 0) {
+              entries.delete(id);
+              disposeEntry(stale);
+            }
+            report?.('draftConflict');
+            return 'mismatch';
+          }
+          const response = parseJsonExact(loaded.draft.responseJson) as FormResponse;
+          const rawSnapshot = parseJsonExact(loaded.draft.snapshotJson);
+          const draftSnapshot = rawSnapshot && typeof rawSnapshot === 'object' && !Array.isArray(rawSnapshot)
+            && 'definitionUrl' in rawSnapshot && 'definitionVersion' in rawSnapshot && 'data' in rawSnapshot
+            ? (rawSnapshot as FormDraftSnapshot)
+            : undefined;
+          const resolutions = await resolveDefinitionReads(
+            storage.responses,
+            definitionResponseRequests(definition, key, loaded.draft.pins),
+            lifetime.signal,
+          );
+          // Save strictly from an isolated engine at expectedRevision so edits typed concurrently on a form consumer
+          // are never flushed prematurely or discarded on storage conflict/failure.
+          const engine = createFormEngine(definition, {
+            responseInstanceResolutions: resolutions,
+            loadExternalSources: false,
+            ...(key.subject && { responseSubject: key.subject }),
+            ...(draftSnapshot
+              ? { draftSnapshot }
+              : { savedResponseData: response.data as FormDraftSnapshot['data'] }),
+            ...(response.explanations && { savedExplanations: response.explanations }),
+          });
+          try {
+            if (engine.hasSubjectRefusal()) {
+              report?.('saveFailed');
+              return 'failed';
+            }
+            const baseExplanations = engine.getExplanationEntries();
+            if (!engine.acknowledge(code, { expectedBasis })) {
+              report?.('draftConflict');
+              return 'mismatch';
+            }
+            const currentExplanations = engine.getExplanationEntries();
+            const evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
+            const progress = summarizeFormProgress(sections, evaluated);
+            const placements = sections.map(({ id: sectionId, fields }) => ({
+              ...(sectionId === undefined ? {} : { id: sectionId }),
+              fields,
+            }));
+            const resolvedAuthor = storage.author ?? response.author;
+            // Preserve all non-edited reviewed Response metadata (displayedLocale, displayedIssuer, id, subject, data)
+            // while resetting mutable draft envelope fields to an editable in-progress draft.
+            const { validationResults: _validationResults, authoredSignatures: _authoredSignatures, ...preservedResponse } = response;
+            const nextResponse: FormResponse = {
+              ...preservedResponse,
+              status: 'in-progress',
+              authored: new Date().toISOString(),
+              ...(resolvedAuthor ? { author: resolvedAuthor } : {}),
+            };
+            const baseSnapshot = draftSnapshot ?? engine.getDraftSnapshot();
+            const persistedSnapshot = { ...baseSnapshot, explanations: currentExplanations };
+            const saveInput: DraftSaveInput = {
+              key,
+              definitionVersion: definition.version,
+              expectedRevision,
+              explanations: currentExplanations,
+              snapshotJson: JSON.stringify(persistedSnapshot),
+              responseJson: JSON.stringify(nextResponse),
+              summary: {
+                sections: placements,
+                progress: {
+                  status: 'current',
+                  form: { ...progressCounts(progress.form), ready: progress.form.ready },
+                  sections: Object.fromEntries(progress.sections.flatMap(({ id: sectionId, counts: values }) =>
+                    sectionId === undefined ? [] : [[sectionId, progressCounts(values)]])),
+                },
+              },
+            };
+            const saveResult = await storage.port.save(saveInput);
+            if (saveResult.status === 'saved') {
+              commitEpoch.set(id, (commitEpoch.get(id) ?? 0) + 1);
+              const initialLive = entries.get(id);
+              if (initialLive && initialLive.opened?.status === 'ready' && !initialLive.opened.writer.dirty) {
+                report?.(browserPort !== undefined ? 'savedLocally' : 'saved');
+                // Live writer stayed clean during the review save; evict/reopen it so it reflects the new revision and stamps.
+                const reopeners = [...initialLive.consumers.values()];
+                entries.delete(id);
+                disposeEntry(initialLive);
+                for (const reopen of reopeners) reopen?.();
+                return 'saved';
+              }
+              let readback: CommittedExplanationsReadback | undefined;
+              if (initialLive && initialLive.opened?.status === 'ready') {
+                readback = saveResult.explanations !== undefined
+                  ? { status: 'loaded', explanations: saveResult.explanations }
+                  : await readCommittedExplanationsAtRevision(
+                    storage.port,
+                    key,
+                    definition.version,
+                    saveResult.revision,
+                    lifetime.signal,
+                  );
+              }
+              const live = entries.get(id);
+              if (live && live.opened?.status === 'ready') {
+                if (!live.opened.writer.dirty) {
+                  report?.(browserPort !== undefined ? 'savedLocally' : 'saved');
+                  const reopeners = [...live.consumers.values()];
+                  entries.delete(id);
+                  disposeEntry(live);
+                  for (const reopen of reopeners) reopen?.();
+                } else if (readback?.status === 'loaded') {
+                  report?.(browserPort !== undefined ? 'savedLocally' : 'saved');
+                  // 3-way merge committed revision and server-stamped explanations against the reviewed baseline
+                  // so concurrent edits/deletions stay intact and save cleanly on the next flush.
+                  live.opened.writer.applyCommittedReview(
+                    expectedRevision,
+                    saveResult.revision,
+                    baseExplanations,
+                    readback.explanations,
+                  );
+                } else if (readback?.status === 'unavailable') {
+                  report?.(browserPort !== undefined ? 'savedLocally' : 'saved');
+                  // Storage durably committed the review, but stamp readback failed transiently;
+                  // require revision-matched readback on the dirty writer before its next write.
+                  live.opened.writer.deferCommittedReview(
+                    expectedRevision,
+                    saveResult.revision,
+                    baseExplanations,
+                    currentExplanations,
+                  );
+                } else if (readback?.status === 'superseded') {
+                  // Another session already advanced storage past our committed review revision;
+                  // lock the dirty writer in conflict and retain our reviewed baseline for Keep recovery.
+                  const surfaced = live.opened.writer.supersedeCommittedReview(
+                    expectedRevision,
+                    saveResult.revision,
+                    baseExplanations,
+                    currentExplanations,
+                  );
+                  if (!surfaced || (report && !live.consumers.has(report))) {
+                    report?.('draftConflict');
+                  }
+                } else {
+                  report?.(browserPort !== undefined ? 'savedLocally' : 'saved');
+                }
+              } else {
+                report?.(browserPort !== undefined ? 'savedLocally' : 'saved');
+              }
+              return 'saved';
+            }
+            const conflicted = saveResult.status === 'conflict' || saveResult.status === 'pin-unavailable';
+            report?.(conflicted ? 'draftConflict' : 'saveFailed');
+            if (conflicted) {
+              const live = entries.get(id);
+              if (live && live.opened?.status === 'ready' && !live.opened.writer.dirty && live.consumers.size === 0) {
+                entries.delete(id);
+                disposeEntry(live);
+              }
+              return 'mismatch';
+            }
+            return 'failed';
+          } finally {
+            engine.dispose();
+          }
+        } finally {
+          if (pendingReviews.get(id) === reviewPromise) pendingReviews.delete(id);
+          releaseReview();
+        }
+      } catch {
+        report?.('saveFailed');
+        return 'failed';
       }
     },
 

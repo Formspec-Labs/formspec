@@ -520,6 +520,7 @@ dependencies = [
  "fel-core",
  "formspec-core",
  "formspec-eval",
+ "integrity-canonical",
  "rust_decimal",
  "semver_rs",
  "serde",

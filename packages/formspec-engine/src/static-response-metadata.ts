@@ -72,7 +72,9 @@ export function createStaticResponseMetadataReader(input: StaticResponseMetadata
     }
     checkItems(definition.items);
 
-    function itemAt(path: string): FormItem {
+    const explained = new Set((response.explanations ?? []).flatMap(entry =>
+        'group' in entry ? entry.paths : [entry.path]));
+    function itemAt(path: string, allowBlank = false): FormItem {
         const parsed = Path.parse(path);
         if (!path || parsed.toString() !== path || parsed.segments.some(segment =>
             segment.kind !== PathSegmentKind.Exact && segment.kind !== PathSegmentKind.Indexed)) {
@@ -90,14 +92,16 @@ export function createStaticResponseMetadataReader(input: StaticResponseMetadata
                 if (!isDataObject(value)) refuse('path-invalid');
             } else if (segment.kind === PathSegmentKind.Exact) {
                 if (index > 0) {
-                    if (!item || item.type !== 'group' || Array.isArray(value)) refuse('path-invalid');
+                    if (!item || item.type !== 'group' || Array.isArray(value) ||
+                        (item.repeatable && parsed.segments[index - 1]?.kind !== PathSegmentKind.Indexed)) refuse('path-invalid');
                     items = item.children ?? [];
                 }
                 const matches = items.filter(candidate => candidate.key === segment.key);
-                if (matches.length !== 1 || !isDataObject(value)
-                    || !Object.prototype.hasOwnProperty.call(value, segment.key)) refuse('path-unavailable');
+                if (matches.length !== 1 || !isDataObject(value)) refuse('path-unavailable');
                 item = matches[0];
-                value = (value as Record<string, unknown>)[segment.key];
+                if (Object.prototype.hasOwnProperty.call(value, segment.key)) value = value[segment.key];
+                else if (allowBlank && explained.has(path)) value = {};
+                else refuse('path-unavailable');
             }
         }
         if (!item || item.type === 'display') refuse('path-unavailable');
@@ -110,7 +114,7 @@ export function createStaticResponseMetadataReader(input: StaticResponseMetadata
 
     return {
         label(path) {
-            const item = itemAt(path);
+            const item = itemAt(path, true);
             return resolveItemLabel({ localeStore: store, itemKey: item.key, inlineLabel: item.label,
                 labels: item.labels, context: null, interpolate: staticText }).value;
         },

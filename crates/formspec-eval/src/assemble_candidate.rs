@@ -43,6 +43,9 @@ pub enum CandidateAssemblyError {
     /// The host's empty-match flag disagrees with the presence of records.
     #[error("Response instance '{0}' has inconsistent empty-match evidence")]
     InconsistentEmptyMatch(String),
+    /// The evaluation report's candidate explanations could not be assembled.
+    #[error("invalid Response explanation evidence: {0}")]
+    InvalidExplanations(String),
     /// The evidence could not be serialized.
     #[error("invalid Response instance evidence: {0}")]
     Serialize(#[from] serde_json::Error),
@@ -76,7 +79,7 @@ struct ResolvedInstance<'a> {
 pub fn assemble_candidate(
     definition: &Value,
     mut response: Value,
-    _evaluation: &Value,
+    evaluation: &Value,
     resolution: &BTreeMap<String, DeliveredSelection>,
 ) -> Result<Value, CandidateAssemblyError> {
     let response_object = response
@@ -94,27 +97,67 @@ pub fn assemble_candidate(
     declarations.sort_unstable_by_key(|(name, _)| *name);
     if declarations.is_empty() {
         response_object.shift_remove("resolvedInstances");
-        return Ok(response);
+    } else {
+        let evidence = declarations
+            .into_iter()
+            .map(|(instance, declaration)| {
+                let delivery = resolution
+                    .get(instance)
+                    .ok_or_else(|| CandidateAssemblyError::Unavailable(instance.clone()))?;
+                check_delivery(instance, declaration, delivery)?;
+                Ok(ResolvedInstance {
+                    instance,
+                    records: &delivery.records,
+                    value_digest: &delivery.value_digest,
+                    none: delivery.none,
+                    pinned: delivery.pinned,
+                    mapping: delivery.mapping.as_ref(),
+                })
+            })
+            .collect::<Result<Vec<_>, CandidateAssemblyError>>()?;
+        response_object.insert("resolvedInstances".into(), exact_json::to_value(&evidence)?);
     }
 
-    let evidence = declarations
-        .into_iter()
-        .map(|(instance, declaration)| {
-            let delivery = resolution
-                .get(instance)
-                .ok_or_else(|| CandidateAssemblyError::Unavailable(instance.clone()))?;
-            check_delivery(instance, declaration, delivery)?;
-            Ok(ResolvedInstance {
-                instance,
-                records: &delivery.records,
-                value_digest: &delivery.value_digest,
-                none: delivery.none,
-                pinned: delivery.pinned,
-                mapping: delivery.mapping.as_ref(),
-            })
-        })
-        .collect::<Result<Vec<_>, CandidateAssemblyError>>()?;
-    response_object.insert("resolvedInstances".into(), exact_json::to_value(&evidence)?);
+    match evaluation
+        .as_object()
+        .and_then(|eval| eval.get("candidateExplanations"))
+        .filter(|value| !value.is_null())
+    {
+        Some(candidate_explanations) => {
+            let entries = candidate_explanations.as_array().ok_or_else(|| {
+                CandidateAssemblyError::InvalidExplanations(
+                    "candidateExplanations must be an array".into(),
+                )
+            })?;
+            let mut normalized = Vec::with_capacity(entries.len());
+            for entry in entries {
+                let mut entry = entry.clone();
+                let obj = entry.as_object_mut().ok_or_else(|| {
+                    CandidateAssemblyError::InvalidExplanations(
+                        "explanation entry must be an object".into(),
+                    )
+                })?;
+                if obj.get("group").and_then(Value::as_bool) == Some(true)
+                    && let Some(paths) = obj.get_mut("paths").and_then(Value::as_array_mut)
+                {
+                    paths.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
+                }
+                normalized.push(entry);
+            }
+            if normalized.is_empty() {
+                response_object.shift_remove("explanations");
+            } else {
+                response_object.insert("explanations".into(), Value::Array(normalized));
+            }
+        }
+        None if response_object.contains_key("explanations") => {
+            return Err(CandidateAssemblyError::InvalidExplanations(
+                "missing settled candidateExplanations for Response explanations".into(),
+            ));
+        }
+        None => {}
+    }
+
     Ok(response)
 }
 

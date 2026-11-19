@@ -1046,3 +1046,193 @@ it('isolates throwing subscribers from seed readiness and delivers notifications
     answer: 'seed',
   });
 });
+
+it('saves unstamped warning explanations through DraftWriter, reloads trusted stamps, and files the completed Response', async () => {
+  const { default: workshopJson } = await import('../../../tests/conformance/fixtures/explanations/first-slice.definition.json');
+  const workshop = workshopJson as unknown as FormDefinition;
+  const all = new Map<string, FormDefinition>([[workshop.url, workshop]]);
+  const store = createMemoryFilingStore({ scope, definitions: all });
+  const key: DraftKey = { scope, definitionUrl: workshop.url };
+  const actionsDoc = {
+    $formspecActions: '1.0',
+    target: { kind: 'definition', url: workshop.url, version: workshop.version },
+    actions: [{ id: 'submit-workshop', label: 'Submit', intent: 'submit', validationProfile: 'on-submit' }],
+  } as any;
+  const invoker = previewFilingInvoker(store.submit);
+  const input = {
+    plan: { definition: workshop },
+    grant: {},
+    responseActionsDocument: actionsDoc,
+    responseActionInvoker: invoker,
+    semanticControlScope: { responseId: 'urn:workshop:1' },
+  } as Parameters<ReturnType<typeof createDraftSession>['acquire']>[1];
+  const session = createDraftSession({
+    scope,
+    port: store.drafts,
+    responses: store.responses,
+    author: { id: 'respondent-1', name: 'Alex Rivera' },
+  });
+  const secondSession = createDraftSession({
+    scope,
+    port: store.drafts,
+    responses: store.responses,
+    author: { id: 'respondent-1', name: 'Alex Rivera' },
+  });
+  try {
+    const lease = session.acquire(key, input, () => {});
+    const opened = await lease.result;
+    if (opened.status !== 'ready') throw Error(opened.status);
+    opened.engine.setValue('partner', 'Library');
+    opened.engine.setValue('attendance', 125);
+    opened.engine.acknowledge('CSBG_NOT_ANSWERED');
+    opened.engine.setExplanation('largeEvent', 'attendance', { text: 'Combined two sessions.' });
+    expect(opened.engine.getExplanationEntries().every(entry => !('author' in entry))).toBe(true);
+
+    expect(await opened.writer.flush(true)).toBe(true);
+    const stamped = opened.engine.getExplanationEntries();
+    expect(stamped).toHaveLength(2);
+    expect(stamped.every(entry => entry.author?.id === 'respondent-1' && typeof entry.recorded === 'string')).toBe(true);
+    const firstGroupRecorded = stamped[0]!.recorded;
+    const firstInstanceRecorded = stamped[1]!.recorded;
+
+    // Updating blank set re-stamps only the changed group entry while keeping the unchanged instance stamp.
+    opened.engine.setValue('venue', 'Hall');
+    opened.engine.setValue('partner', null);
+    opened.engine.acknowledge('CSBG_NOT_ANSWERED');
+    expect(await opened.writer.flush(false)).toBe(true);
+    const restamped = opened.engine.getExplanationEntries();
+    expect(restamped[1]!.recorded).toBe(firstInstanceRecorded);
+    expect(typeof restamped[0]!.recorded).toBe('string');
+    expect(firstGroupRecorded).toBeDefined();
+    lease.release();
+
+    const resumedLease = secondSession.acquire(key, input, () => {});
+    const resumed = await resumedLease.result;
+    if (resumed.status !== 'ready') throw Error(resumed.status);
+    expect(resumed.engine.getExplanationEntries()).toEqual(restamped);
+
+    const submitted = await resumed.writer.invoke({
+      document: actionsDoc,
+      actionRef: 'submit-workshop',
+      ports: {
+        validate: ({ profile }) => resumed.engine.getValidationReport({ profile }),
+        submit: ({ profile }) => resumed.engine.getResponseSnapshot({ profile }),
+        dispatchHostEvent: () => {},
+      },
+    });
+    expect(submitted.status).toBe('completed');
+    expect(submitted.detail?.response.status).toBe('completed');
+    expect(submitted.detail?.response.explanations).toEqual(restamped);
+    resumedLease.release();
+  } finally {
+    session.dispose();
+    secondSession.dispose();
+  }
+});
+
+it('attributes changed explanations to the resuming actor and rejects duplicate identities in both save shapes', async () => {
+  const { default: workshopJson } = await import('../../../tests/conformance/fixtures/explanations/first-slice.definition.json');
+  const workshop = workshopJson as unknown as FormDefinition;
+  const store = createMemoryFilingStore({ scope, definitions: new Map([[workshop.url, workshop]]) });
+  const key: DraftKey = { scope, definitionUrl: workshop.url };
+  const input = {
+    plan: { definition: workshop },
+    grant: {},
+    semanticControlScope: { responseId: 'urn:review:workshop' },
+  } as Parameters<ReturnType<typeof createDraftSession>['acquire']>[1];
+
+  const sessionA = createDraftSession({ scope, port: store.drafts, responses: store.responses, author: { id: 'A' } });
+  const sessionB = createDraftSession({ scope, port: store.drafts, responses: store.responses, author: { id: 'B' } });
+  try {
+    const leaseA = sessionA.acquire(key, input, () => {});
+    const readyA = await leaseA.result;
+    if (readyA.status !== 'ready') throw Error(readyA.status);
+    readyA.engine.setValue('partner', 'Library');
+    readyA.engine.setValue('attendance', 125);
+    readyA.engine.acknowledge('CSBG_NOT_ANSWERED');
+    readyA.engine.setExplanation('largeEvent', 'attendance', { text: 'Combined meetings.' });
+    expect(await readyA.writer.flush(true)).toBe(true);
+    const original = readyA.engine.getExplanationEntries();
+    leaseA.release();
+
+    const leaseB = sessionB.acquire(key, input, () => {});
+    const readyB = await leaseB.result;
+    if (readyB.status !== 'ready') throw Error(readyB.status);
+    readyB.engine.setExplanation('largeEvent', 'attendance', { text: 'Corrected after reopening.' });
+    expect(await readyB.writer.flush()).toBe(true);
+    const next = readyB.engine.getExplanationEntries();
+    expect(next[0]).toEqual(original[0]);
+    expect(next[1]!.author?.id).toBe('B');
+    leaseB.release();
+
+    const prior = await store.drafts.load(key, workshop.version);
+    if (prior.status !== 'loaded') throw Error(prior.status);
+    const last = JSON.parse(prior.draft.responseJson);
+    const duplicate = [...last.explanations, last.explanations[0]];
+    for (const explicit of [true, false]) {
+      const res = await store.drafts.save({
+        key,
+        definitionVersion: workshop.version,
+        expectedRevision: prior.draft.revision,
+        snapshotJson: prior.draft.snapshotJson,
+        summary: null,
+        responseJson: JSON.stringify({ ...last, explanations: duplicate }),
+        ...(explicit ? { explanations: duplicate } : {}),
+      });
+      expect(res.status).not.toBe('saved');
+    }
+  } finally {
+    sessionA.dispose();
+    sessionB.dispose();
+  }
+});
+
+it('preserves the active actor after choosing Load latest before a replacement explanation', async () => {
+  const { initFormspecEngine } = await import('@formspec-org/engine');
+  await initFormspecEngine();
+  const { default: workshopJson } = await import('../../../tests/conformance/fixtures/explanations/first-slice.definition.json');
+  const workshop = workshopJson as unknown as FormDefinition;
+  const store = createMemoryFilingStore({ scope, definitions: new Map([[workshop.url, workshop]]) });
+  const key: DraftKey = { scope, definitionUrl: workshop.url };
+  const input = {
+    plan: { definition: workshop },
+    grant: {},
+    semanticControlScope: { responseId: 'urn:example:review' },
+  } as Parameters<ReturnType<typeof createDraftSession>['acquire']>[1];
+  const open = async (id: string) => {
+    const session = createDraftSession({ scope, port: store.drafts, responses: store.responses, author: { id } });
+    const lease = session.acquire(key, input, () => {});
+    const opened = await lease.result;
+    if (opened.status !== 'ready') throw Error(opened.status);
+    return { ...opened, end() { lease.release(); session.dispose(); } };
+  };
+  const a = await open('A');
+  const b = await open('B');
+  try {
+    a.engine.setValue('attendance', 125);
+    a.engine.acknowledge('CSBG_NOT_ANSWERED');
+    a.engine.setExplanation('largeEvent', 'attendance', { text: 'Original.' });
+    expect(await a.writer.flush(true)).toBe(true);
+    const originalLoad = await store.drafts.load(key, workshop.version);
+    if (originalLoad.status !== 'loaded') throw Error(originalLoad.status);
+    const originalGroup = JSON.parse(originalLoad.draft.responseJson).explanations.find((e: { group?: boolean }) => e.group);
+
+    b.engine.setValue('partner', 'Another library');
+    expect(await b.writer.flush(true)).toBe(false);
+    expect(await b.writer.resolveConflict('load')).toBe(true);
+    b.engine.setExplanation('largeEvent', 'attendance', { text: 'New explanation by B after resolving the conflict.' });
+    expect(await b.writer.flush()).toBe(true);
+
+    const result = await store.drafts.load(key, workshop.version);
+    if (result.status !== 'loaded') throw Error(result.status);
+    const response = JSON.parse(result.draft.responseJson);
+    const replaced = response.explanations.find((e: { shapeId?: string }) => e.shapeId === 'largeEvent');
+    const keptGroup = response.explanations.find((e: { group?: boolean }) => e.group);
+    expect(replaced.text).toMatch(/^New explanation by B/);
+    expect(replaced.author.id).toBe('B');
+    expect(keptGroup).toEqual(originalGroup);
+  } finally {
+    a.end();
+    b.end();
+  }
+});

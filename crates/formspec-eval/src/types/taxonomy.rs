@@ -63,6 +63,8 @@ pub enum ConstraintKind {
     Type,
     /// Repeat min/max violation.
     Cardinality,
+    /// Derived answer to a warning Shape.
+    Explanation,
     /// Cross-field shape rule.
     Shape,
     /// Definition-level structural rule.
@@ -77,6 +79,7 @@ impl ConstraintKind {
             ConstraintKind::Constraint => "constraint",
             ConstraintKind::Type => "type",
             ConstraintKind::Cardinality => "cardinality",
+            ConstraintKind::Explanation => "explanation",
             ConstraintKind::Shape => "shape",
             ConstraintKind::Definition => "definition",
         }
@@ -89,6 +92,7 @@ impl ConstraintKind {
             "constraint" => Some(ConstraintKind::Constraint),
             "type" => Some(ConstraintKind::Type),
             "cardinality" => Some(ConstraintKind::Cardinality),
+            "explanation" => Some(ConstraintKind::Explanation),
             "shape" => Some(ConstraintKind::Shape),
             "definition" => Some(ConstraintKind::Definition),
             _ => None,

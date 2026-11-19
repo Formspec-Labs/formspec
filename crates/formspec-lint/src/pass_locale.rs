@@ -350,12 +350,14 @@ impl<'a> Analyzer<'a> {
     }
 
     fn check_shape_key(&mut self, parts: &[String], json_path: &str) {
-        if parts.len() != 2 || strip_context(&parts[1]) != "message" {
+        let valid = parts.len() == 2
+            && (strip_context(&parts[1]) == "message" || parts[1] == "explanationPrompt");
+        if !valid {
             self.diagnostics.push(error(
                 crate::LintCode::E1401,
                 PASS,
                 json_path,
-                "Locale $shape key must use $shape.<shapeId>.message",
+                "Locale $shape key must use $shape.<shapeId>.message or $shape.<shapeId>.explanationPrompt",
             ));
             return;
         }
@@ -1097,7 +1099,8 @@ mod tests {
 
     #[test]
     fn ui_keys_admit_only_known_chrome_string_keys() {
-        let mut locale = locale_document("definition", "https://example.com/forms/other", "en", None);
+        let mut locale =
+            locale_document("definition", "https://example.com/forms/other", "en", None);
         locale["strings"] = json!({
             "$ui.select.placeholder": "Seleccione\u{2026}",
             "$ui.repeat.add": "Agregar {{$label}}",
@@ -1116,7 +1119,8 @@ mod tests {
         assert!(
             !diagnostics.iter().any(|diag| {
                 diag.code == crate::LintCode::E1401
-                    && (diag.path.contains("select.placeholder") || diag.path.contains("repeat.add"))
+                    && (diag.path.contains("select.placeholder")
+                        || diag.path.contains("repeat.add"))
             }),
             "known $ui keys must not be flagged: {diagnostics:?}"
         );
@@ -1392,23 +1396,71 @@ mod tests {
             &json!({ "lineItems.helpLabel": "Ayúdeme a responder esta pregunta" }),
             Some(nested_definition()),
         );
-        assert!(diagnostics.is_empty(), "helpLabel must be localizable: {diagnostics:?}");
+        assert!(
+            diagnostics.is_empty(),
+            "helpLabel must be localizable: {diagnostics:?}"
+        );
 
         let diagnostics = lint_strings(
             &json!({ "lineItems.helpLabel@short": "Ayuda" }),
             Some(nested_definition()),
         );
-        assert_eq!(codes_at(&diagnostics, "lineItems.helpLabel@short"), vec![crate::LintCode::E1401]);
+        assert_eq!(
+            codes_at(&diagnostics, "lineItems.helpLabel@short"),
+            vec![crate::LintCode::E1401]
+        );
     }
 
     /// Locale §3.1.11: `$action.<actionId>.label` names an action's label; nothing else lives under `$action`.
     #[test]
     fn action_keys_admit_only_the_label() {
-        let diagnostics = lint_strings(&json!({ "$action.submit.label": "Enviar" }), Some(nested_definition()));
-        assert!(diagnostics.is_empty(), "$action.<id>.label must be accepted: {diagnostics:?}");
+        let diagnostics = lint_strings(
+            &json!({ "$action.submit.label": "Enviar" }),
+            Some(nested_definition()),
+        );
+        assert!(
+            diagnostics.is_empty(),
+            "$action.<id>.label must be accepted: {diagnostics:?}"
+        );
 
-        let diagnostics = lint_strings(&json!({ "$action.submit.hint": "x" }), Some(nested_definition()));
-        assert_eq!(codes_at(&diagnostics, "$action.submit.hint"), vec![crate::LintCode::E1401]);
+        let diagnostics = lint_strings(
+            &json!({ "$action.submit.hint": "x" }),
+            Some(nested_definition()),
+        );
+        assert_eq!(
+            codes_at(&diagnostics, "$action.submit.hint"),
+            vec![crate::LintCode::E1401]
+        );
+    }
+
+    #[test]
+    fn shape_keys_admit_message_and_explanation_prompt() {
+        let mut def = nested_definition();
+        def["shapes"] = json!([{
+            "id": "variance",
+            "target": "#",
+            "severity": "warning",
+            "explanation": "explain",
+            "constraint": "true",
+            "message": "Check variance"
+        }]);
+        let diagnostics = lint_strings(
+            &json!({
+                "$shape.variance.message": "Vérifiez l'écart",
+                "$shape.variance.explanationPrompt": "Expliquez cet écart."
+            }),
+            Some(def.clone()),
+        );
+        assert!(
+            diagnostics.is_empty(),
+            "expected $shape.*.explanationPrompt to pass: {diagnostics:?}"
+        );
+
+        let bad = lint_strings(&json!({ "$shape.variance.other": "x" }), Some(def));
+        assert_eq!(
+            codes_at(&bad, "$shape.variance.other"),
+            vec![crate::LintCode::E1401]
+        );
     }
 
     #[test]

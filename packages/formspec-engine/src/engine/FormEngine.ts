@@ -6,6 +6,7 @@ import type {
     EvaluatedFormState,
     FormDefinition,
     FormInstance,
+    Explanation,
     FormItem,
     FormResponse,
     FormVariable,
@@ -68,6 +69,9 @@ import {
 import {
     resolveOptionSetsOnDefinition,
 } from './definition-setup.js';
+import {
+    isStamped, matchesEntry, sameAnswer, stripExplanationStamp, warningReview, type DraftExplanation, type ExplanationKey, type ExplanationState,
+} from './warning-explanations.js';
 import { captureDraftData } from './draft-snapshot.js';
 import { registerDraftEditVersionSignal } from './draft-edit-signal.js';
 import { validateInstanceDataAgainstSchema } from './instance-schema.js';
@@ -163,6 +167,15 @@ export class FormEngine implements IFormEngine {
     private readonly _registryEntries = new Map<string, RegistryEntry>();
     /** Host FEL extension functions (Core §3.12), passed to every Rust evaluation. */
     private readonly _extensionFunctions = new FelExtensionFunctions();
+    private readonly _explanationState: ReadonlyEngineSignal<ExplanationState>;
+    private readonly _explanationRefreshVersion: EngineSignal<number>;
+    private _pendingExplanationState: {
+        evaluationVersion: number;
+        explanations: DraftExplanation[];
+        refreshVersion: number;
+        state: ExplanationState;
+    } | null = null;
+    private readonly _explanations: EngineSignal<DraftExplanation[]>;
     private readonly _responseSubject: FormEngineOptions['responseSubject'];
     private readonly _responseInstanceResolutions: NonNullable<FormEngineOptions['responseInstanceResolutions']>;
     private _registryDocuments: unknown[] = [];
@@ -230,6 +243,13 @@ export class FormEngine implements IFormEngine {
             Object.create(null), cloneValue(options.responseInstanceResolutions ?? {}),
         );
         this._rx = reactiveRuntime;
+        const initialExplanations = options.draftSnapshot?.explanations
+            ? options.draftSnapshot.explanations.map(raw => {
+                const edit = stripExplanationStamp(raw);
+                return options.savedExplanations?.find(entry => isStamped(entry) && sameAnswer(edit, entry)) ?? edit;
+            })
+            : cloneValue(options.savedExplanations ?? []);
+        this._explanations = this._rx.signal(cloneValue(initialExplanations));
         this._issuerStore = new IssuerStore(issuerFetcher ?? new FetchIssuerFetcher());
         this._validationProfileResolver = new DefaultValidationProfileResolver();
         this._issuerOverride = issuerOverride;
@@ -238,7 +258,22 @@ export class FormEngine implements IFormEngine {
         this._evaluationVersion = this._rx.signal(0);
         this._draftEditVersion = this._rx.signal(0);
         registerDraftEditVersionSignal(this, this._draftEditVersion);
+        this._explanationRefreshVersion = this._rx.signal(0);
         this._labelContextSignal = this._rx.signal(null);
+        this._explanationState = this._rx.computed(() => {
+            const evaluationVersion = this._evaluationVersion.value;
+            const explanations = this._explanations.value;
+            const refreshVersion = this._explanationRefreshVersion.value;
+            const pending = this._pendingExplanationState;
+            this._pendingExplanationState = null;
+            const reused = pending
+                && pending.evaluationVersion === evaluationVersion
+                && pending.explanations === explanations
+                && pending.refreshVersion === refreshVersion
+                ? pending.state
+                : null;
+            return freezeSourceMetadata(reused ?? this.reviewWarnings());
+        });
         this.definition = cloneValue(definition);
         if ([options.responseData, options.savedResponseData, options.draftSnapshot].filter(value => value !== undefined).length > 1) {
             throw new Error('Supply one of responseData, savedResponseData, or draftSnapshot');
@@ -481,9 +516,11 @@ export class FormEngine implements IFormEngine {
     }
 
     /** Resume saved Response data with its exact row counts and answered fields. */
-    public loadResponseData(data: JsonRecord): void {
+    public loadResponseData(data: JsonRecord, explanations: DraftExplanation[] = []): void {
+        if (!isJsonRecord(data)) throw new TypeError('Response data must be a JSON object');
         this._rx.batch(() => {
             this._refusedCreation = undefined;
+            this._explanations.value = cloneValue(explanations);
             this._pendingCreationPaths.clear();
             this._creationDiagnostics.length = 0;
             this._failedSeedPaths.clear();
@@ -510,9 +547,132 @@ export class FormEngine implements IFormEngine {
         });
     }
 
-    public loadDraftSnapshot(snapshot: FormDraftSnapshot): void {
+    public loadDraftSnapshot(snapshot: FormDraftSnapshot, explanations: Explanation[] = []): void {
         this.assertDraftSnapshot(snapshot);
-        this.loadResponseData(snapshot.data);
+        const merged = snapshot.explanations
+            ? snapshot.explanations.map(raw => {
+                const edit = stripExplanationStamp(raw);
+                return explanations.find(entry => isStamped(entry) && sameAnswer(edit, entry)) ?? edit;
+            })
+            : cloneValue(explanations);
+        this.loadResponseData(snapshot.data, merged);
+    }
+
+    public getExplanationEntries(): DraftExplanation[] {
+        return cloneValue(this._explanations.value);
+    }
+
+    public getExplanationState(): ExplanationState {
+        return this._explanationState.value;
+    }
+
+    private reviewWarnings(): ExplanationState {
+        return warningReview(this.evaluateResultForTrigger('submit'), this._explanations.value);
+    }
+
+    private refreshExplanationState(state: ExplanationState): void {
+        const refreshVersion = this._explanationRefreshVersion.value + 1;
+        this._pendingExplanationState = {
+            evaluationVersion: this._evaluationVersion.value,
+            explanations: this._explanations.value,
+            refreshVersion,
+            state,
+        };
+        this._explanationRefreshVersion.value = refreshVersion;
+    }
+
+    public setExplanation(shapeId: string, path: string, answer: { text?: string }): void {
+        const finding = this.reviewWarnings().findings.find(f => f.shapeId === shapeId && f.path === path);
+        if (!finding || finding.mode === 'acknowledge') {
+            throw new Error('This warning has no current instance explanation');
+        }
+        if (finding.mode === 'explain' && !answer.text) throw new Error('This warning requires explanation text');
+        this.writeExplanation({
+            shapeId, path, basis: finding.basis, ...(answer.text === undefined ? {} : { text: answer.text }),
+        });
+    }
+
+    public acknowledge(code: string, options?: { expectedBasis?: string }): boolean {
+        if ('parties' in this.definition) throw new Error('Group acknowledgement requires a bound party');
+        const state = this.reviewWarnings();
+        const finding = state.findings.find(f => f.code === code && f.mode === 'acknowledge');
+        const group = state.groups.find(g => g.code === code);
+        if (options?.expectedBasis !== undefined) {
+            if (!group || finding?.mode !== 'acknowledge' || finding.groupBasis !== options.expectedBasis) {
+                this.refreshExplanationState(state);
+                return false;
+            }
+        } else if (!group || finding?.mode !== 'acknowledge') {
+            throw new Error('No current warnings to acknowledge');
+        }
+        const [first, ...rest] = group.paths;
+        this.writeExplanation({ group: true, code, paths: [first, ...rest], basis: finding.groupBasis });
+        return true;
+    }
+
+    private writeExplanation(entry: DraftExplanation): void {
+        const entries = this._explanations.value;
+        const index = entries.findIndex(current => matchesEntry(current, entry));
+        if (index < 0) {
+            this._rx.batch(() => {
+                this._explanations.value = [...entries, entry];
+                this._draftEditVersion.value += 1;
+            });
+        } else if (!sameAnswer(entries[index], entry)) {
+            this._rx.batch(() => {
+                this._explanations.value = entries.map((current, i) => i === index ? entry : current);
+                this._draftEditVersion.value += 1;
+            });
+        }
+    }
+
+    public removeExplanation(key: ExplanationKey): void {
+        const next = this._explanations.value.filter(entry => !matchesEntry(entry, key));
+        const changed = next.length !== this._explanations.value.length;
+        this._rx.batch(() => {
+            this._explanations.value = next;
+            if (changed) this._draftEditVersion.value += 1;
+        });
+    }
+
+    public acceptSavedExplanations(
+        entries: Explanation[],
+        options?: { mergeMissing?: boolean; base?: readonly DraftExplanation[] },
+    ): void {
+        const current = this._explanations.value;
+        let saved: DraftExplanation[];
+        if (options?.base !== undefined) {
+            const base = options.base;
+            saved = [];
+            for (const local of current) {
+                const committed = entries.find(entry => matchesEntry(local, entry));
+                const baseEntry = base.find(entry => matchesEntry(local, entry));
+                if (committed && sameAnswer(local, committed)) {
+                    saved.push(committed);
+                } else if (baseEntry && sameAnswer(local, baseEntry)) {
+                    if (committed) saved.push(committed);
+                } else {
+                    saved.push(local);
+                }
+            }
+            for (const committed of entries) {
+                if (saved.some(existing => matchesEntry(existing, committed))) continue;
+                const baseEntry = base.find(entry => matchesEntry(committed, entry));
+                if (!baseEntry || !sameAnswer(baseEntry, committed)) {
+                    saved.push(committed);
+                }
+            }
+        } else {
+            saved = current.map(edit => entries.find(entry => sameAnswer(edit, entry)) ?? edit);
+            if (options?.mergeMissing) {
+                for (const entry of entries) {
+                    if (!saved.some(existing => matchesEntry(existing, entry))) {
+                        saved.push(entry);
+                    }
+                }
+            }
+        }
+        if (!deepEqual(saved, current)) this._explanations.value = cloneValue(saved);
     }
 
     private assertDraftSnapshot(snapshot: FormDraftSnapshot): void {
@@ -941,6 +1101,30 @@ export class FormEngine implements IFormEngine {
         meta?: Parameters<IFormEngine['getResponse']>[0],
         validationProfile?: ValidationProfile,
     ): { response: FormResponse; validationReport: ValidationReport | null } {
+        return this.captureSnapshotInternal(meta, validationProfile, false).snapshot;
+    }
+
+    /**
+     * Evaluate Submit once at the current clock and either emit the assembled candidate or return
+     * an in-progress snapshot with `pendingExplanationStamps: true` when selected explanations lack stamps.
+     */
+    public captureSubmitSnapshot(
+        meta?: Parameters<IFormEngine['getResponse']>[0],
+    ): {
+        snapshot: { response: FormResponse; validationReport: ValidationReport | null };
+        pendingExplanationStamps: boolean;
+    } {
+        return this.captureSnapshotInternal({ ...meta, profile: 'on-submit' }, 'on-submit', true);
+    }
+
+    private captureSnapshotInternal(
+        meta: Parameters<IFormEngine['getResponse']>[0] | undefined,
+        validationProfile: ValidationProfile | undefined,
+        allowPendingExplanationStamps: boolean,
+    ): {
+        snapshot: { response: FormResponse; validationReport: ValidationReport | null };
+        pendingExplanationStamps: boolean;
+    } {
         this.assertNoRemovedModeOption(meta, 'getResponse');
         if (meta?.subject && (this._responseSubject || 'keys' in meta.subject)) {
             throw new Error('Supply filing-unit identity through the responseSubject constructor option');
@@ -952,12 +1136,13 @@ export class FormEngine implements IFormEngine {
         let instances: JsonRecord | undefined;
         let changedInstance: string | undefined;
         if (responseTrigger === 'submit' && trigger === 'submit') {
+            const hasResponseInstances = Object.values(this.definition.instances ?? {}).some(instance => Boolean(instance.response));
+            if ((hasResponseInstances || this._explanations.value.length > 0) && meta?.authoredSignatures?.length) {
+                throw new Error('Capture the unsigned Response candidate before attaching signatures');
+            }
             for (const [name, instance] of Object.entries(this.definition.instances ?? {})) {
                 if (!instance.response) continue;
                 instances ??= { ...this.instanceData };
-                if (meta?.authoredSignatures?.length) {
-                    throw new Error('Capture the unsigned Response candidate before attaching signatures');
-                }
                 const delivery = this._responseInstanceResolutions[name];
                 if (!delivery) continue;
                 if (!deepEqual(delivery.value, instances[name])) {
@@ -972,15 +1157,22 @@ export class FormEngine implements IFormEngine {
         const data = responseTrigger === 'submit'
             ? cloneValue(responseResult.data)
             : this.draftResponseData(responseResult);
+        const validationResult = trigger === 'disabled'
+            ? null
+            : trigger === responseTrigger
+                ? responseResult
+                : this.evaluateResultForTrigger(trigger, timestamp);
         const report = trigger === 'disabled' ? null : buildValidationReportEnvelope(
-            this.collectResponseValidationResults(
-                trigger === responseTrigger ? responseResult : this.evaluateResultForTrigger(trigger, timestamp),
-                trigger,
-            ),
+            this.collectResponseValidationResults(validationResult!, trigger),
             timestamp,
             this.definition.url,
             this.definition.version,
         );
+        const submitEvalResult = responseTrigger === 'submit'
+            ? responseResult
+            : trigger === 'submit'
+                ? validationResult
+                : null;
         let response = buildFormspecResponseEnvelope({
             definition: this.definition,
             data,
@@ -992,13 +1184,64 @@ export class FormEngine implements IFormEngine {
             subject: cloneValue(this._responseSubject ?? meta?.subject),
             meta,
         }) as unknown as FormResponse;
-        if (response.status === 'completed' && instances) {
-            if (changedInstance !== undefined) {
-                throw new Error(`Response instance '${changedInstance}' changed after resolution`);
+        const draftEntries = this._explanations.value;
+        let pendingExplanationStamps = false;
+        if (response.status === 'completed') {
+            let saved: Explanation[] | undefined;
+            if (draftEntries.length) {
+                const entries = responseResult.candidateExplanations;
+                if (!entries) throw new Error('Submit evaluation did not assemble the warning explanations');
+                saved = entries.filter(isStamped);
+                if (saved.length !== entries.length) {
+                    if (!allowPendingExplanationStamps) {
+                        throw new Error('Save pending warning answers and load their server stamps before emitting this Response');
+                    }
+                    pendingExplanationStamps = true;
+                    this.refreshExplanationState(warningReview(responseResult, draftEntries));
+                    response = buildFormspecResponseEnvelope({
+                        definition: this.definition,
+                        data: this.draftResponseData(responseResult),
+                        report: null,
+                        completionEligible: false,
+                        timestamp,
+                        displayedIssuer: this.getDisplayedIssuerPin(),
+                        displayedLocale: this.getDisplayedLocalePin(),
+                        subject: cloneValue(this._responseSubject ?? meta?.subject),
+                        meta,
+                    }) as unknown as FormResponse;
+                    const stampedDraft = draftEntries.filter(isStamped);
+                    if (stampedDraft.length) response.explanations = cloneValue(stampedDraft);
+                }
             }
-            response = wasmAssembleCandidate(this.definition, response, this._responseInstanceResolutions);
+            if (!pendingExplanationStamps && (instances || draftEntries.length)) {
+                if (instances && changedInstance !== undefined) {
+                    throw new Error(`Response instance '${changedInstance}' changed after resolution`);
+                }
+                if (draftEntries.length) {
+                    response.explanations = cloneValue(draftEntries) as Explanation[];
+                }
+                response = wasmAssembleCandidate(
+                    this.definition,
+                    response,
+                    this._responseInstanceResolutions,
+                    draftEntries.length ? { candidateExplanations: saved ?? [] } : null,
+                );
+            }
+        } else {
+            if (draftEntries.length) {
+                const saved = draftEntries.filter(isStamped);
+                if (saved.length) response.explanations = cloneValue(saved);
+            }
+            if (
+                submitEvalResult
+                && report?.results.some(r => r.code === 'EXPLANATION_STALE' || r.code === 'EXPLANATION_REQUIRED')
+            ) {
+                // Publish the fresh Submit evaluation to warning controls so clock-only expiry/expansion
+                // immediately reopens accepted groups without a second evaluation.
+                this.refreshExplanationState(warningReview(submitEvalResult, draftEntries));
+            }
         }
-        return { response, validationReport: report };
+        return { snapshot: { response, validationReport: report }, pendingExplanationStamps };
     }
 
     private draftResponseData(result: EvalResult): Record<string, unknown> {
@@ -2000,6 +2243,7 @@ export class FormEngine implements IFormEngine {
                 nowIso,
                 trigger,
                 previousResult: options.data === undefined ? this._fullResult : null,
+                explanations: this._explanations.value,
                 instances: options.instances ?? this.instanceData,
                 registryDocuments: this._registryDocuments,
                 subjectType: this._responseSubject && (this._responseSubject.type ?? null),

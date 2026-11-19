@@ -106,6 +106,14 @@ export { UI_STRINGS, fillUiParams } from './ui-strings.js';
 export type { ChromeStringKey } from './ui-strings.js';
 export { readValidationSummaryRows, validationResultPath } from './validation-summary.js';
 export type { ValidationSummaryComp, ValidationSummaryRow, ValidationSummarySource } from './validation-summary.js';
+export { readWarningAcknowledgementGroups } from './warning-acknowledgement.js';
+export type {
+    WarningAcknowledgementGroupInput,
+    WarningAcknowledgementGroupView,
+    WarningAcknowledgementItem,
+    WarningAcknowledgementSource,
+    WarningAcknowledgementStateInput,
+} from './warning-acknowledgement.js';
 
 // Platform defaults & theme generation
 export {

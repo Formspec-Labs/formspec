@@ -3,6 +3,7 @@
 
 mod expr;
 mod items;
+mod reads;
 mod shapes;
 
 use std::collections::{HashMap, HashSet};
@@ -60,45 +61,7 @@ pub(crate) fn revalidate_scoped(
         return (findings.results, findings.diagnostics);
     }
 
-    let mut state = ScopeData::for_values(index, values, options);
-    state.variables.clone_from(variables);
-
-    fn index_items<'a>(
-        items: &'a [ItemInfo],
-        by_path: &mut HashMap<&'a str, &'a ItemInfo>,
-        state: &mut ScopeData,
-        invalid_paths: &HashSet<&str>,
-    ) {
-        for item in items {
-            by_path.insert(&item.path, item);
-            state.env.set_mip(
-                &item.path,
-                fel_core::MipState {
-                    valid: !invalid_paths.contains(item.path.as_str()),
-                    relevant: item.mip.relevant,
-                    readonly: item.mip.readonly,
-                    required: item.mip.required,
-                },
-            );
-            if !item.mip.relevant
-                && item.excluded_value == Some(crate::types::ExcludedValueMode::Null)
-            {
-                state.set_field(&item.path, fel_core::Value::Null);
-            }
-            index_items(&item.children, by_path, state, invalid_paths);
-        }
-    }
-    let mut by_path = HashMap::new();
-    let invalid_paths = options
-        .context
-        .previous_validations
-        .as_deref()
-        .unwrap_or_default()
-        .iter()
-        .filter(|result| result.severity == crate::types::Severity::Error)
-        .map(|result| result.path.as_str())
-        .collect();
-    index_items(items, &mut by_path, &mut state, &invalid_paths);
+    let (mut state, by_path) = validation_state(items, index, values, variables, options);
     state.restore_aggregates(aggregates);
 
     let shapes = definition
@@ -170,6 +133,133 @@ pub(crate) fn revalidate_scoped(
 
     state.save_aggregates(aggregates);
     (findings.results, findings.diagnostics)
+}
+
+fn validation_state<'a>(
+    items: &'a [ItemInfo],
+    index: &ScopeIndex,
+    values: &HashMap<String, Value>,
+    variables: &ScopedVariables,
+    options: &EvalOptions,
+) -> (ScopeData, HashMap<&'a str, &'a ItemInfo>) {
+    let mut state = ScopeData::for_values(index, values, options);
+    state.variables.clone_from(variables);
+
+    fn index_items<'a>(
+        items: &'a [ItemInfo],
+        by_path: &mut HashMap<&'a str, &'a ItemInfo>,
+        state: &mut ScopeData,
+        invalid_paths: &HashSet<&str>,
+    ) {
+        for item in items {
+            by_path.insert(&item.path, item);
+            state.env.set_mip(
+                &item.path,
+                fel_core::MipState {
+                    valid: !invalid_paths.contains(item.path.as_str()),
+                    relevant: item.mip.relevant,
+                    readonly: item.mip.readonly,
+                    required: item.mip.required,
+                },
+            );
+            if !item.mip.relevant
+                && item.excluded_value == Some(crate::types::ExcludedValueMode::Null)
+            {
+                state.set_field(&item.path, fel_core::Value::Null);
+            }
+            index_items(&item.children, by_path, state, invalid_paths);
+        }
+    }
+    let mut by_path = HashMap::new();
+    let invalid_paths = options
+        .context
+        .previous_validations
+        .as_deref()
+        .unwrap_or_default()
+        .iter()
+        .filter(|result| result.severity == crate::types::Severity::Error)
+        .map(|result| result.path.as_str())
+        .collect();
+    index_items(items, &mut by_path, &mut state, &invalid_paths);
+    (state, by_path)
+}
+
+/// Resolve reads once, after both calculation and ordinary validation have settled.
+pub(crate) fn explanation_findings(
+    items: &[ItemInfo],
+    index: &ScopeIndex,
+    values: &HashMap<String, Value>,
+    variables: &ScopedVariables,
+    definition: &Value,
+    options: &EvalOptions,
+    findings: &mut Vec<ValidationResult>,
+) -> Vec<crate::explanations::ExplanationFinding> {
+    use crate::types::{ConstraintKind, Severity};
+    let warnings = findings
+        .iter()
+        .filter(|f| f.constraint_kind == ConstraintKind::Shape && f.severity == Severity::Warning);
+    if warnings.clone().next().is_none() {
+        return Vec::new();
+    }
+    let shapes_by_id: HashMap<_, _> = definition["shapes"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|s| Some((s["id"].as_str()?.to_owned(), s)))
+        .collect();
+    let mut cache = HashMap::new();
+    let mut reads_cache = reads::ShapeReadsCache::default();
+    let mut failures = Vec::new();
+    let mut explained = Vec::new();
+    let mut state = None;
+    for finding in warnings {
+        let Some(id) = &finding.shape_id else {
+            continue;
+        };
+        let Some(shape) = shapes_by_id.get(id) else {
+            continue;
+        };
+        let mode = match shape
+            .get("explanation")
+            .or_else(|| definition.get("warningExplanation"))
+            .and_then(Value::as_str)
+        {
+            Some("confirm") => crate::explanations::ExplanationMode::Confirm,
+            Some("explain") => crate::explanations::ExplanationMode::Explain,
+            Some("acknowledge") => crate::explanations::ExplanationMode::Acknowledge,
+            _ => continue,
+        };
+        let state = state
+            .get_or_insert_with(|| validation_state(items, index, values, variables, options).0);
+        let site = state.site(index, &finding.path);
+        match reads::inputs_for_shape(
+            shape,
+            &shapes_by_id,
+            &site,
+            Fel::new(options.extensions),
+            &mut cache,
+            &mut reads_cache,
+        ) {
+            Ok(inputs) => explained.push(crate::explanations::ExplanationFinding {
+                shape_id: id.clone(),
+                path: finding.path.clone(),
+                code: finding.code.to_string(),
+                mode,
+                inputs,
+            }),
+            Err(reason) => {
+                let mut error = finding.clone();
+                error.severity = crate::types::Severity::Error;
+                error.constraint_kind = crate::types::ConstraintKind::Definition;
+                error.source = Some(crate::types::ValidationSource::Definition);
+                error.code = crate::types::ValidationCode::SyntaxError;
+                error.message = format!("Cannot resolve warning explanation inputs: {reason}");
+                failures.push(error);
+            }
+        }
+    }
+    findings.extend(failures);
+    explained
 }
 
 /// Read-only inputs shared by bind-constraint and shape validation.

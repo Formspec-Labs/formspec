@@ -38,7 +38,8 @@ import { parseRouteSubjectKey, resolveDraftReviewTarget, widgetActionScopeMatche
 import type { ExperienceDocument } from '@formspec-org/types';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
 import type { SurfaceRoute } from './route-path.js';
-import type { SurfaceApp, SurfaceRouteHandle } from './composition.js';
+import { resolvePageSequence } from '@formspec-org/layout';
+import { formHref, matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
 import { planDraftStart, type DraftStartPlan } from './draft-start.js';
 import { planFilingStatus, type FilingSectionLocaleLookup, type FilingStatusPlan } from './filing-status.js';
 import type { ThemeAuthority } from './theme-authority.js';
@@ -214,8 +215,20 @@ export interface WidgetActionResponsePlan {
   descriptor: DataSourceDescriptor;
 }
 
+export interface DraftReviewSectionLink {
+  id?: string;
+  fields: readonly string[];
+  href: string;
+}
+
 export type DraftReviewPlan =
-  | { status: 'ready'; definition: FormDefinition; subject?: DataSourceSubject }
+  | {
+      status: 'ready';
+      definition: FormDefinition;
+      subject?: DataSourceSubject;
+      formHref?: string;
+      sections?: readonly DraftReviewSectionLink[];
+    }
   | { status: 'unresolved'; reason: 'invalid-binding' | 'form-unresolved' | 'subject-keys-invalid' };
 
 export interface RoutePlan<TComponent> {
@@ -733,7 +746,50 @@ function planDraftReview<TComponent>(context: SlotPlanContext<TComponent>, bindi
   if (!definition) return { status: 'unresolved', reason: 'form-unresolved' };
   const subject = resolveFormSubject(definition, target.formBinding, context.handle.route, context.params ?? {});
   if (subject === false) return { status: 'unresolved', reason: 'subject-keys-invalid' };
-  return { status: 'ready', definition, ...(subject && { subject }) };
+  let targetFormHref: string | undefined;
+  let sections: readonly DraftReviewSectionLink[] | undefined;
+  if (context.filingStatus) {
+    const review = ownRecord(binding, 'draftReview');
+    const routeRef = review && ownString(review, 'routeRef');
+    const slotRef = review && ownString(review, 'slotRef');
+    const destination = routeRef
+      ? context.filingStatus.app.routes.find(
+          candidate => candidate.surface === context.handle.surface && candidate.routeId === routeRef,
+        )
+      : undefined;
+    if (destination && slotRef) {
+      const link = routeHref(destination, context.params ?? {});
+      if (!link.refusal && matchRoute(context.filingStatus.app, link.href).match?.handle === destination) {
+        const theme = context.filingStatus.themeAuthority.grantFor(destination.route, {
+          surfaceId: destination.surfaceId,
+          routeId: destination.routeId,
+        }).themeDocument;
+        const component = context.resolveDefinitionComponent?.({
+          surfaceRef: context.surfaceRef,
+          routeId: destination.routeId,
+          slotId: slotRef,
+          definition,
+        });
+        const sequence = resolvePageSequence(definition, {
+          ...(theme ? { theme } : {}),
+          ...(component ? { component } : {}),
+        });
+        targetFormHref = formHref(link.href, slotRef);
+        sections = sequence.map(({ id, fields }) => ({
+          ...(id === undefined ? {} : { id }),
+          fields,
+          href: formHref(link.href, slotRef, id),
+        }));
+      }
+    }
+  }
+  return {
+    status: 'ready',
+    definition,
+    ...(subject && { subject }),
+    ...(targetFormHref !== undefined && { formHref: targetFormHref }),
+    ...(sections !== undefined && { sections }),
+  };
 }
 
 function resolveFormSubject(

@@ -10,6 +10,7 @@ repository = "https://github.com/Formspec-Labs/formspec"
 create = []
 
 [dependencies]
+integrity-canonical = { version = "0.1.0", path = "../../../integrity-stack/crates/integrity-canonical" }
 chrono = { version = "0.4", default-features = false, features = ["std"] }
 fancy-regex = "0.14"
 fel-core = { version = "0.3.0", path = "../../../fel-core" }

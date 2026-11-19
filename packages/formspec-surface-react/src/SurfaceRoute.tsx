@@ -295,7 +295,10 @@ export function SurfaceRouteView({
             localeDocuments={localeDocuments}
             activeLocale={activeLocale}
             formSession={formSession}
-            {...(workspace && slotPlan.slotId === activeSlot && { activeSection: workspace.activeSection })}
+            {...(workspace && slotPlan.slotId === activeSlot && {
+              activeSection: workspace.activeSection,
+              ...(workspace.focusField !== undefined && { focusField: workspace.focusField }),
+            })}
             sectionNavigationActive={slotPlan.slotId === activeSlot}
             grant={grant}
             route={route}

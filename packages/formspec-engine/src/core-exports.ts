@@ -54,6 +54,15 @@ export type {
     SetValueOptions,
     WriteSource,
 } from './interfaces.js';
+export {
+    isStamped,
+    matchesEntry,
+    sameAnswer,
+    type DraftExplanation,
+    type ExplanationFinding,
+    type ExplanationKey,
+    type ExplanationState,
+} from './engine/warning-explanations.js';
 export type { EvalDiagnostic } from './diff.js';
 export type { FelExtensionFunctionRegistration } from './extension-functions.js';
 export type { ValidationProfile } from '@formspec-org/types';

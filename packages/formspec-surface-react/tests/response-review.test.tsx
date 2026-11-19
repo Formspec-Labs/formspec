@@ -1411,3 +1411,67 @@ it('keeps authored accepted-record selection through host source composition', a
     expect(produce.mock.calls[0]?.[0]).toEqual(data.response);
   } finally { view.unmount(); }
 });
+
+it("reads grouped and individual explanations from the hash-checked filing", async () => {
+  const p = await acceptedProps(), data = p.data as any;
+  data.definition.items.push({ key: 'notes', type: 'field', dataType: 'string' });
+  data.presentation.fields.notes = { label: 'Meeting notes' };
+  const stamp = { basis: 'sha256:' + 'a'.repeat(64), author: { id: 'p1', name: 'Sam' }, recorded: '2026-11-17T17:00:00Z' };
+  data.response.explanations = [
+    { ...stamp, group: true, code: 'UNANSWERED', paths: ['notes'] },
+    { ...stamp, shapeId: 'confirmName', path: 'name', text: 'Correct as filed.' },
+  ];
+  data.presentation.responseHash = await handoffHash(data.response);
+  const view = await mount(p);
+  await vi.waitFor(() => expect(view.el.querySelector('[data-response-path="name"]')?.textContent).toContain('Correct as filed.'));
+  const group = view.el.querySelector('details[data-explanation-code="UNANSWERED"]');
+  expect(group?.querySelector('summary')?.textContent).toContain('1 question left unanswered');
+  expect(group?.querySelector('summary')?.textContent).toContain('accepted by Sam at');
+  expect(group?.querySelector('time')?.dateTime).toBe(stamp.recorded);
+  expect(group?.querySelector('li')?.textContent).toBe('Meeting notes');
+  view.unmount();
+
+  selectAcceptedFields(p, ['name', 'notes']);
+  const selectedAuthorized = await mount(p);
+  await vi.waitFor(() => expect(selectedAuthorized.el.textContent).toContain('Correct as filed.'));
+  expect(selectedAuthorized.el.textContent).toContain('Meeting notes');
+  expect(selectedAuthorized.el.textContent).toContain('UNANSWERED');
+  selectedAuthorized.unmount();
+
+  selectAcceptedFields(p, ['name']);
+  const restricted = await mount(p);
+  await vi.waitFor(() => expect(restricted.el.textContent).toContain('Correct as filed.'));
+  expect(restricted.el.textContent).not.toContain('Meeting notes');
+  expect(restricted.el.textContent).not.toContain('UNANSWERED');
+  restricted.unmount();
+});
+
+it('displays the recorded reason for leaving a selected field blank while excluding unselected fields', async () => {
+  const p = await acceptedProps(), data = p.data as any;
+  data.definition.items.push(
+    { key: 'notes', type: 'field', dataType: 'string', label: 'Notes' },
+    { key: 'secretNotes', type: 'field', dataType: 'string', label: 'Secret notes' },
+  );
+  data.presentation.fields.notes = { label: 'Meeting notes' };
+  data.presentation.fields.secretNotes = { label: 'Secret notes' };
+  const stamp = { basis: 'sha256:' + 'a'.repeat(64), author: { id: 'A' }, recorded: '2026-11-17T17:00:00Z' };
+  data.response.explanations = [
+    { ...stamp, shapeId: 'explainNotes', path: 'notes', text: 'The meeting was canceled.' },
+    { ...stamp, shapeId: 'explainSecret', path: 'secretNotes', text: 'Unselected confidential note.' },
+  ];
+  data.presentation.responseHash = await handoffHash(data.response);
+  const all = await mount(p);
+  await vi.waitFor(() => expect(all.el.textContent).toContain('The meeting was canceled.'));
+  all.unmount();
+
+  selectAcceptedFields(p, ['notes']);
+  const accepted = vi.fn();
+  const selected = await mount(p, { onAcceptedReviewState: accepted });
+  try {
+    await vi.waitFor(() => expect(accepted.mock.calls.at(-1)?.[0].status).toBe('ready'));
+    expect(selected.el.textContent).toContain('The meeting was canceled.');
+    expect(selected.el.textContent).not.toContain('Unselected confidential note.');
+  } finally {
+    selected.unmount();
+  }
+});
