@@ -750,3 +750,25 @@ it('requires confirmed matched subject on range rows, verifies decoded URL param
     }
   }
 });
+
+it('exposes returned status badge and reviewer comment callout hooks', async () => {
+  const dom = mount(async ([query]) => new Map([[query!.key, {
+    draft: { status: 'current', form: { ...counts, ready: false }, sections: { details: counts } },
+    filing: {
+      status: 'returned',
+      receiptRef: 'urn:response:returned-1',
+      responseHash: 'sha256:' + 'b'.repeat(64),
+      review: 'available',
+      comments: ['Please verify the total before resubmitting.'],
+    },
+  }]]));
+  await act(async () => {});
+  const row = dom.querySelector('.fs-surface-filing__row[data-filing-status="returned"]');
+  expect(row).not.toBeNull();
+  const badge = row?.querySelector('.fs-surface-filing__badge[data-filing-status="returned"]');
+  expect(badge?.textContent).toBe('Returned');
+  const comment = row?.querySelector('.fs-surface-filing__comment');
+  expect(comment?.textContent).toBe('Please verify the total before resubmitting.');
+  const receipt = row?.querySelector('.fs-surface-filing__meta[data-receipt-ref]');
+  expect(receipt?.textContent).toContain('urn:response:returned-1');
+});

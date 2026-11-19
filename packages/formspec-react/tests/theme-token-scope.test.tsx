@@ -51,7 +51,7 @@ beforeAll(async () => {
 });
 
 const TENANT_BRAND = '#7A1F3D';
-const PLATFORM_BRAND = '#27594f';
+const PLATFORM_BRAND = '#1D3FAE';
 const PLATFORM_THEME = buildPlatformTheme();
 
 const definition = {

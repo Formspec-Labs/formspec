@@ -227,7 +227,11 @@ function FilingRow({ row, observation, largest, context, text }: {
     return { ...section, link: filingLinkFor(section.href, context), counts, countLabels };
   }) : [];
   const segments = sections.filter(section => section.weight > 0);
-  return <li className="fs-surface-filing__row" {...needTraceAttributes(row.needAnchors)}>
+  const filingState = receipt ? receipt.status
+    : row.status === 'disabled' ? 'disabled'
+    : draft.status === 'current' ? (draft.form.ready === null ? 'unavailable' : draft.form.ready ? 'ready' : 'in-progress')
+    : draft.status;
+  return <li className="fs-surface-filing__row" data-filing-status={filingState} {...needTraceAttributes(row.needAnchors)}>
     <div className="fs-surface-filing__form">
       {label && <FilingLink link={row.status === 'ready' ? filingLinkFor(row.href, context) : undefined}
         navigation={context} describedBy={statusId}>{label}</FilingLink>}
@@ -265,15 +269,17 @@ function FilingRow({ row, observation, largest, context, text }: {
       </details>
     </div>}
     <div className="fs-surface-filing__progress">
-      <div id={statusId}>
-        {receipt ? text(filingLabel[receipt.status]) : status}
-        {receipt && draft.status === 'current' && <div>{status}</div>}
+      <div id={statusId} className="fs-surface-filing__status" data-filing-status={filingState}>
+        {receipt
+          ? <span className="fs-surface-filing__badge" data-filing-status={receipt.status}>{text(filingLabel[receipt.status])}</span>
+          : status}
+        {receipt && draft.status === 'current' && <div className="fs-surface-filing__draft-note">{status}</div>}
       </div>
       {receipt && <>
-        <div>{text('filingReceiptReference', { reference: receipt.receiptRef })}</div>
-        {receipt.sample && <div>{text(receipt.sample === 'fixture' ? 'filingFixture' : 'filingPreviewSubmit')}</div>}
-        {receipt.review === 'unavailable' && <div>{text('filingReviewUnavailable')}</div>}
-        {receipt.comments.map((comment, index) => <p key={index}>{comment}</p>)}
+        <div className="fs-surface-filing__meta" data-receipt-ref="">{text('filingReceiptReference', { reference: receipt.receiptRef })}</div>
+        {receipt.sample && <div className="fs-surface-filing__meta">{text(receipt.sample === 'fixture' ? 'filingFixture' : 'filingPreviewSubmit')}</div>}
+        {receipt.review === 'unavailable' && <div className="fs-surface-filing__meta">{text('filingReviewUnavailable')}</div>}
+        {receipt.comments.map((comment, index) => <p key={index} className="fs-surface-filing__comment">{comment}</p>)}
       </>}
       {draft.status === 'current' && <div className="fs-surface-filing__counts">
         <span>{filingFillCount(draft.form, text)}</span>

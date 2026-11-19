@@ -81,17 +81,17 @@ describe('Field spacing token ownership', () => {
     });
 
     it('defines the refined default typography and color tokens in the canonical theme', () => {
-        expect(layoutTheme.tokens['font.family']).toBe('"Instrument Sans", "Avenir Next", "Segoe UI", sans-serif');
-        expect(layoutTheme.tokens['color.primary']).toBe('#27594f');
-        expect(layoutTheme.tokens['color.surface']).toBe('#f2ece2');
+        expect(layoutTheme.tokens['font.family']).toBe('"Archivo", "Helvetica Neue", Arial, sans-serif');
+        expect(layoutTheme.tokens['color.primary']).toBe('#1D3FAE');
+        expect(layoutTheme.tokens['color.surface']).toBe('#DCE7DA');
     });
 
     it('ships a single canonical dark token override block in the canonical CSS bundle', () => {
         expect(layoutCSS).toContain('color-scheme: light;');
         expect(layoutCSS).toContain('.formspec-container.formspec-appearance-dark');
-        expect(layoutCSS).toContain('--formspec-default-bg: var(--formspec-color-dark-background, #161311)');
-        expect(layoutCSS).toContain('--formspec-default-text: var(--formspec-color-dark-foreground, #f3ecdf)');
-        expect(layoutCSS).toContain('--formspec-default-surface: var(--formspec-color-dark-card, #211c19)');
+        expect(layoutCSS).toContain('--formspec-default-bg: var(--formspec-color-dark-background, #0E1826)');
+        expect(layoutCSS).toContain('--formspec-default-text: var(--formspec-color-dark-foreground, #E6ECF2)');
+        expect(layoutCSS).toContain('--formspec-default-surface: var(--formspec-color-dark-card, #152236)');
         expect(layoutCSS).not.toContain('@media (prefers-color-scheme: dark)');
         expect(layoutCSS).not.toContain('.formspec-appearance-light .formspec-container');
         expect(layoutCSS).not.toContain('.formspec-appearance-dark .formspec-container');

@@ -1,7 +1,7 @@
 /* @filedesc Shared utility classes for reusable default-skin interaction patterns. */
 
 .formspec-focus-ring:focus-visible {
-  outline: 2px solid var(--formspec-default-focus);
+  outline: 3px solid var(--formspec-default-focus);
   outline-offset: 2px;
 }
 
@@ -14,7 +14,7 @@
   input[type="radio"],
   input[type="range"]
 ):focus-visible {
-  outline: 2px solid var(--formspec-default-focus);
+  outline: 3px solid var(--formspec-default-focus);
   outline-offset: 2px;
 }
 

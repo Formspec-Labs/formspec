@@ -387,10 +387,13 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     // The in-flight guard keeps pending activation inert without losing keyboard focus.
     const pending = feedback.phase === 'pending';
 
+    const actionIntent = resolution.action?.intent;
+
     return (
         <div
             ref={controlRef}
             className="formspec-action-control"
+            data-action-intent={actionIntent}
             style={node.style}
             hidden={node.props?.hidden === true}
             {...needAttrs}
@@ -406,6 +409,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
                 // foot-gun and keeps cross-renderer parity.
                 type="button"
                 data-action-ref={actionRef}
+                data-action-intent={actionIntent}
                 className={node.cssClasses?.join(' ') || 'formspec-action formspec-submit'}
                 disabled={!resolution.resolved}
                 aria-disabled={!resolution.resolved || pending}
@@ -481,6 +485,37 @@ function RelevanceGatedLayout({ node }: { node: LayoutNode }) {
     return <LayoutNodeInner node={node} />;
 }
 
+/** Group runs of 2+ adjacent ActionButton siblings into a horizontal action bar while leaving single actions untouched. */
+export function renderActionGroupedChildren(children: readonly LayoutNode[]): React.ReactNode[] {
+    const out: React.ReactNode[] = [];
+    for (let i = 0; i < children.length; ) {
+        if (children[i]!.component !== 'ActionButton') {
+            const child = children[i]!;
+            out.push(<FormspecNode key={child.id} node={child} />);
+            i += 1;
+            continue;
+        }
+        let end = i + 1;
+        while (end < children.length && children[end]!.component === 'ActionButton') {
+            end += 1;
+        }
+        const run = children.slice(i, end);
+        if (run.length >= 2) {
+            out.push(
+                <div key={`action-bar:${run.map((child) => child.id).join(',')}`} className="formspec-action-bar">
+                    {run.map((child) => (
+                        <FormspecNode key={child.id} node={child} />
+                    ))}
+                </div>,
+            );
+        } else {
+            out.push(<FormspecNode key={run[0]!.id} node={run[0]!} />);
+        }
+        i = end;
+    }
+    return out;
+}
+
 function LayoutNodeInner({ node }: { node: LayoutNode }) {
     const { components, formPresentation } = useFormspecContext();
 
@@ -512,9 +547,7 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
                 };
                 return (
                     <>
-                        {orphans.map((child) => (
-                            <FormspecNode key={child.id} node={child} />
-                        ))}
+                        {renderActionGroupedChildren(orphans)}
                         <LayoutNodeInner node={wizardNode} />
                     </>
                 );
@@ -540,9 +573,7 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
                 return (
                     <>
                         <LayoutNodeInner node={tabsNode} />
-                        {orphans.map((child) => (
-                            <FormspecNode key={child.id} node={child} />
-                        ))}
+                        {renderActionGroupedChildren(orphans)}
                     </>
                 );
             }
@@ -559,11 +590,15 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
         (fallbackName ? (components.layout?.[fallbackName] ?? BUILTIN_LAYOUT[fallbackName]) : undefined) ??
         DefaultLayout;
 
+    const groupActions = componentName === 'Stack' || componentName === 'Section' || componentName === 'Card' || componentName === 'Panel';
+
     return (
         <Component node={node}>
-            {node.children.map((child) => (
-                <FormspecNode key={child.id} node={child} />
-            ))}
+            {groupActions
+                ? renderActionGroupedChildren(node.children)
+                : node.children.map((child) => (
+                    <FormspecNode key={child.id} node={child} />
+                ))}
         </Component>
     );
 }

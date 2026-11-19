@@ -263,6 +263,10 @@ export interface RouteNavigation {
    */
   order?: number;
   /**
+   * Optional sibling route id within this Surface that owns this route as a nested navigation item (for example, an Overview hub route). Ignored when self-referential, cyclic, or not a visible sibling in the same navigation scope.
+   */
+  parent?: string;
+  /**
    * This interface was referenced by `RouteNavigation`'s JSON-Schema definition
    * via the `patternProperty` "^x-".
    *

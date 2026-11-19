@@ -51,6 +51,7 @@ import { deriveSurfaceRuntimeGeneration } from "./runtime-generation.js";
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -981,6 +982,144 @@ export interface SurfaceNavProps {
   resolveRouteTitle?: SurfaceRouteTitleResolver | undefined;
 }
 
+interface NavNode {
+  handle: SurfaceRouteHandle;
+  index: number;
+  key: string;
+  isFilingHub: boolean;
+  children: NavNode[];
+}
+
+interface NavTree {
+  roots: NavNode[];
+  hasHubs: boolean;
+  ancestorHubKeys: Map<SurfaceRouteHandle, string[]>;
+}
+
+function filingStatusGroupRouteRefs(
+  handle: SurfaceRouteHandle,
+  repeatOnly: boolean
+): { isFilingHub: boolean; refs: string[] } {
+  const refs: string[] = [];
+  let isFilingHub = false;
+  for (const slot of handle.route.slots ?? []) {
+    if (slot.slotType !== "filing-status") continue;
+    const binding = slot.binding as { groups?: unknown } | undefined;
+    if (!binding || typeof binding !== "object" || !Array.isArray(binding.groups)) continue;
+    isFilingHub = true;
+    for (const group of binding.groups) {
+      if (!group || typeof group !== "object") continue;
+      const hasRepeat = Boolean((group as { repeat?: unknown }).repeat);
+      if (hasRepeat !== repeatOnly) continue;
+      const forms = (group as { forms?: unknown }).forms;
+      if (!Array.isArray(forms)) continue;
+      for (const form of forms) {
+        const routeRef =
+          form && typeof form === "object"
+            ? (form as { routeRef?: unknown }).routeRef
+            : undefined;
+        if (typeof routeRef === "string" && routeRef.length > 0) {
+          refs.push(routeRef);
+        }
+      }
+    }
+  }
+  return { isFilingHub, refs };
+}
+
+function buildNavTree(routes: readonly SurfaceRouteHandle[]): NavTree {
+  const byId = new Map<string, SurfaceRouteHandle>();
+  for (const handle of routes) {
+    if (!byId.has(handle.routeId)) byId.set(handle.routeId, handle);
+  }
+
+  const parentOf = new Map<SurfaceRouteHandle, SurfaceRouteHandle>();
+  const filingHubs = new Set<SurfaceRouteHandle>();
+
+  // Pass 1: explicit route.navigation.parent
+  for (const handle of routes) {
+    const explicitParent = handle.route.navigation?.parent;
+    if (typeof explicitParent === "string" && explicitParent !== handle.routeId) {
+      const parent = byId.get(explicitParent);
+      if (parent && parent !== handle) parentOf.set(handle, parent);
+    }
+  }
+
+  // Pass 2: infer parent hub from non-repeat filing-status groups
+  for (const hub of routes) {
+    const { isFilingHub, refs } = filingStatusGroupRouteRefs(hub, false);
+    if (isFilingHub) filingHubs.add(hub);
+    for (const routeRef of refs) {
+      if (routeRef === hub.routeId) continue;
+      const child = byId.get(routeRef);
+      if (child && child !== hub && !parentOf.has(child)) {
+        parentOf.set(child, hub);
+      }
+    }
+  }
+
+  // Pass 3: fallback to repeat filing-status groups only if unclaimed
+  for (const hub of routes) {
+    const { isFilingHub, refs } = filingStatusGroupRouteRefs(hub, true);
+    if (isFilingHub) filingHubs.add(hub);
+    for (const routeRef of refs) {
+      if (routeRef === hub.routeId) continue;
+      const child = byId.get(routeRef);
+      if (child && child !== hub && !parentOf.has(child)) {
+        parentOf.set(child, hub);
+      }
+    }
+  }
+
+  // Break any cycle so every visible route stays reachable in the tree.
+  for (const handle of routes) {
+    const seen = new Set<SurfaceRouteHandle>([handle]);
+    let cursor = parentOf.get(handle);
+    while (cursor) {
+      if (seen.has(cursor)) {
+        parentOf.delete(handle);
+        break;
+      }
+      seen.add(cursor);
+      cursor = parentOf.get(cursor);
+    }
+  }
+
+  const nodesByHandle = new Map<SurfaceRouteHandle, NavNode>();
+  const allNodes: NavNode[] = routes.map((handle, index) => {
+    const node: NavNode = {
+      handle,
+      index,
+      key: `${handle.surfaceId}/${handle.routeId}/${index}`,
+      isFilingHub: filingHubs.has(handle),
+      children: [],
+    };
+    nodesByHandle.set(handle, node);
+    return node;
+  });
+
+  const roots: NavNode[] = [];
+  for (const node of allNodes) {
+    const parentHandle = parentOf.get(node.handle);
+    const parentNode = parentHandle ? nodesByHandle.get(parentHandle) : undefined;
+    if (parentNode) parentNode.children.push(node);
+    else roots.push(node);
+  }
+
+  const hasHubs = allNodes.some((node) => node.children.length > 0);
+  const ancestorHubKeys = new Map<SurfaceRouteHandle, string[]>();
+  const recordAncestors = (node: NavNode, ancestors: string[]) => {
+    const own = node.children.length > 0 ? [...ancestors, node.key] : ancestors;
+    ancestorHubKeys.set(node.handle, own);
+    for (const child of node.children) {
+      recordAncestors(child, own);
+    }
+  };
+  for (const root of roots) recordAncestors(root, []);
+
+  return { roots, hasHubs, ancestorHubKeys };
+}
+
 export function SurfaceNav({
   app,
   location,
@@ -991,47 +1130,90 @@ export function SurfaceNav({
   menuLabel,
   resolveRouteTitle,
 }: SurfaceNavProps) {
+  const navId = useId();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [collapsedHubs, setCollapsedHubs] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
   const activeMatch = matchRoute(app, location).match;
   const activeRoute = activeMatch?.handle;
   const activeNavigationScope = activeRoute
     ? routeNavigationScope(activeRoute)
     : DEFAULT_NAVIGATION_SCOPE;
-  const groups = app.groups
-    .map((group) => ({
-      ...group,
-      needAnchors: generationNeedAnchors(group.routes[0]?.surface),
-      routes: group.routes
-        .map((handle, declarationOrder) => ({ handle, declarationOrder }))
-        .filter(
-          ({ handle }) =>
-            handle.route.navigation?.visible !== false &&
-            routeNavigationScope(handle) === activeNavigationScope
-        )
-        .sort((left, right) => {
-          const leftOrder = left.handle.route.navigation?.order;
-          const rightOrder = right.handle.route.navigation?.order;
-          if (leftOrder === undefined && rightOrder === undefined) {
-            return left.declarationOrder - right.declarationOrder;
-          }
-          if (leftOrder === undefined) return 1;
-          if (rightOrder === undefined) return -1;
-          return (
-            leftOrder - rightOrder ||
-            left.declarationOrder - right.declarationOrder
-          );
+  const groups = useMemo(
+    () =>
+      app.groups
+        .map((group) => {
+          const routes = group.routes
+            .map((handle, declarationOrder) => ({ handle, declarationOrder }))
+            .filter(
+              ({ handle }) =>
+                handle.route.navigation?.visible !== false &&
+                routeNavigationScope(handle) === activeNavigationScope
+            )
+            .sort((left, right) => {
+              const leftOrder = left.handle.route.navigation?.order;
+              const rightOrder = right.handle.route.navigation?.order;
+              if (leftOrder === undefined && rightOrder === undefined) {
+                return left.declarationOrder - right.declarationOrder;
+              }
+              if (leftOrder === undefined) return 1;
+              if (rightOrder === undefined) return -1;
+              return (
+                leftOrder - rightOrder ||
+                left.declarationOrder - right.declarationOrder
+              );
+            })
+            .map(({ handle }) => handle);
+          return {
+            ...group,
+            needAnchors: generationNeedAnchors(group.routes[0]?.surface),
+            routes,
+            tree: buildNavTree(routes),
+          };
         })
-        .map(({ handle }) => handle),
-    }))
-    .filter((group) => group.routes.length > 0);
+        .filter((group) => group.routes.length > 0),
+    [app.groups, activeNavigationScope]
+  );
+
+  const activeHubKeys = useMemo(() => {
+    if (!activeRoute) return [];
+    for (const group of groups) {
+      const keys = group.tree.ancestorHubKeys.get(activeRoute);
+      if (keys) return keys;
+    }
+    return [];
+  }, [activeRoute, groups]);
 
   useEffect(() => {
     setMenuOpen(false);
   }, [location]);
 
+  useEffect(() => {
+    if (activeHubKeys.length === 0) return;
+    setCollapsedHubs((previous) => {
+      if (!activeHubKeys.some((key) => previous.has(key))) return previous;
+      const next = new Set(previous);
+      for (const key of activeHubKeys) next.delete(key);
+      return next;
+    });
+  }, [activeHubKeys]);
+
   if (groups.length === 0) return null;
 
+  const hasAnyHubs = groups.some((group) => group.tree.hasHubs);
   const showGroupLabels = groups.length > 1;
+  const activeNavLabel = activeRoute
+    ? presentedRouteLabel(activeRoute, resolveRouteTitle)
+    : undefined;
+  const toggleHub = (hubKey: string) => {
+    setCollapsedHubs((previous) => {
+      const next = new Set(previous);
+      if (next.has(hubKey)) next.delete(hubKey);
+      else next.add(hubKey);
+      return next;
+    });
+  };
   const navigationNeedAnchors = mergeNeedAnchors(
     ...groups.flatMap((group) => [
       group.needAnchors,
@@ -1043,11 +1225,118 @@ export function SurfaceNav({
       ),
     ])
   );
+
+  const renderLink = (handle: SurfaceRouteHandle) => {
+    const { href, refusal } = routeHref(handle, routeParams ?? {});
+    const navigationLabel = presentedRouteLabel(handle, resolveRouteTitle);
+    const navigationAnchors = generationNeedAnchors(handle.route.navigation);
+    const traceAttributes = needTraceAttributes(
+      handle.route.navigation?.label === undefined
+        ? mergeNeedAnchors(navigationAnchors, generationNeedAnchors(handle.route))
+        : navigationAnchors
+    );
+    const navigationHref = refusal
+      ? undefined
+      : resolveNavigationHref
+      ? resolveNavigationHref(href)
+      : href;
+    const unavailableReason =
+      refusal === "collision"
+        ? "route-collision"
+        : refusal === "parameters"
+        ? "route-params"
+        : navigationHref === undefined
+        ? "browser-path"
+        : undefined;
+    const element = unavailableReason ? (
+      <span
+        role="link"
+        data-nav-route={handle.routeId}
+        data-nav-unavailable={unavailableReason}
+        aria-disabled="true"
+        {...traceAttributes}
+      >
+        {navigationLabel}
+      </span>
+    ) : (
+      <a
+        href={navigationHref}
+        data-nav-route={handle.routeId}
+        aria-current={
+          activeMatch?.handle === handle &&
+          handle.markers.every(
+            ({ name }) => activeMatch.params[name] === routeParams?.[name]
+          )
+            ? "page"
+            : undefined
+        }
+        {...traceAttributes}
+        onClick={(event) => {
+          if (!isPlainLinkClick(event)) return;
+          event.preventDefault();
+          setMenuOpen(false);
+          onNavigate(href);
+        }}
+      >
+        {navigationLabel}
+      </a>
+    );
+    return { element, navigationLabel };
+  };
+
+  const renderNode = (node: NavNode, groupIndex: number): ReactNode => {
+    const { element, navigationLabel } = renderLink(node.handle);
+    if (node.children.length === 0) {
+      return (
+        <li className="fs-surface-nav__item" key={node.key}>
+          {element}
+        </li>
+      );
+    }
+    const expanded = !collapsedHubs.has(node.key);
+    const sublistId = `${navId}-hub-${groupIndex}-${node.index}`;
+    const showOverviewBadge =
+      node.isFilingHub && !/\boverview\b/i.test(navigationLabel);
+    return (
+      <li
+        key={node.key}
+        className="fs-surface-nav__item fs-surface-nav__item--hub"
+        data-nav-hub={node.handle.routeId}
+        data-hub-expanded={expanded ? "true" : "false"}
+      >
+        <div className="fs-surface-nav__hub-row">
+          {element}
+          <span className="fs-surface-nav__hub-badge" aria-hidden="true">
+            {showOverviewBadge ? "Overview" : String(node.children.length)}
+          </span>
+          <button
+            type="button"
+            className="fs-surface-nav__hub-toggle"
+            aria-expanded={expanded}
+            aria-controls={sublistId}
+            aria-label={`${navigationLabel} pages`}
+            onClick={() => toggleHub(node.key)}
+          >
+            <span className="fs-surface-nav__hub-chevron" aria-hidden="true" />
+          </button>
+        </div>
+        <ul
+          id={sublistId}
+          className="fs-surface-nav__sublist"
+          hidden={!expanded}
+        >
+          {node.children.map((child) => renderNode(child, groupIndex))}
+        </ul>
+      </li>
+    );
+  };
+
   return (
     <nav
       className="fs-surface-nav"
       aria-label={label ?? "Pages in this app"}
       data-navigation-scope={activeNavigationScope}
+      data-has-hubs={hasAnyHubs ? "true" : "false"}
       data-menu-open={menuOpen ? "true" : "false"}
     >
       <button
@@ -1057,11 +1346,18 @@ export function SurfaceNav({
         onClick={() => setMenuOpen((open) => !open)}
         {...needTraceAttributes(navigationNeedAnchors)}
       >
-        <span>{menuLabel ?? label ?? "Pages in this app"}</span>
-        <span aria-hidden="true">{menuOpen ? "×" : "☰"}</span>
+        <span className="fs-surface-nav__toggle-main">
+          <span className="fs-surface-nav__toggle-chevron" aria-hidden="true">
+            {menuOpen ? "▾" : "▸"}
+          </span>
+          <span>{menuLabel ?? label ?? "Pages in this app"}</span>
+        </span>
+        {activeNavLabel && (
+          <span className="fs-surface-nav__toggle-current">{activeNavLabel}</span>
+        )}
       </button>
       <div className="fs-surface-nav__content">
-        {groups.map((group) => (
+        {groups.map((group, groupIndex) => (
           <div className="fs-surface-nav__group" key={group.surfaceId}>
             {showGroupLabels && (
               <p
@@ -1072,62 +1368,7 @@ export function SurfaceNav({
               </p>
             )}
             <ul className="fs-surface-nav__list">
-              {group.routes.map((handle, index) => {
-                const { href, refusal } = routeHref(handle, routeParams ?? {});
-                const navigationLabel = presentedRouteLabel(handle, resolveRouteTitle);
-                const navigationAnchors = generationNeedAnchors(
-                  handle.route.navigation
-                );
-                const traceAttributes = needTraceAttributes(
-                  handle.route.navigation?.label === undefined
-                    ? mergeNeedAnchors(
-                        navigationAnchors,
-                        generationNeedAnchors(handle.route)
-                      )
-                    : navigationAnchors
-                );
-                const navigationHref = refusal
-                  ? undefined
-                  : resolveNavigationHref ? resolveNavigationHref(href) : href;
-                const unavailableReason =
-                  refusal === "collision"
-                    ? "route-collision"
-                    : refusal === "parameters"
-                    ? "route-params"
-                    : navigationHref === undefined ? "browser-path" : undefined;
-                return (
-                  <li key={`${handle.surfaceId}/${handle.routeId}/${index}`}>
-                    {unavailableReason ? (
-                      <span
-                        role="link"
-                        data-nav-route={handle.routeId}
-                        data-nav-unavailable={unavailableReason}
-                        aria-disabled="true"
-                        {...traceAttributes}
-                      >
-                        {navigationLabel}
-                      </span>
-                    ) : (
-                      <a
-                        href={navigationHref}
-                        data-nav-route={handle.routeId}
-                        aria-current={activeMatch?.handle === handle &&
-                          handle.markers.every(({ name }) => activeMatch.params[name] === routeParams?.[name])
-                          ? "page" : undefined}
-                        {...traceAttributes}
-                        onClick={(event) => {
-                          if (!isPlainLinkClick(event)) return;
-                          event.preventDefault();
-                          setMenuOpen(false);
-                          onNavigate(href);
-                        }}
-                      >
-                        {navigationLabel}
-                      </a>
-                    )}
-                  </li>
-                );
-              })}
+              {group.tree.roots.map((node) => renderNode(node, groupIndex))}
             </ul>
           </div>
         ))}

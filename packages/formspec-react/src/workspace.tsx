@@ -9,7 +9,7 @@ import {
 } from '@formspec-org/layout';
 import type { IFormEngine } from '@formspec-org/engine';
 import { useFormspecContext } from './context';
-import { FormspecNode } from './node-renderer';
+import { FormspecNode, renderActionGroupedChildren } from './node-renderer';
 import type { WorkspacePage } from '@formspec-org/layout';
 import { useChromeText } from './use-chrome-text';
 import { useFocusField } from './use-focus-field';
@@ -105,7 +105,7 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
     const relevant = useMemo(() => new Set(relevantPaths ? relevantPaths.split('\n') : []), [relevantPaths]);
     const field = (path: string) => {
         const vm = engine.getFieldVM(path);
-        return vm ? { label: vm.label.value, controlId: vm.id || null } : null;
+        return vm ? { label: vm.label.value.trimEnd().replace(/:+$/, ''), controlId: vm.id || null } : null;
     };
     const findings = readFormProgressFindingRows(progress, {
         field, chrome, message: result => engine.resolveValidationMessage(result) ?? '',
@@ -198,6 +198,8 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
     }, [active?.id, navigationActive, jump, focusField, touchField, chrome, containerRef]);
 
     const content = new Set(pages.map(page => page.content));
+    const namedPages = pages.filter(page => page.id);
+    const largestSection = progress.sections.reduce((max, section) => Math.max(max, section.counts.total), 0);
     const sectionLink = (page: WorkspacePage, label: string) => {
         const href = page.id && workspaceNavigation?.hrefForSection?.(page.id);
         const current = page === active ? 'location' : undefined;
@@ -210,17 +212,51 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
             }}>{label}</a>
         ) : <button type="button" aria-current={current} data-formspec-section={page.id} onClick={activate}>{label}</button>;
     };
-    const renderShared = (node: LayoutNode) => <FormspecNode key={node.id} node={node} />;
+    const trailingShared = root.children.filter(node => !content.has(node) && node.component !== 'ValidationSummary');
 
     return (
         <div className="formspec-workspace-container">
           <WorkspaceFieldJump.Provider value={jumpTo}>
             <div className="formspec-workspace" ref={containerRef}>
                 <div className="formspec-workspace__navigation">
-                    {pages.some(page => page.id) && (
+                    {namedPages.length > 1 && (
                         <nav aria-label={chrome('workspace.sections')}>
                             <ul>
-                                {pages.map((page, i) => page.id && <li key={page.id}>{sectionLink(page, titles[i])}</li>)}
+                                {pages.map((page, i) => {
+                                    if (!page.id) return null;
+                                    const sectionCounts = progress.sections[i]?.counts;
+                                    const total = sectionCounts?.total ?? 0;
+                                    const filled = sectionCounts?.filled ?? 0;
+                                    const toFix = sectionCounts?.toFix ?? 0;
+                                    const toCheck = sectionCounts?.toCheck ?? 0;
+                                    const barScale = largestSection > 0 && total > 0
+                                        ? Math.max(Math.sqrt(total / largestSection), 0.16)
+                                        : 0;
+                                    const fillPct = total > 0 ? Math.min(100, (100 * filled) / total) : 0;
+                                    return (
+                                        <li
+                                            key={page.id}
+                                            className="formspec-workspace__section-item"
+                                            data-current={page === active ? 'true' : undefined}
+                                        >
+                                            {sectionLink(page, titles[i])}
+                                            {total > 0 && (
+                                                <div className="formspec-workspace__section-meta" aria-hidden="true">
+                                                    <span className="formspec-workspace__section-bar-track">
+                                                        <span className="formspec-workspace__section-bar" style={{ inlineSize: `${100 * barScale}%` }}>
+                                                            <span className="formspec-workspace__section-bar-fill" style={{ inlineSize: `${fillPct}%` }} />
+                                                        </span>
+                                                    </span>
+                                                    <span className="formspec-workspace__section-counts">
+                                                        <span className="formspec-workspace__section-fraction">{filled}/{total}</span>
+                                                        {toFix > 0 && <span className="formspec-workspace__section-badge formspec-workspace__section-badge--fix">{toFix}</span>}
+                                                        {toCheck > 0 && <span className="formspec-workspace__section-badge formspec-workspace__section-badge--check">{toCheck}</span>}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         </nav>
                     )}
@@ -239,7 +275,7 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
                 <div className="formspec-workspace__content" data-formspec-section={active?.id ?? ''}>
                     <Heading ref={heading} tabIndex={-1}>{titles[activeIndex] ?? formTitle}</Heading>
                     <p role="status">{notice}</p>
-                    {root.children.filter(node => !content.has(node) && node.component === 'ValidationSummary').map(renderShared)}
+                    {root.children.filter(node => !content.has(node) && node.component === 'ValidationSummary').map(node => <FormspecNode key={node.id} node={node} />)}
                     <HeadingLevelContext.Provider value={level + 1}>
                         {activeContent}
                     </HeadingLevelContext.Provider>
@@ -247,7 +283,7 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
                         <button type="button" disabled={activeIndex === 0} onClick={() => navigate(pages[activeIndex - 1])}>{chrome('wizard.previous')}</button>
                         <button type="button" disabled={activeIndex === pages.length - 1} onClick={() => navigate(pages[activeIndex + 1])}>{chrome('wizard.next')}</button>
                     </div>}
-                    {root.children.filter(node => !content.has(node) && node.component !== 'ValidationSummary').map(renderShared)}
+                    {renderActionGroupedChildren(trailingShared)}
                 </div>
                 <aside className="formspec-workspace__findings" aria-labelledby={findingsHeading}>
                     <Heading id={findingsHeading}>{chrome('workspace.findings')}</Heading>
@@ -257,7 +293,8 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
                         const page = row.sectionId && pages.find(page => page.id === row.sectionId);
                         const message = chrome(row.severity === 'error' ? 'workspace.error'
                             : row.severity === 'warning' ? 'workspace.warning' : 'workspace.info', { message: row.text });
-                        return <li key={row.identity} className={`formspec-shape-${row.severity}`}>
+                        const scope = row.formLevel ? 'form' : (row.sectionId === active?.id ? 'current' : 'other');
+                        return <li key={row.identity} className={`formspec-shape-${row.severity}`} data-severity={row.severity} data-finding-scope={scope}>
                             {row.jumpPath ? <button type="button" onClick={() => jumpTo(row.jumpPath!)}>{message}</button>
                                 : page ? <button type="button" onClick={() => {
                                     if (page === active && navigationActive) heading.current?.focus();

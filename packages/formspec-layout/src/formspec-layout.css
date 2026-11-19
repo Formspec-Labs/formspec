@@ -16,16 +16,18 @@
 
 .formspec-workspace__navigation ul,
 .formspec-workspace__findings ul {
+  list-style: none;
   margin-block: var(--formspec-space-sm, 0.5rem);
-  padding-inline-start: 1.25em;
+  padding-inline-start: 0;
 }
 
 .formspec-workspace__navigation [aria-current] {
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .formspec-workspace__navigation input {
   display: block;
+  inline-size: 100%;
   max-inline-size: 100%;
 }
 
@@ -40,12 +42,19 @@
   margin-block: var(--formspec-space-md, 1rem);
 }
 
+.formspec-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--formspec-space-sm, 0.5rem);
+}
+
 .formspec-workspace p[role="status"]:empty {
   margin: 0;
 }
 
 @container formspec-workspace (width > 50rem) {
   .formspec-workspace {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) minmax(0, 1fr);
+    grid-template-columns: minmax(13.5rem, 17rem) minmax(0, 1fr) minmax(14rem, 18.5rem);
   }
 }

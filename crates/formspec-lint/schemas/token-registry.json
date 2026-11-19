@@ -197,79 +197,79 @@
       "tokens": {
         "color.primary": {
           "description": "THE brand token. The single key a tenant sets to change the colour their form renders in; the default skin fans it out to the focus ring, section headings and the primary button. There is no color.accent — see token-registry-spec §2.4.",
-          "default": "#27594f",
-          "dark": "#8bb8ac"
+          "default": "#1D3FAE",
+          "dark": "#9DB8FF"
         },
         "color.primaryForeground": {
           "description": "Label color on the saturated fills color.primary, color.success and color.error. Dark mode keeps those light fills, so the default skin draws this light value on them in both appearances and the primary-, success- and danger-label pairs cover both. No platform stylesheet reads color.dark.primaryForeground.",
-          "default": "#ffffff",
-          "dark": "#ffffff"
+          "default": "#FFFFFF",
+          "dark": "#0E1826"
         },
         "color.foreground": {
           "description": "Default text color",
-          "default": "#20241f",
-          "dark": "#f3ecdf"
+          "default": "#13233A",
+          "dark": "#E6ECF2"
         },
         "color.background": {
           "description": "Page/form background color",
-          "default": "#f6f0e6",
-          "dark": "#161311"
+          "default": "#EDF1EA",
+          "dark": "#0E1826"
         },
         "color.border": {
           "description": "Default border color",
-          "default": "#d1c8ba",
-          "dark": "#4f463d"
+          "default": "#B9C7BD",
+          "dark": "#33475F"
         },
         "color.card": {
           "description": "Card/panel surface color",
-          "default": "#fdfaf4",
-          "dark": "#211c19"
+          "default": "#FCFDFB",
+          "dark": "#152236"
         },
         "color.muted": {
           "description": "Muted text color",
-          "default": "#686158",
-          "dark": "#c4b8a7"
+          "default": "#44546B",
+          "dark": "#A9B8C8"
         },
         "color.mutedForeground": {
           "description": "Subtle text color",
-          "default": "#736c62",
-          "dark": "#ad9f8d"
+          "default": "#44546B",
+          "dark": "#A9B8C8"
         },
         "color.error": {
           "description": "Error/danger indicator color",
-          "default": "#c1281f",
-          "dark": "#ff8b7f"
+          "default": "#B4232C",
+          "dark": "#FF9086"
         },
         "color.warning": {
           "description": "Warning/caution indicator color",
-          "default": "#946112",
-          "dark": "#e2b35c"
+          "default": "#7A5200",
+          "dark": "#F0C04A"
         },
         "color.success": {
           "description": "Success/confirmation indicator color",
-          "default": "#2f855a",
-          "dark": "#79c89d"
+          "default": "#1E6B45",
+          "dark": "#7FCFA0"
         },
         "color.info": {
           "description": "Informational indicator color",
-          "default": "#2b6cb0",
-          "dark": "#82b8f8"
+          "default": "#1D3FAE",
+          "dark": "#9DB8FF"
         },
         "color.ring": {
           "description": "Focus ring color. Derived from color.primary when a theme leaves it unset; set it explicitly only to break that link.",
           "derivedFrom": "color.primary",
-          "default": "#27594f",
-          "dark": "#8fc6b7"
+          "default": "#1D3FAE",
+          "dark": "#9DB8FF"
         },
         "color.input": {
           "description": "Input border color. Defaults maintain at least 3:1 contrast against the matching card surface.",
-          "default": "#8b8175",
-          "dark": "#7b6f61"
+          "default": "#5B6B7F",
+          "dark": "#7C8DA3"
         },
         "color.surface": {
           "description": "Muted surface/panel background",
-          "default": "#f2ece2",
-          "dark": "#2a241f"
+          "default": "#DCE7DA",
+          "dark": "#1C2D45"
         }
       }
     },
@@ -315,11 +315,11 @@
       "tokens": {
         "radius.sm": {
           "description": "Small border radius for inputs and controls",
-          "default": "0.9rem"
+          "default": "2px"
         },
         "radius.md": {
           "description": "Medium border radius for cards and panels",
-          "default": "1.35rem"
+          "default": "4px"
         }
       }
     },
@@ -329,7 +329,7 @@
       "tokens": {
         "font.family": {
           "description": "Base font family stack",
-          "default": "\"Instrument Sans\", \"Avenir Next\", \"Segoe UI\", sans-serif"
+          "default": "\"Archivo\", \"Helvetica Neue\", Arial, sans-serif"
         },
         "font.weight.regular": {
           "type": "fontWeight",

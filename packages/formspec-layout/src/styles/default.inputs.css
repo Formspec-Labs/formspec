@@ -20,8 +20,8 @@
 .formspec-money-field:focus-within,
 .formspec-stepper:focus-within {
   border-color: var(--formspec-default-focus);
-  outline: 2px solid var(--formspec-default-focus);
-  outline-offset: 1px;
+  outline: 3px solid var(--formspec-default-focus);
+  outline-offset: 2px;
   box-shadow: none;
 }
 
@@ -172,47 +172,69 @@
   max-width: 100%;
 }
 
-/* Match standalone inputs: crisp outline + border tint; skip the extra focus glow (reads too soft on wrappers). */
+/* Match standalone inputs: crisp 3px outline + border tint; skip the extra focus glow (reads too soft on wrappers). */
 .formspec-select-wrapper:focus-within {
   border-color: var(--formspec-default-focus);
-  outline: 2px solid var(--formspec-default-focus);
-  outline-offset: 1px;
+  outline: 3px solid var(--formspec-default-focus);
+  outline-offset: 2px;
   box-shadow: none;
 }
 
 /* Wrapper supplies the focus ring; inner select has no radius — avoid a square outline on the control. */
+.formspec-select-wrapper select:focus,
 .formspec-select-wrapper select.formspec-input:focus,
 .formspec-select-wrapper select.formspec-select-native:focus {
   outline: none;
   box-shadow: none;
 }
 
+.formspec-select-wrapper select,
 .formspec-select-wrapper select.formspec-input,
 .formspec-select-wrapper select.formspec-select-native {
   flex: 1;
   min-width: 0;
+  width: 100%;
   margin: 0;
-  padding: 0.8rem 2.65rem 0.8rem 0.95rem;
+  padding: 0.72rem 2.5rem 0.72rem 0.9rem;
   border: none;
   border-radius: 0;
   background: transparent;
+  background-color: transparent;
+  background-image: none;
   font-size: calc(0.9375rem * var(--formspec-size-scale, 1));
   line-height: 1.4;
   color: var(--formspec-default-text);
   box-shadow: none;
   appearance: none;
   -webkit-appearance: none;
+  -moz-appearance: none;
   cursor: pointer;
+}
+
+.formspec-select-wrapper select::-ms-expand {
+  display: none;
+}
+
+.formspec-field--readonly .formspec-select-wrapper {
+  background: var(--formspec-default-readonly-input-bg);
+  border-color: var(--formspec-default-readonly-input-border);
+}
+
+.formspec-field--readonly .formspec-select-wrapper select,
+.formspec-field--readonly .formspec-select-wrapper select.formspec-select-native {
+  background: transparent;
+  background-image: none;
+  border: none;
 }
 
 .formspec-select-wrapper::after {
   content: '';
   position: absolute;
-  right: 0.65rem;
+  right: 0.85rem;
   top: 50%;
-  width: 0.5rem;
-  height: 0.5rem;
-  margin-top: -0.35rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-top: -0.32rem;
   border-right: 2px solid var(--formspec-default-text-subtle);
   border-bottom: 2px solid var(--formspec-default-text-subtle);
   transform: rotate(45deg);
@@ -317,8 +339,8 @@
 
 .formspec-combobox-row:focus-within {
   border-color: var(--formspec-default-focus);
-  outline: 2px solid var(--formspec-default-focus);
-  outline-offset: 1px;
+  outline: 3px solid var(--formspec-default-focus);
+  outline-offset: 2px;
   box-shadow: none;
 }
 

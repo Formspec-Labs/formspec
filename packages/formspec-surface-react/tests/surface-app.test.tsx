@@ -3328,3 +3328,128 @@ describe("navigation", () => {
     }
   });
 });
+
+describe("nested Overview hub navigation", () => {
+  const nestedSurface = {
+    $formspecSurface: "0.4",
+    id: "hub-demo",
+    entry: "year-hub",
+    routes: [
+      {
+        id: "year-hub",
+        path: "/year",
+        title: "Year Overview",
+        slots: [
+          {
+            id: "year-map",
+            slotType: "filing-status",
+            binding: {
+              groups: [
+                {
+                  id: "primary",
+                  label: "Primary forms",
+                  forms: [{ routeRef: "plan-form", slotRef: "form" }],
+                },
+                {
+                  id: "members",
+                  label: "Member forms",
+                  repeat: { sourceRef: "members", memberParam: "member", memberLabelField: "name" },
+                  forms: [{ routeRef: "member-form", slotRef: "form" }],
+                },
+              ],
+            },
+          },
+        ],
+      },
+      { id: "plan-form", path: "/plan", title: "Plan Form", routeClass: "intake", slots: [] },
+      {
+        id: "member-hub",
+        path: "/member",
+        title: "Member Overview",
+        slots: [
+          {
+            id: "member-map",
+            slotType: "filing-status",
+            binding: {
+              groups: [
+                {
+                  id: "owned",
+                  label: "Owned forms",
+                  forms: [{ routeRef: "member-form", slotRef: "form" }],
+                },
+              ],
+            },
+          },
+        ],
+      },
+      { id: "member-form", path: "/member-form", title: "Member Form", routeClass: "intake", slots: [] },
+      {
+        id: "explicit-child",
+        path: "/explicit-child",
+        title: "Explicit Child",
+        navigation: { parent: "year-hub" },
+        slots: [],
+      },
+      {
+        id: "standalone",
+        path: "/standalone",
+        title: "Standalone",
+        slots: [],
+      },
+    ],
+  } as unknown as SurfaceDocument;
+
+  it("nests explicit parent routes and inferred filing-status hub children with collapsible hubs that keep links mounted", () => {
+    const nestedBundle: ResolvedBundle = {
+      ...bundle,
+      surfaces: [nestedSurface],
+    };
+    const container = render(
+      <SurfaceApp bundle={nestedBundle} location="/year" onNavigate={() => {}} setDocumentTitle={false} />
+    );
+    const nav = container.querySelector<HTMLElement>(".fs-surface-nav");
+    expect(nav?.dataset.hasHubs).toBe("true");
+
+    const yearHubItem = container.querySelector('a[data-nav-route="year-hub"]')?.closest(".fs-surface-nav__item--hub");
+    expect(yearHubItem).not.toBeNull();
+    expect(yearHubItem?.querySelectorAll(".fs-surface-nav__sublist a[data-nav-route]")).toHaveLength(2);
+    expect(yearHubItem?.querySelector('.fs-surface-nav__sublist a[data-nav-route="plan-form"]')).not.toBeNull();
+    expect(yearHubItem?.querySelector('.fs-surface-nav__sublist a[data-nav-route="explicit-child"]')).not.toBeNull();
+
+    // Non-repeat hub (member-hub) wins over repeat group (year-hub) for member-form.
+    const memberHubItem = container.querySelector('a[data-nav-route="member-hub"]')?.closest(".fs-surface-nav__item--hub");
+    expect(memberHubItem?.querySelector('.fs-surface-nav__sublist a[data-nav-route="member-form"]')).not.toBeNull();
+    expect(yearHubItem?.querySelector('.fs-surface-nav__sublist a[data-nav-route="member-form"]')).toBeNull();
+
+    // Standalone remains a top-level non-hub item.
+    const standaloneItem = container.querySelector('a[data-nav-route="standalone"]')?.closest("li");
+    expect(standaloneItem?.classList.contains("fs-surface-nav__item--hub")).toBe(false);
+
+    // Collapsing toggles aria-expanded and data-expanded without unmounting child links.
+    const toggle = yearHubItem?.querySelector<HTMLButtonElement>(".fs-surface-nav__hub-toggle")!;
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    act(() => toggle.click());
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(yearHubItem?.getAttribute("data-hub-expanded")).toBe("false");
+    expect(yearHubItem?.querySelector('.fs-surface-nav__sublist a[data-nav-route="plan-form"]')).not.toBeNull();
+  });
+
+  it("renders flat apps without hubs unchanged", () => {
+    const flatSurface = {
+      $formspecSurface: "0.2",
+      id: "flat",
+      entry: "one",
+      routes: [
+        { id: "one", path: "/one", title: "One", slots: [] },
+        { id: "two", path: "/two", title: "Two", slots: [] },
+      ],
+    } as unknown as SurfaceDocument;
+    const container = render(
+      <SurfaceApp bundle={{ ...bundle, surfaces: [flatSurface] }} location="/one" onNavigate={() => {}} setDocumentTitle={false} />
+    );
+    const nav = container.querySelector<HTMLElement>(".fs-surface-nav");
+    expect(nav?.dataset.hasHubs).toBe("false");
+    expect(container.querySelector(".fs-surface-nav__item--hub")).toBeNull();
+    expect(container.querySelector(".fs-surface-nav__sublist")).toBeNull();
+  });
+});

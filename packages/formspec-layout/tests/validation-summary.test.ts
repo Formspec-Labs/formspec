@@ -77,4 +77,16 @@ describe('readValidationSummaryRows', () => {
         );
         expect(rows[0]).toMatchObject({ path: 'rows[0].name', label: 'rows.name', jumpHref: null });
     });
+
+    it('strips trailing colons from field labels so rows never render double colons', () => {
+        const rows = readValidationSummaryRows(
+            { source: 'submit' },
+            source({
+                submitted: [required('submissionType', 'Required')],
+                field: () => ({ label: 'Type of Submission:', controlId: 'field-submissionType' }),
+            }),
+            { showFieldErrorsByDefault: true },
+        );
+        expect(rows[0]).toMatchObject({ label: 'Type of Submission', text: 'Type of Submission: Required' });
+    });
 });

@@ -161,6 +161,7 @@ export const ActionButtonPlugin: ComponentPlugin = {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'formspec-action formspec-submit formspec-focus-ring';
+        if (typeof action?.intent === 'string') button.setAttribute('data-action-intent', action.intent);
         if (comp.id) button.id = comp.id;
         const defaultLabel = actionButtonText(ctx, comp, 'label', labelSource('label'), 'Submit');
         const pendingLabel = actionButtonText(ctx, comp, 'pendingLabel', labelSource('pendingLabel'), 'Submitting\u2026');

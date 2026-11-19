@@ -29,23 +29,25 @@
 .fs-surface-app,
 .fs-surface-route {
   /* Text */
-  --fs-surface-ink: var(--formspec-color-foreground, #20241f);
-  --fs-surface-ink-quiet: var(--formspec-color-mutedForeground, #6b6459);
+  --fs-surface-ink: var(--formspec-color-foreground, #13233A);
+  --fs-surface-ink-quiet: var(--formspec-color-mutedForeground, #44546B);
   /* Surfaces */
-  --fs-surface-panel: var(--formspec-color-card, #fdfaf4);
-  --fs-surface-panel-quiet: var(--formspec-color-surface, #f2ece2);
+  --fs-surface-bg: var(--formspec-color-background, #EDF1EA);
+  --fs-surface-panel: var(--formspec-color-card, #FCFDFB);
+  --fs-surface-panel-quiet: var(--formspec-color-surface, #DCE7DA);
   /* Lines. `line` is decoration; `line-strong` is a control boundary and is the
    * one held to SC 1.4.11's 3:1 — `color.border` is a hairline and cannot be. */
-  --fs-surface-line: var(--formspec-color-border, #d1c8ba);
-  --fs-surface-line-strong: var(--formspec-color-muted, #686158);
+  --fs-surface-line: var(--formspec-color-border, #B9C7BD);
+  --fs-surface-line-strong: var(--formspec-color-muted, #44546B);
   /* Accents. `accent` is text ON a panel; `accent-fill` is a panel text sits ON. */
-  --fs-surface-accent: var(--formspec-color-primary, #27594f);
-  --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
-  --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
-  --fs-surface-danger: var(--formspec-color-error, #c1281f);
-  --fs-surface-warning: var(--formspec-color-warning, #946112);
-  --fs-surface-focus: var(--formspec-color-ring, var(--formspec-color-primary, #27594f));
-  --fs-surface-font-heading: var(--formspec-font-heading, "Fraunces", "Iowan Old Style", Georgia, serif);
+  --fs-surface-accent: var(--formspec-color-primary, #1D3FAE);
+  --fs-surface-accent-fill: var(--formspec-color-primary, #1D3FAE);
+  --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #FFFFFF);
+  --fs-surface-danger: var(--formspec-color-error, #B4232C);
+  --fs-surface-warning: var(--formspec-color-warning, #7A5200);
+  --fs-surface-success: var(--formspec-color-success, #1E6B45);
+  --fs-surface-focus: var(--formspec-color-ring, var(--formspec-color-primary, #1D3FAE));
+  --fs-surface-font-heading: var(--formspec-font-heading, "Archivo", "Helvetica Neue", Arial, sans-serif);
   --fs-surface-font-mono: var(--formspec-font-mono, "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace);
   color-scheme: light;
 }
@@ -53,21 +55,23 @@
 @media (prefers-color-scheme: dark) {
   .fs-surface-app,
   .fs-surface-route {
-    --fs-surface-ink: var(--formspec-color-dark-foreground, #f3ecdf);
-    --fs-surface-ink-quiet: var(--formspec-color-dark-mutedForeground, #ad9f8d);
-    --fs-surface-panel: var(--formspec-color-dark-card, #211c19);
-    --fs-surface-panel-quiet: var(--formspec-color-dark-surface, #2a241f);
-    --fs-surface-line: var(--formspec-color-dark-border, #4f463d);
-    --fs-surface-line-strong: var(--formspec-color-dark-muted, #c4b8a7);
-    --fs-surface-accent: var(--formspec-color-dark-primary, #8bb8ac);
+    --fs-surface-ink: var(--formspec-color-dark-foreground, #E6ECF2);
+    --fs-surface-ink-quiet: var(--formspec-color-dark-mutedForeground, #A9B8C8);
+    --fs-surface-bg: var(--formspec-color-dark-background, #0E1826);
+    --fs-surface-panel: var(--formspec-color-dark-card, #152236);
+    --fs-surface-panel-quiet: var(--formspec-color-dark-surface, #1C2D45);
+    --fs-surface-line: var(--formspec-color-dark-border, #33475F);
+    --fs-surface-line-strong: var(--formspec-color-dark-muted, #A9B8C8);
+    --fs-surface-accent: var(--formspec-color-dark-primary, #9DB8FF);
     /* The FILL keeps the saturated light-mode brand, because the dark accent is
      * a light tint and white text on it measures 2.20:1. Same call
      * `default.tokens.css` makes for `--formspec-default-primary-fill`. */
-    --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
-    --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
-    --fs-surface-danger: var(--formspec-color-dark-error, #ff8b7f);
-    --fs-surface-warning: var(--formspec-color-dark-warning, #e2b35c);
-    --fs-surface-focus: var(--formspec-color-dark-ring, var(--formspec-color-dark-primary, #8fc6b7));
+    --fs-surface-accent-fill: var(--formspec-color-primary, #1D3FAE);
+    --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #FFFFFF);
+    --fs-surface-danger: var(--formspec-color-dark-error, #FF9086);
+    --fs-surface-warning: var(--formspec-color-dark-warning, #F0C04A);
+    --fs-surface-success: var(--formspec-color-dark-success, #7FCFA0);
+    --fs-surface-focus: var(--formspec-color-dark-ring, var(--formspec-color-dark-primary, #9DB8FF));
     color-scheme: dark;
   }
 }
@@ -88,18 +92,20 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 :where([data-fs-appearance='dark']) .fs-surface-route,
 .fs-surface-app[data-fs-appearance='dark'],
 .fs-surface-route[data-fs-appearance='dark'] {
-  --fs-surface-ink: var(--formspec-color-dark-foreground, #f3ecdf);
-  --fs-surface-ink-quiet: var(--formspec-color-dark-mutedForeground, #ad9f8d);
-  --fs-surface-panel: var(--formspec-color-dark-card, #211c19);
-  --fs-surface-panel-quiet: var(--formspec-color-dark-surface, #2a241f);
-  --fs-surface-line: var(--formspec-color-dark-border, #4f463d);
-  --fs-surface-line-strong: var(--formspec-color-dark-muted, #c4b8a7);
-  --fs-surface-accent: var(--formspec-color-dark-primary, #8bb8ac);
-  --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
-  --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
-  --fs-surface-danger: var(--formspec-color-dark-error, #ff8b7f);
-  --fs-surface-warning: var(--formspec-color-dark-warning, #e2b35c);
-  --fs-surface-focus: var(--formspec-color-dark-ring, var(--formspec-color-dark-primary, #8fc6b7));
+  --fs-surface-ink: var(--formspec-color-dark-foreground, #E6ECF2);
+  --fs-surface-ink-quiet: var(--formspec-color-dark-mutedForeground, #A9B8C8);
+  --fs-surface-bg: var(--formspec-color-dark-background, #0E1826);
+  --fs-surface-panel: var(--formspec-color-dark-card, #152236);
+  --fs-surface-panel-quiet: var(--formspec-color-dark-surface, #1C2D45);
+  --fs-surface-line: var(--formspec-color-dark-border, #33475F);
+  --fs-surface-line-strong: var(--formspec-color-dark-muted, #A9B8C8);
+  --fs-surface-accent: var(--formspec-color-dark-primary, #9DB8FF);
+  --fs-surface-accent-fill: var(--formspec-color-primary, #1D3FAE);
+  --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #FFFFFF);
+  --fs-surface-danger: var(--formspec-color-dark-error, #FF9086);
+  --fs-surface-warning: var(--formspec-color-dark-warning, #F0C04A);
+  --fs-surface-success: var(--formspec-color-dark-success, #7FCFA0);
+  --fs-surface-focus: var(--formspec-color-dark-ring, var(--formspec-color-dark-primary, #9DB8FF));
   color-scheme: dark;
 }
 
@@ -107,29 +113,31 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 :where([data-fs-appearance='light']) .fs-surface-route,
 .fs-surface-app[data-fs-appearance='light'],
 .fs-surface-route[data-fs-appearance='light'] {
-  --fs-surface-ink: var(--formspec-color-foreground, #20241f);
-  --fs-surface-ink-quiet: var(--formspec-color-mutedForeground, #6b6459);
-  --fs-surface-panel: var(--formspec-color-card, #fdfaf4);
-  --fs-surface-panel-quiet: var(--formspec-color-surface, #f2ece2);
-  --fs-surface-line: var(--formspec-color-border, #d1c8ba);
-  --fs-surface-line-strong: var(--formspec-color-muted, #686158);
-  --fs-surface-accent: var(--formspec-color-primary, #27594f);
-  --fs-surface-accent-fill: var(--formspec-color-primary, #27594f);
-  --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #ffffff);
-  --fs-surface-danger: var(--formspec-color-error, #c1281f);
-  --fs-surface-warning: var(--formspec-color-warning, #946112);
-  --fs-surface-focus: var(--formspec-color-ring, var(--formspec-color-primary, #27594f));
-  --fs-surface-font-heading: var(--formspec-font-heading, "Fraunces", "Iowan Old Style", Georgia, serif);
+  --fs-surface-ink: var(--formspec-color-foreground, #13233A);
+  --fs-surface-ink-quiet: var(--formspec-color-mutedForeground, #44546B);
+  --fs-surface-bg: var(--formspec-color-background, #EDF1EA);
+  --fs-surface-panel: var(--formspec-color-card, #FCFDFB);
+  --fs-surface-panel-quiet: var(--formspec-color-surface, #DCE7DA);
+  --fs-surface-line: var(--formspec-color-border, #B9C7BD);
+  --fs-surface-line-strong: var(--formspec-color-muted, #44546B);
+  --fs-surface-accent: var(--formspec-color-primary, #1D3FAE);
+  --fs-surface-accent-fill: var(--formspec-color-primary, #1D3FAE);
+  --fs-surface-accent-ink: var(--formspec-color-primaryForeground, #FFFFFF);
+  --fs-surface-danger: var(--formspec-color-error, #B4232C);
+  --fs-surface-warning: var(--formspec-color-warning, #7A5200);
+  --fs-surface-success: var(--formspec-color-success, #1E6B45);
+  --fs-surface-focus: var(--formspec-color-ring, var(--formspec-color-primary, #1D3FAE));
+  --fs-surface-font-heading: var(--formspec-font-heading, "Archivo", "Helvetica Neue", Arial, sans-serif);
   --fs-surface-font-mono: var(--formspec-font-mono, "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace);
   color-scheme: light;
 }
 
 .fs-surface-app {
-  font-family: var(--formspec-font-family, "Instrument Sans", "Avenir Next", "Segoe UI", sans-serif);
+  font-family: var(--formspec-font-family, "Archivo", "Helvetica Neue", Arial, sans-serif);
   color: var(--fs-surface-ink);
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--fs-surface-panel-quiet);
+  background: var(--fs-surface-bg);
   line-height: var(--formspec-font-lineHeight-normal, 1.5);
   text-rendering: optimizeLegibility;
 }
@@ -142,54 +150,86 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 }
 
 .fs-surface-header {
-  border-bottom: 1px solid var(--fs-surface-line);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom: 3px solid var(--fs-surface-ink);
   background: var(--fs-surface-panel);
 }
 
 .fs-surface-header__inner {
   width: min(100%, 90rem);
-  min-height: 4rem;
+  min-height: 3.5rem;
   margin-inline: auto;
-  padding: var(--formspec-spacing-md, 0.75rem)
-    clamp(1rem, 3vw, 2.5rem);
+  padding: 0.5rem clamp(1rem, 2.5vw, 2rem);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--formspec-spacing-md, 0.75rem);
+  gap: 0.45rem 1rem;
 }
 
 .fs-surface-brand {
   color: var(--fs-surface-ink);
+  font-family: var(--fs-surface-font-heading);
   font-size: 1.0625rem;
-  font-weight: var(--formspec-font-weight-bold, 700);
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.fs-surface-brand:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.fs-surface-brand:focus-visible {
+  outline: 3px solid var(--fs-surface-focus);
+  outline-offset: 2px;
 }
 
 .fs-surface-masthead-controls {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: var(--formspec-spacing-md, 0.75rem);
+  gap: 0.45rem 0.875rem;
   margin-inline-start: auto;
+  min-width: 0;
 }
 
 .fs-surface-masthead-controls label {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: var(--formspec-spacing-sm, 0.5rem);
+  gap: 0.4rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--fs-surface-ink-quiet);
+  white-space: nowrap;
 }
 
 .fs-surface-masthead-controls select {
   font: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
   color: var(--fs-surface-ink);
   background: var(--fs-surface-panel);
   border: 1px solid var(--fs-surface-line-strong);
-  border-radius: var(--formspec-radius-sm, 0.35rem);
-  padding: var(--formspec-spacing-sm, 0.5rem);
+  border-radius: var(--formspec-radius-sm, 2px);
+  padding: 0.35rem 0.6rem;
+  min-height: 2.125rem;
+  max-width: 16rem;
+}
+
+.fs-surface-masthead-controls select:focus-visible {
+  outline: 3px solid var(--fs-surface-focus);
+  outline-offset: 2px;
 }
 
 .fs-surface-save-notice {
   margin: 0;
+  font-size: 0.84rem;
   color: var(--fs-surface-ink-quiet);
 }
 
@@ -200,10 +240,10 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 .fs-surface-shell {
   width: min(100%, 90rem);
   margin-inline: auto;
-  padding: clamp(1rem, 3vw, 2.5rem);
+  padding: clamp(1rem, 2.5vw, 2rem);
   display: grid;
-  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
-  gap: clamp(1rem, 3vw, 2.5rem);
+  grid-template-columns: minmax(13.5rem, 16.5rem) minmax(0, 1fr);
+  gap: clamp(1rem, 2.5vw, 2rem);
   align-items: start;
 }
 
@@ -220,72 +260,239 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 
 .fs-surface-nav {
   position: sticky;
-  top: 1rem;
+  top: 4.5rem;
   min-width: 0;
   padding: var(--formspec-spacing-sm, 0.5rem);
   border: 1px solid var(--fs-surface-line);
-  border-radius: var(--formspec-radius-lg, 10px);
+  border-radius: var(--formspec-radius-md, 4px);
   background: var(--fs-surface-panel);
 }
 
 .fs-surface-nav__toggle {
   display: none;
   width: 100%;
-  min-height: 2.75rem;
+  min-height: 2.5rem;
   align-items: center;
   justify-content: space-between;
   gap: var(--formspec-spacing-md, 0.75rem);
-  padding: var(--formspec-spacing-sm, 0.5rem)
-    var(--formspec-spacing-md, 0.75rem);
+  padding: 0.45rem 0.75rem;
   border: 1px solid var(--fs-surface-line-strong);
-  border-radius: var(--formspec-radius-md, 6px);
+  border-radius: var(--formspec-radius-sm, 2px);
   background: var(--fs-surface-panel);
   color: var(--fs-surface-ink);
   cursor: pointer;
   font: inherit;
-  font-weight: var(--formspec-font-weight-medium, 500);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.fs-surface-nav__toggle-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.fs-surface-nav__toggle-chevron {
+  font-size: 0.85em;
+  color: var(--fs-surface-ink-quiet);
+}
+
+.fs-surface-nav__toggle-current {
+  font-weight: 500;
+  color: var(--fs-surface-ink-quiet);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fs-surface-nav__toggle:focus-visible {
-  outline: 2px solid var(--fs-surface-focus);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
 }
 
 .fs-surface-nav__group + .fs-surface-nav__group {
   margin-top: var(--formspec-spacing-md, 0.75rem);
+  padding-top: var(--formspec-spacing-sm, 0.5rem);
+  border-top: 1px solid var(--fs-surface-line);
 }
 
 .fs-surface-nav__label {
   margin: 0 0 var(--formspec-spacing-xs, 0.25rem);
-  font-size: 0.8125rem;
-  font-weight: var(--formspec-font-weight-medium, 500);
+  padding-inline: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--fs-surface-ink-quiet);
 }
 
 .fs-surface-nav__list {
   display: flex;
   flex-direction: column;
-  gap: var(--formspec-spacing-xs, 0.25rem);
+  gap: 0.125rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+.fs-surface-nav__item--hub + .fs-surface-nav__item--hub,
+.fs-surface-nav__item--hub + .fs-surface-nav__item,
+.fs-surface-nav__item + .fs-surface-nav__item--hub {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--fs-surface-line);
+}
+
+.fs-surface-nav__hub-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--formspec-radius-sm, 2px);
+}
+
+.fs-surface-nav__hub-row:hover {
+  border-color: var(--fs-surface-line);
+  background: var(--fs-surface-panel-quiet);
+}
+
+.fs-surface-nav__hub-row:has(> a[aria-current="page"]) {
+  border-color: var(--fs-surface-accent-fill);
+  background: var(--fs-surface-accent-fill);
+  color: var(--fs-surface-accent-ink);
+}
+
+.fs-surface-nav__hub-row > :is(a, [role="link"]) {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  border-color: transparent;
+}
+
+.fs-surface-nav__hub-row > a:hover,
+.fs-surface-nav__hub-row > a[aria-current="page"] {
+  border-color: transparent;
+  background: transparent;
+}
+
+.fs-surface-nav__hub-row:has(> a[aria-current="page"]) > a {
+  color: var(--fs-surface-accent-ink);
+}
+
+.fs-surface-nav__hub-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--fs-surface-line);
+  border-radius: var(--formspec-radius-sm, 2px);
+  background: var(--fs-surface-panel-quiet);
+  color: var(--fs-surface-ink-quiet);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.fs-surface-nav__hub-row:has(> a[aria-current="page"]) .fs-surface-nav__hub-badge {
+  border-color: color-mix(in srgb, var(--fs-surface-accent-ink) 45%, transparent);
+  background: color-mix(in srgb, var(--fs-surface-accent-ink) 16%, transparent);
+  color: var(--fs-surface-accent-ink);
+}
+
+.fs-surface-nav__hub-toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-inline-end: 0.2rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--formspec-radius-sm, 2px);
+  background: transparent;
+  color: var(--fs-surface-ink-quiet);
+  cursor: pointer;
+}
+
+.fs-surface-nav__hub-toggle:hover {
+  border-color: var(--fs-surface-line);
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-nav__hub-row:has(> a[aria-current="page"]) .fs-surface-nav__hub-toggle {
+  color: var(--fs-surface-accent-ink);
+}
+
+.fs-surface-nav__hub-row:has(> a[aria-current="page"]) .fs-surface-nav__hub-toggle:hover {
+  border-color: color-mix(in srgb, var(--fs-surface-accent-ink) 45%, transparent);
+}
+
+.fs-surface-nav__hub-toggle:focus-visible {
+  outline: 3px solid var(--fs-surface-focus);
+  outline-offset: 2px;
+}
+
+.fs-surface-nav__hub-chevron {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 1.75px solid currentColor;
+  border-bottom: 1.75px solid currentColor;
+  transform: translateY(-1px) rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.fs-surface-nav__hub-toggle[aria-expanded="false"] .fs-surface-nav__hub-chevron {
+  transform: translateX(-1px) rotate(-45deg);
+}
+
+.fs-surface-nav__sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0.25rem 0 0 0.7rem;
+  padding: 0 0 0 0.55rem;
+  list-style: none;
+  border-inline-start: 2px solid var(--fs-surface-line);
+}
+
+.fs-surface-nav__sublist[hidden] {
+  display: none;
+}
+
 /*
  * The border is the only thing that says "this is a control" — the label is not
  * underlined — so it is held to SC 1.4.11's 3:1 and takes `line-strong`, not the
- * hairline `color.border` (1.59:1 light, 1.83:1 dark against a panel).
+ * hairline `color.border`.
  */
-.fs-surface-nav__list a {
+.fs-surface-nav__list a,
+.fs-surface-nav__list [role="link"] {
   display: flex;
-  min-height: 2.75rem;
+  min-height: 2.375rem;
   align-items: center;
-  padding: var(--formspec-spacing-sm, 0.5rem)
-    var(--formspec-spacing-md, 0.75rem);
+  padding: 0.4rem 0.65rem;
   border: 1px solid transparent;
-  border-radius: var(--formspec-radius-md, 6px);
+  border-radius: var(--formspec-radius-sm, 2px);
   color: var(--fs-surface-ink);
+  font-size: 0.9rem;
+  line-height: 1.3;
   text-decoration: none;
+}
+
+.fs-surface-nav__list [role="link"][aria-disabled="true"] {
+  color: var(--fs-surface-ink-quiet);
+  cursor: default;
+}
+
+.fs-surface-nav__sublist a,
+.fs-surface-nav__sublist [role="link"] {
+  min-height: 2.125rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.875rem;
 }
 
 .fs-surface-nav__list a:hover {
@@ -297,30 +504,104 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   border-color: var(--fs-surface-accent-fill);
   background: var(--fs-surface-accent-fill);
   color: var(--fs-surface-accent-ink);
-  font-weight: var(--formspec-font-weight-medium, 500);
+  font-weight: 700;
 }
 
 .fs-surface-nav__list a:focus-visible {
-  outline: 2px solid var(--fs-surface-focus);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
+}
+
+/* When a route mounts a 3-column workspace form, retire the permanent left sidebar so the workspace gets full viewport width. */
+@media (min-width: 48.001rem) {
+  .fs-surface-shell:has(.formspec-workspace) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.875rem;
+    padding-block-start: 1rem;
+  }
+
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav {
+    position: static;
+  }
+
+  /* Flat apps: slim inline top navigation strip so every top-level link stays one click away. */
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="false"] {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="false"] .fs-surface-nav__list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="false"] .fs-surface-nav__list a,
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="false"] .fs-surface-nav__list [role="link"] {
+    min-height: 2.125rem;
+    padding: 0.3rem 0.65rem;
+  }
+
+  /* Option A nested-hub apps: slim full-width collapsible top disclosure bar. */
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="true"] {
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="true"] .fs-surface-nav__toggle {
+    display: flex;
+  }
+
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="true"] .fs-surface-nav__content {
+    margin-top: 0.5rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--fs-surface-line);
+    border-radius: var(--formspec-radius-md, 4px);
+    background: var(--fs-surface-panel);
+  }
+
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="true"][data-menu-open="false"] .fs-surface-nav__content {
+    display: none;
+  }
+
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="true"] .fs-surface-nav__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.75rem 1.25rem;
+    align-items: start;
+  }
+
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="true"] .fs-surface-nav__item--hub + .fs-surface-nav__item--hub,
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="true"] .fs-surface-nav__item--hub + .fs-surface-nav__item,
+  .fs-surface-shell:has(.formspec-workspace) > .fs-surface-nav[data-has-hubs="true"] .fs-surface-nav__item + .fs-surface-nav__item--hub {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
 }
 
 /* ── Route ──────────────────────────────────────────────────────────── */
 
 .fs-surface-route {
+  position: relative;
   color: var(--fs-surface-ink);
   width: 100%;
   max-width: 74rem;
   min-width: 0;
   margin-inline: auto;
-  padding: clamp(1.25rem, 3vw, 2rem);
+  padding: clamp(1.25rem, 2.75vw, 2rem);
   border: 1px solid var(--fs-surface-line);
-  border-radius: var(--formspec-radius-lg, 10px);
+  border-radius: var(--formspec-radius-md, 4px);
   background: var(--fs-surface-panel);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--fs-surface-ink) 8%, transparent);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--fs-surface-ink) 6%, transparent);
 }
 
-.fs-surface-route[data-route-class="intake"],
+.fs-surface-route:has(.formspec-workspace) {
+  max-width: 86rem;
+}
+
+.fs-surface-route[data-route-class="intake"]:not(:has(.formspec-workspace)),
 .fs-surface-route[data-route-class="authentication"] {
   max-width: 52rem;
 }
@@ -329,8 +610,9 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   margin: 0 0 var(--formspec-spacing-lg, 1.25rem);
   color: var(--fs-surface-ink);
   font-family: var(--fs-surface-font-heading);
-  font-size: clamp(1.75rem, 4vw, 2.375rem);
-  line-height: 1.15;
+  font-size: clamp(1.625rem, 3.2vw, 2.125rem);
+  font-weight: 800;
+  line-height: 1.12;
   letter-spacing: -0.025em;
 }
 
@@ -378,7 +660,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   margin: 0;
   padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-md, 0.75rem);
   border: 1px dashed var(--fs-surface-line-strong);
-  border-radius: var(--formspec-radius-sm, 4px);
+  border-radius: var(--formspec-radius-sm, 2px);
   color: var(--fs-surface-ink);
   font-size: 0.9375rem;
 }
@@ -423,10 +705,11 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 
 .fs-surface-transition__button {
   font: inherit;
+  font-weight: var(--formspec-font-weight-semibold, 600);
   min-height: 2.75rem;
   padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-lg, 1.25rem);
   border: 1px solid transparent;
-  border-radius: var(--formspec-radius-md, 6px);
+  border-radius: var(--formspec-radius-md, 4px);
   background: var(--fs-surface-accent-fill);
   color: var(--fs-surface-accent-ink);
   cursor: pointer;
@@ -438,7 +721,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 }
 
 .fs-surface-transition__button:focus-visible {
-  outline: 2px solid var(--fs-surface-focus);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
 }
 
@@ -447,7 +730,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   margin: 0;
   padding: 0.75rem 1rem;
   border: 1px solid var(--fs-surface-line);
-  border-radius: 0.625rem;
+  border-radius: var(--formspec-radius-md, 4px);
   background: var(--fs-surface-panel-quiet);
   color: var(--fs-surface-ink);
   font-size: 0.9375rem;
@@ -479,7 +762,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   min-width: 0;
   padding: clamp(1rem, 2.5vw, 1.5rem);
   border: 1px solid var(--fs-surface-line);
-  border-radius: var(--formspec-radius-lg, 10px);
+  border-radius: var(--formspec-radius-md, 4px);
   background: var(--fs-surface-panel);
   color: var(--fs-surface-ink);
 }
@@ -557,7 +840,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 }
 
 .fs-surface-queue__scroll:focus-visible {
-  outline: 2px solid var(--fs-surface-focus);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
 }
 
@@ -604,7 +887,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   min-height: 2.75rem;
   padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-md, 0.75rem);
   border: 1px solid var(--fs-surface-line-strong);
-  border-radius: var(--formspec-radius-md, 6px);
+  border-radius: var(--formspec-radius-md, 4px);
   background: transparent;
   color: var(--fs-surface-ink);
   cursor: pointer;
@@ -627,7 +910,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 }
 
 .fs-surface-queue__action:focus-visible {
-  outline: 2px solid var(--fs-surface-focus);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
 }
 
@@ -737,7 +1020,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 }
 
 .fs-structured-panel__table-scroll:focus-visible {
-  outline: 2px solid var(--fs-surface-focus);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
 }
 
@@ -808,9 +1091,9 @@ dd[data-cell-kind="status"] {
   align-self: start;
   display: inline-flex;
   align-items: center;
-  padding: 0.15rem 0.6rem;
+  padding: 0.15rem 0.5rem;
   border: 1px solid var(--fs-surface-line-strong);
-  border-radius: 999px;
+  border-radius: var(--formspec-radius-sm, 2px);
   background: var(--fs-surface-panel-quiet);
   font-size: 0.8125rem;
   line-height: 1.35;
@@ -846,7 +1129,7 @@ th[data-cell-kind="status"] {
   min-height: 2.75rem;
   padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-lg, 1.25rem);
   border: 1px solid var(--fs-surface-line-strong);
-  border-radius: var(--formspec-radius-md, 6px);
+  border-radius: var(--formspec-radius-md, 4px);
   background: transparent;
   color: var(--fs-surface-ink);
   cursor: pointer;
@@ -867,7 +1150,7 @@ th[data-cell-kind="status"] {
 }
 
 .fs-structured-panel__action:focus-visible {
-  outline: 2px solid var(--fs-surface-focus);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
 }
 
@@ -886,7 +1169,7 @@ th[data-cell-kind="status"] {
   min-width: min(24rem, 78vw);
   padding: var(--formspec-spacing-md, 0.75rem);
   border: 1px solid var(--fs-surface-line-strong);
-  border-radius: var(--formspec-radius-md, 6px);
+  border-radius: var(--formspec-radius-md, 4px);
   background: var(--fs-surface-panel);
   text-align: start;
 }
@@ -906,7 +1189,7 @@ th[data-cell-kind="status"] {
   gap: var(--formspec-spacing-sm, 0.5rem);
   padding: var(--formspec-spacing-lg, 1.25rem);
   border: 1px solid var(--fs-surface-line);
-  border-radius: var(--formspec-radius-lg, 10px);
+  border-radius: var(--formspec-radius-md, 4px);
   background: var(--fs-surface-panel);
 }
 
@@ -930,7 +1213,7 @@ th[data-cell-kind="status"] {
   min-height: 2.75rem;
   padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-lg, 1.25rem);
   border: 1px solid var(--fs-surface-line-strong);
-  border-radius: var(--formspec-radius-md, 6px);
+  border-radius: var(--formspec-radius-md, 4px);
   background: transparent;
   color: var(--fs-surface-ink);
   cursor: pointer;
@@ -950,7 +1233,7 @@ th[data-cell-kind="status"] {
 }
 
 .fs-surface-widget-state__action:focus-visible {
-  outline: 2px solid var(--fs-surface-focus);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
 }
 
@@ -1005,7 +1288,7 @@ th[data-cell-kind="status"] {
     margin-top: var(--formspec-spacing-sm, 0.5rem);
     padding: var(--formspec-spacing-sm, 0.5rem);
     border: 1px solid var(--fs-surface-line);
-    border-radius: var(--formspec-radius-lg, 10px);
+    border-radius: var(--formspec-radius-md, 4px);
     background: var(--fs-surface-panel);
   }
 
@@ -1098,7 +1381,7 @@ th[data-cell-kind="status"] {
   overflow-y: auto;
   padding: 1rem 1.25rem;
   border: 1px solid var(--fs-surface-line-strong);
-  border-radius: 0.625rem;
+  border-radius: var(--formspec-radius-sm, 2px);
   background: var(--fs-surface-panel-quiet);
   color: var(--fs-surface-ink);
   line-height: var(--formspec-font-lineHeight-loose, 1.7);
@@ -1107,7 +1390,7 @@ th[data-cell-kind="status"] {
 }
 
 .fs-surface-ceremony__full-text:focus-visible {
-  outline: 2px solid var(--fs-surface-focus);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 3px;
 }
 
@@ -1122,7 +1405,7 @@ th[data-cell-kind="status"] {
   gap: 0.625rem;
   min-height: 2.75rem;
   padding: 0.35rem 0.5rem;
-  border-radius: 0.5rem;
+  border-radius: var(--formspec-radius-sm, 2px);
   cursor: pointer;
   font-weight: var(--formspec-font-weight-medium, 500);
 }
@@ -1146,14 +1429,14 @@ th[data-cell-kind="status"] {
   padding: 0.625rem 0.875rem;
   margin-top: 0.375rem;
   border: 1px solid var(--fs-surface-line-strong);
-  border-radius: 0.625rem;
+  border-radius: var(--formspec-radius-sm, 2px);
   background: var(--fs-surface-panel);
   color: var(--fs-surface-ink);
   font: inherit;
 }
 
 .fs-surface-ceremony input:not([type="checkbox"]):not([type="radio"]):focus-visible {
-  outline: 2px solid var(--fs-surface-focus);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
 }
 
@@ -1173,7 +1456,7 @@ th[data-cell-kind="status"] {
   min-height: 2.75rem;
   padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-lg, 1.25rem);
   border: 1px solid var(--fs-surface-line-strong);
-  border-radius: var(--formspec-radius-md, 6px);
+  border-radius: var(--formspec-radius-md, 4px);
   background: var(--fs-surface-panel);
   color: var(--fs-surface-ink);
   font: inherit;
@@ -1189,7 +1472,7 @@ th[data-cell-kind="status"] {
 }
 
 .fs-surface-ceremony__actions button:focus-visible {
-  outline: 2px solid var(--fs-surface-focus);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
 }
 
@@ -1271,7 +1554,7 @@ th[data-cell-kind="status"] {
   min-width: 0;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--fs-surface-line);
-  border-radius: 0.5rem;
+  border-radius: var(--formspec-radius-sm, 2px);
   background: var(--fs-surface-panel-quiet);
   font-family: var(--fs-surface-font-mono);
   font-size: 0.8125rem;
@@ -1309,7 +1592,7 @@ th[data-cell-kind="status"] {
 }
 
 .fs-response-review-row summary:focus-visible {
-  outline: 2px solid var(--fs-surface-accent);
+  outline: 3px solid var(--fs-surface-focus);
   outline-offset: 3px;
 }
 
@@ -1334,7 +1617,7 @@ th[data-cell-kind="status"] {
   .fs-surface-route[data-route-layout="split"] .fs-surface-slot[data-slot-type="definition-form"] {
     padding: clamp(1rem, 2.5vw, 1.5rem);
     border: 1px solid var(--fs-surface-line);
-    border-radius: var(--formspec-radius-lg, 10px);
+    border-radius: var(--formspec-radius-md, 4px);
     background: var(--fs-surface-panel);
   }
 
@@ -1366,6 +1649,7 @@ th[data-cell-kind="status"] {
 
 .fs-surface-filing {
   container: filing / inline-size;
+  min-width: 0;
 }
 
 .fs-surface-filing__tasks,
@@ -1376,20 +1660,127 @@ th[data-cell-kind="status"] {
   margin-block: 0;
 }
 
+.fs-surface-filing__totals {
+  padding: 0.875rem 1rem;
+  margin-block-end: 1.5rem;
+  border: 1px solid var(--fs-surface-line);
+  border-block-end: 2px solid var(--fs-surface-ink);
+  border-radius: var(--formspec-radius-sm, 2px);
+  background: var(--fs-surface-panel-quiet);
+}
+
+.fs-surface-filing__totals dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: baseline;
+  margin: 0;
+}
+
+.fs-surface-filing__totals dl > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.fs-surface-filing__totals dl > div + div {
+  padding-inline-start: 1.125rem;
+  border-inline-start: 1px solid var(--fs-surface-line);
+}
+
+.fs-surface-filing__totals dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fs-surface-ink-quiet);
+}
+
+.fs-surface-filing__totals dd {
+  margin: 0;
+  font-family: var(--fs-surface-font-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+@media (min-width: 70rem) {
+  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p))) > .fs-surface-route__title {
+    box-sizing: border-box;
+    padding-inline-end: 23rem;
+    min-block-size: 3.5rem;
+    padding-block-end: 1rem;
+    margin-block-end: 1.5rem;
+    border-block-end: 2px solid var(--fs-surface-ink);
+  }
+
+  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"] > .fs-surface-filing > .fs-surface-filing__totals {
+    position: absolute;
+    inset-block-start: clamp(1.25rem, 2.75vw, 2rem);
+    inset-inline-end: clamp(1.25rem, 2.75vw, 2rem);
+    max-inline-size: 22rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"] > .fs-surface-filing > .fs-surface-filing__group:first-of-type {
+    margin-block-start: 0;
+  }
+}
+
 .fs-surface-filing__group {
-  margin-block: 1rem;
+  margin-block: 1.5rem;
+}
+
+.fs-surface-filing__group > :is(h2, h3, h4) {
+  margin: 0 0 0.375rem;
+  padding-block-end: 0.375rem;
+  border-block-end: 2px solid var(--fs-surface-ink);
+  font-family: var(--fs-surface-font-heading);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fs-surface-ink);
 }
 
 .fs-surface-filing__row {
   display: grid;
-  gap: 0.5rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.625rem;
   border-block-start: 1px solid var(--fs-surface-line);
-  padding-block: 0.625rem;
+  padding-block: 0.875rem;
   overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.fs-surface-filing__tasks > .fs-surface-filing__row:first-child {
+  border-block-start: 0;
+}
+
+.fs-surface-filing__row > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.fs-surface-filing__row[data-filing-status="returned"] {
+  padding-inline-start: 0.75rem;
+  padding-inline-end: 0.5rem;
+  border-inline-start: 3px solid var(--fs-surface-warning);
+  background: color-mix(in srgb, var(--fs-surface-warning) 5%, var(--fs-surface-panel));
 }
 
 .fs-surface-filing__form > :is(a, [role='link']) {
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 0.96875rem;
+  line-height: 1.3;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
 }
 
 .fs-surface-filing__form > a,
@@ -1398,18 +1789,26 @@ th[data-cell-kind="status"] {
   color: var(--fs-surface-accent);
 }
 
+.fs-surface-filing__form > a:focus-visible,
+.fs-surface-filing__section-nav summary:focus-visible,
+.fs-surface-filing__sections a:focus-visible {
+  outline: 3px solid var(--fs-surface-focus);
+  outline-offset: 2px;
+  border-radius: var(--formspec-radius-sm, 2px);
+}
+
 .fs-surface-filing__form p,
 .fs-surface-filing__totals p,
 .fs-surface-filing__key p {
   color: var(--fs-surface-ink-quiet);
-  margin-block: 0.125rem 0;
+  margin-block: 0.25rem 0;
+  line-height: 1.45;
 }
 
 .fs-surface-filing__form p,
 .fs-surface-filing__progress,
 .fs-surface-filing__section-nav summary,
 .fs-surface-filing__sections,
-.fs-surface-filing__totals dt,
 .fs-surface-filing__totals p,
 .fs-surface-filing__key {
   font-size: 0.875em;
@@ -1417,7 +1816,6 @@ th[data-cell-kind="status"] {
 
 .fs-surface-filing__counts,
 .fs-surface-filing__sections,
-.fs-surface-filing__totals dl,
 .fs-surface-filing__legend {
   display: flex;
   flex-wrap: wrap;
@@ -1426,7 +1824,127 @@ th[data-cell-kind="status"] {
 }
 
 .fs-surface-filing__counts {
-  margin-block-start: 0.125rem;
+  margin-block-start: 0.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-surface-filing__status {
+  font-weight: 600;
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-filing__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.175rem 0.5rem;
+  border: 1.5px solid var(--fs-surface-line-strong);
+  border-radius: var(--formspec-radius-sm, 2px);
+  background: var(--fs-surface-panel-quiet);
+  color: var(--fs-surface-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.25;
+}
+
+.fs-surface-filing__badge::before {
+  content: '';
+  display: inline-block;
+  inline-size: 0.425rem;
+  block-size: 0.425rem;
+  border-radius: 1px;
+  background: var(--fs-surface-ink-quiet);
+  flex-shrink: 0;
+}
+
+.fs-surface-filing__badge[data-filing-status="returned"] {
+  border-color: var(--fs-surface-warning);
+  background: color-mix(in srgb, var(--fs-surface-warning) 16%, var(--fs-surface-panel));
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-filing__badge[data-filing-status="returned"]::before {
+  background: var(--fs-surface-warning);
+}
+
+.fs-surface-filing__badge[data-filing-status="accepted"] {
+  border-color: var(--fs-surface-success);
+  background: color-mix(in srgb, var(--fs-surface-success) 12%, var(--fs-surface-panel));
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-filing__badge[data-filing-status="accepted"]::before {
+  background: var(--fs-surface-success);
+}
+
+.fs-surface-filing__badge[data-filing-status="filed"] {
+  border-color: var(--fs-surface-accent);
+  background: color-mix(in srgb, var(--fs-surface-accent) 10%, var(--fs-surface-panel));
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-filing__badge[data-filing-status="filed"]::before {
+  background: var(--fs-surface-accent);
+}
+
+.fs-surface-filing__badge[data-filing-status="closed-without-acceptance"] {
+  border-color: var(--fs-surface-danger);
+  background: color-mix(in srgb, var(--fs-surface-danger) 10%, var(--fs-surface-panel));
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-filing__badge[data-filing-status="closed-without-acceptance"]::before {
+  background: var(--fs-surface-danger);
+}
+
+.fs-surface-filing__badge[data-filing-status="reopened"] {
+  border-color: var(--fs-surface-warning);
+  background: color-mix(in srgb, var(--fs-surface-warning) 10%, var(--fs-surface-panel));
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-filing__badge[data-filing-status="reopened"]::before {
+  background: var(--fs-surface-warning);
+}
+
+.fs-surface-filing__draft-note {
+  margin-block-start: 0.2rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--fs-surface-ink-quiet);
+}
+
+.fs-surface-filing__meta {
+  margin-block-start: 0.25rem;
+  color: var(--fs-surface-ink-quiet);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.fs-surface-filing__meta[data-receipt-ref] {
+  font-family: var(--fs-surface-font-mono);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-surface-filing__comment {
+  margin: 0.45rem 0 0;
+  padding: 0.45rem 0.625rem;
+  border: 1px solid color-mix(in srgb, var(--fs-surface-warning) 42%, var(--fs-surface-line));
+  border-inline-start: 3px solid var(--fs-surface-warning);
+  border-radius: var(--formspec-radius-sm, 2px);
+  background: color-mix(in srgb, var(--fs-surface-warning) 10%, var(--fs-surface-panel));
+  color: var(--fs-surface-ink);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.fs-surface-filing__section-nav {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .fs-surface-filing__section-nav summary {
@@ -1435,6 +1953,11 @@ th[data-cell-kind="status"] {
   min-block-size: 1.5rem;
   padding-block: 0;
   line-height: 1.5rem;
+  font-weight: 600;
+}
+
+.fs-surface-filing__sections {
+  margin-block-start: 0.35rem;
 }
 
 .fs-surface-filing__sections li:not(:last-child)::after {
@@ -1448,23 +1971,11 @@ th[data-cell-kind="status"] {
   vertical-align: middle;
 }
 
-.fs-surface-filing__totals dl {
-  gap: 0.5rem 1.5rem;
-  margin: 0;
-}
-
-.fs-surface-filing__totals dd {
-  margin: 0;
-  font-size: 1.625em;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-}
-
 @container filing (min-width: 38rem) {
   .fs-surface-filing__row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 2.25fr) minmax(0, 1fr);
-    column-gap: 1rem;
+    grid-template-columns: minmax(11rem, 14.5rem) minmax(0, 1fr) minmax(11rem, 14rem);
+    column-gap: 1.125rem;
+    align-items: start;
   }
 
   .fs-surface-filing__progress {
@@ -1472,20 +1983,32 @@ th[data-cell-kind="status"] {
   }
 }
 
+@container filing (min-width: 52rem) {
+  .fs-surface-filing__row {
+    grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr) minmax(12rem, 15rem);
+    column-gap: 1.5rem;
+  }
+}
+
 .fs-surface-filing__strip {
   display: flex;
   gap: min(0.25rem, 1%);
   block-size: 2.25rem;
-  margin-block: 0.25rem;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-block: 0.35rem 0.25rem;
 }
 
 .fs-surface-filing__segment,
 .fs-surface-filing__swatch {
   position: relative;
   display: flex;
+  box-sizing: border-box;
   background: var(--fs-surface-panel-quiet);
-  outline: 1px solid var(--fs-surface-line-strong);
-  outline-offset: -1px;
+  outline: 1.5px solid var(--fs-surface-line-strong);
+  outline-offset: -1.5px;
+  border-radius: 1px;
 }
 
 .fs-surface-filing__segment {
@@ -1501,13 +2024,14 @@ th[data-cell-kind="status"] {
 .fs-surface-filing__fill {
   inline-size: 100%;
   background: var(--fs-surface-accent);
+  transition: inline-size 0.2s ease;
 }
 
 .fs-surface-filing__mark {
   position: absolute;
-  inset-block-start: -0.25rem;
+  inset-block-start: -0.3125rem;
   inset-inline: 0;
-  border-block-start-width: 0.1875rem;
+  border-block-start-width: 0.25rem;
 }
 
 .fs-surface-filing__fix,
@@ -1540,12 +2064,19 @@ th[data-cell-kind="status"] {
 .fs-surface-filing__fix,
 .fs-surface-filing__check {
   border-width: 1px;
-  border-radius: 0.25rem;
-  padding-inline: 0.25rem;
+  border-radius: var(--formspec-radius-sm, 2px);
+  padding-inline: 0.3rem;
+  font-weight: 600;
+}
+
+.fs-surface-filing__key {
+  margin-block-start: 1.5rem;
+  padding-block-start: 0.875rem;
+  border-block-start: 1px solid var(--fs-surface-line);
 }
 
 .fs-surface-filing__legend {
-  gap: 0.5rem 1rem;
+  gap: 0.5rem 1.25rem;
 }
 
 .fs-surface-filing__key p {

@@ -67,26 +67,26 @@ describe('buildPlatformTheme', () => {
     });
 
     it('includes light-mode color tokens from the registry', () => {
-        expect(theme.tokens?.['color.primary']).toBe('#27594f');
-        expect(theme.tokens?.['color.foreground']).toBe('#20241f');
-        expect(theme.tokens?.['color.background']).toBe('#f6f0e6');
+        expect(theme.tokens?.['color.primary']).toBe('#1D3FAE');
+        expect(theme.tokens?.['color.foreground']).toBe('#13233A');
+        expect(theme.tokens?.['color.background']).toBe('#EDF1EA');
     });
 
     it('includes dark-mode color tokens derived from darkPrefix', () => {
-        expect(theme.tokens?.['color.dark.primary']).toBe('#8bb8ac');
-        expect(theme.tokens?.['color.dark.foreground']).toBe('#f3ecdf');
-        expect(theme.tokens?.['color.dark.background']).toBe('#161311');
+        expect(theme.tokens?.['color.dark.primary']).toBe('#9DB8FF');
+        expect(theme.tokens?.['color.dark.foreground']).toBe('#E6ECF2');
+        expect(theme.tokens?.['color.dark.background']).toBe('#0E1826');
     });
 
     it('includes non-color tokens', () => {
         expect(theme.tokens?.['spacing.md']).toBe('1rem');
         expect(theme.tokens?.['spacing.xs']).toBe('0.25rem');
-        expect(theme.tokens?.['font.family']).toContain('Instrument Sans');
+        expect(theme.tokens?.['font.family']).toContain('Archivo');
     });
 
     it('includes radius tokens', () => {
-        expect(theme.tokens?.['radius.sm']).toBe('0.9rem');
-        expect(theme.tokens?.['radius.md']).toBe('1.35rem');
+        expect(theme.tokens?.['radius.sm']).toBe('2px');
+        expect(theme.tokens?.['radius.md']).toBe('4px');
     });
 
     it('includes all expected token count', () => {
@@ -111,7 +111,7 @@ describe('buildPlatformTheme', () => {
     it('omits derived tokens so their fan-out can resolve', () => {
         expect(theme.tokens?.['color.ring']).toBeUndefined();
         expect(theme.tokens?.['color.dark.ring']).toBeUndefined();
-        expect(theme.tokens?.['color.primary']).toBe('#27594f');
+        expect(theme.tokens?.['color.primary']).toBe('#1D3FAE');
     });
 });
 

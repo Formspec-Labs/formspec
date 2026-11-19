@@ -64,11 +64,11 @@ describe('Shared skin audit invariants', () => {
         expect(extractRuleProp(layoutCSS, '.formspec-accordion-item summary::after', 'color')).toBe('var(--formspec-default-text-muted)');
     });
 
-    it('uses explicit 2px outline focus indicators on wrapper controls', () => {
-        expect(extractRuleProp(layoutCSS, '.formspec-input-wrapper:focus-within', 'outline')).toBe('2px solid var(--formspec-default-focus)');
-        expect(extractRuleProp(layoutCSS, '.formspec-input-wrapper:focus-within', 'outline-offset')).toBe('1px');
-        expect(extractRuleProp(layoutCSS, '.formspec-money:focus-within', 'outline')).toBe('2px solid var(--formspec-default-focus)');
-        expect(extractRuleProp(layoutCSS, '.formspec-combobox-row:focus-within', 'outline')).toBe('2px solid var(--formspec-default-focus)');
+    it('uses explicit 3px outline focus indicators on wrapper controls', () => {
+        expect(extractRuleProp(layoutCSS, '.formspec-input-wrapper:focus-within', 'outline')).toBe('3px solid var(--formspec-default-focus)');
+        expect(extractRuleProp(layoutCSS, '.formspec-input-wrapper:focus-within', 'outline-offset')).toBe('2px');
+        expect(extractRuleProp(layoutCSS, '.formspec-money:focus-within', 'outline')).toBe('3px solid var(--formspec-default-focus)');
+        expect(extractRuleProp(layoutCSS, '.formspec-combobox-row:focus-within', 'outline')).toBe('3px solid var(--formspec-default-focus)');
     });
 
     it('gives icon-only close and clear controls a 24px target', () => {

@@ -51,10 +51,10 @@ describe('Display component skin parity', () => {
 
     it('ships dark-mode alert foreground overrides with higher-contrast colors', () => {
         expect(layoutCSS).toContain('.formspec-container.formspec-appearance-dark');
-        expect(layoutCSS).toContain('--formspec-default-info-text: #d7eaff;');
-        expect(layoutCSS).toContain('--formspec-default-warning-text: #ffe0a6;');
-        expect(layoutCSS).toContain('--formspec-default-danger-text: #ffc7bf;');
-        expect(layoutCSS).toContain('--formspec-default-success-text: #c7efd3;');
+        expect(layoutCSS).toContain('--formspec-default-info-text: #D4E2FF;');
+        expect(layoutCSS).toContain('--formspec-default-warning-text: #FDE5A2;');
+        expect(layoutCSS).toContain('--formspec-default-danger-text: #FFC9C3;');
+        expect(layoutCSS).toContain('--formspec-default-success-text: #C3EED4;');
         expect(extractRuleProp(layoutCSS, '.formspec-alert--info', 'color')).toBe('var(--formspec-default-info-text)');
         expect(extractRuleProp(layoutCSS, '.formspec-alert--warning', 'color')).toBe('var(--formspec-default-warning-text)');
         expect(extractRuleProp(layoutCSS, '.formspec-alert--error', 'color')).toBe('var(--formspec-default-danger-text)');

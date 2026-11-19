@@ -68,22 +68,72 @@
   min-width: 9.75rem;
   align-self: flex-start;
   margin-top: 1rem;
-  padding: 0.82rem 1.2rem;
-  border: none;
+  padding: 0.72rem 1.2rem;
+  border: 1px solid var(--formspec-default-primary-fill);
   border-radius: var(--formspec-default-radius-sm);
   appearance: none;
   -webkit-appearance: none;
   font-family: inherit;
   font-size: 0.92rem;
-  font-weight: 600;
-  letter-spacing: 0.012em;
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--formspec-default-primary) 14%, transparent);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: none;
 }
 
 .formspec-submit:hover {
   color: var(--formspec-default-text-inverse);
   background: var(--formspec-default-primary-fill-strong);
-  box-shadow: 0 12px 22px color-mix(in srgb, var(--formspec-default-primary) 18%, transparent);
+  border-color: var(--formspec-default-primary-fill-strong);
+  box-shadow: none;
+}
+
+.formspec-submit:disabled,
+.formspec-submit[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Action hierarchy: non-submit actions (Save draft, Check every answer, Review) take crisp secondary outline treatment. */
+.formspec-action[data-action-intent]:not([data-action-intent="submit"]) {
+  color: var(--formspec-default-text);
+  background: color-mix(in srgb, var(--formspec-default-surface) 88%, var(--formspec-default-tint-base));
+  border: 1px solid var(--formspec-default-border-input);
+  box-shadow: none;
+}
+
+.formspec-action[data-action-intent]:not([data-action-intent="submit"]):hover:not(:disabled):not([aria-disabled="true"]) {
+  color: var(--formspec-default-text-strong);
+  background: var(--formspec-default-surface-soft);
+  border-color: var(--formspec-default-border-strong);
+  box-shadow: none;
+}
+
+.formspec-action-bar {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--formspec-default-border-subtle);
+  gap: 0.625rem;
+}
+
+.formspec-action-control {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.formspec-action-bar .formspec-submit {
+  margin-top: 0;
+  min-width: 0;
+}
+
+.formspec-action-status:empty {
+  display: none;
+}
+
+.formspec-action-status {
+  font-size: 0.84rem;
+  color: var(--formspec-default-text-subtle);
 }
 
 .formspec-modal,
@@ -601,4 +651,356 @@
 .formspec-wizard-step-label--active {
   color: var(--formspec-default-text-strong);
   font-weight: 560;
+}
+
+/* ── Core workspace mode (sticky section rail, controls, bounded findings margin) ── */
+
+.formspec-workspace__navigation {
+  min-width: 0;
+  padding: 0.875rem;
+  border: 1px solid var(--formspec-default-border);
+  border-radius: var(--formspec-default-radius-md);
+  background: var(--formspec-default-surface-quiet);
+}
+
+.formspec-workspace__navigation nav ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0 0 0.875rem;
+  padding: 0;
+  list-style: none;
+}
+
+.formspec-workspace__section-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem 0.625rem 0.5rem 0.65rem;
+  border: 1px solid transparent;
+  border-inline-start: 4px solid transparent;
+  border-radius: var(--formspec-default-radius-sm);
+  transition: var(--formspec-default-transition-fast);
+}
+
+.formspec-workspace__section-item:hover {
+  background: var(--formspec-default-surface-soft);
+  border-color: var(--formspec-default-border-muted);
+  border-inline-start-color: var(--formspec-default-border-strong);
+}
+
+.formspec-workspace__section-item[data-current="true"],
+.formspec-workspace__section-item:has([aria-current]) {
+  background: var(--formspec-default-surface);
+  border-color: var(--formspec-default-border);
+  border-inline-start: 4px solid var(--formspec-default-primary);
+}
+
+.formspec-workspace__section-item > :is(a, button) {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  color: var(--formspec-default-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.formspec-workspace__section-item > :is(a, button)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.formspec-workspace__section-item > :is(a, button)[aria-current] {
+  color: var(--formspec-default-text-strong);
+  font-weight: 700;
+}
+
+.formspec-workspace__section-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.formspec-workspace__section-bar-track {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.formspec-workspace__section-bar {
+  display: flex;
+  block-size: 6px;
+  min-inline-size: 16%;
+  max-inline-size: 100%;
+  background: var(--formspec-default-surface-muted);
+  box-shadow: inset 0 0 0 1px var(--formspec-default-border-strong);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.formspec-workspace__section-bar-fill {
+  display: block;
+  block-size: 100%;
+  background: var(--formspec-default-primary);
+  transition: inline-size 0.2s ease;
+}
+
+.formspec-workspace__section-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--formspec-default-text-subtle);
+}
+
+.formspec-workspace__section-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.28rem;
+  border-radius: 2px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.formspec-workspace__section-badge--fix {
+  color: var(--formspec-default-danger);
+  border: 1px solid var(--formspec-default-danger);
+  background: var(--formspec-default-danger-surface);
+}
+
+.formspec-workspace__section-badge--check {
+  color: var(--formspec-default-warning);
+  border: 1px dashed var(--formspec-default-warning);
+  background: var(--formspec-default-warning-surface);
+}
+
+.formspec-workspace__navigation label {
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--formspec-default-text-subtle);
+}
+
+.formspec-workspace__navigation input[type="search"] {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--formspec-default-border-input);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-surface);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.formspec-workspace__navigation p[role="status"] {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  color: var(--formspec-default-text-subtle);
+}
+
+.formspec-workspace__navigation > ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.formspec-workspace__navigation > ul button {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--formspec-default-border-subtle);
+  border-radius: var(--formspec-default-radius-sm);
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-text);
+  font: inherit;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  text-align: start;
+  cursor: pointer;
+  transition: var(--formspec-default-transition-fast);
+}
+
+.formspec-workspace__navigation > ul button:hover {
+  border-color: var(--formspec-default-border-strong);
+  background: var(--formspec-default-surface-soft);
+}
+
+.formspec-workspace__navigation > ul small {
+  margin-top: 0.125rem;
+  color: var(--formspec-default-text-subtle);
+  font-size: 0.75rem;
+}
+
+.formspec-workspace__content {
+  min-width: 0;
+}
+
+.formspec-workspace__content > :is(h1, h2, h3, h4, h5, h6):first-child {
+  margin-top: 0;
+}
+
+.formspec-workspace__previous-next {
+  justify-content: space-between;
+  margin-block: 1.5rem 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--formspec-default-border-subtle);
+}
+
+.formspec-workspace__previous-next button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid var(--formspec-default-border-input);
+  border-radius: var(--formspec-default-radius-sm);
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--formspec-default-transition-fast);
+}
+
+.formspec-workspace__previous-next button:hover:not(:disabled) {
+  border-color: var(--formspec-default-border-strong);
+  background: var(--formspec-default-surface-soft);
+}
+
+.formspec-workspace__previous-next button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.formspec-workspace__findings {
+  min-width: 0;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--formspec-default-border);
+  border-radius: var(--formspec-default-radius-md);
+  background: var(--formspec-default-surface-quiet);
+}
+
+.formspec-workspace__findings > :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0 0 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.formspec-workspace__findings > p {
+  margin: 0 0 0.625rem;
+  font-size: 0.84rem;
+  color: var(--formspec-default-text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.formspec-workspace__findings ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.formspec-workspace__findings li {
+  display: block;
+  padding: 0;
+  border: 1px solid var(--formspec-default-border-subtle);
+  border-inline-start: 3px solid var(--formspec-default-border-strong);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-text);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.formspec-workspace__findings li[data-severity="error"] {
+  border-inline-start-color: var(--formspec-default-danger);
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-text);
+}
+
+.formspec-workspace__findings li[data-severity="warning"] {
+  border-inline-start-color: var(--formspec-default-warning);
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-text);
+}
+
+.formspec-workspace__findings li[data-severity="info"] {
+  border-inline-start-color: var(--formspec-default-info);
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-text);
+}
+
+.formspec-workspace__findings li[data-finding-scope="other"] {
+  background: var(--formspec-default-surface-subtle);
+}
+
+.formspec-workspace__findings li:not(:has(button)) {
+  padding: 0.5rem 0.65rem;
+}
+
+.formspec-workspace__findings li button {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: none;
+  border-radius: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  color: var(--formspec-default-text);
+  font: inherit;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  text-align: start;
+  cursor: pointer;
+  transition: var(--formspec-default-transition-fast);
+}
+
+.formspec-workspace__findings li button:hover {
+  background: var(--formspec-default-surface-soft);
+}
+
+@container formspec-workspace (width > 50rem) {
+  .formspec-workspace__navigation {
+    position: sticky;
+    top: 4.5rem;
+    align-self: start;
+    max-block-size: calc(100dvh - 5.5rem);
+    overflow-y: auto;
+  }
+
+  .formspec-workspace__findings {
+    position: sticky;
+    top: 4.5rem;
+    align-self: start;
+    max-block-size: min(75vh, 42rem);
+    overflow-y: auto;
+  }
 }
