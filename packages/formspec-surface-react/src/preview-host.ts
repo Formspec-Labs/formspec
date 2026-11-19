@@ -99,6 +99,9 @@ export async function createSurfacePreviewEdition(input: {
   scope: string;
   source: BundleExport;
   scenario?: unknown;
+  profileId?: string;
+  databaseName?: string;
+  sessionGeneration?: string | number;
   validateSchema?: SurfaceScenarioSchemaValidator;
   validatePayload?: (request: Pick<Parameters<DataSourcePayloadValidator>[0], 'schema' | 'value'>) =>
     ReturnType<DataSourcePayloadValidator>;
@@ -121,11 +124,17 @@ export async function createSurfacePreviewEdition(input: {
       `${issue.code}${issue.path ? ` (${issue.path})` : ''}: ${issue.message}`).join('\n'));
   }
   const { scenario, preparedFixtures } = validation;
-  const runtime = createSurfacePreviewRuntime(scenario);
+  const runtime = createSurfacePreviewRuntime(scenario, input.profileId);
   const resolveDefinitionComponent = bundleComponentResolver(input.source, input.resolveDefinitionComponent);
-  const fixtures = scenario.profiles[runtime.profileId]!;
+  const fixtures = scenario.profiles[runtime.profileId];
+  if (!fixtures) throw new Error(`Scenario profile "${runtime.profileId}" is not defined.`);
   const preparedProfile = preparedFixtures?.get(runtime.profileId);
-  const store = (input.createFilingStore ?? createBrowserFilingStore)({
+  const createStore = input.createFilingStore ?? (options =>
+    createBrowserFilingStore({
+      ...options,
+      ...(input.databaseName ? { databaseName: input.databaseName } : {}),
+    }));
+  const store = createStore({
     scope: input.scope,
     definitions: bundle.definitions,
     catalogs: bundle.dataSources,
@@ -146,6 +155,7 @@ export async function createSurfacePreviewEdition(input: {
     scope: input.scope, bundle, initialPath: scenario.initialPath,
     adapters: {
       draftStorage: { scope: input.scope, port: store.drafts }, responses: store.responses,
+      ...(input.sessionGeneration !== undefined ? { sessionGeneration: input.sessionGeneration } : {}),
       withResponseLoader: runtime.withResponseLoader, authorizeDataSource: runtime.authorize,
       validateDataSourcePayload: input.validatePayload,
       ...(resolveDefinitionComponent ? { resolveDefinitionComponent } : {}),
