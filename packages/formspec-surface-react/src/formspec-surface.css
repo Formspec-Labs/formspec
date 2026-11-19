@@ -149,6 +149,29 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   box-sizing: border-box;
 }
 
+.fs-surface-skip-link {
+  position: fixed;
+  top: -4rem;
+  left: 0.75rem;
+  z-index: 100;
+  padding: 0.55rem 0.9rem;
+  border: 2px solid var(--fs-surface-accent-ink);
+  border-radius: var(--formspec-radius-sm, 2px);
+  background: var(--fs-surface-accent-fill);
+  color: var(--fs-surface-accent-ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--fs-surface-ink) 24%, transparent);
+}
+
+.fs-surface-skip-link:focus,
+.fs-surface-skip-link:focus-visible {
+  top: 0.75rem;
+  outline: 3px solid var(--fs-surface-focus);
+  outline-offset: 2px;
+}
+
 .fs-surface-header {
   position: sticky;
   top: 0;
@@ -159,6 +182,8 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 
 .fs-surface-header__inner {
   width: min(100%, 90rem);
+  min-width: 0;
+  max-width: 100%;
   min-height: 3.5rem;
   margin-inline: auto;
   padding: 0.5rem clamp(1rem, 2.5vw, 2rem);
@@ -175,8 +200,12 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   font-size: 1.0625rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  line-height: 1.25;
   text-decoration: none;
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
 }
 
 .fs-surface-brand:hover {
@@ -196,6 +225,7 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   gap: 0.45rem 0.875rem;
   margin-inline-start: auto;
   min-width: 0;
+  max-width: 100%;
 }
 
 .fs-surface-masthead-controls label {
@@ -203,6 +233,8 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   flex-wrap: nowrap;
   align-items: center;
   gap: 0.4rem;
+  min-width: 0;
+  max-width: 100%;
   font-size: 0.84rem;
   font-weight: 600;
   color: var(--fs-surface-ink-quiet);
@@ -219,7 +251,9 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   border-radius: var(--formspec-radius-sm, 2px);
   padding: 0.35rem 0.6rem;
   min-height: 2.125rem;
-  max-width: 16rem;
+  min-width: 0;
+  width: auto;
+  max-width: min(100%, 34rem);
 }
 
 .fs-surface-masthead-controls select:focus-visible {
@@ -258,15 +292,23 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   min-width: 0;
 }
 
+.fs-surface-main[tabindex="-1"]:focus {
+  outline: none;
+}
+
 .fs-surface-main:only-child {
   grid-column: 1 / -1;
+}
+
+.fs-surface-main :is(h1, h2, h3, .fs-surface-filing__row, .fs-surface-filing__form > a, .fs-surface-action-banner) {
+  scroll-margin-top: calc(var(--fs-surface-header-height, 4.5rem) + 1rem);
 }
 
 /* ── Navigation ─────────────────────────────────────────────────────── */
 
 .fs-surface-nav {
   position: sticky;
-  top: 4.5rem;
+  top: calc(var(--fs-surface-header-height, 4.5rem) + 0.75rem);
   min-width: 0;
   padding: var(--formspec-spacing-sm, 0.5rem);
   border: 1px solid var(--fs-surface-line);
@@ -413,10 +455,11 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
+  gap: 0.35rem;
+  min-width: 2.5rem;
   height: 2rem;
   margin-inline-end: 0.2rem;
-  padding: 0;
+  padding: 0 0.4rem;
   border: 1px solid transparent;
   border-radius: var(--formspec-radius-sm, 2px);
   background: transparent;
@@ -440,6 +483,14 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
 .fs-surface-nav__hub-toggle:focus-visible {
   outline: 3px solid var(--fs-surface-focus);
   outline-offset: 2px;
+}
+
+.fs-surface-nav__list a[aria-current="page"]:focus-visible,
+.fs-surface-nav__hub-row:has(> a[aria-current="page"]) > a:focus-visible,
+.fs-surface-nav__hub-row:has(> a[aria-current="page"]) .fs-surface-nav__hub-toggle:focus-visible {
+  outline: 2px solid var(--fs-surface-accent-ink);
+  outline-offset: -3px;
+  box-shadow: 0 0 0 2px var(--fs-surface-focus);
 }
 
 .fs-surface-nav__hub-chevron {
@@ -626,6 +677,42 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   outline: none;
 }
 
+.fs-surface-route__context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin: -0.75rem 0 var(--formspec-spacing-lg, 1.25rem);
+  padding: 0;
+}
+
+.fs-surface-route__context-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--fs-surface-line);
+  border-radius: var(--formspec-radius-sm, 2px);
+  background: var(--fs-surface-panel-quiet);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.fs-surface-route__context-item dt {
+  color: var(--fs-surface-ink-quiet);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+}
+
+.fs-surface-route__context-item dd {
+  margin: 0;
+  color: var(--fs-surface-ink);
+  font-weight: 600;
+  font-family: var(--fs-surface-font-mono);
+  overflow-wrap: anywhere;
+}
+
 /*
  * Background is `color.surface`, NOT `color.muted`. The platform registry's
  * `color.muted` is a muted COLOUR (#686158), not a muted surface, and pairing it
@@ -718,16 +805,244 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   font-weight: var(--formspec-font-weight-semibold, 600);
   min-height: 2.75rem;
   padding: var(--formspec-spacing-sm, 0.5rem) var(--formspec-spacing-lg, 1.25rem);
-  border: 1px solid transparent;
+  border: 1.5px solid transparent;
   border-radius: var(--formspec-radius-md, 4px);
   background: var(--fs-surface-accent-fill);
   color: var(--fs-surface-accent-ink);
   cursor: pointer;
 }
 
+.fs-surface-transition__button--secondary {
+  border-color: var(--fs-surface-accent);
+  background: var(--fs-surface-panel);
+  color: var(--fs-surface-accent);
+}
+
+.fs-surface-transition__button--secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--fs-surface-accent) 8%, var(--fs-surface-panel));
+}
+
 .fs-surface-transition__button:disabled {
   cursor: progress;
   opacity: 0.7;
+}
+
+/* ── Draft lifecycle banners, filed summaries, prerequisite notices & DraftStart ── */
+
+.fs-surface-draft-start {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.625rem;
+}
+
+.fs-surface-draft-start__button,
+.fs-surface-action-button,
+.fs-surface-action-link,
+.fs-surface-review-ack__button,
+.fs-response-review-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 1rem;
+  border: 1.5px solid var(--fs-surface-line-strong);
+  border-radius: var(--formspec-radius-md, 4px);
+  background: var(--fs-surface-panel);
+  color: var(--fs-surface-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.fs-surface-draft-start__button,
+.fs-surface-action-button--secondary,
+.fs-surface-action-link--secondary,
+.fs-surface-review-ack__button,
+.fs-response-review-toggle {
+  border-color: var(--fs-surface-accent);
+  color: var(--fs-surface-accent);
+}
+
+.fs-surface-action-link--primary,
+.fs-surface-action-button--primary {
+  border-color: transparent;
+  background: var(--fs-surface-accent-fill);
+  color: var(--fs-surface-accent-ink);
+}
+
+.fs-surface-action-link--quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--fs-surface-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding-inline: 0.5rem;
+}
+
+.fs-surface-draft-start__button:hover:not(:disabled),
+.fs-surface-action-button--secondary:hover:not(:disabled),
+.fs-surface-action-link--secondary:hover,
+.fs-surface-review-ack__button:hover:not(:disabled),
+.fs-response-review-toggle:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--fs-surface-accent) 8%, var(--fs-surface-panel));
+}
+
+.fs-surface-action-link--primary:hover,
+.fs-surface-action-button--primary:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.fs-surface-draft-start__button:disabled,
+.fs-surface-action-button:disabled,
+.fs-surface-review-ack__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.fs-surface-draft-start__button:focus-visible,
+.fs-surface-action-button:focus-visible,
+.fs-surface-action-link:focus-visible,
+.fs-surface-review-ack__button:focus-visible,
+.fs-response-review-toggle:focus-visible {
+  outline: 3px solid var(--fs-surface-focus);
+  outline-offset: 2px;
+}
+
+.fs-surface-filed-summary,
+.fs-surface-filing-banner,
+.fs-surface-prerequisite-notice,
+.fs-surface-review-validation,
+.fs-surface-action-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 100%;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--fs-surface-line);
+  border-inline-start: 4px solid var(--fs-surface-accent);
+  border-radius: var(--formspec-radius-md, 4px);
+  background: var(--fs-surface-panel-quiet);
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-filing-banner,
+.fs-surface-review-validation {
+  margin-block-end: 1rem;
+}
+
+.fs-surface-action-banner {
+  margin-block-start: 1rem;
+}
+
+.fs-surface-action-banner:focus {
+  outline: 3px solid var(--fs-surface-focus);
+  outline-offset: 2px;
+}
+
+.fs-surface-filed-summary[data-filing-status="accepted"],
+.fs-surface-filing-banner[data-filing-status="accepted"],
+.fs-surface-action-banner--submitted {
+  border-color: color-mix(in srgb, var(--fs-surface-success) 45%, var(--fs-surface-line));
+  border-inline-start-color: var(--fs-surface-success);
+  background: color-mix(in srgb, var(--fs-surface-success) 9%, var(--fs-surface-panel));
+}
+
+.fs-surface-filing-banner[data-filing-status="returned"],
+.fs-surface-filing-banner[data-filing-status="reopened"],
+.fs-surface-prerequisite-notice,
+.fs-surface-review-validation {
+  border-color: color-mix(in srgb, var(--fs-surface-warning) 50%, var(--fs-surface-line));
+  border-inline-start-color: var(--fs-surface-warning);
+  background: color-mix(in srgb, var(--fs-surface-warning) 10%, var(--fs-surface-panel));
+}
+
+.fs-surface-action-banner--blocked,
+.fs-surface-action-banner--failed,
+.fs-surface-filed-summary[data-filing-status="closed-without-acceptance"] {
+  border-color: color-mix(in srgb, var(--fs-surface-danger) 50%, var(--fs-surface-line));
+  border-inline-start-color: var(--fs-surface-danger);
+  background: color-mix(in srgb, var(--fs-surface-danger) 8%, var(--fs-surface-panel));
+}
+
+.fs-surface-filed-summary__header,
+.fs-surface-filing-banner__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.fs-surface-filed-summary__lead,
+.fs-surface-filing-banner__lead,
+.fs-surface-prerequisite-notice__title,
+.fs-surface-action-banner__title,
+.fs-surface-review-validation__summary {
+  margin: 0;
+  font-weight: 700;
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-prerequisite-notice__detail,
+.fs-surface-action-banner__detail {
+  margin: 0;
+  color: var(--fs-surface-ink);
+  line-height: 1.5;
+}
+
+.fs-surface-filed-summary__actions,
+.fs-surface-prerequisite-notice__actions,
+.fs-surface-action-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.fs-surface-review-ack {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 1rem 0 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--fs-surface-warning) 50%, var(--fs-surface-line));
+  border-inline-start: 4px solid var(--fs-surface-warning);
+  border-radius: var(--formspec-radius-md, 4px);
+  background: color-mix(in srgb, var(--fs-surface-warning) 8%, var(--fs-surface-panel));
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-review-ack__legend {
+  float: left;
+  width: 100%;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--fs-surface-ink);
+}
+
+.fs-surface-review-ack__body {
+  clear: both;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.fs-surface-review-ack__body ul {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+}
+
+.fs-surface-review-ack__body a {
+  color: var(--fs-surface-accent);
+  font-weight: 600;
 }
 
 .fs-surface-transition__button:focus-visible {
@@ -1268,11 +1583,37 @@ th[data-cell-kind="status"] {
   border: 0;
 }
 
+@media (max-width: 64rem) {
+  .fs-surface-header {
+    position: static;
+  }
+
+  .fs-surface-nav {
+    top: 0.75rem;
+  }
+}
+
 @media (max-width: 48rem) {
   .fs-surface-header__inner {
     min-height: 3.5rem;
     padding-inline: max(1rem, env(safe-area-inset-left))
       max(1rem, env(safe-area-inset-right));
+  }
+
+  .fs-surface-masthead-controls {
+    width: 100%;
+    margin-inline-start: 0;
+  }
+
+  .fs-surface-masthead-controls label {
+    flex-wrap: wrap;
+    white-space: normal;
+    width: 100%;
+  }
+
+  .fs-surface-masthead-controls select {
+    width: 100%;
+    max-width: 100%;
   }
 
   .fs-surface-shell {
@@ -1577,6 +1918,37 @@ th[data-cell-kind="status"] {
   color: var(--fs-surface-ink-quiet);
 }
 
+.fs-response-review-list {
+  margin: 0;
+  padding-inline-start: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fs-response-review-number {
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-response-review-calculated-empty {
+  color: var(--fs-surface-ink-quiet);
+}
+
+.fs-response-review-controls {
+  margin: 0.75rem 0 1rem;
+}
+
+.fs-response-review-empty {
+  margin: 0.75rem 0;
+  color: var(--fs-surface-ink-quiet);
+}
+
+.fs-response-review-record-details p {
+  font-family: var(--fs-surface-font-mono);
+  font-size: 0.8125rem;
+  overflow-wrap: break-word;
+}
+
 .fs-response-review-attachment {
   margin: 0 0 1rem;
 }
@@ -1717,7 +2089,7 @@ th[data-cell-kind="status"] {
 }
 
 @media (min-width: 70rem) {
-  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p))) > .fs-surface-route__title {
+  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p)):not(:has(dl > div:nth-child(4)))) > .fs-surface-route__title {
     box-sizing: border-box;
     padding-inline-end: 23rem;
     min-block-size: 3.5rem;
@@ -1726,7 +2098,7 @@ th[data-cell-kind="status"] {
     border-block-end: 2px solid var(--fs-surface-ink);
   }
 
-  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"] > .fs-surface-filing > .fs-surface-filing__totals {
+  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p)):not(:has(dl > div:nth-child(4)))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"] > .fs-surface-filing > .fs-surface-filing__totals {
     position: absolute;
     inset-block-start: clamp(1.25rem, 2.75vw, 2rem);
     inset-inline-end: clamp(1.25rem, 2.75vw, 2rem);
@@ -1737,7 +2109,7 @@ th[data-cell-kind="status"] {
     background: transparent;
   }
 
-  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"] > .fs-surface-filing > .fs-surface-filing__group:first-of-type {
+  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p)):not(:has(dl > div:nth-child(4)))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"] > .fs-surface-filing > .fs-surface-filing__group:first-of-type {
     margin-block-start: 0;
   }
 }
@@ -1797,6 +2169,19 @@ th[data-cell-kind="status"] {
 .fs-surface-filing__section-nav summary,
 .fs-surface-filing__sections a {
   color: var(--fs-surface-accent);
+}
+
+.fs-surface-filing__form > [role='link'][aria-disabled='true'],
+.fs-surface-filing__sections [role='link'][aria-disabled='true'] {
+  color: var(--fs-surface-ink-quiet);
+  text-decoration: none;
+  cursor: default;
+}
+
+.fs-surface-filing__empty {
+  margin: 0.5rem 0 0;
+  color: var(--fs-surface-ink-quiet);
+  font-size: 0.875rem;
 }
 
 .fs-surface-filing__form > a:focus-visible,
@@ -1937,6 +2322,9 @@ th[data-cell-kind="status"] {
   font-family: var(--fs-surface-font-mono);
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
+  overflow-wrap: break-word;
+  word-break: normal;
+  max-width: 100%;
 }
 
 .fs-surface-filing__comment {
@@ -1968,17 +2356,11 @@ th[data-cell-kind="status"] {
 
 .fs-surface-filing__sections {
   margin-block-start: 0.35rem;
+  gap: 0.3rem 0.875rem;
 }
 
-.fs-surface-filing__sections li:not(:last-child)::after {
-  content: '';
-  display: inline-block;
-  inline-size: 0.2rem;
-  block-size: 0.2rem;
-  margin-inline-start: 0.5rem;
-  border-radius: 50%;
-  background: var(--fs-surface-line-strong);
-  vertical-align: middle;
+.fs-surface-filing__sections li {
+  line-height: 1.4;
 }
 
 @container filing (min-width: 30rem) {
@@ -2035,7 +2417,7 @@ th[data-cell-kind="status"] {
 
 .fs-surface-filing__segment {
   flex-basis: 0;
-  min-inline-size: 0;
+  min-inline-size: 0.375rem;
 }
 
 .fs-surface-filing__segment[href]:hover {
@@ -2047,6 +2429,14 @@ th[data-cell-kind="status"] {
   inline-size: 100%;
   background: var(--fs-surface-accent);
   transition: inline-size 0.2s ease;
+}
+
+.fs-surface-filing__strip[data-strip-state="accepted"] .fs-surface-filing__fill {
+  background: var(--fs-surface-success);
+}
+
+.fs-surface-filing__strip[data-strip-state="filed"] .fs-surface-filing__fill {
+  background: color-mix(in srgb, var(--fs-surface-accent) 78%, var(--fs-surface-success));
 }
 
 .fs-surface-filing__mark {

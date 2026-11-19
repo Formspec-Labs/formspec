@@ -38,6 +38,10 @@ export interface SurfaceTransitionsProps {
   transitions: readonly PlannedTransition[];
   /** The shell's own person-facing strings. Defaults to the shipped English. */
   strings?: SurfaceStrings | undefined;
+  /** True when the route renders a definition-form that already owns the primary CTA. */
+  hasDefinitionForm?: boolean | undefined;
+  /** Target form route refs owned by draft-review slots on this route, for concise Back-to-form labels. */
+  draftReviewTargetRouteRefs?: ReadonlySet<string> | undefined;
   /**
    * Runs the transition's action under Response Actions authority and reports
    * whether it succeeded. Absent ⇒ a resolved transition is `unfireable` with
@@ -52,6 +56,8 @@ export function SurfaceTransitions({
   from,
   transitions,
   strings,
+  hasDefinitionForm,
+  draftReviewTargetRouteRefs,
   onFire,
   onAdvance,
 }: SurfaceTransitionsProps) {
@@ -65,18 +71,27 @@ export function SurfaceTransitions({
   );
   if (shown.length === 0) return null;
   const text = strings ?? resolveSurfaceStrings();
+  const usesDefaultContinueTemplate =
+    text('transitionContinue', { target: '__TARGET__' }) === 'Continue to __TARGET__';
   return (
     <div className="fs-surface-transitions" data-probe="transitions">
-      {shown.map((transition) => (
-        <SurfaceTransition
-          key={`${transition.trigger}->${transition.to}`}
-          from={from}
-          transition={transition}
-          strings={text}
-          {...(onFire ? { onFire } : {})}
-          {...(onAdvance ? { onAdvance } : {})}
-        />
-      ))}
+      {shown.map((transition, index) => {
+        const isBackToReviewedForm = Boolean(draftReviewTargetRouteRefs?.has(transition.to));
+        const secondary = Boolean(hasDefinitionForm || index > 0);
+        return (
+          <SurfaceTransition
+            key={`${transition.trigger}->${transition.to}`}
+            from={from}
+            transition={transition}
+            strings={text}
+            secondary={secondary}
+            backToForm={isBackToReviewedForm && usesDefaultContinueTemplate}
+            usesDefaultContinueTemplate={usesDefaultContinueTemplate}
+            {...(onFire ? { onFire } : {})}
+            {...(onAdvance ? { onAdvance } : {})}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -85,12 +100,18 @@ function SurfaceTransition({
   from,
   transition,
   strings,
+  secondary,
+  backToForm,
+  usesDefaultContinueTemplate,
   onFire,
   onAdvance,
 }: {
   from: SurfaceTransitionSource;
   transition: PlannedTransition;
   strings: SurfaceStrings;
+  secondary?: boolean;
+  backToForm?: boolean;
+  usesDefaultContinueTemplate?: boolean;
   onFire?: FireTransition;
   onAdvance?: AdvanceTransition;
 }) {
@@ -114,7 +135,15 @@ function SurfaceTransition({
     );
   }
 
-  const label = transition.target?.route.title ?? transition.to;
+  const rawLabel = transition.target?.route.title ?? transition.to;
+  const targetLabel = usesDefaultContinueTemplate
+    ? rawLabel.replace(/^The\s+/, 'the ')
+    : rawLabel;
+  const buttonText = pending
+    ? strings('transitionPending')
+    : backToForm
+      ? 'Back to form'
+      : strings('transitionContinue', { target: targetLabel });
   const renderedAnchors = mergeNeedAnchors(
     transition.needAnchors,
     transition.target
@@ -131,7 +160,9 @@ function SurfaceTransition({
     >
       <button
         type="button"
-        className="fs-surface-transition__button"
+        className={secondary
+          ? 'fs-surface-transition__button fs-surface-transition__button--secondary'
+          : 'fs-surface-transition__button'}
         disabled={pending}
         onClick={() => {
           setPending(true);
@@ -148,7 +179,7 @@ function SurfaceTransition({
             .finally(() => setPending(false));
         }}
       >
-        {pending ? strings('transitionPending') : strings('transitionContinue', { target: label })}
+        {buttonText}
       </button>
       {failure && (
         <p className="fs-surface-transition__failure" role="alert">

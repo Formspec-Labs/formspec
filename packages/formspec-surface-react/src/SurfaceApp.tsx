@@ -464,6 +464,7 @@ export function SurfaceAppView(props: SurfaceAppProps & {
   const setDocumentTitle = props.setDocumentTitle ?? true;
   const widgetActionCoordinator = useRef(createWidgetActionCoordinator());
   const appRoot = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const main = useRef<HTMLElement>(null);
   const hostAppearance = useHostAppearance(appRoot, browser !== undefined);
 
@@ -836,6 +837,44 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     target?.focus({ preventScroll: true });
   }, [routeIdentity, browser?.anchor, browser?.workspace?.focusField]);
 
+  useEffect(() => {
+    const rootEl = appRoot.current;
+    const headerEl = headerRef.current;
+    if (!rootEl) return;
+    const syncHeaderOffset = () => {
+      if (!headerEl || typeof window === "undefined") {
+        rootEl.style.removeProperty("--fs-surface-header-height");
+        rootEl.style.removeProperty("--formspec-sticky-offset");
+        return;
+      }
+      const position = window.getComputedStyle(headerEl).position;
+      const isSticky = position === "sticky" || position === "fixed";
+      const height = isSticky ? Math.ceil(headerEl.getBoundingClientRect().height) : 0;
+      if (height > 0) {
+        rootEl.style.setProperty("--fs-surface-header-height", `${height}px`);
+        rootEl.style.setProperty("--formspec-sticky-offset", `${height + 16}px`);
+      } else {
+        rootEl.style.setProperty("--fs-surface-header-height", "0px");
+        rootEl.style.setProperty("--formspec-sticky-offset", "0.75rem");
+      }
+    };
+    syncHeaderOffset();
+    if (typeof ResizeObserver === "undefined" || !headerEl) {
+      if (typeof window !== "undefined") {
+        window.addEventListener("resize", syncHeaderOffset);
+        return () => window.removeEventListener("resize", syncHeaderOffset);
+      }
+      return;
+    }
+    const observer = new ResizeObserver(syncHeaderOffset);
+    observer.observe(headerEl);
+    window.addEventListener("resize", syncHeaderOffset);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", syncHeaderOffset);
+    };
+  }, [browser, appTitle, props.header]);
+
   return (
     <div
       ref={appRoot}
@@ -845,9 +884,19 @@ export function SurfaceAppView(props: SurfaceAppProps & {
       dir={browser && props.activeLocale ? browser.direction : undefined}
       {...brandTrace}
     >
+      <a
+        className="fs-surface-skip-link"
+        href="#fs-surface-main"
+        onClick={(event) => {
+          event.preventDefault();
+          main.current?.focus();
+        }}
+      >
+        Skip to main content
+      </a>
       {setDocumentTitle && title && <SurfaceDocumentTitle title={title} />}
       {(props.header !== undefined || appTitle || browser) && (
-        <header className="fs-surface-header">
+        <header ref={headerRef} className="fs-surface-header">
           <div className="fs-surface-header__inner">
             {props.header ?? (appTitle && (entryPath !== undefined && entryHref !== undefined
               ? <a className="fs-surface-brand" href={entryHref}
@@ -879,7 +928,7 @@ export function SurfaceAppView(props: SurfaceAppProps & {
           menuLabel={props.navigationLabel ?? strings("navigationLabel")}
           resolveRouteTitle={props.resolveRouteTitle}
         />
-        <main ref={main} className="fs-surface-main">
+        <main ref={main} id="fs-surface-main" tabIndex={-1} className="fs-surface-main">
           {routePlan ? (
             <SurfaceRouteView
               key={browser ? runtimeGeneration : `${routePlan.handle.surfaceId}/${routePlan.handle.routeId}`}
@@ -1145,6 +1194,24 @@ export function SurfaceNav({
   );
   const activeMatch = matchRoute(app, location).match;
   const activeRoute = activeMatch?.handle;
+  const highlightedRoute = useMemo(() => {
+    if (!activeRoute) return undefined;
+    if (activeRoute.route.navigation?.visible !== false) return activeRoute;
+    for (const slot of activeRoute.route.slots ?? []) {
+      if (slot.slotType !== "module-widget") continue;
+      const binding = slot.binding as { draftReview?: { routeRef?: unknown } } | undefined;
+      if (typeof binding?.draftReview?.routeRef === "string") {
+        const target = app.routes.find(
+          (candidate) =>
+            candidate.surface === activeRoute.surface &&
+            candidate.routeId === binding.draftReview!.routeRef &&
+            candidate.route.navigation?.visible !== false
+        );
+        if (target) return target;
+      }
+    }
+    return activeRoute;
+  }, [activeRoute, app.routes]);
   const activeNavigationScope = activeRoute
     ? routeNavigationScope(activeRoute)
     : DEFAULT_NAVIGATION_SCOPE;
@@ -1185,19 +1252,23 @@ export function SurfaceNav({
   );
 
   const activeHubKeys = useMemo(() => {
-    if (!activeRoute) return [];
+    if (!highlightedRoute) return [];
     for (const group of groups) {
-      const keys = group.tree.ancestorHubKeys.get(activeRoute);
+      const keys = group.tree.ancestorHubKeys.get(highlightedRoute);
       if (keys) return keys;
     }
     return [];
-  }, [activeRoute, groups]);
+  }, [highlightedRoute, groups]);
 
   useEffect(() => {
     setMenuOpen(false);
   }, [location]);
 
+  const previousActiveRouteKey = useRef<string | undefined>(undefined);
+  const currentActiveRouteKey = activeRoute ? `${activeRoute.surfaceId}/${activeRoute.routeId}` : undefined;
   useEffect(() => {
+    if (previousActiveRouteKey.current === currentActiveRouteKey) return;
+    previousActiveRouteKey.current = currentActiveRouteKey;
     if (activeHubKeys.length === 0) return;
     setCollapsedHubs((previous) => {
       if (!activeHubKeys.some((key) => previous.has(key))) return previous;
@@ -1205,7 +1276,7 @@ export function SurfaceNav({
       for (const key of activeHubKeys) next.delete(key);
       return next;
     });
-  }, [activeHubKeys]);
+  }, [currentActiveRouteKey, activeHubKeys]);
 
   if (groups.length === 0) return null;
 
@@ -1271,9 +1342,9 @@ export function SurfaceNav({
         href={navigationHref}
         data-nav-route={handle.routeId}
         aria-current={
-          activeMatch?.handle === handle &&
+          (activeMatch?.handle === handle || highlightedRoute === handle) &&
           handle.markers.every(
-            ({ name }) => activeMatch.params[name] === routeParams?.[name]
+            ({ name }) => activeMatch?.params[name] === routeParams?.[name]
           )
             ? "page"
             : undefined
@@ -1314,17 +1385,21 @@ export function SurfaceNav({
       >
         <div className="fs-surface-nav__hub-row">
           {element}
-          <span className="fs-surface-nav__hub-badge" aria-hidden="true">
-            {showOverviewBadge ? "Overview" : String(node.children.length)}
-          </span>
           <button
             type="button"
             className="fs-surface-nav__hub-toggle"
             aria-expanded={expanded}
             aria-controls={sublistId}
             aria-label={`${navigationLabel} pages`}
-            onClick={() => toggleHub(node.key)}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              toggleHub(node.key);
+            }}
           >
+            <span className="fs-surface-nav__hub-badge" aria-hidden="true">
+              {showOverviewBadge ? "Overview" : String(node.children.length)}
+            </span>
             <span className="fs-surface-nav__hub-chevron" aria-hidden="true" />
           </button>
         </div>

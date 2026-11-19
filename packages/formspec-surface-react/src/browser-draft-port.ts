@@ -16,16 +16,17 @@ import {
   type FormDraftSnapshot,
 } from '@formspec-org/engine';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
-import { resolvePageSequence, summarizeFormProgress, type PageSequenceEntry } from '@formspec-org/layout';
+import { resolvePageSequence, type PageSequenceEntry } from '@formspec-org/layout';
 import {
   canonicalDraftProgress, canonicalFiniteJson, matchesFilingSubjectPredicates, prepareResponseFiling, prepareResponseFixtures, responseDraftKey, responsePairKey, responseSelectionRecord,
-  catalogResponseDigest, catalogResponseProjection, catalogResponseSelection, resolveDataSourceDescriptor, selectFilingSummaryStatus, toResponseFilingSummary,
+  catalogResponseDigest, catalogResponseProjection, catalogResponseSelection, resolveDataSourceDescriptor, selectFilingStatus, selectFilingSummaryStatus, toResponseFilingSummary,
   type BrowserDraftPort, type CurrentDraftProgress, type DraftStartInput, type DraftStartResult, type DataSourceCatalogHandle, type DraftKey, type DraftRecord, type DraftSaveInput, type DraftSectionPlacement,
-  type FilingStatusObservation, type MatchedFilingDraftObservation, type MatchedFilingObservation, type PreparedDraftFixture, type PreparedResponseFixtures,
+  type FilingLoadResult, type FilingStatusObservation, type MatchedFilingDraftObservation, type MatchedFilingObservation, type PreparedDraftFixture, type PreparedResponseFixtures,
   type ResponseFiling, type ResponseFilingSummary, type ResponseFixtures, type ResponseRecordTools,
 } from '@formspec-org/surface';
 import type { DispositionAuthority, EvaluatedFormState, Explanation, FormDefinition, FormResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionDelivery, ResponseSelectionOutcome, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
 import { definitionResponseRequests } from './definition-response-reads.js';
+import { summarizeDraftProgress } from './draft-progress.js';
 import type { SurfaceDraftFence } from './draft-writer.js';
 
 type StoredDraft = Omit<DraftRecord, 'pins'> & {
@@ -199,7 +200,7 @@ function progressForSections(
   sections: readonly Pick<PageSequenceEntry, 'id' | 'fields' | 'groups'>[],
   evaluated: EvaluatedFormState,
 ): CurrentDraftProgress | undefined {
-  const summarized = summarizeFormProgress(sections as readonly PageSequenceEntry[], evaluated);
+  const summarized = summarizeDraftProgress(sections as readonly PageSequenceEntry[], evaluated);
   const allowed = new Set(sections.flatMap(({ id }) => (id === undefined ? [] : [id])));
   return canonicalDraftProgress({
     status: 'current',
@@ -1205,6 +1206,41 @@ function createFilingStore(
         if (!('responseJson' in stored)) return { status: 'initialized', revision: stored.revision, pins };
         const { revision, snapshotJson, responseJson } = stored;
         return { status: 'loaded', draft: { revision, snapshotJson, responseJson, pins } };
+      } catch {
+        signal?.throwIfAborted();
+        return { status: 'unavailable' };
+      }
+    },
+
+    async loadFiling(key, _definitionVersion, signal): Promise<FilingLoadResult> {
+      try {
+        signal?.throwIfAborted();
+        if (!await authorized(key, 'read')) return { status: 'denied' };
+        signal?.throwIfAborted();
+        const definition = definitions.get(key.definitionUrl);
+        if (!definition) return { status: 'absent' };
+        const initialized = await settledReady();
+        signal?.throwIfAborted();
+        const storedFilings = await transaction(['filings'], 'readonly', tx => tx.list('filings', scope));
+        signal?.throwIfAborted();
+        const candidates = [...storedFilings.map(({ value }) => value), ...initialized.filings]
+          .filter(record => sameKey(record.key, key));
+        if (candidates.length === 0) return { status: 'absent' };
+        const observed = selectFilingStatus(key, definition, candidates, initialized.decisions, initialized.tools);
+        if (!('receiptRef' in observed)) {
+          return observed.status === 'none' ? { status: 'absent' } : { status: 'unavailable' };
+        }
+        const chosen = candidates.find(record =>
+          record.responseId === observed.receiptRef && record.responseHash === observed.responseHash);
+        if (!chosen) return { status: 'unavailable' };
+        return {
+          status: 'loaded',
+          filing: {
+            responseJson: chosen.responseJson,
+            definitionVersion: chosen.definitionVersion,
+            observation: observed,
+          },
+        };
       } catch {
         signal?.throwIfAborted();
         return { status: 'unavailable' };

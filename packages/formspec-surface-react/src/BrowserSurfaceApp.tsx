@@ -276,7 +276,13 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
           </select>
         </label>
       ),
-      saveNotice: save && save.scope === previewScope ? locale.strings(save.notice) : '',
+      saveNotice: save && save.scope === previewScope
+        ? save.notice === 'submitted'
+          ? (localPort ? 'Submitted in this browser.' : 'Submitted.')
+          : save.notice === 'cleared'
+            ? ''
+            : locale.strings(save.notice)
+        : '',
     }}
     sessionGeneration={JSON.stringify([previewScope, props.sessionGeneration])}
   />;

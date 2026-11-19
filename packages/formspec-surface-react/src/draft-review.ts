@@ -10,16 +10,26 @@ import {
   type DraftReviewPlan, type SurfaceDiagnosticSite, type WidgetDataDelivery,
 } from '@formspec-org/surface';
 import { targetDefinitionMatches, type LocaleDocument } from '@formspec-org/types';
-import type { DraftSession } from './draft-session.js';
+import type { DraftSession, FiledObservation } from './draft-session.js';
+import { summarizeDraftProgress } from './draft-progress.js';
 import { qualifyDraftReview } from './internal/draft-review-qualification.js';
 import type { DraftResponseReviewData } from './widgets/response-review-metadata.js';
 
 type DraftReviewFailure = Extract<DraftReviewPlan, { status: 'unresolved' }>['reason'] |
   'initialized' | 'absent' | 'denied' | 'version-mismatch' | 'unavailable' | 'save-failed' | 'response-invalid' | 'presentation-invalid';
 
+export interface DraftReviewValidationSummary {
+  readonly toFix: number;
+  readonly toCheck: number;
+  readonly missing: number;
+}
+
 export type DraftReviewReadyDelivery = Extract<WidgetDataDelivery, { status: 'ready' }> & {
   revision: string;
   warningGroups: readonly WarningAcknowledgementGroupView[];
+  filing?: FiledObservation | undefined;
+  isFiledRecord?: boolean | undefined;
+  validationSummary?: DraftReviewValidationSummary | undefined;
 };
 
 export type DraftReviewDelivery = DraftReviewReadyDelivery |
@@ -48,10 +58,38 @@ export async function loadDraftReviewInputs(
   if (!session) return unavailable('unavailable');
   const { definition, subject } = plan;
   const draft = await session.readCommitted(definition, subject, { afterPendingSaves: true, signal });
-  if (draft.status !== 'loaded') return unavailable(draft.status);
-  const { response, revision, key } = draft;
+  let response: import('@formspec-org/types').FormResponse;
+  let revision: string;
+  let key: import('@formspec-org/surface').DraftKey;
+  let pins: import('@formspec-org/surface').DraftRecord['pins'] | undefined;
+  let filing: FiledObservation | undefined;
+  let isFiledRecord = false;
+
+  if (draft.status === 'loaded') {
+    response = draft.response;
+    revision = draft.revision;
+    key = draft.key;
+    pins = draft.pins;
+    const relatedFiling = await session.readFiling(definition, subject, { signal }).catch(() => ({ status: 'absent' as const }));
+    if (relatedFiling.status === 'loaded') {
+      filing = relatedFiling.observation;
+    }
+  } else if (draft.status === 'absent' || draft.status === 'initialized') {
+    const filed = await session.readFiling(definition, subject, { signal });
+    if (filed.status !== 'loaded') return unavailable(draft.status);
+    response = filed.response;
+    revision = filed.observation.responseHash || filed.response.id || '';
+    key = filed.key;
+    filing = filed.observation;
+    isFiledRecord = true;
+  } else {
+    return unavailable(draft.status);
+  }
+  const allowedStatus = isFiledRecord
+    ? response.status === 'completed' || response.status === 'amended' || response.status === 'in-progress'
+    : response.status === 'in-progress';
   try {
-    if (response.$formspecResponse !== '1.0' || response.status !== 'in-progress' ||
+    if (response.$formspecResponse !== '1.0' || !allowedStatus ||
         typeof response.id !== 'string' || !response.id || !revision || response.definitionUrl !== definition.url ||
         !response.data || typeof response.data !== 'object' || Array.isArray(response.data) ||
         (key.subject && canonicalFiniteJson(snapshotFiniteJson(response.subject)) !== canonicalFiniteJson(snapshotFiniteJson(key.subject)))) {
@@ -67,7 +105,7 @@ export async function loadDraftReviewInputs(
     signal.throwIfAborted();
     const hasResponseInstances = Object.values(definition.instances ?? {}).some(inst => Boolean(inst.response));
     const responseInstanceResolutions = hasResponseInstances && session.resolveReads
-      ? await session.resolveReads(definition, key, draft.pins, signal)
+      ? await session.resolveReads(definition, key, pins, signal)
       : undefined;
     signal.throwIfAborted();
     const engine = createFormEngine(definition, {
@@ -101,24 +139,47 @@ export async function loadDraftReviewInputs(
         search.set('field', targetPath);
         return `${base}?${search.toString()}`;
       };
-      const warningGroups = readWarningAcknowledgementGroups(engine.getExplanationState(), {
-        field: (targetPath) => {
-          const vm = engine.getFieldVM(targetPath);
-          const label = vm?.label.value ?? engine.getItemLabelSignal(targetPath)?.value;
-          if (!vm && label === undefined) return null;
-          return { label: label || targetPath, controlId: vm?.id || null };
-        },
-        rootLabel: () => definition.title || 'Form',
-        resolveText: (localeKey, fallback) => engine.resolveLocaleString(localeKey, fallback),
-        lookupUi: (uiKey) => engine.lookupLocaleString(`$ui.${uiKey}`),
-        jumpable: (targetPath) => hrefForPath(targetPath) !== null,
-        hrefForPath,
-      });
+      const warningGroups = isFiledRecord
+        ? []
+        : readWarningAcknowledgementGroups(engine.getExplanationState(), {
+            field: (targetPath) => {
+              const vm = engine.getFieldVM(targetPath);
+              const label = vm?.label.value ?? engine.getItemLabelSignal(targetPath)?.value;
+              if (!vm && label === undefined) return null;
+              return { label: label || targetPath, controlId: vm?.id || null };
+            },
+            rootLabel: () => definition.title || 'Form',
+            resolveText: (localeKey, fallback) => engine.resolveLocaleString(localeKey, fallback),
+            lookupUi: (uiKey) => engine.lookupLocaleString(`$ui.${uiKey}`),
+            jumpable: (targetPath) => hrefForPath(targetPath) !== null,
+            hrefForPath,
+          });
+      let validationSummary: DraftReviewValidationSummary | undefined;
+      if (!isFiledRecord) {
+        const evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
+        const progress = summarizeDraftProgress([], evaluated);
+        const toFix = progress.form.toFix ?? 0;
+        const toCheck = progress.form.toCheck ?? 0;
+        const missing = progress.form.missing;
+        if (toFix > 0 || toCheck > 0 || missing > 0) {
+          validationSummary = { toFix, toCheck, missing };
+        }
+      }
       const data: DraftResponseReviewData = { definition, response,
         presentation: { phase: 'draft-review', revision, locale: engine.getActiveLocale(), fields } };
       const captured = snapshotFiniteJson(data) as Readonly<Record<string, unknown>>;
       qualifyDraftReview(captured);
-      return { status: 'ready', degradedInputs: [], diagnostics: [], data: captured, revision, warningGroups };
+      return {
+        status: 'ready',
+        degradedInputs: [],
+        diagnostics: [],
+        data: captured,
+        revision,
+        warningGroups,
+        ...(filing ? { filing } : {}),
+        ...(isFiledRecord ? { isFiledRecord: true } : {}),
+        ...(validationSummary ? { validationSummary } : {}),
+      };
     } finally {
       engine.dispose();
     }

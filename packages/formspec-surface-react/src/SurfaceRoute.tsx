@@ -35,11 +35,12 @@ import type { NativeScreenerSlotProps, SurfaceScreenerCompletionPolicy } from '.
 import { presentedRouteTitle, type SurfaceRouteTitleResolver } from './title-presentation.js';
 import { activeWorkspaceSlot } from './workspace-navigation.js';
 import type { DataSourceRevisionSelector } from './data-source-revision.js';
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   generationNeedAnchors,
   resolveRouteTitleLevel,
   resolveSurfaceStrings,
+  routeHref,
   type DataSourceAuthorizer,
   type DataSourceLoader,
   type DataSourcePayloadValidator,
@@ -211,6 +212,21 @@ export function SurfaceRouteView({
   const titleLevel = resolveRouteTitleLevel(plan.headingBaseLevel);
   const titleText = presentedRouteTitle(handle, resolveRouteTitle);
   const titleId = `fs-surface-title-${handle.routeId}`;
+  const contextEntries = useMemo(() => {
+    if (handle.markers.length === 0) return [];
+    const lowerTitle = titleText.toLowerCase();
+    return handle.markers.flatMap((marker) => {
+      const value = params[marker.name];
+      if (!value || lowerTitle.includes(value.toLowerCase())) return [];
+      const formattedLabel = marker.name
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .split(/[_\-\s]+/)
+        .filter(Boolean)
+        .map((part) => (part.length <= 3 ? part.toUpperCase() : part[0]!.toUpperCase() + part.slice(1)))
+        .join(' ');
+      return [{ name: marker.name, label: formattedLabel, value }];
+    });
+  }, [handle.markers, params, titleText]);
   const route = {
     surfaceId: handle.surfaceId,
     surfaceRef: plan.surfaceRef,
@@ -230,6 +246,78 @@ export function SurfaceRouteView({
   const hasDecisionFormSlot = plan.slots.some(
     (slotPlan) => slotPlan.slotType === 'definition-form',
   );
+  const draftReviewTargetRouteRefs = useMemo(() => {
+    const refs = new Set<string>();
+    for (const slot of handle.route.slots ?? []) {
+      if (slot.slotType !== 'module-widget') continue;
+      const binding = slot.binding as { draftReview?: { routeRef?: unknown } } | undefined;
+      if (typeof binding?.draftReview?.routeRef === 'string') {
+        refs.add(binding.draftReview.routeRef);
+      }
+    }
+    return refs;
+  }, [handle.route.slots]);
+  const isDraftReviewRoute = draftReviewTargetRouteRefs.size > 0;
+
+  const isTransitionToDraftReview = (transition: PlannedTransition): boolean =>
+    Boolean(
+      transition.target?.route.slots?.some((slot) => {
+        if (slot.slotType !== 'module-widget') return false;
+        const binding = slot.binding as { draftReview?: unknown } | undefined;
+        return Boolean(binding?.draftReview);
+      }),
+    );
+
+  const reviewTransition = plan.transitions.find(
+    (transition) => transition.status === 'fireable' && isTransitionToDraftReview(transition),
+  );
+  const reviewDestination = useMemo(() => {
+    if (!reviewTransition?.target) return undefined;
+    const nextParams: Record<string, string> = { ...plan.params };
+    for (const [targetParam, bindingName] of Object.entries(reviewTransition.params ?? {})) {
+      const value = plan.params[bindingName];
+      if (typeof value === 'string' && value.length > 0) nextParams[targetParam] = value;
+    }
+    const resolved = routeHref(reviewTransition.target, nextParams);
+    return resolved.refusal === undefined ? resolved.href : undefined;
+  }, [reviewTransition, plan.params]);
+
+  const [slotDraftStatus, setSlotDraftStatus] = useState<
+    ReadonlyMap<string, 'loading' | 'ready' | 'filed' | 'blocked'>
+  >(() => new Map());
+  const handleSlotDraftAvailabilityChange = useCallback(
+    (slotId: string, status: 'loading' | 'ready' | 'filed' | 'blocked' | undefined) => {
+      setSlotDraftStatus((previous) => {
+        if (status === undefined) {
+          if (!previous.has(slotId)) return previous;
+          const next = new Map(previous);
+          next.delete(slotId);
+          return next;
+        }
+        if (previous.get(slotId) === status) return previous;
+        const next = new Map(previous);
+        next.set(slotId, status);
+        return next;
+      });
+    },
+    [],
+  );
+
+  const definitionFormSlots = plan.slots.filter((slot) => slot.slotType === 'definition-form');
+  const allFormsBlocked =
+    definitionFormSlots.length > 0 &&
+    definitionFormSlots.every((slot) => slotDraftStatus.get(slot.slotId) === 'blocked');
+  const anyFormFiled = definitionFormSlots.some((slot) => slotDraftStatus.get(slot.slotId) === 'filed');
+  const visibleTransitions = useMemo(() => {
+    if (!allFormsBlocked && !anyFormFiled) return plan.transitions;
+    return plan.transitions.filter((transition) => {
+      if (!isTransitionToDraftReview(transition)) return true;
+      // Suppress broken Review CTA on prerequisite-blocked forms (no answers exist),
+      // and avoid duplicating the filed summary card's own Review submitted answers link.
+      return !allFormsBlocked && !anyFormFiled;
+    });
+  }, [plan.transitions, allFormsBlocked, anyFormFiled]);
+
   const routeClass = String(handle.route.routeClass ?? 'unclassified');
   const routeLayout =
     (routeClass === 'review' && plan.slots.length > 1) ||
@@ -262,6 +350,16 @@ export function SurfaceRouteView({
         <Heading level={titleLevel} className="fs-surface-route__title" id={titleId}>
           {titleText}
         </Heading>
+      )}
+      {titleLevel !== undefined && contextEntries.length > 0 && (
+        <dl className="fs-surface-route__context" aria-label="Active record context">
+          {contextEntries.map((entry) => (
+            <div key={entry.name} className="fs-surface-route__context-item" data-route-param={entry.name}>
+              <dt>{entry.label}</dt>
+              <dd>{entry.value}</dd>
+            </div>
+          ))}
+        </dl>
       )}
 
       {plan.bands?.map(({ routeId, slot }) => {
@@ -320,6 +418,8 @@ export function SurfaceRouteView({
             onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
             onSlotFormEngineChange={onSlotFormEngineChange}
             onSlotVisibilityChange={onSlotVisibilityChange}
+            reviewDestination={reviewDestination}
+            onSlotDraftAvailabilityChange={handleSlotDraftAvailabilityChange}
             renderDefinitionForm={renderDefinitionForm}
             definitionActionInvoker={definitionActionInvoker}
             resolveSemanticControlScope={resolveSemanticControlScope}
@@ -350,8 +450,10 @@ export function SurfaceRouteView({
 
       <SurfaceTransitions
         from={{ ...handle, params: plan.params }}
-        transitions={plan.transitions}
+        transitions={visibleTransitions}
         strings={text}
+        hasDefinitionForm={hasDecisionFormSlot}
+        draftReviewTargetRouteRefs={isDraftReviewRoute ? draftReviewTargetRouteRefs : undefined}
         {...(onFireTransition ? { onFire: onFireTransition } : {})}
         {...(onAdvance ? { onAdvance } : {})}
       />

@@ -1,5 +1,5 @@
 /** @filedesc Create on activation and navigate only after the store returns a complete subject. */
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { draftStartHref, type DraftStartPlan, type SurfaceStrings } from '@formspec-org/surface';
 import type { FilingStatusNavigation } from './FilingStatus.js';
 import { deriveDraftSubject, type DraftSession } from './draft-session.js';
@@ -13,6 +13,7 @@ export function DraftStart({ plan, session, navigate, strings }: {
   const visit = useRef<{ attemptId?: string; busy: boolean }>({ busy: false });
   const [status, setStatus] = useState<'ready' | 'pending' | 'failed'>('ready');
   const [missingInstance, setMissingInstance] = useState<string>();
+  const noticeId = useId();
   useLayoutEffect(() => {
     visit.current = { busy: false };
     setStatus('ready');
@@ -51,10 +52,18 @@ export function DraftStart({ plan, session, navigate, strings }: {
   const sel = missingInstance ? def?.instances?.[missingInstance]?.response : undefined;
   const targetTitle = sel ? session.definitions?.get(sel.definition.url)?.title : undefined;
   const requiresAccepted = Boolean(sel?.disposition?.endsWith(':accepted'));
-  return <>
-    <button type="button" disabled={status === 'pending'} onClick={() => void start()}>{plan.label}</button>
+  return <div className="fs-surface-draft-start">
+    <button
+      type="button"
+      className="fs-surface-draft-start__button"
+      disabled={status === 'pending'}
+      aria-describedby={status === 'failed' ? noticeId : undefined}
+      onClick={() => void start()}
+    >
+      {plan.label}
+    </button>
     {status === 'failed' && (missingInstance && targetTitle
-      ? <p className="fs-surface-themenote" role="status">{strings('draftUnavailable')} {requiresAccepted ? `Waiting for an accepted "${targetTitle}" before this form can be started.` : `Waiting for "${targetTitle}" to be filed before this form can be started.`}</p>
-      : <p role="status">{strings('draftUnavailable')}{missingInstance && <> <code>{missingInstance}</code></>}</p>)}
-  </>;
+      ? <p id={noticeId} className="fs-surface-themenote" role="status">{strings('draftUnavailable')} {requiresAccepted ? `Waiting for an accepted "${targetTitle}" before this form can be started.` : `Waiting for "${targetTitle}" to be filed before this form can be started.`}</p>
+      : <p id={noticeId} className="fs-surface-themenote" role="status">{strings('draftUnavailable')}{missingInstance && <> <code>{missingInstance}</code></>}</p>)}
+  </div>;
 }
