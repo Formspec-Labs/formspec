@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import Ajv2020 from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
 import type {
   DataSourcesDocument,
   ResponseActionsDocument,
@@ -920,5 +923,32 @@ describe('validateSurfacePreviewScenario seeded drafts', () => {
       editionScope => prepareDraftFixtures(editionScope, definitions, [{ definitionUrl: INTAKE_URL, data: {} }], stubTools)[0]!.responseId,
     );
     expect(scopedIds[0]).not.toBe(scopedIds[1]);
+  });
+
+  it('admits exactly the attachment URLs the maintained AttachmentValue schema admits, including Unicode case-folding traps', () => {
+    const ajv = new Ajv2020({ strict: false });
+    addFormats(ajv);
+    const common = JSON.parse(readFileSync(new URL('../../../schemas/common.schema.json', import.meta.url), 'utf8'));
+    ajv.addSchema(common);
+    const schemaAdmits = ajv.compile({ $ref: `${common.$id}#/$defs/AttachmentValue` });
+    const definitions = bundleWithDefinitions().definitions;
+    const corpus = [
+      'files/\u212a.pdf', 'files/\u017f.pdf', 'files/K.pdf', 'files/s.pdf', 'urn:files:receipt-1',
+      'https://example.test/a%20b.pdf', '/files/a%20b.pdf', 'HTTPS://EXAMPLE.TEST/A.PDF', '%ZZ', '%2', 'a b',
+      'files/\u00e9.pdf', 'https://[::1]/x', 'https://[::gggg]/x', '#frag', '?q=1',
+    ];
+    for (const url of corpus) {
+      const value = { contentType: 'application/pdf', url };
+      const issues = validateDraftFixtures(definitions, [{
+        definitionUrl: REPORT_URL,
+        subject: { type: REPORT_URL, keys: { year: 2026, unit: 'north' } },
+        data: { receipt: value },
+      }]);
+      expect(issues.length === 0, `fixture admission must match AttachmentValue for ${JSON.stringify(url)}`)
+        .toBe(schemaAdmits(value));
+    }
+    for (const trap of ['files/\u212a.pdf', 'files/\u017f.pdf']) {
+      expect(schemaAdmits({ contentType: 'application/pdf', url: trap })).toBe(false);
+    }
   });
 });

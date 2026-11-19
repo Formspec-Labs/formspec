@@ -480,3 +480,51 @@ test('correcting a refused profile imports its corrected first fixture on reload
   expect(await page.evaluate(async name => (await import('/surface-drafts-port.ts')).initializeRejectedOrCorrectedProfile(name, true), db))
     .toBe('corrected');
 });
+
+test('a profile rejected during preparation commits no seed marker, even beside an owned legacy edit', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const db = 'formspec-seed-mixed-rejected';
+  await page.evaluate(async name => (await import('/surface-drafts-port.ts')).seedLegacyDatabaseForUpgrade(name, 3), db);
+  expect(await page.evaluate(async name => (await import('/surface-drafts-port.ts')).initializeRejectedOrCorrectedProfile(name, false), db))
+    .toBe('rejected');
+  expect(await page.evaluate(async name => (await import('/surface-drafts-port.ts')).readRawStore(name, 'seeds'), db)).toEqual([]);
+  expect(await page.evaluate(async name => (await import('/surface-drafts-port.ts')).readRawStore(name, 'summaries'), db)).toEqual([]);
+});
+
+test('a dependent seed pins the upstream row that actually committed when a user saves it during preparation', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const observed = await page.evaluate(async () =>
+    (await import('/surface-drafts-port.ts')).concurrentUpstreamSaveDuringSeed('formspec-seed-concurrent-upstream'));
+  expect(observed.saved).toBe('saved');
+  expect(observed.parentId).toBe('user-a');
+  expect(observed.parent).toEqual({ answer: 'Actual user edit' });
+  expect(observed.pin).toEqual(observed.parent);
+  expect(observed.selectedIds).toEqual(['user-a']);
+  expect(observed.seeds).toBe(2);
+});
+
+test('a save stores only the closed count fields, whatever progress members the caller attaches', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const { saved, rows } = await page.evaluate(async () =>
+    (await import('/surface-drafts-port.ts')).saveEnrichedSummary('formspec-seed-enriched-save'));
+  expect(saved).toBe('saved');
+  expect(JSON.stringify(rows)).not.toMatch(/first\.answer|Validation message|fieldPath/);
+  expect(rows).toEqual([{
+    definitionVersion: '1.0.0',
+    plans: [{
+      planId: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+      progress: { status: 'current', form: { total: 1, filled: 0, toFix: 1, toCheck: 0, ready: false }, sections: { main: { total: 1, filled: 0, toFix: 1, toCheck: 0 } } },
+    }],
+  }]);
+});
+
+test('a populated v3 summary is rebuilt as counts only during initialization and stays available to the tracker', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const db = 'formspec-seed-upgrade-v3-summary';
+  await page.evaluate(async name => (await import('/surface-drafts-port.ts')).seedLegacyDatabaseForUpgrade(name, 3, true), db);
+  const view = await page.evaluate(async name => (await import('/surface-drafts-port.ts')).operateSeededStore({ db: name, op: 'inspect' }), db);
+  expect(view).toMatchObject({ status: 'loaded', data: { first: { answer: 'Existing edit' } }, draft: { status: 'current', sections: { first: { filled: 1 } } } });
+  const raw = await page.evaluate(async name => (await import('/surface-drafts-port.ts')).readRawStore(name, 'summaries'), db);
+  expect(JSON.stringify(raw)).not.toMatch(/first\.answer|next\.second/);
+  expect(raw).toEqual([{ definitionVersion: '1.0.0', plans: [expect.objectContaining({ planId: expect.stringMatching(/^sha256:/) })] }]);
+});

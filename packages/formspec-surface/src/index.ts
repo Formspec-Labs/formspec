@@ -274,6 +274,7 @@ export type {
   DraftStartInput, DraftStartResult, DraftRestartResult, DraftSaveInput, DraftSaveResult, DraftSectionPlacement,
   FilingDraftObservation, FilingDraftQuery, FilingObservation, FilingProgressCounts, FilingStatusObservation, FilingStatusReader,
 } from './draft-port.js';
+export { canonicalDraftProgress } from './draft-port.js';
 
 export {
   defaultDraftResponseId,

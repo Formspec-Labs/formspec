@@ -299,7 +299,7 @@ export async function operateSeededStore({
   );
 }
 
-export async function seedLegacyDatabaseForUpgrade(db: string, legacyVersion: 2 | 3) {
+export async function seedLegacyDatabaseForUpgrade(db: string, legacyVersion: 2 | 3, withSummary = false) {
   await new Promise<void>((resolve, reject) => {
     const request = indexedDB.open(db, legacyVersion);
     request.onupgradeneeded = () => {
@@ -322,6 +322,17 @@ export async function seedLegacyDatabaseForUpgrade(db: string, legacyVersion: 2 
         },
         [seededScope, seededReviewUrl, 'respondent', ''],
       );
+      // The summary shape written by the v3 adapter: field placements beside the counts.
+      if (withSummary) request.transaction!.objectStore('summaries').put({
+        definitionVersion: version,
+        summary: {
+          sections: [{ id: 'first', fields: ['first.answer'] }, { id: 'next', fields: ['next.second'] }],
+          progress: {
+            status: 'current', form: { total: 2, filled: 1, toFix: 0, toCheck: 0, ready: false },
+            sections: { first: { total: 1, filled: 1, toFix: 0, toCheck: 0 }, next: { total: 1, filled: 0, toFix: 0, toCheck: 0 } },
+          },
+        },
+      }, [seededScope, seededReviewUrl, 'respondent', '']);
     };
     request.onsuccess = () => { request.result.close(); resolve(); };
     request.onerror = () => reject(request.error);
@@ -516,4 +527,110 @@ export async function initializeRejectedOrCorrectedProfile(db: string, corrected
   const loaded = await store.drafts.load(seededKey, version);
   if (loaded.status !== 'loaded') throw new Error(`Expected loaded corrected draft, got ${loaded.status}`);
   return (JSON.parse(loaded.draft.responseJson) as { data: { first: { answer: string } } }).data.first.answer;
+}
+
+export async function readRawStore(db: string, store: 'seeds' | 'summaries' | 'editable' | 'filings') {
+  const handle = await new Promise<IDBDatabase>((resolve, reject) => {
+    const req = indexedDB.open(db);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  try {
+    if (!handle.objectStoreNames.contains(store)) return [];
+    return await new Promise<unknown[]>((resolve, reject) => {
+      const req = handle.transaction(store).objectStore(store).getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  } finally {
+    handle.close();
+  }
+}
+
+export async function saveEnrichedSummary(db: string) {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const store = browser.createBrowserFilingStore({ databaseName: db, scope: seededScope, definitions: seededDefinitions });
+  await store.ready();
+  const enriched = { total: 1, filled: 0, toFix: 1, toCheck: 0, fieldPath: 'first.answer', message: 'Validation message' };
+  const saved = await store.drafts.save({
+    key: seededKey, expectedRevision: null, definitionVersion: version,
+    snapshotJson: JSON.stringify({ definitionUrl: seededReviewUrl, definitionVersion: version, data: {} }),
+    responseJson: JSON.stringify({ ...JSON.parse(priorCompletedResponseJson), id: 'urn:test:enriched', status: 'in-progress', data: {} }),
+    summary: {
+      sections: [{ id: 'main', fields: ['first.answer'] }],
+      progress: { status: 'current', form: { ...enriched, ready: false }, sections: { main: enriched } },
+    } as never,
+  });
+  return { saved: saved.status, rows: await readRawStore(db, 'summaries') };
+}
+
+const upstreamUrl = 'urn:test:seed-upstream';
+const dependentUrl = 'urn:test:seed-dependent';
+const upstreamDefinition: FormDefinition = {
+  $formspec: '1.0', url: upstreamUrl, version, title: 'Upstream', items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+};
+const dependentDefinition: FormDefinition = {
+  $formspec: '1.0', url: dependentUrl, version, title: 'Dependent', items: [{ key: 'note', type: 'field', dataType: 'string' }],
+  instances: {
+    upstream: {
+      schema: { answer: 'string' },
+      response: { definition: { url: upstreamUrl }, subject: [], status: 'current', cardinality: 'latest', pin: 'at-open' },
+    },
+  },
+};
+
+/** Save the upstream row through the public port while the dependent seed's counts are hashed. */
+export async function concurrentUpstreamSaveDuringSeed(db: string) {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const definitions = new Map([[upstreamUrl, upstreamDefinition], [dependentUrl, dependentDefinition]]);
+  const competitor = browser.createBrowserFilingStore({ databaseName: db, scope: seededScope, definitions });
+  await competitor.ready();
+  const subtle = crypto.subtle;
+  const digest = subtle.digest.bind(subtle);
+  let calls = 0;
+  let saved: string | undefined;
+  subtle.digest = (async (algorithm: AlgorithmIdentifier, data: BufferSource) => {
+    calls += 1;
+    if (calls === 2 && saved === undefined) {
+      saved = 'pending';
+      const result = await competitor.drafts.save({
+        key: { scope: seededScope, definitionUrl: upstreamUrl }, expectedRevision: null, definitionVersion: version,
+        snapshotJson: JSON.stringify({ definitionUrl: upstreamUrl, definitionVersion: version, data: { answer: 'Actual user edit' } }),
+        responseJson: JSON.stringify({
+          $formspecResponse: '1.0', definitionUrl: upstreamUrl, definitionVersion: version, id: 'user-a',
+          status: 'in-progress', authored: '2026-01-01T00:00:00Z', data: { answer: 'Actual user edit' },
+        }),
+        summary: null,
+      });
+      saved = result.status;
+    }
+    return digest(algorithm, data);
+  }) as typeof subtle.digest;
+  try {
+    const store = browser.createBrowserFilingStore({
+      databaseName: db, scope: seededScope, definitions,
+      fixtures: {
+        drafts: [
+          { definitionUrl: upstreamUrl, responseId: 'candidate-a', data: { answer: 'Candidate only' } },
+          { definitionUrl: dependentUrl, responseId: 'dependent', data: { note: 'Depends on upstream' } },
+        ],
+      },
+    });
+    await store.ready();
+    const parent = await store.drafts.load({ scope: seededScope, definitionUrl: upstreamUrl }, version);
+    const child = await store.drafts.load({ scope: seededScope, definitionUrl: dependentUrl }, version);
+    if (parent.status !== 'loaded' || child.status !== 'loaded') throw new Error(`Expected loaded rows, got ${parent.status}/${child.status}`);
+    return {
+      saved,
+      parentId: JSON.parse(parent.draft.responseJson).id as string,
+      parent: JSON.parse(parent.draft.responseJson).data,
+      pin: child.draft.pins.upstream?.value,
+      selectedIds: child.draft.pins.upstream?.records.map(record => record.responseId),
+      seeds: (await readRawStore(db, 'seeds')).length,
+    };
+  } finally {
+    subtle.digest = digest;
+  }
 }

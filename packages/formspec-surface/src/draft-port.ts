@@ -26,6 +26,40 @@ export interface FilingDraftQuery {
 
 export type CurrentDraftProgress = DraftProgressSummary;
 
+function progressCount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+}
+
+function progressCounts(value: unknown): DraftProgressCounts | undefined {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const { total, filled, toFix, toCheck } = value as Record<string, unknown>;
+  if (!progressCount(total) || !progressCount(filled)) return undefined;
+  if (toFix !== null && !progressCount(toFix)) return undefined;
+  if (toCheck !== null && !progressCount(toCheck)) return undefined;
+  return { total, filled, toFix, toCheck };
+}
+
+/**
+ * Copy exactly the `schemas/draft-progress-summary.schema.json` fields of a progress value.
+ * Field paths, messages and any other caller-attached members are dropped; a value that cannot
+ * be represented by the closed schema yields `undefined` so the caller stores no counts.
+ */
+export function canonicalDraftProgress(value: unknown): CurrentDraftProgress | undefined {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const { status, form, sections } = value as Record<string, unknown>;
+  if (status !== 'current' || typeof sections !== 'object' || sections === null || Array.isArray(sections)) return undefined;
+  const formCounts = progressCounts(form);
+  const ready = (form as { ready?: unknown } | undefined)?.ready;
+  if (!formCounts || (ready !== null && typeof ready !== 'boolean')) return undefined;
+  const sectionCounts: Record<string, DraftProgressCounts> = {};
+  for (const [id, counts] of Object.entries(sections)) {
+    const copied = progressCounts(counts);
+    if (!copied) return undefined;
+    sectionCounts[id] = copied;
+  }
+  return { status: 'current', form: { ...formCounts, ready }, sections: sectionCounts };
+}
+
 export type FilingDraftObservation =
   | CurrentDraftProgress
   | { status: 'absent' | 'denied' | 'stale' | 'unavailable' };

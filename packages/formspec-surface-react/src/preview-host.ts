@@ -131,7 +131,8 @@ export async function createSurfacePreviewEdition(input: {
     fixtures,
     sectionPlans: bundleSectionPlans(bundle, resolveDefinitionComponent),
   });
-  if (fixtures.drafts?.length) {
+  // Seeding and upgrades of stored summaries finish before the tracker reads counts.
+  if (fixtures.drafts?.length || typeof indexedDB !== 'undefined') {
     await store.ready();
   }
   const filingActions = new Set(bundle.responseActions.flatMap(document =>

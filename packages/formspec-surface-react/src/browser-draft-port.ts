@@ -1,12 +1,12 @@
 /** @filedesc Preview drafts, immutable filings and review fixtures over one scoped store. */
 import { createFormEngine, deepEqual, initFormspecEngine, initFormspecEngineTools, isValidResponseAuthored, responseSubjectId, selectResponses, type FormDraftSnapshot } from '@formspec-org/engine';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
-import { resolvePageSequence, summarizeFormProgress, type PageSequenceEntry, type ProgressCounts } from '@formspec-org/layout';
+import { resolvePageSequence, summarizeFormProgress, type PageSequenceEntry } from '@formspec-org/layout';
 import {
-  canonicalFiniteJson, prepareResponseFiling, prepareResponseFixtures, responseDraftKey, responsePairKey, responseSelectionRecord,
+  canonicalDraftProgress, canonicalFiniteJson, prepareResponseFiling, prepareResponseFixtures, responseDraftKey, responsePairKey, responseSelectionRecord,
   catalogResponseDigest, catalogResponseProjection, catalogResponseSelection, resolveDataSourceDescriptor, selectFilingStatus,
   type BrowserDraftPort, type CurrentDraftProgress, type DraftStartInput, type DraftStartResult, type DataSourceCatalogHandle, type DraftKey, type DraftRecord, type DraftSaveInput, type DraftSectionPlacement,
-  type FilingProgressCounts, type FilingStatusObservation, type PreparedDraftFixture, type ResponseFiling, type ResponseFixtures, type ResponseRecordTools,
+  type FilingStatusObservation, type PreparedDraftFixture, type ResponseFiling, type ResponseFixtures, type ResponseRecordTools,
 } from '@formspec-org/surface';
 import type { DispositionAuthority, EvaluatedFormState, FormDefinition, FormResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionDelivery, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
 import { definitionResponseRequests } from './definition-response-reads.js';
@@ -138,97 +138,16 @@ function unavailableStatus(): FilingStatusObservation {
   return { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } };
 }
 
-function pickProgressCounts({ total, filled, toFix, toCheck }: ProgressCounts): FilingProgressCounts {
-  return { total, filled, toFix, toCheck };
-}
-
 function progressForSections(
   sections: readonly Pick<PageSequenceEntry, 'id' | 'fields' | 'groups'>[],
   evaluated: EvaluatedFormState,
-): CurrentDraftProgress {
+): CurrentDraftProgress | undefined {
   const summarized = summarizeFormProgress(sections as readonly PageSequenceEntry[], evaluated);
-  return {
+  return canonicalDraftProgress({
     status: 'current',
-    form: { ...pickProgressCounts(summarized.form), ready: summarized.form.ready },
-    sections: Object.fromEntries(summarized.sections.flatMap(({ id, counts }) =>
-      id === undefined ? [] : [[id, pickProgressCounts(counts)]])),
-  };
-}
-
-function orderSeededDrafts(
-  drafts: readonly PreparedDraftFixture[],
-  definitions: ReadonlyMap<string, FormDefinition>,
-  tools: ResponseRecordTools,
-): PreparedDraftFixture[] {
-  const count = drafts.length;
-  if (count === 0) return [];
-  const indexByResponseId = new Map<string, number>();
-  const candidatesByUrl = new Map<string, ResponseSelectionRecord[]>();
-  drafts.forEach((draft, idx) => {
-    indexByResponseId.set(draft.responseId, idx);
-    const syntheticJson = JSON.stringify({
-      $formspecResponse: '1.0',
-      definitionUrl: draft.key.definitionUrl,
-      definitionVersion: draft.definitionVersion,
-      id: draft.responseId,
-      authored: draft.authored,
-      status: 'in-progress',
-      data: {},
-      ...(draft.key.subject ? { subject: draft.key.subject } : {}),
-    });
-    const list = candidatesByUrl.get(draft.key.definitionUrl) ?? [];
-    list.push(responseSelectionRecord(draft.key, syntheticJson, 'open-draft'));
-    candidatesByUrl.set(draft.key.definitionUrl, list);
+    form: summarized.form,
+    sections: Object.fromEntries(summarized.sections.flatMap(({ id, counts }) => id === undefined ? [] : [[id, counts]])),
   });
-
-  const inDegree = new Array<number>(count).fill(0);
-  const dependents = Array.from({ length: count }, () => new Set<number>());
-  for (let index = 0; index < count; index += 1) {
-    const consumerFixture = drafts[index]!;
-    const consumer = definitions.get(consumerFixture.key.definitionUrl);
-    if (!consumer) continue;
-    for (const request of definitionResponseRequests(consumer, consumerFixture.key)) {
-      const { selection } = request;
-      if (selection.status !== 'current' || selection.mapping) continue;
-      const upstreamRecords = candidatesByUrl.get(selection.definition.url);
-      const upstreamDef = definitions.get(selection.definition.url);
-      if (!upstreamRecords?.length || !upstreamDef) continue;
-      const outcome = tools.selectResponses(
-        upstreamRecords,
-        { ...selection, pin: 'none', whenNone: 'empty' },
-        {
-          scope: consumerFixture.key.scope,
-          authorized: true,
-          source: 'definition',
-          upstreamSubject: upstreamDef.subject ?? null,
-          ...(request.consumerSubject ? { consumerSubject: request.consumerSubject } : {}),
-          projection: [],
-        },
-      );
-      if (outcome.status !== 'available') continue;
-      for (const selected of outcome.records) {
-        const dep = indexByResponseId.get(selected.responseId);
-        if (dep !== undefined && !dependents[dep]!.has(index)) {
-          dependents[dep]!.add(index);
-          inDegree[index]! += 1;
-        }
-      }
-    }
-  }
-  const ordered: PreparedDraftFixture[] = [];
-  const visited = new Array<boolean>(count).fill(false);
-  while (ordered.length < count) {
-    const next = inDegree.findIndex((deg, idx) => !visited[idx] && deg === 0);
-    if (next === -1) {
-      throw new Error('Seeded drafts contain a cyclic Response instance dependency.');
-    }
-    visited[next] = true;
-    ordered.push(drafts[next]!);
-    for (const dep of dependents[next]!) {
-      inDegree[dep]! -= 1;
-    }
-  }
-  return ordered;
 }
 
 async function buildSectionSummaries(
@@ -248,10 +167,8 @@ async function buildSectionSummaries(
     const rawKey = sectionPlan(placements);
     if (seen.has(rawKey)) continue;
     seen.add(rawKey);
-    out.push({
-      planId: await sectionPlanId(placements),
-      progress: progressForSections(sequence, evaluated),
-    });
+    const progress = progressForSections(sequence, evaluated);
+    if (progress) out.push({ planId: await sectionPlanId(placements), progress });
   }
   return out;
 }
@@ -259,6 +176,7 @@ async function buildSectionSummaries(
 function createFilingStore(
   options: PreviewFilingStoreOptions, transaction: RunTransaction,
   subscribe: BrowserDraftPort['subscribe'], committed: () => void,
+  storageAvailable: () => boolean = () => true,
 ): PreviewFilingStore {
   const { scope, definitions, catalogs = [] } = options;
   const hasSeededDrafts = Boolean(options.fixtures?.drafts?.length);
@@ -275,48 +193,99 @@ function createFilingStore(
     fixturesPromise = undefined;
     throw error;
   });
-  async function seedDrafts(base: Awaited<ReturnType<typeof loadFixtures>>) {
-    if (!base.drafts.length) return;
-    const needsSeed = await transaction(['seeds', 'editable', 'filings'], 'readwrite', async tx => {
-      const [seedRows, editableRows, filedRows] = await Promise.all([
-        Promise.all(base.drafts.map(fixture => tx.get('seeds', storageKey(fixture.key)))),
-        Promise.all(base.drafts.map(fixture => tx.get('editable', storageKey(fixture.key)))),
-        tx.list('filings', scope),
-      ]);
-      const pending: PreparedDraftFixture[] = [];
-      base.drafts.forEach((fixture, index) => {
-        if (seedRows[index]) return;
-        const id = storageKey(fixture.key);
-        const userOwned = Boolean(editableRows[index]) ||
-          filedRows.some(({ value }) => sameKey(value.key, fixture.key) || value.responseId === fixture.responseId);
-        if (userOwned) {
-          tx.put('seeds', id, { seeded: true });
-          return;
-        }
-        pending.push(fixture);
-      });
-      return pending;
-    });
-    if (!needsSeed.length) return;
+  type FixtureBase = Awaited<ReturnType<typeof loadFixtures>>;
+  type StagedSeed = { fixture: PreparedDraftFixture; id: string[]; editable: StoredDraft; summary: StoredSummary };
+  type SeedState = { fingerprint: string; seeded: Set<string>; owned: Set<string> };
+  const rowKey = (id: readonly string[]) => JSON.stringify(id);
 
-    const ordered = orderSeededDrafts(needsSeed, definitions, base.tools);
-    type StagedSeed = {
-      fixture: PreparedDraftFixture;
-      id: string[];
-      editable: StoredDraft;
-      summary: StoredSummary;
-    };
+  // Everything a seeding decision or a staged opening pin can depend on in this scope.
+  async function observeSeedState(tx: Transaction, fixtures: readonly PreparedDraftFixture[]): Promise<SeedState> {
+    const [editable, filings, seeds] = await Promise.all([
+      tx.list('editable', scope), tx.list('filings', scope), tx.list('seeds', scope),
+    ]);
+    const fingerprint = JSON.stringify([
+      editable.map(({ id, value }) => [rowKey(id), value.revision]).sort(),
+      filings.map(({ id }) => rowKey(id)).sort(),
+      seeds.map(({ id }) => rowKey(id)).sort(),
+    ]);
+    const editableIds = new Set(editable.map(({ id }) => rowKey(id)));
+    const seeded = new Set(seeds.map(({ id }) => rowKey(id)));
+    const owned = new Set<string>();
+    for (const fixture of fixtures) {
+      const id = rowKey(storageKey(fixture.key));
+      if (editableIds.has(id) || filings.some(({ value }) =>
+        sameKey(value.key, fixture.key) || value.responseId === fixture.responseId)) owned.add(id);
+    }
+    return { fingerprint, seeded, owned };
+  }
+
+  // Order candidates by the winners of their `current` selections over the same records used at
+  // opening (stored drafts, stored and fixture filings, and every candidate). Only a candidate
+  // winner adds an edge, so a self-pin or mutual pin is a cycle and a completed winner is not.
+  async function orderCandidates(base: FixtureBase, candidates: readonly PreparedDraftFixture[]) {
+    const count = candidates.length;
+    const indexById = new Map(candidates.map((fixture, index) => [fixture.responseId, index]));
+    const synthetic: StoredEntry<'editable'>[] = candidates.map(fixture => ({
+      id: storageKey(fixture.key),
+      value: {
+        revision: 'candidate', definitionVersion: fixture.definitionVersion, pinsJson: '{}', snapshotJson: '{}',
+        responseJson: JSON.stringify({
+          $formspecResponse: '1.0', definitionUrl: fixture.key.definitionUrl, definitionVersion: fixture.definitionVersion,
+          id: fixture.responseId, authored: fixture.authored, status: 'in-progress', data: fixture.data,
+          ...(fixture.key.subject && { subject: fixture.key.subject }),
+        }),
+      },
+    }));
+    const requests: ResponseSelectionRequest[] = [];
+    const consumers: number[] = [];
+    candidates.forEach((fixture, index) => {
+      const definition = definitions.get(fixture.key.definitionUrl);
+      if (!definition) return;
+      for (const request of definitionResponseRequests(definition, fixture.key)) {
+        if (request.selection.status !== 'current') continue;
+        requests.push({ ...request, key: JSON.stringify([index, request.key]),
+          selection: { ...request.selection, pin: 'none', whenNone: 'empty' } });
+        consumers.push(index);
+      }
+    });
+    const outcomes = requests.length ? await selectWithFixtures(base, requests, undefined, synthetic) : new Map();
+    const inDegree = new Array<number>(count).fill(0);
+    const dependents = Array.from({ length: count }, () => new Set<number>());
+    requests.forEach((request, position) => {
+      const outcome = outcomes.get(request.key);
+      if (outcome?.status !== 'available') return;
+      const consumer = consumers[position]!;
+      for (const { responseId } of outcome.records) {
+        const upstream = indexById.get(responseId);
+        if (upstream === undefined || dependents[upstream]!.has(consumer)) continue;
+        dependents[upstream]!.add(consumer);
+        inDegree[consumer]! += 1;
+      }
+    });
+    const ordered: PreparedDraftFixture[] = [];
+    const visited = new Array<boolean>(count).fill(false);
+    while (ordered.length < count) {
+      const next = inDegree.findIndex((degree, index) => !visited[index] && degree === 0);
+      if (next === -1) throw new Error('Seeded drafts contain a cyclic Response instance dependency.');
+      visited[next] = true;
+      ordered.push(candidates[next]!);
+      for (const consumer of dependents[next]!) inDegree[consumer]! -= 1;
+    }
+    return ordered;
+  }
+
+  // Build every candidate's rows in memory. Any refusal throws before anything is written.
+  async function prepareSeeds(base: FixtureBase, candidates: readonly PreparedDraftFixture[]): Promise<StagedSeed[]> {
     const staged: StagedSeed[] = [];
-    for (const fixture of ordered) {
+    for (const fixture of await orderCandidates(base, candidates)) {
       const definition = definitions.get(fixture.key.definitionUrl);
       if (!definition) continue;
-      const id = storageKey(fixture.key);
       const requests = definitionResponseRequests(definition, fixture.key);
       const resolutions: Record<string, ResponseSelectionDelivery> = {};
       const pins = Object.create(null) as Record<string, DraftRecord['pins'][string]>;
       if (requests.length > 0) {
-        const stagedEntries: StoredEntry<'editable'>[] = staged.map(entry => ({ id: entry.id, value: entry.editable }));
-        const outcomes = await selectWithFixtures(base, requests, undefined, stagedEntries);
+        const outcomes = await selectWithFixtures(base, requests, undefined,
+          staged.map(entry => ({ id: entry.id, value: entry.editable })));
         for (const { key: instance, selection } of requests) {
           const outcome = outcomes.get(instance);
           if (selection.pin === 'at-open' && (outcome?.status !== 'available' || !outcome.pinned)) {
@@ -343,56 +312,104 @@ function createFilingStore(
       let evaluated: EvaluatedFormState;
       try {
         snapshotJson = JSON.stringify(engine.getDraftSnapshot());
-        const response = {
-          ...engine.getResponse({ id: fixture.responseId, profile: 'off' }),
-          authored: fixture.authored,
-        };
-        responseJson = JSON.stringify(response);
+        responseJson = JSON.stringify({ ...engine.getResponse({ id: fixture.responseId, profile: 'off' }), authored: fixture.authored });
         evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
       } finally {
         engine.dispose();
       }
-      const plans = await buildSectionSummaries(definition, evaluated, options.sectionPlans);
       staged.push({
         fixture,
-        id,
-        editable: {
-          revision: crypto.randomUUID(),
-          definitionVersion: fixture.definitionVersion,
-          snapshotJson,
-          responseJson,
-          pinsJson: JSON.stringify(pins),
-        },
-        summary: {
-          definitionVersion: fixture.definitionVersion,
-          plans,
-        },
+        id: storageKey(fixture.key),
+        editable: { revision: crypto.randomUUID(), definitionVersion: fixture.definitionVersion, snapshotJson, responseJson, pinsJson: JSON.stringify(pins) },
+        summary: { definitionVersion: fixture.definitionVersion, plans: await buildSectionSummaries(definition, evaluated, options.sectionPlans) },
       });
     }
-    if (!staged.length) return;
+    return staged;
+  }
 
-    await transaction(['seeds', 'editable', 'summaries', 'filings'], 'readwrite', async tx => {
-      const [seedRows, editableRows, filedRows] = await Promise.all([
-        Promise.all(staged.map(entry => tx.get('seeds', entry.id))),
-        Promise.all(staged.map(entry => tx.get('editable', entry.id))),
-        tx.list('filings', scope),
-      ]);
-      staged.forEach((entry, index) => {
-        if (seedRows[index]) return;
-        const userOwned = Boolean(editableRows[index]) ||
-          filedRows.some(({ value }) => sameKey(value.key, entry.fixture.key) || value.responseId === entry.fixture.responseId);
-        tx.put('seeds', entry.id, { seeded: true });
-        if (userOwned) return;
-        tx.put('editable', entry.id, entry.editable);
-        tx.put('summaries', entry.id, entry.summary);
+  const SEED_ATTEMPTS = 5;
+  async function seedDrafts(base: FixtureBase) {
+    if (!base.drafts.length) return;
+    // A row observed as user-owned stays owned for this initialization even if it is
+    // discarded concurrently: it receives a marker and is never seeded over.
+    const everOwned = new Set<string>();
+    for (let attempt = 0; attempt < SEED_ATTEMPTS; attempt += 1) {
+      const observed = await transaction(['seeds', 'editable', 'filings'], 'readonly', tx => observeSeedState(tx, base.drafts));
+      observed.owned.forEach(id => everOwned.add(id));
+      const candidates = base.drafts.filter(fixture => {
+        const id = rowKey(storageKey(fixture.key));
+        return !observed.seeded.has(id) && !everOwned.has(id);
       });
+      const staged = await prepareSeeds(base, candidates);
+      const outcome = await transaction(['seeds', 'editable', 'summaries', 'filings'], 'readwrite', async tx => {
+        const current = await observeSeedState(tx, base.drafts);
+        if (current.fingerprint !== observed.fingerprint) return 'changed' as const;
+        for (const fixture of base.drafts) {
+          const id = storageKey(fixture.key);
+          if (!current.seeded.has(rowKey(id)) && everOwned.has(rowKey(id))) tx.put('seeds', id, { seeded: true });
+        }
+        for (const entry of staged) {
+          tx.put('seeds', entry.id, { seeded: true });
+          tx.put('editable', entry.id, entry.editable);
+          tx.put('summaries', entry.id, entry.summary);
+        }
+        return 'committed' as const;
+      });
+      if (outcome === 'committed') return;
+    }
+    throw new Error('Seeded drafts could not commit because the preview store kept changing.');
+  }
+
+  // Rebuild counts for summaries written before counts-only plans (or with no plans field) from
+  // their committed draft, so upgraded rows keep available counts and no field placements.
+  async function rebuildLegacySummaries() {
+    if (!storageAvailable()) return;
+    const legacy = await transaction(['summaries', 'editable'], 'readonly', async tx => {
+      const rows = (await tx.list('summaries', scope)).filter(({ value }) => !Object.hasOwn(value, 'plans'));
+      return Promise.all(rows.map(async ({ id }) => ({ id, draft: await tx.get('editable', id) })));
+    });
+    if (!legacy.length) return;
+    const rebuilt = await Promise.all(legacy.map(async ({ id, draft }) => {
+      if (!draft) return { id, revision: undefined, summary: undefined };
+      const plans = await (async (): Promise<StoredSummary['plans']> => {
+        const definition = definitions.get(id[1]!);
+        if (!('responseJson' in draft) || !definition || definition.version !== draft.definitionVersion) return null;
+        try {
+          const response = parseJsonExact(draft.responseJson) as FormResponse;
+          const engine = createFormEngine(definition, {
+            responseInstanceResolutions: parseJsonExact(draft.pinsJson) as Record<string, ResponseSelectionDelivery>,
+            ...(response.subject?.keys && { responseSubject: response.subject }),
+            draftSnapshot: parseJsonExact(draft.snapshotJson) as FormDraftSnapshot,
+          });
+          let evaluated: EvaluatedFormState;
+          try {
+            evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
+          } finally {
+            engine.dispose();
+          }
+          return await buildSectionSummaries(definition, evaluated, options.sectionPlans);
+        } catch {
+          return null;
+        }
+      })();
+      return { id, revision: draft.revision, summary: { definitionVersion: draft.definitionVersion, plans } };
+    }));
+    await transaction(['summaries', 'editable'], 'readwrite', async tx => {
+      for (const { id, revision, summary } of rebuilt) {
+        const [row, draft] = await Promise.all([tx.get('summaries', id), tx.get('editable', id)]);
+        if (!row || Object.hasOwn(row, 'plans') || draft?.revision !== revision) continue;
+        if (summary) tx.put('summaries', id, summary);
+        else tx.delete('summaries', id);
+      }
     });
   }
+
   function startInitialize() {
     seedRejected = false;
     readyObservedFailure = false;
     const attempt = fixturesReady().then(async base => {
       await seedDrafts(base);
+      await rebuildLegacySummaries();
       return base;
     }).catch(error => {
       seedRejected = true;
@@ -401,8 +418,9 @@ function createFilingStore(
     seedPromise = attempt;
     return attempt;
   }
-  const settledReady = () => seedPromise ?? (hasSeededDrafts ? startInitialize() : fixturesReady());
-  if (hasSeededDrafts) {
+  // Explicit initialization owns retries; every other caller awaits the same attempt.
+  const settledReady = () => seedPromise ?? startInitialize();
+  if (hasSeededDrafts || storageAvailable()) {
     void startInitialize().catch(() => undefined);
   }
   const authorized = async (
@@ -695,10 +713,12 @@ function createFilingStore(
         }
         const { pins, missingPin } = expectedRevision === null
           ? await openingPins(key, definition, { pins: creationPins }) : { pins: {}, missingPin: undefined };
-        const plans: StoredSummary['plans'] = summary
-          ? [{ planId: await sectionPlanId(summary.sections), progress: summary.progress }]
+        // Only the closed DraftProgressSummary counts are durable; caller-attached members are dropped.
+        const progress = summary ? canonicalDraftProgress(summary.progress) : undefined;
+        const plans: StoredSummary['plans'] = summary && progress
+          ? [{ planId: await sectionPlanId(summary.sections), progress }]
           : null;
-        const result = await transaction(['editable', 'summaries'], 'readwrite', async tx => {
+        const result = await transaction(['editable', 'summaries', 'seeds'], 'readwrite', async tx => {
           const previous = await tx.get('editable', id);
           if ((previous?.revision ?? null) !== expectedRevision ||
               (previous && previous.definitionVersion !== definitionVersion)) return { status: 'conflict' } as const;
@@ -707,6 +727,7 @@ function createFilingStore(
           const pinsJson = previous ? previous.pinsJson : JSON.stringify(pins);
           tx.put('editable', id, { revision, definitionVersion, snapshotJson, responseJson, pinsJson });
           tx.put('summaries', id, { definitionVersion, plans });
+          tx.put('seeds', id, { seeded: true });
           return { status: 'saved', revision } as const;
         });
         if (result.status === 'saved') committed();
@@ -725,9 +746,10 @@ function createFilingStore(
         const minted = Object.values(definition?.subject?.keys ?? {}).some(field => field.minted);
         const opening = minted && definition ? await openingPins(key, definition) : undefined;
         if (opening?.missingPin) return { status: 'unavailable' };
-        const result = await transaction(['editable', 'summaries'], 'readwrite', async tx => {
+        const result = await transaction(['editable', 'summaries', 'seeds'], 'readwrite', async tx => {
           const prior = await tx.get('editable', id);
           if (!prior || prior.revision !== expectedRevision) return { status: 'conflict' } as const;
+          tx.put('seeds', id, { seeded: true });
           if (opening && definition) {
             // Discard the old answers but retain the store-issued address on the current version.
             tx.put('editable', id, { revision: crypto.randomUUID(), definitionVersion: definition.version, pinsJson: JSON.stringify(opening.pins) });
@@ -828,7 +850,7 @@ function createFilingStore(
         }
         const id = storageKey(key);
         const filingId = [scope, filing.responseId];
-        const result = await transaction<PreviewFilingSubmitResult>(['editable', 'summaries', 'filings'], 'readwrite', async tx => {
+        const result = await transaction<PreviewFilingSubmitResult>(['editable', 'summaries', 'filings', 'seeds'], 'readwrite', async tx => {
           const previous = await tx.get('editable', id);
           if (!previous || !('responseJson' in previous) || previous.revision !== fence.revision || previous.definitionVersion !== definitionVersion ||
               previous.responseJson !== fence.responseJson) return { status: 'conflict' };
@@ -840,6 +862,7 @@ function createFilingStore(
             return { status: 'duplicate-response' };
           }
           tx.addFiling(filingId, filing);
+          tx.put('seeds', id, { seeded: true });
           tx.delete('editable', id);
           tx.delete('summaries', id);
           return { status: 'filed', receiptRef: filing.responseId, label: 'preview filing; nothing was sent' };
@@ -949,7 +972,7 @@ export function createBrowserFilingStore(options: BrowserFilingStoreOptions): Pr
     }
   };
 
-  return createFilingStore(options, transaction, subscribe, committed);
+  return createFilingStore(options, transaction, subscribe, committed, () => typeof indexedDB !== 'undefined');
 }
 
 export function createMemoryFilingStore(options: PreviewFilingStoreOptions): PreviewFilingStore {

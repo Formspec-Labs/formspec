@@ -844,3 +844,75 @@ it('rejects self-cycles, allows mutual completed-only pins, aborts rejected prof
     expect(JSON.parse(moneyRow.draft.responseJson).data.fee.amount).toBe('42.5');
   }
 });
+
+it('orders seeded drafts by the opening winner across subjects, so a completed later filing is not a self-cycle', async () => {
+  const tools = await previewResponseRecordTools();
+  const url = 'urn:test:cross-year';
+  const crossYear: FormDefinition = {
+    $formspec: '1.0', url, version, title: 'Cross year',
+    subject: { type: url, keys: { year: { dataType: 'integer' } } },
+    items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+    instances: {
+      prior: {
+        schema: { answer: 'string' },
+        response: { definition: { url }, subject: [], status: 'current', cardinality: 'latest', pin: 'at-open' },
+      },
+    },
+  };
+  const filed2026 = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl: url, definitionVersion: version, id: 'urn:test:2026', status: 'completed',
+    authored: '2026-06-01T00:00:00Z', subject: { type: url, keys: { year: 2026 }, id: tools.subjectId(url, { year: 2026 }) },
+    data: { answer: '2026' },
+  });
+  const store = createMemoryFilingStore({
+    scope: 'cross-year',
+    definitions: new Map([[url, crossYear]]),
+    fixtures: {
+      filings: [{ responseJson: filed2026 }],
+      drafts: [{ definitionUrl: url, responseId: 'urn:test:2025-draft', subject: { type: url, keys: { year: 2025 } }, data: { answer: '2025' } }],
+    },
+  });
+  await expect(store.ready()).resolves.toBeUndefined();
+  const row = await store.drafts.load(
+    { scope: 'cross-year', definitionUrl: url, subject: { type: url, keys: { year: 2025 }, id: tools.subjectId(url, { year: 2025 }) } },
+    version,
+  );
+  expect(row.status).toBe('loaded');
+  if (row.status === 'loaded') expect(row.draft.pins.prior?.value).toEqual({ answer: '2026' });
+});
+
+it('persists only the closed DraftProgressSummary counts from a save, whatever the caller attaches', async () => {
+  const url = 'urn:test:enriched-save';
+  const definition: FormDefinition = {
+    $formspec: '1.0', url, version, title: 'Enriched', items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+  };
+  const store = createMemoryFilingStore({ scope: 'enriched', definitions: new Map([[url, definition]]) });
+  await store.ready();
+  const key: DraftKey = { scope: 'enriched', definitionUrl: url };
+  const sections = [{ id: 'main', fields: ['answer'] }];
+  const enriched = { total: 1, filled: 0, toFix: 1, toCheck: 0, fieldPath: 'answer', message: 'Validation message' };
+  const save = (progress: unknown, expectedRevision: string | null) => store.drafts.save({
+    key, expectedRevision, definitionVersion: version,
+    snapshotJson: JSON.stringify({ definitionUrl: url, definitionVersion: version, data: {} }),
+    responseJson: JSON.stringify({ $formspecResponse: '1.0', definitionUrl: url, definitionVersion: version, id: 'r', status: 'in-progress', authored: '2026-01-01T00:00:00Z', data: {} }),
+    summary: { sections, progress } as never,
+  });
+  const read = async () => (await store.drafts.readSummaries(
+    [{ key: 'q', definitionUrl: url, definitionVersion: version, sections }],
+    { previewScope: 'enriched', signal: new AbortController().signal },
+  )).get('q')?.draft;
+
+  const first = await save({ status: 'current', form: { ...enriched, ready: false, answers: { answer: 'x' } }, sections: { main: enriched } }, null);
+  expect(first.status).toBe('saved');
+  expect(await read()).toEqual({
+    status: 'current',
+    form: { total: 1, filled: 0, toFix: 1, toCheck: 0, ready: false },
+    sections: { main: { total: 1, filled: 0, toFix: 1, toCheck: 0 } },
+  });
+
+  // A value the closed schema cannot represent stores no counts rather than a partial copy.
+  if (first.status !== 'saved') throw new Error('first save failed');
+  expect((await save({ status: 'current', form: { total: -1, filled: 0, toFix: 0, toCheck: 0, ready: false }, sections: {} }, first.revision)).status)
+    .toBe('saved');
+  expect(await read()).toEqual({ status: 'unavailable' });
+});
