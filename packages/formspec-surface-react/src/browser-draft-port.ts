@@ -483,8 +483,10 @@ function createFilingStore(
     seedRejected = false;
     readyObservedFailure = false;
     const attempt = fixturesReady().then(async base => {
-      await seedDrafts(base);
+      // Complete any fallible legacy summary conversion before committing new seeds
+      // and notifying open tabs, so a failed ready() never leaves newly seeded drafts behind.
       await rebuildLegacySummaries();
+      await seedDrafts(base);
       return base;
     }).catch(error => {
       seedRejected = true;

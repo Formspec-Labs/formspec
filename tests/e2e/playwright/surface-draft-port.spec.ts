@@ -611,3 +611,54 @@ test('an open tracker refreshes after another tab first imports a scenario draft
     await other.close();
   }
 });
+
+test('a failed seeded edition open after a summary read abort leaves an open tracker unchanged, and a retry updates it once', async ({ page, context }) => {
+  const fixture = '/surface-drafts.html?form&subject&tracker';
+  const task = (tab: typeof page) => tab.locator('[data-slot-type="filing-status"]').getByRole('link', { name: 'Filing', exact: true });
+  await page.goto(`${fixture}#/overview`);
+  await expect(task(page)).toHaveAccessibleDescription('Not started, 4 questions');
+  await page.evaluate(() => {
+    const win = window as unknown as { __seedCommitCount?: number; __seedChannel?: BroadcastChannel };
+    win.__seedCommitCount = 0;
+    win.__seedChannel = new BroadcastChannel('formspec-drafts:formspec-surface-drafts:edition');
+    win.__seedChannel.addEventListener('message', () => {
+      win.__seedCommitCount = (win.__seedCommitCount ?? 0) + 1;
+    });
+  });
+
+  const seeder = await context.newPage();
+  try {
+    await seeder.addInitScript(() => {
+      if (sessionStorage.getItem('fs-b648-summary-abort-done')) return;
+      const transaction = IDBDatabase.prototype.transaction;
+      IDBDatabase.prototype.transaction = function (...args) {
+        const tx = Reflect.apply(transaction, this, args) as IDBTransaction;
+        const names = [...tx.objectStoreNames];
+        if (this.name === 'formspec-surface-drafts' && tx.mode === 'readonly' &&
+            names.length === 2 && names.includes('editable') && names.includes('summaries')) {
+          sessionStorage.setItem('fs-b648-summary-abort-done', '1');
+          IDBDatabase.prototype.transaction = transaction;
+          queueMicrotask(() => tx.abort());
+        }
+        return tx;
+      };
+    });
+
+    const failure = seeder.waitForEvent('pageerror', { predicate: err => /abort/i.test(err.message) });
+    await seeder.goto(`${fixture}&seed#/overview`);
+    await failure;
+    await expect(task(seeder)).toHaveCount(0);
+    await expect(task(page)).toHaveAccessibleDescription('Not started, 4 questions');
+    expect(await page.evaluate(() => (window as unknown as { __seedCommitCount?: number }).__seedCommitCount)).toBe(0);
+
+    await seeder.reload();
+    await expect(task(seeder)).toHaveAccessibleDescription(/^(Ready|In progress)/i);
+    await expect(task(page)).toHaveAccessibleDescription(/^(Ready|In progress)/i, { timeout: 2500 });
+    expect(await page.evaluate(() => (window as unknown as { __seedCommitCount?: number }).__seedCommitCount)).toBe(1);
+  } finally {
+    await page.evaluate(() => {
+      (window as unknown as { __seedChannel?: BroadcastChannel }).__seedChannel?.close();
+    });
+    await seeder.close();
+  }
+});
