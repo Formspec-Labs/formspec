@@ -52,6 +52,38 @@ if (authoredButton && query.has('autoModal')) {
       : node,
   );
 }
+if (authoredButton) {
+  const probe = query.get('visibilityCase');
+  const variant = query.get('variant');
+  if (probe === 'nested') {
+    const outer = variant === 'display-precedence'
+      ? { display: '  NoNe ' }
+      : variant === 'var'
+        ? { '--checkpoint-visibility': 'hidden' }
+        : { visibility: '  CoLlApSe ' };
+    if (variant === 'override' || variant === 'display-precedence') authoredButton.style = { visibility: ' VisIble ' };
+    if (variant === 'initial') authoredButton.style = { visibility: 'initial' };
+    if (variant === 'var') authoredButton.style = { visibility: 'var(--checkpoint-visibility)' };
+    component.tree.children = component.tree.children!.map((node) =>
+      node === authoredButton ? { component: 'Stack', style: outer, children: [node] } : node,
+    );
+  }
+  if (probe === 'modal') {
+    const trigger = variant === 'dismiss' ? 'auto' : 'button';
+    component.tree.children = component.tree.children!.map((node) =>
+      node === authoredButton
+        ? {
+            component: 'Modal',
+            trigger,
+            title: 'Confirm checkpoint',
+            triggerLabel: 'Open checkpoint',
+            when: variant === 'false' ? 'false' : 'true',
+            children: [node],
+          }
+        : node,
+    );
+  }
+}
 if (query.has('responsiveProbe')) {
   component.breakpoints = { wide: 700 };
   const button = component.tree.children?.find(

@@ -10,6 +10,7 @@
  * Definition renderer now places every structurally labeled response Action, so
  * this walk must credit the same exact controls without adding shell copies.
  */
+import vm from 'node:vm';
 import { describe, expect, it } from 'vitest';
 import { composeSurfaceApp } from '../src/composition.js';
 import { createWidgetRegistry } from '../src/registry.js';
@@ -797,4 +798,105 @@ it('matches canonical JSON Schema + format validation, enforces compatibleVersio
       status: 'fireable',
     });
   }
+
+  // CSS `visibility: initial` below inherited `visibility: collapse` restores visibility statically
+  const initialBelowCollapsePlan = planMatchedRoute({
+    handle: filingHandle,
+    app: conditionalApp,
+    experiences: [],
+    definitions: new Map([[def.url, def as never]]),
+    registryEntries: [],
+    widgets: createWidgetRegistry({ modules: [], registryEntries: [] }),
+    resolveDefinitionComponent: () => ({
+      $formspecComponent: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: def.url },
+      tree: {
+        component: 'Stack',
+        style: { visibility: '  CoLlApSe ' },
+        children: [{
+          component: 'ActionButton',
+          actionRef: 'checkpoint',
+          label: { literal: 'Checkpoint now' },
+          style: { visibility: 'initial' },
+        }],
+      },
+    }) as never,
+    responseActions: [doc],
+    themeAuthority: createThemeAuthority(),
+    hasExecutor: true,
+  });
+  expect(initialBelowCollapsePlan.transitions[0]).toMatchObject({
+    actionId: 'checkpoint',
+    status: 'supplied-by-slot',
+  });
+
+  // Cross-realm plain JSON values are admitted, while sparse arrays, getters, non-plain objects, and cycles fail closed
+  const makeRuntimeDoc = (bodyDefaults: unknown) => ({
+    $formspecResponseActions: '1.0' as const,
+    version: '1.0.0',
+    targetDefinition: { url: def.url },
+    actions: [button, check],
+    'x-formspec-runtime': {
+      version: '1.0' as const,
+      requests: [{
+        id: 'prepare',
+        adapter: 'http-json' as const,
+        request: { method: 'POST' as const, pathTemplate: '/forms', bodyDefaults },
+      }],
+    },
+  });
+
+  const crossRealmDefaults = vm.runInNewContext('JSON.parse(\'{"ok":true,"nested":{"items":[1,"two",null]}}\')');
+  const crossRealmDoc = makeRuntimeDoc(crossRealmDefaults);
+  expect({
+    guard: isValidDefinitionResponseActionsDocument(crossRealmDoc, def),
+    manual: autoPlacedDefinitionActions(crossRealmDoc as never, def).map((a) => a.id),
+    auto: resolveAutosaveResponseAction(crossRealmDoc as never, def).action?.id,
+  }).toEqual({ guard: true, manual: ['manual'], auto: 'checkpoint' });
+
+  const sparseList = new Array(1);
+  const arrayCycle: unknown[] = [];
+  arrayCycle.push(arrayCycle);
+  const mixedCycle: { items: unknown[] } = { items: [] };
+  mixedCycle.items.push(mixedCycle);
+  const getterObj = Object.defineProperty({}, 'sneaky', { enumerable: true, get: () => 'ok' });
+
+  for (const invalidDefaults of [
+    { sparse: sparseList },
+    { missing: undefined },
+    { nan: Number.NaN },
+    { inf: Number.POSITIVE_INFINITY },
+    { date: new Date(0) },
+    { map: new Map() },
+    { arrayCycle },
+    { mixedCycle },
+    getterObj,
+  ]) {
+    const invalidDoc = makeRuntimeDoc(invalidDefaults);
+    expect({
+      guard: isValidDefinitionResponseActionsDocument(invalidDoc, def),
+      manual: autoPlacedDefinitionActions(invalidDoc as never, def).map((a) => a.id),
+      auto: resolveAutosaveResponseAction(invalidDoc as never, def).action?.id ?? null,
+    }).toEqual({ guard: false, manual: [], auto: null });
+  }
+
+  // Sparse `actions` and `effects` arrays fail closed without throwing
+  const sparseActions = [undefined, button];
+  delete sparseActions[0];
+  expect(isValidDefinitionResponseActionsDocument({
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: def.url },
+    actions: sparseActions,
+  }, def)).toBe(false);
+
+  const sparseEffects = [undefined, { type: 'hostEvent', eventName: 'manual' }];
+  delete sparseEffects[0];
+  expect(isValidDefinitionResponseActionsDocument({
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: def.url },
+    actions: [{ ...button, effects: sparseEffects }],
+  }, def)).toBe(false);
 });

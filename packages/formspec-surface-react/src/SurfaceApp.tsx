@@ -534,7 +534,9 @@ export function SurfaceAppView(props: SurfaceAppProps & {
   const slotFormEnginesRef = useRef(
     new Map<string, { generation: string; engine: import('@formspec-org/engine').IFormEngine }>(),
   );
-  const slotVisibilityKeysRef = useRef(new Map<string, string>());
+  const slotRenderedActionRefsRef = useRef(
+    new Map<string, { generation: string; key: string; refs: ReadonlySet<string> }>(),
+  );
   const onSlotFormEngineChange = useCallback(
     (slotKey: string, engine: import('@formspec-org/engine').IFormEngine | undefined) => {
       if (engine) {
@@ -543,18 +545,33 @@ export function SurfaceAppView(props: SurfaceAppProps & {
         const current = slotFormEnginesRef.current.get(slotKey);
         if (current?.generation === runtimeGeneration) {
           slotFormEnginesRef.current.delete(slotKey);
-          slotVisibilityKeysRef.current.delete(`${runtimeGeneration}:${slotKey}`);
+        }
+        const rendered = slotRenderedActionRefsRef.current.get(slotKey);
+        if (rendered?.generation === runtimeGeneration) {
+          slotRenderedActionRefsRef.current.delete(slotKey);
         }
       }
     },
     [runtimeGeneration],
   );
   const onSlotVisibilityChange = useCallback(
-    (slotKey: string, nextKey: string, baselineKey: string) => {
-      const scopedKey = `${runtimeGeneration}:${slotKey}`;
-      const recorded = slotVisibilityKeysRef.current.get(scopedKey) ?? baselineKey;
-      if (recorded === nextKey) return;
-      slotVisibilityKeysRef.current.set(scopedKey, nextKey);
+    (slotKey: string, nextRefs: ReadonlySet<string> | undefined, baselineKey: string) => {
+      if (nextRefs === undefined) {
+        const current = slotRenderedActionRefsRef.current.get(slotKey);
+        if (current?.generation === runtimeGeneration) {
+          slotRenderedActionRefsRef.current.delete(slotKey);
+        }
+        return;
+      }
+      const nextKey = [...nextRefs].sort().join('\0');
+      const current = slotRenderedActionRefsRef.current.get(slotKey);
+      const recordedKey = current?.generation === runtimeGeneration ? current.key : baselineKey;
+      slotRenderedActionRefsRef.current.set(slotKey, {
+        generation: runtimeGeneration,
+        key: nextKey,
+        refs: nextRefs,
+      });
+      if (recordedKey === nextKey) return;
       setSlotVisibilityEpoch((prev) => prev + 1);
     },
     [runtimeGeneration],
@@ -569,6 +586,12 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     for (const [slotKey, entry] of slotFormEnginesRef.current) {
       if (entry.generation === runtimeGeneration) {
         activeSlotFormEngines.set(slotKey, entry.engine);
+      }
+    }
+    const activeSlotRenderedActionRefs = new Map<string, ReadonlySet<string>>();
+    for (const [slotKey, entry] of slotRenderedActionRefsRef.current) {
+      if (entry.generation === runtimeGeneration) {
+        activeSlotRenderedActionRefs.set(slotKey, entry.refs);
       }
     }
     return planMatchedRoute<SurfaceWidget>({
@@ -596,6 +619,9 @@ export function SurfaceAppView(props: SurfaceAppProps & {
       strings,
       matchesMinWidth,
       ...(activeSlotFormEngines.size > 0 ? { slotFormEngines: activeSlotFormEngines } : {}),
+      ...(activeSlotRenderedActionRefs.size > 0
+        ? { slotRenderedActionRefs: activeSlotRenderedActionRefs }
+        : {}),
     });
   }, [
     resolution,

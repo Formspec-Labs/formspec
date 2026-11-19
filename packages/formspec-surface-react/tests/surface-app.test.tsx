@@ -2019,4 +2019,396 @@ describe("navigation", () => {
     });
     expect(transitionButtons()).toEqual(["Continue to Overview"]);
   });
+
+  it("reconciles retained draft writers and Surface diagnostics when responseActionsDocument changes in either direction", async () => {
+    const { initFormspecEngine } = await import("@formspec-org/engine/init-formspec-engine");
+    const { BrowserSurfaceApp } = await import("../src/BrowserSurfaceApp.js");
+    await initFormspecEngine();
+
+    const definitionUrl = "https://example.test/reconcile-autosave";
+    const filingDef = {
+      $formspec: "1.0",
+      url: definitionUrl,
+      version: "1.0.0",
+      title: "Filing",
+      items: [{ key: "answer", type: "field", dataType: "string", label: "Answer" }],
+    } as unknown as FormDefinition;
+    const filingSurface = {
+      $formspecSurface: "0.2",
+      id: "filing",
+      entry: "filing",
+      routes: [
+        {
+          id: "filing",
+          path: "/filing",
+          title: "Filing",
+          routeClass: "intake",
+          slots: [{ id: "form", slotType: "definition-form", binding: { definitionRef: definitionUrl } }],
+        },
+        { id: "overview", path: "/overview", title: "Overview", routeClass: "intake", slots: [] },
+      ],
+    } as unknown as SurfaceDocument;
+
+    const makeActions = (autosaveCount: number): ResponseActionsDocument =>
+      ({
+        $formspecResponseActions: "1.0",
+        version: "1.0.0",
+        targetDefinition: { url: definitionUrl },
+        actions: [
+          {
+            id: "save",
+            intent: "save-draft",
+            label: { literal: "Save draft" },
+            effects: [{ type: "hostEvent", eventName: "saved" }],
+          },
+          ...Array.from({ length: autosaveCount }, (_, index) => ({
+            id: `auto${index}`,
+            intent: "autosave" as const,
+            effects: [{ type: "hostEvent" as const, eventName: `auto-${index}` }],
+          })),
+        ],
+      }) as ResponseActionsDocument;
+
+    const makeBundle = (autosaveCount: number): ResolvedBundle => ({
+      ...bundle,
+      surfaces: [filingSurface],
+      definitions: new Map([[definitionUrl, filingDef]]),
+      responseActions: [makeActions(autosaveCount)],
+    });
+
+    const ambiguityCount = (batch: readonly SurfaceDiagnostic[]) =>
+      batch.filter((d) => d.details?.reason === "ambiguous-autosave-action").length;
+
+    const setAnswer = (container: HTMLElement, value: string) => {
+      const input = container.querySelector<HTMLInputElement>("input");
+      expect(input).not.toBeNull();
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      setter?.call(input, value);
+      input!.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+
+    // 1. No-storage SurfaceApp clears stale ambiguity when replaced doc(2) -> doc(1), and re-raises on doc(1) -> doc(2)
+    let noStorageDiagnostics: readonly SurfaceDiagnostic[] = [];
+    const noStorageHost = document.createElement("div");
+    document.body.append(noStorageHost);
+    const { createRoot } = await import("react-dom/client");
+    const noStorageRoot = createRoot(noStorageHost);
+    try {
+      await act(async () => {
+        noStorageRoot.render(
+          <SurfaceApp
+            bundle={makeBundle(2)}
+            location="/filing"
+            onNavigate={() => {}}
+            onDiagnostics={(batch) => { noStorageDiagnostics = batch; }}
+            setDocumentTitle={false}
+          />,
+        );
+      });
+      await vi.waitFor(() => expect(ambiguityCount(noStorageDiagnostics)).toBe(1));
+
+      await act(async () => {
+        noStorageRoot.render(
+          <SurfaceApp
+            bundle={makeBundle(1)}
+            location="/filing"
+            onNavigate={() => {}}
+            onDiagnostics={(batch) => { noStorageDiagnostics = batch; }}
+            setDocumentTitle={false}
+          />,
+        );
+      });
+      await vi.waitFor(() => expect(ambiguityCount(noStorageDiagnostics)).toBe(0));
+
+      await act(async () => {
+        noStorageRoot.render(
+          <SurfaceApp
+            bundle={makeBundle(2)}
+            location="/filing"
+            onNavigate={() => {}}
+            onDiagnostics={(batch) => { noStorageDiagnostics = batch; }}
+            setDocumentTitle={false}
+          />,
+        );
+      });
+      await vi.waitFor(() => expect(ambiguityCount(noStorageDiagnostics)).toBe(1));
+    } finally {
+      await act(async () => { noStorageRoot.unmount(); });
+      noStorageHost.remove();
+    }
+
+    // 2. Storage-backed BrowserSurfaceApp across save -> Overview -> bundle replacement -> return -> edit
+    for (const [firstCount, secondCount, expectedSavesAfterEdit, expectedDiagnostics] of [
+      [1, 1, 2, 0],
+      [2, 1, 2, 0],
+      [1, 2, 1, 1],
+    ] as const) {
+      let revisionCounter = 0;
+      const stored = new Map<string, { revision: string; snapshotJson: string; responseJson: string }>();
+      const storage = {
+        scope: `reconcile-${firstCount}-to-${secondCount}`,
+        port: {
+          load: vi.fn(async (key: { definitionUrl: string }) => {
+            const existing = stored.get(key.definitionUrl);
+            return existing ? { status: "loaded" as const, draft: existing } : { status: "absent" as const };
+          }),
+          save: vi.fn(async (input: { key: { definitionUrl: string }; snapshotJson: string; responseJson: string }) => {
+            revisionCounter += 1;
+            const revision = `rev-${revisionCounter}`;
+            stored.set(input.key.definitionUrl, {
+              revision,
+              snapshotJson: input.snapshotJson,
+              responseJson: input.responseJson,
+            });
+            return { status: "saved" as const, revision };
+          }),
+          discard: vi.fn(async () => ({ status: "discarded" as const })),
+          readSummaries: vi.fn(async () => new Map()),
+        },
+      };
+
+      let liveDiagnostics: readonly SurfaceDiagnostic[] = [];
+      const host = document.createElement("div");
+      document.body.append(host);
+      const root = createRoot(host);
+      window.history.replaceState(null, "", "#/filing");
+      const adapters = {
+        mode: "hash" as const,
+        draftStorage: storage,
+        onDiagnostics: (batch: readonly SurfaceDiagnostic[]) => { liveDiagnostics = batch; },
+      };
+
+      try {
+        await act(async () => {
+          root.render(<BrowserSurfaceApp bundle={makeBundle(firstCount)} adapters={adapters} />);
+        });
+        await vi.waitFor(() => expect(ambiguityCount(liveDiagnostics)).toBe(firstCount > 1 ? 1 : 0));
+
+        const saveBtn = [...host.querySelectorAll<HTMLButtonElement>("button")].find(
+          (b) => b.textContent?.trim() === "Save draft",
+        );
+        expect(saveBtn).toBeDefined();
+        await act(async () => { saveBtn!.click(); });
+        await vi.waitFor(() => expect(storage.port.save).toHaveBeenCalledTimes(1));
+
+        // Leave to Overview
+        await act(async () => {
+          window.location.hash = "/overview";
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+        });
+        await vi.waitFor(() => expect(ambiguityCount(liveDiagnostics)).toBe(0));
+
+        // Replace bundle while on Overview with the same Definition & storage
+        await act(async () => {
+          root.render(<BrowserSurfaceApp bundle={makeBundle(secondCount)} adapters={adapters} />);
+        });
+
+        // Return to Filing (reuses clean writer at matching revision)
+        await act(async () => {
+          window.location.hash = "/filing";
+          window.dispatchEvent(new HashChangeEvent("hashchange"));
+        });
+        await vi.waitFor(() => expect(host.querySelector("input")).not.toBeNull());
+        await vi.waitFor(() => expect(ambiguityCount(liveDiagnostics)).toBe(expectedDiagnostics));
+
+        // Edit answer and wait past the 400ms autosave debounce window
+        await act(async () => {
+          setAnswer(host, `updated-${firstCount}-${secondCount}`);
+        });
+        await new Promise((resolve) => setTimeout(resolve, 650));
+
+        expect(storage.port.save).toHaveBeenCalledTimes(expectedSavesAfterEdit);
+        expect(ambiguityCount(liveDiagnostics)).toBe(expectedDiagnostics);
+      } finally {
+        await act(async () => { root.unmount(); });
+        host.remove();
+      }
+    }
+
+    // 3. In-place action document fix while mounted with unsaved edits preserves unsaved edits and enables autosave
+    let dirtyRevision = 0;
+    const dirtyStored = new Map<string, { revision: string; snapshotJson: string; responseJson: string }>();
+    const dirtyStorage = {
+      scope: "reconcile-dirty-in-place",
+      port: {
+        load: vi.fn(async (key: { definitionUrl: string }) => {
+          const existing = dirtyStored.get(key.definitionUrl);
+          return existing ? { status: "loaded" as const, draft: existing } : { status: "absent" as const };
+        }),
+        save: vi.fn(async (input: { key: { definitionUrl: string }; snapshotJson: string; responseJson: string }) => {
+          dirtyRevision += 1;
+          const revision = `rev-${dirtyRevision}`;
+          dirtyStored.set(input.key.definitionUrl, {
+            revision,
+            snapshotJson: input.snapshotJson,
+            responseJson: input.responseJson,
+          });
+          return { status: "saved" as const, revision };
+        }),
+        discard: vi.fn(async () => ({ status: "discarded" as const })),
+        readSummaries: vi.fn(async () => new Map()),
+      },
+    };
+    let dirtyDiagnostics: readonly SurfaceDiagnostic[] = [];
+    const dirtyHost = document.createElement("div");
+    document.body.append(dirtyHost);
+    const dirtyRoot = createRoot(dirtyHost);
+    window.history.replaceState(null, "", "#/filing");
+    const dirtyAdapters = {
+      mode: "hash" as const,
+      draftStorage: dirtyStorage,
+      onDiagnostics: (batch: readonly SurfaceDiagnostic[]) => { dirtyDiagnostics = batch; },
+    };
+    try {
+      await act(async () => {
+        dirtyRoot.render(<BrowserSurfaceApp bundle={makeBundle(2)} adapters={dirtyAdapters} />);
+      });
+      await vi.waitFor(() => expect(dirtyHost.querySelector("input")).not.toBeNull());
+      await vi.waitFor(() => expect(ambiguityCount(dirtyDiagnostics)).toBe(1));
+
+      await act(async () => { setAnswer(dirtyHost, "unsaved-work"); });
+      await new Promise((resolve) => setTimeout(resolve, 550));
+      expect(dirtyStorage.port.save).toHaveBeenCalledTimes(0);
+
+      await act(async () => {
+        dirtyRoot.render(<BrowserSurfaceApp bundle={makeBundle(1)} adapters={dirtyAdapters} />);
+      });
+      await vi.waitFor(() => expect(ambiguityCount(dirtyDiagnostics)).toBe(0));
+      expect(dirtyHost.querySelector<HTMLInputElement>("input")?.value).toBe("unsaved-work");
+      await vi.waitFor(() => expect(dirtyStorage.port.save).toHaveBeenCalledTimes(1), { timeout: 2000 });
+    } finally {
+      await act(async () => { dirtyRoot.unmount(); });
+      dirtyHost.remove();
+    }
+  });
+
+  it("reconciles Surface fallback controls with live computed CSS visibility and modal state", async () => {
+    const { initFormspecEngine } = await import("@formspec-org/engine/init-formspec-engine");
+    await initFormspecEngine();
+
+    const definitionUrl = "https://example.test/filing-computed-visibility";
+    const filingSurface = {
+      $formspecSurface: "0.2",
+      id: "filing",
+      entry: "filing",
+      routes: [
+        {
+          id: "filing",
+          path: "/filing",
+          title: "Filing",
+          routeClass: "intake",
+          slots: [{ id: "form", slotType: "definition-form", binding: { definitionRef: definitionUrl } }],
+          transitions: [{ trigger: "autosave", to: "overview" }],
+        },
+        { id: "overview", path: "/overview", title: "Overview", routeClass: "intake", slots: [] },
+      ],
+    } as unknown as SurfaceDocument;
+    const visBundle: ResolvedBundle = {
+      ...bundle,
+      surfaces: [filingSurface],
+      responseActions: [
+        {
+          $formspecResponseActions: "1.0",
+          version: "1.0.0",
+          targetDefinition: { url: definitionUrl },
+          actions: [
+            {
+              id: "autosave",
+              intent: "autosave",
+              label: { literal: "Autosave" },
+              effects: [{ type: "hostEvent", eventName: "draft-autosaved" }],
+            },
+          ],
+        } as ResponseActionsDocument,
+      ],
+      definitions: new Map([
+        [
+          definitionUrl,
+          {
+            $formspec: "1.0",
+            url: definitionUrl,
+            version: "1.0.0",
+            title: "Filing",
+            items: [{ key: "answer", type: "field", dataType: "string", label: "Answer" }],
+          } as unknown as FormDefinition,
+        ],
+      ]),
+    };
+
+    const cases = [
+      {
+        name: "initial-below-collapse",
+        tree: {
+          component: "Stack",
+          style: { visibility: "  CoLlApSe " },
+          children: [
+            { component: "ActionButton", actionRef: "autosave", label: { literal: "Checkpoint now" }, style: { visibility: "initial" } },
+          ],
+        },
+        expectFallback: false,
+      },
+      {
+        name: "var-resolving-to-hidden",
+        tree: {
+          component: "Stack",
+          style: { "--checkpoint-visibility": "hidden" },
+          children: [
+            { component: "ActionButton", actionRef: "autosave", label: { literal: "Checkpoint now" }, style: { visibility: "var(--checkpoint-visibility)" } },
+          ],
+        },
+        expectFallback: true,
+      },
+      {
+        name: "display-none-over-visible",
+        tree: {
+          component: "Stack",
+          style: { display: "  NoNe " },
+          children: [
+            { component: "ActionButton", actionRef: "autosave", label: { literal: "Checkpoint now" }, style: { visibility: " VisIble " } },
+          ],
+        },
+        expectFallback: true,
+      },
+      {
+        name: "button-modal-opener-reachable",
+        tree: {
+          component: "Modal",
+          trigger: "button",
+          title: "Confirm checkpoint",
+          triggerLabel: "Open checkpoint",
+          when: "true",
+          children: [
+            { component: "ActionButton", actionRef: "autosave", label: { literal: "Checkpoint now" } },
+          ],
+        },
+        expectFallback: false,
+      },
+    ] as const;
+
+    for (const testCase of cases) {
+      const view = render(
+        <SurfaceApp
+          bundle={visBundle}
+          location="/filing"
+          onNavigate={() => {}}
+          onFireTransition={async () => ({ advanced: true })}
+          resolveDefinitionComponent={() =>
+            ({
+              $formspecComponent: "1.0",
+              version: "1.0.0",
+              targetDefinition: { url: definitionUrl },
+              tree: testCase.tree,
+            }) as never
+          }
+          setDocumentTitle={false}
+        />,
+      );
+      await vi.waitFor(() => {
+        const fallback = [...view.querySelectorAll<HTMLButtonElement>("button")].filter(
+          (b) => b.textContent?.trim() === "Continue to Overview",
+        );
+        expect(fallback.length, testCase.name).toBe(testCase.expectFallback ? 1 : 0);
+      });
+    }
+  });
 });

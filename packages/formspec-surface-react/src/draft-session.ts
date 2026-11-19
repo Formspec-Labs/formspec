@@ -39,8 +39,9 @@ type Entry = {
   findingListeners: Set<(finding: ActionRefFinding) => void>;
   result: Promise<DraftOpen>;
   seed: Pick<SurfaceDefinitionFormRenderInput, 'initialData' | 'draftSeed'>;
+  actions: SurfaceDefinitionFormRenderInput['responseActionsDocument'];
   opened?: DraftOpen;
-  autosaveFinding?: ActionRefFinding;
+  autosaveFinding?: ActionRefFinding | undefined;
 };
 
 function sessionKey(key: DraftKey, version: string): string {
@@ -82,7 +83,6 @@ export function createDraftSession(
       let entry = entries.get(id);
       const previous = entry?.opened;
       const previousConsumers = entry?.consumers;
-      const previousAutosaveFinding = entry?.autosaveFinding;
       if (entry && previous && entry.consumers.size === 0 && (previous.status !== 'ready' || !previous.writer.dirty)) {
         entries.delete(id);
         entry = undefined;
@@ -106,9 +106,10 @@ export function createDraftSession(
           if (reusable) {
             if (draft && draft.revision === reusable.writer.revision &&
                 !Object.values(definition.instances ?? {}).some(instance => instance.response)) {
-              if (previousAutosaveFinding) {
-                created.autosaveFinding = previousAutosaveFinding;
-                for (const notifyFinding of findingListeners) notifyFinding(previousAutosaveFinding);
+              const nextFinding = reusable.writer.setActions(created.actions);
+              created.autosaveFinding = nextFinding;
+              if (nextFinding) {
+                for (const notifyFinding of findingListeners) notifyFinding(nextFinding);
               }
               return reusable;
             }
@@ -151,7 +152,7 @@ export function createDraftSession(
                 ...(input.componentDocument ? { component: input.componentDocument } : {}),
                 ...(input.grant.themeDocument ? { theme: input.grant.themeDocument } : {}),
               }),
-              actions: input.responseActionsDocument,
+              actions: created.actions,
               invoker: input.responseActionInvoker,
               checkpointPorts,
               report: (notice, options) => { for (const notify of consumers.keys()) notify(notice, options); },
@@ -170,6 +171,7 @@ export function createDraftSession(
           consumers,
           findingListeners,
           seed: { initialData: input.initialData, draftSeed: input.draftSeed },
+          actions: input.responseActionsDocument,
           result: opened().catch((): DraftOpen => ({ status: 'unavailable' })).then(result => {
             created.opened = result;
             if (lifetime.signal.aborted) disposeEntry(created);
@@ -182,6 +184,8 @@ export function createDraftSession(
       }
 
       const tracked = entry;
+      const actionsChanged = tracked.actions !== input.responseActionsDocument;
+      tracked.actions = input.responseActionsDocument;
       if (tracked.consumers.size === 0) {
         tracked.seed = { initialData: input.initialData, draftSeed: input.draftSeed };
       }
@@ -189,9 +193,21 @@ export function createDraftSession(
       const onActionFinding = input.onActionFinding;
       if (onActionFinding) {
         tracked.findingListeners.add(onActionFinding);
-        if (tracked.autosaveFinding) onActionFinding(tracked.autosaveFinding);
       }
-      if (tracked.opened?.status === 'ready') tracked.opened.writer.setMounted(true);
+      if (tracked.opened?.status === 'ready') {
+        if (actionsChanged) {
+          const nextFinding = tracked.opened.writer.setActions(tracked.actions);
+          tracked.autosaveFinding = nextFinding;
+          if (nextFinding) {
+            for (const notifyFinding of tracked.findingListeners) notifyFinding(nextFinding);
+          }
+        } else if (onActionFinding && tracked.autosaveFinding) {
+          onActionFinding(tracked.autosaveFinding);
+        }
+        tracked.opened.writer.setMounted(true);
+      } else if (onActionFinding && tracked.autosaveFinding) {
+        onActionFinding(tracked.autosaveFinding);
+      }
       return {
         result: tracked.result,
         release() {
@@ -245,6 +261,21 @@ export function createDraftSession(
     writerFor(key: DraftKey, version: string) {
       const opened = entries.get(sessionKey(key, version))?.opened;
       return opened?.status === 'ready' ? opened.writer : undefined;
+    },
+
+    syncActions(writer: DraftWriter, actions: SurfaceDefinitionFormRenderInput['responseActionsDocument']) {
+      for (const entry of entries.values()) {
+        if (entry.opened?.status === 'ready' && entry.opened.writer === writer) {
+          if (entry.actions === actions && writer.actions === actions) {
+            return entry.autosaveFinding;
+          }
+          entry.actions = actions;
+          const nextFinding = writer.setActions(actions);
+          entry.autosaveFinding = nextFinding;
+          return nextFinding;
+        }
+      }
+      return writer.actions === actions ? writer.autosaveFinding : writer.setActions(actions);
     },
 
     dispose() {

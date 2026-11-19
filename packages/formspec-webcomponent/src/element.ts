@@ -60,6 +60,7 @@ import {
 import { buildPlatformTheme, mergePlatformAndTenantTheme, resolveFieldHelp } from '@formspec-org/layout';
 import { uiText } from './adapters/ui-text';
 import { toolText, TOOL_DESCRIPTION_MAX } from './adapters/tool-text.js';
+import { getActionButtonActionRef } from './components/interactive';
 const defaultThemeJson = buildPlatformTheme();
 const SUPPORTED_COMPONENT_DOCUMENT_VERSIONS = new Set(['1.0', '1.1', '1.2']);
 
@@ -766,14 +767,17 @@ export class FormspecRender extends HTMLElement {
         form.noValidate = true;
         form.addEventListener('submit', (event: AgentSubmitEvent) => {
             event.preventDefault();
-            const actionRef = this.injectedSubmitActionRef();
             if (event.agentInvoked !== true) {
                 const submitter = event.submitter;
-                if (actionRef && submitter instanceof HTMLButtonElement && submitter.type === 'submit') {
-                    void this.invokeAction(actionRef, submitter.id || undefined);
+                if (submitter instanceof HTMLButtonElement && submitter.type === 'submit') {
+                    const submitterActionRef = getActionButtonActionRef(submitter);
+                    if (submitterActionRef) {
+                        void this.invokeAction(submitterActionRef, submitter.id || undefined);
+                    }
                 }
                 return;
             }
+            const actionRef = this.injectedSubmitActionRef();
             if (typeof event.respondWith !== 'function' || !this.engine) return;
             const engine = this.engine;
             event.respondWith(

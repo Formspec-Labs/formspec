@@ -320,6 +320,8 @@ export interface SlotSuppliedTriggersOptions {
   matchesMinWidth?: ((minWidthPx: number) => boolean) | undefined;
   /** Mounted Definition form engines keyed by slot path (`slotId` or `embedSlotId/childSlotId`) for live visibility evaluation. */
   slotFormEngines?: ReadonlyMap<string, IFormEngine> | undefined;
+  /** Mounted Definition form reachable action refs keyed by slot path (`slotId` or `embedSlotId/childSlotId`), measured from live DOM/computed styles. */
+  slotRenderedActionRefs?: ReadonlyMap<string, ReadonlySet<string>> | undefined;
 }
 
 /**
@@ -419,8 +421,9 @@ export function slotSuppliedTriggers(
         continue;
       }
 
+      const mountedActionRefs = options.slotRenderedActionRefs?.get(slotKey);
       const slotEngine = options.slotFormEngines?.get(slotKey);
-      for (const actionRef of plannedDefinitionFormActionRefs(
+      const actionRefs = mountedActionRefs ?? plannedDefinitionFormActionRefs(
         definitionTarget,
         entry.componentDocument,
         document,
@@ -428,7 +431,8 @@ export function slotSuppliedTriggers(
           ...options,
           ...(slotEngine !== undefined ? { evalEngine: slotEngine } : {}),
         },
-      )) {
+      );
+      for (const actionRef of actionRefs) {
         if (!resolveResponseAction(document, actionRef).resolved) continue;
         const idMatches = actionDeclarations.filter(
           ({ action: candidate }) => typeof candidate.id === 'string' && candidate.id === actionRef,
@@ -508,7 +512,7 @@ function collectRenderedActionRefs(
     : '';
   const hiddenVisibility = rawVisibility === 'hidden' || rawVisibility === 'collapse'
     ? true
-    : rawVisibility === 'visible'
+    : rawVisibility === 'visible' || rawVisibility === 'initial' || rawVisibility === 'revert'
       ? false
       : inheritedHiddenVisibility;
 

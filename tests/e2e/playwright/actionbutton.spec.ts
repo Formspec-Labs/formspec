@@ -213,4 +213,55 @@ test.describe('ActionButton', () => {
     await expect(button).toBeDisabled();
     expect(await page.evaluate(() => (window as any).calls)).toBe(0);
   });
+
+  for (const tool of [true, false]) {
+    for (const replace of [false, true]) {
+      test(`WebComponent authored submit action preserves identity (tool=${tool}, replaced=${replace})`, async ({ page }) => {
+        await gotoHarness(page);
+        const observed = await page.evaluate(async ({ tool, replace }) => {
+          const el = document.createElement('formspec-render') as any;
+          if (tool) el.setAttribute('tool-name', 'identity');
+          el.showSubmit = false;
+          const url = 'urn:fixture:identity:browser';
+          const doc = (ids: string[]) => ({
+            $formspecResponseActions: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url },
+            actions: ids.map((id) => ({
+              id,
+              intent: 'submit',
+              label: { literal: id },
+              effects: [{ type: 'hostEvent', eventName: `record-${id}` }],
+            })),
+          });
+          el.definition = { $formspec: '1.0', version: '1.0.0', url, title: 'Identity', items: [] };
+          el.componentDocument = {
+            $formspecComponent: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url },
+            tree: { component: 'ActionButton', id: 'source', actionRef: 'second' },
+          };
+          el.responseActionsDocument = doc(['first', 'second']);
+          document.body.append(el);
+          for (let i = 0; i < 60 && !el.querySelector('#source'); i += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+          }
+          const button = el.querySelector('#source') as HTMLButtonElement | null;
+          if (!button || button.disabled) throw new Error('Authored button was not enabled');
+          const events: string[] = [];
+          for (const id of ['first', 'second', 'next']) {
+            el.addEventListener(`record-${id}`, () => events.push(id));
+          }
+          const label = button.textContent;
+          if (replace) el.responseActionsDocument = doc(['next']);
+          button.click();
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          el.remove();
+          return { events, label };
+        }, { tool, replace });
+        expect(observed.label).toBe('second');
+        expect(observed.events).toEqual(replace ? [] : ['second']);
+      });
+    }
+  }
 });

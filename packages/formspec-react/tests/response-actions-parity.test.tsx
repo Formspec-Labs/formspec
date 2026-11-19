@@ -1135,4 +1135,81 @@ describe('React Response Actions parity', () => {
             container.remove();
         }
     });
+
+    it('rejects malformed OR-ranges and incompatible replacements on both authored and generated buttons', async () => {
+        const url = 'urn:review:admission';
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            version: '1.0.0',
+            url,
+            title: 'Admission',
+            items: [],
+        };
+        const make = () => ({
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url },
+            actions: [{
+                id: 'manual',
+                intent: 'submit' as const,
+                label: { literal: 'Manual' },
+                effects: [{ type: 'hostEvent' as const, eventName: 'checked' }],
+            }],
+        });
+        const cases = [
+            ['wrong-url', (d: ReturnType<typeof make>) => ({ ...d, targetDefinition: { url: 'urn:review:other' } })],
+            ['wrong-version', (d: ReturnType<typeof make>) => ({ ...d, targetDefinition: { url, compatibleVersions: '>=9.0.0' } })],
+            ['invalid-shape', (d: ReturnType<typeof make>) => ({ ...d, actions: [...d.actions, null as never] })],
+            ['malformed-or-after', (d: ReturnType<typeof make>) => ({ ...d, targetDefinition: { url, compatibleVersions: '1.x || bad' } })],
+            ['malformed-or-before', (d: ReturnType<typeof make>) => ({ ...d, targetDefinition: { url, compatibleVersions: 'bad || 1.x' } })],
+        ] as const;
+
+        for (const mode of ['authored', 'generated'] as const) {
+            for (const [_name, change] of cases) {
+                const invoke = vi.fn((input: ResponseActionInvokerInput) =>
+                    invokeResponseAction(input.document, input.actionRef, input.ports, input.nodeId),
+                );
+                const onHostEvent = vi.fn();
+                const component = {
+                    $formspecComponent: '1.0' as const,
+                    version: '1.0.0',
+                    targetDefinition: { url },
+                    tree: { component: 'ActionButton' as const, actionRef: 'manual' },
+                };
+                const form = (doc: ReturnType<typeof make>) => (
+                    <FormspecForm
+                        definition={def}
+                        componentDocument={mode === 'authored' ? component : undefined}
+                        responseActionsDocument={doc}
+                        responseActionInvoker={invoke}
+                        onHostEvent={onHostEvent}
+                    />
+                );
+                const original = make();
+                const { container, root } = renderInto(form(original));
+                try {
+                    expect(container.querySelector<HTMLButtonElement>('button[data-action-ref="manual"]')?.disabled).toBe(false);
+                    await act(async () => {
+                        root.render(form(change(original)));
+                    });
+                    const replacement = container.querySelector<HTMLButtonElement>('button[data-action-ref="manual"]');
+                    await act(async () => {
+                        replacement?.click();
+                    });
+                    expect({
+                        state: replacement?.disabled,
+                        hooks: invoke.mock.calls.length,
+                        events: onHostEvent.mock.calls.length,
+                    }).toEqual({
+                        state: mode === 'authored' ? true : undefined,
+                        hooks: 0,
+                        events: 0,
+                    });
+                } finally {
+                    root.unmount();
+                    container.remove();
+                }
+            }
+        }
+    });
 });

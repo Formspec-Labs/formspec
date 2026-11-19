@@ -82,10 +82,55 @@ function isRawJson(value: unknown): boolean {
     return json.isRawJSON?.(value) ?? false;
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+export function isPlainJsonObject(value: unknown): value is Record<string, unknown> {
     if (value === null || typeof value !== 'object' || Array.isArray(value) || isRawJson(value)) return false;
     const prototype = Object.getPrototypeOf(value);
-    return prototype === Object.prototype || prototype === null;
+    if (prototype === Object.prototype || prototype === null) return true;
+    // Plain object created in another JavaScript realm (e.g. iframe / node:vm):
+    // its prototype is that realm's Object.prototype, whose own prototype is null.
+    if (Object.getPrototypeOf(prototype) !== null) return false;
+    if (Object.prototype.toString.call(value) !== '[object Object]') return false;
+    const ctor = Object.getOwnPropertyDescriptor(prototype, 'constructor')?.value;
+    return typeof ctor === 'function'
+        && ctor.prototype === prototype
+        && Object.prototype.hasOwnProperty.call(prototype, 'hasOwnProperty');
+}
+
+export function isValidPlainJsonValue(value: unknown, seen = new Set<object>()): boolean {
+    if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value !== 'object') return false;
+    if (isRawJson(value)) return true;
+    if (seen.has(value)) return false;
+    seen.add(value);
+    try {
+        if (Array.isArray(value)) {
+            for (let index = 0; index < value.length; index += 1) {
+                const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+                if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+                    return false;
+                }
+                if (!isValidPlainJsonValue(descriptor.value, seen)) return false;
+            }
+            return true;
+        }
+        if (!isPlainJsonObject(value)) return false;
+        for (const key of Object.keys(value)) {
+            if (FORBIDDEN_PROPERTY_NAMES.has(key)) return false;
+            const descriptor = Object.getOwnPropertyDescriptor(value, key);
+            if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+                return false;
+            }
+            if (!isValidPlainJsonValue(descriptor.value, seen)) return false;
+        }
+        return true;
+    } finally {
+        seen.delete(value);
+    }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    return isPlainJsonObject(value);
 }
 
 function ownDataValue(value: unknown, segment: string, label: string): unknown {

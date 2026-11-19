@@ -61,13 +61,26 @@ function bindNativeSubmitEligibility(button: HTMLButtonElement, cleanupFns: Arra
  * runs the intent from there, so the click handler always skips the direct call once the button carries that
  * type — running it in both places would run it twice.
  */
+const buttonActionRefs = new WeakMap<HTMLButtonElement, string>();
+
+/** Read the exact authored or injected `actionRef` bound to a rendered ActionButton. */
+export function getActionButtonActionRef(button: HTMLButtonElement): string | undefined {
+    return buttonActionRefs.get(button);
+}
+
 function bindActionButtonSubmit(
     button: HTMLButtonElement,
     ctx: RenderContext,
+    actionRef: string,
     action: Record<string, unknown> | null,
     invoke: () => void,
 ): () => void {
     const disposers: Array<() => void> = [];
+    if (actionRef) {
+        button.dataset.actionRef = actionRef;
+        buttonActionRefs.set(button, actionRef);
+        disposers.push(() => buttonActionRefs.delete(button));
+    }
     if (ctx.behaviorContext.isDeclarativeToolForm && action?.intent === 'submit') {
         bindNativeSubmitEligibility(button, disposers);
     }
@@ -117,7 +130,7 @@ export const ActionButtonPlugin: ComponentPlugin = {
                         button.textContent = pending ? pendingLabel.value : defaultLabel.value;
                         button.disabled = !actionResolved || (disableWhenPending ? pending : false);
                     });
-                    const disposeSubmitBind = bindActionButtonSubmit(button, ctx, action, () => void ctx.invokeAction(actionRef, comp.id));
+                    const disposeSubmitBind = bindActionButtonSubmit(button, ctx, actionRef, action, () => void ctx.invokeAction(actionRef, comp.id));
                     return () => {
                         disposeEffect();
                         disposeSubmitBind();
@@ -143,7 +156,7 @@ export const ActionButtonPlugin: ComponentPlugin = {
             button.textContent = pending ? pendingLabel.value : defaultLabel.value;
             button.disabled = !actionResolved || (disableWhenPending ? pending : false);
         }));
-        ctx.cleanupFns.push(bindActionButtonSubmit(button, ctx, action, () => void ctx.invokeAction(actionRef, comp.id)));
+        ctx.cleanupFns.push(bindActionButtonSubmit(button, ctx, actionRef, action, () => void ctx.invokeAction(actionRef, comp.id)));
         parent.appendChild(button);
     },
 };

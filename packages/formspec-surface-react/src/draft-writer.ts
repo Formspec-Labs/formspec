@@ -86,11 +86,9 @@ export function createDraftWriter(options: DraftWriterOptions) {
   const placements = options.sections.map(({ id, fields }) => ({
     ...(id === undefined ? {} : { id }), fields,
   }));
-  const autosaveResolution = resolveAutosaveResponseAction(options.actions, engine.definition);
-  if (autosaveResolution.finding) {
-    options.onActionFinding?.(autosaveResolution.finding);
-  }
-  const authoredAutosave = autosaveResolution.action ?? undefined;
+  let currentActions = options.actions;
+  let authoredAutosave: ResponseAction | undefined;
+  let autosaveFinding: ActionRefFinding | undefined;
   let responseId = options.responseId ?? `urn:uuid:${crypto.randomUUID()}`;
   let committed: Pick<DraftRecord, 'revision'> | undefined = options.draft;
   let author = options.author;
@@ -123,11 +121,29 @@ export function createDraftWriter(options: DraftWriterOptions) {
     }, options.debounceMs ?? 400);
   }
 
+  function reconcileActions(nextActions: ResponseActionsDocument | undefined): ActionRefFinding | undefined {
+    currentActions = nextActions;
+    const resolution = resolveAutosaveResponseAction(currentActions, engine.definition);
+    authoredAutosave = resolution.action ?? undefined;
+    autosaveFinding = resolution.finding ?? undefined;
+    if (!authoredAutosave) {
+      clearTimer();
+    } else {
+      schedule();
+    }
+    return autosaveFinding;
+  }
+
+  const initialFinding = reconcileActions(options.actions);
+  if (initialFinding) {
+    options.onActionFinding?.(initialFinding);
+  }
+
   function saveAutomatically(): Promise<boolean> {
     if (autosaving) return autosaving;
     if (!authoredAutosave || !active || conflicted) return Promise.resolve(false);
     autosaving = invoke({
-      document: options.actions,
+      document: currentActions,
       actionRef: authoredAutosave.id,
       ports: { submit: captureActionResponse, dispatchHostEvent: () => {} },
     }).then(result => result.detail !== null && (result.status === 'completed' || result.status === 'deferred'))
@@ -392,9 +408,14 @@ export function createDraftWriter(options: DraftWriterOptions) {
 
   return {
     invoke, flush, runFenced, resolveConflict, captureActionResponse,
+    get actions() { return currentActions; },
+    get autosaveFinding() { return autosaveFinding; },
     get conflict() { return conflicted; },
     get dirty() { return edit !== savedEdit || pending !== undefined || fence !== undefined || checkpoints.size > 0; },
     get revision() { return committed?.revision; },
+    setActions(nextActions: ResponseActionsDocument | undefined) {
+      return reconcileActions(nextActions);
+    },
     leave, waitForSaves,
     setMounted(value: boolean) { mounted = value; schedule(); },
     dispose() { active = false; clearTimer(); unsubscribe(); },

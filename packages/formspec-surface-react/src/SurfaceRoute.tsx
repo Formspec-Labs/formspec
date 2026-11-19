@@ -114,7 +114,7 @@ export interface SurfaceRouteViewProps {
     | ((slotKey: string, engine: import('@formspec-org/engine').IFormEngine | undefined) => void)
     | undefined;
   onSlotVisibilityChange?:
-    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
+    | ((slotKey: string, nextRefs: ReadonlySet<string> | undefined, baselineKey: string) => void)
     | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   definitionActionInvoker?:

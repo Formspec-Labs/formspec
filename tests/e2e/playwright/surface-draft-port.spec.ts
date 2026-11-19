@@ -782,3 +782,49 @@ test('a failed seeded edition open after a summary read abort leaves an open tra
     await seeder.close();
   }
 });
+
+for (const [variant, expected] of [
+  ['inherited', 'fallback'],
+  ['override', 'checkpoint'],
+  ['display-precedence', 'fallback'],
+  ['initial', 'checkpoint'],
+  ['var', 'fallback'],
+] as const) {
+  test(`Filing fallback matches computed ancestor CSS visibility (${variant})`, async ({ page }) => {
+    await page.goto(`/surface-drafts.html?form&authoredAutosave&visibilityCase=nested&variant=${variant}#/filing`);
+    await expect(page.getByLabel('Answer', { exact: true })).toBeEditable();
+    const checkpoint = page.getByRole('button', { name: 'Checkpoint now', exact: true });
+    const fallback = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+    await expect(checkpoint).toHaveCount(expected === 'checkpoint' ? 1 : 0);
+    await expect(fallback).toHaveCount(expected === 'fallback' ? 1 : 0);
+    await (expected === 'fallback' ? fallback : checkpoint).click();
+    await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+  });
+}
+
+for (const variant of ['true', 'false', 'dismiss'] as const) {
+  test(`Filing fallback tracks button-triggered and dismissed auto Modal (${variant})`, async ({ page }) => {
+    await page.goto(`/surface-drafts.html?form&authoredAutosave&visibilityCase=modal&variant=${variant}#/filing`);
+    const checkpoint = page.getByRole('button', { name: 'Checkpoint now', exact: true });
+    const fallback = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+    const trigger = page.getByRole('button', { name: 'Open checkpoint', exact: true });
+    if (variant === 'true') {
+      await expect(fallback).toHaveCount(0);
+      await trigger.click();
+      await expect(checkpoint).toBeVisible();
+      await checkpoint.click();
+    } else {
+      if (variant === 'dismiss') {
+        await expect(checkpoint).toBeVisible();
+        await expect(fallback).toHaveCount(0);
+        await page.locator('button.formspec-modal-close').click();
+      }
+      await expect(page.getByLabel('Answer', { exact: true })).toBeEditable();
+      await expect(checkpoint).toHaveCount(0);
+      await expect(trigger).toHaveCount(0);
+      await expect(fallback).toHaveCount(1);
+      await fallback.click();
+    }
+    await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+  });
+}

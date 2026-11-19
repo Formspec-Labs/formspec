@@ -379,4 +379,88 @@ describe('wizard page mode: the native submit button is only actionable on the l
         form.requestSubmit(); // no submitter argument — submitter is null, exactly like the no-button fallback
         expect(invokeSpy).not.toHaveBeenCalled();
     });
+
+    it('dispatches the clicked authored submit action identity under tool-name and refuses replaced-out actions', () => {
+        const doc = (ids: string[]) => ({
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url: 'urn:test:webmcp' },
+            actions: ids.map((id) => ({
+                id,
+                intent: 'submit' as const,
+                label: { literal: id },
+                effects: [{ type: 'hostEvent' as const, eventName: `record-${id}` }],
+            })),
+        });
+
+        const emptyDef = {
+            $formspec: '1.0',
+            url: 'urn:test:webmcp',
+            version: '1.0.0',
+            title: 'Identity',
+            items: [],
+        };
+
+        for (const replace of [false, true]) {
+            const el = mountTool(emptyDef);
+            el.showSubmit = false;
+            el.componentDocument = minimalComponentDoc(
+                { component: 'ActionButton', id: 'source', actionRef: 'second' },
+                { targetDefinition: { url: 'urn:test:webmcp' } },
+            );
+            el.responseActionsDocument = doc(['first', 'second']);
+            el.render();
+
+            const button = el.querySelector('#source') as HTMLButtonElement | null;
+            expect(button).not.toBeNull();
+            expect(button!.disabled).toBe(false);
+            expect(button!.type).toBe('submit');
+            expect(button!.textContent).toBe('second');
+
+            const events: string[] = [];
+            for (const id of ['first', 'second', 'next']) {
+                el.addEventListener(`record-${id}`, () => events.push(id));
+            }
+
+            if (replace) {
+                el.responseActionsDocument = doc(['next']);
+            }
+            button!.click();
+            expect(events).toEqual(replace ? [] : ['second']);
+        }
+    });
+
+    it('refuses malformed OR-range compatibleVersions on authored and generated ActionButtons', () => {
+        for (const mode of ['authored', 'generated'] as const) {
+            const el = mountTool();
+            if (mode === 'authored') {
+                el.componentDocument = minimalComponentDoc(
+                    { component: 'ActionButton', id: 'manual-btn', actionRef: 'manual' },
+                    { targetDefinition: { url: 'urn:test:webmcp' } },
+                );
+            }
+            const validDoc = responseActionsDoc([{ id: 'manual', intent: 'submit', label: { literal: 'Manual' } }]);
+            el.responseActionsDocument = validDoc;
+            el.render();
+            expect((el.querySelector('button.formspec-submit') as HTMLButtonElement | null)?.disabled).toBe(false);
+
+            el.responseActionsDocument = {
+                ...validDoc,
+                targetDefinition: { url: 'urn:test:webmcp', compatibleVersions: '1.x || bad' },
+            };
+            el.render();
+
+            const events: string[] = [];
+            el.addEventListener('formspec-submit', () => events.push('fired'));
+            const replacement = el.querySelector('button.formspec-submit') as HTMLButtonElement | null;
+            if (mode === 'authored') {
+                expect(replacement).not.toBeNull();
+                expect(replacement!.disabled).toBe(true);
+                replacement!.click();
+            } else {
+                expect(replacement).toBeNull();
+            }
+            expect(events).toEqual([]);
+        }
+    });
 });

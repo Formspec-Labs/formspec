@@ -1,5 +1,6 @@
 /** @filedesc Tests for References sidecar processing — target matching and field reference resolution. */
 import { describe, expect, it } from 'vitest';
+import { satisfies } from 'semver';
 import {
   resolveFieldReferences,
   targetDefinitionMatches,
@@ -75,6 +76,50 @@ describe('targetDefinitionMatches', () => {
     ['>=1.0.0 <2.0.0', '2.0.0-rc.1', true],
     ['>=1.0.0 <2.0.0', '2.0.0', false],
   ])('matches Core semver caret and prerelease semantics for %j against %s -> %s', (range, version, expected) => {
+    expect(targetDefinitionMatches({ url: FORM_URL, compatibleVersions: range }, { url: FORM_URL, version }))
+      .toBe(expected);
+  });
+
+  it.each([
+    ['positive major caret', '1.4.0', '^1.2.3'],
+    ['zero minor caret', '0.2.0', '^0.1.0'],
+    ['zero patch caret', '0.0.4', '^0.0.3'],
+    ['zero minor caret prerelease floor', '0.1.0-rc.1', '^0.1.0'],
+    ['zero patch caret prerelease floor', '0.0.3-rc.1', '^0.0.3'],
+    ['positive caret prerelease exclusion', '1.2.3-rc.1', '^1.2.3'],
+    ['tilde prerelease exclusion major', '1.0.0-rc.1', '~1'],
+    ['tilde prerelease exclusion minor', '1.2.0-rc.1', '~1.2'],
+    ['tilde alternate spelling', '1.2.4', '~>1.2.3'],
+    ['tilde fully specified', '1.2.7', '~1.2.3'],
+    ['hyphen full prerelease floor', '1.2.3-rc.1', '1.2.3 - 2.0.0'],
+    ['hyphen partial', '2.0.5', '1.2 - 2.0'],
+    ['hyphen ceiling', '2.0.0-rc.1', '1.2.3 - 2.0.0'],
+    ['x range unstable lower', '1.2.0-rc.1', '1.2.x'],
+    ['x range next unstable', '1.3.0-rc.1', '1.2.x'],
+    ['X alternate', '1.7.1', '1.X'],
+    ['star', '1.0.0-0', '*'],
+    ['prerelease numeric order', '1.2.3-rc.10', '>1.2.3-rc.2'],
+    ['prerelease numeric vs alpha', '1.2.3-1', '<1.2.3-alpha'],
+    ['prerelease sequence length', '1.2.3-alpha.1', '>1.2.3-alpha'],
+    ['prerelease upper bound', '2.0.0-rc.1', '>=1.0.0 <2.0.0'],
+    ['ignore build precedence', '1.0.0+123', '=1.0.0+aaa'],
+    ['alternative', '2.0.0', '1.x || 2.x'],
+    ['malformed alternative after match', '1.0.0', '1.x || bad'],
+    ['malformed alternative before match', '1.0.0', 'bad || 1.x'],
+    ['empty alternative', '1.0.0', '|| 2.x'],
+    ['blank range', '1.0.0', '   '],
+    ['tabs and spaces', '1.0.0', '  >=  1.0.0\t< 2.0.0 '],
+    ['plain malformed', '1.0.0', '1..2'],
+    ['v-prefixed comparator', '1.0.0', '>=v1.0.0'],
+    ['v-prefixed version', 'v1.0.0', '>=1.0.0'],
+    ['oversized major', '9007199254740992.0.0', '*'],
+    ['strict leading zero', '01.0.0', '*'],
+    ['gt partial', '2.0.0-rc.1', '>1'],
+    ['lt partial', '1.3.0-rc.1', '<1.3'],
+    ['gt star', '1.0.0', '>*'],
+    ['gte star', '1.0.0', '>=*'],
+  ] as const)('matches node-semver includePrerelease oracle for %s (%s vs %j)', (_label, version, range) => {
+    const expected = satisfies(version, range, { includePrerelease: true });
     expect(targetDefinitionMatches({ url: FORM_URL, compatibleVersions: range }, { url: FORM_URL, version }))
       .toBe(expected);
   });

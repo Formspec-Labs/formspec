@@ -17,6 +17,7 @@ import type {
 } from '@formspec-org/types';
 import { targetDefinitionMatches, VALIDATION_MAPPING_MASTER_TABLE } from '@formspec-org/types';
 import { ResponseActionsPreconditionCatalog } from './precondition-catalog.js';
+import { isPlainJsonObject, isValidPlainJsonValue } from './service-request-runtime.js';
 
 /**
  * Singleton precondition catalog. Spec §4.1 publishes a closed catalog of
@@ -704,6 +705,32 @@ function isValidProvenanceRef(value: unknown): boolean {
     );
 }
 
+function everyDenseElement(
+    value: unknown,
+    predicate: (item: unknown, index: number) => boolean,
+): boolean {
+    if (!Array.isArray(value)) return false;
+    for (let index = 0; index < value.length; index += 1) {
+        const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+        if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+            return false;
+        }
+        if (!predicate(descriptor.value, index)) return false;
+    }
+    return true;
+}
+
+function ownDataProperty(
+    record: Record<string, unknown>,
+    key: string,
+): { present: boolean; value: unknown } {
+    const descriptor = Object.getOwnPropertyDescriptor(record, key);
+    if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+        return { present: false, value: undefined };
+    }
+    return { present: true, value: descriptor.value };
+}
+
 function isValidGeneration(value: unknown): boolean {
     const gen = asRecord(value);
     if (!gen) return false;
@@ -712,9 +739,10 @@ function isValidGeneration(value: unknown): boolean {
         && (gen.generatedAt === undefined || typeof gen.generatedAt === 'string')
         && (
             gen.anchors === undefined
-            || (Array.isArray(gen.anchors) && gen.anchors.every(
+            || everyDenseElement(
+                gen.anchors,
                 (anchor) => typeof anchor === 'string' && GENERATION_ANCHOR_PATTERN.test(anchor),
-            ))
+            )
         )
         && (gen.generatedBy === undefined || typeof gen.generatedBy === 'string' || isValidAuthorActor(gen.generatedBy))
         && (gen.sourceModule === undefined || isValidModuleRef(gen.sourceModule))
@@ -723,33 +751,16 @@ function isValidGeneration(value: unknown): boolean {
         && (gen.extensions === undefined || isValidExtensions(gen.extensions));
 }
 
-function isValidJsonValue(value: unknown, activeStack = new WeakSet<object>()): boolean {
-    if (value === null || typeof value === 'boolean' || typeof value === 'string') return true;
-    if (typeof value === 'number') return Number.isFinite(value);
-    if (typeof value !== 'object') return false;
-    if (activeStack.has(value)) return false;
-    activeStack.add(value);
-    try {
-        if (Array.isArray(value)) {
-            return value.every((item) => isValidJsonValue(item, activeStack));
-        }
-        const proto = Object.getPrototypeOf(value);
-        if (proto !== Object.prototype && proto !== null) return false;
-        return Object.values(value as Record<string, unknown>).every((item) => isValidJsonValue(item, activeStack));
-    } finally {
-        activeStack.delete(value);
-    }
-}
-
 function isValidRuntimeValueSelector(value: unknown): boolean {
     const selector = asRecord(value);
     if (!selector || !hasOnlyAllowedKeys(selector, RUNTIME_VALUE_SELECTOR_KEYS)) return false;
     const from = selector.from;
     if (from === 'literal') {
-        return Object.prototype.hasOwnProperty.call(selector, 'value')
-            && selector.value !== undefined
+        const valueProp = ownDataProperty(selector, 'value');
+        return valueProp.present
+            && valueProp.value !== undefined
             && !Object.prototype.hasOwnProperty.call(selector, 'path')
-            && isValidJsonValue(selector.value);
+            && isValidPlainJsonValue(valueProp.value);
     }
     if (from === 'input' || from === 'route' || from === 'session' || from === 'result') {
         return typeof selector.path === 'string'
@@ -762,21 +773,31 @@ function isValidRuntimeValueSelector(value: unknown): boolean {
 function isValidSelectorMap(value: unknown, keyPattern: RegExp): boolean {
     const record = asRecord(value);
     if (!record) return false;
-    return Object.entries(record).every(
-        ([key, entry]) => keyPattern.test(key) && isValidRuntimeValueSelector(entry),
-    );
+    for (const key of Object.keys(record)) {
+        const prop = ownDataProperty(record, key);
+        if (!prop.present || !keyPattern.test(key) || !isValidRuntimeValueSelector(prop.value)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 function isValidHttpJsonRequest(value: unknown): boolean {
     const req = asRecord(value);
     if (!req || !hasOnlyAllowedKeys(req, HTTP_JSON_REQUEST_KEYS)) return false;
+    const bodyDefaultsProp = ownDataProperty(req, 'bodyDefaults');
+    const bodyDefaultsValid = !Object.prototype.hasOwnProperty.call(req, 'bodyDefaults')
+        || (bodyDefaultsProp.present && (
+            bodyDefaultsProp.value === undefined
+            || (isPlainJsonObject(bodyDefaultsProp.value) && isValidPlainJsonValue(bodyDefaultsProp.value))
+        ));
     return (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH' || req.method === 'DELETE')
         && typeof req.pathTemplate === 'string'
         && PATH_TEMPLATE_PATTERN.test(req.pathTemplate)
         && (req.pathBindings === undefined || isValidSelectorMap(req.pathBindings, PATH_BINDING_NAME_PATTERN))
         && (req.queryBindings === undefined || isValidSelectorMap(req.queryBindings, QUERY_BINDING_NAME_PATTERN))
         && (req.headerBindings === undefined || isValidSelectorMap(req.headerBindings, HEADER_BINDING_NAME_PATTERN))
-        && (req.bodyDefaults === undefined || (asRecord(req.bodyDefaults) !== null && isValidJsonValue(req.bodyDefaults)))
+        && bodyDefaultsValid
         && (req.bodyBindings === undefined || isValidSelectorMap(req.bodyBindings, JSON_POINTER_NON_ROOT_PATTERN));
 }
 
@@ -805,7 +826,7 @@ function isValidRuntimeRequestCatalog(value: unknown): boolean {
         return false;
     }
     const requestIds = new Set<string>();
-    for (const raw of catalog.requests) {
+    if (!everyDenseElement(catalog.requests, (raw) => {
         const entry = asRecord(raw);
         if (
             !entry
@@ -823,11 +844,14 @@ function isValidRuntimeRequestCatalog(value: unknown): boolean {
         if (entry.successStatuses !== undefined) {
             if (!Array.isArray(entry.successStatuses) || entry.successStatuses.length === 0) return false;
             const seenStatuses = new Set<number>();
-            for (const status of entry.successStatuses) {
+            if (!everyDenseElement(entry.successStatuses, (status) => {
                 if (typeof status !== 'number' || !Number.isInteger(status) || status < 200 || status > 299 || seenStatuses.has(status)) {
                     return false;
                 }
                 seenStatuses.add(status);
+                return true;
+            })) {
+                return false;
             }
         }
         if (entry.outputs !== undefined) {
@@ -840,6 +864,9 @@ function isValidRuntimeRequestCatalog(value: unknown): boolean {
             }
         }
         requestIds.add(entry.id);
+        return true;
+    })) {
+        return false;
     }
     return true;
 }
@@ -920,13 +947,13 @@ function hasValidResponseActionShape(value: unknown): value is ResponseAction {
         || (action['x-generation'] !== undefined && !isValidGeneration(action['x-generation']))
         || (
             action.preconditions !== undefined
-            && (!Array.isArray(action.preconditions) || !action.preconditions.every(isValidPrecondition))
+            && !everyDenseElement(action.preconditions, isValidPrecondition)
         )
         || (action.onFailure !== undefined && action.onFailure !== 'stop' && action.onFailure !== 'retry-once')
         || (action.onDeferred !== undefined && action.onDeferred !== 'stop' && action.onDeferred !== 'await')
         || !Array.isArray(action.effects)
         || action.effects.length === 0
-        || !action.effects.every(hasValidResponseActionEffectShape)
+        || !everyDenseElement(action.effects, hasValidResponseActionEffectShape)
     ) {
         return false;
     }
@@ -982,7 +1009,7 @@ export function isValidDefinitionResponseActionsDocument(
         || (candidate.name !== undefined && (typeof candidate.name !== 'string' || !DOCUMENT_NAME_PATTERN.test(candidate.name)))
         || (candidate.title !== undefined && typeof candidate.title !== 'string')
         || (candidate.description !== undefined && typeof candidate.description !== 'string')
-        || (candidate.modules !== undefined && (!Array.isArray(candidate.modules) || !candidate.modules.every(isValidModuleRef)))
+        || (candidate.modules !== undefined && !everyDenseElement(candidate.modules, isValidModuleRef))
         || (candidate.scope !== undefined && candidate.scope !== 'response')
         || !target
         || !hasOnlyAllowedKeys(target, TARGET_DEFINITION_KEYS)
@@ -1009,7 +1036,7 @@ export function isValidDefinitionResponseActionsDocument(
         || (candidate['x-formspec-runtime'] !== undefined && !isValidRuntimeRequestCatalog(candidate['x-formspec-runtime']))
         || !Array.isArray(candidate.actions)
         || candidate.actions.length === 0
-        || !candidate.actions.every(hasValidResponseActionShape)
+        || !everyDenseElement(candidate.actions, hasValidResponseActionShape)
     ) {
         return false;
     }

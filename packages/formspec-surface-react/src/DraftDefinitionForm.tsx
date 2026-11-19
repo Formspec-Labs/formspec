@@ -82,6 +82,11 @@ export function DraftDefinitionForm({
     void ready().catch(() => { if (active) setLoaded({ session, result: { status: 'unavailable' } }); });
     return () => { active = false; release?.(); };
   }, [session, definition, attempt, input.draftSeed]);
+  useEffect(() => {
+    if (open?.status !== 'ready') return;
+    const finding = session.syncActions(open.writer, input.responseActionsDocument);
+    if (finding) latest.current.onActionFinding?.(finding);
+  }, [open, session, input.responseActionsDocument]);
 
   async function restart() {
     if (open?.status !== 'version-mismatch' || !session.restart) return;

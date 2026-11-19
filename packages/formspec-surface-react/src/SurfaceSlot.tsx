@@ -349,7 +349,7 @@ export interface SurfaceSlotProps {
     | ((slotKey: string, engine: IFormEngine | undefined) => void)
     | undefined;
   onSlotVisibilityChange?:
-    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
+    | ((slotKey: string, nextRefs: ReadonlySet<string> | undefined, baselineKey: string) => void)
     | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   definitionActionInvoker?: DraftActionInvoker | undefined;
@@ -1015,7 +1015,7 @@ function DefinitionFormDataSlot({
     | ((slotKey: string, engine: IFormEngine | undefined) => void)
     | undefined;
   onSlotVisibilityChange?:
-    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
+    | ((slotKey: string, nextRefs: ReadonlySet<string> | undefined, baselineKey: string) => void)
     | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   semanticOutputScope: SurfaceSemanticOutputPublisherScope | undefined;
@@ -1198,7 +1198,7 @@ function DefinitionFormSlot({
     | ((slotKey: string, engine: IFormEngine | undefined) => void)
     | undefined;
   onSlotVisibilityChange?:
-    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
+    | ((slotKey: string, nextRefs: ReadonlySet<string> | undefined, baselineKey: string) => void)
     | undefined;
   renderDefinitionForm: SurfaceDefinitionFormRenderer | undefined;
   semanticOutputScope: SurfaceSemanticOutputPublisherScope | undefined;
@@ -1206,10 +1206,16 @@ function DefinitionFormSlot({
   const { plan: { subject }, strings } = input;
   const actionDiagnosticScope = `definition-form-actions:${input.route.surfaceId}/${input.route.routeId}/${slotKey}`;
   const reportedFindings = useRef(new Map<string, SurfaceDiagnostic>());
-  const previousScope = useRef<string | undefined>(undefined);
+  const previousScope = useRef<
+    | { token: string; actions: SurfaceDefinitionFormRenderInput['responseActionsDocument'] }
+    | undefined
+  >(undefined);
   const scopeToken = `${runtimeGeneration}:${actionDiagnosticScope}`;
-  if (previousScope.current !== scopeToken) {
-    previousScope.current = scopeToken;
+  if (
+    previousScope.current?.token !== scopeToken
+    || previousScope.current?.actions !== input.responseActionsDocument
+  ) {
+    previousScope.current = { token: scopeToken, actions: input.responseActionsDocument };
     reportedFindings.current.clear();
   }
   useEffect(() => {
@@ -1218,7 +1224,7 @@ function DefinitionFormSlot({
       findings.clear();
       onRuntimeDiagnosticsChange?.(actionDiagnosticScope, []);
     };
-  }, [actionDiagnosticScope, onRuntimeDiagnosticsChange, runtimeGeneration]);
+  }, [actionDiagnosticScope, onRuntimeDiagnosticsChange, runtimeGeneration, input.responseActionsDocument]);
   const handleActionFinding = useCallback(
     (finding: ActionRefFinding) => {
       const key = `${finding.code}:${finding.reason ?? ''}:${finding.target}:${finding.nodeId ?? ''}`;
@@ -1304,7 +1310,7 @@ function DefaultDefinitionFormSlot({
     | ((slotKey: string, engine: IFormEngine | undefined) => void)
     | undefined;
   onSlotVisibilityChange?:
-    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
+    | ((slotKey: string, nextRefs: ReadonlySet<string> | undefined, baselineKey: string) => void)
     | undefined;
   semanticOutputScope?: SurfaceSemanticOutputPublisherScope | undefined;
 }): ReactNode {
@@ -1334,6 +1340,101 @@ function DefaultDefinitionFormSlot({
   );
 }
 
+function isElementReachable(
+  element: HTMLElement,
+  root: HTMLElement,
+  visiting = new Set<HTMLElement>(),
+): boolean {
+  if (visiting.has(element)) return false;
+  visiting.add(element);
+  const view = element.ownerDocument.defaultView;
+  const computedVisibility = (
+    view?.getComputedStyle(element).visibility ?? element.style.visibility
+  ).trim().toLowerCase();
+  if (computedVisibility === 'hidden' || computedVisibility === 'collapse') {
+    return false;
+  }
+
+  let current: HTMLElement | null = element;
+  while (current && current !== root) {
+    if (current !== element) {
+      if (current.tagName === 'DIALOG' && !(current as HTMLDialogElement).open) {
+        if (current.hidden || current.style.display.trim().toLowerCase() === 'none') {
+          return false;
+        }
+        const trigger = current.previousElementSibling;
+        if (
+          trigger instanceof HTMLElement
+          && trigger.tagName === 'BUTTON'
+          && trigger.classList.contains('formspec-modal-trigger')
+          && !(trigger as HTMLButtonElement).disabled
+        ) {
+          return isElementReachable(trigger, root, visiting);
+        }
+        return false;
+      }
+      if (current.classList.contains('formspec-popover-content') && current.hidden) {
+        if (current.style.display.trim().toLowerCase() === 'none') {
+          return false;
+        }
+        const trigger = current.previousElementSibling;
+        if (
+          trigger instanceof HTMLElement
+          && trigger.tagName === 'BUTTON'
+          && trigger.classList.contains('formspec-popover-trigger')
+          && !(trigger as HTMLButtonElement).disabled
+        ) {
+          return isElementReachable(trigger, root, visiting);
+        }
+        return false;
+      }
+      if (current.getAttribute('role') === 'tabpanel' && current.hidden) {
+        if (current.style.display.trim().toLowerCase() === 'none') {
+          return false;
+        }
+        const tabId = current.getAttribute('aria-labelledby');
+        const tab = tabId ? current.ownerDocument.getElementById(tabId) : null;
+        if (
+          tab instanceof HTMLElement
+          && root.contains(tab)
+          && !(tab as HTMLButtonElement).disabled
+          && isElementReachable(tab, root, visiting)
+        ) {
+          current = current.parentElement;
+          continue;
+        }
+        return false;
+      }
+      if (current.classList.contains('formspec-wizard-panel') && current.hidden) {
+        if (current.style.display.trim().toLowerCase() === 'none') {
+          return false;
+        }
+        current = current.parentElement;
+        continue;
+      }
+    }
+
+    if (current.hidden) return false;
+    if (current.style.display.trim().toLowerCase() === 'none') return false;
+    const computedDisplay = view?.getComputedStyle(current).display.trim().toLowerCase();
+    if (computedDisplay === 'none') return false;
+    current = current.parentElement;
+  }
+  return true;
+}
+
+function collectMountedReachableActionRefs(root: HTMLElement): ReadonlySet<string> {
+  const refs = new Set<string>();
+  for (const button of root.querySelectorAll<HTMLButtonElement>('button[data-action-ref]')) {
+    const actionRef = button.dataset.actionRef;
+    if (!actionRef || button.disabled) continue;
+    if (isElementReachable(button, root)) {
+      refs.add(actionRef);
+    }
+  }
+  return refs;
+}
+
 function DefaultSurfaceDefinitionForm(
   input: SurfaceDefinitionFormRenderInput & {
     slotKey: string;
@@ -1341,7 +1442,7 @@ function DefaultSurfaceDefinitionForm(
       | ((slotKey: string, engine: IFormEngine | undefined) => void)
       | undefined;
     onSlotVisibilityChange?:
-    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
+    | ((slotKey: string, nextRefs: ReadonlySet<string> | undefined, baselineKey: string) => void)
     | undefined;
     draftEngine?: IFormEngine;
     draftWriter?: DraftWriter;
@@ -1420,8 +1521,11 @@ function DefaultSurfaceDefinitionForm(
       onSlotFormEngineChange(slotKey, undefined);
     };
   }, [engine, onSlotFormEngineChange, slotKey]);
+  const formRootRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (!engine || !onSlotVisibilityChange) return;
+    const root = formRootRef.current;
+    if (!root) return;
     const matchesMinWidth =
       typeof window !== 'undefined' && typeof window.matchMedia === 'function'
         ? (minWidth: number) => window.matchMedia(`(min-width: ${minWidth}px)`).matches
@@ -1435,19 +1539,37 @@ function DefaultSurfaceDefinitionForm(
         ...(matchesMinWidth ? { matchesMinWidth } : {}),
       },
     )].sort().join('\0');
-    return preactReactiveRuntime.effect(() => {
-      const nextKey = [...plannedDefinitionFormActionRefs(
-        plan.definition,
-        componentDocument,
-        responseActionsDocument,
-        {
-          themeDocument: grant.themeDocument,
-          evalEngine: engine,
-          ...(matchesMinWidth ? { matchesMinWidth } : {}),
-        },
-      )].sort().join('\0');
-      onSlotVisibilityChange(slotKey, nextKey, baselineKey);
+
+    let disposed = false;
+    const measure = () => {
+      if (disposed || !formRootRef.current) return;
+      onSlotVisibilityChange(slotKey, collectMountedReachableActionRefs(formRootRef.current), baselineKey);
+    };
+
+    measure();
+
+    const observer = typeof MutationObserver === 'function'
+      ? new MutationObserver(measure)
+      : null;
+    observer?.observe(root, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['open', 'hidden', 'style', 'class', 'disabled', 'data-action-ref'],
     });
+    const onDialogClose = () => measure();
+    root.addEventListener('close', onDialogClose, true);
+    const stopReactive = preactReactiveRuntime.effect(() => {
+      engine.getEvaluatedFormState({ profile: 'off' });
+      queueMicrotask(measure);
+    });
+
+    return () => {
+      disposed = true;
+      observer?.disconnect();
+      root.removeEventListener('close', onDialogClose, true);
+      stopReactive();
+    };
   }, [
     engine,
     onSlotVisibilityChange,
@@ -1457,6 +1579,9 @@ function DefaultSurfaceDefinitionForm(
     responseActionsDocument,
     grant.themeDocument,
   ]);
+  useLayoutEffect(() => () => {
+    onSlotVisibilityChange?.(slotKey, undefined, '');
+  }, [onSlotVisibilityChange, slotKey]);
   const renderedScope = engine ? semanticOutputScope : undefined;
   useSurfaceSemanticOutputs(
     renderedScope,
@@ -1508,47 +1633,49 @@ function DefaultSurfaceDefinitionForm(
     return <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
   }
   return (
-    <FormspecForm
-      {...(appearance && { className: `formspec-appearance-${appearance}` })}
-      engine={engine}
-      {...('activeSection' in input && { activeSection })}
-      onActiveSectionChange={onActiveSectionChange}
-      sectionNavigationActive={sectionNavigationActive}
-      hrefForSection={hrefForSection}
-      onSectionTitleChange={onSectionTitleChange}
-      componentDocument={componentDocument}
-      themeDocument={grant.themeDocument}
-      registryEntries={[...plan.registryEntries]}
-      resolveFieldHelp={resolveFieldHelp}
-      responseActionsDocument={responseActionsDocument ?? null}
-      {...(onActionFinding ? { onActionFinding } : {})}
-      responseActionInvoker={draftWriter
-        ? input => draftWriter.invoke(input, { invoker: responseActionInvoker, current: () => formVisit.current === visit })
-        : responseActionInvoker ?? null}
-      draftSaveFeedback={draftWriter ? 'external' : undefined}
-      {...(semanticControlScope ? { semanticControlScope } : {})}
-      emitThemeTokens={false}
-      {...(onActionCompleted || onDefinitionActionResult
-        ? {
-            // `onSubmit` requests the renderer's declared submit control. It is
-            // a no-op because durable effects have not reached a terminal yet.
-            onSubmit: () => {},
-            ...(onDefinitionActionResult
-              ? { onActionResult: onDefinitionActionResult }
-              : {}),
-            ...(onActionCompleted
-              ? {
-                  onControlActionResult: (
-                    result: ResponseActionInvocationResult<SubmitResult>,
-                  ) => {
-                    const action = completedFormAction(result);
-                    if (action) onActionCompleted(action, result);
-                  },
-                }
-              : {}),
-          }
-        : {})}
-    />
+    <div ref={formRootRef} style={{ display: 'contents' }}>
+      <FormspecForm
+        {...(appearance && { className: `formspec-appearance-${appearance}` })}
+        engine={engine}
+        {...('activeSection' in input && { activeSection })}
+        onActiveSectionChange={onActiveSectionChange}
+        sectionNavigationActive={sectionNavigationActive}
+        hrefForSection={hrefForSection}
+        onSectionTitleChange={onSectionTitleChange}
+        componentDocument={componentDocument}
+        themeDocument={grant.themeDocument}
+        registryEntries={[...plan.registryEntries]}
+        resolveFieldHelp={resolveFieldHelp}
+        responseActionsDocument={responseActionsDocument ?? null}
+        {...(onActionFinding ? { onActionFinding } : {})}
+        responseActionInvoker={draftWriter
+          ? input => draftWriter.invoke(input, { invoker: responseActionInvoker, current: () => formVisit.current === visit })
+          : responseActionInvoker ?? null}
+        draftSaveFeedback={draftWriter ? 'external' : undefined}
+        {...(semanticControlScope ? { semanticControlScope } : {})}
+        emitThemeTokens={false}
+        {...(onActionCompleted || onDefinitionActionResult
+          ? {
+              // `onSubmit` requests the renderer's declared submit control. It is
+              // a no-op because durable effects have not reached a terminal yet.
+              onSubmit: () => {},
+              ...(onDefinitionActionResult
+                ? { onActionResult: onDefinitionActionResult }
+                : {}),
+              ...(onActionCompleted
+                ? {
+                    onControlActionResult: (
+                      result: ResponseActionInvocationResult<SubmitResult>,
+                    ) => {
+                      const action = completedFormAction(result);
+                      if (action) onActionCompleted(action, result);
+                    },
+                  }
+                : {}),
+            }
+          : {})}
+      />
+    </div>
   );
 }
 

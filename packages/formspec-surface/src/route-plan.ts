@@ -84,6 +84,8 @@ export interface SurfaceRoutePlanInput<TComponent> {
   matchesMinWidth?: ((minWidthPx: number) => boolean) | undefined;
   /** Mounted Definition form engines keyed by slot path (`slotId` or `embedSlotId/childSlotId`) for live visibility evaluation. */
   slotFormEngines?: ReadonlyMap<string, import('@formspec-org/engine').IFormEngine> | undefined;
+  /** Mounted Definition form reachable action refs keyed by slot path, measured from live DOM/computed styles. */
+  slotRenderedActionRefs?: ReadonlyMap<string, ReadonlySet<string>> | undefined;
 }
 
 export interface SurfaceRoutePlan<TComponent> {
@@ -142,6 +144,7 @@ export function planMatchedRoute<TComponent>(
       ...(input.activeBreakpoint !== undefined ? { activeBreakpoint: input.activeBreakpoint } : {}),
       ...(input.matchesMinWidth !== undefined ? { matchesMinWidth: input.matchesMinWidth } : {}),
       ...(input.slotFormEngines !== undefined ? { slotFormEngines: input.slotFormEngines } : {}),
+      ...(input.slotRenderedActionRefs !== undefined ? { slotRenderedActionRefs: input.slotRenderedActionRefs } : {}),
     }),
     ...(input.evaluateCondition !== undefined
       ? { evaluateCondition: input.evaluateCondition }
