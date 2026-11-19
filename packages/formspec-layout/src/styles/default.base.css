@@ -66,8 +66,21 @@
   accent-color: var(--formspec-default-primary);
 }
 
-.formspec-field :is(input, select, textarea)[aria-invalid="true"] {
+.formspec-field :is(input, select, textarea)[aria-invalid="true"],
+.formspec-field--invalid .formspec-money,
+.formspec-field--invalid .formspec-money-field,
+.formspec-field--invalid .formspec-input-adornment,
+.formspec-field--invalid .formspec-input-wrapper,
+.formspec-field--invalid .formspec-select-wrapper,
+.formspec-field--invalid .formspec-combobox-row,
+.formspec-field--invalid .formspec-stepper {
   border-color: var(--formspec-default-danger);
+}
+
+.formspec-field--invalid .formspec-radio-group,
+.formspec-field--invalid .formspec-checkbox-group {
+  border-inline-start: 2px solid var(--formspec-default-danger);
+  padding-inline-start: 0.75rem;
 }
 
 .formspec-container :where(label) {
@@ -130,6 +143,7 @@
   flex-direction: column;
   gap: var(--formspec-spacing-xs, 0.25rem);
   margin-bottom: 0;
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
 }
 
 .formspec-fieldset {
@@ -140,6 +154,7 @@
   margin: 0;
   padding: 0;
   border: 0;
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
 }
 
 .formspec-legend {
@@ -217,13 +232,33 @@
 /* When labels wrap to different heights across a grid row, let the label grow
  * so controls align against the bottom edge of the row. */
 .formspec-grid .formspec-field,
-.formspec-grid .formspec-fieldset {
+.formspec-grid .formspec-fieldset,
+.formspec-auto-grid > .formspec-field,
+.formspec-auto-grid > .formspec-fieldset {
   flex: 1;
 }
 
 .formspec-grid .formspec-field > .formspec-label,
-.formspec-grid .formspec-fieldset > .formspec-legend {
+.formspec-grid .formspec-fieldset > .formspec-legend,
+.formspec-auto-grid > .formspec-field > .formspec-label,
+.formspec-auto-grid > .formspec-fieldset > .formspec-legend {
   flex: 1;
+}
+
+.formspec-auto-grid {
+  gap: var(--formspec-spacing-md, 0.875rem) var(--formspec-spacing-field, 0.75rem);
+  align-items: stretch;
+}
+
+.formspec-auto-grid[data-auto-grid="4"] > .formspec-field :where(input:not([type="radio"]):not([type="checkbox"]):not([type="range"]), select),
+.formspec-auto-grid[data-auto-grid="5"] > .formspec-field :where(input:not([type="radio"]):not([type="checkbox"]):not([type="range"]), select),
+.formspec-auto-grid[data-auto-grid="6"] > .formspec-field :where(input:not([type="radio"]):not([type="checkbox"]):not([type="range"]), select) {
+  padding: 0.62rem 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.formspec-auto-grid > .formspec-field--readonly {
+  padding: 0.55rem 0.65rem;
 }
 
 .formspec-description {
@@ -372,7 +407,7 @@ h6.formspec-heading {
  * its field and the container's own gap or padding follows. A host stylesheet that re-gaps a listed container
  * by class is not seen. */
 :is(.formspec-stack:not(.grid-row):not(.formspec-stack--horizontal), .formspec-group, .formspec-section,
-  .formspec-repeat-instance, .formspec-card-body, .formspec-collapsible-content, .formspec-wizard-panel):not([style*="gap"])
+  .formspec-repeat-instance, .formspec-card-body, .formspec-collapsible-content, .formspec-wizard-panel):not([style*="gap"]):not(.formspec-auto-grid)
   > :is(.formspec-field:not(.formspec-field--inline), .formspec-fieldset):not(.formspec-field--readonly, [data-formspec-agent-filled]):has(~ :not(.formspec-hidden, [hidden]))
   > .formspec-error:last-child {
   min-height: max(1lh, var(--formspec-spacing-field, 0.75rem));
@@ -382,6 +417,7 @@ h6.formspec-heading {
 .formspec-required {
   margin-left: 0.125rem;
   color: var(--formspec-default-danger);
+  text-decoration: none;
 }
 
 .formspec-input {
@@ -502,11 +538,35 @@ h6.formspec-heading {
 }
 
 .formspec-field--readonly :is(.formspec-input, input, textarea, select),
+.formspec-field--readonly .formspec-money,
+.formspec-field--readonly .formspec-input-adornment,
 .formspec-field [aria-readonly="true"] {
   color: var(--formspec-default-readonly-input-text);
   background: var(--formspec-default-readonly-input-bg);
   border-color: var(--formspec-default-readonly-input-border);
+  border-style: dashed;
+  box-shadow: inset 0 1px 2px rgba(12, 24, 41, 0.08);
   cursor: default;
+}
+
+.formspec-field--readonly :is(.formspec-money, .formspec-input-adornment) input {
+  border-style: none;
+  box-shadow: none;
+}
+
+.formspec-field--readonly input[type="date"]::-webkit-datetime-edit,
+.formspec-field--readonly input[type="datetime-local"]::-webkit-datetime-edit,
+.formspec-field--readonly input[type="time"]::-webkit-datetime-edit,
+.formspec-field--readonly :is(input, textarea)::placeholder {
+  color: var(--formspec-default-text-faint);
+  opacity: 0.8;
+}
+
+.formspec-field--readonly input[type="date"]::-webkit-calendar-picker-indicator,
+.formspec-field--readonly input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.formspec-field--readonly input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 .formspec-protected {

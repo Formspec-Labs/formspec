@@ -61,6 +61,7 @@ export function GroupControl({
                             type="radio"
                             name={field.path}
                             value={opt.value}
+                            tabIndex={isReadonly ? -1 : undefined}
                             checked={field.value === opt.value}
                             onChange={() => {
                                 if (isReadonly) return;
@@ -104,6 +105,7 @@ export function GroupControl({
                         type="checkbox"
                         aria-label={chrome('select.selectAll')}
                         aria-readonly={isReadonly}
+                        tabIndex={isReadonly ? -1 : undefined}
                         checked={allSelected}
                         onChange={(e) => {
                             if (isReadonly) return;
@@ -121,6 +123,7 @@ export function GroupControl({
                         name={field.path}
                         value={opt.value}
                         aria-readonly={isReadonly}
+                        tabIndex={isReadonly ? -1 : undefined}
                         checked={current.includes(opt.value)}
                         onChange={(e) => {
                             if (isReadonly) return;

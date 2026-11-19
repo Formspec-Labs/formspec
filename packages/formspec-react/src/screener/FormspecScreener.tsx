@@ -213,6 +213,11 @@ function ScreenerField({
               step={dt === 'decimal' ? 'any' : '1'}
               value={jsonValueText(value)}
               onChange={(e) => onChange(e.target.value === '' ? null : parseJsonNumber(e.target.value))}
+              onWheel={(e) => {
+                if (document.activeElement === e.currentTarget) {
+                  e.currentTarget.blur();
+                }
+              }}
               aria-invalid={showError} aria-required={required} aria-describedby={showError ? `${id}-error` : undefined}
             />
           </>

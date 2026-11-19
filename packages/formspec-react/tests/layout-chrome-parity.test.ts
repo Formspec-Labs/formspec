@@ -109,12 +109,14 @@ describe('Layout chrome parity', () => {
         expect(extractRuleProp(layoutCSS, '.formspec-button-danger', 'border-color')).toBe('var(--formspec-default-danger-fill)');
     });
 
-    it('keeps repeat-instance spacing and remove-button layout separate from the shared danger button shell', () => {
+    it('keeps repeat-instance spacing and compact outline remove-button layout separate from the shared danger button shell', () => {
         expect(extractRuleProp(layoutCSS, '.formspec-repeat-list', 'gap')).toBe('var(--formspec-spacing-field, 0.75rem)');
         expect(extractRuleProp(layoutCSS, '.formspec-repeat-instance', 'gap')).toBe('var(--formspec-spacing-field, 0.75rem)');
-        expect(extractRuleProp(layoutCSS, '.formspec-repeat-remove', 'padding')).toBe('0.72rem 1rem');
-        expect(extractRuleProp(layoutCSS, '.formspec-repeat-remove', 'font-size')).toBe('0.875rem');
-        expect(extractRuleProp(layoutCSS, '.formspec-repeat-remove', 'box-shadow')).toContain('var(--formspec-default-danger-fill)');
+        expect(extractRuleProp(layoutCSS, '.formspec-repeat-remove', 'padding')).toBe('0.375rem 0.75rem');
+        expect(extractRuleProp(layoutCSS, '.formspec-repeat-remove', 'font-size')).toBe('0.8125rem');
+        expect(extractRuleProp(layoutCSS, '.formspec-repeat-remove', 'background')).toBe('transparent');
+        expect(extractRuleProp(layoutCSS, '.formspec-repeat-remove', 'color')).toBe('var(--formspec-default-danger-text)');
+        expect(extractRuleProp(layoutCSS, '.formspec-repeat-remove', 'box-shadow')).toBe('none');
         expect(extractRuleProp(layoutCSS, '.formspec-repeat-instance-header', 'justify-content')).toBe('space-between');
         expect(extractRuleProp(layoutCSS, '.formspec-repeat-instance-label', 'color')).toBe('var(--formspec-default-text-strong)');
         expect(extractRuleProp(layoutCSS, '.formspec-repeat-instance-header > .formspec-repeat-remove', 'margin-block')).toBe('0');

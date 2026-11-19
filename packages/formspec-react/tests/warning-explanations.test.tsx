@@ -19,7 +19,8 @@ it('submits a localized explanation for one warning and reopens it when the basi
     const el = actRender(<FormspecContext.Provider value={ctx}>
         <WarningExplanations path={instance.path}/>
     </FormspecContext.Provider>);
-    expect(el.querySelector('legend')?.textContent).toBe('Unusual total');
+    expect(el.querySelector('fieldset')).toBeNull();
+    expect(el.querySelector('[role="region"].formspec-warning-explanation .formspec-warning-explanation-header')?.textContent).toBe('Unusual total');
     expect(el.querySelector('label')?.textContent).toContain('Why did this change?');
     expect(el.querySelector('textarea')?.value).toBe('Previous reason');
     act(() => { el.querySelector('button')!.click(); });
@@ -78,9 +79,9 @@ it('renders grouped blank-answer acknowledgement with field jump links and set d
         </div>,
     );
 
-    const group = el.querySelector<HTMLFieldSetElement>('fieldset[data-explanation-code="CSBG_NOT_ANSWERED"]');
+    const group = el.querySelector<HTMLDivElement>('[role="region"][data-explanation-code]');
     expect(group).not.toBeNull();
-    expect(group?.querySelector('legend')?.textContent).toBe('3 unanswered questions');
+    expect(group?.querySelector('.formspec-warning-explanation-header')?.textContent).toBe('3 unanswered questions');
     const links = [...group!.querySelectorAll('a')];
     expect(links.map(a => a.textContent)).toEqual(['Outcome', 'Topic', 'Venue']);
     expect(links[2]?.getAttribute('href')).toBe('#field-venue');
@@ -421,7 +422,7 @@ it('handles a synchronous responseActionInvoker throw on pending retry without u
         act(() => { el.querySelector<HTMLButtonElement>('.formspec-wizard-next')!.click(); });
         const submit = el.querySelector<HTMLButtonElement>('.formspec-wizard-submit')!;
         act(() => { submit.click(); });
-        act(() => { el.querySelector<HTMLButtonElement>('fieldset[data-explanation-code] button')!.click(); });
+        act(() => { el.querySelector<HTMLButtonElement>('[role="region"][data-explanation-code] button')!.click(); });
         invoker.mockClear();
 
         const errors: string[] = [];
@@ -511,7 +512,7 @@ it('does not notify onSubmit of a completed filing after an authored submit effe
         act(() => { el.querySelector<HTMLButtonElement>('.formspec-wizard-next')!.click(); });
         const submit = el.querySelector<HTMLButtonElement>('.formspec-wizard-submit')!;
         act(() => { submit.click(); });
-        act(() => { el.querySelector<HTMLButtonElement>('fieldset[data-explanation-code] button')!.click(); });
+        act(() => { el.querySelector<HTMLButtonElement>('[role="region"][data-explanation-code] button')!.click(); });
 
         const before = onSubmit.mock.calls.length;
         await act(async () => { submit.click(); await Promise.resolve(); });
@@ -566,7 +567,7 @@ it('emits a completed Response from standalone wizard Submit once every formerly
         act(() => { el.querySelector<HTMLButtonElement>('.formspec-wizard-next')!.click(); });
         const submit = el.querySelector<HTMLButtonElement>('.formspec-wizard-submit')!;
         act(() => { submit.click(); });
-        act(() => { el.querySelector<HTMLButtonElement>('fieldset[data-explanation-code] button')!.click(); });
+        act(() => { el.querySelector<HTMLButtonElement>('[role="region"][data-explanation-code] button')!.click(); });
 
         act(() => { el.querySelector<HTMLButtonElement>('.formspec-wizard-prev')!.click(); });
         for (const path of ['venue', 'topic', 'outcome']) {
@@ -726,16 +727,16 @@ it('React button refuses acknowledging a deadline firing absent from its display
                 <WarningExplanations />
             </FormspecContext.Provider>,
         );
-        const button = el.querySelector<HTMLButtonElement>('fieldset[data-explanation-code="BLANK"] button')!;
+        const button = el.querySelector<HTMLButtonElement>('[role="region"][data-explanation-code="BLANK"] button')!;
         expect(button.textContent).toBe('Accept 2 unanswered questions');
-        expect([...el.querySelectorAll('fieldset[data-explanation-code="BLANK"] li')].map(li => li.textContent))
+        expect([...el.querySelectorAll('[role="region"][data-explanation-code="BLANK"] li')].map(li => li.textContent))
             .toEqual(['first', 'second']);
 
         vi.setSystemTime(new Date('2026-11-19T12:00:00Z'));
         act(() => { button.click(); });
         expect(engine.getExplanationEntries()).toEqual([]);
         expect(button.textContent).toBe('Accept 3 unanswered questions');
-        expect([...el.querySelectorAll('fieldset[data-explanation-code="BLANK"] li')].map(li => li.textContent))
+        expect([...el.querySelectorAll('[role="region"][data-explanation-code="BLANK"] li')].map(li => li.textContent))
             .toEqual(['deadline', 'first', 'second']);
 
         act(() => { button.click(); });
@@ -848,7 +849,7 @@ it('handles wired wizard lifecycle: throw/reject reporting, failed autosave, ret
             } finally {
                 revealingWarnings = false;
             }
-            click('fieldset[data-explanation-code] button');
+            click('[role="region"][data-explanation-code] button');
             invoker.mockClear();
             onSubmit.mockClear();
             onActionResult.mockClear();
@@ -1045,7 +1046,7 @@ it('handles wired wizard lifecycle: throw/reject reporting, failed autosave, ret
             manualCase.click('.formspec-wizard-prev');
             manualCase.click('li:nth-child(2) .formspec-wizard-sidenav-btn');
             manualCase.click('.formspec-wizard-submit');
-            manualCase.click('fieldset[data-explanation-code] a');
+            manualCase.click('[role="region"][data-explanation-code] a');
             expect(manualCase.route.mock.calls).toEqual([['review'], ['details'], ['review'], ['details']]);
         } finally { manualCase.cleanup(); }
     }
@@ -1145,7 +1146,7 @@ it('guards delayed host effects, avoids filing bypass on clock expiry, preserves
             } finally {
                 revealingWarnings = false;
             }
-            click('fieldset[data-explanation-code] button');
+            click('[role="region"][data-explanation-code] button');
             invoker.mockClear();
             onSubmit.mockClear();
             onActionResult.mockClear();
@@ -1265,7 +1266,7 @@ it('guards delayed host effects, avoids filing bypass on clock expiry, preserves
         try {
             t.accept();
             if (stamped) act(() => stamp(t.engine));
-            const button = () => t.el.querySelector<HTMLButtonElement>('fieldset[data-explanation-code] button')!;
+            const button = () => t.el.querySelector<HTMLButtonElement>('[role="region"][data-explanation-code] button')!;
             expect(button().textContent).toMatch(/accepted 2/i);
             expect(button().disabled).toBe(true);
             vi.setSystemTime(new Date('2026-11-19T12:00:00Z'));
@@ -1425,7 +1426,7 @@ it('enforces monotonic attempt/edit/response tokens, rechecks after onActionResu
             } finally {
                 revealingWarnings = false;
             }
-            click('fieldset[data-explanation-code] button');
+            click('[role="region"][data-explanation-code] button');
             invoker.mockClear();
             onSubmit.mockClear();
             onActionResult.mockClear();

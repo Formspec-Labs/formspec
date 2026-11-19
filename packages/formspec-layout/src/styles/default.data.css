@@ -184,3 +184,158 @@
   text-align: left;
   text-decoration: underline;
 }
+
+/* Warning explanations and grouped blank-answer acknowledgements.
+ * Distinct header + body blocks ensure borders never slice through wrapped text. */
+.formspec-warning-explanation {
+  display: flex;
+  flex-direction: column;
+  margin: 0.5rem 0 0.25rem;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--formspec-default-warning) 35%, var(--formspec-default-border));
+  border-inline-start: 3px solid var(--formspec-default-warning);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-warning-surface-soft);
+  color: var(--formspec-default-text);
+  overflow: hidden;
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
+}
+
+.formspec-warning-explanation[data-state="saved"] {
+  border-color: color-mix(in srgb, var(--formspec-default-success) 32%, var(--formspec-default-border));
+  border-inline-start-color: var(--formspec-default-success);
+  background: var(--formspec-default-success-surface);
+}
+
+.formspec-warning-explanation-header {
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--formspec-default-warning) 22%, var(--formspec-default-border-subtle));
+  background: var(--formspec-default-warning-surface);
+  color: var(--formspec-default-warning-text);
+  font-size: calc(0.875rem * var(--formspec-size-scale, 1));
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: break-word;
+}
+
+.formspec-warning-explanation[data-state="saved"] .formspec-warning-explanation-header {
+  border-bottom-color: color-mix(in srgb, var(--formspec-default-success) 20%, var(--formspec-default-border-subtle));
+  background: color-mix(in srgb, var(--formspec-default-success) 10%, var(--formspec-default-surface));
+  color: var(--formspec-default-success-text);
+}
+
+/* Defensive reset if a downstream renderer wraps warning explanations in native <fieldset><legend>. */
+fieldset.formspec-warning-explanation {
+  min-width: 0;
+}
+
+fieldset.formspec-warning-explanation > legend {
+  float: left;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--formspec-default-warning) 22%, var(--formspec-default-border-subtle));
+  background: var(--formspec-default-warning-surface);
+  color: var(--formspec-default-warning-text);
+  font-size: calc(0.875rem * var(--formspec-size-scale, 1));
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+fieldset.formspec-warning-explanation > legend + * {
+  clear: both;
+}
+
+.formspec-warning-explanation-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem 0.85rem;
+}
+
+.formspec-warning-explanation-body label {
+  margin-bottom: 0;
+  font-size: calc(0.84rem * var(--formspec-size-scale, 1));
+  font-weight: 560;
+  color: var(--formspec-default-text);
+}
+
+.formspec-warning-explanation-body textarea {
+  margin-top: 0.35rem;
+  min-height: 4.25rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-text);
+}
+
+.formspec-warning-explanation-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.formspec-warning-explanation-action {
+  align-self: flex-start;
+  min-height: 2.35rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--formspec-default-border-input);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-text-strong);
+  font: inherit;
+  font-size: calc(0.84rem * var(--formspec-size-scale, 1));
+  font-weight: 600;
+  line-height: 1.25;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: var(--formspec-default-transition-fast);
+}
+
+.formspec-warning-explanation-action:hover:not(:disabled) {
+  border-color: var(--formspec-default-border-strong);
+  background: var(--formspec-default-surface-soft);
+}
+
+/* High-contrast disabled/saved state in both Light and Dark mode (no opacity wash-out). */
+.formspec-warning-explanation-action:disabled {
+  opacity: 1;
+  background: var(--formspec-default-surface-subtle);
+  border-color: var(--formspec-default-border);
+  color: var(--formspec-default-text-muted);
+  cursor: default;
+}
+
+.formspec-warning-explanation-action[data-state="saved"]:disabled {
+  background: var(--formspec-default-success-surface);
+  border-color: color-mix(in srgb, var(--formspec-default-success) 45%, var(--formspec-default-border));
+  color: var(--formspec-default-success-text);
+}
+
+.formspec-warning-acknowledgement-list {
+  margin: 0;
+  padding-inline-start: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: calc(0.875rem * var(--formspec-size-scale, 1));
+}
+
+.formspec-warning-acknowledgement-list a {
+  color: var(--formspec-default-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.formspec-warning-acknowledgement-list a:hover {
+  color: var(--formspec-default-primary-strong);
+}
+
+.formspec-warning-acknowledgement-added,
+.formspec-warning-acknowledgement-removed {
+  margin: 0;
+  font-size: calc(0.84rem * var(--formspec-size-scale, 1));
+  color: var(--formspec-default-text-subtle);
+}

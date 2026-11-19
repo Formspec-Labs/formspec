@@ -4,7 +4,7 @@
 import React, { createContext, useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { computed } from '@preact/signals-core';
 import {
-    placementCovers, placementKey, readFormProgressFindingRows, summarizeFormProgress,
+    placementCovers, placementKey, readFormProgressFindingRows, stripSeverityPrefix, summarizeFormProgress,
     type LayoutNode,
 } from '@formspec-org/layout';
 import type { IFormEngine } from '@formspec-org/engine';
@@ -16,8 +16,21 @@ import { useFocusField } from './use-focus-field';
 import { useSignal } from './use-signal';
 import { HeadingLevelContext, useHeadingLevel } from './heading-level';
 import { plannedTitle } from './use-localized-node';
+import { WarningExplanations } from './warning-explanations';
 
 export const WorkspaceFieldJump = createContext<((path: string) => void) | null>(null);
+
+function isWorkspacePageRelevant(page: WorkspacePage, engine: IFormEngine): boolean {
+    const signals = engine.relevantSignals;
+    if (!signals) return true;
+    if (page.titleBind && signals[page.titleBind]?.value === false) return false;
+    if (page.content.bindPath && signals[page.content.bindPath]?.value === false) return false;
+    const children = page.content.children ?? [];
+    if (children.length > 0 && children.every(child => Boolean(child.bindPath) && signals[child.bindPath!]?.value === false)) {
+        return false;
+    }
+    return true;
+}
 
 function indexPlacements(sections: readonly WorkspacePage[]) {
     const index = new Map<string, Array<{ path: string; section: WorkspacePage }>>();
@@ -60,17 +73,24 @@ function useSectionTitle(
     }, [report, title, updateDocumentTitle]);
 }
 
-export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspacePage[] }) {
+export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: WorkspacePage[] }) {
     const { engine, workspaceNavigation, touchField, registerFieldJump } = useFormspecContext();
     const chrome = useChromeText();
     const formTitle = useSignal(useMemo(() => engine.getFormVM(), [engine]).title);
+    const pages = useSignal(useMemo(() => computed(() => {
+        const filtered = allPages.filter(page => isWorkspacePageRelevant(page, engine));
+        return filtered.length > 0 ? filtered : allPages;
+    }), [allPages, engine]));
     const [localSection, setLocalSection] = useState<string>();
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const controlled = workspaceNavigation && 'activeSection' in workspaceNavigation;
     const selected = controlled ? workspaceNavigation.activeSection : localSection;
     const [query, setQuery] = useState('');
     const [notice, setNotice] = useState('');
     const [jump, setJump] = useState<{ path: string; section: WorkspacePage }>();
     const heading = useRef<HTMLHeadingElement>(null);
+    const findingsAsideRef = useRef<HTMLElement>(null);
+    const findingsHeadingRef = useRef<HTMLHeadingElement>(null);
     const { focusField, containerRef } = useFocusField();
     const level = useHeadingLevel();
     const Heading = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
@@ -79,6 +99,7 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
     const searchResultsId = useId();
     const searchStatusId = useId();
     const findingsHeading = useId();
+    const navBodyId = useId();
 
     const navigationActive = workspaceNavigation?.sectionNavigationActive !== false;
     const activeIndex = Math.max(0, pages.findIndex(page => page.id === selected));
@@ -96,7 +117,21 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
         workspaceNavigation?.onSectionTitleChange, workspaceNavigation?.updateDocumentTitle);
 
     const snapshot = useSignal(useMemo(() => computed(() => engine.getEvaluatedFormState()), [engine]));
-    const progress = useMemo(() => summarizeFormProgress(pages, snapshot), [pages, snapshot]);
+    const hasWarningCandidates = Boolean(
+        snapshot.report?.results.some(r => r.severity === 'warning' || r.constraintKind === 'explanation'),
+    );
+    const explanationState = useSignal(useMemo(
+        () => computed(() => (
+            hasWarningCandidates && typeof engine.getExplanationState === 'function'
+                ? engine.getExplanationState()
+                : null
+        )),
+        [engine, hasWarningCandidates],
+    ));
+    const progress = useMemo(
+        () => summarizeFormProgress(pages, snapshot, explanationState),
+        [pages, snapshot, explanationState],
+    );
     const placements = useMemo(() => indexPlacements(pages), [pages]);
     const resolvePage = useCallback((path: string) =>
         placements.get(placementKey(path))?.find(placement => placementCovers(placement.path, path))?.section, [placements]);
@@ -112,10 +147,20 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
             ?? engine.getItemLabelSignal(path.replace(/\[\d+\]/g, ''))?.value;
         return groupLabel ? { label: groupLabel.trimEnd().replace(/:+$/, ''), controlId: null } : null;
     };
-    const findings = readFormProgressFindingRows(progress, {
+    const rawFindings = readFormProgressFindingRows(progress, {
         field, chrome, message: result => engine.resolveValidationMessage(result) ?? '',
         jumpable: path => (relevant.has(path) || hasContainerLabel(path)) && resolvePage(path) !== undefined,
     });
+    const findings = useMemo(() => {
+        const rank = (row: (typeof rawFindings)[number]) => {
+            if (row.explained) return 3;
+            if (row.severity === 'error') return 0;
+            if (row.severity === 'warning') return 1;
+            return 2;
+        };
+        return [...rawFindings].sort((a, b) => rank(a) - rank(b));
+    }, [rawFindings]);
+
     const term = query.trim();
     const matches = useSignal(useMemo(() => computed(() => {
         if (!term) return [];
@@ -145,6 +190,7 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
     function navigate(page: WorkspacePage) {
         setJump(undefined);
         setNotice('');
+        setMobileNavOpen(false);
         select(page, true);
     }
 
@@ -156,6 +202,7 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
             return;
         }
         setNotice('');
+        setMobileNavOpen(false);
         setJump({ path, section });
         if (section !== active || workspaceNavigation?.sectionNavigationActive === false) {
             select(section, notifyRoute);
@@ -181,8 +228,10 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
         if (!pending) return;
 
         if (!engine.getFieldVM(jump.path) && hasContainerLabel(jump.path)) {
-            const groupTarget = containerRef.current?.querySelector(`[data-name="${jump.path}"]`);
-            if (groupTarget instanceof HTMLElement) {
+            const groupTarget = containerRef.current?.querySelector(
+                `[data-name="${jump.path}"], [data-group-path="${jump.path}"], [data-repeat-path="${jump.path}"]`,
+            );
+            if (groupTarget instanceof HTMLElement && typeof groupTarget.scrollIntoView === 'function') {
                 groupTarget.scrollIntoView({ block: 'start', behavior: 'smooth' });
             }
             heading.current?.focus();
@@ -190,10 +239,10 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
             return;
         }
         touchField(jump.path);
-        const field = () => containerRef.current?.querySelector(`[data-name="${jump.path}"]`);
-        const waitingForTab = field()?.closest('[role="tabpanel"][hidden]');
+        const fieldEl = () => containerRef.current?.querySelector(`[data-name="${jump.path}"]`);
+        const waitingForTab = fieldEl()?.closest('[role="tabpanel"][hidden]');
         const finish = () => {
-            const target = field();
+            const target = fieldEl();
             const focused = focusField(jump.path);
             const visible = target && !target.closest('[hidden], .formspec-hidden');
             const disabled = target?.ownerDocument.activeElement?.closest('[aria-disabled="true"]');
@@ -211,8 +260,9 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
         finish();
     }, [active?.id, navigationActive, jump, focusField, touchField, chrome, containerRef]);
 
-    const content = new Set(pages.map(page => page.content));
+    const content = new Set(allPages.map(page => page.content));
     const namedPages = pages.filter(page => page.id);
+    const hasMultipleSections = namedPages.length > 1;
     const largestSection = progress.sections.reduce((max, section) => Math.max(max, section.counts.total), 0);
     const sectionLink = (page: WorkspacePage, label: string) => {
         const href = page.id && workspaceNavigation?.hrefForSection?.(page.id);
@@ -228,94 +278,218 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
     };
     const trailingShared = root.children.filter(node => !content.has(node) && node.component !== 'ValidationSummary');
 
+    const unresolvedFix = progress.form.toFix ?? 0;
+    const unresolvedCheck = progress.form.toCheck ?? 0;
+    const explainedCount = findings.filter(row => row.explained).length;
+    const activeIssueCount = unresolvedFix + unresolvedCheck;
+
+    const searchBlock = (
+        <div className="formspec-workspace__search">
+            <label id={searchLabelId} htmlFor={searchId}>{chrome('workspace.search')}</label>
+            <input id={searchId} type="search" value={query} onInput={event => setQuery(event.currentTarget.value)}
+                aria-controls={searchResultsId} aria-describedby={searchStatusId} />
+            <p id={searchStatusId} role="status" aria-atomic="true">
+                {term && (matches.length ? chrome('workspace.matchCount', { count: matches.length }) : chrome('workspace.noMatches'))}
+            </p>
+            <ul id={searchResultsId} className="formspec-workspace__search-results" aria-labelledby={searchLabelId} hidden={matches.length === 0}>
+                {matches.map(({ path, label, title }) => <li key={path}>
+                    <button type="button" onClick={() => jumpTo(path)}>{label}<small>{title}</small></button>
+                </li>)}
+            </ul>
+        </div>
+    );
+
+    const scrollToFindings = () => {
+        if (typeof findingsAsideRef.current?.scrollIntoView === 'function') {
+            findingsAsideRef.current.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+        findingsHeadingRef.current?.focus();
+    };
+
+    const hasRenderedGroupNode = (node: LayoutNode | undefined, target: string): boolean => {
+        if (!node) return false;
+        if (node.isRepeatTemplate && node.repeatPath === target) return true;
+        if (node.bindPath === target && node.category !== 'field' && Boolean(node.props?.title)) return true;
+        return (node.children ?? []).some(child => hasRenderedGroupNode(child, target));
+    };
+    const activeSectionWarningPath = active?.titleBind
+        && !engine.getFieldVM(active.titleBind)
+        && !hasRenderedGroupNode(active.content, active.titleBind)
+        ? active.titleBind
+        : undefined;
+
     return (
         <div className="formspec-workspace-container">
           <WorkspaceFieldJump.Provider value={jumpTo}>
-            <div className="formspec-workspace" ref={containerRef}>
-                <div className="formspec-workspace__navigation">
-                    {namedPages.length > 1 && (
-                        <nav aria-label={chrome('workspace.sections')}>
-                            <ul>
-                                {pages.map((page, i) => {
-                                    if (!page.id) return null;
-                                    const sectionCounts = progress.sections[i]?.counts;
-                                    const total = sectionCounts?.total ?? 0;
-                                    const filled = sectionCounts?.filled ?? 0;
-                                    const toFix = sectionCounts?.toFix ?? 0;
-                                    const toCheck = sectionCounts?.toCheck ?? 0;
-                                    const barScale = largestSection > 0 && total > 0
-                                        ? Math.max(Math.sqrt(total / largestSection), 0.16)
-                                        : 0;
-                                    const fillPct = total > 0 ? Math.min(100, (100 * filled) / total) : 0;
-                                    return (
-                                        <li
-                                            key={page.id}
-                                            className="formspec-workspace__section-item"
-                                            data-current={page === active ? 'true' : undefined}
-                                        >
-                                            {sectionLink(page, titles[i])}
-                                            {total > 0 && (
-                                                <div className="formspec-workspace__section-meta" aria-hidden="true">
-                                                    <span className="formspec-workspace__section-bar-track">
-                                                        <span className="formspec-workspace__section-bar" style={{ inlineSize: `${100 * barScale}%` }}>
-                                                            <span className="formspec-workspace__section-bar-fill" style={{ inlineSize: `${fillPct}%` }} />
-                                                        </span>
-                                                    </span>
-                                                    <span className="formspec-workspace__section-counts">
-                                                        <span className="formspec-workspace__section-fraction">{filled}/{total}</span>
-                                                        {toFix > 0 && <span className="formspec-workspace__section-badge formspec-workspace__section-badge--fix">{toFix}</span>}
-                                                        {toCheck > 0 && <span className="formspec-workspace__section-badge formspec-workspace__section-badge--check">{toCheck}</span>}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </li>
-                                    );
-                                })}
-                            </ul>
-                        </nav>
-                    )}
-                    <label id={searchLabelId} htmlFor={searchId}>{chrome('workspace.search')}</label>
-                    <input id={searchId} type="search" value={query} onInput={event => setQuery(event.currentTarget.value)}
-                        aria-controls={searchResultsId} aria-describedby={searchStatusId} />
-                    <p id={searchStatusId} role="status" aria-atomic="true">
-                        {term && (matches.length ? chrome('workspace.matchCount', { count: matches.length }) : chrome('workspace.noMatches'))}
-                    </p>
-                    <ul id={searchResultsId} aria-labelledby={searchLabelId} hidden={matches.length === 0}>
-                        {matches.map(({ path, label, title }) => <li key={path}>
-                            <button type="button" onClick={() => jumpTo(path)}>{label}<small>{title}</small></button>
-                        </li>)}
-                    </ul>
+            <div
+                className="formspec-workspace"
+                data-single-section={hasMultipleSections ? undefined : 'true'}
+                ref={containerRef}
+            >
+                <div className="formspec-workspace__mobile-findings-bar" data-workspace-mobile-bar="findings">
+                    <span className="formspec-workspace__mobile-findings-counts">
+                        {unresolvedFix > 0 && (
+                            <span className="formspec-workspace__section-badge formspec-workspace__section-badge--fix">
+                                {unresolvedFix} to fix
+                            </span>
+                        )}
+                        {unresolvedCheck > 0 && (
+                            <span className="formspec-workspace__section-badge formspec-workspace__section-badge--check">
+                                {unresolvedCheck} to check
+                            </span>
+                        )}
+                        {activeIssueCount === 0 && (
+                            <span>{chrome('workspace.filled', { filled: progress.form.filled, total: progress.form.total })}</span>
+                        )}
+                    </span>
+                    <button
+                        type="button"
+                        className="formspec-workspace__mobile-findings-jump formspec-focus-ring"
+                        onClick={scrollToFindings}
+                    >
+                        {chrome('workspace.findings')} ({activeIssueCount})
+                    </button>
                 </div>
+                {hasMultipleSections && (
+                    <div
+                        className="formspec-workspace__navigation"
+                        data-mobile-open={mobileNavOpen ? 'true' : 'false'}
+                    >
+                        <button
+                            type="button"
+                            className="formspec-workspace__nav-toggle formspec-focus-ring"
+                            aria-expanded={mobileNavOpen}
+                            aria-controls={navBodyId}
+                            onClick={() => setMobileNavOpen(open => !open)}
+                        >
+                            <span>{titles[activeIndex] ?? chrome('workspace.sections')} ({activeIndex + 1}/{namedPages.length})</span>
+                            <span aria-hidden="true">{mobileNavOpen ? '▴' : '▾'}</span>
+                        </button>
+                        <div id={navBodyId} className="formspec-workspace__nav-body">
+                            {searchBlock}
+                            <nav aria-label={chrome('workspace.sections')}>
+                                <ul>
+                                    {pages.map((page, i) => {
+                                        if (!page.id) return null;
+                                        const sectionCounts = progress.sections[i]?.counts;
+                                        const total = sectionCounts?.total ?? 0;
+                                        const filled = sectionCounts?.filled ?? 0;
+                                        const toFix = sectionCounts?.toFix ?? 0;
+                                        const toCheck = sectionCounts?.toCheck ?? 0;
+                                        const barScale = largestSection > 0 && total > 0
+                                            ? Math.max(Math.sqrt(total / largestSection), 0.16)
+                                            : 0;
+                                        const fillPct = total > 0 ? Math.min(100, (100 * filled) / total) : 0;
+                                        return (
+                                            <li
+                                                key={page.id}
+                                                className="formspec-workspace__section-item"
+                                                data-current={page === active ? 'true' : undefined}
+                                            >
+                                                {sectionLink(page, titles[i])}
+                                                {total > 0 && (
+                                                    <div className="formspec-workspace__section-meta" aria-hidden="true">
+                                                        <span className="formspec-workspace__section-bar-track">
+                                                            <span className="formspec-workspace__section-bar" style={{ inlineSize: `${100 * barScale}%` }}>
+                                                                <span className="formspec-workspace__section-bar-fill" style={{ inlineSize: `${fillPct}%` }} />
+                                                            </span>
+                                                        </span>
+                                                        <span className="formspec-workspace__section-counts">
+                                                            <span className="formspec-workspace__section-fraction">{filled}/{total}</span>
+                                                            {toFix > 0 && <span className="formspec-workspace__section-badge formspec-workspace__section-badge--fix">{toFix}</span>}
+                                                            {toCheck > 0 && <span className="formspec-workspace__section-badge formspec-workspace__section-badge--check">{toCheck}</span>}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                )}
                 <div className="formspec-workspace__content" data-formspec-section={active?.id ?? ''}>
                     <Heading ref={heading} tabIndex={-1}>{titles[activeIndex] ?? formTitle}</Heading>
                     <p role="status">{notice}</p>
+                    {!hasMultipleSections && relevant.size > 12 && (
+                        <div className="formspec-workspace__inline-search">
+                            {searchBlock}
+                        </div>
+                    )}
                     {root.children.filter(node => !content.has(node) && node.component === 'ValidationSummary').map(node => <FormspecNode key={node.id} node={node} />)}
                     <HeadingLevelContext.Provider value={level + 1}>
                         {activeContent}
                     </HeadingLevelContext.Provider>
+                    {activeSectionWarningPath && <WarningExplanations path={activeSectionWarningPath} />}
+                    <WarningExplanations />
                     {pages.length > 1 && <div className="formspec-workspace__previous-next">
                         <button type="button" disabled={activeIndex === 0} onClick={() => navigate(pages[activeIndex - 1])}>{chrome('wizard.previous')}</button>
                         <button type="button" disabled={activeIndex === pages.length - 1} onClick={() => navigate(pages[activeIndex + 1])}>{chrome('wizard.next')}</button>
                     </div>}
                     {renderActionGroupedChildren(trailingShared)}
                 </div>
-                <aside className="formspec-workspace__findings" aria-labelledby={findingsHeading}>
-                    <Heading id={findingsHeading}>{chrome('workspace.findings')}</Heading>
+                <aside ref={findingsAsideRef} className="formspec-workspace__findings" aria-labelledby={findingsHeading}>
+                    <Heading ref={findingsHeadingRef} id={findingsHeading} tabIndex={-1}>{chrome('workspace.findings')}</Heading>
                     <p>{chrome('workspace.filled', { filled: progress.form.filled, total: progress.form.total })}</p>
+                    {(unresolvedFix > 0 || unresolvedCheck > 0 || explainedCount > 0) && (
+                        <div className="formspec-workspace__findings-summary">
+                            {unresolvedFix > 0 && (
+                                <span className="formspec-workspace__section-badge formspec-workspace__section-badge--fix">
+                                    {unresolvedFix} to fix
+                                </span>
+                            )}
+                            {unresolvedCheck > 0 && (
+                                <span className="formspec-workspace__section-badge formspec-workspace__section-badge--check">
+                                    {unresolvedCheck} to check
+                                </span>
+                            )}
+                            {explainedCount > 0 && (
+                                <span className="formspec-workspace__finding-status">
+                                    {explainedCount} explained
+                                </span>
+                            )}
+                        </div>
+                    )}
                     {snapshot.report === null && <p>{chrome('workspace.validationUnavailable')}</p>}
                     {findings.length > 0 && <ul>{findings.map(row => {
                         const page = row.sectionId && pages.find(page => page.id === row.sectionId);
+                        const cleanedText = stripSeverityPrefix(row.text) || row.text;
                         const message = chrome(row.severity === 'error' ? 'workspace.error'
-                            : row.severity === 'warning' ? 'workspace.warning' : 'workspace.info', { message: row.text });
+                            : row.severity === 'warning' ? 'workspace.warning' : 'workspace.info', { message: cleanedText });
                         const scope = row.formLevel ? 'form' : (row.sectionId === active?.id ? 'current' : 'other');
-                        return <li key={row.identity} className={`formspec-shape-${row.severity}`} data-severity={row.severity} data-finding-scope={scope}>
-                            {row.jumpPath ? <button type="button" onClick={() => jumpTo(row.jumpPath!)}>{message}</button>
-                                : page ? <button type="button" onClick={() => {
-                                    if (page === active && navigationActive) heading.current?.focus();
-                                    else navigate(page);
-                                }}>{message}</button>
-                                : message}
-                        </li>;
+                        const badge = row.explained
+                            ? <span className="formspec-workspace__finding-status">Explained</span>
+                            : null;
+                        return (
+                            <li
+                                key={row.identity}
+                                className={`formspec-shape-${row.severity}`}
+                                data-severity={row.severity}
+                                data-finding-scope={scope}
+                                data-explained={row.explained ? 'true' : undefined}
+                            >
+                                {row.jumpPath ? (
+                                    <button type="button" onClick={() => jumpTo(row.jumpPath!)}>
+                                        {message}
+                                        {badge}
+                                    </button>
+                                ) : page ? (
+                                    <button type="button" onClick={() => {
+                                        if (page === active && navigationActive) heading.current?.focus();
+                                        else navigate(page);
+                                    }}>
+                                        {message}
+                                        {badge}
+                                    </button>
+                                ) : (
+                                    <>
+                                        {message}
+                                        {badge}
+                                    </>
+                                )}
+                            </li>
+                        );
                     })}</ul>}
                 </aside>
             </div>

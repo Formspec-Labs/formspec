@@ -43,6 +43,106 @@ export function planDefinitionFallback(
     return nodes;
 }
 
+const COMPACT_SCALAR_COMPONENTS = new Set([
+    'NumberInput',
+    'MoneyInput',
+    'DatePicker',
+    'Select',
+    'TextInput',
+]);
+
+const TABULAR_SCALAR_COMPONENTS = new Set([
+    'NumberInput',
+    'MoneyInput',
+    'DatePicker',
+]);
+
+function isCompactScalarChild(child: LayoutNode, rawItem?: FormItem): boolean {
+    if (child.category !== 'field') return false;
+    if (!COMPACT_SCALAR_COMPONENTS.has(child.component)) return false;
+    if (child.fieldItem?.dataType === 'text' || child.props?.maxLines != null) return false;
+    if (child.component === 'Select' && (child.props?.multiple === true || child.props?.searchable === true)) {
+        return false;
+    }
+    const label = child.fieldItem?.label ?? '';
+    if (label.length > 80) return false;
+    const hint = child.fieldItem?.hint ?? '';
+    if (hint.length > 120 || hint.includes('\n')) return false;
+    const description = typeof (rawItem as { description?: unknown } | undefined)?.description === 'string'
+        ? (rawItem as { description: string }).description
+        : '';
+    if (description.length > 120 || description.includes('\n')) return false;
+    return true;
+}
+
+/**
+ * Infer responsive multi-column auto-grid metadata for definition-fallback groups without an
+ * explicit `presentation.layout.flow`. Keeps `groupNode.component === 'Stack'` and preserves
+ * `groupNode.children` 1:1 while letting renderers arrange 2–6 compact scalar fields (or dense
+ * numeric/money/date schedules) horizontally on wide containers and keeping prose/nested items full-width.
+ */
+function inferScalarAutoGrid(
+    children: LayoutNode[],
+    rawChildren: readonly FormItem[],
+    item: FormItem,
+): { columns?: number; children: LayoutNode[] } {
+    const layout = (item.presentation as { layout?: { flow?: string } } | undefined)?.layout;
+    if (layout?.flow !== undefined || children.length < 2) {
+        return { children };
+    }
+    if (rawChildren.some((raw) => raw.type === 'group')) {
+        return { children };
+    }
+
+    const flags = children.map((child, idx) => isCompactScalarChild(child, rawChildren[idx]));
+    const allCompact = flags.every(Boolean);
+
+    if (allCompact) {
+        if (children.length <= 6) {
+            return { columns: children.length, children };
+        }
+        const tabularCount = children.filter((child) => TABULAR_SCALAR_COMPONENTS.has(child.component)).length;
+        const allShortLabels = children.every((child) => (child.fieldItem?.label ?? '').length <= 60);
+        if (allShortLabels && tabularCount / children.length >= 0.75) {
+            const veryShortNumeric = children.every(
+                (child) =>
+                    (child.component === 'NumberInput' || child.component === 'MoneyInput')
+                    && (child.fieldItem?.label ?? '').length <= 32,
+            );
+            return { columns: veryShortNumeric ? 3 : 2, children };
+        }
+        return { children };
+    }
+
+    // Mixed group with no nested groups (e.g., intro display text + 2–6 scalar columns + optional narrative textarea):
+    // find contiguous runs of compact scalars.
+    let maxRun = 0;
+    let currentRun = 0;
+    for (const compact of flags) {
+        if (compact) {
+            currentRun += 1;
+            if (currentRun > maxRun) maxRun = currentRun;
+        } else {
+            currentRun = 0;
+        }
+    }
+    if (maxRun < 2) return { children };
+
+    const columns = maxRun <= 6 ? maxRun : 2;
+    if (maxRun > 6) {
+        const compactNodes = children.filter((_, idx) => flags[idx]);
+        const tabularCount = compactNodes.filter((child) => TABULAR_SCALAR_COMPONENTS.has(child.component)).length;
+        if (tabularCount / compactNodes.length < 0.75) return { children };
+    }
+
+    const annotated = children.map((child, idx) => {
+        if (flags[idx]) return child;
+        if (child.cssClasses.includes('formspec-auto-grid-full')) return child;
+        return { ...child, cssClasses: [...child.cssClasses, 'formspec-auto-grid-full'] };
+    });
+    return { columns, children: annotated };
+}
+
 /**
  * Core §4.2.5 `layout.flow: 'grid'`: the group arranges its children on a grid, and each child's
  * `layout.grid.span` places it there. A span needs a grid context to mean anything, so the children go
@@ -132,13 +232,23 @@ export function planDefinitionItem(item: FormItem, ctx: PlanContext, prefix = ''
 
         const childPrefix = isRepeat ? `${fullPath}[0]` : fullPath;
         if (Array.isArray(item.children)) {
+            const rawChildren = item.children as FormItem[];
             const children = planDefinitionFallback(
-                item.children as FormItem[],
+                rawChildren,
                 planCtx,
                 childPrefix,
                 false,
             );
-            groupNode.children = wrapGridFlow(children, item, planCtx);
+            const wrapped = wrapGridFlow(children, item, planCtx);
+            if (wrapped === children) {
+                const autoGrid = inferScalarAutoGrid(children, rawChildren, item);
+                if (autoGrid.columns !== undefined) {
+                    groupNode.props.autoGridColumns = autoGrid.columns;
+                }
+                groupNode.children = autoGrid.children;
+            } else {
+                groupNode.children = wrapped;
+            }
         }
 
         return groupNode;

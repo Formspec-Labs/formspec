@@ -54,7 +54,8 @@ export function renderControl(
 ) {
     const { dataType, id, path, value } = field;
     const isReadonly = field.readonly || isProtected;
-    const showError = !!(field.error && field.touched);
+    const hasShapeError = field.errors.some((e) => e.severity === 'error' && e.constraintKind === 'shape');
+    const showError = !!(field.error && (field.touched || hasShapeError));
     const autoComplete = (node.props?.autoComplete as string) || undefined;
     const common = {
         id,
@@ -64,6 +65,7 @@ export function renderControl(
         'aria-required': field.required,
         required: field.required,
         'aria-disabled': isProtected || undefined,
+        ...(isReadonly ? { tabIndex: -1 } : {}),
         onBlur: () => field.touch(),
         autoComplete,
     };
@@ -138,6 +140,9 @@ export function renderControl(
                     min={min != null ? jsonValueText(min) : undefined}
                     max={max != null ? jsonValueText(max) : undefined}
                     step={step != null ? jsonValueText(step) : dataType === 'integer' ? '1' : 'any'}
+                    onWheel={(e) => {
+                        if (document.activeElement === e.currentTarget) e.currentTarget.blur();
+                    }}
                     onChange={
                         isReadonly
                             ? undefined
@@ -210,7 +215,7 @@ export function renderControl(
             );
 
         case 'Signature':
-            return <SignatureControl field={field} node={node} describedBy={describedBy} />;
+            return <SignatureControl field={field} node={node} describedBy={describedBy} isReadonly={isReadonly} />;
 
         case 'TextInput':
         default: {

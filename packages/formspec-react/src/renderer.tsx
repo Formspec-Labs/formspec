@@ -9,7 +9,7 @@ import { FormspecProvider } from './context';
 import type { FormspecProviderProps, SubmitResult } from './context';
 import { useFormspecContext } from './context';
 import { WarningExplanations } from './warning-explanations';
-import { FormspecNode } from './node-renderer';
+import { FormspecNode, layoutOwnsRootWarningExplanations } from './node-renderer';
 import { ActionFeedbackContent } from './action-feedback.js';
 import { IssuerChromeSlot, parseQueryIssuerOverride } from './issuer';
 import { FormspecScreener } from './screener/FormspecScreener';
@@ -238,6 +238,7 @@ export function FormspecFormContent({ className }: FormspecFormContentProps) {
     const {
         engine,
         layoutPlan,
+        workspacePages,
         workspaceNavigation,
         touchField,
         jumpToField,
@@ -359,7 +360,7 @@ export function FormspecFormContent({ className }: FormspecFormContentProps) {
                 mode={issuerChromeModeFromClassName(className)}
             />
             <ActionFeedbackContent><FormspecNode node={layoutPlan} /></ActionFeedbackContent>
-            <WarningExplanations />
+            {!layoutOwnsRootWarningExplanations(layoutPlan, workspacePages) && <WarningExplanations />}
         </div>
     );
 }

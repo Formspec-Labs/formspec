@@ -96,7 +96,8 @@
   grid-template-columns: repeat(2, 1fr);
 }
 
-.formspec-grid > * {
+.formspec-grid > *,
+.formspec-auto-grid > * {
   min-width: 0;
 }
 

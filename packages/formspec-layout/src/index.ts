@@ -104,7 +104,12 @@ export type { UiStringLookup } from './character-count.js';
 // Closed renderer-chrome string inventory (Locale spec §3.1.10 `$ui.<ChromeStringKey>`)
 export { UI_STRINGS, fillUiParams } from './ui-strings.js';
 export type { ChromeStringKey } from './ui-strings.js';
-export { readValidationSummaryRows, validationResultPath } from './validation-summary.js';
+export {
+    readValidationSummaryRows,
+    validationResultPath,
+    stripSeverityPrefix,
+    dedupeSeverityPrefix,
+} from './validation-summary.js';
 export type { ValidationSummaryComp, ValidationSummaryRow, ValidationSummarySource } from './validation-summary.js';
 export { readWarningAcknowledgementGroups } from './warning-acknowledgement.js';
 export type {

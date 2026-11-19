@@ -2167,6 +2167,102 @@ describe('planDefinitionFallback', () => {
         expect(group.children.map((c: any) => c.component)).toEqual(['TextInput']);
     });
 
+    it('infers compact scalar auto-grid columns for 2–6 short scalar leaf fields while preserving Stack shape', () => {
+        const items = [{
+            key: 'metrics',
+            type: 'group',
+            label: 'Performance metrics',
+            children: [
+                { key: 'baseline', type: 'field', dataType: 'integer', label: 'I. Baseline' },
+                { key: 'target', type: 'field', dataType: 'integer', label: 'II. Target' },
+                { key: 'actual', type: 'field', dataType: 'integer', label: 'III. Actual' },
+                { key: 'pct', type: 'field', dataType: 'decimal', label: 'IV. % Achieved' },
+            ],
+        }];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k) });
+        const [group] = planDefinitionFallback(items, ctx);
+
+        expect(group.component).toBe('Stack');
+        expect(group.children).toHaveLength(4);
+        expect(group.props.autoGridColumns).toBe(4);
+    });
+
+    it('marks long narrative text siblings as full-width inside an inferred scalar auto-grid group', () => {
+        const items = [{
+            key: 'countsAndNotes',
+            type: 'group',
+            label: 'Counts & notes',
+            children: [
+                { key: 'yesCount', type: 'field', dataType: 'integer', label: 'Yes' },
+                { key: 'noCount', type: 'field', dataType: 'integer', label: 'No' },
+                { key: 'unknownCount', type: 'field', dataType: 'integer', label: 'Unknown' },
+                { key: 'narrative', type: 'field', dataType: 'text', label: 'Additional explanation' },
+            ],
+        }];
+        const ctx = makeCtx({ items, findItem: (k) => findItems(items, k) });
+        const [group] = planDefinitionFallback(items, ctx);
+
+        expect(group.props.autoGridColumns).toBe(3);
+        expect(group.children[0].cssClasses).not.toContain('formspec-auto-grid-full');
+        expect(group.children[3].cssClasses).toContain('formspec-auto-grid-full');
+    });
+
+    it('uses 2–3 column auto-grid for dense tabular numeric/money groups and omits it for nested groups or explicit stack flow', () => {
+        const denseNumeric = [{
+            key: 'allocations',
+            type: 'group',
+            label: 'Quarterly allocations',
+            children: Array.from({ length: 8 }, (_, i) => ({
+                key: `q${i + 1}`,
+                type: 'field',
+                dataType: 'money',
+                label: `Line ${i + 1}`,
+            })),
+        }];
+        const [denseNode] = planDefinitionFallback(denseNumeric, makeCtx({ items: denseNumeric, findItem: (k) => findItems(denseNumeric, k) }));
+        expect(denseNode.props.autoGridColumns).toBe(3);
+
+        const denseMediumLabels = [{
+            key: 'mediumAllocations',
+            type: 'group',
+            label: 'Medium label allocations',
+            children: Array.from({ length: 8 }, (_, i) => ({
+                key: `m${i + 1}`,
+                type: 'field',
+                dataType: 'money',
+                label: `Regional program allocation category item ${i + 1}`,
+            })),
+        }];
+        const [mediumNode] = planDefinitionFallback(denseMediumLabels, makeCtx({ items: denseMediumLabels, findItem: (k) => findItems(denseMediumLabels, k) }));
+        expect(mediumNode.props.autoGridColumns).toBe(2);
+
+        const explicitStack = [{
+            key: 'stacked',
+            type: 'group',
+            label: 'Explicit stack',
+            presentation: { layout: { flow: 'stack' } },
+            children: [
+                { key: 'a', type: 'field', dataType: 'integer', label: 'A' },
+                { key: 'b', type: 'field', dataType: 'integer', label: 'B' },
+            ],
+        }];
+        const [stackNode] = planDefinitionFallback(explicitStack, makeCtx({ items: explicitStack, findItem: (k) => findItems(explicitStack, k) }));
+        expect(stackNode.props.autoGridColumns).toBeUndefined();
+
+        const nested = [{
+            key: 'outer',
+            type: 'group',
+            label: 'Outer',
+            children: [
+                { key: 'a', type: 'field', dataType: 'integer', label: 'A' },
+                { key: 'b', type: 'field', dataType: 'integer', label: 'B' },
+                { key: 'sub', type: 'group', label: 'Sub', children: [{ key: 'c', type: 'field', dataType: 'integer', label: 'C' }] },
+            ],
+        }];
+        const [nestedNode] = planDefinitionFallback(nested, makeCtx({ items: nested, findItem: (k) => findItems(nested, k) }));
+        expect(nestedNode.props.autoGridColumns).toBeUndefined();
+    });
+
     it("carries a group's resolved labelPosition so a hidden legend stays in the accessible markup", () => {
         const items = [{
             key: 'workWeek', type: 'group', label: 'Work this week',

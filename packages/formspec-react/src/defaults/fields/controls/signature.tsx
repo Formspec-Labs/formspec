@@ -8,13 +8,15 @@ export function SignatureControl({
     field,
     node,
     describedBy,
+    isReadonly = false,
 }: {
     field: FieldComponentProps['field'];
     node: FieldComponentProps['node'];
     describedBy?: string;
+    isReadonly?: boolean;
 }) {
     const chrome = useChromeText();
-    const showError = !!(field.error && field.touched);
+    const showError = !!(field.error && (field.touched || field.errors.some((e) => e.severity === 'error' && e.constraintKind === 'shape')));
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const isDrawingRef = useRef(false);
     const height = (node.props?.height as number) || 200;
@@ -110,7 +112,7 @@ export function SignatureControl({
                 aria-labelledby={`${field.id}-label ${field.id}-canvas-description`}
                 aria-invalid={showError}
                 {...(describedBy ? { 'aria-describedby': describedBy } : {})}
-                tabIndex={0}
+                tabIndex={isReadonly ? -1 : 0}
                 className="formspec-signature-canvas"
                 style={{ width: '100%', height, touchAction: 'none', cursor: 'crosshair', display: 'block' }}
             />

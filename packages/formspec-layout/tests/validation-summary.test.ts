@@ -1,6 +1,11 @@
 /** @filedesc The shared ValidationSummary reader: gate, selection, dedupe, wording and links, with no DOM. */
 import { describe, it, expect } from 'vitest';
-import { readValidationSummaryRows, type ValidationSummarySource } from '../src/validation-summary.js';
+import {
+    dedupeSeverityPrefix,
+    readValidationSummaryRows,
+    stripSeverityPrefix,
+    type ValidationSummarySource,
+} from '../src/validation-summary.js';
 import { UI_STRINGS, fillUiParams } from '../src/ui-strings.js';
 
 const required = (path: string, message = `${path} is required`) =>
@@ -104,5 +109,26 @@ describe('readValidationSummaryRows', () => {
             message: 'WARNING: Check totals',
             text: 'SRV 2. Economic Security: Check totals',
         });
+    });
+
+    it('deduplicates doubled severity prefixes on form-level summary rows and helpers', () => {
+        expect(stripSeverityPrefix('Warning: WARNING: Check totals')).toBe('Check totals');
+        expect(stripSeverityPrefix('Error: ERROR - Missing value')).toBe('Missing value');
+        expect(dedupeSeverityPrefix('Warning: WARNING: Check totals')).toBe('Warning: Check totals');
+        expect(dedupeSeverityPrefix('Error: ERROR: Missing value')).toBe('Error: Missing value');
+        expect(dedupeSeverityPrefix('Total must match the award')).toBe('Total must match the award');
+
+        const rows = readValidationSummaryRows(
+            { source: 'submit' },
+            source({
+                submitted: [
+                    { path: '', severity: 'warning', message: 'Warning: WARNING: Values differ from baseline', source: 'shape', constraintKind: 'shape' } as any,
+                    { path: '', severity: 'error', message: 'Error: ERROR: Totals do not reconcile', source: 'shape', constraintKind: 'shape' } as any,
+                ],
+            }),
+            { showFieldErrorsByDefault: true },
+        );
+        expect(rows[0]).toMatchObject({ label: null, formLevel: true, text: 'Warning: Values differ from baseline' });
+        expect(rows[1]).toMatchObject({ label: null, formLevel: true, text: 'Error: Totals do not reconcile' });
     });
 });
