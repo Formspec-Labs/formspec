@@ -1696,3 +1696,124 @@ test('retains unresolved row Definition version during range discovery and rejec
     }
   }
 });
+
+for (const delayed of [false, true]) {
+  test(`reattached slot observes the new fieldset and releases all observers (two frames detached = ${delayed})`, async ({ page }) => {
+    await page.addInitScript(() => {
+      const seen = new Set<MutationObserver>();
+      const active = new Set<MutationObserver>();
+      const observe = MutationObserver.prototype.observe;
+      const disconnect = MutationObserver.prototype.disconnect;
+      MutationObserver.prototype.observe = function (el, config) {
+        if (config?.attributeFilter?.includes('open') && config.attributeFilter.includes('hidden')) {
+          seen.add(this);
+          active.add(this);
+        }
+        return observe.call(this, el, config);
+      };
+      MutationObserver.prototype.disconnect = function () {
+        active.delete(this);
+        return disconnect.call(this);
+      };
+      Object.assign(window, { review10Observers: () => ({ total: seen.size, active: active.size }) });
+    });
+    await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter#/filing');
+    const checkpoint = page.locator('button[data-action-ref="autosave"]');
+    const footer = page.locator('.fs-surface-transitions button');
+    await expect(checkpoint).toBeVisible();
+    await expect(footer).toHaveCount(0);
+    await checkpoint.evaluate(async (el, waitFrames) => {
+      const slot = el.closest<HTMLElement>('.fs-surface-slot')!;
+      const host = document.createElement('fieldset');
+      host.dataset.review10 = 'host';
+      slot.before(host);
+      slot.remove();
+      if (waitFrames) {
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      }
+      host.append(slot);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      host.disabled = true;
+    }, delayed);
+    await expect(checkpoint).toBeDisabled();
+    await expect(footer).toHaveCount(1, { timeout: 1200 });
+    await footer.click({ trial: true });
+    await page.locator('fieldset[data-review10]').evaluate((el) => { (el as HTMLFieldSetElement).disabled = false; });
+    await expect(footer).toHaveCount(0, { timeout: 1200 });
+    await checkpoint.click();
+    await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+    const observers = await page.evaluate(() => (window as unknown as { review10Observers: () => { total: number; active: number } }).review10Observers());
+    expect(observers.total).toBeGreaterThan(2);
+    expect(observers.active).toBe(0);
+  });
+}
+
+for (const inertAncestor of [false, true]) {
+  test(`route matches actual user input when the button explicitly sets CSS interactivity auto (ancestor inert = ${inertAncestor})`, async ({ page }) => {
+    await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter#/filing');
+    const checkpoint = page.locator('button[data-action-ref="autosave"]');
+    const fallback = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+    await expect(checkpoint).toBeVisible();
+    await expect(fallback).toHaveCount(0);
+
+    await checkpoint.evaluate((el, isInert) => {
+      const button = el as HTMLButtonElement;
+      button.style.setProperty('interactivity', 'auto');
+      button.closest<HTMLElement>('.fs-surface-slot')!.style.setProperty('interactivity', isInert ? 'inert' : 'auto');
+    }, inertAncestor);
+    const settle = () => page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await settle();
+    const state = await checkpoint.evaluate((el) => {
+      const button = el as HTMLButtonElement;
+      button.blur();
+      button.focus();
+      const rect = button.getBoundingClientRect();
+      const x = rect.x + rect.width / 2;
+      const y = rect.y + rect.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      return {
+        focused: document.activeElement === button,
+        hitButton: hit === button || button.contains(hit),
+        x,
+        y,
+      };
+    });
+    const beforeResize = await fallback.count();
+    await page.mouse.click(state.x, state.y);
+    await settle();
+    const afterClick = new URL(page.url()).hash;
+    await page.setViewportSize({ width: 1010, height: 700 });
+    await settle();
+    const afterResize = await fallback.count();
+    if (!inertAncestor) {
+      expect(state.focused).toBe(true);
+      expect(state.hitButton).toBe(true);
+      await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+    } else {
+      expect(state.focused).toBe(false);
+      expect(state.hitButton).toBe(false);
+      expect(afterClick).toBe('#/filing');
+      expect(beforeResize).toBe(1);
+      expect(afterResize).toBe(1);
+      await fallback.click();
+      await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+    }
+  });
+}
+
+test('modal exemption stops at an explicitly inert dialog', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter&visibilityCase=modal&variant=true#/filing');
+  await page.getByRole('button', { name: 'Open checkpoint', exact: true }).click();
+  const checkpoint = page.locator('button[data-action-ref="autosave"]');
+  const footer = page.locator('.fs-surface-transitions button');
+  await expect(checkpoint).toBeVisible();
+  await checkpoint.evaluate((el) => {
+    el.closest<HTMLElement>('.fs-surface-slot')!.inert = true;
+    el.closest('dialog')!.inert = true;
+  });
+  await expect(footer).toHaveCount(1);
+  await checkpoint.evaluate((el) => { el.closest('dialog')!.inert = false; });
+  await expect(footer).toHaveCount(0);
+  await checkpoint.click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+});

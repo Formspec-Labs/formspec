@@ -1196,6 +1196,38 @@ export interface ResponseActionAutosaveController {
     dispose(): void;
 }
 
+interface EffectiveAutosavePolicySnapshot {
+    action: ResponseAction;
+    referencedRequests: ReadonlyArray<readonly [string, unknown[]]>;
+}
+
+function captureEffectiveAutosavePolicy(
+    document: ResponseActionsDocumentInput | null | undefined,
+    action: ResponseAction | null,
+): EffectiveAutosavePolicySnapshot | null {
+    if (!action) return null;
+    const runtime = (document as unknown as { 'x-formspec-runtime'?: unknown } | null | undefined)?.['x-formspec-runtime'];
+    const requests = isPlainJsonObject(runtime) && Array.isArray(runtime.requests)
+        ? runtime.requests
+        : [];
+    const seen = new Set<string>();
+    const referencedRequests: Array<readonly [string, unknown[]]> = [];
+    for (const effect of action.effects ?? []) {
+        if (effect.type !== 'serviceRequest') continue;
+        const ref = effect.requestRef;
+        if (typeof ref !== 'string' || seen.has(ref)) continue;
+        seen.add(ref);
+        const matches = requests
+            .filter((candidate) => isPlainJsonObject(candidate) && candidate.id === ref)
+            .map((candidate) => cloneValue(candidate));
+        referencedRequests.push([ref, matches]);
+    }
+    return {
+        action: cloneValue(action),
+        referencedRequests,
+    };
+}
+
 /**
  * Create a per-engine `autosave` controller that preserves unsaved dirty edits
  * across `responseActionsDocument` replacements (equivalent re-parsed objects,
@@ -1208,7 +1240,7 @@ export function createResponseActionAutosaveController(
     const draftEditVersionSignal = getDraftEditVersionSignal(options.engine);
     let currentDocument = options.document;
     let resolvedAutosave: ResponseAction | null = null;
-    let resolvedAutosaveSnapshot: ResponseAction | null = null;
+    let resolvedPolicySnapshot: EffectiveAutosavePolicySnapshot | null = null;
     let lastFinding: ActionRefFinding | undefined;
     // Conforming wrapper engines without the internal edit-version signal keep
     // a single baseline snapshot across inactive periods (no per-edit polling).
@@ -1338,8 +1370,8 @@ export function createResponseActionAutosaveController(
 
     function reconcileDocument(nextDocument: ResponseActionsDocumentInput | null | undefined, initial: boolean): void {
         if (!active) return;
-        const sameReference = !initial && nextDocument === currentDocument;
-        const previousAction = resolvedAutosaveSnapshot;
+        const previousPolicy = resolvedPolicySnapshot;
+        const previousAction = previousPolicy?.action ?? null;
         const previousFinding = lastFinding;
         currentDocument = nextDocument;
         const resolution = resolveAutosaveResponseAction(
@@ -1347,22 +1379,22 @@ export function createResponseActionAutosaveController(
             options.engine.getDefinition?.(),
         );
         const nextAction = resolution.action;
-        const nextActionSnapshot = nextAction ? cloneValue(nextAction) : null;
-        const equivalentAction = previousAction !== null
-            && nextActionSnapshot !== null
-            && deepEqual(previousAction, nextActionSnapshot);
-        const unchangedSameReference = sameReference && (
+        const nextPolicy = captureEffectiveAutosavePolicy(currentDocument, nextAction);
+        const equivalentAction = previousPolicy !== null
+            && nextPolicy !== null
+            && deepEqual(previousPolicy, nextPolicy);
+        const unchangedPolicy = !initial && (
             equivalentAction
             || (
-                previousAction === null
-                && nextActionSnapshot === null
+                previousPolicy === null
+                && nextPolicy === null
                 && deepEqual(previousFinding, resolution.finding)
             )
         );
         resolvedAutosave = nextAction;
-        resolvedAutosaveSnapshot = nextActionSnapshot;
+        resolvedPolicySnapshot = nextPolicy;
         lastFinding = resolution.finding ? cloneValue(resolution.finding) : undefined;
-        if (unchangedSameReference) {
+        if (unchangedPolicy) {
             return;
         }
         if (!initial) {

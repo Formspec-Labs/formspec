@@ -1491,7 +1491,6 @@ export class FormspecRender extends HTMLElement {
                 }
             },
             invoke: async (action, context) => {
-                const invokedDoc = context.document;
                 if (
                     !this.isConnected
                     || this._autosaveEngine !== engine
@@ -1510,7 +1509,6 @@ export class FormspecRender extends HTMLElement {
                         && this._autosaveStatusEpoch === epoch
                         && this._autosaveEngine === engine
                         && context.isCurrent()
-                        && this._autosaveDoc === invokedDoc
                     ) {
                         statusEl.textContent = this.formatAutosaveSettledStatus(result.status);
                     }

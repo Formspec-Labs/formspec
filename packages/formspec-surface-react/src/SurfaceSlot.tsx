@@ -1480,10 +1480,7 @@ function isElementReachable(
       if ((current as HTMLElement & { inert?: boolean }).inert || current.hasAttribute('inert')) {
         return false;
       }
-      if (
-        !computedElementInteractivity
-        && effectiveStyleValue(current, 'interactivity', 'interactivity', computedStyle) === 'inert'
-      ) {
+      if (effectiveStyleValue(current, 'interactivity', 'interactivity', computedStyle) === 'inert') {
         return false;
       }
     }
@@ -1707,11 +1704,38 @@ function DefaultSurfaceDefinitionForm(
 
     let rootObserver: MutationObserver | undefined;
     let ancestorObserver: MutationObserver | undefined;
+    let reconnectObserver: MutationObserver | undefined;
     let observedAncestors: HTMLElement[] = [];
     const ancestorAttributeFilter = ['open', 'hidden', 'style', 'class', 'disabled', 'aria-disabled', 'inert'];
 
+    const stopReconnectObserver = () => {
+      reconnectObserver?.disconnect();
+      reconnectObserver = undefined;
+    };
+
     const syncAncestorObserver = () => {
       if (disposed || typeof MutationObserver !== 'function') return;
+      if (!root.isConnected) {
+        ancestorObserver?.disconnect();
+        ancestorObserver = undefined;
+        observedAncestors = [];
+        if (!reconnectObserver) {
+          const docRoot = root.ownerDocument.documentElement;
+          if (docRoot) {
+            const nextReconnect = new MutationObserver(() => {
+              if (!disposed && root.isConnected) {
+                stopReconnectObserver();
+                syncAncestorObserver();
+                measure();
+              }
+            });
+            nextReconnect.observe(docRoot, { childList: true, subtree: true });
+            reconnectObserver = nextReconnect;
+          }
+        }
+        return;
+      }
+      stopReconnectObserver();
       const nextAncestors = collectAncestors(root);
       if (ancestorObserver && sameAncestors(observedAncestors, nextAncestors)) {
         return;
@@ -1761,6 +1785,7 @@ function DefaultSurfaceDefinitionForm(
       disposed = true;
       rootObserver?.disconnect();
       ancestorObserver?.disconnect();
+      stopReconnectObserver();
       root.removeEventListener('close', onDialogClose, true);
       view?.removeEventListener('resize', onViewportResize);
       stopReactive();

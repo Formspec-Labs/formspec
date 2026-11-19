@@ -3081,7 +3081,7 @@ describe("navigation", () => {
           if (mode === "edit-during-write") {
             expect(checks, label).toEqual(["permitted", "refused"]);
             expect(writer.dirty, label).toBe(true);
-            expect(effects.every(({ captured, persisted }) => captured === persisted && captured === "permitted"), label).toBe(true);
+            expect(effects, label).toEqual([{ captured: "permitted", persisted: "permitted" }]);
           } else if (mode === "remove-during-load") {
             expect(effects, label).toEqual([]);
           } else if (mode === "invocation-id") {
@@ -3324,6 +3324,382 @@ describe("navigation", () => {
       } finally {
         writer.dispose();
         engine.dispose();
+      }
+    }
+  });
+
+  it("uses one captured Response, binds policy contents across load, carries fence through previewFilingInvoker, retains failed filing on repeated leave, and reuses engine precondition facts", async () => {
+    const { createFormEngine } = await import("@formspec-org/engine");
+    const { createDraftWriter } = await import("../src/draft-writer.js");
+    const { previewFilingInvoker } = await import("../src/preview-filing-invoker.js");
+
+    const definition = {
+      $formspec: "1.0",
+      version: "1",
+      url: "urn:review10:writer",
+      title: "Review",
+      items: [{ type: "field", key: "answer", dataType: "string" }],
+    } as unknown as FormDefinition;
+
+    function createFixture(
+      operation: "ordinary" | "prepare" | "sign",
+      opts: {
+        fixed?: boolean;
+        fails?: boolean;
+        allowed?: boolean;
+        events?: boolean;
+        preview?: boolean;
+        onLoad?: () => Promise<void> | void;
+      } = {},
+    ) {
+      const { fixed = false, fails = false, allowed = true, events = false, preview = false, onLoad } = opts;
+      const key = { scope: `review10-${operation}`, definitionUrl: definition.url };
+      let tick = 0;
+      const engine = createFormEngine(definition, {
+        runtimeContext: { now: () => new Date(Date.UTC(2026, 0, 1) + (fixed ? 0 : tick++)) },
+      });
+      const request = { type: "serviceRequest", requestRef: "candidate", idempotencyKey: "@invocation.id", onError: "fail" };
+      const doc = {
+        $formspecResponseActions: "1.0",
+        version: "1",
+        targetDefinition: { url: definition.url },
+        "x-formspec-runtime": {
+          version: "1.0",
+          requests: [
+            {
+              id: "candidate",
+              ...(operation !== "ordinary" ? { operation } : {}),
+              adapter: "http-json",
+              request: { method: "POST", pathTemplate: "/test" },
+            },
+          ],
+        },
+        actions: [
+          {
+            id: "auto",
+            intent: "autosave",
+            preconditions: [{ id: "eligible", expression: "true", severity: "block" }],
+            effects: [
+              request,
+              ...(events ? [{ type: "hostEvent", eventName: "testEvent", detailRef: "@invocation.id" }] : []),
+            ],
+          },
+        ],
+      } as unknown as ResponseActionsDocument;
+      const effects: Array<{
+        requestRef: string;
+        captured: string;
+        saved: string | undefined;
+        detailRevision: string | undefined;
+        revision: string | undefined;
+        key: string | undefined;
+      }> = [];
+      const invocations: Array<string | undefined> = [];
+      const checkedRequests: string[] = [];
+      const expressions: Array<{ expression: string; answer: unknown; action: string; invocationId: string }> = [];
+      const hosts: Array<{ event: string; detail: unknown }> = [];
+      const implicitEvents: string[] = [];
+      const notices: string[] = [];
+      const writes: Array<{ responseJson: string; snapshotJson: string }> = [];
+      let stored: { revision: string; responseJson: string; snapshotJson: string } | undefined;
+      const writer = createDraftWriter({
+        engine,
+        key,
+        actions: doc,
+        sections: [],
+        debounceMs: 60000,
+        ...(preview
+          ? { invoker: previewFilingInvoker(async () => { throw new Error("Submit store is outside this case"); }) }
+          : {}),
+        port: {
+          async save(input) {
+            writes.push({ responseJson: input.responseJson, snapshotJson: input.snapshotJson });
+            stored = { revision: String(writes.length), responseJson: input.responseJson, snapshotJson: input.snapshotJson };
+            return { status: "saved" as const, revision: stored.revision };
+          },
+          async load() {
+            await onLoad?.();
+            return stored
+              ? {
+                  status: "loaded" as const,
+                  draft: {
+                    key,
+                    definitionVersion: definition.version,
+                    revision: stored.revision,
+                    responseJson: stored.responseJson,
+                    snapshotJson: stored.snapshotJson,
+                    updatedAt: new Date().toISOString(),
+                  },
+                }
+              : { status: "absent" as const };
+          },
+          discard: async () => ({ status: "discarded" as const }),
+          readSummaries: async () => new Map(),
+        },
+        checkpointPorts: ({ ports, invocationContext }) => ({
+          ...ports,
+          submit(submitOpts) {
+            if (submitOpts.emitEvent !== false) implicitEvents.push("implicit-submit");
+            return ports.submit!(submitOpts);
+          },
+          evaluatePrecondition(_p, action) {
+            const first = action.effects?.[0] as { requestRef?: string } | undefined;
+            if (first?.requestRef) checkedRequests.push(first.requestRef);
+            invocations.push(invocationContext?.invocationId);
+            return allowed;
+          },
+          resolveIdempotencyKey() {
+            return invocationContext?.invocationId ?? "missing";
+          },
+          evaluateEffectExpression(expression, detail, action, context) {
+            expressions.push({
+              expression,
+              answer: detail.response.data.answer,
+              action: action.id,
+              invocationId: context.invocation.id,
+            });
+            return context.invocation.id;
+          },
+          dispatchEffect(effect, detail, _action, context) {
+            const ctxFence = (context as { draftFence?: { revision?: string; responseJson?: string } }).draftFence;
+            const detailFence = (detail as { draftFence?: { revision?: string } }).draftFence;
+            effects.push({
+              requestRef: (effect as { requestRef?: string }).requestRef ?? "",
+              captured: JSON.stringify(detail.response),
+              saved: ctxFence?.responseJson,
+              detailRevision: detailFence?.revision,
+              revision: ctxFence?.revision,
+              key: context.idempotencyKey,
+            });
+            return { type: effect.type, status: fails ? ("failed" as const) : ("succeeded" as const), ...(fails ? { reason: "offline" } : {}) };
+          },
+          dispatchHostEvent(event, detail) {
+            hosts.push({ event, detail });
+          },
+        }),
+        report(notice) {
+          notices.push(notice);
+        },
+      });
+      engine.setValue("answer", "permitted");
+      return {
+        writer,
+        doc,
+        engine,
+        effects,
+        invocations,
+        expressions,
+        hosts,
+        implicitEvents,
+        notices,
+        writes,
+        checkedRequests,
+        done() {
+          writer.dispose();
+          engine.dispose();
+        },
+      };
+    }
+
+    // 1. Single captured Response byte identity under advancing & fixed clocks
+    for (const operation of ["prepare", "sign"] as const) {
+      for (const fixed of [false, true] as const) {
+        const f = createFixture(operation, { fixed });
+        try {
+          expect(await f.writer.leave(), `${operation} fixed=${fixed}`).toBe(true);
+          expect(f.effects, `${operation} fixed=${fixed}`).toHaveLength(1);
+          expect(f.effects[0]!.captured, `${operation} fixed=${fixed}`).toBe(f.effects[0]!.saved);
+        } finally {
+          f.done();
+        }
+      }
+    }
+
+    // 2. Persistent failing service blocks repeated leave, reports saveFailed, and retries; refused precondition preserves engine facts; host events & emitEvent:false work
+    for (const operation of ["ordinary", "prepare", "sign"] as const) {
+      const fFail = createFixture(operation, { fails: true });
+      try {
+        const left = [await fFail.writer.leave(), await fFail.writer.leave()];
+        expect(left, `${operation} repeated leave`).toEqual([false, false]);
+        expect(fFail.effects, `${operation} repeated leave effects`).toHaveLength(2);
+        expect(fFail.notices, `${operation} repeated leave notices`).toContain("saveFailed");
+        expect(fFail.writer.dirty, `${operation} repeated leave dirty`).toBe(true);
+      } finally {
+        fFail.done();
+      }
+
+      const fBlocked = createFixture(operation, { allowed: false });
+      try {
+        const result = await fBlocked.writer.invoke(
+          {
+            document: fBlocked.doc,
+            actionRef: "auto",
+            ports: { submit: fBlocked.writer.captureActionResponse, dispatchHostEvent() {} },
+          },
+          { automatic: true },
+        );
+        expect(result.status, `${operation} blocked status`).toBe("blocked");
+        expect(result.invocationId, `${operation} blocked invocationId`).toBe(fBlocked.invocations[0]);
+        expect(result.blockedPreconditionId, `${operation} blockedPreconditionId`).toBe("eligible");
+      } finally {
+        fBlocked.done();
+      }
+
+      const fEvents = createFixture(operation, { events: true });
+      try {
+        expect(await fEvents.writer.leave(), `${operation} host events`).toBe(true);
+        const [id] = fEvents.invocations;
+        expect(typeof id, `${operation} id`).toBe("string");
+        expect(fEvents.effects, `${operation} effects`).toHaveLength(1);
+        expect(fEvents.effects[0]!.key, `${operation} key`).toBe(id);
+        if (operation !== "ordinary") expect(fEvents.effects[0]!.revision, `${operation} rev`).toBe("1");
+        expect(fEvents.expressions, `${operation} expressions`).toEqual([
+          { expression: "@invocation.id", answer: "permitted", action: "auto", invocationId: id! },
+        ]);
+        expect(fEvents.hosts, `${operation} hosts`).toEqual([{ event: "testEvent", detail: id }]);
+        expect(fEvents.implicitEvents, `${operation} implicitEvents`).toEqual([]);
+      } finally {
+        fEvents.done();
+      }
+    }
+
+    // 3. Maintained previewFilingInvoker preserves draftFence revision & responseJson
+    for (const operation of ["prepare", "sign"] as const) {
+      for (const preview of [false, true] as const) {
+        const f = createFixture(operation, { fixed: true, preview });
+        try {
+          expect(await f.writer.leave(), `${operation} preview=${preview}`).toBe(true);
+          expect(f.effects, `${operation} preview=${preview}`).toHaveLength(1);
+          expect(f.effects[0]!.revision, `${operation} preview=${preview}`).toBe("1");
+          expect(f.effects[0]!.detailRevision, `${operation} preview=${preview}`).toBe("1");
+          expect(f.effects[0]!.saved, `${operation} preview=${preview}`).toBe(f.writes[0]!.responseJson);
+        } finally {
+          f.done();
+        }
+      }
+    }
+
+    // 4. Mid-load policy edit (same object & fresh copy): never dispatches an unchecked requestRef or mutated hostEvent
+    for (const operation of ["prepare", "sign"] as const) {
+      for (const sameObject of [false, true] as const) {
+        let enter!: () => void;
+        let release!: () => void;
+        const started = new Promise<void>((resolve) => { enter = resolve; });
+        const gate = new Promise<void>((resolve) => { release = resolve; });
+        let loadCount = 0;
+        const f = createFixture(operation, {
+          onLoad: async () => {
+            if (++loadCount === 1) {
+              enter();
+              await gate;
+            }
+          },
+        });
+        try {
+          const leaving = f.writer.leave();
+          await started;
+          const next = sameObject ? (f.doc as any) : JSON.parse(JSON.stringify(f.doc));
+          const old = next["x-formspec-runtime"].requests[0];
+          next["x-formspec-runtime"].requests.push({ ...old, id: "updated", request: { ...old.request, pathTemplate: "/updated" } });
+          next.actions[0].effects[0].requestRef = "updated";
+          f.writer.setActions(next);
+          release();
+          await leaving;
+          const observed = f.effects.map((e) => e.requestRef);
+          expect(observed.filter((ref) => !f.checkedRequests.includes(ref)), `${operation} same=${sameObject}`).toEqual([]);
+        } finally {
+          release();
+          f.done();
+        }
+
+        // Direct invoke with in-place or fresh hostEvent mutation during load aborts cleanly
+        const policyEngine = createFormEngine(definition);
+        const policyDoc: any = {
+          $formspecResponseActions: "1.0",
+          version: "1.0.0",
+          targetDefinition: { url: definition.url },
+          "x-formspec-runtime": {
+            version: "1.0",
+            requests: [{ id: "candidate", operation, adapter: "http-json", request: { method: "POST", pathTemplate: "/candidate" } }],
+          },
+          actions: [
+            {
+              id: "auto",
+              intent: "autosave",
+              preconditions: [{ id: "eligible", expression: "true", severity: "block" }],
+              effects: [
+                { type: "serviceRequest", requestRef: "candidate", idempotencyKey: "@invocation.id" },
+                { type: "hostEvent", eventName: "old-notice" },
+              ],
+            },
+          ],
+        };
+        const notices: string[] = [];
+        const checks: string[] = [];
+        let record: { revision: string; responseJson: string; snapshotJson: string } | undefined;
+        let loads = 0;
+        const pKey = { scope: `review10-policy-${operation}-${sameObject}`, definitionUrl: definition.url };
+        const pWriter = createDraftWriter({
+          engine: policyEngine,
+          key: pKey,
+          actions: policyDoc,
+          sections: [],
+          debounceMs: 60000,
+          port: {
+            async save(input) {
+              record = { revision: "1", responseJson: input.responseJson, snapshotJson: input.snapshotJson };
+              return { status: "saved" as const, revision: "1" };
+            },
+            async load() {
+              if (++loads === 1) {
+                const changed = sameObject ? policyDoc : structuredClone(policyDoc);
+                changed.actions[0].effects[1].eventName = "new-notice";
+                pWriter.setActions(changed);
+              }
+              return {
+                status: "loaded" as const,
+                draft: {
+                  key: pKey,
+                  definitionVersion: definition.version,
+                  revision: record!.revision,
+                  responseJson: record!.responseJson,
+                  snapshotJson: record!.snapshotJson,
+                  updatedAt: new Date().toISOString(),
+                },
+              };
+            },
+            discard: async () => ({ status: "discarded" as const }),
+            readSummaries: async () => new Map(),
+          },
+          checkpointPorts: ({ ports }) => ({
+            ...ports,
+            evaluatePrecondition(_rule, action) {
+              checks.push((action.effects?.[1] as { eventName?: string })?.eventName ?? "");
+              return true;
+            },
+            resolveIdempotencyKey: () => "test-key",
+            dispatchEffect: (effect) => ({ type: effect.type, status: "succeeded" as const }),
+            dispatchHostEvent: (name) => { notices.push(name); },
+          }),
+        });
+        try {
+          policyEngine.setValue("answer", "one");
+          await pWriter
+            .invoke(
+              {
+                document: policyDoc,
+                actionRef: "auto",
+                ports: { submit: pWriter.captureActionResponse, dispatchHostEvent() {} },
+              },
+              { automatic: true },
+            )
+            .catch(() => undefined);
+          expect(checks, `policy ${operation} same=${sameObject}`).toEqual(["old-notice"]);
+          expect(notices, `policy ${operation} same=${sameObject}`).toEqual([]);
+        } finally {
+          pWriter.dispose();
+          policyEngine.dispose();
+        }
       }
     }
   });

@@ -746,5 +746,116 @@ describe('wizard page mode: the native submit button is only actionable on the l
         } finally {
             vi.useRealTimers();
         }
-    });
+    }, 15000);
+
+    it('reconciles in-flight and nested-effect autosave reassignments using referenced service requests', async () => {
+        vi.useFakeTimers();
+        try {
+            const { planServiceRequest, resolveServiceRequest } = await import('@formspec-org/engine/render');
+            const policyDef = {
+                $formspec: '1.0',
+                version: '1',
+                url: 'urn:review10:wc-reassign',
+                title: 'Synthetic',
+                items: [{ key: 'answer', label: 'Answer', type: 'field', dataType: 'string' }],
+            };
+            const documentWithPolicy = () => ({
+                $formspecResponseActions: '1.0' as const,
+                version: '1.0',
+                targetDefinition: { url: policyDef.url },
+                actions: [{
+                    id: 'auto',
+                    intent: 'autosave' as const,
+                    effects: [{ type: 'serviceRequest' as const, requestRef: 'store', idempotencyKey: '@invocation.id' }],
+                }],
+                'x-formspec-runtime': {
+                    version: '1.0',
+                    requests: [{ id: 'store', adapter: 'http-json' as const, request: { method: 'POST' as const, pathTemplate: '/original' } }],
+                },
+            });
+
+            for (const replacement of ['same', 'fresh'] as const) {
+                for (const change of ['equivalent', 'changed request', 'changed action'] as const) {
+                    const initial = documentWithPolicy();
+                    const el = mount(policyDef);
+                    el.responseActionsDocument = initial as any;
+                    el.render();
+                    const paths: string[] = [];
+                    let complete!: () => void;
+                    const results: string[] = [];
+                    const status = () => (el.querySelector('.formspec-action-status')?.textContent ?? '').trim();
+                    el.addEventListener('formspec-action-result', (event: any) => results.push(event.detail.result.status));
+                    el.responseActionInvoker = async ({ document: invokedDoc, actionRef, ports }: any) => {
+                        const action = invokedDoc.actions.find((candidate: any) => candidate.id === actionRef);
+                        const runtime = resolveServiceRequest(invokedDoc['x-formspec-runtime'], action.effects[0].requestRef);
+                        paths.push(planServiceRequest(runtime, {}).path);
+                        const snapshot = ports.submit({ profile: 'off', validationTuple: { persistence: 'draft-checkpoint' } });
+                        await new Promise<void>((resolve) => { complete = resolve; });
+                        return {
+                            status: 'completed',
+                            resolution: { resolved: true, action },
+                            detail: snapshot,
+                            validationTuple: null,
+                            effectTrace: [],
+                        };
+                    };
+                    el.engine.setValue('answer', 'seed');
+                    await vi.advanceTimersByTimeAsync(500);
+                    expect(paths, `${replacement}/${change}: paths`).toEqual(['/original']);
+                    expect(status(), `${replacement}/${change}: in-flight`).not.toBe('');
+
+                    const next = replacement === 'same' ? initial : structuredClone(initial);
+                    if (change === 'changed request') {
+                        next['x-formspec-runtime'].requests[0].request.pathTemplate = '/replacement';
+                    } else if (change === 'changed action') {
+                        next.actions[0].id = 'new-auto';
+                    }
+                    el.responseActionsDocument = next as any;
+                    await vi.advanceTimersByTimeAsync(20);
+                    complete();
+                    await vi.advanceTimersByTimeAsync(800);
+                    expect(results, `${replacement}/${change}: results`).toEqual(['completed']);
+                    expect(paths, `${replacement}/${change}: final paths`).toEqual(['/original']);
+                    expect(status(), `${replacement}/${change}: settled status`).toBe(change === 'equivalent' ? 'Completed.' : '');
+                    el.remove();
+                }
+
+                // Nested idempotencyKey change with same action id clears settled feedback and dispatches updated expression
+                const initial = documentWithPolicy();
+                const el = mount(policyDef);
+                el.responseActionsDocument = initial as any;
+                el.render();
+                const invoked: string[] = [];
+                el.responseActionInvoker = ({ document: invokedDoc }: any) => {
+                    const action = invokedDoc.actions[0];
+                    invoked.push(action.effects[0].idempotencyKey);
+                    return {
+                        status: 'completed',
+                        resolution: { resolved: true, action },
+                        detail: {},
+                        validationTuple: null,
+                        effectTrace: [],
+                    };
+                };
+                el.engine.setValue('answer', 'before');
+                await vi.advanceTimersByTimeAsync(500);
+                const status = () => (el.querySelector('.formspec-action-status')?.textContent ?? '').trim();
+                expect(status(), `${replacement}: nested before`).toBe('Completed.');
+                const next = replacement === 'same' ? initial : structuredClone(initial);
+                next.actions[0].effects[0].idempotencyKey = '@invocation.id & "/new"';
+                el.responseActionsDocument = next as any;
+                await vi.advanceTimersByTimeAsync(20);
+                expect(status(), `${replacement}: nested cleared`).toBe('');
+                el.engine.setValue('answer', 'after');
+                await vi.advanceTimersByTimeAsync(500);
+                expect([invoked, status()], `${replacement}: nested after`).toEqual([
+                    ['@invocation.id', '@invocation.id & "/new"'],
+                    'Completed.',
+                ]);
+                el.remove();
+            }
+        } finally {
+            vi.useRealTimers();
+        }
+    }, 15000);
 });
