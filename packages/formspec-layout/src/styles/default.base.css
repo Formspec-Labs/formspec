@@ -407,7 +407,7 @@ h6.formspec-heading {
  * its field and the container's own gap or padding follows. A host stylesheet that re-gaps a listed container
  * by class is not seen. */
 :is(.formspec-stack:not(.grid-row):not(.formspec-stack--horizontal), .formspec-group, .formspec-section,
-  .formspec-repeat-instance, .formspec-card-body, .formspec-collapsible-content, .formspec-wizard-panel):not([style*="gap"])
+  .formspec-repeat-instance, .formspec-card-body, .formspec-collapsible-content, .formspec-wizard-panel):not([style*="gap"]):not(.formspec-auto-grid)
   > :is(.formspec-field:not(.formspec-field--inline), .formspec-fieldset):not(.formspec-field--readonly, [data-formspec-agent-filled]):has(~ :not(.formspec-hidden, [hidden]))
   > .formspec-error:last-child {
   min-height: max(1lh, var(--formspec-spacing-field, 0.75rem));

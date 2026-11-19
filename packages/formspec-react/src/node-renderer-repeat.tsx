@@ -4,7 +4,7 @@
 import React, { useMemo, useRef, useCallback, useState, useEffect } from 'react';
 import type { LayoutNode } from '@formspec-org/layout';
 import { chromeText } from './use-chrome-text';
-import { signal } from '@preact/signals-core';
+import { computed, signal } from '@preact/signals-core';
 import type { IFormEngine } from '@formspec-org/engine/render';
 import { useFormspecContext } from './context.js';
 import { useSignal } from './use-signal';
@@ -98,36 +98,34 @@ function captureRowEntries(engine: IFormEngine, repeatPath: string, idx: number)
     return entries;
 }
 
-const NO_ID_VALUE = signal<unknown>(null);
-
 function useRowIdentifier(engine: IFormEngine, repeatPath: string, idx: number, enabled: boolean): string | null {
     const prefix = `${repeatPath}[${idx}].`;
-    const candidateKeys = useMemo(() => {
-        if (!enabled) return [];
-        const keys = Object.keys(engine.signals ?? {}).filter((key) => key.startsWith(prefix));
-        // Prefer editable string fields first, then readonly string fields (e.g. carried organization names).
-        const editable: string[] = [];
-        const readonly: string[] = [];
-        for (const key of keys) {
-            if (engine.readonlySignals?.[key]?.value === true) readonly.push(key);
-            else editable.push(key);
-        }
-        return [...editable, ...readonly];
-    }, [enabled, engine, prefix]);
-
-    // Subscribe to the primary candidate signal so typing updates the concise card heading live.
-    const primarySig = candidateKeys.length > 0 ? (engine.signals?.[candidateKeys[0]] ?? NO_ID_VALUE) : NO_ID_VALUE;
-    useSignal(primarySig);
-
-    if (!enabled) return null;
-    for (const key of candidateKeys) {
-        const val = engine.signals?.[key]?.value;
-        if (typeof val === 'string') {
+    const identifierSig = useMemo(() => computed(() => {
+        if (!enabled) return null;
+        // Track structural updates when present so newly added row signals are discovered reactively.
+        (engine as { structureVersion?: { value: unknown } }).structureVersion?.value;
+        const signals = engine.signals ?? {};
+        const readonlySignals = engine.readonlySignals ?? {};
+        // Scan every field signal in this row so Preact Signals tracks edits on any string identifier,
+        // even when preceded by numeric, date, or choice fields.
+        let editableMatch: string | null = null;
+        let readonlyMatch: string | null = null;
+        for (const [key, fieldSig] of Object.entries(signals)) {
+            if (!key.startsWith(prefix)) continue;
+            const val = fieldSig.value;
+            if (typeof val !== 'string') continue;
             const trimmed = val.trim();
-            if (trimmed.length > 0 && trimmed.length <= 44) return trimmed;
+            if (trimmed.length === 0 || trimmed.length > 44) continue;
+            if (readonlySignals[key]?.value === true) {
+                if (readonlyMatch === null) readonlyMatch = trimmed;
+            } else if (editableMatch === null) {
+                editableMatch = trimmed;
+            }
         }
-    }
-    return null;
+        return editableMatch ?? readonlyMatch;
+    }), [enabled, engine, prefix]);
+
+    return useSignal(identifierSig);
 }
 
 function isRowAllReadonly(engine: IFormEngine, repeatPath: string, idx: number): boolean {
@@ -272,7 +270,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
     const repeatPath = node.repeatPath!;
     const locks = repeatLocks(node);
     // Theme widgetConfig Add/Remove locks, planned onto the template's props (theme §4.2).
-    const { count, relevant, canAdd, canRemove, isSeeded } = useRepeatAffordances(repeatPath, locks);
+    const { count, relevant, canAdd, canRemove, isSeeded, upstreamSeededCount } = useRepeatAffordances(repeatPath, locks);
     const title = (node.props?.title as string) || node.repeatGroup || repeatPath;
     const { isLongPrompt, shortLabel } = summarizeRepeatTitle(title);
     const headingLevel = useHeadingLevel();
@@ -287,13 +285,18 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
     const [lastRemoved, setLastRemoved] = useState<RemovedRowSnapshot | null>(null);
 
     // Protect carried upstream seeded rows from accidental unrecoverable deletion unless allowRemove is explicitly true.
-    // Persist the initial seeded count per (engine, repeatPath) so Workspace section switches do not lock user-added rows.
+    // Prefer the exact upstream instance array length (so reloaded drafts with user-added rows stay removable),
+    // falling back to a per-(engine, repeatPath) WeakMap snapshot when upstream length cannot be determined statically.
     const lockSeeded = isSeeded && locks.allowRemove !== true;
-    const lockedCount = lockSeeded ? readLockedSeededCount(engine, repeatPath, count) : 0;
+    const lockedCount = !lockSeeded
+        ? 0
+        : upstreamSeededCount !== null
+            ? Math.min(upstreamSeededCount, count)
+            : readLockedSeededCount(engine, repeatPath, count);
     const prevCountRef = useRef<number>(count);
     const userAddingRef = useRef<boolean>(false);
     useEffect(() => {
-        if (lockSeeded) {
+        if (lockSeeded && upstreamSeededCount === null) {
             if (count > prevCountRef.current && !userAddingRef.current) {
                 updateLockedSeededCount(engine, repeatPath, readLockedSeededCount(engine, repeatPath, prevCountRef.current) + (count - prevCountRef.current));
             } else if (count < lockedCount) {
@@ -302,7 +305,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
         }
         userAddingRef.current = false;
         prevCountRef.current = count;
-    }, [count, engine, lockSeeded, lockedCount, repeatPath]);
+    }, [count, engine, lockSeeded, lockedCount, repeatPath, upstreamSeededCount]);
 
     const instances = useMemo(() => {
         const result: LayoutNode[][] = [];
@@ -477,7 +480,7 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
     useSignal(engine.localeSignal); // re-render add/remove text on a locale switch
     const bindKey = node.bindPath ?? node.props.bind as string;
     const locks = repeatLocks(node);
-    const { count, relevant, canAdd, canRemove, isSeeded } = useRepeatAffordances(bindKey, locks);
+    const { count, relevant, canAdd, canRemove, isSeeded, upstreamSeededCount } = useRepeatAffordances(bindKey, locks);
     const labels = (node.props?.labels as string[] | undefined) ?? [];
     const allowMultiple = node.props?.allowMultiple === true;
     const defaultOpen = node.props?.defaultOpen as number | undefined;
@@ -505,13 +508,17 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
     const [announcement, setAnnouncement] = useState('');
 
     const lockSeeded = isSeeded && locks.allowRemove !== true;
-    const lockedCount = lockSeeded ? readLockedSeededCount(engine, bindKey, count) : 0;
+    const lockedCount = !lockSeeded
+        ? 0
+        : upstreamSeededCount !== null
+            ? Math.min(upstreamSeededCount, count)
+            : readLockedSeededCount(engine, bindKey, count);
     const userAddingRef = useRef<boolean>(false);
 
     React.useEffect(() => {
         const previousCount = previousCountRef.current;
         if (count > previousCount && count > 0) {
-            if (lockSeeded && !userAddingRef.current) {
+            if (lockSeeded && upstreamSeededCount === null && !userAddingRef.current) {
                 updateLockedSeededCount(engine, bindKey, readLockedSeededCount(engine, bindKey, previousCount) + (count - previousCount));
             }
             const lastIndex = count - 1;
@@ -524,12 +531,12 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
             } else {
                 setOpenIndex(lastIndex);
             }
-        } else if (lockSeeded && count < lockedCount) {
+        } else if (lockSeeded && upstreamSeededCount === null && count < lockedCount) {
             updateLockedSeededCount(engine, bindKey, count);
         }
         userAddingRef.current = false;
         previousCountRef.current = count;
-    }, [allowMultiple, bindKey, count, engine, lockSeeded, lockedCount]);
+    }, [allowMultiple, bindKey, count, engine, lockSeeded, lockedCount, upstreamSeededCount]);
 
     const handleToggle = useCallback((idx: number, open: boolean) => {
         if (allowMultiple) {

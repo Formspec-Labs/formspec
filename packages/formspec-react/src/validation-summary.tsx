@@ -140,10 +140,12 @@ export function ValidationSummary({
     const summaryClassName = className
         ? `formspec-validation-summary formspec-validation-summary--visible ${className}`
         : 'formspec-validation-summary formspec-validation-summary--visible';
-    const warningHeaderCount = unresolvedWarnings.length > 0 ? unresolvedWarnings.length : warnings.length;
+    const allWarningsExplained = !hasErrors && hasWarnings && unresolvedWarnings.length === 0;
     const headerText = hasErrors
         ? chrome(errors.length === 1 ? 'validationSummary.fixOne' : 'validationSummary.fixMany', { count: errors.length })
-        : chrome(warningHeaderCount === 1 ? 'validationSummary.reviewOne' : 'validationSummary.reviewMany', { count: warningHeaderCount });
+        : allWarningsExplained
+            ? (warnings.length === 1 ? 'Warning explained' : `All ${warnings.length} warnings explained`)
+            : chrome(unresolvedWarnings.length === 1 ? 'validationSummary.reviewOne' : 'validationSummary.reviewMany', { count: unresolvedWarnings.length });
 
     const jump = (row: ValidationSummaryRow) => (event: React.MouseEvent) => {
         event.preventDefault();
@@ -189,6 +191,7 @@ export function ValidationSummary({
             tabIndex={-1}
             role={containerRole}
             className={summaryClassName}
+            data-all-explained={allWarningsExplained ? 'true' : undefined}
         >
             <Heading className="formspec-validation-summary-title">{headerText}</Heading>
             {renderRows(errors)}

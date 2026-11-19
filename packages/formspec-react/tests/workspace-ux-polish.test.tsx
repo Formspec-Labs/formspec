@@ -421,5 +421,216 @@ describe('Scalar auto-grid, inline Shape errors, wheel guard, and workspace navi
         // P2-1: Dark-mode checkbox border contrast rules scoped to compound appearance class.
         expect(defaultCss).toContain('.formspec-container.formspec-appearance-dark :is(');
         expect(defaultCss).toContain('--formspec-default-checkbox-border');
+        // P1-6 alignment: negative error hang excludes .formspec-auto-grid so last column aligns cleanly.
+        expect(defaultCss).toContain(':not([style*="gap"]):not(.formspec-auto-grid)');
+    });
+
+    it('transitions ValidationSummary warning header smoothly 2 -> 1 -> resolved without jumping back up', () => {
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:summary-progression',
+            version: '1.0.0',
+            title: 'Summary Progression',
+            items: [
+                { key: 'a', type: 'field', dataType: 'integer', label: 'A' },
+                { key: 'b', type: 'field', dataType: 'integer', label: 'B' },
+            ],
+            shapes: [
+                { id: 'w1', target: 'a', severity: 'warning', code: 'W1', constraint: '$a <= 10', message: 'A is high.', explanation: 'explain' },
+                { id: 'w2', target: 'b', severity: 'warning', code: 'W2', constraint: '$b <= 10', message: 'B is high.', explanation: 'explain' },
+            ],
+        };
+        const engine = createFormEngine(def);
+        act(() => {
+            engine.setValue('a', 20);
+            engine.setValue('b', 30);
+        });
+        const fullHost = actRender(
+            <FormspecForm
+                engine={engine}
+                componentDocument={{
+                    $formspecComponent: '1.0',
+                    version: '1.0.0',
+                    targetDefinition: { url: def.url },
+                    tree: {
+                        component: 'Stack',
+                        children: [
+                            { component: 'ValidationSummary', source: 'live', mode: 'continuous' },
+                            { component: 'NumberInput', bind: 'a' },
+                            { component: 'NumberInput', bind: 'b' },
+                        ],
+                    },
+                }}
+            />,
+        );
+        const inputA = fullHost.querySelector<HTMLInputElement>('[data-name="a"] input')!;
+        act(() => {
+            inputA.focus();
+            inputA.blur();
+            inputA.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        });
+
+        const title = () => fullHost.querySelector('.formspec-validation-summary-title')?.textContent ?? '';
+        const summaryEl = () => fullHost.querySelector('.formspec-validation-summary');
+        expect(title()).toContain('2');
+        expect(summaryEl()?.getAttribute('data-all-explained')).toBeNull();
+
+        act(() => { engine.setExplanation('w1', 'a', { text: 'Expected peak for A.' }); });
+        expect(title()).toBe('Please review this warning before continuing:');
+        expect(summaryEl()?.getAttribute('data-all-explained')).toBeNull();
+
+        act(() => { engine.setExplanation('w2', 'b', { text: 'Expected peak for B.' }); });
+        expect(title()).toBe('All 2 warnings explained');
+        expect(summaryEl()?.getAttribute('data-all-explained')).toBe('true');
+    });
+
+    it('renders nested group and nested repeat warnings inline on repeat instance [1]+ instead of routing to form root', () => {
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:nested-repeat-warnings',
+            version: '1.0.0',
+            title: 'Regional Affiliates',
+            items: [
+                {
+                    key: 'entities',
+                    type: 'group',
+                    label: 'Affiliates',
+                    repeatable: true,
+                    minRepeat: 2,
+                    children: [
+                        {
+                            key: 'contact',
+                            type: 'group',
+                            label: 'Contact details',
+                            children: [
+                                { key: 'phone', type: 'field', dataType: 'string', label: 'Phone' },
+                            ],
+                        },
+                        {
+                            key: 'offices',
+                            type: 'group',
+                            label: 'Offices',
+                            repeatable: true,
+                            minRepeat: 1,
+                            children: [
+                                { key: 'city', type: 'field', dataType: 'string', label: 'City' },
+                            ],
+                        },
+                    ],
+                },
+            ],
+            shapes: [
+                {
+                    id: 'contactWarn',
+                    target: 'entities[*].contact',
+                    severity: 'warning',
+                    code: 'CONTACT_CHECK',
+                    constraint: 'present($phone)',
+                    message: 'Confirm missing contact phone.',
+                    explanation: 'explain',
+                },
+                {
+                    id: 'officeWarn',
+                    target: 'entities[*].offices[*]',
+                    severity: 'warning',
+                    code: 'OFFICE_CHECK',
+                    constraint: 'present($city)',
+                    message: 'Confirm missing office city.',
+                    explanation: 'explain',
+                },
+            ],
+        };
+
+        const engine = createFormEngine(def);
+        act(() => {
+            engine.setValue('entities[0].contact.phone', '555-0100');
+            engine.setValue('entities[0].offices[0].city', 'Portland');
+        });
+        const host = actRender(<FormspecForm engine={engine} />);
+
+        const contact1 = host.querySelector<HTMLElement>('[data-group-path="entities[1].contact"]')!;
+        expect(contact1).not.toBeNull();
+        expect(contact1.querySelector('[data-shape-id="contactWarn"]')).not.toBeNull();
+
+        const office1 = host.querySelector<HTMLElement>('[data-repeat-path="entities[1].offices[0]"]')!;
+        expect(office1).not.toBeNull();
+        expect(office1.querySelector('[data-shape-id="officeWarn"]')).not.toBeNull();
+
+        // Neither warning should have leaked to a duplicate root copy outside the target containers.
+        expect(host.querySelectorAll('[data-shape-id="contactWarn"]')).toHaveLength(1);
+        expect(host.querySelectorAll('[data-shape-id="officeWarn"]')).toHaveLength(1);
+    });
+
+    it('updates repeat card header live when string identifier follows numeric fields and keeps reloaded user-added rows removable on seedFrom repeaters', () => {
+        const longLabel = 'Record every participating satellite site operating during the current fiscal cycle including capacity and site title.';
+        const numericFirstDef: FormDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:live-row-id',
+            version: '1.0.0',
+            title: 'Satellite Sites',
+            items: [
+                {
+                    key: 'sites',
+                    type: 'group',
+                    label: longLabel,
+                    repeatable: true,
+                    minRepeat: 1,
+                    children: [
+                        { key: 'capacity', type: 'field', dataType: 'integer', label: 'Capacity' },
+                        { key: 'openedOn', type: 'field', dataType: 'date', label: 'Opened' },
+                        { key: 'siteName', type: 'field', dataType: 'string', label: 'Site name' },
+                    ],
+                },
+            ],
+        };
+        const host1 = actRender(<FormspecForm engine={createFormEngine(numericFirstDef)} />);
+        expect(host1.querySelector('.formspec-repeat-instance-label')?.textContent).toBe('Item 1');
+        const siteNameInput = host1.querySelector<HTMLInputElement>('[data-name="sites[0].siteName"] input')!;
+        act(() => setControlValue(siteNameInput, 'Harbor Annex'));
+        expect(host1.querySelector('.formspec-repeat-instance-label')?.textContent).toBe('Item 1 — Harbor Annex');
+
+        // Reloaded saved draft with 2 upstream seedFrom rows + 1 user-added row: only rows 0..1 stay locked!
+        const reloadedSeededDef: FormDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:reloaded-seeded',
+            version: '1.0.0',
+            title: 'Reloaded Carry-over',
+            instances: {
+                roster: {
+                    data: {
+                        entries: [{ entityName: 'Alpha Org' }, { entityName: 'Beta Org' }],
+                    },
+                },
+            },
+            items: [
+                {
+                    key: 'entries',
+                    type: 'group',
+                    label: 'Organizations',
+                    repeatable: true,
+                    minRepeat: 0,
+                    seedFrom: { instance: 'roster', path: 'entries' },
+                    children: [
+                        { key: 'entityName', type: 'field', dataType: 'string', label: 'Organization' },
+                        { key: 'note', type: 'field', dataType: 'string', label: 'Note' },
+                    ],
+                },
+            ],
+        } as FormDefinition;
+
+        const reloadedEngine = createFormEngine(reloadedSeededDef, {
+            responseData: {
+                entries: [
+                    { entityName: 'Alpha Org', note: 'Carried 1' },
+                    { entityName: 'Beta Org', note: 'Carried 2' },
+                    { entityName: 'Gamma Org', note: 'User-added before reload' },
+                ],
+            },
+        });
+        const host2 = actRender(<FormspecForm engine={reloadedEngine} />);
+        expect(reloadedEngine.repeats.entries.value).toBe(3);
+        const removeBtns = host2.querySelectorAll<HTMLButtonElement>('.formspec-repeat-remove');
+        expect(removeBtns).toHaveLength(1);
+        expect(removeBtns[0].closest('.formspec-repeat-instance')?.getAttribute('data-repeat-path')).toBe('entries[2]');
     });
 });

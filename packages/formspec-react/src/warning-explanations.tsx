@@ -20,6 +20,10 @@ type Instance = ReturnType<IFormEngine['getExplanationState']>['instances'][numb
 const byProvider = new WeakMap<FormspecContextValue, ReadonlySignal<Map<string, Instance[]>>>();
 const none: Instance[] = [];
 
+function stripRepeatIndices(path: string): string {
+    return path.replace(/\[\d+\]/g, '');
+}
+
 function collectRenderedGroupTargets(
     node: LayoutNode | null | undefined,
     exactGroups: Set<string>,
@@ -27,9 +31,9 @@ function collectRenderedGroupTargets(
 ): void {
     if (!node) return;
     if (node.isRepeatTemplate && node.repeatPath) {
-        repeatGroups.add(node.repeatPath);
+        repeatGroups.add(stripRepeatIndices(node.repeatPath));
     } else if (node.bindPath && node.category !== 'field' && node.props?.title) {
-        exactGroups.add(node.bindPath);
+        exactGroups.add(stripRepeatIndices(node.bindPath));
     }
     for (const child of node.children ?? []) {
         collectRenderedGroupTargets(child, exactGroups, repeatGroups);
@@ -42,11 +46,10 @@ function hasRenderedGroupTarget(context: FormspecContextValue, warningPath: stri
     const repeatGroups = new Set<string>();
     collectRenderedGroupTargets(context.layoutPlan, exactGroups, repeatGroups);
     for (const page of context.workspacePages ?? []) {
-        if (page.titleBind) exactGroups.add(page.titleBind);
+        if (page.titleBind) exactGroups.add(stripRepeatIndices(page.titleBind));
     }
-    if (exactGroups.has(warningPath) || repeatGroups.has(warningPath)) return true;
-    const normalized = warningPath.replace(/\[\d+\]$/, '');
-    return repeatGroups.has(normalized);
+    const normalized = stripRepeatIndices(warningPath);
+    return exactGroups.has(normalized) || repeatGroups.has(normalized);
 }
 
 function submitMayHaveWarnings(submit: FormspecContextValue['latestSubmit']['value'], engine: IFormEngine): boolean {
