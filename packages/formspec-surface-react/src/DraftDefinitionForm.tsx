@@ -57,6 +57,7 @@ export function DraftDefinitionForm({
   useLayoutEffect(() => {
     if (notice?.kind === 'draftConflict' && notice.focusConflict) recoveryGroup.current?.focus();
   }, [notice]);
+  const acquiredRef = useRef<ReturnType<DraftSession['acquire']> | undefined>(undefined);
   useEffect(() => {
     let active = true;
     let release: (() => void) | undefined;
@@ -67,7 +68,12 @@ export function DraftDefinitionForm({
         : await deriveDraftSubject(opening.plan.subject);
       if (!active) return;
       const key: DraftKey = { scope: session.scope, definitionUrl: definition.url, subject };
-      const acquired = session.acquire(key, opening, (kind, options) => {
+      const currentInput = latest.current;
+      const acquired = session.acquire(key, {
+        ...opening,
+        responseActionsDocument: currentInput.responseActionsDocument,
+        onActionFinding: (finding) => latest.current.onActionFinding?.(finding),
+      }, (kind, options) => {
         setNotice({ kind, ...options });
         latest.current.reportSave?.(kind);
       }, () => {
@@ -75,7 +81,11 @@ export function DraftDefinitionForm({
         setLoaded(undefined);
         setAttempt(value => value + 1);
       });
-      release = acquired.release;
+      acquiredRef.current = acquired;
+      release = () => {
+        if (acquiredRef.current === acquired) acquiredRef.current = undefined;
+        acquired.release();
+      };
       const result = await acquired.result;
       if (active) setLoaded({ session, result });
     };
@@ -83,6 +93,11 @@ export function DraftDefinitionForm({
     return () => { active = false; release?.(); };
   }, [session, definition, attempt, input.draftSeed]);
   useEffect(() => {
+    if (acquiredRef.current) {
+      const finding = acquiredRef.current.setActions(input.responseActionsDocument);
+      if (finding) latest.current.onActionFinding?.(finding);
+      return;
+    }
     if (open?.status !== 'ready') return;
     const finding = session.syncActions(open.writer, input.responseActionsDocument);
     if (finding) latest.current.onActionFinding?.(finding);

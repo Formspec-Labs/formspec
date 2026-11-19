@@ -899,4 +899,82 @@ it('matches canonical JSON Schema + format validation, enforces compatibleVersio
     targetDefinition: { url: def.url },
     actions: [{ ...button, effects: sparseEffects }],
   }, def)).toBe(false);
+
+  // Structural getters, non-plain class instances, non-plain Array subclasses, and inherited docs fail closed without invoking getters
+  const addGetter = (obj: object, key: string, enumerable = true) =>
+    Object.defineProperty(obj, key, {
+      enumerable,
+      get: () => {
+        throw new Error(`getter read: ${key}`);
+      },
+    });
+  const makeBadRecord = (obj: Record<string, unknown>) => Object.assign(new (class {})(), obj);
+  const makeArraySubclass = (arr: unknown[]) => Object.assign(new (class extends Array {})(), arr);
+  const baseStructuralDoc = (): any => ({
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: def.url },
+    actions: [
+      { id: 'save', intent: 'save-draft', label: { literal: 'Save draft' }, effects: [{ type: 'hostEvent', eventName: 'saved' }] },
+      { id: 'auto0', intent: 'autosave', effects: [{ type: 'hostEvent', eventName: 'autosave0' }] },
+    ],
+    'x-formspec-runtime': {
+      version: '1.0',
+      requests: [{ id: 'prepare', adapter: 'http-json', request: { method: 'POST', pathTemplate: '/form' } }],
+    },
+  });
+  const reqOf = (d: any) => d['x-formspec-runtime'].requests[0].request;
+  const captureResult = (fn: () => unknown) => {
+    try {
+      return fn();
+    } catch (error) {
+      return String(error);
+    }
+  };
+  const allThree = (d: unknown) => [
+    captureResult(() => isValidDefinitionResponseActionsDocument(d, def)),
+    captureResult(() => autoPlacedDefinitionActions(d as never, def).map((a) => a.id)),
+    captureResult(() => resolveAutosaveResponseAction(d as never, def).action?.id ?? null),
+  ];
+
+  const adversarialShapes: Array<[string, (d: any) => void]> = [
+    ['getter on document targetDefinition', (d) => { addGetter(d, 'targetDefinition'); }],
+    ['getter on action id', (d) => { addGetter(d.actions[0], 'id'); }],
+    ['non-enumerable getter on action id', (d) => { addGetter(d.actions[0], 'id', false); }],
+    ['getter on request output map entry', (d) => { d['x-formspec-runtime'].requests[0].outputs = addGetter({}, 'receipt'); }],
+    ['getter on request method', (d) => { addGetter(reqOf(d), 'method'); }],
+    ['getter on selector from', (d) => { reqOf(d).bodyBindings = { '/v': addGetter({ value: 1 }, 'from') }; }],
+    ['getter on actions array filter property', (d) => { addGetter(d.actions, 'filter'); }],
+    ['in-memory class instance standing in for action', (d) => { d.actions[0] = makeBadRecord(d.actions[0]); }],
+    ['non-plain array subclass as actions', (d) => { d.actions = makeArraySubclass(d.actions); }],
+  ];
+  for (const [label, mutate] of adversarialShapes) {
+    const candidate = baseStructuralDoc();
+    mutate(candidate);
+    expect(allThree(candidate), label).toEqual([false, [], null]);
+  }
+
+  // Complete cross-realm document + shared DAG + null-prototype map still passes
+  const crossRealmFull = vm.runInNewContext(`JSON.parse(${JSON.stringify(JSON.stringify(baseStructuralDoc()))})`);
+  const crossRealmBranch = vm.runInNewContext('({ x: [1, 2] })');
+  reqOf(crossRealmFull).bodyDefaults = Object.assign(Object.create(null), {
+    a: crossRealmBranch,
+    b: crossRealmBranch,
+  });
+  expect(allThree(crossRealmFull)).toEqual([true, ['save'], 'auto0']);
+
+  // Surface slotSuppliedTriggers rejects target accessor without reading getter and rejects inherited docs
+  const directSlot = {
+    status: 'ready',
+    slotId: 'filingForm',
+    slotType: 'definition-form',
+    definition: def,
+    definitionRef: def.url,
+  };
+  expect([...slotSuppliedTriggers([directSlot] as never, [baseStructuralDoc()])]).toEqual(['save']);
+  const getterTargetDoc = baseStructuralDoc();
+  addGetter(getterTargetDoc, 'targetDefinition');
+  expect(captureResult(() => [...slotSuppliedTriggers([directSlot] as never, [getterTargetDoc])])).toEqual([]);
+  const inheritedDoc = Object.create(baseStructuralDoc());
+  expect(captureResult(() => [...slotSuppliedTriggers([directSlot] as never, [inheritedDoc])])).toEqual([]);
 });

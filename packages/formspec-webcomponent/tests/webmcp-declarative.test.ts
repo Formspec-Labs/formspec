@@ -463,4 +463,113 @@ describe('wizard page mode: the native submit button is only actionable on the l
             expect(events).toEqual([]);
         }
     });
+
+    it('blocks programmatic requestSubmit on disabled buttons and refuses calling custom host invoker for removed actions', () => {
+        const emptyDef = {
+            $formspec: '1.0',
+            url: 'urn:test:webmcp',
+            version: '1.0.0',
+            title: 'Edge',
+            items: [],
+        };
+        const doc = (ids: string[]) => ({
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url: 'urn:test:webmcp' },
+            actions: ids.map((id) => ({
+                id,
+                intent: 'submit' as const,
+                label: { literal: id },
+                effects: [{ type: 'hostEvent' as const, eventName: `record-${id}` }],
+            })),
+        });
+
+        // 1. Programmatic form.requestSubmit(disabledButton) must stay inert
+        const disabledEl = mountTool(emptyDef);
+        disabledEl.showSubmit = false;
+        disabledEl.componentDocument = minimalComponentDoc(
+            { component: 'ActionButton', id: 'source', actionRef: 'second' },
+            { targetDefinition: { url: 'urn:test:webmcp' } },
+        );
+        disabledEl.responseActionsDocument = doc(['first', 'second']);
+        disabledEl.render();
+        const disabledBtn = disabledEl.querySelector('#source') as HTMLButtonElement;
+        const disabledEvents: string[] = [];
+        disabledEl.addEventListener('record-second', () => disabledEvents.push('second'));
+        disabledEl.setSubmitPending(true);
+        expect(disabledBtn.disabled).toBe(true);
+        disabledBtn.form!.requestSubmit(disabledBtn);
+        expect(disabledEvents).toEqual([]);
+
+        // 2. Removed action must fail closed BEFORE calling custom host responseActionInvoker
+        const invokerEl = mountTool(emptyDef);
+        invokerEl.showSubmit = false;
+        invokerEl.componentDocument = minimalComponentDoc(
+            { component: 'ActionButton', id: 'source', actionRef: 'second' },
+            { targetDefinition: { url: 'urn:test:webmcp' } },
+        );
+        invokerEl.responseActionsDocument = doc(['first', 'second']);
+        invokerEl.render();
+        const staleBtn = invokerEl.querySelector('#source') as HTMLButtonElement;
+        const hookCalls: string[] = [];
+        invokerEl.responseActionInvoker = (input: { actionRef: string }) => {
+            hookCalls.push(input.actionRef);
+            return {
+                status: 'failed' as const,
+                resolution: { resolved: false, action: null },
+                validationTuple: null,
+                detail: null,
+                effectTrace: [],
+            };
+        };
+        invokerEl.responseActionsDocument = doc(['third']);
+        staleBtn.click();
+        expect(hookCalls).toEqual([]);
+    });
+
+    it('preserves pending dirty autosave across equivalent or corrected document replacement in WebComponent', async () => {
+        vi.useFakeTimers();
+        const def = {
+            $formspec: '1.0',
+            url: 'urn:test:wc-dirty',
+            version: '1.0.0',
+            title: 'Dirty autosave',
+            items: [{ key: 'answer', type: 'field', dataType: 'string', label: 'Recorded answer' }],
+        };
+        const makeDoc = (count: number) => ({
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url: def.url },
+            actions: Array.from({ length: count }, (_, index) => ({
+                id: `auto${index}`,
+                intent: 'autosave' as const,
+                effects: [{ type: 'hostEvent' as const, eventName: 'recorded' }],
+            })),
+        });
+        try {
+            for (const [label, before, after, replace, expected] of [
+                ['same reference', 1, 1, false, 1],
+                ['equivalent replacement', 1, 1, true, 1],
+                ['correction while dirty', 2, 1, true, 1],
+                ['ambiguity while dirty', 1, 2, true, 0],
+            ] as const) {
+                const el = mount(def);
+                const initialDoc = makeDoc(before);
+                el.responseActionsDocument = initialDoc;
+                el.render();
+                const observed: string[] = [];
+                el.addEventListener('recorded', (event: CustomEvent) => {
+                    observed.push(event.detail?.response?.data?.answer);
+                });
+                el.engine.setValue('answer', 'retained');
+                await vi.advanceTimersByTimeAsync(200);
+                el.responseActionsDocument = replace ? makeDoc(after) : initialDoc;
+                await vi.advanceTimersByTimeAsync(1200);
+                expect(observed, label).toEqual(expected ? ['retained'] : []);
+                el.remove();
+            }
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });

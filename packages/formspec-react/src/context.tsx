@@ -38,7 +38,8 @@ import {
     isValidDefinitionResponseActionsDocument,
     missingSubmitActionFinding,
     resolveResponseAction,
-    subscribeResponseActionAutosave,
+    createResponseActionAutosaveController,
+    type ResponseActionAutosaveController,
 } from '@formspec-org/engine';
 import type {
     ComponentGraphProjectionContext,
@@ -686,6 +687,7 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
         dispatchActionEffect,
         resolveActionIdempotencyKey,
         feedbackStore,
+        responseActionsDocument,
     });
     latestRef.current = {
         semanticControlScope,
@@ -698,23 +700,33 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
         dispatchActionEffect,
         resolveActionIdempotencyKey,
         feedbackStore,
+        responseActionsDocument,
     };
 
+    const controllerRef = useRef<ResponseActionAutosaveController | null>(null);
+
     useEffect(() => {
-        if (draftSaveFeedback === 'external' || !engine || !responseActionsDocument) {
+        if (draftSaveFeedback === 'external' || !engine) {
             return;
         }
-        let active = true;
         const activeTickets = new Set<NonNullable<ReturnType<NonNullable<typeof feedbackStore>['start']>>>();
-        const unsubscribe = subscribeResponseActionAutosave({
+        const cancelActiveTickets = () => {
+            for (const pendingTicket of activeTickets) {
+                latestRef.current.feedbackStore?.cancel(pendingTicket);
+            }
+            activeTickets.clear();
+        };
+        const controller = createResponseActionAutosaveController({
             engine,
-            document: responseActionsDocument,
+            document: latestRef.current.responseActionsDocument,
             onFinding: (finding) => {
                 latestRef.current.onActionFinding?.(finding);
             },
-            invoke: async (action) => {
+            onDocumentChange: cancelActiveTickets,
+            invoke: async (action, context) => {
+                const invokedDoc = context.document;
                 const current = latestRef.current;
-                const outletId = active ? current.feedbackStore?.primaryOutlet() : undefined;
+                const outletId = context.isCurrent() ? current.feedbackStore?.primaryOutlet() : undefined;
                 const ticket = outletId
                     ? current.feedbackStore?.start(outletId, action.intent, generationNeedAnchors(action))
                     : undefined;
@@ -753,7 +765,7 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
                     if (ticket) {
                         activeTickets.delete(ticket);
                     }
-                    if (active) {
+                    if (context.isCurrent()) {
                         current.feedbackStore?.settle(ticket, result.status);
                     }
                     current.onActionResult?.(result);
@@ -764,7 +776,7 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
                 };
 
                 try {
-                    if (current.responseActionInvoker) {
+                    if (current.responseActionInvoker && invokedDoc) {
                         const syncPorts: ResponseActionInvocationPorts<SubmitResult> = {
                             submit: captureAutosaveSnapshot,
                             dispatchHostEvent: (eventName, detail, invokedAction) => {
@@ -784,17 +796,17 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
                                 : {}),
                         };
                         const raw = await current.responseActionInvoker({
-                            document: responseActionsDocument,
+                            document: invokedDoc as ResponseActionsDocument,
                             actionRef: action.id,
                             ports: syncPorts,
                         });
                         return finish('invocation' in raw ? raw.invocation : raw);
                     }
-                    return finish(await invokeResponseActionAsync(responseActionsDocument, action.id, ports));
+                    return finish(await invokeResponseActionAsync(invokedDoc, action.id, ports));
                 } catch (error) {
                     return finish({
                         status: 'failed',
-                        resolution: resolveResponseAction(responseActionsDocument, action.id),
+                        resolution: resolveResponseAction(invokedDoc, action.id),
                         validationTuple: null,
                         detail: null,
                         effectTrace: [],
@@ -803,15 +815,22 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
                 }
             },
         });
+        controllerRef.current = controller;
         return () => {
-            active = false;
-            for (const pendingTicket of activeTickets) {
-                latestRef.current.feedbackStore?.cancel(pendingTicket);
+            if (controllerRef.current === controller) {
+                controllerRef.current = null;
             }
-            activeTickets.clear();
-            unsubscribe();
+            cancelActiveTickets();
+            controller.dispose();
         };
-    }, [engine, responseActionsDocument, draftSaveFeedback]);
+    }, [engine, draftSaveFeedback]);
+
+    useEffect(() => {
+        if (draftSaveFeedback === 'external' || !engine) {
+            return;
+        }
+        controllerRef.current?.setDocument(responseActionsDocument);
+    }, [engine, draftSaveFeedback, responseActionsDocument]);
 
     return null;
 }

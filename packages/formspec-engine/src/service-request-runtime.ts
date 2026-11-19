@@ -96,6 +96,29 @@ export function isPlainJsonObject(value: unknown): value is Record<string, unkno
         && Object.prototype.hasOwnProperty.call(prototype, 'hasOwnProperty');
 }
 
+export function isPlainJsonArray(value: unknown): value is unknown[] {
+    if (!Array.isArray(value)) return false;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Array.prototype) {
+        if (!prototype || typeof prototype !== 'object') return false;
+        const objProto = Object.getPrototypeOf(prototype);
+        if (!objProto || Object.getPrototypeOf(objProto) !== null) return false;
+        const ctor = Object.getOwnPropertyDescriptor(prototype, 'constructor')?.value;
+        if (typeof ctor !== 'function' || ctor.prototype !== prototype) return false;
+        if (!Array.isArray(prototype)) return false;
+    }
+    if (Object.getOwnPropertySymbols(value).length > 0) return false;
+    const ownKeys = Object.getOwnPropertyNames(value);
+    if (ownKeys.length !== value.length + 1) return false;
+    for (let index = 0; index < value.length; index += 1) {
+        const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+        if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+            return false;
+        }
+    }
+    return true;
+}
+
 export function isValidPlainJsonValue(value: unknown, seen = new Set<object>()): boolean {
     if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
     if (typeof value === 'number') return Number.isFinite(value);
@@ -105,6 +128,7 @@ export function isValidPlainJsonValue(value: unknown, seen = new Set<object>()):
     seen.add(value);
     try {
         if (Array.isArray(value)) {
+            if (!isPlainJsonArray(value)) return false;
             for (let index = 0; index < value.length; index += 1) {
                 const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
                 if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
@@ -115,7 +139,8 @@ export function isValidPlainJsonValue(value: unknown, seen = new Set<object>()):
             return true;
         }
         if (!isPlainJsonObject(value)) return false;
-        for (const key of Object.keys(value)) {
+        if (Object.getOwnPropertySymbols(value).length > 0) return false;
+        for (const key of Object.getOwnPropertyNames(value)) {
             if (FORBIDDEN_PROPERTY_NAMES.has(key)) return false;
             const descriptor = Object.getOwnPropertyDescriptor(value, key);
             if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {

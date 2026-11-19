@@ -98,6 +98,7 @@ export {
     APP_ACTION_VALIDATION_TUPLE,
     autoPlacedDefinitionActions,
     classifyResponseActionEffect,
+    createResponseActionAutosaveController,
     declaresHostEvent,
     findAutosaveResponseAction,
     findResponseActionByIntent,
@@ -117,6 +118,8 @@ export {
     resolveResponseActionValidationTuple,
     subscribeResponseActionAutosave,
     validationProfileForAction,
+    type ResponseActionAutosaveController,
+    type ResponseActionAutosaveInvokeContext,
 } from './response-actions.js';
 export type {
     ExtractedServiceRequestOutputs,
@@ -125,6 +128,8 @@ export type {
 } from './service-request-runtime.js';
 export {
     extractServiceRequestOutputs,
+    isPlainJsonArray,
+    isPlainJsonObject,
     planServiceRequest,
     resolveRuntimeValueSelector,
     resolveServiceRequest,

@@ -2410,5 +2410,244 @@ describe("navigation", () => {
         expect(fallback.length, testCase.name).toBe(testCase.expectFallback ? 1 : 0);
       });
     }
+
+    // Ancestor CSS content-visibility: hidden suppresses control and surfaces fallback
+    const contentHiddenView = render(
+      <SurfaceApp
+        bundle={visBundle}
+        location="/filing"
+        onNavigate={() => {}}
+        onFireTransition={async () => ({ advanced: true })}
+        resolveDefinitionComponent={() =>
+          ({
+            $formspecComponent: "1.0",
+            version: "1.0.0",
+            targetDefinition: { url: definitionUrl },
+            tree: {
+              component: "Stack",
+              style: { contentVisibility: "hidden" },
+              children: [
+                { component: "ActionButton", actionRef: "autosave", label: { literal: "Checkpoint now" } },
+              ],
+            },
+          }) as never
+        }
+        setDocumentTitle={false}
+      />,
+    );
+    await vi.waitFor(() => {
+      const fallback = [...contentHiddenView.querySelectorAll<HTMLButtonElement>("button")].filter(
+        (b) => b.textContent?.trim() === "Continue to Overview",
+      );
+      expect(fallback.length).toBe(1);
+    });
+
+    // Two independent slots with identical authored Tabs id must not collide on tab opener IDs
+    const multiTabSurface = {
+      $formspecSurface: "0.2",
+      id: "filing-multi-tabs",
+      entry: "filing",
+      routes: [
+        {
+          id: "filing",
+          path: "/filing",
+          title: "Filing",
+          routeClass: "intake",
+          slots: [
+            { id: "first", slotType: "definition-form", binding: { definitionRef: definitionUrl } },
+            { id: "form", slotType: "definition-form", binding: { definitionRef: definitionUrl } },
+          ],
+          transitions: [{ trigger: "autosave", to: "overview" }],
+        },
+        { id: "overview", path: "/overview", title: "Overview", routeClass: "intake", slots: [] },
+      ],
+    } as unknown as SurfaceDocument;
+    const multiTabView = render(
+      <SurfaceApp
+        bundle={{ ...visBundle, surfaces: [multiTabSurface] }}
+        location="/filing"
+        onNavigate={() => {}}
+        onFireTransition={async () => ({ advanced: true })}
+        resolveDefinitionComponent={({ slotId }) =>
+          ({
+            $formspecComponent: "1.0",
+            version: "1.0.0",
+            targetDefinition: { url: definitionUrl },
+            tree: {
+              component: "Tabs",
+              id: "common",
+              tabLabels: ["First tab", "Second tab"],
+              children: [
+                { component: "Stack", children: [{ component: "TextInput", bind: "answer" }] },
+                {
+                  component: "Stack",
+                  children: slotId === "first"
+                    ? [{ component: "TextInput", bind: "answer" }]
+                    : [{ component: "ActionButton", actionRef: "autosave", label: { literal: "Checkpoint now" } }],
+                },
+              ],
+            },
+          }) as never
+        }
+        setDocumentTitle={false}
+      />,
+    );
+    await vi.waitFor(() => {
+      const tabs = [...multiTabView.querySelectorAll<HTMLButtonElement>('[role="tab"]')].filter(
+        (tab) => tab.textContent?.trim() === "Second tab",
+      );
+      expect(tabs).toHaveLength(2);
+      expect(tabs[0]!.id).not.toBe(tabs[1]!.id);
+      const fallback = [...multiTabView.querySelectorAll<HTMLButtonElement>("button")].filter(
+        (b) => b.textContent?.trim() === "Continue to Overview",
+      );
+      expect(fallback).toHaveLength(0);
+    });
+  });
+
+  it("stops sequential automatic writes when ambiguity appears mid-flight and reconciles pending draft loads before publishing findings", async () => {
+    const { initFormspecEngine } = await import("@formspec-org/engine/init-formspec-engine");
+    const { createDraftSession } = await import("../src/draft-session.js");
+    const { BrowserSurfaceApp } = await import("../src/BrowserSurfaceApp.js");
+    const { createRoot } = await import("react-dom/client");
+    await initFormspecEngine();
+
+    const definitionUrl = "https://example.test/inflight-and-pending-load";
+    const def = {
+      $formspec: "1.0",
+      url: definitionUrl,
+      version: "1.0.0",
+      title: "Application",
+      items: [{ key: "answer", type: "field", dataType: "string", label: "Answer" }],
+    } as unknown as FormDefinition;
+    const makeDoc = (count: number): ResponseActionsDocument => ({
+      $formspecResponseActions: "1.0",
+      version: "1.0.0",
+      targetDefinition: { url: definitionUrl },
+      actions: [
+        { id: "save", intent: "save-draft", label: { literal: "Save draft" }, effects: [{ type: "hostEvent", eventName: "saved" }] },
+        ...Array.from({ length: count }, (_, index) => ({
+          id: `auto${index}`,
+          intent: "autosave" as const,
+          effects: [{ type: "hostEvent" as const, eventName: `auto-${index}` }],
+        })),
+      ],
+    }) as ResponseActionsDocument;
+
+    // 1. Mid-flight ambiguity prevents a second automatic write and leaves later edit dirty
+    let releaseFirstSave!: () => void;
+    const gate = new Promise<void>((resolve) => { releaseFirstSave = resolve; });
+    let writes = 0;
+    const save = vi.fn(async () => {
+      writes += 1;
+      if (writes === 1) await gate;
+      return { status: "saved" as const, revision: String(writes) };
+    });
+    const session = createDraftSession({
+      scope: "mid-flight-ambiguity",
+      port: {
+        load: async () => ({ status: "absent" as const }),
+        save,
+        discard: async () => ({ status: "discarded" as const }),
+        readSummaries: async () => new Map(),
+      },
+    });
+    try {
+      const handle = session.acquire(
+        { scope: "mid-flight-ambiguity", definitionUrl },
+        { plan: { definition: def }, grant: {}, responseActionsDocument: makeDoc(1) } as never,
+        () => {},
+      );
+      const ready = await handle.result;
+      if (ready.status !== "ready") throw new Error(ready.status);
+      ready.engine.setValue("answer", "first");
+      await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1), { timeout: 2000 });
+      expect(session.syncActions(ready.writer, makeDoc(2))?.reason).toBe("ambiguous-autosave-action");
+      ready.engine.setValue("answer", "later-under-ambiguity");
+      releaseFirstSave();
+      await ready.writer.waitForSaves();
+      expect(save).toHaveBeenCalledTimes(1);
+      expect(ready.writer.dirty).toBe(true);
+      expect(JSON.parse((save.mock.calls[0] as unknown as [{ responseJson: string }])[0].responseJson).data).toEqual({
+        answer: "first",
+      });
+      handle.release();
+    } finally {
+      releaseFirstSave();
+      session.dispose();
+    }
+
+    // 2. Replacing doc while initial storage load is still pending publishes only the current doc's diagnostics
+    const filingSurface = {
+      $formspecSurface: "0.2",
+      id: "pending-load",
+      entry: "filing",
+      routes: [
+        {
+          id: "filing",
+          path: "/filing",
+          title: "Filing",
+          routeClass: "intake",
+          slots: [{ id: "form", slotType: "definition-form", binding: { definitionRef: definitionUrl } }],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const makeBundle = (count: number): ResolvedBundle => ({
+      ...bundle,
+      surfaces: [filingSurface],
+      definitions: new Map([[definitionUrl, def]]),
+      responseActions: [makeDoc(count)],
+    });
+
+    for (const [before, after] of [[2, 1], [1, 2]] as const) {
+      let resolveLoad!: (value: { status: "absent" }) => void;
+      const pendingLoad = new Promise<{ status: "absent" }>((resolve) => { resolveLoad = resolve; });
+      const load = vi.fn(() => pendingLoad);
+      const host = document.createElement("div");
+      document.body.append(host);
+      const root = createRoot(host);
+      let latest: readonly SurfaceDiagnostic[] = [];
+      const trace: number[] = [];
+      const adapters = {
+        mode: "hash" as const,
+        draftStorage: {
+          scope: `pending-${before}-${after}`,
+          port: {
+            load,
+            save: vi.fn(async () => ({ status: "saved" as const, revision: "1" })),
+            discard: vi.fn(async () => ({ status: "discarded" as const })),
+            readSummaries: vi.fn(async () => new Map()),
+          },
+        },
+        onDiagnostics: (batch: readonly SurfaceDiagnostic[]) => {
+          latest = batch;
+          trace.push(batch.filter((d) => d.details?.reason === "ambiguous-autosave-action").length);
+        },
+      };
+      window.history.replaceState(null, "", "#/filing");
+      try {
+        await act(async () => {
+          root.render(<BrowserSurfaceApp bundle={makeBundle(before)} adapters={adapters} />);
+        });
+        await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+        await act(async () => {
+          root.render(<BrowserSurfaceApp bundle={makeBundle(after)} adapters={adapters} />);
+        });
+        await act(async () => {
+          resolveLoad({ status: "absent" });
+        });
+        await vi.waitFor(() => expect(host.querySelector("input")).not.toBeNull());
+        expect(latest.filter((d) => d.details?.reason === "ambiguous-autosave-action")).toHaveLength(
+          after === 2 ? 1 : 0,
+        );
+        if (before === 2 && after === 1) {
+          expect(trace.every((count) => count === 0)).toBe(true);
+        }
+      } finally {
+        resolveLoad({ status: "absent" });
+        await act(async () => { root.unmount(); });
+        host.remove();
+      }
+    }
   });
 });

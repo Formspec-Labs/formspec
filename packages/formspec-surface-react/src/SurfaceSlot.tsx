@@ -1340,6 +1340,22 @@ function DefaultDefinitionFormSlot({
   );
 }
 
+function hasHiddenContentVisibility(element: HTMLElement, computed?: CSSStyleDeclaration | null): boolean {
+  const inline = (
+    element.style.getPropertyValue('content-visibility')
+    || (element.style as CSSStyleDeclaration & { contentVisibility?: string }).contentVisibility
+    || ''
+  ).trim().toLowerCase();
+  if (inline === 'hidden') return true;
+  if (!computed) return false;
+  const computedValue = (
+    computed.getPropertyValue('content-visibility')
+    || (computed as CSSStyleDeclaration & { contentVisibility?: string }).contentVisibility
+    || ''
+  ).trim().toLowerCase();
+  return computedValue === 'hidden';
+}
+
 function isElementReachable(
   element: HTMLElement,
   root: HTMLElement,
@@ -1359,7 +1375,11 @@ function isElementReachable(
   while (current && current !== root) {
     if (current !== element) {
       if (current.tagName === 'DIALOG' && !(current as HTMLDialogElement).open) {
-        if (current.hidden || current.style.display.trim().toLowerCase() === 'none') {
+        if (
+          current.hidden
+          || current.style.display.trim().toLowerCase() === 'none'
+          || hasHiddenContentVisibility(current)
+        ) {
           return false;
         }
         const trigger = current.previousElementSibling;
@@ -1374,7 +1394,7 @@ function isElementReachable(
         return false;
       }
       if (current.classList.contains('formspec-popover-content') && current.hidden) {
-        if (current.style.display.trim().toLowerCase() === 'none') {
+        if (current.style.display.trim().toLowerCase() === 'none' || hasHiddenContentVisibility(current)) {
           return false;
         }
         const trigger = current.previousElementSibling;
@@ -1389,14 +1409,15 @@ function isElementReachable(
         return false;
       }
       if (current.getAttribute('role') === 'tabpanel' && current.hidden) {
-        if (current.style.display.trim().toLowerCase() === 'none') {
+        if (current.style.display.trim().toLowerCase() === 'none' || hasHiddenContentVisibility(current)) {
           return false;
         }
         const tabId = current.getAttribute('aria-labelledby');
-        const tab = tabId ? current.ownerDocument.getElementById(tabId) : null;
+        const tab = tabId
+          ? [...root.querySelectorAll<HTMLElement>('[role="tab"]')].find((candidate) => candidate.id === tabId) ?? null
+          : null;
         if (
           tab instanceof HTMLElement
-          && root.contains(tab)
           && !(tab as HTMLButtonElement).disabled
           && isElementReachable(tab, root, visiting)
         ) {
@@ -1406,7 +1427,7 @@ function isElementReachable(
         return false;
       }
       if (current.classList.contains('formspec-wizard-panel') && current.hidden) {
-        if (current.style.display.trim().toLowerCase() === 'none') {
+        if (current.style.display.trim().toLowerCase() === 'none' || hasHiddenContentVisibility(current)) {
           return false;
         }
         current = current.parentElement;
@@ -1416,8 +1437,10 @@ function isElementReachable(
 
     if (current.hidden) return false;
     if (current.style.display.trim().toLowerCase() === 'none') return false;
-    const computedDisplay = view?.getComputedStyle(current).display.trim().toLowerCase();
+    const computedStyle = view?.getComputedStyle(current);
+    const computedDisplay = computedStyle?.display.trim().toLowerCase();
     if (computedDisplay === 'none') return false;
+    if (hasHiddenContentVisibility(current, computedStyle)) return false;
     current = current.parentElement;
   }
   return true;
@@ -1559,6 +1582,9 @@ function DefaultSurfaceDefinitionForm(
     });
     const onDialogClose = () => measure();
     root.addEventListener('close', onDialogClose, true);
+    const view = root.ownerDocument.defaultView;
+    const onViewportResize = () => measure();
+    view?.addEventListener('resize', onViewportResize);
     const stopReactive = preactReactiveRuntime.effect(() => {
       engine.getEvaluatedFormState({ profile: 'off' });
       queueMicrotask(measure);
@@ -1568,6 +1594,7 @@ function DefaultSurfaceDefinitionForm(
       disposed = true;
       observer?.disconnect();
       root.removeEventListener('close', onDialogClose, true);
+      view?.removeEventListener('resize', onViewportResize);
       stopReactive();
     };
   }, [

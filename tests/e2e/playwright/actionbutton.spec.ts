@@ -264,4 +264,156 @@ test.describe('ActionButton', () => {
       });
     }
   }
+
+  for (const [scenario, expected] of [
+    ['updated binding and retired button', ['third']],
+    ['unbound button, missing submitter and retired button reinserted', []],
+    ['disabled click', []],
+    ['disabled requestSubmit', []],
+    ['replacement with a custom invoker', []],
+    ['agent invoked fallback with two submit actions', ['first']],
+  ] as const) {
+    test(`WebComponent native tool form edge case: ${scenario}`, async ({ page }) => {
+      await gotoHarness(page);
+      const observed = await page.evaluate(async (scenarioName) => {
+        const el = document.createElement('formspec-render') as any;
+        const events: string[] = [];
+        const url = 'urn:review6:native-edge';
+        const doc = (ids: string[]) => ({
+          $formspecResponseActions: '1.0',
+          version: '1.0.0',
+          targetDefinition: { url },
+          actions: ids.map((id) => ({
+            id,
+            intent: 'submit',
+            label: { literal: id },
+            effects: [{ type: 'hostEvent', eventName: `record-${id}` }],
+          })),
+        });
+        const comp = (id: string) => ({
+          $formspecComponent: '1.0',
+          version: '1.0.0',
+          targetDefinition: { url },
+          tree: { component: 'ActionButton', id: 'source', actionRef: id },
+        });
+        el.setAttribute('tool-name', 'edge');
+        el.showSubmit = false;
+        el.definition = { $formspec: '1.0', version: '1.0.0', url, title: 'Edge', items: [] };
+        el.componentDocument = comp('second');
+        el.responseActionsDocument = doc(['first', 'second', 'third']);
+        for (const id of ['first', 'second', 'third']) {
+          el.addEventListener(`record-${id}`, () => events.push(id));
+        }
+        document.body.append(el);
+        for (let i = 0; i < 60 && !(el.querySelector('#source')?.type === 'submit'); i += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        const oldButton = el.querySelector('#source') as HTMLButtonElement;
+        if (!oldButton || oldButton.type !== 'submit' || oldButton.disabled) {
+          throw new Error('Native button not ready');
+        }
+        if (scenarioName === 'updated binding and retired button' || scenarioName.startsWith('unbound button')) {
+          el.componentDocument = comp('third');
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          const newButton = el.querySelector('#source') as HTMLButtonElement;
+          if (newButton === oldButton || newButton.textContent !== 'third') {
+            throw new Error('Button did not re-render');
+          }
+          oldButton.click();
+          if (scenarioName.startsWith('updated')) {
+            newButton.click();
+          } else {
+            const form = newButton.form!;
+            const fake = document.createElement('button');
+            fake.type = 'submit';
+            fake.dataset.actionRef = 'first';
+            form.append(oldButton, fake);
+            form.requestSubmit(oldButton);
+            form.requestSubmit(fake);
+            form.requestSubmit();
+          }
+        } else if (scenarioName.startsWith('disabled')) {
+          el.setSubmitPending(true);
+          if (!oldButton.disabled) throw new Error('Pending did not disable the button');
+          if (scenarioName === 'disabled click') oldButton.click();
+          else oldButton.form!.requestSubmit(oldButton);
+        } else if (scenarioName.startsWith('replacement')) {
+          el.responseActionInvoker = (input: { actionRef: string }) => {
+            events.push(`hook:${input.actionRef}`);
+            return {
+              status: 'failed',
+              resolution: { resolved: false, action: null },
+              validationTuple: null,
+              detail: null,
+              effectTrace: [],
+            };
+          };
+          el.responseActionsDocument = doc(['third']);
+          oldButton.click();
+        } else {
+          let report: Promise<any> | undefined;
+          const event = new SubmitEvent('submit', { bubbles: true, cancelable: true });
+          Object.assign(event, {
+            agentInvoked: true,
+            respondWith: (promise: Promise<any>) => { report = promise; },
+          });
+          oldButton.form!.dispatchEvent(event);
+          if (!(await report)?.valid) throw new Error('Missing validation report');
+        }
+        el.remove();
+        return events;
+      }, scenario);
+      expect(observed).toEqual([...expected]);
+    });
+  }
+
+  for (const [label, before, after, replace, expected] of [
+    ['same reference', 1, 1, false, 1],
+    ['equivalent replacement', 1, 1, true, 1],
+    ['correction while dirty', 2, 1, true, 1],
+    ['ambiguity while dirty', 1, 2, true, 0],
+  ] as const) {
+    test(`WebComponent standalone dirty autosave replacement (${label})`, async ({ page }) => {
+      await gotoHarness(page);
+      await page.evaluate((count) => {
+        const state = window as any;
+        const el = document.createElement('formspec-render') as any;
+        el.id = 'autosave-check';
+        state.observed = [];
+        const url = 'urn:review6:edit';
+        el.definition = {
+          $formspec: '1.0',
+          version: '1.0.0',
+          url,
+          title: 'Test',
+          items: [{ key: 'answer', type: 'field', label: 'Recorded answer', dataType: 'string' }],
+        };
+        state.makeDoc = (n: number) => ({
+          $formspecResponseActions: '1.0',
+          version: '1.0.0',
+          targetDefinition: { url },
+          actions: Array.from({ length: n }, (_, index) => ({
+            id: `auto${index}`,
+            intent: 'autosave',
+            effects: [{ type: 'hostEvent', eventName: 'recorded' }],
+          })),
+        });
+        el.responseActionsDocument = state.initialDoc = state.makeDoc(count);
+        el.addEventListener('recorded', (event: CustomEvent) => state.observed.push(event.detail.response.data.answer));
+        document.body.append(el);
+      }, before);
+      const field = page.locator('#autosave-check').getByRole('textbox', { name: 'Recorded answer' });
+      await expect(field).toBeEditable();
+      await field.fill('retained');
+      await page.evaluate(([shouldReplace, count]) => {
+        const state = window as any;
+        const el = document.getElementById('autosave-check') as any;
+        el.responseActionsDocument = shouldReplace ? state.makeDoc(count) : state.initialDoc;
+      }, [replace, after] as const);
+      await page.waitForTimeout(850);
+      await expect(field).toHaveValue('retained');
+      const events = await page.evaluate(() => (window as any).observed);
+      expect(events).toEqual(expected ? ['retained'] : []);
+    });
+  }
 });

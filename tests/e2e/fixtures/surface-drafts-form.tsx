@@ -95,6 +95,32 @@ if (query.has('responsiveProbe')) {
     button.responsive = { wide: { actionRef: 'autosave', label: { literal: 'Responsive checkpoint' } } };
   }
 }
+const firstTabs = structuredClone(component);
+if (query.has('multiTabs') && authoredButton) {
+  const first = { component: 'Stack', children: [{ component: 'TextInput', bind: 'answer' }] };
+  firstTabs.tree = {
+    component: 'Tabs',
+    id: 'common',
+    tabLabels: ['First tab', 'Second tab'],
+    children: [first, { component: 'Stack', children: [{ component: 'TextInput', bind: 'detail' }] }],
+  };
+  component.tree = {
+    component: 'Tabs',
+    id: 'common',
+    tabLabels: ['First tab', 'Second tab'],
+    children: [first, { component: 'Stack', children: [authoredButton] }],
+  };
+}
+if (query.has('media') && authoredButton) {
+  authoredButton.style = { visibility: 'var(--review6-visibility, visible)' };
+}
+if (query.has('content') && authoredButton) {
+  component.tree.children = component.tree.children!.map((node) =>
+    node === authoredButton
+      ? { component: 'Stack', style: { contentVisibility: 'hidden' }, children: [node] }
+      : node,
+  );
+}
 const source = {
   manifest: {
     $formspecBundle: '2.4', id, definitions: [{ url: definition }, ...(hydration ? [{ url: upstreamUrl }] : []),
@@ -178,6 +204,14 @@ const source = {
   },
 };
 
+if (query.has('multiTabs')) {
+  source.documents[surface].routes[1].slots.unshift({
+    id: 'first',
+    slotType: 'definition-form',
+    binding: { definitionRef: definition },
+  });
+}
+
 if (query.has('form')) {
   await initFormspecEngine();
   const root = createRoot(document.getElementById('root')!);
@@ -209,7 +243,7 @@ if (query.has('form')) {
           win.numDeliveries = (win.numDeliveries ?? 0) + 1;
         },
         ...(query.has('withoutWriter') && { draftStorage: undefined, definitionActionInvoker: undefined }),
-        ...(!autoButtons && { resolveDefinitionComponent: () => component }),
+        ...(!autoButtons && { resolveDefinitionComponent: ({ slotId }) => (slotId === 'first' ? firstTabs : component) }),
       } };
   }
   const first = await edition('edition');

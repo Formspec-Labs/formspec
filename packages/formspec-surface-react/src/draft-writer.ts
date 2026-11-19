@@ -146,7 +146,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
       document: currentActions,
       actionRef: authoredAutosave.id,
       ports: { submit: captureActionResponse, dispatchHostEvent: () => {} },
-    }).then(result => result.detail !== null && (result.status === 'completed' || result.status === 'deferred'))
+    }, { automatic: true }).then(result => result.detail !== null && (result.status === 'completed' || result.status === 'deferred'))
       .catch(() => { report?.('saveFailed'); return false; })
       .finally(() => { autosaving = undefined; });
     return autosaving;
@@ -238,11 +238,12 @@ export function createDraftWriter(options: DraftWriterOptions) {
     return pending;
   }
 
-  async function drain(create: boolean): Promise<boolean> {
+  async function drain(create: boolean, { automatic = false }: { automatic?: boolean } = {}): Promise<boolean> {
     clearTimer();
     if (pending && !await pending) return false;
     if (conflicted) return false;
     while (active && (edit !== savedEdit || (create && !committed))) {
+      if (automatic && !authoredAutosave) break;
       if (!await checkpoint()) return false;
       clearTimer();
     }
@@ -250,9 +251,9 @@ export function createDraftWriter(options: DraftWriterOptions) {
     return active;
   }
 
-  async function flush(create = false): Promise<boolean> {
+  async function flush(create = false, options?: { automatic?: boolean }): Promise<boolean> {
     if (fence) await fence.catch(() => undefined);
-    return drain(create);
+    return drain(create, options);
   }
 
   function resolveConflict(choice: 'load' | 'keep'): Promise<boolean | 'reopen'> {
@@ -296,7 +297,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
     return run.finally(() => { fence = undefined; schedule(); });
   }
 
-  async function invokeCheckpoint(input: DraftActionInput) {
+  async function invokeCheckpoint(input: DraftActionInput, { automatic = false }: { automatic?: boolean } = {}) {
     const invocationId = input.invocationContext?.invocationId ?? `urn:uuid:${crypto.randomUUID()}`;
     const invocationContext = { ...input.invocationContext, invocationId };
     const ports = options.checkpointPorts?.({ ...input, invocationContext }) ?? input.ports;
@@ -305,19 +306,23 @@ export function createDraftWriter(options: DraftWriterOptions) {
       if (!conflicted) report?.('saveFailed');
       return invocation;
     }
-    if (await flush(true)) return invocation;
+    if (await flush(true, { automatic })) return invocation;
     return { ...invocation, status: 'failed' as const, failureReason: 'Draft could not be saved.' };
   }
 
   async function invoke(
     input: DraftActionInput,
-    { invoker = options.invoker, current }: { invoker?: DraftActionInvoker | undefined; current?: () => boolean } = {},
+    { invoker = options.invoker, current, automatic = false }: {
+      invoker?: DraftActionInvoker | undefined;
+      current?: () => boolean;
+      automatic?: boolean;
+    } = {},
   ) {
     if (current && !current()) throw new Error('The form visit ended.');
     const { action } = resolveResponseAction(input.document, input.actionRef, input.nodeId);
     const kind = filingAction(input.document, action);
     if (!kind && action && input.document?.scope !== 'app' && usesDraftCheckpoint(action)) {
-      const invocation = invokeCheckpoint(input);
+      const invocation = invokeCheckpoint(input, { automatic });
       const checkpoint = invocation.then(result => result.detail !== null &&
         (result.status === 'completed' || result.status === 'deferred'), () => false)
         .finally(() => { checkpoints.delete(checkpoint); });

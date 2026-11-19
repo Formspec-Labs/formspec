@@ -210,6 +210,21 @@ export function createDraftSession(
       }
       return {
         result: tracked.result,
+        setActions(nextActions: SurfaceDefinitionFormRenderInput['responseActionsDocument']) {
+          if (tracked.actions === nextActions && tracked.opened?.status !== 'ready') {
+            return tracked.autosaveFinding;
+          }
+          tracked.actions = nextActions;
+          if (tracked.opened?.status === 'ready') {
+            if (tracked.opened.writer.actions === nextActions) {
+              return tracked.autosaveFinding;
+            }
+            const nextFinding = tracked.opened.writer.setActions(nextActions);
+            tracked.autosaveFinding = nextFinding;
+            return nextFinding;
+          }
+          return undefined;
+        },
         release() {
           tracked.consumers.delete(report);
           if (onActionFinding) tracked.findingListeners.delete(onActionFinding);

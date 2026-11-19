@@ -17,7 +17,7 @@ import type {
 } from '@formspec-org/types';
 import { targetDefinitionMatches, VALIDATION_MAPPING_MASTER_TABLE } from '@formspec-org/types';
 import { ResponseActionsPreconditionCatalog } from './precondition-catalog.js';
-import { isPlainJsonObject, isValidPlainJsonValue } from './service-request-runtime.js';
+import { isPlainJsonArray, isPlainJsonObject, isValidPlainJsonValue } from './service-request-runtime.js';
 
 /**
  * Singleton precondition catalog. Spec §4.1 publishes a closed catalog of
@@ -612,9 +612,15 @@ export function isValidResponseActionIntent(intent: unknown): intent is Response
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-    return value && typeof value === 'object' && !Array.isArray(value)
-        ? value as Record<string, unknown>
-        : null;
+    if (!isPlainJsonObject(value)) return null;
+    if (Object.getOwnPropertySymbols(value).length > 0) return null;
+    for (const key of Object.getOwnPropertyNames(value)) {
+        const descriptor = Object.getOwnPropertyDescriptor(value, key);
+        if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+            return null;
+        }
+    }
+    return value;
 }
 
 function hasMinLength1(value: unknown): value is string {
@@ -709,7 +715,7 @@ function everyDenseElement(
     value: unknown,
     predicate: (item: unknown, index: number) => boolean,
 ): boolean {
-    if (!Array.isArray(value)) return false;
+    if (!isPlainJsonArray(value)) return false;
     for (let index = 0; index < value.length; index += 1) {
         const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
         if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
@@ -857,8 +863,9 @@ function isValidRuntimeRequestCatalog(value: unknown): boolean {
         if (entry.outputs !== undefined) {
             const outputs = asRecord(entry.outputs);
             if (!outputs) return false;
-            for (const [name, output] of Object.entries(outputs)) {
-                if (!OUTPUT_NAME_PATTERN.test(name) || !isValidRuntimeRequestOutput(output)) {
+            for (const name of Object.keys(outputs)) {
+                const prop = ownDataProperty(outputs, name);
+                if (!prop.present || !OUTPUT_NAME_PATTERN.test(name) || !isValidRuntimeRequestOutput(prop.value)) {
                     return false;
                 }
             }
@@ -1154,36 +1161,36 @@ export function findAutosaveResponseAction(
     return resolveAutosaveResponseAction(document, definition).action;
 }
 
+export interface ResponseActionAutosaveInvokeContext {
+    document: ResponseActionsDocumentInput | null | undefined;
+    isCurrent: () => boolean;
+}
+
 export interface ResponseActionAutosaveOptions {
     engine: Pick<IFormEngine, 'getDraftSnapshot' | 'getEvaluatedFormState'> & Partial<Pick<IFormEngine, 'getDefinition'>>;
     document: ResponseActionsDocumentInput | null | undefined;
     debounceMs?: number | undefined;
     onFinding?: ((finding: ActionRefFinding) => void) | undefined;
-    invoke: (action: ResponseAction) => unknown | Promise<unknown>;
+    onDocumentChange?: (() => void) | undefined;
+    invoke: (action: ResponseAction, context: ResponseActionAutosaveInvokeContext) => unknown | Promise<unknown>;
+}
+
+export interface ResponseActionAutosaveController {
+    setDocument(document: ResponseActionsDocumentInput | null | undefined): void;
+    dispose(): void;
 }
 
 /**
- * Subscribe to `FormEngine` draft changes after mount and invoke the declared
- * `autosave` Response Action with debounce (`400ms` default) and single-flight
- * coalescing. Returns a cleanup function that cancels pending timers and
- * detaches the reactive subscription.
+ * Create a per-engine `autosave` controller that preserves unsaved dirty edits
+ * across `responseActionsDocument` replacements (equivalent re-parsed objects,
+ * ambiguity corrections `2 -> 1`, and ambiguity cancellations `1 -> 2`).
  */
-export function subscribeResponseActionAutosave(
+export function createResponseActionAutosaveController(
     options: ResponseActionAutosaveOptions,
-): () => void {
-    const resolution = resolveAutosaveResponseAction(
-        options.document,
-        options.engine.getDefinition?.(),
-    );
-    if (resolution.finding) {
-        options.onFinding?.(resolution.finding);
-    }
-    if (!resolution.action) {
-        return () => {};
-    }
-    const resolvedAutosave: ResponseAction = resolution.action;
-
+): ResponseActionAutosaveController {
     const debounceMs = options.debounceMs ?? 400;
+    let currentDocument = options.document;
+    let resolvedAutosave: ResponseAction | null = null;
     let snapshot = options.engine.getDraftSnapshot();
     let edit = 0;
     let savedEdit = 0;
@@ -1191,6 +1198,7 @@ export function subscribeResponseActionAutosave(
     let inFlight: Promise<void> | undefined;
     let pendingFlushAfterInFlight = false;
     let active = true;
+    let generation = 0;
 
     function clearTimer(): void {
         if (timer !== undefined) {
@@ -1200,7 +1208,7 @@ export function subscribeResponseActionAutosave(
     }
 
     function schedule(): void {
-        if (!active || edit === savedEdit) return;
+        if (!active || !resolvedAutosave || edit === savedEdit) return;
         pendingFlushAfterInFlight = false;
         clearTimer();
         timer = setTimeout(() => {
@@ -1210,14 +1218,20 @@ export function subscribeResponseActionAutosave(
     }
 
     function run(): Promise<void> {
-        if (!active || edit === savedEdit) return Promise.resolve();
+        if (!active || !resolvedAutosave || edit === savedEdit) return Promise.resolve();
         if (inFlight) {
             pendingFlushAfterInFlight = true;
             return inFlight;
         }
+        const actionToRun = resolvedAutosave;
+        const documentToRun = currentDocument;
+        const runGeneration = generation;
         const targetEdit = edit;
         const currentRun = Promise.resolve()
-            .then(() => options.invoke(resolvedAutosave))
+            .then(() => options.invoke(actionToRun, {
+                document: documentToRun,
+                isCurrent: () => active && generation === runGeneration,
+            }))
             .then((outcome) => {
                 if (!active) return;
                 const status = outcome && typeof outcome === 'object' && 'status' in outcome
@@ -1232,7 +1246,13 @@ export function subscribeResponseActionAutosave(
             })
             .finally(() => {
                 inFlight = undefined;
-                if (active && pendingFlushAfterInFlight && timer === undefined && edit !== savedEdit) {
+                if (
+                    active
+                    && resolvedAutosave !== null
+                    && pendingFlushAfterInFlight
+                    && timer === undefined
+                    && edit !== savedEdit
+                ) {
                     pendingFlushAfterInFlight = false;
                     void run();
                 }
@@ -1240,6 +1260,38 @@ export function subscribeResponseActionAutosave(
         inFlight = currentRun;
         return currentRun;
     }
+
+    function reconcileDocument(nextDocument: ResponseActionsDocumentInput | null | undefined, initial: boolean): void {
+        if (!active) return;
+        if (!initial && nextDocument === currentDocument) return;
+        if (!initial) {
+            generation += 1;
+            options.onDocumentChange?.();
+        }
+        currentDocument = nextDocument;
+        const resolution = resolveAutosaveResponseAction(
+            currentDocument,
+            options.engine.getDefinition?.(),
+        );
+        resolvedAutosave = resolution.action;
+        if (resolution.finding) {
+            options.onFinding?.(resolution.finding);
+        }
+        if (!resolvedAutosave) {
+            clearTimer();
+            pendingFlushAfterInFlight = false;
+            return;
+        }
+        if (edit !== savedEdit) {
+            if (inFlight) {
+                pendingFlushAfterInFlight = true;
+            } else if (timer === undefined) {
+                schedule();
+            }
+        }
+    }
+
+    reconcileDocument(options.document, true);
 
     const unsubscribe = preactReactiveRuntime.effect(() => {
         options.engine.getEvaluatedFormState({ profile: 'off' });
@@ -1251,11 +1303,31 @@ export function subscribeResponseActionAutosave(
         }
     });
 
-    return () => {
-        active = false;
-        clearTimer();
-        unsubscribe();
+    return {
+        setDocument(nextDocument) {
+            reconcileDocument(nextDocument, false);
+        },
+        dispose() {
+            active = false;
+            generation += 1;
+            pendingFlushAfterInFlight = false;
+            clearTimer();
+            unsubscribe();
+        },
     };
+}
+
+/**
+ * Subscribe to `FormEngine` draft changes after mount and invoke the declared
+ * `autosave` Response Action with debounce (`400ms` default) and single-flight
+ * coalescing. Returns a cleanup function that cancels pending timers and
+ * detaches the reactive subscription.
+ */
+export function subscribeResponseActionAutosave(
+    options: ResponseActionAutosaveOptions,
+): () => void {
+    const controller = createResponseActionAutosaveController(options);
+    return () => controller.dispose();
 }
 
 /**

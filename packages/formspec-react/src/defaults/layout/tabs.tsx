@@ -1,7 +1,7 @@
 'use client';
 
 /** @filedesc Tabs layout component — WAI-ARIA tabbed panel navigation with keyboard support. */
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useId } from 'react';
 import type { LayoutComponentProps } from '../../component-map';
 import {
     needTraceAttrs,
@@ -29,7 +29,8 @@ export function Tabs({ node, children }: LayoutComponentProps) {
     const tabCount = node.children.length;
     const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-    const id = node.id || 'tabs';
+    const instanceSuffix = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+    const id = `${node.id || 'tabs'}-${instanceSuffix}`;
     const placement: 'top' | 'bottom' | 'left' | 'right' = (node.props?.placement as 'top' | 'bottom' | 'left' | 'right') || 'top';
     const ariaLabel = (node.props?.['aria-label'] as string)
         || node.fieldItem?.label

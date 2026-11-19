@@ -2,16 +2,16 @@
 import { signal } from '@preact/signals-core';
 import {
     createFormEngine,
+    createResponseActionAutosaveController,
     deepEqual,
     findAutosaveResponseAction,
     findResponseActionByIntent,
     isValidDefinitionResponseActionsDocument,
     preactReactiveRuntime,
-    resolveAutosaveResponseAction,
-    subscribeResponseActionAutosave,
     type FormEngine,
     type IFormEngine,
     type LocaleDocument,
+    type ResponseActionAutosaveController,
     type ResponseActionInvocationResult,
 } from '@formspec-org/engine/render';
 import { initFormspecEngine, isFormspecEngineInitialized } from '@formspec-org/engine/init-formspec-engine';
@@ -241,6 +241,7 @@ export class FormspecRender extends HTMLElement {
     private assistAnnounceFrame: number | null = null;
     private actionStatusEl: HTMLElement | null = null;
     private _autosaveCleanup: (() => void) | null = null;
+    private _autosaveController: ResponseActionAutosaveController | null = null;
     private _autosaveEngine: IFormEngine | null = null;
     private _autosaveDoc: ResponseActionsDocument | null = null;
     private _autosaveBound = false;
@@ -769,7 +770,12 @@ export class FormspecRender extends HTMLElement {
             event.preventDefault();
             if (event.agentInvoked !== true) {
                 const submitter = event.submitter;
-                if (submitter instanceof HTMLButtonElement && submitter.type === 'submit') {
+                if (
+                    submitter instanceof HTMLButtonElement
+                    && submitter.type === 'submit'
+                    && !submitter.disabled
+                    && submitter.getAttribute('aria-disabled') !== 'true'
+                ) {
                     const submitterActionRef = getActionButtonActionRef(submitter);
                     if (submitterActionRef) {
                         void this.invokeAction(submitterActionRef, submitter.id || undefined);
@@ -1411,21 +1417,30 @@ export class FormspecRender extends HTMLElement {
         this._autosaveStatusEpoch += 1;
         this._autosaveCleanup?.();
         this._autosaveCleanup = null;
+        this._autosaveController = null;
         this._autosaveEngine = null;
         this._autosaveDoc = null;
         this._autosaveBound = false;
     }
 
     private syncAutosaveSubscription(): void {
-        if (!this.isConnected) {
+        if (!this.isConnected || !this.engine) {
             this.teardownAutosaveSubscription();
+            if (this.actionStatusEl) {
+                this.actionStatusEl.textContent = '';
+            }
             return;
         }
-        if (
-            this._autosaveBound
-            && this.engine === this._autosaveEngine
-            && this._responseActionsDocument === this._autosaveDoc
-        ) {
+        if (this._autosaveBound && this.engine === this._autosaveEngine && this._autosaveController) {
+            if (this._responseActionsDocument === this._autosaveDoc) {
+                return;
+            }
+            this._autosaveDoc = this._responseActionsDocument;
+            this._autosaveStatusEpoch += 1;
+            if (this.actionStatusEl) {
+                this.actionStatusEl.textContent = '';
+            }
+            this._autosaveController.setDocument(this._responseActionsDocument);
             return;
         }
         this.teardownAutosaveSubscription();
@@ -1435,18 +1450,7 @@ export class FormspecRender extends HTMLElement {
         if (this.actionStatusEl) {
             this.actionStatusEl.textContent = '';
         }
-        if (!this.engine) {
-            return;
-        }
-        const resolution = resolveAutosaveResponseAction(this._responseActionsDocument, this._definition);
-        if (resolution.finding) {
-            emitActionFinding(this._actionHost, resolution.finding);
-        }
-        if (!resolution.action) {
-            return;
-        }
         const engine = this.engine;
-        const subscribedDoc = this._responseActionsDocument;
         let lastSnapshot = engine.getDraftSnapshot();
         const disposeFreshness = preactReactiveRuntime.effect(() => {
             engine.getEvaluatedFormState({ profile: 'off' });
@@ -1459,14 +1463,18 @@ export class FormspecRender extends HTMLElement {
                 }
             }
         });
-        const disposeAutosave = subscribeResponseActionAutosave({
+        const controller = createResponseActionAutosaveController({
             engine,
-            document: subscribedDoc,
-            invoke: async (action) => {
+            document: this._responseActionsDocument,
+            onFinding: (finding) => {
+                emitActionFinding(this._actionHost, finding);
+            },
+            invoke: async (action, context) => {
+                const invokedDoc = context.document;
                 if (
                     !this.isConnected
                     || this._autosaveEngine !== engine
-                    || this._autosaveDoc !== subscribedDoc
+                    || !context.isCurrent()
                 ) {
                     return;
                 }
@@ -1478,15 +1486,17 @@ export class FormspecRender extends HTMLElement {
                     this.isConnected
                     && this._autosaveStatusEpoch === epoch
                     && this._autosaveEngine === engine
-                    && this._autosaveDoc === subscribedDoc
+                    && context.isCurrent()
+                    && this._autosaveDoc === invokedDoc
                 ) {
                     statusEl.textContent = this.formatAutosaveSettledStatus(result.status);
                 }
                 return result;
             },
         });
+        this._autosaveController = controller;
         this._autosaveCleanup = () => {
-            disposeAutosave();
+            controller.dispose();
             disposeFreshness();
         };
     }

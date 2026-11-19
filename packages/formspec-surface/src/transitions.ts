@@ -62,6 +62,8 @@ import {
   autoPlacedDefinitionActions,
   createFormEngine,
   isFormspecEngineInitialized,
+  isPlainJsonArray,
+  isPlainJsonObject,
   isValidDefinitionResponseActionsDocument,
   resolveResponseAction,
   type IFormEngine,
@@ -225,16 +227,39 @@ interface ResolvedTriggers {
   documentCount: number;
 }
 
+function ownDataPropertyValue(obj: unknown, key: string): { present: boolean; value: unknown } {
+  if (!isPlainJsonObject(obj)) return { present: false, value: undefined };
+  const descriptor = Object.getOwnPropertyDescriptor(obj, key);
+  if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) {
+    return { present: false, value: undefined };
+  }
+  return { present: true, value: descriptor.value };
+}
+
+function ownPlainActions(document: unknown): readonly Record<string, unknown>[] {
+  const prop = ownDataPropertyValue(document, 'actions');
+  if (!prop.present || !isPlainJsonArray(prop.value)) return [];
+  const actions: Record<string, unknown>[] = [];
+  for (let index = 0; index < prop.value.length; index += 1) {
+    const descriptor = Object.getOwnPropertyDescriptor(prop.value, String(index));
+    if (!descriptor || !Object.prototype.hasOwnProperty.call(descriptor, 'value')) return [];
+    if (!isPlainJsonObject(descriptor.value)) continue;
+    actions.push(descriptor.value);
+  }
+  return actions;
+}
+
 function indexTriggers(documents: readonly ResponseActionsDocumentLike[]): ResolvedTriggers {
   const byId = new Map<string, number>();
   const byIntent = new Map<string, string[]>();
   for (const document of documents) {
-    const actions = Array.isArray(document?.actions) ? document.actions : [];
-    for (const action of actions) {
-      const id = typeof action?.id === 'string' ? action.id : undefined;
+    for (const action of ownPlainActions(document)) {
+      const idProp = ownDataPropertyValue(action, 'id');
+      const id = idProp.present && typeof idProp.value === 'string' ? idProp.value : undefined;
       if (!id) continue;
       byId.set(id, (byId.get(id) ?? 0) + 1);
-      const intent = typeof action?.intent === 'string' ? action.intent : undefined;
+      const intentProp = ownDataPropertyValue(action, 'intent');
+      const intent = intentProp.present && typeof intentProp.value === 'string' ? intentProp.value : undefined;
       if (intent && CLOSED_RESPONSE_ACTION_INTENTS.has(intent)) {
         byIntent.set(intent, [...(byIntent.get(intent) ?? []), id]);
       }
@@ -244,19 +269,28 @@ function indexTriggers(documents: readonly ResponseActionsDocumentLike[]): Resol
 }
 
 function targetDefinitionUrl(document: ResponseActionsDocumentLike): string | undefined {
-  const url = document.targetDefinition?.url;
-  return typeof url === 'string' ? url : undefined;
+  const targetProp = ownDataPropertyValue(document, 'targetDefinition');
+  if (!targetProp.present) return undefined;
+  const urlProp = ownDataPropertyValue(targetProp.value, 'url');
+  return urlProp.present && typeof urlProp.value === 'string' ? urlProp.value : undefined;
 }
 
 function isApplicationScoped(document: ResponseActionsDocumentLike): boolean {
-  return document.scope === 'app' && targetDefinitionUrl(document) === undefined;
+  if (!isPlainJsonObject(document)) return false;
+  const scopeProp = ownDataPropertyValue(document, 'scope');
+  return scopeProp.present && scopeProp.value === 'app' && targetDefinitionUrl(document) === undefined;
 }
 
 function isDefinitionScoped(document: ResponseActionsDocumentLike): boolean {
-  return (
-    (document.scope === undefined || document.scope === 'response')
-    && targetDefinitionUrl(document) !== undefined
-  );
+  if (!isPlainJsonObject(document)) return false;
+  const hasScope = Object.prototype.hasOwnProperty.call(document, 'scope');
+  if (hasScope) {
+    const scopeProp = ownDataPropertyValue(document, 'scope');
+    if (!scopeProp.present || (scopeProp.value !== undefined && scopeProp.value !== 'response')) {
+      return false;
+    }
+  }
+  return targetDefinitionUrl(document) !== undefined;
 }
 
 /**
@@ -364,10 +398,14 @@ export function slotSuppliedTriggers(
   const supplied = new Set<string>();
   if (responseActions.length === 0) return supplied;
   const actionDeclarations = responseActions.flatMap((document) =>
-    (Array.isArray(document?.actions) ? document.actions : [])
-      .filter((action): action is NonNullable<typeof action> =>
-        Boolean(action && typeof action === 'object' && !Array.isArray(action)))
-      .map((action) => ({ document, action })),
+    ownPlainActions(document).map((action) => ({
+      document,
+      action,
+      id: (() => {
+        const prop = ownDataPropertyValue(action, 'id');
+        return prop.present && typeof prop.value === 'string' ? prop.value : undefined;
+      })(),
+    })),
   );
 
   const walk = (entries: readonly SlotPlan<unknown>[], prefix = ''): void => {
@@ -384,16 +422,15 @@ export function slotSuppliedTriggers(
         for (const output of entry.actionOutputs) {
           if (!output.actionRef) continue;
           const matches = actionDeclarations.filter(
-            ({ action }) => typeof action.id === 'string' && action.id === output.actionRef,
+            ({ id }) => typeof id === 'string' && id === output.actionRef,
           );
           if (matches.length !== 1) continue;
           const match = matches[0];
           if (!match || !output.action) continue;
           if (!isApplicationScoped(match.document) && (!output.responseContext
             || output.responseContext.definition.url !== targetDefinitionUrl(match.document))) continue;
-          const { action } = match;
-          if (typeof action.id !== 'string') continue;
-          supplied.add(action.id);
+          if (typeof match.id !== 'string') continue;
+          supplied.add(match.id);
         }
         continue;
       }
@@ -435,7 +472,7 @@ export function slotSuppliedTriggers(
       for (const actionRef of actionRefs) {
         if (!resolveResponseAction(document, actionRef).resolved) continue;
         const idMatches = actionDeclarations.filter(
-          ({ action: candidate }) => typeof candidate.id === 'string' && candidate.id === actionRef,
+          ({ id }) => typeof id === 'string' && id === actionRef,
         );
         if (idMatches.length !== 1) continue;
         supplied.add(actionRef);

@@ -199,6 +199,11 @@ export function invokeAction(
     const ports = buildActionPorts(host);
     const document = admittedDocumentForHost(host);
     if (host._responseActionInvoker && document) {
+        const resolution = resolveResponseAction(document, actionRef, nodeId);
+        if (!resolution.resolved) {
+            const result = invokeResponseAction(document, actionRef, ports, nodeId);
+            return finishInvocation(host, result);
+        }
         const result = host._responseActionInvoker({
             document,
             actionRef,

@@ -828,3 +828,91 @@ for (const variant of ['true', 'false', 'dismiss'] as const) {
     await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
   });
 }
+
+test('resizing across a CSS media query immediately updates Surface fallback reachability', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 700 });
+  await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter&media#/filing');
+  const checkpoint = page.getByRole('button', { name: 'Checkpoint now', exact: true });
+  const fallback = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+  await expect(checkpoint).toBeVisible();
+  await expect(fallback).toHaveCount(0);
+
+  await page.setViewportSize({ width: 520, height: 700 });
+  await expect(checkpoint).toHaveCount(0);
+  await expect(fallback).toHaveCount(1);
+  await fallback.click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+});
+
+test('CSS content-visibility:hidden ancestor suppresses authored control and surfaces Surface fallback', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter&content#/filing');
+  await expect(page.getByLabel('Answer', { exact: true })).toBeEditable();
+  const fallback = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+  const button = page.locator('button[data-action-ref="autosave"]');
+  expect(await button.evaluate((el) => el.checkVisibility({ visibilityProperty: true }))).toBe(false);
+  await expect(fallback).toHaveCount(1);
+  await fallback.click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+});
+
+test('two independent tabbed slots with identical authored Tabs id keep distinct tab IDs and no duplicate fallback', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter&multiTabs#/filing');
+  const tabs = page.getByRole('tab', { name: 'Second tab', exact: true });
+  const checkpoint = page.getByRole('button', { name: 'Checkpoint now', exact: true });
+  const fallback = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+  await expect(tabs).toHaveCount(2);
+  const tabIds = await tabs.evaluateAll((els) => els.map((el) => el.id));
+  expect(tabIds[0]).not.toBe(tabIds[1]);
+  await expect(fallback).toHaveCount(0);
+  await tabs.nth(1).click();
+  await expect(checkpoint).toBeVisible();
+  await expect(fallback).toHaveCount(0);
+  await checkpoint.click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+});
+
+test('navigating away from Filing disconnects the reachability observer and close listener cleanly', async ({ page }) => {
+  await page.addInitScript(() => {
+    const counts = ((window as unknown as { reachLifecycle?: Record<string, number> }).reachLifecycle = {
+      observe: 0,
+      disconnect: 0,
+      add: 0,
+      remove: 0,
+    });
+    const active = new Set<MutationObserver>();
+    const isSlot = (node: unknown) => node instanceof HTMLElement && node.style.display === 'contents';
+    const origObserve = MutationObserver.prototype.observe;
+    const origDisconnect = MutationObserver.prototype.disconnect;
+    MutationObserver.prototype.observe = function (target, options) {
+      if (isSlot(target)) {
+        active.add(this);
+        counts.observe += 1;
+      }
+      return origObserve.call(this, target, options);
+    };
+    MutationObserver.prototype.disconnect = function () {
+      if (active.delete(this)) counts.disconnect += 1;
+      return origDisconnect.call(this);
+    };
+    const origAdd = EventTarget.prototype.addEventListener;
+    const origRemove = EventTarget.prototype.removeEventListener;
+    EventTarget.prototype.addEventListener = function (type, ...args) {
+      if (type === 'close' && isSlot(this)) counts.add += 1;
+      return origAdd.call(this, type, ...args);
+    };
+    EventTarget.prototype.removeEventListener = function (type, ...args) {
+      if (type === 'close' && isSlot(this)) counts.remove += 1;
+      return origRemove.call(this, type, ...args);
+    };
+  });
+  await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter#/filing');
+  const checkpoint = page.getByRole('button', { name: 'Checkpoint now', exact: true });
+  await expect(checkpoint).toBeVisible();
+  await checkpoint.click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+  const counts = await page.evaluate(() => (window as unknown as { reachLifecycle?: Record<string, number> }).reachLifecycle);
+  expect(counts?.observe).toBeGreaterThan(0);
+  expect(counts?.observe).toBe(counts?.disconnect);
+  expect(counts?.add).toBeGreaterThan(0);
+  expect(counts?.add).toBe(counts?.remove);
+});

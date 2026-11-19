@@ -1212,4 +1212,63 @@ describe('React Response Actions parity', () => {
             }
         }
     });
+
+    it('preserves pending dirty autosave across equivalent or corrected document replacement and cancels on ambiguity', async () => {
+        vi.useFakeTimers();
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            version: '1.0.0',
+            url: 'urn:review:retained-edit',
+            title: 'Filing',
+            items: [{ type: 'field', key: 'name', dataType: 'string', label: 'Name' }],
+        };
+        const makeDoc = (count: number) => ({
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url: def.url },
+            actions: Array.from({ length: count }, (_, index) => ({
+                id: `auto${index}`,
+                intent: 'autosave' as const,
+                effects: [{ type: 'hostEvent' as const, eventName: 'saved' }],
+            })),
+        });
+
+        try {
+            for (const [label, firstCount, secondCount, replace, expectedCount] of [
+                ['unchanged reference', 1, 1, false, 1],
+                ['identical re-parsed document', 1, 1, true, 1],
+                ['document correction before another edit', 2, 1, true, 1],
+                ['ambiguity cancels pending write', 1, 2, true, 0],
+            ] as const) {
+                const engine = createFormEngine(def);
+                const onHostEvent = vi.fn();
+                const firstDoc = makeDoc(firstCount);
+                const { container, root } = renderInto(
+                    <FormspecForm engine={engine} responseActionsDocument={firstDoc} onHostEvent={onHostEvent} />,
+                );
+                try {
+                    await act(async () => { engine.setValue('name', 'unsaved edit'); });
+                    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+                    await act(async () => {
+                        root.render(
+                            <FormspecForm
+                                engine={engine}
+                                responseActionsDocument={replace ? makeDoc(secondCount) : firstDoc}
+                                onHostEvent={onHostEvent}
+                            />,
+                        );
+                    });
+                    await act(async () => { await vi.advanceTimersByTimeAsync(1200); });
+                    expect(engine.getResponse({ profile: 'off' }).data.name).toBe('unsaved edit');
+                    expect(onHostEvent, label).toHaveBeenCalledTimes(expectedCount);
+                } finally {
+                    await act(async () => { root.unmount(); });
+                    container.remove();
+                    engine.dispose();
+                }
+            }
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });
