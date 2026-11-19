@@ -9,6 +9,11 @@ import {
   deriveSurfacePreviewScenario,
   validateSurfacePreviewScenario,
 } from '../src/preview-scenario.js';
+import {
+  prepareDraftFixtures,
+  validateDraftFixtures,
+  type ResponseRecordTools,
+} from '../src/response-records.js';
 import type {
   DataSourceDescriptor,
   DataSourceLoadRequest,
@@ -553,4 +558,367 @@ it('derives only an addressable entry and leaves fixture facts empty', async () 
   expect(scenario['x-generation']).toBeUndefined();
   expect(await validateSurfacePreviewScenario({ scenario, bundle })).toMatchObject({ valid: true });
   expect(() => deriveSurfacePreviewScenario({ ...bundle, surfaces: [], entrySurface: null })).toThrow();
+});
+
+describe('validateSurfacePreviewScenario seeded drafts', () => {
+  const REPORT_URL = 'https://example.test/definitions/report';
+  const INTAKE_URL = 'https://example.test/definitions/intake';
+
+  function bundleWithDefinitions(): ResolvedBundle {
+    const base = resolvedBundle();
+    return {
+      ...base,
+      definitions: new Map([
+        [REPORT_URL, {
+          $formspec: '1.0',
+          url: REPORT_URL,
+          version: '1.0.0',
+          title: 'Annual Report',
+          subject: {
+            type: REPORT_URL,
+            keys: {
+              year: { dataType: 'integer' },
+              unit: { dataType: 'string' },
+            },
+          },
+          items: [
+            { key: 'summary', type: 'field', dataType: 'string', label: 'Summary' },
+            { key: 'count', type: 'field', dataType: 'integer', label: 'Count' },
+            {
+              key: 'details',
+              type: 'group',
+              label: 'Details',
+              children: [
+                { key: 'note', type: 'field', dataType: 'string', label: 'Note' },
+              ],
+            },
+            {
+              key: 'entries',
+              type: 'group',
+              repeatable: true,
+              label: 'Entries',
+              children: [
+                { key: 'code', type: 'field', dataType: 'string', label: 'Code' },
+                { key: 'active', type: 'field', dataType: 'boolean', label: 'Active' },
+              ],
+            },
+            { key: 'fee', type: 'field', dataType: 'money', label: 'Fee' },
+            { key: 'receipt', type: 'field', dataType: 'attachment', label: 'Receipt' },
+          ],
+        }],
+        [INTAKE_URL, {
+          $formspec: '1.0',
+          url: INTAKE_URL,
+          version: '2.0.0',
+          title: 'Implicit Intake',
+          items: [
+            { key: 'applicantName', type: 'field', dataType: 'string', label: 'Applicant name' },
+          ],
+        }],
+      ]),
+    };
+  }
+
+  function draftScenario(drafts: unknown[]): unknown {
+    const base = scenario() as unknown as Record<string, unknown>;
+    const profiles = base.profiles as Record<string, Record<string, unknown>>;
+    profiles.loaded = {
+      ...profiles.loaded,
+      drafts,
+    };
+    return base;
+  }
+
+  it('accepts valid subject-keyed and implicit seeded drafts with nested groups and repeats', async () => {
+    const result = await validateSurfacePreviewScenario({
+      bundle: bundleWithDefinitions(),
+      scenario: draftScenario([
+        {
+          definitionUrl: REPORT_URL,
+          subject: { type: REPORT_URL, keys: { year: 2026, unit: 'north' } },
+          data: {
+            summary: 'Half finished',
+            count: null,
+            details: { note: 'Checking totals' },
+            entries: [{ code: 'A1', active: true }],
+          },
+          responseId: 'urn:draft:report-north-2026',
+          authored: '2026-01-15T12:00:00Z',
+          'x-generation': { anchors: ['need:seed-draft@1'] },
+        },
+        {
+          definitionUrl: INTAKE_URL,
+          definitionVersion: '2.0.0',
+          data: { applicantName: 'Alex Rivera' },
+        },
+      ]),
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it('rejects unknown definitionUrl and mismatched definitionVersion with actionable diagnostics', async () => {
+    const result = await validateSurfacePreviewScenario({
+      bundle: bundleWithDefinitions(),
+      scenario: draftScenario([
+        {
+          definitionUrl: 'https://example.test/definitions/missing',
+          data: {},
+        },
+        {
+          definitionUrl: INTAKE_URL,
+          definitionVersion: '9.9.9',
+          data: { applicantName: 'Alex' },
+        },
+      ]),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        profileId: 'loaded',
+        path: '$.profiles.loaded.drafts[0].definitionUrl',
+      }),
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        profileId: 'loaded',
+        path: '$.profiles.loaded.drafts[1].definitionVersion',
+      }),
+    ]));
+  });
+
+  it('rejects missing, unexpected, mismatched, incomplete, or wrongly typed draft subjects', async () => {
+    const result = await validateSurfacePreviewScenario({
+      bundle: bundleWithDefinitions(),
+      scenario: draftScenario([
+        // Missing required subject on subject-keyed Definition
+        { definitionUrl: REPORT_URL, data: { summary: 'Missing subject' } },
+        // Unexpected subject on implicit Definition
+        {
+          definitionUrl: INTAKE_URL,
+          subject: { type: INTAKE_URL, keys: { id: '1' } },
+          data: { applicantName: 'Unexpected subject' },
+        },
+        // Wrong subject.type
+        {
+          definitionUrl: REPORT_URL,
+          subject: { type: 'urn:wrong:type', keys: { year: 2026, unit: 'north' } },
+          data: {},
+        },
+        // Missing key + wrong key type + extra key
+        {
+          definitionUrl: REPORT_URL,
+          subject: { type: REPORT_URL, keys: { year: '2026', extra: 'nope' } },
+          data: {},
+        },
+      ]),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[0].subject',
+      }),
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[1].subject',
+      }),
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[2].subject.type',
+      }),
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[3].subject.keys',
+      }),
+    ]));
+  });
+
+  it('rejects duplicate active draft keys and duplicate responseIds within a profile', async () => {
+    const result = await validateSurfacePreviewScenario({
+      bundle: bundleWithDefinitions(),
+      scenario: draftScenario([
+        {
+          definitionUrl: REPORT_URL,
+          subject: { type: REPORT_URL, keys: { year: 2026, unit: 'north' } },
+          data: { summary: 'First' },
+          responseId: 'urn:draft:shared',
+        },
+        {
+          definitionUrl: REPORT_URL,
+          subject: { type: REPORT_URL, keys: { unit: 'north', year: 2026 } },
+          data: { summary: 'Duplicate key' },
+        },
+        {
+          definitionUrl: INTAKE_URL,
+          data: { applicantName: 'Collision' },
+          responseId: 'urn:draft:shared',
+        },
+      ]),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[1]',
+        message: expect.stringMatching(/duplicate/i),
+      }),
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[2].responseId',
+        message: expect.stringMatching(/unique|duplicate/i),
+      }),
+    ]));
+  });
+
+  it('rejects unknown item keys and structurally invalid data values in drafts', async () => {
+    const result = await validateSurfacePreviewScenario({
+      bundle: bundleWithDefinitions(),
+      scenario: draftScenario([
+        {
+          definitionUrl: REPORT_URL,
+          subject: { type: REPORT_URL, keys: { year: 2026, unit: 'north' } },
+          data: {
+            unknownField: 'typo',
+            count: 'not-an-integer',
+            details: ['not-a-group-object'],
+            entries: 'not-a-repeat-array',
+          },
+        },
+      ]),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[0].data.unknownField',
+      }),
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[0].data.count',
+      }),
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[0].data.details',
+      }),
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[0].data.entries',
+      }),
+    ]));
+  });
+
+  it('validates structured money and attachment fields, repeat row indices, and canonical authored instants', async () => {
+    const validStructured = await validateSurfacePreviewScenario({
+      bundle: bundleWithDefinitions(),
+      scenario: draftScenario([
+        {
+          definitionUrl: REPORT_URL,
+          subject: { type: REPORT_URL, keys: { year: 2026, unit: 'north' } },
+          authored: '2026-03-01t10:30:00z',
+          data: {
+            fee: { amount: '42.50', currency: 'USD' },
+            receipt: { contentType: 'application/pdf', url: 'urn:files:receipt-1', size: 1024 },
+          },
+        },
+      ]),
+    });
+    expect(validStructured.valid).toBe(true);
+
+    const invalidStructured = await validateSurfacePreviewScenario({
+      bundle: bundleWithDefinitions(),
+      scenario: draftScenario([
+        {
+          definitionUrl: REPORT_URL,
+          subject: { type: REPORT_URL, keys: { year: 2026, unit: 'north' } },
+          data: {
+            fee: { banana: 42 },
+            receipt: { unrelated: true },
+            entries: [42],
+          },
+        },
+      ]),
+    });
+    expect(invalidStructured.valid).toBe(false);
+    expect(invalidStructured.diagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[0].data.fee',
+      }),
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[0].data.receipt',
+      }),
+      expect.objectContaining({
+        code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+        path: '$.profiles.loaded.drafts[0].data.entries[0]',
+      }),
+    ]));
+
+    const invalidCalendarDate = await validateSurfacePreviewScenario({
+      bundle: bundleWithDefinitions(),
+      scenario: draftScenario([
+        {
+          definitionUrl: INTAKE_URL,
+          authored: '2026-02-30T00:00:00Z',
+          data: {},
+        },
+      ]),
+    });
+    expect(invalidCalendarDate.valid).toBe(false);
+  });
+
+  it('rejects numeric money amounts and malformed URI-reference attachment URLs while deriving scope-distinct default responseIds', () => {
+    const definitions = bundleWithDefinitions().definitions;
+
+    for (const badAmount of [42.5, '+42.5', '01', '42.', '.5', '1e5', ''] as const) {
+      const moneyIssues = validateDraftFixtures(definitions, [
+        {
+          definitionUrl: REPORT_URL,
+          subject: { type: REPORT_URL, keys: { year: 2026, unit: 'north' } },
+          data: { fee: { amount: badAmount, currency: 'USD' } },
+        },
+      ]);
+      expect(moneyIssues, `expected bad money amount ${String(badAmount)} to be rejected`).toEqual([
+        expect.objectContaining({ subpath: 'drafts[0].data.fee' }),
+      ]);
+    }
+
+    for (const badUrl of ['%ZZ', '%2', 'https://[::gggg]/file.pdf', 'file with spaces.pdf'] as const) {
+      const attachmentIssues = validateDraftFixtures(definitions, [
+        {
+          definitionUrl: REPORT_URL,
+          subject: { type: REPORT_URL, keys: { year: 2026, unit: 'north' } },
+          data: { receipt: { contentType: 'application/pdf', url: badUrl } },
+        },
+      ]);
+      expect(attachmentIssues, `expected bad attachment url ${badUrl} to be rejected`).toEqual([
+        expect.objectContaining({ subpath: 'drafts[0].data.receipt' }),
+      ]);
+    }
+
+    const validUrlIssues = validateDraftFixtures(definitions, [
+      {
+        definitionUrl: REPORT_URL,
+        subject: { type: REPORT_URL, keys: { year: 2026, unit: 'north' } },
+        data: { receipt: { contentType: 'application/pdf', url: '/files/a%20b.pdf' } },
+      },
+    ]);
+    expect(validUrlIssues).toEqual([]);
+
+    const stubTools: ResponseRecordTools = {
+      parseResponse: text => JSON.parse(text),
+      subjectId: (type, keys) => `${type}:${JSON.stringify(keys)}`,
+      selectResponses: () => ({ status: 'unavailable' }),
+    };
+    const scopedIds = ['edition-1', 'edition-2'].map(
+      editionScope => prepareDraftFixtures(editionScope, definitions, [{ definitionUrl: INTAKE_URL, data: {} }], stubTools)[0]!.responseId,
+    );
+    expect(scopedIds[0]).not.toBe(scopedIds[1]);
+  });
 });

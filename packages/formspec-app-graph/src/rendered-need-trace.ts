@@ -1024,6 +1024,18 @@ function previewScenarioNodes(handle: ResolvedArtifactHandle): CollectedNode[] {
           'Preview filing fixture',
         ));
       });
+      const drafts = Array.isArray(profile.drafts) ? profile.drafts : [];
+      drafts.forEach((rawDraft, draftIndex) => {
+        const draft = record(rawDraft);
+        if (!draft || !Object.prototype.hasOwnProperty.call(draft, 'x-generation')) return;
+        out.push(generationNode(
+          handle,
+          'surface-preview-draft',
+          `${profilePointer}/drafts/${draftIndex}`,
+          draft,
+          'Preview draft fixture',
+        ));
+      });
     });
   }
 

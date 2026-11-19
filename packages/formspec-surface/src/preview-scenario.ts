@@ -15,7 +15,12 @@ import type {
 import { filingAction } from './filing-action.js';
 import { composeSurfaceApp, matchRoute, routeHref } from './composition.js';
 import type { ResolvedBundle } from './bundle.js';
-import { prepareResponseFixtures, type ResponseRecordTools } from './response-records.js';
+import {
+  prepareResponseFixtures,
+  validateDraftFixtures,
+  validResponseAuthored,
+  type ResponseRecordTools,
+} from './response-records.js';
 import type {
   DataSourceAuthorizer,
   DataSourceDescriptor,
@@ -34,6 +39,7 @@ export const SURFACE_SCENARIO_DIAGNOSTIC_CODES = [
   'SURFACE-SCENARIO-ACTION-AMBIGUOUS',
   'SURFACE-SCENARIO-PAYLOAD-SCHEMA',
   'SURFACE-SCENARIO-FILING-FIXTURE',
+  'SURFACE-SCENARIO-DRAFT-FIXTURE',
 ] as const;
 
 export type SurfaceScenarioDiagnosticCode =
@@ -82,6 +88,7 @@ export type SurfaceScenarioPayloadValidator = (
 export interface ValidateSurfacePreviewScenarioInput {
   scenario: unknown;
   bundle: ResolvedBundle;
+  scope?: string | undefined;
   validateSchema?: SurfaceScenarioSchemaValidator | undefined;
   validatePayload?: SurfaceScenarioPayloadValidator | undefined;
   responseTools?: ResponseRecordTools | undefined;
@@ -112,6 +119,8 @@ const ACTION_ID = /^[A-Za-z][A-Za-z0-9-]*$/u;
 const SOURCE_ID =
   /^(host|response|resource|query|conversation|route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$/u;
 const URI = /^[A-Za-z][A-Za-z0-9+.-]*:.+/u;
+const SUBJECT_TYPE_URI = /^[A-Za-z][A-Za-z0-9+.-]*:[^\s{}]+$/u;
+const SUBJECT_KEY_NAME = /^[a-zA-Z][a-zA-Z0-9_]*$/u;
 const GENERATION_ANCHOR = /^(item|unit|task|action|concept|need):.+$/u;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -220,7 +229,7 @@ function structureProblems(value: unknown): string[] {
       }
       if (
         !isRecord(profileValue) ||
-        !hasOnly(profileValue, ['authorization', 'sources', 'filings', 'decisions'])
+        !hasOnly(profileValue, ['authorization', 'sources', 'filings', 'decisions', 'drafts'])
       ) {
         problem(profilePath, 'expected a closed profile object');
         continue;
@@ -238,6 +247,38 @@ function structureProblems(value: unknown): string[] {
             isNonEmptyString(entry.responseId) && typeof entry.responseHash === 'string' &&
             /^sha256:[0-9a-f]{64}$/u.test(entry.responseHash) && validDecision(entry.decision)))) {
         problem(`${profilePath}.decisions`, 'expected exact fixture Response identities and review decisions');
+      }
+      if (own(profileValue, 'drafts')) {
+        if (!Array.isArray(profileValue.drafts)) {
+          problem(`${profilePath}.drafts`, 'expected an array of seeded draft fixtures');
+        } else {
+          profileValue.drafts.forEach((entry, index) => {
+            const path = `${profilePath}.drafts[${index}]`;
+            if (
+              !isRecord(entry) ||
+              !hasOnly(entry, [
+                'definitionUrl',
+                'definitionVersion',
+                'subject',
+                'data',
+                'responseId',
+                'authored',
+                'x-generation',
+              ]) ||
+              typeof entry.definitionUrl !== 'string' ||
+              !URI.test(entry.definitionUrl) ||
+              !isRecord(entry.data) ||
+              (own(entry, 'definitionVersion') && !isNonEmptyString(entry.definitionVersion)) ||
+              (own(entry, 'responseId') && !isNonEmptyString(entry.responseId)) ||
+              (own(entry, 'authored') &&
+                (typeof entry.authored !== 'string' || !validResponseAuthored(entry.authored))) ||
+              (own(entry, 'x-generation') && !validGeneration(entry['x-generation'])) ||
+              (own(entry, 'subject') && !validDraftSubject(entry.subject))
+            ) {
+              problem(path, 'expected a closed seeded draft fixture with definitionUrl, data object, and optional subject/metadata');
+            }
+          });
+        }
       }
 
       const authorization = profileValue.authorization;
@@ -350,6 +391,16 @@ function structureProblems(value: unknown): string[] {
     }
   }
   return problems;
+}
+
+function validDraftSubject(value: unknown): boolean {
+  if (!isRecord(value) || !hasOnly(value, ['type', 'keys'])) return false;
+  if (!isNonEmptyString(value.type) || !SUBJECT_TYPE_URI.test(value.type) || !isRecord(value.keys)) return false;
+  return Object.entries(value.keys).every(
+    ([key, entry]) =>
+      SUBJECT_KEY_NAME.test(key) &&
+      (typeof entry === 'string' || (typeof entry === 'number' && Number.isSafeInteger(entry))),
+  );
 }
 
 function validDecision(value: unknown): boolean {
@@ -493,15 +544,41 @@ export async function validateSurfacePreviewScenario(
   }
 
   for (const [profileId, profile] of Object.entries(scenario.profiles)) {
+    const effectiveScope = input.scope ?? profileId;
+    let filingResponseIds: ReadonlySet<string> | undefined;
     if (profile.filings?.length || profile.decisions?.length) {
       try {
         if (!input.responseTools) throw new Error('Fixture validation requires the shared Response tools.');
-        prepareResponseFixtures(profileId, input.bundle.definitions, profile, input.responseTools);
+        const prepared = prepareResponseFixtures(
+          effectiveScope,
+          input.bundle.definitions,
+          {
+            ...(profile.filings !== undefined ? { filings: profile.filings } : {}),
+            ...(profile.decisions !== undefined ? { decisions: profile.decisions } : {}),
+          },
+          input.responseTools,
+        );
+        filingResponseIds = new Set(prepared.filings.map((filing) => filing.responseId));
       } catch (error) {
         diagnostics.push({
           code: 'SURFACE-SCENARIO-FILING-FIXTURE', profileId,
           path: `$.profiles.${profileId}`,
           message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    if (profile.drafts?.length) {
+      const issues = validateDraftFixtures(input.bundle.definitions, profile.drafts, {
+        scope: effectiveScope,
+        tools: input.responseTools,
+        existingResponseIds: filingResponseIds,
+      });
+      for (const issue of issues) {
+        diagnostics.push({
+          code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+          profileId,
+          path: `$.profiles.${profileId}.${issue.subpath}`,
+          message: issue.message,
         });
       }
     }

@@ -150,3 +150,319 @@ test('the published preview runs the emitted walk for every form slot', async ({
     await site.close();
   }
 });
+
+test('published seeded scenario shows In progress, hydrates answers across reload, and preserves exact decimal precision through Submit', async ({ page }, info) => {
+  const surfaceUrl = 'https://example.test/surface';
+  const reportUrl = 'https://example.test/definitions/report';
+  const actionsUrl = 'https://example.test/actions/report';
+  const formCompUrl = 'https://example.test/components/report';
+  const exactDecimal = '0.3333333333333333333333333333';
+  const source = {
+    manifest: {
+      $formspecBundle: '2.4',
+      id: 'https://example.test/app',
+      title: 'Filing Preview',
+      surfaces: [{ url: surfaceUrl }],
+      entrySurface: surfaceUrl,
+      definitions: [{ url: reportUrl, version: '1.0.0' }],
+      responseActionDocuments: [{ url: actionsUrl }],
+      components: [{ url: formCompUrl }],
+    },
+    documents: {
+      [surfaceUrl]: {
+        $formspecSurface: '0.4',
+        id: 'app',
+        entry: 'overview',
+        routes: [
+          {
+            id: 'overview',
+            path: '/overview',
+            title: 'Overview',
+            slots: [{
+              id: 'tracker',
+              slotType: 'filing-status',
+              binding: {
+                groups: [{
+                  id: 'annual',
+                  label: 'Annual reports',
+                  forms: [{
+                    routeRef: 'report',
+                    slotRef: 'form',
+                    params: { unit: { value: 'north' } },
+                  }],
+                }],
+              },
+            }],
+          },
+          {
+            id: 'report',
+            path: '/report/{unit}',
+            title: 'Annual Report',
+            routeClass: 'intake',
+            params: [{ name: 'unit', type: 'string' }],
+            slots: [{
+              id: 'form',
+              slotType: 'definition-form',
+              binding: {
+                definitionRef: reportUrl,
+                subjectKeys: { unit: 'unit' },
+              },
+            }],
+          },
+        ],
+      },
+      [reportUrl]: {
+        $formspec: '1.0',
+        url: reportUrl,
+        version: '1.0.0',
+        title: 'Annual Report',
+        status: 'active',
+        subject: {
+          type: reportUrl,
+          keys: { unit: { dataType: 'string' } },
+        },
+        items: [{
+          key: 'details',
+          type: 'group',
+          label: 'Details',
+          children: [
+            { key: 'summary', type: 'field', dataType: 'string', label: 'Summary' },
+            { key: 'rate', type: 'field', dataType: 'decimal', label: 'Exact rate' },
+            { key: 'contact', type: 'field', dataType: 'string', label: 'Contact email' },
+          ],
+        }],
+        binds: [
+          { path: 'details.summary', required: 'true' },
+          { path: 'details.contact', required: 'true' },
+        ],
+      },
+      [actionsUrl]: {
+        $formspecResponseActions: '1.0',
+        version: '1.0.0',
+        scope: 'response',
+        targetDefinition: { url: reportUrl },
+        actions: [
+          { id: 'autosave', intent: 'autosave', effects: [{ type: 'hostEvent', eventName: 'formspec-autosave' }] },
+          { id: 'submitReport', intent: 'submit', label: { literal: 'Submit report' }, effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }] },
+        ],
+      },
+      [formCompUrl]: {
+        $formspecComponent: '1.0',
+        version: '1.0.0',
+        targetDefinition: { url: reportUrl },
+        tree: {
+          component: 'Stack',
+          children: [
+            { component: 'TextInput', bind: 'details.summary' },
+            { component: 'NumberInput', bind: 'details.rate' },
+            { component: 'TextInput', bind: 'details.contact' },
+            { component: 'ActionButton', actionRef: 'submitReport', label: { literal: 'Submit report' } },
+          ],
+        },
+      },
+    },
+  };
+
+  const scenario = {
+    $formspecSurfaceScenario: '0.1',
+    version: '1.0.0',
+    initialPath: '/overview',
+    defaultProfile: 'inProgress',
+    profiles: {
+      inProgress: {
+        authorization: { default: 'authorized' },
+        sources: [],
+        drafts: [{
+          definitionUrl: reportUrl,
+          subject: { type: reportUrl, keys: { unit: 'north' } },
+          data: { details: { summary: 'Seeded draft answer', rate: '__EXACT_DECIMAL__' } },
+        }],
+      },
+    },
+    actions: { default: { status: 'complete' } },
+  };
+
+  const assets = info.outputPath('published-seeded-inputs');
+  await mkdir(assets, { recursive: true });
+  await Promise.all([
+    writeFile(resolve(assets, 'bundle.json'), JSON.stringify(source)),
+    writeFile(
+      resolve(assets, 'scenario.json'),
+      JSON.stringify(scenario).replace('"__EXACT_DECIMAL__"', exactDecimal),
+    ),
+    writeFile(
+      resolve(assets, 'preview.json'),
+      JSON.stringify({ editions: [{ scope: 'published', bundle: 'bundle.json', scenario: 'scenario.json' }] }),
+    ),
+  ]);
+
+  const site = await visitBuiltPreview(page, info.outputPath('static-seeded-preview'), assets);
+  try {
+    const trackerLink = page.locator('main').getByRole('link', { name: 'Annual Report', exact: true });
+    await expect(trackerLink).toHaveAccessibleDescription('In progress');
+    await trackerLink.click();
+    await expect(page.getByLabel('Summary')).toHaveValue('Seeded draft answer');
+    await expect(page.getByLabel('Exact rate')).toHaveValue(exactDecimal);
+    await page.reload();
+    await expect(page.getByLabel('Summary')).toHaveValue('Seeded draft answer');
+    await expect(page.getByLabel('Exact rate')).toHaveValue(exactDecimal);
+
+    const snapshotJson = await page.evaluate(async () => {
+      const db = await new Promise<IDBDatabase>((resolveDb, rejectDb) => {
+        const req = indexedDB.open('formspec-surface-drafts');
+        req.onsuccess = () => resolveDb(req.result);
+        req.onerror = () => rejectDb(req.error);
+      });
+      try {
+        return await new Promise<string>((resolveRow, rejectRow) => {
+          const req = db.transaction('editable').objectStore('editable').getAll();
+          req.onsuccess = () => resolveRow((req.result[0] as { snapshotJson: string }).snapshotJson);
+          req.onerror = () => rejectRow(req.error);
+        });
+      } finally {
+        db.close();
+      }
+    });
+    expect(snapshotJson).toContain(exactDecimal);
+
+    await page.getByLabel('Contact email').fill('sample@example.test');
+    await page.getByRole('button', { name: 'Submit report' }).click();
+    await expect(page.locator('article').getByRole('status')).toHaveText('Completed.');
+    await page.reload();
+
+    const completedResponseJson = await page.evaluate(async () => {
+      const db = await new Promise<IDBDatabase>((resolveDb, rejectDb) => {
+        const req = indexedDB.open('formspec-surface-drafts');
+        req.onsuccess = () => resolveDb(req.result);
+        req.onerror = () => rejectDb(req.error);
+      });
+      try {
+        return await new Promise<string>((resolveRow, rejectRow) => {
+          const req = db.transaction('filings').objectStore('filings').getAll();
+          req.onsuccess = () => resolveRow((req.result[0] as { responseJson: string }).responseJson);
+          req.onerror = () => rejectRow(req.error);
+        });
+      } finally {
+        db.close();
+      }
+    });
+    expect(completedResponseJson).toContain(`"rate":${exactDecimal}`);
+
+    await page.getByRole('navigation', { name: 'Pages in this app' }).getByRole('link', { name: 'Overview' }).click();
+    await expect(page.locator('main').getByRole('link', { name: 'Annual Report', exact: true }))
+      .toHaveAccessibleDescription(/Filed/);
+  } finally {
+    await site.close();
+  }
+});
+
+test('a route app-shell component never replaces the form-bound presentation in published preview', async ({ page }, info) => {
+  const surfaceUrl = 'https://example.test/surface';
+  const reportUrl = 'https://example.test/definitions/report';
+  const actionsUrl = 'https://example.test/actions/report';
+  const shellCompUrl = 'https://example.test/components/shell';
+  const formCompUrl = 'https://example.test/components/report';
+  const exactDecimal = '0.3333333333333333333333333333';
+  const source = {
+    manifest: {
+      $formspecBundle: '2.4',
+      id: 'https://example.test/app',
+      title: 'Component Targeting Preview',
+      surfaces: [{ url: surfaceUrl }],
+      entrySurface: surfaceUrl,
+      definitions: [{ url: reportUrl, version: '1.0.0' }],
+      responseActionDocuments: [{ url: actionsUrl }],
+      components: [{ url: shellCompUrl }, { url: formCompUrl }],
+    },
+    documents: {
+      [surfaceUrl]: {
+        $formspecSurface: '0.4',
+        id: 'app',
+        entry: 'report',
+        routes: [{
+          id: 'report',
+          path: '/report/{unit}',
+          title: 'Annual Report',
+          routeClass: 'intake',
+          params: [{ name: 'unit', type: 'string' }],
+          slots: [{
+            id: 'form',
+            slotType: 'definition-form',
+            binding: { definitionRef: reportUrl, subjectKeys: { unit: 'unit' } },
+          }],
+        }],
+      },
+      [reportUrl]: {
+        $formspec: '1.0',
+        url: reportUrl,
+        version: '1.0.0',
+        title: 'Annual Report',
+        status: 'active',
+        subject: { type: reportUrl, keys: { unit: { dataType: 'string' } } },
+        items: [{ key: 'rate', type: 'field', dataType: 'decimal', label: 'Exact rate' }],
+      },
+      [actionsUrl]: {
+        $formspecResponseActions: '1.0',
+        version: '1.0.0',
+        scope: 'response',
+        targetDefinition: { url: reportUrl },
+        actions: [
+          { id: 'submitReport', intent: 'submit', label: { literal: 'Submit report' }, effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }] },
+        ],
+      },
+      [shellCompUrl]: {
+        $formspecComponent: '1.2',
+        version: '1.0.0',
+        targetSurfaceRoutes: [{ surface: { url: surfaceUrl }, route: 'report', role: 'app-shell' }],
+        tree: { component: 'Heading', level: 2, text: 'Shell-only heading' },
+      },
+      [formCompUrl]: {
+        $formspecComponent: '1.0',
+        version: '1.0.0',
+        targetDefinition: { url: reportUrl },
+        tree: {
+          component: 'Stack',
+          children: [
+            { component: 'NumberInput', bind: 'rate' },
+            { component: 'ActionButton', actionRef: 'submitReport', label: { literal: 'Submit report' } },
+          ],
+        },
+      },
+    },
+  };
+  const scenario = {
+    $formspecSurfaceScenario: '0.1',
+    version: '1.0.0',
+    initialPath: '/report/north',
+    routeParams: { unit: 'north' },
+    defaultProfile: 'inProgress',
+    profiles: {
+      inProgress: {
+        authorization: { default: 'authorized' },
+        sources: [],
+        drafts: [{
+          definitionUrl: reportUrl,
+          subject: { type: reportUrl, keys: { unit: 'north' } },
+          data: { rate: '__EXACT_DECIMAL__' },
+        }],
+      },
+    },
+    actions: { default: { status: 'complete' } },
+  };
+  const assets = info.outputPath('published-component-inputs');
+  await mkdir(assets, { recursive: true });
+  await Promise.all([
+    writeFile(resolve(assets, 'bundle.json'), JSON.stringify(source)),
+    writeFile(resolve(assets, 'scenario.json'), JSON.stringify(scenario).replace('"__EXACT_DECIMAL__"', exactDecimal)),
+    writeFile(resolve(assets, 'preview.json'), JSON.stringify({ editions: [{ scope: 'published-comp', bundle: 'bundle.json', scenario: 'scenario.json' }] })),
+  ]);
+
+  const site = await visitBuiltPreview(page, info.outputPath('static-component-preview'), assets);
+  try {
+    await expect(page.getByRole('button', { name: 'Submit report' })).toBeVisible();
+    await expect(page.getByLabel('Exact rate')).toHaveValue(exactDecimal);
+    expect(await page.getByRole('heading', { name: 'Shell-only heading' }).count()).toBe(0);
+  } finally {
+    await site.close();
+  }
+});

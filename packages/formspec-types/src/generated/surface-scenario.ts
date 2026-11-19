@@ -156,8 +156,18 @@ export interface CrossComponentRef {
 export interface SurfaceScenarioProfile {
   authorization: SurfaceScenarioAuthorization;
   sources: SurfaceScenarioSourceOutcome[];
+  /**
+   * Optional sample completed Responses admitted into the preview filing store for this profile.
+   */
   filings?: SurfaceScenarioFiling[];
+  /**
+   * Optional review dispositions joined to sample completed Responses by exact (responseId, responseHash).
+   */
   decisions?: SurfaceScenarioDecision[];
+  /**
+   * Optional preview-only in-progress drafts seeded into the preview DraftPort for this profile alongside completed filings and decisions.
+   */
+  drafts?: SurfaceScenarioDraft[];
 }
 /**
  * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema
@@ -244,6 +254,53 @@ export interface DecidedDisposition {
 }
 export interface UndecidedDisposition {
   status: 'none' | 'unavailable';
+}
+/**
+ * Preview-only in-progress draft seeded into the preview DraftPort. Supplies initial draft answers for one FormDefinition (and optional subject) so filing-status trackers show In Progress or Ready status and opening the form hydrates the saved answers.
+ *
+ * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema
+ * via the `definition` "SurfaceScenarioDraft".
+ */
+export interface SurfaceScenarioDraft {
+  'x-generation'?: Generation;
+  /**
+   * Canonical URL of the target FormDefinition in the resolved bundle.
+   */
+  definitionUrl: string;
+  /**
+   * Optional Definition version pin. When omitted, defaults to the resolved bundle Definition's version; when supplied, it must match that Definition's version.
+   */
+  definitionVersion?: string;
+  subject?: SurfaceScenarioDraftSubject;
+  /**
+   * Partial or complete in-progress answer payload keyed by Definition item keys, hydrated into the form engine draft snapshot and in-progress Response.
+   */
+  data: {
+    [k: string]: unknown;
+  };
+  /**
+   * Optional stable Response ID for the seeded draft. Must be unique across all drafts and filings in the same profile.
+   */
+  responseId?: string;
+  /**
+   * Optional RFC 3339 timestamp recorded as the in-progress Response's authored timestamp.
+   */
+  authored?: string;
+}
+/**
+ * Typed subject key for a subject-keyed FormDefinition. Required when the Definition declares subject; must be omitted when the Definition declares no subject.
+ */
+export interface SurfaceScenarioDraftSubject {
+  /**
+   * Canonical URI of the filing-unit subject type matching the target FormDefinition's subject.type.
+   */
+  type: string;
+  /**
+   * Exact subject key values matching the target FormDefinition's subject.keys declaration (strings or I-JSON safe integers).
+   */
+  keys: {
+    [k: string]: string | number;
+  };
 }
 /**
  * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema

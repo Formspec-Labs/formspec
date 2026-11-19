@@ -2,6 +2,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { initFormspecEngine, initFormspecEngineTools } from '@formspec-org/engine/init-formspec-engine';
+import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import type { BundleExport } from '@formspec-org/surface';
 import { BrowserSurfaceApp, createSurfacePreviewEdition } from '@formspec-org/surface-react';
 import '@formspec-org/layout/formspec-default.css';
@@ -20,10 +21,10 @@ function asset(path: unknown): string {
   return url.href;
 }
 
-async function json(path: unknown) {
+async function json(path: unknown): Promise<any> {
   const result = await fetch(asset(path));
   if (!result.ok) throw new Error(`Could not load ${path} (HTTP ${result.status}).`);
-  return result.json();
+  return parseJsonExact(await result.text());
 }
 
 async function mount() {

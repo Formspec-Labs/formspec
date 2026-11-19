@@ -286,7 +286,9 @@ node, not one node per key. Every profile source outcome and every default or
 action-specific outcome is one separately checked node with its own
 `x-generation` Need anchor. A source outcome is the semantic unit; validators
 MUST NOT create additional trace nodes for rows, cells, or nested members of
-its `value`.
+its `value`. Optional profile `filings[]` and `drafts[]` fixture entries that
+carry `x-generation` are likewise checked as one semantic node each without
+inspecting nested answer values.
 
 Each anchor MUST resolve unambiguously to a Need whose status is `adopted`, and
 MUST pin that Need's current revision. Missing, unresolved, non-adopted, and

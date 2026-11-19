@@ -276,12 +276,18 @@ export type {
 } from './draft-port.js';
 
 export {
+  defaultDraftResponseId,
+  prepareDraftFixtures,
   prepareResponseFiling,
   prepareResponseFixtures,
   responseDraftKey,
   responsePairKey,
   responseSelectionRecord,
   selectFilingStatus,
+  validateDraftFixtures,
+  validResponseAuthored,
+  type DraftFixtureIssue,
+  type PreparedDraftFixture,
   type ResponseFiling,
   type ResponseFixtures,
   type ResponseRecordTools,

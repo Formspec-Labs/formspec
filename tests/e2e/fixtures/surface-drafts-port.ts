@@ -187,3 +187,333 @@ export async function fileExactPreview() {
     database.close();
   }
 }
+
+const seededReviewUrl = 'urn:test:seeded-review';
+const seededScope = 'seeded-edition';
+const seededKey = { scope: seededScope, definitionUrl: seededReviewUrl };
+const seededDefinition: FormDefinition = {
+  $formspec: '1.0',
+  url: seededReviewUrl,
+  version,
+  title: 'Seeded Review',
+  items: [
+    { key: 'first', type: 'group', label: 'First', children: [{ key: 'answer', label: 'Answer', type: 'field', dataType: 'string' }] },
+    { key: 'next', type: 'group', label: 'Next', children: [{ key: 'second', label: 'Second', type: 'field', dataType: 'string' }] },
+  ],
+  binds: [{ path: 'next.second', required: 'true' }],
+};
+const seededDefinitions = new Map([[seededReviewUrl, seededDefinition]]);
+const seededDraftFixture = {
+  definitionUrl: seededReviewUrl,
+  responseId: 'urn:test:seeded-draft',
+  data: { first: { answer: 'Seeded' } },
+};
+const priorCompletedResponseJson = JSON.stringify({
+  $formspecResponse: '1.0',
+  definitionUrl: seededReviewUrl,
+  definitionVersion: version,
+  id: 'urn:test:prior-completed',
+  authored: '2025-01-01T00:00:00Z',
+  status: 'completed',
+  data: { first: { answer: 'Filed answer' }, next: { second: 'Done' } },
+});
+
+export async function operateSeededStore({
+  db,
+  op,
+  returned = false,
+}: {
+  db: string;
+  op: 'inspect' | 'save' | 'clear' | 'discard' | 'submit';
+  returned?: boolean;
+}) {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const tools = await browser.previewResponseRecordTools();
+  const store = browser.createBrowserFilingStore({
+    databaseName: db,
+    scope: seededScope,
+    definitions: seededDefinitions,
+    fixtures: {
+      drafts: [seededDraftFixture],
+      filings: [{ responseJson: priorCompletedResponseJson }],
+      decisions: returned
+        ? [{
+            responseId: 'urn:test:prior-completed',
+            responseHash: (await import('@formspec-org/surface')).prepareResponseFiling(
+              seededScope, seededDefinitions, priorCompletedResponseJson, 'fixture', tools,
+            ).responseHash,
+            decision: { status: 'decided', disposition: 'urn:review:returned', review: 'returned', comments: ['Revise'] },
+          }]
+        : [],
+    },
+  });
+  const record = await store.drafts.load(seededKey, version);
+  if (op === 'inspect') {
+    const summary = (await store.drafts.readSummaries(
+      [{
+        key: 's',
+        definitionUrl: seededReviewUrl,
+        definitionVersion: version,
+        sections: [{ id: 'first', fields: ['first.answer'] }, { id: 'next', fields: ['next.second'] }],
+      }],
+      { previewScope: seededScope, signal: new AbortController().signal },
+    )).get('s');
+    const selections = await store.responses.select(
+      (['current', 'completed'] as const).map(status => ({
+        kind: 'definition',
+        key: status,
+        scope: seededScope,
+        projection: ['first'],
+        selection: { definition: { url: seededReviewUrl }, subject: [], status, cardinality: 'latest', pin: 'none' },
+      })),
+    );
+    const curOutcome = selections.get('current');
+    const compOutcome = selections.get('completed');
+    return {
+      status: record.status,
+      data: record.status === 'loaded' ? JSON.parse(record.draft.responseJson).data : null,
+      draft: summary?.draft,
+      filing: summary?.filing.status,
+      current: curOutcome?.status === 'available' ? curOutcome.value : null,
+      completed: compOutcome?.status === 'available' ? compOutcome.value : null,
+    };
+  }
+  if (record.status !== 'loaded') throw new Error(`Expected loaded draft, got ${record.status}`);
+  if (op === 'discard') return store.drafts.restart(seededKey, record.draft.revision);
+  const resp = JSON.parse(record.draft.responseJson);
+  const edited = op === 'clear' ? {} : { first: { answer: 'My edit' } };
+  if (op === 'save' || op === 'clear') {
+    return store.drafts.save({
+      key: seededKey,
+      expectedRevision: record.draft.revision,
+      definitionVersion: version,
+      snapshotJson: JSON.stringify({ definitionUrl: seededReviewUrl, definitionVersion: version, data: edited }),
+      responseJson: JSON.stringify({ ...resp, data: edited }),
+      summary: null,
+    });
+  }
+  return store.submit(
+    { key: seededKey, revision: record.draft.revision, definitionVersion: version, responseJson: record.draft.responseJson },
+    JSON.stringify({ ...resp, status: 'completed', authored: '2026-01-01T00:00:00Z', data: { first: { answer: 'Seeded' }, next: { second: 'Done' } } }),
+  );
+}
+
+export async function seedLegacyDatabaseForUpgrade(db: string, legacyVersion: 2 | 3) {
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.open(db, legacyVersion);
+    request.onupgradeneeded = () => {
+      for (const name of ['editable', 'summaries', 'filings', ...(legacyVersion === 3 ? ['starts'] : [])]) {
+        request.result.createObjectStore(name);
+      }
+      const response = {
+        ...JSON.parse(priorCompletedResponseJson),
+        id: seededDraftFixture.responseId,
+        status: 'in-progress',
+        data: { first: { answer: 'Existing edit' } },
+      };
+      request.transaction!.objectStore('editable').put(
+        {
+          revision: 'legacy-rev',
+          definitionVersion: version,
+          pinsJson: '{}',
+          responseJson: JSON.stringify(response),
+          snapshotJson: JSON.stringify({ definitionUrl: seededReviewUrl, definitionVersion: version, data: response.data }),
+        },
+        [seededScope, seededReviewUrl, 'respondent', ''],
+      );
+    };
+    request.onsuccess = () => { request.result.close(); resolve(); };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function inspectSeededSummaryStore(db: string) {
+  await operateSeededStore({ db, op: 'inspect' });
+  const handle = await new Promise<IDBDatabase>((resolve, reject) => {
+    const req = indexedDB.open(db);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  try {
+    return await new Promise<Record<string, unknown>>((resolve, reject) => {
+      const req = handle.transaction('summaries').objectStore('summaries').getAll();
+      req.onsuccess = () => resolve(req.result[0] as Record<string, unknown>);
+      req.onerror = () => reject(req.error);
+    });
+  } finally {
+    handle.close();
+  }
+}
+
+export async function operateMintedSeed(action: 'read' | 'restart') {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const tools = await browser.previewResponseRecordTools();
+  const subject = { type: 'urn:test:minted-unit', keys: { unit: 'fixed-id' } };
+  const keyed: FormDefinition = {
+    ...seededDefinition,
+    subject: { type: subject.type, keys: { unit: { dataType: 'string', minted: true } } },
+  };
+  const store = browser.createBrowserFilingStore({
+    scope: seededScope,
+    databaseName: 'formspec-seeded-minted',
+    definitions: new Map([[seededReviewUrl, keyed]]),
+    fixtures: { drafts: [{ ...seededDraftFixture, subject }] },
+  });
+  const mintedKey = {
+    scope: seededScope,
+    definitionUrl: seededReviewUrl,
+    subject: { ...subject, id: tools.subjectId(subject.type, subject.keys) },
+  };
+  const loaded = await store.drafts.load(mintedKey, version);
+  if (action === 'restart' && loaded.status === 'loaded') {
+    return store.drafts.restart(mintedKey, loaded.draft.revision);
+  }
+  return loaded.status;
+}
+
+const secondSeededUrl = 'urn:test:seeded-second';
+const secondSeededDefinition: FormDefinition = {
+  $formspec: '1.0',
+  url: secondSeededUrl,
+  version,
+  title: 'Second Seeded',
+  items: [{ key: 'note', type: 'field', dataType: 'string' }],
+};
+
+export async function startSeededStorePausingBeforeSecondOpen(db: string) {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const originalOpen = indexedDB.open.bind(indexedDB);
+  let openCount = 0;
+  let notifyPaused!: () => void;
+  const pausedBeforeSecondOpen = new Promise<void>(resolve => { notifyPaused = resolve; });
+  let resumeSecondOpen!: () => void;
+  const secondOpenGate = new Promise<void>(resolve => { resumeSecondOpen = resolve; });
+
+  indexedDB.open = ((name: string, dbVersion?: number) => {
+    if (name === db) {
+      openCount += 1;
+      if (openCount === 2) {
+        const proxyReq = {} as IDBOpenDBRequest;
+        notifyPaused();
+        void secondOpenGate.then(() => {
+          const realReq = dbVersion === undefined ? originalOpen(name) : originalOpen(name, dbVersion);
+          realReq.onupgradeneeded = event => {
+            Object.defineProperty(proxyReq, 'result', { value: realReq.result, configurable: true });
+            Object.defineProperty(proxyReq, 'transaction', { value: realReq.transaction, configurable: true });
+            proxyReq.onupgradeneeded?.(event);
+          };
+          realReq.onsuccess = event => {
+            Object.defineProperty(proxyReq, 'result', { value: realReq.result, configurable: true });
+            proxyReq.onsuccess?.(event);
+          };
+          realReq.onerror = event => {
+            Object.defineProperty(proxyReq, 'error', { value: realReq.error, configurable: true });
+            proxyReq.onerror?.(event);
+          };
+        });
+        return proxyReq;
+      }
+    }
+    return dbVersion === undefined ? originalOpen(name) : originalOpen(name, dbVersion);
+  }) as typeof indexedDB.open;
+
+  const store = browser.createBrowserFilingStore({
+    databaseName: db,
+    scope: seededScope,
+    definitions: new Map([[seededReviewUrl, seededDefinition], [secondSeededUrl, secondSeededDefinition]]),
+    fixtures: {
+      drafts: [
+        seededDraftFixture,
+        { definitionUrl: secondSeededUrl, data: { note: 'Second' } },
+      ],
+    },
+  });
+  const finish = store.ready().finally(() => {
+    indexedDB.open = originalOpen;
+  });
+  (window as unknown as Record<string, unknown>).__seedRaceControl = {
+    resume: async () => {
+      resumeSecondOpen();
+      await finish;
+    },
+  };
+  await pausedBeforeSecondOpen;
+}
+
+export async function resumePausedSeededStore() {
+  const ctrl = (window as unknown as Record<string, { resume(): Promise<void> }>).__seedRaceControl;
+  await ctrl.resume();
+}
+
+export async function discardUnseededStore(db: string) {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const unseeded = browser.createBrowserFilingStore({
+    databaseName: db,
+    scope: seededScope,
+    definitions: seededDefinitions,
+  });
+  const loaded = await unseeded.drafts.load(seededKey, version);
+  if (loaded.status !== 'loaded') throw new Error(`Expected loaded row in unseeded store, got ${loaded.status}`);
+  return unseeded.drafts.restart(seededKey, loaded.draft.revision);
+}
+
+export async function initializeRejectedOrCorrectedProfile(db: string, corrected: boolean) {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const dependentUrl = 'urn:test:dependent-seed';
+  const dependentDef: FormDefinition = {
+    $formspec: '1.0',
+    url: dependentUrl,
+    version,
+    title: 'Dependent',
+    items: [{ key: 'note', type: 'field', dataType: 'string' }],
+    instances: {
+      prior: {
+        schema: { first: 'object' },
+        response: {
+          definition: { url: seededReviewUrl },
+          subject: [],
+          status: 'completed',
+          cardinality: 'latest',
+          pin: 'at-open',
+        },
+      },
+    },
+  };
+  const store = browser.createBrowserFilingStore({
+    databaseName: db,
+    scope: seededScope,
+    definitions: new Map([[seededReviewUrl, seededDefinition], [dependentUrl, dependentDef]]),
+    fixtures: {
+      ...(corrected ? { filings: [{ responseJson: priorCompletedResponseJson }] } : {}),
+      drafts: [
+        {
+          definitionUrl: seededReviewUrl,
+          responseId: 'urn:test:first-profile-seed',
+          data: { first: { answer: corrected ? 'corrected' : 'rejected profile' } },
+        },
+        {
+          definitionUrl: dependentUrl,
+          responseId: 'urn:test:dependent-profile-seed',
+          data: { note: 'Depends on completed filing' },
+        },
+      ],
+    },
+  });
+  if (!corrected) {
+    try {
+      await store.ready();
+      return 'unexpectedly-succeeded';
+    } catch {
+      return 'rejected';
+    }
+  }
+  await store.ready();
+  const loaded = await store.drafts.load(seededKey, version);
+  if (loaded.status !== 'loaded') throw new Error(`Expected loaded corrected draft, got ${loaded.status}`);
+  return (JSON.parse(loaded.draft.responseJson) as { data: { first: { answer: string } } }).data.first.answer;
+}

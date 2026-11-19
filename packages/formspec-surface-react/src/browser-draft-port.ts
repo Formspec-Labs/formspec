@@ -1,13 +1,14 @@
 /** @filedesc Preview drafts, immutable filings and review fixtures over one scoped store. */
-import { deepEqual, initFormspecEngine, initFormspecEngineTools, responseSubjectId, selectResponses } from '@formspec-org/engine';
+import { createFormEngine, deepEqual, initFormspecEngine, initFormspecEngineTools, isValidResponseAuthored, responseSubjectId, selectResponses, type FormDraftSnapshot } from '@formspec-org/engine';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
+import { resolvePageSequence, summarizeFormProgress, type PageSequenceEntry, type ProgressCounts } from '@formspec-org/layout';
 import {
   canonicalFiniteJson, prepareResponseFiling, prepareResponseFixtures, responseDraftKey, responsePairKey, responseSelectionRecord,
   catalogResponseDigest, catalogResponseProjection, catalogResponseSelection, resolveDataSourceDescriptor, selectFilingStatus,
-  type BrowserDraftPort, type DraftStartInput, type DraftStartResult, type DataSourceCatalogHandle, type DraftKey, type DraftRecord, type DraftSaveInput, type DraftSectionPlacement,
-  type FilingStatusObservation, type ResponseFiling, type ResponseFixtures, type ResponseRecordTools,
+  type BrowserDraftPort, type CurrentDraftProgress, type DraftStartInput, type DraftStartResult, type DataSourceCatalogHandle, type DraftKey, type DraftRecord, type DraftSaveInput, type DraftSectionPlacement,
+  type FilingProgressCounts, type FilingStatusObservation, type PreparedDraftFixture, type ResponseFiling, type ResponseFixtures, type ResponseRecordTools,
 } from '@formspec-org/surface';
-import type { DispositionAuthority, FormDefinition, FormResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
+import type { DispositionAuthority, EvaluatedFormState, FormDefinition, FormResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionDelivery, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
 import { definitionResponseRequests } from './definition-response-reads.js';
 import type { SurfaceDraftFence } from './draft-writer.js';
 
@@ -17,8 +18,16 @@ type StoredDraft = Omit<DraftRecord, 'pins'> & {
 };
 type InitializedDraft = Pick<StoredDraft, 'definitionVersion' | 'revision' | 'pinsJson'>;
 type StartAttempt = { request: string; subject: NonNullable<DraftKey['subject']> };
-type StoredSummary = { definitionVersion: string; summary: DraftSaveInput['summary'] };
-type Stores = { editable: StoredDraft | InitializedDraft; starts: StartAttempt; summaries: StoredSummary; filings: ResponseFiling };
+type StoredPlanSummary = {
+  planId: string;
+  progress: CurrentDraftProgress;
+};
+type StoredSummary = {
+  definitionVersion: string;
+  plans: readonly StoredPlanSummary[] | null;
+};
+type SeedMarker = { seeded: true };
+type Stores = { editable: StoredDraft | InitializedDraft; starts: StartAttempt; summaries: StoredSummary; filings: ResponseFiling; seeds: SeedMarker };
 type StoreName = keyof Stores;
 type StoredEntry<S extends StoreName> = { id: string[]; value: Stores[S] };
 
@@ -36,6 +45,8 @@ export interface PreviewFilingStoreOptions {
   definitions: ReadonlyMap<string, FormDefinition>;
   fixtures?: ResponseFixtures;
   catalogs?: readonly DataSourceCatalogHandle[] | undefined;
+  /** Admitted Definition/Theme/Component section plans precomputed at fixture initialization. */
+  sectionPlans?: ((definition: FormDefinition) => readonly (readonly PageSequenceEntry[])[]) | undefined;
   /**
    * A selection check authorizes the requested subject space before lookup,
    * including when it contains no records. Other checks use the filing key.
@@ -55,6 +66,7 @@ export interface PreviewFilingStore {
   drafts: BrowserDraftPort;
   responses: ResponseSelector & DispositionAuthority;
   submit(fence: Readonly<SurfaceDraftFence>, responseJson: string): Promise<PreviewFilingSubmitResult>;
+  ready(): Promise<void>;
 }
 
 export async function previewResponseRecordTools(): Promise<ResponseRecordTools> {
@@ -64,6 +76,7 @@ export async function previewResponseRecordTools(): Promise<ResponseRecordTools>
     parseResponse: text => parseJsonExact(text) as FormResponse,
     subjectId: responseSubjectId,
     selectResponses,
+    isValidAuthored: isValidResponseAuthored,
   };
 }
 
@@ -115,8 +128,132 @@ function sectionPlan(sections: readonly DraftSectionPlacement[]): string {
   return JSON.stringify(sections.map(({ id, fields }) => [id ?? null, fields]));
 }
 
+async function sectionPlanId(sections: readonly DraftSectionPlacement[]): Promise<string> {
+  const bytes = new TextEncoder().encode(sectionPlan(sections));
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return 'sha256:' + Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
 function unavailableStatus(): FilingStatusObservation {
   return { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } };
+}
+
+function pickProgressCounts({ total, filled, toFix, toCheck }: ProgressCounts): FilingProgressCounts {
+  return { total, filled, toFix, toCheck };
+}
+
+function progressForSections(
+  sections: readonly Pick<PageSequenceEntry, 'id' | 'fields' | 'groups'>[],
+  evaluated: EvaluatedFormState,
+): CurrentDraftProgress {
+  const summarized = summarizeFormProgress(sections as readonly PageSequenceEntry[], evaluated);
+  return {
+    status: 'current',
+    form: { ...pickProgressCounts(summarized.form), ready: summarized.form.ready },
+    sections: Object.fromEntries(summarized.sections.flatMap(({ id, counts }) =>
+      id === undefined ? [] : [[id, pickProgressCounts(counts)]])),
+  };
+}
+
+function orderSeededDrafts(
+  drafts: readonly PreparedDraftFixture[],
+  definitions: ReadonlyMap<string, FormDefinition>,
+  tools: ResponseRecordTools,
+): PreparedDraftFixture[] {
+  const count = drafts.length;
+  if (count === 0) return [];
+  const indexByResponseId = new Map<string, number>();
+  const candidatesByUrl = new Map<string, ResponseSelectionRecord[]>();
+  drafts.forEach((draft, idx) => {
+    indexByResponseId.set(draft.responseId, idx);
+    const syntheticJson = JSON.stringify({
+      $formspecResponse: '1.0',
+      definitionUrl: draft.key.definitionUrl,
+      definitionVersion: draft.definitionVersion,
+      id: draft.responseId,
+      authored: draft.authored,
+      status: 'in-progress',
+      data: {},
+      ...(draft.key.subject ? { subject: draft.key.subject } : {}),
+    });
+    const list = candidatesByUrl.get(draft.key.definitionUrl) ?? [];
+    list.push(responseSelectionRecord(draft.key, syntheticJson, 'open-draft'));
+    candidatesByUrl.set(draft.key.definitionUrl, list);
+  });
+
+  const inDegree = new Array<number>(count).fill(0);
+  const dependents = Array.from({ length: count }, () => new Set<number>());
+  for (let index = 0; index < count; index += 1) {
+    const consumerFixture = drafts[index]!;
+    const consumer = definitions.get(consumerFixture.key.definitionUrl);
+    if (!consumer) continue;
+    for (const request of definitionResponseRequests(consumer, consumerFixture.key)) {
+      const { selection } = request;
+      if (selection.status !== 'current' || selection.mapping) continue;
+      const upstreamRecords = candidatesByUrl.get(selection.definition.url);
+      const upstreamDef = definitions.get(selection.definition.url);
+      if (!upstreamRecords?.length || !upstreamDef) continue;
+      const outcome = tools.selectResponses(
+        upstreamRecords,
+        { ...selection, pin: 'none', whenNone: 'empty' },
+        {
+          scope: consumerFixture.key.scope,
+          authorized: true,
+          source: 'definition',
+          upstreamSubject: upstreamDef.subject ?? null,
+          ...(request.consumerSubject ? { consumerSubject: request.consumerSubject } : {}),
+          projection: [],
+        },
+      );
+      if (outcome.status !== 'available') continue;
+      for (const selected of outcome.records) {
+        const dep = indexByResponseId.get(selected.responseId);
+        if (dep !== undefined && !dependents[dep]!.has(index)) {
+          dependents[dep]!.add(index);
+          inDegree[index]! += 1;
+        }
+      }
+    }
+  }
+  const ordered: PreparedDraftFixture[] = [];
+  const visited = new Array<boolean>(count).fill(false);
+  while (ordered.length < count) {
+    const next = inDegree.findIndex((deg, idx) => !visited[idx] && deg === 0);
+    if (next === -1) {
+      throw new Error('Seeded drafts contain a cyclic Response instance dependency.');
+    }
+    visited[next] = true;
+    ordered.push(drafts[next]!);
+    for (const dep of dependents[next]!) {
+      inDegree[dep]! -= 1;
+    }
+  }
+  return ordered;
+}
+
+async function buildSectionSummaries(
+  definition: FormDefinition,
+  evaluated: EvaluatedFormState,
+  sectionPlans?: (definition: FormDefinition) => readonly (readonly PageSequenceEntry[])[],
+): Promise<StoredPlanSummary[]> {
+  const candidates = sectionPlans ? [...sectionPlans(definition)] : [];
+  if (candidates.length === 0) candidates.push(resolvePageSequence(definition));
+  const seen = new Set<string>();
+  const out: StoredPlanSummary[] = [];
+  for (const sequence of candidates) {
+    const placements = sequence.map(({ id: sectionId, fields }) => ({
+      ...(sectionId === undefined ? {} : { id: sectionId }),
+      fields,
+    }));
+    const rawKey = sectionPlan(placements);
+    if (seen.has(rawKey)) continue;
+    seen.add(rawKey);
+    out.push({
+      planId: await sectionPlanId(placements),
+      progress: progressForSections(sequence, evaluated),
+    });
+  }
+  return out;
 }
 
 function createFilingStore(
@@ -124,22 +261,286 @@ function createFilingStore(
   subscribe: BrowserDraftPort['subscribe'], committed: () => void,
 ): PreviewFilingStore {
   const { scope, definitions, catalogs = [] } = options;
-  let initialized: ReturnType<typeof initialize> | undefined;
-  async function initialize() {
+  const hasSeededDrafts = Boolean(options.fixtures?.drafts?.length);
+  let fixturesPromise: ReturnType<typeof loadFixtures> | undefined;
+  let seedPromise: Promise<Awaited<ReturnType<typeof loadFixtures>>> | undefined;
+  let seedRejected = false;
+  let readyObservedFailure = false;
+  async function loadFixtures() {
     const tools = await previewResponseRecordTools();
     const fixtures = prepareResponseFixtures(scope, definitions, options.fixtures ?? {}, tools);
     return { ...fixtures, tools };
   }
-  const ready = () => initialized ??= initialize();
+  const fixturesReady = () => fixturesPromise ??= loadFixtures().catch(error => {
+    fixturesPromise = undefined;
+    throw error;
+  });
+  async function seedDrafts(base: Awaited<ReturnType<typeof loadFixtures>>) {
+    if (!base.drafts.length) return;
+    const needsSeed = await transaction(['seeds', 'editable', 'filings'], 'readwrite', async tx => {
+      const [seedRows, editableRows, filedRows] = await Promise.all([
+        Promise.all(base.drafts.map(fixture => tx.get('seeds', storageKey(fixture.key)))),
+        Promise.all(base.drafts.map(fixture => tx.get('editable', storageKey(fixture.key)))),
+        tx.list('filings', scope),
+      ]);
+      const pending: PreparedDraftFixture[] = [];
+      base.drafts.forEach((fixture, index) => {
+        if (seedRows[index]) return;
+        const id = storageKey(fixture.key);
+        const userOwned = Boolean(editableRows[index]) ||
+          filedRows.some(({ value }) => sameKey(value.key, fixture.key) || value.responseId === fixture.responseId);
+        if (userOwned) {
+          tx.put('seeds', id, { seeded: true });
+          return;
+        }
+        pending.push(fixture);
+      });
+      return pending;
+    });
+    if (!needsSeed.length) return;
+
+    const ordered = orderSeededDrafts(needsSeed, definitions, base.tools);
+    type StagedSeed = {
+      fixture: PreparedDraftFixture;
+      id: string[];
+      editable: StoredDraft;
+      summary: StoredSummary;
+    };
+    const staged: StagedSeed[] = [];
+    for (const fixture of ordered) {
+      const definition = definitions.get(fixture.key.definitionUrl);
+      if (!definition) continue;
+      const id = storageKey(fixture.key);
+      const requests = definitionResponseRequests(definition, fixture.key);
+      const resolutions: Record<string, ResponseSelectionDelivery> = {};
+      const pins = Object.create(null) as Record<string, DraftRecord['pins'][string]>;
+      if (requests.length > 0) {
+        const stagedEntries: StoredEntry<'editable'>[] = staged.map(entry => ({ id: entry.id, value: entry.editable }));
+        const outcomes = await selectWithFixtures(base, requests, undefined, stagedEntries);
+        for (const { key: instance, selection } of requests) {
+          const outcome = outcomes.get(instance);
+          if (selection.pin === 'at-open' && (outcome?.status !== 'available' || !outcome.pinned)) {
+            throw new Error(`Seeded draft for "${definition.url}" requires unavailable at-open instance "${instance}".`);
+          }
+          if (outcome?.status === 'available') {
+            const { status: _status, newer: _newer, ...delivery } = outcome;
+            resolutions[instance] = delivery;
+            if (delivery.pinned) pins[instance] = delivery;
+          }
+        }
+      }
+      const engine = createFormEngine(definition, {
+        responseInstanceResolutions: resolutions,
+        ...(fixture.key.subject && { responseSubject: fixture.key.subject }),
+        draftSnapshot: {
+          definitionUrl: definition.url,
+          definitionVersion: fixture.definitionVersion,
+          data: fixture.data as FormDraftSnapshot['data'],
+        },
+      });
+      let snapshotJson: string;
+      let responseJson: string;
+      let evaluated: EvaluatedFormState;
+      try {
+        snapshotJson = JSON.stringify(engine.getDraftSnapshot());
+        const response = {
+          ...engine.getResponse({ id: fixture.responseId, profile: 'off' }),
+          authored: fixture.authored,
+        };
+        responseJson = JSON.stringify(response);
+        evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
+      } finally {
+        engine.dispose();
+      }
+      const plans = await buildSectionSummaries(definition, evaluated, options.sectionPlans);
+      staged.push({
+        fixture,
+        id,
+        editable: {
+          revision: crypto.randomUUID(),
+          definitionVersion: fixture.definitionVersion,
+          snapshotJson,
+          responseJson,
+          pinsJson: JSON.stringify(pins),
+        },
+        summary: {
+          definitionVersion: fixture.definitionVersion,
+          plans,
+        },
+      });
+    }
+    if (!staged.length) return;
+
+    await transaction(['seeds', 'editable', 'summaries', 'filings'], 'readwrite', async tx => {
+      const [seedRows, editableRows, filedRows] = await Promise.all([
+        Promise.all(staged.map(entry => tx.get('seeds', entry.id))),
+        Promise.all(staged.map(entry => tx.get('editable', entry.id))),
+        tx.list('filings', scope),
+      ]);
+      staged.forEach((entry, index) => {
+        if (seedRows[index]) return;
+        const userOwned = Boolean(editableRows[index]) ||
+          filedRows.some(({ value }) => sameKey(value.key, entry.fixture.key) || value.responseId === entry.fixture.responseId);
+        tx.put('seeds', entry.id, { seeded: true });
+        if (userOwned) return;
+        tx.put('editable', entry.id, entry.editable);
+        tx.put('summaries', entry.id, entry.summary);
+      });
+    });
+  }
+  function startInitialize() {
+    seedRejected = false;
+    readyObservedFailure = false;
+    const attempt = fixturesReady().then(async base => {
+      await seedDrafts(base);
+      return base;
+    }).catch(error => {
+      seedRejected = true;
+      throw error;
+    });
+    seedPromise = attempt;
+    return attempt;
+  }
+  const settledReady = () => seedPromise ?? (hasSeededDrafts ? startInitialize() : fixturesReady());
+  if (hasSeededDrafts) {
+    void startInitialize().catch(() => undefined);
+  }
   const authorized = async (
     key: DraftKey, relation: 'read' | 'resume' | 'send', selection?: ResponseSelectionRequest,
   ) => key.scope === scope && (options.authorize === undefined || await options.authorize(key, relation, selection));
+
+  async function selectWithFixtures(
+    base: Awaited<ReturnType<typeof loadFixtures>>,
+    requests: readonly ResponseSelectionRequest[],
+    signal?: AbortSignal,
+    stagedDrafts?: readonly StoredEntry<'editable'>[],
+  ) {
+    const unavailable = { status: 'unavailable' } as const;
+    signal?.throwIfAborted();
+    try {
+      const { tools, filings, decisions } = base;
+      const digests = new Map<DataSourceCatalogHandle['document'], Promise<string>>();
+      const admitted = await Promise.all(requests.map(async request => {
+        try {
+          if (request.kind === 'definition' && request.scope !== scope) return;
+          let selection: ResponseSelection | undefined;
+          let projection: readonly string[] | undefined;
+          if (request.kind === 'catalog') {
+            const descriptor = resolveDataSourceDescriptor(catalogs, request);
+            if (!descriptor) return;
+            let digest = digests.get(descriptor.catalog);
+            if (!digest) {
+              digest = catalogResponseDigest(descriptor.catalog);
+              digests.set(descriptor.catalog, digest);
+            }
+            if (await digest !== request.catalogDigest) return;
+            selection = catalogResponseSelection(descriptor.source);
+            if (selection) projection = catalogResponseProjection(descriptor.source.schema, selection.cardinality);
+          } else {
+            selection = request.selection;
+            projection = request.projection;
+          }
+          if (!selection || selection.mapping) return; // Mapping evidence requires fs-fea7.
+          const definition = definitions.get(selection.definition.url);
+          if (!definition || !await authorized({ scope, definitionUrl: definition.url }, 'read', request)) return;
+          const context: ResponseSelectionContext = {
+            scope, authorized: true, source: request.kind, upstreamSubject: definition.subject ?? null,
+            ...(request.consumerSubject && { consumerSubject: request.consumerSubject }),
+            ...(request.kind === 'catalog' && request.routeParams && { routeParams: request.routeParams }),
+            ...(projection && { projection }), ...(request.pin && { pin: request.pin }),
+            ...(request.kind === 'definition' && request.fallback !== undefined && { fallback: request.fallback }),
+          };
+          return { request, definition, selection, context };
+        } catch {
+          return;
+        }
+      }));
+      signal?.throwIfAborted();
+      const currentDefinitions = new Map(admitted.flatMap(entry =>
+        entry?.selection.status === 'current' ? [[entry.definition.url, entry.definition] as const] : []));
+      const readDrafts = currentDefinitions.size > 0;
+      const stored = admitted.some(Boolean)
+        ? await transaction(readDrafts ? ['editable', 'filings'] : ['filings'], 'readonly', async tx => {
+          const [filed, drafts] = await Promise.all([
+            tx.list('filings', scope), readDrafts ? tx.list('editable', scope) : Promise.resolve([]),
+          ]);
+          return { filed, drafts };
+        })
+        : { filed: [], drafts: [] };
+      const filingGroups = groupBy([...stored.filed.map(({ value }) => value), ...filings],
+        record => record.key.definitionUrl);
+      const filedByDefinition = new Map([...filingGroups].map(([url, records]) => {
+        const dispositions: NonNullable<ResponseSelectionContext['dispositions']>[number][] = [];
+        const unresolved: ResponseSelectionRecord[] = [];
+        const completed = records.map(({ key, responseJson, responseId, responseHash }) => {
+          const input = responseSelectionRecord(key, responseJson, 'filing');
+          const decision = decisions.get(responsePairKey({ responseId, responseHash }));
+          if (decision?.status === 'decided') dispositions.push({ responseId, responseHash, value: decision.disposition });
+          if (decision?.status === 'unavailable') unresolved.push(input);
+          return { key, responseId, responseHash, input };
+        });
+        return [url, { completed, dispositions, unresolved }] as const;
+      }));
+      const storedDraftIds = new Set(stored.drafts.map(({ id }) => JSON.stringify(id)));
+      const mergedDrafts = stagedDrafts?.length
+        ? [...stored.drafts, ...stagedDrafts.filter(({ id }) => !storedDraftIds.has(JSON.stringify(id)))]
+        : stored.drafts;
+      const draftGroups = groupBy(mergedDrafts, ({ id }) => id[1]!);
+      const draftsByDefinition = new Map([...currentDefinitions].map(([url, definition]) =>
+        [url, draftCandidates(draftGroups.get(url) ?? [], scope, definition, tools)]));
+      const authorizedRecords = new Map<string, Promise<boolean>>();
+      const canRead = (record: DraftKey) => {
+        const key = JSON.stringify(storageKey(record));
+        let allowed = authorizedRecords.get(key);
+        if (allowed === undefined) {
+          allowed = authorized(record, 'read');
+          authorizedRecords.set(key, allowed);
+        }
+        return allowed;
+      };
+      const results = await Promise.all(admitted.map(async (entry, index) => {
+        const key = requests[index]!.key;
+        if (!entry) return [key, unavailable] as const;
+        const { definition, selection, context } = entry;
+        const filed = filedByDefinition.get(definition.url);
+        const current = selection.status === 'current' ? draftsByDefinition.get(definition.url) : [];
+        if (!current) return [key, unavailable] as const;
+        try {
+          const candidates = [...current, ...(filed?.completed ?? [])];
+          if (selection.disposition && filed?.unresolved.length) {
+            const { pin: _pin, ...unpinned } = context;
+            const { disposition: _disposition, ...unfiltered } = selection;
+            const possible = tools.selectResponses(
+              filed.unresolved, { ...unfiltered, pin: 'none', whenNone: 'empty' }, { ...unpinned, projection: [] },
+            );
+            if (possible.status !== 'available' || !possible.none) return [key, unavailable] as const;
+          }
+          const outcome = tools.selectResponses(candidates.map(candidate => candidate.input), selection, {
+            ...context, ...(selection.disposition && { dispositions: filed?.dispositions ?? [] }),
+          });
+          if (outcome.status !== 'available') return [key, outcome] as const;
+          const selected = new Set(outcome.records.map(responsePairKey));
+          if (outcome.newer) selected.add(responsePairKey(outcome.newer));
+          const allowed = await Promise.all(candidates.filter(candidate => selected.has(responsePairKey(candidate)))
+            .map(record => canRead(record.key)));
+          return [key, allowed.includes(false) ? unavailable : outcome] as const;
+        } catch {
+          return [key, unavailable] as const;
+        }
+      }));
+      signal?.throwIfAborted();
+      return new Map(results);
+    } catch {
+      signal?.throwIfAborted();
+      return new Map(requests.map(request => [request.key, unavailable]));
+    }
+  }
 
   const responses: PreviewFilingStore['responses'] = {
     async read(pairs, signal) {
       signal?.throwIfAborted();
       try {
-        const { filings, decisions } = await ready();
+        const { filings, decisions } = await settledReady();
         const stored = await transaction(['filings'], 'readonly', tx =>
           Promise.all(pairs.map(pair => tx.get('filings', [scope, pair.responseId]))));
         const fixtures = new Map(filings.map(filing => [responsePairKey(filing), filing]));
@@ -161,120 +562,13 @@ function createFilingStore(
     },
 
     async select(requests, signal) {
-      const unavailable = { status: 'unavailable' } as const;
       signal?.throwIfAborted();
       try {
-        const { tools, filings, decisions } = await ready();
-        const digests = new Map<DataSourceCatalogHandle['document'], Promise<string>>();
-        const admitted = await Promise.all(requests.map(async request => {
-          try {
-            if (request.kind === 'definition' && request.scope !== scope) return;
-            let selection: ResponseSelection | undefined;
-            let projection: readonly string[] | undefined;
-            if (request.kind === 'catalog') {
-              const descriptor = resolveDataSourceDescriptor(catalogs, request);
-              if (!descriptor) return;
-              let digest = digests.get(descriptor.catalog);
-              if (!digest) {
-                digest = catalogResponseDigest(descriptor.catalog);
-                digests.set(descriptor.catalog, digest);
-              }
-              if (await digest !== request.catalogDigest) return;
-              selection = catalogResponseSelection(descriptor.source);
-              if (selection) projection = catalogResponseProjection(descriptor.source.schema, selection.cardinality);
-            } else {
-              selection = request.selection;
-              projection = request.projection;
-            }
-            if (!selection || selection.mapping) return; // Mapping evidence requires fs-fea7.
-            const definition = definitions.get(selection.definition.url);
-            if (!definition || !await authorized({ scope, definitionUrl: definition.url }, 'read', request)) return;
-            const context: ResponseSelectionContext = {
-              scope, authorized: true, source: request.kind, upstreamSubject: definition.subject ?? null,
-              ...(request.consumerSubject && { consumerSubject: request.consumerSubject }),
-              ...(request.kind === 'catalog' && request.routeParams && { routeParams: request.routeParams }),
-              ...(projection && { projection }), ...(request.pin && { pin: request.pin }),
-              ...(request.kind === 'definition' && request.fallback !== undefined && { fallback: request.fallback }),
-            };
-            return { request, definition, selection, context };
-          } catch {
-            return;
-          }
-        }));
-        signal?.throwIfAborted();
-        const currentDefinitions = new Map(admitted.flatMap(entry =>
-          entry?.selection.status === 'current' ? [[entry.definition.url, entry.definition] as const] : []));
-        const readDrafts = currentDefinitions.size > 0;
-        const stored = admitted.some(Boolean)
-          ? await transaction(readDrafts ? ['editable', 'filings'] : ['filings'], 'readonly', async tx => {
-            const [filed, drafts] = await Promise.all([
-              tx.list('filings', scope), readDrafts ? tx.list('editable', scope) : Promise.resolve([]),
-            ]);
-            return { filed, drafts };
-          })
-          : { filed: [], drafts: [] };
-        const filingGroups = groupBy([...stored.filed.map(({ value }) => value), ...filings],
-          record => record.key.definitionUrl);
-        const filedByDefinition = new Map([...filingGroups].map(([url, records]) => {
-          const dispositions: NonNullable<ResponseSelectionContext['dispositions']>[number][] = [];
-          const unresolved: ResponseSelectionRecord[] = [];
-          const completed = records.map(({ key, responseJson, responseId, responseHash }) => {
-            const input = responseSelectionRecord(key, responseJson, 'filing');
-            const decision = decisions.get(responsePairKey({ responseId, responseHash }));
-            if (decision?.status === 'decided') dispositions.push({ responseId, responseHash, value: decision.disposition });
-            if (decision?.status === 'unavailable') unresolved.push(input);
-            return { key, responseId, responseHash, input };
-          });
-          return [url, { completed, dispositions, unresolved }] as const;
-        }));
-        const draftGroups = groupBy(stored.drafts, ({ id }) => id[1]!);
-        const draftsByDefinition = new Map([...currentDefinitions].map(([url, definition]) =>
-          [url, draftCandidates(draftGroups.get(url) ?? [], scope, definition, tools)]));
-        const authorizedRecords = new Map<string, Promise<boolean>>();
-        const canRead = (record: DraftKey) => {
-          const key = JSON.stringify(storageKey(record));
-          let allowed = authorizedRecords.get(key);
-          if (allowed === undefined) {
-            allowed = authorized(record, 'read');
-            authorizedRecords.set(key, allowed);
-          }
-          return allowed;
-        };
-        const results = await Promise.all(admitted.map(async (entry, index) => {
-          const key = requests[index]!.key;
-          if (!entry) return [key, unavailable] as const;
-          const { definition, selection, context } = entry;
-          const filed = filedByDefinition.get(definition.url);
-          const current = selection.status === 'current' ? draftsByDefinition.get(definition.url) : [];
-          if (!current) return [key, unavailable] as const;
-          try {
-            const candidates = [...current, ...(filed?.completed ?? [])];
-            if (selection.disposition && filed?.unresolved.length) {
-              const { pin: _pin, ...unpinned } = context;
-              const { disposition: _disposition, ...unfiltered } = selection;
-              const possible = tools.selectResponses(
-                filed.unresolved, { ...unfiltered, pin: 'none', whenNone: 'empty' }, { ...unpinned, projection: [] },
-              );
-              if (possible.status !== 'available' || !possible.none) return [key, unavailable] as const;
-            }
-            const outcome = tools.selectResponses(candidates.map(candidate => candidate.input), selection, {
-              ...context, ...(selection.disposition && { dispositions: filed?.dispositions ?? [] }),
-            });
-            if (outcome.status !== 'available') return [key, outcome] as const;
-            const selected = new Set(outcome.records.map(responsePairKey));
-            if (outcome.newer) selected.add(responsePairKey(outcome.newer));
-            const allowed = await Promise.all(candidates.filter(candidate => selected.has(responsePairKey(candidate)))
-              .map(record => canRead(record.key)));
-            return [key, allowed.includes(false) ? unavailable : outcome] as const;
-          } catch {
-            return [key, unavailable] as const;
-          }
-        }));
-        signal?.throwIfAborted();
-        return new Map(results);
+        const base = await settledReady();
+        return await selectWithFixtures(base, requests, signal);
       } catch {
         signal?.throwIfAborted();
-        return new Map(requests.map(request => [request.key, unavailable]));
+        return new Map(requests.map(request => [request.key, { status: 'unavailable' as const }]));
       }
     },
   };
@@ -339,7 +633,7 @@ function createFilingStore(
         const prior = await transaction(['starts', 'editable'], 'readonly', recover);
         if (prior) return prior;
         const keys = { ...supplied, ...Object.fromEntries(minted.map(([name]) => [name, crypto.randomUUID()])) };
-        const { tools } = await ready();
+        const { tools } = await settledReady();
         const subject = { type: declaration.type, keys, id: tools.subjectId(declaration.type, keys) };
         const key = { scope, definitionUrl: input.definitionUrl, subject };
         const { pins, missingPin } = await openingPins(key, definition);
@@ -351,7 +645,7 @@ function createFilingStore(
           if (await tx.get('editable', id)) return { status: 'conflict' };
           tx.put('starts', attempt, { request, subject });
           tx.put('editable', id, { definitionVersion: input.definitionVersion, revision: crypto.randomUUID(), pinsJson: JSON.stringify(pins) });
-          tx.put('summaries', id, { definitionVersion: input.definitionVersion, summary: null });
+          tx.put('summaries', id, { definitionVersion: input.definitionVersion, plans: null });
           return { status: 'started', subject };
         });
         if (result.status === 'started') committed();
@@ -364,6 +658,8 @@ function createFilingStore(
       try {
         signal?.throwIfAborted();
         if (!await authorized(key, 'resume')) return { status: 'denied' };
+        signal?.throwIfAborted();
+        if (hasSeededDrafts) await settledReady();
         signal?.throwIfAborted();
         const stored = await transaction(['editable'], 'readonly', tx => tx.get('editable', storageKey(key)));
         signal?.throwIfAborted();
@@ -384,12 +680,13 @@ function createFilingStore(
     async save({ key, expectedRevision, creationPins, definitionVersion, snapshotJson, responseJson, summary }) {
       try {
         if (!await authorized(key, 'resume')) return { status: 'denied' };
+        if (hasSeededDrafts) await settledReady();
         const id = storageKey(key);
         const definition = definitions.get(key.definitionUrl);
         const minted = Object.values(definition?.subject?.keys ?? {}).some(field => field.minted);
         if (minted) {
           if (expectedRevision === null || !definition) return { status: 'conflict' };
-          const { tools } = await ready();
+          const { tools } = await settledReady();
           const response = tools.parseResponse(responseJson);
           if (response.definitionUrl !== definition.url || response.definitionVersion !== definitionVersion ||
             !key.subject || tools.subjectId(key.subject.type, key.subject.keys) !== key.subject.id) return { status: 'conflict' };
@@ -398,6 +695,9 @@ function createFilingStore(
         }
         const { pins, missingPin } = expectedRevision === null
           ? await openingPins(key, definition, { pins: creationPins }) : { pins: {}, missingPin: undefined };
+        const plans: StoredSummary['plans'] = summary
+          ? [{ planId: await sectionPlanId(summary.sections), progress: summary.progress }]
+          : null;
         const result = await transaction(['editable', 'summaries'], 'readwrite', async tx => {
           const previous = await tx.get('editable', id);
           if ((previous?.revision ?? null) !== expectedRevision ||
@@ -406,7 +706,7 @@ function createFilingStore(
           const revision = crypto.randomUUID();
           const pinsJson = previous ? previous.pinsJson : JSON.stringify(pins);
           tx.put('editable', id, { revision, definitionVersion, snapshotJson, responseJson, pinsJson });
-          tx.put('summaries', id, { definitionVersion, summary });
+          tx.put('summaries', id, { definitionVersion, plans });
           return { status: 'saved', revision } as const;
         });
         if (result.status === 'saved') committed();
@@ -419,6 +719,7 @@ function createFilingStore(
     async restart(key, expectedRevision) {
       try {
         if (!await authorized(key, 'resume')) return { status: 'denied' };
+        if (hasSeededDrafts) await settledReady();
         const id = storageKey(key);
         const definition = definitions.get(key.definitionUrl);
         const minted = Object.values(definition?.subject?.keys ?? {}).some(field => field.minted);
@@ -430,7 +731,7 @@ function createFilingStore(
           if (opening && definition) {
             // Discard the old answers but retain the store-issued address on the current version.
             tx.put('editable', id, { revision: crypto.randomUUID(), definitionVersion: definition.version, pinsJson: JSON.stringify(opening.pins) });
-            tx.put('summaries', id, { definitionVersion: definition.version, summary: null });
+            tx.put('summaries', id, { definitionVersion: definition.version, plans: null });
           } else {
             tx.delete('editable', id);
             tx.delete('summaries', id);
@@ -448,12 +749,16 @@ function createFilingStore(
       signal.throwIfAborted();
       const result = new Map<string, FilingStatusObservation>();
       try {
-        const initialized = await ready();
+        const initialized = await settledReady();
         const prepared = await Promise.all(queries.map(async query => {
           const subject = query.subject && { ...query.subject, id: initialized.tools.subjectId(query.subject.type, query.subject.keys) };
           const key: DraftKey = { scope: previewScope ?? scope, definitionUrl: query.definitionUrl, subject };
-          const [read, resume] = await Promise.all([authorized(key, 'read'), authorized(key, 'resume')]);
-          return { query, key, read, resume };
+          const [read, resume, targetPlanId] = await Promise.all([
+            authorized(key, 'read'),
+            authorized(key, 'resume'),
+            sectionPlanId(query.sections),
+          ]);
+          return { query, key, read, resume, targetPlanId };
         }));
         signal.throwIfAborted();
         const visible = prepared.filter(({ read, resume }) => read || resume);
@@ -466,16 +771,20 @@ function createFilingStore(
             return { summaries, filings: [...filings.map(({ value }) => value), ...initialized.filings] };
           }) : { summaries: [], filings: [] };
         const filingsByKey = groupBy(data.filings, record => JSON.stringify(storageKey(record.key)));
-        visible.forEach(({ query, key, read, resume }, index) => {
+        visible.forEach(({ query, key, read, resume, targetPlanId }, index) => {
           const stored = data.summaries[index];
           const observation = unavailableStatus();
           if (resume) {
-            observation.draft = stored
-              ? stored.definitionVersion !== query.definitionVersion ||
-                (stored.summary && sectionPlan(stored.summary.sections) !== sectionPlan(query.sections))
-                ? { status: 'stale' }
-                : stored.summary?.progress ?? { status: 'unavailable' }
-              : { status: 'absent' };
+            if (!stored) {
+              observation.draft = { status: 'absent' };
+            } else if (stored.definitionVersion !== query.definitionVersion) {
+              observation.draft = { status: 'stale' };
+            } else if (!stored.plans || stored.plans.length === 0) {
+              observation.draft = { status: 'unavailable' };
+            } else {
+              const matched = stored.plans.find(candidate => candidate.planId === targetPlanId);
+              observation.draft = matched ? matched.progress : { status: 'stale' };
+            }
           }
           const definition = definitions.get(key.definitionUrl);
           if (read && definition) {
@@ -494,11 +803,22 @@ function createFilingStore(
 
   return {
     drafts, responses,
+    async ready() {
+      if (!seedPromise || (seedRejected && readyObservedFailure)) {
+        startInitialize();
+      }
+      try {
+        await seedPromise;
+      } catch (error) {
+        readyObservedFailure = true;
+        throw error;
+      }
+    },
     async submit(fence, responseJson) {
       const { key, definitionVersion } = fence;
       try {
         if (!await authorized(key, 'send')) return { status: 'denied' };
-        const { tools, filings } = await ready();
+        const { tools, filings } = await settledReady();
         let filing: ResponseFiling;
         try {
           filing = prepareResponseFiling(scope, definitions, responseJson, 'preview-submit', tools);
@@ -588,10 +908,10 @@ export function createBrowserFilingStore(options: BrowserFilingStoreOptions): Pr
   }
 
   const transaction: RunTransaction = async (stores, mode, work) => {
-    const request = indexedDB.open(databaseName, 3);
+    const request = indexedDB.open(databaseName, 4);
     request.onupgradeneeded = event => {
       const db = request.result;
-      for (const store of ['editable', 'summaries', 'filings', 'starts']) {
+      for (const store of ['editable', 'summaries', 'filings', 'starts', 'seeds']) {
         if (event.oldVersion >= 2 && db.objectStoreNames.contains(store)) continue;
         if (db.objectStoreNames.contains(store)) db.deleteObjectStore(store);
         db.createObjectStore(store);
@@ -634,7 +954,7 @@ export function createBrowserFilingStore(options: BrowserFilingStoreOptions): Pr
 
 export function createMemoryFilingStore(options: PreviewFilingStoreOptions): PreviewFilingStore {
   type Entries = { [S in StoreName]: StoredEntry<S>[] };
-  let entries: Entries = { editable: [], summaries: [], filings: [], starts: [] };
+  let entries: Entries = { editable: [], summaries: [], filings: [], starts: [], seeds: [] };
   let pending: Promise<unknown> = Promise.resolve();
   const listeners = new Set<() => void>();
 

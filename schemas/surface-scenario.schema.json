@@ -238,15 +238,165 @@
         },
         "filings": {
           "type": "array",
+          "description": "Optional sample completed Responses admitted into the preview filing store for this profile.",
           "items": {
             "$ref": "#/$defs/SurfaceScenarioFiling"
           }
         },
         "decisions": {
           "type": "array",
+          "description": "Optional review dispositions joined to sample completed Responses by exact (responseId, responseHash).",
           "items": {
             "$ref": "#/$defs/SurfaceScenarioDecision"
           }
+        },
+        "drafts": {
+          "type": "array",
+          "description": "Optional preview-only in-progress drafts seeded into the preview DraftPort for this profile alongside completed filings and decisions.",
+          "items": {
+            "$ref": "#/$defs/SurfaceScenarioDraft"
+          }
+        }
+      }
+    },
+    "SurfaceScenarioDraftSubject": {
+      "type": "object",
+      "description": "Typed subject identity for a seeded in-progress draft. Must match the target Definition's declared subject type and keys. The preview store derives the canonical subject id hash from (type, keys) at admission.",
+      "required": [
+        "type",
+        "keys"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "type": "https://example.test/definitions/annual-report",
+          "keys": {
+            "year": 2026,
+            "unit": "north"
+          }
+        }
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s{}]+$",
+          "description": "Canonical URI of the filing-unit subject type matching the target FormDefinition's subject.type.",
+          "examples": [
+            "https://example.test/definitions/annual-report"
+          ]
+        },
+        "keys": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$"
+          },
+          "description": "Exact subject key values matching the target FormDefinition's subject.keys declaration (strings or I-JSON safe integers).",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            ]
+          },
+          "examples": [
+            {
+              "year": 2026,
+              "unit": "north"
+            }
+          ]
+        }
+      }
+    },
+    "SurfaceScenarioDraft": {
+      "type": "object",
+      "description": "Preview-only in-progress draft seeded into the preview DraftPort. Supplies initial draft answers for one FormDefinition (and optional subject) so filing-status trackers show In Progress or Ready status and opening the form hydrates the saved answers.",
+      "required": [
+        "definitionUrl",
+        "data"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "definitionUrl": "https://example.test/definitions/annual-report",
+          "subject": {
+            "type": "https://example.test/definitions/annual-report",
+            "keys": {
+              "year": 2026,
+              "unit": "north"
+            }
+          },
+          "data": {
+            "summary": "Initial draft notes"
+          }
+        },
+        {
+          "definitionUrl": "https://example.test/definitions/intake",
+          "definitionVersion": "1.0.0",
+          "responseId": "urn:uuid:11111111-2222-4333-8444-555555555555",
+          "authored": "2026-01-15T12:00:00Z",
+          "data": {
+            "applicantName": "Alex Rivera"
+          }
+        }
+      ],
+      "properties": {
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Direct generation provenance for this seeded preview draft fixture."
+        },
+        "definitionUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
+          "description": "Canonical URL of the target FormDefinition in the resolved bundle.",
+          "examples": [
+            "https://example.test/definitions/annual-report"
+          ]
+        },
+        "definitionVersion": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional Definition version pin. When omitted, defaults to the resolved bundle Definition's version; when supplied, it must match that Definition's version.",
+          "examples": [
+            "1.0.0"
+          ]
+        },
+        "subject": {
+          "$ref": "#/$defs/SurfaceScenarioDraftSubject",
+          "description": "Typed subject key for a subject-keyed FormDefinition. Required when the Definition declares subject; must be omitted when the Definition declares no subject."
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Partial or complete in-progress answer payload keyed by Definition item keys, hydrated into the form engine draft snapshot and in-progress Response.",
+          "examples": [
+            {
+              "summary": "Initial draft notes",
+              "count": 42
+            }
+          ]
+        },
+        "responseId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional stable Response ID for the seeded draft. Must be unique across all drafts and filings in the same profile.",
+          "examples": [
+            "urn:uuid:11111111-2222-4333-8444-555555555555"
+          ]
+        },
+        "authored": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional RFC 3339 timestamp recorded as the in-progress Response's authored timestamp.",
+          "examples": [
+            "2026-01-15T12:00:00Z"
+          ]
         }
       }
     },

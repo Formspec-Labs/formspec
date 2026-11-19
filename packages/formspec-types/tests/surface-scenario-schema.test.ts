@@ -157,6 +157,111 @@ it('allows Generation provenance on preview filing fixtures', () => {
   expect(validate(value), JSON.stringify(validate.errors)).toBe(true);
 });
 
+it('validates declarative in-progress draft fixtures on scenario profiles', () => {
+  const value = validScenario();
+  const profile = (value.profiles as Record<string, Record<string, unknown>>).loaded!;
+  profile.drafts = [
+    {
+      definitionUrl: 'https://example.test/definitions/annual-report',
+      definitionVersion: '1.0.0',
+      subject: {
+        type: 'https://example.test/definitions/annual-report',
+        keys: { year: 2026, unit: 'north' },
+      },
+      data: {
+        summary: 'Draft in progress',
+        rows: [{ code: 'A1' }],
+      },
+      responseId: 'urn:uuid:11111111-2222-4333-8444-555555555555',
+      authored: '2026-01-15T12:00:00Z',
+      'x-generation': generation,
+    },
+    {
+      definitionUrl: 'https://example.test/definitions/intake',
+      data: { applicantName: 'Alex Rivera' },
+    },
+  ];
+  expect(validate(value), JSON.stringify(validate.errors)).toBe(true);
+
+  // Rejects alias or unknown properties even when required definitionUrl and data are present.
+  for (const alias of ['form', 'formId', 'id', 'status']) {
+    const withAlias = validScenario();
+    (withAlias.profiles as Record<string, Record<string, unknown>>).loaded!.drafts = [
+      {
+        definitionUrl: 'https://example.test/definitions/intake',
+        data: {},
+        [alias]: 'https://example.test/definitions/intake',
+      },
+    ];
+    expect(validate(withAlias), `expected alias "${alias}" to be rejected`).toBe(false);
+  }
+
+  // Rejects standalone non-URI subject.type and invalid subject key names without needing a bundle.
+  const badSubjectType = validScenario();
+  (badSubjectType.profiles as Record<string, Record<string, unknown>>).loaded!.drafts = [
+    {
+      definitionUrl: 'https://example.test/definitions/annual-report',
+      subject: {
+        type: 'not a URI',
+        keys: { year: 2026 },
+      },
+      data: {},
+    },
+  ];
+  expect(validate(badSubjectType)).toBe(false);
+
+  const badSubjectKeyName = validScenario();
+  (badSubjectKeyName.profiles as Record<string, Record<string, unknown>>).loaded!.drafts = [
+    {
+      definitionUrl: 'https://example.test/definitions/annual-report',
+      subject: {
+        type: 'https://example.test/definitions/annual-report',
+        keys: { 'bad-key': 1 },
+      },
+      data: {},
+    },
+  ];
+  expect(validate(badSubjectKeyName)).toBe(false);
+
+  // Rejects non-object data payload.
+  const badData = validScenario();
+  (badData.profiles as Record<string, Record<string, unknown>>).loaded!.drafts = [
+    {
+      definitionUrl: 'https://example.test/definitions/intake',
+      data: ['not-an-object'],
+    },
+  ];
+  expect(validate(badData)).toBe(false);
+
+  // Rejects non-integer / non-string subject key values or extra subject.id.
+  const badSubjectKey = validScenario();
+  (badSubjectKey.profiles as Record<string, Record<string, unknown>>).loaded!.drafts = [
+    {
+      definitionUrl: 'https://example.test/definitions/annual-report',
+      subject: {
+        type: 'https://example.test/definitions/annual-report',
+        keys: { year: 2026.5 },
+      },
+      data: {},
+    },
+  ];
+  expect(validate(badSubjectKey)).toBe(false);
+
+  const extraSubjectProp = validScenario();
+  (extraSubjectProp.profiles as Record<string, Record<string, unknown>>).loaded!.drafts = [
+    {
+      definitionUrl: 'https://example.test/definitions/annual-report',
+      subject: {
+        type: 'https://example.test/definitions/annual-report',
+        keys: { year: 2026 },
+        id: 'should-be-derived',
+      },
+      data: {},
+    },
+  ];
+  expect(validate(extraSubjectProp)).toBe(false);
+});
+
 it('keeps the bundled Core selection and evidence definitions in sync', () => {
   const { $defs } = selectionSchema;
   const validation = ({ title: _title, description: _description, $comment: _comment, ...body }:

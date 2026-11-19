@@ -388,3 +388,95 @@ test('native Back and Forward retain an unsaved draft in its original edition', 
   await expect(edition).toHaveValue('edition-b');
   await expect(answer).toHaveValue('Only in the second edition');
 });
+
+for (const [name, returned] of [['filed', false], ['returned', true]] as const) {
+  test(`fresh ${name} correction seed survives edit, reload, discard, and reload`, async ({ page }) => {
+    await page.goto('/__formspec-e2e-health');
+    const db = `formspec-seed-correction-${name}`;
+    const before = await page.evaluate(async args => (await import('/surface-drafts-port.ts')).operateSeededStore(args), { db, op: 'inspect' as const, returned });
+    expect(before).toMatchObject({
+      status: 'loaded',
+      data: { first: { answer: 'Seeded' } },
+      draft: { status: 'current', form: { ready: false }, sections: { first: { filled: 1 }, next: { filled: 0 } } },
+      filing: name,
+      current: { first: { answer: 'Seeded' } },
+      completed: { first: { answer: 'Filed answer' } },
+    });
+    expect(await page.evaluate(async args => (await import('/surface-drafts-port.ts')).operateSeededStore(args), { db, op: 'save' as const, returned }))
+      .toMatchObject({ status: 'saved' });
+    await page.reload();
+    expect(await page.evaluate(async args => (await import('/surface-drafts-port.ts')).operateSeededStore(args), { db, op: 'inspect' as const, returned }))
+      .toMatchObject({ data: { first: { answer: 'My edit' } } });
+    expect(await page.evaluate(async args => (await import('/surface-drafts-port.ts')).operateSeededStore(args), { db, op: 'discard' as const, returned }))
+      .toMatchObject({ status: 'discarded' });
+    await page.reload();
+    expect(await page.evaluate(async args => (await import('/surface-drafts-port.ts')).operateSeededStore(args), { db, op: 'inspect' as const, returned }))
+      .toMatchObject({ status: 'absent', filing: name, current: { first: { answer: 'Filed answer' } } });
+  });
+}
+
+for (const [legacyVersion, action, expected] of [[2, 'discard', 'discarded'], [3, 'submit', 'filed']] as const) {
+  test(`v${legacyVersion} upgrade preserves existing edit and ${action} stays cleared after reload`, async ({ page }) => {
+    await page.goto('/__formspec-e2e-health');
+    const db = `formspec-seed-upgrade-v${legacyVersion}`;
+    await page.evaluate(async args => (await import('/surface-drafts-port.ts')).seedLegacyDatabaseForUpgrade(args.db, args.legacyVersion), { db, legacyVersion });
+    expect(await page.evaluate(async args => (await import('/surface-drafts-port.ts')).operateSeededStore(args), { db, op: 'inspect' as const }))
+      .toMatchObject({ status: 'loaded', data: { first: { answer: 'Existing edit' } } });
+    expect(await page.evaluate(async args => (await import('/surface-drafts-port.ts')).operateSeededStore(args), { db, op: action }))
+      .toMatchObject({ status: expected });
+    await page.reload();
+    expect(await page.evaluate(async args => (await import('/surface-drafts-port.ts')).operateSeededStore(args), { db, op: 'inspect' as const }))
+      .toMatchObject({ status: 'absent' });
+  });
+}
+
+test('seeded summary store persists counts only without field state or validation messages, and minted/cleared seeds survive reload', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const row = await page.evaluate(async () => (await import('/surface-drafts-port.ts')).inspectSeededSummaryStore('formspec-seed-summary-only'));
+  expect(row).not.toHaveProperty('seededEvaluated');
+  expect(JSON.stringify(row)).not.toMatch(/first\.answer|next\.second|Required/);
+  expect(Object.keys(row).sort()).toEqual(['definitionVersion', 'plans']);
+
+  const clearDb = 'formspec-seed-clear';
+  expect(await page.evaluate(async db => (await import('/surface-drafts-port.ts')).operateSeededStore({ db, op: 'clear' }), clearDb))
+    .toMatchObject({ status: 'saved' });
+  await page.reload();
+  expect(await page.evaluate(async db => (await import('/surface-drafts-port.ts')).operateSeededStore({ db, op: 'inspect' }), clearDb))
+    .toMatchObject({ status: 'loaded', data: {} });
+
+  expect(await page.evaluate(async () => (await import('/surface-drafts-port.ts')).operateMintedSeed('read'))).toBe('loaded');
+  expect(await page.evaluate(async () => (await import('/surface-drafts-port.ts')).operateMintedSeed('restart'))).toEqual({ status: 'discarded' });
+  await page.reload();
+  expect(await page.evaluate(async () => (await import('/surface-drafts-port.ts')).operateMintedSeed('read'))).toBe('initialized');
+});
+
+test('a discard between observing an owned row and consuming the seed stays discarded across tabs', async ({ page, context }) => {
+  const other = await context.newPage();
+  try {
+    await Promise.all([page.goto('/__formspec-e2e-health'), other.goto('/__formspec-e2e-health')]);
+    const db = 'formspec-seed-two-tab-discard';
+    await page.evaluate(async name => (await import('/surface-drafts-port.ts')).seedLegacyDatabaseForUpgrade(name, 3), db);
+    await page.evaluate(async name => (await import('/surface-drafts-port.ts')).startSeededStorePausingBeforeSecondOpen(name), db);
+
+    expect(await other.evaluate(async name => (await import('/surface-drafts-port.ts')).discardUnseededStore(name), db))
+      .toEqual({ status: 'discarded' });
+    const concurrent = await other.evaluate(async name => (await import('/surface-drafts-port.ts')).operateSeededStore({ db: name, op: 'inspect' }), db);
+    await page.evaluate(async () => (await import('/surface-drafts-port.ts')).resumePausedSeededStore());
+    const after = await other.evaluate(async name => (await import('/surface-drafts-port.ts')).operateSeededStore({ db: name, op: 'inspect' }), db);
+
+    expect(concurrent.status).toBe('absent');
+    expect(after.status).toBe('absent');
+  } finally {
+    await other.close();
+  }
+});
+
+test('correcting a refused profile imports its corrected first fixture on reload', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const db = 'formspec-seed-rejected-profile-retry';
+  expect(await page.evaluate(async name => (await import('/surface-drafts-port.ts')).initializeRejectedOrCorrectedProfile(name, false), db))
+    .toBe('rejected');
+  await page.reload();
+  expect(await page.evaluate(async name => (await import('/surface-drafts-port.ts')).initializeRejectedOrCorrectedProfile(name, true), db))
+    .toBe('corrected');
+});

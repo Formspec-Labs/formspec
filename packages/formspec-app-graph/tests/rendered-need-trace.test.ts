@@ -828,6 +828,10 @@ describe('validateRenderedNeedTrace', () => {
         loaded: {
           authorization: { default: 'authorized' },
           filings: [{ responseJson: '{}', ...generation(current) }, { responseJson: '{}' }],
+          drafts: [
+            { definitionUrl: `${APP_URL}/definitions/intake`, data: {}, ...generation(current) },
+            { definitionUrl: `${APP_URL}/definitions/intake`, data: {} },
+          ],
           sources: [{
             catalogRef: `${APP_URL}/data-sources`,
             sourceRef: 'query:records',
@@ -873,6 +877,7 @@ describe('validateRenderedNeedTrace', () => {
         pointer: '/profiles/loaded/sources/1',
       },
       { kind: 'surface-preview-filing', pointer: '/profiles/loaded/filings/0' },
+      { kind: 'surface-preview-draft', pointer: '/profiles/loaded/drafts/0' },
       { kind: 'surface-preview-action-outcome', pointer: '/actions/default' },
       {
         kind: 'surface-preview-action-outcome',

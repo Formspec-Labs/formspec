@@ -1,7 +1,9 @@
 /** @filedesc Exercise preview filing ports with synthetic Responses and the real Rust selector. */
 import { createDraftSession } from '../src/draft-session.js';
-import { expect, it } from 'vitest';
-import { dereferenceBundleExport, prepareResponseFiling, responsePairKey, responseSourceLoader, catalogResponseDigest,
+import { expect, it, vi } from 'vitest';
+import * as engineModule from '@formspec-org/engine';
+import { resolvePageSequence } from '@formspec-org/layout';
+import { dereferenceBundleExport, prepareDraftFixtures, prepareResponseFiling, responsePairKey, responseSourceLoader, catalogResponseDigest,
   validateSurfacePreviewScenario, type DataSourceLoadRequest, type DataSourceCatalogHandle, type DraftKey } from '@formspec-org/surface';
 import type { FormDefinition, ResponseSelection, DefinitionResponseSelectionRequest, SurfaceScenarioProfile } from '@formspec-org/types';
 import { previewFilingInvoker } from '../src/preview-filing-invoker.js';
@@ -334,5 +336,511 @@ it('hydrates current and accepted reads before creation and reopens with the rec
   } finally {
     server.dispose();
     session.dispose();
+  }
+});
+
+it('seeds in-progress drafts into DraftPort with evaluated progress, current reads, and correction coexistence', async () => {
+  const tools = await previewResponseRecordTools();
+  const detailedReport: FormDefinition = {
+    $formspec: '1.0',
+    url: report,
+    version,
+    title: 'Annual Report',
+    subject: { type: report, keys: { year: { dataType: 'integer' }, member: { dataType: 'string' } } },
+    items: [
+      {
+        key: 'overview',
+        type: 'group',
+        label: 'Overview',
+        children: [
+          { key: 'summary', type: 'field', dataType: 'string', label: 'Summary' },
+          { key: 'total', type: 'field', dataType: 'integer', label: 'Total' },
+        ],
+      },
+    ],
+    binds: [
+      { path: 'overview.summary', required: 'true' },
+      { path: 'overview.total', required: 'true' },
+    ],
+  };
+  const implicitForm: FormDefinition = {
+    $formspec: '1.0',
+    url: 'urn:test:implicit',
+    version,
+    title: 'Implicit Form',
+    items: [
+      { key: 'note', type: 'field', dataType: 'string', label: 'Note' },
+    ],
+    binds: [{ path: 'note', required: 'true' }],
+  };
+  const seededDefs = new Map<string, FormDefinition>([
+    [report, detailedReport],
+    [implicitForm.url, implicitForm],
+  ]);
+
+  const priorFiledJson = JSON.stringify({
+    $formspecResponse: '1.0',
+    definitionUrl: report,
+    definitionVersion: version,
+    id: 'urn:report:prior-filed',
+    status: 'completed',
+    authored: '2026-01-01T00:00:00Z',
+    subject: { id: tools.subjectId(report, reportingUnit), type: report, keys: reportingUnit },
+    data: { overview: { summary: 'Prior filing', total: 10 } },
+  });
+  const priorRecord = prepareResponseFiling(scope, seededDefs, priorFiledJson, 'fixture', tools);
+
+  const store = createMemoryFilingStore({
+    scope,
+    definitions: seededDefs,
+    sectionPlans: def => def.url === report
+      ? [
+          resolvePageSequence(def),
+          [
+            { id: 'part-a', title: 'Part A', fields: ['overview.summary'], groups: ['overview'], fieldTemplates: ['overview.summary'], items: [] },
+            { id: 'part-b', title: 'Part B', fields: ['overview.total'], groups: ['overview'], fieldTemplates: ['overview.total'], items: [] },
+          ],
+        ]
+      : [resolvePageSequence(def)],
+    fixtures: {
+      filings: [{ responseJson: priorFiledJson }],
+      decisions: [{
+        responseId: priorRecord.responseId,
+        responseHash: priorRecord.responseHash,
+        decision: { status: 'decided', review: 'returned', disposition: 'urn:decision:returned', comments: ['Fix totals'] },
+      }],
+      drafts: [
+        {
+          definitionUrl: report,
+          subject: { type: report, keys: reportingUnit },
+          data: { overview: { summary: 'Updated summary' } },
+          responseId: 'urn:report:correction-draft',
+          authored: '2026-02-01T00:00:00Z',
+        },
+        {
+          definitionUrl: implicitForm.url,
+          data: { note: 'All done' },
+        },
+      ],
+    },
+  });
+
+  // 1. DraftPort.load hydrates the seeded in-progress draft directly.
+  const reportKey: DraftKey = {
+    scope,
+    definitionUrl: report,
+    subject: { type: report, keys: reportingUnit, id: tools.subjectId(report, reportingUnit) },
+  };
+  const loaded = await store.drafts.load(reportKey, version);
+  expect(loaded.status).toBe('loaded');
+  if (loaded.status !== 'loaded') throw new Error('expected loaded draft');
+  expect(JSON.parse(loaded.draft.snapshotJson)).toMatchObject({
+    definitionUrl: report,
+    definitionVersion: version,
+    data: { overview: { summary: 'Updated summary' } },
+  });
+  expect(JSON.parse(loaded.draft.responseJson)).toMatchObject({
+    $formspecResponse: '1.0',
+    id: 'urn:report:correction-draft',
+    status: 'in-progress',
+    authored: '2026-02-01T00:00:00Z',
+    data: { overview: { summary: 'Updated summary' } },
+  });
+
+  // 2. readSummaries reports In Progress (ready: false) alongside Returned filing state,
+  //    and Ready (ready: true) for the complete implicit draft.
+  const summaries = await store.drafts.readSummaries([
+    {
+      key: 'report-row',
+      definitionUrl: report,
+      definitionVersion: version,
+      subject: { type: report, keys: reportingUnit },
+      sections: [{ id: 'overview', fields: ['overview.summary', 'overview.total'] }],
+    },
+    {
+      key: 'implicit-row',
+      definitionUrl: implicitForm.url,
+      definitionVersion: version,
+      sections: [{ fields: ['note'] }],
+    },
+    {
+      key: 'stale-section-plan-row',
+      definitionUrl: implicitForm.url,
+      definitionVersion: version,
+      sections: [{ id: 'unadmitted-section', fields: ['note'] }],
+    },
+  ], { previewScope: scope, signal: new AbortController().signal });
+
+  expect(summaries.get('report-row')).toEqual({
+    draft: {
+      status: 'current',
+      form: { total: 2, filled: 1, toFix: 0, toCheck: 0, ready: false },
+      sections: { overview: { total: 2, filled: 1, toFix: 0, toCheck: 0 } },
+    },
+    filing: {
+      status: 'returned',
+      receiptRef: 'urn:report:prior-filed',
+      responseHash: priorRecord.responseHash,
+      review: 'available',
+      comments: ['Fix totals'],
+      sample: 'fixture',
+    },
+  });
+  expect(summaries.get('implicit-row')).toMatchObject({
+    draft: {
+      status: 'current',
+      form: { total: 1, filled: 1, toFix: 0, toCheck: 0, ready: true },
+    },
+    filing: { status: 'none' },
+  });
+  expect(summaries.get('stale-section-plan-row')?.draft).toEqual({ status: 'stale' });
+
+  // 2b. Custom section layouts (e.g. from a Component or Theme) re-project seeded progress cleanly instead of returning stale.
+  const customSectionSummaries = await store.drafts.readSummaries([
+    {
+      key: 'custom-report-row',
+      definitionUrl: report,
+      definitionVersion: version,
+      subject: { type: report, keys: reportingUnit },
+      sections: [
+        { id: 'part-a', fields: ['overview.summary'] },
+        { id: 'part-b', fields: ['overview.total'] },
+      ],
+    },
+  ], { previewScope: scope, signal: new AbortController().signal });
+  expect(customSectionSummaries.get('custom-report-row')?.draft).toEqual({
+    status: 'current',
+    form: { total: 2, filled: 1, toFix: 0, toCheck: 0, ready: false },
+    sections: {
+      'part-a': { total: 1, filled: 1, toFix: 0, toCheck: 0 },
+      'part-b': { total: 1, filled: 0, toFix: 0, toCheck: 0 },
+    },
+  });
+
+  // 2c. Scenario validator accepts a correction draft alongside a completed filing, and rejects responseId collision with filings.
+  const bundle = dereferenceBundleExport({
+    manifest: {
+      $formspecBundle: '2.4',
+      id: 'urn:preview:draft-coexist',
+      definitions: [{ url: report }],
+      surfaces: [{ url: 'urn:surface' }],
+    },
+    documents: {
+      [report]: detailedReport,
+      'urn:surface': { $formspecSurface: '0.4', id: 'surface', entry: 'home', routes: [{ id: 'home', path: '/', slots: [] }] },
+    },
+  });
+  const coexistenceScenario = {
+    $formspecSurfaceScenario: '0.1',
+    version,
+    initialPath: '/',
+    defaultProfile: 'default',
+    actions: { default: { status: 'complete' } },
+    profiles: {
+      default: {
+        authorization: { default: 'authorized' },
+        sources: [],
+        filings: [{ responseJson: priorFiledJson }],
+        drafts: [{
+          definitionUrl: report,
+          subject: { type: report, keys: reportingUnit },
+          data: { overview: { summary: 'Correction draft' } },
+          responseId: 'urn:report:correction-draft',
+        }],
+      },
+    },
+  };
+  expect((await validateSurfacePreviewScenario({ scenario: coexistenceScenario, bundle, responseTools: tools })).valid).toBe(true);
+  coexistenceScenario.profiles.default.drafts[0]!.responseId = 'urn:report:prior-filed';
+  expect(await validateSurfacePreviewScenario({ scenario: coexistenceScenario, bundle, responseTools: tools })).toMatchObject({
+    valid: false,
+    diagnostics: [expect.objectContaining({
+      code: 'SURFACE-SCENARIO-DRAFT-FIXTURE',
+      path: '$.profiles.default.drafts[0].responseId',
+    })],
+  });
+
+  // 3. responses.select with status: 'current' observes the seeded draft immediately.
+  const selected = await store.responses.select([{
+    key: 'current-report',
+    kind: 'definition',
+    scope,
+    projection: ['overview'],
+    selection: { definition: { url: report }, subject: [], status: 'current', cardinality: 'latest', pin: 'none' },
+  }]);
+  expect(selected.get('current-report')).toMatchObject({
+    status: 'available',
+    value: { overview: { summary: 'Updated summary' } },
+  });
+
+  // 4. Editing/saving and then submitting the seeded draft works and clears it cleanly.
+  const completedJson = JSON.stringify({
+    ...JSON.parse(loaded.draft.responseJson),
+    status: 'completed',
+    data: { overview: { summary: 'Updated summary', total: 42 } },
+  });
+  const saved = await store.drafts.save({
+    key: reportKey,
+    expectedRevision: loaded.draft.revision,
+    definitionVersion: version,
+    snapshotJson: JSON.stringify({ definitionUrl: report, definitionVersion: version, data: { overview: { summary: 'Updated summary', total: 42 } } }),
+    responseJson: JSON.stringify({ ...JSON.parse(loaded.draft.responseJson), data: { overview: { summary: 'Updated summary', total: 42 } } }),
+    summary: null,
+  });
+  expect(saved.status).toBe('saved');
+  if (saved.status !== 'saved') throw new Error('expected save');
+  const reloaded = await store.drafts.load(reportKey, version);
+  if (reloaded.status !== 'loaded') throw new Error('expected reloaded draft');
+  const submitted = await store.submit({
+    key: reportKey,
+    definitionVersion: version,
+    revision: reloaded.draft.revision,
+    responseJson: reloaded.draft.responseJson,
+  }, completedJson);
+  expect(submitted.status).toBe('filed');
+  expect(await store.drafts.load(reportKey, version)).toEqual({ status: 'absent' });
+});
+
+it('enforces opening pins, resolves sibling draft order deterministically, unifies default IDs, and never boots FormEngine in readSummaries', async () => {
+  const tools = await previewResponseRecordTools();
+  const upUrl = 'urn:fixture:upstream';
+  const downUrl = 'urn:fixture:downstream';
+  const reqPinUrl = 'urn:fixture:required-pin';
+  const upstreamDef: FormDefinition = {
+    $formspec: '1.0',
+    url: upUrl,
+    version,
+    title: 'Upstream',
+    items: [{ key: 'answer', type: 'field', dataType: 'string', label: 'Answer' }],
+  };
+  const downstreamDef: FormDefinition = {
+    ...upstreamDef,
+    url: downUrl,
+    instances: {
+      lookup: {
+        response: { definition: { url: upUrl }, subject: [], status: 'current', cardinality: 'latest', pin: 'at-open', whenNone: 'empty' },
+        schema: { answer: 'string' },
+      },
+    },
+  };
+  const requiredPinDef: FormDefinition = {
+    ...upstreamDef,
+    url: reqPinUrl,
+    instances: {
+      lookup: {
+        response: { definition: { url: upUrl }, subject: [], status: 'completed', cardinality: 'latest', pin: 'at-open' },
+        schema: { answer: 'string' },
+      },
+    },
+  };
+
+  // 1. Missing required at-open upstream filing refuses seeding.
+  const missingPinStore = createMemoryFilingStore({
+    scope,
+    definitions: new Map([[upUrl, upstreamDef], [reqPinUrl, requiredPinDef]]),
+    fixtures: { drafts: [{ definitionUrl: reqPinUrl, data: { answer: 'blocked' } }] },
+  });
+  expect((await missingPinStore.drafts.load({ scope, definitionUrl: reqPinUrl }, version)).status).not.toBe('loaded');
+
+  // 2. Sibling at-open pins resolve identically regardless of drafts[] array order.
+  async function loadPinned(order: string[]) {
+    const orderedStore = createMemoryFilingStore({
+      scope: 'order-scope',
+      definitions: new Map([[upUrl, upstreamDef], [downUrl, downstreamDef]]),
+      fixtures: { drafts: order.map(url => ({ definitionUrl: url, data: { answer: url } })) },
+    });
+    const row = await orderedStore.drafts.load({ scope: 'order-scope', definitionUrl: downUrl }, version);
+    if (row.status !== 'loaded') throw new Error(`Expected loaded row, got ${row.status}`);
+    return row.draft.pins.lookup;
+  }
+  const forwardPin = await loadPinned([upUrl, downUrl]);
+  const reversePin = await loadPinned([downUrl, upUrl]);
+  expect(forwardPin?.value).toEqual({ answer: upUrl });
+  expect(reversePin).toEqual(forwardPin);
+
+  // 3. Default Response ID derivation agrees between scenario admission and store preparation across scopes.
+  const derivedId = prepareDraftFixtures('custom-edition-scope', new Map([[upUrl, upstreamDef]]), [
+    { definitionUrl: upUrl, data: {} },
+  ], tools)[0]!.responseId;
+  const idCollisionBundle = dereferenceBundleExport({
+    manifest: { $formspecBundle: '2.4', id: 'urn:id-check', definitions: [{ url: upUrl }, { url: downUrl }], surfaces: [{ url: 'urn:s' }] },
+    documents: {
+      [upUrl]: upstreamDef,
+      [downUrl]: upstreamDef,
+      'urn:s': { $formspecSurface: '0.4', id: 's', entry: 'home', routes: [{ id: 'home', path: '/', slots: [] }] },
+    },
+  });
+  const collisionValidation = await validateSurfacePreviewScenario({
+    bundle: idCollisionBundle,
+    scope: 'custom-edition-scope',
+    responseTools: tools,
+    scenario: {
+      $formspecSurfaceScenario: '0.1',
+      version,
+      initialPath: '/',
+      defaultProfile: 'author',
+      actions: { default: { status: 'complete' } },
+      profiles: {
+        author: {
+          authorization: { default: 'authorized' },
+          sources: [],
+          drafts: [
+            { definitionUrl: upUrl, data: {} },
+            { definitionUrl: downUrl, data: {}, responseId: derivedId },
+          ],
+        },
+      },
+    },
+  });
+  expect(collisionValidation.valid).toBe(false);
+
+  // 4. After store fixture initialization, readSummaries never calls createFormEngine.
+  const readyStore = createMemoryFilingStore({
+    scope: 'summary-no-engine',
+    definitions: new Map([[upUrl, upstreamDef]]),
+    fixtures: { drafts: [{ definitionUrl: upUrl, data: { answer: 'ready' } }] },
+  });
+  await readyStore.ready();
+  const spy = vi.spyOn(engineModule, 'createFormEngine');
+  try {
+    const res = await readyStore.drafts.readSummaries(
+      [{ key: 'up', definitionUrl: upUrl, definitionVersion: version, sections: [{ fields: ['answer'] }] }],
+      { previewScope: 'summary-no-engine', signal: new AbortController().signal },
+    );
+    expect(res.get('up')?.draft.status).toBe('current');
+    expect(spy).not.toHaveBeenCalled();
+  } finally {
+    spy.mockRestore();
+  }
+});
+
+it('rejects self-cycles, allows mutual completed-only pins, aborts rejected profiles atomically, and never boots engines on failed-init summary reads', async () => {
+  const aUrl = 'urn:test:cycle-a';
+  const bUrl = 'urn:test:cycle-b';
+  const selfCycleDef: FormDefinition = {
+    $formspec: '1.0',
+    url: aUrl,
+    version,
+    title: 'Self Cycle',
+    items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+    instances: {
+      selfRef: {
+        schema: { answer: 'string' },
+        response: {
+          definition: { url: aUrl },
+          subject: [],
+          status: 'current',
+          cardinality: 'latest',
+          pin: 'at-open',
+          whenNone: 'empty',
+        },
+      },
+    },
+  };
+  const selfCycleStore = createMemoryFilingStore({
+    scope: 'self-cycle',
+    definitions: new Map([[aUrl, selfCycleDef]]),
+    fixtures: { drafts: [{ definitionUrl: aUrl, data: { answer: 'loop' } }] },
+  });
+  await expect(selfCycleStore.ready()).rejects.toThrow(/cycl/i);
+
+  // Two correction drafts reading already-completed filings must NOT be classified as cyclic.
+  const completedReader = (selfUrl: string, otherUrl: string): FormDefinition => ({
+    $formspec: '1.0',
+    url: selfUrl,
+    version,
+    title: selfUrl,
+    items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+    instances: {
+      priorOther: {
+        schema: { answer: 'string' },
+        response: {
+          definition: { url: otherUrl },
+          subject: [],
+          status: 'completed',
+          cardinality: 'latest',
+          pin: 'at-open',
+        },
+      },
+    },
+  });
+  const defA = completedReader(aUrl, bUrl);
+  const defB = completedReader(bUrl, aUrl);
+  const mutualCompletedStore = createMemoryFilingStore({
+    scope: 'mutual-completed',
+    definitions: new Map([[aUrl, defA], [bUrl, defB]]),
+    fixtures: {
+      filings: [
+        { responseJson: JSON.stringify({ $formspecResponse: '1.0', id: 'filed-a', definitionUrl: aUrl, definitionVersion: version, status: 'completed', authored: '2026-01-01T00:00:00Z', data: { answer: 'Filed A' } }) },
+        { responseJson: JSON.stringify({ $formspecResponse: '1.0', id: 'filed-b', definitionUrl: bUrl, definitionVersion: version, status: 'completed', authored: '2026-01-01T00:00:00Z', data: { answer: 'Filed B' } }) },
+      ],
+      drafts: [
+        { definitionUrl: aUrl, data: { answer: 'Correction A' } },
+        { definitionUrl: bUrl, data: { answer: 'Correction B' } },
+      ],
+    },
+  });
+  await expect(mutualCompletedStore.ready()).resolves.toBeUndefined();
+  const loadedA = await mutualCompletedStore.drafts.load({ scope: 'mutual-completed', definitionUrl: aUrl }, version);
+  const loadedB = await mutualCompletedStore.drafts.load({ scope: 'mutual-completed', definitionUrl: bUrl }, version);
+  expect(loadedA.status).toBe('loaded');
+  expect(loadedB.status).toBe('loaded');
+  if (loadedA.status === 'loaded' && loadedB.status === 'loaded') {
+    expect(loadedA.draft.pins.priorOther?.value).toEqual({ answer: 'Filed B' });
+    expect(loadedB.draft.pins.priorOther?.value).toEqual({ answer: 'Filed A' });
+  }
+
+  // Failed initialization must not retry seeding or boot FormEngine during readSummaries.
+  const firstDef: FormDefinition = {
+    $formspec: '1.0',
+    url: 'urn:review:read-retry',
+    version,
+    title: 'Retry',
+    items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+  };
+  const missingUpstreamDef = completedReader(bUrl, aUrl);
+  const failedInitStore = createMemoryFilingStore({
+    scope: 'failed-init-scope',
+    definitions: new Map([[firstDef.url, firstDef], [bUrl, missingUpstreamDef]]),
+    fixtures: {
+      drafts: [
+        { definitionUrl: firstDef.url, data: { answer: 'Rejected profile' } },
+        { definitionUrl: bUrl, data: { answer: 'Missing upstream' } },
+      ],
+    },
+  });
+  await expect(failedInitStore.ready()).rejects.toThrow(/at-open/);
+
+  const spy = vi.spyOn(engineModule, 'createFormEngine');
+  try {
+    const res = await failedInitStore.drafts.readSummaries(
+      [{ key: 'q', definitionUrl: firstDef.url, definitionVersion: version, sections: [{ fields: ['answer'] }] }],
+      { previewScope: 'failed-init-scope', signal: new AbortController().signal },
+    );
+    expect(res.get('q')?.draft.status).toBe('unavailable');
+    expect(spy).not.toHaveBeenCalled();
+  } finally {
+    spy.mockRestore();
+  }
+
+  // Serialized money amount remains a canonical JSON string in stored Response JSON.
+  const moneyDef: FormDefinition = {
+    $formspec: '1.0',
+    url: 'urn:test:money-string',
+    version,
+    title: 'Money',
+    items: [{ key: 'fee', type: 'field', dataType: 'money' }],
+  };
+  const moneyStore = createMemoryFilingStore({
+    scope: 'money-scope',
+    definitions: new Map([[moneyDef.url, moneyDef]]),
+    fixtures: {
+      drafts: [{ definitionUrl: moneyDef.url, data: { fee: { amount: '42.5', currency: 'USD' } } }],
+    },
+  });
+  const moneyRow = await moneyStore.drafts.load({ scope: 'money-scope', definitionUrl: moneyDef.url }, version);
+  expect(moneyRow.status).toBe('loaded');
+  if (moneyRow.status === 'loaded') {
+    expect(JSON.parse(moneyRow.draft.responseJson).data.fee.amount).toBe('42.5');
   }
 });
