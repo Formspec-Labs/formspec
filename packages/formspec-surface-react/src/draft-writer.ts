@@ -276,18 +276,19 @@ export function createDraftWriter(options: DraftWriterOptions) {
     if (pending && !await pending) return false;
     if (conflicted) return false;
     if (automatic) {
-      if (!active || !authoredAutosave) return active;
-      if (edit === savedEdit && (!create || committed)) {
-        clearTimer();
-        return active;
-      }
       // Never persist a newer edit or superseded action under a prior automatic invocation.
       if (
-        edit !== automatic.expectedEdit
+        !active
+        || !authoredAutosave
+        || edit !== automatic.expectedEdit
         || currentActions !== automatic.expectedDocument
         || authoredAutosave !== automatic.expectedAction
       ) {
         return false;
+      }
+      if (edit === savedEdit && (!create || committed)) {
+        clearTimer();
+        return active;
       }
       const saved = await checkpoint();
       clearTimer();
@@ -366,13 +367,16 @@ export function createDraftWriter(options: DraftWriterOptions) {
   const preconditionCatalog = new ResponseActionsPreconditionCatalog();
 
   async function evaluateAutomaticPreconditionsBeforeFence(
-    input: DraftActionInput,
     resolution: ReturnType<typeof resolveResponseAction>,
     action: ResponseAction,
     expectedEdit: number,
     expectedDocument: ResponseActionsDocument | undefined,
     expectedAction: ResponseAction | undefined,
-  ): Promise<{ ok: true; verdicts: Map<string, boolean> } | { ok: false; result: ResponseActionInvocationResult<SubmitResult> }> {
+    prePorts: ResponseActionAsyncInvocationPorts<SubmitResult>,
+  ): Promise<
+    | { ok: true; verdicts: Map<string, boolean>; validationTuple: ReturnType<typeof resolveResponseActionValidationTuple> }
+    | { ok: false; result: ResponseActionInvocationResult<SubmitResult> }
+  > {
     const notInvokedTrace = () => planResponseActionEffects(action).map((planned) => ({
       type: planned.effect.type,
       status: 'not-invoked' as const,
@@ -399,12 +403,9 @@ export function createDraftWriter(options: DraftWriterOptions) {
     const verdicts = new Map<string, boolean>();
     const preconditions = action.preconditions ?? [];
     if (preconditions.length === 0) {
-      return { ok: true, verdicts };
+      return { ok: true, verdicts, validationTuple };
     }
 
-    const invocationId = input.invocationContext?.invocationId ?? `urn:uuid:${crypto.randomUUID()}`;
-    const invocationContext = { ...input.invocationContext, invocationId };
-    const prePorts = options.checkpointPorts?.({ ...input, invocationContext }) ?? input.ports;
     for (const precondition of preconditions) {
       const check = preconditionCatalog.validateExpression(precondition.expression);
       if (!check.ok) {
@@ -492,7 +493,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
         };
       }
     }
-    return { ok: true, verdicts };
+    return { ok: true, verdicts, validationTuple };
   }
 
   async function invoke(
@@ -518,6 +519,9 @@ export function createDraftWriter(options: DraftWriterOptions) {
 
     let automaticGuard: AutomaticFlushGuard | undefined;
     let precheckedVerdicts: Map<string, boolean> | undefined;
+    let resolvedCheckpointPorts: ResponseActionAsyncInvocationPorts<SubmitResult> | undefined;
+    let capturedDetail: SubmitResult | null | undefined;
+    let effectiveInvocationContext = input.invocationContext;
     if (automatic && kind) {
       const expectedEdit = edit;
       const expectedDocument = currentActions;
@@ -539,16 +543,28 @@ export function createDraftWriter(options: DraftWriterOptions) {
           failureReason: 'Autosave action is no longer current.',
         };
       }
+      const invocationId = input.invocationContext?.invocationId ?? `urn:uuid:${crypto.randomUUID()}`;
+      effectiveInvocationContext = { ...input.invocationContext, invocationId };
+      resolvedCheckpointPorts = options.checkpointPorts?.({ ...input, invocationContext: effectiveInvocationContext });
+      const prePorts: ResponseActionAsyncInvocationPorts<SubmitResult> = resolvedCheckpointPorts
+        ? { ...input.ports, ...resolvedCheckpointPorts, submit: resolvedCheckpointPorts.submit ?? input.ports.submit }
+        : input.ports;
       const precheck = await evaluateAutomaticPreconditionsBeforeFence(
-        input,
         resolution,
         action,
         expectedEdit,
         expectedDocument,
         expectedAction,
+        prePorts,
       );
       if (!precheck.ok) {
         return precheck.result;
+      }
+      if (prePorts.submit) {
+        capturedDetail = prePorts.submit({
+          profile: precheck.validationTuple.profile,
+          validationTuple: precheck.validationTuple,
+        });
       }
       precheckedVerdicts = precheck.verdicts;
       automaticGuard = { expectedEdit, expectedDocument, expectedAction };
@@ -556,32 +572,47 @@ export function createDraftWriter(options: DraftWriterOptions) {
 
     const dispatch = async (draftFence?: Readonly<SurfaceDraftFence>, isCurrent?: () => boolean): Promise<DraftActionInvokerResult<SubmitResult>> => {
       if (isCurrent && !isCurrent()) throw new Error('The filing action visit ended.');
-      const { submit, dispatchEffect } = input.ports;
-      const ports: DraftActionPorts = {
-        ...input.ports,
+      const basePorts: ResponseActionAsyncInvocationPorts<SubmitResult> = resolvedCheckpointPorts
+        ? { ...input.ports, ...resolvedCheckpointPorts, submit: resolvedCheckpointPorts.submit ?? input.ports.submit }
+        : input.ports;
+      const { submit, dispatchEffect } = basePorts;
+      const ports: ResponseActionAsyncInvocationPorts<SubmitResult> = {
+        ...basePorts,
         ...(precheckedVerdicts && precheckedVerdicts.size > 0 && {
           evaluatePrecondition: (precondition, candidate) => {
             if (precheckedVerdicts!.has(precondition.id)) return true;
-            return input.ports.evaluatePrecondition?.(precondition, candidate) ?? false;
+            return basePorts.evaluatePrecondition?.(precondition, candidate) ?? false;
           },
         }),
         ...(isCurrent && submit && {
-          submit: options => {
+          submit: submitOptions => {
             if (!isCurrent()) throw new Error('Draft changed before the action captured its answers.');
-            const detail = submit(options);
+            const detail = automaticGuard && capturedDetail !== undefined
+              ? capturedDetail
+              : submit(submitOptions);
             return !invoker && detail && draftFence ? { ...detail, draftFence } : detail;
           },
         }),
         ...(!invoker && draftFence && dispatchEffect && {
-          dispatchEffect: (effect, detail, action, context) => {
+          dispatchEffect: (effect, detail, candidate, context) => {
             if (!isCurrent?.()) throw new Error('Draft changed before the effect ran.');
-            return dispatchEffect(effect, detail, action, { ...context, draftFence });
+            return dispatchEffect(
+              effect,
+              detail,
+              candidate,
+              { ...context, draftFence } as ResponseActionEffectDispatchContext & { draftFence?: Readonly<SurfaceDraftFence> },
+            );
           },
         }),
       };
       return invoker
-        ? await invoker({ ...input, ports, ...(draftFence && { draftFence }) })
-        : await invokeResponseActionAsync(input.document, input.actionRef, ports, input.nodeId, input.invocationContext);
+        ? await invoker({
+            ...input,
+            ports: ports as DraftActionPorts,
+            ...(effectiveInvocationContext && { invocationContext: effectiveInvocationContext }),
+            ...(draftFence && { draftFence }),
+          })
+        : await invokeResponseActionAsync(input.document, input.actionRef, ports, input.nodeId, effectiveInvocationContext);
     };
     const result = kind ? await runFenced(kind, dispatch, {
       completed: result => ('invocation' in result ? result.invocation : result).status === 'completed',
@@ -605,9 +636,17 @@ export function createDraftWriter(options: DraftWriterOptions) {
     const run = Promise.resolve().then(async () => {
       if (!await drain(true, automaticGuard) || !committed) throw new Error('Draft could not be saved.');
       const revision = committed.revision;
-      const editAtStart = edit;
+      const editAtStart = automaticGuard ? automaticGuard.expectedEdit : edit;
       const unchanged = () => active && editAtStart === edit;
-      const isCurrent = () => unchanged() && (current?.() ?? true);
+      const automaticCurrent = () =>
+        active
+        && currentActions === automaticGuard!.expectedDocument
+        && authoredAutosave === automaticGuard!.expectedAction
+        && savedEdit === automaticGuard!.expectedEdit;
+      const isCurrent = () => (automaticGuard ? automaticCurrent() : unchanged()) && (current?.() ?? true);
+      if (!isCurrent()) {
+        throw new Error('Draft changed before the filing action.');
+      }
       const latest = await port.load(key, definitionVersion);
       if (!isCurrent() || latest.status !== 'loaded' || latest.draft.revision !== revision) {
         if (active && latest.status === 'loaded' && latest.draft.revision !== revision) {

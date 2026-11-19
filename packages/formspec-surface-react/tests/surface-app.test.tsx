@@ -2950,4 +2950,381 @@ describe("navigation", () => {
       }
     }
   });
+
+  it("binds automatic Prepare/Sign to the checked edit, shares invocationId, honors mid-load removal, carries checkpointPorts, and keeps later edits unsigned", async () => {
+    const { createFormEngine, invokeResponseActionAsync } = await import("@formspec-org/engine");
+    const { createDraftWriter } = await import("../src/draft-writer.js");
+
+    // 1. fence.test.ts: prepare/sign x stable, edit-during-write, remove-during-load, invocation-id
+    const fenceDef = {
+      $formspec: "1.0",
+      version: "1",
+      url: "urn:review9:filing-autosave",
+      title: "Review",
+      items: [{ type: "field", key: "answer", dataType: "string" }],
+    } as unknown as FormDefinition;
+    const fenceDocFor = (operation: "prepare" | "sign") => ({
+      $formspecResponseActions: "1.0",
+      version: "1",
+      targetDefinition: { url: fenceDef.url },
+      "x-formspec-runtime": {
+        version: "1.0",
+        requests: [{ id: "candidate", operation, adapter: "http-json", request: { method: "POST", pathTemplate: "/candidate" } }],
+      },
+      actions: [
+        {
+          id: "automatic",
+          intent: "autosave",
+          preconditions: [{ id: "eligible", expression: "$answer = 'permitted'", severity: "block" }],
+          effects: [{ type: "serviceRequest", requestRef: "candidate", idempotencyKey: "@invocation.id", onError: "fail" }],
+        },
+      ],
+    }) as unknown as ResponseActionsDocument;
+
+    for (const operation of ["prepare", "sign"] as const) {
+      for (const mode of ["stable", "edit-during-write", "remove-during-load", "invocation-id"] as const) {
+        const engine = createFormEngine(fenceDef);
+        const doc = fenceDocFor(operation);
+        const checks: string[] = [];
+        const checksId: Array<string | undefined> = [];
+        const effectsId: Array<string | undefined> = [];
+        const writes: string[] = [];
+        const effects: Array<{ captured: string; persisted: string }> = [];
+        let committed: { revision: string; responseJson: string; snapshotJson: string } | undefined;
+        let release!: () => void;
+        const paused = new Promise<void>((resolve) => { release = resolve; });
+        let started!: () => void;
+        const entered = new Promise<void>((resolve) => { started = resolve; });
+        const key = { scope: `review9-${operation}-${mode}`, definitionUrl: fenceDef.url };
+        const writer = createDraftWriter({
+          engine,
+          actions: doc,
+          debounceMs: 5,
+          sections: [],
+          key,
+          port: {
+            async save(input) {
+              writes.push(String(JSON.parse(input.responseJson).data.answer ?? ""));
+              if (mode === "edit-during-write" && writes.length === 1) {
+                started();
+                await paused;
+              }
+              committed = { revision: String(writes.length), responseJson: input.responseJson, snapshotJson: input.snapshotJson };
+              return { status: "saved" as const, revision: committed.revision };
+            },
+            async load() {
+              if (mode === "remove-during-load") {
+                started();
+                await paused;
+              }
+              return committed
+                ? {
+                    status: "loaded" as const,
+                    draft: {
+                      key,
+                      definitionVersion: fenceDef.version,
+                      revision: committed.revision,
+                      responseJson: committed.responseJson,
+                      snapshotJson: committed.snapshotJson,
+                      updatedAt: new Date().toISOString(),
+                    },
+                  }
+                : { status: "absent" as const };
+            },
+            discard: async () => ({ status: "discarded" as const }),
+            readSummaries: async () => new Map(),
+          },
+          checkpointPorts: ({ ports, invocationContext }) => ({
+            ...ports,
+            evaluatePrecondition: () => {
+              checksId.push(invocationContext?.invocationId);
+              const answer = String(engine.getDraftSnapshot().data.answer ?? "");
+              checks.push(answer);
+              return answer === "permitted";
+            },
+          }),
+          invoker: async ({ ports, document: invokedDoc, actionRef, invocationContext, draftFence }) => {
+            const result = await invokeResponseActionAsync(
+              invokedDoc,
+              actionRef,
+              {
+                ...ports,
+                resolveIdempotencyKey: () => "synthetic-key",
+                dispatchEffect: (effect, detail) => {
+                  effects.push({
+                    captured: String(detail.response.data.answer ?? ""),
+                    persisted: String(JSON.parse(draftFence!.responseJson).data.answer ?? ""),
+                  });
+                  return { type: effect.type, status: "succeeded" as const };
+                },
+              },
+              undefined,
+              invocationContext,
+            );
+            effectsId.push(result.invocationId);
+            return result;
+          },
+        });
+        try {
+          engine.setValue("answer", "permitted");
+          if (mode === "edit-during-write" || mode === "remove-during-load") {
+            await entered;
+            if (mode === "edit-during-write") engine.setValue("answer", "refused");
+            else writer.setActions(undefined);
+            release();
+          } else {
+            await vi.waitFor(() => expect(effects.length).toBe(1), { timeout: 2000 });
+          }
+          await writer.waitForSaves();
+          const label = `${operation} ${mode}`;
+          expect(writes, label).toEqual(["permitted"]);
+          if (mode === "edit-during-write") {
+            expect(checks, label).toEqual(["permitted", "refused"]);
+            expect(writer.dirty, label).toBe(true);
+            expect(effects.every(({ captured, persisted }) => captured === persisted && captured === "permitted"), label).toBe(true);
+          } else if (mode === "remove-during-load") {
+            expect(effects, label).toEqual([]);
+          } else if (mode === "invocation-id") {
+            expect(effectsId, label).toEqual(checksId);
+          } else {
+            expect(checks, label).toEqual(["permitted"]);
+            expect(effects, label).toEqual([{ captured: "permitted", persisted: "permitted" }]);
+            expect(writer.dirty, label).toBe(false);
+          }
+        } finally {
+          release();
+          writer.dispose();
+          engine.dispose();
+        }
+      }
+    }
+
+    // 2. unsigned-submit.test.ts: edit during or after first storage write for automatic Sign stays unsigned at explicit Submit
+    const submitDef = {
+      $formspec: "1.0",
+      version: "1",
+      url: "urn:review9:explicit-submit",
+      title: "Review",
+      items: [{ type: "field", key: "answer", dataType: "string" }],
+    } as unknown as FormDefinition;
+    const submitDoc = {
+      $formspecResponseActions: "1.0",
+      version: "1",
+      targetDefinition: { url: submitDef.url },
+      "x-formspec-runtime": {
+        version: "1.0",
+        requests: [{ id: "sign", operation: "sign", adapter: "http-json", request: { method: "POST", pathTemplate: "/sign" } }],
+      },
+      actions: [
+        {
+          id: "automatic",
+          intent: "autosave",
+          preconditions: [{ id: "allowed", expression: "$answer = 'permitted'", severity: "block" }],
+          effects: [{ type: "serviceRequest", requestRef: "sign", idempotencyKey: "@invocation.id", onError: "fail" }],
+        },
+        { id: "submit", intent: "submit", effects: [{ type: "hostEvent", eventName: "submitted" }] },
+      ],
+    } as unknown as ResponseActionsDocument;
+    for (const when of ["after", "during"] as const) {
+      const engine = createFormEngine(submitDef);
+      const writes: string[] = [];
+      const signed: string[] = [];
+      const submitted: string[] = [];
+      let committed: { revision: string; responseJson: string; snapshotJson: string } | undefined;
+      let started!: () => void;
+      let release!: () => void;
+      const entered = new Promise<void>((resolve) => { started = resolve; });
+      const paused = new Promise<void>((resolve) => { release = resolve; });
+      const key = { scope: `review9-submit-${when}`, definitionUrl: submitDef.url };
+      const writer = createDraftWriter({
+        engine,
+        actions: submitDoc,
+        debounceMs: 5,
+        sections: [],
+        key,
+        port: {
+          async save(input) {
+            writes.push(String(JSON.parse(input.responseJson).data.answer ?? ""));
+            if (writes.length === 1 && when === "during") {
+              started();
+              await paused;
+            }
+            committed = { revision: String(writes.length), responseJson: input.responseJson, snapshotJson: input.snapshotJson };
+            return { status: "saved" as const, revision: committed.revision };
+          },
+          async load() {
+            return committed
+              ? {
+                  status: "loaded" as const,
+                  draft: {
+                    key,
+                    definitionVersion: submitDef.version,
+                    revision: committed.revision,
+                    responseJson: committed.responseJson,
+                    snapshotJson: committed.snapshotJson,
+                    updatedAt: new Date().toISOString(),
+                  },
+                }
+              : { status: "absent" as const };
+          },
+          discard: async () => ({ status: "discarded" as const }),
+          readSummaries: async () => new Map(),
+        },
+        checkpointPorts: ({ ports }) => ({
+          ...ports,
+          evaluatePrecondition: () => engine.getDraftSnapshot().data.answer === "permitted",
+        }),
+        invoker: async ({ ports, document: invokedDoc, actionRef, draftFence, invocationContext }) =>
+          invokeResponseActionAsync(
+            invokedDoc,
+            actionRef,
+            {
+              ...ports,
+              resolveIdempotencyKey: () => "synthetic-key",
+              dispatchEffect: (effect) => {
+                signed.push(String(JSON.parse(draftFence!.responseJson).data.answer ?? ""));
+                return { type: effect.type, status: "succeeded" as const };
+              },
+              dispatchHostEvent: () => {
+                submitted.push(String(JSON.parse(draftFence!.responseJson).data.answer ?? ""));
+              },
+            },
+            undefined,
+            invocationContext,
+          ),
+      });
+      try {
+        engine.setValue("answer", "permitted");
+        if (when === "during") {
+          await entered;
+        } else {
+          await vi.waitFor(() => expect(signed).toEqual(["permitted"]), { timeout: 2000 });
+          await writer.waitForSaves();
+        }
+        engine.setValue("answer", "refused");
+        release();
+        await writer.waitForSaves();
+        let outcome: string;
+        try {
+          outcome = (
+            await writer.invoke({
+              document: submitDoc,
+              actionRef: "submit",
+              ports: { submit: writer.captureActionResponse, dispatchHostEvent: () => {} },
+            })
+          ).status;
+        } catch (error) {
+          outcome = error instanceof Error ? error.message : String(error);
+        }
+        expect(signed, when).toEqual(["permitted"]);
+        expect(submitted, when).toEqual([]);
+        expect(outcome, when).toMatch(/Sign this draft/);
+      } finally {
+        release();
+        writer.dispose();
+        engine.dispose();
+      }
+    }
+
+    // 3. checkpoint-adapter.test.ts: documented checkpointPorts carries resolveIdempotencyKey, dispatchEffect, and draftFence through Prepare/Sign
+    const hostDef = {
+      $formspec: "1.0",
+      version: "1.0.0",
+      url: "urn:review9:checkpoint-host",
+      title: "Checkpoint",
+      items: [{ type: "field", key: "answer", dataType: "string" }],
+    } as unknown as FormDefinition;
+    for (const operation of ["ordinary", "prepare", "sign"] as const) {
+      const engine = createFormEngine(hostDef);
+      const key = { scope: `review9-host-${operation}`, definitionUrl: hostDef.url };
+      const events: string[] = [];
+      const doc = {
+        $formspecResponseActions: "1.0",
+        version: "1.0.0",
+        targetDefinition: { url: hostDef.url },
+        "x-formspec-runtime": {
+          version: "1.0",
+          requests: [
+            {
+              id: "candidate",
+              ...(operation !== "ordinary" ? { operation } : {}),
+              adapter: "http-json",
+              request: { method: "POST", pathTemplate: "/candidate" },
+            },
+          ],
+        },
+        actions: [
+          {
+            id: "auto",
+            intent: "autosave",
+            preconditions: [{ id: "allowed", expression: "true", severity: "block" }],
+            effects: [{ type: "serviceRequest", requestRef: "candidate", idempotencyKey: "@invocation.id", onError: "fail" }],
+          },
+        ],
+      } as unknown as ResponseActionsDocument;
+      let stored: { revision: string; responseJson: string; snapshotJson: string } | undefined;
+      const writer = createDraftWriter({
+        engine,
+        key,
+        actions: doc,
+        sections: [],
+        debounceMs: 60000,
+        port: {
+          async save(input) {
+            events.push("storage");
+            stored = { revision: "1", responseJson: input.responseJson, snapshotJson: input.snapshotJson };
+            return { status: "saved" as const, revision: "1" };
+          },
+          async load() {
+            return stored
+              ? {
+                  status: "loaded" as const,
+                  draft: {
+                    key,
+                    definitionVersion: hostDef.version,
+                    revision: stored.revision,
+                    responseJson: stored.responseJson,
+                    snapshotJson: stored.snapshotJson,
+                    updatedAt: new Date().toISOString(),
+                  },
+                }
+              : { status: "absent" as const };
+          },
+          discard: async () => ({ status: "discarded" as const }),
+          readSummaries: async () => new Map(),
+        },
+        checkpointPorts: ({ ports, invocationContext }) => ({
+          ...ports,
+          evaluatePrecondition() {
+            events.push("check");
+            return true;
+          },
+          resolveIdempotencyKey() {
+            events.push("key");
+            return invocationContext?.invocationId ?? "missing";
+          },
+          dispatchEffect(effect, detail, _action, context) {
+            events.push(`dispatch ${detail.response.data.answer}`);
+            if (operation !== "ordinary") {
+              expect((context as { draftFence?: { revision?: string } }).draftFence?.revision).toBe("1");
+            }
+            return { type: effect.type, status: "succeeded" as const };
+          },
+        }),
+        report(notice) {
+          events.push(notice);
+        },
+      });
+      try {
+        engine.setValue("answer", "allowed");
+        const left = await writer.leave();
+        expect(events.filter((e) => e === "dispatch allowed"), operation).toHaveLength(1);
+        expect(left, operation).toBe(true);
+        expect(writer.dirty, operation).toBe(false);
+      } finally {
+        writer.dispose();
+        engine.dispose();
+      }
+    }
+  });
 });

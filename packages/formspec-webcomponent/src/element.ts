@@ -630,7 +630,7 @@ export class FormspecRender extends HTMLElement {
     /** Set the Response Actions document used by ActionButton actionRef resolution. */
     set responseActionsDocument(val: ResponseActionsDocument | null | undefined) {
         this._responseActionsDocument = val ?? null;
-        this.syncAutosaveSubscription();
+        this.syncAutosaveSubscription(true);
         this.scheduleRender();
     }
 
@@ -1437,7 +1437,7 @@ export class FormspecRender extends HTMLElement {
         this._autosaveBound = false;
     }
 
-    private syncAutosaveSubscription(): void {
+    private syncAutosaveSubscription(forceReconcile = false): void {
         if (!this.isConnected || !this.engine) {
             this.teardownAutosaveSubscription();
             if (this.actionStatusEl) {
@@ -1446,7 +1446,7 @@ export class FormspecRender extends HTMLElement {
             return;
         }
         if (this._autosaveBound && this.engine === this._autosaveEngine && this._autosaveController) {
-            if (this._responseActionsDocument === this._autosaveDoc) {
+            if (!forceReconcile && this._responseActionsDocument === this._autosaveDoc) {
                 return;
             }
             this._autosaveDoc = this._responseActionsDocument;

@@ -671,6 +671,78 @@ describe('wizard page mode: the native submit button is only actionable on the l
                 expect(status(), `${mode}: after`).toBe(mode === 'same' || mode === 'clone' ? 'Completed.' : '');
                 el.remove();
             }
+
+            // 3. Reassigning a mutated responseActionsDocument (same object OR new object) retires ambiguity and flushes correction
+            const mutDef = {
+                $formspec: '1.0',
+                version: '1.0.0',
+                url: 'urn:review9:wc-mutable',
+                title: 'Mutable doc',
+                items: [{ key: 'a', label: 'A', type: 'field', dataType: 'string' }],
+            };
+            const autoAction = (id: string) => ({
+                id,
+                intent: 'autosave' as const,
+                effects: [{ type: 'hostEvent' as const, eventName: `auto-${id}` }],
+            });
+
+            for (const mode of ['same object', 'new object'] as const) {
+                const el = mount(mutDef);
+                const initial = {
+                    $formspecResponseActions: '1.0' as const,
+                    version: '1.0.0',
+                    targetDefinition: { url: mutDef.url },
+                    actions: [autoAction('one')],
+                };
+                el.responseActionsDocument = initial;
+                el.render();
+                const results: string[] = [];
+                const findings: string[] = [];
+                el.addEventListener('formspec-action-result', (e: any) => results.push(e.detail.result.resolution.action?.id));
+                el.addEventListener('formspec-action-finding', (e: any) => findings.push(e.detail.finding?.reason));
+                el.engine.setValue('a', 'first edit');
+                await vi.advanceTimersByTimeAsync(800);
+                const status = () => (el.querySelector('.formspec-action-status')?.textContent ?? '').trim();
+                expect([results, status()], `${mode}: initial`).toEqual([['one'], 'Completed.']);
+
+                const next = mode === 'same object' ? initial : structuredClone(initial);
+                next.actions.push(autoAction('two'));
+                el.responseActionsDocument = next;
+                await vi.advanceTimersByTimeAsync(0);
+                const statusAfterReplacement = status();
+                el.engine.setValue('a', 'second edit');
+                await vi.advanceTimersByTimeAsync(800);
+                expect({ statusAfterReplacement, results, findings }, `${mode}: ambiguous`).toEqual({
+                    statusAfterReplacement: '',
+                    results: ['one'],
+                    findings: ['ambiguous-autosave-action'],
+                });
+                el.remove();
+            }
+
+            for (const mode of ['same object', 'new object'] as const) {
+                const el = mount(mutDef);
+                const initial = {
+                    $formspecResponseActions: '1.0' as const,
+                    version: '1.0.0',
+                    targetDefinition: { url: mutDef.url },
+                    actions: [autoAction('one'), autoAction('two')],
+                };
+                el.responseActionsDocument = initial;
+                el.render();
+                const values: string[] = [];
+                el.addEventListener('formspec-action-result', (e: any) => values.push(e.detail.result.detail?.response?.data?.a));
+                el.engine.setValue('a', 'unsaved edit');
+                await vi.advanceTimersByTimeAsync(800);
+                expect(values, `${mode}: while ambiguous`).toEqual([]);
+
+                const next = mode === 'same object' ? initial : structuredClone(initial);
+                next.actions.pop();
+                el.responseActionsDocument = next;
+                await vi.advanceTimersByTimeAsync(800);
+                expect(values, `${mode}: after correction`).toEqual(['unsaved edit']);
+                el.remove();
+            }
         } finally {
             vi.useRealTimers();
         }

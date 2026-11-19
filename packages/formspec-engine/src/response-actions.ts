@@ -1208,6 +1208,8 @@ export function createResponseActionAutosaveController(
     const draftEditVersionSignal = getDraftEditVersionSignal(options.engine);
     let currentDocument = options.document;
     let resolvedAutosave: ResponseAction | null = null;
+    let resolvedAutosaveSnapshot: ResponseAction | null = null;
+    let lastFinding: ActionRefFinding | undefined;
     // Conforming wrapper engines without the internal edit-version signal keep
     // a single baseline snapshot across inactive periods (no per-edit polling).
     let baselineSnapshot = draftEditVersionSignal ? undefined : options.engine.getDraftSnapshot();
@@ -1336,20 +1338,35 @@ export function createResponseActionAutosaveController(
 
     function reconcileDocument(nextDocument: ResponseActionsDocumentInput | null | undefined, initial: boolean): void {
         if (!active) return;
-        if (!initial && nextDocument === currentDocument) return;
-        const previousAction = resolvedAutosave;
+        const sameReference = !initial && nextDocument === currentDocument;
+        const previousAction = resolvedAutosaveSnapshot;
+        const previousFinding = lastFinding;
         currentDocument = nextDocument;
         const resolution = resolveAutosaveResponseAction(
             currentDocument,
             options.engine.getDefinition?.(),
         );
         const nextAction = resolution.action;
+        const nextActionSnapshot = nextAction ? cloneValue(nextAction) : null;
+        const equivalentAction = previousAction !== null
+            && nextActionSnapshot !== null
+            && deepEqual(previousAction, nextActionSnapshot);
+        const unchangedSameReference = sameReference && (
+            equivalentAction
+            || (
+                previousAction === null
+                && nextActionSnapshot === null
+                && deepEqual(previousFinding, resolution.finding)
+            )
+        );
         resolvedAutosave = nextAction;
+        resolvedAutosaveSnapshot = nextActionSnapshot;
+        lastFinding = resolution.finding ? cloneValue(resolution.finding) : undefined;
+        if (unchangedSameReference) {
+            return;
+        }
         if (!initial) {
             generation += 1;
-            const equivalentAction = previousAction !== null
-                && nextAction !== null
-                && deepEqual(previousAction, nextAction);
             options.onDocumentChange?.({
                 previousAction,
                 nextAction,

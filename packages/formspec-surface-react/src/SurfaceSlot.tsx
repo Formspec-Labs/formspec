@@ -1343,24 +1343,36 @@ function DefaultDefinitionFormSlot({
 function effectiveStyleValue(
   element: HTMLElement,
   property: string,
-  camelProp: 'display' | 'contentVisibility' | 'visibility',
+  camelProp: 'display' | 'contentVisibility' | 'visibility' | 'interactivity',
   computed?: CSSStyleDeclaration | null,
 ): string {
   const computedValue = (
     computed?.getPropertyValue(property)
-    || (computed as (CSSStyleDeclaration & { contentVisibility?: string }) | null | undefined)?.[camelProp]
+    || (computed as (CSSStyleDeclaration & { contentVisibility?: string; interactivity?: string }) | null | undefined)?.[camelProp]
     || ''
   ).trim().toLowerCase();
   if (computedValue) return computedValue;
   return (
     element.style.getPropertyValue(property)
-    || (element.style as CSSStyleDeclaration & { contentVisibility?: string })[camelProp]
+    || (element.style as CSSStyleDeclaration & { contentVisibility?: string; interactivity?: string })[camelProp]
     || ''
   ).trim().toLowerCase();
 }
 
 function hasHiddenContentVisibility(element: HTMLElement, computed?: CSSStyleDeclaration | null): boolean {
   return effectiveStyleValue(element, 'content-visibility', 'contentVisibility', computed) === 'hidden';
+}
+
+function matchesModalDialog(element: HTMLElement): boolean {
+  if (element.tagName !== 'DIALOG' || !(element as HTMLDialogElement).open) return false;
+  if (typeof element.matches === 'function') {
+    try {
+      return element.matches(':modal');
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 function isEffectivelyDisabled(element: HTMLElement): boolean {
@@ -1390,26 +1402,44 @@ function isElementReachable(
   if (visiting.has(element)) return false;
   visiting.add(element);
   const view = element.ownerDocument.defaultView;
+  const elementComputed = view?.getComputedStyle(element);
   const computedVisibility = effectiveStyleValue(
     element,
     'visibility',
     'visibility',
-    view?.getComputedStyle(element),
+    elementComputed,
   );
   if (computedVisibility === 'hidden' || computedVisibility === 'collapse') {
+    return false;
+  }
+  const computedElementInteractivity = (
+    elementComputed?.getPropertyValue('interactivity')
+    || (elementComputed as (CSSStyleDeclaration & { interactivity?: string }) | null | undefined)?.interactivity
+    || ''
+  ).trim().toLowerCase();
+  if (computedElementInteractivity === 'inert') {
     return false;
   }
 
   let current: HTMLElement | null = element;
   let insideForm = true;
+  let passedOpenModalDialog = false;
   while (current) {
     if (current === root) {
       insideForm = false;
     }
-    if ((current as HTMLElement & { inert?: boolean }).inert || current.hasAttribute('inert')) {
-      return false;
-    }
     const computedStyle = view?.getComputedStyle(current);
+    if (!passedOpenModalDialog) {
+      if ((current as HTMLElement & { inert?: boolean }).inert || current.hasAttribute('inert')) {
+        return false;
+      }
+      if (
+        !computedElementInteractivity
+        && effectiveStyleValue(current, 'interactivity', 'interactivity', computedStyle) === 'inert'
+      ) {
+        return false;
+      }
+    }
     if (insideForm && current !== element) {
       if (current.tagName === 'DIALOG' && !(current as HTMLDialogElement).open) {
         if (
@@ -1484,6 +1514,9 @@ function isElementReachable(
     if (current.hidden) return false;
     if (effectiveStyleValue(current, 'display', 'display', computedStyle) === 'none') return false;
     if (hasHiddenContentVisibility(current, computedStyle)) return false;
+    if (matchesModalDialog(current)) {
+      passedOpenModalDialog = true;
+    }
     current = current.parentElement;
   }
   return true;
@@ -1614,38 +1647,57 @@ function DefaultSurfaceDefinitionForm(
 
     measure();
 
-    const observers: MutationObserver[] = [];
+    const collectAncestors = (node: HTMLElement): HTMLElement[] => {
+      const list: HTMLElement[] = [];
+      for (let ancestor = node.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        list.push(ancestor);
+      }
+      return list;
+    };
+    const sameAncestors = (a: readonly HTMLElement[], b: readonly HTMLElement[]): boolean =>
+      a.length === b.length && a.every((el, idx) => el === b[idx]);
+
+    let rootObserver: MutationObserver | undefined;
+    let ancestorObserver: MutationObserver | undefined;
+    let observedAncestors: HTMLElement[] = [];
+    const ancestorAttributeFilter = ['open', 'hidden', 'style', 'class', 'disabled', 'aria-disabled', 'inert'];
+
+    const syncAncestorObserver = () => {
+      if (disposed || typeof MutationObserver !== 'function') return;
+      const nextAncestors = collectAncestors(root);
+      if (ancestorObserver && sameAncestors(observedAncestors, nextAncestors)) {
+        return;
+      }
+      ancestorObserver?.disconnect();
+      ancestorObserver = undefined;
+      observedAncestors = nextAncestors;
+      if (nextAncestors.length === 0) return;
+      const nextObserver = new MutationObserver(() => {
+        syncAncestorObserver();
+        measure();
+      });
+      for (const ancestor of nextAncestors) {
+        nextObserver.observe(ancestor, {
+          attributes: true,
+          childList: true,
+          attributeFilter: ancestorAttributeFilter,
+        });
+      }
+      ancestorObserver = nextObserver;
+    };
+
     if (typeof MutationObserver === 'function') {
-      const rootObserver = new MutationObserver(measure);
+      rootObserver = new MutationObserver(() => {
+        syncAncestorObserver();
+        measure();
+      });
       rootObserver.observe(root, {
         subtree: true,
         childList: true,
         attributes: true,
         attributeFilter: ['open', 'hidden', 'style', 'class', 'disabled', 'aria-disabled', 'inert', 'data-action-ref'],
       });
-      observers.push(rootObserver);
-
-      const ancestorAttributeFilter = ['open', 'hidden', 'style', 'class', 'disabled', 'aria-disabled', 'inert'];
-      let sharedAncestorObserver: MutationObserver | undefined;
-      for (let ancestor = root.parentElement; ancestor; ancestor = ancestor.parentElement) {
-        if (ancestor.style.display === 'contents') {
-          const contentsObserver = new MutationObserver(measure);
-          contentsObserver.observe(ancestor, {
-            attributes: true,
-            attributeFilter: ancestorAttributeFilter,
-          });
-          observers.push(contentsObserver);
-        } else {
-          if (!sharedAncestorObserver) {
-            sharedAncestorObserver = new MutationObserver(measure);
-            observers.push(sharedAncestorObserver);
-          }
-          sharedAncestorObserver.observe(ancestor, {
-            attributes: true,
-            attributeFilter: ancestorAttributeFilter,
-          });
-        }
-      }
+      syncAncestorObserver();
     }
     const onDialogClose = () => measure();
     root.addEventListener('close', onDialogClose, true);
@@ -1659,9 +1711,8 @@ function DefaultSurfaceDefinitionForm(
 
     return () => {
       disposed = true;
-      for (const observer of observers) {
-        observer.disconnect();
-      }
+      rootObserver?.disconnect();
+      ancestorObserver?.disconnect();
       root.removeEventListener('close', onDialogClose, true);
       view?.removeEventListener('resize', onViewportResize);
       stopReactive();

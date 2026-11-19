@@ -1049,3 +1049,89 @@ test('all reachability observers including the shared ancestor observer disconne
   const after = await page.evaluate(() => (window as unknown as { reviewObserver: () => { count: number; stopped: number } }).reviewObserver());
   expect(after.count).toBe(after.stopped);
 });
+
+test('wrapping an already-mounted slot in a disabled fieldset immediately toggles fallback without resizing', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter#/filing');
+  const checkpoint = page.locator('button[data-action-ref="autosave"]');
+  const footer = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+  await expect(checkpoint).toBeVisible();
+  await expect(footer).toHaveCount(0);
+
+  const flip = (enabled: boolean) =>
+    checkpoint.evaluate((el, isEnabled) => {
+      const slot = el.closest<HTMLElement>('.fs-surface-slot')!;
+      let fieldset = slot.closest<HTMLFieldSetElement>('fieldset[data-host]');
+      if (!fieldset) {
+        fieldset = document.createElement('fieldset');
+        fieldset.dataset.host = 'filing';
+        slot.before(fieldset);
+        fieldset.append(slot);
+      }
+      fieldset.disabled = !isEnabled;
+    }, enabled);
+
+  await flip(false);
+  await expect(checkpoint).toBeDisabled();
+  await expect(footer).toHaveCount(1, { timeout: 1200 });
+  await footer.click({ trial: true });
+
+  await flip(true);
+  await expect(checkpoint).toBeEnabled();
+  await expect(footer).toHaveCount(0, { timeout: 1200 });
+  await checkpoint.click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+});
+
+test('CSS interactivity:inert on the outer slot surfaces the fallback immediately while keeping the footer usable', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter#/filing');
+  const checkpoint = page.locator('button[data-action-ref="autosave"]');
+  const footer = page.getByRole('button', { name: 'Continue to Overview', exact: true });
+  await expect(checkpoint).toBeVisible();
+  await expect(footer).toHaveCount(0);
+
+  const state = await checkpoint.evaluate((el) => {
+    const button = el as HTMLButtonElement;
+    const slot = button.closest<HTMLElement>('.fs-surface-slot')!;
+    slot.style.setProperty('interactivity', 'inert');
+    button.blur();
+    button.focus();
+    return {
+      supported: CSS.supports('interactivity', 'inert'),
+      computed: getComputedStyle(slot).getPropertyValue('interactivity').trim(),
+      focusable: document.activeElement === button,
+    };
+  });
+  expect(state.supported).toBe(true);
+  expect(state.computed).toBe('inert');
+  expect(state.focusable).toBe(false);
+  await expect(footer).toHaveCount(1, { timeout: 1200 });
+  await footer.click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+});
+
+for (const backgroundInert of [false, true]) {
+  test(`an open native modal checkpoint routes to Overview (background inert = ${backgroundInert})`, async ({ page }) => {
+    await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter&visibilityCase=modal&variant=true#/filing');
+    await page.getByRole('button', { name: 'Open checkpoint', exact: true }).click();
+    const checkpoint = page.getByRole('button', { name: 'Checkpoint now', exact: true });
+    const footer = page.locator('.fs-surface-transitions button');
+    await expect(checkpoint).toBeVisible();
+    const state = await checkpoint.evaluate((el, inert) => {
+      const button = el as HTMLButtonElement;
+      const slot = button.closest<HTMLElement>('.fs-surface-slot')!;
+      slot.inert = inert;
+      button.blur();
+      button.focus();
+      return {
+        modal: button.closest('dialog')?.matches(':modal') ?? false,
+        slotInert: slot.inert,
+        focusable: document.activeElement === button,
+      };
+    }, backgroundInert);
+    expect(state).toEqual({ modal: true, slotInert: backgroundInert, focusable: true });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await expect(footer).toHaveCount(0);
+    await checkpoint.click();
+    await expect(page).toHaveURL(/#\/overview(?:\?|$)/, { timeout: 1500 });
+  });
+}
