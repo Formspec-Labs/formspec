@@ -528,3 +528,71 @@ test('a populated v3 summary is rebuilt as counts only during initialization and
   expect(JSON.stringify(raw)).not.toMatch(/first\.answer|next\.second/);
   expect(raw).toEqual([{ definitionVersion: '1.0.0', plans: [expect.objectContaining({ planId: expect.stringMatching(/^sha256:/) })] }]);
 });
+
+test('dependent seed never retains a parent created and discarded during preparation', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const result = await page.evaluate(async () =>
+    (await import('/surface-drafts-port.ts')).transientParentDuringSeed('formspec-seed-transient-parent'));
+  expect(result).toMatchObject({
+    saved: 'saved',
+    discarded: 'discarded',
+    childAfterDiscard: 'absent',
+    parent: 'absent',
+    child: 'loaded',
+  });
+  expect(result.pin?.records).toEqual([]);
+});
+
+test('rechecks a changed scope on an apparent at-open pin refusal when a concurrent filing commits', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const result = await page.evaluate(async () =>
+    (await import('/surface-drafts-port.ts')).concurrentFilingDuringPinRefusal('formspec-seed-recheck-refusal'));
+  expect(result).toEqual({
+    concurrent: 'filed',
+    first: 'opened',
+    pin: { answer: 'user' },
+  });
+});
+
+test('v3 upgrade keeps committed counts evaluated against an unpinned upstream Response', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const result = await page.evaluate(async () =>
+    (await import('/surface-drafts-port.ts')).v3UpgradeUnpinnedUpstream('formspec-seed-v3-unpinned'));
+  expect(result.before.form).toMatchObject({ total: 1, filled: 0, ready: false });
+  expect(result.after).toEqual(result.before);
+  expect(JSON.stringify(result.rows)).not.toContain('detail');
+});
+
+test('refused browser storage opens a preview with no draft fixtures while rejecting profiles with drafts', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const result = await page.evaluate(async () =>
+    (await import('/surface-drafts-port.ts')).blockedStoragePreviewEdition());
+  expect(result.unseeded).toEqual({ result: 'opened', draft: 'unavailable' });
+  expect(result.seeded).toMatch(/SecurityError|Storage disabled/i);
+});
+
+test('selected stored parent sharing a Response ID with a child fixture never reports a false self-cycle', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const result = await page.evaluate(async () =>
+    (await import('/surface-drafts-port.ts')).storedParentSharedResponseId('formspec-seed-shared-id'));
+  expect(result.winner).toMatchObject({ status: 'available', value: { answer: 'Stored parent' } });
+  expect(result.collisionResult).not.toMatch(/cyclic/i);
+  expect(result.collisionResult).toMatch(/Response ID "shared-id"/i);
+  expect(result.seedsAfterCollision).toBe(1);
+  expect(result.uniqueChildPin).toEqual({ answer: 'Stored parent' });
+});
+
+test('only declared section IDs persist for a plan while canonicalDraftProgress preserves __proto__ and nullable counts', async ({ page }) => {
+  await page.goto('/__formspec-e2e-health');
+  const result = await page.evaluate(async () =>
+    (await import('/surface-drafts-port.ts')).saveOffPlanSectionKey('formspec-seed-off-plan-section'));
+  expect(result.saved).toBe('saved');
+  expect(JSON.stringify(result.rows)).not.toContain('first.answer');
+  expect(result.read).toEqual({
+    status: 'current',
+    form: { total: 1, filled: 0, toFix: null, toCheck: null, ready: null },
+    sections: { main: { total: 1, filled: 0, toFix: null, toCheck: null } },
+  });
+  expect(result.protoForm).toMatchObject({ toFix: null, toCheck: null, ready: null });
+  expect(result.protoSections).toEqual(['__proto__', 'normal']);
+});

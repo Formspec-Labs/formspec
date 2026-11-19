@@ -275,6 +275,95 @@ describe('static preview inputs', () => {
     expect(selected).toEqual(source.documents[formCompUrl]);
   });
 
+  it('opens a preview with no draft fixtures when browser IndexedDB refuses open, while rejecting profiles that require seeding', async () => {
+    const surfaceUrl = 'https://example.test/surface';
+    const defUrl = 'https://example.test/definitions/only';
+    const source = {
+      manifest: {
+        $formspecBundle: '2.4',
+        id: 'https://example.test/blocked-idb',
+        title: 'Blocked Storage',
+        surfaces: [{ url: surfaceUrl }],
+        entrySurface: surfaceUrl,
+        definitions: [{ url: defUrl, version: '1.0.0' }],
+      },
+      documents: {
+        [surfaceUrl]: {
+          $formspecSurface: '0.4',
+          id: 'app',
+          entry: 'start',
+          routes: [{
+            id: 'start',
+            path: '/',
+            title: 'Start',
+            routeClass: 'intake',
+            slots: [{ id: 'form', slotType: 'definition-form', binding: { definitionRef: defUrl } }],
+          }],
+        },
+        [defUrl]: {
+          $formspec: '1.0',
+          url: defUrl,
+          version: '1.0.0',
+          title: 'Only Form',
+          status: 'active',
+          items: [{ key: 'answer', type: 'field', dataType: 'string', label: 'Answer' }],
+        },
+      },
+    };
+
+    const previousIdb = globalThis.indexedDB;
+    const blockedIdb = {
+      open() {
+        const error = Object.assign(new Error('Storage disabled by user settings'), { name: 'SecurityError' });
+        const req: Partial<IDBOpenDBRequest> = {};
+        queueMicrotask(() => {
+          (req as { error: unknown }).error = error;
+          req.onerror?.(new Event('error'));
+        });
+        return req as IDBOpenDBRequest;
+      },
+    } as unknown as IDBFactory;
+    Object.defineProperty(globalThis, 'indexedDB', { value: blockedIdb, configurable: true, writable: true });
+    try {
+      const edition = await createSurfacePreviewEdition({
+        ...previewValidators,
+        scope: 'blocked-no-drafts',
+        source,
+      });
+      const summary = await edition.adapters.draftStorage!.port.readSummaries(
+        [{ key: 'only', definitionUrl: defUrl, definitionVersion: '1.0.0', sections: [{ fields: ['answer'] }] }],
+        { previewScope: 'blocked-no-drafts', signal: new AbortController().signal },
+      );
+      expect(summary.get('only')?.draft.status).toBe('unavailable');
+
+      await expect(createSurfacePreviewEdition({
+        ...previewValidators,
+        scope: 'blocked-with-drafts',
+        source,
+        scenario: {
+          $formspecSurfaceScenario: '0.1',
+          version: '1.0.0',
+          initialPath: '/',
+          defaultProfile: 'seeded',
+          profiles: {
+            seeded: {
+              authorization: { default: 'authorized' },
+              sources: [],
+              drafts: [{ definitionUrl: defUrl, data: { answer: 'Seeded' } }],
+            },
+          },
+          actions: { default: { status: 'complete' } },
+        },
+      })).rejects.toThrow('Storage disabled by user settings');
+    } finally {
+      if (previousIdb === undefined) {
+        Reflect.deleteProperty(globalThis, 'indexedDB');
+      } else {
+        Object.defineProperty(globalThis, 'indexedDB', { value: previousIdb, configurable: true, writable: true });
+      }
+    }
+  });
+
 });
 
 // The stack publishes these synthetic examples in a sibling repository.

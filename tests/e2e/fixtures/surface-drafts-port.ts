@@ -3,7 +3,7 @@ import { initFormspecEngine, initFormspecEngineTools, responseSubjectId } from '
 import * as browser from '../../../packages/formspec-surface-react/src/index';
 import type { FormDefinition, ResponseSelection, ResponseSelectionDelivery } from '@formspec-org/types';
 import { draftPortConformance } from '../../../packages/formspec-surface/src/draft-port-conformance';
-import type { DraftKey } from '../../../packages/formspec-surface/src/draft-port';
+import { canonicalDraftProgress, type DraftKey } from '../../../packages/formspec-surface/src/draft-port';
 
 export async function runConformance(name: keyof typeof draftPortConformance) {
   let allowed = true;
@@ -633,4 +633,465 @@ export async function concurrentUpstreamSaveDuringSeed(db: string) {
   } finally {
     subtle.digest = digest;
   }
+}
+
+/** Finding 1a: a parent created and discarded during preparation must never be pinned by a dependent seed. */
+export async function transientParentDuringSeed(db: string) {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const helperUrl = 'urn:test:transient-helper';
+  const parentUrl = 'urn:test:transient-parent';
+  const childUrl = 'urn:test:transient-child';
+  const helperDef: FormDefinition = {
+    $formspec: '1.0', url: helperUrl, version, title: 'Helper', items: [{ key: 'tag', type: 'field', dataType: 'string' }],
+  };
+  const parentDef: FormDefinition = {
+    $formspec: '1.0', url: parentUrl, version, title: 'Parent', items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+  };
+  const childDef: FormDefinition = {
+    $formspec: '1.0', url: childUrl, version, title: 'Child', items: [{ key: 'note', type: 'field', dataType: 'string' }],
+    instances: {
+      helper: {
+        schema: { tag: 'string' },
+        response: { definition: { url: helperUrl }, subject: [], status: 'completed', cardinality: 'latest', pin: 'none' },
+      },
+      parent: {
+        schema: { answer: 'string' },
+        response: { definition: { url: parentUrl }, subject: [], status: 'current', cardinality: 'latest', pin: 'at-open', whenNone: 'empty' },
+        fallback: null,
+      },
+    },
+  };
+  const definitions = new Map([[helperUrl, helperDef], [parentUrl, parentDef], [childUrl, childDef]]);
+  const helperFilingJson = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl: helperUrl, definitionVersion: version, id: 'urn:test:transient-helper-filing',
+    status: 'completed', authored: '2026-01-01T00:00:00Z', data: { tag: 'ok' },
+  });
+  const parentKey: DraftKey = { scope: seededScope, definitionUrl: parentUrl };
+  const childKey: DraftKey = { scope: seededScope, definitionUrl: childUrl };
+  const competitor = browser.createBrowserFilingStore({ databaseName: db, scope: seededScope, definitions });
+  await competitor.ready();
+
+  // Pre-seed the parent seed marker so save+discard leaves the exact same initial and final fingerprint.
+  const preSave = await competitor.drafts.save({
+    key: parentKey, expectedRevision: null, definitionVersion: version,
+    snapshotJson: JSON.stringify({ definitionUrl: parentUrl, definitionVersion: version, data: { answer: 'pre' } }),
+    responseJson: JSON.stringify({
+      $formspecResponse: '1.0', definitionUrl: parentUrl, definitionVersion: version, id: 'pre-parent',
+      status: 'in-progress', authored: '2026-01-01T00:00:00Z', data: { answer: 'pre' },
+    }),
+    summary: null,
+  });
+  if (preSave.status !== 'saved') throw new Error(`Expected preSave saved, got ${preSave.status}`);
+  const preDiscard = await competitor.drafts.restart(parentKey, preSave.revision);
+  if (preDiscard.status !== 'discarded') throw new Error(`Expected preDiscard discarded, got ${preDiscard.status}`);
+
+  let savedStatus: string | undefined;
+  let savedRevision: string | undefined;
+  let discardedStatus: string | undefined;
+  let childAfterDiscard: string | undefined;
+
+  const seeder = browser.createBrowserFilingStore({
+    databaseName: db, scope: seededScope, definitions,
+    fixtures: {
+      filings: [{ responseJson: helperFilingJson }],
+      drafts: [{ definitionUrl: childUrl, responseId: 'urn:test:transient-child-draft', data: { note: 'Child' } }],
+    },
+    authorize: async (key, relation, selection) => {
+      // Save transient parent during preparation admission (after observeSeedState, before any unfixed intermediate read).
+      if (relation === 'read' && selection !== undefined && key.definitionUrl === parentUrl && savedStatus === undefined) {
+        savedStatus = 'pending';
+        const res = await competitor.drafts.save({
+          key: parentKey, expectedRevision: null, definitionVersion: version,
+          snapshotJson: JSON.stringify({ definitionUrl: parentUrl, definitionVersion: version, data: { answer: 'transient' } }),
+          responseJson: JSON.stringify({
+            $formspecResponse: '1.0', definitionUrl: parentUrl, definitionVersion: version, id: 'transient',
+            status: 'in-progress', authored: '2026-02-01T00:00:00Z', data: { answer: 'transient' },
+          }),
+          summary: null,
+        });
+        savedStatus = res.status;
+        if (res.status === 'saved') savedRevision = res.revision;
+      }
+      // Discard transient parent during record-level authorization (after any unfixed intermediate read, before commit).
+      if (relation === 'read' && selection === undefined && key.definitionUrl === helperUrl && savedRevision !== undefined && discardedStatus === undefined) {
+        discardedStatus = 'pending';
+        const res = await competitor.drafts.restart(parentKey, savedRevision);
+        discardedStatus = res.status;
+        childAfterDiscard = (await competitor.drafts.load(childKey, version)).status;
+      }
+      return true;
+    },
+  });
+  await seeder.ready();
+  const parent = await competitor.drafts.load(parentKey, version);
+  const child = await competitor.drafts.load(childKey, version);
+  return {
+    saved: savedStatus,
+    discarded: discardedStatus,
+    childAfterDiscard,
+    parent: parent.status,
+    child: child.status,
+    pin: child.status === 'loaded' ? child.draft.pins.parent : undefined,
+  };
+}
+
+/** Finding 1b: recheck scope on an apparent at-open pin refusal when a concurrent filing commits during preparation. */
+export async function concurrentFilingDuringPinRefusal(db: string) {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const helperUrl = 'urn:recheck:helper';
+  const parentUrl = 'urn:recheck:parent';
+  const childUrl = 'urn:recheck:child';
+  const helperDef: FormDefinition = {
+    $formspec: '1.0', url: helperUrl, version, title: 'Helper', items: [{ key: 'tag', type: 'field', dataType: 'string' }],
+  };
+  const parentDef: FormDefinition = {
+    $formspec: '1.0', url: parentUrl, version, title: 'Parent', items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+  };
+  const childDef: FormDefinition = {
+    $formspec: '1.0', url: childUrl, version, title: 'Child', items: [{ key: 'note', type: 'field', dataType: 'string' }],
+    instances: {
+      helper: {
+        schema: { tag: 'string' },
+        response: { definition: { url: helperUrl }, subject: [], status: 'completed', cardinality: 'latest', pin: 'none' },
+      },
+      parent: {
+        schema: { answer: 'string' },
+        response: { definition: { url: parentUrl }, subject: [], status: 'completed', cardinality: 'latest', pin: 'at-open' },
+      },
+    },
+  };
+  const definitions = new Map([[helperUrl, helperDef], [parentUrl, parentDef], [childUrl, childDef]]);
+  const helperFilingJson = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl: helperUrl, definitionVersion: version, id: 'urn:recheck:helper-filing',
+    status: 'completed', authored: '2026-01-01T00:00:00Z', data: { tag: 'ok' },
+  });
+  const parentKey: DraftKey = { scope: seededScope, definitionUrl: parentUrl };
+  const childKey: DraftKey = { scope: seededScope, definitionUrl: childUrl };
+
+  const competitor = browser.createBrowserFilingStore({ databaseName: db, scope: seededScope, definitions });
+  await competitor.ready();
+  const parentDraftResponse = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl: parentUrl, definitionVersion: version, id: 'urn:recheck:parent-filing',
+    status: 'in-progress', authored: '2026-02-01T00:00:00Z', data: { answer: 'user' },
+  });
+  const parentCompletedResponse = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl: parentUrl, definitionVersion: version, id: 'urn:recheck:parent-filing',
+    status: 'completed', authored: '2026-02-01T00:00:00Z', data: { answer: 'user' },
+  });
+  const savedParent = await competitor.drafts.save({
+    key: parentKey, expectedRevision: null, definitionVersion: version,
+    snapshotJson: JSON.stringify({ definitionUrl: parentUrl, definitionVersion: version, data: { answer: 'user' } }),
+    responseJson: parentDraftResponse,
+    summary: null,
+  });
+  if (savedParent.status !== 'saved') throw new Error(`Expected parent saved, got ${savedParent.status}`);
+
+  let concurrent: string | undefined;
+  const seeder = browser.createBrowserFilingStore({
+    databaseName: db, scope: seededScope, definitions,
+    fixtures: {
+      filings: [{ responseJson: helperFilingJson }],
+      drafts: [{ definitionUrl: childUrl, responseId: 'urn:recheck:child-draft', data: { note: 'Child' } }],
+    },
+    authorize: async (key, relation, selection) => {
+      // Submit the parent filing during record-level auth for helper (after the initial snapshot/read saw no parent filing).
+      if (relation === 'read' && selection === undefined && key.definitionUrl === helperUrl && concurrent === undefined) {
+        concurrent = 'pending';
+        const res = await competitor.submit(
+          { key: parentKey, definitionVersion: version, revision: savedParent.revision, responseJson: parentDraftResponse },
+          parentCompletedResponse,
+        );
+        concurrent = res.status;
+      }
+      return true;
+    },
+  });
+  let first = 'opened';
+  try {
+    await seeder.ready();
+  } catch (error) {
+    first = String(error);
+  }
+  const loaded = await seeder.drafts.load(childKey, version);
+  return {
+    concurrent,
+    first,
+    pin: loaded.status === 'loaded' ? loaded.draft.pins.parent?.value : undefined,
+  };
+}
+
+/** Finding 2: v3 upgrade converts committed counts without FormEngine, preserving unpinned upstream relevance. */
+export async function v3UpgradeUnpinnedUpstream(db: string) {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const parentUrl = 'urn:v3:parent';
+  const childUrl = 'urn:v3:child';
+  const parentDef: FormDefinition = {
+    $formspec: '1.0', url: parentUrl, version, title: 'Parent', items: [{ key: 'flag', type: 'field', dataType: 'string' }],
+  };
+  const childDef: FormDefinition = {
+    $formspec: '1.0', url: childUrl, version, title: 'Child',
+    items: [{ key: 'detail', type: 'field', dataType: 'string', label: 'Detail' }],
+    instances: {
+      parent: {
+        schema: { flag: 'string' },
+        response: { definition: { url: parentUrl }, subject: [], status: 'completed', cardinality: 'latest', pin: 'none' },
+      },
+    },
+    binds: [{ path: 'detail', relevant: "instance('parent')/flag = 'yes'", required: 'true' }],
+  };
+  const definitions = new Map([[parentUrl, parentDef], [childUrl, childDef]]);
+  const parentFiling = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl: parentUrl, definitionVersion: version, id: 'urn:v3:parent-filing',
+    status: 'completed', authored: '2026-01-01T00:00:00Z', data: { flag: 'yes' },
+  });
+  const committedProgress = {
+    status: 'current' as const,
+    form: { total: 1, filled: 0, toFix: 0, toCheck: 0, ready: false },
+    sections: {},
+  };
+  const sections = [{ fields: ['detail'] }];
+
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.open(db, 3);
+    request.onupgradeneeded = () => {
+      for (const name of ['editable', 'summaries', 'filings', 'starts']) {
+        request.result.createObjectStore(name);
+      }
+      const key = [seededScope, childUrl, 'respondent', ''];
+      request.transaction!.objectStore('editable').put({
+        revision: 'v3-unpinned-rev',
+        definitionVersion: version,
+        pinsJson: '{}',
+        responseJson: JSON.stringify({
+          $formspecResponse: '1.0', definitionUrl: childUrl, definitionVersion: version, id: 'urn:v3:child-draft',
+          status: 'in-progress', authored: '2026-01-02T00:00:00Z', data: {},
+        }),
+        snapshotJson: JSON.stringify({ definitionUrl: childUrl, definitionVersion: version, data: {} }),
+      }, key);
+      request.transaction!.objectStore('summaries').put({
+        definitionVersion: version,
+        summary: { sections, progress: committedProgress },
+      }, key);
+    };
+    request.onsuccess = () => { request.result.close(); resolve(); };
+    request.onerror = () => reject(request.error);
+  });
+
+  const store = browser.createBrowserFilingStore({
+    databaseName: db, scope: seededScope, definitions,
+    fixtures: { filings: [{ responseJson: parentFiling }] },
+  });
+  await store.ready();
+  const observed = await store.drafts.readSummaries(
+    [{ key: 'child', definitionUrl: childUrl, definitionVersion: version, sections }],
+    { previewScope: seededScope, signal: new AbortController().signal },
+  );
+  return {
+    before: committedProgress,
+    after: observed.get('child')?.draft,
+    rows: await readRawStore(db, 'summaries'),
+  };
+}
+
+/** Finding 3: refused browser storage opens a preview with no draft fixtures while rejecting profiles with drafts. */
+export async function blockedStoragePreviewEdition() {
+  const surfaceUrl = 'https://example.test/blocked-surface';
+  const defUrl = 'https://example.test/blocked-def';
+  const source = {
+    manifest: {
+      $formspecBundle: '2.4' as const,
+      id: 'https://example.test/blocked-app',
+      title: 'Blocked Storage',
+      surfaces: [{ url: surfaceUrl }],
+      entrySurface: surfaceUrl,
+      definitions: [{ url: defUrl, version }],
+    },
+    documents: {
+      [surfaceUrl]: {
+        $formspecSurface: '0.4',
+        id: 'app',
+        entry: 'start',
+        routes: [{
+          id: 'start',
+          path: '/',
+          title: 'Start',
+          routeClass: 'intake',
+          slots: [{ id: 'form', slotType: 'definition-form', binding: { definitionRef: defUrl } }],
+        }],
+      },
+      [defUrl]: {
+        $formspec: '1.0',
+        url: defUrl,
+        version,
+        title: 'Only Form',
+        status: 'active',
+        items: [{ key: 'answer', type: 'field', dataType: 'string', label: 'Answer' }],
+      },
+    },
+  };
+  const originalOpen = IDBFactory.prototype.open;
+  IDBFactory.prototype.open = function blockedOpen() {
+    const error = new DOMException('Storage disabled by user settings', 'SecurityError');
+    const req = new EventTarget() as IDBOpenDBRequest;
+    Object.defineProperty(req, 'error', { value: error });
+    queueMicrotask(() => {
+      req.onerror?.call(req, new Event('error'));
+    });
+    return req;
+  };
+  try {
+    let unseededResult: { result: string; draft?: string };
+    try {
+      const edition = await browser.createSurfacePreviewEdition({ scope: 'blocked-no-drafts', source });
+      const summary = await edition.adapters.draftStorage!.port.readSummaries(
+        [{ key: 'only', definitionUrl: defUrl, definitionVersion: version, sections: [{ fields: ['answer'] }] }],
+        { previewScope: 'blocked-no-drafts', signal: new AbortController().signal },
+      );
+      unseededResult = { result: 'opened', draft: summary.get('only')?.draft.status };
+    } catch (error) {
+      unseededResult = { result: String(error) };
+    }
+
+    let seededResult = 'opened';
+    try {
+      await browser.createSurfacePreviewEdition({
+        scope: 'blocked-with-drafts',
+        source,
+        scenario: {
+          $formspecSurfaceScenario: '0.1',
+          version,
+          initialPath: '/',
+          defaultProfile: 'seeded',
+          profiles: {
+            seeded: {
+              authorization: { default: 'authorized' },
+              sources: [],
+              drafts: [{ definitionUrl: defUrl, data: { answer: 'Seeded' } }],
+            },
+          },
+          actions: { default: { status: 'complete' } },
+        },
+      });
+    } catch (error) {
+      seededResult = String(error);
+    }
+    return { unseeded: unseededResult, seeded: seededResult };
+  } finally {
+    IDBFactory.prototype.open = originalOpen;
+  }
+}
+
+/** Finding 4: stored parent sharing explicit responseId with a child fixture must never report a false self-cycle. */
+export async function storedParentSharedResponseId(db: string) {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const parentUrl = 'urn:shared-id:parent';
+  const childUrl = 'urn:shared-id:child';
+  const parentDef: FormDefinition = {
+    $formspec: '1.0', url: parentUrl, version, title: 'Parent', items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+  };
+  const childDef: FormDefinition = {
+    $formspec: '1.0', url: childUrl, version, title: 'Child', items: [{ key: 'note', type: 'field', dataType: 'string' }],
+    instances: {
+      parent: {
+        schema: { answer: 'string' },
+        response: { definition: { url: parentUrl }, subject: [], status: 'current', cardinality: 'latest', pin: 'at-open' },
+      },
+    },
+  };
+  const definitions = new Map([[parentUrl, parentDef], [childUrl, childDef]]);
+  const parentStore = browser.createBrowserFilingStore({ databaseName: db, scope: seededScope, definitions });
+  await parentStore.ready();
+  const saved = await parentStore.drafts.save({
+    key: { scope: seededScope, definitionUrl: parentUrl },
+    expectedRevision: null,
+    definitionVersion: version,
+    snapshotJson: JSON.stringify({ definitionUrl: parentUrl, definitionVersion: version, data: { answer: 'Stored parent' } }),
+    responseJson: JSON.stringify({
+      $formspecResponse: '1.0', definitionUrl: parentUrl, definitionVersion: version, id: 'shared-id',
+      status: 'in-progress', authored: '2026-01-01T00:00:00Z', data: { answer: 'Stored parent' },
+    }),
+    summary: null,
+  });
+  if (saved.status !== 'saved') throw new Error(`Expected parent saved, got ${saved.status}`);
+  const winner = (await parentStore.responses.select([{
+    key: 'parent', kind: 'definition', scope: seededScope, projection: ['answer'],
+    selection: { definition: { url: parentUrl }, subject: [], status: 'current', cardinality: 'latest', pin: 'at-open' },
+  }])).get('parent');
+
+  const collidingStore = browser.createBrowserFilingStore({
+    databaseName: db, scope: seededScope, definitions,
+    fixtures: {
+      drafts: [{ definitionUrl: childUrl, responseId: 'shared-id', data: { note: 'Child' } }],
+    },
+  });
+  let collisionResult = 'opened';
+  try {
+    await collidingStore.ready();
+  } catch (error) {
+    collisionResult = String(error);
+  }
+  const seedsAfterCollision = (await readRawStore(db, 'seeds')).length;
+
+  const uniqueStore = browser.createBrowserFilingStore({
+    databaseName: db, scope: seededScope, definitions,
+    fixtures: {
+      drafts: [{ definitionUrl: childUrl, responseId: 'child-unique-id', data: { note: 'Child' } }],
+    },
+  });
+  await uniqueStore.ready();
+  const loadedChild = await uniqueStore.drafts.load({ scope: seededScope, definitionUrl: childUrl }, version);
+  return {
+    winner,
+    collisionResult,
+    seedsAfterCollision,
+    uniqueChildPin: loadedChild.status === 'loaded' ? loadedChild.draft.pins.parent?.value : undefined,
+  };
+}
+
+/** Finding 5 + __proto__: off-plan section keys are stripped from IndexedDB and readSummaries, while canonicalDraftProgress keeps own keys. */
+export async function saveOffPlanSectionKey(db: string) {
+  await initFormspecEngine();
+  await initFormspecEngineTools();
+  const store = browser.createBrowserFilingStore({ databaseName: db, scope: seededScope, definitions: seededDefinitions });
+  await store.ready();
+  const sections = [{ id: 'main', fields: ['first.answer'] }];
+  const saved = await store.drafts.save({
+    key: seededKey, expectedRevision: null, definitionVersion: version,
+    snapshotJson: JSON.stringify({ definitionUrl: seededReviewUrl, definitionVersion: version, data: {} }),
+    responseJson: JSON.stringify({ ...JSON.parse(priorCompletedResponseJson), id: 'urn:test:off-plan', status: 'in-progress', data: {} }),
+    summary: {
+      sections,
+      progress: {
+        status: 'current',
+        form: { total: 1, filled: 0, toFix: null, toCheck: null, ready: null },
+        sections: {
+          main: { total: 1, filled: 0, toFix: null, toCheck: null },
+          'first.answer': { total: 1, filled: 0, toFix: null, toCheck: null },
+        },
+      },
+    },
+  });
+  const read = (await store.drafts.readSummaries(
+    [{ key: 'seeded', definitionUrl: seededReviewUrl, definitionVersion: version, sections }],
+    { previewScope: seededScope, signal: new AbortController().signal },
+  )).get('seeded')?.draft;
+  const protoCopied = canonicalDraftProgress({
+    status: 'current',
+    form: { total: 2, filled: 1, toFix: null, toCheck: null, ready: null },
+    sections: Object.fromEntries([
+      ['__proto__', { total: 1, filled: 0, toFix: null, toCheck: null }],
+      ['normal', { total: 1, filled: 1, toFix: 0, toCheck: 0 }],
+    ]),
+  });
+  return {
+    saved: saved.status,
+    read,
+    rows: await readRawStore(db, 'summaries'),
+    protoForm: protoCopied?.form,
+    protoSections: Object.keys(protoCopied?.sections ?? {}),
+  };
 }

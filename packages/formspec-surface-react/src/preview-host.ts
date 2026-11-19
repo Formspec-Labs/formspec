@@ -131,9 +131,13 @@ export async function createSurfacePreviewEdition(input: {
     fixtures,
     sectionPlans: bundleSectionPlans(bundle, resolveDefinitionComponent),
   });
-  // Seeding and upgrades of stored summaries finish before the tracker reads counts.
-  if (fixtures.drafts?.length || typeof indexedDB !== 'undefined') {
+  // Seeding failures reject edition creation when the active profile declares drafts;
+  // profiles without draft fixtures still finish legacy summary upgrades when storage is usable,
+  // and open with draft storage unavailable when browser storage refuses open.
+  if (fixtures.drafts?.length) {
     await store.ready();
+  } else if (typeof indexedDB !== 'undefined') {
+    await store.ready().catch(() => undefined);
   }
   const filingActions = new Set(bundle.responseActions.flatMap(document =>
     document.actions.filter(action => filingAction(document, action)).map(action => action.id)));

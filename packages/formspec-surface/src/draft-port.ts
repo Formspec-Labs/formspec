@@ -41,23 +41,31 @@ function progressCounts(value: unknown): DraftProgressCounts | undefined {
 
 /**
  * Copy exactly the `schemas/draft-progress-summary.schema.json` fields of a progress value.
- * Field paths, messages and any other caller-attached members are dropped; a value that cannot
- * be represented by the closed schema yields `undefined` so the caller stores no counts.
+ * Field paths, messages and any other caller-attached members are dropped; when `allowedSectionIds`
+ * is provided, only section keys declared in that plan are retained. A value that cannot be
+ * represented by the closed schema yields `undefined` so the caller stores no counts.
  */
-export function canonicalDraftProgress(value: unknown): CurrentDraftProgress | undefined {
+export function canonicalDraftProgress(
+  value: unknown,
+  allowedSectionIds?: ReadonlySet<string> | readonly string[],
+): CurrentDraftProgress | undefined {
   if (typeof value !== 'object' || value === null) return undefined;
   const { status, form, sections } = value as Record<string, unknown>;
   if (status !== 'current' || typeof sections !== 'object' || sections === null || Array.isArray(sections)) return undefined;
   const formCounts = progressCounts(form);
   const ready = (form as { ready?: unknown } | undefined)?.ready;
   if (!formCounts || (ready !== null && typeof ready !== 'boolean')) return undefined;
-  const sectionCounts: Record<string, DraftProgressCounts> = {};
+  const allowed = allowedSectionIds === undefined
+    ? undefined
+    : allowedSectionIds instanceof Set ? allowedSectionIds : new Set(allowedSectionIds);
+  const sectionEntries: [string, DraftProgressCounts][] = [];
   for (const [id, counts] of Object.entries(sections)) {
+    if (allowed !== undefined && !allowed.has(id)) continue;
     const copied = progressCounts(counts);
     if (!copied) return undefined;
-    sectionCounts[id] = copied;
+    sectionEntries.push([id, copied]);
   }
-  return { status: 'current', form: { ...formCounts, ready }, sections: sectionCounts };
+  return { status: 'current', form: { ...formCounts, ready }, sections: Object.fromEntries(sectionEntries) };
 }
 
 export type FilingDraftObservation =

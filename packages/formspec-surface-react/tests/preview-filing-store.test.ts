@@ -915,4 +915,69 @@ it('persists only the closed DraftProgressSummary counts from a save, whatever t
   expect((await save({ status: 'current', form: { total: -1, filled: 0, toFix: 0, toCheck: 0, ready: false }, sections: {} }, first.revision)).status)
     .toBe('saved');
   expect(await read()).toEqual({ status: 'unavailable' });
+
+  // Section keys not declared in the supplied plan are dropped before persistence.
+  const loaded = await store.drafts.load(key, version);
+  if (loaded.status !== 'loaded') throw new Error('expected loaded draft');
+  const offPlan = await save({
+    status: 'current',
+    form: { total: 1, filled: 0, toFix: null, toCheck: null, ready: null },
+    sections: {
+      main: { total: 1, filled: 0, toFix: null, toCheck: null },
+      'first.answer': { total: 1, filled: 0, toFix: null, toCheck: null },
+    },
+  }, loaded.draft.revision);
+  expect(offPlan.status).toBe('saved');
+  expect(await read()).toEqual({
+    status: 'current',
+    form: { total: 1, filled: 0, toFix: null, toCheck: null, ready: null },
+    sections: { main: { total: 1, filled: 0, toFix: null, toCheck: null } },
+  });
+});
+
+it('identifies candidate ordering winners by input position and handles persisted Response ID collisions explicitly', async () => {
+  const tools = await previewResponseRecordTools();
+  const parentUrl = 'urn:test:pos-parent';
+  const childUrl = 'urn:test:pos-child';
+  const parentDef: FormDefinition = {
+    $formspec: '1.0', url: parentUrl, version, title: 'Parent',
+    subject: { type: parentUrl, keys: { slot: { dataType: 'string' } } },
+    items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+  };
+  const childDef: FormDefinition = {
+    $formspec: '1.0', url: childUrl, version, title: 'Child',
+    items: [{ key: 'note', type: 'field', dataType: 'string' }],
+    instances: {
+      parent: {
+        schema: { answer: 'string' },
+        response: { definition: { url: parentUrl }, subject: [], status: 'current', cardinality: 'latest', pin: 'at-open' },
+      },
+    },
+  };
+  const definitions = new Map([[parentUrl, parentDef], [childUrl, childDef]]);
+
+  // A newer filed parent winning over an older sibling candidate does not create a dependency edge on the candidate.
+  const newerParentJson = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl: parentUrl, definitionVersion: version, id: 'urn:test:filed-parent',
+    status: 'completed', authored: '2026-06-01T00:00:00Z',
+    subject: { type: parentUrl, keys: { slot: 'a' }, id: tools.subjectId(parentUrl, { slot: 'a' }) },
+    data: { answer: 'Filed parent' },
+  });
+  const cleanStore = createMemoryFilingStore({
+    scope: 'pos-clean',
+    definitions,
+    fixtures: {
+      filings: [{ responseJson: newerParentJson }],
+      drafts: [
+        { definitionUrl: parentUrl, responseId: 'urn:test:older-parent', authored: '2025-01-01T00:00:00Z', subject: { type: parentUrl, keys: { slot: 'b' } }, data: { answer: 'Older candidate' } },
+        { definitionUrl: childUrl, responseId: 'urn:test:child-id', data: { note: 'Child' } },
+      ],
+    },
+  });
+  await expect(cleanStore.ready()).resolves.toBeUndefined();
+  const child = await cleanStore.drafts.load({ scope: 'pos-clean', definitionUrl: childUrl }, version);
+  expect(child.status).toBe('loaded');
+  if (child.status === 'loaded') {
+    expect(child.draft.pins.parent?.records).toEqual([expect.objectContaining({ responseId: 'urn:test:filed-parent' })]);
+  }
 });

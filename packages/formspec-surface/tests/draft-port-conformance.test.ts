@@ -1,7 +1,7 @@
 /** @filedesc Verify the shared fixtures reject ambiguous draft storage behavior. */
 import { expect, it } from 'vitest';
 import { draftPortConformance } from '../src/draft-port-conformance.js';
-import type { DraftPort, DraftRecord } from '../src/draft-port.js';
+import { canonicalDraftProgress, type DraftPort, type DraftRecord } from '../src/draft-port.js';
 
 it('rejects a port that returns absent to a denied caller with no draft', async () => {
   const port: DraftPort = {
@@ -41,4 +41,35 @@ it.each([
   };
   await expect(draftPortConformance['round-trips editable and filtered draft data separately']({ port, deny() {} }))
     .rejects.toThrow(message);
+});
+
+it('canonicalDraftProgress preserves own section keys including __proto__ and restricts keys when allowedSectionIds is supplied', () => {
+  const input = {
+    status: 'current',
+    form: { total: 2, filled: 1, toFix: null, toCheck: null, ready: null },
+    sections: Object.fromEntries([
+      ['__proto__', { total: 1, filled: 0, toFix: null, toCheck: null }],
+      ['normal', { total: 1, filled: 1, toFix: 0, toCheck: 0 }],
+    ]),
+  };
+  const unrestricted = canonicalDraftProgress(input);
+  expect(unrestricted?.form).toEqual({ total: 2, filled: 1, toFix: null, toCheck: null, ready: null });
+  expect(Object.keys(unrestricted?.sections ?? {})).toEqual(['__proto__', 'normal']);
+
+  const restricted = canonicalDraftProgress(
+    {
+      status: 'current',
+      form: { total: 1, filled: 0, toFix: null, toCheck: null, ready: null },
+      sections: {
+        main: { total: 1, filled: 0, toFix: null, toCheck: null },
+        'first.answer': { total: 1, filled: 0, toFix: null, toCheck: null },
+      },
+    },
+    new Set(['main']),
+  );
+  expect(restricted).toEqual({
+    status: 'current',
+    form: { total: 1, filled: 0, toFix: null, toCheck: null, ready: null },
+    sections: { main: { total: 1, filled: 0, toFix: null, toCheck: null } },
+  });
 });
