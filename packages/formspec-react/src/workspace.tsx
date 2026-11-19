@@ -22,7 +22,7 @@ export const WorkspaceFieldJump = createContext<((path: string) => void) | null>
 function indexPlacements(sections: readonly WorkspacePage[]) {
     const index = new Map<string, Array<{ path: string; section: WorkspacePage }>>();
     for (const section of sections) {
-        for (const path of section.fields) {
+        for (const path of [...section.fields, ...(section.groups ?? [])]) {
             const key = placementKey(path);
             const placements = index.get(key) ?? [];
             placements.push({ path, section });
@@ -103,13 +103,18 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
     // Answer edits refresh the snapshot. Search only needs to revisit membership when relevant paths change.
     const relevantPaths = useMemo(() => snapshot.fields.filter(field => field.relevant).map(field => field.path).join('\n'), [snapshot]);
     const relevant = useMemo(() => new Set(relevantPaths ? relevantPaths.split('\n') : []), [relevantPaths]);
+    const hasContainerLabel = (path: string) =>
+        Boolean(engine.getItemLabelSignal(path)?.value ?? engine.getItemLabelSignal(path.replace(/\[\d+\]/g, ''))?.value);
     const field = (path: string) => {
         const vm = engine.getFieldVM(path);
-        return vm ? { label: vm.label.value.trimEnd().replace(/:+$/, ''), controlId: vm.id || null } : null;
+        if (vm) return { label: vm.label.value.trimEnd().replace(/:+$/, ''), controlId: vm.id || null };
+        const groupLabel = engine.getItemLabelSignal(path)?.value
+            ?? engine.getItemLabelSignal(path.replace(/\[\d+\]/g, ''))?.value;
+        return groupLabel ? { label: groupLabel.trimEnd().replace(/:+$/, ''), controlId: null } : null;
     };
     const findings = readFormProgressFindingRows(progress, {
         field, chrome, message: result => engine.resolveValidationMessage(result) ?? '',
-        jumpable: path => relevant.has(path) && resolvePage(path) !== undefined,
+        jumpable: path => (relevant.has(path) || hasContainerLabel(path)) && resolvePage(path) !== undefined,
     });
     const term = query.trim();
     const matches = useSignal(useMemo(() => computed(() => {
@@ -175,6 +180,15 @@ export function Workspace({ root, pages }: { root: LayoutNode; pages: WorkspaceP
         if (changed || pending) heading.current?.focus();
         if (!pending) return;
 
+        if (!engine.getFieldVM(jump.path) && hasContainerLabel(jump.path)) {
+            const groupTarget = containerRef.current?.querySelector(`[data-name="${jump.path}"]`);
+            if (groupTarget instanceof HTMLElement) {
+                groupTarget.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            }
+            heading.current?.focus();
+            setJump(undefined);
+            return;
+        }
         touchField(jump.path);
         const field = () => containerRef.current?.querySelector(`[data-name="${jump.path}"]`);
         const waitingForTab = field()?.closest('[role="tabpanel"][hidden]');

@@ -89,4 +89,20 @@ describe('readValidationSummaryRows', () => {
         );
         expect(rows[0]).toMatchObject({ label: 'Type of Submission', text: 'Type of Submission: Required' });
     });
+
+    it('strips redundant severity prefixes from field messages in row text while preserving raw message', () => {
+        const rows = readValidationSummaryRows(
+            { source: 'submit' },
+            source({
+                submitted: [{ path: 'section_b.srv_2', severity: 'warning', message: 'WARNING: Check totals', source: 'shape', constraintKind: 'shape' } as any],
+                field: () => ({ label: 'SRV 2. Economic Security:', controlId: null }),
+            }),
+            { showFieldErrorsByDefault: true },
+        );
+        expect(rows[0]).toMatchObject({
+            label: 'SRV 2. Economic Security',
+            message: 'WARNING: Check totals',
+            text: 'SRV 2. Economic Security: Check totals',
+        });
+    });
 });

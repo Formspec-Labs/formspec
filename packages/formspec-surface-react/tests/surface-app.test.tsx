@@ -3434,6 +3434,80 @@ describe("nested Overview hub navigation", () => {
     expect(yearHubItem?.querySelector('.fs-surface-nav__sublist a[data-nav-route="plan-form"]')).not.toBeNull();
   });
 
+  it("prefers deeper path-prefix hub over ancestor repeat hub when nesting child forms", () => {
+    const hierarchySurface = {
+      $formspecSurface: "0.4",
+      id: "hub-affinity",
+      entry: "year-hub",
+      routes: [
+        {
+          id: "year-hub",
+          path: "/years/{ffy}",
+          title: "Year Overview",
+          slots: [
+            {
+              id: "year-map",
+              slotType: "filing-status",
+              binding: {
+                groups: [
+                  {
+                    id: "agencies",
+                    label: "Agency reports",
+                    repeat: { sourceRef: "agencies", memberParam: "uei", memberLabelField: "name" },
+                    forms: [{ routeRef: "agency-spending", slotRef: "form" }],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          id: "agency-hub",
+          path: "/years/{ffy}/agencies/{uei}",
+          title: "Agency Overview",
+          slots: [
+            {
+              id: "agency-map",
+              slotType: "filing-status",
+              binding: {
+                groups: [
+                  {
+                    id: "parts",
+                    label: "Agency parts",
+                    repeat: { sourceRef: "initiatives", memberParam: "ini", memberLabelField: "title" },
+                    forms: [{ routeRef: "agency-spending", slotRef: "form" }],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+        {
+          id: "agency-spending",
+          path: "/years/{ffy}/agencies/{uei}/spending",
+          title: "Agency Spending",
+          routeClass: "intake",
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+    const container = render(
+      <SurfaceApp
+        bundle={{ ...bundle, surfaces: [hierarchySurface] }}
+        location="/years/2025"
+        routeParams={{ ffy: "2025", uei: "DEMOAGNCY001" }}
+        onNavigate={() => {}}
+        setDocumentTitle={false}
+      />
+    );
+    const agencyHubItem = container.querySelector('a[data-nav-route="agency-hub"]')?.closest(".fs-surface-nav__item--hub");
+    const yearHubItem = container.querySelector('a[data-nav-route="year-hub"]')?.closest(".fs-surface-nav__item");
+    expect(agencyHubItem).toBeTruthy();
+    expect(yearHubItem).toBeTruthy();
+    expect(agencyHubItem!.querySelector('.fs-surface-nav__sublist a[data-nav-route="agency-spending"]')).not.toBeNull();
+    expect(yearHubItem!.querySelector('.fs-surface-nav__sublist')).toBeNull();
+  });
+
   it("renders flat apps without hubs unchanged", () => {
     const flatSurface = {
       $formspecSurface: "0.2",

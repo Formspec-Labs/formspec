@@ -1027,6 +1027,16 @@ function filingStatusGroupRouteRefs(
   return { isFilingHub, refs };
 }
 
+function hubPathAffinity(hubPath: string, childPath: string): number {
+  const hubSegs = hubPath.split('/').filter(Boolean);
+  const childSegs = childPath.split('/').filter(Boolean);
+  if (hubSegs.length === 0 || hubSegs.length > childSegs.length) return 0;
+  for (let i = 0; i < hubSegs.length; i += 1) {
+    if (hubSegs[i] !== childSegs[i]) return 0;
+  }
+  return hubSegs.length;
+}
+
 function buildNavTree(routes: readonly SurfaceRouteHandle[]): NavTree {
   const byId = new Map<string, SurfaceRouteHandle>();
   for (const handle of routes) {
@@ -1045,30 +1055,28 @@ function buildNavTree(routes: readonly SurfaceRouteHandle[]): NavTree {
     }
   }
 
-  // Pass 2: infer parent hub from non-repeat filing-status groups
-  for (const hub of routes) {
-    const { isFilingHub, refs } = filingStatusGroupRouteRefs(hub, false);
-    if (isFilingHub) filingHubs.add(hub);
-    for (const routeRef of refs) {
-      if (routeRef === hub.routeId) continue;
-      const child = byId.get(routeRef);
-      if (child && child !== hub && !parentOf.has(child)) {
-        parentOf.set(child, hub);
+  // Pass 2: score filing-status hub candidates (path prefix affinity -> non-repeat -> declared order)
+  const candidatesByChild = new Map<SurfaceRouteHandle, Array<{ hub: SurfaceRouteHandle; nonRepeat: boolean; affinity: number; hubOrder: number }>>();
+  routes.forEach((hub, hubOrder) => {
+    for (const repeatOnly of [false, true]) {
+      const { isFilingHub, refs } = filingStatusGroupRouteRefs(hub, repeatOnly);
+      if (isFilingHub) filingHubs.add(hub);
+      for (const routeRef of refs) {
+        if (routeRef === hub.routeId) continue;
+        const child = byId.get(routeRef);
+        if (!child || child === hub || parentOf.has(child)) continue;
+        const list = candidatesByChild.get(child) ?? [];
+        list.push({ hub, nonRepeat: !repeatOnly, affinity: hubPathAffinity(hub.route.path, child.route.path), hubOrder });
+        candidatesByChild.set(child, list);
       }
     }
-  }
-
-  // Pass 3: fallback to repeat filing-status groups only if unclaimed
-  for (const hub of routes) {
-    const { isFilingHub, refs } = filingStatusGroupRouteRefs(hub, true);
-    if (isFilingHub) filingHubs.add(hub);
-    for (const routeRef of refs) {
-      if (routeRef === hub.routeId) continue;
-      const child = byId.get(routeRef);
-      if (child && child !== hub && !parentOf.has(child)) {
-        parentOf.set(child, hub);
-      }
-    }
+  });
+  for (const [child, candidates] of candidatesByChild) {
+    candidates.sort((a, b) =>
+      (b.affinity - a.affinity) ||
+      (Number(b.nonRepeat) - Number(a.nonRepeat)) ||
+      (a.hubOrder - b.hubOrder));
+    if (candidates[0]) parentOf.set(child, candidates[0].hub);
   }
 
   // Break any cycle so every visible route stays reachable in the tree.

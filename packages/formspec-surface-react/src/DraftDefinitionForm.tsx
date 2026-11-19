@@ -178,6 +178,13 @@ export function DraftDefinitionForm({
       {children(open.engine, open.writer)}
     </div>
   </>;
+  if (open.status === 'pin-unavailable') {
+    const target = open.prerequisiteTitle ?? open.instance;
+    const detail = open.requiresAccepted
+      ? `Waiting for an accepted "${target}" before this form can be started.`
+      : `Waiting for "${target}" to be filed before this form can be started.`;
+    return <p className="fs-surface-themenote" role="status">{strings('draftUnavailable')} {detail}</p>;
+  }
   if (open.status !== 'version-mismatch') return <p>{strings('draftUnavailable')}</p>;
   return controls || <p>{message}</p>;
 }

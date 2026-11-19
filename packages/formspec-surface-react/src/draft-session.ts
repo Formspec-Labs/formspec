@@ -17,6 +17,7 @@ import type { SurfaceDefinitionFormRenderInput } from './SurfaceSlot.js';
 export interface SurfaceDraftStorage {
   port: DraftPort;
   responses?: ResponseSelector | undefined;
+  definitions?: ReadonlyMap<string, FormDefinition> | undefined;
   scope: string;
   author?: { id: string; name?: string };
 }
@@ -35,6 +36,7 @@ type CommittedDraft =
 type DraftOpen =
   | { status: 'ready'; engine: IFormEngine; writer: DraftWriter }
   | (Extract<DraftLoadResult, { status: 'version-mismatch' }> & { key: DraftKey })
+  | { status: 'pin-unavailable'; instance: string; prerequisiteTitle?: string; requiresAccepted?: boolean }
   | { status: 'denied' | 'unavailable' | 'loading' };
 
 type Entry = {
@@ -84,6 +86,7 @@ export function createDraftSession(
   return {
     scope: storage.scope,
     port: storage.port,
+    definitions: storage.definitions,
     restart: browserPort?.restart,
 
     acquire(key: DraftKey, input: SurfaceDefinitionFormRenderInput, report: DraftNoticeReporter, onReopen?: () => void) {
@@ -170,6 +173,19 @@ export function createDraftSession(
             if (afterReadsEpoch !== epoch) {
               epoch = afterReadsEpoch;
               continue;
+            }
+            if (loaded.status === 'absent' && storage.responses) {
+              const missingPin = requests.find(req => req.selection.pin === 'at-open' && !resolutions[req.key]?.pinned);
+              if (missingPin) {
+                const upstreamTitle = storage.definitions?.get(missingPin.selection.definition.url)?.title;
+                const requiresAccepted = Boolean(missingPin.selection.disposition?.endsWith(':accepted'));
+                return publish({
+                  status: 'pin-unavailable',
+                  instance: missingPin.key,
+                  ...(upstreamTitle ? { prerequisiteTitle: upstreamTitle } : {}),
+                  ...(requiresAccepted ? { requiresAccepted: true } : {}),
+                });
+              }
             }
             const engine = createFormEngine(definition, {
               responseInstanceResolutions: resolutions,

@@ -114,14 +114,14 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
     if (!scope || !port) return undefined;
     const retained = sessions.get(scope);
     if (retained) return retained;
-    const session = createDraftSession({ scope, port, responses, ...(author && { author }) }, localPort, input => {
+    const session = createDraftSession({ scope, port, responses, definitions: bundle.definitions, ...(author && { author }) }, localPort, input => {
       const current = checkpoint.current;
       const ports = current.previewEditions ? current.previewEditions.find(entry => entry.scope === scope)?.adapters.checkpointPorts : current.checkpointPorts;
       return ports?.(input) ?? input.ports;
     });
     sessions.set(scope, session);
     return session;
-  }, [scope, port, responses, sessions, localPort, author?.id, author?.name]);
+  }, [scope, port, responses, bundle.definitions, sessions, localPort, author?.id, author?.name]);
   const attachedSessions = useRef<Map<string, DraftSession> | undefined>(undefined);
   useEffect(() => {
     attachedSessions.current = sessions;

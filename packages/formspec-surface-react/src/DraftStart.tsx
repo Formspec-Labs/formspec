@@ -47,8 +47,14 @@ export function DraftStart({ plan, session, navigate, strings }: {
       current.busy = false;
     }
   }
+  const def = session.definitions?.get(plan.definitionUrl);
+  const sel = missingInstance ? def?.instances?.[missingInstance]?.response : undefined;
+  const targetTitle = sel ? session.definitions?.get(sel.definition.url)?.title : undefined;
+  const requiresAccepted = Boolean(sel?.disposition?.endsWith(':accepted'));
   return <>
     <button type="button" disabled={status === 'pending'} onClick={() => void start()}>{plan.label}</button>
-    {status === 'failed' && <p role="status">{strings('draftUnavailable')}{missingInstance && <> <code>{missingInstance}</code></>}</p>}
+    {status === 'failed' && (missingInstance && targetTitle
+      ? <p className="fs-surface-themenote" role="status">{strings('draftUnavailable')} {requiresAccepted ? `Waiting for an accepted "${targetTitle}" before this form can be started.` : `Waiting for "${targetTitle}" to be filed before this form can be started.`}</p>
+      : <p role="status">{strings('draftUnavailable')}{missingInstance && <> <code>{missingInstance}</code></>}</p>)}
   </>;
 }
