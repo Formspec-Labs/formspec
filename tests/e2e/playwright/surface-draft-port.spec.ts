@@ -344,6 +344,31 @@ test('background edit stays on the filing route in a Surface without a draft wri
   await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
 });
 
+for (const which of ['styled', 'conditional'] as const) {
+  test(`a ${which} hidden authored checkpoint leaves exactly one working transition`, async ({ page }) => {
+    await page.goto(`/surface-drafts.html?form&authoredAutosave&${which}#/filing`);
+    await expect(page.getByLabel('Answer')).toBeEditable();
+    const ways = page.getByRole('button', { name: /^(Checkpoint now|Continue to Overview)$/ });
+    await expect(ways).toHaveCount(1);
+    await ways.click();
+    await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+  });
+}
+
+for (const writer of [true, false] as const) {
+  test(`reports ambiguous autosave to the Surface diagnostic observer ${writer ? 'with writer' : 'without writer'}`, async ({ page }) => {
+    await page.goto(`/surface-drafts.html?form&auto&ambiguous${writer ? '' : '&withoutWriter'}#/filing`);
+    await page.getByLabel('Answer').fill('edited');
+    await page.waitForTimeout(850);
+    const seen = await page.evaluate(() => ({
+      diagnostics: (window as unknown as { observedDiagnostics?: unknown[] }).observedDiagnostics ?? [],
+      deliveries: (window as unknown as { numDeliveries?: number }).numDeliveries ?? 0,
+    }));
+    expect(seen.deliveries).toBeGreaterThan(0);
+    expect(JSON.stringify(seen.diagnostics)).toContain('ambiguous-autosave-action');
+  });
+}
+
 test('opens the draft for the resolved filing unit', async ({ page }) => {
   await page.goto('/surface-drafts.html?form&subject#/filing/2025');
   await page.getByLabel('Answer').fill('2025 answer');

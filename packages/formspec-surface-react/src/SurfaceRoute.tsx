@@ -110,6 +110,12 @@ export interface SurfaceRouteViewProps {
   onRuntimeDiagnosticsChange?:
     | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
     | undefined;
+  onSlotFormEngineChange?:
+    | ((slotKey: string, engine: import('@formspec-org/engine').IFormEngine | undefined) => void)
+    | undefined;
+  onSlotVisibilityChange?:
+    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
+    | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   definitionActionInvoker?:
     | SurfaceDefinitionFormRenderInput['responseActionInvoker']
@@ -160,6 +166,8 @@ export function SurfaceRouteView({
   runtimeGeneration,
   onWidgetActionReport,
   onRuntimeDiagnosticsChange,
+  onSlotFormEngineChange,
+  onSlotVisibilityChange,
   renderDefinitionForm,
   definitionActionInvoker,
   resolveSemanticControlScope,
@@ -307,6 +315,8 @@ export function SurfaceRouteView({
             runtimeGeneration={runtimeGeneration}
             onWidgetActionReport={onWidgetActionReport}
             onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+            onSlotFormEngineChange={onSlotFormEngineChange}
+            onSlotVisibilityChange={onSlotVisibilityChange}
             renderDefinitionForm={renderDefinitionForm}
             definitionActionInvoker={definitionActionInvoker}
             resolveSemanticControlScope={resolveSemanticControlScope}

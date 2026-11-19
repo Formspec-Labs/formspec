@@ -1,6 +1,7 @@
 /** @filedesc Retain editable draft sessions across browser history and qualify all access by key. */
 import {
-  createFormEngine, initFormspecEngine, initFormspecEngineTools, responseSubjectId, type FormDraftSnapshot, type IFormEngine,
+  createFormEngine, initFormspecEngine, initFormspecEngineTools, responseSubjectId,
+  type ActionRefFinding, type FormDraftSnapshot, type IFormEngine,
 } from '@formspec-org/engine';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import { resolvePageSequence } from '@formspec-org/layout';
@@ -35,9 +36,11 @@ type DraftOpen =
 
 type Entry = {
   consumers: Map<DraftNoticeReporter, (() => void) | undefined>;
+  findingListeners: Set<(finding: ActionRefFinding) => void>;
   result: Promise<DraftOpen>;
   seed: Pick<SurfaceDefinitionFormRenderInput, 'initialData' | 'draftSeed'>;
   opened?: DraftOpen;
+  autosaveFinding?: ActionRefFinding;
 };
 
 function sessionKey(key: DraftKey, version: string): string {
@@ -86,6 +89,7 @@ export function createDraftSession(
       if (!entry) {
         const reusable = previous?.status === 'ready' ? previous : undefined;
         const consumers = previousConsumers ?? new Map<DraftNoticeReporter, (() => void) | undefined>();
+        const findingListeners = new Set<(finding: ActionRefFinding) => void>();
         const opened = async (): Promise<DraftOpen> => {
           let loaded: DraftLoadResult;
           try {
@@ -146,6 +150,10 @@ export function createDraftSession(
               invoker: input.responseActionInvoker,
               checkpointPorts,
               report: (notice, options) => { for (const notify of consumers.keys()) notify(notice, options); },
+              onActionFinding: (finding) => {
+                created.autosaveFinding = finding;
+                for (const notifyFinding of findingListeners) notifyFinding(finding);
+              },
             });
             return { status: 'ready', engine, writer };
           } catch (error) {
@@ -155,6 +163,7 @@ export function createDraftSession(
         };
         const created: Entry = {
           consumers,
+          findingListeners,
           seed: { initialData: input.initialData, draftSeed: input.draftSeed },
           result: opened().catch((): DraftOpen => ({ status: 'unavailable' })).then(result => {
             created.opened = result;
@@ -172,11 +181,17 @@ export function createDraftSession(
         tracked.seed = { initialData: input.initialData, draftSeed: input.draftSeed };
       }
       tracked.consumers.set(report, onReopen);
+      const onActionFinding = input.onActionFinding;
+      if (onActionFinding) {
+        tracked.findingListeners.add(onActionFinding);
+        if (tracked.autosaveFinding) onActionFinding(tracked.autosaveFinding);
+      }
       if (tracked.opened?.status === 'ready') tracked.opened.writer.setMounted(true);
       return {
         result: tracked.result,
         release() {
           tracked.consumers.delete(report);
+          if (onActionFinding) tracked.findingListeners.delete(onActionFinding);
           release(tracked);
         },
       };

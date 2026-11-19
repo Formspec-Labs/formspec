@@ -557,9 +557,157 @@ it('derives slot-supplied action IDs from the effective Theme grant and active r
     themeAuthority: createThemeAuthority(),
     hasExecutor: true,
     matchesMinWidth: (px: number) => 1000 >= px,
-  } as never);
+  });
   expect(widePlan.transitions[0]).toMatchObject({
     actionId: 'autosave',
     status: 'supplied-by-slot',
+  });
+});
+
+it('matches canonical JSON Schema + format validation, enforces compatibleVersions, tolerates malformed sibling documents, and respects conditional when:false visibility', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { default: Ajv2020 } = await import('ajv/dist/2020.js');
+  const { default: addFormats } = await import('ajv-formats');
+  const {
+    autoPlacedDefinitionActions,
+    initFormspecEngine,
+    isValidDefinitionResponseActionsDocument,
+    resolveAutosaveResponseAction,
+  } = await import('@formspec-org/engine');
+  const { planMatchedRoute } = await import('../src/route-plan.js');
+  const { createThemeAuthority } = await import('../src/theme-authority.js');
+  const { createWidgetRegistry } = await import('../src/registry.js');
+
+  await initFormspecEngine();
+
+  const load = (name: string) =>
+    JSON.parse(readFileSync(new URL(`../../../schemas/${name}.schema.json`, import.meta.url), 'utf8'));
+  const ajv = new Ajv2020({ strict: false, logger: false });
+  addFormats(ajv);
+  ajv.addSchema(load('common'));
+  ajv.addSchema(load('validation-mapping'));
+  const validateSchema = ajv.compile(load('response-actions'));
+
+  const def = { $formspec: '1.0', url: 'urn:review:act', version: '1.0.0', title: 'Review', items: [] };
+  const hostEffect = { type: 'hostEvent' as const, eventName: 'checked' };
+  const check = { id: 'checkpoint', intent: 'autosave' as const, effects: [hostEffect] };
+  const button = { id: 'manual', intent: 'review' as const, label: { literal: 'Review' }, effects: [hostEffect] };
+  const doc = {
+    $formspecResponseActions: '1.0' as const,
+    version: '1.0.0',
+    targetDefinition: { url: def.url },
+    actions: [check, button],
+  };
+
+  for (const effect of [
+    { type: 'mappingExecution', mappingRef: 'map', idempotencyKey: 'id' },
+    { type: 'ledgerAppend', eventKind: 'checkpoint', idempotencyKey: 'id' },
+    { type: 'handoffAssembly', handoffProfileRef: 'p', recipientRef: 'r', idempotencyKey: 'id' },
+    { type: 'evidenceRequest', requestRef: 'request', idempotencyKey: 'id' },
+    { type: 'serviceRequest', requestRef: 'request', idempotencyKey: 'id' },
+    hostEffect,
+    { type: 'browserResource', operation: 'open', resourceRef: 'document.link' },
+  ]) {
+    for (const [val, expected] of [[effect, true], [{ ...effect, extra: true }, false]] as const) {
+      const sidecar = { ...doc, actions: [{ ...check, effects: [val] }] };
+      expect(validateSchema(sidecar)).toBe(expected);
+      expect(isValidDefinitionResponseActionsDocument(sidecar, def)).toBe(expected);
+    }
+  }
+
+  for (const [, sidecar, active] of [
+    ['module publisher URI', { ...doc, modules: [{ id: 'x-example', version: '1', publisher: 'not a URI' }] }, def],
+    ['target URI', { ...doc, targetDefinition: { url: 'no uri' } }, { ...def, url: 'no uri' }],
+    ['provenance Component URI', {
+      ...doc,
+      actions: [{
+        ...check,
+        'x-generation': {
+          movedFrom: {
+            component: { handle: 'C', url: 'bad url' },
+            surface: { url: 'urn:surface' },
+            route: 'main',
+            nodePath: '/s',
+          },
+        },
+      }, button],
+    }, def],
+    ['provenance node path', {
+      ...doc,
+      actions: [{
+        ...check,
+        'x-generation': {
+          copiedFrom: {
+            component: { handle: 'C' },
+            surface: { url: 'urn:surface' },
+            route: 'main',
+            nodePath: '/\n',
+          },
+        },
+      }, button],
+    }, def],
+  ] as const) {
+    expect(validateSchema(sidecar)).toBe(false);
+    expect(isValidDefinitionResponseActionsDocument(sidecar, active)).toBe(false);
+    expect(autoPlacedDefinitionActions(sidecar as never, active)).toEqual([]);
+    expect(resolveAutosaveResponseAction(sidecar as never, active).action).toBeNull();
+  }
+
+  // Active Definition version range compatibility check
+  const incompatibleVersionSidecar = {
+    ...doc,
+    targetDefinition: { url: def.url, compatibleVersions: '>=9.0.0' },
+  };
+  expect(validateSchema(incompatibleVersionSidecar)).toBe(true);
+  expect(isValidDefinitionResponseActionsDocument(incompatibleVersionSidecar, def)).toBe(false);
+  expect(autoPlacedDefinitionActions(incompatibleVersionSidecar as never, def)).toEqual([]);
+  expect(resolveAutosaveResponseAction(incompatibleVersionSidecar as never, def).action).toBeNull();
+
+  // Malformed sibling document (`actions: [null]`) must not throw when resolving a valid Definition's slot
+  const slot = { slotType: 'definition-form', definition: def, definitionRef: def.url, status: 'ready' };
+  const malformedSibling = { ...doc, targetDefinition: { url: 'urn:other' }, actions: [null] };
+  expect(validateSchema(malformedSibling)).toBe(false);
+  expect([...slotSuppliedTriggers([slot] as never, [doc, malformedSibling] as never)]).toEqual(['manual']);
+
+  // Authored ActionButton hidden by `when: 'false'` must not be credited as supplied-by-slot
+  const conditionalSurface = structuredClone(embedding);
+  conditionalSurface.routes = [
+    {
+      id: 'filing',
+      path: '/filing',
+      title: 'Filing',
+      routeClass: 'intake',
+      slots: [{ id: 'form', slotType: 'definition-form', binding: { definitionRef: def.url } }],
+      transitions: [{ trigger: 'autosave', to: 'done' }],
+    },
+    { id: 'done', path: '/done', title: 'Done', routeClass: 'proof', slots: [] },
+  ];
+  const conditionalApp = composeSurfaceApp([conditionalSurface]);
+  const filingHandle = conditionalApp.routes.find((r) => r.routeId === 'filing')!;
+  const conditionalPlan = planMatchedRoute({
+    handle: filingHandle,
+    app: conditionalApp,
+    experiences: [],
+    definitions: new Map([[def.url, def as never]]),
+    registryEntries: [],
+    widgets: createWidgetRegistry({ modules: [], registryEntries: [] }),
+    resolveDefinitionComponent: () => ({
+      $formspecComponent: '1.0',
+      version: '1.0.0',
+      targetDefinition: { url: def.url },
+      tree: {
+        component: 'Stack',
+        children: [
+          { component: 'ActionButton', actionRef: 'checkpoint', label: { literal: 'Checkpoint now' }, when: 'false' },
+        ],
+      },
+    }) as never,
+    responseActions: [doc],
+    themeAuthority: createThemeAuthority(),
+    hasExecutor: true,
+  });
+  expect(conditionalPlan.transitions[0]).toMatchObject({
+    actionId: 'checkpoint',
+    status: 'fireable',
   });
 });

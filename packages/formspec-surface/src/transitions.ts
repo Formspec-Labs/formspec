@@ -60,8 +60,11 @@
 import { CLOSED_RESPONSE_ACTION_INTENTS } from '@formspec-org/app-graph';
 import {
   autoPlacedDefinitionActions,
+  createFormEngine,
+  isFormspecEngineInitialized,
   isValidDefinitionResponseActionsDocument,
   resolveResponseAction,
+  type IFormEngine,
 } from '@formspec-org/engine';
 import {
   extractBreakpointEntries,
@@ -315,6 +318,8 @@ export interface SlotSuppliedTriggersOptions {
   activeBreakpoint?: string | null | undefined;
   /** Pure viewport predicate `(minWidthPx) => boolean` for responsive Component/Theme planning. */
   matchesMinWidth?: ((minWidthPx: number) => boolean) | undefined;
+  /** Mounted Definition form engines keyed by slot path (`slotId` or `embedSlotId/childSlotId`) for live visibility evaluation. */
+  slotFormEngines?: ReadonlyMap<string, IFormEngine> | undefined;
 }
 
 /**
@@ -357,15 +362,19 @@ export function slotSuppliedTriggers(
   const supplied = new Set<string>();
   if (responseActions.length === 0) return supplied;
   const actionDeclarations = responseActions.flatMap((document) =>
-    (Array.isArray(document?.actions) ? document.actions : []).map((action) => ({ document, action })),
+    (Array.isArray(document?.actions) ? document.actions : [])
+      .filter((action): action is NonNullable<typeof action> =>
+        Boolean(action && typeof action === 'object' && !Array.isArray(action)))
+      .map((action) => ({ document, action })),
   );
 
-  const walk = (entries: readonly SlotPlan<unknown>[]): void => {
+  const walk = (entries: readonly SlotPlan<unknown>[], prefix = ''): void => {
     for (const entry of entries) {
+      const slotKey = `${prefix}${entry.slotId}`;
       if (entry.slotType === 'embed-route') {
         // Transitive. The visited set that terminates cycles lives in
         // `planRoute`, so by the time a plan exists this walk is finite.
-        walk(entry.slots);
+        walk(entry.slots, `${slotKey}/`);
         continue;
       }
       if (entry.slotType === 'module-widget') {
@@ -373,7 +382,7 @@ export function slotSuppliedTriggers(
         for (const output of entry.actionOutputs) {
           if (!output.actionRef) continue;
           const matches = actionDeclarations.filter(
-            ({ action }) => action.id === output.actionRef,
+            ({ action }) => typeof action.id === 'string' && action.id === output.actionRef,
           );
           if (matches.length !== 1) continue;
           const match = matches[0];
@@ -403,19 +412,26 @@ export function slotSuppliedTriggers(
         title: '',
         items: [],
       };
-      if (!isValidDefinitionResponseActionsDocument(document, { url: entry.definitionRef })) {
+      const validationTarget = entry.definition
+        ? { url: entry.definitionRef, version: entry.definition.version }
+        : { url: entry.definitionRef };
+      if (!isValidDefinitionResponseActionsDocument(document, validationTarget)) {
         continue;
       }
 
+      const slotEngine = options.slotFormEngines?.get(slotKey);
       for (const actionRef of plannedDefinitionFormActionRefs(
         definitionTarget,
         entry.componentDocument,
         document,
-        options,
+        {
+          ...options,
+          ...(slotEngine !== undefined ? { evalEngine: slotEngine } : {}),
+        },
       )) {
         if (!resolveResponseAction(document, actionRef).resolved) continue;
         const idMatches = actionDeclarations.filter(
-          ({ action: candidate }) => candidate.id === actionRef,
+          ({ action: candidate }) => typeof candidate.id === 'string' && candidate.id === actionRef,
         );
         if (idMatches.length !== 1) continue;
         supplied.add(actionRef);
@@ -427,10 +443,104 @@ export function slotSuppliedTriggers(
   return supplied;
 }
 
-function collectRenderedActionRefs(node: LayoutNode, out: Set<string>): void {
+function layoutNeedsEngineEvaluation(node: LayoutNode): boolean {
+  if (typeof node.when === 'string' && node.when.length > 0) return true;
+  if (node.isRepeatTemplate && node.repeatPath) return true;
+  if (node.component === 'Accordion' && typeof node.props?.bind === 'string') return true;
+  if (
+    node.bindPath
+    && node.category !== 'field'
+    && node.category !== 'display'
+    && node.component !== 'ActionButton'
+    && node.component !== 'DataTable'
+  ) {
+    return true;
+  }
+  return node.children.some(layoutNeedsEngineEvaluation);
+}
+
+function rewriteRepeatInstance(node: LayoutNode, repeatPath: string, instanceIdx: number): LayoutNode {
+  const templatePrefix = `${repeatPath}[0]`;
+  const groupScopePrefix = `${repeatPath}.`;
+  const instancePrefix = `${repeatPath}[${instanceIdx}]`;
+
+  function instantiate(path: string | undefined): string | undefined {
+    if (path === templatePrefix || path?.startsWith(`${templatePrefix}.`)) {
+      return instancePrefix + path.slice(templatePrefix.length);
+    }
+    if (path?.startsWith(groupScopePrefix)) {
+      return `${instancePrefix}.${path.slice(groupScopePrefix.length)}`;
+    }
+    return path;
+  }
+
+  const bind = typeof node.props?.bind === 'string' ? node.props.bind : undefined;
+  const resolvedBind = instantiate(bind);
+  const nextBindPath = instantiate(node.bindPath);
+  const nextRepeatPath = instantiate(node.repeatPath);
+  const nextWhenPrefix = instantiate(node.whenPrefix);
+  const { bindPath: _bp, repeatPath: _rp, whenPrefix: _wp, ...rest } = node;
+  return {
+    ...rest,
+    id: `${node.id}-${instanceIdx}`,
+    ...(nextBindPath !== undefined ? { bindPath: nextBindPath } : {}),
+    ...(nextRepeatPath !== undefined ? { repeatPath: nextRepeatPath } : {}),
+    ...(nextWhenPrefix !== undefined ? { whenPrefix: nextWhenPrefix } : {}),
+    props: resolvedBind === bind ? node.props : { ...node.props, bind: resolvedBind },
+    children: node.children.map((child) => rewriteRepeatInstance(child, repeatPath, instanceIdx)),
+  };
+}
+
+function collectRenderedActionRefs(
+  node: LayoutNode,
+  out: Set<string>,
+  evalEngine: IFormEngine | undefined,
+): void {
   if (node.props?.hidden === true || node.style?.display === 'none') {
     return;
   }
+
+  const repeatPath = node.isRepeatTemplate && node.repeatPath
+    ? node.repeatPath
+    : node.component === 'Accordion' && typeof node.props?.bind === 'string'
+      ? node.props.bind
+      : undefined;
+  if (repeatPath) {
+    if (!evalEngine) return;
+    const count = evalEngine.repeats[repeatPath]?.value ?? 0;
+    for (let index = 0; index < count; index += 1) {
+      for (const child of node.children) {
+        collectRenderedActionRefs(rewriteRepeatInstance(child, repeatPath, index), out, evalEngine);
+      }
+    }
+    return;
+  }
+
+  const modalAutoSkipsWhenGuard = node.component === 'Modal' && node.props?.trigger === 'auto';
+  if (typeof node.when === 'string' && node.when.length > 0 && !modalAutoSkipsWhenGuard) {
+    if (!evalEngine) return;
+    try {
+      if (!evalEngine.compileExpression(node.when, node.whenPrefix ?? '')()) {
+        return;
+      }
+    } catch {
+      return;
+    }
+  }
+
+  if (
+    node.bindPath
+    && node.category !== 'field'
+    && node.category !== 'display'
+    && node.component !== 'ActionButton'
+    && node.component !== 'DataTable'
+  ) {
+    const relevance = evalEngine?.relevantSignals[node.bindPath];
+    if (relevance && !relevance.value) {
+      return;
+    }
+  }
+
   if (node.component === 'ActionButton') {
     const actionRef = node.props?.actionRef;
     if (typeof actionRef === 'string' && actionRef.length > 0) {
@@ -439,16 +549,19 @@ function collectRenderedActionRefs(node: LayoutNode, out: Set<string>): void {
     // ActionButton is a leaf widget; it never renders `node.children`.
     return;
   }
+
   for (const child of node.children) {
-    collectRenderedActionRefs(child, out);
+    collectRenderedActionRefs(child, out, evalEngine);
   }
 }
 
-function plannedDefinitionFormActionRefs(
+export function plannedDefinitionFormActionRefs(
   definition: FormDefinition,
   componentDocument: ComponentDocument | undefined,
   responseActionsDocument: Parameters<typeof autoPlacedDefinitionActions>[0],
-  options: Pick<SlotSuppliedTriggersOptions, 'themeDocument' | 'activeBreakpoint' | 'matchesMinWidth'>,
+  options: Pick<SlotSuppliedTriggersOptions, 'themeDocument' | 'activeBreakpoint' | 'matchesMinWidth'> & {
+    evalEngine?: IFormEngine | undefined;
+  } = {},
 ): ReadonlySet<string> {
   const themeBreakpoints = (options.themeDocument as { breakpoints?: Record<string, BreakpointSpec> } | undefined)?.breakpoints;
   const componentBreakpoints = (componentDocument as { breakpoints?: Record<string, BreakpointSpec> } | undefined)?.breakpoints;
@@ -468,7 +581,21 @@ function plannedDefinitionFormActionRefs(
   });
 
   const refs = new Set<string>();
-  collectRenderedActionRefs(root, refs);
+  let ownedEngine: IFormEngine | undefined;
+  try {
+    let evalEngine = options.evalEngine;
+    if (!evalEngine && layoutNeedsEngineEvaluation(root) && isFormspecEngineInitialized()) {
+      try {
+        ownedEngine = createFormEngine(definition);
+        evalEngine = ownedEngine;
+      } catch {
+        evalEngine = undefined;
+      }
+    }
+    collectRenderedActionRefs(root, refs, evalEngine);
+  } finally {
+    ownedEngine?.dispose();
+  }
   return refs;
 }
 

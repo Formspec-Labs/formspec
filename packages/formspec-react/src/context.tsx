@@ -696,7 +696,9 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
         if (draftSaveFeedback === 'external' || !engine || !responseActionsDocument) {
             return;
         }
-        return subscribeResponseActionAutosave({
+        let active = true;
+        const activeTickets = new Set<NonNullable<ReturnType<NonNullable<typeof feedbackStore>['start']>>>();
+        const unsubscribe = subscribeResponseActionAutosave({
             engine,
             document: responseActionsDocument,
             onFinding: (finding) => {
@@ -704,10 +706,13 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
             },
             invoke: async (action) => {
                 const current = latestRef.current;
-                const outletId = current.feedbackStore?.primaryOutlet();
+                const outletId = active ? current.feedbackStore?.primaryOutlet() : undefined;
                 const ticket = outletId
                     ? current.feedbackStore?.start(outletId, action.intent, generationNeedAnchors(action))
                     : undefined;
+                if (ticket) {
+                    activeTickets.add(ticket);
+                }
 
                 const captureAutosaveSnapshot: NonNullable<ResponseActionInvocationPorts<SubmitResult>['submit']> = ({
                     profile,
@@ -737,7 +742,12 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
                 };
 
                 const finish = (result: ResponseActionInvocationResult<SubmitResult>) => {
-                    current.feedbackStore?.settle(ticket, result.status);
+                    if (ticket) {
+                        activeTickets.delete(ticket);
+                    }
+                    if (active) {
+                        current.feedbackStore?.settle(ticket, result.status);
+                    }
                     current.onActionResult?.(result);
                     if (result.finding) {
                         current.onActionFinding?.(result.finding);
@@ -785,6 +795,14 @@ function FormspecAutosaveEffect({ draftSaveFeedback }: { draftSaveFeedback?: 'ex
                 }
             },
         });
+        return () => {
+            active = false;
+            for (const pendingTicket of activeTickets) {
+                latestRef.current.feedbackStore?.cancel(pendingTicket);
+            }
+            activeTickets.clear();
+            unsubscribe();
+        };
     }, [engine, responseActionsDocument, draftSaveFeedback]);
 
     return null;

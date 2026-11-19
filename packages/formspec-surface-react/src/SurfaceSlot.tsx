@@ -41,8 +41,10 @@ import {
   createMappingEngine,
   initFormspecEngineTools,
   isFormspecEngineToolsInitialized,
+  preactReactiveRuntime,
   resolveResponseActionValidationTuple,
   responseSubjectId,
+  type ActionRefFinding,
   type FormEngineOptions,
   type IFormEngine,
 } from '@formspec-org/engine';
@@ -71,6 +73,7 @@ import {
   canonicalFiniteJson,
   loadWidgetDataInputs,
   loadDefinitionFormInitialData,
+  plannedDefinitionFormActionRefs,
   responseActionsDocumentForDefinition,
   surfaceDiagnostic,
   type DataSourceAuthorizer,
@@ -197,6 +200,8 @@ export interface SurfaceDefinitionFormRenderInput {
   onDefinitionActionResult?:
     | ((result: ResponseActionInvocationResult<SubmitResult>) => void)
     | undefined;
+  /** Receives Response Actions resolution/invocation findings from the mounted Definition form or draft writer. */
+  onActionFinding?: ((finding: ActionRefFinding) => void) | undefined;
   /**
    * Optional host executor for the selected Definition-scoped document. The
    * renderer still owns action resolution and submission; this port lets a
@@ -338,6 +343,13 @@ export interface SurfaceSlotProps {
   onWidgetActionReport?: ((report: SurfaceWidgetActionReport) => void) | undefined;
   onRuntimeDiagnosticsChange?:
     | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
+    | undefined;
+  embedSlotPrefix?: string | undefined;
+  onSlotFormEngineChange?:
+    | ((slotKey: string, engine: IFormEngine | undefined) => void)
+    | undefined;
+  onSlotVisibilityChange?:
+    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
     | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   definitionActionInvoker?: DraftActionInvoker | undefined;
@@ -520,6 +532,9 @@ export function SurfaceSlot({
   runtimeGeneration,
   onWidgetActionReport,
   onRuntimeDiagnosticsChange,
+  embedSlotPrefix,
+  onSlotFormEngineChange,
+  onSlotVisibilityChange,
   renderDefinitionForm,
   definitionActionInvoker,
   resolveSemanticControlScope,
@@ -636,11 +651,18 @@ export function SurfaceSlot({
       if (semanticControlScope) {
         renderInput.semanticControlScope = semanticControlScope;
       }
+      const slotKey = embedSlotPrefix ? `${embedSlotPrefix}/${plan.slotId}` : plan.slotId;
+      const effectiveGeneration = runtimeGeneration ?? `${route.surfaceId}/${route.routeId}`;
       if (plan.initialData && plan.initialData.status !== 'ready') {
         if (!renderInput.draftSession) return <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
         return <DefinitionFormSlot
           key={subjectKey}
           input={{ ...renderInput, draftSeed: 'unavailable' }}
+          slotKey={slotKey}
+          runtimeGeneration={effectiveGeneration}
+          onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+          onSlotFormEngineChange={onSlotFormEngineChange}
+          onSlotVisibilityChange={onSlotVisibilityChange}
           renderDefinitionForm={renderDefinitionForm}
           semanticOutputScope={slotSemanticOutputScope}
         />;
@@ -650,15 +672,16 @@ export function SurfaceSlot({
           <DefinitionFormDataSlot
             key={subjectKey}
             input={renderInput}
+            slotKey={slotKey}
             initialDataPlan={plan.initialData}
             dataSourceLoader={dataSourceLoader}
             dataSourceRevision={dataSourceRevision}
             authorizeDataSource={authorizeDataSource}
             validateDataSourcePayload={validateDataSourcePayload}
-            runtimeGeneration={
-              runtimeGeneration ?? `${route.surfaceId}/${route.routeId}`
-            }
+            runtimeGeneration={effectiveGeneration}
             onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+            onSlotFormEngineChange={onSlotFormEngineChange}
+            onSlotVisibilityChange={onSlotVisibilityChange}
             renderDefinitionForm={renderDefinitionForm}
             semanticOutputScope={slotSemanticOutputScope}
           />
@@ -668,6 +691,11 @@ export function SurfaceSlot({
         <DefinitionFormSlot
           key={subjectKey}
           input={renderInput}
+          slotKey={slotKey}
+          runtimeGeneration={effectiveGeneration}
+          onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+          onSlotFormEngineChange={onSlotFormEngineChange}
+          onSlotVisibilityChange={onSlotVisibilityChange}
           renderDefinitionForm={renderDefinitionForm}
           semanticOutputScope={slotSemanticOutputScope}
         />
@@ -810,6 +838,9 @@ export function SurfaceSlot({
               runtimeGeneration={runtimeGeneration}
               onWidgetActionReport={onWidgetActionReport}
               onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+              embedSlotPrefix={embedSlotPrefix ? `${embedSlotPrefix}/${plan.slotId}` : plan.slotId}
+              onSlotFormEngineChange={onSlotFormEngineChange}
+              onSlotVisibilityChange={onSlotVisibilityChange}
               renderDefinitionForm={renderDefinitionForm}
               resolveSemanticControlScope={resolveSemanticControlScope}
               semanticOutputScope={semanticOutputScope}
@@ -954,6 +985,7 @@ function executeDefinitionFormMapping({
  */
 function DefinitionFormDataSlot({
   input,
+  slotKey,
   initialDataPlan,
   dataSourceLoader,
   dataSourceRevision,
@@ -961,10 +993,13 @@ function DefinitionFormDataSlot({
   validateDataSourcePayload,
   runtimeGeneration,
   onRuntimeDiagnosticsChange,
+  onSlotFormEngineChange,
+  onSlotVisibilityChange,
   renderDefinitionForm,
   semanticOutputScope,
 }: {
   input: SurfaceDefinitionFormRenderInput;
+  slotKey: string;
   initialDataPlan: ReadyDefinitionFormInitialDataPlan;
   dataSourceLoader?: DataSourceLoader | undefined;
   /** Pure per-source scheduling hints; evaluated on host renders, never authority. */
@@ -974,6 +1009,13 @@ function DefinitionFormDataSlot({
   runtimeGeneration: string;
   onRuntimeDiagnosticsChange?:
     | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
+    | undefined;
+  embedSlotPrefix?: string | undefined;
+  onSlotFormEngineChange?:
+    | ((slotKey: string, engine: IFormEngine | undefined) => void)
+    | undefined;
+  onSlotVisibilityChange?:
+    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
     | undefined;
   renderDefinitionForm?: SurfaceDefinitionFormRenderer | undefined;
   semanticOutputScope: SurfaceSemanticOutputPublisherScope | undefined;
@@ -1110,6 +1152,11 @@ function DefinitionFormDataSlot({
     >
       <DefinitionFormSlot
         input={hydratedInput}
+        slotKey={slotKey}
+        runtimeGeneration={runtimeGeneration}
+        onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+        onSlotFormEngineChange={onSlotFormEngineChange}
+        onSlotVisibilityChange={onSlotVisibilityChange}
         renderDefinitionForm={renderDefinitionForm}
         semanticOutputScope={semanticOutputScope}
       />
@@ -1133,14 +1180,72 @@ function DefinitionFormLoading({ children }: { children: ReactNode }) {
 
 function DefinitionFormSlot({
   input,
+  slotKey,
+  runtimeGeneration,
+  onRuntimeDiagnosticsChange,
+  onSlotFormEngineChange,
+  onSlotVisibilityChange,
   renderDefinitionForm,
   semanticOutputScope,
 }: {
   input: SurfaceDefinitionFormRenderInput;
+  slotKey: string;
+  runtimeGeneration: string;
+  onRuntimeDiagnosticsChange?:
+    | ((scope: string, diagnostics: readonly SurfaceDiagnostic[]) => void)
+    | undefined;
+  onSlotFormEngineChange?:
+    | ((slotKey: string, engine: IFormEngine | undefined) => void)
+    | undefined;
+  onSlotVisibilityChange?:
+    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
+    | undefined;
   renderDefinitionForm: SurfaceDefinitionFormRenderer | undefined;
   semanticOutputScope: SurfaceSemanticOutputPublisherScope | undefined;
 }): ReactNode {
   const { plan: { subject }, strings } = input;
+  const actionDiagnosticScope = `definition-form-actions:${input.route.surfaceId}/${input.route.routeId}/${slotKey}`;
+  const reportedFindings = useRef(new Map<string, SurfaceDiagnostic>());
+  const previousScope = useRef<string | undefined>(undefined);
+  const scopeToken = `${runtimeGeneration}:${actionDiagnosticScope}`;
+  if (previousScope.current !== scopeToken) {
+    previousScope.current = scopeToken;
+    reportedFindings.current.clear();
+  }
+  useEffect(() => {
+    const findings = reportedFindings.current;
+    return () => {
+      findings.clear();
+      onRuntimeDiagnosticsChange?.(actionDiagnosticScope, []);
+    };
+  }, [actionDiagnosticScope, onRuntimeDiagnosticsChange, runtimeGeneration]);
+  const handleActionFinding = useCallback(
+    (finding: ActionRefFinding) => {
+      const key = `${finding.code}:${finding.reason ?? ''}:${finding.target}:${finding.nodeId ?? ''}`;
+      if (reportedFindings.current.has(key)) return;
+      reportedFindings.current.set(
+        key,
+        surfaceDiagnostic(
+          'BUNDLE-DOCUMENT-SHAPE',
+          `Response Actions finding on slot "${input.plan.slotId}": ${finding.reason ?? finding.code} (${finding.target}).`,
+          {
+            surfaceId: input.route.surfaceId,
+            routeId: input.route.routeId,
+            slotId: input.plan.slotId,
+          },
+          {
+            code: finding.code,
+            kind: finding.kind,
+            target: finding.target,
+            ...(finding.reason ? { reason: finding.reason } : {}),
+            ...(finding.nodeId ? { nodeId: finding.nodeId } : {}),
+          },
+        ),
+      );
+      onRuntimeDiagnosticsChange?.(actionDiagnosticScope, [...reportedFindings.current.values()]);
+    },
+    [actionDiagnosticScope, input.plan.slotId, input.route.routeId, input.route.surfaceId, onRuntimeDiagnosticsChange],
+  );
   const needsSubject = subject !== undefined;
   const [toolsStatus, setToolsStatus] = useState<'ready' | 'loading' | 'unavailable'>(() =>
     isFormspecEngineToolsInitialized() ? 'ready' : 'loading',
@@ -1168,17 +1273,39 @@ function DefinitionFormSlot({
       ? <DefinitionFormLoading>{strings('transitionPending')}</DefinitionFormLoading>
       : <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
   }
-  const resolvedInput = { ...input, responseSubject };
+  const resolvedInput: SurfaceDefinitionFormRenderInput = {
+    ...input,
+    responseSubject,
+    onActionFinding: handleActionFinding,
+  };
   return renderDefinitionForm
     ? renderDefinitionForm(resolvedInput)
-    : <DefaultDefinitionFormSlot input={resolvedInput} semanticOutputScope={semanticOutputScope} />;
+    : (
+      <DefaultDefinitionFormSlot
+        input={resolvedInput}
+        slotKey={slotKey}
+        onSlotFormEngineChange={onSlotFormEngineChange}
+        onSlotVisibilityChange={onSlotVisibilityChange}
+        semanticOutputScope={semanticOutputScope}
+      />
+    );
 }
 
 function DefaultDefinitionFormSlot({
   input,
+  slotKey = input.plan.slotId,
+  onSlotFormEngineChange,
+  onSlotVisibilityChange,
   semanticOutputScope,
 }: {
   input: SurfaceDefinitionFormRenderInput;
+  slotKey?: string | undefined;
+  onSlotFormEngineChange?:
+    | ((slotKey: string, engine: IFormEngine | undefined) => void)
+    | undefined;
+  onSlotVisibilityChange?:
+    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
+    | undefined;
   semanticOutputScope?: SurfaceSemanticOutputPublisherScope | undefined;
 }): ReactNode {
   if (input.draftSession) {
@@ -1186,15 +1313,36 @@ function DefaultDefinitionFormSlot({
       input.plan.subject?.type, input.plan.subject?.keys]);
     return <DraftDefinitionForm key={key} input={input} session={input.draftSession}>
       {(engine, writer) => <DefaultSurfaceDefinitionForm
-        {...input} draftEngine={engine} draftWriter={writer} semanticOutputScope={semanticOutputScope}
+        {...input}
+        slotKey={slotKey}
+        onSlotFormEngineChange={onSlotFormEngineChange}
+        onSlotVisibilityChange={onSlotVisibilityChange}
+        draftEngine={engine}
+        draftWriter={writer}
+        semanticOutputScope={semanticOutputScope}
       />}
     </DraftDefinitionForm>;
   }
-  return <DefaultSurfaceDefinitionForm {...input} semanticOutputScope={semanticOutputScope} />;
+  return (
+    <DefaultSurfaceDefinitionForm
+      {...input}
+      slotKey={slotKey}
+      onSlotFormEngineChange={onSlotFormEngineChange}
+      onSlotVisibilityChange={onSlotVisibilityChange}
+      semanticOutputScope={semanticOutputScope}
+    />
+  );
 }
 
 function DefaultSurfaceDefinitionForm(
   input: SurfaceDefinitionFormRenderInput & {
+    slotKey: string;
+    onSlotFormEngineChange?:
+      | ((slotKey: string, engine: IFormEngine | undefined) => void)
+      | undefined;
+    onSlotVisibilityChange?:
+    | ((slotKey: string, nextKey: string, baselineKey: string) => void)
+    | undefined;
     draftEngine?: IFormEngine;
     draftWriter?: DraftWriter;
     semanticOutputScope?: SurfaceSemanticOutputPublisherScope | undefined;
@@ -1209,6 +1357,7 @@ function DefaultSurfaceDefinitionForm(
     responseActionsDocument,
     semanticControlScope,
     onDefinitionActionResult,
+    onActionFinding,
     onActionCompleted,
     responseActionInvoker,
     componentDocument,
@@ -1216,6 +1365,9 @@ function DefaultSurfaceDefinitionForm(
     activeLocale,
     appearance,
     responseSubject,
+    slotKey,
+    onSlotFormEngineChange,
+    onSlotVisibilityChange,
     draftEngine,
     draftWriter,
     semanticOutputScope,
@@ -1261,6 +1413,50 @@ function DefaultSurfaceDefinitionForm(
     }
     if (activeLocale !== undefined) engine.setLocale(activeLocale);
   }, [engine, localeDocuments, activeLocale, plan.definition]);
+  useLayoutEffect(() => {
+    if (!engine || !onSlotFormEngineChange) return;
+    onSlotFormEngineChange(slotKey, engine);
+    return () => {
+      onSlotFormEngineChange(slotKey, undefined);
+    };
+  }, [engine, onSlotFormEngineChange, slotKey]);
+  useLayoutEffect(() => {
+    if (!engine || !onSlotVisibilityChange) return;
+    const matchesMinWidth =
+      typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? (minWidth: number) => window.matchMedia(`(min-width: ${minWidth}px)`).matches
+        : undefined;
+    const baselineKey = [...plannedDefinitionFormActionRefs(
+      plan.definition,
+      componentDocument,
+      responseActionsDocument,
+      {
+        themeDocument: grant.themeDocument,
+        ...(matchesMinWidth ? { matchesMinWidth } : {}),
+      },
+    )].sort().join('\0');
+    return preactReactiveRuntime.effect(() => {
+      const nextKey = [...plannedDefinitionFormActionRefs(
+        plan.definition,
+        componentDocument,
+        responseActionsDocument,
+        {
+          themeDocument: grant.themeDocument,
+          evalEngine: engine,
+          ...(matchesMinWidth ? { matchesMinWidth } : {}),
+        },
+      )].sort().join('\0');
+      onSlotVisibilityChange(slotKey, nextKey, baselineKey);
+    });
+  }, [
+    engine,
+    onSlotVisibilityChange,
+    slotKey,
+    plan.definition,
+    componentDocument,
+    responseActionsDocument,
+    grant.themeDocument,
+  ]);
   const renderedScope = engine ? semanticOutputScope : undefined;
   useSurfaceSemanticOutputs(
     renderedScope,
@@ -1325,6 +1521,7 @@ function DefaultSurfaceDefinitionForm(
       registryEntries={[...plan.registryEntries]}
       resolveFieldHelp={resolveFieldHelp}
       responseActionsDocument={responseActionsDocument ?? null}
+      {...(onActionFinding ? { onActionFinding } : {})}
       responseActionInvoker={draftWriter
         ? input => draftWriter.invoke(input, { invoker: responseActionInvoker, current: () => formVisit.current === visit })
         : responseActionInvoker ?? null}

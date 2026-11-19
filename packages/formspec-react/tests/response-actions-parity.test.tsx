@@ -963,4 +963,95 @@ describe('React Response Actions parity', () => {
             vi.useRealTimers();
         }
     });
+
+    it('settles an in-flight autosave without writing stale status into a replacement document while preserving 1-arg observer delivery, and applies ActionButton node.style', async () => {
+        vi.useFakeTimers();
+        const definition = {
+            $formspec: '1.0',
+            version: '1.0.0',
+            url: 'urn:review:status-swap',
+            title: 'Review',
+            items: [{ key: 'field', type: 'field', dataType: 'string', label: 'Name' }],
+        };
+        const engine = createFormEngine(definition);
+        const action = {
+            id: 'save',
+            intent: 'autosave' as const,
+            effects: [{ type: 'hostEvent' as const, eventName: 'saved' }],
+        };
+        const oldDoc = {
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url: definition.url },
+            actions: [action],
+        };
+        const nextDoc = {
+            ...oldDoc,
+            actions: [{ ...action, id: 'different', intent: 'review' as const, label: { literal: 'Hidden review' } }],
+        };
+        const styledComponent = {
+            $formspecComponent: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: definition.url },
+            tree: {
+                component: 'Stack',
+                children: [
+                    { component: 'TextInput', bind: 'field' },
+                    { component: 'ActionButton', actionRef: 'different', style: { display: 'none' } },
+                ],
+            },
+        };
+        const completed = vi.fn();
+        let finish!: (value: any) => void;
+        const invoke = vi.fn(() => new Promise<any>((resolve) => { finish = resolve; }));
+        const { container, root } = renderInto(
+            <FormspecForm
+                engine={engine}
+                responseActionsDocument={oldDoc}
+                responseActionInvoker={invoke}
+                onActionResult={completed}
+            />,
+        );
+        try {
+            await act(async () => { engine.setValue('field', 'Example'); });
+            await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+            expect(invoke).toHaveBeenCalledTimes(1);
+
+            await act(async () => {
+                root.render(
+                    <FormspecForm
+                        engine={engine}
+                        componentDocument={styledComponent}
+                        responseActionsDocument={nextDoc}
+                        responseActionInvoker={invoke}
+                        onActionResult={completed}
+                    />,
+                );
+            });
+
+            const controlWrapper = container.querySelector<HTMLElement>('.formspec-action-control');
+            expect(controlWrapper?.style.display).toBe('none');
+
+            const status = () => container.querySelector('.formspec-action-status')?.textContent ?? '';
+            expect(status()).toBe('');
+
+            await act(async () => {
+                finish({
+                    status: 'completed',
+                    resolution: { action, resolved: true },
+                    detail: null,
+                    validationTuple: null,
+                    effectTrace: [],
+                });
+            });
+            expect(completed).toHaveBeenCalledTimes(1);
+            expect(completed.mock.calls[0]).toHaveLength(1);
+            expect(status()).toBe('');
+        } finally {
+            root.unmount();
+            container.remove();
+            engine.dispose();
+            vi.useRealTimers();
+        }
+    });
 });

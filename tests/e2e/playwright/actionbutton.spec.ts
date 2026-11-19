@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
 import { createDemoSubmitResponseActions } from '@formspec-org/engine/demo-fixtures';
 import { expect, test } from '@playwright/test';
 import { gotoHarness } from '../browser/helpers/harness';
@@ -61,6 +62,7 @@ function loadSchema(name: string): any {
 }
 
 const ajv = new Ajv2020({ strict: false, allErrors: true });
+addFormats(ajv);
 // Pre-register cross-referenced schemas; modules[] refs Common ModuleRef and
 // ValidationOverride refs VM ValidationTuple.
 ajv.addSchema(loadSchema('common.schema.json'));
@@ -123,5 +125,51 @@ test.describe('ActionButton', () => {
         expect.objectContaining({ shapeId: 'nameMustBeBob', severity: 'error' }),
       ]),
     );
+  });
+
+  test('a detached element configured before a later append mounts editable inputs', async ({ page }) => {
+    await gotoHarness(page);
+    await page.evaluate(async () => {
+      const el = document.createElement('formspec-render') as any;
+      el.id = 'configured-before-append';
+      el.definition = {
+        $formspec: '1.0',
+        version: '1.0.0',
+        url: 'urn:review:mount',
+        title: 'Review',
+        items: [{ key: 'answer', label: 'Delayed field', type: 'field', dataType: 'string' }],
+      };
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      document.body.append(el);
+    });
+    const el = page.locator('#configured-before-append');
+    await expect(el).toBeAttached();
+    await expect(el.getByRole('textbox', { name: 'Delayed field' })).toBeEditable();
+  });
+
+  test('WebComponent omits synthetic submit from an unbound sidecar', async ({ page }) => {
+    await gotoHarness(page);
+    await page.evaluate(() => {
+      const el = document.querySelector('formspec-render') as any;
+      el.componentDocument = null;
+      el.showSubmit = true;
+      el.definition = {
+        $formspec: '1.0',
+        version: '1.0.0',
+        url: 'urn:review:submit',
+        title: 'Review',
+        items: [{ key: 'answer', label: 'Field', type: 'field', dataType: 'string' }],
+      };
+      el.responseActionsDocument = {
+        $formspecResponseActions: '1.0',
+        version: '1.0.0',
+        actions: [{ id: 'send', intent: 'submit', label: { literal: 'Send unbound' }, effects: [{ type: 'hostEvent', eventName: 'checked' }] }],
+      };
+      (window as any).reviewEvents = [];
+      el.addEventListener('checked', () => (window as any).reviewEvents.push('checked'));
+    });
+    await expect(page.getByRole('textbox', { name: 'Field' })).toBeEditable();
+    await expect(page.getByRole('button', { name: 'Send unbound', exact: true })).toHaveCount(0);
+    expect(await page.evaluate(() => (window as any).reviewEvents)).toEqual([]);
   });
 });

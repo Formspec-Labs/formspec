@@ -666,7 +666,8 @@ function resolveWidgetAction(
 ): { action: WidgetActionMetadataPlan; responseContext?: WidgetActionResponsePlan } | undefined {
   const matches = documents.flatMap((document) =>
     (Array.isArray(document?.actions) ? document.actions : [])
-      .filter((action) => action.id === actionRef)
+      .filter((action): action is NonNullable<typeof action> =>
+        Boolean(action && typeof action === 'object' && !Array.isArray(action) && action.id === actionRef))
       .map((action) => ({ document, action })),
   );
   if (matches.length !== 1) return undefined;

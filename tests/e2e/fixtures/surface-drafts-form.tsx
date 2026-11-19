@@ -37,6 +37,12 @@ const component: ComponentDocument = {
     ...(submit ? [{ component: 'ActionButton' as const, actionRef: 'submit' }] : []),
   ] },
 };
+const authoredButton = component.tree.children?.find(
+  (node): node is Extract<typeof node, { component: 'ActionButton' }> =>
+    node.component === 'ActionButton' && node.actionRef === 'autosave',
+);
+if (authoredButton && query.has('styled')) authoredButton.style = { display: 'none' };
+if (authoredButton && query.has('conditional')) authoredButton.when = 'false';
 if (query.has('responsiveProbe')) {
   component.breakpoints = { wide: 700 };
   const button = component.tree.children?.find(
@@ -121,6 +127,11 @@ const source = {
           label: { literal: autoButtons ? 'Save as I go' : 'Autosave' },
           effects: [{ type: 'hostEvent', eventName: 'draft-autosaved' }],
         }] : []),
+        ...(query.has('ambiguous') ? [{
+          id: 'second-save',
+          intent: 'autosave',
+          effects: [{ type: 'hostEvent', eventName: 'second-save' }],
+        }] : []),
       ],
     },
   },
@@ -150,6 +161,11 @@ if (query.has('form')) {
       } } : preview.bundle,
       adapters: {
         ...preview.adapters,
+        onDiagnostics: (batch) => {
+          ((window as unknown as { observedDiagnostics?: unknown[] }).observedDiagnostics ??= []).push(...batch);
+          const win = window as unknown as { numDeliveries?: number };
+          win.numDeliveries = (win.numDeliveries ?? 0) + 1;
+        },
         ...(query.has('withoutWriter') && { draftStorage: undefined, definitionActionInvoker: undefined }),
         ...(!autoButtons && { resolveDefinitionComponent: () => component }),
       } };

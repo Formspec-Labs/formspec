@@ -206,8 +206,9 @@ export function responseActionsDocumentForAction(
   responseContext?: SurfaceWidgetResponseContext,
 ): ResponseActionsDocument | undefined {
   const matches = documents.flatMap((document) =>
-    (document.actions ?? [])
-      .filter((action) => action.id === actionRef)
+    (Array.isArray(document?.actions) ? document.actions : [])
+      .filter((action): action is NonNullable<typeof action> =>
+        Boolean(action && typeof action === 'object' && !Array.isArray(action) && action.id === actionRef))
       .map(() => document),
   );
   const match = matches.length === 1 ? matches[0] : undefined;

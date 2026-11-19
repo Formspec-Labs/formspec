@@ -1405,4 +1405,60 @@ describe('ActionButton label resolution', () => {
             vi.useRealTimers();
         }
     });
+
+    it('mounts editable inputs when configured while detached and appended after queued microtasks run', async () => {
+        const el = document.createElement('formspec-render') as any;
+        try {
+            el.definition = {
+                $formspec: '1.0',
+                version: '1.0.0',
+                url: 'urn:review:mount-detached',
+                title: 'Review',
+                items: [{ key: 'answer', label: 'Delayed field', type: 'field', dataType: 'string' }],
+            };
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            document.body.appendChild(el);
+            await Promise.resolve();
+            expect(el.querySelector('.formspec-skeleton')).toBeNull();
+            const input = el.querySelector('input') as HTMLInputElement | null;
+            expect(input).not.toBeNull();
+            expect(input?.disabled).toBe(false);
+        } finally {
+            el.remove();
+        }
+    });
+
+    it('omits synthetic submit button when responseActionsDocument lacks targetDefinition or mismatches Definition version', async () => {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        try {
+            el.componentDocument = null;
+            el.showSubmit = true;
+            el.definition = {
+                $formspec: '1.0',
+                version: '1.0.0',
+                url: 'urn:review:submit-guard',
+                title: 'Review',
+                items: [{ key: 'answer', label: 'Field', type: 'field', dataType: 'string' }],
+            };
+            el.responseActionsDocument = {
+                $formspecResponseActions: '1.0',
+                version: '1.0.0',
+                actions: [{ id: 'send', intent: 'submit', label: { literal: 'Send unbound' }, effects: [{ type: 'hostEvent', eventName: 'checked' }] }],
+            };
+            el.render();
+            expect(el.querySelectorAll('button.formspec-submit')).toHaveLength(0);
+
+            el.responseActionsDocument = {
+                $formspecResponseActions: '1.0',
+                version: '1.0.0',
+                targetDefinition: { url: 'urn:review:submit-guard', compatibleVersions: '>=9.0.0' },
+                actions: [{ id: 'send', intent: 'submit', label: { literal: 'Send incompatible' }, effects: [{ type: 'hostEvent', eventName: 'checked' }] }],
+            };
+            el.render();
+            expect(el.querySelectorAll('button.formspec-submit')).toHaveLength(0);
+        } finally {
+            el.remove();
+        }
+    });
 });

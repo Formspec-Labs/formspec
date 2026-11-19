@@ -15,7 +15,7 @@ import type {
     ValidationOverride,
     ValidationProfile,
 } from '@formspec-org/types';
-import { VALIDATION_MAPPING_MASTER_TABLE } from '@formspec-org/types';
+import { targetDefinitionMatches, VALIDATION_MAPPING_MASTER_TABLE } from '@formspec-org/types';
 import { ResponseActionsPreconditionCatalog } from './precondition-catalog.js';
 
 /**
@@ -525,6 +525,9 @@ const MODULE_LOCK_HASH_PATTERN = /^[a-z0-9]+:[A-Za-z0-9+/=]+$/;
 const ACTOR_ID_PATTERN = /^urn:formspec:actor:.+/;
 const GENERATION_ANCHOR_PATTERN = /^(item|unit|task|action|concept|need):.+$/;
 const HANDLE_OR_ROUTE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+const PROVENANCE_NODE_PATH_PATTERN = /^\/.+/;
+const ASCII_ONLY_PATTERN = /^[\x00-\x7F]+$/;
+const RFC3986_URI_PATTERN = /^(?:[a-z][a-z0-9+\-.]*:)(?:\/?\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:]|%[0-9a-f]{2})*@)?(?:\[(?:(?:(?:(?:[0-9a-f]{1,4}:){6}|::(?:[0-9a-f]{1,4}:){5}|(?:[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){4}|(?:(?:[0-9a-f]{1,4}:){0,1}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){3}|(?:(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4})?::(?:[0-9a-f]{1,4}:){2}|(?:(?:[0-9a-f]{1,4}:){0,3}[0-9a-f]{1,4})?::[0-9a-f]{1,4}:|(?:(?:[0-9a-f]{1,4}:){0,4}[0-9a-f]{1,4})?::)(?:[0-9a-f]{1,4}:[0-9a-f]{1,4}|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?))|(?:(?:[0-9a-f]{1,4}:){0,5}[0-9a-f]{1,4})?::[0-9a-f]{1,4}|(?:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{1,4})?::)|[Vv][0-9a-f]+\.[a-z0-9\-._~!$&'()*+,;=:]+)\]|(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)|(?:[a-z0-9\-._~!$&'()*+,;=]|%[0-9a-f]{2})*)(?::\d*)?(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*|\/(?:(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)?|(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})+(?:\/(?:[a-z0-9\-._~!$&'()*+,;=:@]|%[0-9a-f]{2})*)*)(?:\?(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?(?:#(?:[a-z0-9\-._~!$&'()*+,;=:@/?]|%[0-9a-f]{2})*)?$/i;
 const BROWSER_RESOURCE_REF_PATTERN = /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/;
 const OUTPUT_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 const JSON_POINTER_NON_ROOT_PATTERN = /^\/(?:[^~/]|~[01])+(?:\/(?:[^~/]|~[01])*)*$/;
@@ -621,6 +624,14 @@ function hasNonEmptyString(value: unknown): value is string {
     return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isValidRfc3986Uri(value: unknown): value is string {
+    return typeof value === 'string'
+        && value.length >= 1
+        && ASCII_ONLY_PATTERN.test(value)
+        && (value.includes(':') || value.includes('/'))
+        && RFC3986_URI_PATTERN.test(value);
+}
+
 function hasOnlyAllowedKeys(
     record: Record<string, unknown>,
     allowed: ReadonlySet<string>,
@@ -646,7 +657,7 @@ function isValidModuleRef(value: unknown): boolean {
     return typeof mod.id === 'string'
         && MODULE_ID_PATTERN.test(mod.id)
         && hasMinLength1(mod.version)
-        && (mod.publisher === undefined || hasMinLength1(mod.publisher))
+        && (mod.publisher === undefined || isValidRfc3986Uri(mod.publisher))
         && (mod.lockHash === undefined || (typeof mod.lockHash === 'string' && MODULE_LOCK_HASH_PATTERN.test(mod.lockHash)))
         && (mod.extensions === undefined || isValidExtensions(mod.extensions));
 }
@@ -678,17 +689,16 @@ function isValidProvenanceRef(value: unknown): boolean {
         && hasOnlyAllowedKeys(comp, COMPONENT_REF_KEYS)
         && typeof comp.handle === 'string'
         && HANDLE_OR_ROUTE_ID_PATTERN.test(comp.handle)
-        && (comp.url === undefined || hasMinLength1(comp.url))
+        && (comp.url === undefined || isValidRfc3986Uri(comp.url))
         && (comp.version === undefined || hasMinLength1(comp.version))
         && surf
         && hasOnlyAllowedKeys(surf, SURFACE_REF_KEYS)
-        && hasMinLength1(surf.url)
+        && isValidRfc3986Uri(surf.url)
         && (surf.version === undefined || hasMinLength1(surf.version))
         && typeof candidate.route === 'string'
         && HANDLE_OR_ROUTE_ID_PATTERN.test(candidate.route)
         && typeof candidate.nodePath === 'string'
-        && candidate.nodePath.startsWith('/')
-        && candidate.nodePath.length >= 2
+        && PROVENANCE_NODE_PATH_PATTERN.test(candidate.nodePath)
         && (candidate.id === undefined || hasMinLength1(candidate.id))
         && (candidate.nodeId === undefined || hasMinLength1(candidate.nodeId)),
     );
@@ -954,7 +964,7 @@ function hasActionLabel(action: ResponseAction): boolean {
  */
 export function isValidDefinitionResponseActionsDocument(
     document: unknown,
-    definition: { url?: unknown },
+    definition: { url?: unknown; version?: unknown },
 ): document is ResponseActionsDocument {
     const candidate = asRecord(document);
     const target = asRecord(candidate?.targetDefinition);
@@ -970,11 +980,25 @@ export function isValidDefinitionResponseActionsDocument(
         || (candidate.scope !== undefined && candidate.scope !== 'response')
         || !target
         || !hasOnlyAllowedKeys(target, TARGET_DEFINITION_KEYS)
-        || !hasNonEmptyString(target.url)
-        || target.url !== definition.url
+        || !isValidRfc3986Uri(target.url)
+        || typeof definition?.url !== 'string'
         || (
             target.compatibleVersions !== undefined
             && !hasMinLength1(target.compatibleVersions)
+        )
+        || !targetDefinitionMatches(
+            {
+                url: target.url,
+                ...(typeof target.compatibleVersions === 'string'
+                    ? { compatibleVersions: target.compatibleVersions }
+                    : {}),
+            },
+            {
+                url: definition.url,
+                ...(typeof definition.version === 'string' && definition.version.length > 0
+                    ? { version: definition.version }
+                    : {}),
+            },
         )
         || (candidate['x-formspec-runtime'] !== undefined && !isValidRuntimeRequestCatalog(candidate['x-formspec-runtime']))
         || !Array.isArray(candidate.actions)
@@ -1013,7 +1037,7 @@ export function isBackgroundResponseAction(
  */
 export function autoPlacedDefinitionActions(
     document: ResponseActionsDocumentInput | null | undefined,
-    definition: { url?: unknown },
+    definition: { url?: unknown; version?: unknown },
 ): readonly ResponseAction[] {
     if (!isValidDefinitionResponseActionsDocument(document, definition)) {
         return [];
@@ -1032,7 +1056,7 @@ export function autoPlacedDefinitionActions(
  */
 export function resolveAutosaveResponseAction(
     document: ResponseActionsDocumentInput | null | undefined,
-    definition?: { url?: unknown } | null,
+    definition?: { url?: unknown; version?: unknown } | null,
 ): AutosaveActionResolution {
     const candidate = asRecord(document);
     const target = asRecord(candidate?.targetDefinition);
@@ -1041,7 +1065,12 @@ export function resolveAutosaveResponseAction(
         : target?.url;
     if (
         !hasNonEmptyString(expectedUrl)
-        || !isValidDefinitionResponseActionsDocument(document, { url: expectedUrl })
+        || !isValidDefinitionResponseActionsDocument(document, {
+            url: expectedUrl,
+            ...(definition && typeof definition.version === 'string' && definition.version.length > 0
+                ? { version: definition.version }
+                : {}),
+        })
     ) {
         return { action: null };
     }
@@ -1087,7 +1116,7 @@ export function resolveAutosaveResponseAction(
  */
 export function findAutosaveResponseAction(
     document: ResponseActionsDocumentInput | null | undefined,
-    definition?: { url?: unknown } | null,
+    definition?: { url?: unknown; version?: unknown } | null,
 ): ResponseAction | null {
     return resolveAutosaveResponseAction(document, definition).action;
 }

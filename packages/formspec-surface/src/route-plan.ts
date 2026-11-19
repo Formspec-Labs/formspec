@@ -82,6 +82,8 @@ export interface SurfaceRoutePlanInput<TComponent> {
   activeBreakpoint?: string | null | undefined;
   /** Pure viewport predicate `(minWidthPx) => boolean` for responsive Definition slot planning. */
   matchesMinWidth?: ((minWidthPx: number) => boolean) | undefined;
+  /** Mounted Definition form engines keyed by slot path (`slotId` or `embedSlotId/childSlotId`) for live visibility evaluation. */
+  slotFormEngines?: ReadonlyMap<string, import('@formspec-org/engine').IFormEngine> | undefined;
 }
 
 export interface SurfaceRoutePlan<TComponent> {
@@ -139,6 +141,7 @@ export function planMatchedRoute<TComponent>(
       themeDocument: grant.themeDocument,
       ...(input.activeBreakpoint !== undefined ? { activeBreakpoint: input.activeBreakpoint } : {}),
       ...(input.matchesMinWidth !== undefined ? { matchesMinWidth: input.matchesMinWidth } : {}),
+      ...(input.slotFormEngines !== undefined ? { slotFormEngines: input.slotFormEngines } : {}),
     }),
     ...(input.evaluateCondition !== undefined
       ? { evaluateCondition: input.evaluateCondition }

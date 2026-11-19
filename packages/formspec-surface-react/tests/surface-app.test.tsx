@@ -1687,4 +1687,239 @@ describe("navigation", () => {
       vi.useRealTimers();
     }
   });
+
+  it("forwards one ambiguous-autosave-action finding through Surface diagnostics with and without draft storage", async () => {
+    const { initFormspecEngine } = await import("@formspec-org/engine/init-formspec-engine");
+    const { BrowserSurfaceApp } = await import("../src/BrowserSurfaceApp.js");
+    await initFormspecEngine();
+
+    const definitionUrl = "https://example.test/filing-ambiguous";
+    const filingSurface = {
+      $formspecSurface: "0.2",
+      id: "filing",
+      entry: "filing",
+      routes: [
+        {
+          id: "filing",
+          path: "/filing",
+          title: "Filing",
+          routeClass: "intake",
+          slots: [
+            {
+              id: "form",
+              slotType: "definition-form",
+              binding: { definitionRef: definitionUrl },
+            },
+          ],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+
+    const ambiguousBundle: ResolvedBundle = {
+      ...bundle,
+      surfaces: [filingSurface],
+      responseActions: [
+        {
+          $formspecResponseActions: "1.0",
+          version: "1.0.0",
+          targetDefinition: { url: definitionUrl },
+          actions: [
+            {
+              id: "first-auto",
+              intent: "autosave",
+              effects: [{ type: "hostEvent", eventName: "first" }],
+            },
+            {
+              id: "second-auto",
+              intent: "autosave",
+              effects: [{ type: "hostEvent", eventName: "second" }],
+            },
+          ],
+        } as ResponseActionsDocument,
+      ],
+      definitions: new Map([
+        [
+          definitionUrl,
+          {
+            $formspec: "1.0",
+            url: definitionUrl,
+            version: "1.0.0",
+            title: "Filing",
+            items: [{ key: "answer", type: "field", dataType: "string", label: "Answer" }],
+          } as unknown as FormDefinition,
+        ],
+      ]),
+    };
+
+    // 1. Without draft writer (`SurfaceApp`)
+    const withoutWriterBatches: SurfaceDiagnostic[][] = [];
+    await act(async () => {
+      render(
+        <SurfaceApp
+          bundle={ambiguousBundle}
+          location="/filing"
+          onNavigate={() => {}}
+          onDiagnostics={(batch) => withoutWriterBatches.push([...batch])}
+          setDocumentTitle={false}
+        />,
+      );
+    });
+    const withoutWriterMatches = (withoutWriterBatches.at(-1) ?? []).filter(
+      (diag) => diag.details?.reason === "ambiguous-autosave-action",
+    );
+    expect(withoutWriterMatches).toHaveLength(1);
+    expect(withoutWriterMatches[0]?.code).toBe("BUNDLE-DOCUMENT-SHAPE");
+
+    // 2. With draft writer (`BrowserSurfaceApp` + `draftStorage`)
+    const withWriterBatches: SurfaceDiagnostic[][] = [];
+    const draftStorage = {
+      scope: "ambiguous-scope",
+      port: {
+        load: vi.fn(async () => ({ status: "absent" as const })),
+        save: vi.fn(async () => ({ status: "saved" as const, revision: "rev-1" })),
+        discard: vi.fn(async () => ({ status: "discarded" as const })),
+        readSummaries: vi.fn(async () => new Map()),
+      },
+    };
+    window.history.replaceState(null, "", "#/filing");
+    await act(async () => {
+      render(
+        <BrowserSurfaceApp
+          bundle={ambiguousBundle}
+          adapters={{
+            mode: "hash",
+            draftStorage,
+            onDiagnostics: (batch) => withWriterBatches.push([...batch]),
+          }}
+        />,
+      );
+    });
+    await vi.waitFor(() => {
+      const matches = (withWriterBatches.at(-1) ?? []).filter(
+        (diag) => diag.details?.reason === "ambiguous-autosave-action",
+      );
+      expect(matches).toHaveLength(1);
+      expect(matches[0]?.code).toBe("BUNDLE-DOCUMENT-SHAPE");
+    });
+  });
+
+  it("keeps exactly one transition control visible when an authored ActionButton toggles live FEL when visibility", async () => {
+    const { initFormspecEngine } = await import("@formspec-org/engine/init-formspec-engine");
+    await initFormspecEngine();
+
+    const definitionUrl = "https://example.test/filing-live-when";
+    const filingSurface = {
+      $formspecSurface: "0.2",
+      id: "filing",
+      entry: "filing",
+      routes: [
+        {
+          id: "filing",
+          path: "/filing",
+          title: "Filing",
+          routeClass: "intake",
+          slots: [
+            {
+              id: "form",
+              slotType: "definition-form",
+              binding: { definitionRef: definitionUrl },
+            },
+          ],
+          transitions: [{ trigger: "autosave", to: "overview" }],
+        },
+        {
+          id: "overview",
+          path: "/overview",
+          title: "Overview",
+          routeClass: "intake",
+          slots: [],
+        },
+      ],
+    } as unknown as SurfaceDocument;
+
+    const liveWhenBundle: ResolvedBundle = {
+      ...bundle,
+      surfaces: [filingSurface],
+      responseActions: [
+        {
+          $formspecResponseActions: "1.0",
+          version: "1.0.0",
+          targetDefinition: { url: definitionUrl },
+          actions: [
+            {
+              id: "autosave",
+              intent: "autosave",
+              label: { literal: "Autosave" },
+              effects: [{ type: "hostEvent", eventName: "draft-autosaved" }],
+            },
+          ],
+        } as ResponseActionsDocument,
+      ],
+      definitions: new Map([
+        [
+          definitionUrl,
+          {
+            $formspec: "1.0",
+            url: definitionUrl,
+            version: "1.0.0",
+            title: "Filing",
+            items: [
+              { key: "show", type: "field", dataType: "boolean", label: "Show checkpoint" },
+            ],
+          } as unknown as FormDefinition,
+        ],
+      ]),
+    };
+
+    const container = render(
+      <SurfaceApp
+        bundle={liveWhenBundle}
+        location="/filing"
+        onNavigate={() => {}}
+        onFireTransition={async () => ({ advanced: true })}
+        resolveDefinitionComponent={() =>
+          ({
+            $formspecComponent: "1.0",
+            version: "1.0.0",
+            targetDefinition: { url: definitionUrl },
+            tree: {
+              component: "Stack",
+              children: [
+                { component: "Toggle", bind: "show" },
+                {
+                  component: "ActionButton",
+                  actionRef: "autosave",
+                  label: { literal: "Checkpoint now" },
+                  when: "$show = true",
+                },
+              ],
+            },
+          }) as never
+        }
+        setDocumentTitle={false}
+      />,
+    );
+
+    const transitionButtons = () =>
+      [...container.querySelectorAll<HTMLButtonElement>("button")].map((b) =>
+        b.textContent?.trim(),
+      ).filter((name) => name === "Checkpoint now" || name === "Continue to Overview");
+
+    // Initially `$show = true` is false: authored button hidden, Surface fallback shown!
+    expect(transitionButtons()).toEqual(["Continue to Overview"]);
+
+    // Toggle `show` on -> authored button shown, Surface fallback suppressed!
+    const checkbox = container.querySelector<HTMLInputElement>('input[type="checkbox"]');
+    expect(checkbox).not.toBeNull();
+    await act(async () => {
+      checkbox!.click();
+    });
+    expect(transitionButtons()).toEqual(["Checkpoint now"]);
+
+    // Toggle `show` off -> authored button hidden again, Surface fallback restored!
+    await act(async () => {
+      checkbox!.click();
+    });
+    expect(transitionButtons()).toEqual(["Continue to Overview"]);
+  });
 });

@@ -530,12 +530,47 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     () => definitionLocaleLookup(localeDocuments, props.activeLocale), [localeDocuments, props.activeLocale],
   );
   const [breakpointEpoch, setBreakpointEpoch] = useState(0);
+  const [slotVisibilityEpoch, setSlotVisibilityEpoch] = useState(0);
+  const slotFormEnginesRef = useRef(
+    new Map<string, { generation: string; engine: import('@formspec-org/engine').IFormEngine }>(),
+  );
+  const slotVisibilityKeysRef = useRef(new Map<string, string>());
+  const onSlotFormEngineChange = useCallback(
+    (slotKey: string, engine: import('@formspec-org/engine').IFormEngine | undefined) => {
+      if (engine) {
+        slotFormEnginesRef.current.set(slotKey, { generation: runtimeGeneration, engine });
+      } else {
+        const current = slotFormEnginesRef.current.get(slotKey);
+        if (current?.generation === runtimeGeneration) {
+          slotFormEnginesRef.current.delete(slotKey);
+          slotVisibilityKeysRef.current.delete(`${runtimeGeneration}:${slotKey}`);
+        }
+      }
+    },
+    [runtimeGeneration],
+  );
+  const onSlotVisibilityChange = useCallback(
+    (slotKey: string, nextKey: string, baselineKey: string) => {
+      const scopedKey = `${runtimeGeneration}:${slotKey}`;
+      const recorded = slotVisibilityKeysRef.current.get(scopedKey) ?? baselineKey;
+      if (recorded === nextKey) return;
+      slotVisibilityKeysRef.current.set(scopedKey, nextKey);
+      setSlotVisibilityEpoch((prev) => prev + 1);
+    },
+    [runtimeGeneration],
+  );
   const routePlan: SurfaceRoutePlan<SurfaceWidget> | undefined = useMemo(() => {
     if (!resolution.match) return undefined;
     const matchesMinWidth = (minWidthPx: number): boolean =>
       typeof window !== "undefined" && typeof window.matchMedia === "function"
         ? window.matchMedia(`(min-width: ${minWidthPx}px)`).matches
         : false;
+    const activeSlotFormEngines = new Map<string, import('@formspec-org/engine').IFormEngine>();
+    for (const [slotKey, entry] of slotFormEnginesRef.current) {
+      if (entry.generation === runtimeGeneration) {
+        activeSlotFormEngines.set(slotKey, entry.engine);
+      }
+    }
     return planMatchedRoute<SurfaceWidget>({
       handle: resolution.match.handle,
       app: model.app,
@@ -560,6 +595,7 @@ export function SurfaceAppView(props: SurfaceAppProps & {
       staticAssetResolver: props.staticAssetResolver,
       strings,
       matchesMinWidth,
+      ...(activeSlotFormEngines.size > 0 ? { slotFormEngines: activeSlotFormEngines } : {}),
     });
   }, [
     resolution,
@@ -574,7 +610,9 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     props.resolveDefinitionComponent,
     resolveDefinitionLocaleString,
     strings,
+    runtimeGeneration,
     breakpointEpoch,
+    slotVisibilityEpoch,
   ]);
   const breakpointThresholdsKey = useMemo(() => {
     if (!routePlan) return "";
@@ -844,6 +882,8 @@ export function SurfaceAppView(props: SurfaceAppProps & {
               runtimeGeneration={runtimeGeneration}
               onWidgetActionReport={props.onWidgetActionReport}
               onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
+              onSlotFormEngineChange={onSlotFormEngineChange}
+              onSlotVisibilityChange={onSlotVisibilityChange}
               renderDefinitionForm={props.renderDefinitionForm}
               definitionActionInvoker={props.definitionActionInvoker}
               resolveSemanticControlScope={props.resolveSemanticControlScope}

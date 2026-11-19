@@ -387,7 +387,13 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
     const pending = feedback.phase === 'pending';
 
     return (
-        <div ref={controlRef} className="formspec-action-control" {...needAttrs}>
+        <div
+            ref={controlRef}
+            className="formspec-action-control"
+            style={node.style}
+            hidden={node.props?.hidden === true}
+            {...needAttrs}
+        >
             <button
                 ref={setButtonRef}
                 // type="button" mirrors the webcomponent's ActionButton renderer

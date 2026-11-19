@@ -17,6 +17,7 @@ function renderWithValidationSummary(summaryProps: Record<string, any> = {}) {
     el.responseActionsDocument = {
         $formspecResponseActions: '1.0',
         version: '1.0.0',
+        targetDefinition: { url: 'urn:test:form' },
         actions: [
             {
                 id: 'submit',

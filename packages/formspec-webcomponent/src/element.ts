@@ -5,6 +5,7 @@ import {
     deepEqual,
     findAutosaveResponseAction,
     findResponseActionByIntent,
+    isValidDefinitionResponseActionsDocument,
     preactReactiveRuntime,
     resolveAutosaveResponseAction,
     subscribeResponseActionAutosave,
@@ -224,6 +225,7 @@ export class FormspecRender extends HTMLElement {
     /** @internal */ stylesheetRoot: Document | ShadowRoot | null = null;
     private rootContainer: HTMLDivElement | HTMLFormElement | null = null;
     private _renderPending = false;
+    private _needsConnectedRender = false;
     private _colorSchemeMedia: MediaQueryList | null = null;
     private readonly _handleColorSchemeChange = () => this.syncRootContainerAppearance();
     private _locale = '';
@@ -331,6 +333,12 @@ export class FormspecRender extends HTMLElement {
      * with an empty actionRef (would render an inert button forever).
      */
     private injectedSubmitActionRef(): string | null {
+        if (
+            !this._definition
+            || !isValidDefinitionResponseActionsDocument(this._responseActionsDocument, this._definition)
+        ) {
+            return null;
+        }
         return findResponseActionByIntent(this._responseActionsDocument, 'submit')?.id ?? null;
     }
 
@@ -445,11 +453,17 @@ export class FormspecRender extends HTMLElement {
     }
 
     /** @internal */ scheduleRender() {
+        if (!this.isConnected) {
+            this._needsConnectedRender = true;
+        }
         if (this._renderPending) return;
         this._renderPending = true;
         Promise.resolve().then(() => {
             this._renderPending = false;
-            if (!this.isConnected) return;
+            if (!this.isConnected) {
+                this._needsConnectedRender = true;
+                return;
+            }
             this.render();
         });
     }
@@ -489,6 +503,7 @@ export class FormspecRender extends HTMLElement {
         this.touchedVersion.value = 0;
         // A definition without a theme still renders through an adapter: link its skin now.
         this.syncStylesheets();
+        this._needsConnectedRender = true;
         this.renderPlaceholder();
 
         const bootEngine = () => {
@@ -825,7 +840,12 @@ export class FormspecRender extends HTMLElement {
      */
     connectedCallback() {
         this.syncStylesheets();
-        if (this._definition && !this.rootContainer) {
+        const waitingForMountRender =
+            this._needsConnectedRender
+            || Boolean(this.rootContainer?.classList.contains('formspec-skeleton'));
+        if (this.engine && waitingForMountRender) {
+            this.render();
+        } else if (this._definition && waitingForMountRender) {
             this.scheduleRender();
         } else {
             this.syncAutosaveSubscription();
@@ -1059,6 +1079,7 @@ export class FormspecRender extends HTMLElement {
     render() {
         this.cleanup();
         if (!this.engine || !this._definition) return;
+        this._needsConnectedRender = false;
         setupBreakpointsFn(this, this._breakpoints);
 
         if (this._componentDocument) {

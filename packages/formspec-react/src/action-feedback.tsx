@@ -162,6 +162,14 @@ export function createActionFeedbackStore(engine: IFormEngine, draftSaveFeedback
             state.value = { ...owned, feedback: { phase: 'settled', status,
                 intent: owned.feedback.phase === 'idle' ? undefined : owned.feedback.intent } };
         },
+        cancel(ticket: Ticket | undefined) {
+            if (!ticket || !active) return;
+            const owned = state.peek();
+            if (!owned || owned.ticket !== ticket) return;
+            focusOrigin?.dispose();
+            focusOrigin = undefined;
+            state.value = undefined;
+        },
     };
 }
 

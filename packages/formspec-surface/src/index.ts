@@ -215,6 +215,7 @@ export {
 export {
   collectSlotBreakpointThresholds,
   planTransitions,
+  plannedDefinitionFormActionRefs,
   responseActionsDocumentForDefinition,
   slotSuppliedTriggers,
   type PlannedTransition,
