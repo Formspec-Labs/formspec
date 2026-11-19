@@ -262,3 +262,22 @@ it('loads the host linter only for reads, admits a valid projection and returns 
   const broken = await validate(consumer(), upstream('1.0.0', 'renamed'));
   expect(broken.report.diagnostics.filter(d => d.code === 'INSTANCE-PROJECTION-PATH-MISSING')).toHaveLength(1);
 });
+
+it.each(['schema-errors', 'unresolved-artifacts'])('preserves the %s refusal before loading the tools', async (reason) => {
+  const form = consumer();
+  const source = upstream('1.0.0');
+  const loadProjectionLinter = vi.fn(async () => { throw new Error('tools unavailable'); });
+  const documents = { [form.ref!.url!]: form.document };
+  if (reason === 'schema-errors') documents[source.ref!.url!] = source.document;
+  const { report } = await produceBundleExportAppGraphValidationReport({
+    manifest: {
+      $formspecBundle: '2.2', id: 'https://example.gov/app', version: '1.0.0',
+      definitions: [form.ref, source.ref],
+    },
+    documents,
+    schemaValidators: ({ handle }) => ({ ok: reason !== 'schema-errors' || handle.ref?.url !== form.ref?.url }),
+    loadProjectionLinter,
+  });
+  expect(loadProjectionLinter).not.toHaveBeenCalled();
+  expect(report.phases).toContainEqual(expect.objectContaining({ phase: 'cross-artifact', status: 'skipped', reason }));
+});

@@ -31,7 +31,7 @@ import type {
 } from './types.js';
 import { documentLintValidator, type AppGraphDocumentLinter } from './document-lint.js';
 import { requiresResponseProjectionCheck } from './instance-projection.js';
-import { validateAppGraph } from './validator.js';
+import { prepareAppGraphValidation } from './validator.js';
 import { prepareComponentRouteResolver, type ComponentRouteResolver } from './component-route-resolution.js';
 
 export interface AppGraphReportProducerRequest extends ArtifactResolverRequest {
@@ -85,11 +85,6 @@ async function finishAppGraphValidationReport(
   manifestDiagnostics: readonly AppGraphDiagnostic[] = [],
 ): Promise<PreparedAppGraphReportProducerResult> {
   const graphInput = artifactResolutionGraphInput(artifactResolutionReport);
-  let validators = request.crossArtifactValidators;
-  if (request.loadProjectionLinter && !validators?.some(validator => validator.checksResponseProjections)
-    && graphInput.handles.some(requiresResponseProjectionCheck)) {
-    validators = [...(validators ?? []), documentLintValidator(await request.loadProjectionLinter())];
-  }
   const moduleResolutionReport = resolveModules(moduleResolverInputFromAppGraph({
     manifest: graphInput.manifest,
     handles: graphInput.handles,
@@ -113,12 +108,19 @@ async function finishAppGraphValidationReport(
     ...(request.unsupported ? { unsupported: request.unsupported } : {}),
     schemaValidators: request.schemaValidators,
     ...(request.evidenceSchemaValidators ? { evidenceSchemaValidators: request.evidenceSchemaValidators } : {}),
-    ...(validators ? { crossArtifactValidators: validators } : {}),
+    ...(request.crossArtifactValidators ? { crossArtifactValidators: request.crossArtifactValidators } : {}),
     ...(request.hostWidgetContracts ? { hostWidgetContracts: request.hostWidgetContracts } : {}),
     ...(request.renderedNeedTrace ? { renderedNeedTrace: request.renderedNeedTrace } : {}),
     ...(request.validationOptions ? { options: request.validationOptions } : {}),
   };
-  const report = validateAppGraph(validationRequest);
+  const prepared = prepareAppGraphValidation(validationRequest);
+  let validators = request.crossArtifactValidators;
+  if (prepared.canRunCrossArtifactChecks && request.loadProjectionLinter
+    && !validators?.some(validator => validator.checksResponseProjections)
+    && graphInput.handles.some(requiresResponseProjectionCheck)) {
+    validators = [...(validators ?? []), documentLintValidator(await request.loadProjectionLinter())];
+  }
+  const report = prepared.finish(validators);
 
   return {
     artifactResolutionReport,
