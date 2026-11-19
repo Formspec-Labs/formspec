@@ -53,7 +53,13 @@
   margin: 0;
 }
 
-@container formspec-workspace (width > 50rem) {
+@container formspec-workspace (width > 46rem) {
+  .formspec-workspace {
+    grid-template-columns: minmax(11rem, 13.5rem) minmax(0, 1fr) minmax(11.5rem, 14.5rem);
+  }
+}
+
+@container formspec-workspace (width > 58rem) {
   .formspec-workspace {
     grid-template-columns: minmax(13.5rem, 17rem) minmax(0, 1fr) minmax(14rem, 18.5rem);
   }

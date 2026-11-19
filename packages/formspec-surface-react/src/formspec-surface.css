@@ -242,9 +242,15 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   margin-inline: auto;
   padding: clamp(1rem, 2.5vw, 2rem);
   display: grid;
-  grid-template-columns: minmax(13.5rem, 16.5rem) minmax(0, 1fr);
+  grid-template-columns: minmax(12.5rem, 14.5rem) minmax(0, 1fr);
   gap: clamp(1rem, 2.5vw, 2rem);
   align-items: start;
+}
+
+@media (min-width: 72rem) {
+  .fs-surface-shell {
+    grid-template-columns: minmax(14.5rem, 16.5rem) minmax(0, 1fr);
+  }
 }
 
 .fs-surface-main {
@@ -614,6 +620,10 @@ html[data-fs-saved-appearance='light']:not([data-fs-appearance], :has(.fs-surfac
   font-weight: 800;
   line-height: 1.12;
   letter-spacing: -0.025em;
+}
+
+.fs-surface-route__title[tabindex="-1"]:focus {
+  outline: none;
 }
 
 /*
@@ -1969,6 +1979,18 @@ th[data-cell-kind="status"] {
   border-radius: 50%;
   background: var(--fs-surface-line-strong);
   vertical-align: middle;
+}
+
+@container filing (min-width: 30rem) {
+  .fs-surface-filing__row {
+    grid-template-columns: minmax(9.5rem, 12rem) minmax(0, 1fr) minmax(8.5rem, 11rem);
+    column-gap: 0.875rem;
+    align-items: start;
+  }
+
+  .fs-surface-filing__progress {
+    grid-column: 3;
+  }
 }
 
 @container filing (min-width: 38rem) {
