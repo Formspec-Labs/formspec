@@ -7,20 +7,29 @@ import { readRepeatAffordances, type RepeatAffordanceLocks, type RepeatAffordanc
 import { useFormspecContext, findItemByKey } from './context';
 import { useSignal } from './use-signal';
 
+export interface RepeatAffordanceHookState extends RepeatAffordanceState {
+    /** True when the repeatable group declares `seedFrom` (upstream carried rows). */
+    isSeeded: boolean;
+}
+
 /**
  * Repeat chrome state for the repeatable group at `repeatPath` (rule: engine `readRepeatAffordances`), with the
  * node's `allowAdd` / `allowRemove` locks (component §4.4).
  */
-export function useRepeatAffordances(repeatPath: string, locks: RepeatAffordanceLocks = {}): RepeatAffordanceState {
+export function useRepeatAffordances(repeatPath: string, locks: RepeatAffordanceLocks = {}): RepeatAffordanceHookState {
     const { engine } = useFormspecContext();
     const { allowAdd, allowRemove } = locks;
     const state = useMemo(
-        () => computed(() => readRepeatAffordances(
-            engine,
-            repeatPath,
-            findItemByKey(engine.getDefinition().items ?? [], repeatPath),
-            { allowAdd, allowRemove },
-        )),
+        () => computed(() => {
+            const item = findItemByKey(engine.getDefinition().items ?? [], repeatPath);
+            const base = readRepeatAffordances(
+                engine,
+                repeatPath,
+                item,
+                { allowAdd, allowRemove },
+            );
+            return { ...base, isSeeded: Boolean(item?.seedFrom) };
+        }),
         [engine, repeatPath, allowAdd, allowRemove],
     );
     return useSignal(state);

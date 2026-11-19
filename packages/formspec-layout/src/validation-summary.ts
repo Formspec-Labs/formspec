@@ -61,6 +61,16 @@ export interface ValidationSummaryRow {
     jumpHref: string | null;
 }
 
+/** Strip one or more leading severity prefixes (`WARNING:`, `Error:`, `Info —`, etc.). */
+export function stripSeverityPrefix(message: string): string {
+    return message.replace(/^(?:(?:warning|error|info(?:rmation)?)\s*[:—-]+\s*)+/i, '').trim();
+}
+
+/** Collapse doubled leading severity prefixes (`Warning: WARNING: ...` → `Warning: ...`). */
+export function dedupeSeverityPrefix(message: string): string {
+    return message.replace(/^((?:warning|error|info(?:rmation)?))\s*:\s*(?:(?:warning|error|info(?:rmation)?)\s*[:—-]+\s*)+/i, '$1: ');
+}
+
 /** The path a finding names: its source when it has one, else its path. */
 export function validationResultPath(result: ValidationResult): string {
     const raw = result.sourceId || result.path || '';
@@ -110,8 +120,8 @@ export function readValidationSummaryRows(
         const rawLabel = field?.label ?? (formLevel ? null : path.replace(/\[\d+\]/g, ''));
         const label = rawLabel === null ? null : (rawLabel.trimEnd().replace(/[:.]+$/, '') || rawLabel);
         const rowMessage = label === null
-            ? message
-            : (message.replace(/^(?:warning|error)\s*[:—-]+\s*/i, '') || message);
+            ? (dedupeSeverityPrefix(message) || message)
+            : (stripSeverityPrefix(message) || message);
         const canJump = jumpLinks && !formLevel && (source.jumpable ? source.jumpable(path) : field !== null);
         rows.push({
             identity: validationResultIdentity(result),
@@ -120,7 +130,7 @@ export function readValidationSummaryRows(
             formLevel,
             message,
             label,
-            text: label === null ? message : source.chrome('validationSummary.row', { label, message: rowMessage }),
+            text: label === null ? rowMessage : source.chrome('validationSummary.row', { label, message: rowMessage }),
             jumpPath: canJump ? path : null,
             jumpHref: canJump && field?.controlId ? `#${field.controlId}` : null,
         });

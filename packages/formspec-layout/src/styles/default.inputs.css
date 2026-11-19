@@ -153,6 +153,61 @@
   cursor: pointer;
 }
 
+/* Dark mode: crisp SC 1.4.11 (>= 3:1) borders on unchecked checkboxes & radios. */
+.formspec-container.formspec-appearance-dark :is(
+  .formspec-field--inline > input[type="checkbox"]:not([role="switch"]),
+  .formspec-checkbox-group input[type="checkbox"],
+  .formspec-radio-group input[type="radio"]
+) {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  border: 1.5px solid var(--formspec-default-checkbox-border);
+  background: var(--formspec-default-checkbox-bg);
+  transition: var(--formspec-default-transition-fast);
+}
+
+.formspec-container.formspec-appearance-dark :is(
+  .formspec-field--inline > input[type="checkbox"]:not([role="switch"]),
+  .formspec-checkbox-group input[type="checkbox"]
+) {
+  border-radius: var(--formspec-default-radius-sm);
+}
+
+.formspec-container.formspec-appearance-dark .formspec-radio-group input[type="radio"] {
+  border-radius: 50%;
+}
+
+.formspec-container.formspec-appearance-dark :is(
+  .formspec-field--inline > input[type="checkbox"]:not([role="switch"]),
+  .formspec-checkbox-group input[type="checkbox"],
+  .formspec-radio-group input[type="radio"]
+):checked {
+  border-color: var(--formspec-default-primary-fill);
+  background: var(--formspec-default-primary-fill);
+}
+
+.formspec-container.formspec-appearance-dark :is(
+  .formspec-field--inline > input[type="checkbox"]:not([role="switch"]),
+  .formspec-checkbox-group input[type="checkbox"]
+):checked::before {
+  content: "";
+  width: 0.62rem;
+  height: 0.36rem;
+  border-left: 2px solid var(--formspec-default-text-inverse);
+  border-bottom: 2px solid var(--formspec-default-text-inverse);
+  transform: rotate(-45deg) translate(0.5px, -1px);
+}
+
+.formspec-container.formspec-appearance-dark .formspec-radio-group input[type="radio"]:checked::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--formspec-default-text-inverse);
+}
+
 /* Native select — bordered control + custom chevron (matches text inputs) */
 .formspec-select-wrapper {
   position: relative;

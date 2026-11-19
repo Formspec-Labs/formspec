@@ -334,3 +334,46 @@ it('counts live nested instances, ignores hidden values, and owns findings by co
     expect(layout.summarizeFormProgress(plan, { fields, report: null }).form)
         .toMatchObject({ total: 3, filled: 2, missing: 2, toFix: null, toCheck: null, ready: false });
 });
+
+it('decrements toCheck and flags findings as explained when current explanations or group acknowledgements exist', () => {
+    const plan = layout.resolvePageSequence(definition, { component });
+    const row = 'Accounts[0].rows[0]';
+    const fields = [
+        { path: `${row}.amount`, relevant: true, readonly: false, required: false, empty: false },
+        { path: 'note', relevant: true, readonly: false, required: false, empty: true },
+    ];
+    const results = [
+        result(`${row}.amount`, 'warning', 'VARIANCE', { shapeId: 'variance-check' }),
+        result(`${row}.amount`, 'warning', 'STALE_CHECK', { shapeId: 'stale-check' }),
+        result('note', 'warning', 'UNANSWERED_ITEMS', { shapeId: 'blank-check' }),
+    ];
+    const report = { $formspecValidationReport: '1.0' as const, timestamp: '2026-01-01T00:00:00Z', valid: true, results };
+
+    // Before explanations: 3 unresolved warnings.
+    const before = layout.summarizeFormProgress(plan, { fields, report });
+    expect(before.form.toCheck).toBe(3);
+
+    // After explaining variance-check (current: true), leaving stale-check stale (current: false),
+    // and acknowledging UNANSWERED_ITEMS (current: true): only 1 unresolved warning remains.
+    const after = layout.summarizeFormProgress(plan, { fields, report }, {
+        instances: [
+            { shapeId: 'variance-check', path: `${row}.amount`, current: true },
+            { shapeId: 'stale-check', path: `${row}.amount`, current: false },
+        ],
+        groups: [
+            { code: 'UNANSWERED_ITEMS', paths: ['note'], current: true },
+        ],
+    });
+    expect(after.form.toCheck).toBe(1);
+    expect(after.sections.find(s => s.id === 'Accounts.V1')?.counts.toCheck).toBe(1);
+    expect(after.sections.find(s => s.id === 'ReviewOnly')?.counts.toCheck).toBe(0);
+
+    const rows = layout.readFormProgressFindingRows(after, {
+        field: path => path === `${row}.amount` ? { label: 'Amount', controlId: 'amount' } : null,
+        message: finding => finding.message,
+        chrome: (_key, params) => `${params?.label}: ${params?.message}`,
+    });
+    expect(rows.find(r => r.code === 'VARIANCE')?.explained).toBe(true);
+    expect(rows.find(r => r.code === 'STALE_CHECK')?.explained).toBeFalsy();
+    expect(rows.find(r => r.code === 'UNANSWERED_ITEMS')?.explained).toBe(true);
+});

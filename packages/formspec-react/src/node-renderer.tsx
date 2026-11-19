@@ -486,9 +486,23 @@ function RelevanceGatedLayout({ node }: { node: LayoutNode }) {
 }
 
 /** Group runs of 2+ adjacent ActionButton siblings into a horizontal action bar while leaving single actions untouched. */
-export function renderActionGroupedChildren(children: readonly LayoutNode[]): React.ReactNode[] {
+export function renderActionGroupedChildren(
+    children: readonly LayoutNode[],
+    options?: { beforeTrailingActions?: React.ReactNode },
+): React.ReactNode[] {
     const out: React.ReactNode[] = [];
+    let trailingStart = children.length;
+    if (options?.beforeTrailingActions) {
+        while (trailingStart > 0 && children[trailingStart - 1]!.component === 'ActionButton') {
+            trailingStart -= 1;
+        }
+    }
+    let insertedBeforeActions = false;
     for (let i = 0; i < children.length; ) {
+        if (options?.beforeTrailingActions && !insertedBeforeActions && i === trailingStart && trailingStart < children.length) {
+            out.push(<React.Fragment key="root-warning-explanations">{options.beforeTrailingActions}</React.Fragment>);
+            insertedBeforeActions = true;
+        }
         if (children[i]!.component !== 'ActionButton') {
             const child = children[i]!;
             out.push(<FormspecNode key={child.id} node={child} />);
@@ -516,8 +530,27 @@ export function renderActionGroupedChildren(children: readonly LayoutNode[]): Re
     return out;
 }
 
+/** True when a root layout tree renders root WarningExplanations above its own Submit controls. */
+export function layoutOwnsRootWarningExplanations(
+    layoutPlan: LayoutNode | null,
+    workspacePages: unknown,
+): boolean {
+    if (!layoutPlan) return false;
+    if (workspacePages) return true;
+    if (layoutPlan.component === 'Wizard') return true;
+    if (layoutPlan.component === 'Stack') {
+        if (layoutPlan.pageMode === 'wizard' && layoutPlan.children.some((c) => c.component === 'Section')) {
+            return true;
+        }
+        if (layoutPlan.children.length > 0 && layoutPlan.children[layoutPlan.children.length - 1]!.component === 'ActionButton') {
+            return true;
+        }
+    }
+    return false;
+}
+
 function LayoutNodeInner({ node }: { node: LayoutNode }) {
-    const { components, formPresentation } = useFormspecContext();
+    const { components, formPresentation, layoutPlan, workspacePages } = useFormspecContext();
 
     if (node.component === 'Stack' && node.children.length > 0) {
         const pageMode = node.pageMode;
@@ -591,11 +624,21 @@ function LayoutNodeInner({ node }: { node: LayoutNode }) {
         DefaultLayout;
 
     const groupActions = componentName === 'Stack' || componentName === 'Section' || componentName === 'Card' || componentName === 'Panel';
+    const placeRootWarningsAboveActions =
+        !workspacePages
+        && layoutPlan !== null
+        && node.id === layoutPlan.id
+        && componentName === 'Stack'
+        && node.children.length > 0
+        && node.children[node.children.length - 1]!.component === 'ActionButton';
 
     return (
         <Component node={node}>
             {groupActions
-                ? renderActionGroupedChildren(node.children)
+                ? renderActionGroupedChildren(
+                    node.children,
+                    placeRootWarningsAboveActions ? { beforeTrailingActions: <WarningExplanations /> } : undefined,
+                )
                 : node.children.map((child) => (
                     <FormspecNode key={child.id} node={child} />
                 ))}

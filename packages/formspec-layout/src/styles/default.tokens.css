@@ -61,15 +61,17 @@
   --formspec-default-rating-empty: #C4D0C7;
   --formspec-default-rating-hover: #C88A1E;
   --formspec-default-rating-active: #9B6404;
-  --formspec-default-readonly-field-bg: var(--formspec-readonly-field-bg, #F2F6F0);
-  --formspec-default-readonly-field-border: var(--formspec-readonly-field-border, #B9C7BD);
+  --formspec-default-readonly-field-bg: var(--formspec-readonly-field-bg, #EBF0E9);
+  --formspec-default-readonly-field-border: var(--formspec-readonly-field-border, #B3C2B8);
   --formspec-default-readonly-field-accent: var(--formspec-readonly-field-accent, #44546B);
   --formspec-default-readonly-badge-border: var(--formspec-readonly-badge-border, #9DAEB8);
-  --formspec-default-readonly-badge-bg: var(--formspec-readonly-badge-bg, #E4ECE5);
+  --formspec-default-readonly-badge-bg: var(--formspec-readonly-badge-bg, #DFE8E0);
   --formspec-default-readonly-badge-text: var(--formspec-readonly-badge-text, #2B3B50);
-  --formspec-default-readonly-input-bg: var(--formspec-readonly-input-bg, #EEF3EC);
-  --formspec-default-readonly-input-border: var(--formspec-readonly-input-border, #B9C7BD);
-  --formspec-default-readonly-input-text: var(--formspec-readonly-input-text, #2B3B50);
+  --formspec-default-readonly-input-bg: var(--formspec-readonly-input-bg, #E3EAE2);
+  --formspec-default-readonly-input-border: var(--formspec-readonly-input-border, #A9B9AE);
+  --formspec-default-readonly-input-text: var(--formspec-readonly-input-text, #38495E);
+  --formspec-default-checkbox-border: #5B6B7F;
+  --formspec-default-checkbox-bg: #FCFDFB;
   --formspec-default-danger-surface: color-mix(in srgb, var(--formspec-default-danger) 10%, var(--formspec-default-tint-base));
   --formspec-default-error-surface: var(--formspec-default-danger-surface);
   --formspec-default-danger-surface-soft: #FCF0F1;
@@ -164,16 +166,18 @@
   --formspec-default-rating-hover: #F5CD68;
   --formspec-default-rating-active: #F0C04A;
 
-  /* Readonly */
-  --formspec-default-readonly-field-bg: #111D2E;
-  --formspec-default-readonly-field-border: #30435B;
-  --formspec-default-readonly-field-accent: #8A9BB0;
+  /* Readonly — distinctly recessed/inset vs editable dark-mode cards (#152236) */
+  --formspec-default-readonly-field-bg: #0B1421;
+  --formspec-default-readonly-field-border: #26384E;
+  --formspec-default-readonly-field-accent: #7F93AB;
   --formspec-default-readonly-badge-border: #485D77;
-  --formspec-default-readonly-badge-bg: #1C2D45;
+  --formspec-default-readonly-badge-bg: #1A2A40;
   --formspec-default-readonly-badge-text: #D3DFEC;
-  --formspec-default-readonly-input-bg: #132033;
-  --formspec-default-readonly-input-border: #33475F;
-  --formspec-default-readonly-input-text: #CFDCE8;
+  --formspec-default-readonly-input-bg: #0A121E;
+  --formspec-default-readonly-input-border: #2A3D55;
+  --formspec-default-readonly-input-text: #9BAEC2;
+  --formspec-default-checkbox-border: #8FA4BC;
+  --formspec-default-checkbox-bg: #0E1826;
 
   /* Status surfaces — computed from accents and background */
   --formspec-default-danger-surface: color-mix(in srgb, var(--formspec-default-danger) 18%, var(--formspec-default-bg));

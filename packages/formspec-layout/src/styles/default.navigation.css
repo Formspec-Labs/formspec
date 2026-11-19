@@ -3,11 +3,15 @@
 .formspec-modal-trigger,
 .formspec-popover-trigger,
 .formspec-repeat-add,
-.formspec-repeat-remove,
 .formspec-screener-continue,
 .formspec-submit,
 .formspec-datatable-add {
   min-height: 2.75rem;
+  transition: var(--formspec-default-transition-fast);
+}
+
+.formspec-repeat-remove {
+  min-height: 2.25rem;
   transition: var(--formspec-default-transition-fast);
 }
 
@@ -17,11 +21,16 @@
   margin-top: var(--formspec-spacing-sm, 0.5rem);
 }
 
+/* Secondary outline treatment so repeater Add never competes with primary Submit CTAs. */
 .formspec-repeat-add {
-  padding: 0.72rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--formspec-default-border-control) 88%, var(--formspec-default-tint-base));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.62rem 1rem;
+  border: 1px solid var(--formspec-default-primary);
   border-radius: var(--formspec-default-radius-sm);
-  background: color-mix(in srgb, var(--formspec-default-surface) 84%, var(--formspec-default-tint-base));
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-primary);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 600;
@@ -31,11 +40,12 @@
   -webkit-appearance: none;
 }
 
-.formspec-repeat-add {
-  color: var(--formspec-default-primary);
+.formspec-repeat-add:hover:not(:disabled) {
+  color: var(--formspec-default-primary-strong);
+  background: var(--formspec-default-primary-soft);
+  border-color: var(--formspec-default-primary-strong);
 }
 
-.formspec-repeat-add,
 .formspec-submit,
 .formspec-screener-continue {
   color: var(--formspec-default-text-inverse);
@@ -43,20 +53,111 @@
   border-color: var(--formspec-default-primary-fill);
 }
 
-.formspec-repeat-add:hover {
-  color: var(--formspec-default-text-inverse);
-  background: var(--formspec-default-primary-fill-strong);
-}
-
+/* Compact subtle/outline destructive Remove button — never a multi-line solid crimson block. */
 .formspec-repeat-remove {
-  padding: 0.72rem 1rem;
-  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--formspec-default-danger) 55%, var(--formspec-default-border));
+  border-radius: var(--formspec-default-radius-sm);
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  color: var(--formspec-default-danger-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25;
   letter-spacing: 0.01em;
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--formspec-default-danger-fill) 16%, transparent);
+  box-shadow: none;
+  cursor: pointer;
 }
 
-.formspec-repeat-remove:hover {
-  box-shadow: 0 12px 22px color-mix(in srgb, var(--formspec-default-danger-fill) 22%, transparent);
+.formspec-repeat-remove:hover:not(:disabled) {
+  background: var(--formspec-default-danger-surface);
+  border-color: var(--formspec-default-danger);
+  color: var(--formspec-default-danger-text);
+  box-shadow: none;
+}
+
+.formspec-repeat-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.formspec-repeat-confirm-prompt {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--formspec-default-danger-text);
+}
+
+.formspec-repeat-confirm-yes {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--formspec-default-danger-fill);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-danger-fill);
+  color: var(--formspec-default-text-inverse);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.formspec-repeat-confirm-cancel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--formspec-default-border-input);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-text);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.formspec-repeat-undo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--formspec-default-border);
+  border-inline-start: 3px solid var(--formspec-default-primary);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-surface-subtle);
+  color: var(--formspec-default-text);
+  font-size: 0.84rem;
+}
+
+.formspec-repeat-undo-button {
+  min-height: 2rem;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--formspec-default-primary);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-primary);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.formspec-repeat-undo-button:hover {
+  background: var(--formspec-default-primary-soft);
 }
 
 .formspec-submit {
@@ -655,11 +756,87 @@
 
 /* ── Core workspace mode (sticky section rail, controls, bounded findings margin) ── */
 
+/* Suppress spurious programmatic/click focus rings on outer workspace wrapper. */
+.formspec-workspace:focus,
+.formspec-workspace-container:focus,
+.formspec-workspace__content:focus:not(:focus-visible),
+.formspec-container:focus:not(:focus-visible),
+.formspec-workspace__content > :is(h1, h2, h3, h4, h5, h6)[tabindex="-1"]:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+.formspec-workspace__mobile-findings-bar {
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--formspec-default-border);
+  border-radius: var(--formspec-default-radius-md);
+  background: var(--formspec-default-surface-quiet);
+  font-size: 0.84rem;
+  color: var(--formspec-default-text);
+}
+
+.formspec-workspace__mobile-findings-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.formspec-workspace__mobile-findings-jump {
+  min-height: 2.15rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--formspec-default-border-input);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-primary);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .formspec-workspace__navigation {
   min-width: 0;
   padding: 0.875rem;
   border: 1px solid var(--formspec-default-border);
   border-radius: var(--formspec-default-radius-md);
+  background: var(--formspec-default-surface-quiet);
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.formspec-workspace__nav-toggle {
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  margin-bottom: 0;
+  border: 1px solid var(--formspec-default-border);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-surface);
+  color: var(--formspec-default-text-strong);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+
+.formspec-workspace__navigation[data-mobile-open="true"] .formspec-workspace__nav-toggle {
+  margin-bottom: 0.75rem;
+}
+
+.formspec-workspace__search {
+  margin-bottom: 0.875rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--formspec-default-border-subtle);
+}
+
+.formspec-workspace__inline-search {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--formspec-default-border-subtle);
+  border-radius: var(--formspec-default-radius-sm);
   background: var(--formspec-default-surface-quiet);
 }
 
@@ -667,7 +844,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  margin: 0 0 0.875rem;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -684,10 +861,12 @@
   transition: var(--formspec-default-transition-fast);
 }
 
-.formspec-workspace__section-item:hover {
-  background: var(--formspec-default-surface-soft);
-  border-color: var(--formspec-default-border-muted);
-  border-inline-start-color: var(--formspec-default-border-strong);
+@media (hover: hover) and (pointer: fine) {
+  .formspec-workspace__section-item:not([data-current="true"]):not(:has([aria-current])):hover {
+    background: var(--formspec-default-surface-soft);
+    border-color: var(--formspec-default-border-muted);
+    border-inline-start-color: var(--formspec-default-border-strong);
+  }
 }
 
 .formspec-workspace__section-item[data-current="true"],
@@ -790,7 +969,8 @@
   background: var(--formspec-default-warning-surface);
 }
 
-.formspec-workspace__navigation label {
+.formspec-workspace__navigation label,
+.formspec-workspace__inline-search label {
   margin-bottom: 0.35rem;
   font-size: 0.75rem;
   font-weight: 700;
@@ -799,7 +979,8 @@
   color: var(--formspec-default-text-subtle);
 }
 
-.formspec-workspace__navigation input[type="search"] {
+.formspec-workspace__navigation input[type="search"],
+.formspec-workspace__inline-search input[type="search"] {
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--formspec-default-border-input);
   border-radius: var(--formspec-default-radius-sm);
@@ -808,22 +989,25 @@
   line-height: 1.4;
 }
 
-.formspec-workspace__navigation p[role="status"] {
+.formspec-workspace__navigation p[role="status"],
+.formspec-workspace__inline-search p[role="status"] {
   margin: 0.35rem 0 0;
   font-size: 0.8rem;
   color: var(--formspec-default-text-subtle);
 }
 
-.formspec-workspace__navigation > ul {
+.formspec-workspace__search-results {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
   margin: 0.5rem 0 0;
   padding: 0;
   list-style: none;
+  max-block-size: 15rem;
+  overflow-y: auto;
 }
 
-.formspec-workspace__navigation > ul button {
+.formspec-workspace__search-results button {
   display: block;
   width: 100%;
   padding: 0.45rem 0.6rem;
@@ -841,12 +1025,13 @@
   transition: var(--formspec-default-transition-fast);
 }
 
-.formspec-workspace__navigation > ul button:hover {
+.formspec-workspace__search-results button:hover {
   border-color: var(--formspec-default-border-strong);
   background: var(--formspec-default-surface-soft);
 }
 
-.formspec-workspace__navigation > ul small {
+.formspec-workspace__search-results small {
+  display: block;
   margin-top: 0.125rem;
   color: var(--formspec-default-text-subtle);
   font-size: 0.75rem;
@@ -858,6 +1043,7 @@
 
 .formspec-workspace__content > :is(h1, h2, h3, h4, h5, h6):first-child {
   margin-top: 0;
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
 }
 
 .formspec-workspace__previous-next {
@@ -902,6 +1088,9 @@
   border: 1px solid var(--formspec-default-border);
   border-radius: var(--formspec-default-radius-md);
   background: var(--formspec-default-surface-quiet);
+  overflow-x: hidden;
+  box-sizing: border-box;
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
 }
 
 .formspec-workspace__findings > :is(h1, h2, h3, h4, h5, h6) {
@@ -918,6 +1107,16 @@
   font-variant-numeric: tabular-nums;
 }
 
+.formspec-workspace__findings-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.625rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .formspec-workspace__findings ul {
   display: flex;
   flex-direction: column;
@@ -925,10 +1124,14 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  min-width: 0;
 }
 
 .formspec-workspace__findings li {
   display: block;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 0;
   border: 1px solid var(--formspec-default-border-subtle);
   border-inline-start: 3px solid var(--formspec-default-border-strong);
@@ -937,6 +1140,8 @@
   color: var(--formspec-default-text);
   font-size: 0.84rem;
   line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .formspec-workspace__findings li[data-severity="error"] {
@@ -961,6 +1166,25 @@
   background: var(--formspec-default-surface-subtle);
 }
 
+.formspec-workspace__findings li[data-explained="true"] {
+  border-inline-start-color: var(--formspec-default-success);
+  background: var(--formspec-default-surface-quiet);
+  color: var(--formspec-default-text-muted);
+}
+
+.formspec-workspace__finding-status {
+  display: inline-block;
+  margin-inline-start: 0.4rem;
+  padding: 0.05rem 0.38rem;
+  border: 1px solid color-mix(in srgb, var(--formspec-default-success) 45%, var(--formspec-default-border));
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-success-surface);
+  color: var(--formspec-default-success-text);
+  font-size: 0.72rem;
+  font-weight: 650;
+  vertical-align: baseline;
+}
+
 .formspec-workspace__findings li:not(:has(button)) {
   padding: 0.5rem 0.65rem;
 }
@@ -968,17 +1192,22 @@
 .formspec-workspace__findings li button {
   display: block;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 0.5rem 0.65rem;
   border: none;
   border-radius: inherit;
   appearance: none;
   -webkit-appearance: none;
   background: transparent;
-  color: var(--formspec-default-text);
+  color: inherit;
   font: inherit;
   font-size: 0.84rem;
   line-height: 1.4;
   text-align: start;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   cursor: pointer;
   transition: var(--formspec-default-transition-fast);
 }
@@ -987,20 +1216,24 @@
   background: var(--formspec-default-surface-soft);
 }
 
-@container formspec-workspace (width > 50rem) {
-  .formspec-workspace__navigation {
-    position: sticky;
-    top: 4.5rem;
-    align-self: start;
-    max-block-size: calc(100dvh - 5.5rem);
-    overflow-y: auto;
-  }
-
+@container formspec-workspace (width > 48rem) {
   .formspec-workspace__findings {
     position: sticky;
-    top: 4.5rem;
+    top: var(--formspec-sticky-offset, 6.5rem);
     align-self: start;
-    max-block-size: min(75vh, 42rem);
+    max-block-size: calc(100dvh - var(--formspec-sticky-offset, 6.5rem) - 1rem);
     overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+@container formspec-workspace (width > 62rem) {
+  .formspec-workspace__navigation {
+    position: sticky;
+    top: var(--formspec-sticky-offset, 6.5rem);
+    align-self: start;
+    max-block-size: calc(100dvh - var(--formspec-sticky-offset, 6.5rem) - 1rem);
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 }

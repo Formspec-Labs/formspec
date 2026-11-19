@@ -2,7 +2,9 @@
 
 /** @filedesc ValidationSummary — the shared summary rows, each a link to its field, in the default look. */
 import React, { useRef, useEffect, useMemo, useContext } from 'react';
+import { computed } from '@preact/signals-core';
 import {
+    dedupeSeverityPrefix,
     readValidationSummaryRows,
     type ValidationSummaryComp,
     type ValidationSummaryRow,
@@ -58,12 +60,22 @@ export function ValidationSummary({
     const Heading = `h${useHeadingLevel()}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Reading the signals here re-renders on every change they carry: touch, submit, live validation.
+    // Reading the signals here re-renders on every change they carry: touch, submit, live validation, explanations.
     const touched = useSignal(touchedVersion) > 0;
     const submitted = useSignal(latestSubmit);
     useSignal(engine.structureVersion);
+    const explanationState = useSignal(useMemo(
+        () => computed(() => {
+            if (typeof engine.getExplanationState !== 'function') return null;
+            const liveHasWarn = Object.values(engine.shapeResults ?? {}).some(s => s.value.some(r => r.severity === 'warning'));
+            const submitHasWarn = submitted?.validationReport?.results?.some(r => r.severity === 'warning' || r.constraintKind === 'explanation') ?? false;
+            if (!liveHasWarn && !submitHasWarn) return null;
+            return engine.getExplanationState();
+        }),
+        [engine, submitted],
+    ));
 
-    const rows = useMemo(() => {
+    const { rows, explainedSet } = useMemo(() => {
         const effective: ValidationSummaryComp = comp ?? {
             source: sourceProp,
             // The standalone `live` mode has always shown the live report at once, before any touch.
@@ -72,10 +84,32 @@ export function ValidationSummary({
             jumpLinks: true,
         };
         const own = resultsProp ? resultsProp as unknown as ValidationResult[] : null;
+        const liveResults = () => engine.getValidationReport({ profile: 'live' }).results;
+        const explainedInstances = new Set<string>();
+        const explainedGroups = new Set<string>();
+        for (const inst of explanationState?.instances ?? []) {
+            if (inst.current) explainedInstances.add(JSON.stringify([inst.shapeId, inst.path]));
+        }
+        for (const grp of explanationState?.groups ?? []) {
+            if (grp.current) explainedGroups.add(grp.code);
+        }
+        const rawSourceResults = (effective.source ?? 'live') === 'submit'
+            ? (own ?? submitted?.validationReport?.results ?? (submitted ? [] : null)) ?? []
+            : liveResults();
+        const explainedIdentities = new Set<string>();
+        for (const res of rawSourceResults) {
+            if (res.severity !== 'warning' || res.source === 'external') continue;
+            if (
+                (res.shapeId && explainedInstances.has(JSON.stringify([res.shapeId, res.path])))
+                || (res.code && explainedGroups.has(res.code))
+            ) {
+                explainedIdentities.add(`${res.severity}|${res.path}|${(own ? res.message : engine.resolveValidationMessage(res)) ?? ''}`);
+            }
+        }
         const readerSource: ValidationSummarySource = {
             submitted: own ?? submitted?.validationReport?.results ?? (submitted ? [] : null),
             touched: comp ? touched : true,
-            live: () => engine.getValidationReport({ profile: 'live' }).results,
+            live: liveResults,
             message: (result) => (own ? result.message : engine.resolveValidationMessage(result)) ?? '',
             field: (path) => {
                 const vm = engine.getFieldVM(path);
@@ -83,12 +117,14 @@ export function ValidationSummary({
             },
             chrome,
         };
-        return readValidationSummaryRows(effective, readerSource, { showFieldErrorsByDefault: true })
+        const built = readValidationSummaryRows(effective, readerSource, { showFieldErrorsByDefault: true })
             .filter((row) => severityFilter.includes(row.severity));
-    }, [comp, sourceProp, resultsProp, submitted, touched, engine, chrome, severityFilter]);
+        return { rows: built, explainedSet: explainedIdentities };
+    }, [comp, sourceProp, resultsProp, submitted, touched, engine, chrome, severityFilter, explanationState]);
 
     const errors = rows.filter((r) => r.severity === 'error');
     const warnings = rows.filter((r) => r.severity !== 'error');
+    const unresolvedWarnings = warnings.filter((r) => !explainedSet.has(`${r.severity}|${r.path}|${r.message}`));
     const hasErrors = errors.length > 0;
     const hasWarnings = warnings.length > 0;
 
@@ -104,9 +140,10 @@ export function ValidationSummary({
     const summaryClassName = className
         ? `formspec-validation-summary formspec-validation-summary--visible ${className}`
         : 'formspec-validation-summary formspec-validation-summary--visible';
+    const warningHeaderCount = unresolvedWarnings.length > 0 ? unresolvedWarnings.length : warnings.length;
     const headerText = hasErrors
         ? chrome(errors.length === 1 ? 'validationSummary.fixOne' : 'validationSummary.fixMany', { count: errors.length })
-        : chrome(warnings.length === 1 ? 'validationSummary.reviewOne' : 'validationSummary.reviewMany', { count: warnings.length });
+        : chrome(warningHeaderCount === 1 ? 'validationSummary.reviewOne' : 'validationSummary.reviewMany', { count: warningHeaderCount });
 
     const jump = (row: ValidationSummaryRow) => (event: React.MouseEvent) => {
         event.preventDefault();
@@ -119,17 +156,24 @@ export function ValidationSummary({
     const renderRows = (items: ValidationSummaryRow[]) => (
         <>
             {items.map((r, i) => {
-                const severityIcon = r.severity === 'warning' ? '!' : r.severity === 'info' ? 'i' : '✕';
+                const explained = r.severity === 'warning' && explainedSet.has(`${r.severity}|${r.path}|${r.message}`);
+                const severityIcon = explained ? '✓' : r.severity === 'warning' ? '!' : r.severity === 'info' ? 'i' : '✕';
+                const displayText = dedupeSeverityPrefix(r.text);
                 return (
-                    <div key={i} className={`formspec-shape-${r.severity || 'error'}`}>
+                    <div
+                        key={i}
+                        className={`formspec-shape-${r.severity || 'error'}`}
+                        data-explained={explained ? 'true' : undefined}
+                    >
                         <span className="formspec-shape-icon" aria-hidden="true">{severityIcon}</span>
                         {r.jumpHref ? (
                             <a href={r.jumpHref} className="formspec-validation-summary-link" onClick={jump(r)}>
-                                {r.text}
+                                {displayText}
                             </a>
                         ) : (
-                            <span>{r.text}</span>
+                            <span>{displayText}</span>
                         )}
+                        {explained && <span className="formspec-workspace__finding-status">Explained</span>}
                     </div>
                 );
             })}

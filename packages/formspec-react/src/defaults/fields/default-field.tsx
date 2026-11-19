@@ -26,7 +26,8 @@ export function DefaultField({ field, node }: FieldComponentProps) {
     const isProtected = !field.visible && field.disabledDisplay === 'protected';
     const isReadonly = field.readonly || isProtected;
     useSemanticFieldControl(field, isReadonly);
-    const showError = !!(field.error && field.touched);
+    const hasShapeError = field.errors.some((e) => e.severity === 'error' && e.constraintKind === 'shape');
+    const showError = !!(field.error && (field.touched || hasShapeError));
     const themeClass = node.cssClasses?.join(' ') || '';
     const graphAttrs = projectionMetadataAttrs(node);
 
@@ -155,6 +156,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                 onBlur={() => field.touch()}
                 disabled={isProtected}
                 readOnly={isReadonly}
+                tabIndex={isReadonly ? -1 : undefined}
                 aria-readonly={isReadonly || undefined}
                 onClickCapture={isReadonly ? blockReadonlyChange : undefined}
                 aria-invalid={showError}
@@ -169,6 +171,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
                     'formspec-field',
                     'formspec-field--inline',
                     'formspec-field--toggle',
+                    showError ? 'formspec-field--invalid' : '',
                     isReadonly ? 'formspec-field--readonly' : '',
                     isProtected ? 'formspec-protected' : '',
                     themeClass,
@@ -226,7 +229,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
         const group = (
             <fieldset
                 aria-description={fileUpload && !node.accessibility?.role ? node.accessibility?.description : undefined}
-                className={['formspec-fieldset', fileUpload ? 'formspec-file-upload' : '', isReadonly ? 'formspec-field--readonly' : '', isProtected ? 'formspec-protected' : '', themeClass].filter(Boolean).join(' ').trim()}
+                className={['formspec-fieldset', fileUpload ? 'formspec-file-upload' : '', showError ? 'formspec-field--invalid' : '', isReadonly ? 'formspec-field--readonly' : '', isProtected ? 'formspec-protected' : '', themeClass].filter(Boolean).join(' ').trim()}
                 style={node.style as React.CSSProperties | undefined}
                 data-name={field.path}
                 {...graphAttrs}
@@ -268,7 +271,7 @@ export function DefaultField({ field, node }: FieldComponentProps) {
 
     return (
         <div
-            className={[`formspec-field`, isReadonly ? 'formspec-field--readonly' : '', isProtected ? 'formspec-protected' : '', themeClass, controlSurfaceClass].filter(Boolean).join(' ').trim()}
+            className={[`formspec-field`, showError ? 'formspec-field--invalid' : '', isReadonly ? 'formspec-field--readonly' : '', isProtected ? 'formspec-protected' : '', themeClass, controlSurfaceClass].filter(Boolean).join(' ').trim()}
             style={node.style as React.CSSProperties | undefined}
             data-name={field.path}
             {...graphAttrs}

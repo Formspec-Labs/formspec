@@ -469,6 +469,9 @@ function DataTableCell({
                     value={numericDisplay}
                     aria-label={column.header}
                     disabled={readonly}
+                    onWheel={(e) => {
+                        if (document.activeElement === e.currentTarget) e.currentTarget.blur();
+                    }}
                     onChange={(e) => {
                         const value = e.target.value.trim();
                         if (!value) {

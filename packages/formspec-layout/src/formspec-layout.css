@@ -49,18 +49,155 @@
   gap: var(--formspec-space-sm, 0.5rem);
 }
 
+.formspec-workspace__content {
+  container: formspec-form / inline-size;
+}
+
 .formspec-workspace p[role="status"]:empty {
   margin: 0;
 }
 
-@container formspec-workspace (width > 46rem) {
+.formspec-workspace__nav-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.formspec-workspace__navigation[data-mobile-open="false"] .formspec-workspace__nav-body {
+  display: none;
+}
+
+.formspec-workspace__mobile-findings-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+/* Auto-grid structural flow: 1 column on narrow containers, responsive multi-column on wide containers. */
+.formspec-auto-grid > :is(
+  .formspec-group-title,
+  .formspec-repeat-instance-header,
+  .formspec-repeat-heading,
+  .formspec-repeat-undo,
+  .formspec-auto-grid-full,
+  .formspec-text,
+  .formspec-heading,
+  .formspec-alert,
+  .formspec-divider,
+  .formspec-group,
+  .formspec-group-errors,
+  .formspec-repeat,
+  .formspec-fieldset,
+  .formspec-warning-explanation,
+  .formspec-validation-summary,
+  .formspec-action-bar,
+  .formspec-action-control
+) {
+  grid-column: 1 / -1;
+}
+
+/* Medium container (e.g. 900x800 IDE pane): 2-column Form + Findings, compact collapsible sections bar above. */
+@container formspec-workspace (width > 48rem) {
   .formspec-workspace {
-    grid-template-columns: minmax(11rem, 13.5rem) minmax(0, 1fr) minmax(11.5rem, 14.5rem);
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 17.5rem);
+  }
+
+  .formspec-workspace__navigation {
+    grid-column: 1 / -1;
+  }
+
+  .formspec-workspace__mobile-findings-bar {
+    display: none;
   }
 }
 
-@container formspec-workspace (width > 58rem) {
+/* Wide desktop container (> 62rem): full 3-column workspace, or 2-column when single-section. */
+@container formspec-workspace (width > 62rem) {
   .formspec-workspace {
-    grid-template-columns: minmax(13.5rem, 17rem) minmax(0, 1fr) minmax(14rem, 18.5rem);
+    grid-template-columns: minmax(13rem, 16.5rem) minmax(0, 1fr) minmax(14rem, 18rem);
+  }
+
+  .formspec-workspace[data-single-section="true"] {
+    grid-template-columns: minmax(0, 1fr) minmax(14.5rem, 18.5rem);
+  }
+
+  .formspec-workspace__navigation {
+    grid-column: auto;
+  }
+
+  .formspec-workspace__nav-toggle {
+    display: none;
+  }
+
+  .formspec-workspace__navigation[data-mobile-open="false"] .formspec-workspace__nav-body {
+    display: block;
+  }
+}
+
+/* Auto-grid columns inside workspace form column. */
+@container formspec-form (width >= 30rem) {
+  .formspec-auto-grid[data-auto-grid] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .formspec-auto-grid[data-auto-grid="3"],
+  .formspec-auto-grid[data-auto-grid="5"],
+  .formspec-auto-grid[data-auto-grid="6"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container formspec-form (width >= 38rem) {
+  .formspec-auto-grid[data-auto-grid="2"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .formspec-auto-grid[data-auto-grid="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .formspec-auto-grid[data-auto-grid="4"] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .formspec-auto-grid[data-auto-grid="5"] {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@container formspec-form (width >= 45rem) {
+  .formspec-auto-grid[data-auto-grid="6"] {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* Standalone non-workspace form fallback for responsive scalar auto-grid. */
+@media (min-width: 48rem) {
+  .formspec-container:not(:has(.formspec-workspace)) .formspec-auto-grid[data-auto-grid="2"] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .formspec-container:not(:has(.formspec-workspace)) .formspec-auto-grid[data-auto-grid="3"] {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .formspec-container:not(:has(.formspec-workspace)) .formspec-auto-grid[data-auto-grid="4"] {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .formspec-container:not(:has(.formspec-workspace)) .formspec-auto-grid[data-auto-grid="5"] {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .formspec-container:not(:has(.formspec-workspace)) .formspec-auto-grid[data-auto-grid="6"] {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }

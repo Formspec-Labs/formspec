@@ -12,6 +12,7 @@ import { invokeResponseAction, preactReactiveRuntime, type IFormEngine, type Res
 import type { FormspecContextValue, ResponseActionInvocationResult, SubmitResult } from '../../context';
 import { projectionMetadataAttrs } from '../../projection-metadata.js';
 import { routeLandmarkAttrs } from '../../route-landmark.js';
+import { WarningExplanations } from '../../warning-explanations';
 
 // ---- helpers ----------------------------------------------------------------
 
@@ -701,6 +702,7 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
             >
                 {stepChildren[currentStep]}
             </div>
+            <WarningExplanations />
             <div className="formspec-wizard-nav">
                 <button
                     type="button"

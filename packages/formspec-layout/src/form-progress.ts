@@ -22,7 +22,14 @@ export interface ProgressFinding {
     sectionId?: string;
     /** Whether this finding has no place in the rendered form. */
     formLevel: boolean;
+    /** True when the respondent has recorded a current explanation or group acknowledgement for this warning. */
+    explained?: boolean;
     result: ValidationResult;
+}
+
+export interface ExplanationStateLike {
+    instances?: readonly { shapeId: string; path: string; current: boolean }[];
+    groups?: readonly { code: string; paths?: readonly string[]; current: boolean }[];
 }
 
 export interface FormProgressSummary {
@@ -108,8 +115,26 @@ function progressResults(results: readonly ValidationResult[]): readonly Validat
     });
 }
 
+function explainedWarningSets(explanationState?: ExplanationStateLike | null): {
+    instances: Set<string>;
+    groups: Set<string>;
+} {
+    const instances = new Set<string>();
+    const groups = new Set<string>();
+    if (!explanationState) return { instances, groups };
+    for (const inst of explanationState.instances ?? []) {
+        if (inst.current) instances.add(JSON.stringify([inst.shapeId, inst.path]));
+    }
+    for (const group of explanationState.groups ?? []) {
+        if (group.current) groups.add(group.code);
+    }
+    return { instances, groups };
+}
+
 export function summarizeFormProgress(
-    sectionPlan: readonly PageSequenceEntry[], state: EvaluatedFormState,
+    sectionPlan: readonly PageSequenceEntry[],
+    state: EvaluatedFormState,
+    explanationState?: ExplanationStateLike | null,
 ): FormProgressSummary {
     const fieldOwners: Ownership = new Map();
     const groupOwners: Ownership = new Map();
@@ -121,6 +146,7 @@ export function summarizeFormProgress(
         return { id, counts: freshCounts(hasReport), filled: false };
     });
 
+    const explained = explainedWarningSets(explanationState);
     const relevant = new Map(state.fields.filter(field => field.relevant).map(field => [field.path, field]));
     const errorPaths = new Set<string>();
     const findings: ProgressFinding[] = [];
@@ -134,9 +160,19 @@ export function summarizeFormProgress(
         const identity = validationResultIdentity(result);
         if (seen.has(identity)) continue;
         seen.add(identity);
-        findings.push({ identity, sectionId: section === undefined ? undefined : sections[section].id,
-            formLevel: section === undefined, result });
+        const isExplained = severity === 'warning' && result.source !== 'external' && Boolean(
+            (result.shapeId && explained.instances.has(JSON.stringify([result.shapeId, result.path])))
+            || (result.code && explained.groups.has(result.code)),
+        );
+        findings.push({
+            identity,
+            sectionId: section === undefined ? undefined : sections[section].id,
+            formLevel: section === undefined,
+            ...(isExplained ? { explained: true } : {}),
+            result,
+        });
         if (severity !== 'error' && severity !== 'warning') continue;
+        if (isExplained) continue;
         if (severity === 'error' && result.constraintKind === 'required' && field?.required && field.empty) continue;
         const counter = severity === 'error' ? 'toFix' : 'toCheck';
         form[counter] = (form[counter] ?? 0) + 1;
@@ -172,6 +208,7 @@ export function pageProgressIssue(counts: ProgressCounts): 'required' | 'unavail
 export interface ProgressFindingRow extends ValidationSummaryRow {
     sectionId?: string;
     code?: string;
+    explained?: boolean;
     /** The concrete report path, including for findings without a rendered owner. */
     resultPath: string;
 }
@@ -190,7 +227,13 @@ export function readFormProgressFindingRows(
         },
     );
     return rows.map(row => {
-        const { sectionId, result } = byIdentity.get(row.identity)!;
-        return { ...row, sectionId, code: result.code, resultPath: result.path };
+        const { sectionId, explained, result } = byIdentity.get(row.identity)!;
+        return {
+            ...row,
+            sectionId,
+            code: result.code,
+            ...(explained ? { explained: true } : {}),
+            resultPath: result.path,
+        };
     });
 }
