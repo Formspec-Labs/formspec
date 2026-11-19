@@ -22,6 +22,9 @@ const registry = id + '/registry';
 const hydration = query.has('hydration');
 const submit = query.has('submit');
 const useRoster = query.has('roster');
+const autoButtons = query.has('autoButtons');
+const authoredAutosave = query.has('authoredAutosave');
+const idCollision = query.has('idCollision');
 const component: ComponentDocument = {
   $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition },
   tree: { component: 'Stack', children: [
@@ -30,9 +33,21 @@ const component: ComponentDocument = {
     { component: 'TextInput', bind: 'detail' },
     { component: 'RepeatGroup', bind: 'rows', children: [{ component: 'TextInput', bind: 'row' }] },
     { component: 'ActionButton', actionRef: 'save' },
+    ...(authoredAutosave ? [{ component: 'ActionButton' as const, actionRef: 'autosave', label: { literal: 'Checkpoint now' } }] : []),
     ...(submit ? [{ component: 'ActionButton' as const, actionRef: 'submit' }] : []),
   ] },
 };
+if (query.has('responsiveProbe')) {
+  component.breakpoints = { wide: 700 };
+  const button = component.tree.children?.find(
+    (node): node is Extract<typeof node, { component: 'ActionButton' }> =>
+      node.component === 'ActionButton' && node.actionRef === 'autosave',
+  );
+  if (button) {
+    button.actionRef = 'save';
+    button.responsive = { wide: { actionRef: 'autosave', label: { literal: 'Responsive checkpoint' } } };
+  }
+}
 const source = {
   manifest: {
     $formspecBundle: '2.4', id, definitions: [{ url: definition }, ...(hydration ? [{ url: upstreamUrl }] : []),
@@ -62,6 +77,8 @@ const source = {
         }] : [] },
         { id: 'form', path: minted ? '/filing/{year}/{unit}' : keyed ? '/filing/{year}' : '/filing', title: 'Filing', routeClass: 'intake',
           ...(keyed && { params: [{ name: 'year', type: 'string' }, ...(minted ? [{ name: 'unit', type: 'string' }] : [])] }),
+          ...(authoredAutosave && { transitions: [{ trigger: 'autosave', to: 'overview' }] }),
+          ...(idCollision && { transitions: [{ trigger: 'save-draft', to: 'overview' }] }),
           slots: [{ id: 'form', slotType: 'definition-form', binding: {
             definitionRef: definition, ...(keyed && { subjectKeys: { year: 'year', ...(minted && { unit: 'unit' }) } }),
           } }] },
@@ -94,9 +111,16 @@ const source = {
     [actions]: {
       $formspecResponseActions: '1.0', version: '1.0.0', scope: 'response', targetDefinition: { url: definition },
       actions: [
-        { id: 'save', intent: 'save-draft', label: { literal: 'Save draft' } },
-        ...(submit ? [{ id: 'submit', intent: 'submit', label: { literal: 'Submit report' } }] : []),
-        ...(query.has('auto') ? [{ id: 'autosave', intent: 'autosave', label: { literal: 'Autosave' } }] : []),
+        { id: 'save', intent: 'save-draft', label: { literal: 'Save draft' },
+          effects: [{ type: 'hostEvent', eventName: 'draft-saved' }] },
+        ...(submit ? [{ id: 'submit', intent: 'submit', label: { literal: 'Submit report' },
+          effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }] }] : []),
+        ...((query.has('auto') || authoredAutosave || idCollision) ? [{
+          id: idCollision ? 'save-draft' : 'autosave',
+          intent: 'autosave',
+          label: { literal: autoButtons ? 'Save as I go' : 'Autosave' },
+          effects: [{ type: 'hostEvent', eventName: 'draft-autosaved' }],
+        }] : []),
       ],
     },
   },
@@ -119,10 +143,16 @@ if (query.has('form')) {
       } },
       actions: { default: { status: 'complete' } },
     } : undefined });
-    return { ...preview, adapters: {
-      ...preview.adapters,
-      resolveDefinitionComponent: () => component,
-    } };
+    return { ...preview,
+      bundle: query.has('themeProbe') ? { ...preview.bundle, tenantTheme: {
+        $formspecTheme: '1.0', version: '1.0.0', targetDefinition: { url: definition },
+        pages: [{ id: 'answers', title: 'Themed page probe', regions: [{ key: 'answer', span: 12 }] }],
+      } } : preview.bundle,
+      adapters: {
+        ...preview.adapters,
+        ...(query.has('withoutWriter') && { draftStorage: undefined, definitionActionInvoker: undefined }),
+        ...(!autoButtons && { resolveDefinitionComponent: () => component }),
+      } };
   }
   const first = await edition('edition');
   const reads = hydration ? await hydrationStorage(first.scope, first.bundle.definitions) : undefined;

@@ -10,6 +10,7 @@ export {
 export type {
     ActionRefFinding,
     ActionResolution,
+    FormspecActionResultMeta,
     FormspecProviderProps,
     FormspecContextValue,
     FormspecFieldHelpResolver,

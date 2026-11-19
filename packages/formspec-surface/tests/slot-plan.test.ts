@@ -453,7 +453,7 @@ describe('planRoute — dispatch over the closed taxonomy', () => {
     expect(resolved?.slotType === 'module-widget' && resolved.actionOutputs[0]?.responseContext).toMatchObject({
       inputName: 'receipt', definition: { url: definition.url, version: '1.0.0' }, descriptor: { catalogRef },
     });
-    expect([...slotSuppliedTriggers(qualifiedPlan.slots, [responseDocument])]).toEqual(['acceptReceipt', 'review']);
+    expect([...slotSuppliedTriggers(qualifiedPlan.slots, [responseDocument])]).toEqual(['acceptReceipt']);
     binding.actionBindings.accepted.responseInput = 'missing';
     expect([...slotSuppliedTriggers(qualified().slots, [responseDocument])]).toEqual([]);
     binding.actionBindings.accepted.responseInput = 'receipt';

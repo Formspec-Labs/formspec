@@ -168,7 +168,7 @@ describe('planTransitions', () => {
       app,
       responseActions: [{ actions: [{ id: 'submitApplication', intent: 'submit' }] }],
       hasExecutor: false,
-      slotSuppliedTriggers: new Set(['submit']),
+      slotSuppliedTriggers: new Set(['submitApplication']),
     });
     // The route carries a definition-form and the bundle publishes a submit
     // Action, so `FormspecForm` draws the real control. Two buttons for one act
@@ -253,7 +253,7 @@ describe('planTransitions', () => {
       app: collided,
       responseActions: [{ actions: [{ id: 'submitApplication', intent: 'submit' }] }],
       hasExecutor: false,
-      slotSuppliedTriggers: new Set(['submit']),
+      slotSuppliedTriggers: new Set(['submitApplication']),
     });
 
     expect(transitions[0]).toMatchObject({

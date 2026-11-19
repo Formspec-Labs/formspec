@@ -1,8 +1,8 @@
 /** @filedesc Serialize checkpoints and fence filing actions against one editable form revision. */
 import {
-  deepEqual, invokeResponseActionAsync, preactReactiveRuntime, resolveResponseAction,
+  deepEqual, invokeResponseActionAsync, preactReactiveRuntime, resolveAutosaveResponseAction, resolveResponseAction,
   resolveResponseActionValidationTuple,
-  type FormDraftSnapshot, type IFormEngine, type ResponseAction, type ResponseActionAsyncInvocationPorts,
+  type ActionRefFinding, type FormDraftSnapshot, type IFormEngine, type ResponseAction, type ResponseActionAsyncInvocationPorts,
   type ResponseActionEffectDispatchContext, type ResponseActionInvocationPorts,
 } from '@formspec-org/engine';
 import {
@@ -32,6 +32,7 @@ export interface DraftWriterOptions {
   locally?: boolean | undefined;
   debounceMs?: number | undefined;
   report?: DraftNoticeReporter | undefined;
+  onActionFinding?: ((finding: ActionRefFinding) => void) | undefined;
   invoker?: DraftActionInvoker | undefined;
   checkpointPorts?: DraftCheckpointPorts | undefined;
   responseId?: string | undefined;
@@ -85,8 +86,11 @@ export function createDraftWriter(options: DraftWriterOptions) {
   const placements = options.sections.map(({ id, fields }) => ({
     ...(id === undefined ? {} : { id }), fields,
   }));
-  const authoredAutosave = options.actions?.actions?.find(action => action.intent === 'autosave' &&
-    usesDraftCheckpoint(action));
+  const autosaveResolution = resolveAutosaveResponseAction(options.actions, engine.definition);
+  if (autosaveResolution.finding) {
+    options.onActionFinding?.(autosaveResolution.finding);
+  }
+  const authoredAutosave = autosaveResolution.action ?? undefined;
   let responseId = options.responseId ?? `urn:uuid:${crypto.randomUUID()}`;
   let committed: Pick<DraftRecord, 'revision'> | undefined = options.draft;
   let author = options.author;

@@ -58,6 +58,20 @@
  * actual posture.
  */
 import { CLOSED_RESPONSE_ACTION_INTENTS } from '@formspec-org/app-graph';
+import {
+  autoPlacedDefinitionActions,
+  isValidDefinitionResponseActionsDocument,
+  resolveResponseAction,
+} from '@formspec-org/engine';
+import {
+  extractBreakpointEntries,
+  matchBreakpoint,
+  planDefinitionLayout,
+  type BreakpointSpec,
+  type LayoutNode,
+  type ThemeDocument as LayoutThemeDocument,
+} from '@formspec-org/layout';
+import type { ComponentDocument, FormDefinition, ThemeDocument } from '@formspec-org/types';
 import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
 import {
   routeHref,
@@ -212,11 +226,12 @@ function indexTriggers(documents: readonly ResponseActionsDocumentLike[]): Resol
   const byId = new Map<string, number>();
   const byIntent = new Map<string, string[]>();
   for (const document of documents) {
-    for (const action of document.actions ?? []) {
-      const id = typeof action.id === 'string' ? action.id : undefined;
+    const actions = Array.isArray(document?.actions) ? document.actions : [];
+    for (const action of actions) {
+      const id = typeof action?.id === 'string' ? action.id : undefined;
       if (!id) continue;
       byId.set(id, (byId.get(id) ?? 0) + 1);
-      const intent = typeof action.intent === 'string' ? action.intent : undefined;
+      const intent = typeof action?.intent === 'string' ? action.intent : undefined;
       if (intent && CLOSED_RESPONSE_ACTION_INTENTS.has(intent)) {
         byIntent.set(intent, [...(byIntent.get(intent) ?? []), id]);
       }
@@ -263,7 +278,7 @@ export function responseActionsDocumentForDefinition<
 }
 
 /**
- * Every trigger a control **already on this route** can raise.
+ * Every resolved `Action.id` a control **already on this route** can raise.
  *
  * `surface-shell-spec.md` §5.3: "Resolving `supplied-by-slot` is a walk, not a
  * lookup." Two halves, and getting either wrong is the same defect —
@@ -275,11 +290,15 @@ export function responseActionsDocumentForDefinition<
  *    control the host route renders — the same transitivity §4.4 applies to the
  *    theme grant. A shell that scans only a route's own `slots[]` reports a
  *    working page as dead.
- * 2. **The check follows the controls this binding actually places.**
- *    `FormspecForm` auto-places each uniquely identified Action with a literal
- *    or Locale-reference label from the one response-scoped document targeting the
- *    rendered Definition. Action ids are always exact; a closed-core intent is
- *    credited only when exactly one loaded Action publishes it.
+ * 2. **The check follows the exact controls this binding actually places.**
+ *    First, the Definition-scoped Response Actions document is validated
+ *    fail-closed with the renderer's own document predicate. Then the slot's
+ *    layout plan (explicit `ComponentDocument` tree when selected, plus
+ *    `autoPlacedDefinitionActions` fallback controls) determines the exact
+ *    rendered `ActionButton` `actionRef`s — crediting explicitly authored
+ *    `autosave` buttons while excluding unauthored background actions. Only
+ *    exact resolved `Action.id` values enter this set so `planTransitions` and
+ *    completion matching preserve exact-ID precedence over intent triggers.
  *
  * A module widget contributes only through the complete declared chain:
  * Registry action output -> Surface action binding -> exact loaded action.
@@ -288,15 +307,57 @@ export function responseActionsDocumentForDefinition<
  * do not place controls, and drawing a button from one would derive layout from
  * Experience (experience-spec §1.4.1 prohibition 2).
  */
+export interface SlotSuppliedTriggersOptions {
+  includeWidgetActions?: boolean | undefined;
+  /** Effective route Theme grant used by mounted Definition forms. */
+  themeDocument?: ThemeDocument | undefined;
+  /** Explicit active breakpoint override when already known by the caller. */
+  activeBreakpoint?: string | null | undefined;
+  /** Pure viewport predicate `(minWidthPx) => boolean` for responsive Component/Theme planning. */
+  matchesMinWidth?: ((minWidthPx: number) => boolean) | undefined;
+}
+
+/**
+ * Collect sorted unique numeric `minWidth` thresholds declared across a route's
+ * granted Theme and all `definition-form` Component documents (descending `embed-route`).
+ */
+export function collectSlotBreakpointThresholds(
+  slots: readonly SlotPlan<unknown>[],
+  themeDocument?: ThemeDocument | undefined,
+): readonly number[] {
+  const thresholds = new Set<number>();
+  const themeBreakpoints = (themeDocument as { breakpoints?: Record<string, BreakpointSpec> } | undefined)?.breakpoints;
+  for (const [, width] of extractBreakpointEntries(themeBreakpoints, undefined)) {
+    thresholds.add(width);
+  }
+  const walk = (entries: readonly SlotPlan<unknown>[]): void => {
+    for (const entry of entries) {
+      if (entry.slotType === 'embed-route') {
+        walk(entry.slots);
+        continue;
+      }
+      if (entry.slotType !== 'definition-form') continue;
+      const componentBreakpoints = (
+        entry.componentDocument as { breakpoints?: Record<string, BreakpointSpec> } | undefined
+      )?.breakpoints;
+      for (const [, width] of extractBreakpointEntries(themeBreakpoints, componentBreakpoints)) {
+        thresholds.add(width);
+      }
+    }
+  };
+  walk(slots);
+  return [...thresholds].sort((a, b) => a - b);
+}
+
 export function slotSuppliedTriggers(
   slots: readonly SlotPlan<unknown>[],
   responseActions: readonly ResponseActionsDocumentLike[] = [],
-  options: { includeWidgetActions?: boolean | undefined } = {},
+  options: SlotSuppliedTriggersOptions = {},
 ): ReadonlySet<string> {
   const supplied = new Set<string>();
   if (responseActions.length === 0) return supplied;
   const actionDeclarations = responseActions.flatMap((document) =>
-    (document.actions ?? []).map((action) => ({ document, action })),
+    (Array.isArray(document?.actions) ? document.actions : []).map((action) => ({ document, action })),
   );
 
   const walk = (entries: readonly SlotPlan<unknown>[]): void => {
@@ -322,12 +383,6 @@ export function slotSuppliedTriggers(
           const { action } = match;
           if (typeof action.id !== 'string') continue;
           supplied.add(action.id);
-          if (typeof action.intent === 'string') {
-            const intentMatches = actionDeclarations.filter(
-              ({ action: candidate }) => candidate.intent === action.intent,
-            );
-            if (intentMatches.length === 1) supplied.add(action.intent);
-          }
         }
         continue;
       }
@@ -341,29 +396,29 @@ export function slotSuppliedTriggers(
         entry.definitionRef,
       );
       if (!document) continue;
-      for (const action of document.actions ?? []) {
-        if (
-          typeof action.id !== 'string'
-          || action.id.length === 0
-          || !hasStructuredActionLabel(action)
-        ) {
-          continue;
-        }
+      const definitionTarget: FormDefinition = entry.definition ?? {
+        $formspec: '1.0',
+        url: entry.definitionRef,
+        version: '1.0.0',
+        title: '',
+        items: [],
+      };
+      if (!isValidDefinitionResponseActionsDocument(document, { url: entry.definitionRef })) {
+        continue;
+      }
+
+      for (const actionRef of plannedDefinitionFormActionRefs(
+        definitionTarget,
+        entry.componentDocument,
+        document,
+        options,
+      )) {
+        if (!resolveResponseAction(document, actionRef).resolved) continue;
         const idMatches = actionDeclarations.filter(
-          ({ action: candidate }) => candidate.id === action.id,
+          ({ action: candidate }) => candidate.id === actionRef,
         );
         if (idMatches.length !== 1) continue;
-
-        supplied.add(action.id);
-        if (
-          typeof action.intent === 'string'
-          && CLOSED_RESPONSE_ACTION_INTENTS.has(action.intent)
-        ) {
-          const intentMatches = actionDeclarations.filter(
-            ({ action: candidate }) => candidate.intent === action.intent,
-          );
-          if (intentMatches.length === 1) supplied.add(action.intent);
-        }
+        supplied.add(actionRef);
       }
     }
   };
@@ -372,17 +427,49 @@ export function slotSuppliedTriggers(
   return supplied;
 }
 
-function hasStructuredActionLabel(
-  action: NonNullable<ResponseActionsDocumentLike['actions']>[number],
-): boolean {
-  const label = action.label;
-  if (!label || typeof label !== 'object' || Array.isArray(label)) return false;
-  const structured = label as { literal?: unknown; ref?: unknown };
-  const hasLiteral = Object.hasOwn(structured, 'literal');
-  const hasReference = Object.hasOwn(structured, 'ref');
-  if (hasLiteral === hasReference) return false;
-  const text = hasLiteral ? structured.literal : structured.ref;
-  return typeof text === 'string' && text.trim().length > 0;
+function collectRenderedActionRefs(node: LayoutNode, out: Set<string>): void {
+  if (node.props?.hidden === true || node.style?.display === 'none') {
+    return;
+  }
+  if (node.component === 'ActionButton') {
+    const actionRef = node.props?.actionRef;
+    if (typeof actionRef === 'string' && actionRef.length > 0) {
+      out.add(actionRef);
+    }
+    // ActionButton is a leaf widget; it never renders `node.children`.
+    return;
+  }
+  for (const child of node.children) {
+    collectRenderedActionRefs(child, out);
+  }
+}
+
+function plannedDefinitionFormActionRefs(
+  definition: FormDefinition,
+  componentDocument: ComponentDocument | undefined,
+  responseActionsDocument: Parameters<typeof autoPlacedDefinitionActions>[0],
+  options: Pick<SlotSuppliedTriggersOptions, 'themeDocument' | 'activeBreakpoint' | 'matchesMinWidth'>,
+): ReadonlySet<string> {
+  const themeBreakpoints = (options.themeDocument as { breakpoints?: Record<string, BreakpointSpec> } | undefined)?.breakpoints;
+  const componentBreakpoints = (componentDocument as { breakpoints?: Record<string, BreakpointSpec> } | undefined)?.breakpoints;
+  const activeBreakpoint = options.activeBreakpoint !== undefined
+    ? options.activeBreakpoint
+    : options.matchesMinWidth
+      ? matchBreakpoint(themeBreakpoints, componentBreakpoints, options.matchesMinWidth)
+      : null;
+
+  const { root } = planDefinitionLayout({
+    definition,
+    componentDocument,
+    themeDocument: options.themeDocument as LayoutThemeDocument | undefined,
+    activeBreakpoint,
+    autoPlacedActionRefs: autoPlacedDefinitionActions(responseActionsDocument, definition).map((action) => action.id),
+    autoPlaceControls: 'always',
+  });
+
+  const refs = new Set<string>();
+  collectRenderedActionRefs(root, refs);
+  return refs;
 }
 
 export function planTransitions(input: TransitionPlanInput): TransitionPlanResult {
@@ -487,7 +574,7 @@ export function planTransitions(input: TransitionPlanInput): TransitionPlanResul
       };
     }
 
-    if (input.slotSuppliedTriggers?.has(trigger)) {
+    if (input.slotSuppliedTriggers?.has(actionId)) {
       return {
         ...base,
         actionId,

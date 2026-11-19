@@ -78,6 +78,10 @@ export interface SurfaceRoutePlanInput<TComponent> {
   /** Host admission boundary for authored static image sources. */
   staticAssetResolver?: SurfaceStaticAssetResolver | undefined;
   strings?: SurfaceStrings | SurfaceStringOverrides | undefined;
+  /** Optional explicit active breakpoint override for responsive Definition slot planning. */
+  activeBreakpoint?: string | null | undefined;
+  /** Pure viewport predicate `(minWidthPx) => boolean` for responsive Definition slot planning. */
+  matchesMinWidth?: ((minWidthPx: number) => boolean) | undefined;
 }
 
 export interface SurfaceRoutePlan<TComponent> {
@@ -132,6 +136,9 @@ export function planMatchedRoute<TComponent>(
     params: input.params ?? {},
     slotSuppliedTriggers: slotSuppliedTriggers(route.slots, responseActions, {
       includeWidgetActions: input.hasWidgetActionExecutor ?? false,
+      themeDocument: grant.themeDocument,
+      ...(input.activeBreakpoint !== undefined ? { activeBreakpoint: input.activeBreakpoint } : {}),
+      ...(input.matchesMinWidth !== undefined ? { matchesMinWidth: input.matchesMinWidth } : {}),
     }),
     ...(input.evaluateCondition !== undefined
       ? { evaluateCondition: input.evaluateCondition }

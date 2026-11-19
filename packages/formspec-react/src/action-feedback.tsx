@@ -23,7 +23,10 @@ const STATUS_KEYS = {
 export function actionResultMessage(chrome: ChromeText, feedback: ActionFeedback): string {
     if (feedback.phase === 'idle') return '';
     if (feedback.phase === 'pending') return chrome('action.inProgress');
-    if (feedback.intent === 'save-draft' && (feedback.status === 'failed' || feedback.status === 'unresolved')) {
+    if (
+        (feedback.intent === 'save-draft' || feedback.intent === 'autosave')
+        && (feedback.status === 'failed' || feedback.status === 'unresolved')
+    ) {
         return chrome('draft.saveUnconfirmed');
     }
     return chrome('action.status', { status: chrome(STATUS_KEYS[feedback.status]) });
@@ -122,6 +125,9 @@ export function createActionFeedbackStore(engine: IFormEngine, draftSaveFeedback
                 if (state.peek()?.ticket.outlet === outlet) { token++; state.value = undefined; retireFocus(); }
             };
         },
+        primaryOutlet(): string | undefined {
+            return outlets.values().next().value;
+        },
         start(outlet: string, intent: string | undefined, candidates: readonly string[], source?: HTMLElement | null): Ticket | undefined {
             retireFocus();
             const next = ++token;
@@ -173,6 +179,7 @@ export function ActionFeedbackProvider({ engine, responseId, renderInstanceId, d
 }
 
 export function useActionFeedbackOutlet() { return useContext(OutletContext); }
+export function useActionFeedbackStore() { return useContext(StoreContext); }
 
 /** The outlet lives outside recursive When branches and announces only its origin. */
 export function ActionFeedbackContent({ children }: { children: ReactNode }) {

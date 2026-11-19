@@ -60,3 +60,49 @@ export function resolveResponsiveProps(
     }
     return result;
 }
+
+export type BreakpointSpec = number | string | { minWidth?: number };
+
+/**
+ * Merge Theme and Component breakpoint maps (Component wins on colliding names)
+ * and return numeric `[name, minWidthPx]` pairs sorted ascending by `minWidth`.
+ */
+export function extractBreakpointEntries(
+    themeBreakpoints?: Record<string, BreakpointSpec> | null,
+    componentBreakpoints?: Record<string, BreakpointSpec> | null,
+): Array<[string, number]> {
+    const merged: Record<string, BreakpointSpec> = {
+        ...(themeBreakpoints ?? {}),
+        ...(componentBreakpoints ?? {}),
+    };
+    return Object.entries(merged)
+        .map(([name, bp]): [string, number] | null => {
+            const width = typeof bp === 'number'
+                ? bp
+                : bp && typeof bp === 'object' && typeof bp.minWidth === 'number'
+                    ? bp.minWidth
+                    : null;
+            return width !== null && Number.isFinite(width) ? [name, width] : null;
+        })
+        .filter((entry): entry is [string, number] => entry !== null)
+        .sort(([, a], [, b]) => a - b);
+}
+
+/**
+ * Evaluate the largest matching mobile-first breakpoint across merged Theme +
+ * Component breakpoints using a pure `matchesMinWidth` predicate.
+ */
+export function matchBreakpoint(
+    themeBreakpoints: Record<string, BreakpointSpec> | null | undefined,
+    componentBreakpoints: Record<string, BreakpointSpec> | null | undefined,
+    matchesMinWidth: (minWidthPx: number) => boolean,
+): string | null {
+    const entries = extractBreakpointEntries(themeBreakpoints, componentBreakpoints);
+    let active: string | null = null;
+    for (const [name, minWidth] of entries) {
+        if (matchesMinWidth(minWidth)) {
+            active = name;
+        }
+    }
+    return active;
+}

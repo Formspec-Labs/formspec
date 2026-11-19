@@ -21,10 +21,13 @@ const definition: FormDefinition = {
   binds: [{ path: 'hidden', relevant: '$show = true' }],
 };
 const key = { scope: 'edition', definitionUrl: definition.url };
-const actions = (autosave: boolean) => ({
+const actions = (autosave: boolean): ResponseActionsDocument => ({
+  $formspecResponseActions: '1.0',
+  version: '1.0.0',
+  targetDefinition: { url: definition.url },
   actions: [
-    { id: 'save', intent: 'save-draft' as const },
-    ...(autosave ? [{ id: 'auto', intent: 'autosave' as const }] : []),
+    { id: 'save', intent: 'save-draft' as const, effects: [{ type: 'hostEvent' as const, eventName: 'draft-saved' }] },
+    ...(autosave ? [{ id: 'auto', intent: 'autosave' as const, effects: [{ type: 'hostEvent' as const, eventName: 'draft-autosaved' }] }] : []),
   ],
 });
 const sections = resolvePageSequence(definition);
@@ -139,10 +142,16 @@ it('refuses departure on a storage error and retains dirty edits for a retry', a
 it.each(['block', 'defer'] as const)('honors an autosave precondition with severity %s before departure', async severity => {
   let allowed = false;
   const evaluatePrecondition = vi.fn(() => allowed);
-  const document = { actions: [{
-    id: 'auto', intent: 'autosave' as const,
-    preconditions: [{ id: 'permission', kind: 'fel' as const, expression: 'true', severity }],
-  }] };
+  const document: ResponseActionsDocument = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: definition.url },
+    actions: [{
+      id: 'auto', intent: 'autosave' as const,
+      preconditions: [{ id: 'permission', expression: 'true', severity }],
+      effects: [{ type: 'hostEvent' as const, eventName: 'draft-autosaved' }],
+    }],
+  };
   const { writer, engine, save } = fixture(true, ({ ports }) => ({ ...ports, evaluatePrecondition }), document);
   engine.setValue('answer', 'retained');
   expect(await writer.leave()).toBe(false);
@@ -519,4 +528,32 @@ it('takes no JSON snapshot during edits and leaves manual forms without saving l
   engine.setValue('answer', 'still manual');
   expect(await writer.leave()).toBe(true);
   expect(save).toHaveBeenCalledTimes(1);
+});
+
+it('refuses automatic background saving regardless of action order when multiple eligible autosave actions are declared', async () => {
+  vi.useFakeTimers();
+  const makeAutosave = (id: string) => ({
+    id,
+    intent: 'autosave' as const,
+    effects: [{ type: 'hostEvent' as const, eventName: id }],
+  });
+  const forward: ResponseActionsDocument = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: definition.url },
+    actions: [makeAutosave('checkpointA'), makeAutosave('checkpointB')],
+  };
+  const reversed: ResponseActionsDocument = {
+    ...forward,
+    actions: [...forward.actions].reverse(),
+  };
+
+  for (const candidate of [forward, reversed]) {
+    const { engine, save, writer } = fixture(true, undefined, candidate);
+    engine.setValue('answer', 'edited under ambiguous autosave');
+    await vi.advanceTimersByTimeAsync(200);
+    expect(save).not.toHaveBeenCalled();
+    expect(await writer.flush()).toBe(true);
+    expect(save).toHaveBeenCalledTimes(1);
+  }
 });

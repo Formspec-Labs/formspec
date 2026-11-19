@@ -142,6 +142,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         onHostEvent,
         onActionFinding,
         onActionResult,
+        onControlActionResult,
         responseActionInvoker,
         evaluateActionPrecondition,
         evaluateActionEffectExpression,
@@ -227,6 +228,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         };
         const finish = (result: ResponseActionInvocationResult<SubmitResult>) => {
             onActionResult?.(result);
+            onControlActionResult?.(result, { nodeId: node.id });
             if (result.finding) {
                 onActionFinding?.(result.finding);
             }

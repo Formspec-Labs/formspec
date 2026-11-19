@@ -1126,3 +1126,293 @@ test('missingSubmitActionFinding identifies host onSubmit without submit Action'
     reason: 'missing-submit-action',
   });
 });
+
+test('isBackgroundResponseAction identifies autosave and excludes manual intents', async () => {
+  const { isBackgroundResponseAction } = await import('../dist/index.js');
+  assert.equal(isBackgroundResponseAction({ intent: 'autosave' }), true);
+  for (const intent of ['save-draft', 'review', 'submit', 'request-evidence', 'x-export']) {
+    assert.equal(isBackgroundResponseAction({ intent }), false, `expected ${intent} to be manual`);
+  }
+  assert.equal(isBackgroundResponseAction(null), false);
+  assert.equal(isBackgroundResponseAction(undefined), false);
+});
+
+test('autoPlacedDefinitionActions excludes autosave actions while keeping manual labeled actions and fail-closed validation', async () => {
+  const { autoPlacedDefinitionActions } = await import('../dist/index.js');
+  const def = { url: 'https://example.gov/forms/intake' };
+  const doc = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    scope: 'response',
+    targetDefinition: { url: def.url },
+    actions: [
+      {
+        id: 'save-draft',
+        intent: 'save-draft',
+        label: { literal: 'Save draft' },
+        effects: [{ type: 'hostEvent', eventName: 'draft-saved' }],
+      },
+      {
+        id: 'autosave-progress',
+        intent: 'autosave',
+        label: { literal: 'Save as I go' },
+        effects: [{ type: 'hostEvent', eventName: 'draft-autosaved' }],
+      },
+      {
+        id: 'autosave-ref',
+        intent: 'autosave',
+        label: { ref: '$action.autosave.label' },
+        effects: [{ type: 'hostEvent', eventName: 'draft-autosaved' }],
+      },
+      {
+        id: 'submit-form',
+        intent: 'submit',
+        label: { literal: 'Submit' },
+        effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+      },
+    ],
+  };
+
+  assert.deepEqual(
+    autoPlacedDefinitionActions(doc, def).map(a => a.id),
+    ['save-draft', 'submit-form'],
+  );
+
+  // Invalid autosave action still fails closed for the whole document.
+  const invalidDoc = structuredClone(doc);
+  invalidDoc.actions[1].validation = {
+    profile: 'off',
+    blocking: 'block-on-error',
+    persistence: 'draft-checkpoint',
+  };
+  assert.deepEqual(autoPlacedDefinitionActions(invalidDoc, def), []);
+
+  // Non-standard intent lacking x- prefix (or x- shadowing standard intent) fails closed even with a valid override tuple.
+  for (const badIntent of ['autosav', 'x-autosave', 'x-submit']) {
+    const typoDoc = structuredClone(doc);
+    typoDoc.actions[1].intent = badIntent;
+    typoDoc.actions[1].validation = {
+      profile: 'off',
+      blocking: 'non-blocking',
+      persistence: 'draft-checkpoint',
+    };
+    assert.deepEqual(autoPlacedDefinitionActions(typoDoc, def), [], `expected ${badIntent} to fail closed`);
+  }
+});
+
+test('subscribeResponseActionAutosave skips mount baseline, debounces edits, coalesces in-flight saves, and cleans up on dispose', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { createFormEngine, initFormspecEngine, subscribeResponseActionAutosave } = await import('../dist/index.js');
+  await initFormspecEngine();
+
+  const definition = {
+    $formspec: '1.0',
+    url: 'https://example.gov/forms/autosave-engine',
+    version: '1.0.0',
+    items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+  };
+  const engine = createFormEngine(definition, { responseData: { name: 'Initial' } });
+  const doc = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    scope: 'response',
+    targetDefinition: { url: definition.url },
+    actions: [{
+      id: 'autosave-progress',
+      intent: 'autosave',
+      effects: [{ type: 'hostEvent', eventName: 'draft-autosaved' }],
+    }],
+  };
+
+  const invocations = [];
+  let releaseFirst;
+  const firstGate = new Promise(resolve => { releaseFirst = resolve; });
+
+  const dispose = subscribeResponseActionAutosave({
+    engine,
+    document: doc,
+    debounceMs: 400,
+    invoke: async (action) => {
+      const value = engine.getResponse({ profile: 'off' }).data.name;
+      invocations.push({ id: action.id, value });
+      if (invocations.length === 1) await firstGate;
+      return { status: 'completed' };
+    },
+  });
+
+  // Initial mount must not fire autosave even after timer window.
+  t.mock.timers.tick(5000);
+  await Promise.resolve();
+  assert.equal(invocations.length, 0);
+
+  // Rapid edits coalesce into one invocation at the debounce boundary.
+  engine.setValue('name', 'A');
+  t.mock.timers.tick(200);
+  engine.setValue('name', 'Ada');
+  t.mock.timers.tick(399);
+  assert.equal(invocations.length, 0);
+
+  t.mock.timers.tick(1);
+  await Promise.resolve();
+  assert.deepEqual(invocations, [{ id: 'autosave-progress', value: 'Ada' }]);
+
+  // Edit while first invocation is still in flight coalesces into a single follow-up invocation after completion.
+  engine.setValue('name', 'Ada L');
+  t.mock.timers.tick(100);
+  engine.setValue('name', 'Ada Lovelace');
+  t.mock.timers.tick(400);
+  await Promise.resolve();
+  assert.equal(invocations.length, 1);
+
+  releaseFirst();
+  await new Promise(resolve => queueMicrotask(resolve));
+  await new Promise(resolve => queueMicrotask(resolve));
+  await new Promise(resolve => queueMicrotask(resolve));
+  assert.deepEqual(invocations, [
+    { id: 'autosave-progress', value: 'Ada' },
+    { id: 'autosave-progress', value: 'Ada Lovelace' },
+  ]);
+
+  // Dispose cancels pending timer.
+  engine.setValue('name', 'Disposed edit');
+  dispose();
+  t.mock.timers.tick(5000);
+  await Promise.resolve();
+  assert.equal(invocations.length, 2);
+  engine.dispose();
+});
+
+test('isValidDefinitionResponseActionsDocument and findAutosaveResponseAction reject incomplete preconditions, unbound documents, and ambiguous multi-autosave declarations', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const {
+    autoPlacedDefinitionActions,
+    createFormEngine,
+    findAutosaveResponseAction,
+    initFormspecEngine,
+    isValidDefinitionResponseActionsDocument,
+    subscribeResponseActionAutosave,
+  } = await import('../dist/index.js');
+  await initFormspecEngine();
+
+  const def = {
+    $formspec: '1.0',
+    url: 'https://example.gov/forms/guard-review2',
+    version: '1.0.0',
+    items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+  };
+  const autosave = {
+    id: 'check',
+    intent: 'autosave',
+    effects: [{ type: 'hostEvent', eventName: 'checked' }],
+  };
+  const manual = {
+    id: 'manual',
+    intent: 'review',
+    label: { literal: 'Review' },
+    effects: [{ type: 'hostEvent', eventName: 'reviewed' }],
+  };
+  const validDoc = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: def.url },
+    actions: [autosave, manual],
+  };
+  assert.equal(isValidDefinitionResponseActionsDocument(validDoc, def), true);
+
+  // 1. Precondition lacking required expression & severity must fail closed.
+  const incompletePreconditionDoc = {
+    ...validDoc,
+    actions: [{ ...manual, preconditions: [{ id: 'only-id' }] }],
+  };
+  assert.equal(isValidDefinitionResponseActionsDocument(incompletePreconditionDoc, def), false);
+  assert.deepEqual(autoPlacedDefinitionActions(incompletePreconditionDoc, def), []);
+  assert.equal(findAutosaveResponseAction({
+    ...validDoc,
+    actions: [{ ...autosave, preconditions: [{ id: 'only-id' }] }],
+  }, def), null);
+
+  // 2. Additional unexpected properties or forbidden lifecycle eventKind must fail closed.
+  assert.equal(isValidDefinitionResponseActionsDocument({
+    ...validDoc,
+    unexpectedRootKey: true,
+  }, def), false);
+  assert.equal(isValidDefinitionResponseActionsDocument({
+    ...validDoc,
+    actions: [{ ...manual, unexpectedActionKey: true }],
+  }, def), false);
+  assert.equal(isValidDefinitionResponseActionsDocument({
+    ...validDoc,
+    actions: [{
+      id: 'badLedger',
+      intent: 'submit',
+      label: { literal: 'Submit' },
+      effects: [{ type: 'ledgerAppend', eventKind: 'action.invoked', idempotencyKey: '@invocation.id' }],
+    }],
+  }, def), false);
+
+  // 3. Response-scoped documents lacking targetDefinition cannot schedule live autosave.
+  for (const unbound of [
+    { actions: [autosave] },
+    { $formspecResponseActions: '1.0', version: '1.0.0', actions: [autosave] },
+  ]) {
+    assert.equal(isValidDefinitionResponseActionsDocument(unbound, def), false);
+    assert.equal(findAutosaveResponseAction(unbound, def), null);
+
+    const engine = createFormEngine(def);
+    let calls = 0;
+    const dispose = subscribeResponseActionAutosave({
+      engine,
+      document: unbound,
+      debounceMs: 50,
+      invoke: () => { calls += 1; },
+    });
+    engine.setValue('name', 'Ada');
+    t.mock.timers.tick(200);
+    await Promise.resolve();
+    assert.equal(calls, 0);
+    dispose();
+    engine.dispose();
+  }
+
+  // 4. Multiple eligible autosave actions are ambiguous regardless of documentation array order.
+  const makeAutosave = (id) => ({
+    id,
+    intent: 'autosave',
+    effects: [{ type: 'hostEvent', eventName: id }],
+  });
+  const ambiguousForward = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: def.url },
+    actions: [makeAutosave('checkpointA'), makeAutosave('checkpointB')],
+  };
+  const ambiguousReversed = {
+    ...ambiguousForward,
+    actions: [...ambiguousForward.actions].reverse(),
+  };
+  assert.equal(isValidDefinitionResponseActionsDocument(ambiguousForward, def), true);
+  assert.equal(isValidDefinitionResponseActionsDocument(ambiguousReversed, def), true);
+  assert.equal(findAutosaveResponseAction(ambiguousForward, def), null);
+  assert.equal(findAutosaveResponseAction(ambiguousReversed, def), null);
+
+  for (const candidateDoc of [ambiguousForward, ambiguousReversed]) {
+    const engine = createFormEngine(def);
+    const findings = [];
+    let calls = 0;
+    const dispose = subscribeResponseActionAutosave({
+      engine,
+      document: candidateDoc,
+      debounceMs: 50,
+      onFinding: (finding) => findings.push(finding),
+      invoke: () => { calls += 1; },
+    });
+    engine.setValue('name', 'Ada');
+    t.mock.timers.tick(200);
+    await Promise.resolve();
+    assert.equal(calls, 0);
+    assert.equal(findings.length, 1);
+    assert.equal(findings[0]?.reason, 'ambiguous-autosave-action');
+    dispose();
+    engine.dispose();
+  }
+});

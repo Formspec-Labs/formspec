@@ -1118,6 +1118,7 @@ describe("navigation", () => {
       id: "submitResponse",
       intent: "submit",
       label: { literal: "Review response" },
+      effects: [{ type: "hostEvent", eventName: "formspec-submit" }],
     };
     const parameterSurface = {
       $formspecSurface: "0.2",
@@ -1551,5 +1552,139 @@ describe("navigation", () => {
     act(() => unique?.click());
     expect(onNavigate).toHaveBeenCalledOnce();
     expect(onNavigate).toHaveBeenCalledWith("/unique");
+  });
+
+  it("reports background autosave completion on a Surface without a draft writer while requiring control activation before advancing the route", async () => {
+    vi.useFakeTimers();
+    try {
+      const { initFormspecEngine } = await import("@formspec-org/engine");
+      await initFormspecEngine();
+
+      const definitionUrl = "urn:test:surface-no-writer-autosave";
+      const filingSurface = {
+        $formspecSurface: "0.2",
+        id: "filing-surface",
+        entry: "filing",
+        routes: [
+          {
+            id: "filing",
+            path: "/filing",
+            title: "Filing",
+            routeClass: "intake",
+            slots: [
+              {
+                id: "form",
+                slotType: "definition-form",
+                binding: { definitionRef: definitionUrl },
+              },
+            ],
+            transitions: [{ trigger: "autosave", to: "overview" }],
+          },
+          {
+            id: "overview",
+            path: "/overview",
+            title: "Overview",
+            routeClass: "intake",
+            slots: [],
+          },
+        ],
+      } as unknown as SurfaceDocument;
+
+      const noWriterBundle: ResolvedBundle = {
+        ...bundle,
+        surfaces: [filingSurface],
+        responseActions: [
+          {
+            $formspecResponseActions: "1.0",
+            version: "1.0.0",
+            targetDefinition: { url: definitionUrl },
+            actions: [
+              {
+                id: "autosave",
+                intent: "autosave",
+                label: { literal: "Autosave" },
+                effects: [{ type: "hostEvent", eventName: "draft-autosaved" }],
+              },
+            ],
+          } as ResponseActionsDocument,
+        ],
+        definitions: new Map([
+          [
+            definitionUrl,
+            {
+              $formspec: "1.0",
+              url: definitionUrl,
+              version: "1.0.0",
+              title: "Filing",
+              items: [
+                { key: "answer", type: "field", dataType: "string", label: "Answer" },
+              ],
+            } as unknown as FormDefinition,
+          ],
+        ]),
+      };
+
+      const onNavigate = vi.fn();
+      const onDefinitionActionResult = vi.fn();
+      const container = render(
+        <SurfaceApp
+          bundle={noWriterBundle}
+          location="/filing"
+          onNavigate={onNavigate}
+          onDefinitionActionResult={onDefinitionActionResult}
+          resolveDefinitionComponent={() =>
+            ({
+              $formspecComponent: "1.0",
+              version: "1.0.0",
+              targetDefinition: { url: definitionUrl },
+              tree: {
+                component: "Stack",
+                children: [
+                  { component: "TextInput", bind: "answer" },
+                  {
+                    component: "ActionButton",
+                    actionRef: "autosave",
+                    label: { literal: "Checkpoint now" },
+                  },
+                ],
+              },
+            }) as never
+          }
+          setDocumentTitle={false}
+        />,
+      );
+
+      const input = container.querySelector<HTMLInputElement>('input[type="text"]');
+      expect(input).not.toBeNull();
+      const nativeValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      await act(async () => {
+        nativeValueSetter?.call(input, "typing only");
+        input!.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(900);
+      });
+
+      // Background autosave still reports its result to observers, but MUST NOT advance the route!
+      expect(onDefinitionActionResult).toHaveBeenCalledTimes(1);
+      expect(onNavigate).not.toHaveBeenCalled();
+
+      // Clicking the explicitly authored control DOES advance the route.
+      const button = [...container.querySelectorAll<HTMLButtonElement>("button")].find(
+        (candidate) => candidate.textContent === "Checkpoint now",
+      );
+      expect(button).toBeDefined();
+      await act(async () => {
+        button!.click();
+        await Promise.resolve();
+      });
+      expect(onNavigate).toHaveBeenCalledOnce();
+      expect(onNavigate).toHaveBeenCalledWith("/overview");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

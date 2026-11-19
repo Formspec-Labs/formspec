@@ -33,5 +33,10 @@ export {
     resolveTokenInContext,
 } from './node-utils.js';
 export type { EnsureActionButtonOptions } from './node-utils.js';
+export {
+    planDefinitionLayout,
+    type PlanDefinitionLayoutOptions,
+    type PlannedDefinitionLayout,
+} from './plan-definition-layout.js';
 
 export type { NodeIdGenerator } from './types.js';

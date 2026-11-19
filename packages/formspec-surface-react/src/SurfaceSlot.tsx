@@ -1336,13 +1336,19 @@ function DefaultSurfaceDefinitionForm(
             // `onSubmit` requests the renderer's declared submit control. It is
             // a no-op because durable effects have not reached a terminal yet.
             onSubmit: () => {},
-            onActionResult: (
-              result: ResponseActionInvocationResult<SubmitResult>,
-            ) => {
-              onDefinitionActionResult?.(result);
-              const action = completedFormAction(result);
-              if (action) onActionCompleted?.(action, result);
-            },
+            ...(onDefinitionActionResult
+              ? { onActionResult: onDefinitionActionResult }
+              : {}),
+            ...(onActionCompleted
+              ? {
+                  onControlActionResult: (
+                    result: ResponseActionInvocationResult<SubmitResult>,
+                  ) => {
+                    const action = completedFormAction(result);
+                    if (action) onActionCompleted(action, result);
+                  },
+                }
+              : {}),
           }
         : {})}
     />

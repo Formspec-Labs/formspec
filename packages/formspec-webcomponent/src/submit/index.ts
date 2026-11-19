@@ -29,6 +29,8 @@ export interface SubmitOptions {
     profile?: ValidationProfile;
     validationTuple?: ValidationOverride;
     emitEvent?: boolean;
+    /** When false, capture snapshot without marking untouched fields touched or moving focus. */
+    touchFields?: boolean;
 }
 
 function responseProfileForTuple(validationTuple: ValidationOverride | undefined): ValidationProfile {
@@ -117,12 +119,17 @@ export function submit(
     if (!host.engine) return null;
     const profile = options?.profile ?? options?.validationTuple?.profile ?? 'on-submit';
     const emitEvent = options?.emitEvent !== false;
+    const shouldTouch = options?.touchFields !== false;
 
-    touchAllFields(host);
+    if (shouldTouch) {
+        touchAllFields(host);
+    }
 
     const detail = host.engine.getResponseSnapshot({ profile: responseProfileForTuple(options?.validationTuple) }, profile);
     const { validationReport } = detail;
-    host._latestSubmitDetailSignal.value = detail;
+    if (shouldTouch) {
+        host._latestSubmitDetailSignal.value = detail;
+    }
 
     if (emitEvent) {
         host.dispatchEvent(new CustomEvent('formspec-submit', {
@@ -132,7 +139,7 @@ export function submit(
         }));
     }
 
-    if (validationReport && !validationReport.valid && host.focusField) {
+    if (shouldTouch && validationReport && !validationReport.valid && host.focusField) {
         const firstError = validationReport.results.find((r: ValidationResult) => r.severity === 'error');
         const target = firstInvalidFieldPath(host, validationReport.results) ?? firstError?.path;
         if (target) host.focusField(target);

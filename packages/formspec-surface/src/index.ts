@@ -213,11 +213,13 @@ export {
 } from './semantic-output.js';
 
 export {
+  collectSlotBreakpointThresholds,
   planTransitions,
   responseActionsDocumentForDefinition,
   slotSuppliedTriggers,
   type PlannedTransition,
   type ResponseActionsDocumentLike,
+  type SlotSuppliedTriggersOptions,
   type TransitionExecutor,
   type TransitionConditionEvaluator,
   type TransitionPlanInput,

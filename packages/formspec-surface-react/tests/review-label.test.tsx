@@ -64,7 +64,7 @@ function fixture(): ResolvedBundle {
 it.each([['en','Submit review action'],['es-US','Enviar revisión']])('resolves declared native Action labels in %s through the exact Definition Locale', (activeLocale, expectedLabel) => {
  const bundle = fixture();
  bundle.responseActions[0].scope = 'response';
- Object.assign(bundle.responseActions[0].actions[0], {id:'submit-review',effects:[{type:'hostEvent',eventName:'review-complete',onError:'fail'}], validation:{profile:'on-submit',blocking:'block-on-error',persistence:'complete-response'}});
+ Object.assign(bundle.responseActions[0].actions[0], {id:'submit-review',effects:[{type:'hostEvent',eventName:'review-complete'}], validation:{profile:'on-submit',blocking:'block-on-error',persistence:'complete-response'}});
  bundle.responseActions[0].actions[0].label = { ref: '$action.submitApplication.label' };
  const localeDocuments = [
  { $formspecLocale:'2.0',version:'1.0.0',locale:'en',target:{kind:'definition',url:DEFINITION_REF},strings:{'$action.submitApplication.label':'Submit review action'} },

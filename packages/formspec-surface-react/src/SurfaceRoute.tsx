@@ -319,8 +319,7 @@ export function SurfaceRouteView({
               const supplied = plan.transitions.filter(
                 (candidate) =>
                   candidate.status === 'supplied-by-slot' &&
-                  (candidate.trigger === action.id ||
-                    candidate.trigger === action.intent),
+                  candidate.actionId === action.id,
               );
               if (supplied.length === 1 && supplied[0]) {
                 onAdvance?.(

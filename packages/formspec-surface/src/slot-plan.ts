@@ -665,7 +665,7 @@ function resolveWidgetAction(
   definitions: ReadonlyMap<string, FormDefinition>,
 ): { action: WidgetActionMetadataPlan; responseContext?: WidgetActionResponsePlan } | undefined {
   const matches = documents.flatMap((document) =>
-    (document.actions ?? [])
+    (Array.isArray(document?.actions) ? document.actions : [])
       .filter((action) => action.id === actionRef)
       .map((action) => ({ document, action })),
   );

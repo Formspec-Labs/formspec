@@ -1,6 +1,7 @@
 /** @filedesc Response Actions host adapter for ActionButton triggers. */
 import {
     invokeResponseAction,
+    invokeResponseActionAsync,
     resolveResponseAction,
     type ActionRefFinding,
     type ActionResolution,
@@ -127,17 +128,23 @@ function resolveIdempotencyKey(
 function emitActionResult(
     host: Pick<ActionHost, 'dispatchEvent'>,
     result: ResponseActionInvocationResult<SubmitDetail>,
+    origin: 'control' | 'autosave' = 'control',
 ): void {
     host.dispatchEvent(new CustomEvent('formspec-action-result', {
-        detail: { result },
+        detail: { result, origin },
         bubbles: true,
         composed: true,
     }));
 }
 
-function buildActionPorts(host: ActionHost): ResponseActionInvocationPorts<SubmitDetail> {
+function buildActionPorts(host: ActionHost, options?: { touchFields?: boolean }): ResponseActionInvocationPorts<SubmitDetail> {
     return {
-        submit: ({ profile, validationTuple }) => submit(host, { profile, validationTuple, emitEvent: false }),
+        submit: ({ profile, validationTuple }) => submit(host, {
+            profile,
+            validationTuple,
+            emitEvent: false,
+            ...(options?.touchFields === false ? { touchFields: false } : {}),
+        }),
         dispatchHostEvent: (eventName, detail) => {
             host.dispatchEvent(new CustomEvent(eventName, {
                 detail,
@@ -164,8 +171,9 @@ function normalizeInvokerResult<TDetail>(
 function finishInvocation(
     host: ActionHost,
     result: ResponseActionInvocationResult<SubmitDetail>,
+    origin: 'control' | 'autosave' = 'control',
 ): SubmitDetail | null {
-    emitActionResult(host, result);
+    emitActionResult(host, result, origin);
     if (result.finding) {
         emitActionFinding(host, result.finding);
     }
@@ -193,4 +201,35 @@ export function invokeAction(
 
     const result = invokeResponseAction(host._responseActionsDocument, actionRef, ports, nodeId);
     return finishInvocation(host, result);
+}
+
+export async function invokeAutosaveAction(
+    host: ActionHost,
+    actionRef: string,
+): Promise<ResponseActionInvocationResult<SubmitDetail>> {
+    const ports = buildActionPorts(host, { touchFields: false });
+    const settle = (result: ResponseActionInvocationResult<SubmitDetail>) => {
+        finishInvocation(host, result, 'autosave');
+        return result;
+    };
+    try {
+        if (host._responseActionInvoker) {
+            const raw = await host._responseActionInvoker({
+                document: host._responseActionsDocument,
+                actionRef,
+                ports,
+            });
+            return settle(normalizeInvokerResult(raw));
+        }
+        return settle(await invokeResponseActionAsync(host._responseActionsDocument, actionRef, ports));
+    } catch (error) {
+        return settle({
+            status: 'failed',
+            resolution: resolveResponseAction(host._responseActionsDocument, actionRef),
+            validationTuple: null,
+            detail: null,
+            effectTrace: [],
+            failureReason: error instanceof Error ? error.message : String(error),
+        });
+    }
 }

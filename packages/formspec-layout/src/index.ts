@@ -33,7 +33,12 @@ export type {
 export { resolveToken, emitMergedThemeCssVars } from './tokens.js';
 
 // Responsive breakpoint merging
-export { resolveResponsiveProps } from './responsive.js';
+export {
+    resolveResponsiveProps,
+    extractBreakpointEntries,
+    matchBreakpoint,
+    type BreakpointSpec,
+} from './responsive.js';
 
 // Parameter interpolation (custom component expansion)
 export { interpolateParams } from './params.js';
@@ -58,13 +63,19 @@ export { mergeFormPresentationForPlanning } from './form-presentation.js';
 export {
     planComponentTree,
     planDefinitionFallback,
+    planDefinitionLayout,
     planContains,
     ensureActionButton,
     ensureValidationSummary,
     createNodeIdGenerator,
     preparePlanContext,
 } from './planner.js';
-export type { EnsureActionButtonOptions, NodeIdGenerator } from './planner.js';
+export type {
+    EnsureActionButtonOptions,
+    NodeIdGenerator,
+    PlanDefinitionLayoutOptions,
+    PlannedDefinitionLayout,
+} from './planner.js';
 export { describeWizardStep, findAuthoredPageSection, hasWizardSections, placementCovers, placementKey, planExplicitPageRoot, resolvePageSequence, resolveSectionTitlePlan } from './page-sequence.js';
 export type { PageSequenceEntry, PageSequenceOptions } from './page-sequence.js';
 export { planPageMode, type WorkspacePage } from './plan-page-mode.js';

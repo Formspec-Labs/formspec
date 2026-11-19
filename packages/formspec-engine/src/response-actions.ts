@@ -1,6 +1,8 @@
 /** @filedesc Response Actions resolution helpers for renderers and hosts. */
 
-import { cloneValue } from './json-values.js';
+import { cloneValue, deepEqual } from './json-values.js';
+import type { IFormEngine } from './interfaces.js';
+import { preactReactiveRuntime } from './reactivity/preact-runtime.js';
 import type {
     Action as ResponseAction,
     ActionInvocationStatus,
@@ -75,7 +77,14 @@ export interface ActionRefFinding {
         | 'missing-actionRef'
         | 'no-response-actions-document'
         | 'missing-submit-action'
-        | 'ambiguous-actionRef';
+        | 'ambiguous-actionRef'
+        | 'ambiguous-autosave-action';
+}
+
+export interface AutosaveActionResolution {
+    action: ResponseAction | null;
+    ambiguousActionIds?: readonly string[];
+    finding?: ActionRefFinding;
 }
 
 export interface ActionResolution {
@@ -506,6 +515,685 @@ export function findResponseActionByIntent(
         return null;
     }
     return document.actions.find(action => action?.intent === intent) ?? null;
+}
+
+const RESPONSE_ACTION_ID_PATTERN = /^[A-Za-z][A-Za-z0-9-]*$/;
+const EXTENSION_ACTION_INTENT_PATTERN = /^x-(?!(?:save-draft|autosave|review|submit|request-evidence)$)[A-Za-z0-9_-]+$/;
+const DOCUMENT_NAME_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+const MODULE_ID_PATTERN = /^x-[a-z][a-z0-9]*(-[a-z][a-z0-9]*)*$/;
+const MODULE_LOCK_HASH_PATTERN = /^[a-z0-9]+:[A-Za-z0-9+/=]+$/;
+const ACTOR_ID_PATTERN = /^urn:formspec:actor:.+/;
+const GENERATION_ANCHOR_PATTERN = /^(item|unit|task|action|concept|need):.+$/;
+const HANDLE_OR_ROUTE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
+const BROWSER_RESOURCE_REF_PATTERN = /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/;
+const OUTPUT_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
+const JSON_POINTER_NON_ROOT_PATTERN = /^\/(?:[^~/]|~[01])+(?:\/(?:[^~/]|~[01])*)*$/;
+const PATH_TEMPLATE_PATTERN = /^\/(?!\/)/;
+const PATH_BINDING_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_]*$/;
+const QUERY_BINDING_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_.-]*$/;
+const HEADER_BINDING_NAME_PATTERN = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
+const SELECTOR_PATH_PATTERN = /^[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)*$/;
+
+const DOCUMENT_ALLOWED_KEYS = new Set([
+    '$formspecResponseActions',
+    'modules',
+    'version',
+    'name',
+    'title',
+    'description',
+    'scope',
+    'targetDefinition',
+    'actions',
+    'x-formspec-runtime',
+]);
+const TARGET_DEFINITION_KEYS = new Set(['url', 'compatibleVersions']);
+const MODULE_REF_KEYS = new Set(['id', 'version', 'publisher', 'lockHash', 'extensions']);
+const AUTHOR_ACTOR_KEYS = new Set(['id', 'kind', 'actChannel', 'display', 'extensions']);
+const COMPONENT_NODE_IDENTITY_KEYS = new Set(['component', 'surface', 'route', 'nodePath', 'id', 'nodeId']);
+const COMPONENT_REF_KEYS = new Set(['handle', 'url', 'version']);
+const SURFACE_REF_KEYS = new Set(['url', 'version']);
+const CROSS_COMPONENT_REF_KEYS = new Set(['route', 'nodePath']);
+const ACTION_ALLOWED_KEYS = new Set([
+    'id',
+    'intent',
+    'actor',
+    'label',
+    'x-generation',
+    'preconditions',
+    'validation',
+    'effects',
+    'onFailure',
+    'onDeferred',
+]);
+const PRECONDITION_KEYS = new Set(['id', 'expression', 'severity']);
+const VALIDATION_OVERRIDE_KEYS = new Set(['profile', 'blocking', 'persistence']);
+const MAPPING_EFFECT_KEYS = new Set(['type', 'mappingRef', 'idempotencyKey', 'onError']);
+const LEDGER_EFFECT_KEYS = new Set(['type', 'eventKind', 'payloadRef', 'idempotencyKey', 'onError']);
+const HANDOFF_EFFECT_KEYS = new Set(['type', 'handoffProfileRef', 'recipientRef', 'idempotencyKey', 'onError']);
+const REQUEST_REF_EFFECT_KEYS = new Set(['type', 'requestRef', 'idempotencyKey', 'onError']);
+const HOST_EVENT_EFFECT_KEYS = new Set(['type', 'eventName', 'detailRef']);
+const BROWSER_RESOURCE_EFFECT_KEYS = new Set(['type', 'operation', 'resourceRef', 'target', 'onError']);
+const RUNTIME_CATALOG_KEYS = new Set(['version', 'requests']);
+const RUNTIME_REQUEST_KEYS = new Set([
+    'id',
+    'adapter',
+    'operation',
+    'request',
+    'successStatuses',
+    'outputs',
+    'x-generation',
+]);
+const HTTP_JSON_REQUEST_KEYS = new Set([
+    'method',
+    'pathTemplate',
+    'pathBindings',
+    'queryBindings',
+    'headerBindings',
+    'bodyDefaults',
+    'bodyBindings',
+]);
+const RUNTIME_VALUE_SELECTOR_KEYS = new Set(['from', 'path', 'value']);
+const RUNTIME_OUTPUT_KEYS = new Set(['path', 'exposure']);
+
+/**
+ * Whether `intent` conforms to `schemas/response-actions.schema.json` `#/$defs/ActionIntent`:
+ * either a closed standard Validation Mapping intent or an `x-` publisher extension that
+ * does not shadow a standard intent.
+ */
+export function isValidResponseActionIntent(intent: unknown): intent is ResponseAction['intent'] {
+    return typeof intent === 'string' && (
+        isStandardActionIntent(intent)
+        || EXTENSION_ACTION_INTENT_PATTERN.test(intent)
+    );
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+    return value && typeof value === 'object' && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : null;
+}
+
+function hasMinLength1(value: unknown): value is string {
+    return typeof value === 'string' && value.length >= 1;
+}
+
+function hasNonEmptyString(value: unknown): value is string {
+    return typeof value === 'string' && value.trim().length > 0;
+}
+
+function hasOnlyAllowedKeys(
+    record: Record<string, unknown>,
+    allowed: ReadonlySet<string>,
+    allowXPrefix = false,
+): boolean {
+    for (const key of Object.keys(record)) {
+        if (allowed.has(key)) continue;
+        if (allowXPrefix && key.startsWith('x-')) continue;
+        return false;
+    }
+    return true;
+}
+
+function isValidExtensions(value: unknown): boolean {
+    const ext = asRecord(value);
+    if (!ext) return false;
+    return Object.keys(ext).every((key) => key.startsWith('x-'));
+}
+
+function isValidModuleRef(value: unknown): boolean {
+    const mod = asRecord(value);
+    if (!mod || !hasOnlyAllowedKeys(mod, MODULE_REF_KEYS)) return false;
+    return typeof mod.id === 'string'
+        && MODULE_ID_PATTERN.test(mod.id)
+        && hasMinLength1(mod.version)
+        && (mod.publisher === undefined || hasMinLength1(mod.publisher))
+        && (mod.lockHash === undefined || (typeof mod.lockHash === 'string' && MODULE_LOCK_HASH_PATTERN.test(mod.lockHash)))
+        && (mod.extensions === undefined || isValidExtensions(mod.extensions));
+}
+
+function isValidAuthorActor(value: unknown): boolean {
+    const actor = asRecord(value);
+    if (!actor || !hasOnlyAllowedKeys(actor, AUTHOR_ACTOR_KEYS)) return false;
+    return typeof actor.id === 'string'
+        && ACTOR_ID_PATTERN.test(actor.id)
+        && (actor.kind === 'human' || actor.kind === 'ai-agent' || actor.kind === 'service')
+        && (actor.actChannel === 'human' || actor.actChannel === 'mcp' || actor.actChannel === 'agent' || actor.actChannel === 'service')
+        && (actor.display === undefined || typeof actor.display === 'string')
+        && (actor.extensions === undefined || isValidExtensions(actor.extensions));
+}
+
+function isValidProvenanceRef(value: unknown): boolean {
+    const candidate = asRecord(value);
+    if (!candidate) return false;
+    if (hasOnlyAllowedKeys(candidate, CROSS_COMPONENT_REF_KEYS)
+        && typeof candidate.route === 'string'
+        && typeof candidate.nodePath === 'string') {
+        return true;
+    }
+    if (!hasOnlyAllowedKeys(candidate, COMPONENT_NODE_IDENTITY_KEYS)) return false;
+    const comp = asRecord(candidate.component);
+    const surf = asRecord(candidate.surface);
+    return Boolean(
+        comp
+        && hasOnlyAllowedKeys(comp, COMPONENT_REF_KEYS)
+        && typeof comp.handle === 'string'
+        && HANDLE_OR_ROUTE_ID_PATTERN.test(comp.handle)
+        && (comp.url === undefined || hasMinLength1(comp.url))
+        && (comp.version === undefined || hasMinLength1(comp.version))
+        && surf
+        && hasOnlyAllowedKeys(surf, SURFACE_REF_KEYS)
+        && hasMinLength1(surf.url)
+        && (surf.version === undefined || hasMinLength1(surf.version))
+        && typeof candidate.route === 'string'
+        && HANDLE_OR_ROUTE_ID_PATTERN.test(candidate.route)
+        && typeof candidate.nodePath === 'string'
+        && candidate.nodePath.startsWith('/')
+        && candidate.nodePath.length >= 2
+        && (candidate.id === undefined || hasMinLength1(candidate.id))
+        && (candidate.nodeId === undefined || hasMinLength1(candidate.nodeId)),
+    );
+}
+
+function isValidGeneration(value: unknown): boolean {
+    const gen = asRecord(value);
+    if (!gen) return false;
+    return (gen.source === undefined || typeof gen.source === 'string')
+        && (gen.strategy === undefined || typeof gen.strategy === 'string')
+        && (gen.generatedAt === undefined || typeof gen.generatedAt === 'string')
+        && (
+            gen.anchors === undefined
+            || (Array.isArray(gen.anchors) && gen.anchors.every(
+                (anchor) => typeof anchor === 'string' && GENERATION_ANCHOR_PATTERN.test(anchor),
+            ))
+        )
+        && (gen.generatedBy === undefined || typeof gen.generatedBy === 'string' || isValidAuthorActor(gen.generatedBy))
+        && (gen.sourceModule === undefined || isValidModuleRef(gen.sourceModule))
+        && (gen.movedFrom === undefined || isValidProvenanceRef(gen.movedFrom))
+        && (gen.copiedFrom === undefined || isValidProvenanceRef(gen.copiedFrom))
+        && (gen.extensions === undefined || isValidExtensions(gen.extensions));
+}
+
+function isValidJsonValue(value: unknown, seen = new WeakSet<object>()): boolean {
+    if (value === null || typeof value === 'boolean' || typeof value === 'string') return true;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value !== 'object') return false;
+    if (seen.has(value)) return false;
+    seen.add(value);
+    if (Array.isArray(value)) {
+        return value.every((item) => isValidJsonValue(item, seen));
+    }
+    return Object.values(value as Record<string, unknown>).every((item) => isValidJsonValue(item, seen));
+}
+
+function isValidRuntimeValueSelector(value: unknown): boolean {
+    const selector = asRecord(value);
+    if (!selector || !hasOnlyAllowedKeys(selector, RUNTIME_VALUE_SELECTOR_KEYS)) return false;
+    const from = selector.from;
+    if (from === 'literal') {
+        return Object.prototype.hasOwnProperty.call(selector, 'value')
+            && selector.value !== undefined
+            && !Object.prototype.hasOwnProperty.call(selector, 'path')
+            && isValidJsonValue(selector.value);
+    }
+    if (from === 'input' || from === 'route' || from === 'session' || from === 'result') {
+        return typeof selector.path === 'string'
+            && SELECTOR_PATH_PATTERN.test(selector.path)
+            && !Object.prototype.hasOwnProperty.call(selector, 'value');
+    }
+    return false;
+}
+
+function isValidSelectorMap(value: unknown, keyPattern: RegExp): boolean {
+    const record = asRecord(value);
+    if (!record) return false;
+    return Object.entries(record).every(
+        ([key, entry]) => keyPattern.test(key) && isValidRuntimeValueSelector(entry),
+    );
+}
+
+function isValidHttpJsonRequest(value: unknown): boolean {
+    const req = asRecord(value);
+    if (!req || !hasOnlyAllowedKeys(req, HTTP_JSON_REQUEST_KEYS)) return false;
+    return (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH' || req.method === 'DELETE')
+        && typeof req.pathTemplate === 'string'
+        && PATH_TEMPLATE_PATTERN.test(req.pathTemplate)
+        && (req.pathBindings === undefined || isValidSelectorMap(req.pathBindings, PATH_BINDING_NAME_PATTERN))
+        && (req.queryBindings === undefined || isValidSelectorMap(req.queryBindings, QUERY_BINDING_NAME_PATTERN))
+        && (req.headerBindings === undefined || isValidSelectorMap(req.headerBindings, HEADER_BINDING_NAME_PATTERN))
+        && (req.bodyDefaults === undefined || (asRecord(req.bodyDefaults) !== null && isValidJsonValue(req.bodyDefaults)))
+        && (req.bodyBindings === undefined || isValidSelectorMap(req.bodyBindings, JSON_POINTER_NON_ROOT_PATTERN));
+}
+
+function isValidRuntimeRequestOutput(value: unknown): boolean {
+    const out = asRecord(value);
+    if (!out || !hasOnlyAllowedKeys(out, RUNTIME_OUTPUT_KEYS)) return false;
+    return typeof out.path === 'string'
+        && JSON_POINTER_NON_ROOT_PATTERN.test(out.path)
+        && (
+            out.exposure === undefined
+            || out.exposure === 'internal'
+            || out.exposure === 'transition'
+            || out.exposure === 'session'
+        );
+}
+
+function isValidRuntimeRequestCatalog(value: unknown): boolean {
+    const catalog = asRecord(value);
+    if (
+        !catalog
+        || !hasOnlyAllowedKeys(catalog, RUNTIME_CATALOG_KEYS)
+        || catalog.version !== '1.0'
+        || !Array.isArray(catalog.requests)
+        || catalog.requests.length === 0
+    ) {
+        return false;
+    }
+    const requestIds = new Set<string>();
+    for (const raw of catalog.requests) {
+        const entry = asRecord(raw);
+        if (
+            !entry
+            || !hasOnlyAllowedKeys(entry, RUNTIME_REQUEST_KEYS)
+            || typeof entry.id !== 'string'
+            || !RESPONSE_ACTION_ID_PATTERN.test(entry.id)
+            || requestIds.has(entry.id)
+            || entry.adapter !== 'http-json'
+            || (entry.operation !== undefined && entry.operation !== 'prepare' && entry.operation !== 'sign')
+            || !isValidHttpJsonRequest(entry.request)
+            || (entry['x-generation'] !== undefined && !isValidGeneration(entry['x-generation']))
+        ) {
+            return false;
+        }
+        if (entry.successStatuses !== undefined) {
+            if (!Array.isArray(entry.successStatuses) || entry.successStatuses.length === 0) return false;
+            const seenStatuses = new Set<number>();
+            for (const status of entry.successStatuses) {
+                if (typeof status !== 'number' || !Number.isInteger(status) || status < 200 || status > 299 || seenStatuses.has(status)) {
+                    return false;
+                }
+                seenStatuses.add(status);
+            }
+        }
+        if (entry.outputs !== undefined) {
+            const outputs = asRecord(entry.outputs);
+            if (!outputs) return false;
+            for (const [name, output] of Object.entries(outputs)) {
+                if (!OUTPUT_NAME_PATTERN.test(name) || !isValidRuntimeRequestOutput(output)) {
+                    return false;
+                }
+            }
+        }
+        requestIds.add(entry.id);
+    }
+    return true;
+}
+
+function isValidPrecondition(value: unknown): boolean {
+    const precondition = asRecord(value);
+    if (!precondition || !hasOnlyAllowedKeys(precondition, PRECONDITION_KEYS)) return false;
+    return hasMinLength1(precondition.id)
+        && hasMinLength1(precondition.expression)
+        && (precondition.severity === 'block' || precondition.severity === 'defer');
+}
+
+function isValidOnError(value: unknown): boolean {
+    return value === undefined || value === 'fail' || value === 'defer';
+}
+
+function hasValidResponseActionEffectShape(value: unknown): boolean {
+    const effect = asRecord(value);
+    if (!effect || typeof effect.type !== 'string') return false;
+
+    switch (effect.type) {
+        case 'mappingExecution':
+            return hasOnlyAllowedKeys(effect, MAPPING_EFFECT_KEYS)
+                && hasMinLength1(effect.mappingRef)
+                && hasMinLength1(effect.idempotencyKey)
+                && isValidOnError(effect.onError);
+        case 'ledgerAppend':
+            return hasOnlyAllowedKeys(effect, LEDGER_EFFECT_KEYS)
+                && hasMinLength1(effect.eventKind)
+                && effect.eventKind !== 'case.created'
+                && !effect.eventKind.startsWith('case.')
+                && !effect.eventKind.startsWith('action.')
+                && (effect.payloadRef === undefined || typeof effect.payloadRef === 'string')
+                && hasMinLength1(effect.idempotencyKey)
+                && isValidOnError(effect.onError);
+        case 'handoffAssembly':
+            return hasOnlyAllowedKeys(effect, HANDOFF_EFFECT_KEYS)
+                && hasMinLength1(effect.handoffProfileRef)
+                && hasMinLength1(effect.recipientRef)
+                && hasMinLength1(effect.idempotencyKey)
+                && isValidOnError(effect.onError);
+        case 'evidenceRequest':
+            return hasOnlyAllowedKeys(effect, REQUEST_REF_EFFECT_KEYS)
+                && hasMinLength1(effect.requestRef)
+                && hasMinLength1(effect.idempotencyKey)
+                && isValidOnError(effect.onError);
+        case 'serviceRequest':
+            return hasOnlyAllowedKeys(effect, REQUEST_REF_EFFECT_KEYS)
+                && typeof effect.requestRef === 'string'
+                && RESPONSE_ACTION_ID_PATTERN.test(effect.requestRef)
+                && hasMinLength1(effect.idempotencyKey)
+                && isValidOnError(effect.onError);
+        case 'hostEvent':
+            return hasOnlyAllowedKeys(effect, HOST_EVENT_EFFECT_KEYS)
+                && hasMinLength1(effect.eventName)
+                && (effect.detailRef === undefined || typeof effect.detailRef === 'string');
+        case 'browserResource':
+            return hasOnlyAllowedKeys(effect, BROWSER_RESOURCE_EFFECT_KEYS)
+                && (effect.operation === 'open' || effect.operation === 'download')
+                && typeof effect.resourceRef === 'string'
+                && BROWSER_RESOURCE_REF_PATTERN.test(effect.resourceRef)
+                && (effect.target === undefined || effect.target === 'self' || effect.target === 'new')
+                && isValidOnError(effect.onError);
+        default:
+            return false;
+    }
+}
+
+function hasValidResponseActionShape(value: unknown): value is ResponseAction {
+    const action = asRecord(value);
+    if (
+        !action
+        || !hasOnlyAllowedKeys(action, ACTION_ALLOWED_KEYS)
+        || typeof action.id !== 'string'
+        || !RESPONSE_ACTION_ID_PATTERN.test(action.id)
+        || !isValidResponseActionIntent(action.intent)
+        || (action.actor !== undefined && typeof action.actor !== 'string')
+        || (action['x-generation'] !== undefined && !isValidGeneration(action['x-generation']))
+        || (
+            action.preconditions !== undefined
+            && (!Array.isArray(action.preconditions) || !action.preconditions.every(isValidPrecondition))
+        )
+        || (action.onFailure !== undefined && action.onFailure !== 'stop' && action.onFailure !== 'retry-once')
+        || (action.onDeferred !== undefined && action.onDeferred !== 'stop' && action.onDeferred !== 'await')
+        || !Array.isArray(action.effects)
+        || action.effects.length === 0
+        || !action.effects.every(hasValidResponseActionEffectShape)
+    ) {
+        return false;
+    }
+
+    if (action.validation !== undefined) {
+        const validationRecord = asRecord(action.validation);
+        if (!validationRecord || !hasOnlyAllowedKeys(validationRecord, VALIDATION_OVERRIDE_KEYS)) {
+            return false;
+        }
+    }
+
+    const label = action.label;
+    if (label !== undefined) {
+        const candidate = asRecord(label);
+        const keys = candidate ? Object.keys(candidate) : [];
+        if (keys.length !== 1) return false;
+        const onlyKey = keys[0];
+        if ((onlyKey !== 'literal' && onlyKey !== 'ref') || !hasMinLength1(candidate![onlyKey])) {
+            return false;
+        }
+    }
+
+    try {
+        resolveResponseActionValidationTuple(value as ResponseAction);
+    } catch {
+        return false;
+    }
+    return true;
+}
+
+function hasActionLabel(action: ResponseAction): boolean {
+    const label = asRecord(action.label);
+    return label ? hasNonEmptyString(label.literal) || hasNonEmptyString(label.ref) : false;
+}
+
+/**
+ * Fail-closed schema-faithful validator for a Definition-scoped Response Actions
+ * document (`schemas/response-actions.schema.json`). Shared by renderer
+ * auto-placement, Surface slot-supply planning, and automatic `autosave`
+ * selection so every consumer agrees on whether a document is valid.
+ */
+export function isValidDefinitionResponseActionsDocument(
+    document: unknown,
+    definition: { url?: unknown },
+): document is ResponseActionsDocument {
+    const candidate = asRecord(document);
+    const target = asRecord(candidate?.targetDefinition);
+    if (
+        !candidate
+        || !hasOnlyAllowedKeys(candidate, DOCUMENT_ALLOWED_KEYS, true)
+        || candidate.$formspecResponseActions !== '1.0'
+        || !hasMinLength1(candidate.version)
+        || (candidate.name !== undefined && (typeof candidate.name !== 'string' || !DOCUMENT_NAME_PATTERN.test(candidate.name)))
+        || (candidate.title !== undefined && typeof candidate.title !== 'string')
+        || (candidate.description !== undefined && typeof candidate.description !== 'string')
+        || (candidate.modules !== undefined && (!Array.isArray(candidate.modules) || !candidate.modules.every(isValidModuleRef)))
+        || (candidate.scope !== undefined && candidate.scope !== 'response')
+        || !target
+        || !hasOnlyAllowedKeys(target, TARGET_DEFINITION_KEYS)
+        || !hasNonEmptyString(target.url)
+        || target.url !== definition.url
+        || (
+            target.compatibleVersions !== undefined
+            && !hasMinLength1(target.compatibleVersions)
+        )
+        || (candidate['x-formspec-runtime'] !== undefined && !isValidRuntimeRequestCatalog(candidate['x-formspec-runtime']))
+        || !Array.isArray(candidate.actions)
+        || candidate.actions.length === 0
+        || !candidate.actions.every(hasValidResponseActionShape)
+    ) {
+        return false;
+    }
+
+    const ids = new Set<string>();
+    for (const action of candidate.actions) {
+        if (ids.has(action.id)) return false;
+        ids.add(action.id);
+    }
+    return true;
+}
+
+/**
+ * Whether a Response Action represents background/system-initiated behavior
+ * (`intent === 'autosave'` per Validation Mapping §2) rather than a manual
+ * respondent control. Renderers MUST NOT synthesize interactive ActionButtons
+ * for background actions even when they carry a label.
+ */
+export function isBackgroundResponseAction(
+    action: { intent?: unknown } | null | undefined,
+): boolean {
+    return action?.intent === 'autosave';
+}
+
+/**
+ * Select manual response-scoped Actions that a Definition auto-renderer can
+ * place without inventing a control label. The document itself must be a
+ * matching, response-scoped document with unique, structurally usable actions;
+ * one bad action closes the whole auto-placement seam. Background intents
+ * (`autosave`) are excluded from synthesized manual buttons.
+ */
+export function autoPlacedDefinitionActions(
+    document: ResponseActionsDocumentInput | null | undefined,
+    definition: { url?: unknown },
+): readonly ResponseAction[] {
+    if (!isValidDefinitionResponseActionsDocument(document, definition)) {
+        return [];
+    }
+    return document.actions.filter(
+        action => !isBackgroundResponseAction(action) && hasActionLabel(action),
+    );
+}
+
+/**
+ * Resolve the single unambiguous draft-checkpoint `autosave` Action for a
+ * Definition from a complete, schema-valid response-scoped Response Actions
+ * document. Because `actions[]` order is documentation-only, multiple eligible
+ * `autosave` Actions fail closed and return an `ambiguous-autosave-action`
+ * finding independent of array order.
+ */
+export function resolveAutosaveResponseAction(
+    document: ResponseActionsDocumentInput | null | undefined,
+    definition?: { url?: unknown } | null,
+): AutosaveActionResolution {
+    const candidate = asRecord(document);
+    const target = asRecord(candidate?.targetDefinition);
+    const expectedUrl = definition && hasNonEmptyString(definition.url)
+        ? definition.url
+        : target?.url;
+    if (
+        !hasNonEmptyString(expectedUrl)
+        || !isValidDefinitionResponseActionsDocument(document, { url: expectedUrl })
+    ) {
+        return { action: null };
+    }
+
+    const eligible: ResponseAction[] = [];
+    for (const entry of document.actions) {
+        if (entry.intent !== 'autosave') continue;
+        const resolution = resolveResponseAction(document, entry.id);
+        if (!resolution.resolved || !resolution.action) continue;
+        try {
+            if (resolveResponseActionValidationTuple(resolution.action).persistence !== 'draft-checkpoint') {
+                continue;
+            }
+        } catch {
+            continue;
+        }
+        eligible.push(resolution.action);
+    }
+
+    if (eligible.length === 0) {
+        return { action: null };
+    }
+    if (eligible.length > 1) {
+        const ambiguousActionIds = eligible.map((action) => action.id).sort();
+        return {
+            action: null,
+            ambiguousActionIds,
+            finding: {
+                code: 'COMP-REFERENTIAL-INTEGRITY',
+                severity: 'error',
+                kind: 'actionRef',
+                target: 'autosave',
+                reason: 'ambiguous-autosave-action',
+            },
+        };
+    }
+    return { action: eligible[0]! };
+}
+
+/**
+ * Resolve the valid draft-checkpoint `autosave` Action for a Definition, if
+ * exactly one is published unambiguously in a valid matching response-scoped document.
+ */
+export function findAutosaveResponseAction(
+    document: ResponseActionsDocumentInput | null | undefined,
+    definition?: { url?: unknown } | null,
+): ResponseAction | null {
+    return resolveAutosaveResponseAction(document, definition).action;
+}
+
+export interface ResponseActionAutosaveOptions {
+    engine: Pick<IFormEngine, 'getDraftSnapshot' | 'getEvaluatedFormState'> & Partial<Pick<IFormEngine, 'getDefinition'>>;
+    document: ResponseActionsDocumentInput | null | undefined;
+    debounceMs?: number | undefined;
+    onFinding?: ((finding: ActionRefFinding) => void) | undefined;
+    invoke: (action: ResponseAction) => unknown | Promise<unknown>;
+}
+
+/**
+ * Subscribe to `FormEngine` draft changes after mount and invoke the declared
+ * `autosave` Response Action with debounce (`400ms` default) and single-flight
+ * coalescing. Returns a cleanup function that cancels pending timers and
+ * detaches the reactive subscription.
+ */
+export function subscribeResponseActionAutosave(
+    options: ResponseActionAutosaveOptions,
+): () => void {
+    const resolution = resolveAutosaveResponseAction(
+        options.document,
+        options.engine.getDefinition?.(),
+    );
+    if (resolution.finding) {
+        options.onFinding?.(resolution.finding);
+    }
+    if (!resolution.action) {
+        return () => {};
+    }
+    const resolvedAutosave: ResponseAction = resolution.action;
+
+    const debounceMs = options.debounceMs ?? 400;
+    let snapshot = options.engine.getDraftSnapshot();
+    let edit = 0;
+    let savedEdit = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let inFlight: Promise<void> | undefined;
+    let pendingFlushAfterInFlight = false;
+    let active = true;
+
+    function clearTimer(): void {
+        if (timer !== undefined) {
+            clearTimeout(timer);
+            timer = undefined;
+        }
+    }
+
+    function schedule(): void {
+        if (!active || edit === savedEdit) return;
+        pendingFlushAfterInFlight = false;
+        clearTimer();
+        timer = setTimeout(() => {
+            timer = undefined;
+            void run();
+        }, debounceMs);
+    }
+
+    function run(): Promise<void> {
+        if (!active || edit === savedEdit) return Promise.resolve();
+        if (inFlight) {
+            pendingFlushAfterInFlight = true;
+            return inFlight;
+        }
+        const targetEdit = edit;
+        const currentRun = Promise.resolve()
+            .then(() => options.invoke(resolvedAutosave))
+            .then((outcome) => {
+                if (!active) return;
+                const status = outcome && typeof outcome === 'object' && 'status' in outcome
+                    ? (outcome as { status?: unknown }).status
+                    : undefined;
+                if (status !== 'failed' && status !== 'blocked' && status !== 'unresolved') {
+                    savedEdit = Math.max(savedEdit, targetEdit);
+                }
+            })
+            .catch(() => {
+                // Caller owns error reporting; never leak an unhandled timer rejection.
+            })
+            .finally(() => {
+                inFlight = undefined;
+                if (active && pendingFlushAfterInFlight && timer === undefined && edit !== savedEdit) {
+                    pendingFlushAfterInFlight = false;
+                    void run();
+                }
+            });
+        inFlight = currentRun;
+        return currentRun;
+    }
+
+    const unsubscribe = preactReactiveRuntime.effect(() => {
+        options.engine.getEvaluatedFormState({ profile: 'off' });
+        const latest = options.engine.getDraftSnapshot();
+        if (!deepEqual(latest, snapshot)) {
+            snapshot = latest;
+            edit += 1;
+            schedule();
+        }
+    });
+
+    return () => {
+        active = false;
+        clearTimer();
+        unsubscribe();
+    };
 }
 
 /**

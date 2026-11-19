@@ -59,6 +59,7 @@ import {
 } from "react";
 import {
   canonicalFiniteJson,
+  collectSlotBreakpointThresholds,
   composeSurfaceApp,
   createThemeAuthority,
   createWidgetRegistry,
@@ -528,8 +529,13 @@ export function SurfaceAppView(props: SurfaceAppProps & {
   const resolveDefinitionLocaleString = useMemo(
     () => definitionLocaleLookup(localeDocuments, props.activeLocale), [localeDocuments, props.activeLocale],
   );
+  const [breakpointEpoch, setBreakpointEpoch] = useState(0);
   const routePlan: SurfaceRoutePlan<SurfaceWidget> | undefined = useMemo(() => {
     if (!resolution.match) return undefined;
+    const matchesMinWidth = (minWidthPx: number): boolean =>
+      typeof window !== "undefined" && typeof window.matchMedia === "function"
+        ? window.matchMedia(`(min-width: ${minWidthPx}px)`).matches
+        : false;
     return planMatchedRoute<SurfaceWidget>({
       handle: resolution.match.handle,
       app: model.app,
@@ -553,6 +559,7 @@ export function SurfaceAppView(props: SurfaceAppProps & {
       headingBaseLevel: props.headingBaseLevel ?? 2,
       staticAssetResolver: props.staticAssetResolver,
       strings,
+      matchesMinWidth,
     });
   }, [
     resolution,
@@ -567,7 +574,40 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     props.resolveDefinitionComponent,
     resolveDefinitionLocaleString,
     strings,
+    breakpointEpoch,
   ]);
+  const breakpointThresholdsKey = useMemo(() => {
+    if (!routePlan) return "";
+    return collectSlotBreakpointThresholds(
+      routePlan.slots,
+      routePlan.grant.themeDocument,
+    ).join(",");
+  }, [routePlan]);
+  useEffect(() => {
+    if (
+      !breakpointThresholdsKey ||
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    ) {
+      return;
+    }
+    const thresholds = breakpointThresholdsKey.split(",").map(Number);
+    const queries = thresholds.map((minWidth) =>
+      window.matchMedia(`(min-width: ${minWidth}px)`),
+    );
+    let lastSignature = queries.map((mql) => (mql.matches ? "1" : "0")).join("");
+    const update = () => {
+      const nextSignature = queries.map((mql) => (mql.matches ? "1" : "0")).join("");
+      if (nextSignature !== lastSignature) {
+        lastSignature = nextSignature;
+        setBreakpointEpoch((prev) => prev + 1);
+      }
+    };
+    for (const mql of queries) mql.addEventListener("change", update);
+    return () => {
+      for (const mql of queries) mql.removeEventListener("change", update);
+    };
+  }, [breakpointThresholdsKey]);
   useSurfaceThemeTokens(appRoot, browser ? routePlan?.grant.themeDocument ?? props.platformTheme : undefined);
 
   // One pure destination resolver is shared by preflight and navigation.

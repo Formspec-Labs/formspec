@@ -1131,4 +1131,278 @@ describe('ActionButton label resolution', () => {
     it('falls back to Submit when neither carries a label', () => {
         expect(render({}).textContent).toBe('Submit');
     });
+
+    it('never synthesizes a manual button for autosave actions while still invoking them programmatically', async () => {
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        el.definition = {
+            $formspec: '1.0', url: 'urn:test:form', version: '1.0.0', title: 'Test',
+            items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+        };
+        el.responseActionsDocument = {
+            $formspecResponseActions: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: 'urn:test:form' },
+            actions: [
+                {
+                    id: 'autosave-progress',
+                    intent: 'autosave',
+                    label: { literal: 'Save as I go' },
+                    effects: [{ type: 'hostEvent', eventName: 'formspec-autosave' }],
+                },
+            ],
+        };
+        el.render();
+        expect(el.querySelectorAll('button.formspec-submit')).toHaveLength(0);
+
+        const eventPromise = new Promise<any>((resolve) => {
+            el.addEventListener('formspec-autosave', (e: CustomEvent) => resolve(e.detail), { once: true });
+        });
+        el.getEngine().setValue('name', 'Ada');
+        await el.invokeAction('autosave-progress');
+        const detail = await eventPromise;
+        expect(detail.response.data?.name).toBe('Ada');
+
+        // With manual submit alongside autosave, only the submit button is auto-injected.
+        el.responseActionsDocument = {
+            $formspecResponseActions: '1.0',
+            version: '1.0.0',
+            targetDefinition: { url: 'urn:test:form' },
+            actions: [
+                {
+                    id: 'save-draft',
+                    intent: 'save-draft',
+                    label: { literal: 'Save draft' },
+                    effects: [{ type: 'hostEvent', eventName: 'draft-saved' }],
+                },
+                {
+                    id: 'autosave-progress',
+                    intent: 'autosave',
+                    label: { literal: 'Save as I go' },
+                    effects: [{ type: 'hostEvent', eventName: 'formspec-autosave' }],
+                },
+                {
+                    id: 'submit-form',
+                    intent: 'submit',
+                    label: { literal: 'Submit' },
+                    effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+                },
+            ],
+        };
+        el.render();
+        const buttons = [...el.querySelectorAll('button.formspec-submit')] as HTMLButtonElement[];
+        expect(buttons.map(b => b.textContent)).toEqual(['Submit']);
+        expect(buttons.some(b => b.textContent === 'Save as I go')).toBe(false);
+    });
+
+    it('automatically fires debounced autosave and updates status on standalone field edits without manual invocation', async () => {
+        vi.useFakeTimers();
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        try {
+            el.definition = {
+                $formspec: '1.0',
+                url: 'urn:test:wc-autosave',
+                version: '1.0.0',
+                title: 'WC Autosave',
+                items: [
+                    { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+                    { key: 'email', type: 'field', dataType: 'string', label: 'Email' },
+                ],
+                binds: [{ path: 'email', required: 'true' }],
+            };
+            el.responseActionsDocument = {
+                $formspecResponseActions: '1.0',
+                version: '1.0.0',
+                targetDefinition: { url: 'urn:test:wc-autosave' },
+                actions: [
+                    {
+                        id: 'autosave-progress',
+                        intent: 'autosave',
+                        label: { literal: 'Save as I go' },
+                        effects: [{ type: 'hostEvent', eventName: 'formspec-autosave' }],
+                    },
+                ],
+            };
+            el.render();
+
+            const autosaved = vi.fn();
+            const actionResults = vi.fn();
+            el.addEventListener('formspec-autosave', (e: CustomEvent) => autosaved(e.detail));
+            el.addEventListener('formspec-action-result', (e: CustomEvent) => actionResults(e.detail.result));
+
+            // Initial mount does not fire autosave.
+            await vi.advanceTimersByTimeAsync(1000);
+            expect(autosaved).not.toHaveBeenCalled();
+
+            // Editing field without clicking any button or calling invokeAction triggers debounced autosave.
+            el.getEngine().setValue('name', 'A');
+            await vi.advanceTimersByTimeAsync(200);
+            el.getEngine().setValue('name', 'Ada');
+            await vi.advanceTimersByTimeAsync(399);
+            expect(autosaved).not.toHaveBeenCalled();
+
+            await vi.advanceTimersByTimeAsync(1);
+            expect(autosaved).toHaveBeenCalledTimes(1);
+            expect(autosaved.mock.calls[0]?.[0]?.response?.data?.name).toBe('Ada');
+            expect(actionResults).toHaveBeenCalledTimes(1);
+            expect(actionResults.mock.calls[0]?.[0]?.status).toBe('completed');
+            expect(el.querySelector('.formspec-action-status[role="status"]')?.textContent).toBe('Completed.');
+            expect(el.touchedFields.has('email')).toBe(false);
+        } finally {
+            el.remove();
+            vi.useRealTimers();
+        }
+    });
+
+    it('does not dispatch from an autosave document lacking targetDefinition', async () => {
+        vi.useFakeTimers();
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        try {
+            el.definition = {
+                $formspec: '1.0',
+                version: '1.0.0',
+                url: 'urn:test:wc-unbound',
+                title: 'Test',
+                items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+            };
+            el.responseActionsDocument = {
+                $formspecResponseActions: '1.0',
+                version: '1.0.0',
+                actions: [{ id: 'save', intent: 'autosave', effects: [{ type: 'hostEvent', eventName: 'draft-edit' }] }],
+            };
+            const called = vi.fn();
+            el.addEventListener('draft-edit', called);
+            await vi.advanceTimersByTimeAsync(1);
+            el.getEngine().setValue('name', 'unbound edit');
+            await vi.advanceTimersByTimeAsync(500);
+            expect(called).toHaveBeenCalledTimes(0);
+        } finally {
+            el.remove();
+            vi.useRealTimers();
+        }
+    });
+
+    it('does not re-arm a removed element from a previously queued render', async () => {
+        vi.useFakeTimers();
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        try {
+            el.definition = {
+                $formspec: '1.0',
+                version: '1.0.0',
+                url: 'urn:test:wc-detached',
+                title: 'Test',
+                items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+            };
+            el.responseActionsDocument = {
+                $formspecResponseActions: '1.0',
+                version: '1.0.0',
+                targetDefinition: { url: 'urn:test:wc-detached' },
+                actions: [{ id: 'save', intent: 'autosave', effects: [{ type: 'hostEvent', eventName: 'draft-edit' }] }],
+            };
+            const called = vi.fn();
+            el.addEventListener('draft-edit', called);
+            const engine = el.getEngine();
+            el.remove();
+            await vi.advanceTimersByTimeAsync(1);
+            expect(el.isConnected).toBe(false);
+            engine.setValue('name', 'detached edit');
+            await vi.advanceTimersByTimeAsync(500);
+            expect(called).toHaveBeenCalledTimes(0);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('cannot publish old save status after sidecar replacement on the same engine', async () => {
+        vi.useFakeTimers();
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        try {
+            const action = { id: 'save', intent: 'autosave', effects: [{ type: 'hostEvent', eventName: 'draft-edit' }] };
+            const doc = {
+                $formspecResponseActions: '1.0',
+                version: '1.0.0',
+                targetDefinition: { url: 'urn:test:wc-epoch' },
+                actions: [action],
+            };
+            el.definition = {
+                $formspec: '1.0',
+                version: '1.0.0',
+                url: 'urn:test:wc-epoch',
+                title: 'Test',
+                items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+            };
+            el.responseActionsDocument = doc;
+            let finish: any;
+            el.responseActionInvoker = () => new Promise(resolve => { finish = resolve; });
+            await vi.advanceTimersByTimeAsync(10);
+            el.getEngine().setValue('name', 'Ada');
+            await vi.advanceTimersByTimeAsync(500);
+            expect(typeof finish).toBe('function');
+
+            el.responseActionsDocument = {
+                ...doc,
+                actions: [{ ...action, id: 'new-save' }],
+            };
+            await vi.advanceTimersByTimeAsync(1);
+            expect(el.querySelector('.formspec-action-status')?.textContent).toBe('');
+
+            finish({
+                status: 'completed',
+                detail: {},
+                validationTuple: null,
+                resolution: { resolved: true, action },
+                effectTrace: [],
+            });
+            await vi.advanceTimersByTimeAsync(1);
+            expect(el.querySelector('.formspec-action-status')?.textContent).toBe('');
+        } finally {
+            el.remove();
+            vi.useRealTimers();
+        }
+    });
+
+    it('refuses ambiguous multi-autosave documents and emits formspec-action-finding regardless of action order', async () => {
+        vi.useFakeTimers();
+        const el = document.createElement('formspec-render') as any;
+        document.body.appendChild(el);
+        try {
+            el.definition = {
+                $formspec: '1.0',
+                version: '1.0.0',
+                url: 'urn:test:wc-ambiguous',
+                title: 'Test',
+                items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+            };
+            const findings: any[] = [];
+            const dispatched = vi.fn();
+            el.addEventListener('formspec-action-finding', (e: CustomEvent) => findings.push(e.detail.finding));
+            el.addEventListener('checkpointA', dispatched);
+            el.addEventListener('checkpointB', dispatched);
+
+            const make = (id: string) => ({ id, intent: 'autosave', effects: [{ type: 'hostEvent', eventName: id }] });
+            el.responseActionsDocument = {
+                $formspecResponseActions: '1.0',
+                version: '1.0.0',
+                targetDefinition: { url: 'urn:test:wc-ambiguous' },
+                actions: [make('checkpointB'), make('checkpointA')],
+            };
+            await vi.advanceTimersByTimeAsync(1);
+            el.getEngine().setValue('name', 'Ada');
+            await vi.advanceTimersByTimeAsync(500);
+            expect(dispatched).not.toHaveBeenCalled();
+            expect(findings).toContainEqual(
+                expect.objectContaining({
+                    code: 'COMP-REFERENTIAL-INTEGRITY',
+                    reason: 'ambiguous-autosave-action',
+                }),
+            );
+        } finally {
+            el.remove();
+            vi.useRealTimers();
+        }
+    });
 });

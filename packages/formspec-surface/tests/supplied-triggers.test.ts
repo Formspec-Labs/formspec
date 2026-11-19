@@ -24,15 +24,33 @@ import { route, slot, surface } from './fixtures.js';
 
 const DEF = 'https://example.test/def';
 const OTHER_DEF = 'https://example.test/other';
-const definition = { $formspec: '1.0', url: DEF, items: [] } as unknown as FormDefinition;
-const other = { $formspec: '1.0', url: OTHER_DEF, items: [] } as unknown as FormDefinition;
+const definition = { $formspec: '1.0', url: DEF, version: '1.0.0', items: [] } as unknown as FormDefinition;
+const other = { $formspec: '1.0', url: OTHER_DEF, version: '1.0.0', items: [] } as unknown as FormDefinition;
+
+const EFFECT = [{ type: 'hostEvent' as const, eventName: 'action-fired' }];
+function actionsDoc(
+  actions: Array<Record<string, unknown>>,
+  targetUrl = DEF,
+) {
+  return {
+    $formspecResponseActions: '1.0' as const,
+    version: '1.0.0',
+    scope: 'response' as const,
+    targetDefinition: { url: targetUrl },
+    actions: actions.map((action) => ({ effects: EFFECT, ...action })),
+  };
+}
 
 const definitions = new Map([
   [DEF, definition],
   [OTHER_DEF, other],
 ]);
 
-function slotsFor(surfaceDocument: ReturnType<typeof surface>, routeId: string): readonly SlotPlan<unknown>[] {
+function slotsFor(
+  surfaceDocument: ReturnType<typeof surface>,
+  routeId: string,
+  resolveDefinitionComponent?: Parameters<typeof planRoute>[0]['resolveDefinitionComponent'],
+): readonly SlotPlan<unknown>[] {
   const app = composeSurfaceApp([surfaceDocument]);
   const handle = app.routes.find((candidate) => candidate.routeId === routeId)!;
   return planRoute<unknown>({
@@ -41,6 +59,7 @@ function slotsFor(surfaceDocument: ReturnType<typeof surface>, routeId: string):
     definitions,
     registryEntries: [],
     widgets: createWidgetRegistry<unknown>({}),
+    ...(resolveDefinitionComponent ? { resolveDefinitionComponent } : {}),
   }).slots;
 }
 
@@ -65,54 +84,47 @@ describe('slotSuppliedTriggers', () => {
     // D13's first half: a shell that scans only a route's own slots[] reports a
     // working page as dead.
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      {
-        targetDefinition: { url: DEF },
-        actions: [{ id: 'submitApplication', intent: 'submit', label: { literal: 'Submit' } }],
-      },
+      actionsDoc([{ id: 'submitApplication', intent: 'submit', label: { literal: 'Submit' } }]),
     ]);
-    expect([...supplied].sort()).toEqual(['submit', 'submitApplication']);
+    expect([...supplied].sort()).toEqual(['submitApplication']);
   });
 
   it('credits a literal-labeled review action that the Definition renderer places', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      {
-        targetDefinition: { url: DEF },
-        actions: [{ id: 'sendForReview', intent: 'review', label: { literal: 'Review form' } }],
-      },
+      actionsDoc([{ id: 'sendForReview', intent: 'review', label: { literal: 'Review form' } }]),
     ]);
-    expect([...supplied].sort()).toEqual(['review', 'sendForReview']);
+    expect([...supplied].sort()).toEqual(['sendForReview']);
   });
 
   it('does not claim an action id when no labeled control will be rendered', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      { targetDefinition: { url: DEF }, actions: [{ id: 'countersign' }] },
+      actionsDoc([{ id: 'countersign', intent: 'review' }]),
     ]);
     expect([...supplied]).toEqual([]);
   });
 
-  it('does not supply an intent two actions both publish — that is ambiguous, not available', () => {
-    const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      {
-        targetDefinition: { url: DEF },
-        actions: [
-          { id: 'a', intent: 'submit', label: { literal: 'Submit A' } },
-          { id: 'b', intent: 'submit', label: { literal: 'Submit B' } },
-        ],
-      },
-    ]);
+  it('supplies exact action ids while planTransitions still rejects an ambiguous intent trigger', () => {
+    const responseActions = [
+      actionsDoc([
+        { id: 'a', intent: 'submit', label: { literal: 'Submit A' } },
+        { id: 'b', intent: 'submit', label: { literal: 'Submit B' } },
+      ]),
+    ];
+    const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), responseActions);
     expect(supplied.has('submit')).toBe(false);
     expect([...supplied].sort()).toEqual(['a', 'b']);
+    const app = composeSurfaceApp([embedding]);
+    const handle = app.routes.find((candidate) => candidate.routeId === 'host')!;
+    const planned = planTransitions({ handle, app, responseActions, hasExecutor: false, slotSuppliedTriggers: supplied });
+    expect(planned.transitions[0]).toMatchObject({ status: 'unfireable', unfireableReason: 'trigger-unresolved' });
   });
 
   it('does not credit duplicate action ids as rendered controls', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      {
-        targetDefinition: { url: DEF },
-        actions: [
-          { id: 'same-action', intent: 'review', label: { literal: 'Review' } },
-          { id: 'same-action', intent: 'submit', label: { literal: 'Submit' } },
-        ],
-      },
+      actionsDoc([
+        { id: 'same-action', intent: 'review', label: { literal: 'Review' } },
+        { id: 'same-action', intent: 'submit', label: { literal: 'Submit' } },
+      ]),
     ]);
     expect([...supplied]).toEqual([]);
   });
@@ -133,10 +145,7 @@ describe('slotSuppliedTriggers', () => {
       }),
     ]);
     const supplied = slotSuppliedTriggers(slotsFor(nonForm, 'r'), [
-      {
-        targetDefinition: { url: DEF },
-        actions: [{ id: 'submitApplication', intent: 'submit', label: { literal: 'Submit' } }],
-      },
+      actionsDoc([{ id: 'submitApplication', intent: 'submit', label: { literal: 'Submit' } }]),
     ]);
     expect([...supplied]).toEqual([]);
   });
@@ -152,10 +161,7 @@ describe('slotSuppliedTriggers', () => {
       }),
     ]);
     const supplied = slotSuppliedTriggers(slotsFor(dangling, 'r'), [
-      {
-        targetDefinition: { url: 'urn:absent' },
-        actions: [{ id: 'x', intent: 'submit', label: { literal: 'Submit' } }],
-      },
+      actionsDoc([{ id: 'x', intent: 'submit', label: { literal: 'Submit' } }], 'urn:absent'),
     ]);
     expect([...supplied]).toEqual([]);
   });
@@ -163,10 +169,7 @@ describe('slotSuppliedTriggers', () => {
   it('honours targetDefinition — a document only supplies the slot it binds', () => {
     // `E611`'s "targeting the Definition that slot binds" (§5.4), at runtime.
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      {
-        targetDefinition: { url: OTHER_DEF },
-        actions: [{ id: 'x', intent: 'submit', label: { literal: 'Submit' } }],
-      },
+      actionsDoc([{ id: 'x', intent: 'submit', label: { literal: 'Submit' } }], OTHER_DEF),
     ]);
     expect([...supplied]).toEqual([]);
   });
@@ -177,14 +180,8 @@ describe('slotSuppliedTriggers', () => {
 
   it('supplies nothing when more than one document targets the same Definition', () => {
     const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
-      {
-        targetDefinition: { url: DEF },
-        actions: [{ id: 'one', intent: 'submit', label: { literal: 'Submit one' } }],
-      },
-      {
-        targetDefinition: { url: DEF },
-        actions: [{ id: 'two', intent: 'submit', label: { literal: 'Submit two' } }],
-      },
+      actionsDoc([{ id: 'one', intent: 'submit', label: { literal: 'Submit one' } }]),
+      actionsDoc([{ id: 'two', intent: 'submit', label: { literal: 'Submit two' } }]),
     ]);
     expect([...supplied]).toEqual([]);
   });
@@ -192,14 +189,8 @@ describe('slotSuppliedTriggers', () => {
   it('uses the same exact-one document selection the renderer consumes', () => {
     const selected = responseActionsDocumentForDefinition(
       [
-        {
-          targetDefinition: { url: OTHER_DEF },
-          actions: [{ id: 'other', intent: 'submit' }],
-        },
-        {
-          targetDefinition: { url: DEF },
-          actions: [{ id: 'submitApplication', intent: 'submit' }],
-        },
+        actionsDoc([{ id: 'other', intent: 'submit' }], OTHER_DEF),
+        actionsDoc([{ id: 'submitApplication', intent: 'submit' }]),
       ],
       DEF,
     );
@@ -212,10 +203,7 @@ describe('the walk, wired into planTransitions', () => {
     const app = composeSurfaceApp([embedding]);
     const handle = app.routes.find((candidate) => candidate.routeId === 'host')!;
     const responseActions = [
-      {
-        targetDefinition: { url: DEF },
-        actions: [{ id: 'submitApplication', intent: 'submit', label: { literal: 'Submit' } }],
-      },
+      actionsDoc([{ id: 'submitApplication', intent: 'submit', label: { literal: 'Submit' } }]),
     ];
     const { transitions, diagnostics } = planTransitions({
       handle,
@@ -244,10 +232,9 @@ describe('the walk, wired into planTransitions', () => {
     ]);
     const app = composeSurfaceApp([reviewSurface]);
     const handle = app.routes.find((candidate) => candidate.routeId === 'review-host')!;
-    const responseActions = [{
-      targetDefinition: { url: DEF },
-      actions: [{ id: 'reviewForm', intent: 'review', label: { literal: 'Review form' } }],
-    }];
+    const responseActions = [
+      actionsDoc([{ id: 'reviewForm', intent: 'review', label: { literal: 'Review form' } }]),
+    ];
 
     const { transitions, diagnostics } = planTransitions({
       handle,
@@ -273,10 +260,11 @@ it('credits a Locale-reference-labelled action through the maintained embedded f
   candidate.routes[0]!.transitions![0]!.trigger = 'prepare';
   const app = composeSurfaceApp([candidate]);
   const handle = app.routes.find(candidate => candidate.routeId === 'host')!;
-  const responseActions = [{ targetDefinition: { url: DEF },
-    actions: [{ id: 'prepare', intent: 'submit', label: { ref: 'action.prepare' } }] }];
+  const responseActions = [
+    actionsDoc([{ id: 'prepare', intent: 'submit', label: { ref: 'action.prepare' } }]),
+  ];
   const supplied = slotSuppliedTriggers(slotsFor(candidate, 'host'), responseActions);
-  expect([...supplied].sort()).toEqual(['prepare', 'submit']);
+  expect([...supplied].sort()).toEqual(['prepare']);
   const result = planTransitions({ handle, app, responseActions, hasExecutor: false,
     slotSuppliedTriggers: supplied });
   expect(result.transitions[0]?.status).toBe('supplied-by-slot');
@@ -287,9 +275,291 @@ it.each([undefined, {}, [], { ref: '' }, { ref: ' ' }, { ref: 5 },
   { literal: '', ref: 'action.prepare' }, { literal: 'Prepare', ref: '' },
   { literal: 'Prepare', ref: 'action.prepare' }, { literal: false, ref: 'action.prepare' }])(
   'does not credit an invalid or ambiguous structured action label %s', label => {
-    const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [{
-      targetDefinition: { url: DEF }, actions: [{ id: 'prepare', intent: 'submit', label }],
-    }]);
+    const supplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), [
+      actionsDoc([{ id: 'prepare', intent: 'submit', label }]),
+    ]);
     expect([...supplied]).toEqual([]);
   },
 );
+
+it('does not credit background autosave actions as slot-supplied manual controls unless explicitly authored in ComponentDocument', () => {
+  const responseActions = [
+    actionsDoc([
+      { id: 'save-draft', intent: 'save-draft', label: { literal: 'Save draft' } },
+      { id: 'checkpoint', intent: 'autosave', label: { literal: 'Save as I go' } },
+      { id: 'submit-form', intent: 'submit', label: { literal: 'Submit' } },
+    ]),
+  ];
+  const autoSupplied = slotSuppliedTriggers(slotsFor(embedding, 'host'), responseActions);
+  expect([...autoSupplied].sort()).toEqual(['save-draft', 'submit-form']);
+  expect(autoSupplied.has('autosave')).toBe(false);
+  expect(autoSupplied.has('checkpoint')).toBe(false);
+
+  // When ComponentDocument explicitly authors an ActionButton for checkpoint, it IS supplied-by-slot.
+  const authoredSlots = slotsFor(embedding, 'host', () => ({
+    $formspecComponent: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: DEF },
+    tree: {
+      component: 'Stack',
+      children: [
+        { component: 'ActionButton', actionRef: 'checkpoint', label: { literal: 'Checkpoint now' } },
+      ],
+    },
+  }) as never);
+  const authoredSupplied = slotSuppliedTriggers(authoredSlots, responseActions);
+  expect([...authoredSupplied].sort()).toEqual(['checkpoint', 'save-draft', 'submit-form']);
+
+  const autosaveRoute = structuredClone(embedding);
+  autosaveRoute.routes[0]!.transitions = [{ trigger: 'autosave', to: 'done' }];
+  const app = composeSurfaceApp([autosaveRoute]);
+  const handle = app.routes.find(c => c.routeId === 'host')!;
+  const planned = planTransitions({
+    handle,
+    app,
+    responseActions,
+    hasExecutor: false,
+    slotSuppliedTriggers: authoredSupplied,
+  });
+  expect(planned.transitions[0]).toMatchObject({
+    status: 'supplied-by-slot',
+    actionId: 'checkpoint',
+  });
+});
+
+it('fails closed on invalid Response Actions documents (invalid validation override, missing effects, or unprefixed custom intent)', () => {
+  const invalidTuple = actionsDoc([
+    {
+      id: 'autosave',
+      intent: 'autosave',
+      validation: { profile: 'off', blocking: 'block-on-error', persistence: 'draft-checkpoint' },
+    },
+    { id: 'submit-form', intent: 'submit', label: { literal: 'Submit' } },
+  ]);
+  expect([...slotSuppliedTriggers(slotsFor(embedding, 'host'), [invalidTuple])]).toEqual([]);
+
+  const invalidIntent = actionsDoc([
+    {
+      id: 'autosav',
+      intent: 'autosav',
+      label: { literal: 'Save' },
+      validation: { profile: 'off', blocking: 'non-blocking', persistence: 'draft-checkpoint' },
+    },
+    { id: 'submit-form', intent: 'submit', label: { literal: 'Submit' } },
+  ]);
+  expect([...slotSuppliedTriggers(slotsFor(embedding, 'host'), [invalidIntent])]).toEqual([]);
+
+  const missingEffects = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    scope: 'response',
+    targetDefinition: { url: DEF },
+    actions: [{ id: 'submit-form', intent: 'submit', label: { literal: 'Submit' }, effects: [] }],
+  };
+  expect([...slotSuppliedTriggers(slotsFor(embedding, 'host'), [missingEffects])]).toEqual([]);
+});
+
+it('preserves exact-ID precedence: manual intent=save-draft button does not supply a transition bound by exact ID save-draft to a hidden autosave action', () => {
+  const collisionSurface = structuredClone(embedding);
+  collisionSurface.routes[0]!.transitions = [{ trigger: 'save-draft', to: 'done' }];
+  const app = composeSurfaceApp([collisionSurface]);
+  const handle = app.routes.find(c => c.routeId === 'host')!;
+  const responseActions = [
+    actionsDoc([
+      { id: 'save-draft', intent: 'autosave' },
+      { id: 'save', intent: 'save-draft', label: { literal: 'Save' } },
+    ]),
+  ];
+  const supplied = slotSuppliedTriggers(slotsFor(collisionSurface, 'host'), responseActions);
+  expect([...supplied]).toEqual(['save']);
+
+  const planned = planTransitions({
+    handle,
+    app,
+    responseActions,
+    hasExecutor: false,
+    slotSuppliedTriggers: supplied,
+  });
+  expect(planned.transitions[0]).toMatchObject({
+    actionId: 'save-draft',
+    status: 'unfireable',
+    unfireableReason: 'no-executor',
+  });
+});
+
+it('rejects incomplete preconditions identically to canonical JSON Schema and handles non-array actions containers without throwing', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { default: Ajv2020 } = await import('ajv/dist/2020.js');
+  const { isValidDefinitionResponseActionsDocument, autoPlacedDefinitionActions } = await import('@formspec-org/engine');
+
+  const load = (name: string) =>
+    JSON.parse(readFileSync(new URL(`../../../schemas/${name}.schema.json`, import.meta.url), 'utf8'));
+  const ajv = new Ajv2020({ strict: false, logger: false });
+  ajv.addSchema(load('common'));
+  ajv.addSchema(load('validation-mapping'));
+  const validateSchema = ajv.compile(load('response-actions'));
+
+  const incompletePrecondition = actionsDoc([
+    {
+      id: 'manual',
+      intent: 'review',
+      label: { literal: 'Review' },
+      preconditions: [{ id: 'only-id' }],
+    },
+  ]);
+  expect(validateSchema(incompletePrecondition)).toBe(false);
+  expect(isValidDefinitionResponseActionsDocument(incompletePrecondition, { url: DEF })).toBe(false);
+  expect([...slotSuppliedTriggers(slotsFor(embedding, 'host'), [incompletePrecondition])]).toEqual([]);
+  expect(autoPlacedDefinitionActions(incompletePrecondition as never, { url: DEF })).toEqual([]);
+
+  const nonArrayActions = {
+    $formspecResponseActions: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: DEF },
+    actions: {},
+  };
+  expect(validateSchema(nonArrayActions)).toBe(false);
+  expect([...slotSuppliedTriggers(slotsFor(embedding, 'host'), [nonArrayActions as never])]).toEqual([]);
+
+  const app = composeSurfaceApp([embedding]);
+  const handle = app.routes.find(c => c.routeId === 'host')!;
+  expect(() =>
+    planTransitions({
+      handle,
+      app,
+      responseActions: [nonArrayActions as never],
+      hasExecutor: false,
+      slotSuppliedTriggers: slotSuppliedTriggers(slotsFor(embedding, 'host'), [nonArrayActions as never]),
+    }),
+  ).not.toThrow();
+});
+
+it('derives slot-supplied action IDs from the effective Theme grant and active responsive breakpoint in planMatchedRoute', async () => {
+  const { planMatchedRoute } = await import('../src/route-plan.js');
+  const { createThemeAuthority } = await import('../src/theme-authority.js');
+  const { createWidgetRegistry } = await import('../src/registry.js');
+
+  const definition = {
+    $formspec: '1.0',
+    url: DEF,
+    version: '1.0.0',
+    title: 'Filing',
+    items: [{ key: 'answer', type: 'field' as const, dataType: 'string' as const, label: 'Answer' }],
+  };
+  const responseActions = [
+    actionsDoc([
+      { id: 'save', intent: 'save-draft', label: { literal: 'Save draft' } },
+      { id: 'autosave', intent: 'autosave', label: { literal: 'Autosave' } },
+    ]),
+  ];
+
+  // Case 1: Authored Theme pages rebuild root children from Definition items/regions, dropping unbound authored Checkpoint button.
+  // Surface must see the same themed plan and keep the shell transition fireable instead of hiding both controls.
+  const themedSurface = structuredClone(embedding);
+  themedSurface.routes = [
+    {
+      id: 'filing',
+      path: '/filing',
+      title: 'Filing',
+      routeClass: 'intake',
+      slots: [{ id: 'form', slotType: 'definition-form', binding: { definitionRef: DEF } }],
+      transitions: [{ trigger: 'autosave', to: 'done' }],
+    },
+    { id: 'done', path: '/done', title: 'Done', routeClass: 'proof', slots: [] },
+  ];
+  const themedApp = composeSurfaceApp([themedSurface]);
+  const filingHandle = themedApp.routes.find(r => r.routeId === 'filing')!;
+  const themedComponent = {
+    $formspecComponent: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: DEF },
+    tree: {
+      component: 'Stack',
+      children: [
+        { component: 'TextInput', bind: 'answer' },
+        { component: 'ActionButton', actionRef: 'save' },
+        { component: 'ActionButton', actionRef: 'autosave', label: { literal: 'Checkpoint now' } },
+      ],
+    },
+  };
+  const tenantThemeWithPages = {
+    $formspecTheme: '1.0' as const,
+    version: '1.0.0',
+    targetDefinition: { url: DEF },
+    pages: [{ id: 'answers', title: 'Themed page probe', regions: [{ key: 'answer', span: 12 }] }],
+  };
+
+  const themedPlan = planMatchedRoute({
+    handle: filingHandle,
+    app: themedApp,
+    experiences: [],
+    definitions: new Map([[DEF, definition]]),
+    registryEntries: [],
+    widgets: createWidgetRegistry({ modules: [], registryEntries: [] }),
+    resolveDefinitionComponent: () => themedComponent as never,
+    responseActions,
+    themeAuthority: createThemeAuthority({ tenantTheme: tenantThemeWithPages as never }),
+    hasExecutor: true,
+  });
+  expect(themedPlan.transitions[0]).toMatchObject({
+    actionId: 'autosave',
+    status: 'fireable',
+  });
+
+  // Case 2: Responsive ComponentDocument swaps actionRef from 'save' to 'autosave' at wide >= 700px.
+  const responsiveComponent = {
+    $formspecComponent: '1.0',
+    version: '1.0.0',
+    targetDefinition: { url: DEF },
+    breakpoints: { wide: 700 },
+    tree: {
+      component: 'Stack',
+      children: [
+        { component: 'TextInput', bind: 'answer' },
+        {
+          component: 'ActionButton',
+          actionRef: 'save',
+          responsive: {
+            wide: { actionRef: 'autosave', label: { literal: 'Responsive checkpoint' } },
+          },
+        },
+      ],
+    },
+  };
+
+  const narrowPlan = planMatchedRoute({
+    handle: filingHandle,
+    app: themedApp,
+    experiences: [],
+    definitions: new Map([[DEF, definition]]),
+    registryEntries: [],
+    widgets: createWidgetRegistry({ modules: [], registryEntries: [] }),
+    resolveDefinitionComponent: () => responsiveComponent as never,
+    responseActions,
+    themeAuthority: createThemeAuthority(),
+    hasExecutor: true,
+    matchesMinWidth: (px: number) => 500 >= px,
+  } as never);
+  expect(narrowPlan.transitions[0]).toMatchObject({
+    actionId: 'autosave',
+    status: 'fireable',
+  });
+
+  const widePlan = planMatchedRoute({
+    handle: filingHandle,
+    app: themedApp,
+    experiences: [],
+    definitions: new Map([[DEF, definition]]),
+    registryEntries: [],
+    widgets: createWidgetRegistry({ modules: [], registryEntries: [] }),
+    resolveDefinitionComponent: () => responsiveComponent as never,
+    responseActions,
+    themeAuthority: createThemeAuthority(),
+    hasExecutor: true,
+    matchesMinWidth: (px: number) => 1000 >= px,
+  } as never);
+  expect(widePlan.transitions[0]).toMatchObject({
+    actionId: 'autosave',
+    status: 'supplied-by-slot',
+  });
+});

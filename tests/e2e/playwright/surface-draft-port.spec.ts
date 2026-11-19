@@ -273,6 +273,77 @@ test('successful autosave announces once and restores the last edit', async ({ p
   await expect(page.getByLabel('Answer')).toHaveValue('second');
 });
 
+test('auto-placed form actions omit autosave button while background autosave still saves and announces', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&auto&submit&autoButtons');
+  await expect(page.getByRole('button', { name: 'Save draft', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Submit report', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save as I go' })).toHaveCount(0);
+  await expect(page.locator('button[data-action-ref="autosave"]')).toHaveCount(0);
+
+  await page.getByLabel('Answer').fill('background saved');
+  await expect(page.getByRole('status').filter({ hasText: 'Draft saved in this browser.' })).toHaveCount(1);
+  await page.reload();
+  await expect(page.getByLabel('Answer')).toHaveValue('background saved');
+});
+
+test('explicitly authored autosave ActionButton saves and advances its Surface transition without a duplicate shell button', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&authoredAutosave');
+  await expect(page.getByRole('button', { name: 'Checkpoint now', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Overview/i })).toHaveCount(0);
+
+  await page.getByLabel('Answer').fill('checkpointed answer');
+  await page.getByRole('button', { name: 'Checkpoint now', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Overview' })).toBeVisible();
+});
+
+test('manual save-draft intent button does not advance a transition bound by exact ID save-draft to a hidden autosave action', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&idCollision');
+  await page.getByLabel('Answer').fill('manual save stays on filing');
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await expect(page.getByText('Draft saved in this browser.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Filing' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Overview' })).toHaveCount(0);
+});
+
+test('responsive authored checkpoint is the only transition control at a wide breakpoint and adapts on resize', async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 800 });
+  await page.goto('/surface-drafts.html?form&authoredAutosave&responsiveProbe#/filing');
+  await expect(page.getByRole('button', { name: 'Responsive checkpoint', exact: true })).toBeVisible();
+  const controls = page.getByRole('button', { name: /^(Responsive checkpoint|Continue to Overview)$/ });
+  await expect(controls).toHaveCount(1);
+
+  await page.setViewportSize({ width: 500, height: 800 });
+  await expect(page.getByRole('button', { name: 'Continue to Overview', exact: true })).toBeVisible();
+  await expect(controls).toHaveCount(1);
+
+  await page.setViewportSize({ width: 1000, height: 800 });
+  await expect(page.getByRole('button', { name: 'Responsive checkpoint', exact: true })).toBeVisible();
+  await expect(controls).toHaveCount(1);
+  await page.getByRole('button', { name: 'Responsive checkpoint', exact: true }).click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+});
+
+test('theme page leaves a single working control to fire the bound checkpoint transition', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&authoredAutosave&themeProbe#/filing');
+  await expect(page.getByText('Themed page probe', { exact: true })).toBeVisible();
+  const controls = page.getByRole('button', { name: /^(Checkpoint now|Continue to Overview)$/ });
+  await expect(controls).toHaveCount(1);
+  await controls.first().click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+});
+
+test('background edit stays on the filing route in a Surface without a draft writer until the authored button is clicked', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&authoredAutosave&withoutWriter#/filing');
+  const button = page.getByRole('button', { name: 'Checkpoint now', exact: true });
+  await expect(button).toBeVisible();
+  await page.getByLabel('Answer').fill('typing only');
+  await page.waitForTimeout(900);
+  await expect(page).toHaveURL(/#\/filing(?:\?|$)/);
+
+  await button.click();
+  await expect(page).toHaveURL(/#\/overview(?:\?|$)/);
+});
+
 test('opens the draft for the resolved filing unit', async ({ page }) => {
   await page.goto('/surface-drafts.html?form&subject#/filing/2025');
   await page.getByLabel('Answer').fill('2025 answer');

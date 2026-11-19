@@ -2,10 +2,16 @@
 import { signal } from '@preact/signals-core';
 import {
     createFormEngine,
+    deepEqual,
+    findAutosaveResponseAction,
     findResponseActionByIntent,
+    preactReactiveRuntime,
+    resolveAutosaveResponseAction,
+    subscribeResponseActionAutosave,
     type FormEngine,
     type IFormEngine,
     type LocaleDocument,
+    type ResponseActionInvocationResult,
 } from '@formspec-org/engine/render';
 import { initFormspecEngine, isFormspecEngineInitialized } from '@formspec-org/engine/init-formspec-engine';
 import { Path } from '@formspec-org/types';
@@ -160,6 +166,7 @@ import {
 import {
     resolveActionRef as resolveActionRefFn,
     invokeAction as invokeActionFn,
+    invokeAutosaveAction,
     emitActionFinding,
 } from './action-invocation';
 import { IssuerChrome } from './issuer/IssuerChrome';
@@ -229,6 +236,12 @@ export class FormspecRender extends HTMLElement {
     private assistAnnouncer: HTMLElement | null = null;
     private pendingAssistLabels: string[] = [];
     private assistAnnounceFrame: number | null = null;
+    private actionStatusEl: HTMLElement | null = null;
+    private _autosaveCleanup: (() => void) | null = null;
+    private _autosaveEngine: IFormEngine | null = null;
+    private _autosaveDoc: ResponseActionsDocument | null = null;
+    private _autosaveBound = false;
+    private _autosaveStatusEpoch = 0;
 
     constructor() {
         super();
@@ -436,6 +449,7 @@ export class FormspecRender extends HTMLElement {
         this._renderPending = true;
         Promise.resolve().then(() => {
             this._renderPending = false;
+            if (!this.isConnected) return;
             this.render();
         });
     }
@@ -508,6 +522,7 @@ export class FormspecRender extends HTMLElement {
             }
 
             this.emitScreenerStateChange('definition-set');
+            this.syncAutosaveSubscription();
             this.scheduleRender();
         };
 
@@ -600,6 +615,7 @@ export class FormspecRender extends HTMLElement {
     /** Set the Response Actions document used by ActionButton actionRef resolution. */
     set responseActionsDocument(val: ResponseActionsDocument | null | undefined) {
         this._responseActionsDocument = val ?? null;
+        this.syncAutosaveSubscription();
         this.scheduleRender();
     }
 
@@ -809,6 +825,11 @@ export class FormspecRender extends HTMLElement {
      */
     connectedCallback() {
         this.syncStylesheets();
+        if (this._definition && !this.rootContainer) {
+            this.scheduleRender();
+        } else {
+            this.syncAutosaveSubscription();
+        }
     }
 
     /** Whether to auto-inject an ActionButton into the layout plan. Defaults to true. */
@@ -1090,6 +1111,10 @@ export class FormspecRender extends HTMLElement {
 
         const plan = this.buildPlan();
         if (plan) emitNodeFn(this._renderHost, plan, container, '', this._headingLevel);
+        this.syncAutosaveSubscription();
+        if (findAutosaveResponseAction(this._responseActionsDocument, this._definition) || this.actionStatusEl?.textContent) {
+            container.appendChild(this.ensureActionStatus());
+        }
     }
 
     /**
@@ -1326,6 +1351,121 @@ export class FormspecRender extends HTMLElement {
         return this.assistAnnouncer;
     }
 
+    private ensureActionStatus(): HTMLElement {
+        if (!this.actionStatusEl) {
+            this.actionStatusEl = document.createElement('div');
+            this.actionStatusEl.className = 'formspec-action-status';
+            this.actionStatusEl.setAttribute('role', 'status');
+            this.actionStatusEl.setAttribute('aria-live', 'polite');
+            this.actionStatusEl.setAttribute('aria-atomic', 'true');
+        }
+        if (this.rootContainer && this.actionStatusEl.parentNode !== this.rootContainer) {
+            this.rootContainer.appendChild(this.actionStatusEl);
+        }
+        return this.actionStatusEl;
+    }
+
+    private formatAutosaveSettledStatus(status: ResponseActionInvocationResult<SubmitDetail>['status']): string {
+        if (status === 'failed' || status === 'unresolved') {
+            return uiText(this.engine ?? undefined, 'draft.saveUnconfirmed').value;
+        }
+        const statusKey = (
+            {
+                completed: 'action.completed',
+                blocked: 'action.blocked',
+                failed: 'action.failed',
+                deferred: 'action.deferred',
+                unresolved: 'action.unresolved',
+            } as const
+        )[status];
+        const label = uiText(this.engine ?? undefined, statusKey).value;
+        return uiText(this.engine ?? undefined, 'action.status', { status: label }).value;
+    }
+
+    private teardownAutosaveSubscription(): void {
+        this._autosaveStatusEpoch += 1;
+        this._autosaveCleanup?.();
+        this._autosaveCleanup = null;
+        this._autosaveEngine = null;
+        this._autosaveDoc = null;
+        this._autosaveBound = false;
+    }
+
+    private syncAutosaveSubscription(): void {
+        if (!this.isConnected) {
+            this.teardownAutosaveSubscription();
+            return;
+        }
+        if (
+            this._autosaveBound
+            && this.engine === this._autosaveEngine
+            && this._responseActionsDocument === this._autosaveDoc
+        ) {
+            return;
+        }
+        this.teardownAutosaveSubscription();
+        this._autosaveEngine = this.engine;
+        this._autosaveDoc = this._responseActionsDocument;
+        this._autosaveBound = true;
+        if (this.actionStatusEl) {
+            this.actionStatusEl.textContent = '';
+        }
+        if (!this.engine) {
+            return;
+        }
+        const resolution = resolveAutosaveResponseAction(this._responseActionsDocument, this._definition);
+        if (resolution.finding) {
+            emitActionFinding(this._actionHost, resolution.finding);
+        }
+        if (!resolution.action) {
+            return;
+        }
+        const engine = this.engine;
+        const subscribedDoc = this._responseActionsDocument;
+        let lastSnapshot = engine.getDraftSnapshot();
+        const disposeFreshness = preactReactiveRuntime.effect(() => {
+            engine.getEvaluatedFormState({ profile: 'off' });
+            const current = engine.getDraftSnapshot();
+            if (!deepEqual(current, lastSnapshot)) {
+                lastSnapshot = current;
+                this._autosaveStatusEpoch += 1;
+                if (this.actionStatusEl) {
+                    this.actionStatusEl.textContent = '';
+                }
+            }
+        });
+        const disposeAutosave = subscribeResponseActionAutosave({
+            engine,
+            document: subscribedDoc,
+            invoke: async (action) => {
+                if (
+                    !this.isConnected
+                    || this._autosaveEngine !== engine
+                    || this._autosaveDoc !== subscribedDoc
+                ) {
+                    return;
+                }
+                const epoch = this._autosaveStatusEpoch;
+                const statusEl = this.ensureActionStatus();
+                statusEl.textContent = uiText(this.engine ?? undefined, 'action.inProgress').value;
+                const result = await invokeAutosaveAction(this._actionHost, action.id);
+                if (
+                    this.isConnected
+                    && this._autosaveStatusEpoch === epoch
+                    && this._autosaveEngine === engine
+                    && this._autosaveDoc === subscribedDoc
+                ) {
+                    statusEl.textContent = this.formatAutosaveSettledStatus(result.status);
+                }
+                return result;
+            },
+        });
+        this._autosaveCleanup = () => {
+            disposeAutosave();
+            disposeFreshness();
+        };
+    }
+
     /** @internal */ findItemByKey = (key: string, items: FormItem[] = this._definition?.items ?? []): FormItem | null => {
         if (key == null || typeof key !== 'string') return null;
         const dot = key.indexOf('.');
@@ -1356,6 +1496,7 @@ export class FormspecRender extends HTMLElement {
      */
     disconnectedCallback() {
         this._issuerChromeEpoch += 1;
+        this.teardownAutosaveSubscription();
         this.cleanup();
         cleanupStylesheetsFn(this._stylingHost);
         cleanupBreakpoints(this._breakpoints);
@@ -1377,5 +1518,6 @@ export class FormspecRender extends HTMLElement {
             this.pendingAssistLabels = [];
         }
         this.assistAnnouncer?.remove();
+        this.actionStatusEl?.remove();
     }
 }

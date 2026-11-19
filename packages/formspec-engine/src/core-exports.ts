@@ -60,8 +60,10 @@ export type { ValidationProfile } from '@formspec-org/types';
 export type {
     ActionRefFinding,
     ActionResolution,
+    AutosaveActionResolution,
     ResponseAction,
     ResponseActionAsyncInvocationPorts,
+    ResponseActionAutosaveOptions,
     ResponseActionEffectDispatchResult,
     ResponseActionEffectDispatchValue,
     ResponseActionEffectOutcome,
@@ -94,19 +96,26 @@ export {
 } from './validation/index.js';
 export {
     APP_ACTION_VALIDATION_TUPLE,
+    autoPlacedDefinitionActions,
     classifyResponseActionEffect,
     declaresHostEvent,
+    findAutosaveResponseAction,
     findResponseActionByIntent,
     invokeResponseAction,
     invokeResponseActionAsync,
     isAppActionValidationTuple,
+    isBackgroundResponseAction,
     isDurableResponseActionEffect,
+    isValidDefinitionResponseActionsDocument,
+    isValidResponseActionIntent,
     InvalidValidationTupleError,
     missingSubmitActionFinding,
     planResponseActionEffects,
     planResponseActionInvocation,
+    resolveAutosaveResponseAction,
     resolveResponseAction,
     resolveResponseActionValidationTuple,
+    subscribeResponseActionAutosave,
     validationProfileForAction,
 } from './response-actions.js';
 export type {

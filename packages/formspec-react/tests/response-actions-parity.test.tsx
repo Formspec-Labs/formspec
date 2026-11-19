@@ -697,4 +697,270 @@ describe('React Response Actions parity', () => {
         root.unmount();
         container.remove();
     });
+
+    it('skips auto-placing interactive buttons for autosave actions alongside manual actions', () => {
+        const autosaveAction = {
+            id: 'autosave-progress',
+            intent: 'autosave' as const,
+            label: { literal: 'Save as I go' },
+            effects: [{ type: 'hostEvent' as const, eventName: 'draft-autosaved' }],
+        };
+        const documentWithAutosave = {
+            ...multiActionDocument,
+            actions: [
+                multiActionDocument.actions[0]!,
+                autosaveAction,
+                {
+                    id: 'autosave-ref',
+                    intent: 'autosave' as const,
+                    label: { ref: '$action.autosave.label' },
+                    effects: [{ type: 'hostEvent' as const, eventName: 'draft-autosaved' }],
+                },
+                multiActionDocument.actions[2]!,
+            ],
+        };
+
+        // 1. Standalone with onSubmit: only manual actions render as buttons.
+        const standalone = renderInto(
+            <FormspecForm
+                definition={definition}
+                responseActionsDocument={documentWithAutosave}
+                onSubmit={() => {}}
+            />,
+        );
+        expect([...standalone.container.querySelectorAll<HTMLButtonElement>('button.formspec-submit')].map(b => b.textContent))
+            .toEqual(['Save draft', 'Publish form']);
+        expect(standalone.container.querySelector('button[data-action-ref="autosave-progress"]')).toBeNull();
+        expect(standalone.container.querySelector('button[data-action-ref="autosave-ref"]')).toBeNull();
+        standalone.root.unmount();
+        standalone.container.remove();
+
+        // 2. Invoker-only (e.g. Surface definition-form slot without ComponentDocument): no autosave button.
+        const invoker = vi.fn((input: ResponseActionInvokerInput) => ({
+            invocation: invokeResponseAction(input.document, input.actionRef, input.ports, input.nodeId, input.invocationContext),
+        }));
+        const invokerOnly = renderInto(
+            <FormspecForm
+                definition={definition}
+                responseActionsDocument={documentWithAutosave}
+                responseActionInvoker={invoker}
+            />,
+        );
+        expect([...invokerOnly.container.querySelectorAll<HTMLButtonElement>('button.formspec-submit')].map(b => b.textContent))
+            .toEqual(['Save draft', 'Publish form']);
+        invokerOnly.root.unmount();
+        invokerOnly.container.remove();
+
+        // 3. Autosave-only ResponseActionsDocument: renders zero manual buttons.
+        const autosaveOnly = renderInto(
+            <FormspecForm
+                definition={definition}
+                responseActionsDocument={{ ...multiActionDocument, actions: [autosaveAction] }}
+                onSubmit={() => {}}
+            />,
+        );
+        expect(autosaveOnly.container.querySelectorAll('button.formspec-submit')).toHaveLength(0);
+        autosaveOnly.root.unmount();
+        autosaveOnly.container.remove();
+
+        // 4. ComponentDocument placing manual buttons + onSubmit: still never injects autosave.
+        const authoredManual = renderInto(
+            <FormspecForm
+                definition={definition}
+                componentDocument={{
+                    $formspecComponent: '1.0',
+                    version: '1.0.0',
+                    targetDefinition: { url: definition.url },
+                    tree: {
+                        component: 'Stack',
+                        children: [
+                            { component: 'ActionButton', actionRef: 'save-form-draft', label: { literal: 'Save draft' } },
+                            { component: 'ActionButton', actionRef: 'publish-form', label: { literal: 'Publish form' } },
+                        ],
+                    },
+                }}
+                responseActionsDocument={documentWithAutosave}
+                onSubmit={() => {}}
+            />,
+        );
+        expect([...authoredManual.container.querySelectorAll<HTMLButtonElement>('button.formspec-submit')].map(b => b.dataset.actionRef))
+            .toEqual(['save-form-draft', 'publish-form']);
+        authoredManual.root.unmount();
+        authoredManual.container.remove();
+
+        // 5. Explicitly authored ActionButton referencing autosave in ComponentDocument still renders as authored.
+        const explicitAutosave = renderInto(
+            <FormspecForm
+                definition={definition}
+                componentDocument={{
+                    $formspecComponent: '1.0',
+                    version: '1.0.0',
+                    targetDefinition: { url: definition.url },
+                    tree: {
+                        component: 'Stack',
+                        children: [
+                            { component: 'ActionButton', actionRef: 'autosave-progress', label: { literal: 'Save now' } },
+                        ],
+                    },
+                }}
+                responseActionsDocument={documentWithAutosave}
+                onSubmit={() => {}}
+            />,
+        );
+        expect([...explicitAutosave.container.querySelectorAll<HTMLButtonElement>('button.formspec-submit')].map(b => b.dataset.actionRef))
+            .toEqual(['autosave-progress', 'save-form-draft', 'publish-form']);
+        explicitAutosave.root.unmount();
+        explicitAutosave.container.remove();
+    });
+
+    it('automatically fires debounced autosave and updates status on standalone field edits, unless draftSaveFeedback="external"', async () => {
+        vi.useFakeTimers();
+        const formDef = {
+            $formspec: '1.0',
+            url: 'https://example.gov/forms/standalone-react-autosave',
+            version: '1.0.0',
+            status: 'active',
+            title: 'Standalone React Autosave',
+            items: [
+                { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+                { key: 'email', type: 'field', dataType: 'string', label: 'Email' },
+            ],
+            binds: [{ path: 'email', required: 'true' }],
+        };
+        const autosaveDoc = {
+            $formspecResponseActions: '1.0',
+            version: '1.0.0',
+            scope: 'response',
+            targetDefinition: { url: formDef.url },
+            actions: [
+                {
+                    id: 'autosave-progress',
+                    intent: 'autosave' as const,
+                    label: { literal: 'Save as I go' },
+                    effects: [{ type: 'hostEvent' as const, eventName: 'draft-autosaved' }],
+                },
+            ],
+        };
+
+        const engine = createFormEngine(formDef);
+        const onHostEvent = vi.fn();
+        const onActionResult = vi.fn();
+        const { container, root } = renderInto(
+            <FormspecForm
+                engine={engine}
+                responseActionsDocument={autosaveDoc}
+                onHostEvent={onHostEvent}
+                onActionResult={onActionResult}
+            />,
+        );
+
+        try {
+            expect(container.querySelectorAll('button.formspec-submit')).toHaveLength(0);
+
+            // Initial mount does not fire autosave.
+            await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+            expect(onHostEvent).not.toHaveBeenCalled();
+
+            // User edits field without clicking any button; rapid edits coalesce.
+            await act(async () => { engine.setValue('name', 'A'); });
+            await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+            await act(async () => { engine.setValue('name', 'Ada'); });
+            await act(async () => { await vi.advanceTimersByTimeAsync(399); });
+            expect(onHostEvent).not.toHaveBeenCalled();
+
+            await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+            expect(onHostEvent).toHaveBeenCalledTimes(1);
+            expect(onHostEvent).toHaveBeenCalledWith(
+                'draft-autosaved',
+                expect.objectContaining({
+                    response: expect.objectContaining({ data: { name: 'Ada' }, status: 'in-progress' }),
+                }),
+                expect.objectContaining({ id: 'autosave-progress' }),
+            );
+            expect(onActionResult).toHaveBeenCalledTimes(1);
+            expect(onActionResult.mock.calls[0]?.[0]?.detail?.response?.data?.name).toBe('Ada');
+            expect(container.querySelector('[role="status"]')?.textContent).toBe('Completed.');
+            // Untouched required field must NOT be marked touched/invalid by background autosave.
+            expect(container.querySelector('#field-email-error')?.textContent ?? '').toBe('');
+
+            // With draftSaveFeedback="external", the embedding draft writer owns autosave exclusively.
+            const externalHostEvent = vi.fn();
+            const externalEngine = createFormEngine(formDef);
+            const external = renderInto(
+                <FormspecForm
+                    engine={externalEngine}
+                    responseActionsDocument={autosaveDoc}
+                    draftSaveFeedback="external"
+                    onHostEvent={externalHostEvent}
+                />,
+            );
+            await act(async () => { externalEngine.setValue('name', 'Grace'); });
+            await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+            expect(externalHostEvent).not.toHaveBeenCalled();
+            external.root.unmount();
+            external.container.remove();
+            externalEngine.dispose();
+        } finally {
+            root.unmount();
+            container.remove();
+            engine.dispose();
+            vi.useRealTimers();
+        }
+    });
+
+    it('refuses automatic background autosave and reports ambiguity identically regardless of action order when multiple autosave actions exist', async () => {
+        vi.useFakeTimers();
+        const formDef = {
+            $formspec: '1.0',
+            url: 'https://example.gov/forms/ambiguous-autosave-react',
+            version: '1.0.0',
+            title: 'Ambiguous Autosave',
+            items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+        };
+        const makeAction = (id: string) => ({
+            id,
+            intent: 'autosave' as const,
+            effects: [{ type: 'hostEvent' as const, eventName: id }],
+        });
+        const forward = {
+            $formspecResponseActions: '1.0' as const,
+            version: '1.0.0',
+            targetDefinition: { url: formDef.url },
+            actions: [makeAction('checkpointA'), makeAction('checkpointB')],
+        };
+        const reversed = {
+            ...forward,
+            actions: [...forward.actions].reverse(),
+        };
+
+        try {
+            for (const doc of [forward, reversed]) {
+                const engine = createFormEngine(formDef);
+                const onHostEvent = vi.fn();
+                const onActionFinding = vi.fn();
+                const mounted = renderInto(
+                    <FormspecForm
+                        engine={engine}
+                        responseActionsDocument={doc}
+                        onHostEvent={onHostEvent}
+                        onActionFinding={onActionFinding}
+                    />,
+                );
+                await act(async () => { engine.setValue('name', 'Ada'); });
+                await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+                expect(onHostEvent).not.toHaveBeenCalled();
+                expect(onActionFinding).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        code: 'COMP-REFERENTIAL-INTEGRITY',
+                        reason: 'ambiguous-autosave-action',
+                    }),
+                );
+                mounted.root.unmount();
+                mounted.container.remove();
+                engine.dispose();
+            }
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });
