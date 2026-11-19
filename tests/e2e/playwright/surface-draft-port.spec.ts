@@ -461,9 +461,10 @@ test('a discard between observing an owned row and consuming the seed stays disc
     expect(await other.evaluate(async name => (await import('/surface-drafts-port.ts')).discardUnseededStore(name), db))
       .toEqual({ status: 'discarded' });
     const concurrent = await other.evaluate(async name => (await import('/surface-drafts-port.ts')).operateSeededStore({ db: name, op: 'inspect' }), db);
-    await page.evaluate(async () => (await import('/surface-drafts-port.ts')).resumePausedSeededStore());
+    const { ownershipReads } = await page.evaluate(async () => (await import('/surface-drafts-port.ts')).resumePausedSeededStore());
     const after = await other.evaluate(async name => (await import('/surface-drafts-port.ts')).operateSeededStore({ db: name, op: 'inspect' }), db);
 
+    expect(ownershipReads).toBe(2);
     expect(concurrent.status).toBe('absent');
     expect(after.status).toBe('absent');
   } finally {

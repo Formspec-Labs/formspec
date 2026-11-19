@@ -1022,7 +1022,13 @@ export function createBrowserFilingStore(options: BrowserFilingStoreOptions): Pr
 
   const notify = () => { commits.dispatchEvent(new Event('commit')); };
   const subscribe: BrowserDraftPort['subscribe'] = listener => {
-    const deliver = () => listener();
+    const deliver = () => {
+      try {
+        listener();
+      } catch {
+        // Isolate subscriber errors from readiness, writes, and sibling listeners.
+      }
+    };
     commits.addEventListener('commit', deliver);
     if (subscribers++ === 0) {
       channel = openChannel();
@@ -1138,5 +1144,13 @@ export function createMemoryFilingStore(options: PreviewFilingStoreOptions): Pre
   return createFilingStore(options, transaction, listener => {
     listeners.add(listener);
     return () => { listeners.delete(listener); };
-  }, () => { for (const listener of listeners) listener(); });
+  }, () => {
+    for (const listener of [...listeners]) {
+      try {
+        listener();
+      } catch {
+        // Isolate subscriber errors from readiness, writes, and sibling listeners.
+      }
+    }
+  });
 }

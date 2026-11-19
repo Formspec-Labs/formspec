@@ -397,36 +397,51 @@ export async function startSeededStorePausingBeforeSecondOpen(db: string) {
   await initFormspecEngine();
   await initFormspecEngineTools();
   const originalOpen = indexedDB.open.bind(indexedDB);
-  let openCount = 0;
+  const originalTransaction = IDBDatabase.prototype.transaction;
+  let ownershipReads = 0;
+  let pauseNextOpen = false;
+  let pausedOnce = false;
   let notifyPaused!: () => void;
-  const pausedBeforeSecondOpen = new Promise<void>(resolve => { notifyPaused = resolve; });
-  let resumeSecondOpen!: () => void;
-  const secondOpenGate = new Promise<void>(resolve => { resumeSecondOpen = resolve; });
+  const pausedAfterOwnershipRead = new Promise<void>(resolve => { notifyPaused = resolve; });
+  let resumeAfterPause!: () => void;
+  const pauseGate = new Promise<void>(resolve => { resumeAfterPause = resolve; });
+
+  IDBDatabase.prototype.transaction = function (...args) {
+    const tx = Reflect.apply(originalTransaction, this, args) as IDBTransaction;
+    const names = [...tx.objectStoreNames];
+    if (this.name === db && tx.mode === 'readonly' &&
+        names.length === 3 && names.includes('seeds') && names.includes('editable') && names.includes('filings')) {
+      ownershipReads += 1;
+      if (ownershipReads === 1 && !pausedOnce) {
+        tx.addEventListener('complete', () => { pauseNextOpen = true; }, { once: true });
+      }
+    }
+    return tx;
+  };
 
   indexedDB.open = ((name: string, dbVersion?: number) => {
-    if (name === db) {
-      openCount += 1;
-      if (openCount === 2) {
-        const proxyReq = {} as IDBOpenDBRequest;
-        notifyPaused();
-        void secondOpenGate.then(() => {
-          const realReq = dbVersion === undefined ? originalOpen(name) : originalOpen(name, dbVersion);
-          realReq.onupgradeneeded = event => {
-            Object.defineProperty(proxyReq, 'result', { value: realReq.result, configurable: true });
-            Object.defineProperty(proxyReq, 'transaction', { value: realReq.transaction, configurable: true });
-            proxyReq.onupgradeneeded?.(event);
-          };
-          realReq.onsuccess = event => {
-            Object.defineProperty(proxyReq, 'result', { value: realReq.result, configurable: true });
-            proxyReq.onsuccess?.(event);
-          };
-          realReq.onerror = event => {
-            Object.defineProperty(proxyReq, 'error', { value: realReq.error, configurable: true });
-            proxyReq.onerror?.(event);
-          };
-        });
-        return proxyReq;
-      }
+    if (name === db && pauseNextOpen && !pausedOnce) {
+      pauseNextOpen = false;
+      pausedOnce = true;
+      const proxyReq = {} as IDBOpenDBRequest;
+      notifyPaused();
+      void pauseGate.then(() => {
+        const realReq = dbVersion === undefined ? originalOpen(name) : originalOpen(name, dbVersion);
+        realReq.onupgradeneeded = event => {
+          Object.defineProperty(proxyReq, 'result', { value: realReq.result, configurable: true });
+          Object.defineProperty(proxyReq, 'transaction', { value: realReq.transaction, configurable: true });
+          proxyReq.onupgradeneeded?.(event);
+        };
+        realReq.onsuccess = event => {
+          Object.defineProperty(proxyReq, 'result', { value: realReq.result, configurable: true });
+          proxyReq.onsuccess?.(event);
+        };
+        realReq.onerror = event => {
+          Object.defineProperty(proxyReq, 'error', { value: realReq.error, configurable: true });
+          proxyReq.onerror?.(event);
+        };
+      });
+      return proxyReq;
     }
     return dbVersion === undefined ? originalOpen(name) : originalOpen(name, dbVersion);
   }) as typeof indexedDB.open;
@@ -444,19 +459,21 @@ export async function startSeededStorePausingBeforeSecondOpen(db: string) {
   });
   const finish = store.ready().finally(() => {
     indexedDB.open = originalOpen;
+    IDBDatabase.prototype.transaction = originalTransaction;
   });
   (window as unknown as Record<string, unknown>).__seedRaceControl = {
     resume: async () => {
-      resumeSecondOpen();
+      resumeAfterPause();
       await finish;
+      return { ownershipReads };
     },
   };
-  await pausedBeforeSecondOpen;
+  await pausedAfterOwnershipRead;
 }
 
 export async function resumePausedSeededStore() {
-  const ctrl = (window as unknown as Record<string, { resume(): Promise<void> }>).__seedRaceControl;
-  await ctrl.resume();
+  const ctrl = (window as unknown as Record<string, { resume(): Promise<{ ownershipReads: number }> }>).__seedRaceControl;
+  return await ctrl.resume();
 }
 
 export async function discardUnseededStore(db: string) {

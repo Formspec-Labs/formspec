@@ -1007,3 +1007,42 @@ it('notifies draft subscribers once when initial seeding commits staged drafts, 
   unsubQuiet();
   expect(quietNotifications).toBe(0);
 });
+
+it('isolates throwing subscribers from seed readiness and delivers notifications to later healthy listeners', async () => {
+  const url = 'urn:test:seed-listener-error';
+  const def: FormDefinition = {
+    $formspec: '1.0', url, version, title: 'Listener isolation', items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+  };
+  const store = createMemoryFilingStore({
+    scope: 'seed-listener-error',
+    definitions: new Map([[url, def]]),
+    fixtures: { drafts: [{ definitionUrl: url, data: { answer: 'seed' } }] },
+  });
+  let notifications = 0;
+  const unsubThrowing = store.drafts.subscribe(() => { throw new Error('subscriber failed'); });
+  const unsubHealthy = store.drafts.subscribe(() => { notifications += 1; });
+
+  let opening = 'opened';
+  try {
+    await store.ready();
+  } catch (error) {
+    opening = error instanceof Error ? error.message : String(error);
+  }
+  let retry = 'opened';
+  try {
+    await store.ready();
+  } catch (error) {
+    retry = error instanceof Error ? error.message : String(error);
+  }
+  unsubThrowing();
+  unsubHealthy();
+
+  const loaded = await store.drafts.load({ scope: 'seed-listener-error', definitionUrl: url }, version);
+  const answer = loaded.status === 'loaded' ? (JSON.parse(loaded.draft.responseJson) as { data?: { answer?: string } }).data?.answer : undefined;
+  expect({ opening, retry, notifications, answer }).toEqual({
+    opening: 'opened',
+    retry: 'opened',
+    notifications: 1,
+    answer: 'seed',
+  });
+});
