@@ -17,7 +17,15 @@ export interface ResponseRecordTools {
 export interface ResponseFiling extends NewerSelectedResponse {
   key: DraftKey;
   definitionVersion: string;
+  authored: string;
   responseJson: string;
+  sample: 'preview-submit' | 'fixture';
+}
+
+export interface ResponseFilingSummary extends NewerSelectedResponse {
+  key: DraftKey;
+  definitionVersion: string;
+  authored: string;
   sample: 'preview-submit' | 'fixture';
 }
 
@@ -27,6 +35,18 @@ export interface PreparedDraftFixture {
   responseId: string;
   authored: string;
   data: Record<string, FiniteJsonValue>;
+}
+
+export interface PreparedResponseFixtures {
+  readonly filings: readonly ResponseFiling[];
+  readonly filingSummaries: readonly ResponseFilingSummary[];
+  readonly decisions: ReadonlyMap<string, DispositionObservation>;
+  readonly drafts: readonly PreparedDraftFixture[];
+}
+
+export function toResponseFilingSummary(filing: ResponseFiling): ResponseFilingSummary {
+  const { key, definitionVersion, responseId, responseHash, authored, sample } = filing;
+  return { key: structuredClone(key), definitionVersion, responseId, responseHash, authored, sample };
 }
 
 export interface DraftFixtureIssue {
@@ -502,13 +522,21 @@ export function prepareResponseFiling(
   }, { scope, authorized: true, source: 'catalog', upstreamSubject: definition.subject ?? null, projection: [] });
   const responseHash = result.status === 'available' ? result.records[0]?.responseHash : undefined;
   if (!responseHash) throw new Error('The Response cannot be admitted as a filing.');
-  return { key, definitionVersion: response.definitionVersion, responseJson, responseId: response.id, responseHash, sample };
+  return {
+    key,
+    definitionVersion: response.definitionVersion,
+    authored: response.authored,
+    responseJson,
+    responseId: response.id,
+    responseHash,
+    sample,
+  };
 }
 
 export function prepareResponseFixtures(
   scope: string, definitions: ReadonlyMap<string, FormDefinition>, fixtures: ResponseFixtures,
   tools: ResponseRecordTools,
-) {
+): PreparedResponseFixtures {
   const filings = (fixtures.filings ?? []).map(({ responseJson }) =>
     prepareResponseFiling(scope, definitions, responseJson, 'fixture', tools));
   const filingResponseIds = new Set(filings.map(filing => filing.responseId));
@@ -523,7 +551,53 @@ export function prepareResponseFixtures(
     decisions.set(key, structuredClone(decision));
   }
   const drafts = prepareDraftFixtures(scope, definitions, fixtures.drafts, tools, filingResponseIds);
-  return { filings, decisions, drafts };
+  return { filings, filingSummaries: filings.map(toResponseFilingSummary), decisions, drafts };
+}
+
+export function selectFilingSummaryStatus(
+  key: DraftKey, definition: FormDefinition, candidates: readonly ResponseFilingSummary[],
+  decisions: ReadonlyMap<string, DispositionObservation>, tools: ResponseRecordTools,
+): FilingObservation {
+  if (new Set(candidates.map(candidate => candidate.responseId)).size !== candidates.length) {
+    return { status: 'unavailable' };
+  }
+  const selection: ResponseSelection = {
+    definition: { url: key.definitionUrl }, status: 'completed', cardinality: 'latest', pin: 'none', whenNone: 'empty',
+    subject: Object.keys(key.subject?.keys ?? {}).map(name => ({ key: name, op: 'eq', from: { subject: name } })),
+  };
+  const context: ResponseSelectionContext = {
+    scope: key.scope, authorized: true, source: 'catalog', upstreamSubject: definition.subject ?? null, projection: [],
+    ...(key.subject && { consumerSubject: key.subject.keys }),
+  };
+  const envelopes = candidates.map(record => responseSelectionRecord(
+    record.key,
+    JSON.stringify({
+      $formspecResponse: '1.0',
+      id: record.responseId,
+      definitionUrl: record.key.definitionUrl,
+      definitionVersion: record.definitionVersion,
+      status: 'completed',
+      authored: record.authored,
+      ...(record.key.subject ? { subject: record.key.subject } : {}),
+      data: {},
+    }),
+    'filing',
+  ));
+  const result = tools.selectResponses(envelopes, selection, context);
+  if (result.status !== 'available') return { status: 'unavailable' };
+  if (result.none) return { status: 'none' };
+  const selected = result.records[0];
+  if (!selected) return { status: 'unavailable' };
+  const chosen = candidates.find(candidate => candidate.responseId === selected.responseId);
+  if (!chosen?.responseHash) return { status: 'unavailable' };
+  const { responseId, responseHash } = chosen;
+  const decision = decisions.get(responsePairKey(chosen));
+  return {
+    status: decision?.status === 'decided' ? decision.review : 'filed',
+    receiptRef: responseId, responseHash, sample: chosen.sample,
+    review: decision?.status === 'unavailable' ? 'unavailable' : 'available',
+    comments: decision?.status === 'decided' ? [...decision.comments] : [],
+  };
 }
 
 export function selectFilingStatus(

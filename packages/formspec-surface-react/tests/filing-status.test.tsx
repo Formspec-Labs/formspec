@@ -275,3 +275,478 @@ it('keeps overview totals complete when a filing has no current draft', async ()
   expect(dom.querySelector('.fs-surface-filing__totals')?.textContent).toContain('Answered2 of 5');
   expect(dom.querySelector('.fs-surface-filing__totals')?.textContent).not.toContain('Some progress is unavailable');
 });
+
+function periodOverviewBundle() {
+  const planDef = {
+    ...definition,
+    url: 'urn:period-plan',
+    title: 'Period Plan',
+    subject: {
+      type: 'urn:period-plan',
+      keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' } },
+    },
+  };
+  const annualDef = {
+    ...definition,
+    url: 'urn:annual-report',
+    title: 'Annual Report',
+    subject: { type: 'urn:annual-report', keys: { ffy: { dataType: 'integer' } } },
+  };
+  return dereferenceBundleExport({
+    manifest: {
+      $formspecBundle: '2.4', id: 'urn:period-app', surfaces: [{ url: 'urn:surface' }],
+      definitions: [{ url: planDef.url, version: '1.0.0' }, { url: annualDef.url, version: '1.0.0' }],
+    },
+    documents: {
+      'urn:surface': {
+        $formspecSurface: '0.4', id: 'app', entry: 'overview',
+        routes: [
+          {
+            id: 'overview', path: '/years/{ffy}', params: [{ name: 'ffy', type: 'string' }],
+            slots: [{
+              id: 'filing-map', slotType: 'filing-status',
+              binding: {
+                groups: [
+                  {
+                    id: 'plan', label: 'Period plan',
+                    forms: [{
+                      routeRef: 'plan', slotRef: 'form',
+                      subject: [
+                        { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' } },
+                        { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' } },
+                      ],
+                    }],
+                  },
+                  {
+                    id: 'annual', label: 'Annual report',
+                    forms: [{ routeRef: 'annual', slotRef: 'form', params: { ffy: { routeParam: 'ffy' } } }],
+                  },
+                ],
+              },
+            }],
+          },
+          {
+            id: 'plan', path: '/plans/{first_ffy}/{last_ffy}', routeClass: 'intake',
+            params: [{ name: 'first_ffy', type: 'string' }, { name: 'last_ffy', type: 'string' }],
+            navigation: { visible: false, label: 'Period plan' },
+            slots: [{
+              id: 'form', slotType: 'definition-form',
+              binding: { definitionRef: planDef.url, subjectKeys: { first_ffy: 'first_ffy', last_ffy: 'last_ffy' } },
+            }],
+          },
+          {
+            id: 'annual', path: '/years/{ffy}/annual', routeClass: 'intake',
+            params: [{ name: 'ffy', type: 'string' }],
+            navigation: { visible: false, label: 'Annual report' },
+            slots: [{
+              id: 'form', slotType: 'definition-form',
+              binding: { definitionRef: annualDef.url, subjectKeys: { ffy: 'ffy' } },
+            }],
+          },
+        ],
+      },
+      [planDef.url]: planDef,
+      [annualDef.url]: annualDef,
+    },
+  });
+}
+
+it('links a year-scoped overview entry to the matched multi-year plan unit and handles unmatched or ambiguous units', async () => {
+  const bundle = periodOverviewBundle();
+  const navigate = vi.fn();
+  const hash = ('sha256:' + 'b'.repeat(64)) as `sha256:${string}`;
+
+  const matchedDom = render(<SurfaceApp
+    bundle={bundle}
+    location="/years/2025"
+    onNavigate={navigate}
+    readSummaries={async (queries) => new Map(queries.map(query => query.subjectMatch ? [query.key, {
+      subject: { type: 'urn:period-plan', keys: { first_ffy: 2024, last_ffy: 2026 } },
+      subjectMatch: 'matched' as const,
+      draft: { status: 'current' as const, form: { ...counts, ready: false }, sections: { details: counts } },
+      filing: { status: 'returned' as const, receiptRef: 'urn:plan:2024-2026', responseHash: hash, review: 'available' as const, comments: ['Update budget'] },
+    }] : [query.key, { draft: { status: 'absent' as const }, filing: { status: 'none' as const } }]))}
+  />);
+  await act(async () => {});
+  const planLink = matchedDom.querySelector<HTMLAnchorElement>('a[href="/plans/2024/2026?slot=form"]');
+  expect(planLink?.textContent).toBe('Period plan');
+  const sectionLink = matchedDom.querySelector<HTMLAnchorElement>('details a[href="/plans/2024/2026?slot=form&section=details"]');
+  expect(sectionLink).not.toBeNull();
+  const planRow = planLink!.closest('.fs-surface-filing__row')!;
+  expect(planRow.textContent).toContain('Returned');
+  expect(planRow.textContent).toContain('In progress');
+  expect(planRow.textContent).toContain('Update budget');
+  act(() => planLink!.click());
+  expect(navigate).toHaveBeenCalledWith('/plans/2024/2026?slot=form');
+
+  for (const subjectMatch of ['none', 'ambiguous'] as const) {
+    const unmatchedDom = render(<SurfaceApp
+      bundle={bundle}
+      location="/years/2025"
+      onNavigate={() => {}}
+      readSummaries={async (queries) => new Map(queries.map(query => query.subjectMatch ? [query.key, {
+        subjectMatch,
+        draft: subjectMatch === 'none' ? { status: 'absent' as const } : { status: 'unavailable' as const },
+        filing: subjectMatch === 'none' ? { status: 'none' as const } : { status: 'unavailable' as const },
+      }] : [query.key, { draft: { status: 'absent' as const }, filing: { status: 'none' as const } }]))}
+    />);
+    await act(async () => {});
+    const rows = unmatchedDom.querySelectorAll('.fs-surface-filing__row');
+    const disabled = rows[0]!.querySelector('[role="link"][aria-disabled="true"]');
+    expect(disabled?.textContent).toBe('Period plan');
+    expect(rows[0]!.querySelector('a')).toBeNull();
+    expect(rows[0]!.querySelector(`[id="${disabled?.getAttribute('aria-describedby')}"]`)?.textContent)
+      .toBe('Filing unit unavailable');
+    expect(rows[1]!.querySelector('a[href="/years/2025/annual?slot=form"]')).not.toBeNull();
+  }
+});
+
+it.each([0, 1])('counts one flat question for unsectioned group %i without generating section links', async (groupIndex) => {
+  const bundle = periodOverviewBundle();
+  const tracker = bundle.surfaces[0]!.routes[0]!.slots[0]!.binding as { groups: unknown[] };
+  tracker.groups = [tracker.groups[groupIndex]];
+  const def = bundle.definitions.get(groupIndex === 0 ? 'urn:period-plan' : 'urn:annual-report')!;
+  def.items = [{ key: 'amount', type: 'field', dataType: 'integer', label: 'Amount' }];
+  const dom = render(<SurfaceApp
+    bundle={bundle}
+    location="/years/2025"
+    onNavigate={() => {}}
+    readSummaries={async (queries) => new Map(queries.map(query => [
+      query.key,
+      {
+        ...(query.subjectMatch
+          ? { subjectMatch: 'matched' as const, subject: { type: 'urn:period-plan', keys: { first_ffy: 2024, last_ffy: 2026 } } }
+          : {}),
+        draft: { status: 'absent' as const },
+        filing: { status: 'none' as const },
+      },
+    ]))}
+  />);
+  await act(async () => {});
+  expect(dom.querySelector('.fs-surface-filing__row a')).not.toBeNull();
+  expect(dom.querySelectorAll('a[href*="section="]')).toHaveLength(0);
+  expect(dom.querySelector('.fs-surface-filing__totals dd')?.textContent).toBe('0 of 1');
+});
+
+it('requires confirmed matched subject on range rows, verifies decoded URL params, and refuses colliding resolved units across groups or roster members', async () => {
+  const match = {
+    subjectMatch: 'matched' as const,
+    subject: { type: 'urn:period-plan', keys: { first_ffy: 2024, last_ffy: 2026 } },
+  };
+  const absent = { draft: { status: 'absent' as const }, filing: { status: 'none' as const } };
+  const hash = ('sha256:' + 'a'.repeat(64)) as `sha256:${string}`;
+  const mountRange = async (bundle: ReturnType<typeof periodOverviewBundle>, observation: FilingStatusObservation) => {
+    const dom = render(<SurfaceApp
+      bundle={bundle}
+      location="/years/2025"
+      onNavigate={() => {}}
+      readSummaries={async qs => new Map(qs.map(q => [q.key, q.subjectMatch ? observation : absent]))}
+    />);
+    await act(async () => {});
+    return dom;
+  };
+
+  // Matched absent draft + filing renders Not started with an active link; exact-only or unconfirmed reader observations do not.
+  const matchedAbsentDom = await mountRange(periodOverviewBundle(), { ...match, ...absent });
+  expect(matchedAbsentDom.querySelector('a[href="/plans/2024/2026?slot=form"]')?.closest('li')?.textContent).toContain('Not started');
+
+  const unconfirmedAbsentDom = await mountRange(periodOverviewBundle(), absent);
+  expect(unconfirmedAbsentDom.querySelector('.fs-surface-filing__row')?.textContent).not.toContain('Not started');
+  expect(unconfirmedAbsentDom.querySelector('a[href="/plans/2024/2026?slot=form"]')).toBeNull();
+
+  const bareSubjectDom = await mountRange(periodOverviewBundle(), {
+    subject: match.subject,
+    draft: { status: 'current', form: { ...counts, ready: true }, sections: {} },
+    filing: { status: 'filed', receiptRef: 'urn:leak', responseHash: hash, review: 'available', comments: ['Leaked comment'] },
+  });
+  expect(bareSubjectDom.querySelector('a[href="/plans/2024/2026?slot=form"]')).toBeNull();
+  expect(bareSubjectDom.textContent).not.toContain('urn:leak');
+  expect(bareSubjectDom.textContent).not.toContain('Leaked comment');
+
+  // All 5 completed filing statuses render with active links when matched.
+  const statusLabels = {
+    filed: 'Filed',
+    accepted: 'Accepted',
+    returned: 'Returned',
+    reopened: 'Reopened',
+    'closed-without-acceptance': 'Closed without acceptance',
+  } as const;
+  for (const [status, expectedLabel] of Object.entries(statusLabels) as [keyof typeof statusLabels, string][]) {
+    const dom = await mountRange(periodOverviewBundle(), {
+      ...match,
+      draft: { status: 'absent' },
+      filing: { status, receiptRef: 'urn:receipt:test', responseHash: hash, review: 'available', comments: [] },
+    });
+    expect(dom.querySelector('a[href="/plans/2024/2026?slot=form"]')?.closest('li')?.textContent).toContain(expectedLabel);
+  }
+
+  // Destination URL missing a subject parameter marker fails decoded URL subject round-trip.
+  const truncatedPathBundle = periodOverviewBundle();
+  (truncatedPathBundle.surfaces[0]!.routes[1] as { path: string }).path = '/plans/{first_ffy}';
+  const truncatedDom = await mountRange(truncatedPathBundle, { ...match, ...absent });
+  expect(truncatedDom.querySelector('a[href="/plans/2024?slot=form"]')).toBeNull();
+
+  // Two distinct queries resolving to one final (route, slot, params) tuple are refused.
+  const duplicateQueryBundle = periodOverviewBundle();
+  const groups = (duplicateQueryBundle.surfaces[0]!.routes[0]!.slots[0]!.binding as { groups: any[] }).groups;
+  const extra = structuredClone(groups[0]);
+  extra.id = 'another-period';
+  extra.forms[0].subject.forEach((p: any) => { p.from = { value: '2024' }; });
+  groups.push(extra);
+  const duplicateQueryDom = await mountRange(duplicateQueryBundle, { ...match, ...absent });
+  expect(duplicateQueryDom.querySelectorAll('a[href="/plans/2024/2026?slot=form"]').length).toBe(0);
+
+  // Conflicting matched subjects across forms in one group disable the entire group rather than leaving the first form clickable.
+  const conflictingGroupBundle = periodOverviewBundle();
+  const budgetDef = structuredClone(conflictingGroupBundle.definitions.get('urn:period-plan')!);
+  (budgetDef as { url: string }).url = 'urn:period-budget';
+  (conflictingGroupBundle.definitions as Map<string, typeof budgetDef>).set('urn:period-budget', budgetDef);
+  (conflictingGroupBundle.surfaces[0]!.routes[1]!.slots as any[]).push({
+    ...structuredClone(conflictingGroupBundle.surfaces[0]!.routes[1]!.slots[0]!),
+    id: 'second',
+    binding: { definitionRef: 'urn:period-budget', subjectKeys: { first_ffy: 'first_ffy', last_ffy: 'last_ffy' } },
+  });
+  const firstGroupForms = (conflictingGroupBundle.surfaces[0]!.routes[0]!.slots[0]!.binding as { groups: any[] }).groups[0].forms;
+  firstGroupForms.push({ ...structuredClone(firstGroupForms[0]), slotRef: 'second' });
+  const conflictDom = render(<SurfaceApp
+    bundle={conflictingGroupBundle}
+    location="/years/2025"
+    onNavigate={() => {}}
+    readSummaries={async qs => new Map(qs.map(q => {
+      if (!q.subjectMatch) return [q.key, absent];
+      const start = q.definitionUrl === 'urn:period-plan' ? 2024 : 2025;
+      return [q.key, {
+        subjectMatch: 'matched' as const,
+        subject: { type: 'urn:period-plan', keys: { first_ffy: start, last_ffy: start + 2 } },
+        ...absent,
+      }];
+    }))}
+  />);
+  await act(async () => {});
+  expect(conflictDom.querySelectorAll('a[href^="/plans/"]').length).toBe(0);
+
+  // Roster members whose distinct search years resolve to one covering period are refused, while distinct periods list waiting members.
+  const rosterSource = {
+    id: 'response:members', kind: 'definition-response' as const, owner: 'host' as const, definitionRef: 'urn:directory',
+    scope: 'route' as const, availability: { level: 'app' as const },
+    schema: { type: 'object', properties: { units: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, id: { type: 'integer' } } } } } },
+    runtime: { delivery: 'draft' as const, authorizationBoundary: 'host' as const, failureMode: 'block-render' as const,
+      cache: { mode: 'draft' as const }, provenance: { kind: 'definition-response' as const, source: 'urn:directory' } },
+  };
+  const rosterBundle = dereferenceBundleExport({
+    manifest: { $formspecBundle: '2.4', id: 'urn:roster-app', surfaces: [{ url: 'urn:surface' }],
+      definitions: [{ url: 'urn:report' }, { url: 'urn:directory' }], dataSources: [{ url: 'urn:roster' }] },
+    documents: {
+      'urn:roster': { $formspecDataSources: '1.0', id: 'urn:roster', version: '1.0.0', sources: [rosterSource] },
+      'urn:report': { $formspec: '1.0', url: 'urn:report', version: '1.0.0', title: 'Report',
+        items: [{ key: 'count', type: 'field', dataType: 'integer' }],
+        subject: { type: 'urn:unit', keys: { start: { dataType: 'integer' }, end: { dataType: 'integer' } } } },
+      'urn:directory': { $formspec: '1.0', url: 'urn:directory', version: '1.0.0', title: 'Directory', items: [
+        { key: 'units', type: 'group', repeatable: true, children: [
+          { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+          { key: 'id', type: 'field', dataType: 'string', label: 'Unit identifier' },
+        ] },
+      ] },
+      'urn:surface': { $formspecSurface: '0.4', id: 'app', entry: 'home', routes: [
+        { id: 'home', path: '/', slots: [{ id: 'tracker', slotType: 'filing-status', binding: { groups: [
+          { id: 'directory', label: 'Directory', forms: [{ routeRef: 'directory', slotRef: 'form' }] },
+          { id: 'reports', label: 'Unit reports', repeat: {
+            catalogRef: 'urn:roster', sourceRef: 'response:members', rowsField: 'units', labelField: 'name', waitingLabel: 'Waiting for',
+          }, forms: [{ routeRef: 'report', slotRef: 'form', subject: [
+            { key: 'start', op: 'le', from: { rowField: 'id' } },
+            { key: 'end', op: 'ge', from: { rowField: 'id' } },
+          ] }] },
+        ] } }] },
+        { id: 'directory', path: '/directory', slots: [
+          { id: 'form', slotType: 'definition-form', binding: { definitionRef: 'urn:directory' } },
+        ] },
+        { id: 'report', path: '/report/{start}/{end}', params: [{ name: 'start', type: 'string' }, { name: 'end', type: 'string' }], slots: [
+          { id: 'form', slotType: 'definition-form', binding: { definitionRef: 'urn:report', subjectKeys: { start: 'start', end: 'end' } } },
+        ] },
+      ] },
+    },
+  });
+  const visitRoster = async (years: number[]) => {
+    const dom = render(<SurfaceApp
+      bundle={rosterBundle}
+      location="/"
+      onNavigate={() => {}}
+      readSummaries={async qs => new Map(qs.map(q => {
+        if (!q.subjectMatch) return [q.key, absent];
+        const year = Number(q.subjectMatch.predicates[0]!.value);
+        const start = year <= 2026 ? 2024 : 2027;
+        return [q.key, {
+          subjectMatch: 'matched' as const,
+          subject: { type: 'urn:unit', keys: { start, end: start + 2 } },
+          draft: { status: 'current' as const, form: { total: 1, filled: 1, ready: true, toFix: 0, toCheck: 0 }, sections: {} },
+          filing: { status: 'none' as const },
+        }];
+      }))}
+      dataSourceLoader={async () => ({ status: 'loaded', freshness: 'fresh', value: { units: years.map(id => ({ name: String(id), id })) } })}
+      validateDataSourcePayload={() => ({ valid: true })}
+      authorizeDataSource={() => ({ status: 'authorized' })}
+    />);
+    await act(async () => {});
+    return dom;
+  };
+  const distinctRosterDom = await visitRoster([2024, 2027]);
+  expect([...distinctRosterDom.querySelectorAll('[data-state="waiting-on-named-members"] li')].map(item => item.textContent)).toEqual(['2024', '2027']);
+  expect(distinctRosterDom.querySelectorAll('a[href="/report/2024/2026?slot=form"]').length).toBe(1);
+
+  const collidingRosterDom = await visitRoster([2024, 2025]);
+  expect(collidingRosterDom.querySelectorAll('a[href="/report/2024/2026?slot=form"]').length).toBe(0);
+
+  // Explicit denial on a confirmed matched range observation disables the row and suppresses links, receipts, comments, and counts.
+  const deniedDraftObservation: FilingStatusObservation = {
+    // @ts-expect-error matched observations cannot carry denied draft status
+    subjectMatch: 'matched',
+    subject: match.subject,
+    draft: { status: 'denied' },
+    filing: { status: 'filed', receiptRef: 'urn:denied:leak', responseHash: hash, review: 'available', comments: ['Denied leak'] },
+  };
+  const deniedFilingObservation: FilingStatusObservation = {
+    // @ts-expect-error matched observations cannot carry denied filing status
+    subjectMatch: 'matched',
+    subject: match.subject,
+    draft: { status: 'current', form: { ...counts, ready: true }, sections: {} },
+    filing: { status: 'denied' },
+  };
+  for (const deniedObs of [deniedDraftObservation, deniedFilingObservation]) {
+    const deniedDom = await mountRange(periodOverviewBundle(), deniedObs);
+    expect(deniedDom.querySelector('a[href="/plans/2024/2026?slot=form"]')).toBeNull();
+    const firstRow = deniedDom.querySelector('.fs-surface-filing__row')!;
+    expect(firstRow.querySelector('[role="link"][aria-disabled="true"]')).not.toBeNull();
+    expect(deniedDom.textContent).not.toContain('urn:denied:leak');
+    expect(deniedDom.textContent).not.toContain('Denied leak');
+    expect(deniedDom.textContent).not.toContain('2 of 4 answered');
+  }
+
+  // Two distinct routes to the same one-question filing with different Component section layouts count once in totals (0 of 1).
+  const dualLayoutBundle = periodOverviewBundle();
+  const planRoute = dualLayoutBundle.surfaces[0]!.routes[1]!;
+  (dualLayoutBundle.surfaces[0]!.routes as any[]).push({
+    ...structuredClone(planRoute),
+    id: 'plan-alt',
+    path: '/plans-alt/{first_ffy}/{last_ffy}',
+  });
+  (dualLayoutBundle.surfaces[0]!.routes[0]!.slots[0]!.binding as { groups: any[] }).groups = [{
+    id: 'plan', label: 'Period plan',
+    forms: [
+      {
+        routeRef: 'plan', slotRef: 'form',
+        subject: [
+          { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' } },
+          { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' } },
+        ],
+      },
+      {
+        routeRef: 'plan-alt', slotRef: 'form',
+        subject: [
+          { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' } },
+          { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' } },
+        ],
+      },
+    ],
+  }];
+  const layoutComponent = (sectionId: string) => ({
+    $formspecComponent: '1.0' as const,
+    version: '1.0.0',
+    targetDefinition: { url: 'urn:period-plan' },
+    tree: {
+      component: 'Stack',
+      children: [{
+        component: 'Section', id: sectionId, title: sectionId,
+        children: [{ component: 'NumberInput', bind: 'details.amount' }],
+      }],
+    },
+  });
+  const seenSections: unknown[] = [];
+  const dualLayoutDom = render(<SurfaceApp
+    bundle={dualLayoutBundle}
+    location="/years/2025"
+    onNavigate={() => {}}
+    resolveDefinitionComponent={({ routeId }) =>
+      routeId === 'plan' ? layoutComponent('section-a') : layoutComponent('section-b')}
+    readSummaries={async qs => {
+      seenSections.push(...qs.map(q => q.sections));
+      return new Map(qs.map(q => [q.key, { ...match, ...absent }]));
+    }}
+  />);
+  await act(async () => {});
+  expect(seenSections.length).toBe(2);
+  expect(seenSections[0]).not.toEqual(seenSections[1]);
+  expect(dualLayoutDom.querySelector('a[href="/plans/2024/2026?slot=form"]')).not.toBeNull();
+  expect(dualLayoutDom.querySelector('a[href="/plans-alt/2024/2026?slot=form"]')).not.toBeNull();
+  expect(dualLayoutDom.querySelector('.fs-surface-filing__totals dd')?.textContent).toBe('0 of 1');
+
+  // Saved draft across two section layouts reports 1 of 1 in totals regardless of whether stale or current layout comes first.
+  for (const savedFirst of [true, false]) {
+    const orderedBundle = structuredClone(dualLayoutBundle);
+    if (!savedFirst) {
+      const forms = (orderedBundle.surfaces[0]!.routes[0]!.slots[0]!.binding as { groups: { forms: any[] }[] }).groups[0]!.forms;
+      forms.reverse();
+    }
+    const readStates: string[] = [];
+    const orderedDom = render(<SurfaceApp
+      bundle={orderedBundle}
+      location="/years/2025"
+      onNavigate={() => {}}
+      resolveDefinitionComponent={({ routeId }) =>
+        routeId === 'plan' ? layoutComponent('section-a') : layoutComponent('section-b')}
+      readSummaries={async qs => new Map(qs.map(q => {
+        const isCurrent = q.sections[0]?.id === 'section-a';
+        readStates.push(isCurrent ? 'current' : 'stale');
+        return [q.key, {
+          ...match,
+          draft: isCurrent
+            ? { status: 'current' as const, form: { total: 1, filled: 1, prefilled: 0, missing: 0, missingReadonly: 0, toFix: 0, toCheck: 0, ready: true }, sections: {} }
+            : { status: 'stale' as const },
+          filing: { status: 'none' as const },
+        }];
+      }))}
+    />);
+    await act(async () => {});
+    expect(readStates).toEqual(savedFirst ? ['current', 'stale'] : ['stale', 'current']);
+    expect(orderedDom.querySelector('.fs-surface-filing__totals dd')?.textContent, `savedFirst=${savedFirst}`).toBe('1 of 1');
+  }
+
+  // An untouched two-question unit across unequal layouts counts distinct authored field templates regardless of route order (0 of 2).
+  for (const mode of ['subset', 'disjoint'] as const) {
+    for (const largerFirst of [true, false]) {
+      const multiFieldBundle = structuredClone(dualLayoutBundle);
+      const planDef = multiFieldBundle.definitions.get('urn:period-plan')!;
+      const detailsGroup = planDef.items[0] as { children: unknown[] };
+      detailsGroup.children.push({ key: 'second', type: 'field', label: 'Second', dataType: 'integer' });
+      if (!largerFirst) {
+        const forms = (multiFieldBundle.surfaces[0]!.routes[0]!.slots[0]!.binding as { groups: { forms: any[] }[] }).groups[0]!.forms;
+        forms.reverse();
+      }
+      const multiFieldComponent = (sectionId: string, binds: readonly string[]) => ({
+        $formspecComponent: '1.0' as const,
+        version: '1.0.0',
+        targetDefinition: { url: 'urn:period-plan' },
+        tree: {
+          component: 'Stack',
+          children: [{
+            component: 'Section', id: sectionId, title: sectionId,
+            children: binds.map(bind => ({ component: 'NumberInput', bind })),
+          }],
+        },
+      });
+      const untouchedDom = render(<SurfaceApp
+        bundle={multiFieldBundle}
+        location="/years/2025"
+        onNavigate={() => {}}
+        resolveDefinitionComponent={({ routeId }) => routeId === 'plan'
+          ? multiFieldComponent('section-a', mode === 'subset' ? ['details.amount', 'details.second'] : ['details.amount'])
+          : multiFieldComponent('section-b', mode === 'subset' ? ['details.amount'] : ['details.second'])}
+        readSummaries={async qs => new Map(qs.map(q => [q.key, { ...match, ...absent }]))}
+      />);
+      await act(async () => {});
+      expect(
+        untouchedDom.querySelector('.fs-surface-filing__totals dd')?.textContent,
+        `mode=${mode}, largerFirst=${largerFirst}`,
+      ).toBe('0 of 2');
+    }
+  }
+});

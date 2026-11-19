@@ -2,6 +2,7 @@
 import { initFormspecEngine, initFormspecEngineTools, responseSubjectId } from '@formspec-org/engine';
 import * as browser from '../../../packages/formspec-surface-react/src/index';
 import type { FormDefinition, ResponseSelection, ResponseSelectionDelivery } from '@formspec-org/types';
+import { canonicalFiniteJson, prepareResponseFiling } from '../../../packages/formspec-surface/src/index';
 import { draftPortConformance } from '../../../packages/formspec-surface/src/draft-port-conformance';
 import { canonicalDraftProgress, type DraftKey } from '../../../packages/formspec-surface/src/draft-port';
 
@@ -1111,4 +1112,1318 @@ export async function saveOffPlanSectionKey(db: string) {
     protoForm: protoCopied?.form,
     protoSections: Object.keys(protoCopied?.sections ?? {}),
   };
+}
+
+export type VersionThreeUpgradeMode =
+  | 'valid-filing'
+  | 'valid-draft'
+  | 'valid-initialized-minted'
+  | 'valid-prepared-draft'
+  | 'valid-v2-through-v3'
+  | 'valid-historical-filing-new-subject'
+  | 'valid-implicit-missing-summary'
+  | 'valid-start-same-names-new-type'
+  | 'valid-start-real-restart'
+  | 'plan-extra-field'
+  | 'incomplete-filing'
+  | 'corrupt-filing'
+  | 'changed-answer'
+  | 'wrong-hash'
+  | 'orphan-with-start'
+  | 'wrong-draft-definition'
+  | 'wrong-snapshot-url'
+  | 'missing-snapshot-data'
+  | 'invalid-plan-id'
+  | 'start-wrong-definition'
+  | 'start-extra-issued-key'
+  | 'start-unknown-version'
+  | 'start-known-type-change'
+  | 'bad-pins'
+  | 'missing-revision'
+  | 'missing-snapshot'
+  | 'negative-count'
+  | 'missing-form'
+  | 'start-no-version'
+  | 'start-no-parents';
+
+export async function upgradeVersionThreeFiling(mode: VersionThreeUpgradeMode) {
+  const scope = 'edition-v3';
+  const definitionUrl = 'urn:test:v3-plan';
+  const otherDefinitionUrl = 'urn:test:v3-unrelated';
+  const databaseName = `formspec-v3-upgrade-${mode}`;
+  const isMinted = mode === 'valid-initialized-minted'
+    || mode === 'valid-start-same-names-new-type'
+    || mode === 'valid-start-real-restart'
+    || mode === 'orphan-with-start'
+    || mode === 'start-wrong-definition'
+    || mode === 'start-extra-issued-key'
+    || mode === 'start-unknown-version'
+    || mode === 'start-known-type-change'
+    || mode === 'start-no-version'
+    || mode === 'start-no-parents';
+  const isImplicit = mode === 'valid-v2-through-v3' || mode === 'valid-implicit-missing-summary';
+  const definitionV1: FormDefinition = {
+    $formspec: '1.0', url: definitionUrl, version, title: 'V3 Plan', items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+    ...(isImplicit ? {} : {
+      subject: {
+        type: definitionUrl,
+        keys: mode === 'start-extra-issued-key'
+          ? {
+              first_ffy: { dataType: 'integer' },
+              last_ffy: { dataType: 'integer' },
+              unit: { dataType: 'string', minted: true },
+              serial: { dataType: 'string', minted: true },
+            }
+          : isMinted
+            ? { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } }
+            : { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' } },
+      },
+    }),
+  };
+  const currentDefinition: FormDefinition = mode === 'valid-historical-filing-new-subject'
+    ? {
+        ...definitionV1,
+        version: '2.0.0',
+        subject: {
+          type: definitionUrl,
+          keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' }, region: { dataType: 'string' } },
+        },
+      }
+    : mode === 'valid-start-same-names-new-type'
+      ? {
+          ...definitionV1,
+          version: '2.0.0',
+          subject: {
+            type: definitionUrl,
+            keys: { first_ffy: { dataType: 'string' }, last_ffy: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } },
+          },
+        }
+      : mode === 'valid-start-real-restart'
+        ? { ...definitionV1, version: '2.0.0' }
+        : mode === 'start-extra-issued-key'
+          ? {
+              ...definitionV1,
+              subject: {
+                type: definitionUrl,
+                keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } },
+              },
+            }
+          : mode === 'start-known-type-change'
+            ? {
+                ...definitionV1,
+                subject: {
+                  type: 'urn:test:different-subject-type',
+                  keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } },
+                },
+              }
+            : definitionV1;
+  const otherDefinition: FormDefinition = {
+    $formspec: '1.0', url: otherDefinitionUrl, version, title: 'Unrelated Plan',
+    items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+  };
+  const tools = await browser.previewResponseRecordTools();
+  const keys = mode === 'start-extra-issued-key'
+    ? { first_ffy: 2024, last_ffy: 2026, unit: 'minted-v3-unit-1', serial: 'extra-serial-1' }
+    : isMinted
+      ? { first_ffy: 2024, last_ffy: 2026, unit: 'minted-v3-unit-1' }
+      : { first_ffy: 2024, last_ffy: 2026 };
+  const subject = isImplicit ? undefined : { type: definitionUrl, keys, id: tools.subjectId(definitionUrl, keys) };
+  const filingKey: DraftKey = { scope, definitionUrl, ...(subject ? { subject } : {}) };
+  const responseJson = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl, definitionVersion: version, status: 'completed',
+    id: 'urn:v3:filed', authored: '2026-01-19T00:00:00Z', ...(subject ? { subject } : {}), data: { answer: 'filed-in-v3' },
+  }, null, 2) + '\n';
+  const admittedFiling = prepareResponseFiling(
+    scope, new Map([[definitionUrl, definitionV1]]), responseJson, 'preview-submit', tools,
+  );
+  const realHash = admittedFiling.responseHash;
+  const draftResponseJson = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl, definitionVersion: version, status: 'in-progress',
+    id: 'urn:v3:draft', authored: '2026-01-18T00:00:00Z', ...(subject ? { subject } : {}), data: { answer: 'draft-in-v3' },
+  });
+  const preparedDraftJson = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl, definitionVersion: version, status: 'completed',
+    id: 'urn:v3:prepared', authored: '2026-01-18T00:00:00Z', ...(subject ? { subject } : {}), data: { answer: 'prepared-in-v3' },
+  });
+  const savedSummary = {
+    sections: [],
+    progress: {
+      status: 'current' as const,
+      form: { total: 1, filled: 1, prefilled: 0, missing: 0, missingReadonly: 0, toFix: 0, toCheck: 0, ready: true },
+      sections: {},
+    },
+  };
+  const startRequestFor = (url: string, requestFields?: Record<string, unknown>) => canonicalFiniteJson(
+    requestFields ?? { definitionUrl: url, version, type: definitionUrl, keys: { first_ffy: 2024, last_ffy: 2026 } },
+  );
+
+  await new Promise<void>((resolve, reject) => {
+    const del = indexedDB.deleteDatabase(databaseName);
+    del.onsuccess = () => resolve();
+    del.onerror = () => reject(del.error);
+  });
+  if (mode === 'valid-v2-through-v3') {
+    // Seed v2 respondent placeholder, then step through v2 -> v3 retaining it verbatim before v4 opens.
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open(databaseName, 2);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        const editable = db.createObjectStore('editable');
+        db.createObjectStore('summaries');
+        db.createObjectStore('filings');
+        editable.put({
+          definitionVersion: version,
+          revision: 'version-two-draft',
+          snapshotJson: '{}',
+          responseJson: '{}',
+          pinsJson: '{}',
+        }, [scope, definitionUrl, 'respondent', '']);
+      };
+      request.onsuccess = () => { request.result.close(); resolve(); };
+      request.onerror = () => reject(request.error);
+    });
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open(databaseName, 3);
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains('starts')) request.result.createObjectStore('starts');
+      };
+      request.onsuccess = () => { request.result.close(); resolve(); };
+      request.onerror = () => reject(request.error);
+    });
+  } else {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open(databaseName, 3);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        const editable = db.createObjectStore('editable');
+        const summaries = db.createObjectStore('summaries');
+        const filings = db.createObjectStore('filings');
+        const starts = db.createObjectStore('starts');
+        const storageKey = subject
+          ? [scope, definitionUrl, 'subject', subject.id]
+          : [scope, definitionUrl, 'respondent', ''];
+        const validEditable = {
+          definitionVersion: version,
+          revision: 'v3-rev-1',
+          snapshotJson: JSON.stringify({ definitionUrl, definitionVersion: version, data: { answer: 'draft-in-v3' } }),
+          responseJson: draftResponseJson,
+          pinsJson: '{}',
+        };
+        if (mode === 'valid-filing' || mode === 'valid-historical-filing-new-subject') {
+          filings.put({
+            key: filingKey,
+            definitionVersion: version,
+            responseJson,
+            responseId: 'urn:v3:filed',
+            responseHash: realHash,
+            sample: 'preview-submit',
+          }, [scope, 'urn:v3:filed']);
+        } else if (mode === 'valid-prepared-draft') {
+          editable.put({
+            ...validEditable,
+            revision: 'v3-prepared-1',
+            responseJson: preparedDraftJson,
+            snapshotJson: JSON.stringify({ definitionUrl, definitionVersion: version, data: { answer: 'prepared-in-v3' } }),
+          }, storageKey);
+          summaries.put({ definitionVersion: version, summary: null }, storageKey);
+        } else if (mode === 'valid-implicit-missing-summary') {
+          editable.put(validEditable, storageKey);
+        } else if (mode === 'changed-answer') {
+          filings.put({
+            key: filingKey,
+            definitionVersion: version,
+            responseJson: responseJson.replace('filed-in-v3', 'tampered-in-v3'),
+            responseId: 'urn:v3:filed',
+            responseHash: realHash,
+            sample: 'preview-submit',
+          }, [scope, 'urn:v3:filed']);
+        } else if (mode === 'wrong-hash') {
+          filings.put({
+            key: filingKey,
+            definitionVersion: version,
+            responseJson,
+            responseId: 'urn:v3:filed',
+            responseHash: 'sha256:' + 'b'.repeat(64),
+            sample: 'preview-submit',
+          }, [scope, 'urn:v3:filed']);
+        } else if (mode === 'valid-draft') {
+          editable.put(validEditable, storageKey);
+          summaries.put({ definitionVersion: version, summary: savedSummary }, storageKey);
+        } else if (mode === 'valid-initialized-minted' || mode === 'valid-start-same-names-new-type' || mode === 'start-extra-issued-key' || mode === 'start-known-type-change') {
+          starts.put({ request: startRequestFor(definitionUrl), subject: subject! }, [scope, 'attempt-1']);
+          editable.put({ definitionVersion: version, revision: 'v3-init-1', pinsJson: '{}' }, storageKey);
+          summaries.put({ definitionVersion: version, summary: null }, storageKey);
+        } else if (mode === 'valid-start-real-restart') {
+          starts.put({ request: startRequestFor(definitionUrl), subject: subject! }, [scope, 'attempt-1']);
+          editable.put({ definitionVersion: '2.0.0', revision: 'v3-restarted-2', pinsJson: '{}' }, storageKey);
+          summaries.put({ definitionVersion: '2.0.0', summary: null }, storageKey);
+        } else if (mode === 'start-unknown-version') {
+          starts.put({
+            request: startRequestFor(definitionUrl, {
+              definitionUrl, version: '9.0.0', type: definitionUrl, keys: { first_ffy: 2024, last_ffy: 2026 },
+            }),
+            subject: subject!,
+          }, [scope, 'attempt-1']);
+          editable.put({ definitionVersion: version, revision: 'v3-init-unknown-ver', pinsJson: '{}' }, storageKey);
+          summaries.put({ definitionVersion: version, summary: null }, storageKey);
+        } else if (mode === 'wrong-snapshot-url') {
+          editable.put({
+            ...validEditable,
+            snapshotJson: JSON.stringify({ definitionUrl: otherDefinitionUrl, definitionVersion: version, data: { answer: 'draft-in-v3' } }),
+          }, storageKey);
+          summaries.put({ definitionVersion: version, summary: savedSummary }, storageKey);
+        } else if (mode === 'missing-snapshot-data') {
+          editable.put({
+            ...validEditable,
+            snapshotJson: JSON.stringify({ definitionUrl, definitionVersion: version }),
+          }, storageKey);
+          summaries.put({ definitionVersion: version, summary: savedSummary }, storageKey);
+        } else if (mode === 'invalid-plan-id') {
+          editable.put(validEditable, storageKey);
+          summaries.put({
+            definitionVersion: version,
+            plans: [{ planId: 'non-digest', progress: savedSummary.progress }],
+          }, storageKey);
+        } else if (mode === 'plan-extra-field') {
+          editable.put(validEditable, storageKey);
+          summaries.put({
+            definitionVersion: version,
+            plans: [{
+              planId: 'sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945',
+              progress: { ...savedSummary.progress, reviewLabel: 'ordinary extra metadata' },
+            }],
+          }, storageKey);
+        } else if (mode === 'orphan-with-start') {
+          starts.put({ request: startRequestFor(definitionUrl), subject: subject! }, [scope, 'attempt-1']);
+          summaries.put({ definitionVersion: version, summary: savedSummary }, storageKey);
+        } else if (mode === 'wrong-draft-definition') {
+          editable.put({
+            definitionVersion: version,
+            revision: 'v3-rev-wrong',
+            snapshotJson: JSON.stringify({ definitionUrl: 'urn:test:other-plan', definitionVersion: version, data: { answer: 'draft-in-v3' } }),
+            responseJson: JSON.stringify({
+              $formspecResponse: '1.0', definitionUrl: 'urn:test:other-plan', definitionVersion: version, status: 'in-progress',
+              id: 'urn:v3:draft', authored: '2026-01-18T00:00:00Z', subject, data: { answer: 'draft-in-v3' },
+            }),
+            pinsJson: '{}',
+          }, storageKey);
+          summaries.put({ definitionVersion: version, summary: savedSummary }, storageKey);
+        } else if (mode === 'start-wrong-definition') {
+          starts.put({ request: startRequestFor('urn:test:other-plan'), subject: subject! }, [scope, 'attempt-1']);
+          editable.put({ definitionVersion: version, revision: 'v3-init-wrong', pinsJson: '{}' }, storageKey);
+          summaries.put({ definitionVersion: version, summary: null }, storageKey);
+        } else if (mode === 'start-no-version') {
+          starts.put({
+            request: startRequestFor(definitionUrl, { definitionUrl, type: definitionUrl, keys: { first_ffy: 2024, last_ffy: 2026 } }),
+            subject: subject!,
+          }, [scope, 'attempt-1']);
+          editable.put({ definitionVersion: version, revision: 'v3-init-noversion', pinsJson: '{}' }, storageKey);
+          summaries.put({ definitionVersion: version, summary: null }, storageKey);
+        } else if (mode === 'start-no-parents') {
+          starts.put({
+            request: startRequestFor(definitionUrl, { definitionUrl, version, type: definitionUrl, keys: {} }),
+            subject: subject!,
+          }, [scope, 'attempt-1']);
+          editable.put({ definitionVersion: version, revision: 'v3-init-noparents', pinsJson: '{}' }, storageKey);
+          summaries.put({ definitionVersion: version, summary: null }, storageKey);
+        } else if (mode === 'bad-pins') {
+          editable.put({ ...validEditable, pinsJson: '{bad' }, storageKey);
+          summaries.put({ definitionVersion: version, summary: savedSummary }, storageKey);
+        } else if (mode === 'missing-revision') {
+          const { revision: _rev, ...noRevision } = validEditable;
+          editable.put(noRevision, storageKey);
+          summaries.put({ definitionVersion: version, summary: savedSummary }, storageKey);
+        } else if (mode === 'missing-snapshot') {
+          const { snapshotJson: _snap, ...noSnapshot } = validEditable;
+          editable.put(noSnapshot, storageKey);
+          summaries.put({ definitionVersion: version, summary: savedSummary }, storageKey);
+        } else if (mode === 'negative-count') {
+          editable.put(validEditable, storageKey);
+          summaries.put({
+            definitionVersion: version,
+            summary: {
+              sections: [],
+              progress: { status: 'current', form: { total: -1, filled: 0, toFix: 0, toCheck: 0, ready: false }, sections: {} },
+            },
+          }, storageKey);
+        } else if (mode === 'missing-form') {
+          editable.put(validEditable, storageKey);
+          summaries.put({
+            definitionVersion: version,
+            summary: { sections: [], progress: { status: 'current', sections: {} } },
+          }, storageKey);
+        } else if (mode === 'incomplete-filing') {
+          filings.put({
+            key: filingKey,
+            definitionVersion: version,
+            authored: '2026-01-19T00:00:00Z',
+            responseId: 'urn:v3:filed',
+            responseHash: realHash,
+            sample: 'preview-submit',
+          }, [scope, 'urn:v3:filed']);
+        } else {
+          filings.put({ responseJson }, [scope, 'urn:v3:filed']);
+        }
+      };
+      request.onsuccess = () => { request.result.close(); resolve(); };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  const store = browser.createBrowserFilingStore({
+    scope,
+    databaseName,
+    definitions: new Map([[definitionUrl, currentDefinition], [otherDefinitionUrl, otherDefinition]]),
+  });
+  const reads = await store.drafts.readSummaries([
+    {
+      key: 'exact',
+      definitionUrl,
+      definitionVersion: currentDefinition.version,
+      ...(subject ? { subject: { type: definitionUrl, keys } } : {}),
+      sections: [],
+    },
+    ...(isImplicit ? [] : [{
+      key: 'range',
+      definitionUrl,
+      definitionVersion: currentDefinition.version,
+      sections: [],
+      subjectMatch: {
+        type: definitionUrl,
+        predicates: [
+          { key: 'first_ffy', op: 'le' as const, value: 2025 },
+          { key: 'last_ffy', op: 'ge' as const, value: 2025 },
+        ],
+      },
+    }]),
+    { key: 'other', definitionUrl: otherDefinitionUrl, definitionVersion: version, sections: [] },
+  ], { previewScope: scope, signal: new AbortController().signal });
+  const loaded = await store.drafts.load(filingKey, mode === 'valid-start-real-restart' ? '2.0.0' : version);
+  const selection = mode === 'valid-prepared-draft'
+    ? await store.responses.select([
+        {
+          key: 'current', scope, kind: 'definition', projection: ['answer'],
+          selection: { definition: { url: definitionUrl }, subject: [], status: 'current', cardinality: 'latest', pin: 'none', whenNone: 'empty' },
+        },
+        {
+          key: 'completed', scope, kind: 'definition', projection: ['answer'],
+          selection: { definition: { url: definitionUrl }, subject: [], status: 'completed', cardinality: 'latest', pin: 'none', whenNone: 'empty' },
+        },
+      ])
+    : undefined;
+  const dbVersion = await new Promise<number>((resolve, reject) => {
+    const req = indexedDB.open(databaseName);
+    req.onsuccess = () => { const v = req.result.version; req.result.close(); resolve(v); };
+    req.onerror = () => reject(req.error);
+  });
+  const rawSummaries = mode === 'plan-extra-field' ? await readRawStore(databaseName, 'summaries') : undefined;
+  return {
+    exact: reads.get('exact'),
+    range: reads.get('range'),
+    other: reads.get('other'),
+    loaded,
+    selectedCurrent: selection?.get('current'),
+    selectedCompleted: selection?.get('completed'),
+    dbVersion,
+    responseHash: realHash,
+    rawSummaries,
+  };
+}
+
+export async function upgradeMainFiveStoreV4Database() {
+  const scope = 'edition-main-v4';
+  const planUrl = 'urn:test:v4-plan';
+  const draftUrl = 'urn:test:v4-draft';
+  const databaseName = 'formspec-main-five-store-v4-upgrade';
+  const planDef: FormDefinition = {
+    $formspec: '1.0', url: planUrl, version, title: 'V4 Plan',
+    items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+    subject: { type: planUrl, keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' } } },
+  };
+  const draftDef: FormDefinition = {
+    $formspec: '1.0', url: draftUrl, version, title: 'V4 Draft',
+    items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+    subject: { type: draftUrl, keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' } } },
+  };
+  const definitions = new Map([[planUrl, planDef], [draftUrl, draftDef]]);
+  const tools = await browser.previewResponseRecordTools();
+  const planKeys = { first_ffy: 2024, last_ffy: 2026 };
+  const planSubject = { type: planUrl, keys: planKeys, id: tools.subjectId(planUrl, planKeys) };
+  const planKey: DraftKey = { scope, definitionUrl: planUrl, subject: planSubject };
+  const firstFilingJson = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl: planUrl, definitionVersion: version, status: 'completed',
+    id: 'urn:main-v4:receipt-1', authored: '2026-01-19T00:00:00Z', subject: planSubject, data: { answer: 'filed-in-main-v4' },
+  }, null, 2) + '\n';
+  const firstAdmitted = prepareResponseFiling(scope, definitions, firstFilingJson, 'preview-submit', tools);
+  const draftKeys = { first_ffy: 2027, last_ffy: 2029 };
+  const draftSubject = { type: draftUrl, keys: draftKeys, id: tools.subjectId(draftUrl, draftKeys) };
+  const draftResponseJson = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl: draftUrl, definitionVersion: version, status: 'in-progress',
+    id: 'urn:main-v4:draft-1', authored: '2026-01-20T00:00:00Z', subject: draftSubject, data: { answer: 'draft-in-main-v4' },
+  });
+  const emptySectionsPlanId = 'sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945';
+
+  await new Promise<void>((resolve, reject) => {
+    const del = indexedDB.deleteDatabase(databaseName);
+    del.onsuccess = () => resolve();
+    del.onerror = () => reject(del.error);
+  });
+  // Reproduce the exact 5-store version-4 database written by main (d3c2f6c91), without filingSummaries or summaries.subject.
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.open(databaseName, 4);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      const editable = db.createObjectStore('editable');
+      const summaries = db.createObjectStore('summaries');
+      const filings = db.createObjectStore('filings');
+      db.createObjectStore('starts');
+      const seeds = db.createObjectStore('seeds');
+      filings.put({
+        key: planKey,
+        definitionVersion: version,
+        responseId: 'urn:main-v4:receipt-1',
+        responseHash: firstAdmitted.responseHash,
+        responseJson: firstFilingJson,
+        authored: '2026-01-19T00:00:00Z',
+        sample: 'preview-submit',
+      }, [scope, 'urn:main-v4:receipt-1']);
+      const draftStorageKey = [scope, draftUrl, 'subject', draftSubject.id];
+      editable.put({
+        revision: 'main-v4-rev-1',
+        definitionVersion: version,
+        pinsJson: '{}',
+        responseJson: draftResponseJson,
+        snapshotJson: JSON.stringify({ definitionUrl: draftUrl, definitionVersion: version, data: { answer: 'draft-in-main-v4' } }),
+      }, draftStorageKey);
+      summaries.put({
+        definitionVersion: version,
+        plans: [{
+          planId: emptySectionsPlanId,
+          progress: {
+            status: 'current',
+            reviewLabel: 'extra-top',
+            form: { total: 1, filled: 1, toFix: 0, toCheck: 0, ready: true, reviewLabel: 'extra-form' },
+            sections: { 'first.answer': { total: 1, filled: 1, toFix: 0, toCheck: 0, reviewLabel: 'extra-section' } },
+          },
+        }],
+      }, draftStorageKey);
+      seeds.put({ seeded: true }, draftStorageKey);
+    };
+    req.onsuccess = () => { req.result.close(); resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+
+  const store = browser.createBrowserFilingStore({ scope, databaseName, definitions });
+  const ctx = { previewScope: scope, signal: new AbortController().signal };
+  const initialReads = await store.drafts.readSummaries([
+    { key: 'exactFiling', definitionUrl: planUrl, definitionVersion: version, subject: { type: planUrl, keys: planKeys }, sections: [] },
+    {
+      key: 'rangeFiling', definitionUrl: planUrl, definitionVersion: version, sections: [],
+      subjectMatch: {
+        type: planUrl,
+        predicates: [
+          { key: 'first_ffy', op: 'le', value: 2025 },
+          { key: 'last_ffy', op: 'ge', value: 2025 },
+        ],
+      },
+    },
+    { key: 'exactDraft', definitionUrl: draftUrl, definitionVersion: version, subject: { type: draftUrl, keys: draftKeys }, sections: [] },
+    {
+      key: 'rangeDraft', definitionUrl: draftUrl, definitionVersion: version, sections: [],
+      subjectMatch: {
+        type: draftUrl,
+        predicates: [
+          { key: 'first_ffy', op: 'le', value: 2028 },
+          { key: 'last_ffy', op: 'ge', value: 2028 },
+        ],
+      },
+    },
+  ], ctx);
+  const seedsBeforeSave = await readRawStore(databaseName, 'seeds');
+  const rawSummariesBeforeSave = await readRawStore(databaseName, 'summaries');
+
+  // Submit a second filing for the same period plan to prove filingSummaries writes succeed post-upgrade.
+  const secondDraftJson = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl: planUrl, definitionVersion: version, status: 'in-progress',
+    id: 'urn:main-v4:receipt-2', authored: '2026-02-01T00:00:00Z', subject: planSubject, data: { answer: 'second-filing' },
+  });
+  const saved = await store.drafts.save({
+    key: planKey, expectedRevision: null, definitionVersion: version,
+    snapshotJson: JSON.stringify({ definitionUrl: planUrl, definitionVersion: version, data: { answer: 'second-filing' } }),
+    responseJson: secondDraftJson, summary: null,
+  });
+  if (saved.status !== 'saved') throw new Error(`Expected saved second draft, got ${saved.status}`);
+  const secondFilingJson = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl: planUrl, definitionVersion: version, status: 'completed',
+    id: 'urn:main-v4:receipt-2', authored: '2026-02-01T00:00:00Z', subject: planSubject, data: { answer: 'second-filing' },
+  });
+  const secondFiling = await store.submit(
+    { key: planKey, definitionVersion: version, revision: saved.revision, responseJson: secondDraftJson },
+    secondFilingJson,
+  );
+  const afterReads = await store.drafts.readSummaries([
+    { key: 'afterSecond', definitionUrl: planUrl, definitionVersion: version, subject: { type: planUrl, keys: planKeys }, sections: [] },
+  ], ctx);
+
+  const meta = await new Promise<{ dbVersion: number; storeNames: string[] }>((resolve, reject) => {
+    const req = indexedDB.open(databaseName);
+    req.onsuccess = () => {
+      const db = req.result;
+      const out = { dbVersion: db.version, storeNames: Array.from(db.objectStoreNames) };
+      db.close();
+      resolve(out);
+    };
+    req.onerror = () => reject(req.error);
+  });
+  return {
+    dbVersion: meta.dbVersion,
+    storeNames: meta.storeNames,
+    firstHash: firstAdmitted.responseHash,
+    exactFiling: initialReads.get('exactFiling'),
+    rangeFiling: initialReads.get('rangeFiling'),
+    exactDraft: initialReads.get('exactDraft'),
+    rangeDraft: initialReads.get('rangeDraft'),
+    rawSummariesBeforeSave,
+    seedsCount: seedsBeforeSave.length,
+    secondFiling,
+    afterSecondFiling: afterReads.get('afterSecond'),
+  };
+}
+
+export async function upgradeMainSeededMintedDraft(restart: boolean, includeFixture = true) {
+  const databaseName = `formspec-main-seeded-minted-${restart}-${includeFixture}-${crypto.randomUUID()}`;
+  const scope = 'edition';
+  const url = 'urn:synthetic:seed';
+  const otherUrl = 'urn:synthetic:other';
+  const subjectInput = { type: 'urn:synthetic:unit', keys: { unit: 'fixed-id' } };
+  const definition: FormDefinition = {
+    $formspec: '1.0', url, version, title: 'Sample',
+    items: [{ key: 'x', type: 'field', dataType: 'string' }],
+    subject: { type: subjectInput.type, keys: { unit: { dataType: 'string', minted: true } } },
+  };
+  const otherDef: FormDefinition = {
+    $formspec: '1.0', url: otherUrl, version, title: 'Other',
+    items: [{ key: 'y', type: 'field', dataType: 'string' }],
+  };
+  const tools = await browser.previewResponseRecordTools();
+  const subject = { ...subjectInput, id: tools.subjectId(subjectInput.type, subjectInput.keys) };
+  const draftKey: DraftKey = { scope, definitionUrl: url, subject };
+  const storageKey = [scope, url, 'subject', subject.id];
+
+  // Reproduce the exact 5-store v4 database written by main (d3c2f6c91) when a seeded minted draft is saved or restarted.
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.open(databaseName, 4);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      const editable = db.createObjectStore('editable');
+      const summaries = db.createObjectStore('summaries');
+      db.createObjectStore('filings');
+      db.createObjectStore('starts');
+      const seeds = db.createObjectStore('seeds');
+      if (restart) {
+        editable.put({ revision: 'main-restarted-rev', definitionVersion: version, pinsJson: '{}' }, storageKey);
+        summaries.put({ definitionVersion: version, plans: null }, storageKey);
+      } else {
+        const responseJson = JSON.stringify({
+          $formspecResponse: '1.0', id: 'urn:synthetic:sample', definitionUrl: url, definitionVersion: version,
+          status: 'in-progress', authored: '2026-01-01T00:00:00Z', subject, data: { x: 'saved' },
+        });
+        editable.put({
+          revision: 'main-seeded-rev',
+          definitionVersion: version,
+          pinsJson: '{}',
+          responseJson,
+          snapshotJson: JSON.stringify({ definitionUrl: url, definitionVersion: version, data: { x: 'saved' } }),
+        }, storageKey);
+        summaries.put({ definitionVersion: version, plans: null }, storageKey);
+      }
+      seeds.put({ seeded: true }, storageKey);
+    };
+    req.onsuccess = () => { req.result.close(); resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+
+  const store = browser.createBrowserFilingStore({
+    scope,
+    databaseName,
+    definitions: new Map([[url, definition], [otherUrl, otherDef]]),
+    ...(includeFixture
+      ? { fixtures: { drafts: [{ definitionUrl: url, responseId: 'urn:synthetic:sample', data: { x: 'saved' }, subject: subjectInput }] } }
+      : {}),
+  });
+  const loaded = await store.drafts.load(draftKey, version);
+  const other = await store.drafts.load({ scope, definitionUrl: otherUrl }, version);
+  const summaryReads = await store.drafts.readSummaries([
+    { key: 'exact', definitionUrl: url, definitionVersion: version, subject: subjectInput, sections: [] },
+    {
+      key: 'range', definitionUrl: url, definitionVersion: version, sections: [],
+      subjectMatch: { type: subjectInput.type, predicates: [{ key: 'unit', op: 'eq', value: 'fixed-id' }] },
+    },
+  ], { previewScope: scope, signal: new AbortController().signal });
+  const dbVersion = await new Promise<number>((resolve, reject) => {
+    const req = indexedDB.open(databaseName);
+    req.onsuccess = () => { const v = req.result.version; req.result.close(); resolve(v); };
+    req.onerror = () => reject(req.error);
+  });
+  const seeds = await readRawStore(databaseName, 'seeds');
+  return {
+    dbVersion,
+    loaded: loaded.status,
+    other: other.status,
+    exact: summaryReads.get('exact'),
+    range: summaryReads.get('range'),
+    seedsCount: seeds.length,
+  };
+}
+
+export async function upgradeMainV4VersionPath({
+  issued,
+  active,
+  algorithm,
+  restart,
+  altered,
+  foreign,
+  save,
+  activeAlgorithm,
+  legacyV3Summary,
+  editableVersion,
+}: {
+  issued: string;
+  active: string;
+  algorithm: NonNullable<FormDefinition['versionAlgorithm']>;
+  restart: boolean;
+  altered?: string | undefined;
+  foreign?: boolean | undefined;
+  save?: boolean | undefined;
+  activeAlgorithm?: NonNullable<FormDefinition['versionAlgorithm']> | undefined;
+  legacyV3Summary?: boolean | undefined;
+  editableVersion?: string | undefined;
+}) {
+  const scope = 'synthetic';
+  const databaseName = `formspec-v4-version-${crypto.randomUUID()}`;
+  const url = 'urn:versions:plan';
+  const otherUrl = 'urn:versions:sibling';
+  const makeDef = (ver: string, alg: NonNullable<FormDefinition['versionAlgorithm']> = algorithm): FormDefinition => ({
+    $formspec: '1.0', url, version: ver, versionAlgorithm: alg, title: 'Synthetic plan', items: [],
+    subject: { type: url, keys: { year: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } } },
+  });
+  const otherDef: FormDefinition = {
+    $formspec: '1.0', url: otherUrl, version: '1.0.0', title: 'Sibling', items: [],
+  };
+  const tools = await browser.previewResponseRecordTools();
+  const mintedKeys = { year: 2025, unit: 'minted-unit-1' };
+  const subject = { type: url, keys: mintedKeys, id: tools.subjectId(url, mintedKeys) };
+  const draftKey: DraftKey = { scope, definitionUrl: url, subject };
+  const storageKey = [scope, url, 'subject', subject.id];
+  const storedEditableVersion = editableVersion ?? (restart ? active : issued);
+  const startRequestVersion = altered ?? issued;
+  const startRequest = canonicalFiniteJson({
+    definitionUrl: url,
+    version: startRequestVersion,
+    type: url,
+    keys: { year: 2025 },
+  });
+
+  // Reproduce the exact 5-store v4 state written by main (d3c2f6c91) for start(), restart(), save(), or v3->v4 bridge.
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.open(databaseName, 4);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      const editable = db.createObjectStore('editable');
+      const summaries = db.createObjectStore('summaries');
+      db.createObjectStore('filings');
+      const starts = db.createObjectStore('starts');
+      const seeds = db.createObjectStore('seeds');
+      starts.put({ request: startRequest, subject }, [scope, 'one']);
+      if (save) {
+        const responseJson = JSON.stringify({
+          $formspecResponse: '1.0', id: 'urn:test:saved', definitionUrl: url, definitionVersion: storedEditableVersion,
+          status: 'in-progress', authored: '2026-01-01T00:00:00Z', subject, data: {},
+        });
+        editable.put({
+          revision: 'main-v4-saved-rev',
+          definitionVersion: storedEditableVersion,
+          pinsJson: '{}',
+          responseJson,
+          snapshotJson: JSON.stringify({ definitionUrl: url, definitionVersion: storedEditableVersion, data: {} }),
+        }, storageKey);
+      } else {
+        editable.put({ revision: 'main-v4-rev', definitionVersion: storedEditableVersion, pinsJson: '{}' }, storageKey);
+      }
+      if (legacyV3Summary) {
+        summaries.put({ definitionVersion: storedEditableVersion, summary: null }, storageKey);
+      } else {
+        summaries.put({ definitionVersion: storedEditableVersion, plans: null }, storageKey);
+      }
+      if (restart || save) seeds.put({ seeded: true }, storageKey);
+    };
+    req.onsuccess = () => { req.result.close(); resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+
+  const openScope = foreign ? 'synthetic-neighbor' : scope;
+  const activeDef = makeDef(active, activeAlgorithm ?? algorithm);
+  const store = browser.createBrowserFilingStore({
+    scope: openScope,
+    databaseName,
+    definitions: new Map([[url, activeDef], [otherUrl, otherDef]]),
+  });
+  const sibling = await store.drafts.load({ scope: openScope, definitionUrl: otherUrl }, '1.0.0');
+  const load = await store.drafts.load(draftKey, active);
+  const retry = await store.drafts.start({
+    scope, definitionUrl: url, definitionVersion: active, attemptId: 'one',
+    subject: { type: url, keys: { year: 2025 } },
+  });
+  const facts = !foreign
+    ? await store.drafts.readSummaries([
+        { key: 'exact', definitionUrl: url, definitionVersion: active, subject: { type: url, keys: mintedKeys }, sections: [] },
+        {
+          key: 'range', definitionUrl: url, definitionVersion: active, sections: [],
+          subjectMatch: { type: url, predicates: [{ key: 'year', op: 'eq', value: 2025 }] },
+        },
+      ], { previewScope: scope, signal: new AbortController().signal })
+    : undefined;
+  const currentSelect = !foreign
+    ? (await store.responses.select([{
+        key: 'current',
+        kind: 'definition',
+        scope,
+        selection: { definition: { url }, subject: [], status: 'current', cardinality: 'latest', pin: 'none', whenNone: 'empty' },
+      }])).get('current')
+    : undefined;
+  const quarantinedRestart = !foreign && load.status === 'unavailable'
+    ? (await store.drafts.restart(draftKey, save ? 'main-v4-saved-rev' : 'main-v4-rev')).status
+    : undefined;
+  const dbVersion = await new Promise<number>((resolve, reject) => {
+    const req = indexedDB.open(databaseName);
+    req.onsuccess = () => { const v = req.result.version; req.result.close(); resolve(v); };
+    req.onerror = () => reject(req.error);
+  });
+  return {
+    dbVersion,
+    sibling: sibling.status,
+    load: load.status,
+    retry: retry.status,
+    exact: facts?.get('exact'),
+    range: facts?.get('range'),
+    currentSelect: currentSelect?.status,
+    quarantinedRestart,
+  };
+}
+
+export type SeededEdgeMode =
+  | 'range-unresolved'
+  | 'two'
+  | 'no-marker'
+  | 'no-marker-fixture'
+  | 'bad-marker'
+  | 'bad-address'
+  | 'edition-return'
+  | 'edition-return-filing';
+
+export async function upgradeMainSeededEdgeCase(mode: SeededEdgeMode) {
+  const scope = 'synthetic';
+  const databaseName = `formspec-seeded-edge-${mode}-${crypto.randomUUID()}`;
+  const url = 'urn:review:plan';
+  const otherUrl = 'urn:review:other';
+  const makeSubjectInput = (unit: string) => ({ type: url, keys: { year: 2025, unit } });
+  const planDef: FormDefinition = {
+    $formspec: '1.0', url, version, title: 'Synthetic plan',
+    items: [{ key: 'x', type: 'field', dataType: 'string' }],
+    subject: { type: url, keys: { year: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } } },
+  };
+  const otherDef: FormDefinition = {
+    $formspec: '1.0', url: otherUrl, version, title: 'Sibling',
+    items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+  };
+  const definitions = new Map([[url, planDef], [otherUrl, otherDef]]);
+  const tools = await browser.previewResponseRecordTools();
+  const firstInput = makeSubjectInput('first');
+  const firstSubject = { ...firstInput, id: tools.subjectId(firstInput.type, firstInput.keys) };
+  const firstKey: DraftKey = { scope, definitionUrl: url, subject: firstSubject };
+  const firstStorageKey = [scope, url, 'subject', firstSubject.id];
+  const secondInput = makeSubjectInput('second');
+  const secondSubject = { ...secondInput, id: tools.subjectId(secondInput.type, secondInput.keys) };
+  const secondStorageKey = [scope, url, 'subject', secondSubject.id];
+  const firstRevision = 'main-v4-restarted-rev-1';
+  const firstFilingJson = JSON.stringify({
+    $formspecResponse: '1.0', id: 'urn:synthetic:first', definitionUrl: url, definitionVersion: version,
+    status: 'completed', authored: '2026-01-01T00:00:00Z', subject: firstSubject, data: { x: 'saved' },
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.open(databaseName, 4);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      const editable = db.createObjectStore('editable');
+      const summaries = db.createObjectStore('summaries');
+      db.createObjectStore('filings');
+      db.createObjectStore('starts');
+      const seeds = db.createObjectStore('seeds');
+      const targetStorageKey = mode === 'bad-address' ? [scope, url, 'subject', ''] : firstStorageKey;
+      editable.put({ revision: firstRevision, definitionVersion: version, pinsJson: '{}' }, targetStorageKey);
+      summaries.put({ definitionVersion: version, plans: null }, targetStorageKey);
+      if (mode === 'bad-marker') {
+        seeds.put({ seeded: false }, targetStorageKey);
+      } else if (mode !== 'no-marker' && mode !== 'no-marker-fixture') {
+        seeds.put({ seeded: true }, targetStorageKey);
+      }
+      if (mode === 'two') {
+        const secondResp = JSON.stringify({
+          $formspecResponse: '1.0', id: 'urn:synthetic:second', definitionUrl: url, definitionVersion: version,
+          status: 'in-progress', authored: '2026-01-02T00:00:00Z', subject: secondSubject, data: { x: 'second' },
+        });
+        editable.put({
+          revision: 'main-v4-second-rev', definitionVersion: version, pinsJson: '{}',
+          responseJson: secondResp,
+          snapshotJson: JSON.stringify({ definitionUrl: url, definitionVersion: version, data: { x: 'second' } }),
+        }, secondStorageKey);
+        summaries.put({ definitionVersion: version, plans: null }, secondStorageKey);
+        seeds.put({ seeded: true }, secondStorageKey);
+      }
+    };
+    req.onsuccess = () => { req.result.close(); resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+
+  if (mode === 'edition-return' || mode === 'edition-return-filing') {
+    const siblingEdition = browser.createBrowserFilingStore({ scope: 'neighbor', databaseName, definitions });
+    const sibCheck = await siblingEdition.drafts.load({ scope: 'neighbor', definitionUrl: otherUrl }, version);
+    if (sibCheck.status !== 'absent') throw new Error(`Expected neighbor absent, got ${sibCheck.status}`);
+  }
+
+  const fixtures = mode === 'no-marker-fixture' || mode === 'edition-return'
+    ? { drafts: [{ definitionUrl: url, responseId: 'urn:synthetic:first', data: { x: 'saved' }, subject: firstInput }] }
+    : mode === 'edition-return-filing'
+      ? { filings: [{ responseJson: firstFilingJson }] }
+      : undefined;
+
+  const store = browser.createBrowserFilingStore({ scope, databaseName, definitions, ...(fixtures ? { fixtures } : {}) });
+  const sibling = await store.drafts.load({ scope, definitionUrl: otherUrl }, version);
+  const load = await store.drafts.load(firstKey, version);
+  const facts = await store.drafts.readSummaries([
+    { key: 'exact', definitionUrl: url, definitionVersion: version, subject: firstInput, sections: [] },
+    {
+      key: 'range', definitionUrl: url, definitionVersion: version, sections: [],
+      subjectMatch: { type: url, predicates: [{ key: 'year', op: 'eq', value: 2025 }] },
+    },
+  ], { previewScope: scope, signal: new AbortController().signal });
+  const dbMeta = await new Promise<{ version: number; editable?: Record<string, unknown>; summary?: Record<string, unknown>; seed?: unknown }>((resolve, reject) => {
+    const req = indexedDB.open(databaseName);
+    req.onsuccess = async () => {
+      const db = req.result;
+      try {
+        const readKey = mode === 'bad-address' ? [scope, url, 'subject', ''] : firstStorageKey;
+        const tx = db.transaction(['editable', 'summaries', 'seeds']);
+        const getOne = (name: string) => new Promise<unknown>((res, rej) => {
+          const r = tx.objectStore(name).get(readKey);
+          r.onsuccess = () => res(r.result);
+          r.onerror = () => rej(r.error);
+        });
+        const [ed, sum, sd] = await Promise.all([getOne('editable'), getOne('summaries'), getOne('seeds')]);
+        resolve({ version: db.version, editable: ed as Record<string, unknown>, summary: sum as Record<string, unknown>, seed: sd });
+      } finally {
+        db.close();
+      }
+    };
+    req.onerror = () => reject(req.error);
+  });
+  return {
+    originalRevision: firstRevision,
+    dbVersion: dbMeta.version,
+    editable: dbMeta.editable,
+    summary: dbMeta.summary,
+    seed: dbMeta.seed,
+    sibling: sibling.status,
+    load: load.status,
+    exact: facts.get('exact'),
+    range: facts.get('range'),
+  };
+}
+
+export async function coldDirectBrowserRead() {
+  const scope = 'edition-cold-browser';
+  const definitionUrl = 'urn:test:cold-plan';
+  const databaseName = 'formspec-cold-direct-browser';
+  const period = { start_year: 2024, end_year: 2026 };
+  const subjectId = 'a39ce4358f5efbd713b748be196fb4978d0763a8f638a5df846c2d5295c15876';
+  const sentinel = 'cold-browser-secret';
+  const definition: FormDefinition = {
+    $formspec: '1.0', url: definitionUrl, version, title: 'Cold Plan',
+    items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+    subject: { type: definitionUrl, keys: { start_year: { dataType: 'integer' }, end_year: { dataType: 'integer' } } },
+  };
+  const responseJson = JSON.stringify({
+    $formspecResponse: '1.0', definitionUrl, definitionVersion: version, status: 'completed',
+    id: 'urn:cold:browser-direct', authored: '2026-01-01T00:00:00Z',
+    subject: { id: subjectId, type: definitionUrl, keys: period },
+    data: { answer: sentinel },
+  }, null, 2) + '\n';
+  await new Promise<void>((resolve, reject) => {
+    const del = indexedDB.deleteDatabase(databaseName);
+    del.onsuccess = () => resolve();
+    del.onerror = () => reject(del.error);
+  });
+  const getAllStores: string[] = [];
+  const origGetAll = IDBObjectStore.prototype.getAll;
+  IDBObjectStore.prototype.getAll = function (...args) {
+    if (this.transaction.db.name === databaseName) {
+      getAllStores.push(this.name);
+    }
+    return origGetAll.apply(this, args);
+  };
+  let phase: 'construct' | 'read' = 'construct';
+  let rawJsonParseDuringRead = 0;
+  const origJsonParse = JSON.parse;
+  JSON.parse = function (text, reviver) {
+    if (phase === 'read' && typeof text === 'string' && text.includes(sentinel)) {
+      rawJsonParseDuringRead += 1;
+    }
+    return origJsonParse.call(this, text, reviver);
+  };
+  try {
+    const store = browser.createBrowserFilingStore({
+      scope, databaseName, definitions: new Map([[definitionUrl, definition]]),
+      fixtures: { filings: [{ responseJson }] },
+    });
+    phase = 'read';
+    const observations = await store.drafts.readSummaries([{
+      key: 'range', definitionUrl, definitionVersion: version, sections: [],
+      subjectMatch: {
+        type: definitionUrl,
+        predicates: [
+          { key: 'start_year', op: 'le', value: 2025 },
+          { key: 'end_year', op: 'ge', value: 2025 },
+        ],
+      },
+    }], { previewScope: scope, signal: new AbortController().signal });
+    return { observation: observations.get('range'), getAllStores, rawJsonParseDuringRead };
+  } finally {
+    IDBObjectStore.prototype.getAll = origGetAll;
+    JSON.parse = origJsonParse;
+  }
+}
+
+export type QuarantineHistoryMode =
+  | 'integer-untouched'
+  | 'integer-restarted'
+  | 'integer-restarted-historical'
+  | 'owned-fixture-marker'
+  | 'restart'
+  | 'restart-save'
+  | 'bridge-ready';
+
+export async function upgradeMainV4QuarantineScope(mode: QuarantineHistoryMode) {
+  const scope = 'review9';
+  const databaseName = `formspec-r9-quarantine-${mode}-${crypto.randomUUID()}`;
+  const planUrl = 'urn:r9:plan';
+  const siblingUrl = 'urn:r9:sibling';
+  const subjectType = 'urn:r9:period';
+  const planDef: FormDefinition = {
+    $formspec: '1.0', url: planUrl, version: '2.0.0', versionAlgorithm: 'semver', title: 'Plan',
+    items: [{ key: 'x', type: 'field', dataType: 'string' }],
+    subject: { type: subjectType, keys: { year: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } } },
+  };
+  const siblingDef: FormDefinition = {
+    $formspec: '1.0', url: siblingUrl, version: '1.0.0', versionAlgorithm: 'semver', title: 'Sibling',
+    items: [{ key: 'x', type: 'field', dataType: 'string' }],
+  };
+  const definitions = new Map([[planUrl, planDef], [siblingUrl, siblingDef]]);
+  const tools = await browser.previewResponseRecordTools();
+  const unit1Keys = { year: 2025, unit: 'unit-one' };
+  const unit1 = { type: subjectType, keys: unit1Keys, id: tools.subjectId(subjectType, unit1Keys) };
+  const unit1Key: DraftKey = { scope, definitionUrl: planUrl, subject: unit1 };
+  const unit1RowKey = [scope, planUrl, 'subject', unit1.id];
+  const unit2Keys = { year: 2026, unit: 'unit-healthy' };
+  const unit2 = { type: subjectType, keys: unit2Keys, id: tools.subjectId(subjectType, unit2Keys) };
+  const unit2RowKey = [scope, planUrl, 'subject', unit2.id];
+  const siblingRowKey = [scope, siblingUrl, 'respondent', ''];
+  const siblingKey: DraftKey = { scope, definitionUrl: siblingUrl };
+
+  const startPin = mode.startsWith('integer') ? '009' : '1.0.0';
+  const editablePin = mode === 'integer-untouched' ? '009' : mode === 'integer-restarted-historical' ? '010' : '2.0.0';
+  const originalRev = 'r9-unit1-rev';
+  const hasSeedMarker = mode !== 'integer-untouched' && mode !== 'bridge-ready';
+  const hasResponse = mode === 'restart-save';
+  const unit1ResponseJson = JSON.stringify({
+    $formspecResponse: '1.0', id: 'urn:r9:own', definitionUrl: planUrl, definitionVersion: editablePin,
+    authored: '2026-01-01T00:00:00Z', status: 'in-progress', subject: unit1, data: { x: 'own' },
+  });
+  const unit2ResponseJson = JSON.stringify({
+    $formspecResponse: '1.0', id: 'urn:r9:healthy', definitionUrl: planUrl, definitionVersion: '2.0.0',
+    authored: '2026-01-01T00:00:00Z', status: 'in-progress', subject: unit2, data: { x: 'healthy' },
+  });
+  const siblingResponseJson = JSON.stringify({
+    $formspecResponse: '1.0', id: 'urn:r9:sib', definitionUrl: siblingUrl, definitionVersion: '1.0.0',
+    authored: '2026-01-01T00:00:00Z', status: 'in-progress', data: { x: 'kept' },
+  });
+  const priorFilingJson = JSON.stringify({
+    $formspecResponse: '1.0', id: 'urn:r9:prior-receipt', definitionUrl: planUrl, definitionVersion: '2.0.0',
+    authored: '2026-01-01T00:00:00Z', status: 'completed', subject: unit1, data: { x: 'filed' },
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.open(databaseName, 4);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      const editable = db.createObjectStore('editable');
+      const summaries = db.createObjectStore('summaries');
+      db.createObjectStore('filings');
+      const starts = db.createObjectStore('starts');
+      const seeds = db.createObjectStore('seeds');
+      starts.put({
+        request: canonicalFiniteJson({ definitionUrl: planUrl, version: startPin, type: subjectType, keys: { year: 2025 } }),
+        subject: unit1,
+      }, [scope, 'first']);
+      if (hasResponse) {
+        editable.put({
+          revision: originalRev, definitionVersion: editablePin, pinsJson: '{}',
+          responseJson: unit1ResponseJson,
+          snapshotJson: JSON.stringify({ definitionUrl: planUrl, definitionVersion: editablePin, data: { x: 'own' } }),
+        }, unit1RowKey);
+      } else {
+        editable.put({ revision: originalRev, definitionVersion: editablePin, pinsJson: '{}' }, unit1RowKey);
+      }
+      summaries.put({ definitionVersion: editablePin, plans: null }, unit1RowKey);
+      if (hasSeedMarker) seeds.put({ seeded: true }, unit1RowKey);
+
+      // Healthy second unit on the SAME Definition.
+      starts.put({
+        request: canonicalFiniteJson({ definitionUrl: planUrl, version: '2.0.0', type: subjectType, keys: { year: 2026 } }),
+        subject: unit2,
+      }, [scope, 'second']);
+      editable.put({
+        revision: 'r9-unit2-rev', definitionVersion: '2.0.0', pinsJson: '{}',
+        responseJson: unit2ResponseJson,
+        snapshotJson: JSON.stringify({ definitionUrl: planUrl, definitionVersion: '2.0.0', data: { x: 'healthy' } }),
+      }, unit2RowKey);
+      summaries.put({ definitionVersion: '2.0.0', plans: null }, unit2RowKey);
+      seeds.put({ seeded: true }, unit2RowKey);
+
+      // Saved sibling on an unrelated Definition.
+      editable.put({
+        revision: 'r9-sib-rev', definitionVersion: '1.0.0', pinsJson: '{}',
+        responseJson: siblingResponseJson,
+        snapshotJson: JSON.stringify({ definitionUrl: siblingUrl, definitionVersion: '1.0.0', data: { x: 'kept' } }),
+      }, siblingRowKey);
+      summaries.put({ definitionVersion: '1.0.0', plans: null }, siblingRowKey);
+      seeds.put({ seeded: true }, siblingRowKey);
+    };
+    req.onsuccess = () => { req.result.close(); resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+
+  const store = browser.createBrowserFilingStore({
+    scope,
+    databaseName,
+    definitions,
+    fixtures: { filings: [{ responseJson: priorFilingJson }] },
+  });
+  const sibling = await store.drafts.load(siblingKey, '1.0.0');
+  const load = await store.drafts.load(unit1Key, '2.0.0');
+  const retry = await store.drafts.start({
+    scope, definitionUrl: planUrl, definitionVersion: '2.0.0', attemptId: 'first',
+    subject: { type: subjectType, keys: { year: 2025 } },
+  });
+  const facts = await store.drafts.readSummaries([
+    { key: 'exact', definitionUrl: planUrl, definitionVersion: '2.0.0', subject: { type: subjectType, keys: unit1Keys }, sections: [] },
+    {
+      key: 'badRange', definitionUrl: planUrl, definitionVersion: '2.0.0', sections: [],
+      subjectMatch: { type: subjectType, predicates: [{ key: 'year', op: 'eq', value: 2025 }] },
+    },
+    {
+      key: 'goodRange', definitionUrl: planUrl, definitionVersion: '2.0.0', sections: [],
+      subjectMatch: { type: subjectType, predicates: [{ key: 'year', op: 'eq', value: 2026 }] },
+    },
+  ], { previewScope: scope, signal: new AbortController().signal });
+  const selectReq = (key: string, consumerSubject: Record<string, string | number>, status: 'current' | 'completed') => ({
+    key, kind: 'definition' as const, scope, consumerSubject, projection: ['x'],
+    selection: {
+      definition: { url: planUrl },
+      subject: [{ key: 'unit', op: 'eq' as const, from: { subject: 'unit' } }],
+      status, cardinality: 'latest' as const, pin: 'none' as const, whenNone: 'empty' as const,
+    },
+  });
+  const selected = await store.responses.select([
+    selectReq('healthy', unit2Keys, 'current'),
+    selectReq('ownCurrent', unit1Keys, 'current'),
+    selectReq('ownCompleted', unit1Keys, 'completed'),
+  ]);
+  const openingResponseJson = JSON.stringify({
+    $formspecResponse: '1.0', id: 'urn:r9:own', definitionUrl: planUrl, definitionVersion: '2.0.0',
+    authored: '2026-01-01T00:00:00Z', status: 'in-progress', subject: unit1, data: { x: 'own' },
+  });
+  const saveAttempt = load.status === 'unavailable'
+    ? (await store.drafts.save({
+        key: unit1Key, expectedRevision: originalRev, definitionVersion: '2.0.0',
+        responseJson: openingResponseJson,
+        snapshotJson: JSON.stringify({ definitionUrl: planUrl, definitionVersion: '2.0.0', data: { x: 'own' } }),
+        summary: null,
+      })).status
+    : undefined;
+  const restartAttempt = load.status === 'unavailable'
+    ? (await store.drafts.restart(unit1Key, originalRev)).status
+    : undefined;
+  const submitAttempt = load.status === 'unavailable'
+    ? (await store.submit(
+        { key: unit1Key, definitionVersion: '2.0.0', revision: originalRev, responseJson: openingResponseJson },
+        priorFilingJson,
+      )).status
+    : undefined;
+  const dbMeta = await new Promise<{ version: number; editable?: Record<string, unknown>; summary?: Record<string, unknown> }>((resolve, reject) => {
+    const req = indexedDB.open(databaseName);
+    req.onsuccess = async () => {
+      const db = req.result;
+      try {
+        const tx = db.transaction(['editable', 'summaries']);
+        const getOne = (name: string) => new Promise<unknown>((res, rej) => {
+          const r = tx.objectStore(name).get(unit1RowKey);
+          r.onsuccess = () => res(r.result);
+          r.onerror = () => rej(r.error);
+        });
+        const [ed, sum] = await Promise.all([getOne('editable'), getOne('summaries')]);
+        resolve({ version: db.version, editable: ed as Record<string, unknown>, summary: sum as Record<string, unknown> });
+      } finally {
+        db.close();
+      }
+    };
+    req.onerror = () => reject(req.error);
+  });
+  return {
+    version: dbMeta.version,
+    revisionRetained: dbMeta.editable?.revision === originalRev,
+    flags: [dbMeta.editable?.unverifiedStartHistory, dbMeta.summary?.unverifiedStartHistory],
+    siblingAnswer: sibling.status === 'loaded' ? (JSON.parse(sibling.draft.responseJson) as { data: { x: string } }).data.x : null,
+    load: load.status,
+    retry: retry.status,
+    save: saveAttempt,
+    restart: restartAttempt,
+    submit: submitAttempt,
+    exact: facts.get('exact'),
+    range: facts.get('badRange'),
+    goodRange: facts.get('goodRange')?.subjectMatch,
+    healthySelection: selected.get('healthy'),
+    ownCurrent: selected.get('ownCurrent')?.status,
+    ownCompleted: selected.get('ownCompleted'),
+  };
+}
+
+export async function upgradeMainUnresolvedTypeChange(mode: 'compatible' | 'historical-type-change') {
+  const scope = 'review9-range';
+  const databaseName = `formspec-r9-range-${mode}-${crypto.randomUUID()}`;
+  const sourceUrl = 'urn:r9:source';
+  const targetUrl = 'urn:r9:target';
+  const unrelatedUrl = 'urn:r9:unrelated';
+  const sharedType = 'urn:r9:period';
+  const makeDef = (url: string, ver: string, subjectType: string): FormDefinition => ({
+    $formspec: '1.0', url, version: ver, versionAlgorithm: 'semver', title: url,
+    items: [{ key: 'x', type: 'field', dataType: 'string' }],
+    subject: { type: subjectType, keys: { year: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } } },
+  });
+  const tools = await browser.previewResponseRecordTools();
+  const unit1 = { type: sharedType, keys: { year: 2025, unit: 'first' }, id: tools.subjectId(sharedType, { year: 2025, unit: 'first' }) };
+  const unit2 = { type: sharedType, keys: { year: 2025, unit: 'second' }, id: tools.subjectId(sharedType, { year: 2025, unit: 'second' }) };
+  const unit1RowKey = [scope, sourceUrl, 'subject', unit1.id];
+  const unit2RowKey = [scope, targetUrl, 'subject', unit2.id];
+
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.open(databaseName, 4);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      const editable = db.createObjectStore('editable');
+      const summaries = db.createObjectStore('summaries');
+      db.createObjectStore('filings');
+      const starts = db.createObjectStore('starts');
+      const seeds = db.createObjectStore('seeds');
+      // Unit 1: restarted v4 seeded draft on source@1.0.0 with no stored subject keys.
+      editable.put({ revision: 'r9-unres-1', definitionVersion: '1.0.0', pinsJson: '{}' }, unit1RowKey);
+      summaries.put({ definitionVersion: '1.0.0', plans: null }, unit1RowKey);
+      seeds.put({ seeded: true }, unit1RowKey);
+      // Unit 2: started v4 draft on target@1.0.0 sharing the same subject type and year=2025.
+      starts.put({
+        request: canonicalFiniteJson({ definitionUrl: targetUrl, version: '1.0.0', type: sharedType, keys: { year: 2025 } }),
+        subject: unit2,
+      }, [scope, 'second']);
+      editable.put({ revision: 'r9-unres-2', definitionVersion: '1.0.0', pinsJson: '{}' }, unit2RowKey);
+      summaries.put({ definitionVersion: '1.0.0', plans: null }, unit2RowKey);
+    };
+    req.onsuccess = () => { req.result.close(); resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+
+  const openSource = mode === 'historical-type-change'
+    ? makeDef(sourceUrl, '2.0.0', 'urn:r9:new-type')
+    : makeDef(sourceUrl, '1.0.0', sharedType);
+  const targetDef = makeDef(targetUrl, '1.0.0', sharedType);
+  const unrelatedDef = makeDef(unrelatedUrl, '1.0.0', 'urn:r9:other-type');
+  const store = browser.createBrowserFilingStore({
+    scope,
+    databaseName,
+    definitions: new Map([[sourceUrl, openSource], [targetUrl, targetDef], [unrelatedUrl, unrelatedDef]]),
+  });
+  const facts = await store.drafts.readSummaries([
+    {
+      key: 'target', definitionUrl: targetUrl, definitionVersion: '1.0.0', sections: [],
+      subjectMatch: { type: sharedType, predicates: [{ key: 'year', op: 'eq', value: 2025 }] },
+    },
+    {
+      key: 'unrelated', definitionUrl: unrelatedUrl, definitionVersion: '1.0.0', sections: [],
+      subjectMatch: { type: 'urn:r9:other-type', predicates: [{ key: 'year', op: 'eq', value: 2025 }] },
+    },
+  ], { previewScope: scope, signal: new AbortController().signal });
+  const dbVersion = await new Promise<number>((resolve, reject) => {
+    const req = indexedDB.open(databaseName);
+    req.onsuccess = () => { const v = req.result.version; req.result.close(); resolve(v); };
+    req.onerror = () => reject(req.error);
+  });
+  return {
+    version: dbVersion,
+    range: facts.get('target'),
+    unrelated: facts.get('unrelated'),
+  };
+}
+
+export async function upgradePlantedQuarantineFlag(
+  dbVer: 2 | 3 | 4,
+  targetStore: 'clean' | 'editable' | 'summaries',
+  flagValue: boolean | null,
+) {
+  const scope = 'review9-flag';
+  const databaseName = `formspec-r9-flag-${dbVer}-${targetStore}-${crypto.randomUUID()}`;
+  const planUrl = 'urn:r9:flag-plan';
+  const siblingUrl = 'urn:r9:flag-sibling';
+  const planDef: FormDefinition = { $formspec: '1.0', url: planUrl, version: '2.0.0', title: 'Plan', items: [] };
+  const siblingDef: FormDefinition = { $formspec: '1.0', url: siblingUrl, version: '1.0.0', title: 'Sibling', items: [] };
+  const rowKey = [scope, planUrl, 'respondent', ''];
+  await new Promise<void>((resolve, reject) => {
+    const req = indexedDB.open(databaseName, dbVer);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      for (const s of ['editable', 'summaries', ...(dbVer >= 3 ? ['filings', 'starts'] : []), ...(dbVer === 4 ? ['seeds'] : [])]) {
+        db.createObjectStore(s);
+      }
+      const tx = req.transaction!;
+      tx.objectStore('editable').put({
+        revision: 'kept', definitionVersion: '2.0.0', pinsJson: '{}',
+        ...(targetStore === 'editable' ? { unverifiedStartHistory: flagValue } : {}),
+      }, rowKey);
+      tx.objectStore('summaries').put({
+        definitionVersion: '2.0.0',
+        ...(dbVer === 4 ? { plans: null } : { summary: null }),
+        ...(targetStore === 'summaries' ? { unverifiedStartHistory: flagValue } : {}),
+      }, rowKey);
+    };
+    req.onsuccess = () => { req.result.close(); resolve(); };
+    req.onerror = () => reject(req.error);
+  });
+  const store = browser.createBrowserFilingStore({
+    scope, databaseName, definitions: new Map([[planUrl, planDef], [siblingUrl, siblingDef]]),
+  });
+  const sibling = await store.drafts.load({ scope, definitionUrl: siblingUrl }, '1.0.0');
+  const afterVersion = await new Promise<number>((resolve, reject) => {
+    const req = indexedDB.open(databaseName);
+    req.onsuccess = () => { const v = req.result.version; req.result.close(); resolve(v); };
+    req.onerror = () => reject(req.error);
+  });
+  return { version: afterVersion, sibling: sibling.status };
 }

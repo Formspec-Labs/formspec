@@ -120,15 +120,16 @@ export async function createSurfacePreviewEdition(input: {
     throw new Error(validation.diagnostics.map(issue =>
       `${issue.code}${issue.path ? ` (${issue.path})` : ''}: ${issue.message}`).join('\n'));
   }
-  const { scenario } = validation;
+  const { scenario, preparedFixtures } = validation;
   const runtime = createSurfacePreviewRuntime(scenario);
   const resolveDefinitionComponent = bundleComponentResolver(input.source, input.resolveDefinitionComponent);
   const fixtures = scenario.profiles[runtime.profileId]!;
+  const preparedProfile = preparedFixtures?.get(runtime.profileId);
   const store = (input.createFilingStore ?? createBrowserFilingStore)({
     scope: input.scope,
     definitions: bundle.definitions,
     catalogs: bundle.dataSources,
-    fixtures,
+    ...(preparedProfile ? { preparedFixtures: preparedProfile } : { fixtures }),
     sectionPlans: bundleSectionPlans(bundle, resolveDefinitionComponent),
   });
   // Seeding failures reject edition creation when the active profile declares drafts;

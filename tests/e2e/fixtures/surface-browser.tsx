@@ -166,7 +166,12 @@ const bundle = dereferenceBundleExport({
     [actions]: {
       $formspecResponseActions: '1.0', version: '1.0.0', scope: 'response',
       targetDefinition: { url: definition },
-      actions: [{ id: 'save', intent: 'save-draft', label: { literal: 'Save draft' } }],
+      actions: [{
+        id: 'save',
+        intent: 'save-draft',
+        label: { literal: 'Save draft' },
+        effects: [{ type: 'hostEvent', eventName: 'draft-saved' }],
+      }],
     },
   },
 });

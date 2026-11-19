@@ -56,6 +56,9 @@ pub(crate) fn lint_surface(doc: &Value) -> Vec<LintDiagnostic> {
     if native_screeners {
         check_screener_route_params(routes, entry, &mut diagnostics);
     }
+    if dialect == Some("0.4") {
+        check_filing_status_route_params(routes, &mut diagnostics);
+    }
     if let Some(entry_id) = entry {
         check_route_reachability(routes, entry_id, &route_ids, dialect, &mut diagnostics);
     }
@@ -417,24 +420,325 @@ fn is_filing_band(slot: &Value) -> bool {
     slot["slotType"] == "filing-status" && slot["binding"]["placement"] == "band"
 }
 
+fn resolve_unique_definition_slot<'a>(
+    routes: &'a [Value],
+    route_id: &str,
+    slot_id: &str,
+) -> Option<(&'a Value, &'a Value)> {
+    let mut matched_routes = routes
+        .iter()
+        .filter(|route| route.get("id").and_then(Value::as_str) == Some(route_id));
+    let target_route = matched_routes.next()?;
+    if matched_routes.next().is_some() {
+        return None;
+    }
+    let slots = target_route.get("slots").and_then(Value::as_array)?;
+    let mut matched_slots = slots
+        .iter()
+        .filter(|slot| slot.get("id").and_then(Value::as_str) == Some(slot_id));
+    let target_slot = matched_slots.next()?;
+    if matched_slots.next().is_some()
+        || target_slot.get("slotType").and_then(Value::as_str) != Some("definition-form")
+    {
+        return None;
+    }
+    Some((target_route, target_slot))
+}
+
+fn filing_entry_param_sources(entry: &Value) -> impl Iterator<Item = &Value> {
+    let param_sources = entry
+        .get("params")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flat_map(|params| params.values());
+    let subject_sources = entry
+        .get("subject")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|predicate| predicate.get("from"));
+    param_sources.chain(subject_sources)
+}
+
+fn filing_entry_target_issue(
+    target_route: &Value,
+    target_slot: &Value,
+    entry: &Value,
+) -> Option<(String, String)> {
+    let target_id = target_route
+        .get("id")
+        .and_then(Value::as_str)
+        .unwrap_or("<unknown>");
+    let target_params = declared_route_params(target_route);
+    let supplied = entry.get("params").and_then(Value::as_object);
+
+    if let Some(supplied) = supplied {
+        let undeclared: Vec<&str> = supplied
+            .keys()
+            .map(String::as_str)
+            .filter(|name| !target_params.contains(name))
+            .collect();
+        if !undeclared.is_empty() {
+            return Some((
+                String::new(),
+                format!(
+                    "Filing-status entry targeting route {target_id:?} supplies undeclared target route params: {} (SURFACE-ROUTE-PARAM-MISSING).",
+                    undeclared.join(", ")
+                ),
+            ));
+        }
+    }
+
+    let Some(predicates) = entry.get("subject").and_then(Value::as_array) else {
+        let missing = missing_route_params(target_route, supplied);
+        if missing.is_empty() {
+            return None;
+        }
+        return Some((
+            String::new(),
+            format!(
+                "Filing-status entry targeting route {target_id:?} is missing required route params: {} (SURFACE-ROUTE-PARAM-MISSING).",
+                missing.join(", ")
+            ),
+        ));
+    };
+
+    let Some(subject_keys) = target_slot
+        .get("binding")
+        .and_then(|b| b.get("subjectKeys"))
+        .and_then(Value::as_object)
+        .filter(|keys| !keys.is_empty())
+    else {
+        return Some((
+            ".subject".to_string(),
+            format!(
+                "Filing-status entry targeting route {target_id:?} declares subject predicates, but target slot has no non-empty subjectKeys binding (SURFACE-ROUTE-PARAM-MISSING)."
+            ),
+        ));
+    };
+
+    for (pred_idx, predicate) in predicates.iter().enumerate() {
+        let Some(key) = predicate.get("key").and_then(Value::as_str) else {
+            continue;
+        };
+        let Some(mapped_param) = subject_keys.get(key).and_then(Value::as_str) else {
+            return Some((
+                format!(".subject[{pred_idx}]"),
+                format!(
+                    "Filing-status entry targeting route {target_id:?} references subject key {key:?} not bound in target slot subjectKeys (SURFACE-ROUTE-PARAM-MISSING)."
+                ),
+            ));
+        };
+        if supplied.is_some_and(|params| params.contains_key(mapped_param)) {
+            return Some((
+                format!(".subject[{pred_idx}]"),
+                format!(
+                    "Filing-status entry targeting route {target_id:?} cannot bind subject key {key:?} in both params[{mapped_param:?}] and subject[] (SURFACE-ROUTE-PARAM-MISSING)."
+                ),
+            ));
+        }
+    }
+
+    let mut derived_params: HashSet<&str> = HashSet::new();
+    for (key, param_val) in subject_keys {
+        let Some(param_name) = param_val.as_str() else {
+            return Some((
+                ".subject".to_string(),
+                format!(
+                    "Filing-status entry targeting route {target_id:?} relies on invalid subjectKeys[{key:?}] binding (SURFACE-ROUTE-PARAM-MISSING)."
+                ),
+            ));
+        };
+        if supplied.is_some_and(|params| params.contains_key(param_name)) {
+            continue;
+        }
+        if !target_params.contains(&param_name) || !derived_params.insert(param_name) {
+            return Some((
+                ".subject".to_string(),
+                format!(
+                    "Filing-status entry targeting route {target_id:?} requires subjectKeys[{key:?}] to map to a distinct parameter declared on {target_id:?} (SURFACE-ROUTE-PARAM-MISSING)."
+                ),
+            ));
+        }
+    }
+
+    let missing: Vec<&str> = target_params
+        .into_iter()
+        .filter(|name| {
+            !derived_params.contains(name) && !supplied.is_some_and(|params| params.contains_key(*name))
+        })
+        .collect();
+    if !missing.is_empty() {
+        return Some((
+            String::new(),
+            format!(
+                "Filing-status entry targeting route {target_id:?} is missing required non-subject route params: {} (SURFACE-ROUTE-PARAM-MISSING).",
+                missing.join(", ")
+            ),
+        ));
+    }
+    None
+}
+
+fn check_filing_status_route_params(routes: &[Value], diagnostics: &mut Vec<LintDiagnostic>) {
+    for (route_idx, route) in routes.iter().enumerate() {
+        let host_params = declared_route_params(route);
+        let Some(slots) = route.get("slots").and_then(Value::as_array) else {
+            continue;
+        };
+        for (slot_idx, slot) in slots.iter().enumerate() {
+            if slot.get("slotType").and_then(Value::as_str) != Some("filing-status") {
+                continue;
+            }
+            let Some(groups) = slot
+                .get("binding")
+                .and_then(|b| b.get("groups"))
+                .and_then(Value::as_array)
+            else {
+                continue;
+            };
+            for (group_idx, group) in groups.iter().enumerate() {
+                let has_repeat = group.get("repeat").is_some();
+                let Some(forms) = group.get("forms").and_then(Value::as_array) else {
+                    continue;
+                };
+                for (entry_idx, entry) in forms.iter().enumerate() {
+                    let entry_path = format!(
+                        "$.routes[{route_idx}].slots[{slot_idx}].binding.groups[{group_idx}].forms[{entry_idx}]"
+                    );
+                    if let Some(params) = entry.get("params").and_then(Value::as_object) {
+                        for (param_key, source) in params {
+                            let param_path = format!("{entry_path}.params.{param_key}");
+                            if let Some(param) = source.get("routeParam").and_then(Value::as_str) {
+                                if !host_params.contains(&param) {
+                                    diagnostics.push(crate::metadata::with_metadata(
+                                        LintDiagnostic::error(
+                                            crate::LintCode::E610,
+                                            PASS,
+                                            &param_path,
+                                            format!(
+                                                "Filing-status entry references undeclared host routeParam {param:?} (SURFACE-ROUTE-PARAM-MISSING)."
+                                            ),
+                                        ),
+                                    ));
+                                }
+                            }
+                            if source.get("rowField").is_some() && !has_repeat {
+                                diagnostics.push(crate::metadata::with_metadata(
+                                    LintDiagnostic::error(
+                                        crate::LintCode::E610,
+                                        PASS,
+                                        &param_path,
+                                        "Filing-status entry uses rowField outside a repeated group (SURFACE-ROUTE-PARAM-MISSING).",
+                                    ),
+                                ));
+                            }
+                        }
+                    }
+                    if let Some(predicates) = entry.get("subject").and_then(Value::as_array) {
+                        for (pred_idx, predicate) in predicates.iter().enumerate() {
+                            let Some(source) = predicate.get("from") else {
+                                continue;
+                            };
+                            let pred_key = predicate
+                                .get("key")
+                                .and_then(Value::as_str)
+                                .unwrap_or("<unknown>");
+                            let pred_path = format!("{entry_path}.subject[{pred_idx}]");
+                            if let Some(param) = source.get("routeParam").and_then(Value::as_str) {
+                                if !host_params.contains(&param) {
+                                    diagnostics.push(crate::metadata::with_metadata(
+                                        LintDiagnostic::error(
+                                            crate::LintCode::E610,
+                                            PASS,
+                                            &pred_path,
+                                            format!(
+                                                "Filing-status predicate on key {pred_key:?} references undeclared host routeParam {param:?} (SURFACE-ROUTE-PARAM-MISSING)."
+                                            ),
+                                        ),
+                                    ));
+                                }
+                            }
+                            if source.get("rowField").is_some() && !has_repeat {
+                                diagnostics.push(crate::metadata::with_metadata(
+                                    LintDiagnostic::error(
+                                        crate::LintCode::E610,
+                                        PASS,
+                                        &pred_path,
+                                        format!(
+                                            "Filing-status predicate on key {pred_key:?} uses rowField outside a repeated group (SURFACE-ROUTE-PARAM-MISSING)."
+                                        ),
+                                    ),
+                                ));
+                            }
+                        }
+                    }
+                    let (Some(route_ref), Some(slot_ref)) = (
+                        entry.get("routeRef").and_then(Value::as_str),
+                        entry.get("slotRef").and_then(Value::as_str),
+                    ) else {
+                        continue;
+                    };
+                    let Some((target_route, target_slot)) =
+                        resolve_unique_definition_slot(routes, route_ref, slot_ref)
+                    else {
+                        continue;
+                    };
+                    if let Some((suffix, issue)) =
+                        filing_entry_target_issue(target_route, target_slot, entry)
+                    {
+                        diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
+                            crate::LintCode::E610,
+                            PASS,
+                            &format!("{entry_path}{suffix}"),
+                            issue,
+                        )));
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn filing_targets<'a, 'b>(
+    routes: &'a [Value],
     slot: &'a Value,
+    declaring_params: &'b [&'b str],
     host_params: &'b [&'b str],
 ) -> impl Iterator<Item = &'a str> + use<'a, 'b> {
     slot["binding"]["groups"]
         .as_array()
         .into_iter()
         .flatten()
-        .flat_map(|group| group["forms"].as_array().into_iter().flatten())
-        .filter(move |entry| {
-            entry["params"]
-                .as_object()
+        .flat_map(|group| {
+            let has_repeat = group.get("repeat").is_some();
+            group["forms"]
+                .as_array()
                 .into_iter()
-                .flat_map(|params| params.values())
-                .filter_map(|source| source["routeParam"].as_str())
-                .all(|param| host_params.contains(&param))
+                .flatten()
+                .map(move |entry| (has_repeat, entry))
         })
-        .filter_map(|entry| entry["routeRef"].as_str())
+        .filter(move |(has_repeat, entry)| {
+            filing_entry_param_sources(entry).all(|source| {
+                source
+                    .get("routeParam")
+                    .and_then(Value::as_str)
+                    .is_none_or(|param| {
+                        declaring_params.contains(&param) && host_params.contains(&param)
+                    })
+                    && (*has_repeat || source.get("rowField").is_none())
+            }) && entry
+                .get("routeRef")
+                .and_then(Value::as_str)
+                .zip(entry.get("slotRef").and_then(Value::as_str))
+                .and_then(|(route_ref, slot_ref)| {
+                    resolve_unique_definition_slot(routes, route_ref, slot_ref)
+                })
+                .is_some_and(|(target_route, target_slot)| {
+                    filing_entry_target_issue(target_route, target_slot, entry).is_none()
+                })
+        })
+        .filter_map(|(_, entry)| entry["routeRef"].as_str())
 }
 
 /// Check reachability through declared local route edges.
@@ -464,11 +768,18 @@ fn check_route_reachability(
     queue.push_back(entry_id.to_string());
     visited.insert(entry_id.to_string());
 
-    let bands: Vec<_> = if dialect == Some("0.4") {
+    let bands: Vec<(Vec<&str>, &Value)> = if dialect == Some("0.4") {
         routes
             .iter()
-            .flat_map(|route| route["slots"].as_array().into_iter().flatten())
-            .filter(|slot| is_filing_band(slot))
+            .flat_map(|route| {
+                let declaring_params = declared_route_params(route);
+                route["slots"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter(|slot| is_filing_band(slot))
+                    .map(move |slot| (declaring_params.clone(), slot))
+            })
             .collect()
     } else {
         Vec::new()
@@ -500,7 +811,6 @@ fn check_route_reachability(
             .into_iter()
             .flatten()
             .filter(|slot| !is_filing_band(slot))
-            .chain(bands.iter().copied())
         {
             let targets = match slot.get("slotType").and_then(Value::as_str) {
                 Some("embed-route") => slot["binding"]["routeRef"].as_str().into_iter().collect(),
@@ -511,11 +821,18 @@ fn check_route_reachability(
                     slot["binding"]["routeRef"].as_str().into_iter().collect()
                 }
                 Some("filing-status") if dialect == Some("0.4") => {
-                    filing_targets(slot, &host_params).collect()
+                    filing_targets(routes, slot, &host_params, &host_params).collect()
                 }
                 _ => Vec::new(),
             };
             for target in targets {
+                if route_ids.contains(target) && visited.insert(target.to_string()) {
+                    queue.push_back(target.to_string());
+                }
+            }
+        }
+        for (declaring_params, band_slot) in &bands {
+            for target in filing_targets(routes, band_slot, declaring_params, &host_params) {
                 if route_ids.contains(target) && visited.insert(target.to_string()) {
                     queue.push_back(target.to_string());
                 }
@@ -650,6 +967,108 @@ mod tests {
         doc["routes"][0]["transitions"] =
             serde_json::json!([{"to": "overview", "params": {"member": "north"}}]);
         assert_eq!(unreachable(&doc), 0);
+    }
+
+    #[test]
+    fn filing_status_subject_predicates_reach_multi_key_routes_and_check_route_params() {
+        let mut doc = serde_json::json!({
+            "$formspecSurface": "0.4", "id": "app", "entry": "overview",
+            "routes": [
+                {
+                    "id": "overview", "path": "/years/{ffy}",
+                    "params": [{"name": "ffy", "type": "string"}],
+                    "slots": [{"id": "tracker", "slotType": "filing-status", "binding": {
+                        "groups": [{"id": "period", "label": "Period plan", "forms": [{
+                            "routeRef": "plan", "slotRef": "form",
+                            "subject": [
+                                {"key": "first_ffy", "op": "le", "from": {"routeParam": "ffy"}},
+                                {"key": "last_ffy", "op": "ge", "from": {"routeParam": "ffy"}}
+                            ]
+                        }]}]
+                    }}]
+                },
+                {
+                    "id": "plan", "path": "/plans/{first_ffy}/{last_ffy}",
+                    "params": [
+                        {"name": "first_ffy", "type": "string"},
+                        {"name": "last_ffy", "type": "string"}
+                    ],
+                    "slots": [{"id": "form", "slotType": "definition-form", "binding": {
+                        "definitionRef": "urn:plan",
+                        "subjectKeys": {"first_ffy": "first_ffy", "last_ffy": "last_ffy"}
+                    }}]
+                }
+            ]
+        });
+        assert!(lint(&doc).diagnostics.is_empty(), "{:?}", lint(&doc).diagnostics);
+
+        // Missing host routeParam in subject predicate emits E610 and withholds reachability (E606).
+        doc["routes"][0]["slots"][0]["binding"]["groups"][0]["forms"][0]["subject"][0]["from"] =
+            serde_json::json!({"routeParam": "missing_param"});
+        let missing_host = lint_surface(&doc);
+        assert!(missing_host.iter().any(|d| d.code == crate::LintCode::E610));
+        assert!(missing_host.iter().any(|d| d.code == crate::LintCode::E606));
+
+        // Restore valid host param, then add an extra non-subject target route param unsupplied by params.
+        doc["routes"][0]["slots"][0]["binding"]["groups"][0]["forms"][0]["subject"][0]["from"] =
+            serde_json::json!({"routeParam": "ffy"});
+        doc["routes"][1]["path"] = serde_json::json!("/plans/{region}/{first_ffy}/{last_ffy}");
+        doc["routes"][1]["params"].as_array_mut().unwrap().push(
+            serde_json::json!({"name": "region", "type": "string"}),
+        );
+        let missing_target = lint_surface(&doc);
+        assert!(missing_target.iter().any(|d| d.code == crate::LintCode::E610));
+
+        // Restore valid target route, then verify safe-integer offset bounds in schema validation.
+        doc["routes"][1]["path"] = serde_json::json!("/plans/{first_ffy}/{last_ffy}");
+        doc["routes"][1]["params"].as_array_mut().unwrap().pop();
+        for safe_offset in [-9_007_199_254_740_991_i64, 9_007_199_254_740_991_i64] {
+            doc["routes"][0]["slots"][0]["binding"]["groups"][0]["forms"][0]["subject"][0]["offset"] =
+                serde_json::json!(safe_offset);
+            assert!(lint(&doc).diagnostics.is_empty(), "{:?}", lint(&doc).diagnostics);
+        }
+        for unsafe_offset in [-9_007_199_254_740_992_i64, 9_007_199_254_740_992_i64] {
+            doc["routes"][0]["slots"][0]["binding"]["groups"][0]["forms"][0]["subject"][0]["offset"] =
+                serde_json::json!(unsafe_offset);
+            assert!(lint(&doc).diagnostics.iter().any(|d| d.code == crate::LintCode::E101));
+        }
+
+        // A band whose declaring route lacks the source routeParam must not grant reachability via another route.
+        let band_doc = serde_json::json!({
+            "$formspecSurface": "0.4", "id": "app", "entry": "overview",
+            "routes": [
+                {
+                    "id": "overview", "path": "/years/{ffy}",
+                    "params": [{"name": "ffy", "type": "string"}],
+                    "transitions": [{"trigger": "next", "to": "settings"}],
+                    "slots": [{"id": "homeform", "slotType": "definition-form", "binding": {"definitionRef": "urn:home"}}]
+                },
+                {
+                    "id": "plan", "path": "/plans/{first_ffy}/{last_ffy}",
+                    "params": [{"name": "first_ffy", "type": "string"}, {"name": "last_ffy", "type": "string"}],
+                    "slots": [{"id": "form", "slotType": "definition-form", "binding": {
+                        "definitionRef": "urn:plan",
+                        "subjectKeys": {"first_ffy": "first_ffy", "last_ffy": "last_ffy"}
+                    }}]
+                },
+                {
+                    "id": "settings", "path": "/settings",
+                    "slots": [{"id": "tracker", "slotType": "filing-status", "binding": {
+                        "placement": "band",
+                        "groups": [{"id": "period", "label": "Period plan", "forms": [{
+                            "routeRef": "plan", "slotRef": "form",
+                            "subject": [
+                                {"key": "first_ffy", "op": "le", "from": {"routeParam": "ffy"}},
+                                {"key": "last_ffy", "op": "ge", "from": {"routeParam": "ffy"}}
+                            ]
+                        }]}]
+                    }}]
+                }
+            ]
+        });
+        let band_diags = lint_surface(&band_doc);
+        assert!(band_diags.iter().any(|d| d.code == crate::LintCode::E610), "{band_diags:?}");
+        assert!(band_diags.iter().any(|d| d.code == crate::LintCode::E606), "{band_diags:?}");
     }
 
     #[test]

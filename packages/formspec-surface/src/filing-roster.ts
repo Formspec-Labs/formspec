@@ -10,20 +10,43 @@ function own(value: unknown, field: string): unknown {
   return (value as Record<string, unknown>)[field];
 }
 
+function resolveMemberSource(source: FilingStatusEntry['params'] extends Record<string, infer S> | undefined ? S : never, member: unknown) {
+  if (!('rowField' in source)) return source;
+  const value = own(member, source.rowField);
+  if (!(typeof value === 'string' && value.length) && !Number.isSafeInteger(value)) return undefined;
+  return { value: String(value) };
+}
+
 function memberForms(group: FilingStatusGroup, member: unknown): FilingStatusGroup['forms'] | undefined {
   const forms: FilingStatusEntry[] = [];
   for (const entry of group.forms) {
-    const params: NonNullable<FilingStatusEntry['params']> = {};
-    for (const [name, source] of Object.entries(entry.params ?? {})) {
-      if (!('rowField' in source)) {
-        params[name] = source;
-        continue;
+    let params: FilingStatusEntry['params'];
+    if (entry.params !== undefined) {
+      params = {};
+      for (const [name, source] of Object.entries(entry.params)) {
+        const resolved = resolveMemberSource(source, member);
+        if (!resolved) return;
+        params[name] = resolved;
       }
-      const value = own(member, source.rowField);
-      if (!(typeof value === 'string' && value.length) && !Number.isSafeInteger(value)) return;
-      params[name] = { value: String(value) };
     }
-    forms.push({ ...entry, params });
+    let subject: FilingStatusEntry['subject'];
+    if (entry.subject !== undefined) {
+      const predicates = [];
+      for (const predicate of entry.subject) {
+        const resolved = resolveMemberSource(predicate.from, member);
+        if (!resolved) return;
+        predicates.push({ ...predicate, from: resolved });
+      }
+      const [firstPred, ...restPred] = predicates;
+      if (!firstPred) return;
+      subject = [firstPred, ...restPred];
+    }
+    const { params: _params, subject: _subject, ...base } = entry;
+    forms.push({
+      ...base,
+      ...(params !== undefined ? { params } : {}),
+      ...(subject !== undefined ? { subject } : {}),
+    });
   }
   const [first, ...rest] = forms;
   return first && [first, ...rest];
@@ -45,8 +68,10 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
     if (!group.repeat) continue;
     // The declaration is valid even on a band page without its route inputs.
     // Skip this roster read. Its group will report unavailable alongside fixed groups.
-    if (group.forms.some(entry => Object.values(entry.params ?? {}).some(source =>
-      'routeParam' in source && !own(input.params, source.routeParam)))) continue;
+    if (group.forms.some(entry => [
+      ...Object.values(entry.params ?? {}),
+      ...(entry.subject ?? []).map(predicate => predicate.from),
+    ].some(source => 'routeParam' in source && !own(input.params, source.routeParam)))) continue;
     const descriptor = resolveDataSourceDescriptor(input.dataSources ?? [], group.repeat);
     if (!descriptor) continue;
     const forms = targets.map(({ entry, slot }) => {
@@ -120,12 +145,14 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
       for (const [id, member] of members) {
         const rows = planned.get(id)?.rows ?? [];
         const first = rows[0];
-        if (!first || first.status !== 'ready' || !first.query.subject || rows.some(row => row.status !== 'ready')) {
+        if (!first || first.status !== 'ready' || (!first.query.subject && !first.query.subjectMatch) || rows.some(row => row.status !== 'ready')) {
           unavailable.add(member.groupId);
           continue;
         }
         const keys = subjects.get(member.groupId) ?? new Set<string>();
-        const identity = JSON.stringify([first.query.subject.type, Object.entries(first.query.subject.keys).sort()]);
+        const identity = first.query.subject
+          ? JSON.stringify([first.query.subject.type, Object.entries(first.query.subject.keys).sort()])
+          : JSON.stringify(['match', first.query.subjectMatch!.type, first.query.subjectMatch!.predicates]);
         if (keys.has(identity)) return refuse('duplicate-repeat-subject');
         keys.add(identity);
         subjects.set(member.groupId, keys);

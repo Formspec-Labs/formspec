@@ -207,5 +207,14 @@ export {
 
 export { parseRouteSubjectKey } from './surface-definition-slots.js';
 export { resolveDraftReviewTarget } from './surface-draft-review.js';
-export { filingRepeatFieldsValid, filingRepeatSubjectBound, filingStatusEntries, resolveFilingStatusTargets, validateFilingStatusTargets } from './filing-status-targets.js';
+export {
+  filingRepeatFieldsValid,
+  filingRepeatSubjectBound,
+  filingStatusEntries,
+  resolveFilingStatusTargets,
+  validateFilingStatusTargets,
+  type FilingStatusIssue,
+  type FilingStatusTarget,
+  type ResolvedFilingStatusPredicate,
+} from './filing-status-targets.js';
 export { resolveDraftStartTarget } from './draft-start-target.js';

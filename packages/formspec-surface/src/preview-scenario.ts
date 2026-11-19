@@ -16,9 +16,12 @@ import { filingAction } from './filing-action.js';
 import { composeSurfaceApp, matchRoute, routeHref } from './composition.js';
 import type { ResolvedBundle } from './bundle.js';
 import {
+  prepareDraftFixtures,
   prepareResponseFixtures,
   validateDraftFixtures,
   validResponseAuthored,
+  type PreparedDraftFixture,
+  type PreparedResponseFixtures,
   type ResponseRecordTools,
 } from './response-records.js';
 import type {
@@ -98,6 +101,7 @@ export type SurfaceScenarioValidationResult =
   | {
       valid: true;
       scenario: SurfacePreviewScenario;
+      preparedFixtures?: ReadonlyMap<string, PreparedResponseFixtures> | undefined;
       diagnostics: readonly [];
     }
   | {
@@ -543,13 +547,15 @@ export async function validateSurfacePreviewScenario(
     });
   }
 
+  const preparedFixtures = new Map<string, PreparedResponseFixtures>();
   for (const [profileId, profile] of Object.entries(scenario.profiles)) {
     const effectiveScope = input.scope ?? profileId;
     let filingResponseIds: ReadonlySet<string> | undefined;
+    let preparedProfile: PreparedResponseFixtures | undefined;
     if (profile.filings?.length || profile.decisions?.length) {
       try {
         if (!input.responseTools) throw new Error('Fixture validation requires the shared Response tools.');
-        const prepared = prepareResponseFixtures(
+        preparedProfile = prepareResponseFixtures(
           effectiveScope,
           input.bundle.definitions,
           {
@@ -558,7 +564,7 @@ export async function validateSurfacePreviewScenario(
           },
           input.responseTools,
         );
-        filingResponseIds = new Set(prepared.filings.map((filing) => filing.responseId));
+        filingResponseIds = new Set(preparedProfile.filings.map((filing) => filing.responseId));
       } catch (error) {
         diagnostics.push({
           code: 'SURFACE-SCENARIO-FILING-FIXTURE', profileId,
@@ -567,6 +573,7 @@ export async function validateSurfacePreviewScenario(
         });
       }
     }
+    let preparedDrafts: readonly PreparedDraftFixture[] = [];
     if (profile.drafts?.length) {
       const issues = validateDraftFixtures(input.bundle.definitions, profile.drafts, {
         scope: effectiveScope,
@@ -581,6 +588,23 @@ export async function validateSurfacePreviewScenario(
           message: issue.message,
         });
       }
+      if (issues.length === 0 && input.responseTools) {
+        preparedDrafts = prepareDraftFixtures(
+          effectiveScope,
+          input.bundle.definitions,
+          profile.drafts,
+          input.responseTools,
+          filingResponseIds,
+        );
+      }
+    }
+    if (preparedProfile || preparedDrafts.length > 0) {
+      preparedFixtures.set(profileId, {
+        filings: preparedProfile?.filings ?? [],
+        filingSummaries: preparedProfile?.filingSummaries ?? [],
+        decisions: preparedProfile?.decisions ?? new Map(),
+        drafts: preparedDrafts,
+      });
     }
     const seenSources = new Map<string, number>();
     const sourceEntries: {
@@ -753,7 +777,7 @@ export async function validateSurfacePreviewScenario(
   }
 
   return diagnostics.length === 0
-    ? { valid: true, scenario, diagnostics: [] }
+    ? { valid: true, scenario, ...(preparedFixtures.size > 0 ? { preparedFixtures } : {}), diagnostics: [] }
     : { valid: false, diagnostics };
 }
 

@@ -272,11 +272,13 @@ export {
 
 export * from "./screener-slot.js";
 
-export type { FilingStatusPlan } from './filing-status.js';
-export type {
-  BrowserDraftPort, CurrentDraftProgress, DraftKey, DraftLoadResult, DraftPort, DraftRecord,
-  DraftStartInput, DraftStartResult, DraftRestartResult, DraftSaveInput, DraftSaveResult, DraftSectionPlacement,
-  FilingDraftObservation, FilingDraftQuery, FilingObservation, FilingProgressCounts, FilingStatusObservation, FilingStatusReader,
+export type { FilingStatusPlan, ResolvedFilingStatusLinks } from './filing-status.js';
+export {
+  matchesFilingSubjectPredicates,
+  type BrowserDraftPort, type CurrentDraftProgress, type DraftKey, type DraftLoadResult, type DraftPort, type DraftRecord,
+  type DraftStartInput, type DraftStartResult, type DraftRestartResult, type DraftSaveInput, type DraftSaveResult, type DraftSectionPlacement,
+  type FilingDraftObservation, type FilingDraftQuery, type FilingObservation, type FilingProgressCounts, type FilingStatusObservation, type FilingStatusReader,
+  type FilingSubjectMatch, type FilingSubjectPredicate, type MatchedFilingDraftObservation, type MatchedFilingObservation,
 } from './draft-port.js';
 export { canonicalDraftProgress } from './draft-port.js';
 
@@ -289,11 +291,15 @@ export {
   responsePairKey,
   responseSelectionRecord,
   selectFilingStatus,
+  selectFilingSummaryStatus,
+  toResponseFilingSummary,
   validateDraftFixtures,
   validResponseAuthored,
   type DraftFixtureIssue,
   type PreparedDraftFixture,
+  type PreparedResponseFixtures,
   type ResponseFiling,
+  type ResponseFilingSummary,
   type ResponseFixtures,
   type ResponseRecordTools,
 } from './response-records.js';

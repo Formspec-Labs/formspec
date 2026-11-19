@@ -343,12 +343,24 @@ ordered `forms[]`. Each entry has `routeRef`, `slotRef`, and an optional
 authored `hint`. Both references MUST resolve exactly once within this Surface,
 and the slot MUST be a `definition-form`.
 
-An entry's `params` MUST supply exactly the target route's declared parameter
-names. Each value selects either an explicit string in `{value}` or a named
-parameter of the current route in `{routeParam}`. An embedded tracker uses the
+Without `subject` predicates, an entry's `params` MUST supply every parameter
+name declared by the target route. Each source selects an explicit string in
+`{value}` or a named parameter of the current route in `{routeParam}` (or
+`{rowField}` inside a `repeat` group). When a target Definition-form slot binds
+non-empty `subjectKeys` and the declaring route does not carry every target
+subject key directly (for example a year-scoped overview `/years/{year}` linking
+to a period plan `/plans/{start_year}/{end_year}`), an entry MAY declare
+non-empty `subject[]` predicates `{key, op, from, offset?}` over keys declared
+by the target Definition `subject`. Operators are the closed Core set
+`eq | le | ge`; `le`, `ge`, and I-JSON safe-integer `offset` apply only to `integer`
+subject keys, while `eq` preserves the declared key type (`string` or
+`integer`). Each subject key not supplied in `params` MUST map through
+`subjectKeys` to a distinct parameter on the target route, no key may be bound
+in both `params` and `subject[]`, and `params` MUST still supply any remaining
+non-subject parameters of the target route. An embedded tracker uses the
 parameters admitted for its enclosing authored route. A group represents one
 filing unit. Its subject-keyed forms MUST agree on the subject type and sources
-of its typed keys. A preview group may consist entirely of forms without authored subjects.
+or predicates of its typed keys. A preview group may consist entirely of forms without authored subjects.
 
 A group MAY declare `repeat` with an exact Data Sources `catalogRef` and
 `sourceRef`, a string `labelField`, and an authored `waitingLabel`. The

@@ -390,12 +390,51 @@ export interface FilingStatusEntry {
   slotRef: string;
   hint?: string;
   /**
-   * One authored source per parameter declared by the target route.
+   * Authored sources for parameters declared by the target route. Required for every target route parameter unless `subject` selects the filing unit and the target Definition-form slot binds the remaining parameters through `subjectKeys`.
    */
   params?: {
     [k: string]: FilingStatusParamSource;
   };
+  /**
+   * Predicates over keys declared by the target Definition subject, selecting the single matching filing unit in scope and populating target route parameters bound by the destination slot's `subjectKeys`.
+   *
+   * @minItems 1
+   */
+  subject?: [FilingStatusSubjectPredicate, ...FilingStatusSubjectPredicate[]];
   'x-generation'?: Generation;
+}
+/**
+ * Typed comparison against a key declared by the target Definition subject.
+ *
+ * This interface was referenced by `undefined`'s JSON-Schema
+ * via the `definition` "FilingStatusSubjectPredicate".
+ */
+export interface FilingStatusSubjectPredicate {
+  /**
+   * Key declared by the target Definition subject.
+   */
+  key: string;
+  /**
+   * Compare the candidate unit's subject key against the resolved source value plus any offset. `le` and `ge` apply only to integer keys; `eq` preserves the declared key type.
+   */
+  op: 'eq' | 'le' | 'ge';
+  /**
+   * An explicit value, a parameter on the declaring route, or a field on the current repeat row.
+   */
+  from:
+    | {
+        rowField: string;
+      }
+    | {
+        value: string;
+      }
+    | {
+        routeParam: string;
+      };
+  /**
+   * Optional integer added to the resolved source value before comparison; allowed only for integer subject keys.
+   */
+  offset?: number;
 }
 /**
  * This interface was referenced by `undefined`'s JSON-Schema

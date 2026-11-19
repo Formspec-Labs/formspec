@@ -11,8 +11,9 @@ import { isPlainLinkClick } from './browser-location.js';
 import { needTraceAttributes } from './need-trace.js';
 import { presentedRouteLabel, type SurfaceRouteTitleResolver } from './title-presentation.js';
 
-type Observation = Omit<FilingStatusObservation, 'draft'> & {
-  draft: FilingStatusObservation['draft'] | { status: 'loading' };
+type Observation = FilingStatusObservation | {
+  readonly draft: { readonly status: 'loading' };
+  readonly filing: { readonly status: 'unavailable' };
 };
 type DraftReads = (query: FilingDraftQuery) => Observation;
 const unavailable = { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } } as const;
@@ -125,12 +126,18 @@ export function useFilingDraftObservations(
   const observe: DraftReads = (query) => {
     if (!readSummaries) return unavailable;
     if (completed?.request !== request) return { ...unavailable, draft: { status: 'loading' } };
-    return completed.observations.get(query.key) ?? unavailable;
+    const observation = completed.observations.get(query.key) ?? unavailable;
+    if (query.subjectMatch !== undefined && 'subjectMatch' in observation && observation.subjectMatch === 'matched'
+        && ((observation.draft as { status: string }).status === 'denied' || (observation.filing as { status: string }).status === 'denied')) {
+      return { draft: { status: 'denied' }, filing: { status: 'unavailable' } };
+    }
+    return observation;
   };
   return { observe, rosters: expanded };
 }
 
-function filingLinkFor(destination: string, navigation: Partial<FilingStatusNavigation> | undefined) {
+function filingLinkFor(destination: string | undefined, navigation: Partial<FilingStatusNavigation> | undefined) {
+  if (destination === undefined) return undefined;
   const href = navigation?.formatHref ? navigation.formatHref(destination) : destination;
   return href === undefined ? undefined : { href, destination };
 }
@@ -286,6 +293,52 @@ const legend = [
   { key: 'filingHasCheck', finding: 'check' },
 ] as const;
 
+function subjectKeyString(subject: { readonly type: string; readonly keys: Readonly<Record<string, string | number>> } | null): string {
+  if (subject === null) return 'null';
+  return JSON.stringify([
+    subject.type,
+    Object.entries(subject.keys).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0),
+  ]);
+}
+
+function destinationTupleString(
+  route: { readonly surfaceId: string; readonly routeId: string },
+  slotId: string,
+  params: Readonly<Record<string, string>>,
+): string {
+  return JSON.stringify([
+    route.surfaceId,
+    route.routeId,
+    slotId,
+    Object.entries(params).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0),
+  ]);
+}
+
+function disablePlannedRow(
+  row: Extract<Row, { status: 'ready' }>,
+  reason: Extract<Row, { status: 'disabled' }>['reason'],
+): Extract<Row, { status: 'disabled' }> {
+  return {
+    key: row.key,
+    ...(row.hint === undefined ? {} : { hint: row.hint }),
+    ...(row.description === undefined ? {} : { description: row.description }),
+    needAnchors: row.needAnchors,
+    status: 'disabled',
+    route: row.route,
+    routeRef: row.route.routeId,
+    reason,
+  };
+}
+
+interface ResolvedTrackerRow {
+  row: Row;
+  observation: Observation;
+  countEligible: boolean;
+  resolvedSubject?: string | undefined;
+  destinationTuple?: string | undefined;
+  unitKey?: string | undefined;
+}
+
 export function FilingStatus({ plan: originalPlan, context, level, text }: {
   plan: FilingStatusPlan;
   context?: FilingStatusViewContext | undefined;
@@ -295,35 +348,164 @@ export function FilingStatus({ plan: originalPlan, context, level, text }: {
   const plan = context?.rosters?.get(originalPlan) ?? originalPlan;
   if (plan.status === 'roster') return <p>{text('filingLoading')}</p>;
   if (plan.status === 'unresolved') return <p>{text('filingUnavailable')}</p>;
-  const seen = new Set<string>();
-  const totals = { filled: 0, total: 0, toFix: null as number | null, toCheck: null as number | null };
-  let known = 0;
-  let partial = plan.groups.some(group => group.unavailable);
-  let largest = 0;
-  const groups = plan.groups.map(group => ({ ...group, rows: group.rows.map(row => {
-    const observation: Observation = row.status === 'ready'
-      ? context?.observe(row.query) ?? unavailable : unavailable;
-    const { draft, filing } = observation;
-    if (row.status === 'disabled') partial = true;
-    else {
-      largest = Math.max(largest, row.weight);
-      if (!seen.has(row.query.key)) {
-        seen.add(row.query.key);
-        const counts = draft.status === 'current' ? draft.form : draft.status === 'absent' && filing.status === 'none'
-          ? { filled: 0, total: row.weight, toFix: 0, toCheck: 0 } : undefined;
-        if (counts) {
-          known++;
-          totals.filled += counts.filled;
-          totals.total += counts.total;
-          if (counts.toFix !== null) totals.toFix = (totals.toFix ?? 0) + counts.toFix;
-          if (counts.toCheck !== null) totals.toCheck = (totals.toCheck ?? 0) + counts.toCheck;
+  const resolvedGroups = plan.groups.map(group => {
+    let rows = group.rows.map((plannedRow): ResolvedTrackerRow => {
+      if (plannedRow.status !== 'ready') {
+        return { row: plannedRow, observation: unavailable, countEligible: false };
+      }
+      if (plannedRow.query.subjectMatch !== undefined) {
+        const raw: Observation = context?.observe(plannedRow.query) ?? unavailable;
+        if (raw.draft.status === 'loading') {
+          return {
+            row: { ...plannedRow, href: undefined, sections: [] },
+            observation: { draft: { status: 'loading' }, filing: { status: 'unavailable' } },
+            countEligible: false,
+          };
         }
-        const filedWithoutDraft = draft.status === 'absent' && 'receiptRef' in filing;
-        if (!filedWithoutDraft && (!counts || counts.toFix === null || counts.toCheck === null)) partial = true;
+        if ('subjectMatch' in raw && raw.subjectMatch === 'matched' && raw.subject !== undefined) {
+          if ((raw.draft as { status: string }).status === 'denied' || (raw.filing as { status: string }).status === 'denied') {
+            return {
+              row: disablePlannedRow(plannedRow, 'subject-unavailable'),
+              observation: unavailable,
+              countEligible: false,
+            };
+          }
+          const links = plannedRow.resolveLinks?.(raw.subject);
+          if (!links) {
+            return {
+              row: disablePlannedRow(plannedRow, 'route-address-unavailable'),
+              observation: unavailable,
+              countEligible: false,
+            };
+          }
+          const resolvedSubject = subjectKeyString(raw.subject);
+          return {
+            row: {
+              ...plannedRow,
+              params: links.params,
+              href: links.href,
+              sections: plannedRow.sections.map(section => ({ ...section, href: links.sections[section.id] })),
+            },
+            observation: { draft: raw.draft, filing: raw.filing },
+            countEligible: true,
+            resolvedSubject,
+            destinationTuple: destinationTupleString(plannedRow.route, plannedRow.slotId, links.params),
+            unitKey: JSON.stringify([plannedRow.query.definitionUrl, resolvedSubject]),
+          };
+        }
+        if ('subjectMatch' in raw && (raw.subjectMatch === 'none' || raw.subjectMatch === 'ambiguous')) {
+          return {
+            row: disablePlannedRow(plannedRow, 'subject-unavailable'),
+            observation: unavailable,
+            countEligible: false,
+          };
+        }
+        return {
+          row: { ...plannedRow, href: undefined, sections: [] },
+          observation: {
+            draft: { status: raw.draft.status === 'denied' ? 'denied' : 'unavailable' },
+            filing: { status: 'unavailable' },
+          },
+          countEligible: false,
+        };
+      }
+      const observation = context?.observe(plannedRow.query) ?? unavailable;
+      const resolvedSubject = subjectKeyString(plannedRow.query.subject ?? null);
+      return {
+        row: plannedRow,
+        observation,
+        countEligible: true,
+        resolvedSubject,
+        destinationTuple: plannedRow.params !== undefined
+          ? destinationTupleString(plannedRow.route, plannedRow.slotId, plannedRow.params)
+          : undefined,
+        unitKey: JSON.stringify([plannedRow.query.definitionUrl, resolvedSubject]),
+      };
+    });
+    const groupSubjects = new Set<string>();
+    for (const entry of rows) {
+      if (entry.resolvedSubject !== undefined) groupSubjects.add(entry.resolvedSubject);
+    }
+    if (groupSubjects.size > 1) {
+      rows = rows.map((entry): ResolvedTrackerRow => entry.row.status === 'ready'
+        ? { row: disablePlannedRow(entry.row, 'subject-unavailable'), observation: unavailable, countEligible: false }
+        : entry);
+    }
+    return { ...group, rows };
+  });
+
+  const seenDestinations = new Set<string>();
+  const seenRepeatGroupSubjects = new Map<string, Set<string>>();
+  for (const group of resolvedGroups) {
+    let memberSubject: string | undefined;
+    for (const entry of group.rows) {
+      if (entry.destinationTuple !== undefined) {
+        if (seenDestinations.has(entry.destinationTuple)) {
+          return <p>{text('filingUnavailable')}</p>;
+        }
+        seenDestinations.add(entry.destinationTuple);
+      }
+      if (entry.resolvedSubject !== undefined) {
+        memberSubject ??= entry.resolvedSubject;
       }
     }
-    return { row, observation };
-  }) }));
+    if (group.member && memberSubject !== undefined) {
+      const seenForRepeat = seenRepeatGroupSubjects.get(group.member.groupId) ?? new Set<string>();
+      if (seenForRepeat.has(memberSubject)) {
+        return <p>{text('filingUnavailable')}</p>;
+      }
+      seenForRepeat.add(memberSubject);
+      seenRepeatGroupSubjects.set(group.member.groupId, seenForRepeat);
+    }
+  }
+
+  const unitEntries = new Map<string, { row: Extract<Row, { status: 'ready' }>; observation: Observation }[]>();
+  const totals = { filled: 0, total: 0, toFix: null as number | null, toCheck: null as number | null };
+  let known = 0;
+  let partial = resolvedGroups.some(group => group.unavailable);
+  let largest = 0;
+  const groups = resolvedGroups.map(group => ({
+    ...group,
+    rows: group.rows.map(({ row, observation, unitKey, countEligible }) => {
+      if (row.status === 'disabled' || !countEligible) {
+        partial = true;
+        return { row, observation };
+      }
+      largest = Math.max(largest, row.weight);
+      const dedupKey = unitKey ?? row.query.key;
+      const entries = unitEntries.get(dedupKey);
+      if (entries) entries.push({ row, observation });
+      else unitEntries.set(dedupKey, [{ row, observation }]);
+      return { row, observation };
+    }),
+  }));
+  for (const entries of unitEntries.values()) {
+    const currentComplete = entries.find(({ observation: { draft } }) =>
+      draft.status === 'current' && draft.form.toFix !== null && draft.form.toCheck !== null);
+    const currentAny = currentComplete ?? entries.find(({ observation: { draft } }) => draft.status === 'current');
+    const absentEntries = entries.filter(({ observation: { draft, filing } }) =>
+      draft.status === 'absent' && filing.status === 'none');
+    const absentTotal = absentEntries.length > 0
+      ? absentEntries.every(({ row }) => row.fieldTemplates !== undefined)
+        ? new Set(absentEntries.flatMap(({ row }) => row.fieldTemplates)).size
+        : Math.max(...absentEntries.map(({ row }) => row.weight))
+      : undefined;
+    const counts = currentAny && currentAny.observation.draft.status === 'current'
+      ? currentAny.observation.draft.form
+      : absentTotal !== undefined
+        ? { filled: 0, total: absentTotal, toFix: 0, toCheck: 0 }
+        : undefined;
+    if (counts) {
+      known++;
+      totals.filled += counts.filled;
+      totals.total += counts.total;
+      if (counts.toFix !== null) totals.toFix = (totals.toFix ?? 0) + counts.toFix;
+      if (counts.toCheck !== null) totals.toCheck = (totals.toCheck ?? 0) + counts.toCheck;
+    }
+    const filedWithoutDraft = entries.some(({ observation: { draft, filing } }) =>
+      draft.status === 'absent' && 'receiptRef' in filing);
+    if (!filedWithoutDraft && (!counts || counts.toFix === null || counts.toCheck === null)) partial = true;
+  }
   type AuthoredGroup = { entries: typeof groups; waiting: string[] };
   const authoredGroups = new Map<string, AuthoredGroup>();
   for (const group of groups) {

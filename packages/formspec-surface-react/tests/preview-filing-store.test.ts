@@ -1236,3 +1236,251 @@ it('preserves the active actor after choosing Load latest before a replacement e
     b.end();
   }
 });
+
+it('resolves period-plan summaries by subject-key range predicates across filings, drafts, empty and ambiguous matches', async () => {
+  const tools = await previewResponseRecordTools();
+  const olderPlan = await responseText(plan, period, 'urn:plan:returned', 'initial plan', '2026-01-01T00:00:00Z');
+  const acceptedPlan = await responseText(plan, period, 'urn:plan:accepted', 'revised plan', '2026-02-01T00:00:00Z');
+  const olderRecord = prepareResponseFiling(scope, definitions, olderPlan, 'fixture', tools);
+  const acceptedRecord = prepareResponseFiling(scope, definitions, acceptedPlan, 'fixture', tools);
+  const fixtures: Pick<SurfaceScenarioProfile, 'filings' | 'decisions'> = {
+    filings: [{ responseJson: olderPlan }, { responseJson: acceptedPlan }],
+    decisions: [
+      { responseId: olderRecord.responseId, responseHash: olderRecord.responseHash,
+        decision: { status: 'decided', review: 'returned', disposition: 'urn:decision:returned', comments: ['Needs edits'] } },
+      { responseId: acceptedRecord.responseId, responseHash: acceptedRecord.responseHash,
+        decision: { status: 'decided', review: 'accepted', disposition: 'urn:decision:accepted', comments: ['Accepted for FY24-FY26'] } },
+    ],
+  };
+  const store = createMemoryFilingStore({ scope, definitions, fixtures });
+  const input = { previewScope: scope, signal: new AbortController().signal };
+  const rangeQuery = (year: number) => ({
+    key: `plan:${year}`,
+    definitionUrl: plan,
+    definitionVersion: version,
+    subjectMatch: {
+      type: plan,
+      predicates: [
+        { key: 'first', op: 'le' as const, value: year },
+        { key: 'last', op: 'ge' as const, value: year },
+      ],
+    },
+    sections: [],
+  });
+
+  // Matches the single unit { first: 2024, last: 2026 } covering 2025, selecting its latest accepted filing.
+  const matched = (await store.drafts.readSummaries([rangeQuery(2025), rangeQuery(2030)], input));
+  expect(matched.get('plan:2025')).toEqual({
+    subject: { type: plan, keys: period },
+    subjectMatch: 'matched',
+    draft: { status: 'absent' },
+    filing: {
+      status: 'accepted',
+      receiptRef: acceptedRecord.responseId,
+      responseHash: acceptedRecord.responseHash,
+      review: 'available',
+      comments: ['Accepted for FY24-FY26'],
+      sample: 'fixture',
+    },
+  });
+  // No period plan covers 2030.
+  expect(matched.get('plan:2030')).toEqual({
+    subjectMatch: 'none',
+    draft: { status: 'absent' },
+    filing: { status: 'none' },
+  });
+
+  // An in-progress draft on a later non-overlapping period { first: 2027, last: 2029 } resolves for 2028.
+  const nextPeriod = { first: 2027, last: 2029 };
+  const nextDraftKey: DraftKey = {
+    scope, definitionUrl: plan,
+    subject: { type: plan, keys: nextPeriod, id: tools.subjectId(plan, nextPeriod) },
+  };
+  const savedDraft = await store.drafts.save({
+    key: nextDraftKey, expectedRevision: null, definitionVersion: version,
+    snapshotJson: JSON.stringify({ definitionUrl: plan, definitionVersion: version, data: { answer: 'drafting' } }),
+    responseJson: JSON.stringify({
+      $formspecResponse: '1.0', id: 'urn:plan:draft-2027', definitionUrl: plan, definitionVersion: version,
+      status: 'in-progress', authored: '2026-03-01T00:00:00Z', subject: nextDraftKey.subject, data: { answer: 'drafting' },
+    }),
+    summary: {
+      sections: [],
+      progress: { status: 'current', form: { total: 1, filled: 1, toFix: 0, toCheck: 0, ready: true }, sections: {} },
+    },
+  });
+  expect(savedDraft.status).toBe('saved');
+  const parseSpy = vi.spyOn(JSON, 'parse');
+  let matchedDraftSummary: Awaited<ReturnType<typeof store.drafts.readSummaries>>;
+  try {
+    matchedDraftSummary = await store.drafts.readSummaries([rangeQuery(2028)], input);
+    expect(parseSpy.mock.calls.filter(([arg]) => typeof arg === 'string' && arg.includes('drafting'))).toEqual([]);
+  } finally {
+    parseSpy.mockRestore();
+  }
+  expect(matchedDraftSummary.get('plan:2028')).toMatchObject({
+    subject: { type: plan, keys: nextPeriod },
+    subjectMatch: 'matched',
+    draft: { status: 'current', form: { ready: true, filled: 1, total: 1 } },
+    filing: { status: 'none' },
+  });
+
+  // Overlapping unit { first: 2025, last: 2027 } makes 2025 ambiguous.
+  const overlapping = { first: 2025, last: 2027 };
+  await checkpoint(store, await responseText(plan, overlapping, 'urn:plan:overlap', 'overlapping'));
+  expect((await store.drafts.readSummaries([rangeQuery(2025)], input)).get('plan:2025')).toEqual({
+    subjectMatch: 'ambiguous',
+    draft: { status: 'unavailable' },
+    filing: { status: 'unavailable' },
+  });
+
+  // Denied and broken callers disclose neither matched nor absent unit status.
+  const denied = createMemoryFilingStore({ scope, definitions, fixtures, authorize: () => false });
+  const broken = createMemoryFilingStore({ scope, definitions, fixtures, authorize: () => { throw new Error('down'); } });
+  expect(await denied.drafts.readSummaries([rangeQuery(2025), rangeQuery(2030)], input))
+    .toEqual(await broken.drafts.readSummaries([rangeQuery(2025), rangeQuery(2030)], input));
+
+  // A started minted-key draft retains its subject identity through save and restart.
+  const mintedUrl = 'urn:test:minted-plan';
+  const mintedDef = definition(mintedUrl, { year: { dataType: 'integer' }, planId: { dataType: 'string', minted: true } });
+  const mintedStore = createMemoryFilingStore({ scope, definitions: new Map([[mintedUrl, mintedDef]]) });
+  const started = await mintedStore.drafts.start({
+    scope, attemptId: 'attempt-1', definitionUrl: mintedUrl, definitionVersion: version,
+    subject: { type: mintedUrl, keys: { year: 2025 } },
+  });
+  expect(started.status).toBe('started');
+  if (started.status !== 'started') throw new Error(started.status);
+  const mintedKey: DraftKey = { scope, definitionUrl: mintedUrl, subject: started.subject };
+  const loadedInit = await mintedStore.drafts.load(mintedKey, version);
+  if (loadedInit.status !== 'initialized') throw new Error(loadedInit.status);
+  const savedMinted = await mintedStore.drafts.save({
+    key: mintedKey, expectedRevision: loadedInit.revision, definitionVersion: version,
+    snapshotJson: JSON.stringify({ definitionUrl: mintedUrl, definitionVersion: version, data: { answer: 'draft' } }),
+    responseJson: JSON.stringify({
+      $formspecResponse: '1.0', id: 'urn:minted:1', definitionUrl: mintedUrl, definitionVersion: version,
+      status: 'in-progress', authored: '2026-03-01T00:00:00Z', subject: started.subject, data: { answer: 'draft' },
+    }),
+    summary: null,
+  });
+  if (savedMinted.status !== 'saved') throw new Error(savedMinted.status);
+  expect(await mintedStore.drafts.restart(mintedKey, savedMinted.revision)).toEqual({ status: 'discarded' });
+  const mintedMatch = await mintedStore.drafts.readSummaries([{
+    key: 'minted:2025', definitionUrl: mintedUrl, definitionVersion: version, sections: [],
+    subjectMatch: { type: mintedUrl, predicates: [{ key: 'year', op: 'eq', value: 2025 }] },
+  }], input);
+  expect(mintedMatch.get('minted:2025')).toMatchObject({
+    subjectMatch: 'matched',
+    subject: { type: mintedUrl, keys: started.subject.keys },
+  });
+
+  // Authorizes subject-space discovery FIRST on positive lookups and refuses without leaking cardinality when space discovery is denied.
+  const authCalls: string[] = [];
+  const permittedStore = createMemoryFilingStore({
+    scope, definitions, fixtures,
+    authorize: key => {
+      authCalls.push(key.subject ? 'unit' : 'space');
+      return true;
+    },
+  });
+  expect((await permittedStore.drafts.readSummaries([rangeQuery(2025)], input)).get('plan:2025')?.subjectMatch).toBe('matched');
+  expect(authCalls[0]).toBe('space');
+
+  const unitOnlyStore = createMemoryFilingStore({
+    scope, definitions, fixtures,
+    authorize: key => key.subject !== undefined,
+  });
+  const deniedDiscovery = await unitOnlyStore.drafts.readSummaries([rangeQuery(2025), rangeQuery(2030)], input);
+  expect(deniedDiscovery.get('plan:2025')).toEqual({ draft: { status: 'unavailable' }, filing: { status: 'unavailable' } });
+  expect(deniedDiscovery.get('plan:2030')).toEqual({ draft: { status: 'unavailable' }, filing: { status: 'unavailable' } });
+
+  // An untouched sibling Definition sharing the same subject discovers the unit established in scope as Not started.
+  const siblingPlan = 'urn:test:plan-amendment';
+  const sharedDefs = new Map(definitions).set(siblingPlan, { ...definitions.get(plan)!, url: siblingPlan });
+  const sharedStore = createMemoryFilingStore({ scope, definitions: sharedDefs, fixtures });
+  const siblingSummary = await sharedStore.drafts.readSummaries([{
+    ...rangeQuery(2025), key: 'sibling:2025', definitionUrl: siblingPlan,
+  }], input);
+  expect(siblingSummary.get('sibling:2025')).toEqual({
+    subjectMatch: 'matched',
+    subject: { type: plan, keys: period },
+    draft: { status: 'absent' },
+    filing: { status: 'none' },
+  });
+
+  // Split permissions (read-only OR resume-only) refuse range discovery and target unit access without leaking cardinality.
+  for (const deniedRelation of ['read', 'resume'] as const) {
+    const splitSpaceStore = createMemoryFilingStore({
+      scope, definitions, fixtures,
+      authorize: (_key, relation) => relation !== deniedRelation,
+    });
+    const splitSpace = await splitSpaceStore.drafts.readSummaries([rangeQuery(2025), rangeQuery(2030)], input);
+    expect(splitSpace.get('plan:2025'), `space denying ${deniedRelation}`).toEqual({
+      draft: { status: 'unavailable' },
+      filing: { status: 'unavailable' },
+    });
+    expect(splitSpace.get('plan:2030'), `space denying ${deniedRelation} (unmatched)`).toEqual({
+      draft: { status: 'unavailable' },
+      filing: { status: 'unavailable' },
+    });
+
+    const splitUnitStore = createMemoryFilingStore({
+      scope, definitions, fixtures,
+      authorize: (key, relation) => key.subject === undefined || relation !== deniedRelation,
+    });
+    const splitUnit = await splitUnitStore.drafts.readSummaries([rangeQuery(2025)], input);
+    expect(splitUnit.get('plan:2025'), `unit denying ${deniedRelation}`).toEqual({
+      draft: { status: 'unavailable' },
+      filing: { status: 'unavailable' },
+    });
+  }
+
+  // Cold overview readSummaries performs zero raw fixture payload reads, both directly and from scenario admission.
+  const coldResponse = await responseText(plan, period, 'urn:review:cold-period', 'cold fixture answer');
+  let rawFixtureReads = 0;
+  const coldStore = createMemoryFilingStore({
+    scope, definitions,
+    fixtures: { filings: [{ get responseJson() { rawFixtureReads++; return coldResponse; } }] },
+  });
+  const readsBeforeCold = rawFixtureReads;
+  const coldResult = await coldStore.drafts.readSummaries([rangeQuery(2025)], input);
+  expect(coldResult.get('plan:2025')?.filing.status).toBe('filed');
+  expect(rawFixtureReads - readsBeforeCold).toBe(0);
+
+  let admittedReads = 0;
+  const admittedBundle = dereferenceBundleExport({
+    manifest: { $formspecBundle: '2.4', id: 'urn:admitted-app', surfaces: [{ url: 'urn:surface' }], definitions: [{ url: plan, version }] },
+    documents: {
+      'urn:surface': { $formspecSurface: '0.4', id: 'app', entry: 'home', routes: [{ id: 'home', path: '/', slots: [] }] },
+      [plan]: definitions.get(plan)!,
+    },
+  });
+  const admitted = await validateSurfacePreviewScenario({
+    bundle: admittedBundle,
+    scope,
+    responseTools: tools,
+    scenario: {
+      $formspecSurfaceScenario: '0.1',
+      version: '1.0.0',
+      initialPath: '/',
+      defaultProfile: 'local',
+      profiles: {
+        local: {
+          authorization: { default: 'authorized' },
+          sources: [],
+          filings: [{ get responseJson() { admittedReads++; return coldResponse; } }],
+        },
+      },
+      actions: { default: { status: 'complete' } },
+    },
+  });
+  expect(admitted.valid).toBe(true);
+  if (!admitted.valid) throw new Error('expected valid scenario');
+  const readsAfterAdmission = admittedReads;
+  const preparedStore = createMemoryFilingStore({
+    scope,
+    definitions,
+    preparedFixtures: admitted.preparedFixtures?.get('local'),
+  });
+  const preparedSummary = await preparedStore.drafts.readSummaries([rangeQuery(2025)], input);
+  expect(preparedSummary.get('plan:2025')?.filing.status).toBe('filed');
+  expect(admittedReads - readsAfterAdmission).toBe(0);
+});

@@ -1,5 +1,7 @@
 /** @filedesc Filing-status is a closed Surface 0.4 slot. */
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import Ajv from 'ajv/dist/2020.js';
 import { expect, it } from 'vitest';
 
@@ -41,4 +43,49 @@ it('admits an authored band and refuses unknown placements', () => {
   expect(validate(app)).toBe(true);
   Object.assign(binding, { placement: 'overlay' });
   expect(validate(app)).toBe(false);
+});
+
+it('admits declarative subject-key range predicates and closes predicate operators and fields', () => {
+  const withRange = {
+    $formspecSurface: '0.4', id: 'app', entry: 'overview',
+    routes: [{ id: 'overview', path: '/years/{ffy}', params: [{ name: 'ffy', type: 'string' }], slots: [{
+      id: 'filings', slotType: 'filing-status',
+      binding: { groups: [{ id: 'period', label: 'Period plan', forms: [{
+        routeRef: 'plan', slotRef: 'form',
+        subject: [
+          { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' } },
+          { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' }, offset: 0 },
+        ],
+      }] }] },
+    }] }],
+  };
+  expect(validate(withRange), JSON.stringify(validate.errors)).toBe(true);
+  for (const safeOffset of [-9007199254740991, 9007199254740991]) {
+    const candidate = structuredClone(withRange);
+    candidate.routes[0]!.slots[0]!.binding.groups[0]!.forms[0]!.subject[1]!.offset = safeOffset;
+    expect(validate(candidate), JSON.stringify(validate.errors)).toBe(true);
+  }
+  for (const invalidSubject of [
+    [],
+    [{ key: 'first_ffy', op: 'lte', from: { routeParam: 'ffy' } }],
+    [{ key: 'first-ffy', op: 'le', from: { routeParam: 'ffy' } }],
+    [{ key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' }, offset: 1.5 }],
+    [{ key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' }, offset: 9007199254740992 }],
+    [{ key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' }, offset: -9007199254740992 }],
+    [{ key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' }, extra: true }],
+  ]) {
+    const candidate = structuredClone(withRange);
+    (candidate.routes[0]!.slots[0]!.binding.groups[0]!.forms[0] as Record<string, unknown>).subject = invalidSubject;
+    expect(validate(candidate)).toBe(false);
+  }
+});
+
+it('rejects denied draft or filing states on matched FilingStatusObservation in TypeScript', () => {
+  const packageRoot = fileURLToPath(new URL('..', import.meta.url));
+  const tscBin = fileURLToPath(new URL('../../../node_modules/.bin/tsc', import.meta.url));
+  execFileSync(
+    tscBin,
+    ['--noEmit', '--strict', '--skipLibCheck', '--target', 'es2022', '--module', 'nodenext', 'tests/typecheck/matched-observation.ts'],
+    { cwd: packageRoot, stdio: 'pipe' },
+  );
 });

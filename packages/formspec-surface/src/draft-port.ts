@@ -1,6 +1,15 @@
 /** @filedesc Qualified draft storage and progress reads for Surface hosts. */
 import type { DraftExplanation } from '@formspec-org/engine';
-import type { DecidedDisposition, DraftProgressCounts, DraftProgressSummary, Explanation, ResponseSelectionDelivery, Sha256Digest } from '@formspec-org/types';
+import type {
+  DecidedDisposition,
+  DraftProgressCounts,
+  DraftProgressSummary,
+  Explanation,
+  FilingStatusSubjectPredicate,
+  FormDefinition,
+  ResponseSelectionDelivery,
+  Sha256Digest,
+} from '@formspec-org/types';
 import type { DataSourceSubject } from './data-source-loader.js';
 
 export interface DraftKey {
@@ -16,12 +25,25 @@ export interface DraftSectionPlacement {
   fields: readonly string[];
 }
 
+export interface FilingSubjectPredicate {
+  key: string;
+  op: FilingStatusSubjectPredicate['op'];
+  value: string | number;
+}
+
+export interface FilingSubjectMatch {
+  type: string;
+  predicates: readonly FilingSubjectPredicate[];
+}
+
 export interface FilingDraftQuery {
   /** Correlates a result to this Definition, subject, and section plan within the batch. */
   key: string;
   definitionUrl: string;
   definitionVersion: string;
   subject?: DataSourceSubject;
+  /** Selects a single filing unit by subject-key predicates when the URL does not supply every key directly. */
+  subjectMatch?: FilingSubjectMatch;
   sections: readonly DraftSectionPlacement[];
 }
 
@@ -69,13 +91,17 @@ export function canonicalDraftProgress(
   return { status: 'current', form: { ...formCounts, ready }, sections: Object.fromEntries(sectionEntries) };
 }
 
-export type FilingDraftObservation =
+export type MatchedFilingDraftObservation =
   | CurrentDraftProgress
-  | { status: 'absent' | 'denied' | 'stale' | 'unavailable' };
+  | { status: 'absent' | 'stale' | 'unavailable' };
 
-export type FilingObservation =
+export type FilingDraftObservation =
+  | MatchedFilingDraftObservation
+  | { status: 'denied' };
+
+export type MatchedFilingObservation =
   | { status: 'none' }
-  | { status: 'denied' | 'unavailable' }
+  | { status: 'unavailable' }
   | {
       status: 'filed' | DecidedDisposition['review'];
       receiptRef: string;
@@ -85,9 +111,71 @@ export type FilingObservation =
       sample?: 'preview-submit' | 'fixture';
     };
 
-export interface FilingStatusObservation {
-  draft: FilingDraftObservation;
-  filing: FilingObservation;
+export type FilingObservation =
+  | MatchedFilingObservation
+  | { status: 'denied' };
+
+export type FilingStatusObservation =
+  | {
+      draft: FilingDraftObservation;
+      filing: FilingObservation;
+      subject?: undefined;
+      subjectMatch?: undefined;
+    }
+  | {
+      draft: MatchedFilingDraftObservation;
+      filing: MatchedFilingObservation;
+      /** Resolved filing unit when the query used `subjectMatch`. */
+      subject: DataSourceSubject;
+      subjectMatch: 'matched';
+    }
+  | {
+      draft: { status: 'absent' | 'unavailable' };
+      filing: { status: 'none' | 'unavailable' };
+      subject?: undefined;
+      subjectMatch: 'none' | 'ambiguous';
+    };
+
+export function matchesFilingSubjectPredicates(
+  definition: FormDefinition,
+  subject: DataSourceSubject | undefined,
+  match: FilingSubjectMatch,
+): boolean {
+  const declaration = definition.subject;
+  if (!declaration || declaration.type !== match.type || !subject || subject.type !== match.type) {
+    return false;
+  }
+  const declaredEntries = Object.entries(declaration.keys);
+  if (Object.keys(subject.keys).length !== declaredEntries.length) return false;
+  for (const [name, field] of declaredEntries) {
+    if (!Object.hasOwn(subject.keys, name)) return false;
+    const actual = subject.keys[name];
+    if (field.dataType === 'integer' ? !Number.isSafeInteger(actual) : typeof actual !== 'string') {
+      return false;
+    }
+  }
+  for (const predicate of match.predicates) {
+    const field = declaration.keys[predicate.key];
+    if (!field || !Object.hasOwn(subject.keys, predicate.key)) return false;
+    const actual = subject.keys[predicate.key];
+    const expected = predicate.value;
+    if (predicate.op === 'eq') {
+      const validType = field.dataType === 'integer'
+        ? Number.isSafeInteger(actual) && Number.isSafeInteger(expected)
+        : typeof actual === 'string' && typeof expected === 'string';
+      if (!validType || actual !== expected) return false;
+      continue;
+    }
+    if (field.dataType !== 'integer'
+        || typeof actual !== 'number' || typeof expected !== 'number'
+        || !Number.isSafeInteger(actual) || !Number.isSafeInteger(expected)) {
+      return false;
+    }
+    if (predicate.op === 'le' ? !(actual <= expected) : !(actual >= expected)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 export type FilingStatusReader = (

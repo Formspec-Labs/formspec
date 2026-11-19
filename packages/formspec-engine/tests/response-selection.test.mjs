@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
-import { responseSubjectId, selectResponses } from '../dist/index.js';
+import { parseVerifiedJsonObject, responseSubjectId, selectResponses } from '../dist/index.js';
 
 const readFixture = (path) => parseJsonExact(readFileSync(
     new URL(`../../../tests/conformance/fixtures/${path}.json`, import.meta.url), 'utf8'
@@ -50,4 +50,15 @@ describe('Response selection through WASM', () => {
             );
         });
     }
+    it('parseVerifiedJsonObject keeps nested large integers exact and rejects non-object or non-string roots', () => {
+        const nested = parseVerifiedJsonObject('{"n":9007199254740993}');
+        assert.equal(JSON.stringify(nested.value), '{"n":9007199254740993}');
+        assert.throws(() => parseVerifiedJsonObject('9007199254740993'), TypeError);
+        assert.throws(() => parseVerifiedJsonObject('1.234567890123456789'), TypeError);
+        assert.throws(() => parseVerifiedJsonObject('[]'), TypeError);
+        assert.throws(() => parseVerifiedJsonObject('null'), TypeError);
+        assert.throws(() => parseVerifiedJsonObject('"hello"'), TypeError);
+        assert.throws(() => parseVerifiedJsonObject(new String('{}')), TypeError);
+        assert.throws(() => parseVerifiedJsonObject(123), TypeError);
+    });
 });

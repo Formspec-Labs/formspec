@@ -608,7 +608,12 @@ test('a profile rejected during preparation commits no seed marker, even beside 
   expect(await page.evaluate(async name => (await import('/surface-drafts-port.ts')).initializeRejectedOrCorrectedProfile(name, false), db))
     .toBe('rejected');
   expect(await page.evaluate(async name => (await import('/surface-drafts-port.ts')).readRawStore(name, 'seeds'), db)).toEqual([]);
-  expect(await page.evaluate(async name => (await import('/surface-drafts-port.ts')).readRawStore(name, 'summaries'), db)).toEqual([]);
+  // The v3->v4 upgrade backfills an unknown-progress placeholder for the pre-existing owned legacy edit,
+  // while the rejected seed profile commits no seed markers, no seeded drafts, and no computed plans.
+  expect(await page.evaluate(async name => (await import('/surface-drafts-port.ts')).readRawStore(name, 'summaries'), db))
+    .toEqual([{ definitionVersion: '1.0.0', plans: null }]);
+  expect(await page.evaluate(async name => (await import('/surface-drafts-port.ts')).readRawStore(name, 'editable'), db))
+    .toHaveLength(1);
 });
 
 test('a dependent seed pins the upstream row that actually committed when a user saves it during preparation', async ({ page }) => {
@@ -1214,4 +1219,480 @@ test('a respondent review link carries its field path and focuses the requested 
   await notes.click();
   await expect(page.locator('.formspec-workspace__content[data-formspec-section="followup"]')).toBeVisible();
   await expect(page.getByLabel('Notes')).toBeFocused({ timeout: 2000 });
+});
+
+test('a year-scoped overview tracker selects the covering multi-year period plan without period keys in the overview URL', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&periodRange&submit#/years/2025');
+  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const unmatched = tracker.locator('[role="link"][aria-disabled="true"]', { hasText: 'Period Plan' });
+  await expect(unmatched).toHaveAccessibleDescription('Filing unit unavailable');
+
+  // Save a 2024-2026 period plan draft on its multi-year route, then verify /years/2025 links directly to it.
+  await page.goto('/surface-drafts.html?form&periodRange&submit#/plans/2024/2026');
+  await page.getByLabel('Answer').fill('Three-year plan');
+  await page.getByRole('button', { name: 'Save draft' }).click();
+  await expect(page.getByText('Draft saved in this browser.')).toBeVisible();
+
+  const recordGetAllStores = () => {
+    const win = window as unknown as { reviewStores?: string[] };
+    win.reviewStores = [];
+    const original = IDBObjectStore.prototype.getAll;
+    IDBObjectStore.prototype.getAll = function (...args) {
+      win.reviewStores!.push(this.name);
+      return original.apply(this, args);
+    };
+  };
+  await page.addInitScript(recordGetAllStores);
+  await page.evaluate(recordGetAllStores);
+
+  await page.goto('/surface-drafts.html?form&periodRange&submit#/years/2025');
+  const planLink = tracker.getByRole('link', { name: 'Period Plan', exact: true });
+  await expect(planLink).toHaveAttribute('href', '#/plans/2024/2026?slot=form&edition=edition');
+  await expect(planLink).toHaveAccessibleDescription('Ready');
+  const readStores = await page.evaluate(() => (window as unknown as { reviewStores?: string[] }).reviewStores ?? []);
+  expect(readStores).not.toContain('editable');
+  expect(readStores).not.toContain('filings');
+
+  // A year outside 2024-2026 or another preview edition finds no covering period plan.
+  await page.goto('/surface-drafts.html?form&periodRange&submit#/years/2030');
+  await expect(tracker.locator('[role="link"][aria-disabled="true"]', { hasText: 'Period Plan' }))
+    .toHaveAccessibleDescription('Filing unit unavailable');
+  await page.goto('/surface-drafts.html?form&periodRange&submit#/years/2025?edition=edition-b');
+  await expect(tracker.locator('[role="link"][aria-disabled="true"]', { hasText: 'Period Plan' }))
+    .toHaveAccessibleDescription('Filing unit unavailable');
+
+  // Clicking the resolved link on /years/2025 opens /plans/2024/2026 and submitting updates /years/2025 to Filed.
+  await page.goto('/surface-drafts.html?form&periodRange&submit#/years/2025');
+  await planLink.click();
+  await expect(page.getByLabel('Answer')).toHaveValue('Three-year plan');
+  await page.getByRole('button', { name: 'Submit report' }).click();
+  await expect(page.locator('.formspec-action-status')).toContainText(/completed/i);
+  await page.goto('/surface-drafts.html?form&periodRange&submit#/years/2025');
+  await expect(tracker.getByRole('link', { name: 'Period Plan', exact: true }))
+    .toHaveAccessibleDescription(/^Filed\b/);
+  await expect(tracker.getByText(/^Receipt reference: urn:uuid:/)).toBeVisible();
+  await expect(tracker.getByRole('link', { name: 'Period Plan', exact: true }))
+    .toHaveAttribute('href', '#/plans/2024/2026?slot=form&edition=edition');
+});
+
+test('upgrades a version-3 browser filing or draft into v5 summaries and fails closed on incomplete, tampered, orphaned, or mismatched v3 records', async ({ page }) => {
+  await page.goto('/surface-drafts.html');
+  const upgradedFiling = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).upgradeVersionThreeFiling('valid-filing'),
+  );
+  expect(upgradedFiling.dbVersion).toBe(5);
+  expect(upgradedFiling.exact).toMatchObject({
+    filing: { status: 'filed', receiptRef: 'urn:v3:filed', responseHash: upgradedFiling.responseHash },
+  });
+  expect(upgradedFiling.range).toMatchObject({
+    subjectMatch: 'matched',
+    subject: { type: 'urn:test:v3-plan', keys: { first_ffy: 2024, last_ffy: 2026 } },
+    filing: { status: 'filed', receiptRef: 'urn:v3:filed', responseHash: upgradedFiling.responseHash },
+  });
+
+  const upgradedDraft = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).upgradeVersionThreeFiling('valid-draft'),
+  );
+  expect(upgradedDraft.dbVersion).toBe(5);
+  expect(upgradedDraft.exact).toMatchObject({
+    draft: { status: 'current', form: { filled: 1, total: 1, ready: true } },
+    filing: { status: 'none' },
+  });
+  expect(upgradedDraft.range).toMatchObject({
+    subjectMatch: 'matched',
+    subject: { type: 'urn:test:v3-plan', keys: { first_ffy: 2024, last_ffy: 2026 } },
+    draft: { status: 'current', form: { filled: 1, total: 1, ready: true } },
+    filing: { status: 'none' },
+  });
+
+  const upgradedInitialized = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).upgradeVersionThreeFiling('valid-initialized-minted'),
+  );
+  expect(upgradedInitialized.dbVersion).toBe(5);
+  expect(upgradedInitialized.exact).toEqual({
+    draft: { status: 'unavailable' },
+    filing: { status: 'none' },
+  });
+  expect(upgradedInitialized.range).toEqual({
+    subjectMatch: 'matched',
+    subject: { type: 'urn:test:v3-plan', keys: { first_ffy: 2024, last_ffy: 2026, unit: 'minted-v3-unit-1' } },
+    draft: { status: 'unavailable' },
+    filing: { status: 'none' },
+  });
+
+  const upgradedPrepared = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).upgradeVersionThreeFiling('valid-prepared-draft'),
+  );
+  expect(upgradedPrepared.dbVersion).toBe(5);
+  expect(upgradedPrepared.loaded).toMatchObject({ status: 'loaded', draft: { revision: 'v3-prepared-1' } });
+  expect(upgradedPrepared.selectedCurrent).toMatchObject({ status: 'available', value: { answer: 'prepared-in-v3' } });
+  expect(upgradedPrepared.selectedCompleted).toMatchObject({ status: 'available', none: true });
+
+  const upgradedV2ThroughV3 = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).upgradeVersionThreeFiling('valid-v2-through-v3'),
+  );
+  expect(upgradedV2ThroughV3.dbVersion).toBe(5);
+  expect(upgradedV2ThroughV3.loaded).toMatchObject({ status: 'loaded', draft: { revision: 'version-two-draft', responseJson: '{}' } });
+
+  const upgradedHistorical = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).upgradeVersionThreeFiling('valid-historical-filing-new-subject'),
+  );
+  expect(upgradedHistorical.dbVersion).toBe(5);
+  expect(upgradedHistorical.other).toEqual({ draft: { status: 'absent' }, filing: { status: 'none' } });
+
+  const upgradedImplicitMissing = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).upgradeVersionThreeFiling('valid-implicit-missing-summary'),
+  );
+  expect(upgradedImplicitMissing.dbVersion).toBe(5);
+  expect(upgradedImplicitMissing.loaded).toMatchObject({ status: 'loaded', draft: { revision: 'v3-rev-1' } });
+  expect(upgradedImplicitMissing.exact).toEqual({ draft: { status: 'unavailable' }, filing: { status: 'none' } });
+
+  const upgradedHistoricalStart = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).upgradeVersionThreeFiling('valid-start-same-names-new-type'),
+  );
+  expect(upgradedHistoricalStart.dbVersion).toBe(5);
+  expect(upgradedHistoricalStart.other).toEqual({ draft: { status: 'absent' }, filing: { status: 'none' } });
+
+  const upgradedRealRestart = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).upgradeVersionThreeFiling('valid-start-real-restart'),
+  );
+  expect(upgradedRealRestart.dbVersion).toBe(5);
+  expect(upgradedRealRestart.loaded).toMatchObject({ status: 'initialized' });
+  expect(upgradedRealRestart.other).toEqual({ draft: { status: 'absent' }, filing: { status: 'none' } });
+
+  const upgradedExtraPlanField = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).upgradeVersionThreeFiling('plan-extra-field'),
+  );
+  expect(upgradedExtraPlanField.dbVersion).toBe(5);
+  expect(upgradedExtraPlanField.exact).toEqual({
+    draft: { status: 'current', form: { filled: 1, total: 1, toFix: 0, toCheck: 0, ready: true }, sections: {} },
+    filing: { status: 'none' },
+  });
+  expect(upgradedExtraPlanField.exact?.draft).not.toHaveProperty('reviewLabel');
+  expect(JSON.stringify(upgradedExtraPlanField.rawSummaries)).not.toContain('reviewLabel');
+
+  for (const mode of [
+    'incomplete-filing',
+    'corrupt-filing',
+    'changed-answer',
+    'wrong-hash',
+    'orphan-with-start',
+    'wrong-draft-definition',
+    'wrong-snapshot-url',
+    'missing-snapshot-data',
+    'invalid-plan-id',
+    'start-wrong-definition',
+    'start-extra-issued-key',
+    'start-unknown-version',
+    'start-known-type-change',
+    'bad-pins',
+    'missing-revision',
+    'missing-snapshot',
+    'negative-count',
+    'missing-form',
+    'start-no-version',
+    'start-no-parents',
+  ] as const) {
+    const refused = await page.evaluate(
+      async (m) => (await import('/surface-drafts-port.ts')).upgradeVersionThreeFiling(m),
+      mode,
+    );
+    expect(refused.dbVersion, mode).toBe(3);
+    expect(refused.exact, mode).toEqual({ draft: { status: 'unavailable' }, filing: { status: 'unavailable' } });
+    expect(refused.range, mode).toEqual({ draft: { status: 'unavailable' }, filing: { status: 'unavailable' } });
+    expect(refused.loaded, mode).toEqual({ status: 'unavailable' });
+  }
+});
+
+test('upgrades an existing main 5-store version-4 database to version 5, retaining receipts, plans, and seed markers while enabling new filings', async ({ page }) => {
+  await page.goto('/surface-drafts.html');
+  const migrated = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).upgradeMainFiveStoreV4Database(),
+  );
+  expect(migrated.dbVersion).toBe(5);
+  expect(migrated.storeNames).toContain('filingSummaries');
+  expect(migrated.exactFiling).toMatchObject({
+    draft: { status: 'absent' },
+    filing: { status: 'filed', receiptRef: 'urn:main-v4:receipt-1', responseHash: migrated.firstHash, sample: 'preview-submit', review: 'available', comments: [] },
+  });
+  expect(migrated.rangeFiling).toMatchObject({
+    subjectMatch: 'matched',
+    subject: { type: 'urn:test:v4-plan', keys: { first_ffy: 2024, last_ffy: 2026 } },
+    filing: { status: 'filed', receiptRef: 'urn:main-v4:receipt-1', responseHash: migrated.firstHash },
+  });
+  expect(migrated.exactDraft).toMatchObject({
+    draft: { status: 'current', form: { filled: 1, total: 1, toFix: 0, toCheck: 0, ready: true }, sections: {} },
+    filing: { status: 'none' },
+  });
+  expect(migrated.rangeDraft).toMatchObject({
+    subjectMatch: 'matched',
+    subject: { type: 'urn:test:v4-draft', keys: { first_ffy: 2027, last_ffy: 2029 } },
+    draft: { status: 'current', form: { filled: 1, total: 1, toFix: 0, toCheck: 0, ready: true }, sections: {} },
+    filing: { status: 'none' },
+  });
+  expect(JSON.stringify([migrated.rawSummariesBeforeSave, migrated.exactDraft, migrated.rangeDraft])).not.toContain('reviewLabel');
+  expect(migrated.exactDraft?.draft).toEqual({ status: 'current', form: { total: 1, filled: 1, toFix: 0, toCheck: 0, ready: true }, sections: {} });
+  expect(migrated.rangeDraft?.draft).toEqual({ status: 'current', form: { total: 1, filled: 1, toFix: 0, toCheck: 0, ready: true }, sections: {} });
+  expect(migrated.seedsCount).toBe(1);
+  expect(migrated.secondFiling).toMatchObject({ status: 'filed', receiptRef: 'urn:main-v4:receipt-2' });
+  expect(migrated.afterSecondFiling).toMatchObject({
+    filing: { status: 'filed', receiptRef: 'urn:main-v4:receipt-2' },
+  });
+});
+
+test('recovers restarted seeded minted drafts from main v4 without blocking unrelated forms', async ({ page }) => {
+  await page.goto('/surface-drafts.html');
+  for (const [restart, includeFixture] of [[false, true], [true, true], [true, false]] as const) {
+    const result = await page.evaluate(
+      async ([flag, withFix]) => (await import('/surface-drafts-port.ts')).upgradeMainSeededMintedDraft(flag, withFix),
+      [restart, includeFixture] as const,
+    );
+    expect(result.dbVersion, `restart=${restart} fixture=${includeFixture}`).toBe(5);
+    expect(result.loaded, `restart=${restart} fixture=${includeFixture}`).toBe(restart ? 'initialized' : 'loaded');
+    expect(result.other, `restart=${restart} fixture=${includeFixture}`).toBe('absent');
+    expect(result.seedsCount, `restart=${restart} fixture=${includeFixture}`).toBe(1);
+    if (includeFixture) {
+      expect(result.range, `restart=${restart} fixture=${includeFixture}`).toMatchObject({
+        subjectMatch: 'matched',
+        subject: { type: 'urn:synthetic:unit', keys: { unit: 'fixed-id' } },
+      });
+    } else {
+      expect(result.exact, 'restart=true without fixture').toEqual({ draft: { status: 'unavailable' }, filing: { status: 'none' } });
+      expect(result.range, 'restart=true without fixture keeps range unavailable').toEqual({ draft: { status: 'unavailable' }, filing: { status: 'unavailable' } });
+    }
+  }
+});
+
+test('keeps range discovery unavailable for unresolved seeded rows, recovers when owner fixture returns, and rejects missing markers or invalid addresses', async ({ page }) => {
+  await page.goto('/surface-drafts.html');
+  for (const mode of ['no-marker', 'no-marker-fixture', 'bad-marker', 'bad-address'] as const) {
+    const refused = await page.evaluate(
+      async (m) => (await import('/surface-drafts-port.ts')).upgradeMainSeededEdgeCase(m),
+      mode,
+    );
+    expect(refused.dbVersion, mode).toBe(4);
+    expect(refused.sibling, mode).toBe('unavailable');
+  }
+  for (const mode of ['range-unresolved', 'two'] as const) {
+    const unresolved = await page.evaluate(
+      async (m) => (await import('/surface-drafts-port.ts')).upgradeMainSeededEdgeCase(m),
+      mode,
+    );
+    expect(unresolved.dbVersion, mode).toBe(5);
+    expect(unresolved.sibling, mode).toBe('absent');
+    expect(unresolved.load, mode).toBe('initialized');
+    expect(unresolved.editable, mode).not.toHaveProperty('subject');
+    expect(unresolved.summary, mode).not.toHaveProperty('subject');
+    expect(unresolved.exact, mode).toEqual({ draft: { status: 'unavailable' }, filing: { status: 'none' } });
+    expect(unresolved.range?.draft.status, mode).toBe('unavailable');
+    expect(unresolved.range?.subjectMatch, mode).not.toBe('matched');
+    expect(unresolved.range, mode).not.toHaveProperty('subject');
+  }
+  for (const mode of ['edition-return', 'edition-return-filing'] as const) {
+    const recovered = await page.evaluate(
+      async (m) => (await import('/surface-drafts-port.ts')).upgradeMainSeededEdgeCase(m),
+      mode,
+    );
+    expect(recovered.dbVersion, mode).toBe(5);
+    expect(recovered.sibling, mode).toBe('absent');
+    expect(recovered.load, mode).toBe('initialized');
+    expect(recovered.editable?.revision, mode).toBe(recovered.originalRevision);
+    expect(recovered.editable, mode).not.toHaveProperty('responseJson');
+    expect(recovered.summary?.plans, mode).toBeNull();
+    expect(recovered.seed, mode).toEqual({ seeded: true });
+    expect(recovered.range, mode).toMatchObject({
+      subjectMatch: 'matched',
+      subject: { type: 'urn:review:plan', keys: { year: 2025, unit: 'first' } },
+    });
+  }
+});
+
+test('validates main v4 start and editable version histories per Core 6.2 across all algorithms, restarts, older bundles, bridges, and sibling scopes', async ({ page }) => {
+  await page.goto('/surface-drafts.html');
+  type VersionCase = {
+    label: string;
+    issued: string;
+    active: string;
+    algorithm: 'semver' | 'date' | 'integer' | 'natural';
+    restart: boolean;
+    want: 4 | 5;
+    expectedLoad?: 'initialized' | 'loaded' | 'version-mismatch' | 'unavailable';
+    expectedRetry?: 'started' | 'conflict' | 'unavailable';
+    altered?: string;
+    foreign?: boolean;
+    save?: boolean;
+    activeAlgorithm?: 'semver' | 'date' | 'integer' | 'natural';
+    legacyV3Summary?: boolean;
+  };
+  // Adopted owner policy (review8 final.md:36 + review9 final.md:35):
+  // - In v4, neither `{ seeded: true }` + empty editable (also written by returning fixtures for user-owned
+  //   drafts without restart) nor `{ plans: null }` nor saved editables can distinguish a genuine restart
+  //   from an altered start attempt, and v4 omitted each historical pin's issuing versionAlgorithm (so a valid
+  //   Core 6.2 natural label such as '1.0' has the same stored representation as malformed SemVer).
+  // - Quarantine ambiguous v4 mismatches per-unit (`unverifiedStartHistory: true`, v5, sibling open, unit
+  //   unavailable across exact/range/current/completed) and reserve DB-wide rollback (v4) for demonstrable
+  //   corruption (invalid Core 6.2 syntax under every algorithm, e.g. empty version string, or schema/key corruption).
+  const cases: readonly VersionCase[] = [
+    // Unambiguous clean v4 records -> v5 without quarantine.
+    { label: 'identical pin', issued: '1.2.3', active: '1.2.3', algorithm: 'semver', restart: false, want: 5, expectedLoad: 'initialized', expectedRetry: 'started' },
+    { label: 'newer locally stored, older bundle opened', issued: '2.0.0', active: '1.0.0', algorithm: 'semver', restart: false, want: 5, expectedLoad: 'version-mismatch' },
+    { label: 'algorithm change from integer to semver (untouched)', issued: '009', active: '2.0.0', algorithm: 'integer', activeAlgorithm: 'semver', restart: false, want: 5, expectedLoad: 'version-mismatch' },
+    { label: 'v3->v4 bridge load (legacy summary intact)', issued: '1.0.0', active: '2.0.0', algorithm: 'semver', restart: false, altered: '1.0.0', want: 5, legacyV3Summary: true, expectedLoad: 'initialized' },
+    { label: 'saved authentic', issued: '2.0.0', active: '2.0.0', algorithm: 'semver', restart: false, save: true, want: 5, expectedLoad: 'loaded', expectedRetry: 'started' },
+    // Ambiguous v4 start/editable mismatches (incl. marked restarts, cross-algorithm restarts, and historical labels) -> per-unit quarantine (v5, sibling open).
+    { label: 'multi-digit upward', issued: '1.9.12', active: '1.10.0', algorithm: 'semver', restart: true, want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'prerelease numeric upward', issued: '2.0.0-rc.2', active: '2.0.0-rc.11', algorithm: 'semver', restart: true, want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'prerelease into release', issued: '2.0.0-beta', active: '2.0.0', algorithm: 'semver', restart: true, want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'genuine downgrade via main restart', issued: '2.0.0', active: '1.0.0', algorithm: 'semver', restart: true, want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'equal precedence distinct build via main restart', issued: '2.0.0+first', active: '2.0.0+second', algorithm: 'semver', restart: true, want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'integer numeric transition', issued: '9', active: '10', algorithm: 'integer', restart: true, want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'integer with leading zero from main', issued: '009', active: '10', algorithm: 'integer', restart: true, want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'calendar date transition', issued: '2024.02.29', active: '2024.03.01', algorithm: 'date', restart: true, want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'valid century day', issued: '2000.02.29', active: '2025.01.01', algorithm: 'date', restart: true, want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'natural real restart', issued: 'spring', active: 'winter', algorithm: 'natural', restart: true, want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'integer restart, neighbor opens first', issued: '9', active: '10', algorithm: 'integer', restart: true, want: 5, foreign: true },
+    { label: 'date restart, neighbor opens first', issued: '2024.02.29', active: '2024.03.01', algorithm: 'date', restart: true, want: 5, foreign: true },
+    { label: 'natural restart, neighbor opens first', issued: 'spring', active: 'winter', algorithm: 'natural', restart: true, want: 5, foreign: true },
+    { label: 'bridge-ready / untouched earlier start', issued: '2.0.0', active: '2.0.0', algorithm: 'semver', restart: false, altered: '1.0.0', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'future semver in untouched start', issued: '1.0.0', active: '1.0.0', algorithm: 'semver', restart: false, altered: '9.0.0', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'unissued natural label in untouched start', issued: 'winter', active: 'winter', algorithm: 'natural', restart: false, altered: 'never-issued', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'saved no restart inconsistent attempt', issued: '2.0.0', active: '2.0.0', algorithm: 'semver', restart: false, save: true, altered: '1.0.0', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'historical natural-compatible label 1.0 in untouched start', issued: '2.0.0', active: '2.0.0', algorithm: 'semver', restart: false, altered: '1.0', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'historical label 1.0.0-rc..2', issued: '2.0.0', active: '2.0.0', algorithm: 'semver', restart: false, altered: '1.0.0-rc..2', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'historical label 2.0.0-01', issued: '2.0.0', active: '2.0.0', algorithm: 'semver', restart: false, altered: '2.0.0-01', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'historical label 1.0.0+a..b', issued: '2.0.0', active: '2.0.0', algorithm: 'semver', restart: false, altered: '1.0.0+a..b', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'historical natural label no-version', issued: '2.0.0', active: '2.0.0', algorithm: 'semver', restart: false, altered: 'no-version', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'historical label 1.0.1.1', issued: '2.0.0', active: '2.0.0', algorithm: 'semver', restart: false, altered: '1.0.1.1', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'historical label 2025.02.30', issued: '2025.03.01', active: '2025.03.01', algorithm: 'date', restart: false, altered: '2025.02.30', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'marked historical label 1.0', issued: '1.0.0', active: '2.0.0', algorithm: 'semver', restart: true, altered: '1.0', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'marked historical label 1.0.0-rc..2', issued: '1.0.0', active: '2.0.0', algorithm: 'semver', restart: true, altered: '1.0.0-rc..2', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'marked historical label 2.0.0-01', issued: '1.0.0', active: '2.0.0', algorithm: 'semver', restart: true, altered: '2.0.0-01', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'marked historical label 1.0.0+a..b', issued: '1.0.0', active: '2.0.0', algorithm: 'semver', restart: true, altered: '1.0.0+a..b', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    { label: 'marked historical label 1900.02.29', issued: '2024.01.01', active: '2025.01.01', algorithm: 'date', restart: true, altered: '1900.02.29', want: 5, expectedLoad: 'unavailable', expectedRetry: 'unavailable' },
+    // Demonstrable corruption (invalid Core 6.2 syntax under every algorithm) -> atomic DB-wide rollback (v4).
+    { label: 'empty version string in attempt', issued: '2.0.0', active: '2.0.0', algorithm: 'semver', restart: false, altered: '', want: 4 },
+    { label: 'marked empty version string in attempt', issued: '1.0.0', active: '2.0.0', algorithm: 'semver', restart: true, altered: '', want: 4 },
+  ];
+  for (const c of cases) {
+    const observed = await page.evaluate(
+      async (args) => (await import('/surface-drafts-port.ts')).upgradeMainV4VersionPath(args),
+      {
+        issued: c.legacyV3Summary ? '2.0.0' : c.issued,
+        active: c.active,
+        algorithm: c.algorithm,
+        restart: c.restart,
+        altered: c.altered,
+        foreign: c.foreign,
+        save: c.save,
+        activeAlgorithm: c.activeAlgorithm,
+        legacyV3Summary: c.legacyV3Summary,
+      },
+    );
+    expect(observed.dbVersion, c.label).toBe(c.want);
+    if (c.want === 5) {
+      expect(observed.sibling, c.label).toBe('absent');
+      if (!c.foreign && c.expectedLoad) {
+        expect(observed.load, c.label).toBe(c.expectedLoad);
+      }
+      if (!c.foreign && c.expectedRetry) {
+        expect(observed.retry, c.label).toBe(c.expectedRetry);
+      }
+      if (c.expectedLoad === 'unavailable') {
+        expect(observed.exact?.draft.status, c.label).toBe('unavailable');
+        expect(observed.exact?.filing.status, c.label).toBe('unavailable');
+        expect(observed.range?.draft.status, c.label).toBe('unavailable');
+        expect(observed.range?.subjectMatch, c.label).not.toBe('matched');
+        expect(observed.range, c.label).not.toHaveProperty('subject');
+        expect(observed.currentSelect, c.label).toBe('unavailable');
+        expect(observed.quarantinedRestart, c.label).toBe('unavailable');
+      }
+    }
+  }
+});
+
+test('direct browser filing store reads cold range summaries on a fresh uninitialized page using summary stores only', async ({ page }) => {
+  await page.goto('/surface-drafts.html');
+  const result = await page.evaluate(
+    async () => (await import('/surface-drafts-port.ts')).coldDirectBrowserRead(),
+  );
+  expect(result.observation).toMatchObject({
+    subjectMatch: 'matched',
+    subject: { type: 'urn:test:cold-plan', keys: { start_year: 2024, end_year: 2026 } },
+    filing: { status: 'filed', receiptRef: 'urn:cold:browser-direct' },
+  });
+  expect(result.getAllStores).toContain('filingSummaries');
+  expect(result.getAllStores).not.toContain('filings');
+  expect(result.getAllStores).not.toContain('editable');
+  expect(result.rawJsonParseDuringRead).toBe(0);
+});
+
+test('enforces per-unit quarantine across exact filings, range reads, current, and completed selections while keeping healthy sibling units available', async ({ page }) => {
+  await page.goto('/surface-drafts.html');
+  const unavailable = { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } };
+  for (const mode of [
+    'integer-untouched',
+    'integer-restarted',
+    'integer-restarted-historical',
+    'owned-fixture-marker',
+    'restart',
+    'restart-save',
+    'bridge-ready',
+  ] as const) {
+    const r = await page.evaluate(
+      async (m) => (await import('/surface-drafts-port.ts')).upgradeMainV4QuarantineScope(m),
+      mode,
+    );
+    expect(r.version, mode).toBe(5);
+    expect(r.siblingAnswer, mode).toBe('kept');
+    expect(r.revisionRetained, mode).toBe(true);
+    expect(r.goodRange, mode).toBe('matched');
+    expect(r.healthySelection, mode).toMatchObject({ status: 'available', none: false, value: { x: 'healthy' } });
+    if (mode === 'integer-untouched') {
+      expect(r.load, mode).toBe('version-mismatch');
+      expect(r.flags, mode).toEqual([undefined, undefined]);
+      expect(r.exact?.draft.status, mode).toBe('stale');
+      expect(r.exact?.filing.status, mode).toBe('filed');
+      expect(r.ownCompleted?.status, mode).toBe('available');
+    } else {
+      expect(r.flags, mode).toEqual([true, true]);
+      expect(r.load, mode).toBe('unavailable');
+      expect(r.retry, mode).toBe('unavailable');
+      expect(r.save, mode).toBe('unavailable');
+      expect(r.restart, mode).toBe('unavailable');
+      expect(r.submit, mode).toBe('unavailable');
+      expect(r.ownCurrent, mode).toBe('unavailable');
+      expect(r.ownCompleted, mode).toEqual({ status: 'unavailable' });
+      expect(r.exact, mode).toEqual(unavailable);
+      expect(r.range, mode).toEqual(unavailable);
+    }
+  }
+});
+
+test('retains unresolved row Definition version during range discovery and rejects planted legacy quarantine markers', async ({ page }) => {
+  await page.goto('/surface-drafts.html');
+  const unavailable = { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } };
+  for (const mode of ['compatible', 'historical-type-change'] as const) {
+    const r = await page.evaluate(
+      async (m) => (await import('/surface-drafts-port.ts')).upgradeMainUnresolvedTypeChange(m),
+      mode,
+    );
+    expect(r.version, mode).toBe(5);
+    expect(r.range, mode).toEqual(unavailable);
+    if (mode === 'compatible') {
+      expect(r.unrelated?.subjectMatch, mode).toBe('none');
+    }
+  }
+  for (const dbVer of [2, 3, 4] as const) {
+    for (const [store, value] of [['clean', null], ['editable', true], ['summaries', false]] as const) {
+      const r = await page.evaluate(
+        async (args) => (await import('/surface-drafts-port.ts')).upgradePlantedQuarantineFlag(args.dbVer, args.store, args.value),
+        { dbVer, store, value },
+      );
+      if (store === 'clean') {
+        expect(r, `v${dbVer} clean`).toEqual({ version: 5, sibling: 'absent' });
+      } else {
+        expect(r, `v${dbVer} ${store}`).toEqual({ version: dbVer, sibling: 'unavailable' });
+      }
+    }
+  }
 });

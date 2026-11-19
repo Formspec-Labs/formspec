@@ -1,11 +1,11 @@
 /** @filedesc Plans exact filing-status destinations and section links without opening forms. */
-import { resolveFilingStatusTargets } from '@formspec-org/app-graph';
+import { parseRouteSubjectKey, resolveFilingStatusTargets } from '@formspec-org/app-graph';
 import { fillUiParams, resolvePageSequence, UI_STRINGS } from '@formspec-org/layout';
 import type { ComponentDocument, FormDefinition, ThemeDocument } from '@formspec-org/types';
 import { formHref, matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
 import { planFilingRoster } from './filing-roster.js';
 import type { DataSourceCatalogHandle, DataSourceLoadRequest, LoadWidgetDataInputsRequest, DataSourceSubject } from './data-source-loader.js';
-import type { FilingDraftQuery } from './draft-port.js';
+import { matchesFilingSubjectPredicates, type FilingDraftQuery, type FilingSubjectMatch, type FilingSubjectPredicate } from './draft-port.js';
 import { generationNeedAnchors } from './need-trace.js';
 import type { SurfaceDefinitionComponentResolver } from './slot-plan.js';
 import type { SurfaceRoute } from './route-path.js';
@@ -16,8 +16,14 @@ export type FilingSectionLocaleLookup = (definition: FormDefinition, key: string
 export interface FilingStatusSectionPlan {
   id: string;
   label: string;
-  href: string;
+  href?: string | undefined;
   weight: number;
+}
+
+export interface ResolvedFilingStatusLinks {
+  href: string;
+  params: Readonly<Record<string, string>>;
+  sections: Readonly<Record<string, string>>;
 }
 
 interface FilingStatusEntryPlan {
@@ -28,7 +34,18 @@ interface FilingStatusEntryPlan {
 }
 
 export type FilingStatusRowPlan = FilingStatusEntryPlan & (
-  | { status: 'ready'; href: string; route: SurfaceRouteHandle; query: FilingDraftQuery; sections: readonly FilingStatusSectionPlan[]; weight: number }
+  | {
+      status: 'ready';
+      slotId: string;
+      params?: Readonly<Record<string, string>> | undefined;
+      href?: string | undefined;
+      resolveLinks?: ((subject: DataSourceSubject) => ResolvedFilingStatusLinks | undefined) | undefined;
+      route: SurfaceRouteHandle;
+      query: FilingDraftQuery;
+      sections: readonly FilingStatusSectionPlan[];
+      fieldTemplates: readonly string[];
+      weight: number;
+    }
   | { status: 'disabled'; route?: SurfaceRouteHandle; routeRef: string; reason: FilingStatusRowRefusal }
 );
 
@@ -142,7 +159,7 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
   const groups: FilingStatusGroupPlan[] = [];
   for (const { group, pointer, targets } of result.groups) {
     const byPointer = new Map(targets.map(target => [target.pointer, target]));
-    let groupSubject: string | undefined;
+    const groupSubjects = new Set<string>();
     const rows = group.forms.map((entry, index): FilingStatusRowPlan => {
       const key = `${pointer}/forms/${index}`;
       const common = { key, ...(typeof entry?.hint === 'string' ? { hint: entry.hint } : {}), needAnchors: generationNeedAnchors(entry) };
@@ -152,24 +169,121 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
       });
       const target = byPointer.get(key);
       if (!target) {
-        const issue = issues.get(key);
-        return disabled(issue === 'slot-unresolved' ? issue : issue === 'invalid-binding' ? issue : 'route-address-unavailable');
+        const issue = issues.get(key) ?? result.issues.find(candidate => candidate.pointer.startsWith(`${key}/`))?.reason;
+        return disabled(
+          issue === 'slot-unresolved' ? issue
+            : issue === 'invalid-binding' ? issue
+              : issue === 'invalid-subject-predicate' ? 'subject-unavailable'
+                : 'route-address-unavailable',
+        );
       }
-      const { route, slot, params } = target;
+      const { route, slot, params, subject: predicateInputs } = target;
       const destination = app.routes.find(candidate => candidate.surface === handle.surface && candidate.route === route);
-      if (!destination) return disabled('route-address-unavailable');
-      const link = routeHref(destination, params);
-      if (link.refusal || matchRoute(app, link.href).match?.handle !== destination) return disabled('route-address-unavailable', destination);
+      if (!destination || destination.pathCollides) return disabled('route-address-unavailable', destination);
 
       const binding = slot.binding as Record<string, unknown>;
       const definition = typeof binding?.definitionRef === 'string' ? input.definitions.get(binding.definitionRef) : undefined;
       if (!definition) return disabled('definition-unresolved', destination);
-      const subject = input.resolveSubject(definition, binding, route, params);
+
+      if (predicateInputs) {
+        const declaration = definition.subject;
+        const rawMapping = binding?.subjectKeys;
+        const mapping = rawMapping && typeof rawMapping === 'object' && !Array.isArray(rawMapping)
+          ? rawMapping as Record<string, unknown>
+          : undefined;
+        if (!declaration || !mapping || Object.keys(declaration.keys).length === 0
+            || Object.keys(mapping).length !== Object.keys(declaration.keys).length) {
+          return disabled('subject-unavailable', destination);
+        }
+        const routeParamNames = new Set(route.params?.map(param => param.name));
+        for (const keyName of Object.keys(declaration.keys)) {
+          const mapped = mapping[keyName];
+          if (typeof mapped !== 'string' || !routeParamNames.has(mapped)) {
+            return disabled('subject-unavailable', destination);
+          }
+        }
+        const predicates: FilingSubjectPredicate[] = [];
+        for (const [subjKey, paramName] of Object.entries(mapping)) {
+          if (typeof paramName !== 'string' || !Object.hasOwn(params, paramName)) continue;
+          const field = declaration.keys[subjKey];
+          const parsed = parseRouteSubjectKey(field?.dataType, params[paramName]!);
+          if (parsed === undefined) return disabled('subject-unavailable', destination);
+          predicates.push({ key: subjKey, op: 'eq', value: parsed });
+        }
+        for (const predicate of predicateInputs) {
+          if (predicate.value === undefined) return disabled('route-address-unavailable', destination);
+          const field = declaration.keys[predicate.key];
+          if (!field) return disabled('subject-unavailable', destination);
+          if ((predicate.op === 'le' || predicate.op === 'ge' || predicate.offset !== undefined) && field.dataType !== 'integer') {
+            return disabled('subject-unavailable', destination);
+          }
+          const parsed = parseRouteSubjectKey(field.dataType, predicate.value);
+          if (parsed === undefined) return disabled('subject-unavailable', destination);
+          const value = typeof parsed === 'number' ? parsed + (predicate.offset ?? 0) : parsed;
+          if (typeof value === 'number' && !Number.isSafeInteger(value)) {
+            return disabled('subject-unavailable', destination);
+          }
+          predicates.push({ key: predicate.key, op: predicate.op, value });
+        }
+        predicates.sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+        const subjectMatch: FilingSubjectMatch = { type: declaration.type, predicates };
+        groupSubjects.add(JSON.stringify(['match', subjectMatch.type, subjectMatch.predicates]));
+
+        const placement = placementFor(destination, slot.id, definition);
+        const { sequence, sections } = placement;
+        const queryKey = JSON.stringify([definition.url, definition.version, ['match', subjectMatch.type, subjectMatch.predicates], placement.id]);
+        const segments: FilingStatusSectionPlan[] = sequence.flatMap(({ id, title, titleBind, titleLocaleKey, fieldTemplates }, sectionIndex) => {
+          if (id === undefined) return [];
+          const localeKey = titleBind === undefined ? titleLocaleKey : `${titleBind}.label`;
+          const localized = localeKey === undefined ? null : input.resolveDefinitionLocaleString?.(definition, localeKey);
+          const label = localized || title || fillUiParams(
+            input.resolveDefinitionLocaleString?.(definition, '$ui.wizard.stepTitle') ?? UI_STRINGS['wizard.stepTitle'],
+            { index: sectionIndex + 1 },
+          );
+          return [{ id, label, weight: fieldTemplates.length }];
+        });
+        const description = input.resolveDefinitionLocaleString?.(definition, '$form.description') ?? definition.description;
+        const fieldTemplates = sequence.flatMap(entry => entry.fieldTemplates);
+        return {
+          ...common,
+          status: 'ready',
+          slotId: slot.id,
+          route: destination,
+          ...(description === undefined ? {} : { description }),
+          resolveLinks(matchedSubject: DataSourceSubject) {
+            if (!matchesFilingSubjectPredicates(definition, matchedSubject, subjectMatch)) return undefined;
+            const fullParams: Record<string, string> = { ...params };
+            for (const [subjKey, paramName] of Object.entries(mapping)) {
+              if (typeof paramName !== 'string' || !Object.hasOwn(matchedSubject.keys, subjKey)) return undefined;
+              fullParams[paramName] = String(matchedSubject.keys[subjKey]);
+            }
+            const link = routeHref(destination, fullParams);
+            const rematched = link.refusal ? undefined : matchRoute(app, link.href).match;
+            if (rematched?.handle !== destination) return undefined;
+            const roundTrip = input.resolveSubject(definition, binding, route, rematched.params);
+            if (!roundTrip || JSON.stringify(subjectIdentity(roundTrip)) !== JSON.stringify(subjectIdentity(matchedSubject))) {
+              return undefined;
+            }
+            return {
+              href: formHref(link.href, slot.id),
+              params: rematched.params,
+              sections: Object.fromEntries(segments.map(section => [section.id, formHref(link.href, slot.id, section.id)])),
+            };
+          },
+          query: { key: queryKey, definitionUrl: definition.url, definitionVersion: definition.version, subjectMatch, sections },
+          sections: segments,
+          fieldTemplates,
+          weight: fieldTemplates.length,
+        };
+      }
+
+      const link = routeHref(destination, params);
+      const rematched = link.refusal ? undefined : matchRoute(app, link.href).match;
+      if (rematched?.handle !== destination) return disabled('route-address-unavailable', destination);
+      const subject = input.resolveSubject(definition, binding, route, rematched.params);
       if (subject === false) return disabled('subject-unavailable', destination);
       const identity = subjectIdentity(subject);
-      const resolvedSubject = JSON.stringify(identity);
-      groupSubject ??= resolvedSubject;
-      if (groupSubject !== resolvedSubject) return disabled('subject-unavailable', destination);
+      groupSubjects.add(JSON.stringify(identity));
 
       const placement = placementFor(destination, slot.id, definition);
       const { sequence, sections } = placement;
@@ -185,18 +299,36 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
         return [{ id, label, href: formHref(link.href, slot.id, id), weight: fieldTemplates.length }];
       });
       const description = input.resolveDefinitionLocaleString?.(definition, '$form.description') ?? definition.description;
+      const fieldTemplates = sequence.flatMap(entry => entry.fieldTemplates);
       return {
         ...common,
         status: 'ready',
+        slotId: slot.id,
+        params: rematched.params,
         route: destination,
         ...(description === undefined ? {} : { description }),
         href: formHref(link.href, slot.id),
         query: { key: queryKey, definitionUrl: definition.url, definitionVersion: definition.version, ...(subject ? { subject } : {}), sections },
         sections: segments,
-        weight: segments.reduce((sum, section) => sum + section.weight, 0),
+        fieldTemplates,
+        weight: fieldTemplates.length,
       };
     });
-    groups.push({ id: group.id, label: group.label, needAnchors: generationNeedAnchors(group), rows });
+    const finalRows = groupSubjects.size > 1
+      ? rows.map((row): FilingStatusRowPlan => row.status === 'ready'
+        ? {
+            key: row.key,
+            ...(row.hint === undefined ? {} : { hint: row.hint }),
+            ...(row.description === undefined ? {} : { description: row.description }),
+            needAnchors: row.needAnchors,
+            status: 'disabled',
+            route: row.route,
+            routeRef: row.route.routeId,
+            reason: 'subject-unavailable',
+          }
+        : row)
+      : rows;
+    groups.push({ id: group.id, label: group.label, needAnchors: generationNeedAnchors(group), rows: finalRows });
   }
   return { status: 'ready', groups, needAnchors: generationNeedAnchors(input.binding) };
 }

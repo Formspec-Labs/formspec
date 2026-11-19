@@ -996,7 +996,16 @@ Disable an entry whose route or Definition is unavailable and explain why on
 that row. Duplicate groups or resolved targets make the tracker unavailable.
 Use the address query's reserved `slot` and `section` keys for links to a form
 slot and an identified section. Route parameters supply the existing
-`subjectKeys` resolution for that same form.
+`subjectKeys` resolution for that same form. When an entry declares `subject[]`
+predicates instead of fixed subject parameters, the shell resolves the active
+predicate inputs before calling `readSummaries`, authorizes discovery on the
+subject space before reading counts-only unit metadata, populates the target
+route's `subjectKeys` parameters from a confirmed `matched` filing unit's
+`subject.keys`, and verifies that the generated href rematches the target route
+and recovers that exact subject from the decoded route parameters; zero or
+multiple matching units disable the row link with `filingSubjectUnavailable`,
+while colliding resolved targets or repeated-group subjects make the tracker
+unavailable.
 
 For a repeated group the shell MUST authorize the catalog read at the active
 route, validate the fresh delivery against its schema, and expand members before

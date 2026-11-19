@@ -43,7 +43,7 @@ export type { TreeItemLike, ItemLocation } from './fel/fel-api.js';
 export { checkInstanceProjection, type InstanceProjectionDiagnostic, type ProjectionConsumer } from './fel/fel-api-tools.js';
 
 export { createMappingEngine, RuntimeMappingEngine } from './mapping/RuntimeMappingEngine.js';
-export { isValidResponseAuthored, responseSubjectId, selectResponses } from './wasm-bridge-tools.js';
+export { attachVerifiedJsonToken, isValidResponseAuthored, parseVerifiedJsonObject, responseSubjectId, selectResponses } from './wasm-bridge-tools.js';
 
 /** FEL eval for tooling (WASM); returns a JSON-compatible value. */
 export { wasmEvalFel as evalFEL } from './wasm-bridge-runtime.js';

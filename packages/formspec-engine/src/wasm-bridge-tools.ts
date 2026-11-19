@@ -1,7 +1,7 @@
 /** @filedesc Tools WASM — lazy init and wrappers for `formspec_wasm_tools` (lint, mapping, assembly, FEL authoring helpers). */
 
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
-import type { FormResponse, SelectResponses } from '@formspec-org/types';
+import type { FormResponse, ResponseSelectionRecord, SelectResponses } from '@formspec-org/types';
 import {
     nodeFsModuleName,
     resolveWasmAssetPathForNode,
@@ -146,6 +146,39 @@ export function resetToolsWasmDynamicImportCountForTest(): void {
 // Typed wrappers — tools `formspec_wasm_tools` only
 // ---------------------------------------------------------------------------
 
+const verifiedObjectToken = new WeakMap<object, string>();
+const verifiedRecordToken = new WeakMap<ResponseSelectionRecord, object>();
+
+/**
+ * Parse exact JSON once and return an unforgeable token proving the text is
+ * one complete JSON object so `selectResponses` can embed it without re-parsing.
+ */
+export function parseVerifiedJsonObject(text: string): { value: Record<string, unknown>; token: object } {
+    if (typeof text !== 'string') {
+        throw new TypeError('A selection record must contain one Response object.');
+    }
+    const value: unknown = parseJsonExact(text);
+    if (
+        typeof value !== 'object' || value === null || Array.isArray(value)
+        || Object.getPrototypeOf(value) !== Object.prototype
+    ) {
+        throw new TypeError('A selection record must contain one Response object.');
+    }
+    const token = Object.freeze({});
+    verifiedObjectToken.set(token, text);
+    return { value: value as Record<string, unknown>, token };
+}
+
+/** Associate a previously verified JSON object token with a shallow copy of a selection record. */
+export function attachVerifiedJsonToken(
+    record: ResponseSelectionRecord,
+    token: object,
+): ResponseSelectionRecord {
+    const tagged: ResponseSelectionRecord = { ...record };
+    verifiedRecordToken.set(tagged, token);
+    return tagged;
+}
+
 /**
  * Execute an authorized preview Response selection after initializing tools WASM.
  * Set `context.upstreamSubject` to null when the upstream Definition has no subject.
@@ -157,9 +190,15 @@ export const selectResponses: SelectResponses = (records, selection, context) =>
         // Validate one complete object before embedding it. A bracket check alone
         // would allow the text to inject sibling record fields. Pass the original
         // text to Rust as RawValue so digits and duplicate members stay visible.
-        const parsed: unknown = JSON.parse(responseJson);
-        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-            throw new TypeError('A selection record must contain one Response object.');
+        const token = verifiedRecordToken.get(record);
+        if (token === undefined || verifiedObjectToken.get(token) !== responseJson) {
+            if (typeof responseJson !== 'string') {
+                throw new TypeError('A selection record must contain one Response object.');
+            }
+            const parsed: unknown = JSON.parse(responseJson);
+            if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+                throw new TypeError('A selection record must contain one Response object.');
+            }
         }
         const metadata = JSON.stringify({ scope, kind, implicitSubjectId });
         return `${metadata.slice(0, -1)},"response":${responseJson}}`;

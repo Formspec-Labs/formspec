@@ -136,3 +136,189 @@ it('validates the qualified roster shape and the row field bound to the typed su
     expect.objectContaining({ details: { reason: 'invalid-repeat-source' } }),
   ]));
 });
+
+function periodPlanFixture() {
+  const planEntry = {
+    routeRef: 'plan', slotRef: 'form',
+    subject: [
+      { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' } },
+      { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' } },
+    ],
+    ...anchor,
+  };
+  const planSlot = {
+    id: 'form', slotType: 'definition-form',
+    binding: { definitionRef: 'urn:plan', subjectKeys: { first_ffy: 'first_ffy', last_ffy: 'last_ffy' } },
+  };
+  const group = { id: 'period', label: 'Period plan', forms: [planEntry], ...anchor };
+  const binding = { groups: [group], ...anchor };
+  const tracker = { id: 'tracker', slotType: 'filing-status', binding, ...anchor };
+  const overview = {
+    id: 'overview', path: '/years/{ffy}', params: [{ name: 'ffy', type: 'string' }], slots: [tracker],
+  };
+  const planRoute = {
+    id: 'plan', path: '/plans/{first_ffy}/{last_ffy}',
+    params: [{ name: 'first_ffy', type: 'string' }, { name: 'last_ffy', type: 'string' }],
+    slots: [planSlot],
+  };
+  const surface = { $formspecSurface: '0.4', id: 'app', entry: 'overview', routes: [overview, planRoute] };
+  const planDefinition = {
+    artifactKind: 'definition', status: 'loaded', ref: { url: 'urn:plan' },
+    document: {
+      subject: {
+        type: 'urn:period-plan',
+        keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' } },
+      },
+    },
+  };
+  const context = {
+    manifest: { document: { definitions: [{ url: 'urn:plan' }] } },
+    hostEvidence: { needsDocuments: [{
+      document: { $formspecNeeds: '1.0', needs: [{ id: 'filings', revision: 1, status: 'adopted' }] },
+    }] },
+    handles: [
+      { artifactKind: 'surface', status: 'loaded', ref: { url: 'urn:surface' }, document: surface },
+      planDefinition,
+    ],
+  } as unknown as AppGraphContext;
+  return { planEntry, planSlot, group, binding, overview, planRoute, planDefinition, context };
+}
+
+it('validates subject-key range predicates against target route subjectKeys and Definition key types', () => {
+  const valid = periodPlanFixture();
+  expect(graph.validateFilingStatusTargets(valid.context)).toEqual([]);
+
+  // Accepts combining direct params for a known route parameter with subject range predicates.
+  const combined = periodPlanFixture();
+  combined.overview.params.push({ name: 'org', type: 'string' });
+  combined.planRoute.path = '/orgs/{org}/plans/{first_ffy}/{last_ffy}';
+  combined.planRoute.params.push({ name: 'org', type: 'string' });
+  Object.assign(combined.planSlot.binding.subjectKeys, { org: 'org' });
+  Object.assign(combined.planDefinition.document.subject.keys, { org: { dataType: 'string' } });
+  Object.assign(combined.planEntry, { params: { org: { routeParam: 'org' } } });
+  expect(graph.validateFilingStatusTargets(combined.context)).toEqual([]);
+
+  const cases: readonly [string, (f: ReturnType<typeof periodPlanFixture>) => void, string][] = [
+    ['range operator on string key', f => {
+      f.planDefinition.document.subject.keys.first_ffy = { dataType: 'string' } as never;
+    }, 'invalid-subject-predicate'],
+    ['offset on string key', f => {
+      f.planDefinition.document.subject.keys.first_ffy = { dataType: 'string' } as never;
+      f.planEntry.subject[0] = { key: 'first_ffy', op: 'eq', from: { routeParam: 'ffy' }, offset: -1 } as never;
+    }, 'invalid-subject-predicate'],
+    ['undeclared subject key', f => {
+      f.planEntry.subject[0]!.key = 'unknown_key';
+    }, 'invalid-subject-predicate'],
+    ['target Definition without subject', f => {
+      Reflect.deleteProperty(f.planDefinition.document, 'subject');
+    }, 'invalid-subject-predicate'],
+    ['duplicate key across params and subject', f => {
+      Object.assign(f.planEntry, { params: { first_ffy: { value: '2024' } } });
+    }, 'invalid-subject-predicate'],
+    ['invalid integer literal in subject predicate', f => {
+      f.planEntry.subject[0]!.from = { value: 'not-an-integer' } as never;
+    }, 'invalid-subject-value'],
+    ['undeclared host routeParam in subject predicate', f => {
+      f.planEntry.subject[0]!.from = { routeParam: 'missing' };
+    }, 'invalid-parameters'],
+    ['unsupplied non-subject target route parameter', f => {
+      f.planRoute.params.push({ name: 'tab', type: 'string' });
+    }, 'invalid-parameters'],
+    ['duplicate predicate-bound target row', f => {
+      f.group.forms.push(structuredClone(f.planEntry));
+    }, 'duplicate-target'],
+    ['mixed subject predicates in one group', f => {
+      f.planRoute.slots.push({ ...f.planSlot, id: 'second' });
+      f.group.forms.push({
+        ...structuredClone(f.planEntry), slotRef: 'second',
+        subject: [
+          { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' }, offset: -1 },
+          { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' } },
+        ] as never,
+      });
+    }, 'mixed-subject-mappings'],
+  ];
+  for (const [label, mutate, expectedReason] of cases) {
+    const f = periodPlanFixture();
+    mutate(f);
+    expect(
+      graph.validateFilingStatusTargets(f.context).map(d => d.details?.reason),
+      label,
+    ).toContain(expectedReason);
+  }
+});
+
+it.each([true, false])('refuses an incompatible loaded Definition version regardless of handle order (stringsLast=%s)', stringsLast => {
+  const f = periodPlanFixture();
+  const intDef = structuredClone(f.planDefinition);
+  Object.assign(intDef.ref, { version: '2.0.0' });
+  Object.assign(intDef.document, {
+    $formspec: '1.0', url: 'urn:plan', version: '2.0.0', title: 'Period plan',
+    items: [{ key: 'answer', type: 'field', dataType: 'string' }],
+  });
+  const strDef = structuredClone(intDef);
+  Object.assign(strDef.ref, { version: '1.0.0' });
+  Object.assign(strDef.document, { version: '1.0.0' });
+  strDef.document.subject.keys.first_ffy = { dataType: 'string' } as never;
+  const context = {
+    ...f.context,
+    handles: [f.context.handles[0]!, ...(stringsLast ? [intDef, strDef] : [strDef, intDef])],
+  } as unknown as AppGraphContext;
+  const issues = graph.validateFilingStatusTargets(context);
+  expect(issues).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      details: { reason: 'invalid-subject-predicate' },
+      primarySource: expect.objectContaining({
+        jsonPointer: '/routes/0/slots/0/binding/groups/0/forms/0/subject/0',
+      }),
+    }),
+  ]));
+});
+
+it('points repeat-row predicate field type mismatches directly at the offending subject predicate', () => {
+  const f = periodPlanFixture();
+  (f.group as Record<string, unknown>).repeat = {
+    catalogRef: 'urn:roster', sourceRef: 'response:years', rowsField: 'rows', labelField: 'name', waitingLabel: 'Waiting',
+  };
+  f.planEntry.subject = [
+    { key: 'first_ffy', op: 'le', from: { rowField: 'year' } },
+    { key: 'last_ffy', op: 'ge', from: { rowField: 'year' } },
+  ] as never;
+  const yearField = { type: 'integer' };
+  const catalogHandle = {
+    artifactKind: 'dataSources',
+    status: 'loaded',
+    ref: { url: 'urn:roster' },
+    document: {
+      $formspecDataSources: '1.0', id: 'urn:roster', version: '1.0.0',
+      sources: [{
+        id: 'response:years', kind: 'host-state', owner: 'host', scope: 'route', availability: { level: 'app' },
+        schema: {
+          type: 'object',
+          properties: {
+            rows: {
+              type: 'array',
+              items: { type: 'object', properties: { name: { type: 'string' }, year: yearField } },
+            },
+          },
+        },
+        runtime: { delivery: 'snapshot', cache: { mode: 'snapshot' }, failureMode: 'block-render', authorizationBoundary: 'host' },
+      }],
+    },
+  };
+  const context = {
+    ...f.context,
+    manifest: { document: { dataSources: [{ url: 'urn:roster' }] } },
+    handles: [...f.context.handles, catalogHandle],
+  } as unknown as AppGraphContext;
+  expect(graph.validateFilingStatusTargets(context)).toEqual([]);
+  yearField.type = 'string';
+  expect(graph.validateFilingStatusTargets(context)).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      details: { reason: 'invalid-repeat-source' },
+      primarySource: expect.objectContaining({
+        jsonPointer: '/routes/0/slots/0/binding/groups/0/forms/0/subject/0',
+      }),
+    }),
+  ]));
+});
