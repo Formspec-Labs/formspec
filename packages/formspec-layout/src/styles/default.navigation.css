@@ -969,6 +969,12 @@
   background: var(--formspec-default-warning-surface);
 }
 
+.formspec-workspace__section-badge--required {
+  color: var(--formspec-default-text-strong);
+  border: 1px solid var(--formspec-default-border-strong);
+  background: var(--formspec-default-surface-muted);
+}
+
 .formspec-workspace__navigation label,
 .formspec-workspace__inline-search label {
   margin-bottom: 0.35rem;
@@ -1043,7 +1049,7 @@
 
 .formspec-workspace__content > :is(h1, h2, h3, h4, h5, h6):first-child {
   margin-top: 0;
-  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 8.5rem) + 1.25rem);
 }
 
 .formspec-workspace__previous-next {
@@ -1090,7 +1096,7 @@
   background: var(--formspec-default-surface-quiet);
   overflow-x: hidden;
   box-sizing: border-box;
-  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 8.5rem) + 1.25rem);
 }
 
 .formspec-workspace__findings > :is(h1, h2, h3, h4, h5, h6) {
@@ -1214,6 +1220,69 @@
 
 .formspec-workspace__findings li button:hover {
   background: var(--formspec-default-surface-soft);
+}
+
+.formspec-workspace__required-disclosure {
+  margin-top: 0.625rem;
+  border: 1px solid var(--formspec-default-border);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-surface);
+  overflow: hidden;
+}
+
+.formspec-workspace__required-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--formspec-default-text-strong);
+  background: var(--formspec-default-surface-subtle);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.formspec-workspace__required-summary::-webkit-details-marker {
+  display: none;
+}
+
+.formspec-workspace__required-summary::after {
+  content: '▾';
+  flex-shrink: 0;
+  color: var(--formspec-default-text-subtle);
+  font-size: 0.78rem;
+}
+
+.formspec-workspace__required-disclosure[open] > .formspec-workspace__required-summary {
+  border-bottom: 1px solid var(--formspec-default-border-subtle);
+}
+
+.formspec-workspace__required-disclosure[open] > .formspec-workspace__required-summary::after {
+  content: '▴';
+}
+
+.formspec-workspace__required-summary:hover {
+  background: var(--formspec-default-surface-soft);
+}
+
+.formspec-workspace__findings ul.formspec-workspace__required-list {
+  padding: 0.4rem;
+  gap: 0.3rem;
+}
+
+.formspec-workspace__findings ul.formspec-workspace__required-list li {
+  border-inline-start-color: var(--formspec-default-border-strong);
+  background: var(--formspec-default-surface-quiet);
+}
+
+.formspec-workspace__required-section {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  color: var(--formspec-default-text-subtle);
 }
 
 @container formspec-workspace (width > 48rem) {

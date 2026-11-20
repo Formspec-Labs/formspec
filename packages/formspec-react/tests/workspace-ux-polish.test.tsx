@@ -5,7 +5,8 @@ import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { createFormEngine, initFormspecEngine } from '@formspec-org/engine';
 import type { FormDefinition } from '@formspec-org/types';
-import { FormspecForm } from '../src/renderer';
+import { FormspecForm, type WalkBridgeElement } from '../src/renderer';
+import { measureStickyTopOffset, syncStickyOffsetVar } from '../src/use-focus-field';
 import { actRender } from './render-utils';
 
 beforeAll(async () => {
@@ -632,5 +633,397 @@ describe('Scalar auto-grid, inline Shape errors, wheel guard, and workspace navi
         const removeBtns = host2.querySelectorAll<HTMLButtonElement>('.formspec-repeat-remove');
         expect(removeBtns).toHaveLength(1);
         expect(removeBtns[0].closest('.formspec-repeat-instance')?.getAttribute('data-repeat-path')).toBe('entries[2]');
+    });
+});
+
+describe('Findings badge reconciliation, required disclosure, contextual labels, search indexing, currency formatting, readonly wrap, and sticky/print polish', () => {
+    it('separates untouched required fields into a jumpable collapsible disclosure, keeps badges aligned with rendered cards, and prepends parent group context on unnumbered child fields', () => {
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:findings-reconciliation',
+            version: '1.0.0',
+            title: 'Annual Operations Plan',
+            formPresentation: { pageMode: 'workspace' },
+            items: [
+                {
+                    key: 'secMonitoring',
+                    type: 'group',
+                    label: 'Section 1: Oversight',
+                    children: [
+                        {
+                            key: 'visits',
+                            type: 'group',
+                            label: '8.1a. Planned Visits',
+                            children: [
+                                { key: 'yearOne', type: 'field', dataType: 'integer', label: 'Year One' },
+                                { key: 'yearTwo', type: 'field', dataType: 'integer', label: 'Year Two' },
+                            ],
+                        },
+                        { key: 'q1_1', type: 'field', dataType: 'string', label: '1.1. Primary Contact' },
+                    ],
+                },
+                {
+                    key: 'secBudget',
+                    type: 'group',
+                    label: 'Section 2: Budget',
+                    children: [
+                        { key: 'allocated', type: 'field', dataType: 'integer', label: 'Allocated' },
+                        { key: 'spent', type: 'field', dataType: 'integer', label: 'Spent' },
+                        { key: 'reserve', type: 'field', dataType: 'integer', label: 'Reserve' },
+                    ],
+                },
+            ],
+            binds: [
+                { path: 'secMonitoring.visits.yearOne', required: 'true' },
+                { path: 'secMonitoring.visits.yearTwo', required: 'true' },
+                { path: 'secMonitoring.q1_1', required: 'true' },
+                { path: 'secBudget.reserve', required: 'true' },
+            ],
+            shapes: [
+                {
+                    id: 'spentCap',
+                    target: 'secBudget.spent',
+                    severity: 'error',
+                    code: 'SPENT_EXCEEDS_ALLOCATED',
+                    constraint: '$secBudget.spent <= $secBudget.allocated',
+                    message: 'Spent amount exceeds allocation.',
+                },
+                {
+                    id: 'spentPositive',
+                    target: 'secBudget.allocated',
+                    severity: 'error',
+                    code: 'ALLOCATED_MIN',
+                    constraint: '$secBudget.allocated >= 100',
+                    message: 'Allocation must be at least 100.',
+                },
+                {
+                    id: 'budgetWarn',
+                    target: 'secBudget.spent',
+                    severity: 'warning',
+                    code: 'HIGH_SPEND',
+                    constraint: '$secBudget.spent <= 50',
+                    message: 'Review high spend.',
+                },
+            ],
+        };
+
+        const engine = createFormEngine(def);
+        act(() => {
+            engine.setValue('secBudget.allocated', 60);
+            engine.setValue('secBudget.spent', 80);
+        });
+
+        const host = actRender(<FormspecForm engine={engine} />);
+        const findingsAside = host.querySelector<HTMLElement>('.formspec-workspace__findings')!;
+
+        // Badge summary matches rendered cards exactly: 2 to fix, 4 required, 1 to check.
+        const summary = findingsAside.querySelector('.formspec-workspace__findings-summary')!;
+        expect(summary.textContent).toContain('2 to fix');
+        expect(summary.textContent).toContain('4 required');
+        expect(summary.textContent).toContain('1 to check');
+
+        // Main Findings list renders ONLY the 2 active errors + 1 warning (no flood of untouched Required cards).
+        const mainErrorCards = host.querySelectorAll('.formspec-workspace__findings > ul > li[data-severity="error"]');
+        const mainWarningCards = host.querySelectorAll('.formspec-workspace__findings > ul > li[data-severity="warning"]');
+        expect(mainErrorCards).toHaveLength(2);
+        expect(mainWarningCards).toHaveLength(1);
+
+        // Section nav badges reflect only active errors per section (Section 1 has none, Section 2 has 2).
+        const navItems = Array.from(host.querySelectorAll<HTMLLIElement>('.formspec-workspace__section-item'));
+        expect(navItems[0].querySelector('.formspec-workspace__section-badge--fix')).toBeNull();
+        expect(navItems[1].querySelector('.formspec-workspace__section-badge--fix')?.textContent).toBe('2');
+
+        // Collapsible disclosure exposes all 4 untouched required fields with parent group context on unnumbered labels.
+        const disclosure = findingsAside.querySelector<HTMLDetailsElement>('.formspec-workspace__required-disclosure')!;
+        expect(disclosure).not.toBeNull();
+        expect(disclosure.open).toBe(false);
+        expect(disclosure.querySelector('summary')?.textContent).toContain('4 required unanswered');
+        const requiredButtons = Array.from(disclosure.querySelectorAll<HTMLButtonElement>('ul button'));
+        expect(requiredButtons).toHaveLength(4);
+        const yearOneBtn = requiredButtons.find(b => b.textContent?.includes('Year One'))!;
+        expect(yearOneBtn).toBeDefined();
+        expect(yearOneBtn.textContent).toContain('8.1a. Planned Visits — Year One');
+        // Already-numbered child keeps its own label without redundant prefix, with section subtitle in <small>.
+        const q11Btn = requiredButtons.find(b => b.textContent?.includes('1.1. Primary Contact'))!;
+        expect(q11Btn.firstChild?.textContent).toBe('1.1. Primary Contact');
+        expect(q11Btn.querySelector('small')?.textContent).toBe('Section 1: Oversight');
+
+        // Clicking a missing required item jumps to & touches it -> promoted into toFix and Section 1 badge!
+        act(() => yearOneBtn.click());
+        expect(summary.textContent).toContain('3 to fix');
+        expect(summary.textContent).toContain('3 required');
+        expect(host.querySelectorAll('.formspec-workspace__findings > ul > li[data-severity="error"]')).toHaveLength(3);
+        expect(host.querySelector('.formspec-workspace__findings > ul')?.textContent).toContain('8.1a. Planned Visits — Year One');
+        expect(navItems[0].querySelector('.formspec-workspace__section-badge--fix')?.textContent).toBe('1');
+        expect(navItems[1].querySelector('.formspec-workspace__section-badge--fix')?.textContent).toBe('2');
+
+        // Triggering submit surfaces all remaining required errors into toFix (shape errors ranked first).
+        const root = host.querySelector<WalkBridgeElement>('[data-formspec-render-root]')!;
+        act(() => { root.submit?.({ emitEvent: false }); });
+        const allErrorCards = Array.from(host.querySelectorAll<HTMLLIElement>('.formspec-workspace__findings > ul > li[data-severity="error"]'));
+        expect(allErrorCards).toHaveLength(6);
+        expect(findingsAside.querySelector('.formspec-workspace__findings-summary')?.textContent).toContain('6 to fix');
+        expect(findingsAside.querySelector('.formspec-workspace__required-disclosure')).toBeNull();
+        // Shape errors stay at the top ahead of required errors.
+        expect(allErrorCards[0].textContent).toContain('exceeds allocation');
+        expect(allErrorCards[1].textContent).toContain('at least 100');
+    });
+
+    it('indexes parent group titles, 0-row repeatable groups, descriptions, and hints in SEARCH QUESTIONS', () => {
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:search-indexing',
+            version: '1.0.0',
+            title: 'Grant Filing',
+            formPresentation: { pageMode: 'workspace' },
+            items: [
+                {
+                    key: 'secOverview',
+                    type: 'group',
+                    label: 'Section 1: Overview',
+                    children: [
+                        {
+                            key: 'hearing',
+                            type: 'group',
+                            label: '4.1. Public Hearing',
+                            children: [
+                                {
+                                    key: 'hearingDate',
+                                    type: 'field',
+                                    dataType: 'date',
+                                    label: 'Event Date',
+                                    description: 'Confirm the official audit calendar date.',
+                                    hint: 'Reconcile with Line D on the quarterly financial report.',
+                                } as any,
+                            ],
+                        },
+                    ],
+                },
+                {
+                    key: 'secAllocation',
+                    type: 'group',
+                    label: 'Section 2: Distribution',
+                    children: [
+                        {
+                            key: 'plannedAllocations',
+                            type: 'group',
+                            label: '7.2. Planned Allocation',
+                            repeatable: true,
+                            minRepeat: 0,
+                            children: [
+                                { key: 'recipient', type: 'field', dataType: 'string', label: 'Recipient' },
+                                { key: 'amount', type: 'field', dataType: 'money', label: 'Amount' },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        const engine = createFormEngine(def);
+        const host = actRender(<FormspecForm engine={engine} />);
+        const searchInput = host.querySelector<HTMLInputElement>('input[type="search"]')!;
+        const search = (q: string) => {
+            act(() => {
+                Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(searchInput, q);
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+            return Array.from(host.querySelectorAll<HTMLButtonElement>('.formspec-workspace__search-results button'));
+        };
+
+        // 0-row repeatable group is indexed and jumpable by its title.
+        const allocResults = search('allocation');
+        expect(allocResults.length).toBeGreaterThanOrEqual(1);
+        expect(allocResults[0].textContent).toContain('7.2. Planned Allocation');
+        act(() => allocResults[0].click());
+        expect(host.querySelector('[data-repeat-path="secAllocation.plannedAllocations"]')).not.toBeNull();
+
+        // Parent group title indexes both the group and its child with parent context in <small>.
+        const hearingResults = search('hearing');
+        expect(hearingResults.some(b => b.textContent?.includes('4.1. Public Hearing'))).toBe(true);
+        const dateMatch = hearingResults.find(b => b.textContent?.includes('Event Date'));
+        expect(dateMatch).toBeDefined();
+        expect(dateMatch?.querySelector('small')?.textContent).toContain('4.1. Public Hearing');
+
+        // Description and hint are indexed.
+        expect(search('audit').some(b => b.textContent?.includes('Event Date'))).toBe(true);
+        expect(search('Line D').some(b => b.textContent?.includes('Event Date'))).toBe(true);
+    });
+
+    it('formats MoneyInput with thousands commas and currency decimals when blurred or readonly, switches to raw on focus, and strips commas on paste', () => {
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:money-formatting',
+            version: '1.0.0',
+            title: 'Financial Summary',
+            items: [
+                { key: 'grantTotal', type: 'field', dataType: 'money', label: 'Grant Total' },
+                { key: 'computedTotal', type: 'field', dataType: 'money', label: 'Computed Total' },
+            ],
+            binds: [
+                { path: 'computedTotal', readonly: 'true' },
+            ],
+        };
+
+        const engine = createFormEngine(def);
+        act(() => {
+            engine.setValue('grantTotal', { amount: '1391000', currency: 'USD' });
+            engine.setValue('computedTotal', { amount: '140000.75', currency: 'USD' });
+        });
+
+        const host = actRender(<FormspecForm engine={engine} />);
+        const editable = host.querySelector<HTMLInputElement>('[data-name="grantTotal"] input.formspec-money-amount')!;
+        const readonly = host.querySelector<HTMLInputElement>('[data-name="computedTotal"] input.formspec-money-amount')!;
+
+        // Initial blurred and readOnly states display comma-formatted currency amounts.
+        expect(editable.value).toBe('1,391,000.00');
+        expect(readonly.value).toBe('140,000.75');
+
+        // Focus switches smoothly to raw canonical number string.
+        act(() => { editable.focus(); });
+        expect(editable.value).toBe('1391000');
+
+        // Pasting formatted currency strips commas/symbol before storing canonical value in the engine.
+        act(() => { setControlValue(editable, '$1,620,000.50'); });
+        expect(engine.getResponse().data.grantTotal).toEqual({ amount: '1620000.5', currency: 'USD' });
+
+        // Blur re-applies formatted currency display without mutating the engine.
+        act(() => { editable.blur(); });
+        expect(editable.value).toBe('1,620,000.50');
+        expect(engine.getResponse().data.grantTotal).toEqual({ amount: '1620000.5', currency: 'USD' });
+    });
+
+    it('formats currency-prefixed decimal/integer NumberInput fields on blur and readonly calculated totals while keeping plain integers ungrouped', () => {
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:currency-prefixed-number',
+            version: '1.0.0',
+            title: 'Budget Schedule',
+            items: [
+                { key: 'directCost', type: 'field', dataType: 'decimal', label: 'Direct Cost', prefix: '$' } as any,
+                { key: 'indirectCost', type: 'field', dataType: 'decimal', label: 'Indirect Cost', prefix: '$' } as any,
+                { key: 'totalCost', type: 'field', dataType: 'decimal', label: 'Total Cost', prefix: '$' } as any,
+                { key: 'euroBudget', type: 'field', dataType: 'decimal', label: 'Euro Budget', prefix: '€' } as any,
+                { key: 'yenBudget', type: 'field', dataType: 'integer', label: 'Yen Budget', prefix: '¥' } as any,
+                { key: 'reportingYear', type: 'field', dataType: 'integer', label: 'Reporting Year' },
+            ],
+            binds: [
+                { path: 'totalCost', readonly: 'true', calculate: '$directCost + $indirectCost' },
+            ],
+        };
+
+        const engine = createFormEngine(def);
+        act(() => {
+            engine.setValue('directCost', '1391000');
+            engine.setValue('indirectCost', '100000.5');
+            engine.setValue('euroBudget', '140000.75');
+            engine.setValue('yenBudget', 250000);
+            engine.setValue('reportingYear', 2025);
+        });
+
+        const host = actRender(<FormspecForm engine={engine} />);
+        const directInput = host.querySelector<HTMLInputElement>('[data-name="directCost"] input')!;
+        const indirectInput = host.querySelector<HTMLInputElement>('[data-name="indirectCost"] input')!;
+        const totalInput = host.querySelector<HTMLInputElement>('[data-name="totalCost"] input')!;
+        const euroInput = host.querySelector<HTMLInputElement>('[data-name="euroBudget"] input')!;
+        const yenInput = host.querySelector<HTMLInputElement>('[data-name="yenBudget"] input')!;
+        const yearInput = host.querySelector<HTMLInputElement>('[data-name="reportingYear"] input')!;
+
+        // Currency-prefixed decimals & integers use text + inputMode="decimal" and format when blurred/readonly.
+        expect(directInput.type).toBe('text');
+        expect(directInput.getAttribute('inputmode')).toBe('decimal');
+        expect(directInput.value).toBe('1,391,000.00');
+        expect(indirectInput.value).toBe('100,000.50');
+        expect(totalInput.readOnly).toBe(true);
+        expect(totalInput.value).toBe('1,491,000.50');
+        expect(euroInput.value).toBe('140,000.75');
+        expect(yenInput.value).toBe('250,000');
+
+        // Plain integer (no currency prefix) stays ungrouped numeric input.
+        expect(yearInput.type).toBe('number');
+        expect(yearInput.value).toBe('2025');
+
+        // Focus switches to raw canonical number; pasting formatted currency strips commas/symbol cleanly.
+        act(() => { directInput.focus(); });
+        expect(directInput.value).toBe('1391000');
+
+        act(() => { setControlValue(directInput, '$1,520,000.25'); });
+        expect(String(engine.getResponse().data.directCost)).toBe('1520000.25');
+
+        act(() => { directInput.blur(); });
+        expect(directInput.value).toBe('1,520,000.25');
+        // Calculated readonly total recomputes and stays comma-formatted!
+        expect(totalInput.value).toBe('1,620,000.75');
+    });
+
+    it('wraps long read-only string values unclipped while keeping the native focusable readOnly input', () => {
+        const longOrgName = 'Northern Valley Regional Community Opportunity Partnership Incorporated';
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:readonly-wrap',
+            version: '1.0.0',
+            title: 'Organization Record',
+            items: [
+                { key: 'orgName', type: 'field', dataType: 'string', label: 'Organization Name' },
+                { key: 'shortCode', type: 'field', dataType: 'string', label: 'Code' },
+            ],
+            binds: [
+                { path: 'orgName', readonly: 'true' },
+                { path: 'shortCode', readonly: 'true' },
+            ],
+        };
+
+        const engine = createFormEngine(def);
+        act(() => {
+            engine.setValue('orgName', longOrgName);
+            engine.setValue('shortCode', 'ORG-01');
+        });
+        const host = actRender(<FormspecForm engine={engine} />);
+
+        const wrapped = host.querySelector<HTMLElement>('[data-name="orgName"] .formspec-readonly-text-wrap[data-readonly-wrapped="true"]');
+        expect(wrapped).not.toBeNull();
+        expect(wrapped!.querySelector('.formspec-readonly-text-value')?.textContent).toBe(longOrgName);
+        const orgInput = host.querySelector<HTMLInputElement>('[data-name="orgName"] input')!;
+        expect(orgInput.readOnly).toBe(true);
+        expect(orgInput.value).toBe(longOrgName);
+        expect(orgInput.title).toBe(longOrgName);
+
+        // Short codes stay a direct <input> without unnecessary wrapping.
+        expect(host.querySelector('[data-name="shortCode"] .formspec-readonly-text-wrap')).toBeNull();
+        expect(host.querySelector<HTMLInputElement>('[data-name="shortCode"] input')?.title).toBe('ORG-01');
+    });
+
+    it('enforces auto-grid warning order, sticky jump measurement/offset, tabular money numbers, and @media print rules', () => {
+        const layoutDist = path.resolve(__dirname, '../../formspec-layout/dist');
+        const defaultCss = fs.readFileSync(path.join(layoutDist, 'formspec-default.css'), 'utf8');
+        const layoutCss = fs.readFileSync(path.join(layoutDist, 'formspec-layout.css'), 'utf8');
+
+        // Auto-grid warning row split fix: fields stay order: 0 and inline warnings span full width at order: 10.
+        expect(layoutCss).toMatch(/\.formspec-auto-grid\s*>\s*\.formspec-warning-explanation[\s\S]*?grid-column:\s*1\s*\/\s*-1[\s\S]*?order:\s*10/);
+        // Updated sticky scroll-margin-top default.
+        expect(defaultCss).toContain('calc(var(--formspec-sticky-offset, 8.5rem) + 1.25rem)');
+        // Tabular figures on money inputs.
+        expect(defaultCss).toMatch(/\.formspec-money\s+\.formspec-input[\s\S]*?font-variant-numeric:\s*tabular-nums/);
+        // Clean @media print rules hiding navigation/search chrome.
+        expect(layoutCss).toContain('@media print');
+        expect(defaultCss).toContain('@media print');
+        expect(defaultCss).toMatch(/@media print\s*\{[\s\S]*?\.formspec-workspace__navigation[\s\S]*?display:\s*none\s*!important/);
+
+        // Dynamic sticky chrome measurement writes --formspec-sticky-offset onto workspace container.
+        const header = document.createElement('header');
+        header.style.position = 'sticky';
+        header.getBoundingClientRect = () => ({ top: 0, bottom: 118, left: 0, right: 1200, width: 1200, height: 118, x: 0, y: 0, toJSON: () => ({}) });
+        const container = document.createElement('div');
+        document.body.append(header, container);
+        try {
+            Object.defineProperty(window, 'innerWidth', { value: 1200, configurable: true });
+            Object.defineProperty(window, 'innerHeight', { value: 900, configurable: true });
+            expect(measureStickyTopOffset(container)).toBe(118);
+            syncStickyOffsetVar(container);
+            expect(container.style.getPropertyValue('--formspec-sticky-offset')).toBe('118px');
+        } finally {
+            header.remove();
+            container.remove();
+        }
     });
 });

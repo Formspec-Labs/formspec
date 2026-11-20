@@ -1,9 +1,12 @@
 /** @filedesc MoneyInput amount + currency adornment. */
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { jsonValueText } from '@formspec-org/engine';
 import { useChromeText } from '../../../use-chrome-text';
 import type { CommonInputProps } from '../field-control-types';
+import { formatMoneyDisplay, normalizeMoneyInput } from './currency-format';
+
+export { formatMoneyDisplay, normalizeMoneyInput };
 
 /** Resolve ISO 4217 currency code (e.g. "USD") to its narrow symbol (e.g. "$"). */
 function toCurrencySymbol(code: string): string {
@@ -21,7 +24,7 @@ function toCurrencySymbol(code: string): string {
     }
 }
 
-/** Round-trip display for money amount input (matches web component bind sync). */
+/** Round-trip raw canonical decimal text for money amount input (matches web component bind sync). */
 function formatMoneyAmountForInput(amount: unknown): string {
     return jsonValueText(amount);
 }
@@ -34,6 +37,7 @@ export function MoneyInputControl({
     placeholder: resolvedPlaceholder,
 }: CommonInputProps & { placeholder?: string }) {
     const chrome = useChromeText();
+    const [isEditing, setIsEditing] = useState(false);
     const currencyCode = ((node.props?.currency as string) || 'USD').toUpperCase();
     const currency = toCurrencySymbol(currencyCode);
     const min = node.props?.min != null ? jsonValueText(node.props.min) : undefined;
@@ -53,9 +57,23 @@ export function MoneyInputControl({
         }
     }
 
+    const displayValue = (!isReadonly && isEditing)
+        ? amountStr
+        : formatMoneyDisplay(amountStr, currencyCode);
+
+    const handleFocus = () => {
+        if (!isReadonly) setIsEditing(true);
+    };
+
+    const handleBlur = () => {
+        setIsEditing(false);
+        common.onBlur();
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value;
-        const amount = raw === '' ? null : raw;
+        setIsEditing(true);
+        const normalized = normalizeMoneyInput(e.target.value, currency);
+        const amount = normalized === '' ? null : normalized;
         field.setValue({
             amount,
             currency: currencyCode,
@@ -76,16 +94,18 @@ export function MoneyInputControl({
                 {...common}
                 type="text"
                 inputMode="decimal"
-                pattern={'[0-9]*\\.?[0-9]*'}
+                pattern={'-?[0-9,]*\\.?[0-9]*'}
                 className="formspec-input formspec-money-amount"
                 name={`${field.path}__amount`}
                 placeholder={placeholder}
                 aria-describedby={moneyDescribedBy}
-                value={amountStr}
+                value={displayValue}
                 readOnly={isReadonly}
                 min={min}
                 max={max}
                 step={step}
+                onFocus={isReadonly ? undefined : handleFocus}
+                onBlur={handleBlur}
                 onChange={isReadonly ? undefined : handleChange}
             />
         </div>

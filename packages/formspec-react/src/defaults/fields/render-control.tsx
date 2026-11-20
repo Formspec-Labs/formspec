@@ -1,13 +1,14 @@
 /** @filedesc Standard (non-group) field control switch — dispatches by component type. */
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { jsonValueText, parseJsonNumber, stepJsonNumber } from '@formspec-org/engine';
 import { useChromeText } from '../../use-chrome-text';
 import type { FieldComponentProps } from '../../component-map';
-import type { ExtensionAttrs } from './field-control-types';
+import type { CommonInputAttrs, ExtensionAttrs } from './field-control-types';
 import { NativeSelectControl } from './controls/native-select';
 import { ComboboxSelect } from './controls/combobox-select';
 import { MoneyInputControl } from './controls/money-input';
+import { currencyCodeFromPrefix, formatMoneyDisplay, normalizeMoneyInput } from './controls/currency-format';
 import { SliderControl } from './controls/slider';
 import { RatingControl } from './controls/rating';
 import { SignatureControl } from './controls/signature';
@@ -127,12 +128,30 @@ export function renderControl(
             const step = node.props?.step;
             const showStepper = node.props?.showStepper as boolean | undefined;
             const placeholder = resolvePlaceholder(node.props?.placeholder as string | undefined);
+            const numberAdornments: InputAdornments = {
+                prefix: (node.props?.prefix as string | undefined) ?? itemAdornments.prefix,
+                suffix: (node.props?.suffix as string | undefined) ?? itemAdornments.suffix,
+            };
+            const currencyCode = !showStepper ? currencyCodeFromPrefix(numberAdornments.prefix) : null;
 
             // Prefix/suffix hug the input; stepper buttons sit outside them.
-            const numberInput = withAdornments(
+            const numberControl = currencyCode ? (
+                <CurrencyNumberInput
+                    field={field}
+                    common={common}
+                    describedBy={adornedDescribedBy(describedBy, id, numberAdornments)}
+                    isReadonly={isReadonly}
+                    placeholder={placeholder}
+                    min={min != null ? jsonValueText(min) : undefined}
+                    max={max != null ? jsonValueText(max) : undefined}
+                    step={step != null ? jsonValueText(step) : dataType === 'integer' ? '1' : 'any'}
+                    currencyCode={currencyCode}
+                    currencySymbol={numberAdornments.prefix!.trim()}
+                />
+            ) : (
                 <input
                     {...common}
-                    aria-describedby={adornedDescribedBy(describedBy, id, itemAdornments)}
+                    aria-describedby={adornedDescribedBy(describedBy, id, numberAdornments)}
                     type="number"
                     value={jsonValueText(value)}
                     readOnly={isReadonly}
@@ -148,10 +167,9 @@ export function renderControl(
                             ? undefined
                             : (e) => field.setValue(e.target.value === '' ? null : e.target.value)
                     }
-                />,
-                id,
-                itemAdornments,
+                />
             );
+            const numberInput = withAdornments(numberControl, id, numberAdornments);
 
             if (showStepper) {
                 const stepVal = step ?? 1;
@@ -244,21 +262,16 @@ export function renderControl(
                 'aria-invalid': common['aria-invalid'] || (countLimit !== undefined && length > countLimit),
             };
 
-            const control = isTextarea ? (
-                <textarea
-                    {...controlProps}
-                    rows={maxLines}
-                    placeholder={resolvePlaceholder(placeholder)}
-                    value={jsonValueText(value)}
-                    readOnly={isReadonly}
-                    maxLength={maxLength}
-                    onChange={(e) => field.setValue(e.target.value)}
-                />
-            ) : (
+            const textValue = jsonValueText(value);
+            const inputType = extensionAttrs.type || 'text';
+            const wrapLongReadonlyText = isReadonly && !isTextarea && inputType === 'text' && textValue.length > 20;
+
+            const textInputEl = (
                 <input
                     {...controlProps}
-                    type={extensionAttrs.type || 'text'}
-                    value={jsonValueText(value)}
+                    type={inputType}
+                    value={textValue}
+                    title={isReadonly && textValue ? textValue : undefined}
                     readOnly={isReadonly}
                     placeholder={resolvePlaceholder(placeholder)}
                     inputMode={(extensionAttrs.inputMode || inputMode) as React.HTMLAttributes<HTMLInputElement>['inputMode']}
@@ -268,6 +281,25 @@ export function renderControl(
                     onChange={(e) => field.setValue(e.target.value)}
                 />
             );
+
+            const control = isTextarea ? (
+                <textarea
+                    {...controlProps}
+                    rows={maxLines}
+                    placeholder={resolvePlaceholder(placeholder)}
+                    value={textValue}
+                    readOnly={isReadonly}
+                    maxLength={maxLength}
+                    onChange={(e) => field.setValue(e.target.value)}
+                />
+            ) : wrapLongReadonlyText ? (
+                <div className="formspec-readonly-text-wrap" data-readonly-wrapped="true" title={textValue}>
+                    {textInputEl}
+                    <div className="formspec-readonly-text-value" aria-hidden="true">
+                        {textValue}
+                    </div>
+                </div>
+            ) : textInputEl;
 
             const adorned = withAdornments(control, id, adornments);
             if (countLimit === undefined) return adorned;
@@ -279,6 +311,68 @@ export function renderControl(
             );
         }
     }
+}
+
+/** Currency-prefixed decimal/integer NumberInput: comma-formatted on blur/readOnly, raw editable number on focus. */
+function CurrencyNumberInput({
+    field,
+    common,
+    describedBy,
+    isReadonly,
+    placeholder,
+    min,
+    max,
+    step,
+    currencyCode,
+    currencySymbol,
+}: {
+    field: FieldComponentProps['field'];
+    common: CommonInputAttrs;
+    describedBy: string | undefined;
+    isReadonly: boolean;
+    placeholder?: string;
+    min?: string;
+    max?: string;
+    step?: string;
+    currencyCode: string;
+    currencySymbol: string;
+}) {
+    const [isEditing, setIsEditing] = useState(false);
+    const rawStr = jsonValueText(field.value);
+    const displayValue = (!isReadonly && isEditing)
+        ? rawStr
+        : formatMoneyDisplay(rawStr, currencyCode);
+
+    return (
+        <input
+            {...common}
+            aria-describedby={describedBy}
+            type="text"
+            inputMode="decimal"
+            pattern={'-?[0-9,]*\\.?[0-9]*'}
+            className="formspec-money-amount"
+            value={displayValue}
+            readOnly={isReadonly}
+            placeholder={placeholder}
+            min={min}
+            max={max}
+            step={step}
+            onFocus={isReadonly ? undefined : () => setIsEditing(true)}
+            onBlur={() => {
+                setIsEditing(false);
+                common.onBlur();
+            }}
+            onChange={
+                isReadonly
+                    ? undefined
+                    : (e) => {
+                        setIsEditing(true);
+                        const normalized = normalizeMoneyInput(e.target.value, currencySymbol);
+                        field.setValue(normalized === '' ? null : normalized);
+                    }
+            }
+        />
+    );
 }
 
 /**

@@ -526,6 +526,11 @@
   flex: 1;
   border: none;
   border-radius: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.formspec-money-amount {
+  font-variant-numeric: tabular-nums;
 }
 
 .formspec-stepper {

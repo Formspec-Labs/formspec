@@ -2263,6 +2263,60 @@ describe('planDefinitionFallback', () => {
         expect(nestedNode.props.autoGridColumns).toBeUndefined();
     });
 
+    it('keeps general free-text string fields out of >= 3 column auto-grids while keeping narrow codes and numeric/money rows compact', () => {
+        // Entity/organization name + 2 currency columns: name takes full width, currency columns stay 2-up.
+        const nameAndAmounts = [{
+            key: 'allocationRow',
+            type: 'group',
+            label: 'Allocation Row',
+            children: [
+                { key: 'organizationName', type: 'field', dataType: 'string', label: 'Organization Name' },
+                { key: 'yearOne', type: 'field', dataType: 'money', label: 'Year One' },
+                { key: 'yearTwo', type: 'field', dataType: 'money', label: 'Year Two' },
+            ],
+        }];
+        const [mixedRow] = planDefinitionFallback(nameAndAmounts, makeCtx({ items: nameAndAmounts, findItem: (k) => findItems(nameAndAmounts, k) }));
+        expect(mixedRow.props.autoGridColumns).toBe(2);
+        expect(mixedRow.children[0].cssClasses).toContain('formspec-auto-grid-full');
+        expect(mixedRow.children[1].cssClasses).not.toContain('formspec-auto-grid-full');
+        expect(mixedRow.children[2].cssClasses).not.toContain('formspec-auto-grid-full');
+
+        // 3 general string fields (e.g. organization, department, address): capped at max 2 columns.
+        const threeStrings = [{
+            key: 'orgIdentity',
+            type: 'group',
+            label: 'Organization Identification',
+            children: [
+                { key: 'organization', type: 'field', dataType: 'string', label: 'Organization' },
+                { key: 'department', type: 'field', dataType: 'string', label: 'Department' },
+                { key: 'region', type: 'field', dataType: 'string', label: 'Region' },
+            ],
+        }];
+        const [identityNode] = planDefinitionFallback(threeStrings, makeCtx({ items: threeStrings, findItem: (k) => findItems(threeStrings, k) }));
+        expect(identityNode.props.autoGridColumns).toBe(2);
+
+        // Explicitly bounded short code string + 2 numeric columns stays 3-up.
+        const boundedCodeRow = [{
+            key: 'codedMetric',
+            type: 'group',
+            label: 'Coded Metric',
+            children: [
+                { key: 'code', type: 'field', dataType: 'string', label: 'Code' },
+                { key: 'target', type: 'field', dataType: 'integer', label: 'Target' },
+                { key: 'actual', type: 'field', dataType: 'integer', label: 'Actual' },
+            ],
+        }];
+        const [codedNode] = planDefinitionFallback(
+            boundedCodeRow,
+            makeCtx({
+                items: boundedCodeRow,
+                theme: { items: { code: { widgetConfig: { width: 'sm' } } } } as PlanContext['theme'],
+                findItem: (k) => findItems(boundedCodeRow, k),
+            }),
+        );
+        expect(codedNode.props.autoGridColumns).toBe(3);
+    });
+
     it("carries a group's resolved labelPosition so a hidden legend stays in the accessible markup", () => {
         const items = [{
             key: 'workWeek', type: 'group', label: 'Work this week',
