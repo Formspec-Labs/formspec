@@ -542,3 +542,110 @@ it('mounts using the supplied browser adapter settings', () => {
   const container = render(<BrowserSurfaceApp bundle={bundle()} adapters={{ mode: 'hash' }} />);
   expect(route(container)).toBe('form');
 });
+
+it('retains lastSeenParams across navigation in sidebar links and resets when sessionGeneration changes', async () => {
+  const multiHubSurfaceUrl = 'https://example.test/multi-hub/surface';
+  const multiHubDefUrl = 'https://example.test/multi-hub/spending';
+  const multiHubBundle = dereferenceBundleExport({
+    manifest: {
+      $formspecBundle: '2.4',
+      id: 'https://example.test/multi-hub',
+      title: 'Annual Portal',
+      entrySurface: multiHubSurfaceUrl,
+      surfaces: [{ url: multiHubSurfaceUrl }],
+      definitions: [{ url: multiHubDefUrl }],
+    },
+    documents: {
+      [multiHubDefUrl]: {
+        $formspec: '1.0',
+        url: multiHubDefUrl,
+        version: '1.0.0',
+        title: 'Unit Spending',
+        subject: { type: 'urn:test:unit-spending', keys: { year: { dataType: 'integer' }, unit: { dataType: 'string' } } },
+        items: [{ key: 'total', type: 'field', dataType: 'integer', label: 'Total' }],
+      },
+      [multiHubSurfaceUrl]: {
+        $formspecSurface: '0.4',
+        id: 'portal',
+        entry: 'year-overview',
+        routes: [
+          {
+            id: 'year-overview',
+            path: '/years/{year}',
+            title: 'Year overview',
+            params: [{ name: 'year', type: 'string' }],
+            navigation: { label: 'Year overview', order: 1 },
+            slots: [],
+          },
+          {
+            id: 'unit-overview',
+            path: '/years/{year}/units/{unit}',
+            title: 'Unit overview',
+            params: [{ name: 'year', type: 'string' }, { name: 'unit', type: 'string' }],
+            navigation: { label: 'Unit overview', order: 2 },
+            slots: [{
+              id: 'unit-map',
+              slotType: 'filing-status',
+              binding: {
+                groups: [{
+                  id: 'unit-forms',
+                  label: 'Unit forms',
+                  forms: [{ routeRef: 'unit-spending', slotRef: 'form', params: { year: { routeParam: 'year' }, unit: { routeParam: 'unit' } } }],
+                }],
+              },
+            }],
+          },
+          {
+            id: 'unit-spending',
+            path: '/years/{year}/units/{unit}/spending',
+            title: 'Unit spending',
+            params: [{ name: 'year', type: 'string' }, { name: 'unit', type: 'string' }],
+            navigation: { label: 'Unit spending', order: 3 },
+            slots: [{
+              id: 'form',
+              slotType: 'definition-form',
+              binding: { definitionRef: multiHubDefUrl, subjectKeys: { year: 'year', unit: 'unit' } },
+            }],
+          },
+        ],
+      },
+    },
+  });
+
+  address('/years/2025/units/UNIT-B');
+  let setGen!: (next: string) => void;
+  function Host() {
+    const [gen, updateGen] = useState('gen-1');
+    setGen = updateGen;
+    return (
+      <BrowserSurfaceApp
+        bundle={multiHubBundle}
+        adapters={{
+          routeParams: { year: '2025', unit: 'UNIT-A' },
+          sessionGeneration: gen,
+          renderDefinitionForm: () => <output>Spending form</output>,
+        }}
+      />
+    );
+  }
+  const container = render(<Host />);
+  expect(route(container)).toBe('unit-overview');
+  expect(container.querySelector<HTMLAnchorElement>('a[data-nav-route="unit-spending"]')?.getAttribute('href'))
+    .toBe('/years/2025/units/UNIT-B/spending');
+
+  // Navigating back to Year overview (/years/2025) must retain UNIT-B in sidebar links rather than resetting to default UNIT-A.
+  const yearOverviewLink = container.querySelector<HTMLAnchorElement>('a[data-nav-route="year-overview"]')!;
+  click(yearOverviewLink);
+  expect(route(container)).toBe('year-overview');
+  expect(container.querySelector<HTMLAnchorElement>('a[data-nav-route="unit-overview"]')?.getAttribute('href'))
+    .toBe('/years/2025/units/UNIT-B');
+  expect(container.querySelector<HTMLAnchorElement>('a[data-nav-route="unit-spending"]')?.getAttribute('href'))
+    .toBe('/years/2025/units/UNIT-B/spending');
+
+  // Changing sessionGeneration resets remembered params back to the host's base routeParams.
+  await act(async () => { setGen('gen-2'); });
+  expect(container.querySelector<HTMLAnchorElement>('a[data-nav-route="unit-overview"]')?.getAttribute('href'))
+    .toBe('/years/2025/units/UNIT-A');
+  expect(container.querySelector<HTMLAnchorElement>('a[data-nav-route="unit-spending"]')?.getAttribute('href'))
+    .toBe('/years/2025/units/UNIT-A/spending');
+});

@@ -109,6 +109,7 @@ export type MatchedFilingObservation =
       review: 'available' | 'unavailable';
       comments: readonly string[];
       sample?: 'preview-submit' | 'fixture';
+      progress?: CurrentDraftProgress;
     };
 
 export type FilingObservation =

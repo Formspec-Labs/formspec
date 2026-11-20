@@ -1484,3 +1484,182 @@ it('resolves period-plan summaries by subject-key range predicates across filing
   expect(preparedSummary.get('plan:2025')?.filing.status).toBe('filed');
   expect(admittedReads - readsAfterAdmission).toBe(0);
 });
+
+it('precomputes section and form progress for returned and reopened filings when no draft overrides, without booting FormEngine in readSummaries', async () => {
+  const tools = await previewResponseRecordTools();
+  const multiSectionUrl = 'urn:test:returned-progress';
+  const multiSectionDef: FormDefinition = {
+    $formspec: '1.0',
+    url: multiSectionUrl,
+    version,
+    title: 'Annual Spending',
+    subject: { type: multiSectionUrl, keys: { year: { dataType: 'integer' }, unit: { dataType: 'string' } } },
+    items: [
+      {
+        key: 'sec_a',
+        type: 'group',
+        label: 'Section A',
+        children: [
+          { key: 'allocated', type: 'field', dataType: 'integer', label: 'Allocated' },
+          { key: 'spent', type: 'field', dataType: 'integer', label: 'Spent' },
+        ],
+      },
+      {
+        key: 'sec_b',
+        type: 'group',
+        label: 'Section B',
+        children: [
+          { key: 'narrative', type: 'field', dataType: 'string', label: 'Narrative' },
+          { key: 'note', type: 'field', dataType: 'string', label: 'Optional note' },
+        ],
+      },
+    ],
+    binds: [
+      { path: 'sec_a.allocated', required: 'true' },
+      { path: 'sec_a.spent', required: 'true', constraint: '$ <= sec_a.allocated', constraintMessage: 'Spent cannot exceed allocated' },
+      { path: 'sec_b.narrative', required: 'true' },
+    ],
+    shapes: [
+      {
+        id: 'largeAllocation',
+        target: 'sec_a.allocated',
+        constraint: '$ <= 500',
+        code: 'LARGE_ALLOCATION',
+        severity: 'warning',
+        timing: 'submit',
+        explanation: 'explain',
+        message: 'Explain large allocation total.',
+      },
+    ],
+  };
+  const defs = new Map<string, FormDefinition>([[multiSectionUrl, multiSectionDef]]);
+  const unitA = { year: 2025, unit: 'UNIT-A' };
+  const unitB = { year: 2025, unit: 'UNIT-B' };
+  const returnedJson = JSON.stringify({
+    $formspecResponse: '1.0',
+    definitionUrl: multiSectionUrl,
+    definitionVersion: version,
+    id: 'urn:spending:2025:unit-a:returned',
+    status: 'completed',
+    authored: '2026-01-10T00:00:00Z',
+    subject: { id: tools.subjectId(multiSectionUrl, unitA), type: multiSectionUrl, keys: unitA },
+    data: { sec_a: { allocated: 1000, spent: 1200 }, sec_b: { narrative: null, note: null } },
+  });
+  const reopenedJson = JSON.stringify({
+    $formspecResponse: '1.0',
+    definitionUrl: multiSectionUrl,
+    definitionVersion: version,
+    id: 'urn:spending:2025:unit-b:reopened',
+    status: 'completed',
+    authored: '2026-01-12T00:00:00Z',
+    subject: { id: tools.subjectId(multiSectionUrl, unitB), type: multiSectionUrl, keys: unitB },
+    data: { sec_a: { allocated: 400, spent: 300 }, sec_b: { narrative: 'Done', note: null } },
+  });
+  const returnedRec = prepareResponseFiling(scope, defs, returnedJson, 'fixture', tools);
+  const reopenedRec = prepareResponseFiling(scope, defs, reopenedJson, 'fixture', tools);
+
+  const store = createMemoryFilingStore({
+    scope,
+    definitions: defs,
+    fixtures: {
+      filings: [{ responseJson: returnedJson }, { responseJson: reopenedJson }],
+      decisions: [
+        {
+          responseId: returnedRec.responseId,
+          responseHash: returnedRec.responseHash,
+          decision: { status: 'decided', review: 'returned', disposition: 'urn:decision:returned', comments: ['Fix overspend'] },
+        },
+        {
+          responseId: reopenedRec.responseId,
+          responseHash: reopenedRec.responseHash,
+          decision: { status: 'decided', review: 'reopened', disposition: 'urn:decision:reopened', comments: ['Reopened for update'] },
+        },
+      ],
+    },
+  });
+  await store.ready();
+
+  const sections = resolvePageSequence(multiSectionDef).map(({ id, fields }) => ({ ...(id === undefined ? {} : { id }), fields }));
+  const queries = [
+    { key: 'unit-a', definitionUrl: multiSectionUrl, definitionVersion: version, subject: { type: multiSectionUrl, keys: unitA }, sections },
+    { key: 'unit-b', definitionUrl: multiSectionUrl, definitionVersion: version, subject: { type: multiSectionUrl, keys: unitB }, sections },
+  ];
+  const engineSpy = vi.spyOn(engineModule, 'createFormEngine');
+  let summaries: Awaited<ReturnType<typeof store.drafts.readSummaries>>;
+  try {
+    summaries = await store.drafts.readSummaries(queries, { previewScope: scope, signal: new AbortController().signal });
+    expect(engineSpy).not.toHaveBeenCalled();
+  } finally {
+    engineSpy.mockRestore();
+  }
+
+  const obsA = summaries.get('unit-a');
+  expect(obsA?.draft).toEqual({ status: 'absent' });
+  expect(obsA?.filing).toMatchObject({
+    status: 'returned',
+    receiptRef: 'urn:spending:2025:unit-a:returned',
+    comments: ['Fix overspend'],
+    progress: {
+      status: 'current',
+      form: { total: 4, filled: 2, toFix: 1, toCheck: 1, ready: false },
+      sections: {
+        sec_a: { total: 2, filled: 2, toFix: 1, toCheck: 1 },
+        sec_b: { total: 2, filled: 0, toFix: 0, toCheck: 0 },
+      },
+    },
+  });
+
+  const obsB = summaries.get('unit-b');
+  expect(obsB?.draft).toEqual({ status: 'absent' });
+  expect(obsB?.filing).toMatchObject({
+    status: 'reopened',
+    receiptRef: 'urn:spending:2025:unit-b:reopened',
+    progress: {
+      status: 'current',
+      form: { total: 4, filled: 3, toFix: 0, toCheck: 0, ready: true },
+      sections: {
+        sec_a: { total: 2, filled: 2, toFix: 0, toCheck: 0 },
+        sec_b: { total: 2, filled: 1, toFix: 0, toCheck: 0 },
+      },
+    },
+  });
+
+  // Once an editable draft is saved for unit-a, draft progress overrides and filing.progress is omitted.
+  const unitAKey: DraftKey = {
+    scope,
+    definitionUrl: multiSectionUrl,
+    subject: { type: multiSectionUrl, keys: unitA, id: tools.subjectId(multiSectionUrl, unitA) },
+  };
+  const saved = await store.drafts.save({
+    key: unitAKey,
+    expectedRevision: null,
+    definitionVersion: version,
+    snapshotJson: JSON.stringify({ definitionUrl: multiSectionUrl, definitionVersion: version, data: { sec_a: { allocated: 1000, spent: 400 }, sec_b: { narrative: 'Revised', note: null } } }),
+    responseJson: JSON.stringify({
+      $formspecResponse: '1.0',
+      id: 'urn:spending:2025:unit-a:draft',
+      definitionUrl: multiSectionUrl,
+      definitionVersion: version,
+      status: 'in-progress',
+      authored: '2026-02-01T00:00:00Z',
+      subject: unitAKey.subject,
+      data: { sec_a: { allocated: 1000, spent: 400 }, sec_b: { narrative: 'Revised' } },
+    }),
+    summary: {
+      sections,
+      progress: {
+        status: 'current',
+        form: { total: 4, filled: 3, toFix: 0, toCheck: 0, ready: true },
+        sections: {
+          sec_a: { total: 2, filled: 2, toFix: 0, toCheck: 0 },
+          sec_b: { total: 2, filled: 1, toFix: 0, toCheck: 0 },
+        },
+      },
+    },
+  });
+  expect(saved.status).toBe('saved');
+  const afterDraft = await store.drafts.readSummaries([queries[0]!], { previewScope: scope, signal: new AbortController().signal });
+  const updatedA = afterDraft.get('unit-a');
+  expect(updatedA?.draft).toMatchObject({ status: 'current', form: { filled: 3, total: 4, toFix: 0, toCheck: 0, ready: true } });
+  expect(updatedA?.filing && 'progress' in updatedA.filing ? updatedA.filing.progress : undefined).toBeUndefined();
+});

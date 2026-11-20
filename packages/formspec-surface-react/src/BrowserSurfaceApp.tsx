@@ -1,6 +1,6 @@
 /** @filedesc Mount an admitted Surface with browser navigation, Locale, and a shared masthead. */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { matchRoute, responseSourceLoader, routeHref, type ResolvedBundle } from '@formspec-org/surface';
+import { canonicalFiniteJson, matchRoute, responseSourceLoader, routeHref, type ResolvedBundle } from '@formspec-org/surface';
 import { SurfaceAppView, useSurfaceApp, type SurfaceAppProps } from './SurfaceApp.js';
 import {
   pushBrowserAddress, splitSurfaceLocation, surfaceBrowserLocation, useSurfaceBrowserAddress,
@@ -154,6 +154,41 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
   const path = requestedScope === null || requestedScope === previewScope
     ? atEntry ? edition?.initialPath ?? entryPath : location?.path
     : undefined;
+  const baseRouteParamsKey = canonicalFiniteJson(props.routeParams ?? {});
+  const lastSeenParamsRef = useRef<{
+    scope: string | undefined;
+    generation: string | number | undefined;
+    baseParamsKey: string;
+    params: Readonly<Record<string, string>>;
+  }>({
+    scope: previewScope,
+    generation: props.sessionGeneration,
+    baseParamsKey: baseRouteParamsKey,
+    params: {},
+  });
+  if (
+    lastSeenParamsRef.current.scope !== previewScope
+    || lastSeenParamsRef.current.generation !== props.sessionGeneration
+    || lastSeenParamsRef.current.baseParamsKey !== baseRouteParamsKey
+  ) {
+    lastSeenParamsRef.current = {
+      scope: previewScope,
+      generation: props.sessionGeneration,
+      baseParamsKey: baseRouteParamsKey,
+      params: {},
+    };
+  }
+  const currentPathMatch = path !== undefined ? matchRoute(model.app, path).match : undefined;
+  if (currentPathMatch) {
+    const matchedEntries = Object.entries(currentPathMatch.params);
+    if (matchedEntries.some(([key, value]) => lastSeenParamsRef.current.params[key] !== value)) {
+      lastSeenParamsRef.current = {
+        ...lastSeenParamsRef.current,
+        params: { ...lastSeenParamsRef.current.params, ...currentPathMatch.params },
+      };
+    }
+  }
+  const lastSeenParams = lastSeenParamsRef.current.params;
   const localeDocuments = props.localeDocuments ?? bundle.localeDocuments;
   const locale = useMemo(() => resolveBrowserLocale(bundle, localeDocuments), [bundle, localeDocuments]);
   const { preference, appearance, choose } = useBrowserAppearance();
@@ -238,6 +273,7 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
       appearance,
       direction: locale.direction,
       entryPath,
+      lastSeenParams,
       anchor,
       previewScope,
       drafts,

@@ -448,6 +448,7 @@ interface BrowserPresentation extends SurfaceFormSession {
   anchor: boolean;
   direction: 'ltr' | 'rtl';
   entryPath: string | undefined;
+  lastSeenParams?: Readonly<Record<string, string>> | undefined;
   editionPicker: ReactNode;
   appearancePicker: ReactNode;
   saveNotice: string;
@@ -492,9 +493,14 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     () => JSON.parse(routeParamsKey) as Readonly<Record<string, string>>,
     [routeParamsKey],
   );
-  const navigationParams = useMemo(() => browser && resolution.match
-    ? { ...routeParams, ...resolution.match.params }
-    : routeParams, [browser !== undefined, resolution.match, routeParams]);
+  const lastSeenParamsKey = canonicalFiniteJson(browser?.lastSeenParams ?? {});
+  const navigationParams = useMemo(() => browser
+    ? {
+        ...routeParams,
+        ...(browser.lastSeenParams ?? {}),
+        ...(resolution.match?.params ?? {}),
+      }
+    : routeParams, [browser !== undefined, lastSeenParamsKey, resolution.match, routeParams]);
   const runtimeGeneration = useMemo(() => deriveSurfaceRuntimeGeneration({
     sessionGeneration: props.sessionGeneration,
     location,
@@ -837,41 +843,67 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     target?.focus({ preventScroll: true });
   }, [routeIdentity, browser?.anchor, browser?.workspace?.focusField]);
 
+  const overviewDestination = useMemo(
+    () =>
+      routePlan
+        ? resolveOverviewDestination(model.app, routePlan, browser?.entryPath, navigationParams)
+        : browser?.entryPath,
+    [model.app, routePlan, browser?.entryPath, navigationParams],
+  );
+
   useEffect(() => {
     const rootEl = appRoot.current;
     const headerEl = headerRef.current;
     if (!rootEl) return;
+    let lastHeaderHeight = "";
+    let lastStickyOffset = "";
     const syncHeaderOffset = () => {
       if (!headerEl || typeof window === "undefined") {
         rootEl.style.removeProperty("--fs-surface-header-height");
         rootEl.style.removeProperty("--formspec-sticky-offset");
+        lastHeaderHeight = "";
+        lastStickyOffset = "";
         return;
       }
       const position = window.getComputedStyle(headerEl).position;
       const isSticky = position === "sticky" || position === "fixed";
-      const height = isSticky ? Math.ceil(headerEl.getBoundingClientRect().height) : 0;
-      if (height > 0) {
-        rootEl.style.setProperty("--fs-surface-header-height", `${height}px`);
-        rootEl.style.setProperty("--formspec-sticky-offset", `${height + 16}px`);
-      } else {
-        rootEl.style.setProperty("--fs-surface-header-height", "0px");
-        rootEl.style.setProperty("--formspec-sticky-offset", "0.75rem");
+      const rect = headerEl.getBoundingClientRect();
+      const height = isSticky ? Math.ceil(rect.height) : 0;
+      const maxStickyBottom = rect.height + 200;
+      const stuckBottom = isSticky
+        ? Math.ceil(Math.max(rect.height, Math.min(rect.bottom, maxStickyBottom)))
+        : 0;
+      const nextHeaderHeight = height > 0 ? `${stuckBottom}px` : "0px";
+      const nextStickyOffset = height > 0 ? `${stuckBottom + 16}px` : "0.75rem";
+      if (nextHeaderHeight !== lastHeaderHeight) {
+        rootEl.style.setProperty("--fs-surface-header-height", nextHeaderHeight);
+        lastHeaderHeight = nextHeaderHeight;
+      }
+      if (nextStickyOffset !== lastStickyOffset) {
+        rootEl.style.setProperty("--formspec-sticky-offset", nextStickyOffset);
+        lastStickyOffset = nextStickyOffset;
       }
     };
     syncHeaderOffset();
     if (typeof ResizeObserver === "undefined" || !headerEl) {
       if (typeof window !== "undefined") {
         window.addEventListener("resize", syncHeaderOffset);
-        return () => window.removeEventListener("resize", syncHeaderOffset);
+        window.addEventListener("scroll", syncHeaderOffset, { passive: true });
+        return () => {
+          window.removeEventListener("resize", syncHeaderOffset);
+          window.removeEventListener("scroll", syncHeaderOffset);
+        };
       }
       return;
     }
     const observer = new ResizeObserver(syncHeaderOffset);
     observer.observe(headerEl);
     window.addEventListener("resize", syncHeaderOffset);
+    window.addEventListener("scroll", syncHeaderOffset, { passive: true });
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", syncHeaderOffset);
+      window.removeEventListener("scroll", syncHeaderOffset);
     };
   }, [browser, appTitle, props.header]);
 
@@ -934,6 +966,7 @@ export function SurfaceAppView(props: SurfaceAppProps & {
               key={browser ? runtimeGeneration : `${routePlan.handle.surfaceId}/${routePlan.handle.routeId}`}
               plan={routePlan}
               formSession={formSession}
+              overviewDestination={overviewDestination}
               bandPreferenceScope={JSON.stringify([bundle.manifest.id, props.viewerPreferenceKey, browser?.previewScope])}
               filingStatus={{
                 readSummaries: props.readSummaries,
@@ -1084,6 +1117,119 @@ function hubPathAffinity(hubPath: string, childPath: string): number {
     if (hubSegs[i] !== childSegs[i]) return 0;
   }
   return hubSegs.length;
+}
+
+function hubDraftStartRouteRefs(handle: SurfaceRouteHandle): string[] {
+  const refs: string[] = [];
+  for (const slot of handle.route.slots ?? []) {
+    if (slot.slotType !== "draft-start") continue;
+    const routeRef = (slot.binding as { routeRef?: unknown } | undefined)?.routeRef;
+    if (typeof routeRef === "string" && routeRef.length > 0) refs.push(routeRef);
+  }
+  return refs;
+}
+
+function resolveOverviewDestination(
+  app: ComposedSurfaceApp,
+  routePlan: SurfaceRoutePlan<SurfaceWidget>,
+  fallbackEntryPath: string | undefined,
+  navigationParams: Readonly<Record<string, string>>,
+): string | undefined {
+  const { handle, params, transitions } = routePlan;
+  const effectiveParams: Readonly<Record<string, string>> = {
+    ...navigationParams,
+    ...params,
+  };
+  const scope = routeNavigationScope(handle);
+
+  const resolveCandidateHref = (candidate: SurfaceRouteHandle): string | undefined => {
+    const matchingTransition = transitions.find(
+      (transition) => transition.status === "fireable" && transition.target === candidate,
+    );
+    const nextParams: Record<string, string> = { ...effectiveParams };
+    if (matchingTransition?.params) {
+      for (const [targetParam, bindingName] of Object.entries(matchingTransition.params)) {
+        const value = effectiveParams[bindingName];
+        if (typeof value === "string" && value.length > 0) nextParams[targetParam] = value;
+      }
+    }
+    const resolved = routeHref(candidate, nextParams);
+    return resolved.refusal === undefined ? resolved.href : undefined;
+  };
+
+  // 1. Explicit navigation.parent when it resolves cleanly in the same surface and scope.
+  const explicitParentId = handle.route.navigation?.parent;
+  if (typeof explicitParentId === "string" && explicitParentId !== handle.routeId) {
+    const parent = app.routes.find(
+      (candidate) =>
+        candidate.surface === handle.surface &&
+        candidate.routeId === explicitParentId &&
+        routeNavigationScope(candidate) === scope,
+    );
+    if (parent) {
+      const parentHref = resolveCandidateHref(parent);
+      if (parentHref !== undefined) return parentHref;
+    }
+  }
+
+  // 2. Nearest addressable filing-status overview hub in the same surface and scope
+  //    (path prefix affinity -> direct reference -> repeat reference -> entry -> declaration order).
+  const candidates: Array<{
+    href: string;
+    affinity: number;
+    directRef: boolean;
+    repeatRef: boolean;
+    isEntry: boolean;
+    order: number;
+  }> = [];
+
+  app.routes.forEach((candidate, order) => {
+    if (
+      candidate === handle ||
+      candidate.surface !== handle.surface ||
+      routeNavigationScope(candidate) !== scope
+    ) {
+      return;
+    }
+    const nonRepeat = filingStatusGroupRouteRefs(candidate, false);
+    const repeat = filingStatusGroupRouteRefs(candidate, true);
+    if (!nonRepeat.isFilingHub && !repeat.isFilingHub) return;
+    const href = resolveCandidateHref(candidate);
+    if (href === undefined) return;
+    const draftStarts = hubDraftStartRouteRefs(candidate);
+    const directRef =
+      nonRepeat.refs.includes(handle.routeId) ||
+      draftStarts.includes(handle.routeId);
+    const repeatRef = repeat.refs.includes(handle.routeId);
+    const affinity = hubPathAffinity(candidate.route.path, handle.route.path);
+    candidates.push({
+      href,
+      affinity,
+      directRef,
+      repeatRef,
+      isEntry: candidate === app.entry,
+      order,
+    });
+  });
+
+  if (candidates.length > 0) {
+    candidates.sort(
+      (a, b) =>
+        (b.affinity - a.affinity) ||
+        (Number(b.directRef) - Number(a.directRef)) ||
+        (Number(b.repeatRef) - Number(a.repeatRef)) ||
+        (Number(b.isEntry) - Number(a.isEntry)) ||
+        (a.order - b.order),
+    );
+    return candidates[0]!.href;
+  }
+
+  // 3. Fall back to the surface entry route resolved with active params, then static entryPath.
+  if (app.entry && app.entry !== handle && app.entry.surface === handle.surface) {
+    const entryHref = resolveCandidateHref(app.entry);
+    if (entryHref !== undefined) return entryHref;
+  }
+  return fallbackEntryPath;
 }
 
 function buildNavTree(routes: readonly SurfaceRouteHandle[]): NavTree {

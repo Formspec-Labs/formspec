@@ -334,6 +334,15 @@ function createFilingStore(
     ...(options.fixtures.drafts ? { drafts: structuredClone(options.fixtures.drafts) } : {}),
   };
   const hasSeededDrafts = Boolean(preparedFromInput?.drafts?.length || fixtureSnapshot?.drafts?.length);
+  const hasReturnedFilings = Boolean(
+    preparedFromInput
+      ? [...preparedFromInput.decisions.values()].some(
+          decision => decision.status === 'decided' && (decision.review === 'returned' || decision.review === 'reopened'),
+        )
+      : fixtureSnapshot?.decisions?.some(
+          entry => entry.decision.status === 'decided' && (entry.decision.review === 'returned' || entry.decision.review === 'reopened'),
+        ),
+  );
   const parsedFilings = new Map<string, FormResponse>();
   const parsedTokens = new Map<string, object>();
   let fixtureParseError: unknown;
@@ -743,6 +752,110 @@ function createFilingStore(
     if (recoveredAny) committed();
   }
 
+  const returnedFilingPlans = new Map<string, readonly StoredPlanSummary[]>();
+
+  async function precomputeReturnedFilingProgress(base: FixtureBase) {
+    if (!base.decisions.size) return;
+    let hasReturnedDecision = false;
+    for (const decision of base.decisions.values()) {
+      if (decision.status === 'decided' && (decision.review === 'returned' || decision.review === 'reopened')) {
+        hasReturnedDecision = true;
+        break;
+      }
+    }
+    if (!hasReturnedDecision) return;
+
+    let snapshot: SeedSnapshot;
+    let storedFilingSummaries: readonly ResponseFilingSummary[] = [];
+    try {
+      if (storageAvailable()) {
+        const stored = await transaction(['editable', 'filings', 'filingSummaries'], 'readonly', async tx => ({
+          editable: await tx.list('editable', scope),
+          filings: await tx.list('filings', scope),
+          filingSummaries: await tx.list('filingSummaries', scope),
+        }));
+        snapshot = { editable: stored.editable, filings: stored.filings };
+        storedFilingSummaries = stored.filingSummaries.map(({ value }) => value);
+      } else {
+        snapshot = { editable: [], filings: [] };
+      }
+    } catch {
+      snapshot = { editable: [], filings: [] };
+    }
+
+    const candidatesByPair = new Map<string, ResponseFiling>();
+    const addCandidate = (filing: ResponseFiling) => {
+      const pairKey = responsePairKey(filing);
+      if (candidatesByPair.has(pairKey)) return;
+      const decision = base.decisions.get(pairKey);
+      if (decision?.status === 'decided' && (decision.review === 'returned' || decision.review === 'reopened')) {
+        candidatesByPair.set(pairKey, filing);
+      }
+    };
+    for (const entry of snapshot.filings) {
+      addCandidate(entry.value);
+    }
+    for (const filing of base.filings) {
+      addCandidate(filing);
+    }
+    if (candidatesByPair.size === 0) return;
+
+    const allFilingSummaries = [...storedFilingSummaries, ...base.filingSummaries];
+    const filingsByKey = groupBy(allFilingSummaries, record => JSON.stringify(storageKey(record.key)));
+    const activeCandidates = [...candidatesByPair.values()].filter(filing => {
+      const definition = definitions.get(filing.key.definitionUrl);
+      if (!definition || definition.version !== filing.definitionVersion) return false;
+      const pairKey = responsePairKey(filing);
+      if (returnedFilingPlans.has(pairKey)) return false;
+      const group = filingsByKey.get(JSON.stringify(storageKey(filing.key))) ?? [];
+      const observed = selectFilingSummaryStatus(filing.key, definition, group, base.decisions, base.tools);
+      return 'receiptRef' in observed
+        && observed.receiptRef === filing.responseId
+        && observed.responseHash === filing.responseHash
+        && (observed.status === 'returned' || observed.status === 'reopened');
+    });
+    if (activeCandidates.length === 0) return;
+
+    for (const filing of activeCandidates) {
+      const definition = definitions.get(filing.key.definitionUrl);
+      if (!definition) continue;
+      try {
+        const parsed = base.tools.parseResponse(filing.responseJson);
+        const requests = definitionResponseRequests(definition, filing.key);
+        const resolutions: Record<string, ResponseSelectionDelivery> = {};
+        if (requests.length > 0) {
+          const outcomes = await selectWithFixtures(base, requests, { snapshot });
+          for (const { key: instance } of requests) {
+            const outcome = outcomes.get(instance);
+            if (outcome?.status === 'available') {
+              const { status: _status, newer: _newer, ...delivery } = outcome;
+              resolutions[instance] = delivery;
+            }
+          }
+        }
+        const engine = createFormEngine(definition, {
+          responseInstanceResolutions: resolutions,
+          ...(filing.key.subject && { responseSubject: filing.key.subject }),
+          ...(parsed.explanations && { savedExplanations: parsed.explanations }),
+          responseData: parsed.data as Parameters<ReturnType<typeof createFormEngine>['loadResponseData']>[0],
+        });
+        let evaluated: EvaluatedFormState;
+        try {
+          if (engine.hasSubjectRefusal()) continue;
+          evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
+        } finally {
+          engine.dispose();
+        }
+        const plans = await buildSectionSummaries(definition, evaluated, options.sectionPlans);
+        if (plans.length > 0) {
+          returnedFilingPlans.set(responsePairKey(filing), plans);
+        }
+      } catch {
+        // Leave progress omitted if a returned filing cannot be evaluated; status and comments still render.
+      }
+    }
+  }
+
   function startInitialize() {
     seedRejected = false;
     readyObservedFailure = false;
@@ -752,6 +865,7 @@ function createFilingStore(
       await rebuildLegacySummaries();
       await recoverSubjectlessRows(base);
       await seedDrafts(base);
+      await precomputeReturnedFilingProgress(base);
       return base;
     }).catch(error => {
       seedRejected = true;
@@ -762,7 +876,7 @@ function createFilingStore(
   }
   // Explicit initialization owns retries; every other caller awaits the same attempt.
   const settledReady = () => seedPromise ?? startInitialize();
-  if (hasSeededDrafts || storageAvailable()) {
+  if (hasSeededDrafts || hasReturnedFilings || storageAvailable()) {
     void startInitialize().catch(() => undefined);
   }
   const authorized = async (
@@ -1466,10 +1580,35 @@ function createFilingStore(
           }
           const definition = definitions.get(key.definitionUrl);
           if (read && definition) {
+            const keyFilings = filingsByKey.get(JSON.stringify(storageKey(key))) ?? [];
             const observedFiling = selectFilingSummaryStatus(
-              key, definition, filingsByKey.get(JSON.stringify(storageKey(key))) ?? [], initialized.decisions, initialized.tools,
+              key, definition, keyFilings, initialized.decisions, initialized.tools,
             );
-            filing = observedFiling.status === 'denied' ? { status: 'unavailable' } : observedFiling;
+            if (observedFiling.status === 'denied') {
+              filing = { status: 'unavailable' };
+            } else if (
+              draft.status === 'absent'
+              && 'receiptRef' in observedFiling
+              && (observedFiling.status === 'returned' || observedFiling.status === 'reopened')
+            ) {
+              const chosenSummary = keyFilings.find(
+                candidate => candidate.responseId === observedFiling.receiptRef
+                  && candidate.responseHash === observedFiling.responseHash,
+              );
+              const plans = chosenSummary?.definitionVersion === query.definitionVersion
+                ? returnedFilingPlans.get(responsePairKey({
+                    responseId: observedFiling.receiptRef,
+                    responseHash: observedFiling.responseHash,
+                  }))
+                : undefined;
+              const matched = plans?.find(candidate => candidate.planId === targetPlanId);
+              const progress = matched
+                ? canonicalDraftProgress(matched.progress, declaredSectionIds(query.sections))
+                : undefined;
+              filing = progress ? { ...observedFiling, progress } : observedFiling;
+            } else {
+              filing = observedFiling;
+            }
           }
           return { draft, filing };
         }
