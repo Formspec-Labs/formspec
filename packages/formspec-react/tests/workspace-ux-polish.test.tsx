@@ -893,6 +893,69 @@ describe('Findings badge reconciliation, required disclosure, contextual labels,
         expect(engine.getResponse().data.grantTotal).toEqual({ amount: '1620000.5', currency: 'USD' });
     });
 
+    it('formats currency-prefixed decimal/integer NumberInput fields on blur and readonly calculated totals while keeping plain integers ungrouped', () => {
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:currency-prefixed-number',
+            version: '1.0.0',
+            title: 'Budget Schedule',
+            items: [
+                { key: 'directCost', type: 'field', dataType: 'decimal', label: 'Direct Cost', prefix: '$' } as any,
+                { key: 'indirectCost', type: 'field', dataType: 'decimal', label: 'Indirect Cost', prefix: '$' } as any,
+                { key: 'totalCost', type: 'field', dataType: 'decimal', label: 'Total Cost', prefix: '$' } as any,
+                { key: 'euroBudget', type: 'field', dataType: 'decimal', label: 'Euro Budget', prefix: '€' } as any,
+                { key: 'yenBudget', type: 'field', dataType: 'integer', label: 'Yen Budget', prefix: '¥' } as any,
+                { key: 'reportingYear', type: 'field', dataType: 'integer', label: 'Reporting Year' },
+            ],
+            binds: [
+                { path: 'totalCost', readonly: 'true', calculate: '$directCost + $indirectCost' },
+            ],
+        };
+
+        const engine = createFormEngine(def);
+        act(() => {
+            engine.setValue('directCost', '1391000');
+            engine.setValue('indirectCost', '100000.5');
+            engine.setValue('euroBudget', '140000.75');
+            engine.setValue('yenBudget', 250000);
+            engine.setValue('reportingYear', 2025);
+        });
+
+        const host = actRender(<FormspecForm engine={engine} />);
+        const directInput = host.querySelector<HTMLInputElement>('[data-name="directCost"] input')!;
+        const indirectInput = host.querySelector<HTMLInputElement>('[data-name="indirectCost"] input')!;
+        const totalInput = host.querySelector<HTMLInputElement>('[data-name="totalCost"] input')!;
+        const euroInput = host.querySelector<HTMLInputElement>('[data-name="euroBudget"] input')!;
+        const yenInput = host.querySelector<HTMLInputElement>('[data-name="yenBudget"] input')!;
+        const yearInput = host.querySelector<HTMLInputElement>('[data-name="reportingYear"] input')!;
+
+        // Currency-prefixed decimals & integers use text + inputMode="decimal" and format when blurred/readonly.
+        expect(directInput.type).toBe('text');
+        expect(directInput.getAttribute('inputmode')).toBe('decimal');
+        expect(directInput.value).toBe('1,391,000.00');
+        expect(indirectInput.value).toBe('100,000.50');
+        expect(totalInput.readOnly).toBe(true);
+        expect(totalInput.value).toBe('1,491,000.50');
+        expect(euroInput.value).toBe('140,000.75');
+        expect(yenInput.value).toBe('250,000');
+
+        // Plain integer (no currency prefix) stays ungrouped numeric input.
+        expect(yearInput.type).toBe('number');
+        expect(yearInput.value).toBe('2025');
+
+        // Focus switches to raw canonical number; pasting formatted currency strips commas/symbol cleanly.
+        act(() => { directInput.focus(); });
+        expect(directInput.value).toBe('1391000');
+
+        act(() => { setControlValue(directInput, '$1,520,000.25'); });
+        expect(String(engine.getResponse().data.directCost)).toBe('1520000.25');
+
+        act(() => { directInput.blur(); });
+        expect(directInput.value).toBe('1,520,000.25');
+        // Calculated readonly total recomputes and stays comma-formatted!
+        expect(totalInput.value).toBe('1,620,000.75');
+    });
+
     it('wraps long read-only string values unclipped while keeping the native focusable readOnly input', () => {
         const longOrgName = 'Northern Valley Regional Community Opportunity Partnership Incorporated';
         const def: FormDefinition = {

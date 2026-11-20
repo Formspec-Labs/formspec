@@ -4,6 +4,9 @@ import React, { useState } from 'react';
 import { jsonValueText } from '@formspec-org/engine';
 import { useChromeText } from '../../../use-chrome-text';
 import type { CommonInputProps } from '../field-control-types';
+import { formatMoneyDisplay, normalizeMoneyInput } from './currency-format';
+
+export { formatMoneyDisplay, normalizeMoneyInput };
 
 /** Resolve ISO 4217 currency code (e.g. "USD") to its narrow symbol (e.g. "$"). */
 function toCurrencySymbol(code: string): string {
@@ -21,56 +24,9 @@ function toCurrencySymbol(code: string): string {
     }
 }
 
-/** ISO 4217 minor-unit decimal places (e.g. 2 for USD/EUR, 0 for JPY). */
-function currencyMinFractionDigits(code: string): number {
-    try {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: code.toUpperCase(),
-        }).resolvedOptions().minimumFractionDigits ?? 2;
-    } catch {
-        return 2;
-    }
-}
-
 /** Round-trip raw canonical decimal text for money amount input (matches web component bind sync). */
 function formatMoneyAmountForInput(amount: unknown): string {
     return jsonValueText(amount);
-}
-
-/**
- * Format an exact decimal string with thousands commas and consistent currency decimals without
- * converting through IEEE-754 floats (preserves arbitrary-precision fractional digits verbatim).
- */
-export function formatMoneyDisplay(raw: string, currencyCode: string): string {
-    const trimmed = raw.trim();
-    if (!trimmed) return raw;
-    const match = trimmed.match(/^([+-]?)(\d+)(?:\.(\d+))?$/);
-    if (!match) return raw;
-    const [, sign, intDigits, fracDigits = ''] = match;
-    const groupedInt = intDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    const minFrac = currencyMinFractionDigits(currencyCode);
-    if (fracDigits.length === 0 && minFrac === 0) {
-        return `${sign}${groupedInt}`;
-    }
-    const paddedFrac = fracDigits.length < minFrac
-        ? fracDigits.padEnd(minFrac, '0')
-        : fracDigits;
-    return `${sign}${groupedInt}.${paddedFrac}`;
-}
-
-/** Strip thousands commas (and optional pasted currency symbol/whitespace) when the entry is numeric. */
-function normalizeMoneyInput(raw: string, currencySymbol: string): string {
-    if (raw === '') return '';
-    let candidate = raw.trim();
-    if (currencySymbol && candidate.startsWith(currencySymbol)) {
-        candidate = candidate.slice(currencySymbol.length).trim();
-    }
-    const withoutCommas = candidate.replace(/,/g, '');
-    if (/^[+-]?(?:\d+\.?\d*|\.\d*)$/.test(withoutCommas)) {
-        return withoutCommas;
-    }
-    return raw;
 }
 
 export function MoneyInputControl({
