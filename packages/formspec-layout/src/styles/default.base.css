@@ -143,7 +143,15 @@
   flex-direction: column;
   gap: var(--formspec-spacing-xs, 0.25rem);
   margin-bottom: 0;
-  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 8.5rem) + 1.25rem);
+}
+
+.formspec-field :is(input, select, textarea) {
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 8.5rem) + 1.25rem);
+}
+
+.formspec-container input[type="number"] {
+  font-variant-numeric: tabular-nums;
 }
 
 .formspec-fieldset {
@@ -154,7 +162,7 @@
   margin: 0;
   padding: 0;
   border: 0;
-  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 8.5rem) + 1.25rem);
 }
 
 .formspec-legend {
@@ -255,6 +263,13 @@
 .formspec-auto-grid[data-auto-grid="6"] > .formspec-field :where(input:not([type="radio"]):not([type="checkbox"]):not([type="range"]), select) {
   padding: 0.62rem 0.65rem;
   font-variant-numeric: tabular-nums;
+}
+
+.formspec-auto-grid[data-auto-grid="4"] > .formspec-field > .formspec-hint,
+.formspec-auto-grid[data-auto-grid="5"] > .formspec-field > .formspec-hint,
+.formspec-auto-grid[data-auto-grid="6"] > .formspec-field > .formspec-hint {
+  font-size: calc(0.78rem * var(--formspec-size-scale, 1));
+  line-height: 1.38;
 }
 
 .formspec-auto-grid > .formspec-field--readonly {
@@ -554,6 +569,58 @@ h6.formspec-heading {
   box-shadow: none;
 }
 
+/* Long read-only single-line values wrap cleanly across lines while preserving the focusable native <input>. */
+.formspec-readonly-text-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.formspec-readonly-text-wrap[data-readonly-wrapped="true"] {
+  padding: 0.72rem 0.9rem;
+  border: 1px dashed var(--formspec-default-readonly-input-border);
+  border-radius: var(--formspec-default-radius-sm);
+  background: var(--formspec-default-readonly-input-bg);
+  color: var(--formspec-default-readonly-input-text);
+  box-shadow: inset 0 1px 2px rgba(12, 24, 41, 0.08);
+  box-sizing: border-box;
+  transition: var(--formspec-default-transition-fast);
+}
+
+.formspec-readonly-text-wrap[data-readonly-wrapped="true"]:focus-within {
+  outline: 3px solid var(--formspec-default-focus);
+  outline-offset: 2px;
+  border-color: var(--formspec-default-focus);
+}
+
+.formspec-field--readonly .formspec-input-adornment .formspec-readonly-text-wrap[data-readonly-wrapped="true"] {
+  flex: 1;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.formspec-readonly-text-wrap[data-readonly-wrapped="true"] > input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.formspec-readonly-text-value {
+  font-size: calc(0.95rem * var(--formspec-size-scale, 1));
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  color: inherit;
+}
+
 .formspec-field--readonly input[type="date"]::-webkit-datetime-edit,
 .formspec-field--readonly input[type="datetime-local"]::-webkit-datetime-edit,
 .formspec-field--readonly input[type="time"]::-webkit-datetime-edit,
@@ -596,4 +663,79 @@ h6.formspec-heading {
 
 .formspec-screener-continue {
   align-self: flex-start;
+}
+
+@media print {
+  .formspec-container {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .formspec-workspace__navigation,
+  .formspec-workspace__inline-search,
+  .formspec-workspace__mobile-findings-bar,
+  .formspec-workspace__previous-next,
+  .formspec-action-bar,
+  .formspec-action-control,
+  .formspec-repeat-add,
+  .formspec-repeat-remove,
+  .formspec-repeat-confirm,
+  .formspec-repeat-undo,
+  .formspec-wizard-sidenav,
+  .formspec-wizard-nav,
+  .formspec-wizard-steps,
+  .formspec-tab-bar {
+    display: none !important;
+  }
+
+  .formspec-workspace,
+  .formspec-workspace[data-single-section="true"] {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .formspec-workspace__findings {
+    position: static !important;
+    max-block-size: none !important;
+    overflow: visible !important;
+    margin-top: 1.5rem;
+    border-color: #666;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .formspec-field,
+  .formspec-fieldset,
+  .formspec-repeat-instance,
+  .formspec-card,
+  .formspec-warning-explanation {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  .formspec-container :where(h1, h2, h3, h4),
+  .formspec-group-title,
+  .formspec-section-title,
+  .formspec-repeat-heading {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .formspec-container :where(input, textarea, select),
+  .formspec-field--readonly,
+  .formspec-readonly-text-wrap[data-readonly-wrapped="true"],
+  .formspec-money,
+  .formspec-input-adornment,
+  .formspec-select-wrapper {
+    background: #fff !important;
+    color: #000 !important;
+    border-color: #666 !important;
+    box-shadow: none !important;
+  }
+
+  .formspec-container textarea {
+    overflow: visible !important;
+    height: auto !important;
+  }
 }

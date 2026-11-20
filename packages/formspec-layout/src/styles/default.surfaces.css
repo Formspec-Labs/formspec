@@ -46,7 +46,7 @@ hr.formspec-divider {
 .formspec-group,
 .formspec-section {
   position: relative;
-  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 8.5rem) + 1.25rem);
 }
 
 .formspec-group {
@@ -84,7 +84,7 @@ hr.formspec-divider {
 
 .formspec-repeat,
 .formspec-repeat-instance {
-  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 8.5rem) + 1.25rem);
 }
 
 .formspec-repeat-heading {

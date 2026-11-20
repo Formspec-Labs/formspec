@@ -1,6 +1,6 @@
 /** @filedesc MoneyInput amount + currency adornment. */
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { jsonValueText } from '@formspec-org/engine';
 import { useChromeText } from '../../../use-chrome-text';
 import type { CommonInputProps } from '../field-control-types';
@@ -21,9 +21,56 @@ function toCurrencySymbol(code: string): string {
     }
 }
 
-/** Round-trip display for money amount input (matches web component bind sync). */
+/** ISO 4217 minor-unit decimal places (e.g. 2 for USD/EUR, 0 for JPY). */
+function currencyMinFractionDigits(code: string): number {
+    try {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: code.toUpperCase(),
+        }).resolvedOptions().minimumFractionDigits ?? 2;
+    } catch {
+        return 2;
+    }
+}
+
+/** Round-trip raw canonical decimal text for money amount input (matches web component bind sync). */
 function formatMoneyAmountForInput(amount: unknown): string {
     return jsonValueText(amount);
+}
+
+/**
+ * Format an exact decimal string with thousands commas and consistent currency decimals without
+ * converting through IEEE-754 floats (preserves arbitrary-precision fractional digits verbatim).
+ */
+export function formatMoneyDisplay(raw: string, currencyCode: string): string {
+    const trimmed = raw.trim();
+    if (!trimmed) return raw;
+    const match = trimmed.match(/^([+-]?)(\d+)(?:\.(\d+))?$/);
+    if (!match) return raw;
+    const [, sign, intDigits, fracDigits = ''] = match;
+    const groupedInt = intDigits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const minFrac = currencyMinFractionDigits(currencyCode);
+    if (fracDigits.length === 0 && minFrac === 0) {
+        return `${sign}${groupedInt}`;
+    }
+    const paddedFrac = fracDigits.length < minFrac
+        ? fracDigits.padEnd(minFrac, '0')
+        : fracDigits;
+    return `${sign}${groupedInt}.${paddedFrac}`;
+}
+
+/** Strip thousands commas (and optional pasted currency symbol/whitespace) when the entry is numeric. */
+function normalizeMoneyInput(raw: string, currencySymbol: string): string {
+    if (raw === '') return '';
+    let candidate = raw.trim();
+    if (currencySymbol && candidate.startsWith(currencySymbol)) {
+        candidate = candidate.slice(currencySymbol.length).trim();
+    }
+    const withoutCommas = candidate.replace(/,/g, '');
+    if (/^[+-]?(?:\d+\.?\d*|\.\d*)$/.test(withoutCommas)) {
+        return withoutCommas;
+    }
+    return raw;
 }
 
 export function MoneyInputControl({
@@ -34,6 +81,7 @@ export function MoneyInputControl({
     placeholder: resolvedPlaceholder,
 }: CommonInputProps & { placeholder?: string }) {
     const chrome = useChromeText();
+    const [isEditing, setIsEditing] = useState(false);
     const currencyCode = ((node.props?.currency as string) || 'USD').toUpperCase();
     const currency = toCurrencySymbol(currencyCode);
     const min = node.props?.min != null ? jsonValueText(node.props.min) : undefined;
@@ -53,9 +101,23 @@ export function MoneyInputControl({
         }
     }
 
+    const displayValue = (!isReadonly && isEditing)
+        ? amountStr
+        : formatMoneyDisplay(amountStr, currencyCode);
+
+    const handleFocus = () => {
+        if (!isReadonly) setIsEditing(true);
+    };
+
+    const handleBlur = () => {
+        setIsEditing(false);
+        common.onBlur();
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const raw = e.target.value;
-        const amount = raw === '' ? null : raw;
+        setIsEditing(true);
+        const normalized = normalizeMoneyInput(e.target.value, currency);
+        const amount = normalized === '' ? null : normalized;
         field.setValue({
             amount,
             currency: currencyCode,
@@ -76,16 +138,18 @@ export function MoneyInputControl({
                 {...common}
                 type="text"
                 inputMode="decimal"
-                pattern={'[0-9]*\\.?[0-9]*'}
+                pattern={'-?[0-9,]*\\.?[0-9]*'}
                 className="formspec-input formspec-money-amount"
                 name={`${field.path}__amount`}
                 placeholder={placeholder}
                 aria-describedby={moneyDescribedBy}
-                value={amountStr}
+                value={displayValue}
                 readOnly={isReadonly}
                 min={min}
                 max={max}
                 step={step}
+                onFocus={isReadonly ? undefined : handleFocus}
+                onBlur={handleBlur}
                 onChange={isReadonly ? undefined : handleChange}
             />
         </div>

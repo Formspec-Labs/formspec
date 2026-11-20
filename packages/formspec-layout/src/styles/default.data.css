@@ -198,7 +198,7 @@
   background: var(--formspec-default-warning-surface-soft);
   color: var(--formspec-default-text);
   overflow: hidden;
-  scroll-margin-top: calc(var(--formspec-sticky-offset, 6.5rem) + 1rem);
+  scroll-margin-top: calc(var(--formspec-sticky-offset, 8.5rem) + 1.25rem);
 }
 
 .formspec-warning-explanation[data-state="saved"] {

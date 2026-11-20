@@ -244,21 +244,16 @@ export function renderControl(
                 'aria-invalid': common['aria-invalid'] || (countLimit !== undefined && length > countLimit),
             };
 
-            const control = isTextarea ? (
-                <textarea
-                    {...controlProps}
-                    rows={maxLines}
-                    placeholder={resolvePlaceholder(placeholder)}
-                    value={jsonValueText(value)}
-                    readOnly={isReadonly}
-                    maxLength={maxLength}
-                    onChange={(e) => field.setValue(e.target.value)}
-                />
-            ) : (
+            const textValue = jsonValueText(value);
+            const inputType = extensionAttrs.type || 'text';
+            const wrapLongReadonlyText = isReadonly && !isTextarea && inputType === 'text' && textValue.length > 20;
+
+            const textInputEl = (
                 <input
                     {...controlProps}
-                    type={extensionAttrs.type || 'text'}
-                    value={jsonValueText(value)}
+                    type={inputType}
+                    value={textValue}
+                    title={isReadonly && textValue ? textValue : undefined}
                     readOnly={isReadonly}
                     placeholder={resolvePlaceholder(placeholder)}
                     inputMode={(extensionAttrs.inputMode || inputMode) as React.HTMLAttributes<HTMLInputElement>['inputMode']}
@@ -268,6 +263,25 @@ export function renderControl(
                     onChange={(e) => field.setValue(e.target.value)}
                 />
             );
+
+            const control = isTextarea ? (
+                <textarea
+                    {...controlProps}
+                    rows={maxLines}
+                    placeholder={resolvePlaceholder(placeholder)}
+                    value={textValue}
+                    readOnly={isReadonly}
+                    maxLength={maxLength}
+                    onChange={(e) => field.setValue(e.target.value)}
+                />
+            ) : wrapLongReadonlyText ? (
+                <div className="formspec-readonly-text-wrap" data-readonly-wrapped="true" title={textValue}>
+                    {textInputEl}
+                    <div className="formspec-readonly-text-value" aria-hidden="true">
+                        {textValue}
+                    </div>
+                </div>
+            ) : textInputEl;
 
             const adorned = withAdornments(control, id, adornments);
             if (countLimit === undefined) return adorned;

@@ -377,3 +377,80 @@ it('decrements toCheck and flags findings as explained when current explanations
     expect(rows.find(r => r.code === 'STALE_CHECK')?.explained).toBeFalsy();
     expect(rows.find(r => r.code === 'UNANSWERED_ITEMS')?.explained).toBe(true);
 });
+
+it('tags blank required findings as untouchedRequired until surfaced and attributes multi-section errors without cross-section leakage', () => {
+    const multiSectionDef = {
+        $formspec: '1.0', url: 'https://example.org/multi-section-progress', version: '1.0.0', title: 'Multi Section',
+        items: [
+            { key: 'secOne', type: 'group', label: 'Section One', children: [
+                { key: 'a', type: 'field', dataType: 'string', label: 'Field A' },
+                { key: 'b', type: 'field', dataType: 'string', label: 'Field B' },
+            ] },
+            { key: 'secTwo', type: 'group', label: 'Section Two', children: [
+                { key: 'rows', type: 'group', label: 'Rows', repeatable: true, children: [
+                    { key: 'amount', type: 'field', dataType: 'money', label: 'Amount' },
+                ] },
+            ] },
+            { key: 'secThree', type: 'group', label: 'Section Three', children: [
+                { key: 'total', type: 'field', dataType: 'money', label: 'Total' },
+            ] },
+        ],
+    } as FormDefinition;
+
+    const plan = layout.resolvePageSequence(multiSectionDef);
+    const fields = [
+        { path: 'secOne.a', relevant: true, readonly: false, required: true, empty: true },
+        { path: 'secOne.b', relevant: true, readonly: false, required: true, empty: true },
+        { path: 'secTwo.rows[0].amount', relevant: true, readonly: false, required: false, empty: false },
+        { path: 'secThree.total', relevant: true, readonly: false, required: false, empty: false },
+    ];
+    const results: ValidationResult[] = [
+        result('secOne.a', 'error', 'REQUIRED', { constraintKind: 'required' }),
+        result('secOne.b', 'error', 'REQUIRED', { constraintKind: 'required' }),
+        result('secTwo.rows.amount', 'error', 'INVALID_ROW_TEMPLATE', { shapeId: 'row-check' }),
+        result('secTwo.rows[*]', 'error', 'ROW_GROUP_CHECK', { shapeId: 'row-group' }),
+        result('secThree.total', 'error', 'TOTAL_MISMATCH', { shapeId: 'total-check' }),
+    ];
+    const report = { $formspecValidationReport: '1.0' as const, timestamp: '2026-01-01T00:00:00Z', valid: false, results };
+
+    // Untouched: blank required errors stay deferred; secTwo & secThree keep accurate per-section counts.
+    const initial = layout.summarizeFormProgress(plan, { fields, report });
+    expect(initial.form).toMatchObject({ missing: 2, toFix: 3 });
+    expect(initial.sections.map(s => [s.id, s.counts.toFix])).toEqual([
+        ['secOne', 0],
+        ['secTwo', 2],
+        ['secThree', 1],
+    ]);
+    const initialRows = layout.readFormProgressFindingRows(initial, {
+        field: p => ({ label: p, controlId: null }),
+        message: r => r.message,
+        chrome: (_k, params) => `${params?.label}: ${params?.message}`,
+    });
+    expect(initialRows.filter(r => r.untouchedRequired).map(r => r.resultPath)).toEqual(['secOne.a', 'secOne.b']);
+    expect(initialRows.filter(r => !r.untouchedRequired)).toHaveLength(3);
+
+    // Touching one blank required field promotes only that path into toFix and its own section.
+    const oneTouched = layout.summarizeFormProgress(plan, { fields, report }, null, {
+        surfacedRequiredPaths: new Set(['secOne.a']),
+    });
+    expect(oneTouched.form).toMatchObject({ missing: 2, toFix: 4 });
+    expect(oneTouched.sections.map(s => [s.id, s.counts.toFix])).toEqual([
+        ['secOne', 1],
+        ['secTwo', 2],
+        ['secThree', 1],
+    ]);
+    expect(oneTouched.findings.find(f => f.result.path === 'secOne.a')?.untouchedRequired).toBeUndefined();
+    expect(oneTouched.findings.find(f => f.result.path === 'secOne.b')?.untouchedRequired).toBe(true);
+
+    // Submitting ('all') surfaces every blank required error in toFix and its owning section.
+    const submitted = layout.summarizeFormProgress(plan, { fields, report }, null, {
+        surfacedRequiredPaths: 'all',
+    });
+    expect(submitted.form).toMatchObject({ missing: 2, toFix: 5 });
+    expect(submitted.sections.map(s => [s.id, s.counts.toFix])).toEqual([
+        ['secOne', 2],
+        ['secTwo', 2],
+        ['secThree', 1],
+    ]);
+    expect(submitted.findings.some(f => f.untouchedRequired)).toBe(false);
+});

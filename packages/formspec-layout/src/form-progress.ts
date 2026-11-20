@@ -24,7 +24,20 @@ export interface ProgressFinding {
     formLevel: boolean;
     /** True when the respondent has recorded a current explanation or group acknowledgement for this warning. */
     explained?: boolean;
+    /** True when this finding represents a blank required field (`constraintKind === 'required'`). */
+    missingRequired?: boolean;
+    /** True when this blank required finding has not yet been touched/submitted and is deferred from `toFix`. */
+    untouchedRequired?: boolean;
     result: ValidationResult;
+}
+
+export interface SummarizeFormProgressOptions {
+    /**
+     * Paths whose blank-required errors have been surfaced (e.g. individually touched by the user,
+     * or `'all'` after submit/check). When omitted, blank-required errors stay in `counts.missing`
+     * and are tagged `untouchedRequired: true` instead of incrementing `toFix`.
+     */
+    surfacedRequiredPaths?: ReadonlySet<string> | 'all';
 }
 
 export interface ExplanationStateLike {
@@ -51,7 +64,12 @@ function addPlacements(owners: Ownership, paths: readonly string[], section: num
 }
 
 function owner(owners: Ownership, path: string): number | undefined {
-    return owners.get(placementKey(path))?.find(({ placement }) => placementCovers(placement, path))?.section;
+    const entries = owners.get(placementKey(path));
+    if (!entries) return undefined;
+    const exact = entries.find(({ placement }) => placementCovers(placement, path));
+    if (exact !== undefined) return exact.section;
+    if (path === placementKey(path) && entries.length === 1) return entries[0].section;
+    return undefined;
 }
 
 function freshCounts(reportAvailable: boolean): ProgressCounts {
@@ -67,7 +85,7 @@ function groupOwner(owners: Ownership, path: string): number | undefined {
     while (candidate) {
         const direct = owner(owners, candidate);
         if (direct !== undefined) return direct;
-        const parent = candidate.replace(/(?:\[\d+\]|\.?[^.[\]]+)$/, '');
+        const parent = candidate.replace(/(?:\[(?:\d+|\*)\]|\.?[^.[\]]+)$/, '');
         if (parent === candidate) return undefined;
         candidate = parent;
     }
@@ -135,6 +153,7 @@ export function summarizeFormProgress(
     sectionPlan: readonly PageSequenceEntry[],
     state: EvaluatedFormState,
     explanationState?: ExplanationStateLike | null,
+    options?: SummarizeFormProgressOptions,
 ): FormProgressSummary {
     const fieldOwners: Ownership = new Map();
     const groupOwners: Ownership = new Map();
@@ -146,6 +165,7 @@ export function summarizeFormProgress(
         return { id, counts: freshCounts(hasReport), filled: false };
     });
 
+    const surfacedRequired = options?.surfacedRequiredPaths;
     const explained = explainedWarningSets(explanationState);
     const relevant = new Map(state.fields.filter(field => field.relevant).map(field => [field.path, field]));
     const errorPaths = new Set<string>();
@@ -155,7 +175,7 @@ export function summarizeFormProgress(
         const { path, severity } = result;
         if (severity === 'error') errorPaths.add(path);
         const field = relevant.get(path);
-        const fieldSection = field ? owner(fieldOwners, path) : undefined;
+        const fieldSection = owner(fieldOwners, path);
         const section = fieldSection ?? groupOwner(groupOwners, path);
         const identity = validationResultIdentity(result);
         if (seen.has(identity)) continue;
@@ -164,16 +184,24 @@ export function summarizeFormProgress(
             (result.shapeId && explained.instances.has(JSON.stringify([result.shapeId, result.path])))
             || (result.code && explained.groups.has(result.code)),
         );
+        const isMissingRequired = severity === 'error'
+            && result.constraintKind === 'required'
+            && Boolean(field?.required && field.empty);
+        const isUntouchedRequired = isMissingRequired && !(
+            surfacedRequired === 'all' || surfacedRequired?.has(path)
+        );
         findings.push({
             identity,
             sectionId: section === undefined ? undefined : sections[section].id,
             formLevel: section === undefined,
             ...(isExplained ? { explained: true } : {}),
+            ...(isMissingRequired ? { missingRequired: true } : {}),
+            ...(isUntouchedRequired ? { untouchedRequired: true } : {}),
             result,
         });
         if (severity !== 'error' && severity !== 'warning') continue;
         if (isExplained) continue;
-        if (severity === 'error' && result.constraintKind === 'required' && field?.required && field.empty) continue;
+        if (isUntouchedRequired) continue;
         const counter = severity === 'error' ? 'toFix' : 'toCheck';
         form[counter] = (form[counter] ?? 0) + 1;
         if (section !== undefined) {
@@ -209,6 +237,8 @@ export interface ProgressFindingRow extends ValidationSummaryRow {
     sectionId?: string;
     code?: string;
     explained?: boolean;
+    missingRequired?: boolean;
+    untouchedRequired?: boolean;
     /** The concrete report path, including for findings without a rendered owner. */
     resultPath: string;
 }
@@ -227,12 +257,14 @@ export function readFormProgressFindingRows(
         },
     );
     return rows.map(row => {
-        const { sectionId, explained, result } = byIdentity.get(row.identity)!;
+        const { sectionId, explained, missingRequired, untouchedRequired, result } = byIdentity.get(row.identity)!;
         return {
             ...row,
             sectionId,
             code: result.code,
             ...(explained ? { explained: true } : {}),
+            ...(missingRequired ? { missingRequired: true } : {}),
+            ...(untouchedRequired ? { untouchedRequired: true } : {}),
             resultPath: result.path,
         };
     });

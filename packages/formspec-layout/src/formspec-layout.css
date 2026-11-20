@@ -76,6 +76,11 @@
 }
 
 /* Auto-grid structural flow: 1 column on narrow containers, responsive multi-column on wide containers. */
+.formspec-auto-grid > .formspec-field,
+.formspec-auto-grid > .formspec-fieldset {
+  order: 0;
+}
+
 .formspec-auto-grid > :is(
   .formspec-group-title,
   .formspec-repeat-instance-header,
@@ -91,11 +96,19 @@
   .formspec-repeat,
   .formspec-fieldset,
   .formspec-warning-explanation,
+  .formspec-warning-explanations,
   .formspec-validation-summary,
   .formspec-action-bar,
   .formspec-action-control
 ) {
   grid-column: 1 / -1;
+}
+
+/* Keep scalar columns aligned side-by-side on row 1 when any column emits an inline warning region. */
+.formspec-auto-grid > .formspec-warning-explanation,
+.formspec-auto-grid > .formspec-warning-explanations {
+  grid-column: 1 / -1;
+  order: 10;
 }
 
 /* Medium container (e.g. 900x800 IDE pane): 2-column Form + Findings, compact collapsible sections bar above. */
@@ -199,5 +212,22 @@
   .formspec-container:not(:has(.formspec-workspace)) .formspec-auto-grid[data-auto-grid="6"] {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media print {
+  .formspec-workspace,
+  .formspec-workspace[data-single-section="true"] {
+    display: block;
+    grid-template-columns: 1fr;
+  }
+
+  .formspec-workspace__navigation,
+  .formspec-workspace__inline-search,
+  .formspec-workspace__mobile-findings-bar,
+  .formspec-workspace__previous-next,
+  .formspec-action-bar,
+  .formspec-action-control {
+    display: none !important;
   }
 }
