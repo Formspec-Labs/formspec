@@ -1,5 +1,23 @@
 # @formspec-org/adapters
 
+## 2.0.0
+
+### Patch Changes
+
+- e4cac2a: <!-- tier: integration -->
+
+  The USWDS Modal hands a `trigger: "auto"` dialog to the webcomponent's `ModalLayoutBehavior.bindAutoOpen`, so it opens only while its `when` holds and its page is shown, and no longer blocks the rest of the form from a hidden wizard page. Its `when` now also resolves against the Modal's own scope (`whenPrefix`), as the default adapter's does.
+
+- Updated dependencies [bc35e3d]
+- Updated dependencies [e4cac2a]
+- Updated dependencies [7a3307c]
+- Updated dependencies [b494889]
+- Updated dependencies [ff8ca95]
+- Updated dependencies [0974c9f]
+- Updated dependencies [dafa76f]
+- Updated dependencies [ceb352e]
+  - @formspec-org/webcomponent@3.0.0
+
 ## 1.0.0
 
 ### Minor Changes
