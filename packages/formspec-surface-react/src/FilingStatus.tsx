@@ -1,7 +1,7 @@
 /** @filedesc Presents an authored filing task list from a batch of draft observations. */
 import { Fragment, useEffect, useId, useMemo, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import {
-  type FilingDraftQuery, type FilingProgressCounts, type FilingStatusObservation, type FilingStatusReader,
+  type CurrentDraftProgress, type FilingDraftQuery, type FilingProgressCounts, type FilingStatusObservation, type FilingStatusReader,
   type FilingStatusPlan, type HeadingLevel, type SlotPlan, type SurfaceStringKey, type SurfaceStrings,
 } from '@formspec-org/surface';
 import { currentEffectDataSourcePorts, type EffectDataSourcePorts } from './data-source-effect.js';
@@ -102,7 +102,7 @@ export function useFilingDraftObservations(
     return [...unique.values()];
   }, [trackers, rosters, expanded]);
 
-  const request = useMemo(() => ({ queries, readSummaries, previewScope }),
+  const request = useMemo(() => ({ queries, readSummaries, previewScope, generation }),
     [queries, readSummaries, previewScope, revision, generation, draftRevision]);
   const [completed, setCompleted] = useState<{
     request: typeof request;
@@ -126,8 +126,21 @@ export function useFilingDraftObservations(
 
   const observe: DraftReads = (query) => {
     if (!readSummaries) return unavailable;
-    if (completed?.request !== request) return { ...unavailable, draft: { status: 'loading' } };
-    const observation = completed.observations.get(query.key) ?? unavailable;
+    let observation: FilingStatusObservation | undefined;
+    if (completed?.request === request) {
+      observation = completed.observations.get(query.key) ?? unavailable;
+    } else if (
+      completed !== undefined
+      && completed.request.readSummaries === readSummaries
+      && completed.request.previewScope === previewScope
+      && completed.request.generation === generation
+      && completed.observations.has(query.key)
+    ) {
+      observation = completed.observations.get(query.key);
+    } else {
+      return { ...unavailable, draft: { status: 'loading' } };
+    }
+    if (!observation) return unavailable;
     if (query.subjectMatch !== undefined && 'subjectMatch' in observation && observation.subjectMatch === 'matched'
         && ((observation.draft as { status: string }).status === 'denied' || (observation.filing as { status: string }).status === 'denied')) {
       return { draft: { status: 'denied' }, filing: { status: 'unavailable' } };
@@ -201,6 +214,18 @@ function sectionFinding(counts: FilingProgressCounts | undefined) {
   return undefined;
 }
 
+function observationProgress(observation: Observation): CurrentDraftProgress | undefined {
+  if (observation.draft.status === 'current') return observation.draft;
+  if (
+    observation.draft.status === 'absent'
+    && 'receiptRef' in observation.filing
+    && (observation.filing.status === 'returned' || observation.filing.status === 'reopened')
+  ) {
+    return observation.filing.progress;
+  }
+  return undefined;
+}
+
 function FilingRow({ row, observation, largest, context, text }: {
   row: Row;
   observation: Observation;
@@ -211,6 +236,7 @@ function FilingRow({ row, observation, largest, context, text }: {
   const statusId = useId();
   const { draft, filing } = observation;
   const receipt = 'receiptRef' in filing ? filing : undefined;
+  const activeProgress = observationProgress(observation);
   const label = row.route ? presentedRouteLabel(row.route, context?.resolveRouteTitle)
     : row.status === 'disabled' && row.routeRef;
   const status = row.status === 'disabled' ? text(refusalLabel[row.reason])
@@ -226,8 +252,8 @@ function FilingRow({ row, observation, largest, context, text }: {
       : undefined;
   const sections = row.status === 'ready' ? row.sections.map(section => {
     const counts = draft.status === 'absent' && filing.status === 'none' ? { filled: 0, total: section.weight, toFix: 0, toCheck: 0 }
-      : draft.status === 'current' && Object.hasOwn(draft.sections, section.id)
-        ? draft.sections[section.id] : undefined;
+      : activeProgress && Object.hasOwn(activeProgress.sections, section.id)
+        ? activeProgress.sections[section.id] : undefined;
     const countLabels = counts
       ? [filingFillCount(counts, text), ...filingFindings(counts, text).map(finding => finding.label)]
       : completedReceipt
@@ -306,9 +332,9 @@ function FilingRow({ row, observation, largest, context, text }: {
         {receipt.review === 'unavailable' && <div className="fs-surface-filing__meta">{text('filingReviewUnavailable')}</div>}
         {receipt.comments.map((comment, index) => <p key={index} className="fs-surface-filing__comment">{comment}</p>)}
       </>}
-      {draft.status === 'current' && <div className="fs-surface-filing__counts">
-        <span>{filingFillCount(draft.form, text)}</span>
-        {filingFindings(draft.form, text).map(({ kind, label }) => (
+      {activeProgress && <div className="fs-surface-filing__counts">
+        <span>{filingFillCount(activeProgress.form, text)}</span>
+        {filingFindings(activeProgress.form, text).map(({ kind, label }) => (
           <span key={kind ?? 'unavailable'} className={kind && `fs-surface-filing__${kind}`}>{label}</span>
         ))}
         {sections.some(section => section.counts === undefined) && <span>{text('filingSectionCountsUnavailable')}</span>}
@@ -513,9 +539,11 @@ export function FilingStatus({ plan: originalPlan, context, level, text }: {
   }));
   const totalUnits = unitEntries.size;
   for (const entries of unitEntries.values()) {
-    const currentComplete = entries.find(({ observation: { draft } }) =>
-      draft.status === 'current' && draft.form.toFix !== null && draft.form.toCheck !== null);
-    const currentAny = currentComplete ?? entries.find(({ observation: { draft } }) => draft.status === 'current');
+    const currentComplete = entries.find(({ observation }) => {
+      const progress = observationProgress(observation);
+      return progress !== undefined && progress.form.toFix !== null && progress.form.toCheck !== null;
+    });
+    const currentAny = currentComplete ?? entries.find(({ observation }) => observationProgress(observation) !== undefined);
     const absentEntries = entries.filter(({ observation: { draft, filing } }) =>
       draft.status === 'absent' && filing.status === 'none');
     const absentTotal = absentEntries.length > 0
@@ -523,8 +551,9 @@ export function FilingStatus({ plan: originalPlan, context, level, text }: {
         ? new Set(absentEntries.flatMap(({ row }) => row.fieldTemplates)).size
         : Math.max(...absentEntries.map(({ row }) => row.weight))
       : undefined;
-    const counts = currentAny && currentAny.observation.draft.status === 'current'
-      ? currentAny.observation.draft.form
+    const activeUnitProgress = currentAny ? observationProgress(currentAny.observation) : undefined;
+    const counts = activeUnitProgress
+      ? activeUnitProgress.form
       : absentTotal !== undefined
         ? { filled: 0, total: absentTotal, toFix: 0, toCheck: 0 }
         : undefined;
@@ -577,6 +606,18 @@ export function FilingStatus({ plan: originalPlan, context, level, text }: {
       {partial && <p>{text('filingSomeProgressUnavailable')}</p>}
       {known > 0 && (totals.toFix === null || totals.toCheck === null) && <p>{text('filingChecksUnavailable')}</p>}
     </div>}
+    {largest > 0 && <div className="fs-surface-filing__key">
+      <ul className="fs-surface-filing__legend" role="list">
+        {legend.map(item => <li key={item.key}>
+          <span className="fs-surface-filing__swatch" aria-hidden="true">
+            {'filled' in item && <span className="fs-surface-filing__fill" />}
+            {'finding' in item && <span className="fs-surface-filing__mark" data-finding={item.finding} />}
+          </span>
+          {text(item.key)}
+        </li>)}
+      </ul>
+      <p>{text('filingLegendCaption')}</p>
+    </div>}
     {[...authoredGroups].map(([id, { entries, waiting }]) => {
       const first = entries[0]!;
       return <div key={id} className="fs-surface-filing__group" {...needTraceAttributes(first.needAnchors)}>
@@ -598,17 +639,5 @@ export function FilingStatus({ plan: originalPlan, context, level, text }: {
         </Fragment>)}
       </div>;
     })}
-    {largest > 0 && <div className="fs-surface-filing__key">
-      <ul className="fs-surface-filing__legend" role="list">
-        {legend.map(item => <li key={item.key}>
-          <span className="fs-surface-filing__swatch" aria-hidden="true">
-            {'filled' in item && <span className="fs-surface-filing__fill" />}
-            {'finding' in item && <span className="fs-surface-filing__mark" data-finding={item.finding} />}
-          </span>
-          {text(item.key)}
-        </li>)}
-      </ul>
-      <p>{text('filingLegendCaption')}</p>
-    </div>}
   </div>;
 }

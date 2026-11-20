@@ -372,6 +372,7 @@ export interface SurfaceSlotProps {
   onSlotVisibilityChange?:
     | ((slotKey: string, nextRefs: ReadonlySet<string> | undefined, baselineKey: string) => void)
     | undefined;
+  overviewDestination?: string | undefined;
   reviewDestination?: string | undefined;
   onSlotDraftAvailabilityChange?:
     | ((slotId: string, status: 'loading' | 'ready' | 'filed' | 'blocked' | undefined) => void)
@@ -560,6 +561,7 @@ export function SurfaceSlot({
   embedSlotPrefix,
   onSlotFormEngineChange,
   onSlotVisibilityChange,
+  overviewDestination,
   reviewDestination,
   onSlotDraftAvailabilityChange,
   renderDefinitionForm,
@@ -666,8 +668,11 @@ export function SurfaceSlot({
           draftSession: formSession.drafts,
           draftStrings: strings,
           reportSave: formSession.reportSave,
-          overviewDestination: formSession.entryPath,
+          overviewDestination: overviewDestination ?? formSession.entryPath,
           navigate: formSession.navigate ?? filingStatus?.navigate,
+        }),
+        ...(!formSession && overviewDestination !== undefined && {
+          overviewDestination,
         }),
         ...(filingStatus?.formatHref && { formatHref: filingStatus.formatHref }),
         ...(reviewDestination && { reviewDestination }),
@@ -882,6 +887,7 @@ export function SurfaceSlot({
               embedSlotPrefix={embedSlotPrefix ? `${embedSlotPrefix}/${plan.slotId}` : plan.slotId}
               onSlotFormEngineChange={onSlotFormEngineChange}
               onSlotVisibilityChange={onSlotVisibilityChange}
+              overviewDestination={overviewDestination}
               renderDefinitionForm={renderDefinitionForm}
               resolveSemanticControlScope={resolveSemanticControlScope}
               semanticOutputScope={semanticOutputScope}

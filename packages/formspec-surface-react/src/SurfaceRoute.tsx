@@ -86,6 +86,7 @@ export interface SurfaceRouteViewProps {
   filingStatus?: FilingStatusOptions | undefined;
   bandPreferenceScope?: string | undefined;
   formSession?: SurfaceFormSession | undefined;
+  overviewDestination?: string | undefined;
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
   screenerCompletion?: SurfaceScreenerCompletionPolicy | undefined;
@@ -188,6 +189,7 @@ export function SurfaceRouteView({
   localeDocuments,
   activeLocale,
   formSession,
+  overviewDestination,
 }: SurfaceRouteViewProps) {
   const container = useRef<HTMLElement>(null);
   const { handle, grant, params } = plan;
@@ -418,6 +420,7 @@ export function SurfaceRouteView({
             onRuntimeDiagnosticsChange={onRuntimeDiagnosticsChange}
             onSlotFormEngineChange={onSlotFormEngineChange}
             onSlotVisibilityChange={onSlotVisibilityChange}
+            overviewDestination={overviewDestination}
             reviewDestination={reviewDestination}
             onSlotDraftAvailabilityChange={handleSlotDraftAvailabilityChange}
             renderDefinitionForm={renderDefinitionForm}

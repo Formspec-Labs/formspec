@@ -772,3 +772,135 @@ it('exposes returned status badge and reviewer comment callout hooks', async () 
   const receipt = row?.querySelector('.fs-surface-filing__meta[data-receipt-ref]');
   expect(receipt?.textContent).toContain('urn:response:returned-1');
 });
+
+it('renders filled strips, finding marks, counts, and KPI totals for returned and reopened filings without an editable draft', async () => {
+  const hash = ('sha256:' + 'd'.repeat(64)) as `sha256:${string}`;
+  const dom = mount(async ([first, second, third]) => new Map<string, FilingStatusObservation>([
+    [first!.key, {
+      draft: { status: 'absent' },
+      filing: {
+        status: 'returned',
+        receiptRef: 'urn:response:returned-no-draft',
+        responseHash: hash,
+        review: 'available',
+        comments: ['Verify section totals.'],
+        progress: {
+          status: 'current',
+          form: { total: 4, filled: 2, toFix: 1, toCheck: 2, ready: false },
+          sections: { details: { total: 4, filled: 2, toFix: 1, toCheck: 2 } },
+        },
+      },
+    }],
+    [second!.key, {
+      draft: { status: 'absent' },
+      filing: {
+        status: 'reopened',
+        receiptRef: 'urn:response:reopened-no-draft',
+        responseHash: hash,
+        review: 'available',
+        comments: [],
+        progress: {
+          status: 'current',
+          form: { total: 4, filled: 3, toFix: 0, toCheck: 1, ready: false },
+          sections: { details: { total: 4, filled: 3, toFix: 0, toCheck: 1 } },
+        },
+      },
+    }],
+    [third!.key, { draft: { status: 'absent' }, filing: { status: 'none' } }],
+  ]));
+  await act(async () => {});
+
+  const rows = dom.querySelectorAll('.fs-surface-filing__row');
+  const returnedRow = rows[0]!;
+  expect(returnedRow.getAttribute('data-filing-status')).toBe('returned');
+  expect(returnedRow.querySelector<HTMLElement>('.fs-surface-filing__fill')?.style.inlineSize).toBe('50%');
+  expect(returnedRow.querySelector('.fs-surface-filing__mark[data-finding="fix"]')).not.toBeNull();
+  expect(returnedRow.querySelector('.fs-surface-filing__counts')?.textContent).toContain('2 of 4 answered');
+  expect(returnedRow.querySelector('.fs-surface-filing__counts')?.textContent).toContain('1 to fix');
+  expect(returnedRow.querySelector('.fs-surface-filing__counts')?.textContent).toContain('2 to check');
+
+  const reopenedRow = rows[1]!;
+  expect(reopenedRow.getAttribute('data-filing-status')).toBe('reopened');
+  expect(reopenedRow.querySelector<HTMLElement>('.fs-surface-filing__fill')?.style.inlineSize).toBe('75%');
+  expect(reopenedRow.querySelector('.fs-surface-filing__mark[data-finding="check"]')).not.toBeNull();
+  expect(reopenedRow.querySelector('.fs-surface-filing__counts')?.textContent).toContain('3 of 4 answered');
+
+  // Top summary KPI band rolls up returned + reopened progress without counting them as Filed.
+  const totals = dom.querySelector('.fs-surface-filing__totals dl')!;
+  expect([...totals.querySelectorAll('dt, dd')].map(node => node.textContent)).toEqual([
+    'Answered', '5 of 9', 'To fix', '1', 'To check', '3',
+  ]);
+  expect(dom.querySelector('.fs-surface-filing__totals dd[data-filing-completed]')).toBeNull();
+});
+
+it('places the compact strip legend right beneath the top summary band and above the first filing group', async () => {
+  const dom = mount(async ([first, second, third]) => draftResults([
+    [first!.key, { status: 'current', form: { ...counts, ready: false }, sections: { details: counts } }],
+    [second!.key, { status: 'absent' }],
+    [third!.key, { status: 'absent' }],
+  ]));
+  await act(async () => {});
+
+  const totals = dom.querySelector('.fs-surface-filing__totals')!;
+  const key = dom.querySelector('.fs-surface-filing__key')!;
+  const firstGroup = dom.querySelector('.fs-surface-filing__group')!;
+  expect(totals).not.toBeNull();
+  expect(key).not.toBeNull();
+  expect(firstGroup).not.toBeNull();
+  expect(totals.compareDocumentPosition(key) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(key.compareDocumentPosition(firstGroup) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+it('retains previous observations across same-session revision refreshes without flashing Loading progress', async () => {
+  let resolveSecond!: (value: ReadonlyMap<string, FilingStatusObservation>) => void;
+  const secondPromise = new Promise<ReadonlyMap<string, FilingStatusObservation>>(resolve => {
+    resolveSecond = resolve;
+  });
+  let call = 0;
+  let lastQueries: Parameters<FilingStatusReader>[0] = [];
+  const reader: FilingStatusReader = vi.fn(async (queries) => {
+    call += 1;
+    lastQueries = queries;
+    if (call === 1) {
+      return draftResults([
+        [queries[0]!.key, { status: 'current', form: { total: 4, filled: 1, toFix: 0, toCheck: 0, ready: false }, sections: { details: { total: 4, filled: 1, toFix: 0, toCheck: 0 } } }],
+        [queries[1]!.key, { status: 'absent' }],
+        [queries[2]!.key, { status: 'absent' }],
+      ]);
+    }
+    return secondPromise;
+  });
+
+  const bundle = filingBundle();
+  const { createRoot } = await import('react-dom/client');
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      root.render(<SurfaceApp bundle={bundle} location="/" onNavigate={() => {}} readSummaries={reader} filingDraftRevision={1} />);
+    });
+    expect(container.textContent).toContain('1 of 4 answered');
+    expect(container.textContent).not.toContain('Loading progress');
+
+    await act(async () => {
+      root.render(<SurfaceApp bundle={bundle} location="/" onNavigate={() => {}} readSummaries={reader} filingDraftRevision={2} />);
+    });
+    // While the second batch is in-flight for the same session/reader, prior observations remain visible without flashing Loading progress.
+    expect(reader).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain('1 of 4 answered');
+    expect(container.textContent).not.toContain('Loading progress');
+
+    await act(async () => {
+      resolveSecond(draftResults([
+        [lastQueries[0]!.key, { status: 'current', form: { total: 4, filled: 3, toFix: 0, toCheck: 0, ready: false }, sections: { details: { total: 4, filled: 3, toFix: 0, toCheck: 0 } } }],
+        [lastQueries[1]!.key, { status: 'absent' }],
+        [lastQueries[2]!.key, { status: 'absent' }],
+      ]));
+    });
+    expect(container.textContent).toContain('3 of 4 answered');
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+  }
+});

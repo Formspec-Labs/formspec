@@ -142,11 +142,17 @@ export async function createSurfacePreviewEdition(input: {
     sectionPlans: bundleSectionPlans(bundle, resolveDefinitionComponent),
   });
   // Seeding failures reject edition creation when the active profile declares drafts;
-  // profiles without draft fixtures still finish legacy summary upgrades when storage is usable,
-  // and open with draft storage unavailable when browser storage refuses open.
+  // profiles without draft fixtures still finish returned-filing progress precomputation
+  // and legacy summary upgrades when storage is usable, and open with draft storage
+  // unavailable when browser storage refuses open.
+  const hasReturnedFilings = Boolean(
+    fixtures.decisions?.some(
+      entry => entry.decision.status === 'decided' && (entry.decision.review === 'returned' || entry.decision.review === 'reopened'),
+    ),
+  );
   if (fixtures.drafts?.length) {
     await store.ready();
-  } else if (typeof indexedDB !== 'undefined') {
+  } else if (hasReturnedFilings || typeof indexedDB !== 'undefined') {
     await store.ready().catch(() => undefined);
   }
   const filingActions = new Set(bundle.responseActions.flatMap(document =>

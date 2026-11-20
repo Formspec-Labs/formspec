@@ -1563,4 +1563,194 @@ describe('Filing map KPIs, completed strips, shell accessibility, and responsive
     await act(async () => { setGen('gen-2'); });
     expect(container.querySelector('.fs-surface-save-notice')?.textContent).toBe('');
   });
+
+  it('resolves Return to overview to the nearest parent overview hub by path affinity with active route params', async () => {
+    const unitSpendingDef: FormDefinition = {
+      $formspec: '1.0',
+      url: 'https://example.test/unit-spending',
+      version: '1.0.0',
+      title: 'Unit Spending',
+      subject: {
+        type: 'urn:test:unit-spending',
+        keys: { year: { dataType: 'integer' }, unit: { dataType: 'string' } },
+      },
+      items: [{ key: 'total', type: 'field', dataType: 'integer', label: 'Total spent' }],
+      binds: [{ path: 'total', required: 'true' }],
+    };
+    const unitActions: ResponseActionsDocument = {
+      $formspecResponseActions: '1.0',
+      version: '1.0.0',
+      scope: 'response',
+      targetDefinition: { url: unitSpendingDef.url },
+      actions: [
+        { id: 'autosave', intent: 'autosave', label: { literal: 'Autosave' }, effects: [{ type: 'hostEvent', eventName: 'saved' }] },
+        {
+          id: 'submit-unit',
+          intent: 'submit',
+          label: { literal: 'Submit spending' },
+          validation: { profile: 'on-submit', blocking: 'block-on-error', persistence: 'complete-response' },
+          effects: [{ type: 'hostEvent', eventName: 'submitted' }],
+        },
+      ],
+    };
+    const nestedBundle = dereferenceBundleExport({
+      manifest: {
+        $formspecBundle: '2.4',
+        id: 'https://example.test/nested-hub-app',
+        entrySurface: SURFACE_URL,
+        definitions: [{ url: unitSpendingDef.url }],
+        surfaces: [{ url: SURFACE_URL }],
+        responseActionDocuments: [{ url: 'https://example.test/unit-actions' }],
+      },
+      documents: {
+        [unitSpendingDef.url]: unitSpendingDef,
+        'https://example.test/unit-actions': unitActions,
+        [SURFACE_URL]: {
+          $formspecSurface: '0.4',
+          id: 'nested',
+          entry: 'year-overview',
+          routes: [
+            {
+              id: 'year-overview',
+              path: '/years/{year}',
+              title: 'Year overview',
+              params: [{ name: 'year', type: 'string' }],
+              navigation: { visible: true, label: 'Year overview' },
+              slots: [{
+                id: 'year-tracker',
+                slotType: 'filing-status',
+                binding: {
+                  groups: [{
+                    id: 'all',
+                    label: 'Annual filings',
+                    forms: [{ routeRef: 'unit-spending', slotRef: 'form', params: { year: { routeParam: 'year' }, unit: { value: 'UNIT-A' } } }],
+                  }],
+                },
+              }],
+            },
+            {
+              id: 'unit-overview',
+              path: '/years/{year}/units/{unit}',
+              title: 'Unit overview',
+              params: [{ name: 'year', type: 'string' }, { name: 'unit', type: 'string' }],
+              navigation: { visible: true, label: 'Unit overview' },
+              slots: [{
+                id: 'unit-tracker',
+                slotType: 'filing-status',
+                binding: {
+                  groups: [{
+                    id: 'unit-group',
+                    label: 'Unit reports',
+                    forms: [{ routeRef: 'unit-spending', slotRef: 'form', params: { year: { routeParam: 'year' }, unit: { routeParam: 'unit' } } }],
+                  }],
+                },
+              }],
+            },
+            {
+              id: 'unit-spending',
+              path: '/years/{year}/units/{unit}/spending',
+              title: 'Unit Spending',
+              params: [{ name: 'year', type: 'string' }, { name: 'unit', type: 'string' }],
+              navigation: { visible: true, label: 'Unit Spending' },
+              slots: [{
+                id: 'form',
+                slotType: 'definition-form',
+                binding: { definitionRef: unitSpendingDef.url, subjectKeys: { year: 'year', unit: 'unit' } },
+              }],
+            },
+          ],
+        },
+      },
+    });
+
+    const store = createMemoryFilingStore({
+      scope: 'nested-scope',
+      definitions: new Map([[unitSpendingDef.url, unitSpendingDef]]),
+    });
+    navigateBrowser('/years/2025/units/UNIT-B/spending');
+    const container = render(
+      <BrowserSurfaceApp
+        bundle={nestedBundle}
+        adapters={{
+          routeParams: { year: '2025', unit: 'UNIT-A' },
+          draftStorage: { scope: 'nested-scope', port: store.drafts },
+          responses: store.responses,
+          definitionActionInvoker: previewFilingInvoker(store.submit),
+        }}
+      />,
+    );
+
+    await vi.waitFor(() => expect(container.querySelector('[data-name="total"] input')).not.toBeNull());
+    const input = container.querySelector<HTMLInputElement>('[data-name="total"] input')!;
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '420');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const submitBtn = [...container.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Submit spending')!;
+    await act(async () => { submitBtn.click(); });
+
+    await vi.waitFor(() => expect(container.querySelector('.fs-surface-action-banner--submitted')).not.toBeNull());
+    const returnLink = [...container.querySelectorAll<HTMLAnchorElement>('.fs-surface-action-banner--submitted a')]
+      .find((a) => a.textContent?.trim() === 'Return to overview')!;
+    expect(returnLink).not.toBeUndefined();
+    expect(returnLink.getAttribute('href')).toBe('/years/2025/units/UNIT-B');
+
+    act(() => returnLink.click());
+    await vi.waitFor(() => expect(container.querySelector('article')?.dataset.route).toBe('unit-overview'));
+    expect(window.location.pathname).toBe('/years/2025/units/UNIT-B');
+  });
+
+  it('measures sticky header bottom for --formspec-sticky-offset and maintains mobile nav nowrap + print styles in CSS', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/formspec-surface.css'), 'utf8');
+    expect(css).toMatch(/\.fs-surface-nav__toggle-main\s*\{[^}]*flex-shrink:\s*0;[^}]*white-space:\s*nowrap;/s);
+    expect(css).toMatch(/\.fs-surface-nav__toggle-current\s*\{[^}]*min-width:\s*0;/s);
+    expect(css).toMatch(/@media\s+print\s*\{[\s\S]*\.fs-surface-header[\s\S]*\.fs-surface-nav[\s\S]*\.fs-response-review-controls[\s\S]*display:\s*none\s*!important;/);
+
+    const simpleBundle = dereferenceBundleExport({
+      manifest: {
+        $formspecBundle: '2.4',
+        id: 'https://example.test/sticky-app',
+        title: 'Sticky App',
+        entrySurface: SURFACE_URL,
+        surfaces: [{ url: SURFACE_URL }],
+      },
+      documents: {
+        [SURFACE_URL]: {
+          $formspecSurface: '0.4',
+          id: 'sticky',
+          entry: 'home',
+          routes: [{ id: 'home', path: '/', title: 'Home', slots: [] }],
+        },
+      },
+    });
+    const originalGetComputedStyle = window.getComputedStyle.bind(window);
+    const computedSpy = vi.spyOn(window, 'getComputedStyle').mockImplementation((el, pseudo) => {
+      const style = originalGetComputedStyle(el, pseudo);
+      if (el instanceof HTMLElement && el.classList.contains('fs-surface-header')) {
+        return new Proxy(style, {
+          get(target, prop) {
+            if (prop === 'position') return 'sticky';
+            const value = Reflect.get(target, prop);
+            return typeof value === 'function' ? value.bind(target) : value;
+          },
+        });
+      }
+      return style;
+    });
+    const rectSpy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains('fs-surface-header')) {
+        return { top: 48, bottom: 104, height: 56, left: 0, right: 1200, width: 1200, x: 0, y: 48, toJSON: () => ({}) } as DOMRect;
+      }
+      return { top: 0, bottom: 0, height: 0, left: 0, right: 0, width: 0, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    });
+    try {
+      const container = render(<SurfaceApp bundle={simpleBundle} location="/" onNavigate={() => {}} />);
+      const rootEl = container.querySelector<HTMLElement>('.fs-surface-app')!;
+      expect(rootEl.style.getPropertyValue('--fs-surface-header-height')).toBe('104px');
+      expect(rootEl.style.getPropertyValue('--formspec-sticky-offset')).toBe('120px');
+    } finally {
+      computedSpy.mockRestore();
+      rectSpy.mockRestore();
+    }
+  });
 });
