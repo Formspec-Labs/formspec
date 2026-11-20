@@ -3,6 +3,7 @@ import React, { act } from 'react';
 import fs from 'node:fs';
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { createFormEngine, initFormspecEngine } from '@formspec-org/engine';
 import type { FormDefinition } from '@formspec-org/types';
 import { FormspecForm, type WalkBridgeElement } from '../src/renderer';
@@ -954,6 +955,72 @@ describe('Findings badge reconciliation, required disclosure, contextual labels,
         expect(directInput.value).toBe('1,520,000.25');
         // Calculated readonly total recomputes and stays comma-formatted!
         expect(totalInput.value).toBe('1,620,000.75');
+    });
+
+    it('preserves decimal points and intermediate zeros during per-keystroke typing in both currency-prefixed NumberInput and MoneyInput', async () => {
+        const user = userEvent.setup();
+        const def: FormDefinition = {
+            $formspec: '1.0',
+            url: 'urn:test:currency-keystroke-typing',
+            version: '1.0.0',
+            title: 'Keystroke Entry',
+            items: [
+                { key: 'decimalAmount', type: 'field', dataType: 'decimal', label: 'Decimal Amount', prefix: '$' } as any,
+                { key: 'moneyAmount', type: 'field', dataType: 'money', label: 'Money Amount' },
+                { key: 'trailingZeroCase', type: 'field', dataType: 'decimal', label: 'Exact Cents', prefix: '$' } as any,
+            ],
+        };
+
+        const engine = createFormEngine(def);
+        const host = actRender(<FormspecForm engine={engine} />);
+        const decInput = host.querySelector<HTMLInputElement>('[data-name="decimalAmount"] input')!;
+        const moneyInput = host.querySelector<HTMLInputElement>('[data-name="moneyAmount"] input.formspec-money-amount')!;
+        const centsInput = host.querySelector<HTMLInputElement>('[data-name="trailingZeroCase"] input')!;
+
+        // 1. Type "1234.56" key by key into `$`-prefixed decimal NumberInput.
+        await act(async () => {
+            await user.type(decInput, '1234.56');
+        });
+        expect(decInput.value).toBe('1234.56');
+        expect(String(engine.getResponse().data.decimalAmount)).toBe('1234.56');
+        await act(async () => {
+            await user.tab();
+        });
+        expect(decInput.value).toBe('1,234.56');
+
+        // 2. Clear and type "140000.75" key by key into `$`-prefixed decimal NumberInput.
+        await act(async () => {
+            await user.clear(decInput);
+            await user.type(decInput, '140000.75');
+        });
+        expect(decInput.value).toBe('140000.75');
+        expect(String(engine.getResponse().data.decimalAmount)).toBe('140000.75');
+        await act(async () => {
+            await user.tab();
+        });
+        expect(decInput.value).toBe('140,000.75');
+
+        // 3. Type "1234.56" key by key into MoneyInput.
+        await act(async () => {
+            await user.type(moneyInput, '1234.56');
+        });
+        expect(moneyInput.value).toBe('1234.56');
+        expect(engine.getResponse().data.moneyAmount).toEqual({ amount: '1234.56', currency: 'USD' });
+        await act(async () => {
+            await user.tab();
+        });
+        expect(moneyInput.value).toBe('1,234.56');
+
+        // 4. Type "100.05" key by key (intermediate "100.0" canonicalizes to 100 in engine without eating ".0").
+        await act(async () => {
+            await user.type(centsInput, '100.05');
+        });
+        expect(centsInput.value).toBe('100.05');
+        expect(String(engine.getResponse().data.trailingZeroCase)).toBe('100.05');
+        await act(async () => {
+            await user.tab();
+        });
+        expect(centsInput.value).toBe('100.05');
     });
 
     it('wraps long read-only string values unclipped while keeping the native focusable readOnly input', () => {

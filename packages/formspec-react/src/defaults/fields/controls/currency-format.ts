@@ -1,4 +1,7 @@
-/** @filedesc Shared lossless currency display formatting and input normalization for MoneyInput and currency-prefixed NumberInput. */
+/** @filedesc Shared lossless currency display formatting, input normalization, and draft-preserving edit hook for MoneyInput and currency-prefixed NumberInput. */
+'use client';
+import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const CURRENCY_PREFIX_TO_CODE: Record<string, string> = {
     '$': 'USD',
@@ -64,4 +67,79 @@ export function normalizeMoneyInput(raw: string, currencySymbol: string): string
         return withoutCommas;
     }
     return raw;
+}
+
+/**
+ * Manage currency input display & local draft text while focused so intermediate keystrokes
+ * (`1234.`, `100.0`, `.5`, `-`) are never eaten by engine numeric canonicalization, while
+ * blurred and read-only states display comma-formatted currency figures.
+ */
+export function useCurrencyDraft({
+    rawStr,
+    currencyCode,
+    currencySymbol,
+    isReadonly,
+    onCommit,
+    onBlur,
+}: {
+    rawStr: string;
+    currencyCode: string;
+    currencySymbol: string;
+    isReadonly: boolean;
+    onCommit: (normalized: string | null) => void;
+    onBlur: () => void;
+}) {
+    const focusedRef = useRef(false);
+    const [isFocused, setIsFocused] = useState(false);
+    const [draftText, setDraftText] = useState<string | null>(null);
+    const [unfocusedEdit, setUnfocusedEdit] = useState(false);
+
+    useEffect(() => {
+        if (isReadonly) {
+            focusedRef.current = false;
+            setIsFocused(false);
+            setDraftText(null);
+            setUnfocusedEdit(false);
+        }
+    }, [isReadonly]);
+
+    const displayValue = (!isReadonly && isFocused && draftText !== null)
+        ? draftText
+        : (!isReadonly && unfocusedEdit)
+            ? rawStr
+            : formatMoneyDisplay(rawStr, currencyCode);
+
+    const handleFocus = () => {
+        if (isReadonly) return;
+        focusedRef.current = true;
+        setIsFocused(true);
+        setUnfocusedEdit(false);
+        setDraftText(rawStr);
+    };
+
+    const handleBlur = () => {
+        focusedRef.current = false;
+        setIsFocused(false);
+        setDraftText(null);
+        setUnfocusedEdit(false);
+        onBlur();
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (isReadonly) return;
+        const typed = e.target.value;
+        const activeInDom = typeof document !== 'undefined' && document.activeElement === e.currentTarget;
+        if (focusedRef.current || activeInDom) {
+            focusedRef.current = true;
+            setIsFocused(true);
+            setUnfocusedEdit(false);
+            setDraftText(typed);
+        } else {
+            setUnfocusedEdit(true);
+        }
+        const normalized = normalizeMoneyInput(typed, currencySymbol);
+        onCommit(normalized === '' ? null : normalized);
+    };
+
+    return { displayValue, handleFocus, handleBlur, handleChange };
 }

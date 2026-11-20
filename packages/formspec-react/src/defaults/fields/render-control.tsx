@@ -1,6 +1,6 @@
 /** @filedesc Standard (non-group) field control switch — dispatches by component type. */
 'use client';
-import React, { useState } from 'react';
+import React from 'react';
 import { jsonValueText, parseJsonNumber, stepJsonNumber } from '@formspec-org/engine';
 import { useChromeText } from '../../use-chrome-text';
 import type { FieldComponentProps } from '../../component-map';
@@ -8,7 +8,7 @@ import type { CommonInputAttrs, ExtensionAttrs } from './field-control-types';
 import { NativeSelectControl } from './controls/native-select';
 import { ComboboxSelect } from './controls/combobox-select';
 import { MoneyInputControl } from './controls/money-input';
-import { currencyCodeFromPrefix, formatMoneyDisplay, normalizeMoneyInput } from './controls/currency-format';
+import { currencyCodeFromPrefix, useCurrencyDraft } from './controls/currency-format';
 import { SliderControl } from './controls/slider';
 import { RatingControl } from './controls/rating';
 import { SignatureControl } from './controls/signature';
@@ -313,7 +313,7 @@ export function renderControl(
     }
 }
 
-/** Currency-prefixed decimal/integer NumberInput: comma-formatted on blur/readOnly, raw editable number on focus. */
+/** Currency-prefixed decimal/integer NumberInput: comma-formatted on blur/readOnly, draft-preserving raw value while focused. */
 function CurrencyNumberInput({
     field,
     common,
@@ -337,11 +337,14 @@ function CurrencyNumberInput({
     currencyCode: string;
     currencySymbol: string;
 }) {
-    const [isEditing, setIsEditing] = useState(false);
-    const rawStr = jsonValueText(field.value);
-    const displayValue = (!isReadonly && isEditing)
-        ? rawStr
-        : formatMoneyDisplay(rawStr, currencyCode);
+    const { displayValue, handleFocus, handleBlur, handleChange } = useCurrencyDraft({
+        rawStr: jsonValueText(field.value),
+        currencyCode,
+        currencySymbol,
+        isReadonly,
+        onCommit: (normalized) => field.setValue(normalized),
+        onBlur: common.onBlur,
+    });
 
     return (
         <input
@@ -357,20 +360,9 @@ function CurrencyNumberInput({
             min={min}
             max={max}
             step={step}
-            onFocus={isReadonly ? undefined : () => setIsEditing(true)}
-            onBlur={() => {
-                setIsEditing(false);
-                common.onBlur();
-            }}
-            onChange={
-                isReadonly
-                    ? undefined
-                    : (e) => {
-                        setIsEditing(true);
-                        const normalized = normalizeMoneyInput(e.target.value, currencySymbol);
-                        field.setValue(normalized === '' ? null : normalized);
-                    }
-            }
+            onFocus={isReadonly ? undefined : handleFocus}
+            onBlur={handleBlur}
+            onChange={isReadonly ? undefined : handleChange}
         />
     );
 }

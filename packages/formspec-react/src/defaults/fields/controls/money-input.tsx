@@ -1,10 +1,10 @@
 /** @filedesc MoneyInput amount + currency adornment. */
 'use client';
-import React, { useState } from 'react';
+import React from 'react';
 import { jsonValueText } from '@formspec-org/engine';
 import { useChromeText } from '../../../use-chrome-text';
 import type { CommonInputProps } from '../field-control-types';
-import { formatMoneyDisplay, normalizeMoneyInput } from './currency-format';
+import { formatMoneyDisplay, normalizeMoneyInput, useCurrencyDraft } from './currency-format';
 
 export { formatMoneyDisplay, normalizeMoneyInput };
 
@@ -37,7 +37,6 @@ export function MoneyInputControl({
     placeholder: resolvedPlaceholder,
 }: CommonInputProps & { placeholder?: string }) {
     const chrome = useChromeText();
-    const [isEditing, setIsEditing] = useState(false);
     const currencyCode = ((node.props?.currency as string) || 'USD').toUpperCase();
     const currency = toCurrencySymbol(currencyCode);
     const min = node.props?.min != null ? jsonValueText(node.props.min) : undefined;
@@ -57,28 +56,14 @@ export function MoneyInputControl({
         }
     }
 
-    const displayValue = (!isReadonly && isEditing)
-        ? amountStr
-        : formatMoneyDisplay(amountStr, currencyCode);
-
-    const handleFocus = () => {
-        if (!isReadonly) setIsEditing(true);
-    };
-
-    const handleBlur = () => {
-        setIsEditing(false);
-        common.onBlur();
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setIsEditing(true);
-        const normalized = normalizeMoneyInput(e.target.value, currency);
-        const amount = normalized === '' ? null : normalized;
-        field.setValue({
-            amount,
-            currency: currencyCode,
-        });
-    };
+    const { displayValue, handleFocus, handleBlur, handleChange } = useCurrencyDraft({
+        rawStr: amountStr,
+        currencyCode,
+        currencySymbol: currency,
+        isReadonly,
+        onCommit: (amount) => field.setValue({ amount, currency: currencyCode }),
+        onBlur: common.onBlur,
+    });
 
     const moneyDescribedBy = [common['aria-describedby'], currencyId]
         .filter(Boolean)
