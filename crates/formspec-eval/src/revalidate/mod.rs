@@ -12,7 +12,9 @@ use fel_core::exact_json::Value;
 
 use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
-use crate::types::{EvalDiagnostic, EvalTrigger, ExtensionConstraint, ItemInfo, ValidationResult};
+use crate::types::{
+    EvalDiagnostic, EvalTrigger, ExtensionConstraint, ItemInfo, ValidationResult, error_paths,
+};
 
 use crate::scope::{AggregateMemo, ScopeData, ScopeIndex, ScopedVariables};
 
@@ -20,6 +22,7 @@ use crate::scope::{AggregateMemo, ScopeData, ScopeIndex, ScopedVariables};
 ///
 /// Shapes and the `$formspec` version come from `definition`; `options` supplies
 /// the trigger, registry extension constraints, clock, repeat counts, and instances.
+/// `valid()` reads the error paths of `options.context.previous_validations`.
 ///
 /// Returns validation results and, separately, author diagnostics for
 /// constraint and shape expressions that hit evaluation errors (Core §3.10.2).
@@ -39,17 +42,26 @@ pub fn revalidate(
         &index,
         values,
         &variables,
+        &error_paths(
+            options
+                .context
+                .previous_validations
+                .as_deref()
+                .unwrap_or_default(),
+        ),
         definition,
         options,
         &mut AggregateMemo::default(),
     )
 }
 
+/// [`revalidate`] in a shared scope, where `valid()` reads `invalid_paths` as invalid.
 pub(crate) fn revalidate_scoped(
     items: &[ItemInfo],
     index: &ScopeIndex,
     values: &HashMap<String, Value>,
     variables: &ScopedVariables,
+    invalid_paths: &HashSet<String>,
     definition: &Value,
     options: &EvalOptions,
     aggregates: &mut AggregateMemo,
@@ -61,7 +73,8 @@ pub(crate) fn revalidate_scoped(
         return (findings.results, findings.diagnostics);
     }
 
-    let (mut state, by_path) = validation_state(items, index, values, variables, options);
+    let (mut state, by_path) =
+        validation_state(items, index, values, variables, invalid_paths, options);
     state.restore_aggregates(aggregates);
 
     let shapes = definition
@@ -140,6 +153,7 @@ fn validation_state<'a>(
     index: &ScopeIndex,
     values: &HashMap<String, Value>,
     variables: &ScopedVariables,
+    invalid_paths: &HashSet<String>,
     options: &EvalOptions,
 ) -> (ScopeData, HashMap<&'a str, &'a ItemInfo>) {
     let mut state = ScopeData::for_values(index, values, options);
@@ -149,14 +163,14 @@ fn validation_state<'a>(
         items: &'a [ItemInfo],
         by_path: &mut HashMap<&'a str, &'a ItemInfo>,
         state: &mut ScopeData,
-        invalid_paths: &HashSet<&str>,
+        invalid_paths: &HashSet<String>,
     ) {
         for item in items {
             by_path.insert(&item.path, item);
             state.env.set_mip(
                 &item.path,
                 fel_core::MipState {
-                    valid: !invalid_paths.contains(item.path.as_str()),
+                    valid: !invalid_paths.contains(&item.path),
                     relevant: item.mip.relevant,
                     readonly: item.mip.readonly,
                     required: item.mip.required,
@@ -171,16 +185,7 @@ fn validation_state<'a>(
         }
     }
     let mut by_path = HashMap::new();
-    let invalid_paths = options
-        .context
-        .previous_validations
-        .as_deref()
-        .unwrap_or_default()
-        .iter()
-        .filter(|result| result.severity == crate::types::Severity::Error)
-        .map(|result| result.path.as_str())
-        .collect();
-    index_items(items, &mut by_path, &mut state, &invalid_paths);
+    index_items(items, &mut by_path, &mut state, invalid_paths);
     (state, by_path)
 }
 
@@ -190,6 +195,7 @@ pub(crate) fn explanation_findings(
     index: &ScopeIndex,
     values: &HashMap<String, Value>,
     variables: &ScopedVariables,
+    invalid_paths: &HashSet<String>,
     definition: &Value,
     options: &EvalOptions,
     findings: &mut Vec<ValidationResult>,
@@ -229,8 +235,9 @@ pub(crate) fn explanation_findings(
             Some("acknowledge") => crate::explanations::ExplanationMode::Acknowledge,
             _ => continue,
         };
-        let state = state
-            .get_or_insert_with(|| validation_state(items, index, values, variables, options).0);
+        let state = state.get_or_insert_with(|| {
+            validation_state(items, index, values, variables, invalid_paths, options).0
+        });
         let site = state.site(index, &finding.path);
         match reads::inputs_for_shape(
             shape,

@@ -1,0 +1,17 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:valid-gated-relevance",
+  "version": "1.0.0",
+  "title": "Relevance that reads valid()",
+  "status": "active",
+  "items": [
+    { "key": "w", "type": "field", "dataType": "integer", "label": "W" },
+    { "key": "y", "type": "field", "dataType": "integer", "label": "Y" },
+    { "key": "x", "type": "field", "dataType": "integer", "label": "X" }
+  ],
+  "binds": [
+    { "path": "w", "required": true },
+    { "path": "y", "required": "not(valid($w))" },
+    { "path": "x", "required": true, "relevant": "valid($y)" }
+  ]
+}

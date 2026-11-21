@@ -221,15 +221,8 @@ impl HostFelContext {
         crate::runtime_context::hydrate_inline_instances(definition, &mut options.instances);
         let mut state = ScopeData::for_values(&index, &result.host_values, &options);
         state.variables.clone_from(&result.scoped_variables);
-        for finding in &result.validations {
-            if finding.severity == crate::types::Severity::Error && !finding.path.is_empty() {
-                state
-                    .env
-                    .mip_states
-                    .entry(finding.path.clone())
-                    .or_default()
-                    .valid = false;
-            }
+        for path in crate::types::error_paths(&result.validations) {
+            state.env.mip_states.entry(path).or_default().valid = false;
         }
         for path in &result.non_relevant {
             state

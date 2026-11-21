@@ -21,7 +21,7 @@ use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
 use crate::rebuild::parse_variables;
 use crate::scope::{AggregateMemo, ScopeData, ScopeIndex, ScopedVariables};
-use crate::types::{EvalDiagnostic, ItemInfo, ItemText, ValidationResult};
+use crate::types::{EvalDiagnostic, ItemInfo, ItemText, ValidationResult, error_paths};
 
 use bind_pass::{BindPass, Parent};
 pub(crate) use calculate_order::CalculateOrder;
@@ -55,7 +55,7 @@ pub fn recalculate(
         &index,
         data,
         definition,
-        previous_validations,
+        &error_paths(previous_validations.unwrap_or_default()),
         options,
         &order,
         &mut AggregateMemo::default(),
@@ -86,12 +86,14 @@ pub(crate) struct Recalculated {
 }
 
 /// [`recalculate`], plus Item text from the settled scope when `resolve_text` and `options.item_text`.
+///
+/// `valid()` reads `invalid_paths` as invalid and every other path as valid.
 pub(crate) fn recalculate_phase(
     items: &mut [ItemInfo],
     index: &ScopeIndex,
     data: &HashMap<String, Value>,
     definition: &Value,
-    previous_validations: Option<&[ValidationResult]>,
+    invalid_paths: &HashSet<String>,
     options: &EvalOptions,
     order: &CalculateOrder,
     aggregates: &mut AggregateMemo,
@@ -112,15 +114,7 @@ pub(crate) fn recalculate_phase(
     order.seed_previous_values(items, &mut state, aggregates);
     state.restore_aggregates(aggregates);
     let (_, cycle_err) = variables.evaluate(&mut state, index, fel, None);
-    let invalid_paths: HashSet<String> = previous_validations
-        .unwrap_or(&[])
-        .iter()
-        .filter(|result| {
-            result.severity == crate::types::Severity::Error && !result.path.is_empty()
-        })
-        .map(|result| result.path.clone())
-        .collect();
-    for path in &invalid_paths {
+    for path in invalid_paths {
         state.env.mip_states.entry(path.clone()).or_default().valid = false;
     }
 
@@ -132,7 +126,7 @@ pub(crate) fn recalculate_phase(
         &mut state,
         &mut values,
         &mut BindPass {
-            invalid_paths: &invalid_paths,
+            invalid_paths,
             early_writers: order.early_writers(),
             diagnostics: &mut diagnostics,
         },
@@ -141,10 +135,10 @@ pub(crate) fn recalculate_phase(
 
     let mut calculate_diagnostics = order.evaluate(items, &mut state, &mut values, &walk);
     if !var_defs.is_empty() {
-        bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel, None);
+        bind_pass::refresh_required_state(items, &mut state, invalid_paths, index, fel, None);
         variables.evaluate(&mut state, index, fel, None);
         calculate_diagnostics = order.evaluate(items, &mut state, &mut values, &walk);
-        bind_pass::refresh_required_state(items, &mut state, &invalid_paths, index, fel, None);
+        bind_pass::refresh_required_state(items, &mut state, invalid_paths, index, fel, None);
     }
     diagnostics.extend(calculate_diagnostics);
     let (final_var_values, _) = variables.evaluate(&mut state, index, fel, Some(&mut diagnostics));
@@ -153,7 +147,7 @@ pub(crate) fn recalculate_phase(
     bind_pass::refresh_required_state(
         items,
         &mut state,
-        &invalid_paths,
+        invalid_paths,
         index,
         fel,
         Some(&mut diagnostics),
@@ -480,14 +474,16 @@ mod tests {
         let index = ScopeIndex::for_flat(&items, data.keys());
         let order = CalculateOrder::new(&items, &index, &parse_variables(def), def).unwrap();
         let mut memo = AggregateMemo::default();
+        let none = HashSet::new();
         let first = recalculate_phase(
-            &mut items, &index, &data, def, None, options, &order, &mut memo, false,
+            &mut items, &index, &data, def, &none, options, &order, &mut memo, false,
         );
         let (validations, _) = crate::revalidate::revalidate_scoped(
             &items,
             &index,
             &first.values,
             &first.scoped_variables,
+            &none,
             def,
             options,
             &mut memo,
@@ -497,7 +493,7 @@ mod tests {
             &index,
             &data,
             def,
-            Some(&validations),
+            &error_paths(&validations),
             options,
             &order,
             &mut memo,

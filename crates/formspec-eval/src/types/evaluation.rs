@@ -2,7 +2,7 @@
 
 use super::taxonomy::{ConstraintKind, Severity, ValidationCode, ValidationSource};
 use fel_core::exact_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Validation result for a single field.
 #[derive(Debug, Clone, PartialEq)]
@@ -25,6 +25,15 @@ pub struct ValidationResult {
     pub shape_id: Option<String>,
     /// Evaluated shape failure context values.
     pub context: Option<HashMap<String, Value>>,
+}
+
+/// Paths that `valid()` reads as invalid: those with an error-severity finding.
+pub(crate) fn error_paths(findings: &[ValidationResult]) -> HashSet<String> {
+    findings
+        .iter()
+        .filter(|finding| finding.severity == Severity::Error && !finding.path.is_empty())
+        .map(|finding| finding.path.clone())
+        .collect()
 }
 
 /// Evaluation error from a Definition expression (Core §3.10.2).
@@ -105,7 +114,10 @@ pub struct EvalContext {
     pub subject: Option<EvalSubject>,
     /// Wall-clock instant for FEL `now()` / date helpers (ISO-8601 string).
     pub now_iso: Option<String>,
-    /// Prior cycle validation results (e.g. for host-driven revalidation hints).
+    /// Findings from the caller's previous evaluation, a starting point for `valid()`.
+    ///
+    /// They seed only the first pass, so a host re-evaluating after an edit settles
+    /// in fewer passes; the settled result does not depend on them.
     pub previous_validations: Option<Vec<ValidationResult>>,
     /// Paths that were non-relevant in the prior evaluation cycle.
     pub previous_non_relevant: Option<Vec<String>>,

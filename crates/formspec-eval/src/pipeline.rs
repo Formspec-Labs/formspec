@@ -6,7 +6,7 @@ use crate::nrb::apply_nrb;
 use crate::output_data::build_output_data;
 use crate::rebuild;
 use crate::rebuild_item_tree;
-use crate::recalculate::{CalculateOrder, recalculate_phase};
+use crate::recalculate::{CalculateOrder, Recalculated, recalculate_phase};
 use crate::revalidate::revalidate_scoped;
 use crate::runtime_context::{apply_previous_non_relevant, hydrate_inline_instances};
 use crate::scope::{AggregateMemo, ScopeIndex};
@@ -294,67 +294,90 @@ fn evaluate_prepared(
     }
 
     let mut aggregates = AggregateMemo::default();
-    let first = recalculate_phase(
+    // Every `valid()` in a pass reads the previous pass's error paths: the caller's
+    // previous evaluation for the first pass, then this evaluation's findings.
+    let mut reads = types::error_paths(context.previous_validations.as_deref().unwrap_or_default());
+    let mut pass = recalculate_phase(
         &mut items,
         &index,
         &flat.values,
         definition,
-        context.previous_validations.as_deref(),
+        &reads,
         options,
         &order,
         &mut aggregates,
         false,
     );
-    let (mut values, mut var_values, cycle_err) =
-        (first.values, first.variables, first.cycle_error);
-
-    let mut scoped_variables = first.scoped_variables;
+    let cycle_err = pass.cycle_error.take();
     let (mut validations, mut diagnostics) = revalidate_scoped(
         &items,
         &index,
-        &values,
-        &scoped_variables,
+        &pass.values,
+        &pass.scoped_variables,
+        &reads,
         definition,
         options,
         &mut aggregates,
     );
 
-    // Item text resolves in this pass: it sees `valid()` from the validations above.
-    let next = recalculate_phase(
-        &mut items,
-        &index,
-        &flat.values,
-        definition,
-        Some(&validations),
-        options,
-        &order,
-        &mut aggregates,
-        true,
-    );
-    let item_text = next.item_text;
-    let recalculate_diagnostics = next.diagnostics;
-    // Shapes and constraints can read MIPs even when the two passes produce the same values.
-    let mips_changed = first.mip_states.iter().any(|(path, before)| {
-        next.mip_states.get(path).is_some_and(|after| {
-            before.relevant != after.relevant
-                || before.required != after.required
-                || before.readonly != after.readonly
-        })
-    });
-    if next.values != values || next.scoped_variables != scoped_variables || mips_changed {
-        values = next.values;
-        var_values = next.variables;
-        scoped_variables = next.scoped_variables;
+    // Rebuild refuses every cycle through `valid()` (Core §3.6.2), so each pass
+    // settles one more step of the longest `valid()` chain, which is no longer
+    // than the item count. A pass whose findings match its reads is final; its
+    // findings come from its own relevance, so no hidden field keeps one. The
+    // second pass always runs, because it resolves Item text.
+    let max_passes = pass.mip_states.len() + 1;
+    let mut found = types::error_paths(&validations);
+    for _ in 0..max_passes {
+        let next = recalculate_phase(
+            &mut items,
+            &index,
+            &flat.values,
+            definition,
+            &found,
+            options,
+            &order,
+            &mut aggregates,
+            true,
+        );
+        // Shapes and constraints can read MIPs even when two passes produce the same values.
+        let mips_changed = pass.mip_states.iter().any(|(path, before)| {
+            next.mip_states.get(path).is_some_and(|after| {
+                before.relevant != after.relevant
+                    || before.required != after.required
+                    || before.readonly != after.readonly
+            })
+        });
+        let changed = (order.reads_validity() && found != reads)
+            || next.values != pass.values
+            || next.scoped_variables != pass.scoped_variables
+            || mips_changed;
+        (pass, reads) = (next, found);
+        if !changed {
+            break;
+        }
         (validations, diagnostics) = revalidate_scoped(
             &items,
             &index,
-            &values,
-            &scoped_variables,
+            &pass.values,
+            &pass.scoped_variables,
+            &reads,
             definition,
             options,
             &mut aggregates,
         );
+        found = types::error_paths(&validations);
+        if !order.reads_validity() || found == reads {
+            break;
+        }
     }
+    let Recalculated {
+        mut values,
+        variables: var_values,
+        scoped_variables,
+        item_text,
+        diagnostics: recalculate_diagnostics,
+        ..
+    } = pass;
 
     drop(aggregates);
 
@@ -373,6 +396,7 @@ fn evaluate_prepared(
             &index,
             &values,
             &scoped_variables,
+            &reads,
             definition,
             options,
             &mut validations,

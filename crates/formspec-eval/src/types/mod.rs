@@ -15,6 +15,7 @@ pub use determination::{
     InputEntry, OverrideBlock, PhaseResult, PhaseStatus, PhaseStrategy, RouteResult, ScreenerRef,
     ValidityBlock, parse_answer_state,
 };
+pub(crate) use evaluation::error_paths;
 pub use evaluation::{
     EvalContext, EvalDiagnostic, EvalSubject, EvalTrigger, EvaluationResult, ItemText,
     ItemTextRequest, ValidationResult,
