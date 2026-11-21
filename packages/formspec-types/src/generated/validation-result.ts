@@ -32,7 +32,7 @@ export interface ValidationResult {
    * - 'shape': A named Validation Shape's constraint or composition evaluated to invalid. Standard code: SHAPE_FAILED. The shapeId property identifies which Shape.
    * - 'external': Injected by an external system (server-side API, third-party validator, business rule engine). Standard code: EXTERNAL_FAILED. The source property will be 'external' and sourceId identifies the system.
    * - 'explanation': Derived by the submit-profile check for a warning Shape answer. Codes: EXPLANATION_REQUIRED, EXPLANATION_STALE, EXPLANATION_UNUSED. See Core §5.3.1.
-   * - 'definition': An error in the authored Definition. Standard codes: SYNTAX_ERROR, UNDEFINED_FUNCTION, ARITY_MISMATCH, SEED_PREDICATE_SCOPE, UNSUBSCRIPTED_REPEAT_REFERENCE, UNASSEMBLED_DEFINITION_REFERENCE, CIRCULAR_DEPENDENCY.
+   * - 'definition': An error in the authored Definition. Standard codes: SYNTAX_ERROR, UNDEFINED_FUNCTION, ARITY_MISMATCH, SEED_PREDICATE_SCOPE, UNSUBSCRIPTED_REPEAT_REFERENCE, MIP_ARGUMENT_NOT_FIELD, UNASSEMBLED_DEFINITION_REFERENCE, CIRCULAR_DEPENDENCY.
    */
   constraintKind:
     | 'required'
@@ -60,6 +60,7 @@ export interface ValidationResult {
    * - ARITY_MISMATCH — an authored FEL expression calls a built-in or registered extension function with the wrong number of arguments
    * - SEED_PREDICATE_SCOPE — a seedFrom.where predicate reads a source outside its creation scope
    * - UNSUBSCRIPTED_REPEAT_REFERENCE — a field path continues past a repeatable group without a subscript
+   * - MIP_ARGUMENT_NOT_FIELD — a valid/relevant/readonly/required query takes an argument other than a $path field reference
    * - UNASSEMBLED_DEFINITION_REFERENCE — a Group $ref inclusion was not assembled before evaluation
    * - CIRCULAR_DEPENDENCY — the dependency graph contains a cycle
    * - SHAPE_FAILED — Shape constraint returned false (when no specific code declared)

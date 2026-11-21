@@ -12,9 +12,7 @@ use fel_core::exact_json::Value;
 
 use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
-use crate::types::{
-    EvalDiagnostic, EvalTrigger, ExtensionConstraint, ItemInfo, ValidationResult, error_paths,
-};
+use crate::types::{EvalDiagnostic, EvalTrigger, ExtensionConstraint, ItemInfo, ValidationResult};
 
 use crate::scope::{AggregateMemo, ScopeData, ScopeIndex, ScopedVariables};
 
@@ -22,7 +20,7 @@ use crate::scope::{AggregateMemo, ScopeData, ScopeIndex, ScopedVariables};
 ///
 /// Shapes and the `$formspec` version come from `definition`; `options` supplies
 /// the trigger, registry extension constraints, clock, repeat counts, and instances.
-/// `valid()` reads the error paths of `options.context.previous_validations`.
+/// `valid()` reads every path as valid.
 ///
 /// Returns validation results and, separately, author diagnostics for
 /// constraint and shape expressions that hit evaluation errors (Core §3.10.2).
@@ -37,25 +35,22 @@ pub fn revalidate(
 ) -> (Vec<ValidationResult>, Vec<EvalDiagnostic>) {
     let index = ScopeIndex::for_flat(items, values.keys());
     let variables = HashMap::from([("#".to_owned(), variables.clone())]);
-    revalidate_scoped(
+    let (results, diagnostics, _) = revalidate_scoped(
         items,
         &index,
         values,
         &variables,
-        &error_paths(
-            options
-                .context
-                .previous_validations
-                .as_deref()
-                .unwrap_or_default(),
-        ),
+        &HashSet::new(),
         definition,
         options,
         &mut AggregateMemo::default(),
-    )
+    );
+    (results, diagnostics)
 }
 
 /// [`revalidate`] in a shared scope, where `valid()` reads `invalid_paths` as invalid.
+///
+/// Also returns the paths whose validity `valid()` read, messages included.
 pub(crate) fn revalidate_scoped(
     items: &[ItemInfo],
     index: &ScopeIndex,
@@ -65,12 +60,12 @@ pub(crate) fn revalidate_scoped(
     definition: &Value,
     options: &EvalOptions,
     aggregates: &mut AggregateMemo,
-) -> (Vec<ValidationResult>, Vec<EvalDiagnostic>) {
+) -> (Vec<ValidationResult>, Vec<EvalDiagnostic>, HashSet<String>) {
     let mut findings = Findings::default();
     let trigger = options.trigger;
 
     if trigger == EvalTrigger::Disabled {
-        return (findings.results, findings.diagnostics);
+        return (findings.results, findings.diagnostics, HashSet::new());
     }
 
     let (mut state, by_path) =
@@ -144,8 +139,9 @@ pub(crate) fn revalidate_scoped(
     let mut seen = HashSet::new();
     findings.diagnostics.retain(|d| seen.insert(d.clone()));
 
+    let validity_reads = state.take_validity_reads();
     state.save_aggregates(aggregates);
-    (findings.results, findings.diagnostics)
+    (findings.results, findings.diagnostics, validity_reads)
 }
 
 fn validation_state<'a>(

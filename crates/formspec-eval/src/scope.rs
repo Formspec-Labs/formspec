@@ -1,5 +1,6 @@
 //! Resolves FEL names, repeat navigation, and variables at a concrete Item path.
 
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
@@ -365,6 +366,8 @@ pub(crate) struct ScopeData {
     pub(crate) variables: ScopedVariables,
     objects: RefCell<HashMap<String, Value>>,
     aggregates: RefCell<HashMap<String, Vec<Aggregate>>>,
+    /// Paths whose validity `valid()` read, so a pass knows which findings it consumed.
+    validity_reads: RefCell<HashSet<String>>,
     #[cfg(test)]
     aggregate_scans: std::cell::Cell<usize>,
 }
@@ -420,6 +423,11 @@ impl ScopeData {
     }
 
     /// Hand the memo and its typed inputs to the next phase.
+    /// Paths whose validity `valid()` has read since the last call.
+    pub(crate) fn take_validity_reads(&self) -> HashSet<String> {
+        std::mem::take(&mut *self.validity_reads.borrow_mut())
+    }
+
     pub(crate) fn save_aggregates(self, memo: &mut AggregateMemo) {
         #[cfg(test)]
         {
@@ -687,35 +695,35 @@ impl Site<'_> {
         Ok(Value::Null)
     }
 
-    fn mip(&self, path: &[String], select: impl FnOnce(&MipState) -> bool) -> Value {
-        let concrete;
-        let target = if let Some((head, tail)) = path.split_first() {
-            // The resolved head already contains 0-based lexical indices. Only
-            // translate subscripts from the authored path.
-            let (head_key, indices) = head.split_at(head.find('[').unwrap_or(head.len()));
-            let mut resolved = self.head(head_key);
-            if self.append_mip_indices(&mut resolved, indices).is_none() {
-                return Value::Null;
-            }
-            for part in tail {
-                let (key, indices) = part.split_at(part.find('[').unwrap_or(part.len()));
-                resolved = qualify(&resolved, key);
-                if self.append_mip_indices(&mut resolved, indices).is_none() {
-                    return Value::Null;
-                }
-            }
-            concrete = resolved;
-            concrete.as_str()
-        } else {
-            self.path
+    /// The concrete Item a MIP query names, or `None` when the path names no single Item.
+    fn mip_target(&self, path: &[String]) -> Option<Cow<'_, str>> {
+        let Some((head, tail)) = path.split_first() else {
+            return Some(Cow::Borrowed(self.path));
         };
-        Value::Boolean(select(
-            self.data
-                .env
-                .mip_states
-                .get(target)
-                .unwrap_or(&MipState::default()),
-        ))
+        // The resolved head already contains 0-based lexical indices. Only
+        // translate subscripts from the authored path.
+        let (head_key, indices) = head.split_at(head.find('[').unwrap_or(head.len()));
+        let mut resolved = self.head(head_key);
+        self.append_mip_indices(&mut resolved, indices)?;
+        for part in tail {
+            let (key, indices) = part.split_at(part.find('[').unwrap_or(part.len()));
+            resolved = qualify(&resolved, key);
+            self.append_mip_indices(&mut resolved, indices)?;
+        }
+        Some(Cow::Owned(resolved))
+    }
+
+    /// One property of `target`'s state; `null` when the query names no single Item.
+    fn mip(&self, target: Option<&str>, select: impl FnOnce(&MipState) -> bool) -> Value {
+        target.map_or(Value::Null, |target| {
+            Value::Boolean(select(
+                self.data
+                    .env
+                    .mip_states
+                    .get(target)
+                    .unwrap_or(&MipState::default()),
+            ))
+        })
     }
 
     fn append_mip_indices(&self, path: &mut String, mut indices: &str) -> Option<()> {
@@ -930,16 +938,23 @@ impl Environment for Site<'_> {
     }
 
     fn mip_valid(&self, path: &[String]) -> Value {
-        self.mip(path, |state| state.valid)
+        let target = self.mip_target(path);
+        if let Some(target) = &target {
+            self.data
+                .validity_reads
+                .borrow_mut()
+                .insert(target.clone().into_owned());
+        }
+        self.mip(target.as_deref(), |state| state.valid)
     }
     fn mip_relevant(&self, path: &[String]) -> Value {
-        self.mip(path, |state| state.relevant)
+        self.mip(self.mip_target(path).as_deref(), |state| state.relevant)
     }
     fn mip_readonly(&self, path: &[String]) -> Value {
-        self.mip(path, |state| state.readonly)
+        self.mip(self.mip_target(path).as_deref(), |state| state.readonly)
     }
     fn mip_required(&self, path: &[String]) -> Value {
-        self.mip(path, |state| state.required)
+        self.mip(self.mip_target(path).as_deref(), |state| state.required)
     }
 
     fn repeat_prev(&self) -> Value {

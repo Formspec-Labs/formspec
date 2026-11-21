@@ -15,7 +15,7 @@ test('should update valid() dependent calculations when required field validity 
     ],
     binds: [
       { path: 'email', required: true },
-      { path: 'status', calculate: "if valid(email) then 'ok' else 'missing'" }
+      { path: 'status', calculate: "if valid($email) then 'ok' else 'missing'" }
     ]
   });
 

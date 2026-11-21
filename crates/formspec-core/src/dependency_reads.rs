@@ -116,6 +116,16 @@ pub enum PropertyInput {
 }
 
 impl Property {
+    /// The FEL function that queries this property.
+    pub fn function_name(self) -> &'static str {
+        match self {
+            Self::Required => "required",
+            Self::Relevant => "relevant",
+            Self::Readonly => "readonly",
+            Self::Valid => "valid",
+        }
+    }
+
     /// Return the Core dependencies of a model-item property query.
     pub fn inputs(self) -> &'static [PropertyInput] {
         use PropertyInput::{Constraint, ErrorShapes, Inherited, Own, Value};
@@ -149,6 +159,8 @@ pub struct Reads {
     pub external_reads: Vec<ExternalRead>,
     /// Model-item properties queried and their targets.
     pub properties: Vec<(Property, Read)>,
+    /// Queries whose argument is not a `$path` field reference, a definition error (Core §3.5.9).
+    pub non_field_property_arguments: Vec<Property>,
     predicate_values: Vec<Vec<PathSegment>>,
 }
 
@@ -236,6 +248,8 @@ impl Reads {
                 self.variable_paths.extend(source_reads.variable_paths);
                 self.external_reads.extend(source_reads.external_reads);
                 self.properties.extend(source_reads.properties);
+                self.non_field_property_arguments
+                    .extend(source_reads.non_field_property_arguments);
                 self.predicate_values.extend(source_reads.predicate_values);
 
                 self.visit(key, locals, scopes, predicate, &[]);
@@ -335,6 +349,9 @@ impl Reads {
                 };
                 let root =
                     named_field(arg).map_or(Root::Target, |name| Root::Field(name.to_owned()));
+                if !matches!(arg, Expr::FieldRef { .. }) {
+                    self.non_field_property_arguments.push(property);
+                }
                 let read = Read {
                     root,
                     path: segments(arg),
@@ -372,6 +389,8 @@ impl Reads {
                     self.variable_paths.extend(source_basis.variable_paths);
                     self.external_reads.extend(source_basis.external_reads);
                     self.properties.extend(source_basis.properties);
+                    self.non_field_property_arguments
+                        .extend(source_basis.non_field_property_arguments);
                     self.predicate_values.extend(source_basis.predicate_values);
 
                     let source_path = segments(source);
@@ -403,6 +422,8 @@ impl Reads {
                 self.variable_paths.extend(inner.variable_paths);
                 self.external_reads.extend(inner.external_reads);
                 self.properties.extend(inner.properties);
+                self.non_field_property_arguments
+                    .extend(inner.non_field_property_arguments);
             }
             ("instance", _) => {
                 for arg in args {

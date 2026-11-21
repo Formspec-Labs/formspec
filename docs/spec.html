@@ -3380,6 +3380,13 @@ subscript (§3.2.2). Rebuild refuses evaluation at the authored
 expression.</td>
 </tr>
 <tr>
+<td><code>MIP_ARGUMENT_NOT_FIELD</code></td>
+<td><code>definition</code></td>
+<td>A model-item property query takes an argument other than a
+<code>$path</code> field reference (§3.5.9). Rebuild refuses evaluation
+at the authored expression.</td>
+</tr>
+<tr>
 <td><code>UNASSEMBLED_DEFINITION_REFERENCE</code></td>
 <td><code>definition</code></td>
 <td>A Group still carries a <code>$ref</code> inclusion that assembly
@@ -4747,9 +4754,19 @@ element.</td>
 </tbody>
 </table>
 <h4 id="mip-state-query-functions">3.5.9 MIP-State Query Functions</h4>
-<p>These functions query the current computed state of model item
-properties. They are evaluated during the Revalidate phase, after all
-Recalculate MIPs have been resolved.</p>
+<p>These functions query the computed state of model item properties
+in the same evaluation. Any FEL expression of a Definition MAY call
+them, including the Bind expressions that Recalculate evaluates.</p>
+<p><code>valid($p)</code> reads the results that the evaluation’s Bind
+and Shape checks report for <code>p</code> (§2.4 Phase 3, steps 1-3).
+External results (§5.7) and explanation results (§5.3.1) do not affect
+it. A non-relevant field has no results (§2.5.4), so it reads as valid.
+The processor MUST report the single state in which every
+<code>valid()</code> read agrees with the results it reports; the
+dependencies in §3.6.1 make that state unique. Repeating Recalculate and
+Revalidate until those reads stop changing reaches it. A processor that
+cannot reach it MUST refuse with <code>CIRCULAR_DEPENDENCY</code>
+instead of reporting a result.</p>
 <table>
 <colgroup>
 <col style="width: 23%" />
@@ -4796,8 +4813,12 @@ required.</td>
 </tr>
 </tbody>
 </table>
-<p>The argument is a field reference using standard FEL
-<code>$path</code> syntax:</p>
+<p>The argument MUST be a field reference in <code>$path</code> syntax,
+such as <code>$ein</code>, <code>$group.field</code> or
+<code>$rows[2].amount</code>. Inside a repeat row, <code>$amount</code>
+names the current row’s field (§3.2.2). Any other argument, including
+<code>@current.amount</code>, a variable, a literal or a function
+result, is a definition error (§3.10.1):</p>
 <pre><code>if(not(valid($ein)), &quot;Please correct EIN before proceeding&quot;, &quot;&quot;)</code></pre>
 <h4 id="repeat-navigation-functions">3.5.10 Repeat Navigation
 Functions</h4>
@@ -4989,6 +5010,17 @@ Instance) or a Bind/Shape expression.</li>
 <code>v</code> references the value of <code>u</code>.” In other words,
 <code>v</code> depends on <code>u</code>.</li>
 </ul>
+<p>A model-item property query (§3.5.9) depends on the state it reads.
+<code>valid($p)</code> depends on <code>p</code>’s value, its
+<code>required</code> and <code>constraint</code> Binds, the
+<code>relevant</code> Binds of <code>p</code> and its ancestors, and
+every error-severity Shape that targets <code>p</code>.
+<code>relevant($p)</code> and <code>readonly($p)</code> depend on the
+<code>relevant</code> or <code>readonly</code> Binds of <code>p</code>
+and its ancestors. <code>required($p)</code> depends on
+<code>p</code>’s <code>required</code> Bind and on the
+<code>relevant</code> Binds of <code>p</code> and its ancestors. A cycle
+through these dependencies is a circular dependency (§3.6.2).</p>
 <h4 id="topological-ordering">3.6.2 Topological Ordering</h4>
 <p>The dependency graph MUST be a directed acyclic graph (DAG). A
 conformant processor MUST verify acyclicity during the Rebuild phase
@@ -5459,6 +5491,12 @@ identify at least one field key in the cycle.</td>
 <tr>
 <td><strong>Arity mismatch</strong></td>
 <td>A function is called with the wrong number of arguments.</td>
+</tr>
+<tr>
+<td><strong>MIP query argument</strong></td>
+<td>The argument of <code>valid</code>, <code>relevant</code>,
+<code>readonly</code> or <code>required</code> is not a
+<code>$path</code> field reference (§3.5.9).</td>
 </tr>
 <tr>
 <td><strong>Calculate target conflict</strong></td>

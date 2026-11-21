@@ -27,11 +27,21 @@ pub struct ValidationResult {
     pub context: Option<HashMap<String, Value>>,
 }
 
-/// Paths that `valid()` reads as invalid: those with an error-severity finding.
+/// Paths that `valid()` reads as invalid: those with an error-severity Bind or Shape result.
+///
+/// Core §3.5.9: explanation results (§5.3.1) and Definition errors do not count, and the
+/// evaluator never sees host-injected external results (§5.7).
 pub(crate) fn error_paths(findings: &[ValidationResult]) -> HashSet<String> {
     findings
         .iter()
-        .filter(|finding| finding.severity == Severity::Error && !finding.path.is_empty())
+        .filter(|finding| {
+            finding.severity == Severity::Error
+                && !finding.path.is_empty()
+                && !matches!(
+                    finding.constraint_kind,
+                    ConstraintKind::Explanation | ConstraintKind::Definition
+                )
+        })
         .map(|finding| finding.path.clone())
         .collect()
 }
@@ -114,11 +124,6 @@ pub struct EvalContext {
     pub subject: Option<EvalSubject>,
     /// Wall-clock instant for FEL `now()` / date helpers (ISO-8601 string).
     pub now_iso: Option<String>,
-    /// Findings from the caller's previous evaluation, a starting point for `valid()`.
-    ///
-    /// They seed only the first pass, so a host re-evaluating after an edit settles
-    /// in fewer passes; the settled result does not depend on them.
-    pub previous_validations: Option<Vec<ValidationResult>>,
     /// Paths that were non-relevant in the prior evaluation cycle.
     pub previous_non_relevant: Option<Vec<String>>,
 }
@@ -201,6 +206,11 @@ pub struct EvaluationResult {
     pub data: Value,
     /// Validation results.
     pub validations: Vec<ValidationResult>,
+    /// Sorted paths that `valid()` reads as invalid in the settled state (Core §3.5.9).
+    ///
+    /// Hosts evaluating FEL against this result read validity from this list, so component
+    /// `when` and Locale text agree with Binds and Shapes.
+    pub invalid_paths: Vec<String>,
     /// Author-facing errors raised while evaluating Definition expressions.
     pub diagnostics: Vec<EvalDiagnostic>,
     /// Fields marked non-relevant.

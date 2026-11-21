@@ -22,7 +22,6 @@ pub(crate) struct CalculateOrder {
     early_batch: Vec<(usize, usize)>,
     early: HashSet<String>,
     seed_memo: bool,
-    reads_validity: bool,
 }
 
 #[derive(Debug)]
@@ -310,25 +309,13 @@ impl CalculateOrder {
                     .get(id)
                     .is_some_and(|node| matches!(node.slot, Slot::Calculate(_)))
             });
-        let reads_validity = expressions.iter().any(|(_, reads)| {
-            reads
-                .properties
-                .iter()
-                .any(|(property, _)| *property == Property::Valid)
-        });
         Ok(Self {
             expressions,
             steps,
             early_batch,
             early,
             seed_memo,
-            reads_validity,
         })
-    }
-
-    /// Whether any Bind, variable or Shape expression calls `valid()`.
-    pub(crate) fn reads_validity(&self) -> bool {
-        self.reads_validity
     }
 
     pub(super) fn early_writers(&self) -> &HashSet<String> {

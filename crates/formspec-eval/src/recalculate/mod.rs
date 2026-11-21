@@ -21,7 +21,7 @@ use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
 use crate::rebuild::parse_variables;
 use crate::scope::{AggregateMemo, ScopeData, ScopeIndex, ScopedVariables};
-use crate::types::{EvalDiagnostic, ItemInfo, ItemText, ValidationResult, error_paths};
+use crate::types::{EvalDiagnostic, ItemInfo, ItemText};
 
 use bind_pass::{BindPass, Parent};
 pub(crate) use calculate_order::CalculateOrder;
@@ -29,8 +29,8 @@ use walk::Walk;
 
 /// Recalculate all computed values with full processing model.
 ///
-/// `previous_validations` feed the `valid()` MIP state; `options` supplies the
-/// clock (`context.now_iso`) and named instances.
+/// `valid()` reads every path as valid; `options` supplies the clock (`context.now_iso`)
+/// and named instances.
 ///
 /// Returns response values, variable values, and a variable cycle error. Variables
 /// stay FEL values so a `date`-valued variable reads as a date downstream (Core §4.5).
@@ -38,7 +38,6 @@ pub fn recalculate(
     items: &mut [ItemInfo],
     data: &HashMap<String, Value>,
     definition: &Value,
-    previous_validations: Option<&[ValidationResult]>,
     options: &EvalOptions,
 ) -> (
     HashMap<String, Value>,
@@ -55,7 +54,7 @@ pub fn recalculate(
         &index,
         data,
         definition,
-        &error_paths(previous_validations.unwrap_or_default()),
+        &HashSet::new(),
         options,
         &order,
         &mut AggregateMemo::default(),
@@ -83,6 +82,8 @@ pub(crate) struct Recalculated {
     pub(crate) cycle_error: Option<String>,
     /// Item text by instance path, when requested and `options.item_text` is set.
     pub(crate) item_text: Option<HashMap<String, ItemText>>,
+    /// Paths whose validity `valid()` read in this pass, Item text included.
+    pub(crate) validity_reads: HashSet<String>,
 }
 
 /// [`recalculate`], plus Item text from the settled scope when `resolve_text` and `options.item_text`.
@@ -165,6 +166,7 @@ pub(crate) fn recalculate_phase(
 
     let scoped_variables = std::mem::take(&mut state.variables);
     let mip_states = std::mem::take(&mut state.env.mip_states);
+    let validity_reads = state.take_validity_reads();
     state.save_aggregates(aggregates);
     Recalculated {
         diagnostics,
@@ -174,6 +176,7 @@ pub(crate) fn recalculate_phase(
         mip_states,
         cycle_error: cycle_err,
         item_text,
+        validity_reads,
     }
 }
 
@@ -182,7 +185,7 @@ mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
     use super::*;
     use crate::rebuild::rebuild_item_tree;
-    use crate::types::find_item_by_path;
+    use crate::types::{error_paths, find_item_by_path};
     use fel_core::exact_json::native_json as json;
 
     #[test]
@@ -478,7 +481,7 @@ mod tests {
         let first = recalculate_phase(
             &mut items, &index, &data, def, &none, options, &order, &mut memo, false,
         );
-        let (validations, _) = crate::revalidate::revalidate_scoped(
+        let (validations, _, _) = crate::revalidate::revalidate_scoped(
             &items,
             &index,
             &first.values,
@@ -566,7 +569,7 @@ mod tests {
         let mut items = rebuild_item_tree(&def);
         items[2].mip.prev_relevant = false;
         crate::rebuild::expand_repeat_instances(&mut items, &data);
-        let (values, _, _) = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
+        let (values, _, _) = recalculate(&mut items, &data, &def, &EvalOptions::default());
         // Core calculates observe the FEL type even when the two values have the same JSON.
         assert_eq!(values["reader"], json!("date"));
         assert_eq!(values["gate"], json!(true));
@@ -592,7 +595,7 @@ mod tests {
 
         let data = HashMap::new();
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
+        let _ = recalculate(&mut items, &data, &def, &EvalOptions::default());
 
         let parent = find_item_by_path(&items, "parent").unwrap();
         assert!(!parent.mip.relevant, "parent should be non-relevant");
@@ -621,7 +624,7 @@ mod tests {
 
         let data = HashMap::new();
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
+        let _ = recalculate(&mut items, &data, &def, &EvalOptions::default());
 
         let parent = find_item_by_path(&items, "parent").unwrap();
         assert!(parent.mip.relevant, "parent should be relevant");
@@ -652,7 +655,7 @@ mod tests {
         data.insert("section.field".to_string(), json!("test"));
 
         let mut items = rebuild_item_tree(&def);
-        let (values, _, _) = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
+        let (values, _, _) = recalculate(&mut items, &data, &def, &EvalOptions::default());
 
         let child = find_item_by_path(&items, "section.field").unwrap();
         assert!(
@@ -686,7 +689,7 @@ mod tests {
         data.insert("section.field".to_string(), json!("test"));
 
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
+        let _ = recalculate(&mut items, &data, &def, &EvalOptions::default());
 
         let parent = find_item_by_path(&items, "section").unwrap();
         assert!(
@@ -719,8 +722,7 @@ mod tests {
         data.insert("qty".to_string(), json!(4));
 
         let mut items = rebuild_item_tree(&def);
-        let (values, var_values, _) =
-            recalculate(&mut items, &data, &def, None, &EvalOptions::default());
+        let (values, var_values, _) = recalculate(&mut items, &data, &def, &EvalOptions::default());
 
         assert_eq!(values.get("total"), Some(&json!(100)));
         assert!(
@@ -745,7 +747,7 @@ mod tests {
         data.insert("toggle".to_string(), json!(false));
 
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
+        let _ = recalculate(&mut items, &data, &def, &EvalOptions::default());
 
         let field = find_item_by_path(&items, "field").unwrap();
         assert!(
@@ -775,7 +777,7 @@ mod tests {
 
         let data = HashMap::new();
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
+        let _ = recalculate(&mut items, &data, &def, &EvalOptions::default());
 
         assert!(
             !find_item_by_path(&items, "grandparent")
@@ -819,7 +821,7 @@ mod tests {
         data.insert("grandparent.parent.child".to_string(), json!("val"));
 
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
+        let _ = recalculate(&mut items, &data, &def, &EvalOptions::default());
 
         let child = find_item_by_path(&items, "grandparent.parent.child").unwrap();
         assert!(
@@ -853,7 +855,7 @@ mod tests {
 
         let data = HashMap::new();
         let mut items = rebuild_item_tree(&def);
-        let _ = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
+        let _ = recalculate(&mut items, &data, &def, &EvalOptions::default());
 
         let grandparent = find_item_by_path(&items, "grandparent").unwrap();
         assert!(
@@ -887,7 +889,7 @@ mod tests {
 
         let data = HashMap::new();
         let mut items = rebuild_item_tree(&def);
-        let (values, _, _) = recalculate(&mut items, &data, &def, None, &EvalOptions::default());
+        let (values, _, _) = recalculate(&mut items, &data, &def, &EvalOptions::default());
 
         assert_eq!(values.get("parent"), Some(&json!(42)));
         assert_eq!(values.get("parent.child"), None);

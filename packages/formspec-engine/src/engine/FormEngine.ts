@@ -522,7 +522,6 @@ export class FormEngine implements IFormEngine {
             const previous = this._fullResult;
             this._evaluate(previous && {
                 nonRelevant: previous.nonRelevant.flatMap(shift),
-                validations: shiftFindings(previous.validations),
             }, false, this.editingData());
         });
     }
@@ -2169,7 +2168,7 @@ export class FormEngine implements IFormEngine {
     }
 
     private _evaluate(
-        previousResult: Pick<EvalResult, 'nonRelevant' | 'validations'> | null = this._fullResult,
+        previousResult: Pick<EvalResult, 'nonRelevant'> | null = this._fullResult,
         constructing = false,
         input = this._refusedInput ?? this.editingData(),
     ): void {

@@ -20,7 +20,7 @@ use formspec_core::BindTargets;
 use formspec_core::assembler::unassembled_definition_references;
 use formspec_core::subject_key::SubjectKey;
 use std::cell::RefCell;
-use std::collections::{BTreeSet, HashMap, VecDeque};
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 
 /// Definition work shared across evaluations of different Response data.
@@ -214,10 +214,8 @@ pub fn evaluate_filed(
         Ok(result) => result,
         Err(findings) => return Ok(refuse_input(findings)),
     };
-    let previous_validations = options.context.previous_validations.take();
     let previous_non_relevant = options.context.previous_non_relevant.take();
-    if previous_validations.is_none_or(|findings| findings.is_empty())
-        && previous_non_relevant.is_none_or(|paths| paths.is_empty())
+    if previous_non_relevant.is_none_or(|paths| paths.is_empty())
         && filed_data_is_stable(data, &result.data)
     {
         return Ok(result);
@@ -294,9 +292,9 @@ fn evaluate_prepared(
     }
 
     let mut aggregates = AggregateMemo::default();
-    // Every `valid()` in a pass reads the previous pass's error paths: the caller's
-    // previous evaluation for the first pass, then this evaluation's findings.
-    let mut reads = types::error_paths(context.previous_validations.as_deref().unwrap_or_default());
+    // Every `valid()` in a pass reads the previous pass's error paths (Core §3.5.9): none
+    // on the first pass, then this evaluation's findings.
+    let mut reads = HashSet::new();
     let mut pass = recalculate_phase(
         &mut items,
         &index,
@@ -309,7 +307,7 @@ fn evaluate_prepared(
         false,
     );
     let cycle_err = pass.cycle_error.take();
-    let (mut validations, mut diagnostics) = revalidate_scoped(
+    let (mut validations, mut diagnostics, validated) = revalidate_scoped(
         &items,
         &index,
         &pass.values,
@@ -319,14 +317,27 @@ fn evaluate_prepared(
         options,
         &mut aggregates,
     );
-
-    // Rebuild refuses every cycle through `valid()` (Core §3.6.2), so each pass
-    // settles one more step of the longest `valid()` chain, which is no longer
-    // than the item count. A pass whose findings match its reads is final; its
-    // findings come from its own relevance, so no hidden field keeps one. The
-    // second pass always runs, because it resolves Item text.
-    let max_passes = pass.mip_states.len() + 1;
+    // The validities the current findings were computed from.
+    let mut consumed: HashSet<String> = pass.validity_reads.drain().chain(validated).collect();
     let mut found = types::error_paths(&validations);
+    let unsettled =
+        |found: &HashSet<String>, reads: &HashSet<String>, consumed: &HashSet<String>| {
+            let mut paths: Vec<_> = consumed
+                .iter()
+                .filter(|path| found.contains(*path) != reads.contains(*path))
+                .cloned()
+                .collect();
+            paths.sort_unstable();
+            paths
+        };
+
+    // Rebuild refuses every cycle through a MIP query (Core §3.6.1, §3.6.2), so each pass
+    // settles at least one more step of the longest `valid()` chain, and a chain names
+    // each Item at most once. A pass is final when every validity it read agrees with the
+    // findings it reports, so no hidden field keeps one. The second pass always runs: it
+    // resolves Item text.
+    let max_passes = pass.mip_states.len() + 1;
+    let mut settled = false;
     for _ in 0..max_passes {
         let next = recalculate_phase(
             &mut items,
@@ -347,15 +358,17 @@ fn evaluate_prepared(
                     || before.readonly != after.readonly
             })
         });
-        let changed = (order.reads_validity() && found != reads)
+        let changed = !unsettled(&found, &reads, &consumed).is_empty()
             || next.values != pass.values
             || next.scoped_variables != pass.scoped_variables
             || mips_changed;
         (pass, reads) = (next, found);
         if !changed {
+            settled = true;
             break;
         }
-        (validations, diagnostics) = revalidate_scoped(
+        let validated;
+        (validations, diagnostics, validated) = revalidate_scoped(
             &items,
             &index,
             &pass.values,
@@ -365,11 +378,26 @@ fn evaluate_prepared(
             options,
             &mut aggregates,
         );
+        consumed = pass.validity_reads.drain().chain(validated).collect();
         found = types::error_paths(&validations);
-        if !order.reads_validity() || found == reads {
+        if unsettled(&found, &reads, &consumed).is_empty() {
+            settled = true;
             break;
         }
     }
+    if !settled {
+        let paths = unsettled(&types::error_paths(&validations), &reads, &consumed);
+        return Err(vec![circular_dependency(format!(
+            "Validity of {} did not settle within {max_passes} passes: a MIP query reads \
+             state its dependencies do not declare (Core §3.5.9)",
+            paths.join(", ")
+        ))]);
+    }
+    let invalid_paths = {
+        let mut paths: Vec<_> = types::error_paths(&validations).into_iter().collect();
+        paths.sort_unstable();
+        paths
+    };
     let Recalculated {
         mut values,
         variables: var_values,
@@ -450,6 +478,7 @@ fn evaluate_prepared(
         indexed_binds,
         data,
         validations,
+        invalid_paths,
         diagnostics: recalculate_diagnostics
             .into_iter()
             .chain(diagnostics)
@@ -642,6 +671,7 @@ fn refuse_input(validations: Vec<ValidationResult>) -> EvaluationResult {
         indexed_binds: Default::default(),
         data: Value::Object(Default::default()),
         validations,
+        invalid_paths: Vec::new(),
         diagnostics: Vec::new(),
         non_relevant: Vec::new(),
         variables: HashMap::new(),
@@ -706,6 +736,33 @@ mod tests {
         let options = EvalOptions::default();
         assert!(evaluate(&first, &input, &options).required["rows[0].amount"]);
         assert!(!evaluate(&second, &input, &options).required["rows[0].amount"]);
+    }
+
+    /// Core §3.5.9: an evaluation whose `valid()` reads never settle is refused, never returned.
+    #[test]
+    fn validity_that_never_settles_is_refused() {
+        // `@current.amount` reads the note's own validity, so each pass flips the Shape.
+        // Rebuild refuses that argument; drop the refusal to reach the runtime guard.
+        let mut prepared = PreparedDefinition::new(json!({
+            "items": [{"key": "rows", "type": "group", "repeatable": true, "children": [
+                {"key": "amount", "dataType": "integer"},
+                {"key": "note", "dataType": "string"}
+            ]}],
+            "shapes": [{"id": "s", "target": "rows[*].note",
+                        "constraint": "not(valid(@current.amount))", "message": "m"}]
+        }));
+        prepared.definition_errors.clear();
+        let data = HashMap::from([("rows".to_owned(), json!([{"amount": 1, "note": "n"}]))]);
+        let result = prepared.evaluate(
+            &data,
+            &EvalOptions::new().trigger(types::EvalTrigger::Submit),
+        );
+        assert!(result.refused, "{:?}", result.validations);
+        assert_eq!(result.validations.len(), 1, "{:?}", result.validations);
+        assert_eq!(
+            result.validations[0].code,
+            ValidationCode::CircularDependency
+        );
     }
 
     #[test]

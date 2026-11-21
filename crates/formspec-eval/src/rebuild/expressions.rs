@@ -10,6 +10,7 @@ use formspec_core::definition_expressions::{
     ExpressionSite, visit_expressions, visit_initial_value_expressions, visit_seed_predicates,
     visit_template_expressions,
 };
+use formspec_core::dependency_reads::Reads;
 use formspec_core::repeat_references::{
     unsubscripted_repeat_message, unsubscripted_repeats, variable_target,
 };
@@ -124,7 +125,8 @@ pub(crate) fn check(
     let mut errors = Vec::new();
     let mut extensions = ExtensionCalls::default();
     // `display` marks `{{}}` text: an interpolation that fails to parse or evaluate renders
-    // literally (Core §4.2.1, Locale §3.3.1), so only its repeat paths can refuse the Definition.
+    // literally (Core §4.2.1, Locale §3.3.1), so only its paths and MIP query arguments can
+    // refuse the Definition.
     let mut check_expression = |source: &str,
                                 target: Option<&str>,
                                 location: &str,
@@ -158,6 +160,15 @@ pub(crate) fn check(
                         expression: source.to_owned(),
                     }),
             });
+        }
+        if let Some(property) = Reads::new(&expression).non_field_property_arguments.first() {
+            refuse(
+                ValidationCode::MipArgumentNotField,
+                format!(
+                    "`{}()` in {source:?} takes a `$path` field reference (Core §3.5.9)",
+                    property.function_name()
+                ),
+            );
         }
         if repeats.is_empty() {
             return;
@@ -198,11 +209,9 @@ pub(crate) fn check(
             check_expression(source, site.target(), &location, false);
         }
     });
-    if !repeats.is_empty() {
-        visit_template_expressions(definition, |source, target, location| {
-            check_expression(source, target, location, true);
-        });
-    }
+    visit_template_expressions(definition, |source, target, location| {
+        check_expression(source, target, location, true);
+    });
     visit_initial_value_expressions(definition, |source, target, location| {
         check_expression(source, Some(target), location, false);
     });

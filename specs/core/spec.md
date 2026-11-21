@@ -1984,6 +1984,7 @@ codes override the generic defaults.
 | `ARITY_MISMATCH` | `definition` | An authored FEL expression calls a built-in or registered extension function with the wrong number of arguments (§3.10.1). Rebuild refuses evaluation at the authored expression. A `{{}}` text interpolation is exempt. |
 | `SEED_PREDICATE_SCOPE` | `definition` | A `seedFrom.where` predicate reads a source outside its creation scope (§4.2.2.1). Rebuild refuses evaluation at the authored predicate. |
 | `UNSUBSCRIPTED_REPEAT_REFERENCE` | `definition` | An authored field path continues past a repeatable Group without a subscript (§3.2.2). Rebuild refuses evaluation at the authored expression. |
+| `MIP_ARGUMENT_NOT_FIELD` | `definition` | A model-item property query takes an argument other than a `$path` field reference (§3.5.9). Rebuild refuses evaluation at the authored expression. |
 | `UNASSEMBLED_DEFINITION_REFERENCE` | `definition` | A Group still carries a `$ref` inclusion that assembly (§6.6.2) has not resolved. Rebuild refuses evaluation at the authored reference. |
 | `CIRCULAR_DEPENDENCY` | `definition` | The dependency graph contains a cycle (§3.6). |
 | `SHAPE_FAILED` | `shape` | Shape's constraint returned `false`. |
@@ -2475,9 +2476,18 @@ Implementations SHOULD emit stable machine-readable diagnostic codes for runtime
 
 #### 3.5.9 MIP-State Query Functions
 
-These functions query the current computed state of model item properties.
-They are evaluated during the Revalidate phase, after all Recalculate MIPs
-have been resolved.
+These functions query the computed state of model item properties in the same
+evaluation. Any FEL expression of a Definition MAY call them, including the Bind
+expressions that Recalculate evaluates.
+
+`valid($p)` reads the results that the evaluation's Bind and Shape checks report
+for `p` (§2.4 Phase 3, steps 1-3). External results (§5.7) and explanation
+results (§5.3.1) do not affect it. A non-relevant field has no results (§2.5.4),
+so it reads as valid. The processor MUST report the single state in which every
+`valid()` read agrees with the results it reports; the dependencies in §3.6.1
+make that state unique. Repeating Recalculate and Revalidate until those reads
+stop changing reaches it. A processor that cannot reach it MUST refuse with
+`CIRCULAR_DEPENDENCY` instead of reporting a result.
 
 | Function | Signature | Returns | Description |
 |----------|-----------|---------|-------------|
@@ -2486,7 +2496,10 @@ have been resolved.
 | `readonly` | `readonly($path) → boolean` | `boolean` | `true` if the referenced field is currently readonly. |
 | `required` | `required($path) → boolean` | `boolean` | `true` if the referenced field is currently required. |
 
-The argument is a field reference using standard FEL `$path` syntax:
+The argument MUST be a field reference in `$path` syntax, such as `$ein`,
+`$group.field` or `$rows[2].amount`. Inside a repeat row, `$amount` names the
+current row's field (§3.2.2). Any other argument, including `@current.amount`, a
+variable, a literal or a function result, is a definition error (§3.10.1):
 
 ```
 if(not(valid($ein)), "Please correct EIN before proceeding", "")
@@ -2574,6 +2587,14 @@ where:
   expression.
 - Each edge `(u, v) ∈ E` means "the expression for `v` references the value of
   `u`." In other words, `v` depends on `u`.
+
+A model-item property query (§3.5.9) depends on the state it reads. `valid($p)`
+depends on `p`'s value, its `required` and `constraint` Binds, the `relevant`
+Binds of `p` and its ancestors, and every error-severity Shape that targets `p`.
+`relevant($p)` and `readonly($p)` depend on the `relevant` or `readonly` Binds of
+`p` and its ancestors. `required($p)` depends on `p`'s `required` Bind and on
+the `relevant` Binds of `p` and its ancestors. A cycle through these
+dependencies is a circular dependency (§3.6.2).
 
 #### 3.6.2 Topological Ordering
 
@@ -2897,6 +2918,7 @@ following and MUST NOT proceed to Recalculate:
 | **Undefined function** | A function call names a function that is neither a built-in (§3.5) nor a registered extension function. |
 | **Circular dependency** | The dependency graph (§3.6) contains a cycle. The error message MUST identify at least one field key in the cycle. |
 | **Arity mismatch** | A function is called with the wrong number of arguments. |
+| **MIP query argument** | The argument of `valid`, `relevant`, `readonly` or `required` is not a `$path` field reference (§3.5.9). |
 | **Calculate target conflict** | A `calculate` Bind targets a field that is also targeted by another `calculate` Bind. Each field MUST have at most one `calculate` Bind. |
 | **Instance-path Bind** | A Bind `path` names a secondary instance (`instances.<name>…` or `@instance('<name>')…`) rather than an Item. Bind paths resolve to Items only (§4.3.3); no Bind writes an instance, whatever its `readonly` value (§4.4.1). |
 

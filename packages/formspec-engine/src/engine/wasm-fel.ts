@@ -6,23 +6,11 @@ import type { ResponseSubjectKeys } from '../interfaces.js';
 
 // --- wasmEvaluateDefinition payload -------------------------------------------------------------
 
-/** Subset of validation objects passed back into WASM as previous state. */
-export type WasmPreviousValidation = Array<{
-    path: string;
-    severity: string;
-    constraintKind: string;
-    code: string;
-    message: string;
-    source?: string;
-    shapeId?: string;
-    context?: Record<string, unknown>;
-}>;
-
 /** Options object consumed by the WASM definition evaluator (JSON-serialized internally). */
 export function wasmEvaluateDefinitionPayload(options: {
     nowIso: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
-    previousResult: Pick<EvalResult, 'nonRelevant' | 'validations'> | null;
+    previousResult: Pick<EvalResult, 'nonRelevant'> | null;
     instances: Record<string, unknown>;
     registryDocuments: unknown[];
     subjectType?: string | null;
@@ -31,7 +19,6 @@ export function wasmEvaluateDefinitionPayload(options: {
 }): {
     nowIso: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
-    previousValidations: WasmPreviousValidation | undefined;
     previousNonRelevant: string[] | undefined;
     instances: Record<string, unknown>;
     registryDocuments: unknown[];
@@ -42,7 +29,6 @@ export function wasmEvaluateDefinitionPayload(options: {
     return {
         nowIso: options.nowIso,
         ...(options.trigger !== undefined ? { trigger: options.trigger } : {}),
-        previousValidations: options.previousResult?.validations as unknown as WasmPreviousValidation | undefined,
         previousNonRelevant: options.previousResult?.nonRelevant,
         instances: options.instances,
         registryDocuments: options.registryDocuments,

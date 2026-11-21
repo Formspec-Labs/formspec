@@ -640,7 +640,7 @@ def evaluate_definition(
             constraint enforcement. Pass an empty list to disable registry loading.
         instances: Optional dict of named instance data used by FEL expressions.
             Keys are instance names, values are dicts of field data.
-        context: Optional evaluator context such as now_iso and previous_validations.
+        context: Optional evaluator context such as now_iso and previous_non_relevant.
             ``subjectType`` and ``subjectKeys`` take the current Response's ``subject.type``
             and ``subject.keys``. Evaluation checks them against the Definition before FEL runs.
             ``itemText: {"localeStrings": {...}}`` also resolves Item text into

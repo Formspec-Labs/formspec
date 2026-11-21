@@ -16,9 +16,8 @@ use formspec_core::wire_keys::evaluation_batch_keys;
 
 use crate::extension_constraints_from_registry_documents;
 use crate::types::{
-    ConstraintKind, EvalContext, EvalDiagnostic, EvalSubject, EvalTrigger, EvaluationResult,
-    ExtensionConstraint, ItemText, ItemTextRequest, Severity, ValidationCode, ValidationResult,
-    ValidationSource,
+    EvalContext, EvalDiagnostic, EvalSubject, EvalTrigger, EvaluationResult, ExtensionConstraint,
+    ItemText, ItemTextRequest, ValidationResult,
 };
 
 /// Serialize the batch evaluation report with camelCase keys.
@@ -121,6 +120,7 @@ fn evaluation_report(result: &EvaluationResult, style: JsonWireStyle) -> Map<Str
         ),
     );
     root.insert(nr_key.into(), json!(result.non_relevant));
+    root.insert("invalidPaths".into(), json!(result.invalid_paths));
     root.insert(
         "variables".into(),
         fel_core::exact_json::to_value(&result.variables).expect("variables serialize"),
@@ -259,12 +259,6 @@ pub fn item_text_request_from_json_object(ctx_obj: &Map<String, Value>) -> Optio
 }
 
 fn parse_eval_context(ctx_obj: &Map<String, Value>) -> Result<EvalContext, String> {
-    let previous_validations = ctx_obj
-        .get("previousValidations")
-        .or_else(|| ctx_obj.get("previous_validations"))
-        .map(parse_validation_results)
-        .transpose()?;
-
     let previous_non_relevant = ctx_obj
         .get("previousNonRelevant")
         .or_else(|| ctx_obj.get("previous_non_relevant"))
@@ -300,7 +294,6 @@ fn parse_eval_context(ctx_obj: &Map<String, Value>) -> Result<EvalContext, Strin
             .or_else(|| ctx_obj.get("now_iso"))
             .and_then(|v| v.as_str())
             .map(str::to_string),
-        previous_validations,
         previous_non_relevant,
     })
 }
@@ -403,102 +396,4 @@ fn parse_registry_documents(ctx_obj: &Map<String, Value>) -> Vec<ExtensionConstr
         return Vec::new();
     };
     extension_constraints_from_registry_documents(docs)
-}
-
-fn parse_validation_results(value: &Value) -> Result<Vec<ValidationResult>, String> {
-    let validations = value
-        .as_array()
-        .ok_or("previousValidations must be an array")?;
-
-    validations
-        .iter()
-        .map(parse_validation_result)
-        .collect::<Result<Vec<_>, _>>()
-}
-
-/// Parse a prior validation blob from the WASM/host bridge.
-///
-/// Unlike definition wire readers (SWEEP-002 camelCase-only), this path accepts
-/// `constraintKind` or `constraint_kind` and `shapeId` or `shape_id` so hosts
-/// can round-trip diagnostics without re-serializing. New definition documents
-/// remain camelCase-only at ingest.
-fn parse_validation_result(value: &Value) -> Result<ValidationResult, String> {
-    let obj = value
-        .as_object()
-        .ok_or("validation result must be an object")?;
-
-    let severity = required_string_field(obj, "severity")?;
-    let constraint_kind = required_string_field_either(obj, "constraintKind", "constraint_kind")?;
-    let code = required_string_field(obj, "code")?;
-    let source = match obj.get("source") {
-        None => None,
-        Some(value) => {
-            let source = value
-                .as_str()
-                .ok_or("validation source must be a string when present")?;
-            Some(
-                ValidationSource::parse_wire(source)
-                    .ok_or_else(|| format!("unknown source: {source}"))?,
-            )
-        }
-    };
-
-    Ok(ValidationResult {
-        path: required_string_field(obj, "path")?,
-        severity: Severity::parse_wire(&severity)
-            .ok_or_else(|| format!("unknown severity: {severity}"))?,
-        constraint_kind: ConstraintKind::parse_wire(&constraint_kind)
-            .ok_or_else(|| format!("unknown constraint_kind: {constraint_kind}"))?,
-        code: ValidationCode::from_wire(&code),
-        message: required_string_field(obj, "message")?,
-        constraint: optional_string_field_either(obj, "constraint", "constraint"),
-        source,
-        shape_id: optional_string_field_either(obj, "shapeId", "shape_id"),
-        context: match obj.get("context") {
-            Some(ctx) => {
-                let ctx_obj = ctx
-                    .as_object()
-                    .ok_or("validation context must be an object")?;
-                Some(
-                    ctx_obj
-                        .iter()
-                        .map(|(key, value)| (key.clone(), value.clone()))
-                        .collect::<HashMap<_, _>>(),
-                )
-            }
-            None => None,
-        },
-    })
-}
-
-fn required_string_field(obj: &Map<String, Value>, key: &str) -> Result<String, String> {
-    obj.get(key)
-        .and_then(Value::as_str)
-        .map(str::to_string)
-        .ok_or_else(|| format!("validation result missing string field '{key}'"))
-}
-
-fn required_string_field_either(
-    obj: &Map<String, Value>,
-    primary: &str,
-    secondary: &str,
-) -> Result<String, String> {
-    obj.get(primary)
-        .or_else(|| obj.get(secondary))
-        .and_then(Value::as_str)
-        .map(str::to_string)
-        .ok_or_else(|| {
-            format!("validation result missing string field '{primary}' or '{secondary}'")
-        })
-}
-
-fn optional_string_field_either(
-    obj: &Map<String, Value>,
-    primary: &str,
-    secondary: &str,
-) -> Option<String> {
-    obj.get(primary)
-        .or_else(|| obj.get(secondary))
-        .and_then(Value::as_str)
-        .map(str::to_string)
 }

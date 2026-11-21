@@ -32,15 +32,11 @@ test('cardinality sources agree between WASM and FormEngine reports', () => {
       const reported = report.results.find((result) => result.code === code);
       assert.deepEqual(reported, { ...raw, $formspecValidationResult: '1.0' });
       assert.equal(Object.hasOwn(reported, 'source'), false);
-      // The evaluator must accept its own source-less findings on the next cycle.
-      assert.doesNotThrow(() => wasmEvaluateDefinition(definition, { rows }, {
-        trigger, previousValidations: evaluated.validations,
-      }));
     }
   }
 });
 
-test('wasmEvaluateDefinition forwards previousValidations to the batch evaluator', () => {
+test('wasmEvaluateDefinition settles valid() in one call and reports what it read as invalid', () => {
   const definition = {
     $formspec: '1.0',
     url: 'http://example.org/wasm-eval',
@@ -56,12 +52,10 @@ test('wasmEvaluateDefinition forwards previousValidations to the batch evaluator
     ],
   };
 
-  const first = wasmEvaluateDefinition(definition, {});
-  const second = wasmEvaluateDefinition(definition, {}, {
-    previousValidations: first.validations,
-  });
-
-  assert.equal(second.values.ageStatus, 'invalid');
+  // Core §3.5.9: valid() reads this evaluation's findings; no previous evaluation is replayed.
+  const evaluated = wasmEvaluateDefinition(definition, {});
+  assert.equal(evaluated.values.ageStatus, 'invalid');
+  assert.deepEqual(evaluated.invalidPaths, ['age']);
 });
 
 test('wasmEvaluateDefinition counts empty rows from Response data for minRepeat', () => {

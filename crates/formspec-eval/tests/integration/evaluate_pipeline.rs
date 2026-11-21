@@ -71,10 +71,12 @@ fn default_evaluation_json_includes_refusal_status_and_preserves_data_shape() {
     assert_eq!(result.required, expected_mips);
     assert_eq!(result.readonly, expected_mips);
     // Match the iteration order of the two maps while pinning the report fields.
+    // `invalidPaths` is what `valid()` reads in the settled state (Core §3.5.9, fs-4jfg).
     let expected = format!(
         concat!(
             r#"{{"refused":false,"values":{{"rows[0].amount":3}},"data":{{"rows":[{{"amount":3}}]}},"#,
-            r#""validations":[],"diagnostics":[],"nonRelevant":["hidden"],"variables":{{}},"#,
+            r#""validations":[],"diagnostics":[],"nonRelevant":["hidden"],"invalidPaths":[],"#,
+            r#""variables":{{}},"#,
             r#""required":{},"readonly":{}}}"#
         ),
         fel_core::exact_json::to_value(&result.required).unwrap(),
@@ -397,37 +399,7 @@ fn cardinality_results_omit_source_in_both_json_styles() {
             }
             let required = findings.iter().find(|v| v["code"] == "REQUIRED").unwrap();
             assert_eq!(required["source"], json!("bind"));
-            let context = json!({"previousValidations": findings});
-            let parsed = formspec_eval::eval_context_from_json_object(context.as_object().unwrap())
-                .expect("both JSON styles must round-trip source-less findings");
-            assert_eq!(parsed.previous_validations.unwrap(), result.validations);
         }
-    }
-}
-
-#[test]
-fn previous_cardinality_results_accept_absent_source() {
-    let context = json!({"previousValidations": [{
-        "path": "rows", "severity": "error", "constraintKind": "cardinality",
-        "code": "MIN_REPEAT", "message": "Minimum 2 entries required"
-    }]});
-    let parsed = formspec_eval::eval_context_from_json_object(context.as_object().unwrap())
-        .expect("source is optional in ValidationResult");
-    let findings = parsed.previous_validations.unwrap();
-    assert_eq!(findings.len(), 1);
-    assert_eq!(findings[0].source, None);
-}
-
-#[test]
-fn previous_validation_results_reject_nonstring_source_when_present() {
-    for source in [json!(null), json!(false), json!(7), json!([]), json!({})] {
-        let context = json!({"previousValidations": [{
-            "path": "rows", "severity": "error", "constraintKind": "cardinality",
-            "code": "MIN_REPEAT", "message": "Minimum 2 entries required", "source": source
-        }]});
-        let error =
-            formspec_eval::eval_context_from_json_object(context.as_object().unwrap()).unwrap_err();
-        assert_eq!(error, "validation source must be a string when present");
     }
 }
 
@@ -2364,219 +2336,6 @@ fn shape_context_evaluated_on_failure() {
 }
 
 #[test]
-fn valid_mip_query_reflects_previous_validation_state() {
-    let def = json!({
-        "$formspec": "1.0",
-        "url": "test",
-        "version": "1.0.0",
-        "title": "T",
-        "items": [
-            { "key": "age", "type": "field", "dataType": "decimal", "label": "Age" },
-            { "key": "ageStatus", "type": "field", "dataType": "string", "label": "Status" }
-        ],
-        "binds": [
-            { "path": "age", "constraint": "$age >= 0", "required": "true" },
-            { "path": "ageStatus", "calculate": "if(valid($age), 'ok', 'invalid')" }
-        ]
-    });
-
-    let data = HashMap::new();
-    let result = evaluate(&def, &data, &EvalOptions::default());
-    let result2 = evaluate(
-        &def,
-        &data,
-        &EvalOptions::default().context(EvalContext {
-            previous_validations: Some(result.validations.clone()),
-            ..EvalContext::default()
-        }),
-    );
-
-    assert_eq!(result2.values.get("ageStatus"), Some(&json!("invalid")));
-}
-
-#[test]
-fn valid_mip_query_reflects_current_validation_state() {
-    let def = json!({
-        "$formspec": "1.0",
-        "url": "test",
-        "version": "1.0.0",
-        "title": "T",
-        "items": [
-            { "key": "email", "type": "field", "dataType": "string", "label": "Email" },
-            { "key": "status", "type": "field", "dataType": "string", "label": "Status" }
-        ],
-        "binds": [
-            { "path": "email", "required": true },
-            { "path": "status", "calculate": "if valid(email) then 'ok' else 'missing'" }
-        ]
-    });
-
-    let result = evaluate(&def, &HashMap::new(), &EvalOptions::default());
-    assert_eq!(result.values.get("status"), Some(&json!("missing")));
-}
-
-type SettledAnswer = (Vec<(String, String)>, Vec<String>);
-
-fn integer_fields(keys: &[&str]) -> Value {
-    Value::Array(
-        keys.iter()
-            .map(|key| json!({"key": *key, "type": "field", "dataType": "integer"}))
-            .collect(),
-    )
-}
-
-fn expect(findings: &[(&str, &str)], non_relevant: &[&str]) -> SettledAnswer {
-    (
-        findings
-            .iter()
-            .map(|(path, code)| ((*path).to_owned(), (*code).to_owned()))
-            .collect(),
-        non_relevant.iter().map(|path| (*path).to_owned()).collect(),
-    )
-}
-
-/// Sorted findings and non-relevant paths of a submit evaluation. A cold recheck
-/// (the server) and a re-evaluation seeded with that result (FormEngine after an
-/// edit) must give the same answer.
-fn settled_answer(def: &Value, data: &[(&str, Value)]) -> SettledAnswer {
-    let data: HashMap<_, _> = data
-        .iter()
-        .map(|(path, value)| ((*path).to_owned(), value.clone()))
-        .collect();
-    let submit = EvalOptions::new().trigger(EvalTrigger::Submit);
-    let cold = evaluate(def, &data, &submit);
-    let seeded = evaluate(
-        def,
-        &data,
-        &submit.clone().context(EvalContext {
-            previous_validations: Some(cold.validations.clone()),
-            previous_non_relevant: Some(cold.non_relevant.clone()),
-            ..EvalContext::default()
-        }),
-    );
-    let answer = |result: &formspec_eval::EvaluationResult| {
-        let mut findings: Vec<_> = result
-            .validations
-            .iter()
-            .map(|finding| (finding.path.clone(), finding.code.to_string()))
-            .collect();
-        findings.sort();
-        let mut non_relevant = result.non_relevant.clone();
-        non_relevant.sort();
-        (findings, non_relevant)
-    };
-    assert_eq!(
-        answer(&seeded),
-        answer(&cold),
-        "a seeded re-evaluation must agree with a cold recheck"
-    );
-    answer(&cold)
-}
-
-/// Core §2.5.4: a non-relevant field produces no findings, including when its
-/// relevance reads `valid()` of a field this evaluation finds invalid (fs-4jfg).
-#[test]
-fn valid_gated_relevance_hides_the_required_finding() {
-    let def = json!({"items": integer_fields(&["gate", "answer"]), "binds": [
-        {"path": "gate", "required": true},
-        {"path": "answer", "required": true, "relevant": "valid($gate)"}
-    ]});
-    assert_eq!(
-        settled_answer(&def, &[]),
-        expect(&[("gate", "REQUIRED")], &["answer"])
-    );
-    // A valid gate shows the blank answer again, and its REQUIRED returns.
-    assert_eq!(
-        settled_answer(&def, &[("gate", json!(1))]),
-        expect(&[("answer", "REQUIRED")], &[])
-    );
-}
-
-/// `x` is relevant while `y` is valid; `y` is required while `w` is invalid.
-/// Validity settles only after a third pass, so the evaluator must not stop at two.
-#[test]
-fn validity_that_settles_late_still_hides_required() {
-    let def = json!({"items": integer_fields(&["w", "y", "x"]), "binds": [
-        {"path": "w", "required": true},
-        {"path": "y", "required": "not(valid($w))"},
-        {"path": "x", "required": true, "relevant": "valid($y)"}
-    ]});
-    assert_eq!(
-        settled_answer(&def, &[]),
-        expect(&[("w", "REQUIRED"), ("y", "REQUIRED")], &["x"])
-    );
-    assert_eq!(
-        settled_answer(&def, &[("y", json!(1))]),
-        expect(&[("w", "REQUIRED"), ("x", "REQUIRED")], &[])
-    );
-}
-
-/// The same late settling hides constraint and Shape findings on the hidden field.
-#[test]
-fn validity_that_settles_late_still_hides_constraint_and_shape() {
-    let def = json!({"items": integer_fields(&["w", "y", "x"]), "binds": [
-        {"path": "w", "required": true},
-        {"path": "y", "required": "not(valid($w))"},
-        {"path": "x", "constraint": "$ > 10", "relevant": "valid($y)"}
-    ], "shapes": [
-        {"id": "xShape", "target": "x", "constraint": "$ > 20", "message": "x must exceed 20"}
-    ]});
-    assert_eq!(
-        settled_answer(&def, &[("x", json!(1))]),
-        expect(&[("w", "REQUIRED"), ("y", "REQUIRED")], &["x"])
-    );
-    assert_eq!(
-        settled_answer(&def, &[("y", json!(1)), ("x", json!(1))]),
-        expect(
-            &[
-                ("w", "REQUIRED"),
-                ("x", "CONSTRAINT_FAILED"),
-                ("x", "SHAPE_FAILED")
-            ],
-            &[]
-        )
-    );
-}
-
-/// A field hidden by `valid()` has no findings, so it reads as valid to the next
-/// field in the chain (Core §3.5.9: `true` if it has no error-severity results).
-#[test]
-fn a_field_hidden_by_validity_reads_as_valid_downstream() {
-    let def = json!({"items": integer_fields(&["a", "b", "c"]), "binds": [
-        {"path": "a", "required": true},
-        {"path": "b", "required": true, "relevant": "valid($a)"},
-        {"path": "c", "required": true, "relevant": "valid($b)"}
-    ]});
-    assert_eq!(
-        settled_answer(&def, &[]),
-        expect(&[("a", "REQUIRED"), ("c", "REQUIRED")], &["b"])
-    );
-    assert_eq!(
-        settled_answer(&def, &[("a", json!(1))]),
-        expect(&[("b", "REQUIRED")], &["c"])
-    );
-}
-
-/// A Shape's `valid()` reads this evaluation's findings (Core §3.5.9: the current
-/// computed state), not the caller's previous cycle, so a recheck sees them too.
-#[test]
-fn shape_reading_valid_sees_this_evaluations_findings() {
-    let def = json!({"items": integer_fields(&["w", "z"]), "binds": [
-        {"path": "w", "required": true}
-    ], "shapes": [
-        {"id": "wFirst", "target": "z", "constraint": "valid($w)", "message": "Fix w first"}
-    ]});
-    assert_eq!(
-        settled_answer(&def, &[("z", json!(1))]),
-        expect(&[("w", "REQUIRED"), ("z", "SHAPE_FAILED")], &[])
-    );
-    assert_eq!(
-        settled_answer(&def, &[("w", json!(1)), ("z", json!(1))]),
-        expect(&[], &[])
-    );
-}
-
-#[test]
 fn repeat_calculate_has_access_to_index_and_count() {
     let def = json!({
         "$formspec": "1.0",
@@ -4201,7 +3960,6 @@ fn expression_default_applied_on_relevance_transition() {
         &data,
         &EvalOptions::default().context(EvalContext {
             now_iso: None,
-            previous_validations: None,
             previous_non_relevant: Some(result1.non_relevant.clone()),
             ..EvalContext::default()
         }),
@@ -4243,7 +4001,6 @@ fn money_literal_default_coerces_string_amount_on_relevance_transition() {
         &data,
         &EvalOptions::default().context(EvalContext {
             now_iso: None,
-            previous_validations: None,
             previous_non_relevant: Some(result1.non_relevant.clone()),
             ..EvalContext::default()
         }),
@@ -4278,7 +4035,6 @@ fn expression_default_does_not_overwrite_user_value() {
         &data,
         &EvalOptions::default().context(EvalContext {
             now_iso: None,
-            previous_validations: None,
             previous_non_relevant: Some(vec!["name".to_string()]),
             ..EvalContext::default()
         }),
@@ -4315,7 +4071,6 @@ fn literal_default_still_works_after_expression_default_change() {
         &data,
         &EvalOptions::default().context(EvalContext {
             now_iso: None,
-            previous_validations: None,
             previous_non_relevant: Some(result1.non_relevant.clone()),
             ..EvalContext::default()
         }),
@@ -4355,7 +4110,6 @@ fn expression_default_in_repeat_group() {
         &data,
         &EvalOptions::default().context(EvalContext {
             now_iso: None,
-            previous_validations: None,
             previous_non_relevant: Some(result1.non_relevant.clone()),
             ..EvalContext::default()
         }),
@@ -4933,24 +4687,16 @@ fn host_snapshot_agrees_on_declared_fields_preserved_values_and_row_counts() {
 fn recheck_uses_the_filed_subject_and_distinguishes_input_refusal() {
     let fixture: Value = serde_json::from_str(include_str!(
         "../../../../tests/conformance/fixtures/subject-recheck.json"
-    ))
-    .unwrap();
+    )).unwrap();
     let definition = &fixture["definition"];
     let mut subject = fixture["response"]["subject"].clone();
-    for (year, refused) in [
-        (9_007_199_254_740_991_i64, false),
-        (9_007_199_254_740_993, true),
-    ] {
+    for (year, refused) in [(9_007_199_254_740_991_i64, false), (9_007_199_254_740_993, true)] {
         subject["keys"]["serial"] = json!(year);
         let context = formspec_eval::EvalContext {
             subject: formspec_eval::EvalSubject::for_response(definition, Some(&subject)),
             ..Default::default()
         };
-        let result = evaluate(
-            definition,
-            &Default::default(),
-            &EvalOptions::new().context(context),
-        );
+        let result = evaluate(definition, &Default::default(), &EvalOptions::new().context(context));
         assert_eq!(result.refused, refused);
         if refused {
             assert_eq!(result.validations[0].path, "#subjectKeys.serial");

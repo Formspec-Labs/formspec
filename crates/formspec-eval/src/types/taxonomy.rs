@@ -182,6 +182,8 @@ pub enum ValidationCode {
     SeedPredicateScope,
     /// A field reference traverses a repeatable group without a subscript.
     UnsubscriptedRepeatReference,
+    /// A MIP query takes an argument other than a `$path` field reference (Core §3.5.9).
+    MipArgumentNotField,
     /// A Group inclusion needs assembly before evaluation.
     UnassembledDefinitionReference,
     /// Multiple calculate Binds can write the same Item.
@@ -224,6 +226,7 @@ impl ValidationCode {
             "ARITY_MISMATCH" => Self::ArityMismatch,
             "SEED_PREDICATE_SCOPE" => Self::SeedPredicateScope,
             "UNSUBSCRIPTED_REPEAT_REFERENCE" => Self::UnsubscriptedRepeatReference,
+            "MIP_ARGUMENT_NOT_FIELD" => Self::MipArgumentNotField,
             "UNASSEMBLED_DEFINITION_REFERENCE" => Self::UnassembledDefinitionReference,
             "CALCULATE_TARGET_CONFLICT" => Self::CalculateTargetConflict,
             "MIN_REPEAT" => Self::MinRepeat,
@@ -252,6 +255,7 @@ impl ValidationCode {
             ValidationCode::ArityMismatch => "ARITY_MISMATCH",
             ValidationCode::SeedPredicateScope => "SEED_PREDICATE_SCOPE",
             ValidationCode::UnsubscriptedRepeatReference => "UNSUBSCRIPTED_REPEAT_REFERENCE",
+            ValidationCode::MipArgumentNotField => "MIP_ARGUMENT_NOT_FIELD",
             ValidationCode::UnassembledDefinitionReference => "UNASSEMBLED_DEFINITION_REFERENCE",
             ValidationCode::CalculateTargetConflict => "CALCULATE_TARGET_CONFLICT",
             ValidationCode::MinRepeat => "MIN_REPEAT",

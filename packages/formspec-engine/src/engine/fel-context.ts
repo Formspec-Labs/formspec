@@ -79,9 +79,8 @@ export function felContextSnapshot(options: FelContextSnapshotInput): FelContext
     const truePaths = (states: Record<string, boolean> | undefined) =>
         Object.keys(states ?? {}).filter(path => states?.[path] === true);
     const mips: FelContextSnapshot['mips'] = {
-        invalid: (result?.validations ?? [])
-            .filter(finding => finding.severity === 'error' && finding.path)
-            .map(finding => finding.path),
+        // The evaluator's settled `valid()` set (Core §3.5.9); host-injected results are not in it.
+        invalid: result?.invalidPaths ?? [],
         nonRelevant: result?.nonRelevant ?? [],
         readonly: truePaths(result?.readonly),
         required: truePaths(result?.required),

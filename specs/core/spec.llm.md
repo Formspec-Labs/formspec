@@ -151,7 +151,7 @@ Creation-time values are outside this cycle. Re-evaluating a Response MUST NOT p
 
 ### Phase 1: Rebuild
 **Trigger**: Structural change (repeat added/removed, definition replaced).
-**Action**: Re-index items and check the Definition. Refuse dependency cycles, invalid FEL syntax, unknown calls, and arity mismatches before evaluating expressions. Check signatures against built-ins and the evaluation’s registered extensions.
+**Action**: Re-index items and check the Definition. Refuse dependency cycles, invalid FEL syntax, unknown calls, and arity mismatches before evaluating expressions. A MIP query depends on the state it reads: `valid($p)` on `p`'s value, `required` and `constraint` Binds, inherited `relevant` and error-severity Shapes targeting `p`; `relevant`/`readonly` on the inherited Binds of that name; `required` on its own Bind and inherited `relevant`. Check signatures against built-ins and the evaluation’s registered extensions.
 *No-op after initial load if no repeatable groups.*
 
 ### Phase 2: Recalculate
@@ -263,7 +263,7 @@ Key rules: arithmetic requires `number` operands; `&` requires `string` operands
 
 **Money**: `money`, `moneyAmount`, `moneyCurrency`, `moneyAdd` (same currency required), `moneySum`.
 
-**MIP-state queries**: `valid($path)`, `relevant($path)`, `readonly($path)`, `required($path)` — query computed state of fields.
+**MIP-state queries**: `valid($path)`, `relevant($path)`, `readonly($path)`, `required($path)` — query the computed state of fields in the same evaluation, Bind expressions included. The argument must be a `$path` (`$amount` is the current row's field inside a repeat); `@current.amount`, a variable, a literal or a function result is `MIP_ARGUMENT_NOT_FIELD`. `valid($p)` reads `p`'s Bind and Shape results, not external or explanation results; a non-relevant field reads as valid. Report the single state in which every `valid()` read agrees with the reported results, or refuse with `CIRCULAR_DEPENDENCY`.
 
 **Repeat navigation**: `prev()`, `next()` (return adjacent rows or null), `parent()` (enclosing context). Must only be called within repeat context.
 
@@ -289,7 +289,7 @@ Missing field (exists in definition but no value) → `null`. Field key not in d
 
 ### Error Handling
 
-**Definition errors** (load-time, block processing): syntax errors, undefined references, undefined instances/functions, circular dependencies, arity mismatches, calculate target conflicts, instance-path Binds (`instances.<name>…` / `@instance('<name>')…` as a Bind `path`). Rebuild refuses evaluation with a `definition` ValidationResult at the authored expression's JSONPath: `SYNTAX_ERROR` (message carries the expression and position), `ARITY_MISMATCH`, `SEED_PREDICATE_SCOPE`, `UNSUBSCRIPTED_REPEAT_REFERENCE`; `{{}}` text interpolation is exempt from the first two. A dependency cycle is `CIRCULAR_DEPENDENCY` with an empty path.
+**Definition errors** (load-time, block processing): syntax errors, undefined references, undefined instances/functions, circular dependencies, arity mismatches, calculate target conflicts, instance-path Binds (`instances.<name>…` / `@instance('<name>')…` as a Bind `path`). Rebuild refuses evaluation with a `definition` ValidationResult at the authored expression's JSONPath: `SYNTAX_ERROR` (message carries the expression and position), `ARITY_MISMATCH`, `SEED_PREDICATE_SCOPE`, `UNSUBSCRIPTED_REPEAT_REFERENCE`, `MIP_ARGUMENT_NOT_FIELD`; `{{}}` text interpolation is exempt from the first two. A dependency cycle is `CIRCULAR_DEPENDENCY` with an empty path.
 
 **Evaluation errors** (runtime, produce `null` + diagnostic): type errors, division by zero, arithmetic overflow, including an aggregate's running total (`FEL_ARITHMETIC_OVERFLOW`), index out of bounds, date overflow, regex errors. Evaluation errors don't halt — they produce `null` so the rest of the form keeps working.
 

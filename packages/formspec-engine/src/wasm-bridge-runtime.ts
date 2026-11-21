@@ -445,16 +445,6 @@ export function wasmCreateRepeatRow(
 type WasmEvaluationContext = {
     nowIso?: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
-    previousValidations?: Array<{
-        path: string;
-        severity: string;
-        constraintKind: string;
-        code: string;
-        message: string;
-        source?: string;
-        shapeId?: string;
-        context?: Record<string, unknown>;
-    }>;
     previousNonRelevant?: string[];
     instances?: Record<string, unknown>;
     explanations?: import('./engine/warning-explanations.js').DraftExplanation[];

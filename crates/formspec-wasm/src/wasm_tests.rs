@@ -477,8 +477,10 @@ mod tests {
         );
     }
 
+    /// One evaluation settles `valid()` on its own findings and reports what it read as
+    /// invalid (Core §3.5.9); no host replays a previous evaluation's findings.
     #[test]
-    fn evaluate_definition_inner_uses_previous_validations_context() {
+    fn evaluate_definition_inner_settles_valid_and_reports_invalid_paths() {
         let def = json!({
             "$formspec": "1.0",
             "title": "Test",
@@ -494,16 +496,10 @@ mod tests {
         .to_string();
         let data = json!({}).to_string();
 
-        let first_result = evaluate_definition_inner(&def, &data, None, None).unwrap();
-        let first_val: Value = serde_json::from_str(&first_result).unwrap();
-        let context = json!({
-            "previousValidations": first_val["validations"]
-        })
-        .to_string();
-
-        let second_result = evaluate_definition_inner(&def, &data, Some(context), None).unwrap();
-        let second_val: Value = serde_json::from_str(&second_result).unwrap();
-        assert_eq!(second_val["values"]["ageStatus"], json!("invalid"));
+        let result = evaluate_definition_inner(&def, &data, None, None).unwrap();
+        let result: Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(result["values"]["ageStatus"], json!("invalid"));
+        assert_eq!(result["invalidPaths"], json!(["age"]));
     }
 
     #[cfg(feature = "fel-authoring")]

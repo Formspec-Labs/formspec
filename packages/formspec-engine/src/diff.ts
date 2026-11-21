@@ -32,6 +32,8 @@ export interface EvalResult {
     explanationFindings?: ExplanationFinding[];
     candidateExplanations?: DraftExplanation[];
     nonRelevant: string[];
+    /** Paths that `valid()` reads as invalid in the settled evaluation (Core §3.5.9). */
+    invalidPaths: string[];
     variables: Record<string, unknown>;
     scopedVariables?: Record<string, Record<string, unknown>>;
     preservedValues?: Record<string, unknown>;
