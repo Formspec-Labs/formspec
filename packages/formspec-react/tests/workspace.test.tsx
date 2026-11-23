@@ -122,6 +122,17 @@ it('uses the tracker’s filled and total parameters in the authored locale', ()
     expect(host.querySelector('aside')?.textContent).toContain('Respondidas: 1 de 6');
 });
 
+it('focuses the selected heading on entry only for the addressed workspace', () => {
+    const ordinary = actRender(<FormspecForm definition={definition} />);
+    expect(ordinary.contains(document.activeElement)).toBe(false);
+    const inactive = actRender(<FormspecForm definition={definition} activeSection="details" sectionNavigationActive={false} />);
+    expect(inactive.contains(document.activeElement)).toBe(false);
+    const addressed = actRender(<FormspecForm definition={definition} activeSection="details" sectionNavigationActive />);
+    const heading = addressed.querySelector('.formspec-workspace__content h1, .formspec-workspace__content h2, .formspec-workspace__content h3');
+    expect(heading?.textContent).toBe('Details');
+    expect(document.activeElement).toBe(heading);
+});
+
 it.each(['search', 'finding'])('focuses a visible read-only question from %s', source => {
     const engine = createFormEngine({
         ...definition, binds: [{ path: 'details.approval', readonly: 'true' }],

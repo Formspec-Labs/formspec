@@ -170,6 +170,7 @@ describe('Repeater ergonomics: concise headers, compact outline Remove, seedFrom
 
         // Add a second row: focus must skip readOnly `rowCode` and land on editable `partnerName`.
         const addBtn = host.querySelector<HTMLButtonElement>('.formspec-repeat-add')!;
+        expect(addBtn.getAttribute('aria-label')).toBe(`Add ${longPrompt}`);
         act(() => addBtn.click());
         await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
         expect(engine.repeats.partners.value).toBe(2);
@@ -190,6 +191,7 @@ describe('Repeater ergonomics: concise headers, compact outline Remove, seedFrom
         const removeButtons = host.querySelectorAll<HTMLButtonElement>('.formspec-repeat-remove');
         expect(removeButtons).toHaveLength(2);
         expect(removeButtons[1].textContent).toBe('Remove');
+        expect(removeButtons[1].getAttribute('aria-label')).toBe(`Remove ${longPrompt} 2`);
         expect(removeButtons[1].className).not.toContain('formspec-button-danger');
 
         // Removing a non-empty row asks for inline confirmation first; Escape cancels.
@@ -264,6 +266,8 @@ describe('Repeater ergonomics: concise headers, compact outline Remove, seedFrom
 
         const engine = createFormEngine(seededDef);
         const host = actRender(<FormspecForm engine={engine} />);
+
+        expect(host.querySelector('.formspec-repeat h3.formspec-repeat-heading')?.textContent).toBe('Organizations');
 
         // Carried rows (indices 0 & 1) have no Remove button by default.
         expect(engine.repeats.entries.value).toBe(2);

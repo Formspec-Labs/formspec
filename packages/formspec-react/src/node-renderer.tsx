@@ -389,6 +389,7 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
 
     const actionIntent = resolution.action?.intent;
 
+    // Actions inside a form must never trigger a second, native submission.
     return (
         <div
             ref={controlRef}
@@ -400,13 +401,6 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
         >
             <button
                 ref={setButtonRef}
-                // type="button" mirrors the webcomponent's ActionButton renderer
-                // (packages/formspec-webcomponent/src/components/interactive.ts):
-                // §10 is silent on the HTML type, but if an ActionButton lives
-                // inside a parent <form> and the click handler throws,
-                // type="submit" cascades to native form submission and bypasses
-                // Response Actions entirely. type="button" eliminates the
-                // foot-gun and keeps cross-renderer parity.
                 type="button"
                 data-action-ref={actionRef}
                 data-action-intent={actionIntent}

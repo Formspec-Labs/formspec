@@ -485,11 +485,13 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
         return () => registerFieldJump(null);
     });
 
-    const previousPage = useRef({ section: active?.id, navigationActive });
+    const previousPage = useRef<{ section: string | undefined; navigationActive: boolean } | null>(null);
     useLayoutEffect(() => {
         const previous = previousPage.current;
         previousPage.current = { section: active?.id, navigationActive };
-        const changed = navigationActive && (previous.section !== active?.id || !previous.navigationActive);
+        const changed = navigationActive && (previous
+            ? previous.section !== active?.id || !previous.navigationActive
+            : selected !== undefined && !workspaceNavigation?.focusField);
         const pending = jump && jump.section.id === active?.id && (navigationActive || active?.id === undefined);
         const stickyOffset = (changed || pending) ? syncStickyOffsetVar(containerRef.current) : 0;
 
@@ -544,7 +546,7 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
             return () => cancelAnimationFrame(frame);
         }
         finish();
-    }, [active?.id, navigationActive, jump, focusField, touchField, chrome, containerRef, engine, hasContainerLabel]);
+    }, [active?.id, navigationActive, selected, workspaceNavigation?.focusField, jump, focusField, touchField, chrome, containerRef, engine, hasContainerLabel]);
 
     const content = new Set(allPages.map(page => page.content));
     const namedPages = pages.filter(page => page.id);

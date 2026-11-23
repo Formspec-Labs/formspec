@@ -41,7 +41,9 @@ function summarizeRepeatTitle(rawTitle: string): { isLongPrompt: boolean; shortL
     if (colon > 0 && colon <= 44) {
         return { isLongPrompt: true, shortLabel: trimmed.slice(0, colon).trim() };
     }
-    return { isLongPrompt: true, shortLabel: 'Item' };
+    // Keep the visible button wording a prefix of its full accessible name.
+    const prefix = trimmed.slice(0, 48).replace(/\s+\S*$/, '').trim();
+    return { isLongPrompt: true, shortLabel: prefix || trimmed };
 }
 
 function isNonEmptyValue(val: unknown): boolean {
@@ -273,8 +275,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
     const { count, relevant, canAdd, canRemove, isSeeded, upstreamSeededCount } = useRepeatAffordances(repeatPath, locks);
     const title = (node.props?.title as string) || node.repeatGroup || repeatPath;
     const { isLongPrompt, shortLabel } = summarizeRepeatTitle(title);
-    const headingLevel = useHeadingLevel();
-    const Heading = `h${Math.min(6, Math.max(1, headingLevel))}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+    const Heading = `h${useHeadingLevel()}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
     const autoGridColumns = typeof node.props?.autoGridColumns === 'number' ? node.props.autoGridColumns : undefined;
     const groupErrors = usePathShapeErrors(repeatPath);
 
@@ -406,7 +407,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
             data-invalid={hasGroupErrors ? 'true' : undefined}
             ref={containerRef}
         >
-            {isLongPrompt && <Heading className="formspec-repeat-heading">{title}</Heading>}
+            <Heading className="formspec-repeat-heading">{title}</Heading>
             {hasGroupErrors && (
                 <div className="formspec-group-errors" role="alert">
                     {groupErrors.map((err, i) => <p key={i}>{err.message}</p>)}
@@ -416,12 +417,12 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
                 {instances.map((children, idx) => {
                     const baseDisplayLabel = chromeText(engine, 'repeat.row', { label: title, index: idx + 1 });
                     const ariaRowLabel = chromeText(engine, 'repeat.rowOf', {
-                        label: isLongPrompt ? shortLabel : title,
+                        label: title,
                         index: idx + 1,
                         total: count,
                     });
                     const removeAriaLabel = chromeText(engine, 'repeat.remove', {
-                        label: `${shortLabel} ${idx + 1}`,
+                        label: `${title} ${idx + 1}`,
                     });
                     const isLockedRow = (lockSeeded && idx < lockedCount)
                         || (locks.allowRemove !== true && isRowAllReadonly(engine, repeatPath, idx));
@@ -463,6 +464,7 @@ export function RepeatGroup({ node, renderChild }: { node: LayoutNode; renderChi
                 <button
                     type="button"
                     className="formspec-repeat-add formspec-focus-ring"
+                    aria-label={chromeText(engine, 'repeat.add', { label: title })}
                     onClick={handleAdd}
                     ref={addBtnRef}
                 >
@@ -488,6 +490,7 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
     const groupLabel = useMemo(() => engine.getItemLabelSignal(bindKey) ?? NO_LABEL, [engine, bindKey]);
     const groupTitle = useSignal(groupLabel) || bindKey;
     const { isLongPrompt, shortLabel } = summarizeRepeatTitle(groupTitle);
+    const Heading = `h${useHeadingLevel()}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
     const [openIndex, setOpenIndex] = useState<number | null>(
         typeof defaultOpen === 'number' ? defaultOpen : count > 0 ? count - 1 : null,
     );
@@ -583,6 +586,7 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
 
     return (
         <div className="formspec-repeat formspec-repeat--accordion" data-bind={bindKey} data-repeat-path={bindKey} ref={containerRef}>
+            <Heading className="formspec-repeat-heading">{groupTitle}</Heading>
             <div className="formspec-accordion formspec-accordion--repeat">
                 {Array.from({ length: count }, (_, i) => {
                     const isOpen = allowMultiple ? openIndices.has(i) : openIndex === i;
@@ -609,7 +613,7 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
                                     <button
                                         type="button"
                                         className="formspec-repeat-remove formspec-focus-ring"
-                                        aria-label={chromeText(engine, 'repeat.remove', { label: `${shortLabel} ${i + 1}` })}
+                                        aria-label={chromeText(engine, 'repeat.remove', { label: `${groupTitle} ${i + 1}` })}
                                         onClick={() => handleRemove(i)}
                                     >
                                         {isLongPrompt
@@ -626,6 +630,7 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
                 <button
                     type="button"
                     className="formspec-repeat-add formspec-focus-ring"
+                    aria-label={chromeText(engine, 'repeat.add', { label: groupTitle })}
                     onClick={handleAdd}
                     ref={addBtnRef}
                 >

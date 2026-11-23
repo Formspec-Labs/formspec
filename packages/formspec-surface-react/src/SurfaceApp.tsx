@@ -838,10 +838,14 @@ export function SurfaceAppView(props: SurfaceAppProps & {
     const previous = previousRoute.current;
     previousRoute.current = routeIdentity;
     if (routeIdentity === undefined || previous === undefined || routeIdentity === previous || browser?.anchor || browser?.workspace?.focusField) return;
+    // A section may already have taken focus during its child's layout effect. A form
+    // still loading will focus its selected heading when it mounts.
+    if (workspace?.activeSection && main.current?.contains(document.activeElement)
+        && document.activeElement?.closest('.formspec-workspace__content[data-formspec-section]')) return;
     const target = main.current?.querySelector<HTMLElement>('.fs-surface-route__title, h1, [role="heading"][aria-level="1"]') ?? main.current;
     target?.setAttribute('tabindex', '-1');
     target?.focus({ preventScroll: true });
-  }, [routeIdentity, browser?.anchor, browser?.workspace?.focusField]);
+  }, [routeIdentity, browser?.anchor, browser?.workspace?.focusField, workspace?.activeSection]);
 
   const overviewDestination = useMemo(
     () =>
