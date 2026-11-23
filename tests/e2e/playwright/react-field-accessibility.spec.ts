@@ -32,19 +32,40 @@ base('the keyboard and reader reach the readonly value and the named upload acti
   }
 });
 
-base('records the virtual reader announcement for a required native date', async ({ page }, info) => {
-  const walk = await Walk.open(page, { url: route });
-  try {
-    const date = page.getByLabel(/Due date/);
-    await expect(date).toHaveAttribute('type', 'date');
-    await expect(date).toHaveJSProperty('required', true);
-    await expect(date).toHaveAttribute('aria-required', 'true');
-    await page.getByRole('textbox', { name: 'Contact name' }).focus();
-    await walk.sr.clearSpokenPhraseLog();
-    await date.focus();
-    await expect.poll(() => walk.sr.lastSpokenPhrase()).toMatch(/due date/i);
-    await info.attach('virtual-date-speech', { body: await walk.sr.lastSpokenPhrase(), contentType: 'text/plain' });
-  } finally {
-    await walk.sr.stop();
-  }
-});
+for (const { locale, label, optionalLabel, required } of [
+  { locale: 'en-US', label: 'Due date', optionalLabel: 'Follow-up date', required: 'Required' },
+  { locale: 'fr-FR', label: 'Date limite', optionalLabel: 'Date de suivi', required: 'Obligatoire' },
+]) {
+  base.describe(`date labels (${locale})`, () => {
+    base.use({ locale });
+    base('announces the localized requirement once and keeps the visible label and asterisk', async ({ page }, info) => {
+      const walk = await Walk.open(page, { url: route });
+      try {
+        const due = page.locator('[data-name="intro.due"]');
+        const optional = page.locator('[data-name="intro.followUp"]');
+        const date = due.locator('input[type="date"]');
+        const optionalDate = optional.locator('input[type="date"]');
+        await expect(date).toHaveJSProperty('required', true);
+        await expect(date).toHaveAttribute('aria-required', 'true');
+        await expect(date).toHaveAccessibleName(`${label} ${required}`);
+        await expect(optionalDate).toHaveJSProperty('required', false);
+        await expect(optionalDate).toHaveAccessibleName(optionalLabel);
+        expect(await due.locator('label').evaluate(el => el.firstChild?.textContent)).toBe(label);
+        const asterisk = due.locator('label .formspec-required');
+        await expect(asterisk).toBeVisible();
+        await expect(asterisk).toHaveText('*');
+        await expect(asterisk).toHaveAttribute('aria-hidden', 'true');
+        await expect(due.locator('label .formspec-sr-only')).toHaveCSS('clip', 'rect(0px, 0px, 0px, 0px)');
+        await expect(optional.locator('label .formspec-required')).toHaveCount(0);
+        await walk.field('intro.followUp', { label: optionalLabel, required: false });
+        await walk.field('intro.due', { label, required: true });
+        walk.expectClean();
+        const speech = await walk.sr.lastSpokenPhrase();
+        expect(speech).toContain(`${label} ${required}`);
+        await info.attach('virtual-date-speech', { body: speech, contentType: 'text/plain' });
+      } finally {
+        await walk.sr.stop();
+      }
+    });
+  });
+}

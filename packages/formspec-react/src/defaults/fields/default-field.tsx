@@ -9,11 +9,21 @@ import { blockReadonlyChange, GroupControl } from './group-control';
 import { renderControl, type InputAdornments } from './render-control';
 import { needTraceAttrs, projectionMetadataAttrs } from '../../projection-metadata.js';
 import { useSemanticFieldControl } from '../../use-semantic-field-control.js';
+import { useChromeText } from '../../use-chrome-text';
 
 /** Definition item `prefix`/`suffix` (core §4.2.3) for the field at instance `path`. */
 function itemAdornments(engine: ReturnType<typeof useFormspecContext>['engine'], path: string): InputAdornments {
     const item = findItemByKey(engine.getDefinition().items ?? [], path);
     return { prefix: item?.prefix, suffix: item?.suffix };
+}
+
+/** Native date controls can omit the required state from the browser accessibility tree. */
+function RequiredDateLabel() {
+    const required = useChromeText()('screener.required');
+    return <>
+        <abbr className="formspec-required usa-label--required" title={required} aria-hidden="true"> *</abbr>
+        <span className="formspec-sr-only usa-sr-only"> {required}</span>
+    </>;
 }
 
 /**
@@ -137,7 +147,9 @@ export function DefaultField({ field, node }: FieldComponentProps) {
         </p>
     );
     const requiredNode = field.required && !isReadonly ? (
-        <abbr className="formspec-required usa-label--required" title="required"> *</abbr>
+        node.component === 'DatePicker'
+            ? <RequiredDateLabel />
+            : <abbr className="formspec-required usa-label--required" title="required"> *</abbr>
     ) : null;
 
     if (node.component === 'Toggle') {

@@ -520,8 +520,8 @@ export class Walk {
         // Only a group around the principal control can name the field. An optgroup
         // or a sibling help panel does not change a single input into a composite.
         const owners = controls.first().locator('xpath=ancestor::*');
-        // ARIA group has no required state. The adapters append a dedicated accessible marker
-        // to its name; ordinary words in the authored label do not count as a marker.
+        // A group has no ARIA required state, and a native date may omit it from the tree.
+        // Use the adapter's explicit accessible marker independently of the wording in the authored label.
         const marker = await fieldRoot.locator('.formspec-required[aria-hidden="true"] + .formspec-sr-only:not([aria-hidden="true"])')
             .evaluateAll(nodes => nodes.map(node => (node.textContent ?? '').trim()).find(Boolean));
         const markedLabel = marker && expected(`${label.text} ${marker}`);
@@ -532,10 +532,14 @@ export class Walk {
         const isGroup = await groups.count() > 0;
         const composite = !isGroup && count > 1;
         if (!isGroup) {
-            const name = asRegex(label, composite ? '(?:\\s+.*)?' : '');
-            if (!await this.byRoles(fieldRoot, actionable, name).count())
+            const suffix = composite ? '(?:\\s+.*)?' : '';
+            const named = (roles: typeof actionable | typeof INPUT_ROLES) => {
+                const authored = this.byRoles(fieldRoot, roles, asRegex(label, suffix));
+                return markedLabel ? authored.or(this.byRoles(fieldRoot, roles, asRegex(markedLabel, suffix))) : authored;
+            };
+            if (!await named(actionable).count())
                 this.found(`${f.path}: no control named for the label "${label.text}"`);
-            if (composite && await this.byRoles(fieldRoot, INPUT_ROLES, name).count() !== await this.byRoles(fieldRoot, INPUT_ROLES).count())
+            if (composite && await named(INPUT_ROLES).count() !== await this.byRoles(fieldRoot, INPUT_ROLES).count())
                 this.found(`${f.path}: a control does not open with the label "${label.text}"`);
             if (await fieldRoot.evaluate((el, selector) => el.matches(selector), GROUP_CONTROL))
                 this.found(`${f.path}: no group named for the label "${label.text}"`);
@@ -571,7 +575,8 @@ export class Walk {
                 if (!options.some((o) => asRegex(o).test(heardName)) && !asRegex(label).test(heardName) && !(options.length === 0 && heardIs(heardName, label, true)))
                     this.found(`${f.path}: screen reader heard "${stop.phrase}", neither the label "${label.text}" nor one of its options`);
             } else {
-                if (!heardIs(heardName, label, composite)) this.found(`${f.path}: screen reader heard "${stop.phrase}", not the label "${label.text}"`);
+                if (!heardIs(heardName, label, composite) && !(markedLabel && heardIs(heardName, markedLabel, composite)))
+                    this.found(`${f.path}: screen reader heard "${stop.phrase}", not the label "${label.text}"`);
             }
             if (w.hint) {
                 const hint = want(w.hint);

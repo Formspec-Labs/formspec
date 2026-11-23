@@ -192,6 +192,10 @@ createRoot(document.getElementById('root')!).render(
           $formspecLocale: '2.0', version: '1.0.0', locale: 'en',
           target: { kind: 'definition', url: definition },
           strings: { 'due.errors.REQUIRED': 'Choose a due date to continue.' },
+        }, {
+          $formspecLocale: '2.0', version: '1.0.0', locale: 'fr',
+          target: { kind: 'definition', url: definition },
+          strings: { 'due.label': 'Date limite', 'followUp.label': 'Date de suivi', '$ui.screener.required': 'Obligatoire' },
         }] : undefined,
         readSummaries: showsTracker ? readTracker : undefined,
         resolveDefinitionComponent: ({ definition: target }) => !workspace && !alternatingMode && target.url === definition ? componentDocument : undefined,
