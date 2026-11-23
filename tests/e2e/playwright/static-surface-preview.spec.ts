@@ -90,11 +90,13 @@ test('the published preview runs the emitted walk for every form slot', async ({
   const assets = info.outputPath('inputs');
   const generated = info.outputPath('generated');
   const bundle = resolve(assets, 'registration.bundle.json');
+  const config = resolve(generated, 'playwright.config.mjs');
   await Promise.all([mkdir(assets, { recursive: true }), mkdir(generated, { recursive: true })]);
   // Playwright's output directory can sit outside this checkout's dependency tree.
   await symlink(resolve('node_modules'), resolve(generated, 'node_modules'), 'junction');
   await Promise.all([
     writeFile(bundle, JSON.stringify(surfaceWalkExport)),
+    writeFile(config, `export default ${JSON.stringify({ use: { channel: info.project.use.channel } })};\n`),
     writeFile(resolve(assets, 'preview.json'), JSON.stringify({
       editions: [{ scope: 'registration', bundle: 'registration.bundle.json' }],
     })),
@@ -105,7 +107,7 @@ test('the published preview runs the emitted walk for every form slot', async ({
     const url = new URL('/#/?edition=registration', page.url());
     await run(process.execPath, [cli, 'emit', '--bundle', bundle, '--url', url.href, '--params', '{"state":"ny"}',
       '--out', resolve(generated, 'registration.spec.ts')]);
-    const { stdout } = await run(process.execPath, [cli, 'test', '--workers=1', '--output', resolve(generated, 'results')],
+    const { stdout } = await run(process.execPath, [cli, 'test', '--config', config, '--workers=1', '--output', resolve(generated, 'results')],
       { cwd: generated, timeout: 45_000 })
       .catch(error => { throw new Error(error.stdout || error.message, { cause: error }); });
     await info.attach('emitted-walk-results', { body: stdout, contentType: 'text/plain' });
