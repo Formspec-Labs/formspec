@@ -3,7 +3,12 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const route = '/surface-browser.html?workspace&accessibleFields#/filing/ny';
 const errorText = 'Choose a due date to continue.';
-const requiredDateControl = /(?=.*\bdue date\b)(?=.*\b(?:date edit|edit text|stepper)\b)/i;
+const requiredDateControl = /(?=.*\bdue date\b)(?=.*\b(?:date edit|edit text|spin button|stepper)\b)/i;
+
+/** Guidepup joins each capture's utterances with a period and a space. Keep the date and its segments. */
+function requiredDateUtterances(speech: string): string[] {
+  return [...new Set(speech.split(/\.\s+/).filter(phrase => requiredDateControl.test(phrase)))];
+}
 
 async function open(page: Page) {
   await page.goto(route);
@@ -65,10 +70,10 @@ if (process.env.FORMSPEC_WALK_SR === 'os') {
     let requiredSpeech: string;
     if (onMac) {
       // Tab into the first date segment from the preceding form control.
-      await page.getByRole('button', { name: /Evidence.*Upload a file/i }).focus();
+      await listen('before-required-date', () => page.getByRole('button', { name: /Evidence.*Upload a file/i }).focus());
       requiredSpeech = await listen('required-date', () => page.keyboard.press('Tab'));
       await expect(due).toBeFocused();
-      if (!requiredDateControl.test(requiredSpeech)) {
+      if (!requiredDateUtterances(requiredSpeech).length) {
         // Guidepup polls the last phrase. An interaction hint can replace the date's
         // first utterance before polling sees it. Keep both captures and ask VoiceOver
         // to describe the same keyboard-focused item when the first capture missed it.
@@ -82,8 +87,9 @@ if (process.env.FORMSPEC_WALK_SR === 'os') {
       requiredSpeech = await listen('required-date', () => due.focus());
       await expect(due).toBeFocused();
     }
-    announce(requiredSpeech).toMatch(requiredDateControl);
-    announce(requiredSpeech.match(/\brequired\b/gi) ?? []).toHaveLength(1);
+    const dateUtterances = requiredDateUtterances(requiredSpeech);
+    announce(dateUtterances).not.toHaveLength(0);
+    announce(dateUtterances.join(' ').match(/\brequired\b/gi) ?? []).toHaveLength(1);
     // Let the live summary finish before focusing its link. Keep that link and the date spoken
     // after Enter in separate captures so the same message cannot satisfy both checks.
     const { result: jump, spokenPhrase: summarySpeech } = await screenReader.capture(() => submit(page, root), { capture: true });
