@@ -11,6 +11,7 @@ await initFormspecEngine();
 const options = new URLSearchParams(location.search);
 const mixedRepeat = options.has('mixedRepeat');
 const lockedRepeat = options.has('lockedRepeat');
+const seededRows = options.has('multipleRows') ? ['First record', 'Second record', 'Last record'] : ['Existing record'];
 let form: FormDefinition = mixedRepeat ? mixedRepeatDefinition : definition;
 if (lockedRepeat) form = lockedRepeatDefinition;
 if (options.has('conditionalSections')) form = conditionalSectionsDefinition;
@@ -40,7 +41,7 @@ if (options.has('extraSection')) {
 createRoot(document.getElementById('root')!).render(
   <FormspecForm definition={form}
     componentDocument={lockedRepeat ? lockedRepeatComponent : undefined}
-    initialData={lockedRepeat ? { review: { records: [{ title: 'Existing record' }] } }
+    initialData={lockedRepeat ? { review: { records: seededRows.map(title => ({ title })) } }
       : mixedRepeat ? { details: { rows: [{ show: false }, { show: true }] } } : undefined}
     hrefForSection={options.has('links') ? section => `#${section}` : undefined} />,
 );

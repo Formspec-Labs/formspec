@@ -18,6 +18,41 @@ test('honors the bound Accordion repeat locks while exercising the separate edit
     await expect(roster.getByRole('textbox', { name: 'Record title' })).toHaveValue('Existing record');
 });
 
+test('Walk opens a closed seeded Accordion row by keyboard and restores the previous row', async ({ page }) => {
+    const walk = await Walk.open(page, { url: '/definition-walk-workspace.html?lockedRepeat&multipleRows' });
+    const rows = page.locator('[data-repeat-path="review.records"] details');
+    const openRows = () => rows.evaluateAll(nodes => nodes.map(node => (node as HTMLDetailsElement).open));
+    await expect.poll(openRows).toEqual([false, false, true]);
+    const first = rows.first();
+    await first.locator('summary').evaluate(summary => {
+        summary.addEventListener('keydown', event => {
+            if ((event as KeyboardEvent).key === 'Enter') summary.setAttribute('data-entered-by-keyboard', 'true');
+        });
+    });
+
+    expect(await walk.field('review.records.title', { label: 'Record title' }), walk.findings.join('\n')).toBe(true);
+    await expect(first.locator('summary')).toHaveAttribute('data-entered-by-keyboard', 'true');
+    await expect.poll(openRows).toEqual([false, false, true]);
+
+    expect(await walk.show('review.records[0].title')).toBe(true);
+    await expect(first.getByRole('textbox', { name: 'Record title' })).toHaveValue('First record');
+    await walk.readingOrder([{ path: 'review.records[0].title', label: 'Record title' }]);
+    walk.expectClean();
+});
+
+test('Walk does not credit a closed Accordion row when its Enter action is blocked', async ({ page }) => {
+    const walk = await Walk.open(page, { url: '/definition-walk-workspace.html?lockedRepeat&multipleRows' });
+    const first = page.locator('[data-repeat-path="review.records[0]"]');
+    await first.locator('summary').evaluate(summary => {
+        summary.addEventListener('keydown', event => {
+            if ((event as KeyboardEvent).key === 'Enter') event.preventDefault();
+        }, true);
+    });
+    expect(await walk.field('review.records.title', { label: 'Record title' })).toBe(false);
+    expect(walk.findings).toContain('review.records[0]: Enter did not open the repeat row');
+    await expect(first.getByRole('textbox')).toHaveCount(0);
+});
+
 test('checks the revealed field in its own section even when the trigger is on another section', async ({ page }) => {
     const walk = await Walk.open(page, { url: '/definition-walk-workspace.html?revealCases' });
     expect(await walk.reveal('details.extra', { label: 'Extra' })).toBe('revealed');

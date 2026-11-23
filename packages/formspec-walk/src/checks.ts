@@ -89,6 +89,8 @@ interface Stop {
     descs: string[];
 }
 
+type AccordionRows = Array<{ path: string; open: boolean }>;
+
 /** Roles a Formspec control can carry; a phrase or snapshot line opens with one of these. */
 const INPUT_ROLES = ['textbox', 'spinbutton', 'combobox', 'listbox', 'checkbox', 'switch', 'slider'] as const;
 const CONTROL_ROLES = [...INPUT_ROLES, 'radiogroup', 'group', 'button'] as const;
@@ -301,19 +303,94 @@ export class Walk {
         }
     }
 
-    /** Bring the step that holds `path` into view — forward through a wizard, then from its first step; whether it is visible now. */
+    /** Bring the field into view, navigating the form and opening its Accordion row when needed. */
     show(path: string): Promise<boolean> {
         return this.showControl(this.root.locator(`[data-name="${path}"]`));
     }
 
-    private async showControl(control: Locator): Promise<boolean> {
+    private async showControl(control: Locator, accordion?: AccordionRows[]): Promise<boolean> {
         for (let pass = 0; pass < 2; pass += 1) {
             do {
                 if (await control.isVisible()) return true;
+                if (await this.expandAccordionRows(control, accordion)) return true;
             } while (await this.step('next'));
             if (pass === 0) while (await this.step('previous')) { /* back to the first step */ }
         }
         return control.isVisible();
+    }
+
+    private accordionRow(path: string): Locator {
+        return this.root.locator(`details[data-repeat-path=${JSON.stringify(path)}]`);
+    }
+
+    private async setAccordionRowOpen(path: string, open: boolean): Promise<boolean> {
+        const row = this.accordionRow(path);
+        const opened = row.and(this.root.locator('details[open]'));
+        if (Boolean(await opened.count()) === open) return true;
+        const summary = row.locator(':scope > summary');
+        if (!await summary.isVisible()) return false;
+        await summary.press('Enter');
+        try {
+            await opened.waitFor({ state: open ? 'visible' : 'hidden', timeout: 1500 });
+            return true;
+        } catch (error) {
+            if (error instanceof Error && error.name === 'TimeoutError') return false;
+            throw error;
+        }
+    }
+
+    /** Open enclosing repeat details from the outside in using the respondent's own control. */
+    private async expandAccordionRows(control: Locator, accordion?: AccordionRows[]): Promise<boolean> {
+        const enclosing = await control.evaluateAll(nodes => {
+            const paths: string[] = [];
+            for (let row = nodes[0]?.closest<HTMLDetailsElement>('details[data-repeat-path]'); row;
+                row = row.parentElement?.closest<HTMLDetailsElement>('details[data-repeat-path]') ?? null) {
+                if (!row.open) paths.unshift(row.dataset.repeatPath!);
+            }
+            return paths;
+        });
+        if (!enclosing.length || !await this.accordionRow(enclosing[0]).locator(':scope > summary').isVisible()) return false;
+        for (const path of enclosing) {
+            const siblings = this.accordionRow(path).locator('..').locator(':scope > details[data-repeat-path]');
+            if (accordion) accordion.push(await siblings.evaluateAll(rows => rows.map(row => ({
+                path: (row as HTMLDetailsElement).dataset.repeatPath!, open: (row as HTMLDetailsElement).open,
+            }))));
+            if (!await this.setAccordionRowOpen(path, true)) {
+                this.found(`${path}: Enter did not open the repeat row`);
+                return false;
+            }
+        }
+        return control.isVisible();
+    }
+
+    private async restoreAccordionRows(accordion: AccordionRows[]): Promise<void> {
+        for (const rows of accordion.reverse()) {
+            // Reopen the original row before closing any extras: a single-open Accordion closes
+            // the temporary row automatically. Restore nested panels before their outer panel.
+            const ordered = [...rows.filter(row => row.open), ...rows.filter(row => !row.open)];
+            for (const { path, open } of ordered) {
+                if (await this.accordionRow(path).count() && !await this.setAccordionRowOpen(path, open)) {
+                    this.found(`${path}: the previous repeat row state could not be restored`);
+                }
+            }
+        }
+    }
+
+    private async withFieldShown(path: string, check: () => Promise<boolean>, stay = false): Promise<boolean> {
+        const control = this.root.locator(`[data-name="${path}"]`);
+        const accordion: AccordionRows[] = [];
+        try {
+            if (stay) {
+                if (!await this.expandAccordionRows(control, accordion)
+                    && !await control.waitFor({ state: 'visible', timeout: 300 }).then(() => true, () => false)) return false;
+            } else if (!await this.showControl(control, accordion)) {
+                this.found(`${path}: never shown on any step`);
+                return false;
+            }
+            return await check();
+        } finally {
+            await this.restoreAccordionRows(accordion);
+        }
     }
 
     /** Advance to the next tab, wizard page, or workspace section. */
@@ -425,9 +502,12 @@ export class Walk {
         });
     }
 
-    private async checkField(f: LiveField, w: FieldWant, stop?: Stop): Promise<boolean> {
+    private checkField(f: LiveField, w: FieldWant, stop?: Stop): Promise<boolean> {
+        return this.withFieldShown(f.path, () => this.checkShownField(f, w, stop));
+    }
+
+    private async checkShownField(f: LiveField, w: FieldWant, stop?: Stop): Promise<boolean> {
         const before = this.findingCount;
-        if (!(await this.show(f.path))) { this.found(`${f.path}: never shown on any step`); return false; }
         const label = want(w.label);
         const fieldRoot = this.root.locator(`[data-name="${f.path}"]`).filter({ visible: true });
         if ((await fieldRoot.count()) !== 1) { this.found(`${f.path}: expected one visible field root, got ${await fieldRoot.count()}`); return false; }
@@ -668,22 +748,20 @@ export class Walk {
             if (!recipe) return false;
             const fieldRoot = this.root.locator(`[data-name="${f.path}"]`);
             try {
-                if (options.stay && !(await fieldRoot.waitFor({ state: 'visible', timeout: 300 }).then(() => true, () => false))) return false;
-                if (!(await this.show(f.path))) {
-                    this.found(`${f.path}: never shown on any step`);
-                    return false;
-                }
-                let reached: Stop | undefined;
-                const revealed = await this.live(f.path);
-                if (!revealed) return false;
-                if (!revealed.readonly) {
-                    reached = (await this.tabWalk(f.path)).find(stop => stop.path === f.path);
-                    if (!reached) {
-                        this.found(`${f.path}: not reachable by Tab in its section`);
-                        return false;
+                const checked = await this.withFieldShown(f.path, async () => {
+                    let reached: Stop | undefined;
+                    const revealed = await this.live(f.path);
+                    if (!revealed) return false;
+                    if (!revealed.readonly) {
+                        reached = (await this.tabWalk(f.path)).find(stop => stop.path === f.path);
+                        if (!reached) {
+                            this.found(`${f.path}: not reachable by Tab in its section`);
+                            return false;
+                        }
                     }
-                }
-                if (!await this.field(f.path, w, reached, revealed)) return false;
+                    return this.checkShownField(revealed, w, reached);
+                }, options.stay);
+                if (!checked) return false;
             } finally {
                 if (recipe.length) await this.restore(recipe);
             }
@@ -742,8 +820,9 @@ export class Walk {
                 (document.querySelector(selector) as any).engine.isPathRelevant(path), { selector: this.rootSelector, path: concrete });
             const recipe = relevant ? [] : await this.applyRecipe(concrete, w.shownBy ?? 'engine');
             if (!recipe) return false;
+            const accordion: AccordionRows[] = [];
             try {
-                if (!await this.showControl(scope)) {
+                if (!await this.showControl(scope, accordion)) {
                     this.found(`${concrete}: never shown on any step`);
                     return false;
                 }
@@ -755,7 +834,8 @@ export class Walk {
                 }
                 return await this.repeatShown(concrete, before, w, scope, owned);
             } finally {
-                if (recipe.length) await this.restore(recipe);
+                try { await this.restoreAccordionRows(accordion); }
+                finally { if (recipe.length) await this.restore(recipe); }
             }
         });
     }

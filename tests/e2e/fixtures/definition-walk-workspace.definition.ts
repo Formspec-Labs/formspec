@@ -73,7 +73,7 @@ export const lockedRepeatDefinition: FormDefinition = {
 export const lockedRepeatComponent: ComponentDocument = {
   $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: lockedRepeatDefinition.url },
   tree: { component: 'Stack', bind: 'review', children: [
-    { component: 'Accordion', bind: 'records', allowAdd: false, allowRemove: false, defaultOpen: 0,
+    { component: 'Accordion', bind: 'records', allowAdd: false, allowRemove: false,
       children: [{ component: 'TextInput', bind: 'title' }] },
     { component: 'Accordion', bind: 'notes', labels: ['Notes 1'], children: [{ component: 'TextInput', bind: 'text' }] },
   ] },
