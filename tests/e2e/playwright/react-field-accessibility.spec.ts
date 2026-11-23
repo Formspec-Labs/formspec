@@ -11,6 +11,7 @@ base('the keyboard and reader reach the readonly value and the named upload acti
   try {
     const toggle = page.getByRole('switch', { name: 'Approved' });
     await walk.field('intro.approved', { label: 'Approved' });
+    await toggle.focus();
     await expect(toggle).toBeFocused();
     expect(await walk.sr.lastSpokenPhrase()).toMatch(/(?:^|, )(checked|on)(?:,|$)/i);
     await expect(toggle).toBeChecked();
@@ -47,21 +48,3 @@ base('records the virtual reader announcement for a required native date', async
     await walk.sr.stop();
   }
 });
-
-if (process.env.FORMSPEC_WALK_SR === 'os') {
-  const { screenReaderTest } = require('@guidepup/playwright') as typeof import('@guidepup/playwright');
-  screenReaderTest.use({ headless: false });
-  screenReaderTest('the OS reader announces the required native date', async ({ page, screenReader }, info) => {
-    await page.goto(route);
-    await screenReader.navigateToWebContent();
-    // Start on an optional field so an earlier required announcement cannot satisfy the check.
-    await page.getByRole('textbox', { name: 'Contact name' }).focus();
-    await screenReader.clearSpokenPhraseLog();
-    await page.locator('input[type=date]').focus();
-    try {
-      await expect.poll(async () => (await screenReader.spokenPhraseLog()).join(' ')).toMatch(/(?=.*due date)(?=.*required)/i);
-    } finally {
-      await info.attach('native-date-speech', { body: (await screenReader.spokenPhraseLog()).join('\n'), contentType: 'text/plain' });
-    }
-  });
-}

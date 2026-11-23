@@ -123,6 +123,7 @@ const bundle = dereferenceBundleExport({
               { key: 'approved', type: 'field', dataType: 'boolean', label: 'Approved', initialValue: true },
               { key: 'evidence', type: 'field', dataType: 'attachment', label: 'Evidence', hint: 'Attach a receipt' },
               { key: 'due', type: 'field', dataType: 'date', label: 'Due date' },
+              { key: 'followUp', type: 'field', dataType: 'date', label: 'Follow-up date' },
             ] : []),
             ...(fixtureOptions.has('emptyRepeat') ? [
               { key: 'otherRows', type: 'group', repeatable: true, minRepeat: 0, label: 'Rows', children: [
@@ -187,6 +188,11 @@ createRoot(document.getElementById('root')!).render(
         basePath: "/surface-browser-history",
         routeParams: { state: 'ny' },
         viewerPreferenceKey: fixtureOptions.get('viewer') ?? undefined,
+        localeDocuments: fixtureOptions.has('accessibleFields') ? [{
+          $formspecLocale: '2.0', version: '1.0.0', locale: 'en',
+          target: { kind: 'definition', url: definition },
+          strings: { 'due.errors.REQUIRED': 'Choose a due date to continue.' },
+        }] : undefined,
         readSummaries: showsTracker ? readTracker : undefined,
         resolveDefinitionComponent: ({ definition: target }) => !workspace && !alternatingMode && target.url === definition ? componentDocument : undefined,
         definitionActionInvoker: ({ document, actionRef, nodeId, ports }) => invokeResponseAction(document, actionRef, ports, nodeId),

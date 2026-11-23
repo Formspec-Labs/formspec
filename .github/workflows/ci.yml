@@ -54,6 +54,15 @@ jobs:
         run: npm ci --workspace packages/integrity-canonical && npm run build --workspace packages/integrity-canonical
       - run: npm ci
       - run: npm run build
+      - name: Pack the native date test and its browser fixture
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        run: node scripts/pack-native-date-speech.mjs test-results/native-date-driver
+      - uses: actions/upload-artifact@v4
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        with:
+          name: native-date-driver
+          path: formspec/test-results/native-date-driver/
+          if-no-files-found: error
       - name: Set up Chromium for the Definition Walk tests
         run: npx playwright install --with-deps --only-shell chromium
       - run: npm run test:unit
@@ -64,6 +73,38 @@ jobs:
           node-version: "22.12.0"
       - name: Packed @formspec-org/react probe on the Node 22.12 floor
         run: node packages/formspec-react/scripts/test-packed.mjs
+
+  native-date-speech:
+    needs: unit-tests
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    name: Chrome date speech with ${{ matrix.reader }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            reader: VoiceOver
+          - os: windows-2025
+            reader: NVDA
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-date-driver
+      - uses: guidepup/setup-action@acf1a64cc26292ebe0db6a28d1341bd1bae93c65 # 0.21.0
+      - name: Run the packaged test with the runner's installed Chrome
+        env:
+          FORMSPEC_WALK_SR: os
+        run: node node_modules/@playwright/test/cli.js test --config playwright.native-date-speech.config.ts
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: native-date-speech-${{ matrix.reader }}
+          path: playwright-report/
 
   python-tests:
     name: Python Tests
