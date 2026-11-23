@@ -8,6 +8,7 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { renderHostPage } from '@formspec-org/webcomponent/host';
 import { expect, it } from 'vitest';
+import { chromiumChannel } from '../src/chromium-channel.js';
 
 it('attributes a host-only axe violation to the visit form and keeps both formsâ€™ walk results', async () => {
     const fixture = resolve(__dirname, 'fixtures/manifest');
@@ -27,7 +28,7 @@ it('attributes a host-only axe violation to the visit form and keeps both formsâ
         writeFileSync(join(scratch, 'package.json'), '{"type":"module"}');
         // Allow the virtual reader's test instrumentation on the self-contained host fixture.
         writeFileSync(join(scratch, 'playwright.config.mjs'),
-            'export default { testDir: "./specs", workers: 1, use: { bypassCSP: true } };');
+            `export default ${JSON.stringify({ testDir: './specs', workers: 1, use: { bypassCSP: true, ...chromiumChannel() } })};`);
         const cli = (...args: string[]) => promisify(execFile)(process.execPath,
             [resolve(__dirname, '../bin/formspec-walk.mjs'), ...args], { cwd: scratch });
         await cli('emit', '--manifest', join(fixture, 'package-manifest.json'), '--all', '--out-dir', 'specs',
