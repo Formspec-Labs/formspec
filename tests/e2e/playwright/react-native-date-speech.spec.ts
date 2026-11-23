@@ -17,13 +17,13 @@ async function open(page: Page) {
   return { root, due, optional };
 }
 
-async function submitToLink(page: Page, root: Locator) {
+async function submit(page: Page, root: Locator): Promise<Locator> {
   await root.evaluate(el => (el as HTMLElement & { submit(options: { emitEvent: boolean }): void }).submit({ emitEvent: false }));
   const summary = root.locator('.formspec-validation-summary');
   await expect(summary.getByRole('link', { name: /Follow-up date/i })).toHaveCount(0);
   const jump = summary.getByRole('link', { name: `Due date: ${errorText}`, exact: true });
-  await jump.focus();
-  await expect(jump).toBeFocused();
+  await expect(jump).toBeVisible();
+  return jump;
 }
 
 async function enterAndCheckError(page: Page, due: Locator) {
@@ -59,8 +59,14 @@ if (process.env.FORMSPEC_WALK_SR === 'os') {
     announce(optionalSpeech).not.toMatch(/\brequired\b/i);
     const requiredSpeech = await listen('required-date', () => due.focus());
     announce(requiredSpeech).toMatch(/(?=.*due date)(?=.*\brequired\b)/i);
-    // Capture the link and the focus jump separately so the link's speech cannot satisfy the field check.
-    const linkSpeech = await listen('summary-link', () => submitToLink(page, root));
+    // Let the live summary finish before focusing its link. Keep that link and the date spoken
+    // after Enter in separate captures so the same message cannot satisfy both checks.
+    const { result: jump, spokenPhrase: summarySpeech } = await screenReader.capture(() => submit(page, root), { capture: true });
+    await info.attach('summary-live', { body: summarySpeech, contentType: 'text/plain' });
+    const linkSpeech = await listen('summary-link', async () => {
+      await jump.focus();
+      await expect(jump).toBeFocused();
+    });
     announce(linkSpeech).toMatch(/(?=.*choose a due date to continue)(?=.*\blink\b)/i);
     const invalidSpeech = await listen('invalid-date', () => enterAndCheckError(page, due));
     announce(invalidSpeech).toMatch(/choose a due date to continue/i);
@@ -69,7 +75,9 @@ if (process.env.FORMSPEC_WALK_SR === 'os') {
 } else {
   test('the date summary link focuses the invalid required date with its associated error', async ({ page }) => {
     const { root, due } = await open(page);
-    await submitToLink(page, root);
+    const jump = await submit(page, root);
+    await jump.focus();
+    await expect(jump).toBeFocused();
     await enterAndCheckError(page, due);
   });
 }

@@ -10,7 +10,7 @@ export default defineConfig({
   testDir: './tests/e2e/playwright',
   testMatch: 'react-native-date-speech.spec.ts',
   workers: 1,
-  timeout: 60_000,
+  timeout: 150_000,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: { ...devices['Desktop Chrome'], channel: 'chrome', baseURL: FORMSPEC_E2E_ORIGIN, trace: 'retain-on-failure' },
   webServer: {
