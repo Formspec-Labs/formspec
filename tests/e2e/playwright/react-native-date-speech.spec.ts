@@ -3,6 +3,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const route = '/surface-browser.html?workspace&accessibleFields#/filing/ny';
 const errorText = 'Choose a due date to continue.';
+const requiredDateControl = /(?=.*\bdue date\b)(?=.*\b(?:date edit|edit text|stepper)\b)/i;
 
 async function open(page: Page) {
   await page.goto(route);
@@ -55,10 +56,29 @@ if (process.env.FORMSPEC_WALK_SR === 'os') {
       return spokenPhrase;
     };
     const optionalSpeech = await listen('optional-date', () => optional.focus());
-    announce(optionalSpeech).toMatch(/follow-up date/i);
+    announce(optionalSpeech).toMatch(/(?=.*\bfollow-up date\b)(?=.*\b(?:date edit|edit text|stepper)\b)/i);
     announce(optionalSpeech).not.toMatch(/\brequired\b/i);
-    const requiredSpeech = await listen('required-date', () => due.focus());
-    announce(requiredSpeech).toMatch(/(?=.*due date)(?=.*\brequired\b)/i);
+    let requiredSpeech: string;
+    if (process.platform === 'darwin') {
+      // Tab into the first date segment from the preceding form control.
+      await page.getByRole('button', { name: /Evidence.*Upload a file/i }).focus();
+      requiredSpeech = await listen('required-date', () => page.keyboard.press('Tab'));
+      await expect(due).toBeFocused();
+      if (!requiredDateControl.test(requiredSpeech)) {
+        // Guidepup polls the last phrase. An interaction hint can replace the date's
+        // first utterance before polling sees it. Keep both captures and ask VoiceOver
+        // to describe the same keyboard-focused item when the first capture missed it.
+        const { voiceOverKeyCodeCommands } = require('@guidepup/guidepup') as typeof import('@guidepup/guidepup');
+        await screenReader.perform(voiceOverKeyCodeCommands.describeItemWithKeyboardFocus, { capture: true });
+        requiredSpeech = (await screenReader.spokenPhraseLog()).at(-1) ?? '';
+        await info.attach('required-date-focus-description', { body: requiredSpeech, contentType: 'text/plain' });
+        await expect(due).toBeFocused();
+      }
+    } else {
+      requiredSpeech = await listen('required-date', () => due.focus());
+      await expect(due).toBeFocused();
+    }
+    announce(requiredSpeech).toMatch(requiredDateControl);
     announce(requiredSpeech.match(/\brequired\b/gi) ?? []).toHaveLength(1);
     // Let the live summary finish before focusing its link. Keep that link and the date spoken
     // after Enter in separate captures so the same message cannot satisfy both checks.
@@ -70,6 +90,7 @@ if (process.env.FORMSPEC_WALK_SR === 'os') {
     });
     announce(linkSpeech).toMatch(/(?=.*choose a due date to continue)(?=.*\blink\b)/i);
     const invalidSpeech = await listen('invalid-date', () => enterAndCheckError(page, due));
+    announce(invalidSpeech).toMatch(requiredDateControl);
     announce(invalidSpeech).toMatch(/choose a due date to continue/i);
     announce(invalidSpeech).not.toMatch(/\blink\b/i);
   });
