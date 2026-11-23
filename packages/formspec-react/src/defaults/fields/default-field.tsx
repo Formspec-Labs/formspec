@@ -1,7 +1,7 @@
 'use client';
 
 /** @filedesc Default field dispatcher — layout chrome + per-component control routing. */
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { FieldComponentProps } from '../../component-map';
 import { useFormspecContext, findItemByKey } from '../../context';
 import type { ExtensionAttrs } from './field-control-types';
@@ -17,12 +17,18 @@ function itemAdornments(engine: ReturnType<typeof useFormspecContext>['engine'],
     return { prefix: item?.prefix, suffix: item?.suffix };
 }
 
-/** Native date controls can omit the required state from the browser accessibility tree. */
+/** Chromium on macOS does not announce the native required state on its date steppers. */
 function RequiredDateLabel() {
-    const required = useChromeText()('screener.required');
+    const chrome = useChromeText();
+    const [needsSpokenMarker, setNeedsSpokenMarker] = useState(false);
+    useEffect(() => {
+        const agent = window.navigator.userAgent;
+        if (agent.includes('Macintosh') && agent.includes('Chrome/')) setNeedsSpokenMarker(true);
+    }, []);
+    const required = needsSpokenMarker ? chrome('screener.required') : 'required';
     return <>
-        <abbr className="formspec-required usa-label--required" title={required} aria-hidden="true"> *</abbr>
-        <span className="formspec-sr-only usa-sr-only"> {required}</span>
+        <abbr className="formspec-required usa-label--required" title={required} aria-hidden={needsSpokenMarker || undefined}> *</abbr>
+        {needsSpokenMarker && <span className="formspec-sr-only usa-sr-only"> {required}</span>}
     </>;
 }
 

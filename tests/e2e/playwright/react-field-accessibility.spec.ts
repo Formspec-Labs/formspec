@@ -4,6 +4,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { Walk, WCAG_TAGS } from '../../../packages/formspec-walk/src/index';
 
 const route = '/surface-browser.html?workspace&accessibleFields#/filing/ny';
+const macChrome = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
+const windowsChrome = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
 
 base('the keyboard and reader reach the readonly value and the named upload action', async ({ page }) => {
   await page.goto(route);
@@ -36,8 +38,8 @@ for (const { locale, label, optionalLabel, required } of [
   { locale: 'en-US', label: 'Due date', optionalLabel: 'Follow-up date', required: 'Required' },
   { locale: 'fr-FR', label: 'Date limite', optionalLabel: 'Date de suivi', required: 'Obligatoire' },
 ]) {
-  base.describe(`date labels (${locale})`, () => {
-    base.use({ locale });
+  base.describe(`date labels on macOS Chrome (${locale})`, () => {
+    base.use({ locale, userAgent: macChrome });
     base('announces the localized requirement once and keeps the visible label and asterisk', async ({ page }, info) => {
       const walk = await Walk.open(page, { url: route });
       try {
@@ -69,3 +71,16 @@ for (const { locale, label, optionalLabel, required } of [
     });
   });
 }
+
+base.describe('date labels on Windows Chrome', () => {
+  base.use({ locale: 'en-US', userAgent: windowsChrome });
+  base('preserves the native required state and date label', async ({ page }) => {
+    await page.goto(route);
+    const due = page.locator('[data-name="intro.due"]');
+    const date = due.locator('input[type="date"]');
+    await expect(date).toHaveJSProperty('required', true);
+    await expect(date).toHaveAccessibleName('Due date *');
+    await expect(due.locator('label .formspec-sr-only')).toHaveCount(0);
+    await expect(page.locator('[data-name="intro.followUp"] input[type="date"]')).toHaveAccessibleName('Follow-up date');
+  });
+});

@@ -59,6 +59,7 @@ if (process.env.FORMSPEC_WALK_SR === 'os') {
     announce(optionalSpeech).not.toMatch(/\brequired\b/i);
     const requiredSpeech = await listen('required-date', () => due.focus());
     announce(requiredSpeech).toMatch(/(?=.*due date)(?=.*\brequired\b)/i);
+    announce(requiredSpeech.match(/\brequired\b/gi) ?? []).toHaveLength(1);
     // Let the live summary finish before focusing its link. Keep that link and the date spoken
     // after Enter in separate captures so the same message cannot satisfy both checks.
     const { result: jump, spokenPhrase: summarySpeech } = await screenReader.capture(() => submit(page, root), { capture: true });
