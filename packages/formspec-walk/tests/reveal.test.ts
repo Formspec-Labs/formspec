@@ -1,6 +1,8 @@
 /** @filedesc Reveal recipes enable their drivers, use typed choices, and undo dead ends. */
 import { beforeAll, expect, it } from 'vitest';
 import { createFormEngine, initFormspecEngine } from '@formspec-org/engine';
+import { derivePlan } from '../src/plan';
+import { deriveRecipes } from '../src/emit';
 import { intentionallyHidden, revealSearch } from '../src/reveal';
 
 beforeAll(async () => { await initFormspecEngine(); });
@@ -83,4 +85,31 @@ it('revisits an earlier valid choice when the next rule has no solution under it
     });
     expect(revealSearch(engine, 'group.detail', {})).not.toBeNull();
     expect(engine.getDraftSnapshot().data.mode).toBe('second');
+});
+
+it('reuses a proven reveal for siblings and restores the original draft', () => {
+    const definition = {
+        $formspec: '1.0' as const, url: 'urn:example:shared-reveal', version: '1.0.0', title: 'Shared reveal',
+        items: [
+            { key: 'choice', type: 'field' as const, dataType: 'choice' as const, label: 'Kind', options: [
+                { value: 'a', label: 'A' }, { value: 'b', label: 'B' },
+            ] },
+            ...['first', 'second', 'alternative'].map(key => ({ key, label: key, type: 'field' as const, dataType: 'string' as const })),
+        ],
+        binds: [
+            ...['first', 'second'].map(path => ({ path, relevant: "$choice = 'a'" })),
+            { path: 'alternative', relevant: "$choice = 'b'" },
+        ],
+    };
+    const engine = createFormEngine(definition);
+    try {
+        const before = engine.getDraftSnapshot().data;
+        const recipes = deriveRecipes(engine, derivePlan(definition));
+        expect(engine.getDraftSnapshot().data).toEqual(before);
+        expect(recipes.get('first')).toEqual([{ path: 'choice', value: 'a' }]);
+        expect(recipes.get('second')).toEqual(recipes.get('first'));
+        expect(recipes.get('alternative')).toEqual([{ path: 'choice', value: 'b' }]);
+    } finally {
+        engine.dispose();
+    }
 });

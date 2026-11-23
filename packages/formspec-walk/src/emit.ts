@@ -219,17 +219,34 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
  */
 export function deriveRecipes(engine: RevealEngine, plan: Plan): Map<string, Array<{ path: string; value: unknown }> | null> {
     const optionValues = Object.fromEntries(plan.fields.filter((f) => f.options).map((f) => [f.path, f.options!.map((o) => o.value)]));
-    const known = engine.getFieldPaths();
+    const representative = new Map<string, string>();
+    for (const live of [...engine.getFieldPaths()].sort()) {
+        const path = baseOf(live);
+        if (!representative.has(path)) representative.set(path, live);
+    }
     const out = new Map<string, Array<{ path: string; value: unknown }> | null>();
-    for (const f of plan.fields.filter((f) => f.conditional)) {
-        const live = known.find((p) => p === f.path) ?? known.filter((p) => baseOf(p) === f.path).sort()[0];
-        if (!live) continue;
+    const pending = new Map<string, string>();
+    for (const field of plan.fields) {
+        const live = representative.get(field.path);
+        if (!field.conditional || !live) continue;
+        if (engine.isPathRelevant(live)) out.set(field.path, []);
+        else pending.set(field.path, live);
+    }
+    for (const [path, live] of pending) {
         const recipe = revealSearch(engine, live, optionValues);
-        if (recipe) {
-            out.set(f.path, recipe.map(({ path, value }) => ({ path, value })));
+        if (!recipe) {
+            out.set(path, null);
+            continue;
+        }
+        try {
+            // One answer can reveal a whole section. Reuse it only for fields the engine actually opened.
+            for (const [other, instance] of pending) {
+                if (!engine.isPathRelevant(instance)) continue;
+                out.set(other, recipe.map(step => ({ path: step.path, value: Array.isArray(step.value) ? [...step.value] : step.value })));
+                pending.delete(other);
+            }
+        } finally {
             for (const step of [...recipe].reverse()) engine.setValue(step.path, step.previous);
-        } else {
-            out.set(f.path, null);
         }
     }
     return out;
