@@ -407,10 +407,10 @@ h6.formspec-heading {
   visibility: hidden;
 }
 
-/* The line ending a stacked question sits flush under its control (it takes back the field's `spacing.xs`).
- * Inline and toggle fields keep it in their row or box; a file-size message above it never moves. */
+/* Keep the validation line clear of the default 3px outline and 2px offset.
+ * Use the field gap where it already leaves enough room, including while the line is empty. */
 :is(.formspec-field:not(.formspec-field--inline), .formspec-fieldset):not(.formspec-field--readonly) > .formspec-error:last-child {
-  margin-top: calc(-1 * var(--formspec-spacing-xs, 0.25rem));
+  margin-top: max(0px, calc(5px - var(--formspec-spacing-xs, 0.25rem)));
 }
 
 /* Where a visible question or item follows in a column whose gap is this skin's `spacing.field`, that line IS
