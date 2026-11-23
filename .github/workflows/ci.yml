@@ -100,9 +100,14 @@ jobs:
         with:
           name: native-date-driver
       - uses: guidepup/setup-action@acf1a64cc26292ebe0db6a28d1341bd1bae93c65 # 0.21.0
+      - name: Prepare the OS reader version pinned by the driver
+        env:
+          GUIDEPUP_SCREEN_READERS_PATH: ${{ runner.temp }}/formspec-date-readers
+        run: node scripts/prepare-native-date-reader.mjs
       - name: Run the packaged test with the runner's installed Chrome
         env:
           FORMSPEC_WALK_SR: os
+          GUIDEPUP_SCREEN_READERS_PATH: ${{ runner.temp }}/formspec-date-readers
         run: node node_modules/@playwright/test/cli.js test --config playwright.native-date-speech.config.ts
       - uses: actions/upload-artifact@v4
         if: ${{ always() }}
