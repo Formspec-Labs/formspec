@@ -114,11 +114,11 @@ pub(crate) fn recalculate_phase(
     // Seed values only where early reads cannot see them. Unchanged writes preserve the memo.
     order.seed_previous_values(items, &mut state, aggregates);
     state.restore_aggregates(aggregates);
-    let (_, cycle_err) = variables.evaluate(&mut state, index, fel, None);
     for path in invalid_paths {
         state.env.mip_states.entry(path.clone()).or_default().valid = false;
     }
 
+    let (_, cycle_err) = variables.evaluate(&mut state, index, fel, None);
     let walk = Walk { index, fel };
     order.evaluate_early(items, &mut state, &mut values, &walk);
     let mut diagnostics = Vec::new();

@@ -53,6 +53,7 @@ pub fn evaluation_result_to_host_snapshot_json_value(result: &EvaluationResult) 
         .filter(|path| !result.host_values.contains_key(*path))
         .collect();
     root.insert("filingOnlyPaths".into(), json!(filing_only));
+    root.insert("invalidPaths".into(), json!(result.invalid_paths));
     root.insert("repeatCounts".into(), json!(result.row_counts));
     root.insert("calculatedPaths".into(), json!(result.calculated_paths));
     if !result.indexed_binds.is_empty() {
@@ -120,7 +121,6 @@ fn evaluation_report(result: &EvaluationResult, style: JsonWireStyle) -> Map<Str
         ),
     );
     root.insert(nr_key.into(), json!(result.non_relevant));
-    root.insert("invalidPaths".into(), json!(result.invalid_paths));
     root.insert(
         "variables".into(),
         fel_core::exact_json::to_value(&result.variables).expect("variables serialize"),

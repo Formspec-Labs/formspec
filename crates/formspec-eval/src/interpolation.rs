@@ -24,7 +24,7 @@ use fel_core::{
     parse,
 };
 
-use crate::fel_eval::Fel;
+use crate::fel_eval::{Fel, parse_host_expression};
 
 /// Resolved template text plus a warning per expression left literal.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -148,7 +148,7 @@ pub fn interpolate_fel_template(
 /// Interpolates authored FEL against the supplied site.
 pub(crate) fn interpolate_fel(template: &str, env: &dyn Environment, fel: Fel<'_>) -> Interpolated {
     interpolate_template(template, |expression| {
-        let parsed = parse(expression).map_err(|e| e.to_string())?;
+        let parsed = parse_host_expression(expression)?;
         let result = fel.evaluate(&parsed, env);
         interpolation_text(
             expression,

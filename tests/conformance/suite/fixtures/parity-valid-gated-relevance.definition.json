@@ -7,11 +7,14 @@
   "items": [
     { "key": "w", "type": "field", "dataType": "integer", "label": "W" },
     { "key": "y", "type": "field", "dataType": "integer", "label": "Y" },
-    { "key": "x", "type": "field", "dataType": "integer", "label": "X" }
+    { "key": "x", "type": "field", "dataType": "integer", "label": "X" },
+    { "key": "viaVariable", "type": "field", "dataType": "integer", "label": "Via variable" }
   ],
+  "variables": [{ "name": "yOk", "expression": "valid($y)" }],
   "binds": [
     { "path": "w", "required": true },
     { "path": "y", "required": "not(valid($w))" },
-    { "path": "x", "required": true, "relevant": "valid($y)" }
+    { "path": "x", "required": true, "relevant": "valid($y)" },
+    { "path": "viaVariable", "required": true, "relevant": "@yOk" }
   ]
 }

@@ -2480,26 +2480,29 @@ These functions query the computed state of model item properties in the same
 evaluation. Any FEL expression of a Definition MAY call them, including the Bind
 expressions that Recalculate evaluates.
 
-`valid($p)` reads the results that the evaluation's Bind and Shape checks report
-for `p` (§2.4 Phase 3, steps 1-3). External results (§5.7) and explanation
-results (§5.3.1) do not affect it. A non-relevant field has no results (§2.5.4),
-so it reads as valid. The processor MUST report the single state in which every
-`valid()` read agrees with the results it reports; the dependencies in §3.6.1
-make that state unique. Repeating Recalculate and Revalidate until those reads
-stop changing reaches it. A processor that cannot reach it MUST refuse with
-`CIRCULAR_DEPENDENCY` instead of reporting a result.
+For a field or group `p`, `valid($p)` is `false` exactly when the evaluation
+reports an error at `p` itself with `constraintKind` of `required`, `type`,
+`cardinality`, `constraint` or `shape` (§5.3.1). Findings on descendants,
+external results (§5.7) and explanation results (§5.3.1) do not affect it.
+A non-relevant item has no findings (§2.5.4), so it reads as valid.
+The processor MUST report the single state in which every `valid()` read agrees
+with these results. The dependencies in §3.6.1 make that state unique. Repeating
+Recalculate and Revalidate until those reads stop changing reaches it.
+A processor that cannot reach it MUST refuse with `CIRCULAR_DEPENDENCY`.
 
 | Function | Signature | Returns | Description |
 |----------|-----------|---------|-------------|
-| `valid` | `valid($path) → boolean` | `boolean` | `true` if the referenced field has no error-severity validation results. |
-| `relevant` | `relevant($path) → boolean` | `boolean` | `true` if the referenced field is currently relevant. |
-| `readonly` | `readonly($path) → boolean` | `boolean` | `true` if the referenced field is currently readonly. |
-| `required` | `required($path) → boolean` | `boolean` | `true` if the referenced field is currently required. |
+| `valid` | `valid($path)` | boolean or null | `true` if the item has no error of the kinds listed above at its own path. |
+| `relevant` | `relevant($path)` | boolean or null | `true` if the referenced item is currently relevant. |
+| `readonly` | `readonly($path)` | boolean or null | `true` if the referenced item is currently readonly. |
+| `required` | `required($path)` | boolean or null | `true` if the referenced item is currently required. |
 
 The argument MUST be a field reference in `$path` syntax, such as `$ein`,
 `$group.field` or `$rows[2].amount`. Inside a repeat row, `$amount` names the
-current row's field (§3.2.2). Any other argument, including `@current.amount`, a
-variable, a literal or a function result, is a definition error (§3.10.1):
+current row's field (§3.2.2). A wildcard or an index outside the repeat's
+one-based row range yields `null` for all four queries. Any other argument form,
+including `@current.amount`, a variable, a literal or a function result, is a
+definition error (§3.10.1).
 
 ```
 if(not(valid($ein)), "Please correct EIN before proceeding", "")

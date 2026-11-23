@@ -3,7 +3,7 @@
   "kind": "ENGINE_PROCESSING",
   "specRefs": [
     "Core §2.5.4 non-relevant fields produce no ValidationResult entries",
-    "Core §3.5.9 valid($p) reads the same evaluation's Bind and Shape results; the processor reports the single state in which every valid() read agrees with them",
+    "Core §3.5.9 valid($p) reads the settled results on p itself, including when a relevance Bind reads valid() through a variable",
     "Core §3.6.1 valid($p) depends on p's value, required and constraint Binds, inherited relevance and error Shapes; Core §3.6.2 refuses a cycle"
   ],
   "definitionPath": "tests/conformance/suite/fixtures/parity-valid-gated-relevance.definition.json",

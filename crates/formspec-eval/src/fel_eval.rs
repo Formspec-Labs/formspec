@@ -9,6 +9,28 @@ use fel_core::{
     parse,
 };
 
+/// Checks the Core §3.5.9 argument rule shared by Rebuild and host expressions.
+pub(crate) fn mip_argument_error(source: &str, expr: &Expr) -> Option<String> {
+    formspec_core::dependency_reads::Reads::new(expr)
+        .non_field_property_arguments
+        .first()
+        .map(|property| {
+            format!(
+                "`{}()` in {source:?} takes a `$path` field reference (Core §3.5.9)",
+                property.function_name()
+            )
+        })
+}
+
+/// Parses an expression read by a host outside Definition Rebuild.
+pub(crate) fn parse_host_expression(source: &str) -> Result<Expr, String> {
+    let expr = parse(source).map_err(|error| error.to_string())?;
+    match mip_argument_error(source, &expr) {
+        Some(error) => Err(error),
+        None => Ok(expr),
+    }
+}
+
 /// Evaluates FEL with the host's extension functions, if any.
 #[derive(Clone, Copy, Default)]
 pub(crate) struct Fel<'a> {

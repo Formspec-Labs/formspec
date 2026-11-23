@@ -1,0 +1,25 @@
+{
+  "id": "parity.mip-argument",
+  "kind": "VALIDATION_REPORT",
+  "specRefs": [
+    "Core §3.5.9 and §3.10.1: Rebuild refuses a model item property query whose argument is not a $path field reference"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-mip-argument.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": { "amount": 10 },
+  "expected": {
+    "valid": false,
+    "counts": { "error": 1, "warning": 0, "info": 0 },
+    "results": [
+      {
+        "path": "$.shapes[0].constraint",
+        "code": "MIP_ARGUMENT_NOT_FIELD",
+        "severity": "error",
+        "constraintKind": "definition",
+        "source": "definition",
+        "constraint": "not(valid(@current.amount))"
+      }
+    ]
+  }
+}

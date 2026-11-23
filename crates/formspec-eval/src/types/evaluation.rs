@@ -27,7 +27,7 @@ pub struct ValidationResult {
     pub context: Option<HashMap<String, Value>>,
 }
 
-/// Paths that `valid()` reads as invalid: those with an error-severity Bind or Shape result.
+/// Paths with an error from an Item, Bind, or Shape, which `valid()` reads as invalid.
 ///
 /// Core §3.5.9: explanation results (§5.3.1) and Definition errors do not count, and the
 /// evaluator never sees host-injected external results (§5.7).

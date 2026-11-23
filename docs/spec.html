@@ -4754,19 +4754,21 @@ element.</td>
 </tbody>
 </table>
 <h4 id="mip-state-query-functions">3.5.9 MIP-State Query Functions</h4>
-<p>These functions query the computed state of model item properties
-in the same evaluation. Any FEL expression of a Definition MAY call
-them, including the Bind expressions that Recalculate evaluates.</p>
-<p><code>valid($p)</code> reads the results that the evaluation’s Bind
-and Shape checks report for <code>p</code> (§2.4 Phase 3, steps 1-3).
-External results (§5.7) and explanation results (§5.3.1) do not affect
-it. A non-relevant field has no results (§2.5.4), so it reads as valid.
-The processor MUST report the single state in which every
-<code>valid()</code> read agrees with the results it reports; the
-dependencies in §3.6.1 make that state unique. Repeating Recalculate and
-Revalidate until those reads stop changing reaches it. A processor that
-cannot reach it MUST refuse with <code>CIRCULAR_DEPENDENCY</code>
-instead of reporting a result.</p>
+<p>These functions query the computed state of model item properties in
+the same evaluation. Any FEL expression of a Definition MAY call them,
+including the Bind expressions that Recalculate evaluates.</p>
+<p>For a field or group <code>p</code>, <code>valid($p)</code> is
+<code>false</code> exactly when the evaluation reports an error at
+<code>p</code> itself with <code>constraintKind</code> of
+<code>required</code>, <code>type</code>, <code>cardinality</code>,
+<code>constraint</code> or <code>shape</code> (§5.3.1). Findings on
+descendants, external results (§5.7) and explanation results (§5.3.1) do
+not affect it. A non-relevant item has no findings (§2.5.4), so it reads
+as valid. The processor MUST report the single state in which every
+<code>valid()</code> read agrees with these results. The dependencies in
+§3.6.1 make that state unique. Repeating Recalculate and Revalidate
+until those reads stop changing reaches it. A processor that cannot
+reach it MUST refuse with <code>CIRCULAR_DEPENDENCY</code>.</p>
 <table>
 <colgroup>
 <col style="width: 23%" />
@@ -4785,40 +4787,39 @@ instead of reporting a result.</p>
 <tbody>
 <tr>
 <td><code>valid</code></td>
-<td><code>valid($path) → boolean</code></td>
-<td><code>boolean</code></td>
-<td><code>true</code> if the referenced field has no error-severity
-validation results.</td>
+<td><code>valid($path)</code></td>
+<td>boolean or null</td>
+<td><code>true</code> if the item has no error of the kinds listed above
+at its own path.</td>
 </tr>
 <tr>
 <td><code>relevant</code></td>
-<td><code>relevant($path) → boolean</code></td>
-<td><code>boolean</code></td>
-<td><code>true</code> if the referenced field is currently
-relevant.</td>
+<td><code>relevant($path)</code></td>
+<td>boolean or null</td>
+<td><code>true</code> if the referenced item is currently relevant.</td>
 </tr>
 <tr>
 <td><code>readonly</code></td>
-<td><code>readonly($path) → boolean</code></td>
-<td><code>boolean</code></td>
-<td><code>true</code> if the referenced field is currently
-readonly.</td>
+<td><code>readonly($path)</code></td>
+<td>boolean or null</td>
+<td><code>true</code> if the referenced item is currently readonly.</td>
 </tr>
 <tr>
 <td><code>required</code></td>
-<td><code>required($path) → boolean</code></td>
-<td><code>boolean</code></td>
-<td><code>true</code> if the referenced field is currently
-required.</td>
+<td><code>required($path)</code></td>
+<td>boolean or null</td>
+<td><code>true</code> if the referenced item is currently required.</td>
 </tr>
 </tbody>
 </table>
 <p>The argument MUST be a field reference in <code>$path</code> syntax,
 such as <code>$ein</code>, <code>$group.field</code> or
 <code>$rows[2].amount</code>. Inside a repeat row, <code>$amount</code>
-names the current row’s field (§3.2.2). Any other argument, including
+names the current row’s field (§3.2.2). A wildcard or an index outside
+the repeat’s one-based row range yields <code>null</code> for all four
+queries. Any other argument form, including
 <code>@current.amount</code>, a variable, a literal or a function
-result, is a definition error (§3.10.1):</p>
+result, is a definition error (§3.10.1).</p>
 <pre><code>if(not(valid($ein)), &quot;Please correct EIN before proceeding&quot;, &quot;&quot;)</code></pre>
 <h4 id="repeat-navigation-functions">3.5.10 Repeat Navigation
 Functions</h4>

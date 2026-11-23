@@ -149,6 +149,26 @@ fn settled_answer(def: &Value, data: &[(&str, Value)]) -> SettledAnswer {
     (findings, non_relevant)
 }
 
+#[test]
+fn relevance_reads_validity_through_a_variable() {
+    let definition = json!({
+        "items": integer_fields(&["gate", "answer"]),
+        "variables": [{"name": "gateOk", "expression": "valid($gate)"}],
+        "binds": [
+            {"path": "gate", "required": true},
+            {"path": "answer", "required": true, "relevant": "@gateOk"}
+        ]
+    });
+    assert_eq!(
+        settled_answer(&definition, &[]),
+        expect(&[("gate", "REQUIRED")], &["answer"])
+    );
+    assert_eq!(
+        settled_answer(&definition, &[("gate", json!(1))]),
+        expect(&[("answer", "REQUIRED")], &[])
+    );
+}
+
 /// Core §2.5.4: a non-relevant field produces no findings, including when its
 /// relevance reads `valid()` of a field this evaluation finds invalid (fs-4jfg).
 #[test]
@@ -470,6 +490,29 @@ fn a_group_path_reads_the_results_reported_for_the_group() {
     assert_eq!(
         settled_answer(&def(group_shape), &[]),
         expect(&[("g", "SHAPE_FAILED"), ("g.q", "REQUIRED")], &["x"])
+    );
+}
+
+#[test]
+fn validity_includes_type_and_repeat_cardinality_errors() {
+    let definition = json!({
+        "items": [
+            {"key": "amount", "type": "field", "dataType": "integer"},
+            {"key": "rows", "type": "group", "repeatable": true, "minRepeat": 1,
+             "children": [{"key": "label", "type": "field", "dataType": "string"}]},
+            {"key": "answer", "type": "field", "dataType": "string"}
+        ],
+        "binds": [{"path": "answer", "required": true, "relevant": "valid($amount) or valid($rows)"}]
+    });
+    assert_eq!(
+        settled_answer(
+            &definition,
+            &[("amount", json!("abc")), ("rows", json!([]))]
+        ),
+        expect(
+            &[("amount", "TYPE_MISMATCH"), ("rows", "MIN_REPEAT")],
+            &["answer"]
+        )
     );
 }
 

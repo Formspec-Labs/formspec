@@ -10,7 +10,6 @@ use formspec_core::definition_expressions::{
     ExpressionSite, visit_expressions, visit_initial_value_expressions, visit_seed_predicates,
     visit_template_expressions,
 };
-use formspec_core::dependency_reads::Reads;
 use formspec_core::repeat_references::{
     unsubscripted_repeat_message, unsubscripted_repeats, variable_target,
 };
@@ -161,14 +160,8 @@ pub(crate) fn check(
                     }),
             });
         }
-        if let Some(property) = Reads::new(&expression).non_field_property_arguments.first() {
-            refuse(
-                ValidationCode::MipArgumentNotField,
-                format!(
-                    "`{}()` in {source:?} takes a `$path` field reference (Core §3.5.9)",
-                    property.function_name()
-                ),
-            );
+        if let Some(error) = crate::fel_eval::mip_argument_error(source, &expression) {
+            refuse(ValidationCode::MipArgumentNotField, error);
         }
         if repeats.is_empty() {
             return;

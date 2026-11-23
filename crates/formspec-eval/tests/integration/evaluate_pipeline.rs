@@ -71,11 +71,10 @@ fn default_evaluation_json_includes_refusal_status_and_preserves_data_shape() {
     assert_eq!(result.required, expected_mips);
     assert_eq!(result.readonly, expected_mips);
     // Match the iteration order of the two maps while pinning the report fields.
-    // `invalidPaths` is what `valid()` reads in the settled state (Core §3.5.9, fs-4jfg).
     let expected = format!(
         concat!(
             r#"{{"refused":false,"values":{{"rows[0].amount":3}},"data":{{"rows":[{{"amount":3}}]}},"#,
-            r#""validations":[],"diagnostics":[],"nonRelevant":["hidden"],"invalidPaths":[],"#,
+            r#""validations":[],"diagnostics":[],"nonRelevant":["hidden"],"#,
             r#""variables":{{}},"#,
             r#""required":{},"readonly":{}}}"#
         ),

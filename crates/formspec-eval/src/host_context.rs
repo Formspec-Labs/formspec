@@ -5,12 +5,10 @@
 use std::collections::{HashMap, HashSet};
 
 use fel_core::exact_json::{Map, Value as JsonValue};
-use fel_core::{
-    EvalResult, EvaluatorOptions, ExtensionFunctions, Trace, Value, evaluate_with, parse,
-};
+use fel_core::{EvalResult, EvaluatorOptions, ExtensionFunctions, Trace, Value, evaluate_with};
 use formspec_core::subject_key::SubjectKey;
 
-use crate::fel_eval::Fel;
+use crate::fel_eval::{Fel, parse_host_expression};
 use crate::fel_json::{json_to_runtime_fel, json_to_runtime_fel_typed};
 use crate::interpolation::{Interpolated, interpolate_fel};
 use crate::scope::{ScopeData, ScopeIndex, Site, count_flat_rows};
@@ -283,8 +281,11 @@ impl HostFelContext {
 
     /// Evaluates `expression` in the binding scope of `current_item_path`.
     ///
-    /// `now_iso` backs `now()` / `today()` for this call. Errors are parse errors; evaluation
-    /// problems are diagnostics on the result.
+    /// `now_iso` backs `now()` and `today()`. Evaluation problems appear in the result diagnostics.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for invalid syntax or a model item property query without a `$path` argument.
     pub fn evaluate(
         &self,
         expression: &str,
@@ -293,7 +294,7 @@ impl HostFelContext {
         now_iso: Option<&str>,
         extensions: Option<&dyn ExtensionFunctions>,
     ) -> Result<EvalResult, String> {
-        let expr = parse(expression).map_err(|e| e.to_string())?;
+        let expr = parse_host_expression(expression)?;
         let env = self.site(current_item_path, replace_self_ref, now_iso);
         Ok(Fel::new(extensions).evaluate(&expr, &env))
     }
@@ -307,7 +308,7 @@ impl HostFelContext {
         now_iso: Option<&str>,
         extensions: Option<&dyn ExtensionFunctions>,
     ) -> Result<(EvalResult, Trace), String> {
-        let expr = parse(expression).map_err(|e| e.to_string())?;
+        let expr = parse_host_expression(expression)?;
         let env = self.site(current_item_path, replace_self_ref, now_iso);
         let mut trace = Trace::new();
         let result = evaluate_with(
@@ -588,6 +589,37 @@ mod tests {
         let failed = ctx.interpolate("{{nope(}} {{$name}}", "", false, None, None);
         assert_eq!(failed.text, "{{nope(}} Form");
         assert_eq!(failed.warnings.len(), 1);
+    }
+
+    #[test]
+    fn host_mip_queries_require_a_field_reference() {
+        let ctx = context();
+        let path = "rows[1].name";
+        assert_eq!(eval(&ctx, "valid($qty)", path), json!(false));
+        for source in [
+            "not(valid(@current.qty))",
+            "required(@v)",
+            "readonly('qty')",
+            "relevant(qty)",
+        ] {
+            let error = ctx.evaluate(source, path, false, None, None).unwrap_err();
+            assert!(error.contains("$path"), "{source}: {error}");
+            let traced = ctx
+                .evaluate_traced(source, path, false, None, None)
+                .unwrap_err();
+            assert_eq!(traced, error);
+            let placeholder = format!("{{{{{source}}}}}");
+            let out = ctx.interpolate(
+                &format!("{placeholder} / {{{{$qty}}}}"),
+                path,
+                false,
+                None,
+                None,
+            );
+            assert_eq!(out.text, format!("{placeholder} / 3"));
+            assert_eq!(out.warnings.len(), 1);
+            assert_eq!(out.warnings[0].message, error);
+        }
     }
 
     #[test]

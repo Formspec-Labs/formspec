@@ -1,0 +1,13 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:mip-argument",
+  "version": "1.0.0",
+  "title": "Model item property arguments",
+  "status": "active",
+  "items": [
+    { "key": "amount", "type": "field", "dataType": "integer", "label": "Amount" }
+  ],
+  "shapes": [
+    { "id": "amountCheck", "target": "amount", "constraint": "not(valid(@current.amount))", "message": "Check amount" }
+  ]
+}

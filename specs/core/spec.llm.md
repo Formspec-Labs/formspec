@@ -263,7 +263,7 @@ Key rules: arithmetic requires `number` operands; `&` requires `string` operands
 
 **Money**: `money`, `moneyAmount`, `moneyCurrency`, `moneyAdd` (same currency required), `moneySum`.
 
-**MIP-state queries**: `valid($path)`, `relevant($path)`, `readonly($path)`, `required($path)` — query the computed state of fields in the same evaluation, Bind expressions included. The argument must be a `$path` (`$amount` is the current row's field inside a repeat); `@current.amount`, a variable, a literal or a function result is `MIP_ARGUMENT_NOT_FIELD`. `valid($p)` reads `p`'s Bind and Shape results, not external or explanation results; a non-relevant field reads as valid. Report the single state in which every `valid()` read agrees with the reported results, or refuse with `CIRCULAR_DEPENDENCY`.
+**MIP-state queries**: `valid($path)`, `relevant($path)`, `readonly($path)`, `required($path)` — query the computed state of fields in the same evaluation, Bind expressions included. The argument must be a `$path` (`$amount` is the current row's field inside a repeat); `@current.amount`, a variable, a literal or a function result is `MIP_ARGUMENT_NOT_FIELD`. A wildcard or out-of-range repeat index yields `null`. For a field or group, `valid($p)` is false exactly when `p` itself has an error of kind `required`, `type`, `cardinality`, `constraint` or `shape`. Descendant, external and explanation findings do not affect it. A non-relevant item reads as valid. Report the single state in which every `valid()` read agrees with the reported results, or refuse with `CIRCULAR_DEPENDENCY`.
 
 **Repeat navigation**: `prev()`, `next()` (return adjacent rows or null), `parent()` (enclosing context). Must only be called within repeat context.
 
