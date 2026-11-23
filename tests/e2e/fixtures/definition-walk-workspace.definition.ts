@@ -75,7 +75,7 @@ export const lockedRepeatComponent: ComponentDocument = {
   tree: { component: 'Stack', bind: 'review', children: [
     { component: 'Accordion', bind: 'records', allowAdd: false, allowRemove: false, defaultOpen: 0,
       children: [{ component: 'TextInput', bind: 'title' }] },
-    { component: 'Section', bind: 'notes', title: 'Notes', children: [{ component: 'TextInput', bind: 'text' }] },
+    { component: 'Accordion', bind: 'notes', labels: ['Notes 1'], children: [{ component: 'TextInput', bind: 'text' }] },
   ] },
 };
 
