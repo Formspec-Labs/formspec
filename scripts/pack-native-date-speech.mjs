@@ -48,6 +48,7 @@ for (const [name, source] of packages) {
 }
 for (const path of [
   'playwright.native-date-speech.config.ts',
+  'scripts/prepare-native-date-reader.mjs',
   'scripts/serve-native-date-speech.mjs',
   'tests/e2e/harness-server.ts',
   'tests/e2e/playwright/react-native-date-speech.spec.ts',

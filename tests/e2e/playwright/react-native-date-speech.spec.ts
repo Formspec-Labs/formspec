@@ -48,34 +48,23 @@ if (process.env.FORMSPEC_WALK_SR === 'os') {
   nativeTest('native date speech names the required date and announces its error after Enter', async ({ page, screenReader }, info) => {
     const { root, due, optional } = await open(page);
     await screenReader.navigateToWebContent();
-    let stage = 'optional-date';
-    const speech = async () => (await screenReader.spokenPhraseLog()).join(' ');
-    const announce = expect.configure({ soft: true, timeout: 6_000 });
-    const record = async () => {
-      await info.attach(stage, { body: (await screenReader.spokenPhraseLog()).join('\n'), contentType: 'text/plain' });
+    const announce = expect.configure({ soft: true });
+    const listen = async (stage: string, action: () => Promise<void>) => {
+      const { spokenPhrase } = await screenReader.capture(action, { capture: true });
+      await info.attach(stage, { body: spokenPhrase, contentType: 'text/plain' });
+      return spokenPhrase;
     };
-    try {
-      await screenReader.clearSpokenPhraseLog();
-      await optional.focus();
-      await announce.poll(speech).toMatch(/follow-up date/i);
-      announce(await speech()).not.toMatch(/\brequired\b/i);
-    } finally { await record(); }
-    stage = 'required-date';
-    try {
-      await screenReader.clearSpokenPhraseLog();
-      await due.focus();
-      await announce.poll(speech).toMatch(/(?=.*due date)(?=.*\brequired\b)/i);
-    } finally { await record(); }
-    stage = 'invalid-date';
-    try {
-      await screenReader.clearSpokenPhraseLog();
-      await submitToLink(page, root);
-      // Drain the link's announcement before checking speech after the focus jump.
-      await expect.poll(speech).toMatch(/(?=.*choose a due date to continue)(?=.*\blink\b)/i);
-      await screenReader.clearSpokenPhraseLog();
-      await enterAndCheckError(page, due);
-      await expect.poll(speech).toMatch(/choose a due date to continue/i);
-    } finally { await record(); }
+    const optionalSpeech = await listen('optional-date', () => optional.focus());
+    announce(optionalSpeech).toMatch(/follow-up date/i);
+    announce(optionalSpeech).not.toMatch(/\brequired\b/i);
+    const requiredSpeech = await listen('required-date', () => due.focus());
+    announce(requiredSpeech).toMatch(/(?=.*due date)(?=.*\brequired\b)/i);
+    // Capture the link and the focus jump separately so the link's speech cannot satisfy the field check.
+    const linkSpeech = await listen('summary-link', () => submitToLink(page, root));
+    announce(linkSpeech).toMatch(/(?=.*choose a due date to continue)(?=.*\blink\b)/i);
+    const invalidSpeech = await listen('invalid-date', () => enterAndCheckError(page, due));
+    announce(invalidSpeech).toMatch(/choose a due date to continue/i);
+    announce(invalidSpeech).not.toMatch(/\blink\b/i);
   });
 } else {
   test('the date summary link focuses the invalid required date with its associated error', async ({ page }) => {
