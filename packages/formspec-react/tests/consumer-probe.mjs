@@ -12,7 +12,8 @@ function Title() { return createElement('h1', null, hooks.useForm().title); }
 const html = renderToString(createElement(m.FormspecProvider, { definition },
   createElement(Title),
   createElement('div', { dangerouslySetInnerHTML: { __html: m.renderSanitizedMarkdown('**ok** <script>x</script>') } })));
-console.log(JSON.stringify({ html, split: [...split(hooks), ...split(sc)], sc: typeof sc.createSemanticControlRegistry }));`;
+const exact = JSON.stringify(engine.parseJsonNumber('1234567890123456789'));
+console.log(JSON.stringify({ html, exact, split: [...split(hooks), ...split(sc)], sc: typeof sc.createSemanticControlRegistry }));`;
 
 export const PROBES = {
     require: ['-e', `(async () => {
@@ -38,6 +39,7 @@ ${BODY}`],
 export const EXPECTED = {
     html: '<div class="formspec-theme-scope" style="display:contents"><h1>Probe title</h1>'
         + '<div><strong>ok</strong> &lt;script&gt;x&lt;/script&gt;</div></div>',
+    exact: '1234567890123456789',
     split: [],
     sc: 'function',
 };
