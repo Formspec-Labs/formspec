@@ -1,7 +1,8 @@
 /** @filedesc One check per thing the documents promise, on a rendered form: names, required, hints, options, Tab order, reading order, repeats, reveals, the submit summary. */
 import type { Locator, Page } from '@playwright/test';
 import type { IFormEngine } from '@formspec-org/engine';
-import { UI_STRINGS } from '@formspec-org/layout';
+import { stripSeverityPrefix, UI_STRINGS } from '@formspec-org/layout';
+import type { ValidationReport } from '@formspec-org/types';
 import { expected, type ExpectedText } from './plan.js';
 import { intentionallyHidden, needsHostData, revealSearch, type RecipeStep } from './reveal.js';
 import { virtualScreenReader, type ScreenReader } from './screen-reader.js';
@@ -911,14 +912,22 @@ export class Walk {
      * control, whose description carries the message. Across wizard steps, so a link may bring its step back.
      */
     async summary(rows: SummaryRowWant[]): Promise<number> {
-        await this.page.evaluate((selector) => (document.querySelector(selector) as any).submit({ emitEvent: false }), this.rootSelector);
+        const requiredFields = await this.root.evaluate(async root => {
+            const host = root as HTMLElement & {
+                engine: IFormEngine;
+                submit(options: { emitEvent: false }): { validationReport: ValidationReport | null };
+            };
+            const { validationReport } = await host.submit({ emitEvent: false });
+            return Object.fromEntries((validationReport?.results ?? [])
+                .filter(result => result.constraintKind === 'required' || result.code === 'REQUIRED')
+                .map(result => [result.path, {
+                    id: host.engine.getFieldVM(result.path)?.id,
+                    message: host.engine.resolveValidationMessage(result),
+                }]));
+        });
         await this.page.waitForTimeout(100);
         const summary = this.root.locator('.formspec-validation-summary');
         const live = await this.state();
-        const fieldIds = await this.root.evaluate((root, paths) => {
-            const engine = (root as HTMLElement & { engine: IFormEngine }).engine;
-            return Object.fromEntries(paths.map(path => [path, engine.getFieldVM(path)?.id]));
-        }, live.map(f => f.path));
         const template = this.chrome('validationSummary.row');
         let checked = 0;
         for (const r of rows) {
@@ -927,11 +936,14 @@ export class Walk {
             const label = want(r.label);
             const trimmedLabel = label.text.replace(/[:.]+$/, '') || label.text;
             const summaryLabel = label.text === trimmedLabel ? label : expected(trimmedLabel);
-            const pattern = templateRegex(template, { label: summaryLabel, message: r.message ? want(r.message) : undefined });
-            const href = `#${fieldIds[f.path]}`;
+            // A field can have several links to the same control, one for each distinct finding.
+            const required = requiredFields[f.path];
+            const message = r.message ?? (required?.message && (stripSeverityPrefix(required.message) || required.message));
+            const pattern = templateRegex(template, { label: summaryLabel, message: message ? want(message) : undefined });
+            const href = `#${required?.id}`;
             const target = summary.locator(`a[href=${JSON.stringify(href)}]`);
             const link = target.and(summary.getByRole('link', { name: pattern }));
-            if (!fieldIds[f.path] || await link.count() !== 1) {
+            if (!required?.id || !message || await link.count() !== 1) {
                 this.found(`${f.path}: required and empty, but no unique summary link targeting the field reads as ${pattern}`);
                 continue;
             }

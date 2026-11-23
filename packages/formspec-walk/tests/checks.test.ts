@@ -25,6 +25,7 @@ const definition = {
         { path: 'kind', readonly: 'true', relevant: 'true' },
         { path: 'hidden', relevant: 'false' }, { path: 'unknown', relevant: "$kind = 'unknown'" },
     ],
+    shapes: [{ id: 'visit_note', target: 'first.visit', severity: 'info', message: 'Check availability', constraint: 'false' }],
 };
 const orderDefinition = { ...definition, binds: [], items: [{
     key: 'visits', type: 'group', label: 'Visits', repeatable: true, minRepeat: 2, children: [
@@ -118,10 +119,12 @@ it('still reports a missing required state and missing read-only value', async (
 });
 
 const summaryRows = ['second.visit', 'first.visit'].map(path => ({ path, label: 'Visit date:' }));
-it('matches same-named summary links by target and checks Enter and error semantics', async () => {
+it('matches the required finding when fields share a name and findings share a destination', async () => {
     const { page, walk } = await open();
     try {
         expect(await walk.summary(summaryRows)).toBe(2);
+        expect(await page.locator('.formspec-validation-summary a[href="#field-first-visit"]').allTextContents())
+            .toEqual(expect.arrayContaining(['Visit date: Required', 'Visit date: Check availability']));
         walk.expectClean();
     } finally { await page.close(); }
 });
