@@ -70,6 +70,7 @@ describe('the React renderer draws its own words from the shared inventory', () 
             'screener.no',
             'screener.noMatchBody',
             'screener.noMatchTitle',
+            'screener.required',
             'screener.requiredMessage',
             'screener.restart',
             'screener.submit',
