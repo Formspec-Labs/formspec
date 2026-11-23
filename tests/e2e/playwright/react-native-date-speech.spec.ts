@@ -35,8 +35,17 @@ async function enterAndCheckError(page: Page, due: Locator) {
 
 if (process.env.FORMSPEC_WALK_SR === 'os') {
   const { screenReaderTest } = require('@guidepup/playwright') as typeof import('@guidepup/playwright');
-  screenReaderTest.use({ headless: false });
-  screenReaderTest('native date speech names the required date and announces its error after Enter', async ({ page, screenReader }, info) => {
+  const nativeTest = screenReaderTest.extend({
+    // Guidepup uses this fixture to activate the desktop app. Launch Chromium ourselves so
+    // Playwright still gets the installed Chrome channel while Guidepup uses its `chrome` app key.
+    browserName: 'chrome' as 'chromium',
+    browser: [async ({ playwright, launchOptions, headless }, use) => {
+      const browser = await playwright.chromium.launch({ ...launchOptions, headless, channel: 'chrome' });
+      try { await use(browser); } finally { await browser.close(); }
+    }, { scope: 'worker' }],
+  });
+  nativeTest.use({ headless: false });
+  nativeTest('native date speech names the required date and announces its error after Enter', async ({ page, screenReader }, info) => {
     const { root, due, optional } = await open(page);
     await screenReader.navigateToWebContent();
     let stage = 'optional-date';
