@@ -3,7 +3,7 @@ import type { Locator, Page } from '@playwright/test';
 import type { IFormEngine } from '@formspec-org/engine';
 import { UI_STRINGS } from '@formspec-org/layout';
 import { expected, type ExpectedText } from './plan.js';
-import { needsHostData, revealSearch, type RecipeStep } from './reveal.js';
+import { intentionallyHidden, needsHostData, revealSearch, type RecipeStep } from './reveal.js';
 import { virtualScreenReader, type ScreenReader } from './screen-reader.js';
 import { stepPage } from './page-navigation.js';
 
@@ -163,6 +163,7 @@ export class Walk {
     readonly findings: string[] = [];
     private findingCount = 0;
     readonly uncovered: string[] = [];
+    readonly intentionallyHidden: string[] = [];
     readonly root: Locator;
     /** The Tab-walk starting point, before the form. */
     private sentinel = '__formspec-walk-start';
@@ -340,7 +341,8 @@ export class Walk {
             // An option is described by its group: a radio's hint rides the fieldset / radiogroup it sits in.
             const group = el.closest('fieldset, [role="group"], [role="radiogroup"]');
             const ids = [el, ...(group && group !== el ? [group] : [])]
-                .flatMap((n) => (n.getAttribute('aria-describedby') ?? '').split(/\s+/)).filter(Boolean);
+                .flatMap(n => ['aria-describedby', 'aria-errormessage']
+                    .flatMap(name => (n.getAttribute(name) ?? '').split(/\s+/))).filter(Boolean);
             const seen = (window.__formspecWalkSeen ??= new Set<Element>());
             const repeat = seen.has(el);
             seen.add(el);
@@ -409,8 +411,8 @@ export class Walk {
 
     /**
      * The field is on the page, named by its label (its own controls extend the label in a composite
-     * widget), heard that way with its required state when focused, described by its hint, offering
-     * every option. Brings its wizard step into view first.
+     * widget), marked required when applicable and heard when focused. Read-only controls are checked
+     * in the accessible tree without moving focus. Brings its wizard step into view first.
      */
     async field(pathOrBase: string, w: FieldWant, stop?: Stop, live?: LiveField): Promise<boolean> {
         const existing = live ?? await this.live(pathOrBase);
@@ -437,8 +439,15 @@ export class Walk {
         // Only a group around the principal control can name the field. An optgroup
         // or a sibling help panel does not change a single input into a composite.
         const owners = controls.first().locator('xpath=ancestor::*');
-        const groupName = asRegex(label, required ? '(?:\\s+required)?' : '');
-        const groups = this.byRoles(fieldRoot, ['group', 'radiogroup'], groupName).and(owners);
+        // ARIA group has no required state. The adapters append a dedicated accessible marker
+        // to its name; ordinary words in the authored label do not count as a marker.
+        const marker = await fieldRoot.locator('.formspec-required[aria-hidden="true"] + .formspec-sr-only:not([aria-hidden="true"])')
+            .evaluateAll(nodes => nodes.map(node => (node.textContent ?? '').trim()).find(Boolean));
+        const markedLabel = marker && expected(`${label.text} ${marker}`);
+        const namedGroups = this.byRoles(fieldRoot, ['group', 'radiogroup'], asRegex(label));
+        const groups = (markedLabel
+            ? namedGroups.or(this.byRoles(fieldRoot, ['group', 'radiogroup'], asRegex(markedLabel)))
+            : namedGroups).and(owners);
         const isGroup = await groups.count() > 0;
         const composite = !isGroup && count > 1;
         if (!isGroup) {
@@ -452,12 +461,25 @@ export class Walk {
         }
         if (w.required === 'engine') this.uncover(`${f.path}: required is an expression; the engine decides`);
 
-        if (!stop) {
+        if (!f.readonly) {
+            const requiredState = Boolean(isGroup && marker) || await groups.or(controls).evaluateAll(nodes =>
+                nodes.some(el => el.getAttribute('aria-required') === 'true' || el.hasAttribute('required')));
+            if (requiredState !== required) this.found(`${f.path}: expected required state ${required}, found ${requiredState}`);
+        } else {
+            if (!f.empty) await this.checkReadonlyValue(f.path, fieldRoot);
+            stop = undefined;
+        }
+
+        if (!f.readonly && !stop) {
             // Focus the control and hear it — the Tab order is the tabOrder check's business.
             await this.sr.clearSpokenPhraseLog();
             await fieldRoot.locator('input, select, textarea, button, [tabindex="0"]').filter({ visible: true }).first().focus();
             await this.page.waitForTimeout(30);
             stop = (await this.focusStop()) ?? undefined;
+        }
+        if (!f.readonly && stop?.path !== f.path) {
+            this.found(`${f.path}: focus did not reach the field`);
+            stop = undefined;
         }
         if (stop) {
             const heardName = heardNameOf(stop.phrase);
@@ -469,21 +491,12 @@ export class Walk {
                     this.found(`${f.path}: screen reader heard "${stop.phrase}", neither the label "${label.text}" nor one of its options`);
             } else {
                 if (!heardIs(heardName, label, composite)) this.found(`${f.path}: screen reader heard "${stop.phrase}", not the label "${label.text}"`);
-                if (required && !/(^|, )required(,|$)/.test(stop.phrase)) this.found(`${f.path}: required, but the screen reader heard "${stop.phrase}"`);
-                if (!required && /(^|, )required(,|$)/.test(stop.phrase)) this.found(`${f.path}: not required, but the screen reader heard "${stop.phrase}"`);
             }
             if (w.hint) {
                 const hint = want(w.hint);
                 if (!stop.descs.some((d) => contains(d, hint) || squash(d).includes(squash(hint.text))))
                     this.found(`${f.path}: hint "${hint.text}" is not in the control's description (${JSON.stringify(stop.descs)})`);
             }
-        }
-        if (isGroup) {
-            // Required rides the group (aria-required, or the legend's own "required" text for checkbox groups).
-            const groupRequired = await groups.evaluateAll(nodes => nodes.some(g =>
-                g.getAttribute('aria-required') === 'true' ||
-                /\brequired\b/i.test(g.querySelector('legend')?.textContent ?? '')));
-            if (groupRequired !== required) this.found(`${f.path}: ${required ? 'required' : 'not required'}, but the group says ${groupRequired ? 'required' : 'nothing'}`);
         }
         if (w.options?.length) {
             for (const option of w.options.map(want)) {
@@ -493,6 +506,26 @@ export class Walk {
         }
         if (!f.readonly) await this.choice(f.path, fieldRoot);
         return this.findingCount === before;
+    }
+
+    /** Native controls expose their displayed value or selected option even when they cannot take focus. */
+    private async checkReadonlyValue(path: string, field: Locator): Promise<void> {
+        const select = field.locator('select').filter({ visible: true });
+        if (await select.count() === 1) {
+            const selected = await select.getByRole('option', { selected: true }).evaluateAll(
+                options => options.some(option => Boolean((option as HTMLOptionElement).value)));
+            if (!selected) this.found(`${path}: the read-only choice has no accessible selected value`);
+            return;
+        }
+        const textInputs = field.locator('textarea, input:not([type="hidden"], [type="radio"], [type="checkbox"], [type="button"], [type="file"], [type="password"])')
+            .filter({ visible: true });
+        if (await textInputs.count()) {
+            const values = await textInputs.evaluateAll(nodes => nodes.map(node => (node as HTMLInputElement).value).filter(Boolean));
+            const snapshot = await field.ariaSnapshot();
+            if (!values.length || values.some(value => !snapshot.includes(value) && !snapshot.includes(JSON.stringify(value).slice(1, -1)))) {
+                this.found(`${path}: the read-only control does not expose its displayed value`);
+            }
+        }
     }
 
     /** One native keyboard action must persist in the DOM, field state, and exported Response. */
@@ -558,20 +591,27 @@ export class Walk {
         }
     }
 
-    /** Tab reaches every visible one of `paths`, in that order, on the current step; each stop is heard as its field. */
+    /** Tab reaches every editable visible field in `paths`, in that order, on the current step. */
     async tabOrder(paths: string[], fields?: Record<string, FieldWant>): Promise<Map<string, Stop>> {
-        const live = await this.state();
-        const visible = paths.filter((p) => live.some((f) => f.path === p && f.relevant && f.inDom));
+        const live = new Map((await this.state()).map(f => [f.path, f]));
+        const visible = paths.flatMap(path => {
+            const field = live.get(path);
+            return field?.relevant && field.inDom ? [field] : [];
+        });
         const stops = await this.tabWalk();
         const stopAt = new Map<string, Stop>();
         for (const s of stops) if (s.path && !stopAt.has(s.path)) stopAt.set(s.path, s);
         let last = -1;
-        for (const p of visible) {
-            const at = stops.findIndex((s, i) => i > last && s.path === p);
-            if (at < 0) this.found(stops.some((s) => s.path === p) ? `${p}: reached by Tab out of Definition order` : `${p}: not reachable by Tab`);
+        for (const field of visible) {
+            if (field.readonly) continue;
+            const at = stops.findIndex((s, i) => i > last && s.path === field.path);
+            if (at < 0) this.found(stopAt.has(field.path) ? `${field.path}: reached by Tab out of Definition order` : `${field.path}: not reachable by Tab`);
             else last = at;
         }
-        if (fields) for (const p of visible) if (fields[p]) await this.field(p, fields[p], stopAt.get(p), live.find((f) => f.path === p));
+        if (fields) for (const field of visible) {
+            const expected = fields[field.path];
+            if (expected) await this.field(field.path, expected, stopAt.get(field.path), field);
+        }
         return stopAt;
     }
 
@@ -633,12 +673,17 @@ export class Walk {
                     this.found(`${f.path}: never shown on any step`);
                     return false;
                 }
-                const reached = (await this.tabWalk(f.path)).find(stop => stop.path === f.path);
-                if (!reached) {
-                    this.found(`${f.path}: not reachable by Tab in its section`);
-                    return false;
+                let reached: Stop | undefined;
+                const revealed = await this.live(f.path);
+                if (!revealed) return false;
+                if (!revealed.readonly) {
+                    reached = (await this.tabWalk(f.path)).find(stop => stop.path === f.path);
+                    if (!reached) {
+                        this.found(`${f.path}: not reachable by Tab in its section`);
+                        return false;
+                    }
                 }
-                if (!await this.field(f.path, w, reached)) return false;
+                if (!await this.field(f.path, w, reached, revealed)) return false;
             } finally {
                 if (recipe.length) await this.restore(recipe);
             }
@@ -652,14 +697,25 @@ export class Walk {
 
     /** Set the values that reveal `path` — given, or searched against the page's engine. Null when none do. */
     private async applyRecipe(path: string, shownBy: Array<{ path: string; value: unknown }> | RecipeStep[] | 'engine'): Promise<RecipeStep[] | null> {
-        const result = await this.page.evaluate(({ selector, src, path, steps }) => {
+        const result = await this.page.evaluate(({ selector, src, hiddenSrc, path, steps }) => {
             const engine = (document.querySelector(selector) as any).engine;
+            const hidden = new Function(`return ${hiddenSrc}`)();
+            if (hidden(path, engine.getDefinition?.().binds ?? [])) return { hidden: true };
             const search = new Function(`return ${src}`)();
             return { recipe: search(engine, path, {}, steps) as RecipeStep[] | null, expression: engine.whyRelevant(path).expression as string | null };
-        }, { selector: this.rootSelector, src: revealSearch.toString(), path, steps: shownBy === 'engine' ? undefined : shownBy });
+        }, { selector: this.rootSelector, src: revealSearch.toString(), hiddenSrc: intentionallyHidden.toString(), path,
+            steps: shownBy === 'engine' ? undefined : shownBy });
+        if (result.hidden) {
+            if (!this.intentionallyHidden.includes(path)) this.intentionallyHidden.push(path);
+            return null;
+        }
         if (result.recipe) return result.recipe;
         if (needsHostData(result.expression)) this.uncover(`${path}: shown only with host data (${result.expression}); not derivable from the documents`);
-        else this.found(`${path}: nothing enumerable reveals it (${result.expression}); a relevance the documents cannot exercise`);
+        else {
+            const reason = `${path}: nothing enumerable reveals it (${result.expression}); a relevance the documents cannot exercise`;
+            this.uncover(reason);
+            this.found(reason);
+        }
         return null;
     }
 
@@ -778,21 +834,28 @@ export class Walk {
         await this.page.evaluate((selector) => (document.querySelector(selector) as any).submit({ emitEvent: false }), this.rootSelector);
         await this.page.waitForTimeout(100);
         const summary = this.root.locator('.formspec-validation-summary');
-        const links = (await summary.count()) ? await summary.getByRole('link').all() : [];
-        const texts = await Promise.all(links.map((r) => r.textContent().then((t) => norm(t ?? ''))));
         const live = await this.state();
+        const fieldIds = await this.root.evaluate((root, paths) => {
+            const engine = (root as HTMLElement & { engine: IFormEngine }).engine;
+            return Object.fromEntries(paths.map(path => [path, engine.getFieldVM(path)?.id]));
+        }, live.map(f => f.path));
         const template = this.chrome('validationSummary.row');
-        const taken = new Set<number>();
         let checked = 0;
         for (const r of rows) {
             const f = live.find((l) => l.path === r.path) ?? live.find((l) => baseOf(l.path) === r.path);
             if (!f || !f.required || !f.empty || f.readonly || !f.relevant) continue;
-            // Two rows of one repeat read alike, so each row answers for one field, in order.
-            const pattern = templateRegex(template, { label: want(r.label), message: r.message ? want(r.message) : undefined });
-            const i = texts.findIndex((t, k) => !taken.has(k) && pattern.test(t));
-            if (i < 0) { this.found(`${f.path}: required and empty, but no summary link reads as ${pattern}; rows: ${JSON.stringify(texts)}`); continue; }
-            taken.add(i);
-            await links[i].focus();
+            const label = want(r.label);
+            const trimmedLabel = label.text.replace(/[:.]+$/, '') || label.text;
+            const summaryLabel = label.text === trimmedLabel ? label : expected(trimmedLabel);
+            const pattern = templateRegex(template, { label: summaryLabel, message: r.message ? want(r.message) : undefined });
+            const href = `#${fieldIds[f.path]}`;
+            const target = summary.locator(`a[href=${JSON.stringify(href)}]`);
+            const link = target.and(summary.getByRole('link', { name: pattern }));
+            if (!fieldIds[f.path] || await link.count() !== 1) {
+                this.found(`${f.path}: required and empty, but no unique summary link targeting the field reads as ${pattern}`);
+                continue;
+            }
+            await link.focus();
             await this.sr.clearSpokenPhraseLog();
             await this.page.keyboard.press('Enter');
             await this.page.waitForTimeout(50);
@@ -800,11 +863,15 @@ export class Walk {
             const landed = await this.page.evaluate((p) => Boolean((document.activeElement as HTMLElement | null)?.closest(`[data-name="${p}"]`)), f.path);
             if (!landed) { this.found(`${f.path}: Enter on its summary link did not move focus to the field`); continue; }
             const at = (await this.focusStop())!;
-            const inGroup = await this.page.evaluate((sel) => Boolean((document.activeElement as HTMLElement | null)?.closest(sel)), GROUP_CONTROL);
-            const invalid = await this.page.locator(':focus').evaluate((el) => el.getAttribute('aria-invalid') === 'true' || Boolean(el.closest('[aria-invalid="true"]')));
+            const invalid = await this.page.locator(':focus').evaluate(el => {
+                const marked = el.closest('[aria-invalid="true"]');
+                return Boolean(marked && el.closest('[data-name]')?.contains(marked));
+            });
             if (!invalid) this.found(`${f.path}: focused from the summary, but the control is not marked aria-invalid`);
-            if (!at.descs.some((d) => texts[i].includes(d))) this.found(`${f.path}: the summary row "${texts[i]}" carries a message the control's description does not (${JSON.stringify(at.descs)})`);
-            if (!inGroup && at.phrase && !/(^|, )invalid(,|$)/.test(at.phrase)) this.found(`${f.path}: screen reader heard "${at.phrase}" on the invalid control — no "invalid"`);
+            const associated = await Promise.all(at.descs.map(message => link.and(
+                summary.getByRole('link', { name: templateRegex(template, { label: summaryLabel, message: expected(message) }) }),
+            ).count()));
+            if (!associated.some(Boolean)) this.found(`${f.path}: the summary message is missing from the control's accessible error description`);
             checked += 1;
         }
         return checked;

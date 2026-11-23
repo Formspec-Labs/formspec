@@ -20,7 +20,7 @@ function summarize(test: TestCase, axeReports: RendererCheckReport[]) {
         const axe = evidence<RendererCheckReport>(result, 'formspec-axe');
         return {
             retry: result.retry, status: result.status, errors: result.errors.map(errorMessage),
-            walk: evidence<{ findings: string[]; uncovered: string[] }>(result, 'formspec-walk'),
+            walk: evidence<{ findings: string[]; uncovered: string[]; intentionallyHidden?: string[] }>(result, 'formspec-walk'),
             axeIndex: axe && axeReports.push(axe) - 1,
         };
     });
@@ -30,11 +30,11 @@ function summarize(test: TestCase, axeReports: RendererCheckReport[]) {
 
 function formsIn(suite?: Suite) {
     type Form = { formId: string; tests: ReturnType<typeof summarize>[]; findings: Set<string>;
-        uncovered: Set<string>; axe: RendererCheckReport[] };
+        uncovered: Set<string>; intentionallyHidden: Set<string>; axe: RendererCheckReport[] };
     const forms = new Map<string, Form>();
     for (const test of suite?.allTests() ?? []) {
         const formId = test.annotations.find(a => a.type === 'formspec-form')?.description ?? test.location.file;
-        const form: Form = forms.get(formId) ?? { formId, tests: [], findings: new Set(), uncovered: new Set(), axe: [] };
+        const form: Form = forms.get(formId) ?? { formId, tests: [], findings: new Set(), uncovered: new Set(), intentionallyHidden: new Set(), axe: [] };
         forms.set(formId, form);
         const row = summarize(test, form.axe);
         form.tests.push(row);
@@ -42,9 +42,10 @@ function formsIn(suite?: Suite) {
         for (const attempt of row.attempts) {
             for (const finding of attempt.walk?.findings ?? []) form.findings.add(finding);
             for (const item of attempt.walk?.uncovered ?? []) form.uncovered.add(item);
+            for (const item of attempt.walk?.intentionallyHidden ?? []) form.intentionallyHidden.add(item);
         }
     }
-    return [...forms.values()].map(form => ({ ...form, findings: [...form.findings], uncovered: [...form.uncovered] }));
+    return [...forms.values()].map(form => ({ ...form, findings: [...form.findings], uncovered: [...form.uncovered], intentionallyHidden: [...form.intentionallyHidden] }));
 }
 
 export default class WalkReporter implements Reporter {

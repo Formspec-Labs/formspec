@@ -1,5 +1,5 @@
 /** @filedesc Emit a plan as a readable Playwright spec: one test per thing the documents promise, every expectation written out. */
-import type { FormDefinition, LocaleDocument, ThemeDocument } from '@formspec-org/types';
+import type { ComponentDocument, FormDefinition, LocaleDocument, ThemeDocument } from '@formspec-org/types';
 import type { ExpectedText, Plan, PlanField } from './plan.js';
 import { revealSearch, type RevealEngine } from './reveal.js';
 
@@ -20,6 +20,7 @@ export interface EmitOptions {
     /** Include an accessibility check of the host with the authored documents. */
     axe?: boolean;
     theme?: ThemeDocument;
+    component?: ComponentDocument;
     /** The package the emitted spec imports the walk from. */
     from?: string;
 }
@@ -100,7 +101,7 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
     push('    walk: async ({ page }, use, info) => {');
     push('        const walk = await open(page);');
     push('        try { await use(walk); } finally {');
-    push("            await info.attach('formspec-walk', { contentType: 'application/json', body: JSON.stringify({ findings: walk.findings, uncovered: walk.uncovered }) });");
+    push("            await info.attach('formspec-walk', { contentType: 'application/json', body: JSON.stringify({ findings: walk.findings, uncovered: walk.uncovered, intentionallyHidden: walk.intentionallyHidden }) });");
     push('        }');
     push('    },');
     push('});');
@@ -112,13 +113,13 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
         push("    test('axe accessibility on the host page', { annotation: { type: 'formspec-axe' } }, async ({ page }, info) => {");
         push('        if (info.timeout && info.timeout < 75_000) test.setTimeout(75_000);');
         push(`        const report = await checkAccessibility(page, { open: page => Walk.openPage(page, ${openOptions})${rootOption}, scanWholePage: true,`);
-        push(`            documents: ${JSON.stringify({ definition, theme: options.theme })} });`);
+        push(`            documents: ${JSON.stringify({ definition, theme: options.theme, component: options.component })} });`);
         push("        await info.attach('formspec-axe', { contentType: 'application/json', body: JSON.stringify(report) });");
         push("        if (report.status === 'failed') throw new Error(report.failure?.message ?? 'axe could not finish');");
         push("        if (report.violations.length) throw new Error(JSON.stringify(report.violations));");
         push('    });');
     }
-    push("    test('every field is read and reached by Tab in Definition order, each group headed', async ({ walk }) => {");
+    push("    test('every field is read and every editable field reached by Tab in Definition order, each group headed', async ({ walk }) => {");
     push('        const fields = [');
     for (const f of plan.fields) push(`            { path: ${q(f.path)}, label: ${text(f.label)} },`);
     push('        ];');

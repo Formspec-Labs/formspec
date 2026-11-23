@@ -19,10 +19,9 @@ export interface RevealEngine {
 }
 
 /**
- * Search for values that make `path` relevant, one governing bind at a time from the outermost: try each
- * dependency's enumerable values alone, then the first two together; a value counts when the field becomes
- * relevant or the governing bind moves inward (an ancestor's holds, the field's own is next). Everything
- * tried and not kept is undone. Returns the steps to replay, or null when nothing enumerable reveals it.
+ * Try enumerable driver values from the outermost blocked path inward. Keep an ancestor open while
+ * solving its descendants, and backtrack to another answer if that branch cannot reach the field.
+ * Everything tried and not kept is undone. The bounded search returns the steps to replay, or null.
  *
  * `whyRelevant().dependsOn` names root identifiers as the bind's FEL reads them: a sibling key inside a
  * repeat row (`receivedRetirement`), a top-level field, or a group (`g` for `g.gon = true`). Each is
@@ -56,11 +55,24 @@ export function revealSearch(
 
     // Only what can be enumerated: a choice's options, a boolean's two values. A date or a text has no
     // value the documents name, so it is never guessed.
-    const candidates = (dep: string): unknown[] => {
+    function* candidates(dep: string): Iterable<unknown> {
+        const field = engine.getFieldVM(dep);
         const opts = optionValues[baseOf(dep)] ?? engine.getOptions(dep)?.map((o) => o.value) ?? [];
-        if (opts.length) return engine.getFieldVM(dep)?.dataType === 'multiChoice' ? opts.map(v => [v]) : opts;
-        return engine.getFieldVM(dep)?.dataType === 'boolean' ? [true, false] : [];
-    };
+        if (field?.dataType === 'multiChoice') {
+            const value = field.value?.value;
+            const selected: unknown[] = Array.isArray(value) ? value : [];
+            if (selected.length) {
+                for (const option of opts) if (!selected.includes(option)) yield [...selected, option];
+            }
+            for (const option of opts) yield [option];
+            if (selected.length) yield [];
+            for (const [i, first] of opts.entries()) {
+                for (const second of opts.slice(i + 1)) yield [first, second];
+            }
+        } else {
+            yield* opts.length ? opts : field?.dataType === 'boolean' ? [true, false] : [];
+        }
+    }
 
     const applied: RecipeStep[] = [];
     // The view model displays missing answers as null. Only the draft retains missing vs authored null.
@@ -93,26 +105,29 @@ export function revealSearch(
     }
 
     const visiting = new Set<string>();
+    // Dependency cycles, choice combinations and backtracking all share one edit budget per target.
+    let editsLeft = 256;
     const enable = (target: string): boolean => {
-        if (engine.isPathRelevant(target)) return true;
         if (visiting.has(target)) return false;
         visiting.add(target);
-        const start = applied.length;
-        const tried = new Set<string | null>();
-        while (!engine.isPathRelevant(target)) {
-            const why = engine.whyRelevant(target);
-            if (tried.has(why.bindId)) break;
-            tried.add(why.bindId);
-            const deps = [...new Set(why.dependsOn.flatMap(d => resolve(target, d, why.expression ?? '')))];
-            const advanced = () => engine.isPathRelevant(target) || engine.whyRelevant(target).bindId !== why.bindId;
-            // Try a single driver first, then the original two-driver conjunction.
+        const parts = target.split('.');
+        const ancestors = parts.map((_, i) => parts.slice(0, i + 1).join('.'));
+        const solve = (): boolean => {
+            const blocked = ancestors.find(p => !engine.isPathRelevant(p));
+            if (!blocked) return true;
+            if (!editsLeft) return false;
+            const why = engine.whyRelevant(blocked);
+            const deps = [...new Set(why.dependsOn.flatMap(d => resolve(blocked, d, why.expression ?? '')))];
             const tryDrivers = (drivers: string[]): boolean => {
-                if (!drivers.length) return advanced();
+                if (!drivers.length) return engine.isPathRelevant(blocked) && solve();
                 const [dep, ...rest] = drivers;
                 const checkpoint = applied.length;
                 if (!enable(dep)) return false;
                 for (const value of candidates(dep)) {
+                    if (!editsLeft) break;
+                    if (!engine.isPathRelevant(dep)) break;
                     const before = applied.length;
+                    editsLeft -= 1;
                     set(dep, value);
                     if (tryDrivers(rest)) return true;
                     undoTo(before);
@@ -120,12 +135,13 @@ export function revealSearch(
                 undoTo(checkpoint);
                 return false;
             };
-            if (!deps.some(dep => tryDrivers([dep])) && !(deps.length >= 2 && tryDrivers(deps.slice(0, 2)))) break;
+            return deps.some(dep => tryDrivers([dep])) || (deps.length >= 2 && tryDrivers(deps.slice(0, 2)));
+        };
+        try {
+            return solve();
+        } finally {
+            visiting.delete(target);
         }
-        visiting.delete(target);
-        if (engine.isPathRelevant(target)) return true;
-        undoTo(start);
-        return false;
     };
     return enable(path) ? applied : null;
 }
@@ -133,4 +149,24 @@ export function revealSearch(
 /** Whether a relevance expression reads something the documents alone cannot set: host-supplied instance data. */
 export function needsHostData(expression: string | null | undefined): boolean {
     return /@instance\s*\(/.test(expression ?? '');
+}
+
+/** The target has a literal false bind on itself or an ancestor, with no possible indexed override. */
+export function intentionallyHidden(path: string, binds: ReadonlyArray<{
+    path: string;
+    relevant?: string;
+    disabledDisplay?: string;
+}>): boolean {
+    const baseOf = (p: string) => p.replace(/\[[^\]]+\]/g, '');
+    const target = baseOf(path);
+    const effective = new Map<string, { relevant?: string; disabledDisplay?: string }>();
+    const indexed = new Set<string>();
+    for (const bind of binds) {
+        const base = baseOf(bind.path);
+        if (target !== base && !target.startsWith(base + '.')) continue;
+        if (/\[(?!\*\])/.test(bind.path)) indexed.add(base);
+        else effective.set(base, { ...effective.get(base), ...bind });
+    }
+    return [...effective].some(([base, bind]) => !indexed.has(base) && typeof bind.relevant === 'string'
+        && bind.relevant.trim() === 'false' && bind.disabledDisplay !== 'protected');
 }

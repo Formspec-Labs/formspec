@@ -1,6 +1,6 @@
 /** @filedesc Definition → accessibility walk plan: the names, states and structure a rendered form must present, from the documents alone. */
-import { UI_STRINGS, fillUiParams } from '@formspec-org/layout';
-import type { FormDefinition, FormItem, LocaleDocument, OptionEntry, ThemeDocument } from '@formspec-org/types';
+import { UI_STRINGS, fillUiParams, planDefinitionLayout, type LayoutNode } from '@formspec-org/layout';
+import type { ComponentDocument, FormDefinition, FormItem, LocaleDocument, OptionEntry, ThemeDocument } from '@formspec-org/types';
 
 /** A string the documents promise. `pattern` stands in when the source interpolates `{{…}}` at runtime. */
 export interface ExpectedText {
@@ -16,9 +16,9 @@ export interface PlanOption {
 export interface PlanRepeat {
     /** How one instance is named (`<key>.rowLabel`, else `$ui.repeat.row`); an adapter may say more after it ("… of 3"). */
     rowName: ExpectedText;
-    /** Absent when the Theme turns adding off (`widgetConfig.allowAdd: false`). */
+    /** Absent when the rendered configuration turns adding off. */
     addLabel?: ExpectedText;
-    /** Accessible name of one instance's Remove control; absent when the Theme turns removing off. */
+    /** Accessible name of one instance's Remove control; absent when removing is turned off. */
     removeLabel?: ExpectedText;
     minRepeat: number;
     maxRepeat?: number;
@@ -56,6 +56,8 @@ export interface PlanDocuments {
     locale?: LocaleDocument;
     /** Theme §4: `items.<key>.widget: 'Hidden'` takes a field off the page; `widgetConfig.allowAdd/allowRemove: false` a repeat's controls. A hidden label stays in the accessible tree, so it changes nothing here. */
     theme?: ThemeDocument;
+    /** The Component tree can set Add and Remove on a bound repeat (Accordion §6.3). */
+    component?: ComponentDocument;
 }
 
 export interface Plan {
@@ -117,6 +119,28 @@ class Strings {
     }
 }
 
+/** Match the renderer's resolved repeat nodes, including scoped bindings and Theme fallback. */
+function repeatControls(definition: FormDefinition, { component, theme }: PlanDocuments) {
+    const controls = new Map<string, { allowAdd: boolean; allowRemove: boolean }>();
+    if (!component) return controls;
+    const { root } = planDefinitionLayout({ definition, componentDocument: component, themeDocument: theme });
+    const visit = (node: LayoutNode) => {
+        const path = node.repeatPath ?? (node.component === 'Accordion' ? node.bindPath : undefined);
+        if (path) {
+            const key = path.replace(/\[(?:\*|\d+)\]/g, '');
+            const existing = controls.get(key);
+            // A group rendered in multiple places can still be exercised if one placement offers the control.
+            controls.set(key, {
+                allowAdd: (existing?.allowAdd ?? false) || node.props?.allowAdd !== false,
+                allowRemove: (existing?.allowRemove ?? false) || node.props?.allowRemove !== false,
+            });
+        }
+        for (const child of node.children) visit(child);
+    };
+    visit(root);
+    return controls;
+}
+
 /**
  * Derive the walk plan for one locale. Pure: reads the Definition and, when given, the Locale document
  * (Locale §3.1 keys: `<key>.label|hint`, `<key>.options.<value>.label`, `$optionSet.<set>.<value>.label`,
@@ -128,6 +152,7 @@ export function derivePlan(definition: FormDefinition, documents: PlanDocuments 
     const { locale, theme } = documents;
     const strings = new Strings((locale?.strings as Record<string, string> | undefined) ?? {});
     const themed = (key: string) => ((theme?.items ?? {}) as Record<string, { widget?: string; widgetConfig?: Record<string, unknown> }>)[key] ?? {};
+    const controls = repeatControls(definition, documents);
     // Bind paths address repeat children through `[*]`; items are keyed by their bare dotted path.
     const binds = new Map((definition.binds ?? []).map((b) => [b.path.replace(/\[\*\]/g, ''), b]));
     const sets = (definition.optionSets ?? {}) as Record<string, { options?: OptionEntry[] }>;
@@ -145,7 +170,7 @@ export function derivePlan(definition: FormDefinition, documents: PlanDocuments 
             if (item.type === 'group') {
                 const group: PlanGroup = { path, key: item.key, label };
                 if (item.repeatable) {
-                    const config = themed(item.key).widgetConfig ?? {};
+                    const config = controls.get(path) ?? themed(item.key).widgetConfig ?? {};
                     // Locale §3.1.1 repeat chrome: an authored string is the name as written (`{{@index}}` and
                     // friends interpolate at runtime); the derived default composes the group's label into the
                     // `$ui.repeat.*` templates, index left open — and an interpolated pattern is open-ended, so

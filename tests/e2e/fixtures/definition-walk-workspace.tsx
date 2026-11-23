@@ -4,13 +4,16 @@ import { createRoot } from 'react-dom/client';
 import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
 import type { FormDefinition } from '@formspec-org/types';
 import { FormspecForm } from '../../../packages/formspec-react/src/index';
-import { definition, mixedRepeatDefinition, wizardWithMiddleTarget } from './definition-walk-workspace.definition';
+import { conditionalSectionsDefinition, definition, lockedRepeatComponent, lockedRepeatDefinition, mixedRepeatDefinition, wizardWithMiddleTarget } from './definition-walk-workspace.definition';
 import '../../../packages/formspec-layout/src/formspec-default.css';
 
 await initFormspecEngine();
 const options = new URLSearchParams(location.search);
 const mixedRepeat = options.has('mixedRepeat');
+const lockedRepeat = options.has('lockedRepeat');
 let form: FormDefinition = mixedRepeat ? mixedRepeatDefinition : definition;
+if (lockedRepeat) form = lockedRepeatDefinition;
+if (options.has('conditionalSections')) form = conditionalSectionsDefinition;
 if (options.has('revealCases')) {
   form = { ...definition, items: [...definition.items.slice(0, 2), {
     key: 'details', type: 'group', label: 'Details', children: [
@@ -36,6 +39,8 @@ if (options.has('extraSection')) {
 }
 createRoot(document.getElementById('root')!).render(
   <FormspecForm definition={form}
-    initialData={mixedRepeat ? { details: { rows: [{ show: false }, { show: true }] } } : undefined}
+    componentDocument={lockedRepeat ? lockedRepeatComponent : undefined}
+    initialData={lockedRepeat ? { review: { records: [{ title: 'Existing record' }] } }
+      : mixedRepeat ? { details: { rows: [{ show: false }, { show: true }] } } : undefined}
     hrefForSection={options.has('links') ? section => `#${section}` : undefined} />,
 );

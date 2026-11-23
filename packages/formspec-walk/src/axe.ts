@@ -1,9 +1,9 @@
 /** @filedesc Run axe on each form page and report coverage, violations, and items for review. */
 import type { Locator, Page } from '@playwright/test';
-import { hasWizardSections, mergeFormPresentationForPlanning, placementCovers, planExplicitPageRoot, resolvePageSequence, type ThemeDocument } from '@formspec-org/layout';
+import { hasWizardSections, mergeFormPresentationForPlanning, placementCovers, planDefinitionLayout, planExplicitPageRoot, resolvePageSequence, type ThemeDocument, type WorkspacePage } from '@formspec-org/layout';
 import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
 import type { HostDocuments } from '@formspec-org/webcomponent/host';
-import { revealSearch, type RecipeStep } from './reveal.js';
+import { intentionallyHidden, revealSearch, type RecipeStep } from './reveal.js';
 import { pagePosition } from './page-navigation.js';
 import { DEFAULT_WALK_ROOT_SELECTOR, renderedFormSelector } from './checks.js';
 
@@ -11,7 +11,7 @@ import { DEFAULT_WALK_ROOT_SELECTOR, renderedFormSelector } from './checks.js';
 export const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] as const;
 
 /** Version of this check's report shape and procedure; changes when what is run, or how, changes. */
-export const CHECK_VERSION = '2';
+export const CHECK_VERSION = '3';
 
 /** The 60 s cap on one whole check, browser start to report (ADR 0166 §3). */
 export const DEFAULT_TIMEOUT_MS = 60_000;
@@ -98,6 +98,8 @@ export interface PageCoverage {
     visited: number;
     /** Fields hidden by relevance that were shown and checked. */
     revealedFields: number;
+    /** Authored workspace sections excluded because their content is permanently hidden. */
+    intentionallyHidden?: string[];
 }
 
 /**
@@ -238,15 +240,17 @@ async function loadAxe(): Promise<AxeBuilderCtor> {
 export function expectedPages(definition: unknown, theme?: unknown, component?: ComponentDocument | null): number {
     const presentation = formPresentation(definition, component);
     const mode = presentation?.pageMode;
-    if (mode !== 'workspace') {
-        const planned = planExplicitPageRoot(definition as FormDefinition, {
-            component: component ?? undefined, theme: (theme ?? undefined) as ThemeDocument | undefined,
-        });
-        if (planned) return Math.max(1, planned.children.length);
+    if (mode === 'workspace') {
+        const d = definition as FormDefinition;
+        return Math.max(1, workspacePages(d, theme, component).filter(section => !isHiddenSection(section, d)).length);
     }
-    if (mode !== 'wizard' && mode !== 'tabs' && mode !== 'workspace') return 1;
+    const planned = planExplicitPageRoot(definition as FormDefinition, {
+        component: component ?? undefined, theme: (theme ?? undefined) as ThemeDocument | undefined,
+    });
+    if (planned) return Math.max(1, planned.children.length);
+    if (mode !== 'wizard' && mode !== 'tabs') return 1;
     const pages = planPages(definition, presentation!, theme, component);
-    return mode === 'workspace' || hasWizardSections(pages) ? Math.max(1, pages.length) : 1;
+    return hasWizardSections(pages) ? Math.max(1, pages.length) : 1;
 }
 
 function formPresentation(definition: unknown, component?: ComponentDocument | null) {
@@ -260,6 +264,17 @@ function planPages(definition: unknown, presentation: Record<string, unknown>, t
         component: component ?? undefined,
         theme: (theme ?? undefined) as ThemeDocument | undefined,
     });
+}
+
+function workspacePages(definition: FormDefinition, theme?: unknown, component?: ComponentDocument | null): WorkspacePage[] {
+    return planDefinitionLayout({ definition, componentDocument: component, themeDocument: theme as ThemeDocument | undefined }).workspace ?? [];
+}
+
+/** Workspace hides a section when its title or root is hidden, or all its direct children are hidden. */
+function isHiddenSection(section: WorkspacePage, definition: FormDefinition): boolean {
+    const hidden = (path?: string) => path !== undefined && intentionallyHidden(path, definition.binds ?? []);
+    const { bindPath, children } = section.content;
+    return hidden(section.titleBind) || hidden(bindPath) || (children.length > 0 && children.every(child => hidden(child.bindPath)));
 }
 
 /** What an axe pass over a rendered form collected. */
@@ -320,15 +335,14 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
     const workspacePresentation = presentation?.pageMode === 'workspace' ? presentation : undefined;
     const workspaceFallback = mode === 'single' && workspacePresentation !== undefined;
     const workspace = mode === 'workspace' && documents && workspacePresentation
-        ? planPages(documents.definition, workspacePresentation, documents.theme, documents.component)
+        ? workspacePages(documents.definition, documents.theme, documents.component)
         : undefined;
     if (mode === 'workspace' && !workspace) {
         throw new PageCoverageError('Workspace coverage requires the authored Definition and any Theme or Component used by the renderer');
     }
     const sectionIds = workspace?.length ? workspace.map(section => section.id) : [undefined];
     let expectedMin = options.expectedPages ?? null;
-    if (workspace) expectedMin = Math.max(expectedMin ?? 0, sectionIds.length);
-    else if (workspaceFallback) expectedMin = 1;
+    if (workspaceFallback) expectedMin = 1;
     else if (expectedMin === null && documents && !workspacePresentation) {
         expectedMin = expectedPages(documents.definition, documents.theme, documents.component);
     }
@@ -336,33 +350,38 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
     const panelSelector = mode === 'wizard' ? WIZARD_PANEL : mode === 'tabs' ? TAB_PANEL : null;
     const root = page.locator(rootSelector);
     const workspaceRoot = root.locator(WORKSPACE);
-    const renderedIds = workspace ? await workspaceRoot.locator(WORKSPACE_NAV)
-        .evaluateAll(controls => controls.map(control => control.getAttribute('data-formspec-section')!)) : [];
+    const readRenderedIds = () => workspaceRoot.locator(WORKSPACE_NAV)
+        .evaluateAll(controls => controls.map(control => control.getAttribute('data-formspec-section')!));
+    const renderedIds = new Set(workspace ? await readRenderedIds() : []);
     const plannedIds = new Set(sectionIds);
-    const unexpected = new Set(renderedIds.filter(id => !plannedIds.has(id)));
+    const skipped = new Set(workspace?.flatMap((section, i) => section.id !== undefined
+        && !renderedIds.has(section.id) && isHiddenSection(section, documents!.definition) ? [i] : []));
+    if (workspace) expectedMin = Math.max(expectedMin ?? 0, sectionIds.length - skipped.size, 1);
     const pager = () => pagePosition(root.locator(panelSelector!));
     const drawn = workspace
-        ? (sectionIds[0] === undefined && !renderedIds.length
+        ? (sectionIds[0] === undefined && !renderedIds.size
             ? await workspaceRoot.locator(WORKSPACE_CONTENT).count()
-            : renderedIds.length)
+            : renderedIds.size)
         : panelSelector ? (await pager()).count : 1;
     const adapter = await page.evaluate((sel) => (document.querySelector(sel) as any)?.resolvedAdapterName ?? null, rootSelector);
     const result: AxePassResult = {
         axeVersion: null, adapter, pages: { kind: mode, expectedMin, drawn, visited: 0, revealedFields: 0 },
         states: [], violations: [], needsReview: [],
     };
+    if (skipped.size) result.pages.intentionallyHidden = [...skipped].map(i => sectionIds[i]!);
     if (workspaceFallback) {
         result.needsReview.push(reviewFinding('page-load', 'formspec-workspace-fallback',
             'The renderer drew this workspace form as one page; section navigation, search and findings were not checked', rootSelector));
     }
     const pageCount = workspace ? sectionIds.length : drawn;
-    const largestCount = Math.max(drawn, pageCount);
+    const plannedCount = pageCount - skipped.size;
+    const largestCount = Math.max(drawn, plannedCount);
     if (largestCount > maxPages) {
         throw new PageCoverageError(`the form has ${largestCount} pages, more than the ${maxPages} the check visits`);
     }
-    if (expectedMin != null && pageCount < expectedMin) {
+    if (expectedMin != null && plannedCount < expectedMin) {
         const scope = workspace ? 'the section plan contains' : 'the renderer drew';
-        throw new PageCoverageError(`the Definition has at least ${expectedMin} pages but ${scope} ${pageCount}`);
+        throw new PageCoverageError(`the Definition has at least ${expectedMin} pages but ${scope} ${plannedCount}`);
     }
     if (workspace && plannedIds.size !== sectionIds.length) {
         throw new PageCoverageError('The authored workspace section plan has duplicate IDs');
@@ -438,24 +457,86 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         result.needsReview.push(...axe.incomplete.map((r) => toFinding(id, r)));
     };
 
+    const search = (path: string) => page.evaluate(({ sel, src, path }) => {
+        const engine = (document.querySelector(sel) as any).engine;
+        const findRecipe = new Function(`return ${src}`)();
+        return findRecipe(engine, path, {}) as RecipeStep[] | null;
+    }, { sel: rootSelector, src: revealSearch.toString(), path });
+    const restore = (recipe: RecipeStep[]) => page.evaluate(({ sel, recipe }) => {
+        const engine = (document.querySelector(sel) as any).engine;
+        for (const { path, previous } of [...recipe].reverse()) engine.setValue(path, previous);
+    }, { sel: rootSelector, recipe });
+    const submit = async () => {
+        await page.evaluate((selector) => (document.querySelector(selector) as any).submit({ emitEvent: false }), rootSelector);
+        await page.waitForTimeout(100);
+    };
+    const rememberDrawn = async () => {
+        for (const id of await readRenderedIds()) renderedIds.add(id);
+        result.pages.drawn = Math.max(result.pages.drawn, renderedIds.size);
+        if (result.pages.drawn > maxPages) {
+            throw new PageCoverageError(`the renderer drew more than the ${maxPages} pages the check visits`, result);
+        }
+    };
+    const visitWorkspaceSection = async (i: number, state: string, kind: AxeState['kind']): Promise<boolean> => {
+        const show = () => showWorkspaceSection(workspaceRoot, sectionSelectors[i]);
+        if (await show()) {
+            await rememberDrawn();
+            await analyse(state, kind, i + 1);
+            return true;
+        }
+        const section = workspace?.[i];
+        if (!section) return false;
+        const paths = await page.evaluate(sel => {
+            const engine = (document.querySelector(sel) as any).engine;
+            return engine.getFieldPaths() as string[];
+        }, rootSelector);
+        // Page rules first, then rules on the page's field placements, including concrete repeat rows.
+        const candidates = new Set([
+            section.titleBind, section.content.bindPath, ...section.content.children.map(child => child.bindPath),
+            ...paths.filter(path => section.fields.some(placement => placementCovers(placement, path))),
+        ]);
+        for (const path of [...candidates].slice(0, 32)) {
+            if (!path || path.includes('[*]') || intentionallyHidden(path, documents!.definition.binds ?? [])) continue;
+            const recipe = await search(path);
+            if (!recipe?.length) continue;
+            try {
+                await page.waitForTimeout(100);
+                await rememberDrawn();
+                if (!await show()) continue;
+                if (kind === 'validation-errors') {
+                    await submit();
+                    if (!await show()) continue;
+                }
+                await analyse(state, kind, i + 1);
+                return true;
+            } finally {
+                await restore(recipe);
+                if (kind === 'validation-errors') await submit();
+            }
+        }
+        return false;
+    };
+
     const uncovered = new Map<number, string>();
     const scanPages = async (kind: AxeState['kind']) => {
         for (let i = 0; i < pageCount; i += 1) {
+            if (skipped.has(i)) continue;
             const state = `${kind === 'page' ? 'page' : 'errors'}-${i + 1}`;
             if (workspace) {
-                if (!await showWorkspaceSection(workspaceRoot, sectionSelectors[i])) {
+                if (!await visitWorkspaceSection(i, state, kind)) {
                     if (!uncovered.has(i)) uncovered.set(i, state);
                     continue;
                 }
             } else {
                 await goTo(i);
+                await analyse(state, kind, i + 1);
             }
-            await analyse(state, kind, i + 1);
             if (kind === 'page') result.pages.visited += 1;
         }
     };
     const requireCoverage = () => {
-        if (!uncovered.size && !unexpected.size) return;
+        const unexpected = [...renderedIds].filter(id => !plannedIds.has(id) || skipped.has(sectionIds.indexOf(id)));
+        if (!uncovered.size && !unexpected.length) return;
         const sections: string[] = [];
         for (const [index, state] of uncovered) {
             const id = sectionIds[index] ?? 'continuous workspace';
@@ -465,7 +546,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         for (const id of unexpected) {
             sections.push(id);
             result.needsReview.push(reviewFinding('page-load', 'formspec-unreached-section',
-                `Section ${id} appears in navigation but is missing from the authored section plan`, id));
+                `Section ${id} appears in navigation without a matching section to scan`, id));
         }
         throw new PageCoverageError(`Workspace sections uncovered by axe: ${sections.join(', ')}`, result);
     };
@@ -475,27 +556,24 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         if (!result.pages.visited) requireCoverage();
         if (!workspace) await goTo(0);
         // Submitting shows every field's error, and a wizard may move to a page that has one: start over from the first.
-        await page.evaluate((selector) => (document.querySelector(selector) as any).submit({ emitEvent: false }), rootSelector);
-        await page.waitForTimeout(100);
+        await submit();
         if (!workspace) await goTo(0);
         await scanPages('validation-errors');
 
         // Fields relevance hides: show each by the values that reveal it, check its page, put the values back.
-        const hidden: string[] = await page.evaluate((sel) => {
+        const hidden: string[] = await page.evaluate(({ sel, src }) => {
             const engine = (document.querySelector(sel) as any).engine;
-            return (engine.getFieldPaths() as string[]).filter(path => !engine.isPathRelevant(path));
-        }, rootSelector);
+            const hiddenByDesign = new Function(`return ${src}`)();
+            const binds = engine.getDefinition?.().binds ?? [];
+            return (engine.getFieldPaths() as string[]).filter(path => !engine.isPathRelevant(path) && !hiddenByDesign(path, binds));
+        }, { sel: rootSelector, src: intentionallyHidden.toString() });
         for (const [n, path] of hidden.entries()) {
             const id = `reveal-${path}`;
             if (n >= maxReveals) {
                 result.needsReview.push(reviewFinding(id, 'formspec-unreached-field', `Field ${path} is hidden by a relevance rule and was not checked: more than ${maxReveals} such fields`, path));
                 continue;
             }
-            const recipe: RecipeStep[] | null = await page.evaluate(({ sel, src, p }) => {
-                const engine = (document.querySelector(sel) as any).engine;
-                const search = new Function(`return ${src}`)();
-                return search(engine, p, {}) as RecipeStep[] | null;
-            }, { sel: rootSelector, src: revealSearch.toString(), p: path });
+            const recipe = await search(path);
             if (!recipe) {
                 result.needsReview.push(reviewFinding(id, 'formspec-unreached-field', `Field ${path} is hidden by a relevance rule that no value the documents name can satisfy, so it was not checked`, path));
                 continue;
@@ -504,6 +582,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
                 await page.waitForTimeout(100);
                 let pageIndex: number;
                 if (workspace) {
+                    await rememberDrawn();
                     pageIndex = workspace.findIndex(section => section.fields.some(placement => placementCovers(placement, path)));
                     const shown = pageIndex >= 0 && await showWorkspaceSection(workspaceRoot, sectionSelectors[pageIndex]);
                     const field = `[data-name=${JSON.stringify(path)}]:visible`;
@@ -525,10 +604,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
                 await analyse(id, 'page', pageIndex + 1);
                 result.pages.revealedFields += 1;
             } finally {
-                await page.evaluate(({ sel, steps }) => {
-                    const engine = (document.querySelector(sel) as any).engine;
-                    for (const { path, previous } of [...steps].reverse()) engine.setValue(path, previous);
-                }, { sel: rootSelector, steps: recipe });
+                await restore(recipe);
             }
         }
         requireCoverage();

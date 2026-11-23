@@ -1,11 +1,45 @@
 /** @filedesc Axe coverage of each section in the React workspace. */
 import { expect, test } from '@playwright/test';
 import { checkAccessibility } from '../../../packages/formspec-walk/src/index';
-import { definition, mixedRepeatDefinition, wizardWithMiddleTarget } from '../fixtures/definition-walk-workspace.definition';
+import { conditionalSectionsDefinition, definition, mixedRepeatDefinition, wizardWithMiddleTarget } from '../fixtures/definition-walk-workspace.definition';
 
 const documents = { definition };
 const fixture = '/definition-walk-workspace.html';
 const timeoutMs = 30_000;
+
+test('axe scans a conditional section in both states and excludes a permanently hidden one', async ({ page }) => {
+  const report = await checkAccessibility(page, {
+    documents: { definition: conditionalSectionsDefinition },
+    open: async p => { await p.goto(`${fixture}?conditionalSections`); },
+    maxReveals: 0,
+    timeoutMs,
+  });
+  expect(report.status, report.failure?.message).toBe('completed');
+  expect(report.pages).toMatchObject({ kind: 'workspace', expectedMin: 4, drawn: 4, visited: 4, intentionallyHidden: ['locked'] });
+  const followup = report.violations.filter(finding => finding.nodes.some(node => node.html.includes('followup.address')));
+  expect(followup.map(finding => finding.state)).toEqual(['page-5', 'errors-5']);
+  expect(report.needsReview.some(finding => finding.nodes.some(node => node.target.includes('locked.internal')))).toBe(false);
+  await expect(page.getByRole('button', { name: 'Followup' })).toHaveCount(0);
+});
+
+test('axe cannot credit a dynamic section whose navigation prevents the scan', async ({ page }) => {
+  const report = await checkAccessibility(page, {
+    documents: { definition: conditionalSectionsDefinition },
+    open: async p => {
+      await p.goto(`${fixture}?conditionalSections`);
+      await p.evaluate(() => document.addEventListener('click', e => {
+        if ((e.target as Element).closest('nav [data-formspec-section="followup"]')) e.stopPropagation();
+      }, true));
+    },
+    maxReveals: 0,
+    timeoutMs,
+  });
+  expect(report.status).toBe('failed');
+  expect(report.failure?.reason).toBe('pages');
+  expect(report.failure?.message).toContain('followup');
+  expect(report.failure?.message).not.toContain('locked');
+  expect(report.pages?.visited).toBe(3);
+});
 
 test('axe visits all three workspace sections through their links and finds the last section violation', async ({ page }) => {
   const report = await checkAccessibility(page, {

@@ -11,6 +11,7 @@ export interface WalkReport {
     repeats: number;
     summaryRows: number;
     uncovered: string[];
+    intentionallyHidden: string[];
     findings: string[];
 }
 
@@ -27,7 +28,8 @@ export function fieldWant(f: PlanField): FieldWant {
  */
 export async function walkDefinition(page: Page, plan: Plan, options: OpenOptions): Promise<WalkReport> {
     const walk = await Walk.open(page, options);
-    const report: WalkReport = { locale: plan.locale, steps: 0, fields: 0, revealed: 0, repeats: 0, summaryRows: 0, uncovered: walk.uncovered, findings: walk.findings };
+    const report: WalkReport = { locale: plan.locale, steps: 0, fields: 0, revealed: 0, repeats: 0, summaryRows: 0,
+        uncovered: walk.uncovered, intentionallyHidden: walk.intentionallyHidden, findings: walk.findings };
     for (const u of plan.uncovered) walk.uncover(u);
     const byBase = new Map(plan.fields.map((f) => [f.path, f]));
     const order = new Map(plan.fields.map((f, i) => [f.path, i]));
@@ -87,7 +89,8 @@ export async function walkDefinition(page: Page, plan: Plan, options: OpenOption
         const f = byBase.get(baseOf(path))!;
         return { path, label: f.label, message: f.requiredMessage };
     }));
-    for (const f of plan.fields) if (!covered.has(f.path) && ![...walk.uncovered, ...walk.findings].some(message => baseOf(message).startsWith(`${f.path}:`))) walk.found(`${f.path}: never rendered on any step`);
+    const hidden = new Set(walk.intentionallyHidden.map(baseOf));
+    for (const f of plan.fields) if (!covered.has(f.path) && !hidden.has(f.path) && ![...walk.uncovered, ...walk.findings].some(message => baseOf(message).startsWith(`${f.path}:`))) walk.found(`${f.path}: never rendered on any step`);
     return report;
 }
 

@@ -23,7 +23,8 @@ export async function checkSurfaceForm(page: Page, target: SurfaceFormTarget) {
     expectClean(report);
     const axe = await runAxePass(page, { root, documents: { definition, theme } });
     const { visited, drawn } = axe.pages;
-    if (visited !== report.steps || visited !== drawn || visited < expectedPages(definition, theme) ||
+    const walkStepsCovered = axe.pages.kind === 'workspace' ? visited >= report.steps : visited === report.steps;
+    if (!walkStepsCovered || visited !== drawn || visited < expectedPages(definition, theme) ||
         axe.needsReview.some(f => f.rule === 'formspec-workspace-fallback')) {
         throw new Error(`${target.title}: the walk visited ${report.steps} steps; axe recorded ${JSON.stringify(axe.pages)}`);
     }

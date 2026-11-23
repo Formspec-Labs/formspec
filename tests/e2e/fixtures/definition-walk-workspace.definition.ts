@@ -1,5 +1,5 @@
 /** @filedesc Synthetic Definitions for checking workspace accessibility coverage. */
-import type { FormDefinition } from '@formspec-org/types';
+import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
 
 export const definition: FormDefinition = {
   $formspec: '1.0',
@@ -37,6 +37,47 @@ export const mixedRepeatDefinition: FormDefinition = {
   binds: [{ path: 'details.rows[*].entry', relevant: '$show' }],
 };
 
+export const conditionalSectionsDefinition: FormDefinition = {
+  ...definition,
+  items: [
+    ...definition.items,
+    { key: 'locked', type: 'group', label: 'Locked', children: [
+      { key: 'internal', type: 'field', dataType: 'string', label: '' },
+    ] },
+    { key: 'followup', type: 'group', label: 'Followup', children: [
+      { key: 'address', type: 'field', dataType: 'string', label: '' },
+    ] },
+  ],
+  binds: [
+    ...(definition.binds ?? []),
+    { path: 'locked', relevant: 'false' },
+    { path: 'followup', relevant: 'intro.showExtra = true' },
+  ],
+};
+
+export const lockedRepeatDefinition: FormDefinition = {
+  $formspec: '1.0', url: 'urn:test:walk-repeat-controls', version: '1.0.0', title: 'Record review',
+  items: [{
+    key: 'review', type: 'group', label: 'Review', children: [
+      { key: 'records', type: 'group', label: 'Records', repeatable: true, children: [
+        { key: 'title', type: 'field', dataType: 'string', label: 'Record title' },
+      ] },
+      { key: 'notes', type: 'group', label: 'Notes', repeatable: true, children: [
+        { key: 'text', type: 'field', dataType: 'string', label: 'Note text' },
+      ] },
+    ],
+  }],
+  binds: [{ path: 'review.records[*].title', readonly: 'true' }],
+};
+
+export const lockedRepeatComponent: ComponentDocument = {
+  $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: lockedRepeatDefinition.url },
+  tree: { component: 'Stack', bind: 'review', children: [
+    { component: 'Accordion', bind: 'records', allowAdd: false, allowRemove: false, defaultOpen: 0,
+      children: [{ component: 'TextInput', bind: 'title' }] },
+    { component: 'Section', bind: 'notes', title: 'Notes', children: [{ component: 'TextInput', bind: 'text' }] },
+  ] },
+};
 
 /** The target is on step two, unmounted after the initial pass finishes step three. */
 export function wizardWithMiddleTarget(form: FormDefinition): FormDefinition {
