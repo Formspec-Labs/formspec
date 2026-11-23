@@ -1378,7 +1378,15 @@ it.each(['AcceptedResponseReview','x-accepted-response-review'])('refuses legacy
   expect(produce).not.toHaveBeenCalled();expect(read).not.toHaveBeenCalled();
   await act(async () => root.unmount());
   const legacy = await mount(p);
-  expect(legacy.el.textContent).toContain('Retained Name');legacy.unmount();
+  try {
+    // The accepted-record widget verifies the retained response asynchronously.
+    await vi.waitFor(async () => {
+      await act(async () => {});
+      expect(legacy.el.textContent).toContain('Retained Name');
+    });
+  } finally {
+    legacy.unmount();
+  }
 });
 
 it.each(['AcceptedResponseReview','x-accepted-response-review'])('refuses selected input under legacy module profile %s', async alias => {

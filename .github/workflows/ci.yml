@@ -11,6 +11,8 @@ on:
 jobs:
   unit-tests:
     name: Unit Tests (TS)
+    outputs:
+      native_date_driver: ${{ steps.upload_native_date.outputs['artifact-id'] }}
     # The WASM is built in its pinned arm64 image; an arm64 runner runs it natively.
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 90
@@ -58,6 +60,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
         run: node scripts/pack-native-date-speech.mjs test-results/native-date-driver
       - uses: actions/upload-artifact@v4
+        id: upload_native_date
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
         with:
           name: native-date-driver
@@ -76,7 +79,8 @@ jobs:
 
   native-date-speech:
     needs: unit-tests
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    # The fixture is available even when a later, independent unit test fails.
+    if: ${{ !cancelled() && needs['unit-tests'].outputs.native_date_driver != '' }}
     name: Chrome date speech with ${{ matrix.reader }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
