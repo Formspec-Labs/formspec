@@ -15,6 +15,8 @@ export interface EmitOptions {
     locale?: LocaleDocument;
     /** The engine's own answer to "what shows this field", found at emit time; absent means the spec searches at runtime. */
     recipes?: Map<string, Array<{ path: string; value: unknown }> | null>;
+    /** Open a field or repeat check in an alternate host context, keyed by the Definition item path. */
+    caseUrls?: Readonly<Record<string, string>>;
     /** Manifest form identity used for reporting and checking the mounted Definition. */
     formId?: string;
     /** Include an accessibility check of the host with the authored documents. */
@@ -76,6 +78,21 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
     const chrome = Object.fromEntries(Object.entries((options.locale?.strings as Record<string, string> | undefined) ?? {}).filter(([k]) => k.startsWith('$ui.')));
     const labelOf = (path: string) => plan.fields.find((f) => f.path === baseOf(path))?.label.text ?? path;
     const recipes = options.recipes ?? new Map<string, Array<{ path: string; value: unknown }> | null>();
+    const cases = new Map(Object.entries(options.caseUrls ?? {}));
+    const checkable = new Set([...plan.fields.map(field => field.path), ...plan.groups.filter(group => group.repeat?.addLabel).map(group => group.path)]);
+    for (const [path, url] of cases) {
+        if (!checkable.has(path) || !url) throw new Error(`No checkable item and case URL for ${path}`);
+    }
+    const caseDetails = (path: string) => {
+        const url = cases.get(path);
+        return url ? `, { tag: '@formspec-case', annotation: ${JSON.stringify([
+            { type: 'formspec-item-path', description: path },
+            { type: 'formspec-case-url', description: url },
+        ])} }` : '';
+    };
+    const checked = (path: string, call: string) => cases.has(path)
+        ? `if (!await ${call}) walk.found(${q(`${path}: the configured case did not exercise the item`)});`
+        : `await ${call};`;
     const lines: string[] = [];
     const push = (s = '') => lines.push(s);
 
@@ -96,10 +113,16 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
     const identity = options.formId ? `, expectedDefinition: ${JSON.stringify({ url: definition.url, version: definition.version })}` : '';
     const rootOption = options.root ? `, root: ${q(options.root)}` : '';
     const openOptions = `{ url: PAGE${rootOption}${code ? `, locale: ${q(code)}` : ''}${identity}${Object.keys(chrome).length ? `, chrome: ${JSON.stringify(chrome, null, 4).replace(/\n/g, '\n    ')}` : ''} }`;
-    push(`const open = (page: import('@playwright/test').Page) => Walk.open(page, ${openOptions});`);
+    if (cases.size) {
+        push(`const open = (page: import('@playwright/test').Page, url: string) => Walk.open(page, { ...${openOptions}, url });`);
+    } else {
+        push(`const open = (page: import('@playwright/test').Page) => Walk.open(page, ${openOptions});`);
+    }
     push('const test = base.extend<{ walk: Walk }>({');
     push('    walk: async ({ page }, use, info) => {');
-    push('        const walk = await open(page);');
+    push(cases.size
+        ? "        const walk = await open(page, info.annotations.find(a => a.type === 'formspec-case-url')?.description ?? PAGE);"
+        : '        const walk = await open(page);');
     push('        try { await use(walk); } finally {');
     push("            await info.attach('formspec-walk', { contentType: 'application/json', body: JSON.stringify({ findings: walk.findings, uncovered: walk.uncovered, intentionallyHidden: walk.intentionallyHidden }) });");
     push('        }');
@@ -161,17 +184,18 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
         at.fields.push(f);
     }
     const emitNode = (node: Node, indent: string) => {
+        const recipeFor = (path: string) => cases.has(path) ? undefined : recipes.get(path);
         const titles = distinct(node.fields.map(f => ({ path: f.path,
-            title: `${short(f.label.text)} — ${fieldFacts(f, recipes.get(f.path), labelOf)}` })));
+            title: `${short(f.label.text)} — ${fieldFacts(f, recipeFor(f.path), labelOf)}` })));
         for (const [i, f] of node.fields.entries()) {
-            const recipe = recipes.get(f.path);
+            const recipe = recipeFor(f.path);
             const title = titles[i];
-            push(`${indent}test(${q(title)}, async ({ walk }) => {`);
+            push(`${indent}test(${q(title)}${caseDetails(f.path)}, async ({ walk }) => {`);
             if (f.conditional) {
                 const shownBy = recipe?.length ? `[${recipe.map((s) => `{ path: ${q(s.path)}, value: ${JSON.stringify(s.value)} }`).join(', ')}]` : "'engine'";
-                push(`${indent}    await walk.reveal(${q(f.path)}, ${fieldWantSource(f, [`shownBy: ${shownBy}`])});`);
+                push(`${indent}    ${checked(f.path, `walk.reveal(${q(f.path)}, ${fieldWantSource(f, [`shownBy: ${shownBy}`])})`)}`);
             } else {
-                push(`${indent}    await walk.field(${q(f.path)}, ${fieldWantSource(f)});`);
+                push(`${indent}    ${checked(f.path, `walk.field(${q(f.path)}, ${fieldWantSource(f)})`)}`);
             }
             push(`${indent}    walk.expectClean();`);
             push(`${indent}});`);
@@ -192,8 +216,8 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
     const repeatTitles = distinct(repeats.map(g => ({ path: g.path, title: short(g.label.text) })));
     for (const [i, g] of repeats.entries()) {
         const r = g.repeat!;
-        push(`    test(${q(`${repeatTitles[i]} — ${r.addLabel!.text}, focus lands in the new row${r.removeLabel ? `, ${r.removeLabel.text}` : ''}`)}, async ({ walk }) => {`);
-        push(`        await walk.repeat(${q(g.path)}, { rowName: ${text(r.rowName)}, addLabel: ${text(r.addLabel!)}${r.removeLabel ? `, removeLabel: ${text(r.removeLabel)}` : ''}${r.maxRepeat !== undefined ? `, maxRepeat: ${r.maxRepeat}` : ''} });`);
+        push(`    test(${q(`${repeatTitles[i]} — ${r.addLabel!.text}, focus lands in the new row${r.removeLabel ? `, ${r.removeLabel.text}` : ''}`)}${caseDetails(g.path)}, async ({ walk }) => {`);
+        push(`        ${checked(g.path, `walk.repeat(${q(g.path)}, { rowName: ${text(r.rowName)}, addLabel: ${text(r.addLabel!)}${r.removeLabel ? `, removeLabel: ${text(r.removeLabel)}` : ''}${r.maxRepeat !== undefined ? `, maxRepeat: ${r.maxRepeat}` : ''} })`)}`);
         push('        walk.expectClean();');
         push('    });');
         push();
