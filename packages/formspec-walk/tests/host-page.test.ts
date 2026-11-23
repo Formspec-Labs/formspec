@@ -1,5 +1,6 @@
 /** @filedesc The host page is one self-contained HTML string: documents inline, nothing that could close the script around them. */
 import { describe, expect, it } from 'vitest';
+import { chromiumChannel } from '../src/chromium-channel.js';
 import { renderHostPage } from '@formspec-org/webcomponent/host';
 
 const definition = (title: string) => ({
@@ -57,7 +58,7 @@ describe('host page in a browser', () => {
         });
         const server = createServer((_, res) => { res.writeHead(200, { 'content-type': 'text/html' }); res.end(html); });
         await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-        const browser = await chromium.launch();
+        const browser = await chromium.launch(chromiumChannel());
         try {
             const page = await browser.newPage();
             const requests: string[] = [];

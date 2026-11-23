@@ -1,5 +1,6 @@
 /** @filedesc The reference-renderer accessibility check, in a real browser: a known violation fails, a clean form passes, a timeout and a browser failure are failures. */
 import { readFileSync } from 'node:fs';
+import { chromiumChannel } from '../src/chromium-channel.js';
 import { chromium, type Browser } from '@playwright/test';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { resolvePageSequence, type ThemeDocument } from '@formspec-org/layout';
@@ -88,7 +89,7 @@ describe('reference-renderer accessibility check', () => {
 
 describe('failure is never a pass', () => {
     let browser: Browser;
-    beforeAll(async () => { browser = await chromium.launch(); });
+    beforeAll(async () => { browser = await chromium.launch(chromiumChannel()); });
     afterAll(() => browser.close());
 
     it('a check that outlives its cap is reported as a timeout failure and stops the page', async () => {
@@ -418,7 +419,7 @@ describe('the page is fenced from the network', () => {
     it('a page that never answers is a timeout, not a browser failure', async () => {
         const silent = createServer(() => undefined);
         await new Promise<void>((resolve) => silent.listen(0, '127.0.0.1', resolve));
-        const browser = await chromium.launch();
+        const browser = await chromium.launch(chromiumChannel());
         try {
             const page = await browser.newPage();
             const url = `http://127.0.0.1:${(silent.address() as { port: number }).port}/`;
@@ -438,7 +439,7 @@ async function withHostPage(definition: object, fn: (page: import('@playwright/t
     const html = renderHostPage({ definition: definition as never });
     const http = createServer((_, res) => { res.writeHead(200, { 'content-type': 'text/html' }); res.end(html); });
     await new Promise<void>((resolve) => http.listen(0, '127.0.0.1', resolve));
-    const browser = await chromium.launch();
+    const browser = await chromium.launch(chromiumChannel());
     try {
         await fn(await browser.newPage(), `http://127.0.0.1:${(http.address() as { port: number }).port}/`);
     } finally {

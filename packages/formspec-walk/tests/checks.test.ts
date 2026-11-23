@@ -1,5 +1,6 @@
 /** @filedesc Browser checks for read-only values, required markers, and validation summary targets. */
 import { createServer } from 'node:http';
+import { chromiumChannel } from '../src/chromium-channel.js';
 import { readFileSync } from 'node:fs';
 import { chromium, type Browser } from '@playwright/test';
 import { renderHostPage } from '@formspec-org/webcomponent/host';
@@ -45,7 +46,7 @@ const http = createServer((req, res) => {
 });
 beforeAll(async () => {
     await new Promise<void>(resolve => http.listen(0, '127.0.0.1', resolve));
-    browser = await chromium.launch();
+    browser = await chromium.launch(chromiumChannel());
 });
 afterAll(async () => { await browser?.close(); http.close(); });
 

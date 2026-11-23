@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import { FORMSPEC_E2E_HEALTH_PATH, FORMSPEC_E2E_ORIGIN } from './tests/e2e/harness-server';
+import { chromiumChannel } from './packages/formspec-walk/src/chromium-channel';
 
 export default defineConfig({
   testDir: './tests',
@@ -17,7 +18,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], ...chromiumChannel() },
     },
   ],
   webServer: [

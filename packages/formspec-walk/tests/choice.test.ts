@@ -1,5 +1,6 @@
 /** @filedesc Real-browser walk checks distinguish kept, lost, and unsaved native choices. */
 import { createServer } from 'node:http';
+import { chromiumChannel } from '../src/chromium-channel.js';
 import { chromium, type Browser, type Page } from '@playwright/test';
 import { beforeAll, afterAll, expect, it, vi } from 'vitest';
 import { renderHostPage } from '@formspec-org/webcomponent/host';
@@ -27,7 +28,7 @@ let url: string;
 beforeAll(async () => {
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
     url = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
-    browser = await chromium.launch();
+    browser = await chromium.launch(chromiumChannel());
 });
 afterAll(async () => { await browser?.close(); await new Promise<void>(resolve => server.close(() => resolve())); });
 async function open(before?: (page: Page) => Promise<void>, route = '/') {

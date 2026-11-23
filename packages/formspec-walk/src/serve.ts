@@ -5,6 +5,7 @@ import type { AddressInfo } from 'node:net';
 import { chromium, type Browser } from '@playwright/test';
 import { renderHostPage, type HostDocuments } from '@formspec-org/webcomponent/host';
 import { checkAccessibility, CHECK_VERSION, DEFAULT_TIMEOUT_MS, MANUAL_REVIEW, WCAG_TAGS, type CheckFailure, type RendererCheckReport } from './axe.js';
+import { chromiumChannel } from './chromium-channel.js';
 
 /** Largest request body accepted: a Definition with its Theme and Locales. */
 const MAX_BODY_BYTES = 16 * 1024 * 1024;
@@ -14,7 +15,7 @@ export interface AccessibilityServerOptions {
     timeoutMs?: number;
     /** How many checks may run at once; the rest wait. Defaults to 2. */
     maxConcurrent?: number;
-    /** Start a browser. Defaults to Playwright's Chromium; tests inject a failing one. */
+    /** Start a browser. The default honors the host's Chromium channel. */
     launch?: (timeoutMs: number) => Promise<Browser>;
 }
 
@@ -44,7 +45,7 @@ export class AccessibilityServer {
     constructor(options: AccessibilityServerOptions = {}) {
         this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
         this.maxConcurrent = options.maxConcurrent ?? 2;
-        this.launch = options.launch ?? ((timeout) => chromium.launch({ timeout }));
+        this.launch = options.launch ?? ((timeout) => chromium.launch({ ...chromiumChannel(), timeout }));
     }
 
     /** Base URL once listening, e.g. `http://127.0.0.1:8123`. */

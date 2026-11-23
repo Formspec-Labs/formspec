@@ -40,6 +40,7 @@ const USAGE = `usage: formspec-walk emit (--docs <dir> | --manifest <package-man
          (the form does not draw, a page cannot be reached, a Theme names an adapter the host lacks). GET /health for liveness. Needs @axe-core/playwright.
          POST /print with {documents, receipt} answers with the read-only print page (every page of the form, the
          Response's answers, then the receipt) that the receipt PDF is rendered from; it starts no browser.
+  Set FORMSPEC_CHROMIUM_CHANNEL=chrome to run a11y and serve with an installed Google Chrome.
   --timeout-ms  hard cap on one check, browser start to report (default 60000)`;
 
 function failCli(message) {
