@@ -46,9 +46,9 @@ function escapeHtml(text: string): string {
 const PRINT_CSS = `
 .formspec-wizard-panel.formspec-hidden, .formspec-tab-panel.formspec-hidden { display: block !important; }
 .formspec-wizard-nav, .formspec-wizard-steps, .formspec-wizard-sidenav, .formspec-wizard-step-indicator, .formspec-tab-bar, [role="tablist"], button[type="submit"] { display: none !important; }
-/* PDF/UA: every painted shape must be tagged content or an artifact, and Chromium tags neither a box's background, its pseudo-elements nor a border it draws around a container. Text, and the controls' own chrome, stay. */
-formspec-render *, formspec-render *::before, formspec-render *::after { background: none !important; box-shadow: none !important; }
-formspec-render :not(input):not(select):not(textarea) { border: 0 !important; }
+/* Chromium paints box decorations without PDF tags. Override the skin's print rules for the form host. */
+#formspec-host-root *, #formspec-host-root *::before, #formspec-host-root *::after { background: none !important; box-shadow: none !important; }
+#formspec-host-root :not(input):not(select):not(textarea) { border: 0 !important; }
 :root { color-scheme: light; }
 .formspec-receipt { break-before: page; font-family: system-ui, sans-serif; margin: 0 auto; max-width: 40rem; }
 .formspec-receipt dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1rem; }
