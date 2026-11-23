@@ -320,14 +320,15 @@ describe('every page is visited, or the check fails', () => {
             $formspec: '1.0', url: 'urn:test:reveal', version: '1.0.0', status: 'draft', title: 'reveal',
             items: [
                 { key: 'kind', type: 'field', dataType: 'choice', label: 'Kind', options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] },
-                unlabelled('extra'),
+                unlabelled('extra'), unlabelled('extraDetail'),
             ],
-            binds: [{ path: 'extra', relevant: "$kind = 'b'" }],
+            binds: ['extra', 'extraDetail'].map(path => ({ path, relevant: "$kind = 'b'" })),
         };
         const report = await server.check({ definition });
         expect(report.status).toBe('completed');
-        expect(report.pages?.revealedFields).toBe(1);
+        expect(report.pages?.revealedFields).toBe(2);
         expect(report.violations.some((v) => v.rule === 'label' && v.state === 'reveal-extra')).toBe(true);
+        expect(report.needsReview.some(f => f.rule === 'formspec-unreached-field')).toBe(false);
         // It was put back: the base page states were checked with it hidden.
         expect(report.states.map((s) => s.id)).toEqual(['page-1', 'errors-1', 'reveal-extra']);
     });

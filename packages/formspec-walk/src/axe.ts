@@ -48,6 +48,8 @@ export interface AxeState {
     step: number;
     /** Milliseconds axe took on this state. */
     axeMs: number;
+    /** Newly covered, visible field paths in this completed scan, when requested. */
+    fieldPaths?: string[];
 }
 
 /** A WCAG criterion that neither the document rules nor axe can decide, so a person reviews it. */
@@ -141,6 +143,8 @@ export interface AxePassOptions {
     maxPages?: number;
     /** Fields hidden by relevance to reach and check; the rest are listed for review. Defaults to 20. */
     maxReveals?: number;
+    /** Record the first completed scan that covered each visible field path. */
+    recordFieldCoverage?: boolean;
 }
 
 /** The slice of axe-core's result this check reads. */
@@ -446,13 +450,22 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         for (const { path, index } of [...rows].reverse()) engine.removeRepeatInstance(path, index);
     }, { sel: rootSelector, rows: added });
 
+    const scannedFields = new Set<string>();
+    const visibleFields = () => root.locator('[data-name]:visible').evaluateAll(nodes =>
+        nodes.filter(node => !node.closest('[aria-hidden="true"],[inert]'))
+            .map(node => node.getAttribute('data-name')!));
     const analyse = async (id: string, kind: AxeState['kind'], step: number) => {
         const started = performance.now();
         const scan = new AxeBuilder({ page }).withTags([...WCAG_TAGS]);
         if (options.root && !options.scanWholePage) scan.include(options.root);
+        // A field must be visible on both sides of the completed scan to count as covered.
+        const before = new Set(await visibleFields());
         const axe = await scan.analyze();
+        const fieldPaths = (await visibleFields()).filter(path => before.has(path) && !scannedFields.has(path));
+        for (const path of fieldPaths) scannedFields.add(path);
         result.axeVersion ??= axe.testEngine?.version ?? null;
-        result.states.push({ id, kind, step, axeMs: Math.round(performance.now() - started) });
+        result.states.push({ id, kind, step, axeMs: Math.round(performance.now() - started),
+            ...(options.recordFieldCoverage && { fieldPaths: [...new Set(fieldPaths)] }) });
         result.violations.push(...axe.violations.map((r) => toFinding(id, r)));
         result.needsReview.push(...axe.incomplete.map((r) => toFinding(id, r)));
     };
@@ -567,15 +580,19 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
             const binds = engine.getDefinition?.().binds ?? [];
             return (engine.getFieldPaths() as string[]).filter(path => !engine.isPathRelevant(path) && !hiddenByDesign(path, binds));
         }, { sel: rootSelector, src: intentionallyHidden.toString() });
-        for (const [n, path] of hidden.entries()) {
+        let attempts = 0;
+        const missed = new Map<string, AxeFinding>();
+        for (const path of hidden) {
+            if (scannedFields.has(path)) continue;
             const id = `reveal-${path}`;
-            if (n >= maxReveals) {
-                result.needsReview.push(reviewFinding(id, 'formspec-unreached-field', `Field ${path} is hidden by a relevance rule and was not checked: more than ${maxReveals} such fields`, path));
+            if (attempts >= maxReveals) {
+                missed.set(path, reviewFinding(id, 'formspec-unreached-field', `Field ${path} is hidden by a relevance rule and was not checked: more than ${maxReveals} such fields`, path));
                 continue;
             }
+            attempts += 1;
             const recipe = await search(path);
             if (!recipe) {
-                result.needsReview.push(reviewFinding(id, 'formspec-unreached-field', `Field ${path} is hidden by a relevance rule that no value the documents name can satisfy, so it was not checked`, path));
+                missed.set(path, reviewFinding(id, 'formspec-unreached-field', `Field ${path} is hidden by a relevance rule that no value the documents name can satisfy, so it was not checked`, path));
                 continue;
             }
             try {
@@ -587,7 +604,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
                     const shown = pageIndex >= 0 && await showWorkspaceSection(workspaceRoot, sectionSelectors[pageIndex]);
                     const field = `[data-name=${JSON.stringify(path)}]:visible`;
                     if (!shown || !await workspaceRoot.locator(`${WORKSPACE_CONTENT}${sectionSelectors[pageIndex]}`).locator(field).count()) {
-                        result.needsReview.push(reviewFinding(id, 'formspec-unreached-field',
+                        missed.set(path, reviewFinding(id, 'formspec-unreached-field',
                             `Field ${path} could not be shown in its workspace section for the axe check`, path));
                         continue;
                     }
@@ -602,11 +619,18 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
                     if (!await target.count()) throw new RendererError(`field ${path} was revealed but is visible on no page`);
                 }
                 await analyse(id, 'page', pageIndex + 1);
-                result.pages.revealedFields += 1;
+                if (!scannedFields.has(path)) {
+                    missed.set(path, reviewFinding(id, 'formspec-unreached-field',
+                        `Field ${path} was not visible throughout the axe check`, path));
+                }
             } finally {
                 await restore(recipe);
             }
         }
+        for (const [path, finding] of missed) {
+            if (!scannedFields.has(path)) result.needsReview.push(finding);
+        }
+        result.pages.revealedFields = hidden.filter(path => scannedFields.has(path)).length;
         requireCoverage();
     } finally {
         await removeAdded().catch(() => undefined);
