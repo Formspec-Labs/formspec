@@ -1,9 +1,10 @@
 //! Formspec Linter — static analysis and validation pipeline.
 //!
 //! Pass 1 (E100): Document type detection
-//! Pass 1b (E101; E305/E308/E309/E311/E312 for specific Core requirements): JSON Schema validation against embedded schemas
+//! Pass 1b (E101; E305/E308/E309/E311/E312/E317 for specific Core requirements): JSON Schema validation against embedded schemas
 //! Pass 2 (E200/E201): Tree indexing, duplicate key/path detection
 //! Pass 3 (E300/E301/E302/W300): Reference validation — bind paths, shape targets, optionSets
+//! Pass 3 (E314/E318): Warning answer modes on Shapes (Core §5.2.1)
 //! Pass 3 (E306/E307): Definition response selection predicates
 //! Pass 3 (E313): Definition Groups that still need assembly
 //! Pass 3b (E600/E601/E602): Extension resolution against registry documents
@@ -34,7 +35,6 @@ pub mod app_graph_report;
 mod bind_consistency;
 mod definition_version;
 mod document_declarations;
-mod response_documents;
 mod generated;
 mod lint_json;
 mod metadata;
@@ -51,8 +51,10 @@ mod pass_response_actions;
 mod pass_screener;
 mod pass_surface;
 pub mod posture_admission;
+mod response_documents;
 mod schema_validation;
 mod semantic_helpers;
+mod shape_explanations;
 mod types;
 mod ui_policy;
 
@@ -82,7 +84,8 @@ pub use generated::LintCode;
 pub use lint_json::lint_result_to_json_value;
 pub use metadata::wcag_criteria;
 pub use pass_accessibility::{
-    AccessibilityChecks, AccessibilityFinding, AccessibilityOutcome, AccessibilityRuleResult, check_accessibility,
+    AccessibilityChecks, AccessibilityFinding, AccessibilityOutcome, AccessibilityRuleResult,
+    check_accessibility,
 };
 pub use schema_validation::{validate_mapping_source, validate_mapping_source_association};
 pub use types::{
@@ -223,6 +226,7 @@ pub fn lint_with_options(doc: &Value, options: &LintOptions) -> LintResult {
     finalize_lint_result(doc_type, diagnostics, options, app_graph_report)
 }
 
+/// Run the Definition passes; returns the result early when an error from pass 2 or later precedes them.
 fn lint_definition(
     doc: &Value,
     options: &LintOptions,
@@ -252,6 +256,7 @@ fn lint_definition(
 
     diagnostics.extend(definition_version::check(doc));
     diagnostics.extend(references::check_references(doc, &tree_index));
+    diagnostics.extend(shape_explanations::check(doc));
     diagnostics.extend(document_declarations::lint_documents(doc));
     diagnostics.extend(response_instances::lint_definition(doc));
     diagnostics.extend(extensions::check_extensions(

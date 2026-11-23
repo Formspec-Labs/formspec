@@ -326,8 +326,10 @@ test('published seeded scenario shows In progress, hydrates answers across reloa
     expect(snapshotJson).toContain(exactDecimal);
 
     await page.getByLabel('Contact email').fill('sample@example.test');
-    await page.getByRole('button', { name: 'Submit report' }).click();
-    await expect(page.locator('article').getByRole('status')).toHaveText('Completed.');
+    const submitReport = page.getByRole('button', { name: 'Submit report' });
+    await submitReport.click();
+    // The button names its own outcome status, so the check survives other status regions on the page.
+    await expect(submitReport).toHaveAccessibleDescription('Completed.');
     await page.reload();
 
     const completedResponseJson = await page.evaluate(async () => {

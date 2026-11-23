@@ -411,6 +411,29 @@ mod tests {
     }
 
     #[test]
+    fn subject_id_json_matches_core_vectors_without_tools_features() {
+        let suite: Value = serde_json::from_str(include_str!(
+            "../../../tests/conformance/fixtures/subject-id/vectors.json"
+        ))
+        .unwrap();
+        for vector in suite["vectors"].as_array().unwrap() {
+            let id = crate::subject::subject_id_json(
+                vector["type"].as_str().unwrap(),
+                &vector["keys"].to_string(),
+            );
+            assert_eq!(id.unwrap(), vector["id"], "{}", vector["name"]);
+        }
+        for vector in suite["refusals"].as_array().unwrap() {
+            let error = crate::subject::subject_id_json(
+                vector["type"].as_str().unwrap(),
+                &vector["keys"].to_string(),
+            )
+            .unwrap_err();
+            assert!(error.contains(vector["expectedError"].as_str().unwrap()));
+        }
+    }
+
+    #[test]
     fn evaluate_definition_inner_refuses_out_of_range_subject_keys() {
         let definition = json!({"subject": {"type": "urn:example:agency-year", "keys": {
             "serial": {"dataType": "integer"}

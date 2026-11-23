@@ -372,9 +372,10 @@ async function runProcessingCase(caseDoc, legs) {
   const refusal = expected.results?.find(({ path }) => path.startsWith('#subject'));
   if (refusal && caseDoc.subject) {
     assert.equal(caseDoc.expectedCandidate, undefined, 'a refused subject cannot produce a filing');
-    const snapshot = engine.getResponseSnapshot({ profile: 'on-demand' });
-    assert.deepEqual(snapshot.response.validationResults, snapshot.validationReport.results);
-    const demand = outcome(snapshot.validationReport.results, snapshot.response.data);
+    // A refused subject has no Core id, so FormEngine emits the typed report and no Response (fs-aght).
+    assert.throws(() => engine.getResponseSnapshot({ profile: 'on-demand' }),
+      { message: `Response subject refused: ${refusal.path}: ${refusal.message}` });
+    const demand = outcome(engine.getValidationReport({ profile: 'on-demand' }).results, {});
     const problems = againstExpected(demand, expected);
     assert.deepEqual(problems, [], 'on-demand FormEngine subject refusal');
     checkSubmitLegs(payload);

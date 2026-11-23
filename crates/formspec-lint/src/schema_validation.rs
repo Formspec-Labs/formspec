@@ -346,6 +346,7 @@ pub fn validate_schema(doc: &Value, doc_type: DocumentType) -> Vec<LintDiagnosti
         .map(|err| {
             if doc_type == DocumentType::Definition
                 && let Some(diagnostic) = crate::response_instances::schema_diagnostic(doc, &err)
+                    .or_else(|| crate::shape_explanations::schema_diagnostic(doc, &err))
             {
                 return diagnostic;
             }

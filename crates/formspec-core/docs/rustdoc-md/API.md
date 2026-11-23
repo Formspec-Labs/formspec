@@ -76,7 +76,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`dependency_reads`](dependency_reads.md)
 
-*1 function, 2 structs, 3 enums*
+*1 function, 2 structs, 5 enums*
 
 ### [`extension_analysis`](extension_analysis.md)
 
@@ -152,7 +152,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`response_selection`](response_selection.md)
 
-*1 function, 10 structs, 9 enums*
+*1 function, 10 enums, 10 structs*
 
 ### [`response_selection::candidates`](response_selection/candidates.md)
 
@@ -160,7 +160,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`response_selection::wire`](response_selection/wire.md)
 
-*3 functions*
+*1 function*
 
 ### [`runtime_mapping::document`](runtime_mapping/document.md)
 
@@ -192,7 +192,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 
 ### [`subject_key`](subject_key.md)
 
-*1 enum*
+*1 enum, 2 functions*
 
 ### [`validation_report`](validation_report.md)
 
@@ -246,7 +246,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 - [`runtime_mapping`](#runtime_mapping) - Bidirectional mapping engine for transforming data between formats.
 - [`schema_validator`](#schema_validator) - Schema validation with document type detection and validation dispatch.
 - [`seed_predicate`](#seed_predicate) - Static checks for a creation-time repeat seed predicate.
-- [`subject_key`](#subject_key) - Typed keys for Formspec filing units.
+- [`subject_key`](#subject_key) - Typed keys and canonical identity for Formspec filing units.
 - [`validation_report`](#validation_report) - Assemble validation-report candidates from qualified public findings.
 - [`value_coerce`](#value_coerce) - Inbound field coercion (parity with TS `coerceFieldValue` in `formspec-engine` helpers).
 - [`wire_keys`](#wire_keys) - Centralized JSON field names for host bindings (`JsonWireStyle`).
@@ -532,7 +532,12 @@ Static checks for a creation-time repeat seed predicate.
 
 ## Module: subject_key
 
-Typed keys for Formspec filing units.
+Typed keys and canonical identity for Formspec filing units.
+
+A subject-declaring Definition names its filing unit by a type URI and typed keys
+(Core §2.1.6). [`subject_id`] derives the unit's `Response.subject.id` from them. Both
+the respondent runtime and the Response selector use this module, so it compiles
+without the `response-selection` feature.
 
 
 
@@ -1578,6 +1583,8 @@ fn dependency_order(inputs: &[Vec<usize>]) -> Result<Vec<usize>, Vec<usize>>
 
 **Enums**
 
+- [`ExternalRead`](#externalread) - Secondary-instance or subject reference extracted from FEL.
+- [`LexicalScope`](#lexicalscope) - Enclosing lexical binding around a dynamic `instance()` or `subject()` argument.
 - [`Property`](#property) - The model-item property addressed by a FEL query.
 - [`PropertyInput`](#propertyinput) - Data or state needed by a model-item property query.
 - [`Root`](#root) - The point from which a FEL value read is resolved.
@@ -1587,6 +1594,45 @@ fn dependency_order(inputs: &[Vec<usize>]) -> Result<Vec<usize>, Vec<usize>>
 - [`predicate_value_paths`](#predicate_value_paths) - Member reads of the array element bound to bare dollar in a predicate.
 
 ---
+
+## formspec_core::dependency_reads::ExternalRead
+
+*Enum*
+
+Secondary-instance or subject reference extracted from FEL.
+
+**Variants:**
+- `StaticInstance{ name: Option<String>, path: Vec<fel_core::ast::PathSegment> }` - `@instance("name")` with trailing path segments.
+- `Instance{ name: Option<fel_core::Expr>, member: Option<fel_core::Expr>, suffix: Vec<fel_core::ast::PathSegment>, scopes: Vec<LexicalScope> }` - `instance(name, path?)` with trailing path segments.
+- `Subject{ key: Option<fel_core::Expr>, suffix: Vec<fel_core::ast::PathSegment>, scopes: Vec<LexicalScope> }` - `subject(key)` with trailing path segments.
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> ExternalRead`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+
+
+
+## formspec_core::dependency_reads::LexicalScope
+
+*Enum*
+
+Enclosing lexical binding around a dynamic `instance()` or `subject()` argument.
+
+**Variants:**
+- `Let{ name: String, value: fel_core::Expr }` - `let name = value in ...`
+- `Predicate{ source: fel_core::Expr, reads_element: bool }` - Collection predicate binding bare `$` to each element of `source`.
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> LexicalScope`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+
+
 
 ## formspec_core::dependency_reads::Property
 
@@ -1656,6 +1702,8 @@ A field or row reference, with its parsed path kept intact.
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> Read`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
@@ -1668,8 +1716,11 @@ A field or row reference, with its parsed path kept intact.
 Instance values, Definition variables and model-item properties read by FEL.
 
 **Fields:**
-- `values: Vec<Read>` - Instance values read by the expression.
+- `values: Vec<Read>` - Instance values read by the expression (narrowed for dependency ordering).
+- `basis_values: Vec<Read>` - Primary-data reads for Core §2.1.6 warning explanation bases.
 - `variables: Vec<String>` - Definition variables read by name, before lexical scope resolution.
+- `variable_paths: Vec<(String, Vec<fel_core::ast::PathSegment>)>` - Definition variables with any resolved member/postfix path for Core §2.1.6.
+- `external_reads: Vec<ExternalRead>` - Secondary-instance and `subject()` reads for Core §2.1.6.
 - `properties: Vec<(Property, Read)>` - Model-item properties queried and their targets.
 
 **Methods:**
@@ -1678,6 +1729,8 @@ Instance values, Definition variables and model-item properties read by FEL.
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> Reads`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Default**
@@ -1701,6 +1754,8 @@ The point from which a FEL value read is resolved.
 
 **Trait Implementations:**
 
+- **Clone**
+  - `fn clone(self: &Self) -> Root`
 - **Debug**
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 
@@ -3801,6 +3856,7 @@ fn apply_migrations_to_response_data(definition: &fel_core::exact_json::Value, r
 - [`PredicateOp`](#predicateop) - The comparison applied to the upstream key.
 - [`PredicateSource`](#predicatesource) - The source of a subject predicate's reference value.
 - [`SelectionOutcome`](#selectionoutcome) - An available value or an undifferentiated refusal.
+- [`SelectionRecordKind`](#selectionrecordkind) - The storage record that supplied a selection candidate.
 - [`SelectionSource`](#selectionsource) - Where the Response selection was declared.
 - [`SelectionStatus`](#selectionstatus) - The lifecycle policy for candidate selection.
 - [`SubjectKeyType`](#subjectkeytype) - The declared type of an upstream subject key.
@@ -4062,6 +4118,7 @@ A Response candidate with its storage scope and original JSON.
 
 **Fields:**
 - `scope: String` - Storage scope supplied by the caller.
+- `kind: SelectionRecordKind` - The store supplies the record kind independently of the Response document.
 - `response: Box<serde_json::value::RawValue>` - Original Response JSON, including authored signatures.
 - `implicit_subject_id: Option<String>` - Server-only respondent identity when the Definition has no subject.
 
@@ -4071,6 +4128,33 @@ A Response candidate with its storage scope and original JSON.
   - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
 - **Deserialize**
   - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
+
+
+
+## formspec_core::response_selection::SelectionRecordKind
+
+*Enum*
+
+The storage record that supplied a selection candidate.
+
+**Variants:**
+- `OpenDraft` - An editable draft, including an unsigned or signed candidate prepared for filing.
+- `Filing` - An immutable filed Response.
+
+**Traits:** Copy, Eq
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> SelectionRecordKind`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Deserialize**
+  - `fn deserialize<__D>(__deserializer: __D) -> _serde::__private228::Result<Self, <__D as >::Error>`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &SelectionRecordKind) -> bool`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
 
@@ -4326,8 +4410,6 @@ fn valid_authored_instant(text: &str) -> bool
 **Functions**
 
 - [`select_json`](#select_json) - Runs the shared selector on its JSON wire inputs.
-- [`subject_id`](#subject_id) - Derives the unprefixed filing-unit id from its type and typed keys.
-- [`subject_id_json`](#subject_id_json) - Derives the subject id from JSON text for the subject keys.
 
 ---
 
@@ -4344,38 +4426,6 @@ be serialized. Valid input with an unavailable resolution returns a JSON outcome
 
 ```rust
 fn select_json(records_json: &str, selection_json: &str, context_json: &str) -> Result<String, String>
-```
-
-
-
-## formspec_core::response_selection::wire::subject_id
-
-*Function*
-
-Derives the unprefixed filing-unit id from its type and typed keys.
-
-# Errors
-
-Returns an error for an out-of-range integer key or a canonical encoding failure.
-
-```rust
-fn subject_id(subject_type: &str, keys: &std::collections::BTreeMap<String, crate::subject_key::SubjectKey>) -> Result<String, String>
-```
-
-
-
-## formspec_core::response_selection::wire::subject_id_json
-
-*Function*
-
-Derives the subject id from JSON text for the subject keys.
-
-# Errors
-
-Returns an error for malformed JSON, untyped keys or a canonical encoding failure.
-
-```rust
-fn subject_id_json(subject_type: &str, keys_json: &str) -> Result<String, String>
 ```
 
 ---
@@ -5206,6 +5256,11 @@ fn parse_seed_predicate<V>(definition: &V, source: &str) -> Result<fel_core::Exp
 
 - [`SubjectKey`](#subjectkey) - A filed unit's typed key value.
 
+**Functions**
+
+- [`subject_id`](#subject_id) - Derives the unprefixed filing-unit id from its type and typed keys.
+- [`subject_id_json`](#subject_id_json) - Derives the subject id from JSON text for the subject keys.
+
 ---
 
 ## formspec_core::subject_key::SubjectKey
@@ -5236,6 +5291,41 @@ A filed unit's typed key value.
   - `fn eq(self: &Self, other: &SubjectKey) -> bool`
 - **Serialize**
   - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
+
+
+
+## formspec_core::subject_key::subject_id
+
+*Function*
+
+Derives the unprefixed filing-unit id from its type and typed keys.
+
+The id is the lowercase hex SHA-256 of the `formspec.subject.id.v1` domain-separated
+canonical JSON of `{type, keys}`, so key order never changes it.
+
+# Errors
+
+Returns an error for an out-of-range integer key or a canonical encoding failure.
+
+```rust
+fn subject_id(subject_type: &str, keys: &std::collections::BTreeMap<String, SubjectKey>) -> Result<String, String>
+```
+
+
+
+## formspec_core::subject_key::subject_id_json
+
+*Function*
+
+Derives the subject id from JSON text for the subject keys.
+
+# Errors
+
+Returns an error for malformed JSON, untyped keys or a canonical encoding failure.
+
+```rust
+fn subject_id_json(subject_type: &str, keys_json: &str) -> Result<String, String>
+```
 
 ---
 

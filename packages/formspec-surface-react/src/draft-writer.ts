@@ -9,7 +9,7 @@ import {
 import {
   type PageSequenceEntry, type ProgressCounts,
 } from '@formspec-org/layout';
-import { summarizeDraftProgress } from './draft-progress.js';
+import { readSubmitEvaluation, summarizeDraftProgress } from './draft-progress.js';
 import { filingAction, type DraftFencedAction, type DraftKey, type DraftPort, type DraftRecord, type DraftSaveInput, type FilingProgressCounts } from '@formspec-org/surface';
 export type { DraftFencedAction } from '@formspec-org/surface';
 import type {
@@ -559,8 +559,7 @@ export function createDraftWriter(options: DraftWriterOptions) {
     staged?: StagedReconciliation,
     responseOverride?: FormResponse,
   ): DraftSaveInput {
-    const evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
-    const progress = summarizeDraftProgress(options.sections, evaluated);
+    const progress = summarizeDraftProgress(options.sections, readSubmitEvaluation(engine));
     const response = responseOverride ?? engine.getResponse({ id: responseId, ...(author && { author }), profile: 'off' });
     const rawExplanations = engine.getExplanationEntries();
     const currentExplanations = staged

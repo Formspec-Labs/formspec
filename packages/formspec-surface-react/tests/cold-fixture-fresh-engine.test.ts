@@ -17,7 +17,7 @@ vi.mock('@formspec-org/engine', async (importOriginal) => {
   };
 });
 
-import { initFormspecEngineTools, responseSubjectId } from '@formspec-org/engine';
+import { initFormspecEngineTools, isFormspecEngineToolsInitialized, responseSubjectId } from '@formspec-org/engine';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import type { FormDefinition } from '@formspec-org/types';
 import { createMemoryFilingStore } from '../src/browser-draft-port.js';
@@ -54,8 +54,9 @@ const query = {
 };
 
 it('direct adapter performs 1 raw parse on construction and 0 raw parses (parseJsonExact or JSON.parse) during immediate readSummaries on a fresh uninitialized engine', async () => {
-  // Confirm WASM tools have not been initialized yet in this fresh isolate.
-  expect(() => responseSubjectId(plan, period)).toThrow();
+  // Confirm WASM tools have not been initialized yet in this fresh isolate. (responseSubjectId is
+  // runtime WASM since fs-aght, so it no longer probes the tools state.)
+  expect(isFormspecEngineToolsInitialized()).toBe(false);
 
   const sentinel = 'fresh-engine-secret';
   const responseJson = JSON.stringify({

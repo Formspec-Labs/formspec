@@ -40,7 +40,6 @@ import {
   createFormEngine,
   createMappingEngine,
   initFormspecEngineTools,
-  isFormspecEngineToolsInitialized,
   preactReactiveRuntime,
   resolveResponseActionValidationTuple,
   responseSubjectId,
@@ -94,11 +93,11 @@ import {
 } from '@formspec-org/surface';
 import { DraftStart } from './DraftStart.js';
 import { DraftDefinitionForm } from './DraftDefinitionForm.js';
-import { isPlainLinkClick } from './browser-location.js';
+import { isPlainLinkClick, withSurfaceQuery } from './browser-location.js';
 import type { DraftSession } from './draft-session.js';
 import { loadDraftReviewInputs, type DraftReviewDelivery, type DraftReviewReadyDelivery } from './draft-review.js';
 import type { DraftActionInvoker, DraftWriter } from './draft-writer.js';
-import { summarizeDraftProgress } from './draft-progress.js';
+import { readSubmitEvaluation, summarizeDraftProgress } from './draft-progress.js';
 import { Heading, nextLevel } from './heading.js';
 import { FilingStatus, type FilingStatusViewContext } from './FilingStatus.js';
 import { FormattedReceiptRef, filingStatusLabel } from './receipt-ref.js';
@@ -166,6 +165,8 @@ export interface SurfaceFormSession {
     slot: string | undefined;
     activeSection: string | undefined;
     focusField?: string | undefined;
+    /** A group acknowledgement code a draft review route puts focus on, from its `acknowledge` link. */
+    focusAcknowledgement?: string | undefined;
     hrefForSection: (slot: string, section: string) => string | undefined;
     onActiveSectionChange: (slot: string, section: string) => void;
     reportSectionTitle?: ((slot: string, title: string | undefined) => void) | undefined;
@@ -178,8 +179,8 @@ export interface SurfaceDefinitionFormRenderInput {
   route: SurfaceWidgetRouteContext;
   /** Resolved shell strings for the active locale. */
   strings: SurfaceStrings;
-  /** The filing-unit type and typed keys, with the ID derived by Core. */
-  responseSubject?: FormEngineOptions['responseSubject'];
+  /** The filing-unit type and typed keys, with the ID derived by Core in runtime WASM. */
+  responseSubject?: (NonNullable<FormEngineOptions['responseSubject']> & { id: string }) | undefined;
   responseActionsDocument: ReactResponseActionsDocument | undefined;
   referencesDocuments: readonly ReferencesDocument[];
   ontologyDocuments: readonly OntologyDocument[];
@@ -202,6 +203,8 @@ export interface SurfaceDefinitionFormRenderInput {
   formatHref?: ((href: string) => string | undefined) | undefined;
   overviewDestination?: string | undefined;
   reviewDestination?: string | undefined;
+  /** The draft review route that accepts this form's group acknowledgements. */
+  draftReviewDestination?: string | undefined;
   onDraftAvailabilityChange?: ((status: 'loading' | 'ready' | 'filed' | 'blocked' | undefined) => void) | undefined;
   activeSection?: string | undefined;
   focusField?: string | undefined;
@@ -676,6 +679,7 @@ export function SurfaceSlot({
         }),
         ...(filingStatus?.formatHref && { formatHref: filingStatus.formatHref }),
         ...(reviewDestination && { reviewDestination }),
+        ...(plan.draftReviewHref !== undefined && { draftReviewDestination: plan.draftReviewHref }),
         ...(onSlotDraftAvailabilityChange && {
           onDraftAvailabilityChange: (status: 'loading' | 'ready' | 'filed' | 'blocked' | undefined) =>
             onSlotDraftAvailabilityChange(plan.slotId, status),
@@ -810,6 +814,7 @@ export function SurfaceSlot({
           reportSave={plan.draftReview ? formSession?.reportSave : undefined}
           localeDocuments={plan.draftReview ? localeDocuments : undefined}
           activeLocale={plan.draftReview ? activeLocale : undefined}
+          focusAcknowledgement={plan.draftReview ? formSession?.workspace?.focusAcknowledgement : undefined}
           dataSourceRevision={dataSourceRevision}
           authorizeDataSource={authorizeDataSource}
           validateDataSourcePayload={validateDataSourcePayload}
@@ -1005,7 +1010,12 @@ type DefinitionFormDataState =
   | { status: 'loading' }
   | DefinitionFormInitialDataDelivery;
 
-function executeDefinitionFormMapping({
+/**
+ * Runs only for a binding that names a Mapping, so only a mapped prefill loads tools WASM
+ * (Mapping execution lives there until fs-tco0). A failed load rejects, and the loader reports
+ * the slot unavailable instead of dropping the prefill.
+ */
+async function executeDefinitionFormMapping({
   mapping,
   value,
 }: {
@@ -1013,6 +1023,7 @@ function executeDefinitionFormMapping({
   definition: FormDefinition;
   value: unknown;
 }) {
+  await initFormspecEngineTools();
   const result = createMappingEngine(mapping).reverse(
     value as Parameters<ReturnType<typeof createMappingEngine>['reverse']>[0],
   );
@@ -1299,32 +1310,17 @@ function DefinitionFormSlot({
     },
     [actionDiagnosticScope, input.plan.slotId, input.route.routeId, input.route.surfaceId, onRuntimeDiagnosticsChange],
   );
-  const needsSubject = subject !== undefined;
-  const [toolsStatus, setToolsStatus] = useState<'ready' | 'loading' | 'unavailable'>(() =>
-    isFormspecEngineToolsInitialized() ? 'ready' : 'loading',
-  );
-  useEffect(() => {
-    if (!needsSubject || toolsStatus !== 'loading') return;
-    let current = true;
-    void initFormspecEngineTools().then(
-      () => { if (current) setToolsStatus('ready'); },
-      () => { if (current) setToolsStatus('unavailable'); },
-    );
-    return () => { current = false; };
-  }, [needsSubject, toolsStatus]);
-
+  // Runtime WASM hashes the keys for hosts that key drafts before an engine exists; the engine derives its own.
   const responseSubject = useMemo(() => {
-    if (!subject || toolsStatus !== 'ready') return undefined;
+    if (!subject) return undefined;
     try {
       return { ...subject, id: responseSubjectId(subject.type, subject.keys) };
     } catch {
       return undefined;
     }
-  }, [subject, toolsStatus]);
-  if (needsSubject && !responseSubject) {
-    return toolsStatus === 'loading'
-      ? <DefinitionFormLoading>{strings('transitionPending')}</DefinitionFormLoading>
-      : <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
+  }, [subject]);
+  if (subject && !responseSubject) {
+    return <UnavailableSlot>{strings('slotUnavailableWidgetData')}</UnavailableSlot>;
   }
   const resolvedInput: SurfaceDefinitionFormRenderInput = {
     ...input,
@@ -1622,6 +1618,8 @@ function DefaultSurfaceDefinitionForm(
     onActiveSectionChange,
     onSectionTitleChange,
   } = input;
+  // The engine derives its id from type and keys, so those, not a renderer-supplied id, key it.
+  const subjectIdentity = JSON.stringify([responseSubject?.type, responseSubject?.keys]);
   const engine = useMemo(() => {
     if (draftEngine) return draftEngine;
     try {
@@ -1640,8 +1638,7 @@ function DefaultSurfaceDefinitionForm(
       console.warn('Formspec Surface could not create the form engine.', error);
       return undefined;
     }
-    // Core's subject id covers both type and keys, even when a replan allocates a new object.
-  }, [draftEngine, initialData?.data, plan.definition, responseSubject?.id]);
+  }, [draftEngine, initialData?.data, plan.definition, subjectIdentity]);
   useEffect(() => () => { if (!draftEngine) engine?.dispose(); }, [draftEngine, engine]);
   const formVisit = useRef<object | undefined>(undefined);
   const visit = useMemo(() => ({}), [engine]);
@@ -1867,6 +1864,14 @@ function DefaultSurfaceDefinitionForm(
     }
   }, [actionBanner]);
 
+  // An owed group acknowledgement is accepted on the draft review route; the Findings margin links there.
+  const { draftReviewDestination, formatHref, navigate } = input;
+  const acknowledgementLink = useMemo(() => draftReviewDestination === undefined ? undefined : (code: string) => {
+    const destination = withSurfaceQuery(draftReviewDestination, 'acknowledge', code);
+    const href = formatHref ? formatHref(destination) : destination;
+    return href === undefined ? undefined : { href, ...(navigate && { navigate: () => { void navigate(destination); } }) };
+  }, [draftReviewDestination, formatHref, navigate]);
+
   const lastHandledActionResultRef = useRef<ResponseActionInvocationResult<SubmitResult> | undefined>(undefined);
   const handleActionOutcome = useCallback(
     (result: ResponseActionInvocationResult<SubmitResult>) => {
@@ -1874,8 +1879,7 @@ function DefaultSurfaceDefinitionForm(
       lastHandledActionResultRef.current = result;
       if (result.resolution.action?.intent === 'autosave') return;
       if (result.status === 'blocked') {
-        const evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
-        const progress = summarizeDraftProgress([], evaluated);
+        const progress = summarizeDraftProgress([], readSubmitEvaluation(engine));
         const errors = progress.form.toFix ?? 0;
         const warnings = progress.form.toCheck ?? 0;
         const missing = progress.form.missing;
@@ -1942,6 +1946,7 @@ function DefaultSurfaceDefinitionForm(
         onActiveSectionChange={onActiveSectionChange}
         sectionNavigationActive={sectionNavigationActive}
         hrefForSection={hrefForSection}
+        acknowledgementLink={acknowledgementLink}
         onSectionTitleChange={onSectionTitleChange}
         componentDocument={componentDocument}
         themeDocument={grant.themeDocument}
@@ -2056,6 +2061,7 @@ interface SurfaceWidgetSlotProps {
   reportSave?: ((notice: SurfaceSaveNotice) => void) | undefined;
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
+  focusAcknowledgement?: string | undefined;
   /** Pure per-source scheduling hints; evaluated on host renders, never authority. */
   dataSourceRevision?: DataSourceRevisionSelector | undefined;
   authorizeDataSource?: DataSourceAuthorizer | undefined;
@@ -2095,6 +2101,7 @@ function SurfaceWidgetSlot({
   reportSave,
   localeDocuments,
   activeLocale,
+  focusAcknowledgement,
   dataSourceRevision,
   authorizeDataSource,
   validateDataSourcePayload,
@@ -2715,6 +2722,7 @@ function SurfaceWidgetSlot({
           draftSession={draftSession}
           filingStatus={filingStatus}
           reportSave={reportSave}
+          focusAcknowledgement={focusAcknowledgement}
           onSaved={retryDataLoad}
         />
       )}
@@ -2728,6 +2736,7 @@ function DraftReviewWarningAcknowledgements({
   draftSession,
   filingStatus,
   reportSave,
+  focusAcknowledgement,
   onSaved,
 }: {
   plan: Extract<NonNullable<ModuleWidgetPlan['draftReview']>, { status: 'ready' }>;
@@ -2735,9 +2744,21 @@ function DraftReviewWarningAcknowledgements({
   draftSession: DraftSession;
   filingStatus: FilingStatusViewContext | undefined;
   reportSave: ((notice: SurfaceSaveNotice) => void) | undefined;
+  focusAcknowledgement: string | undefined;
   onSaved: () => void;
 }) {
   const [savingCode, setSavingCode] = useState<string | null>(null);
+  // Arriving by a Findings link, focus moves on from the route heading to the control that accepts the group,
+  // once. With nothing to accept yet it stays on the heading; it is never taken from a control chosen meanwhile.
+  const focused = useRef<string | undefined>(undefined);
+  const accept = useRef(new Map<string, HTMLButtonElement>());
+  useEffect(() => {
+    if (!focusAcknowledgement || focused.current === focusAcknowledgement) return;
+    const button = accept.current.get(focusAcknowledgement);
+    if (!button || button.disabled) return;
+    focused.current = focusAcknowledgement;
+    if (focusIsTheShells(button.ownerDocument)) button.focus();
+  }, [focusAcknowledgement, delivery]);
   const sections = useMemo(
     () => (plan.sections ?? []).map(sec => ({
       ...(sec.id === undefined ? {} : { id: sec.id }),
@@ -2805,6 +2826,10 @@ function DraftReviewWarningAcknowledgements({
             {group.addedText && <p className="formspec-warning-acknowledgement-added">{group.addedText}</p>}
             {group.removedText && <p className="formspec-warning-acknowledgement-removed">{group.removedText}</p>}
             <button
+              ref={button => {
+                if (button) accept.current.set(group.code, button);
+                else accept.current.delete(group.code);
+              }}
               type="button"
               className="fs-surface-review-ack__button"
               disabled={group.current || savingCode !== null}
@@ -2817,6 +2842,13 @@ function DraftReviewWarningAcknowledgements({
       ))}
     </>
   );
+}
+
+/** Focus the shell placed on arrival (the route heading or main landmark), or none: not the respondent's choice. */
+function focusIsTheShells(document: Document): boolean {
+  const active = document.activeElement;
+  return !active || active === document.body
+    || active.matches('main, .fs-surface-route__title, h1, [role="heading"][aria-level="1"]');
 }
 
 function UnavailableSlot({ children }: { children: ReactNode }) {

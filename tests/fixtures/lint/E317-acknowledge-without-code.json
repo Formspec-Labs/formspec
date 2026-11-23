@@ -1,0 +1,19 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:acknowledge-without-code",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Acknowledge Shapes without a code",
+  "warningExplanation": "acknowledge",
+  "items": [{"type": "field", "key": "age", "label": "Age", "dataType": "integer"}],
+  "shapes": [
+    {"id": "inheritedNoCode", "target": "age", "severity": "warning", "constraint": "present($)", "message": "Age is blank"},
+    {"id": "inheritedWithCode", "target": "age", "severity": "warning", "code": "AGE_BLANK", "constraint": "present($)", "message": "Age is blank"},
+    {"id": "explicitNone", "target": "age", "severity": "warning", "explanation": "none", "constraint": "$ < 120", "message": "Age is high"},
+    {"id": "errorShape", "target": "age", "constraint": "$ >= 0", "message": "Age is negative"},
+    {"id": "infoShape", "target": "age", "severity": "info", "constraint": "$ > 17", "message": "Age is a minor"},
+    {"id": "explicitNoCode", "target": "age", "severity": "warning", "explanation": "acknowledge", "constraint": "$ < 100", "message": "Age is very high"},
+    {"id": "inheritedEmptyCode", "target": "age", "severity": "warning", "code": "", "constraint": "$ != 50", "message": "Age is fifty"},
+    {"id": "explicitEmptyCode", "target": "age", "severity": "warning", "explanation": "acknowledge", "code": "", "constraint": "$ != 60", "message": "Age is sixty"}
+  ]
+}

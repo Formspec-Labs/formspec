@@ -1,6 +1,6 @@
 /** @filedesc Retain editable draft sessions across browser history and qualify all access by key. */
 import {
-  createFormEngine, initFormspecEngine, initFormspecEngineTools, responseSubjectId,
+  createFormEngine, initFormspecEngine, responseSubjectId,
   type ActionRefFinding, type FormDraftSnapshot, type IFormEngine,
 } from '@formspec-org/engine';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
@@ -10,7 +10,7 @@ import type {
   FilingLoadResult, FilingProgressCounts, MatchedFilingObservation,
 } from '@formspec-org/surface';
 import { definitionResponseRequests, resolveDefinitionReads } from './definition-response-reads.js';
-import { summarizeDraftProgress } from './draft-progress.js';
+import { readSubmitEvaluation, summarizeDraftProgress } from './draft-progress.js';
 import type { FormDefinition, FormResponse, ResponseSelector } from '@formspec-org/types';
 import {
   createDraftWriter, readCommittedExplanationsAtRevision,
@@ -26,10 +26,10 @@ export interface SurfaceDraftStorage {
   author?: { id: string; name?: string };
 }
 
+/** Key a draft by Core's filing-unit id; runtime WASM only. */
 export async function deriveDraftSubject(subject: DataSourceSubject | undefined): Promise<DraftKey['subject']> {
   if (!subject) return undefined;
   await initFormspecEngine();
-  await initFormspecEngineTools();
   return { ...subject, id: responseSubjectId(subject.type, subject.keys) };
 }
 
@@ -528,8 +528,7 @@ export function createDraftSession(
               return 'mismatch';
             }
             const currentExplanations = engine.getExplanationEntries();
-            const evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
-            const progress = summarizeDraftProgress(sections, evaluated);
+            const progress = summarizeDraftProgress(sections, readSubmitEvaluation(engine));
             const placements = sections.map(({ id: sectionId, fields }) => ({
               ...(sectionId === undefined ? {} : { id: sectionId }),
               fields,

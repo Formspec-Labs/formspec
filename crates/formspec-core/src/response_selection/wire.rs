@@ -1,85 +1,18 @@
-//! Wire admission and subject identity hashing for the selector.
+//! Wire admission for the selector.
 
-use std::collections::BTreeMap;
-
-use integrity_canonical::{DigestAlgorithm, compute_digest, domain_separated_canonical_bytes};
 use serde::{Deserialize, Deserializer, de::Error};
-use serde_json::{json, value::RawValue};
-
-use crate::subject_key::SubjectKey;
+use serde_json::value::RawValue;
 
 use super::{SelectionContext, SelectionRecord, select};
-
-const SUBJECT_INTEGER_RANGE_ERROR: &str = "subject key is outside the I-JSON integer range";
-
-impl<'de> Deserialize<'de> for SubjectKey {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let raw = Box::<RawValue>::deserialize(deserializer)?;
-        if raw.get().starts_with('"') {
-            return serde_json::from_str(raw.get())
-                .map(Self::String)
-                .map_err(D::Error::custom);
-        }
-        let value = integer(&raw).map_err(D::Error::custom)?;
-        if !Self::is_integer_in_range(&value) {
-            return Err(D::Error::custom(SUBJECT_INTEGER_RANGE_ERROR));
-        }
-        Ok(Self::Integer(value))
-    }
-}
 
 /// Read a signed offset without rounding.
 pub(super) fn deserialize_offset<'de, D: Deserializer<'de>>(
     deserializer: D,
 ) -> Result<Option<i64>, D::Error> {
     let raw = Box::<RawValue>::deserialize(deserializer)?;
-    integer(&raw).map(Some).map_err(D::Error::custom)
-}
-
-/// Parse an integral JSON number without rounding, including equivalent decimal spellings.
-fn integer(raw: &RawValue) -> Result<i64, String> {
-    if let Ok(integer) = raw.get().parse() {
-        return Ok(integer);
-    }
-    let canonical = integrity_canonical::canonical_json_from_bytes(raw.get().as_bytes())?;
-    std::str::from_utf8(&canonical)
-        .ok()
-        .and_then(|value| value.parse().ok())
-        .ok_or_else(|| "expected a signed 64-bit JSON integer".to_owned())
-}
-
-/// Derives the unprefixed filing-unit id from its type and typed keys.
-///
-/// # Errors
-///
-/// Returns an error for an out-of-range integer key or a canonical encoding failure.
-pub fn subject_id(
-    subject_type: &str,
-    keys: &BTreeMap<String, SubjectKey>,
-) -> Result<String, String> {
-    if keys.values().any(
-        |key| matches!(key, SubjectKey::Integer(value) if !SubjectKey::is_integer_in_range(value)),
-    ) {
-        return Err(SUBJECT_INTEGER_RANGE_ERROR.to_owned());
-    }
-    let bytes = domain_separated_canonical_bytes(
-        "formspec.subject.id.v1",
-        &json!({ "type": subject_type, "keys": keys }),
-    )?;
-    Ok(compute_digest(&bytes, DigestAlgorithm::Sha256))
-}
-
-/// Derives the subject id from JSON text for the subject keys.
-///
-/// # Errors
-///
-/// Returns an error for malformed JSON, untyped keys or a canonical encoding failure.
-pub fn subject_id_json(subject_type: &str, keys_json: &str) -> Result<String, String> {
-    // The canonical reader refuses repeated keys before serde deserializes the map.
-    integrity_canonical::canonical_json_from_bytes(keys_json.as_bytes())?;
-    let keys = serde_json::from_str(keys_json)
-        .map_err(|error| format!("invalid subject keys: {error}"))?;
-    subject_id(subject_type, &keys)
+    crate::subject_key::json_integer(&raw)
+        .map(Some)
+        .map_err(D::Error::custom)
 }
 
 /// Runs the shared selector on its JSON wire inputs.

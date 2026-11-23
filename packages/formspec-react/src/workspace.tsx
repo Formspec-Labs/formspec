@@ -4,8 +4,8 @@
 import React, { createContext, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { computed } from '@preact/signals-core';
 import {
-    placementCovers, placementKey, readFormProgressFindingRows, stripSeverityPrefix, summarizeFormProgress,
-    type LayoutNode,
+    placementCovers, placementKey, readFormProgressFindingRows, readFormProgressFollowUpRows,
+    stripSeverityPrefix, summarizeFormProgress, warningAcknowledgementLegend, type LayoutNode, type ProgressFollowUp,
 } from '@formspec-org/layout';
 import type { IFormEngine } from '@formspec-org/engine';
 import { useFormspecContext } from './context';
@@ -107,6 +107,11 @@ function indexPlacements(sections: readonly WorkspacePage[]) {
     return index;
 }
 
+/** A primary click without modifiers: the page follows it; any other keeps the browser's link behaviour. */
+function isPlainClick(event: React.MouseEvent): boolean {
+    return !event.defaultPrevented && event.button === 0 && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+}
+
 function repeatContext(engine: IFormEngine, path: string, chrome: ReturnType<typeof useChromeText>) {
     return Array.from(path.matchAll(/\[(\d+)\]/g), match => {
         const group = path.slice(0, match.index);
@@ -136,7 +141,10 @@ function useSectionTitle(
 }
 
 export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: WorkspacePage[] }) {
-    const { engine, workspaceNavigation, touchField, touchedVersion, isTouched, latestSubmit, registerFieldJump } = useFormspecContext();
+    const {
+        engine, workspaceNavigation, touchField, touchedVersion, isTouched, latestSubmit, registerFieldJump,
+        explanationState: explanationStateSignal,
+    } = useFormspecContext();
     const chrome = useChromeText();
     const formTitle = useSignal(useMemo(() => engine.getFormVM(), [engine]).title);
     const pages = useSignal(useMemo(() => computed(() => {
@@ -149,7 +157,8 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
     const selected = controlled ? workspaceNavigation.activeSection : localSection;
     const [query, setQuery] = useState('');
     const [notice, setNotice] = useState('');
-    const [jump, setJump] = useState<{ path: string; section: WorkspacePage }>();
+    // `explanation`: the Shape whose explanation control beside the field takes focus, when it is shown.
+    const [jump, setJump] = useState<{ path: string; section: WorkspacePage; explanation?: string }>();
     const heading = useRef<HTMLHeadingElement>(null);
     const findingsAsideRef = useRef<HTMLElement>(null);
     const findingsHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -189,17 +198,9 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
     const snapshot = useSignal(useMemo(() => computed(() => engine.getEvaluatedFormState()), [engine]));
     const touchedTick = useSignal(touchedVersion);
     const submitted = useSignal(latestSubmit);
-    const hasWarningCandidates = Boolean(
-        snapshot.report?.results.some(r => r.severity === 'warning' || r.constraintKind === 'explanation'),
-    );
-    const explanationState = useSignal(useMemo(
-        () => computed(() => (
-            hasWarningCandidates && typeof engine.getExplanationState === 'function'
-                ? engine.getExplanationState()
-                : null
-        )),
-        [engine, hasWarningCandidates],
-    ));
+    // The live report omits Submit-timing Shapes, so what the respondent owes comes from the explanation
+    // state the provider reads once typing pauses (and at once for an answer or a Submit).
+    const explanationState = useSignal(explanationStateSignal);
     // Answer edits refresh the snapshot. Search only needs to revisit membership when relevant paths change.
     const relevantPaths = useMemo(() => snapshot.fields.filter(field => field.relevant).map(field => field.path).join('\n'), [snapshot]);
     const relevant = useMemo(() => new Set(relevantPaths ? relevantPaths.split('\n') : []), [relevantPaths]);
@@ -272,10 +273,22 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
         const groupLabel = getGroupLabel(path);
         return groupLabel ? { label: groupLabel, controlId: null } : null;
     };
-    const rawFindings = readFormProgressFindingRows(progress, {
-        field, chrome, message: result => engine.resolveValidationMessage(result) ?? '',
-        jumpable: path => (relevant.has(path) || hasContainerLabel(path)) && resolvePage(path) !== undefined,
-    });
+    const jumpable = (path: string) => (relevant.has(path) || hasContainerLabel(path)) && resolvePage(path) !== undefined;
+    const followUpMessage = (followUp: ProgressFollowUp) => {
+        const resolveText = (key: string, fallback: string) => engine.resolveLocaleString(key, fallback);
+        if (followUp.kind === 'group') {
+            return warningAcknowledgementLegend(
+                explanationState?.groups.find(group => group.code === followUp.code) ?? followUp, resolveText);
+        }
+        const owed = explanationState?.instances.find(({ shapeId, path }) => shapeId === followUp.shapeId && path === followUp.path);
+        return engine.resolveLocaleString(`$shape.${followUp.shapeId}.message`, owed?.message ?? '', followUp.path);
+    };
+    const rawFindings = [
+        ...readFormProgressFindingRows(progress, {
+            field, chrome, jumpable, message: result => engine.resolveValidationMessage(result) ?? '',
+        }),
+        ...readFormProgressFollowUpRows(progress, { field, chrome, jumpable, message: followUpMessage }),
+    ];
     const { activeFindings, untouchedRequiredItems } = useMemo(() => {
         const activeRows: typeof rawFindings = [];
         const missingItems: Array<{
@@ -448,7 +461,7 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
         select(page, true);
     }
 
-    function jumpTo(path: string, notifyRoute = true) {
+    function jumpTo(path: string, notifyRoute = true, explanation?: string) {
         const section = resolvePage(path);
         if (!section) {
             setNotice(chrome('workspace.targetUnavailable'));
@@ -457,7 +470,7 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
         }
         setNotice('');
         setMobileNavOpen(false);
-        setJump({ path, section });
+        setJump({ path, section, ...(explanation !== undefined && { explanation }) });
         if (section !== active || workspaceNavigation?.sectionNavigationActive === false) {
             select(section, notifyRoute);
         }
@@ -504,6 +517,14 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
         const fieldEl = () => containerRef.current?.querySelector(`[data-name="${jump.path}"]`);
         const waitingForTab = fieldEl()?.closest('[role="tabpanel"][hidden]');
         const finish = () => {
+            const answer = jump.explanation === undefined ? null : containerRef.current?.querySelector<HTMLElement>(
+                `[data-shape-id="${jump.explanation}"][data-explanation-path="${jump.path}"] textarea`);
+            if (answer && !answer.closest('[hidden], .formspec-hidden')) {
+                scrollTargetIntoView(answer, 'start', stickyOffset);
+                answer.focus({ preventScroll: true });
+                setJump(undefined);
+                return;
+            }
             const target = fieldEl();
             const focused = focusField(jump.path);
             const visible = target && !target.closest('[hidden], .formspec-hidden');
@@ -535,7 +556,7 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
         const activate = () => navigate(page);
         return href ? (
             <a href={href} aria-current={current} data-formspec-section={page.id} onClick={event => {
-                if (event.defaultPrevented || event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+                if (!isPlainClick(event)) return;
                 event.preventDefault();
                 activate();
             }}>{label}</a>
@@ -740,6 +761,10 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
                         const badge = row.explained
                             ? <span className="formspec-workspace__finding-status">Explained</span>
                             : null;
+                        const followUp = row.followUp;
+                        const acknowledgement = followUp?.kind === 'group'
+                            ? workspaceNavigation?.acknowledgementLink?.(followUp.code)
+                            : undefined;
                         return (
                             <li
                                 key={row.identity}
@@ -747,9 +772,19 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
                                 data-severity={row.severity}
                                 data-finding-scope={scope}
                                 data-explained={row.explained ? 'true' : undefined}
+                                data-follow-up={followUp && (followUp.kind === 'group' ? followUp.code : followUp.shapeId)}
                             >
-                                {row.jumpPath ? (
-                                    <button type="button" onClick={() => jumpTo(row.jumpPath!)}>
+                                {acknowledgement ? (
+                                    <a href={acknowledgement.href} onClick={event => {
+                                        if (!acknowledgement.navigate || !isPlainClick(event)) return;
+                                        event.preventDefault();
+                                        acknowledgement.navigate();
+                                    }}>
+                                        {message}
+                                    </a>
+                                ) : row.jumpPath ? (
+                                    <button type="button" onClick={() => jumpTo(row.jumpPath!, true,
+                                        followUp?.kind === 'instance' ? followUp.shapeId : undefined)}>
                                         {message}
                                         {badge}
                                     </button>

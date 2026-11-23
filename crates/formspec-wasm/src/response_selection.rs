@@ -18,12 +18,6 @@ pub fn select_responses_json(
     formspec_core::response_selection::select_json(records_json, selection_json, context_json)
 }
 
-/// Derive the canonical id of a typed Response subject.
-#[wasm_bindgen(js_name = subjectIdJson)]
-pub fn subject_id_json(subject_type: &str, keys_json: &str) -> Result<String, String> {
-    formspec_core::response_selection::subject_id_json(subject_type, keys_json)
-}
-
 /// Check whether a Response's authored timestamp identifies an instant.
 #[wasm_bindgen(js_name = isValidResponseAuthored)]
 pub fn is_valid_response_authored(authored: &str) -> bool {

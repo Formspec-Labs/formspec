@@ -32,7 +32,7 @@ it('submits a localized explanation for one warning and reopens it when the basi
 
 it('renders grouped blank-answer acknowledgement with field jump links and set difference after changes', () => {
     const groupsState = signal([{
-        code: 'CSBG_NOT_ANSWERED',
+        code: 'WORKSHOP_NOT_ANSWERED',
         paths: ['outcome', 'topic', 'venue'],
         current: false,
         added: ['outcome', 'topic', 'venue'],
@@ -93,13 +93,13 @@ it('renders grouped blank-answer acknowledgement with field jump links and set d
     const button = group!.querySelector('button')!;
     expect(button.textContent).toBe('Accept 3 unanswered questions');
     act(() => { button.click(); });
-    expect(acknowledge).toHaveBeenCalledWith('CSBG_NOT_ANSWERED');
+    expect(acknowledge).toHaveBeenCalledWith('WORKSHOP_NOT_ANSWERED');
     expect(button.disabled).toBe(true);
     expect(button.textContent).toBe('Accepted 3 unanswered questions');
 
     act(() => {
         groupsState.value = [{
-            code: 'CSBG_NOT_ANSWERED',
+            code: 'WORKSHOP_NOT_ANSWERED',
             paths: ['outcome', 'partner', 'topic'],
             current: false,
             added: ['partner'],

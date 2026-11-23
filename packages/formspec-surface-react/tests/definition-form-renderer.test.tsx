@@ -118,9 +118,6 @@ describe('filing-unit subject in the default Definition form', () => {
     const root = createRoot(container);
     const show = (node: ReactNode) => act(async () => {
       flushSync(() => root.render(node));
-      if (container.querySelector('[aria-busy="true"]')) {
-        await vi.waitFor(() => expect(engine.isFormspecEngineToolsInitialized()).toBe(true));
-      }
     });
     return { container, show };
   }
@@ -198,40 +195,44 @@ describe('filing-unit subject in the default Definition form', () => {
     });
   });
 
-  it.each([false, true])('localizes loading and a tools load failure (delegating renderer: %s)', async (delegating) => {
-    let rejectTools!: (error: Error) => void;
-    const pending = new Promise<void>((_, reject) => { rejectTools = reject; });
-    const toolsReady = vi.spyOn(engine, 'isFormspecEngineToolsInitialized').mockReturnValue(false);
-    const initTools = vi.spyOn(engine, 'initFormspecEngineTools').mockReturnValue(pending);
+  // The tools loading state is gone (fs-aght): runtime WASM derives the id while the slot renders.
+  it.each([false, true])('renders without a tools load and localizes an unhashable subject (delegating renderer: %s)', (delegating) => {
+    const initTools = vi.spyOn(engine, 'initFormspecEngineTools');
     const renderer = vi.fn(renderDefaultDefinitionForm);
     const container = document.body.appendChild(document.createElement('div'));
     const root = createRoot(container);
+    const show = (year: number) => act(() => root.render(<SurfaceApp bundle={filingYearFixture()} location={`/units/${year}`}
+      onNavigate={() => {}} renderDefinitionForm={delegating ? renderer : undefined} setDocumentTitle={false}
+      strings={{ transitionPending: 'Preparando el formulario', slotUnavailableWidgetData: 'Faltan datos para mostrar el formulario' }} />));
 
     try {
-      act(() => root.render(<SurfaceApp bundle={filingYearFixture()} location="/units/2026" onNavigate={() => {}}
-        renderDefinitionForm={delegating ? renderer : undefined} setDocumentTitle={false}
-        strings={{ transitionPending: 'Preparando el formulario', slotUnavailableWidgetData: 'Faltan datos para mostrar el formulario' }} />));
-      const loading = container.querySelector('[data-probe="definition-form-loading"]');
-      expect.soft(loading?.className).toBe('fs-surface-loading');
-      expect.soft(loading?.getAttribute('role')).toBe('status');
-      expect.soft(loading?.getAttribute('aria-live')).toBe('polite');
-      expect.soft(loading?.getAttribute('aria-busy')).toBe('true');
-      expect.soft(loading?.textContent).toBe('Preparando el formulario');
-      expect.soft(renderer).not.toHaveBeenCalled();
+      show(2026);
+      expect(container.querySelector('[data-probe="definition-form-loading"]')).toBeNull();
+      expect(container.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe('2026');
+      if (delegating) {
+        expect(renderer.mock.lastCall?.[0].responseSubject).toEqual({
+          type: FILING_YEAR_SUBJECT_TYPE, keys: { ffy: 2026 }, id: FILING_YEAR_2026_SUBJECT_ID,
+        });
+      }
 
-      await act(async () => rejectTools(new Error('Tools WASM failed to load')));
+      const derive = vi.spyOn(engine, 'responseSubjectId').mockImplementation(() => {
+        throw new Error('subject key is outside the I-JSON integer range');
+      });
+      renderer.mockClear();
+      show(2027);
+      derive.mockRestore();
       expect(container.querySelector('[data-probe="slot-unavailable"]')?.textContent)
         .toBe('Faltan datos para mostrar el formulario');
+      expect(renderer).not.toHaveBeenCalled();
+      expect(initTools).not.toHaveBeenCalled();
     } finally {
       act(() => root.unmount());
       container.remove();
-      toolsReady.mockRestore();
       initTools.mockRestore();
     }
   });
 
   it('keeps the page mounted when the engine refuses the ffy-year key', async () => {
-    await engine.initFormspecEngineTools();
     const container = document.body.appendChild(document.createElement('div'));
     const onUncaughtError = vi.fn();
     const root = createRoot(container, { onUncaughtError });
@@ -252,7 +253,6 @@ describe('filing-unit subject in the default Definition form', () => {
   });
 
   it('uses the host strings when a delegating renderer supplies a refused key value', async () => {
-    await engine.initFormspecEngineTools();
     const renderer: SurfaceDefinitionFormRenderer = input => renderDefaultDefinitionForm({
       ...input,
       responseSubject: { type: FILING_YEAR_SUBJECT_TYPE, keys: { ffy: '2026' }, id: FILING_YEAR_2026_SUBJECT_ID },

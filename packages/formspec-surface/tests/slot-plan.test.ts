@@ -542,3 +542,70 @@ it('plans one band per page, including when the page embeds its declaring route'
   const old = { ...pages, $formspecSurface: '0.3' as const };
   expect(planRoute(contextFor(old, 'home')).bands).toEqual([]);
 });
+
+describe('the draft review route a form slot links its Findings to', () => {
+  const params = [{ name: 'year', type: 'string' }];
+  const reviewShape = {
+    widgetName: 'ResponseReview', deliveryContractId: '@formspec-org/surface-react/ResponseReview@0.1',
+    dataInputs: ['definition', 'response', 'presentation'].map(name => ({ name, required: true })),
+  };
+  const registry = flattenRegistryEntries([{
+    $formspecRegistry: '1.1', publisher: { name: 'Test', url: 'https://example.test' }, published: '2026-07-28T00:00:00Z',
+    entries: [
+      { name: 'x-review', category: 'module', version: '1.0.0', status: 'stable', contributes: ['x-review-widget'] },
+      { name: 'x-review-widget', category: 'widget', version: '1.0.0', status: 'stable', widgetShape: reviewShape },
+      { name: 'x-other', category: 'module', version: '1.0.0', status: 'stable', contributes: ['x-other-widget'] },
+      { name: 'x-other-widget', category: 'widget', version: '1.0.0', status: 'stable', widgetShape: { widgetName: 'Banner' } },
+    ],
+  } as unknown as RegistryDocument]).entries;
+  const review = (id: string, slotRef: string, moduleId = 'x-review', widgetName = 'ResponseReview') => route({
+    id, path: `/${id}/{year}`, params,
+    slots: [slot({ id: 'review', slotType: 'module-widget', binding: { moduleId, widgetName, draftReview: { routeRef: 'filing', slotRef } } })],
+  });
+  function plan(reviews: unknown[]) {
+    const pages = surface('app', 'filing', [
+      route({ id: 'filing', path: '/filing/{year}', params, slots: [
+        slot({ id: 'form', slotType: 'definition-form', binding: { definitionRef: 'https://example.test/def' } }),
+        slot({ id: 'unreviewed', slotType: 'definition-form', binding: { definitionRef: 'https://example.test/def' } }),
+      ] }),
+      ...reviews,
+    ] as never, { $formspecSurface: '0.4' });
+    const app = composeSurfaceApp([pages]);
+    const planned = planRoute({
+      ...contextFor(pages, 'filing'), handle: app.routes.find(candidate => candidate.routeId === 'filing')!,
+      params: { year: '2025' }, filingStatus: { app, themeAuthority: createThemeAuthority() }, registryEntries: registry,
+      widgets: createWidgetRegistry({
+        modules: [{ moduleId: 'x-review', widgets: { ResponseReview: Banner } }, { moduleId: 'x-other', widgets: { Banner } }],
+        registryEntries: registry,
+      }),
+    });
+    return {
+      hrefs: planned.slots.map(planned =>
+        [planned.slotId, planned.slotType === 'definition-form' ? planned.draftReviewHref : 'not a form']),
+      ambiguous: planned.diagnostics.filter(diagnostic =>
+        diagnostic.code === 'SLOT-BINDING-INCOMPLETE' && diagnostic.details?.reason === 'draft-review-ambiguous'),
+    };
+  }
+
+  it('addresses the one review route with the form route parameters', () => {
+    expect(plan([review('review', 'form')])).toEqual({
+      hrefs: [['form', '/review/2025'], ['unreviewed', undefined]], ambiguous: [],
+    });
+  });
+
+  it('links nothing when no review route reviews the slot', () => {
+    expect(plan([])).toEqual({ hrefs: [['form', undefined], ['unreviewed', undefined]], ambiguous: [] });
+  });
+
+  // Picking one would be a guess, so the author hears the slot binding is incomplete.
+  it('links nothing and reports the binding when two review routes review the slot', () => {
+    const { hrefs, ambiguous } = plan([review('review', 'form'), review('recheck', 'form')]);
+    expect(hrefs).toEqual([['form', undefined], ['unreviewed', undefined]]);
+    expect(ambiguous).toHaveLength(1);
+    expect(ambiguous[0]).toMatchObject({ site: { slotId: 'form' } });
+  });
+
+  it('does not link a review whose own binding does not resolve', () => {
+    expect(plan([review('review', 'form', 'x-other', 'Banner')]).hrefs).toEqual([['form', undefined], ['unreviewed', undefined]]);
+  });
+});

@@ -1,7 +1,8 @@
 /** @filedesc Maps shared form progress to Assist's tools and page navigation. */
 import type { IFormEngine } from '@formspec-org/engine';
 import {
-  pageProgressIssue, resolvePageSequence, summarizeFormProgress, type PageSequenceEntry,
+  declaresWarningFollowUps, pageProgressIssue, resolvePageSequence, summarizeFormProgress, warningAcknowledgementLegend,
+  type PageSequenceEntry,
 } from '@formspec-org/layout';
 import { targetDefinitionMatches } from '@formspec-org/types';
 import { normalizeFieldPath } from './context-resolver.js';
@@ -41,7 +42,24 @@ export class ProviderProgress {
 
   private summarize() {
     this.refresh();
-    return summarizeFormProgress(this.pageSequence, this.engine.getEvaluatedFormState());
+    // The live report carries no explanation errors, so what Submit still needs comes from the explanation
+    // state: at most one Submit evaluation per Assist call, none while the engine's cached state is current.
+    const explanations = declaresWarningFollowUps(this.engine.getDefinition()) ? this.engine.getExplanationState() : null;
+    return { summary: summarizeFormProgress(this.pageSequence, this.engine.getEvaluatedFormState(), explanations), explanations };
+  }
+
+  /** The first owed warning answer; on a page walk only the ones on no page, which the walk cannot report. */
+  private followUpStep({ summary, explanations }: ReturnType<ProviderProgress['summarize']>, scope: 'field' | 'page') {
+    const followUp = summary.followUps.find(owed => scope === 'field' || owed.formLevel);
+    if (!followUp) return undefined;
+    if (followUp.kind === 'instance' && !followUp.formLevel) {
+      return { path: followUp.path, label: this.fields.fieldStatus(followUp.path).label, reason: 'follow-up' };
+    }
+    const label = followUp.kind === 'group'
+      ? warningAcknowledgementLegend(explanations?.groups.find(group => group.code === followUp.code) ?? followUp,
+        (key, fallback) => this.engine.resolveLocaleString(key, fallback))
+      : explanations?.instances.find(owed => owed.shapeId === followUp.shapeId && owed.path === followUp.path)?.message ?? '';
+    return { label, reason: 'follow-up' };
   }
 
   private pageTitle(id: string): string | undefined {
@@ -52,7 +70,7 @@ export class ProviderProgress {
   }
 
   public getProgress(): FormProgress {
-    const { form, sections } = this.summarize();
+    const { form, sections } = this.summarize().summary;
     return {
       total: form.total,
       filled: form.filled,
@@ -74,14 +92,15 @@ export class ProviderProgress {
 
   public nextIncomplete(scope: 'field' | 'page'): Record<string, unknown> {
     if (scope === 'page') {
-      for (const { id, counts } of this.summarize().sections) {
+      const progress = this.summarize();
+      for (const { id, counts } of progress.summary.sections) {
         const reason = pageProgressIssue(counts);
         if (reason === 'unavailable') throw new AssistError('ENGINE_ERROR', 'Live validation is unavailable');
         if (reason) {
           return { pageId: id, label: (id && this.pageTitle(id)) || 'Next page', reason };
         }
       }
-      return { label: 'Complete', reason: 'complete' };
+      return this.followUpStep(progress, 'page') ?? { label: 'Complete', reason: 'complete' };
     }
 
     this.fields.refresh();
@@ -102,6 +121,6 @@ export class ProviderProgress {
       }
     }
     if (blockedReadonly) return { ...blockedReadonly, reason: 'blocked-readonly' };
-    return { label: 'Complete', reason: 'complete' };
+    return this.followUpStep(this.summarize(), 'field') ?? { label: 'Complete', reason: 'complete' };
   }
 }

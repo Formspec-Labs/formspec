@@ -9,7 +9,7 @@ use formspec_eval::{EvalOptions, EvalTrigger, evaluate};
 
 const DEFINITION: &str =
     include_str!("../../../tests/conformance/fixtures/explanations/first-slice.definition.json");
-const BLANK: &str = "CSBG_NOT_ANSWERED";
+const BLANK: &str = "WORKSHOP_NOT_ANSWERED";
 
 #[test]
 fn three_blank_shapes_and_one_value_warning_need_two_explanations_at_submit() {

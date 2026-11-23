@@ -1,7 +1,7 @@
 /** @filedesc Tools WASM — lazy init and wrappers for `formspec_wasm_tools` (lint, mapping, assembly, FEL authoring helpers). */
 
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
-import type { FormResponse, ResponseSelectionRecord, SelectResponses } from '@formspec-org/types';
+import type { ResponseSelectionRecord, SelectResponses } from '@formspec-org/types';
 import {
     nodeFsModuleName,
     resolveWasmAssetPathForNode,
@@ -210,14 +210,6 @@ export const selectResponses: SelectResponses = (records, selection, context) =>
     );
     return parseJsonExact(resultJson) as ReturnType<SelectResponses>;
 };
-
-/** Calculate a filing-unit id from the declared type and exact typed keys. */
-export function responseSubjectId(
-    subjectType: string,
-    keys: NonNullable<NonNullable<FormResponse['subject']>['keys']>,
-): string {
-    return wasmTools().subjectIdJson(subjectType, JSON.stringify(keys));
-}
 
 /** Check whether authored specifies a valid Response ordering instant. */
 export function isValidResponseAuthored(authored: string): boolean {

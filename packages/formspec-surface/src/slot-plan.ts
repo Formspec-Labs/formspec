@@ -36,7 +36,7 @@ import type { ComponentDocument, FormDefinition, RegistryEntry } from '@formspec
 import { targetDefinitionMatches } from '@formspec-org/types';
 import { parseRouteSubjectKey, resolveDraftReviewTarget, widgetActionScopeMatches } from '@formspec-org/app-graph';
 import type { ExperienceDocument } from '@formspec-org/types';
-import { surfaceDiagnostic, type SurfaceDiagnostic } from './diagnostics.js';
+import { surfaceDiagnostic, type SurfaceDiagnostic, type SurfaceDiagnosticSite } from './diagnostics.js';
 import type { SurfaceRoute } from './route-path.js';
 import { resolvePageSequence } from '@formspec-org/layout';
 import { formHref, matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
@@ -100,6 +100,8 @@ export type SlotPlan<TComponent> = SlotPlanBase &
         definition?: FormDefinition;
         componentDocument?: ComponentDocument;
         subject?: DataSourceSubject;
+        /** The one draft review route that reviews this slot, addressed with this route's parameters. */
+        draftReviewHref?: string;
         registryEntries: readonly RegistryEntry[];
         status: 'ready' | 'unresolved';
       }
@@ -390,6 +392,8 @@ function planSlot<TComponent>(
         });
         if (component) plan.componentDocument = component;
         if (subject) plan.subject = subject;
+        const draftReviewHref = context.filingStatus && planDraftReviewHref(context, context.filingStatus.app, bindingRoute.id, slot.id, site, diagnostics);
+        if (draftReviewHref !== undefined) plan.draftReviewHref = draftReviewHref;
         if (binding.initialData !== undefined) {
           const initialData = planDefinitionFormInitialData({
             binding: binding.initialData,
@@ -462,8 +466,7 @@ function planSlot<TComponent>(
       const resolution = context.widgets.resolve(key);
       const diagnostic = context.widgets.diagnose(key, resolution, site);
       if (diagnostic) diagnostics.push(diagnostic);
-      const widgetShape =
-        resolution.status !== 'undeclared' ? resolution.entry?.widgetShape : undefined;
+      const widgetShape = resolvedWidgetShape(resolution);
       const declaredInputs = Array.isArray(widgetShape?.dataInputs)
         ? widgetShape.dataInputs
         : [];
@@ -790,6 +793,40 @@ function planDraftReview<TComponent>(context: SlotPlanContext<TComponent>, bindi
     ...(targetFormHref !== undefined && { formHref: targetFormHref }),
     ...(sections !== undefined && { sections }),
   };
+}
+
+function resolvedWidgetShape<TComponent>(resolution: WidgetResolution<TComponent>) {
+  return resolution.status !== 'undeclared' ? resolution.entry?.widgetShape : undefined;
+}
+
+/**
+ * The reverse of a draft review's `formHref`: the one review route whose own binding resolves to this form
+ * slot. Two or more would make the link a guess, so the slot binding is reported incomplete instead.
+ */
+function planDraftReviewHref<TComponent>(
+  context: SlotPlanContext<TComponent>, app: SurfaceApp, routeId: string, slotId: string,
+  site: SurfaceDiagnosticSite, diagnostics: SurfaceDiagnostic[],
+): string | undefined {
+  const reviews = app.routes.filter(candidate => candidate.surface === context.handle.surface &&
+    (candidate.route.slots ?? []).some(reviewSlot => {
+      if (reviewSlot.slotType !== 'module-widget') return false;
+      const binding = (reviewSlot.binding ?? {}) as Record<string, unknown>;
+      const review = ownRecord(binding, 'draftReview');
+      if (!review || ownString(review, 'routeRef') !== routeId || ownString(review, 'slotRef') !== slotId) return false;
+      const key = { moduleId: ownString(binding, 'moduleId') ?? '', widgetName: ownString(binding, 'widgetName') ?? '' };
+      const widgetShape = resolvedWidgetShape(context.widgets.resolve(key));
+      return resolveDraftReviewTarget(candidate.surface, candidate.route, binding, widgetShape).status === 'ready';
+    }));
+  if (reviews.length > 1) {
+    diagnostics.push(surfaceDiagnostic('SLOT-BINDING-INCOMPLETE',
+      'More than one review route reviews this form, so its Findings cannot link to one.', site,
+      { reason: 'draft-review-ambiguous', routes: reviews.map(candidate => candidate.routeId) }));
+    return undefined;
+  }
+  const [review] = reviews;
+  if (!review) return undefined;
+  const link = routeHref(review, context.params ?? {});
+  return !link.refusal && matchRoute(app, link.href).match?.handle === review ? link.href : undefined;
 }
 
 function resolveFormSubject(

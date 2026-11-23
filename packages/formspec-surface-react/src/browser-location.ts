@@ -75,6 +75,13 @@ export function splitSurfaceLocation(location: string): SurfaceLocation {
     : { path: location.slice(0, queryAt), query: new URLSearchParams(location.slice(queryAt + 1)) };
 }
 
+/** The location with one query parameter set and the others kept. */
+export function withSurfaceQuery(location: string, name: string, value: string): string {
+  const { path, query } = splitSurfaceLocation(location);
+  query.set(name, value);
+  return `${path}?${query}`;
+}
+
 export function surfaceBrowserLocation(mode: SurfaceBrowserMode, basePath: string) {
   const base = basePath === '/' ? '' : basePath.replace(/\/+$/, '');
   return {

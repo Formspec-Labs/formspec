@@ -1,12 +1,10 @@
-//! Shared Response-selection and subject identity vectors from the Core spec.
+//! Shared Response-selection vectors from the Core spec.
 
-use formspec_core::response_selection::{select_json, subject_id_json};
+use formspec_core::response_selection::select_json;
 use serde_json::Value;
 
 const CASES: &str =
     include_str!("../../../tests/conformance/fixtures/response-selection/selection.json");
-const SUBJECT_IDS: &str =
-    include_str!("../../../tests/conformance/fixtures/subject-id/vectors.json");
 
 fn merged(base: &Value, changes: &Value) -> String {
     let mut merged = base.as_object().unwrap().clone();
@@ -68,39 +66,6 @@ fn missing_upstream_subject_is_a_wire_error() {
         error.contains(case["expectedError"].as_str().unwrap()),
         "{error}"
     );
-}
-
-#[test]
-fn subject_id_vectors() {
-    let suite: Value = serde_json::from_str(SUBJECT_IDS).unwrap();
-    for vector in suite["vectors"].as_array().unwrap() {
-        assert_eq!(
-            subject_id_json(
-                vector["type"].as_str().unwrap(),
-                &vector["keys"].to_string()
-            )
-            .unwrap(),
-            vector["id"].as_str().unwrap(),
-            "{}",
-            vector["name"],
-        );
-    }
-}
-
-#[test]
-fn subject_id_refuses_unsafe_integers() {
-    let suite: Value = serde_json::from_str(SUBJECT_IDS).unwrap();
-    for vector in suite["refusals"].as_array().unwrap() {
-        let error = subject_id_json(
-            vector["type"].as_str().unwrap(),
-            &vector["keys"].to_string(),
-        )
-        .expect_err(vector["name"].as_str().unwrap());
-        assert!(
-            error.contains(vector["expectedError"].as_str().unwrap()),
-            "{error}"
-        );
-    }
 }
 
 #[test]

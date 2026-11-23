@@ -249,7 +249,7 @@ test('on-demand reports a Definition refusal before Shape timing applies', () =>
   }
 });
 
-test('on-demand preserves shared input refusals in the report and Response snapshot', () => {
+test('on-demand preserves a subject refusal in the report and refuses the Response snapshot', () => {
   const type = 'urn:test:filing-unit';
   const definition = {
     ...buildDefinition(),
@@ -262,14 +262,13 @@ test('on-demand preserves shared input refusals in the report and Response snaps
   });
   const options = { profile: 'on-demand' };
   const report = engine.getValidationReport(options);
-  const snapshot = engine.getResponseSnapshot(options);
-  for (const value of [report, snapshot.validationReport]) {
-    assert.equal(value.valid, false);
-    assert.deepEqual(value.results.map(({ path, code }) => [path, code]), [
-      ['#subjectKeys.id', 'TYPE_MISMATCH'],
-    ]);
-  }
-  assert.deepEqual(snapshot.response.validationResults, report.results);
+  assert.equal(report.valid, false);
+  assert.deepEqual(report.results.map(({ path, code }) => [path, code]), [
+    ['#subjectKeys.id', 'TYPE_MISMATCH'],
+  ]);
+  // A refused subject has no Core id, so its Response would be schema-invalid (fs-aght review).
+  assert.throws(() => engine.getResponseSnapshot(options),
+    /^Error: Response subject refused: #subjectKeys\.id: Subject key must be an integer$/);
 });
 
 test('on-demand preserves a decimal range refusal on create and resume', () => {

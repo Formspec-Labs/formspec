@@ -21,7 +21,7 @@ pub use crate::instance_resolution::{
 #[doc(inline)]
 pub use candidates::valid_authored_instant;
 #[doc(inline)]
-pub use wire::{select_json, subject_id, subject_id_json};
+pub use wire::select_json;
 
 /// The declared type of an upstream subject key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]

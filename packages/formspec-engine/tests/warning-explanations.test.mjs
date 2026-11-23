@@ -9,7 +9,7 @@ const fixture = name => JSON.parse(readFileSync(new URL(
 ), 'utf8'));
 const definition = fixture('definition');
 const { entries } = fixture('entries');
-const code = 'CSBG_NOT_ANSWERED';
+const code = 'WORKSHOP_NOT_ANSWERED';
 
 test('one group action and one value explanation survive save, reload and a change of blank paths', () => {
   const engine = createFormEngine(definition, { savedResponseData: { attendance: 125, partner: 'Library' } });

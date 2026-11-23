@@ -3,7 +3,8 @@
 
 use formspec_core::{
     ProjectionConsumer, check_instance_projection,
-    response_selection::{SelectionRecordKind, select_json, subject_id_json},
+    response_selection::{SelectionRecordKind, select_json},
+    subject_key::subject_id_json,
 };
 use serde_json::{Value, json};
 

@@ -17,6 +17,7 @@
 //! - `document` — `document-api`: detect type, schema plan; `lint`: `lintDocument*`
 //! - `mapping` — `mapping-api`
 //! - `response_selection` — `response-selection-api` for preview reads
+//! - `subject` — `subjectIdJson`: filing-unit identity (always, so respondents never need tools)
 //! - `registry` — `registry-api`
 //! - `ontology` — `ontology-api`: `deriveJsonLdContext` (Ontology §6.2)
 //! - `changelog` — `changelog-api`
@@ -45,6 +46,7 @@ mod registry;
 #[cfg(feature = "response-selection-api")]
 mod response_selection;
 mod split_abi;
+mod subject;
 mod value_coerce;
 
 #[cfg(test)]

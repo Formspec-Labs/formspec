@@ -4,6 +4,7 @@
 //! - **E300**: Bind path references an unknown item
 //! - **E301**: Shape target references an unknown item
 //! - **E302**: Item's `optionSet` references an undefined option set
+//! - **E315**: Two Shapes declare the same `id`
 //! - **E316**: Bind uses `letterCase` on a non-text target
 //! - **W300**: Item's `dataType` is incompatible with `optionSet`
 //!
@@ -77,7 +78,7 @@ fn check_bind_paths(
     }
 }
 
-// ── Shape targets (E301) ──────────────────────────────────────
+// ── Shape ids and targets (E315 / E301) ───────────────────────
 
 fn check_shapes(document: &Value, index: &ItemTreeIndex, diagnostics: &mut Vec<LintDiagnostic>) {
     let shapes = match document.get("shapes").and_then(|v| v.as_array()) {
@@ -87,34 +88,16 @@ fn check_shapes(document: &Value, index: &ItemTreeIndex, diagnostics: &mut Vec<L
 
     let mut ids = HashSet::new();
     for (i, shape) in shapes.iter().enumerate() {
-        if let Some(id) = shape.get("id").and_then(Value::as_str) {
-            if !ids.insert(id) {
-                diagnostics.push(crate::semantic_helpers::error(
-                    LintCode::E315,
-                    3,
-                    format!("$.shapes[{i}].id"),
-                    format!("Shape id '{id}' is already declared"),
-                ));
-            }
-        }
-        if matches!(
-            shape
-                .get("severity")
-                .and_then(Value::as_str)
-                .unwrap_or("error"),
-            "error" | "info"
-        ) && matches!(
-            shape.get("explanation").and_then(Value::as_str),
-            Some("confirm" | "explain" | "acknowledge")
-        ) {
+        if let Some(id) = shape.get("id").and_then(Value::as_str)
+            && !ids.insert(id)
+        {
             diagnostics.push(crate::semantic_helpers::error(
-                LintCode::E314,
+                LintCode::E315,
                 3,
-                format!("$.shapes[{i}].explanation"),
-                "Only a warning Shape can request a respondent explanation",
+                format!("$.shapes[{i}].id"),
+                format!("Shape id '{id}' is already declared"),
             ));
         }
-
         let target = match shape.get("target").and_then(|v| v.as_str()) {
             Some(t) => t,
             None => continue,

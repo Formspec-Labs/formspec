@@ -65,6 +65,7 @@ import {
     wasmCreateResponse,
     wasmEvaluateDefinition,
     wasmEvaluateFiled,
+    wasmResponseSubjectId,
 } from '../wasm-bridge-runtime.js';
 import {
     resolveOptionSetsOnDefinition,
@@ -239,6 +240,11 @@ export class FormEngine implements IFormEngine {
         } = options;
         this._instanceSourceResolver = options.instanceSourceResolver;
         this._responseSubject = cloneValue(options.responseSubject ?? undefined);
+        // A declared filing unit's id is Core's hash of its keys, never the host's claim.
+        if (this._responseSubject && definition.subject) delete this._responseSubject.id;
+        if (this._responseSubject && !definition.subject && this._responseSubject.id === undefined) {
+            throw new Error('A host entity subject needs responseSubject.id when the Definition declares no subject');
+        }
         this._responseInstanceResolutions = Object.assign(
             Object.create(null), cloneValue(options.responseInstanceResolutions ?? {}),
         );
@@ -316,6 +322,12 @@ export class FormEngine implements IFormEngine {
             }
             const input = saved ?? this.createResponseData(options.responseData ?? {});
             this._evaluate(null, true, input);
+            // The first evaluation checked the subject before anything else; hash it once, only if it passed.
+            // Rust accepts a declared subject only with its type and keys.
+            const subject = this._responseSubject;
+            if (subject && this.definition.subject && !this.hasSubjectRefusal()) {
+                subject.id = wasmResponseSubjectId(subject.type!, subject.keys!);
+            }
         } catch (error) {
             this.dispose();
             throw error;
@@ -896,7 +908,13 @@ export class FormEngine implements IFormEngine {
 
     /** Whether the evaluator refused the supplied Response subject. */
     public hasSubjectRefusal(): boolean {
-        return this._fullResult?.refused === true && this._fullResult.validations.some(({ path }) =>
+        return this.subjectRefusal() !== undefined;
+    }
+
+    /** The evaluator's typed finding for a refused Response subject. */
+    private subjectRefusal(): EvalResult['validations'][number] | undefined {
+        if (this._fullResult?.refused !== true) return undefined;
+        return this._fullResult.validations.find(({ path }) =>
             path === '#subjectType' || path === '#subjectKeys' || path.startsWith('#subjectKeys.'));
     }
 
@@ -1126,8 +1144,13 @@ export class FormEngine implements IFormEngine {
         pendingExplanationStamps: boolean;
     } {
         this.assertNoRemovedModeOption(meta, 'getResponse');
-        if (meta?.subject && (this._responseSubject || 'keys' in meta.subject)) {
+        if (meta?.subject && (this._responseSubject || this.definition.subject || 'keys' in meta.subject)) {
             throw new Error('Supply filing-unit identity through the responseSubject constructor option');
+        }
+        // A refused subject has no Core id; its Response would be schema-invalid, so none is emitted.
+        const subjectRefusal = this.subjectRefusal();
+        if (subjectRefusal) {
+            throw new Error(`Response subject refused: ${subjectRefusal.path}: ${subjectRefusal.message}`);
         }
         const profile = meta?.profile ?? 'live';
         const responseTrigger = this._validationProfileResolver.resolve(profile);

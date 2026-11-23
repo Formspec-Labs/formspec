@@ -216,16 +216,22 @@ it('refuses a noncanonical integer subject before requesting a draft', async () 
   expect(load).not.toHaveBeenCalled();
 });
 
-it('exposes grouped blank-answer acknowledgement on draft-review, saves with revision check, and links to another section', async () => {
-  const { createMemoryFilingStore } = await import('../src/browser-draft-port.js');
+/** The workshop form on /form/2026 in a workspace with Logistics and Program sections, reviewed on /review/2026. */
+/** The explanations conformance workshop under this file's Definition identity, in a workspace. */
+async function workshopDefinition() {
   const { default: workshopJson } = await import('../../../tests/conformance/fixtures/explanations/first-slice.definition.json');
-  const workshop = {
+  return {
     ...(workshopJson as any),
     url: definition.url,
     version: definition.version,
     subject: definition.subject,
     formPresentation: { pageMode: 'workspace' },
   };
+}
+
+async function mountWorkshopForm() {
+  const { createMemoryFilingStore } = await import('../src/browser-draft-port.js');
+  const workshop = await workshopDefinition();
   const componentDoc = {
     $formspecComponent: '1.0',
     version: '1.0.0',
@@ -270,7 +276,11 @@ it('exposes grouped blank-answer acknowledgement on draft-review, saves with rev
       }}
     />,
   );
+  return { container, store };
+}
 
+it('exposes grouped blank-answer acknowledgement on draft-review, saves with revision check, and links to another section', async () => {
+  const { container, store } = await mountWorkshopForm();
   // Save a draft with partner='Library', attendance=10 so venue, topic, outcome remain unanswered
   await act(async () => {});
   await vi.waitFor(() => expect(container.querySelector('[data-name="partner"] input')).not.toBeNull());
@@ -297,7 +307,7 @@ it('exposes grouped blank-answer acknowledgement on draft-review, saves with rev
   await vi.waitFor(() => expect(container.querySelector('.fs-response-review')).not.toBeNull());
 
   const groupPanel = await vi.waitFor(() => {
-    const el = container.querySelector<HTMLFieldSetElement>('fieldset[data-explanation-code="CSBG_NOT_ANSWERED"]');
+    const el = container.querySelector<HTMLFieldSetElement>('fieldset[data-explanation-code="WORKSHOP_NOT_ANSWERED"]');
     expect(el).not.toBeNull();
     return el!;
   });
@@ -308,13 +318,13 @@ it('exposes grouped blank-answer acknowledgement on draft-review, saves with rev
   // Click Accept -> persists via revision-checked DraftWriter and refreshes draft-review
   await act(async () => { acceptBtn.click(); });
   await vi.waitFor(() => {
-    const refreshed = container.querySelector<HTMLButtonElement>('fieldset[data-explanation-code="CSBG_NOT_ANSWERED"] button');
+    const refreshed = container.querySelector<HTMLButtonElement>('fieldset[data-explanation-code="WORKSHOP_NOT_ANSWERED"] button');
     expect(refreshed?.disabled).toBe(true);
     expect(refreshed?.textContent).toBe('Accepted 3 unanswered questions');
   });
 
   // Click field link for 'Topic' (in section 'program') -> navigates to /form/2026?slot=form&section=program
-  const topicLink = [...container.querySelectorAll<HTMLAnchorElement>('fieldset[data-explanation-code="CSBG_NOT_ANSWERED"] a')]
+  const topicLink = [...container.querySelectorAll<HTMLAnchorElement>('fieldset[data-explanation-code="WORKSHOP_NOT_ANSWERED"] a')]
     .find(a => a.textContent === 'Topic');
   expect(topicLink).toBeDefined();
   expect(topicLink!.getAttribute('href')).toContain('/form/2026');
@@ -324,6 +334,99 @@ it('exposes grouped blank-answer acknowledgement on draft-review, saves with rev
     expect(window.location.pathname).toBe('/form/2026');
     expect(window.location.search).toContain('section=program');
     expect(container.querySelector('[data-formspec-section="program"]')).not.toBeNull();
+  });
+});
+
+it('links the owed group from the form Findings margin to the review route, which focuses its Accept button', async () => {
+  const { container } = await mountWorkshopForm();
+  await vi.waitFor(() => expect(container.querySelector('[data-name="partner"] input')).not.toBeNull());
+  const partnerInput = container.querySelector<HTMLInputElement>('[data-name="partner"] input')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(partnerInput, 'Library');
+    partnerInput.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  // Submit-timing blanks are owed before any Submit; the margin says so and points at the review control.
+  const link = await vi.waitFor(() => {
+    const found = container.querySelector<HTMLAnchorElement>(
+      '.formspec-workspace__findings > ul > li[data-follow-up="WORKSHOP_NOT_ANSWERED"] a');
+    expect(found?.textContent).toBe('Warning: 3 unanswered questions');
+    return found!;
+  });
+  expect(container.querySelector('.formspec-workspace__findings-summary')?.textContent).toBe('1 to check');
+  const href = new URL(link.href, window.location.href);
+  expect([href.pathname, href.searchParams.get('acknowledge')]).toEqual(['/review/2026', 'WORKSHOP_NOT_ANSWERED']);
+
+  await act(async () => { link.click(); });
+  await vi.waitFor(() => {
+    const accept = container.querySelector<HTMLButtonElement>('fieldset[data-explanation-code="WORKSHOP_NOT_ANSWERED"] button');
+    expect(accept?.textContent).toBe('Accept 3 unanswered questions');
+    expect(document.activeElement).toBe(accept);
+  });
+});
+
+it('lands on the route heading when the linked group was already accepted', async () => {
+  const { container } = await mountWorkshopForm();
+  await vi.waitFor(() => expect(container.querySelector('[data-name="partner"] input')).not.toBeNull());
+  const partnerInput = container.querySelector<HTMLInputElement>('[data-name="partner"] input')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(partnerInput, 'Library');
+    partnerInput.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  // A popstate visit does not flush the form, so let autosave commit first, as the test above does.
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 500)); });
+  const visit = async (path: string) => act(async () => {
+    window.history.pushState(null, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  const button = () => container.querySelector<HTMLButtonElement>('fieldset[data-explanation-code="WORKSHOP_NOT_ANSWERED"] button');
+  await visit('/review/2026');
+  await vi.waitFor(() => expect(button()?.disabled).toBe(false));
+  await act(async () => { button()!.click(); });
+  await vi.waitFor(() => expect(button()?.textContent).toBe('Accepted 3 unanswered questions'));
+
+  // A stale Findings link: nothing is left to accept, so focus stays where any route change puts it.
+  await visit('/form/2026');
+  await vi.waitFor(() => expect(container.querySelector('[data-name="partner"] input')).not.toBeNull());
+  await visit('/review/2026?acknowledge=WORKSHOP_NOT_ANSWERED');
+  await vi.waitFor(() => expect(button()?.disabled).toBe(true));
+  expect(document.activeElement).toBe(container.querySelector('.fs-surface-route__title'));
+});
+
+describe('a review delivery that arrives after the route', () => {
+  async function lateReview() {
+    const workshop = await workshopDefinition();
+    let deliver!: () => void;
+    const arrived = new Promise<void>(resolve => { deliver = resolve; });
+    const load = vi.fn<DraftPort['load']>(async key => {
+      await arrived;
+      return { status: 'loaded', draft: { revision: 'r1', snapshotJson: '{}', responseJson: JSON.stringify({
+        $formspecResponse: '1.0', id: 'urn:test:late', definitionUrl: definition.url, definitionVersion: definition.version,
+        status: 'in-progress', authored: '2026-01-01T12:00:00Z', subject: key.subject, data: { partner: 'Library' },
+      }) } };
+    });
+    const view = mount(load, '/review/2026?acknowledge=WORKSHOP_NOT_ANSWERED', { bundle: reviewBundle(undefined, workshop) });
+    await act(async () => { await vi.waitFor(() => expect(load).toHaveBeenCalled()); });
+    const accept = async () => vi.waitFor(() => {
+      const found = view.container.querySelector<HTMLButtonElement>('fieldset[data-explanation-code="WORKSHOP_NOT_ANSWERED"] button');
+      expect(found?.textContent).toBe('Accept 3 unanswered questions');
+      return found!;
+    });
+    return { ...view, deliver: () => act(async () => { deliver(); }), accept };
+  }
+
+  it('still focuses the Accept button', async () => {
+    const view = await lateReview();
+    await view.deliver();
+    expect(document.activeElement).toBe(await view.accept());
+  });
+
+  it('leaves focus where the respondent moved it meanwhile', async () => {
+    const view = await lateReview();
+    const elsewhere = view.container.querySelector<HTMLAnchorElement>('nav a')!;
+    act(() => { elsewhere.focus(); });
+    await view.deliver();
+    await view.accept();
+    expect(document.activeElement).toBe(elsewhere);
   });
 });
 
@@ -425,7 +528,7 @@ it('refuses acknowledging a warning group when the retained writer is dirty or b
     opened.engine.setValue('partner', 'Library');
     expect(await opened.writer.flush(true)).toBe(true);
     const savedRevision = opened.writer.revision!;
-    const savedGroup = opened.engine.getExplanationState().groups.find(g => g.code === 'CSBG_NOT_ANSWERED')!;
+    const savedGroup = opened.engine.getExplanationState().groups.find(g => g.code === 'WORKSHOP_NOT_ANSWERED')!;
     expect(savedGroup.basis).toBeTruthy();
 
     // Create an unsaved edit that changes the blank-answer group in the retained writer.
@@ -438,7 +541,7 @@ it('refuses acknowledging a warning group when the retained writer is dirty or b
       subject: undefined,
       expectedRevision: savedRevision,
       expectedBasis: savedGroup.basis,
-      code: 'CSBG_NOT_ANSWERED',
+      code: 'WORKSHOP_NOT_ANSWERED',
       report: notice => notices.push(notice),
     });
     expect(dirtyOutcome).toBe('mismatch');
@@ -465,7 +568,7 @@ it('refuses acknowledging a warning group when the retained writer is dirty or b
       subject: undefined,
       expectedRevision: cleanRevision,
       expectedBasis: 'sha256:0000000000000000000000000000000000000000000000000000000000000000',
-      code: 'CSBG_NOT_ANSWERED',
+      code: 'WORKSHOP_NOT_ANSWERED',
       report: notice => notices.push(notice),
     });
     expect(badBasisOutcome).toBe('mismatch');
@@ -491,7 +594,7 @@ it('allows a fresh decision after another session commits between review and acc
       localeDocuments: undefined, activeLocale: undefined, signal: new AbortController().signal,
     });
     if (delivery.status !== 'ready') throw Error(delivery.status);
-    const group = delivery.warningGroups.find(g => g.code === 'CSBG_NOT_ANSWERED')!;
+    const group = delivery.warningGroups.find(g => g.code === 'WORKSHOP_NOT_ANSWERED')!;
     return { expectedRevision: delivery.revision, expectedBasis: group.basis!, code: group.code, definition: workshop, subject: undefined, report };
   }
   try {
@@ -809,14 +912,14 @@ it.each(['answer', 'explanation'] as const)(
       if (storedAfterReview.status !== 'loaded') throw Error(storedAfterReview.status);
       const baselineResp = JSON.parse(storedAfterReview.draft.responseJson);
       expect(baselineResp.data.attendance).toBe(150);
-      expect(baselineResp.explanations.map((x: any) => x.code)).toEqual(['CSBG_NOT_ANSWERED']);
+      expect(baselineResp.explanations.map((x: any) => x.code)).toEqual(['WORKSHOP_NOT_ANSWERED']);
       expect(save).toHaveBeenCalledTimes(1);
       expect(save.mock.calls[0]![0].expectedRevision).toBe(review.revision);
       expect(live.writer.dirty).toBe(true);
       expect(reopen).not.toHaveBeenCalled();
       expect(live.writer.revision).toBe(storedAfterReview.draft.revision);
       expect(live.engine.getExplanationEntries()).toEqual(expect.arrayContaining([
-        expect.objectContaining({ code: 'CSBG_NOT_ANSWERED', author: { id: 'Filer' }, recorded: expect.any(String) }),
+        expect.objectContaining({ code: 'WORKSHOP_NOT_ANSWERED', author: { id: 'Filer' }, recorded: expect.any(String) }),
       ]));
 
       expect(await live.writer.flush()).toBe(true);
@@ -828,7 +931,7 @@ it.each(['answer', 'explanation'] as const)(
       const afterResp = JSON.parse(storedAfterFlush.draft.responseJson);
       expect(afterResp.explanations).toEqual(expect.arrayContaining([
         expect.objectContaining({
-          code: 'CSBG_NOT_ANSWERED',
+          code: 'WORKSHOP_NOT_ANSWERED',
           author: baselineResp.explanations[0].author,
           recorded: baselineResp.explanations[0].recorded,
         }),
@@ -1077,7 +1180,7 @@ it('re-accepting a stale group updates unchanged live group when an unrelated an
     const live = await lease.result;
     if (live.status !== 'ready') throw Error(live.status);
     live.engine.setValue('attendance', 150);
-    live.engine.acknowledge('CSBG_NOT_ANSWERED');
+    live.engine.acknowledge('WORKSHOP_NOT_ANSWERED');
     expect(await live.writer.flush(true)).toBe(true);
     live.engine.setValue('topic', 'Local history');
     expect(await live.writer.flush()).toBe(true);
@@ -1695,7 +1798,7 @@ it('retries deferred stamp readback across multiple transient load failures with
     const live = await lease.result;
     if (live.status !== 'ready') throw Error(live.status);
     live.engine.setValue('attendance', 0);
-    live.engine.acknowledge('CSBG_NOT_ANSWERED');
+    live.engine.acknowledge('WORKSHOP_NOT_ANSWERED');
     // Save commits durably (revision-only), then both immediate readback and first retry fail transiently.
     remainingLoadFaults = 2;
     expect(await live.writer.flush(true)).toBe(false);

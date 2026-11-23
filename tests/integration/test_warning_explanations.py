@@ -34,7 +34,7 @@ def test_python_recomputes_group_and_instance_bases():
     assert not changed.valid
     errors = [row for row in changed.results if row["severity"] == "error"]
     assert [(row["path"], row["code"], row["context"]) for row in errors] == [
-        ("#", "EXPLANATION_STALE", {"code": "CSBG_NOT_ANSWERED"})
+        ("#", "EXPLANATION_STALE", {"code": "WORKSHOP_NOT_ANSWERED"})
     ]
 
 

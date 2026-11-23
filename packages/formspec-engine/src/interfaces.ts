@@ -298,8 +298,13 @@ export interface FormEngineOptions {
     draftSnapshot?: FormDraftSnapshot;
     /** Warning entries from the saved Response paired with these answers. */
     savedExplanations?: Explanation[];
-    /** Host-supplied Response identity, available to FEL from the first evaluation. */
-    responseSubject?: Omit<NonNullable<FormResponse['subject']>, 'keys'> & { keys?: ResponseSubjectKeys };
+    /**
+     * Host-supplied Response identity, available to FEL from the first evaluation. For a subject-declaring
+     * Definition the engine derives `id` once from the validated `type` and `keys` and ignores a supplied
+     * `id`; while the subject is refused (`hasSubjectRefusal()`), Response reads throw and the report keeps the
+     * typed finding. Otherwise `id` is required and names the host entity.
+     */
+    responseSubject?: Partial<Omit<NonNullable<FormResponse['subject']>, 'keys'>> & { keys?: ResponseSubjectKeys };
     /** Available, host-qualified deliveries of Definition Response instances, keyed by instance name. */
     responseInstanceResolutions?: Readonly<Record<string, ResponseSelectionDelivery>>;
 }

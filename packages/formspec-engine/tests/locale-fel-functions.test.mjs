@@ -2,7 +2,13 @@
 import './setup.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { FormEngine } from '../dist/index.js';
+
+// Core's shared subject-id vectors: expected ids are literals, never recomputed here.
+const subjectVector = name => JSON.parse(readFileSync(
+  new URL('../../../tests/conformance/fixtures/subject-id/vectors.json', import.meta.url), 'utf8',
+)).vectors.find(vector => vector.name === name);
 
 /** Minimal definition with one field. */
 function minDef(overrides = {}) {
@@ -51,7 +57,7 @@ test('locale() can be used in conditional expressions', () => {
 });
 
 test('subject() reads the same response keys during live, submit, and ad-hoc evaluation', () => {
-  const type = 'urn:example:subject:agency-year';
+  const { type, id } = subjectVector('agency-year');
   const definition = minDef({
     subject: { type, keys: { ffy: { dataType: 'integer' }, uei: { dataType: 'string' } } },
     items: [
@@ -60,7 +66,7 @@ test('subject() reads the same response keys during live, submit, and ad-hoc eva
     ],
     binds: [{ path: 'year', calculate: "subject('ffy')" }],
   });
-  const subject = { id: 'filing-unit', type, keys: { uei: '00123', ffy: 2026 } };
+  const subject = { id: 'filing-unit', type, keys: { uei: 'A', ffy: 2026 } };
   const engine = new FormEngine(definition, {
     responseSubject: subject,
     responseData: { uei: 'editable' },
@@ -68,13 +74,14 @@ test('subject() reads the same response keys during live, submit, and ad-hoc eva
   });
   subject.keys.uei = 'mutated by caller';
   assert.equal(engine.signals.year.value, 2026);
-  assert.equal(engine.compileExpression("subject('uei')")(), '00123');
+  assert.equal(engine.compileExpression("subject('uei')")(), 'A');
   assert.equal(engine.compileExpression("subject('missing')")(), null);
   assert.equal(engine.compileExpression("runtimeMeta('uei')")(), 'metadata');
   const response = engine.getResponse({ profile: 'on-submit' });
   assert.equal(response.status, 'completed');
   assert.deepEqual(response.data, { uei: 'editable', year: 2026 });
-  assert.deepEqual(response.subject, { id: 'filing-unit', type, keys: { uei: '00123', ffy: 2026 } });
+  // The engine replaces the supplied placeholder id with Core's (fs-aght).
+  assert.deepEqual(response.subject, { id, type, keys: { uei: 'A', ffy: 2026 } });
 });
 
 test('subject() round-trips the largest I-JSON integer', () => {
@@ -93,16 +100,18 @@ test('subject() round-trips the largest I-JSON integer', () => {
 });
 
 test('getResponse() requires filing-unit identity before evaluation', () => {
-  const type = 'urn:example:subject:agency';
-  const definition = minDef({ subject: { type, keys: { uei: { dataType: 'string' } } } });
-  const subject = { id: 'filing-unit', type, keys: { uei: '00123' } };
+  const { type, keys, id } = subjectVector('agency-year');
+  const definition = minDef({ subject: { type, keys: { ffy: { dataType: 'integer' }, uei: { dataType: 'string' } } } });
+  const subject = { id: 'filing-unit', type, keys };
   const unbound = new FormEngine(definition);
   assert.equal(unbound.compileExpression("subject('uei')")(), null);
   assert.throws(() => unbound.getResponse({ subject }), /responseSubject/);
+  // A keyless late subject would put an unchecked host id on a declared filing unit (fs-aght).
+  assert.throws(() => unbound.getResponse({ subject: { id: subject.id, type } }), /responseSubject/);
 
   const bound = new FormEngine(definition, { responseSubject: subject });
   assert.throws(() => bound.getResponse({ subject: { id: 'different' } }), /responseSubject/);
-  assert.deepEqual(bound.getResponse().subject, subject);
+  assert.deepEqual(bound.getResponse().subject, { ...subject, id });
 });
 
 test('FormEngine reports invalid filing-unit identity', async (t) => {
@@ -136,10 +145,11 @@ test('FormEngine reports invalid filing-unit identity', async (t) => {
 });
 
 test('FormEngine accepts an explicit singleton and an unkeyed host entity', () => {
-  const type = 'urn:example:subject:singleton';
+  const { type, id } = subjectVector('per-scope singleton');
   const subject = { id: 'filing-unit', type, keys: {} };
   const singleton = new FormEngine(minDef({ subject: { type, keys: {} } }), { responseSubject: subject });
-  assert.deepEqual(singleton.getResponse().subject, subject);
+  // Core's singleton id, not the supplied placeholder (fs-aght).
+  assert.deepEqual(singleton.getResponse().subject, { ...subject, id });
   assert.equal(singleton.compileExpression("subject('uei')")(), null);
 
   const hostEntity = { id: 'host-entity', type: 'Grant' };

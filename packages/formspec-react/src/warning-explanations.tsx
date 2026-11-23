@@ -60,22 +60,35 @@ function submitMayHaveWarnings(submit: FormspecContextValue['latestSubmit']['val
     return (engine.getExplanationEntries?.().length ?? 0) > 0;
 }
 
+/** Shapes the live report never evaluates (`timing` submit or demand): only the explanation state names them before Submit. */
+function shapesOutsideLiveReport(engine: IFormEngine): ReadonlySet<string> {
+    return new Set((engine.getDefinition().shapes ?? [])
+        .filter(shape => (shape.timing ?? 'continuous') !== 'continuous')
+        .map(shape => shape.id));
+}
+
 function visibleWarnings(context: FormspecContextValue) {
     const cached = byProvider.get(context);
     if (cached) return cached;
     const { engine, latestSubmit } = context;
+    let outsideLive: ReadonlySet<string> | undefined;
     const groups = computed(() => {
         const result = new Map<string, Instance[]>();
         const submit = latestSubmit.value;
         const submitted = submit !== null;
         const live = engine.shapeResults ?? {};
         const hasLiveWarning = Object.values(live).some(s => s.value.some(r => r.severity === 'warning'));
-        if (!hasLiveWarning && !submitMayHaveWarnings(submit, engine)) return result;
-        const state = typeof engine.getExplanationState === 'function' ? engine.getExplanationState() : null;
+        // Otherwise the provider's paused read: a keystroke must not cost a Submit evaluation of its own.
+        const state = hasLiveWarning || submitMayHaveWarnings(submit, engine)
+            ? engine.getExplanationState()
+            : context.explanationState.value;
         for (const warning of state?.instances ?? []) {
             const hasFieldTarget = Boolean(engine.getFieldVM?.(warning.path));
             const path = (hasFieldTarget || hasRenderedGroupTarget(context, warning.path)) ? warning.path : '';
-            if (!submitted && !live[warning.shapeId]?.value.some(r => r.severity === 'warning' && r.path === warning.path)) continue;
+            // Before Submit a continuous warning answers beside its live warning; a Submit-timing one beside
+            // its field, owed or answered, so a Findings row that names it reaches a control.
+            if (!submitted && !live[warning.shapeId]?.value.some(r => r.severity === 'warning' && r.path === warning.path)
+                && !(outsideLive ??= shapesOutsideLiveReport(engine)).has(warning.shapeId)) continue;
             const list = result.get(path);
             if (list) list.push(warning);
             else result.set(path, [warning]);
@@ -204,6 +217,7 @@ function WarningAnswer({ engine, warning }: { engine: IFormEngine; warning: Inst
             aria-labelledby={headingId}
             className="formspec-warning-explanation"
             data-shape-id={shapeId}
+            data-explanation-path={path}
             data-state={saved ? 'saved' : 'open'}
         >
             <div id={headingId} className="formspec-warning-explanation-header">

@@ -21,6 +21,6 @@ pub fn select_responses_json(
 /// Derive the canonical id of a typed Response subject.
 #[pyfunction]
 pub fn subject_id_json(subject_type: &str, keys_json: &str) -> PyResult<String> {
-    formspec_core::response_selection::subject_id_json(subject_type, keys_json)
+    formspec_core::subject_key::subject_id_json(subject_type, keys_json)
         .map_err(PyValueError::new_err)
 }

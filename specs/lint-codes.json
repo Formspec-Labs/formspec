@@ -257,6 +257,30 @@
       "state": "tested"
     },
     {
+      "code": "E317",
+      "pass": 1,
+      "severity": "error",
+      "title": "Acknowledge Shape without a code",
+      "specRef": "specs/core/spec.md#521-shape-properties",
+      "suggestedFix": "declare a nonempty code on the Shape, shared by every Shape acknowledged together, or set its explanation to another mode",
+      "fixtures": [
+        "tests/fixtures/lint/E317-acknowledge-without-code.json"
+      ],
+      "state": "tested"
+    },
+    {
+      "code": "E318",
+      "pass": 3,
+      "severity": "error",
+      "title": "Answer modes disagree within an acknowledged code",
+      "specRef": "specs/core/spec.md#521-shape-properties",
+      "suggestedFix": "make every warning Shape with this code acknowledge-mode, or give the acknowledge Shapes, or the differing ones, a code of their own",
+      "fixtures": [
+        "tests/fixtures/lint/E318-mixed-modes-within-code.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W300",
       "pass": 3,
       "severity": "warning",

@@ -30,9 +30,9 @@ it('shares counts at the same revision and identifies the first required read-on
     pages: [{ id: 'Facts', title: 'Facts', fieldCount: 2, filledCount: 2, missingReadonly: 2, filled: true }],
   });
   const plan = layout.resolvePageSequence(engine.getDefinition());
-  const live = layout.summarizeFormProgress(plan, engine.getEvaluatedFormState());
+  const live = layout.summarizeFormProgress(plan, engine.getEvaluatedFormState(), null);
   const evaluated = vi.spyOn(engine, 'getValidationReport');
-  const saved = layout.summarizeFormProgress(plan, engine.getEvaluatedFormState({ profile: 'on-submit' }));
+  const saved = layout.summarizeFormProgress(plan, engine.getEvaluatedFormState({ profile: 'on-submit' }), engine.getExplanationState());
   expect(evaluated).toHaveBeenCalledWith({ profile: 'on-submit' });
   expect(saved.sections).toEqual(live.sections);
   expect(saved.form).toMatchObject({ total: 2, filled: 2, missing: 2, missingReadonly: 2, ready: false });
@@ -279,4 +279,49 @@ it('sees validation move between pages while global totals stay equal', async ()
   expect(after.pages).toEqual(before.pages);
   expect(await invoke(provider, 'formspec.form.nextIncomplete', { scope: 'page' }))
     .toMatchObject({ pageId: 'component-org', reason: 'invalid' });
+});
+
+// Submit blocks on an owed warning answer, so an agent must not hear "ready" or "Complete" before it is given.
+it('reports an owed warning follow-up as not ready, names it as the next step, and clears it once answered', async () => {
+  const large = (key: string) => ({
+    id: `large_${key}`, target: `Costs.${key}`, severity: 'warning', timing: 'submit', code: 'LARGE_COST',
+    constraint: '$ < 100', message: `${key} is large`,
+  });
+  const engine = new FormEngine({
+    $formspec: '1.0', url: 'https://example.org/follow-up-progress', version: '1.0.0', title: 'Follow-ups',
+    warningExplanation: 'acknowledge',
+    items: [
+      { key: 'Costs', type: 'group', label: 'Costs', children: [
+        { key: 'travel', type: 'field', dataType: 'integer', label: 'Travel' },
+        { key: 'lodging', type: 'field', dataType: 'integer', label: 'Lodging' },
+        { key: 'meals', type: 'field', dataType: 'integer', label: 'Meals' },
+      ] },
+    ],
+    shapes: [large('travel'), large('lodging'), {
+      id: 'explainMeals', target: 'Costs.meals', severity: 'warning', timing: 'submit', explanation: 'explain',
+      code: 'LARGE_MEALS', constraint: '$ < 100', message: 'Meals are large',
+    }],
+  } as never);
+  engine.setValue('Costs.travel', 500);
+  engine.setValue('Costs.lodging', 500);
+  engine.setValue('Costs.meals', 50);
+  const provider = createAssistProvider({ engine, registerWebMCP: false });
+  // Every answer is filled, but one group acknowledgement is owed. A group belongs to no page.
+  expect(provider.getProgress()).toMatchObject({ ready: false, pages: [{ id: 'Costs', filled: true }] });
+  expect(await invoke(provider, 'formspec.form.nextIncomplete', { scope: 'page' }))
+    .toEqual({ label: '2 unanswered questions', reason: 'follow-up' });
+  expect(await invoke(provider, 'formspec.form.nextIncomplete'))
+    .toEqual({ label: '2 unanswered questions', reason: 'follow-up' });
+
+  engine.acknowledge('LARGE_COST');
+  expect(provider.getProgress()).toMatchObject({ ready: true });
+  expect(await invoke(provider, 'formspec.form.nextIncomplete')).toEqual({ label: 'Complete', reason: 'complete' });
+
+  // An owed explanation belongs to its field and its page.
+  engine.setValue('Costs.meals', 500);
+  expect(provider.getProgress()).toMatchObject({ ready: false });
+  expect(await invoke(provider, 'formspec.form.nextIncomplete', { scope: 'page' }))
+    .toMatchObject({ pageId: 'Costs', reason: 'invalid' });
+  expect(await invoke(provider, 'formspec.form.nextIncomplete'))
+    .toEqual({ path: 'Costs.meals', label: 'Meals', reason: 'follow-up' });
 });

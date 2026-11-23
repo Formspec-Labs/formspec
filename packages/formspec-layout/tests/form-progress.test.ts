@@ -90,7 +90,7 @@ describe('section plan', () => {
         const summary = layout.summarizeFormProgress(plan, {
             fields: [{ path: 'note', relevant: true, readonly: false, required: false, empty: false }],
             report: null,
-        });
+        }, null);
         expect(summary.sections.map(({ id, counts }) => [id, counts.filled])).toEqual([
             ['Accounts_Page', 0], ['note', 1],
         ]);
@@ -180,7 +180,11 @@ describe('section plan', () => {
     });
 });
 
-it('counts and displays each outstanding acknowledgement group once', () => {
+// An owed explanation or acknowledgement (Core §5.3.1) is something to check, counted once, on every
+// screen and in every validation profile. These tests used to pin the Submit report's explanation
+// errors under `toFix` and as findings rows; the tracker then moved them to `toCheck` after the fact,
+// so the tracker and the workspace disagreed (fs-6uac). Each owed answer is now one `followUps` entry.
+it('counts and lists each outstanding acknowledgement group once', () => {
     const acknowledgement = (code: string) => result('#', 'error', 'EXPLANATION_REQUIRED', {
         constraintKind: 'explanation', source: 'shape', context: { code },
     });
@@ -190,19 +194,13 @@ it('counts and displays each outstanding acknowledgement group once', () => {
         fields: [],
         report: { $formspecValidationReport: '1.0', valid: false, timestamp: '2026-01-01T00:00:00Z',
             results: [first, { ...first, message: 'A different message for the same group' }, second] },
-    });
-    expect(summary.form.toFix).toBe(2);
-    const source = {
-        field: () => null,
-        message: (finding: ValidationResult) => finding.message,
-        chrome: () => '',
-    };
-    const rows = layout.readFormProgressFindingRows(summary, source);
-    expect(rows.map(({ identity, formLevel, jumpPath }) => [identity, formLevel, jumpPath])).toEqual([
-        [validationResultIdentity(first), true, null],
-        [validationResultIdentity(second), true, null],
+    }, null);
+    expect(summary.form).toMatchObject({ toFix: 0, toCheck: 2, followUps: 2, ready: false });
+    expect(summary.findings).toEqual([]);
+    expect(summary.followUps).toEqual([
+        { kind: 'group', code: 'MISSING_TOTALS', paths: [], formLevel: true },
+        { kind: 'group', code: 'MISSING_CONTACTS', paths: [], formLevel: true },
     ]);
-    expect(new Set(rows.map(row => row.identity)).size).toBe(2);
 });
 
 describe('warning follow-ups in the progress summary and findings margin', () => {
@@ -211,14 +209,16 @@ describe('warning follow-ups in the progress summary and findings margin', () =>
     const plan = layout.resolvePageSequence(definition, { component });
     const path = 'Accounts[1].rows[2].amount';
     const sibling = 'Accounts[1].rows[3].amount';
-    function summarize(results: ValidationResult[]) {
+    const accounts = (summary: layout.FormProgressSummary) =>
+        summary.sections.find(section => section.id === 'Accounts.V1')!.counts;
+    function summarize(results: ValidationResult[], explanations?: layout.ExplanationStateLike) {
         const fields = [path, sibling, 'note'].map(path => ({
             path, relevant: true, required: false, readonly: false, empty: false,
         }));
         return layout.summarizeFormProgress(plan, { fields, report: {
             $formspecValidationReport: '1.0', valid: results.every(row => row.severity !== 'error'),
             timestamp: '2026-01-01T00:00:00Z', results,
-        } });
+        } }, explanations ?? null);
     }
 
     it.each(['EXPLANATION_REQUIRED', 'EXPLANATION_STALE'])('pairs %s only with its exact repeat instance', code => {
@@ -227,15 +227,16 @@ describe('warning follow-ups in the progress summary and findings margin', () =>
         const otherShape = warning(path, 'otherCheck', 'CHECK_VALUE');
         const otherInstance = warning(sibling, 'checkValue', 'CHECK_VALUE');
         const progress = summarize([underlying, otherShape, paired, otherInstance]);
-        expect(progress.form).toMatchObject({ toFix: 1, toCheck: 2, ready: false });
-        expect(progress.sections.find(section => section.id === 'Accounts.V1')?.counts)
-            .toMatchObject({ toFix: 1, toCheck: 2 });
+        expect(progress.form).toMatchObject({ toFix: 0, toCheck: 3, followUps: 1, ready: false });
+        expect(accounts(progress)).toMatchObject({ toFix: 0, toCheck: 3, followUps: 1 });
+        expect(progress.followUps).toEqual([
+            { kind: 'instance', shapeId: 'checkValue', path, sectionId: 'Accounts.V1', formLevel: false },
+        ]);
         const rows = layout.readFormProgressFindingRows(progress, {
             field: () => ({ label: 'Amount', controlId: 'amount' }),
             message: finding => finding.message, chrome: () => '',
         });
-        expect(rows.map(row => row.identity)).toEqual([otherShape, paired, otherInstance].map(validationResultIdentity));
-        expect(rows[1].jumpPath).toBe(path);
+        expect(rows.map(row => row.identity)).toEqual([otherShape, otherInstance].map(validationResultIdentity));
     });
 
     it('uses a single group follow-up across sections and keeps an independent external warning', () => {
@@ -245,18 +246,137 @@ describe('warning follow-ups in the progress summary and findings margin', () =>
         const outside = result(path, 'warning', 'CHECK_VALUE', { source: 'external', constraintKind: 'external' });
         const progress = summarize([grouped, warning(path, 'checkValue', 'CHECK_VALUE'),
             warning('note', 'checkNote', 'CHECK_VALUE'), outside]);
-        expect(progress.form).toMatchObject({ toFix: 1, toCheck: 1 });
-        expect(progress.findings.map(finding => finding.result)).toEqual([grouped, outside]);
-        expect(progress.findings[0].formLevel).toBe(true);
-        expect(progress.sections.reduce((sum, section) => sum + (section.counts.toFix ?? 0), 0)).toBe(0);
+        expect(progress.form).toMatchObject({ toFix: 0, toCheck: 2, followUps: 1 });
+        expect(progress.findings.map(finding => finding.result)).toEqual([outside]);
+        expect(progress.followUps).toEqual([{ kind: 'group', code: 'CHECK_VALUE', paths: [], formLevel: true }]);
+        expect(progress.sections.reduce((sum, section) => sum + section.counts.followUps, 0)).toBe(0);
     });
 
     it('retains the original warning when its explanation is current and filing is permitted', () => {
         const resolved = warning(path, 'checkValue', 'CHECK_VALUE');
         const progress = summarize([resolved]);
-        expect(progress.form).toMatchObject({ toFix: 0, toCheck: 1, ready: true });
+        expect(progress.form).toMatchObject({ toFix: 0, toCheck: 1, followUps: 0, ready: true });
         expect(progress.findings.map(finding => finding.result)).toEqual([resolved]);
     });
+
+    // The live profile omits Submit-timing Shapes, so the engine's explanation state is the only witness.
+    it('counts an owed group with no result in the snapshot once, at form level', () => {
+        const progress = summarize([], { instances: [], groups: [{ code: 'UNANSWERED', shapeIds: ['blankAmount', 'blankNote'], paths: ['note', path], current: false }] });
+        expect(progress.form).toMatchObject({ toFix: 0, toCheck: 1, followUps: 1, ready: false });
+        expect(progress.followUps).toEqual([{ kind: 'group', code: 'UNANSWERED', paths: ['note', path], formLevel: true }]);
+        expect(progress.sections.every(section => section.counts.toCheck === 0)).toBe(true);
+        expect(progress.findings).toEqual([]);
+    });
+
+    it('counts an owed instance with no result in the snapshot once, in the section that owns its field', () => {
+        const progress = summarize([], { instances: [{ shapeId: 'checkValue', path, current: false }], groups: [] });
+        expect(progress.form).toMatchObject({ toCheck: 1, followUps: 1, ready: false });
+        expect(accounts(progress)).toMatchObject({ toCheck: 1, followUps: 1 });
+        expect(progress.followUps).toEqual([
+            { kind: 'instance', shapeId: 'checkValue', path, sectionId: 'Accounts.V1', formLevel: false },
+        ]);
+    });
+
+    it('counts nothing for a current explanation or acknowledgement', () => {
+        const progress = summarize([], {
+            instances: [{ shapeId: 'checkValue', path, current: true }],
+            groups: [{ code: 'UNANSWERED', shapeIds: ['blankNote'], paths: ['note'], current: true }],
+        });
+        expect(progress.form).toMatchObject({ toCheck: 0, followUps: 0, ready: true });
+        expect(progress.followUps).toEqual([]);
+    });
+
+    it('counts a follow-up once when the report and the explanation state both name it', () => {
+        const progress = summarize([
+            warning(path, 'checkValue', 'CHECK_VALUE'),
+            result(path, 'error', 'EXPLANATION_REQUIRED', { source: 'shape', constraintKind: 'explanation', shapeId: 'checkValue' }),
+            warning('note', 'blankNote', 'UNANSWERED'),
+            result('#', 'error', 'EXPLANATION_REQUIRED', { source: 'shape', constraintKind: 'explanation', context: { code: 'UNANSWERED' } }),
+        ], {
+            instances: [{ shapeId: 'checkValue', path, current: false }],
+            groups: [{ code: 'UNANSWERED', shapeIds: ['blankNote'], paths: ['note'], current: false }],
+        });
+        expect(progress.form).toMatchObject({ toFix: 0, toCheck: 2, followUps: 2 });
+        expect(progress.followUps.map(followUp => followUp.kind)).toEqual(['instance', 'group']);
+        expect(progress.followUps[1]).toMatchObject({ paths: ['note'] });
+        expect(progress.findings).toEqual([]);
+    });
+
+    it('does not count a live warning on top of the follow-up it is paired with', () => {
+        const progress = summarize([
+            warning(path, 'checkValue', 'CHECK_VALUE'),
+            warning(path, 'blankAmount', 'UNANSWERED'),
+            warning('note', 'blankNote', 'UNANSWERED'),
+            warning(sibling, 'checkValue', 'CHECK_VALUE'),
+        ], {
+            instances: [{ shapeId: 'checkValue', path, current: false }, { shapeId: 'checkValue', path: sibling, current: true }],
+            groups: [{ code: 'UNANSWERED', shapeIds: ['blankAmount', 'blankNote'], paths: [path, 'note'], current: false }],
+        });
+        // One instance and one group are owed; the explained sibling warning stays listed but uncounted.
+        expect(progress.form).toMatchObject({ toCheck: 2, followUps: 2 });
+        expect(accounts(progress)).toMatchObject({ toCheck: 1, followUps: 1 });
+        expect(progress.findings.map(finding => [finding.result.path, finding.explained])).toEqual([[sibling, true]]);
+    });
+
+    // A group answers only the firings it names. Another Shape's warning that reports the same code
+    // (a `none`-mode Shape without a code of its own also reports SHAPE_FAILED) is still owed.
+    it('neither hides nor folds a warning that shares a group code but is not one of its firings', () => {
+        const group = (current: boolean) => ({
+            instances: [], groups: [{ code: 'SHAPE_FAILED', shapeIds: ['blankAmount'], paths: [path], current }],
+        });
+        const results = [warning(path, 'blankAmount', 'SHAPE_FAILED'), warning('note', 'plainNote', 'SHAPE_FAILED')];
+        expect(summarize(results, group(false)).form).toMatchObject({ toCheck: 2, followUps: 1 });
+        const accepted = summarize(results, group(true));
+        expect(accepted.form).toMatchObject({ toCheck: 1, followUps: 0 });
+        expect(accepted.findings.map(finding => [finding.result.shapeId, finding.explained ?? false]))
+            .toEqual([['blankAmount', true], ['plainNote', false]]);
+    });
+
+    // The report names a group by code only. Its two reads are separate Submit evaluations, so the state may
+    // even call the group current; either way the state says which firings the code covers.
+    it('uses the explanation state coverage for a group the Submit report names', () => {
+        const results = [
+            warning(path, 'blankAmount', 'SHAPE_FAILED'),
+            warning('note', 'plainNote', 'SHAPE_FAILED'),
+            result('#', 'error', 'EXPLANATION_REQUIRED', {
+                source: 'shape', constraintKind: 'explanation', context: { code: 'SHAPE_FAILED' },
+            }),
+        ];
+        for (const current of [false, true]) {
+            const progress = summarize(results, {
+                instances: [], groups: [{ code: 'SHAPE_FAILED', shapeIds: ['blankAmount'], paths: [path], current }],
+            });
+            expect(progress.form, `state current: ${current}`).toMatchObject({ toCheck: 2, followUps: 1 });
+            expect(progress.findings.map(finding => finding.result.shapeId)).toEqual(['plainNote']);
+            expect(progress.followUps).toEqual([{ kind: 'group', code: 'SHAPE_FAILED', paths: [path], formLevel: true }]);
+        }
+    });
+
+    // An owed answer blocks Submit, so its page must not read as done, whether the Submit report or the
+    // explanation state names it. Assist's next-page tool reads pageProgressIssue.
+    it('flags a page that owes a follow-up and keeps the form from being ready', () => {
+        const fromReport = summarize([
+            result(path, 'error', 'EXPLANATION_REQUIRED', { source: 'shape', constraintKind: 'explanation', shapeId: 'checkValue' }),
+        ]);
+        const fromState = summarize([], { instances: [{ shapeId: 'checkValue', path, current: false }], groups: [] });
+        for (const progress of [fromReport, fromState]) {
+            expect(layout.pageProgressIssue(accounts(progress))).toBe('invalid');
+            expect(progress.form.ready).toBe(false);
+        }
+        expect(layout.pageProgressIssue(accounts(summarize([])))).toBeUndefined();
+    });
+});
+
+it('declares warning follow-ups only for a warning Shape whose effective explanation mode is not none', () => {
+    const shape = { id: 'w', target: 'note', severity: 'warning', constraint: 'true', message: 'Check' };
+    const declares = (extra: Partial<FormDefinition>) => layout.declaresWarningFollowUps({ ...definition, ...extra } as FormDefinition);
+    expect(declares({})).toBe(false);
+    expect(declares({ shapes: [shape] } as Partial<FormDefinition>)).toBe(false);
+    expect(declares({ shapes: [{ ...shape, explanation: 'explain' }] } as Partial<FormDefinition>)).toBe(true);
+    expect(declares({ warningExplanation: 'acknowledge', shapes: [{ ...shape, code: 'W' }] } as Partial<FormDefinition>)).toBe(true);
+    // A Shape's own `none` overrides the Definition default, and error Shapes never owe an answer.
+    expect(declares({ warningExplanation: 'confirm', shapes: [{ ...shape, explanation: 'none' }] } as Partial<FormDefinition>)).toBe(false);
+    expect(declares({ warningExplanation: 'confirm', shapes: [{ ...shape, severity: 'error' }] } as Partial<FormDefinition>)).toBe(false);
 });
 
 it('keeps finding identity on rendered summary rows when an earlier finding is filtered', () => {
@@ -277,7 +397,7 @@ it('reports form readiness independently of an optional blank in a section', () 
     const summary = layout.summarizeFormProgress(plan, {
         fields: [{ path: 'note', relevant: true, readonly: false, required: false, empty: true }],
         report: { $formspecValidationReport: '1.0', valid: true, timestamp: '2026-01-01T00:00:00Z', results: [] },
-    });
+    }, null);
     const counts = summary.sections[0].counts;
     expect(layout.pageProgressIssue(counts)).toBe('empty');
     expect(summary.sections[0].filled).toBe(false);
@@ -285,7 +405,7 @@ it('reports form readiness independently of an optional blank in a section', () 
     expect(layout.summarizeFormProgress(plan, {
         fields: [{ path: 'note', relevant: true, readonly: false, required: false, empty: true }],
         report: null,
-    }).form.ready).toBeNull();
+    }, null).form.ready).toBeNull();
 });
 
 function result(path: string, severity: ValidationResult['severity'], code: string, extra = {}): ValidationResult {
@@ -316,7 +436,7 @@ it('counts live nested instances, ignores hidden values, and owns findings by co
     ];
     const summary = layout.summarizeFormProgress(plan, {
         fields, report: { $formspecValidationReport: '1.0', timestamp: '2026-01-01T00:00:00Z', valid: false, results },
-    });
+    }, null);
     expect(summary.form).toMatchObject({ total: 3, filled: 2, prefilled: 1, missing: 2, missingReadonly: 1, toFix: 2, toCheck: 4, ready: false });
     expect(summary.sections.find(section => section.id === 'Accounts.V1')?.counts)
         .toMatchObject({ total: 3, filled: 2, missing: 2, toFix: 1, toCheck: 3 });
@@ -331,7 +451,7 @@ it('counts live nested instances, ignores hidden values, and owns findings by co
     expect(rows.filter(finding => finding.formLevel).map(finding => [finding.code, finding.jumpPath]))
         .toEqual([['x-form', null], ['x-unplaced', null], ['x-info', null]]);
     // Required blanks establish a blocker even when validation counts are unavailable.
-    expect(layout.summarizeFormProgress(plan, { fields, report: null }).form)
+    expect(layout.summarizeFormProgress(plan, { fields, report: null }, null).form)
         .toMatchObject({ total: 3, filled: 2, missing: 2, toFix: null, toCheck: null, ready: false });
 });
 
@@ -350,7 +470,7 @@ it('decrements toCheck and flags findings as explained when current explanations
     const report = { $formspecValidationReport: '1.0' as const, timestamp: '2026-01-01T00:00:00Z', valid: true, results };
 
     // Before explanations: 3 unresolved warnings.
-    const before = layout.summarizeFormProgress(plan, { fields, report });
+    const before = layout.summarizeFormProgress(plan, { fields, report }, null);
     expect(before.form.toCheck).toBe(3);
 
     // After explaining variance-check (current: true), leaving stale-check stale (current: false),
@@ -361,7 +481,7 @@ it('decrements toCheck and flags findings as explained when current explanations
             { shapeId: 'stale-check', path: `${row}.amount`, current: false },
         ],
         groups: [
-            { code: 'UNANSWERED_ITEMS', paths: ['note'], current: true },
+            { code: 'UNANSWERED_ITEMS', shapeIds: ['blank-check'], paths: ['note'], current: true },
         ],
     });
     expect(after.form.toCheck).toBe(1);
@@ -414,7 +534,7 @@ it('tags blank required findings as untouchedRequired until surfaced and attribu
     const report = { $formspecValidationReport: '1.0' as const, timestamp: '2026-01-01T00:00:00Z', valid: false, results };
 
     // Untouched: blank required errors stay deferred; secTwo & secThree keep accurate per-section counts.
-    const initial = layout.summarizeFormProgress(plan, { fields, report });
+    const initial = layout.summarizeFormProgress(plan, { fields, report }, null);
     expect(initial.form).toMatchObject({ missing: 2, toFix: 3 });
     expect(initial.sections.map(s => [s.id, s.counts.toFix])).toEqual([
         ['secOne', 0],

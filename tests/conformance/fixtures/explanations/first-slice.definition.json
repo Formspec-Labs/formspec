@@ -14,22 +14,22 @@
   "shapes": [
     {
       "id": "venueBlank", "target": "venue", "constraint": "present($)",
-      "code": "CSBG_NOT_ANSWERED", "severity": "warning", "timing": "submit",
+      "code": "WORKSHOP_NOT_ANSWERED", "severity": "warning", "timing": "submit",
       "explanation": "acknowledge", "message": "Venue was left blank."
     },
     {
       "id": "topicBlank", "target": "topic", "constraint": "present($)",
-      "code": "CSBG_NOT_ANSWERED", "severity": "warning", "timing": "submit",
+      "code": "WORKSHOP_NOT_ANSWERED", "severity": "warning", "timing": "submit",
       "explanation": "acknowledge", "message": "Topic was left blank."
     },
     {
       "id": "outcomeBlank", "target": "outcome", "constraint": "present($)",
-      "code": "CSBG_NOT_ANSWERED", "severity": "warning", "timing": "submit",
+      "code": "WORKSHOP_NOT_ANSWERED", "severity": "warning", "timing": "submit",
       "explanation": "acknowledge", "message": "Outcome was left blank."
     },
     {
       "id": "partnerBlank", "target": "partner", "constraint": "present($)",
-      "code": "CSBG_NOT_ANSWERED", "severity": "warning", "timing": "submit",
+      "code": "WORKSHOP_NOT_ANSWERED", "severity": "warning", "timing": "submit",
       "explanation": "acknowledge", "message": "Partner was left blank."
     },
     {

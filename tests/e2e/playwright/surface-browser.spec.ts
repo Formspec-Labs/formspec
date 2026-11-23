@@ -30,6 +30,21 @@ test('hash links survive reload and Back/Forward while section changes preserve 
   await expect(page.getByRole('link', { name: 'Filing', exact: true })).toHaveAttribute('aria-current', 'page');
 });
 
+test('a subject-declaring form renders its filing unit with runtime WASM and never requests tools WASM', async ({ page }) => {
+  const wasm: string[] = [];
+  page.on('request', request => {
+    if (request.url().includes('formspec_wasm')) wasm.push(new URL(request.url()).pathname.split('/').pop()!);
+  });
+  await page.goto('/surface-browser.html?subject#/filing/ny');
+  await expect(page.getByRole('textbox', { name: 'Contact name' })).toHaveValue('ny');
+  // Read the log only after a completed Response Action: it needs the interactive form and engine.
+  await page.getByRole('button', { name: 'Save draft' }).click();
+  await expect(page.locator('.fs-surface-app [role="status"], .fs-surface-app [aria-live="polite"]')
+    .filter({ hasText: /\S/ })).toHaveText('Completed.');
+  expect(wasm).toContain('formspec_wasm_runtime_bg.wasm');
+  expect(wasm.filter(name => name.startsWith('formspec_wasm_tools'))).toEqual([]);
+});
+
 test('the browser restores appearance and announces one draft save result', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/surface-browser.html#/filing/ny');

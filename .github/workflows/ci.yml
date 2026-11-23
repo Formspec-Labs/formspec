@@ -54,6 +54,8 @@ jobs:
         run: npm ci --workspace packages/integrity-canonical && npm run build --workspace packages/integrity-canonical
       - run: npm ci
       - run: npm run build
+      - name: Set up Chromium for the Definition Walk tests
+        run: npx playwright install --with-deps --only-shell chromium
       - run: npm run test:unit
       - run: npm run test:scripts
       - run: npm run test:packed --workspace=@formspec-org/react

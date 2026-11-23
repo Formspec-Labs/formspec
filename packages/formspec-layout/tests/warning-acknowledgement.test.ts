@@ -21,7 +21,7 @@ describe('readWarningAcknowledgementGroups', () => {
         const initial = readWarningAcknowledgementGroups(
             {
                 groups: [{
-                    code: 'CSBG_NOT_ANSWERED',
+                    code: 'WORKSHOP_NOT_ANSWERED',
                     paths: ['outcome', 'topic', 'venue'],
                     current: false,
                     added: ['outcome', 'topic', 'venue'],
@@ -46,13 +46,13 @@ describe('readWarningAcknowledgementGroups', () => {
         const stale = readWarningAcknowledgementGroups(
             {
                 groups: [{
-                    code: 'CSBG_NOT_ANSWERED',
+                    code: 'WORKSHOP_NOT_ANSWERED',
                     paths: ['outcome', 'partner', 'topic'],
                     current: false,
                     added: ['partner'],
                     removed: ['venue'],
                 }],
-                entries: [{ group: true, code: 'CSBG_NOT_ANSWERED', paths: ['outcome', 'topic', 'venue'], basis: 'b1' }],
+                entries: [{ group: true, code: 'WORKSHOP_NOT_ANSWERED', paths: ['outcome', 'topic', 'venue'], basis: 'b1' }],
             },
             source,
         );
@@ -85,14 +85,14 @@ describe('readWarningAcknowledgementGroups', () => {
         const groups = readWarningAcknowledgementGroups(
             {
                 groups: [{
-                    code: 'CSBG_NOT_ANSWERED',
+                    code: 'WORKSHOP_NOT_ANSWERED',
                     shapeIds: ['blankQuestions'],
                     paths: ['outcome', 'partner'],
                     current: false,
                     added: ['partner'],
                     removed: ['venue'],
                 }],
-                entries: [{ group: true, code: 'CSBG_NOT_ANSWERED', paths: ['outcome', 'venue'], basis: 'b1' }],
+                entries: [{ group: true, code: 'WORKSHOP_NOT_ANSWERED', paths: ['outcome', 'venue'], basis: 'b1' }],
             },
             {
                 ...source,
@@ -120,7 +120,7 @@ describe('readWarningAcknowledgementGroups', () => {
         const groups = readWarningAcknowledgementGroups(
             {
                 groups: [{
-                    code: 'CSBG_NOT_ANSWERED',
+                    code: 'WORKSHOP_NOT_ANSWERED',
                     basis: 'sha256:group-basis-1',
                     shapeIds: ['blankQuestions'],
                     paths: ['outcome'],
@@ -128,7 +128,7 @@ describe('readWarningAcknowledgementGroups', () => {
                     added: ['outcome'],
                     removed: ['venue'],
                 }],
-                entries: [{ group: true, code: 'CSBG_NOT_ANSWERED', paths: ['venue'], basis: 'sha256:old' }],
+                entries: [{ group: true, code: 'WORKSHOP_NOT_ANSWERED', paths: ['venue'], basis: 'sha256:old' }],
             },
             {
                 ...source,

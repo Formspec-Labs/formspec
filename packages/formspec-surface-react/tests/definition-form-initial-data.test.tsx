@@ -2,9 +2,17 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
+
+// Observe every tools load; the page starts cold (runtime WASM only).
+vi.mock('@formspec-org/engine', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@formspec-org/engine')>();
+  return { ...actual, initFormspecEngineTools: vi.fn(actual.initFormspecEngineTools) };
+});
+
 import {
   initFormspecEngine,
   initFormspecEngineTools,
+  isFormspecEngineToolsInitialized,
   responseSubjectId,
 } from '@formspec-org/engine';
 import type {
@@ -32,7 +40,6 @@ const SOURCE_REF = 'response:profile';
 
 beforeAll(async () => {
   await initFormspecEngine();
-  await initFormspecEngineTools();
 });
 
 const definition = {
@@ -231,6 +238,84 @@ function profileInput(container: HTMLElement): HTMLInputElement {
   if (!input) throw new Error('profile input did not render');
   return input;
 }
+
+describe('mapped initial data on a cold page', () => {
+  function unitBundle(): ResolvedBundle {
+    const candidate = bundle('profileRecord', {
+      ...definition, subject: { type: 'urn:unit', keys: { unit: { dataType: 'string' } } },
+    });
+    const route = candidate.surfaces[0]!.routes[0]!;
+    route.path = '/units/{unit}';
+    route.params = [{ name: 'unit', type: 'string' }];
+    const slot = route.slots[0]!;
+    if (slot.slotType !== 'definition-form') throw new Error('expected a definition-form slot');
+    slot.binding = { ...slot.binding, subjectKeys: { unit: 'unit' } };
+    candidate.surfaces[0]!.routes.push({
+      id: 'plain', path: '/plain/{unit}', routeClass: 'intake', title: 'Plain',
+      params: [{ name: 'unit', type: 'string' }],
+      slots: [{ id: 'plainForm', slotType: 'definition-form',
+        binding: { definitionRef: DEFINITION_REF, subjectKeys: { unit: 'unit' } } }],
+    } as SurfaceDocument['routes'][number]);
+    return candidate;
+  }
+
+  async function open(root: ReturnType<typeof createRoot>, candidate: ResolvedBundle, location: string) {
+    await act(async () => {
+      root.render(<SurfaceApp bundle={candidate} location={location} onNavigate={() => {}}
+        authorizeDataSource={() => ({ status: 'authorized' })}
+        dataSourceLoader={() => ({ status: 'loaded', freshness: 'fresh', ...selectionEvidence('profile-record-9'),
+          value: { display_name: 'Mapped Grace' } })}
+        validateDataSourcePayload={() => ({ valid: true })} setDocumentTitle={false} />);
+      await flush();
+    });
+    // A mapped prefill waits for the tools WASM to compile on first use; flush React between polls.
+    await vi.waitFor(async () => {
+      await act(flush);
+      expect(container().querySelector('[aria-busy="true"]')).toBeNull();
+    }, { timeout: 10_000 });
+  }
+  let host: HTMLElement | undefined;
+  const container = () => host!;
+
+  it('loads tools only for the slot whose binding names a Mapping, then prefills it', async () => {
+    host = document.body.appendChild(document.createElement('div'));
+    const root = createRoot(host);
+    const candidate = unitBundle();
+    try {
+      vi.mocked(initFormspecEngineTools).mockClear();
+      await open(root, candidate, '/plain/A');
+      expect(profileInput(host).value).toBe('');
+      expect(initFormspecEngineTools).not.toHaveBeenCalled();
+      expect(isFormspecEngineToolsInitialized()).toBe(false);
+
+      await open(root, candidate, '/units/A');
+      expect(profileInput(host).value).toBe('Mapped Grace');
+      expect(initFormspecEngineTools).toHaveBeenCalled();
+      expect(isFormspecEngineToolsInitialized()).toBe(true);
+
+      await open(root, candidate, '/units/B');
+      expect(profileInput(host).value).toBe('Mapped Grace');
+    } finally {
+      act(() => root.unmount());
+      host.remove();
+    }
+  });
+
+  it('shows the localized unavailable message when the tools load fails', async () => {
+    host = document.body.appendChild(document.createElement('div'));
+    const root = createRoot(host);
+    vi.mocked(initFormspecEngineTools).mockRejectedValueOnce(new Error('tools WASM failed to load'));
+    try {
+      await open(root, unitBundle(), '/units/C');
+      expect(host.querySelector('input[name="displayName"]')).toBeNull();
+      expect(host.querySelector('[data-probe="slot-unavailable"]')?.textContent)
+        .toBe('This part of the page cannot load the information it needs.');
+    } finally {
+      act(() => root.unmount());
+      host.remove();
+    }
+  });
+});
 
 describe('definition-form initial data rendering', () => {
   it.each([false, true])('keeps defaults and minimum repeat rows with prefill (draft storage: %s)', async (useDraftStorage) => {

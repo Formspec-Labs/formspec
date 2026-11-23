@@ -406,6 +406,17 @@ export function wasmAssembleCandidate(
     ));
 }
 
+/**
+ * Derive Core's filing-unit id (`Response.subject.id`) from a subject type and exact typed keys.
+ * Throws for untyped keys or an integer outside the I-JSON range.
+ */
+export function wasmResponseSubjectId(
+    subjectType: string,
+    keys: import('./interfaces.js').ResponseSubjectKeys,
+): string {
+    return wasm().subjectIdJson(subjectType, JSON.stringify(keys));
+}
+
 /** Apply creation-time values to a new Response or resolve its pending values. */
 export function wasmCreateResponse(
     definition: unknown,

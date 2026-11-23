@@ -51,6 +51,10 @@ pub enum LintCode {
     E315,
     /// Registry code `E316`.
     E316,
+    /// Registry code `E317`.
+    E317,
+    /// Registry code `E318`.
+    E318,
     /// Registry code `W300`.
     W300,
     /// Registry code `E400`.
@@ -374,6 +378,8 @@ impl LintCode {
             LintCode::E314 => "E314",
             LintCode::E315 => "E315",
             LintCode::E316 => "E316",
+            LintCode::E317 => "E317",
+            LintCode::E318 => "E318",
             LintCode::W300 => "W300",
             LintCode::E400 => "E400",
             LintCode::E406 => "E406",
@@ -549,6 +555,8 @@ impl LintCode {
             LintCode::E314 => 3,
             LintCode::E315 => 3,
             LintCode::E316 => 3,
+            LintCode::E317 => 1,
+            LintCode::E318 => 3,
             LintCode::W300 => 3,
             LintCode::E400 => 4,
             LintCode::E406 => 4,
@@ -724,6 +732,8 @@ impl LintCode {
             "E314" => Some(LintCode::E314),
             "E315" => Some(LintCode::E315),
             "E316" => Some(LintCode::E316),
+            "E317" => Some(LintCode::E317),
+            "E318" => Some(LintCode::E318),
             "W300" => Some(LintCode::W300),
             "E400" => Some(LintCode::E400),
             "E406" => Some(LintCode::E406),
@@ -899,6 +909,8 @@ impl LintCode {
         LintCode::E314,
         LintCode::E315,
         LintCode::E316,
+        LintCode::E317,
+        LintCode::E318,
         LintCode::W300,
         LintCode::E400,
         LintCode::E406,
@@ -1106,6 +1118,6 @@ mod tests {
 
     #[test]
     fn registry_variant_count_matches_json() {
-        assert_eq!(LintCode::ALL.len(), 169);
+        assert_eq!(LintCode::ALL.len(), 171);
     }
 }

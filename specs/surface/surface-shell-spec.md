@@ -516,6 +516,15 @@ section without restarting the form session. After the first render, a route
 change focuses the route heading or main landmark, and section changes leave
 route focus in place.
 
+Two further reserved query values name an arrival target. `field` names a
+resolved field path: the workspace opens its section and focuses that field in
+place of the route heading, or focuses the section heading and reports the field
+unavailable when it cannot take focus. `acknowledge` names a warning group code
+on a draft review route: focus moves from the route heading to that group's
+accept control once it is shown and enabled. It never moves from a control the
+respondent focused meanwhile, and with nothing to accept it stays on the route
+heading.
+
 A preview may offer several admitted editions. Its `edition` query value
 identifies the draft scope. Selecting an edition opens that edition's authored
 entry. The masthead uses the admitted bundle title for the entry link and

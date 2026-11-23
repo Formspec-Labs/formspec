@@ -1084,7 +1084,7 @@ it('saves unstamped warning explanations through DraftWriter, reloads trusted st
     if (opened.status !== 'ready') throw Error(opened.status);
     opened.engine.setValue('partner', 'Library');
     opened.engine.setValue('attendance', 125);
-    opened.engine.acknowledge('CSBG_NOT_ANSWERED');
+    opened.engine.acknowledge('WORKSHOP_NOT_ANSWERED');
     opened.engine.setExplanation('largeEvent', 'attendance', { text: 'Combined two sessions.' });
     expect(opened.engine.getExplanationEntries().every(entry => !('author' in entry))).toBe(true);
 
@@ -1098,7 +1098,7 @@ it('saves unstamped warning explanations through DraftWriter, reloads trusted st
     // Updating blank set re-stamps only the changed group entry while keeping the unchanged instance stamp.
     opened.engine.setValue('venue', 'Hall');
     opened.engine.setValue('partner', null);
-    opened.engine.acknowledge('CSBG_NOT_ANSWERED');
+    opened.engine.acknowledge('WORKSHOP_NOT_ANSWERED');
     expect(await opened.writer.flush(false)).toBe(true);
     const restamped = opened.engine.getExplanationEntries();
     expect(restamped[1]!.recorded).toBe(firstInstanceRecorded);
@@ -1149,7 +1149,7 @@ it('attributes changed explanations to the resuming actor and rejects duplicate 
     if (readyA.status !== 'ready') throw Error(readyA.status);
     readyA.engine.setValue('partner', 'Library');
     readyA.engine.setValue('attendance', 125);
-    readyA.engine.acknowledge('CSBG_NOT_ANSWERED');
+    readyA.engine.acknowledge('WORKSHOP_NOT_ANSWERED');
     readyA.engine.setExplanation('largeEvent', 'attendance', { text: 'Combined meetings.' });
     expect(await readyA.writer.flush(true)).toBe(true);
     const original = readyA.engine.getExplanationEntries();
@@ -1210,7 +1210,7 @@ it('preserves the active actor after choosing Load latest before a replacement e
   const b = await open('B');
   try {
     a.engine.setValue('attendance', 125);
-    a.engine.acknowledge('CSBG_NOT_ANSWERED');
+    a.engine.acknowledge('WORKSHOP_NOT_ANSWERED');
     a.engine.setExplanation('largeEvent', 'attendance', { text: 'Original.' });
     expect(await a.writer.flush(true)).toBe(true);
     const originalLoad = await store.drafts.load(key, workshop.version);

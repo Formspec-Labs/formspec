@@ -33,7 +33,7 @@ it('confirms a firing instance, preserves unsaved text during a locale refresh, 
 
 it('renders grouped blank-answer acknowledgement, jumps to fields, and displays set differences after changes', () => {
     const groups = signal([{
-        code: 'CSBG_NOT_ANSWERED',
+        code: 'WORKSHOP_NOT_ANSWERED',
         paths: ['outcome', 'topic', 'venue'],
         current: false,
         added: ['outcome', 'topic', 'venue'],
@@ -70,7 +70,7 @@ it('renders grouped blank-answer acknowledgement, jumps to fields, and displays 
         () => true,
         focusField,
     );
-    const panel = root.querySelector<HTMLFieldSetElement>('fieldset[data-explanation-code="CSBG_NOT_ANSWERED"]')!;
+    const panel = root.querySelector<HTMLFieldSetElement>('fieldset[data-explanation-code="WORKSHOP_NOT_ANSWERED"]')!;
     expect(panel).not.toBeNull();
     expect(panel.querySelector('legend')?.textContent).toBe('3 unanswered questions');
     const links = [...panel.querySelectorAll('a')];
@@ -81,12 +81,12 @@ it('renders grouped blank-answer acknowledgement, jumps to fields, and displays 
     const button = panel.querySelector('button')!;
     expect(button.textContent).toBe('Accept 3 unanswered questions');
     button.click();
-    expect(acknowledge).toHaveBeenCalledWith('CSBG_NOT_ANSWERED');
+    expect(acknowledge).toHaveBeenCalledWith('WORKSHOP_NOT_ANSWERED');
     expect(button.disabled).toBe(true);
     expect(button.textContent).toBe('Accepted 3 unanswered questions');
 
     groups.value = [{
-        code: 'CSBG_NOT_ANSWERED',
+        code: 'WORKSHOP_NOT_ANSWERED',
         paths: ['outcome', 'partner', 'topic'],
         current: false,
         added: ['partner'],
@@ -99,7 +99,7 @@ it('renders grouped blank-answer acknowledgement, jumps to fields, and displays 
     expect(button.disabled).toBe(false);
 
     groups.value = [];
-    expect(root.querySelector('fieldset[data-explanation-code="CSBG_NOT_ANSWERED"]')).toBeNull();
+    expect(root.querySelector('fieldset[data-explanation-code="WORKSHOP_NOT_ANSWERED"]')).toBeNull();
     dispose();
 });
 

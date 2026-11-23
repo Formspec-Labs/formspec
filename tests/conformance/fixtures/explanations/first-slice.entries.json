@@ -2,28 +2,28 @@
   "description": "Saved synthetic entries. Each basis uses the Core domain, one NUL byte and canonical JSON of the workshop inputs.",
   "entries": {
     "originalGroup": {
-      "code": "CSBG_NOT_ANSWERED",
+      "code": "WORKSHOP_NOT_ANSWERED",
       "group": true,
       "paths": [
         "outcome",
         "topic",
         "venue"
       ],
-      "basis": "sha256:2c9c2648f5091235dab4d5f8fc45af1403dacb90927b8daaf05ec433fef71c8f",
+      "basis": "sha256:0b0d7e0b918a990b36ae75b8ee18bfe8c367ca27bf5ac745bfc758f18105d6b1",
       "author": {
         "id": "workshop-preparer"
       },
       "recorded": "2026-01-20T12:00:00Z"
     },
     "changedGroup": {
-      "code": "CSBG_NOT_ANSWERED",
+      "code": "WORKSHOP_NOT_ANSWERED",
       "group": true,
       "paths": [
         "outcome",
         "partner",
         "topic"
       ],
-      "basis": "sha256:f431540dcd7dc151f42bc101ffd3b4349dc7d50d49ea208516fbe9ac90985289",
+      "basis": "sha256:f1fb6251f9fd3209e531f75c95f089da59d87dff8fda977edf1a25c40fab4a82",
       "author": {
         "id": "workshop-preparer"
       },

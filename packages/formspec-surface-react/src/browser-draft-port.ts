@@ -24,9 +24,9 @@ import {
   type FilingLoadResult, type FilingStatusObservation, type MatchedFilingDraftObservation, type MatchedFilingObservation, type PreparedDraftFixture, type PreparedResponseFixtures,
   type ResponseFiling, type ResponseFilingSummary, type ResponseFixtures, type ResponseRecordTools,
 } from '@formspec-org/surface';
-import type { DispositionAuthority, EvaluatedFormState, Explanation, FormDefinition, FormResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionDelivery, ResponseSelectionOutcome, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
+import type { DispositionAuthority, Explanation, FormDefinition, FormResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionDelivery, ResponseSelectionOutcome, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
 import { definitionResponseRequests } from './definition-response-reads.js';
-import { summarizeDraftProgress } from './draft-progress.js';
+import { readSubmitEvaluation, summarizeDraftProgress, type SubmitEvaluation } from './draft-progress.js';
 import type { SurfaceDraftFence } from './draft-writer.js';
 
 type StoredDraft = Omit<DraftRecord, 'pins'> & {
@@ -198,9 +198,9 @@ function unavailableStatus(): FilingStatusObservation {
 
 function progressForSections(
   sections: readonly Pick<PageSequenceEntry, 'id' | 'fields' | 'groups'>[],
-  evaluated: EvaluatedFormState,
+  submit: SubmitEvaluation,
 ): CurrentDraftProgress | undefined {
-  const summarized = summarizeDraftProgress(sections as readonly PageSequenceEntry[], evaluated);
+  const summarized = summarizeDraftProgress(sections as readonly PageSequenceEntry[], submit);
   const allowed = new Set(sections.flatMap(({ id }) => (id === undefined ? [] : [id])));
   return canonicalDraftProgress({
     status: 'current',
@@ -211,7 +211,7 @@ function progressForSections(
 
 async function buildSectionSummaries(
   definition: FormDefinition,
-  evaluated: EvaluatedFormState,
+  evaluated: SubmitEvaluation,
   sectionPlans?: (definition: FormDefinition) => readonly (readonly PageSequenceEntry[])[],
 ): Promise<StoredPlanSummary[]> {
   const candidates = sectionPlans ? [...sectionPlans(definition)] : [];
@@ -561,11 +561,11 @@ function createFilingStore(
       });
       let snapshotJson: string;
       let responseJson: string;
-      let evaluated: EvaluatedFormState;
+      let evaluated: SubmitEvaluation;
       try {
         snapshotJson = JSON.stringify(engine.getDraftSnapshot());
         responseJson = JSON.stringify({ ...engine.getResponse({ id: fixture.responseId, profile: 'off' }), authored: fixture.authored });
-        evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
+        evaluated = readSubmitEvaluation(engine);
       } finally {
         engine.dispose();
       }
@@ -839,10 +839,10 @@ function createFilingStore(
           ...(parsed.explanations && { savedExplanations: parsed.explanations }),
           responseData: parsed.data as Parameters<ReturnType<typeof createFormEngine>['loadResponseData']>[0],
         });
-        let evaluated: EvaluatedFormState;
+        let evaluated: SubmitEvaluation;
         try {
           if (engine.hasSubjectRefusal()) continue;
-          evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
+          evaluated = readSubmitEvaluation(engine);
         } finally {
           engine.dispose();
         }

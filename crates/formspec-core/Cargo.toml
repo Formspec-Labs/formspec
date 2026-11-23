@@ -8,15 +8,13 @@ repository = "https://github.com/Formspec-Labs/formspec"
 
 [features]
 default = ["response-selection"]
-# The respondent WASM build omits the selector and its JSON parsing and hashing dependencies.
-response-selection = [
-    "dep:chrono",
-    "dep:integrity-canonical",
-]
+# The respondent WASM build omits the selector and its timestamp parsing. Subject identity
+# (`subject_key::subject_id`) and its canonical hashing stay in every build.
+response-selection = ["dep:chrono"]
 
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["std"], optional = true }
-integrity-canonical = { version = "0.1.0", path = "../../../integrity-stack/crates/integrity-canonical", optional = true }
+integrity-canonical = { version = "0.1.0", path = "../../../integrity-stack/crates/integrity-canonical" }
 fel-core = { version = "0.3.0", path = "../../../fel-core" }
 rust_decimal = "~1.41"
 semver_rs = "0.2.0"

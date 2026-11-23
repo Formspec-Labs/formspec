@@ -64,6 +64,7 @@ import type {
 import type { WorkspacePage } from '@formspec-org/layout';
 import { useSignal } from './use-signal';
 import { chromeText } from './use-chrome-text';
+import { useExplanationState, type ExplanationState } from './explanation-state';
 
 const platformTheme = buildPlatformTheme();
 
@@ -202,6 +203,11 @@ export interface FormspecContextValue {
     isTouched: (path: string) => boolean;
     /** The latest submit through this provider's form — null before the first. A `submit`-sourced ValidationSummary reads it. */
     latestSubmit: ReadonlyEngineSignal<SubmitResult | null>;
+    /**
+     * @internal The engine's explanation state, read once typing pauses and at once for an answer or a Submit,
+     * so the warning controls and the Findings margin share one Submit evaluation. Null when nothing asks for one.
+     */
+    explanationState: ReadonlyEngineSignal<ExplanationState | null>;
     /** Record a submit's result, so `latestSubmit` follows it. The submit port calls this. */
     recordSubmit: (result: SubmitResult) => void;
     /** Registry entries for extension resolution. */
@@ -238,6 +244,11 @@ export interface WorkspaceNavigationProps {
     sectionNavigationActive?: boolean | undefined;
     /** Format a link for normal browser behavior such as opening a new tab. */
     hrefForSection?: ((section: string) => string | undefined) | undefined;
+    /**
+     * Address the control that accepts an owed group acknowledgement (Core §5.3.1), such as a draft review
+     * route; `navigate` follows a plain click the way the host's own links do. Absent, the Findings row is text.
+     */
+    acknowledgementLink?: ((code: string) => { href: string; navigate?: () => void } | undefined) | undefined;
     /** Let a host compose the page title. An undefined title clears the current section. */
     onSectionTitleChange?: ((title: string | undefined) => void) | undefined;
     /** Opt in to prefixing the document title with the active section when no title callback is supplied. */
@@ -552,6 +563,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
     const touchedVersionSignal = useMemo(() => signal(0), []);
     const latestSubmitSignal = useMemo(() => signal<SubmitResult | null>(null), []);
     const recordSubmit = useCallback((result: SubmitResult) => { latestSubmitSignal.value = result; }, [latestSubmitSignal]);
+    const explanationState = useExplanationState(engine, latestSubmitSignal);
     const fieldJumpHandlerRef = useRef<((path: string, options?: { notifyRoute?: boolean }) => boolean) | null>(null);
     const registerFieldJump = useCallback((handler: ((path: string, options?: { notifyRoute?: boolean }) => boolean) | null) => {
         fieldJumpHandlerRef.current = handler;
@@ -611,13 +623,17 @@ export function FormspecProvider(props: FormspecProviderProps) {
         }
     }, [engine, externalEngine]);
 
-    const { activeSection, focusField, onActiveSectionChange, sectionNavigationActive, hrefForSection, onSectionTitleChange, updateDocumentTitle } = props;
+    const {
+        activeSection, focusField, onActiveSectionChange, sectionNavigationActive, hrefForSection, acknowledgementLink,
+        onSectionTitleChange, updateDocumentTitle,
+    } = props;
     const controlledSection = Object.prototype.hasOwnProperty.call(props, 'activeSection');
     const workspaceNavigation = useMemo<WorkspaceNavigationProps>(() => ({
         ...(controlledSection && { activeSection }),
         ...(focusField !== undefined && { focusField }),
-        onActiveSectionChange, sectionNavigationActive, hrefForSection, onSectionTitleChange, updateDocumentTitle,
-    }), [controlledSection, activeSection, focusField, onActiveSectionChange, sectionNavigationActive, hrefForSection, onSectionTitleChange, updateDocumentTitle]);
+        onActiveSectionChange, sectionNavigationActive, hrefForSection, acknowledgementLink, onSectionTitleChange, updateDocumentTitle,
+    }), [controlledSection, activeSection, focusField, onActiveSectionChange, sectionNavigationActive, hrefForSection,
+        acknowledgementLink, onSectionTitleChange, updateDocumentTitle]);
 
     const value = useMemo<FormspecContextValue>(
         () => ({
@@ -651,6 +667,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             touchedVersion: touchedVersionSignal,
             isTouched,
             latestSubmit: latestSubmitSignal,
+            explanationState,
             recordSubmit,
             registryEntries: registryMap,
             resolveFieldHelp,
@@ -661,7 +678,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             registerFieldJump,
             jumpToField,
         }),
-        [engine, layoutPlan, workspace, workspaceNavigation, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, admittedResponseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, onControlActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, latestSubmitSignal, recordSubmit, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation, setShowValidationSummaryAttr, registerFieldJump, jumpToField],
+        [engine, layoutPlan, workspace, workspaceNavigation, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, admittedResponseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, onControlActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, latestSubmitSignal, explanationState, recordSubmit, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation, setShowValidationSummaryAttr, registerFieldJump, jumpToField],
     );
 
     return (

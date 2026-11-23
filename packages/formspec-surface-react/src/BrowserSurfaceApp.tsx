@@ -293,6 +293,7 @@ export function BrowserSurfaceApp(input: BrowserSurfaceAppProps) {
         slot: query.get('slot') ?? undefined,
         activeSection: query.get('section') ?? undefined,
         focusField: query.get('field') ?? undefined,
+        focusAcknowledgement: query.get('acknowledge') ?? undefined,
         hrefForSection: (slot, section) => resolveHref(sectionDestination(slot, section)),
         onActiveSectionChange: (slot, section) => navigate(sectionDestination(slot, section)),
       },

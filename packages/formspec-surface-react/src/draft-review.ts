@@ -11,7 +11,8 @@ import {
 } from '@formspec-org/surface';
 import { targetDefinitionMatches, type LocaleDocument } from '@formspec-org/types';
 import type { DraftSession, FiledObservation } from './draft-session.js';
-import { summarizeDraftProgress } from './draft-progress.js';
+import { readSubmitEvaluation, summarizeDraftProgress } from './draft-progress.js';
+import { withSurfaceQuery } from './browser-location.js';
 import { qualifyDraftReview } from './internal/draft-review-qualification.js';
 import type { DraftResponseReviewData } from './widgets/response-review-metadata.js';
 
@@ -168,12 +169,7 @@ export async function loadDraftReviewInputs(
         if (targetPath === '#') return null;
         const section = plan.sections?.find(sec => sec.fields.some(bind => placementCovers(bind, targetPath)));
         const destination = section?.href ?? plan.formHref ?? null;
-        if (!destination) return null;
-        const queryIndex = destination.indexOf('?');
-        const base = queryIndex >= 0 ? destination.slice(0, queryIndex) : destination;
-        const search = new URLSearchParams(queryIndex >= 0 ? destination.slice(queryIndex + 1) : '');
-        search.set('field', targetPath);
-        return `${base}?${search.toString()}`;
+        return destination ? withSurfaceQuery(destination, 'field', targetPath) : null;
       };
       const warningGroups = isFiledRecord
         ? []
@@ -192,8 +188,7 @@ export async function loadDraftReviewInputs(
           });
       let validationSummary: DraftReviewValidationSummary | undefined;
       if (!isFiledRecord) {
-        const evaluated = engine.getEvaluatedFormState({ profile: 'on-submit' });
-        const progress = summarizeDraftProgress([], evaluated);
+        const progress = summarizeDraftProgress([], readSubmitEvaluation(engine));
         const toFix = progress.form.toFix ?? 0;
         const toCheck = progress.form.toCheck ?? 0;
         const missing = progress.form.missing;

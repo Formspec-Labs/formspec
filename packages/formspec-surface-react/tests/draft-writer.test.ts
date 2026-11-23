@@ -1,7 +1,7 @@
 /** @filedesc Verify editable snapshots, debounce, refusal and action fencing with the real engine. */
 import { createFormEngine, initFormspecEngine, invokeResponseActionAsync } from '@formspec-org/engine';
 import { createAssistProvider } from '../../formspec-assist/src/provider.js';
-import { resolvePageSequence, summarizeFormProgress } from '@formspec-org/layout';
+import { resolvePageSequence } from '@formspec-org/layout';
 import type { FormDefinition, ResponseActionsDocument } from '@formspec-org/types';
 import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import * as surface from '../src/index.js';
@@ -104,8 +104,8 @@ it('debounces programmatic edits and commits the filtered Response with the late
   resumed.setValue('show', true);
   expect(resumed.signals.hidden.value).toBe('retained');
   expect(resumed.repeats.rows.value).toBe(1);
-  const evaluated = summarizeFormProgress(sections, engine.getEvaluatedFormState({ profile: 'on-submit' }));
-  expect(input.summary?.progress.form).toMatchObject({ total: evaluated.form.total, filled: evaluated.form.filled, ready: evaluated.form.ready });
+  // answer, show and rows[0].answer are relevant and editable; hidden is not relevant. Two are filled.
+  expect(input.summary?.progress.form).toEqual({ total: 3, filled: 2, toFix: 0, toCheck: 0, ready: true });
   const assist = createAssistProvider({ engine, registerWebMCP: false });
   cleanup.push(() => assist.dispose());
   const { total, filled, ready } = assist.getProgress();

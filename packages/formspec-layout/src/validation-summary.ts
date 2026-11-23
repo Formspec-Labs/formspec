@@ -116,24 +116,40 @@ export function readValidationSummaryRows(
             if (seen.has(key)) continue;
             seen.add(key);
         }
-        const field = formLevel ? null : source.field(path);
-        const rawLabel = field?.label ?? (formLevel ? null : path.replace(/\[\d+\]/g, ''));
-        const label = rawLabel === null ? null : (rawLabel.trimEnd().replace(/[:.]+$/, '') || rawLabel);
-        const rowMessage = label === null
-            ? (dedupeSeverityPrefix(message) || message)
-            : (stripSeverityPrefix(message) || message);
-        const canJump = jumpLinks && !formLevel && (source.jumpable ? source.jumpable(path) : field !== null);
         rows.push({
             identity: validationResultIdentity(result),
             severity,
             path,
             formLevel,
             message,
-            label,
-            text: label === null ? rowMessage : source.chrome('validationSummary.row', { label, message: rowMessage }),
-            jumpPath: canJump ? path : null,
-            jumpHref: canJump && field?.controlId ? `#${field.controlId}` : null,
+            ...summaryRowWording(source, path, message, jumpLinks),
         });
     }
     return rows;
+}
+
+/**
+ * @internal Word one row for a path (empty at form level) as its field shows it, linked when the field can
+ * take the jump. Finding rows and owed follow-up rows read the same.
+ */
+export function summaryRowWording(
+    source: Pick<ValidationSummarySource, 'field' | 'jumpable' | 'chrome'>,
+    path: string,
+    message: string,
+    jumpLinks: boolean,
+): Pick<ValidationSummaryRow, 'label' | 'text' | 'jumpPath' | 'jumpHref'> {
+    const formLevel = path === '';
+    const field = formLevel ? null : source.field(path);
+    const rawLabel = field?.label ?? (formLevel ? null : path.replace(/\[\d+\]/g, ''));
+    const label = rawLabel === null ? null : (rawLabel.trimEnd().replace(/[:.]+$/, '') || rawLabel);
+    const rowMessage = label === null
+        ? (dedupeSeverityPrefix(message) || message)
+        : (stripSeverityPrefix(message) || message);
+    const canJump = jumpLinks && !formLevel && (source.jumpable ? source.jumpable(path) : field !== null);
+    return {
+        label,
+        text: label === null ? rowMessage : source.chrome('validationSummary.row', { label, message: rowMessage }),
+        jumpPath: canJump ? path : null,
+        jumpHref: canJump && field?.controlId ? `#${field.controlId}` : null,
+    };
 }

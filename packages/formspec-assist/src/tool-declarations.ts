@@ -239,7 +239,8 @@ export function buildToolDeclarations(): ToolDeclaration[] {
       name: 'formspec.form.nextIncomplete',
       title: 'Find next incomplete',
       description:
-        'Find the next field or page that needs attention. Reasons include required, invalid, empty, and blocked-readonly. '
+        'Find the next field or page that needs attention. Reasons include required, invalid, empty, blocked-readonly, '
+        + 'and follow-up (an owed warning explanation or acknowledgement; an acknowledgement has no page). '
         + 'Use it to walk the person through the form in order. '
         + 'Returns the field path and label or the page ID and title. For a required read-only blank, use the field path with field.describe or field.help. '
         + 'The reason is complete when no field or page in the requested scope needs attention.',

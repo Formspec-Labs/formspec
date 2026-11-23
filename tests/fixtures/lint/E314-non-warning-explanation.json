@@ -8,6 +8,8 @@
   "shapes": [
     {"id": "implicitError", "target": "#", "constraint": "true", "message": "First", "explanation": "explain"},
     {"id": "info", "target": "#", "severity": "info", "constraint": "true", "message": "Second", "explanation": "none"},
-    {"id": "warning", "target": "#", "severity": "warning", "constraint": "true", "message": "Third", "explanation": "confirm"}
+    {"id": "warning", "target": "#", "severity": "warning", "constraint": "true", "message": "Third", "explanation": "confirm"},
+    {"id": "errorAcknowledge", "target": "#", "constraint": "true", "message": "Fourth", "explanation": "acknowledge"},
+    {"id": "infoAcknowledge", "target": "#", "severity": "info", "code": "", "constraint": "true", "message": "Fifth", "explanation": "acknowledge"}
   ]
 }

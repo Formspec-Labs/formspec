@@ -454,7 +454,7 @@ test('preview Submit produces a labeled filing and receipt that survive reload',
   await page.goto('/surface-drafts.html?form&subject&tracker&submit#/filing/2025');
   await page.getByLabel('Answer').fill('annual response');
   await page.getByRole('button', { name: 'Submit report' }).click();
-  await page.getByRole('link', { name: 'Overview' }).click();
+  await page.getByRole('link', { name: 'Overview', exact: true }).click();
   const tracker = page.locator('[data-slot-type="filing-status"]');
   const task = tracker.getByRole('link', { name: 'Filing', exact: true });
   await expect(task).toHaveAccessibleDescription(/^Filed\b/);
@@ -1174,7 +1174,8 @@ test('draft-review route acknowledges grouped blank-answer warnings, jumps acros
 
 test('explicit-save respondent cannot commit unsaved edits from review and preserves them on return', async ({ page }) => {
   await page.goto('/surface-drafts.html?form&subject&review&warnings#/filing/2025');
-  const answer = page.getByLabel('Answer');
+  // By role: after Save draft the form also shows the "unanswered questions" region, whose name contains "answer".
+  const answer = page.getByRole('textbox', { name: 'Answer', exact: true });
   await answer.fill('Shown as answered on the committed review');
   await page.getByLabel('Show detail').check();
   await page.getByRole('button', { name: 'Save draft' }).click();

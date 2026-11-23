@@ -13,10 +13,10 @@ use serde_json::value::RawValue;
 use super::{
     PredicateOp, PredicateSource, ResponseSelection, SelectedRecord, SelectionContext,
     SelectionRecord, SelectionRecordKind, SelectionSource, SelectionStatus, Sha256Digest,
-    SubjectKeyType, subject_id,
+    SubjectKeyType,
 };
 use crate::compatible_versions::parse_definition_version;
-use crate::subject_key::SubjectKey;
+use crate::subject_key::{SubjectKey, subject_id};
 
 /// One resolved upstream-key comparison.
 pub(super) struct Predicate<'a> {

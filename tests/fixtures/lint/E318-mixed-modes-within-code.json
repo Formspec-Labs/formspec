@@ -1,0 +1,21 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:mixed-modes-within-code",
+  "version": "1.0.0",
+  "status": "draft",
+  "title": "Warning Shapes sharing a code disagree on answer mode",
+  "warningExplanation": "acknowledge",
+  "items": [{"type": "field", "key": "age", "label": "Age", "dataType": "integer"}],
+  "shapes": [
+    {"id": "inheritedAcknowledge", "target": "age", "severity": "warning", "code": "NOT_ANSWERED", "constraint": "present($)", "message": "Age is blank"},
+    {"id": "noneSharesCode", "target": "age", "severity": "warning", "code": "NOT_ANSWERED", "explanation": "none", "constraint": "$ != 1", "message": "Age is one"},
+    {"id": "explainSharesCode", "target": "age", "severity": "warning", "code": "NOT_ANSWERED", "explanation": "explain", "constraint": "$ != 2", "message": "Age is two"},
+    {"id": "explicitAcknowledge", "target": "age", "severity": "warning", "code": "BLANK", "explanation": "acknowledge", "constraint": "$ != 3", "message": "Age is three"},
+    {"id": "inheritedAcknowledgeToo", "target": "age", "severity": "warning", "code": "BLANK", "constraint": "$ != 4", "message": "Age is four"},
+    {"id": "explainOne", "target": "age", "severity": "warning", "code": "VARIANCE", "explanation": "explain", "constraint": "$ != 5", "message": "Age is five"},
+    {"id": "explainTwo", "target": "age", "severity": "warning", "code": "VARIANCE", "explanation": "explain", "constraint": "$ != 6", "message": "Age is six"},
+    {"id": "errorSharesCode", "target": "age", "code": "NOT_ANSWERED", "constraint": "$ != 7", "message": "Age is seven"},
+    {"id": "acknowledgesFallback", "target": "age", "severity": "warning", "code": "SHAPE_FAILED", "explanation": "acknowledge", "constraint": "$ != 8", "message": "Age is eight"},
+    {"id": "confirmWithoutCode", "target": "age", "severity": "warning", "explanation": "confirm", "constraint": "$ != 9", "message": "Age is nine"}
+  ]
+}

@@ -27,6 +27,8 @@ const autoButtons = query.has('autoButtons');
 const authoredAutosave = query.has('authoredAutosave');
 const idCollision = query.has('idCollision');
 const warnings = query.has('warnings');
+// With `warnings`, an explain-mode warning on Answer: an instance follow-up beside the group acknowledgement.
+const explain = query.has('explain');
 const component: ComponentDocument = warnings ? {
   $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition },
   formPresentation: { pageMode: 'workspace' },
@@ -220,6 +222,8 @@ const source = {
           { id: 'blankAnswer', target: 'answer', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Answer is unanswered.' },
           { id: 'blankDetail', target: 'detail', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Detail is unanswered.' },
           { id: 'blankNotes', target: 'notes', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Notes is unanswered.' },
+          ...(explain ? [{ id: 'unusualAnswer', target: 'answer', severity: 'warning', timing: 'submit', explanation: 'explain',
+            code: 'UNUSUAL_ANSWER', constraint: "$ != 'Unusual'", message: 'Answer is unusual.' }] : []),
         ],
       }),
       binds: hydration ? [{ path: 'answer', calculate: "@instance('roster').result & '/' & @instance('sibling').result" }]

@@ -14,6 +14,8 @@ const fixtureOptions = new URLSearchParams(location.search);
 const workspace = fixtureOptions.has('workspace');
 const alternatingMode = fixtureOptions.get('alternating');
 const twoForms = fixtureOptions.has('twoForms');
+// The filing unit comes from the route's state; the engine derives its subject id (fs-aght).
+const keyed = fixtureOptions.has('subject');
 const id = 'https://example.test/filing';
 const definition = `${id}/definition`;
 const surface = `${id}/surface`;
@@ -80,7 +82,7 @@ const bundle = dereferenceBundleExport({
           ...(showsTracker ? { navigation: { visible: false } } : {}),
           params: [{ name: 'state', type: 'string' }],
           slots: [
-            { id: 'filing', slotType: 'definition-form', binding: { definitionRef: definition } },
+            { id: 'filing', slotType: 'definition-form', binding: { definitionRef: definition, ...(keyed && { subjectKeys: { state: 'state' } }) } },
             ...(twoForms ? [{ id: 'additional', slotType: 'definition-form', binding: { definitionRef: definition } }] : []),
           ] },
         ...(smallTracker ? [['roster', 'Eligible entity list', roster], ['report', 'Annual report', report]].map(([key, title, url]) => ({
@@ -96,6 +98,8 @@ const bundle = dereferenceBundleExport({
     },
     [definition]: {
       $formspec: '1.0', url: definition, version: '1.0.0', title: 'Filing',
+      ...(keyed && { subject: { type: 'urn:test:filing-state', keys: { state: { dataType: 'string' } } },
+        binds: [{ path: 'contact', calculate: "subject('state')" }] }),
       ...(alternatingMode ? {
         formPresentation: { pageMode: alternatingMode },
         items: [

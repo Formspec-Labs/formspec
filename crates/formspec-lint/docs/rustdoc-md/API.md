@@ -29,9 +29,10 @@ Generated with [cargo-doc-md](https://github.com/Crazytieguy/cargo-doc-md)
 Formspec Linter — static analysis and validation pipeline.
 
 Pass 1 (E100): Document type detection
-Pass 1b (E101; E305/E308/E309/E311/E312 for specific Core requirements): JSON Schema validation against embedded schemas
+Pass 1b (E101; E305/E308/E309/E311/E312/E317 for specific Core requirements): JSON Schema validation against embedded schemas
 Pass 2 (E200/E201): Tree indexing, duplicate key/path detection
 Pass 3 (E300/E301/E302/W300): Reference validation — bind paths, shape targets, optionSets
+Pass 3 (E314/E318): Warning answer modes on Shapes (Core §5.2.1)
 Pass 3 (E306/E307): Definition response selection predicates
 Pass 3 (E313): Definition Groups that still need assembly
 Pass 3b (E600/E601/E602): Extension resolution against registry documents
@@ -428,6 +429,7 @@ Uses [`ItemTreeIndex`] from pass 2 for path resolution. Emits:
 - **E300**: Bind path references an unknown item
 - **E301**: Shape target references an unknown item
 - **E302**: Item's `optionSet` references an undefined option set
+- **E315**: Two Shapes declare the same `id`
 - **E316**: Bind uses `letterCase` on a non-text target
 - **W300**: Item's `dataType` is incompatible with `optionSet`
 
@@ -905,6 +907,8 @@ Canonical lint diagnostic code (registry-driven).
 - `E314` - Registry code `E314`.
 - `E315` - Registry code `E315`.
 - `E316` - Registry code `E316`.
+- `E317` - Registry code `E317`.
+- `E318` - Registry code `E318`.
 - `W300` - Registry code `W300`.
 - `E400` - Registry code `E400`.
 - `E406` - Registry code `E406`.

@@ -98,9 +98,8 @@ export function DraftDefinitionForm({
     let release: (() => void) | undefined;
     const opening = latest.current;
     const ready = async () => {
-      const subject = opening.responseSubject && opening.plan.subject
-        ? { ...opening.plan.subject, id: opening.responseSubject.id }
-        : await deriveDraftSubject(opening.plan.subject);
+      // The planned subject names the filing unit; a renderer-supplied id never keys the draft.
+      const subject = await deriveDraftSubject(opening.plan.subject);
       if (!active) return;
       const key: DraftKey = { scope: session.scope, definitionUrl: definition.url, subject };
       const currentInput = latest.current;

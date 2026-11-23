@@ -80,16 +80,20 @@ function describePath(path: string, source: WarningAcknowledgementSource): Warni
     };
 }
 
-function resolveGroupLegend(
-    group: WarningAcknowledgementGroupInput,
-    fallback: string,
-    source: WarningAcknowledgementSource,
+function unansweredQuestions(count: number): string {
+    return count === 1 ? '1 unanswered question' : `${count} unanswered questions`;
+}
+
+/** A group's heading: the first authored `explanationPrompt` among its Shapes, else how many questions it covers. */
+export function warningAcknowledgementLegend(
+    group: Pick<WarningAcknowledgementGroupInput, 'shapeIds' | 'paths'>,
+    resolveText: WarningAcknowledgementSource['resolveText'],
 ): string {
     for (const shapeId of group.shapeIds ?? []) {
-        const resolved = source.resolveText(`$shape.${shapeId}.explanationPrompt`, '');
+        const resolved = resolveText(`$shape.${shapeId}.explanationPrompt`, '');
         if (resolved) return resolved;
     }
-    return fallback;
+    return unansweredQuestions(group.paths.length);
 }
 
 /**
@@ -103,9 +107,8 @@ export function readWarningAcknowledgementGroups(
     if (groups.length === 0) return [];
     const rowTemplate = source.lookupUi?.('validationSummary.row') ?? UI_STRINGS['validationSummary.row'];
     return groups.map((group) => {
-        const count = group.paths.length;
-        const noun = count === 1 ? '1 unanswered question' : `${count} unanswered questions`;
-        const legend = resolveGroupLegend(group, noun, source);
+        const noun = unansweredQuestions(group.paths.length);
+        const legend = warningAcknowledgementLegend(group, source.resolveText);
         const items = group.paths.map((path) => describePath(path, source));
         const hasChanges = !group.current && hasStoredGroupEntry(state.entries, group.code);
         const added = hasChanges ? group.added.map((path) => describePath(path, source)) : [];

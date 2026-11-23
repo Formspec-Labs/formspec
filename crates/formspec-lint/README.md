@@ -10,6 +10,7 @@ Rust **static analysis** for Formspec JSON documents — a pipeline over `serde_
 | 1b | E101 | `schema_validation` | JSON Schema validation (embedded `schemas/*.schema.json`; component trees validated per-node). |
 | 2 | E200, E201 | `tree` | Item tree index: duplicate keys/paths, repeatables. |
 | 3 | E300–E302, W300 | `references` | Binds, shape targets, option sets vs. item index. |
+| 3 | E314, E318 (E317 from 1b) | `shape_explanations` | Warning answer modes on Shapes: severity, acknowledge codes, one mode per acknowledged code (Core §5.2.1). |
 | 3b | E600–E602 | `extensions` | Extension keys vs. registry JSON documents. |
 | 4 | E400 | `expressions` | Parse every FEL slot (binds, shapes, variables, screener). |
 | 5 | E500 | `dependencies` | Bind-key dependency graph and cycles (`fel_core` / core FEL deps). |
@@ -59,6 +60,7 @@ Companion authoring documents run pass 9 after schema validation. Mapping expose
 | `semantic_helpers.rs` | Shared strict-path, Definition, interpolation, and context helpers for companion passes. |
 | `tree.rs` | `ItemTreeIndex`, `build_item_index`. |
 | `references.rs` | `check_references`. |
+| `shape_explanations.rs` | Warning answer modes on Shapes (E314, E318) and named schema errors for acknowledge codes (E317). |
 | `extensions.rs` | `check_extensions`. |
 | `expressions.rs` | `compile_expressions`, `CompiledExpression`. |
 | `dependencies.rs` | `analyze_dependencies`. |

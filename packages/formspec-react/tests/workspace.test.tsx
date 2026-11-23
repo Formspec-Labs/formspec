@@ -1,6 +1,6 @@
 /** @filedesc The same authored page mode works through the plain and provider-driven renderers. */
 import React, { act, useState } from 'react';
-import { beforeAll, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { createAssistProvider } from '@formspec-org/assist';
 import { createFormEngine, initFormspecEngine } from '@formspec-org/engine';
 import type { ComponentDocument, FormDefinition, ThemeDocument } from '@formspec-org/types';
@@ -561,4 +561,123 @@ it('renders root Save and validation summary once across authored workspace sect
     clickText(host, 'Previous');
     expect(saves()).toEqual([save]);
     expect(summaries()).toEqual([summary]);
+});
+
+describe('owed warning follow-ups in the Findings margin', () => {
+    const blank = (id: string, target: string, extra: Record<string, unknown> = {}) => ({
+        id, target, severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS',
+        constraint: 'present($)', message: `${id} is unanswered.`, ...extra,
+    });
+    const followUps = {
+        $formspec: '1.0', url: 'urn:test:workspace-follow-ups', version: '1.0.0', title: 'Filing',
+        formPresentation: { pageMode: 'workspace' },
+        warningExplanation: 'acknowledge',
+        items: [
+            { key: 'summary', type: 'group', label: 'Summary', children: [
+                { key: 'answer', type: 'field', dataType: 'string', label: 'Answer' },
+                { key: 'amount', type: 'field', dataType: 'integer', label: 'Amount' },
+            ] },
+            { key: 'followup', type: 'group', label: 'Follow-up', children: [
+                { key: 'detail', type: 'field', dataType: 'string', label: 'Detail' },
+                { key: 'notes', type: 'field', dataType: 'string', label: 'Notes' },
+            ] },
+        ],
+        shapes: [
+            blank('blankDetail', 'followup.detail'),
+            blank('blankNotes', 'followup.notes'),
+            { id: 'largeAmount', target: 'summary.amount', severity: 'warning', timing: 'submit', explanation: 'explain',
+                code: 'LARGE_AMOUNT', constraint: 'empty($) or $ < 100', message: 'Amount is unusually large.' },
+        ],
+    } as unknown as FormDefinition;
+    const margin = (host: ParentNode) => host.querySelector<HTMLElement>('.formspec-workspace__findings')!;
+    const rows = (host: ParentNode) => Array.from(host.querySelectorAll<HTMLLIElement>('.formspec-workspace__findings > ul > li'));
+
+    // Submit-timing Shapes are absent from the live report, so only the explanation state shows what is owed.
+    it('lists an owed group acknowledgement once, links it through the host, and drops it once accepted', () => {
+        const engine = createFormEngine(followUps);
+        const navigate = vi.fn();
+        const acknowledgementLink = vi.fn((code: string) => ({ href: `#/review?acknowledge=${code}`, navigate }));
+        const host = actRender(<FormspecForm engine={engine} acknowledgementLink={acknowledgementLink} />);
+        expect(margin(host).querySelector('.formspec-workspace__findings-summary')?.textContent).toBe('1 to check');
+        expect(rows(host)).toHaveLength(1);
+        const link = rows(host)[0].querySelector('a')!;
+        expect(link.getAttribute('href')).toBe('#/review?acknowledge=UNANSWERED_QUESTIONS');
+        expect(link.textContent).toBe('Warning: 2 unanswered questions');
+        act(() => { link.click(); });
+        expect(navigate).toHaveBeenCalledTimes(1);
+
+        act(() => { engine.acknowledge('UNANSWERED_QUESTIONS'); });
+        expect(margin(host).querySelector('.formspec-workspace__findings-summary')).toBeNull();
+        expect(rows(host)).toHaveLength(0);
+    });
+
+    // Typing must not cost a Submit evaluation per keystroke, so the margin reads what is owed once the edits pause.
+    it('reads what is owed once after a burst of edits pauses, then shows the updated row and count', () => {
+        vi.useFakeTimers();
+        try {
+            const engine = createFormEngine(followUps);
+            const host = actRender(<FormspecForm engine={engine} />);
+            const reads = vi.spyOn(engine, 'getExplanationState');
+            for (const notes of ['N', 'No', 'Not', 'Note', 'Notes']) {
+                act(() => { engine.setValue('followup.notes', notes); });
+                act(() => { vi.advanceTimersByTime(100); });
+            }
+            expect(reads).not.toHaveBeenCalled();
+            act(() => { vi.advanceTimersByTime(250); });
+            expect(reads).toHaveBeenCalledTimes(1);
+            expect(margin(host).querySelector('.formspec-workspace__findings-summary')?.textContent).toBe('1 to check');
+            expect(rows(host).map(row => row.textContent)).toEqual(['Warning: 1 unanswered question']);
+            // An answer is not a keystroke: accepting the group clears it at once.
+            act(() => { engine.acknowledge('UNANSWERED_QUESTIONS'); });
+            expect(rows(host)).toHaveLength(0);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    // The row must reach the control that answers it: before Submit the explanation control is shown beside
+    // its field because the explanation state names it, and the jump lands in it rather than on the bare input.
+    it('without a host address shows an owed group as text and jumps to the explanation control an owed instance needs', () => {
+        const engine = createFormEngine(followUps);
+        act(() => { engine.setValue('summary.amount', 500); });
+        const host = actRender(<FormspecForm engine={engine} />);
+        expect(margin(host).querySelector('.formspec-workspace__findings-summary')?.textContent).toBe('2 to check');
+        const [group, instance] = ['UNANSWERED_QUESTIONS', 'largeAmount']
+            .map(code => rows(host).find(row => row.dataset.followUp === code)!);
+        expect(group.querySelector('a, button')).toBeNull();
+        expect(group.textContent).toBe('Warning: 2 unanswered questions');
+        clickText(host, 'Follow-up');
+        const jump = instance.querySelector('button')!;
+        expect(jump.textContent).toBe('Warning: Amount: Amount is unusually large.');
+        act(() => { jump.click(); });
+        expect(host.querySelector('.formspec-workspace__content')?.getAttribute('data-formspec-section')).toBe('summary');
+        const control = host.querySelector<HTMLElement>('[data-shape-id="largeAmount"][data-explanation-path="summary.amount"]');
+        expect(control, 'the explanation control beside Amount').not.toBeNull();
+        const answer = control!.querySelector('textarea')!;
+        expect(document.activeElement).toBe(answer);
+
+        act(() => {
+            Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(answer, 'A one-time purchase.');
+            answer.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        act(() => { control!.querySelector('button')!.click(); });
+        // Answered: the row and its count leave the margin, and the control stays to show the saved answer.
+        expect(margin(host).querySelector('.formspec-workspace__findings-summary')?.textContent).toBe('1 to check');
+        expect(rows(host).map(row => row.dataset.followUp)).toEqual(['UNANSWERED_QUESTIONS']);
+        expect(control!.querySelector('button')?.textContent).toBe('Explanation entered');
+    });
+
+    it('reads what is owed at once on Submit, without waiting for the edits to pause', () => {
+        vi.useFakeTimers();
+        try {
+            const engine = createFormEngine(followUps);
+            const host = actRender(<FormspecForm engine={engine} />);
+            act(() => { engine.setValue('followup.notes', 'Notes'); });
+            const root = host.querySelector<WalkBridgeElement>('[data-formspec-render-root]')!;
+            act(() => { root.submit?.({ emitEvent: false }); });
+            expect(rows(host).map(row => row.textContent)).toEqual(['Warning: 1 unanswered question']);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });

@@ -217,3 +217,9 @@ export { clampJsonNumber, stepJsonNumber } from './numeric-input.js';
 export { cloneValue as cloneJsonValue } from './json-values.js';
 
 export { wasmCreateResponse as createResponse, wasmCreateRepeatRow as createRepeatRow } from './wasm-bridge-runtime.js';
+
+/**
+ * Core's filing-unit id from a subject type and typed keys, using runtime WASM only. For hosts that
+ * key storage by subject before an engine exists; `FormEngine` derives `Response.subject.id` itself.
+ */
+export { wasmResponseSubjectId as responseSubjectId } from './wasm-bridge-runtime.js';

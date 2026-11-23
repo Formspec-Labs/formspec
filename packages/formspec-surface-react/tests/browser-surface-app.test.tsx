@@ -24,7 +24,7 @@ const definitionSlot = (id: string) => ({
   id, slotType: 'definition-form', binding: { definitionRef: definitionUrl },
 });
 
-function bundle(title = 'FY25 Filing', multipleForms = false, withRoot = false) {
+function bundle(title = 'First filing edition', multipleForms = false, withRoot = false) {
   const locales = [
     { locale: 'en', target: { kind: 'app', url: appId }, strings: { '$module.x-formspec-surface.shell.appearanceLabel': 'Display' } },
     { locale: 'fr', target: { kind: 'app', url: appId }, strings: { '$module.x-formspec-surface.shell.appearanceLabel': 'Affichage' } },
@@ -61,7 +61,7 @@ function bundle(title = 'FY25 Filing', multipleForms = false, withRoot = false) 
             navigation: { scope: 'staff' }, slots: [] },
           { id: 'hidden', path: '/hidden', routeClass: 'intake', title: 'Hidden',
             navigation: { visible: false }, slots: [] },
-          { id: 'home', path: title === 'FY25 Filing' ? '/overview' : '/start', title: 'Overview',
+          { id: 'home', path: title === 'First filing edition' ? '/overview' : '/start', title: 'Overview',
             routeClass: 'intake', navigation: { label: 'Filing map', order: 1 }, slots: [] },
           ...(withRoot ? [
             { id: 'root', path: '/', routeClass: 'intake', title: 'Root', slots: [] },
@@ -158,7 +158,7 @@ describe('BrowserSurfaceApp', () => {
 
     expect(route(container)).toBe('home');
     const masthead = container.querySelector('header a')!;
-    expect(masthead.textContent).toBe('FY25 Filing');
+    expect(masthead.textContent).toBe('First filing edition');
     expect(masthead.getAttribute('href')).toBe(home);
     expect([...container.querySelectorAll('nav a')].map(link => link.textContent)).toEqual(['Filing map', 'File a report']);
     expect(formLink(container).getAttribute('href')).toBe(form);
@@ -201,7 +201,7 @@ describe('BrowserSurfaceApp', () => {
 
   it('addresses one exact form slot and leaves other forms at their default', () => {
     address('/forms/mi?slot=report&section=staff%20%26%20costs');
-    const container = render(<BrowserSurfaceApp bundle={bundle('FY25 Filing', true)} adapters={{ renderDefinitionForm: workspace() }} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle('First filing edition', true)} adapters={{ renderDefinitionForm: workspace() }} />);
     const headings = () => [...container.querySelectorAll('h2')].map(el => el.textContent);
     expect(headings()).toEqual(['intro', 'staff & costs']);
     pop('/forms/mi?slot=removed&section=staff%20%26%20costs');
@@ -233,12 +233,12 @@ describe('BrowserSurfaceApp', () => {
 
   it.each(['/', '/portal/'])('distinguishes the bare history mount %s from its authored root route', mount => {
     address(mount);
-    const container = render(<BrowserSurfaceApp bundle={bundle('FY25 Filing', false, true)} adapters={{ basePath: mount }} />);
+    const container = render(<BrowserSurfaceApp bundle={bundle('First filing edition', false, true)} adapters={{ basePath: mount }} />);
     expect(route(container)).toBe('home');
     const rootLink = container.querySelector<HTMLAnchorElement>('a[data-nav-route="root"]')!;
     click(rootLink);
     expect(route(container)).toBe('root');
-    const reopened = render(<BrowserSurfaceApp bundle={bundle('FY25 Filing', false, true)} adapters={{ basePath: mount }} />);
+    const reopened = render(<BrowserSurfaceApp bundle={bundle('First filing edition', false, true)} adapters={{ basePath: mount }} />);
     expect(route(reopened)).toBe('root');
     pop(mount);
     expect(route(container)).toBe('home');
@@ -292,7 +292,7 @@ describe('BrowserSurfaceApp', () => {
     expect(document.activeElement).toBe(input);
     pop('/overview');
     expect(document.activeElement).toBe(main.querySelector('h1'));
-    expect(document.title).toBe('Overview – FY25 Filing');
+    expect(document.title).toBe('Overview – First filing edition');
   });
 
   it('focuses the main landmark when the new route has no heading', () => {
@@ -306,29 +306,29 @@ describe('BrowserSurfaceApp', () => {
   });
 
   it('uses per-edition scopes, preserves native history and asks the writer before leaving', async () => {
-    address('/forms/mi?edition=fy25');
+    address('/forms/mi?edition=edition-a');
     const beforeLeave = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     const adapters = { beforeLeave, renderDefinitionForm: workspace() };
     const editions = [
-      { scope: 'fy25', bundle: bundle(), adapters, initialPath: '/overview' },
-      { scope: 'fy28', bundle: bundle('FY28 Filing'), adapters, initialPath: '/start' },
+      { scope: 'edition-a', bundle: bundle(), adapters, initialPath: '/overview' },
+      { scope: 'edition-b', bundle: bundle('Second filing edition'), adapters, initialPath: '/start' },
     ] as const;
     const container = render(<BrowserSurfaceApp previewEditions={editions} adapters={{ mode: "history" }} />);
     const picker = container.querySelector<HTMLSelectElement>('select[data-surface-edition]')!;
-    expect([...picker.options].map(option => option.textContent)).toEqual(['FY25 Filing', 'FY28 Filing']);
-    expect(container.querySelector('[data-scope]')?.textContent).toBe('fy25');
+    expect([...picker.options].map(option => option.textContent)).toEqual(['First filing edition', 'Second filing edition']);
+    expect(container.querySelector('[data-scope]')?.textContent).toBe('edition-a');
 
-    await act(async () => { select(picker, 'fy28'); });
+    await act(async () => { select(picker, 'edition-b'); });
     expect(route(container)).toBe('form');
-    expect(picker.value).toBe('fy25');
-    await act(async () => { select(picker, 'fy28'); });
+    expect(picker.value).toBe('edition-a');
+    await act(async () => { select(picker, 'edition-b'); });
     expect(route(container)).toBe('home');
-    expect(window.location.pathname + window.location.search).toBe('/start?edition=fy28');
-    expect(beforeLeave).toHaveBeenLastCalledWith(expect.objectContaining({ previewScope: 'fy25' }));
-    pop('/forms/mi?edition=fy28');
-    expect(container.querySelector('[data-scope]')?.textContent).toBe('fy28');
-    pop('/forms/mi?edition=fy25');
-    expect(container.querySelector('[data-scope]')?.textContent).toBe('fy25');
+    expect(window.location.pathname + window.location.search).toBe('/start?edition=edition-b');
+    expect(beforeLeave).toHaveBeenLastCalledWith(expect.objectContaining({ previewScope: 'edition-a' }));
+    pop('/forms/mi?edition=edition-b');
+    expect(container.querySelector('[data-scope]')?.textContent).toBe('edition-b');
+    pop('/forms/mi?edition=edition-a');
+    expect(container.querySelector('[data-scope]')?.textContent).toBe('edition-a');
     expect(beforeLeave).toHaveBeenCalledTimes(2);
   });
 
