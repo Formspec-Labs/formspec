@@ -134,6 +134,36 @@ test.describe('default skin reserved message line', () => {
     expect(gap).toBeCloseTo(line, 1);
   });
 
+  test('the select focus outline clears the first line of its validation message', async ({ page }) => {
+    await gotoHarness(page);
+    await mountDefinition(page, {
+      ...RESERVED,
+      items: [{ key: 'method', type: 'field', dataType: 'choice', label: 'Contact method',
+        options: [{ value: 'email', label: 'Email' }, { value: 'phone', label: 'Phone' }] }],
+      binds: [{ path: 'method', required: 'true' }],
+    });
+    const field = page.locator('[data-name="method"]');
+    const select = field.locator('select');
+    await page.keyboard.press('Tab');
+    await select.focus();
+    await page.locator('formspec-render').evaluate((form) => (form as any).touchAllFields());
+    await expect(field.locator('.formspec-error')).not.toBeEmpty();
+    await expect(select).toBeFocused();
+    const clearances = await field.evaluate((element) => {
+      const text = document.createRange();
+      text.selectNodeContents(element.querySelector('.formspec-error')!);
+      const textTop = text.getBoundingClientRect().top;
+      return [...element.querySelectorAll(':focus-within')].flatMap(node => {
+        const style = getComputedStyle(node);
+        if (style.outlineStyle === 'none' || parseFloat(style.outlineWidth) < 3) return [];
+        const ringBottom = node.getBoundingClientRect().bottom + parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+        return [textTop - ringBottom];
+      });
+    });
+    expect(clearances.length).toBeGreaterThan(0);
+    expect(Math.min(...clearances)).toBeGreaterThanOrEqual(0);
+  });
+
   test('messages appearing on every question move no question and not the button after them', async ({ page }) => {
     await mountReserved(page);
     const before = await reservedLayout(page);

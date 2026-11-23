@@ -407,10 +407,15 @@ h6.formspec-heading {
   visibility: hidden;
 }
 
-/* Keep the validation line clear of the default 3px outline and 2px offset.
- * Use the field gap where it already leaves enough room, including while the line is empty. */
+/* The last validation line uses the field's existing space between questions. */
 :is(.formspec-field:not(.formspec-field--inline), .formspec-fieldset):not(.formspec-field--readonly) > .formspec-error:last-child {
-  margin-top: max(0px, calc(5px - var(--formspec-spacing-xs, 0.25rem)));
+  margin-top: calc(-1 * var(--formspec-spacing-xs, 0.25rem));
+}
+
+/* A stacked message can start at the control's edge. Keep its focus ring inside the
+ * control when the message is visible so it cannot cover the first line of text. */
+:is(.formspec-field:not(.formspec-field--inline), .formspec-fieldset):has(> .formspec-error:not(:empty)) :focus-within {
+  outline-offset: -3px;
 }
 
 /* Where a visible question or item follows in a column whose gap is this skin's `spacing.field`, that line IS
