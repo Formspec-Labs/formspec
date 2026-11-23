@@ -1,6 +1,6 @@
 /** @filedesc Plans renderable sections and stable Item ownership in Core page-authority order. */
 
-import type { ComponentDocument, FormDefinition } from '@formspec-org/types';
+import type { ComponentDocument, FormDefinition, FormItem } from '@formspec-org/types';
 import { componentTreeOwnsPages, findItemAtPath, getParentPath } from './planner-path-utils.js';
 import {
     buildThemePageNodes, planComponentTree, planDefinitionFallback, planDefinitionItem, preparePlanContext,
@@ -189,6 +189,41 @@ function readPlacements(
     }
 }
 
+/** Core ordering still renders Items a partial Component leaves unbound (Component §11.4). */
+function unboundDefinitionNodes(nodes: LayoutNode[], ctx: PlanContext): LayoutNode[] {
+    const fields = new Set<string>();
+    const groups = new Set<string>();
+    readPlacements(nodes, ctx, fields, groups);
+    const boundItems = new Set([...fields].map(placementKey));
+    const boundGroups = new Set([...groups].map(placementKey));
+    walkNodes(nodes, node => {
+        if (node.bindPath && ctx.findItem(node.bindPath)?.type === 'display') {
+            boundItems.add(placementKey(node.bindPath));
+        }
+    });
+
+    function retainUnbound(items: FormItem[], prefix: string): FormItem[] {
+        return items.flatMap(item => {
+            const path = prefix ? `${prefix}.${item.key}` : item.key;
+            if (item.type !== 'group') return boundItems.has(path) ? [] : [item];
+            const original = item.children ?? [];
+            const children = retainUnbound(original, path);
+            return children.length || (original.length === 0 && !boundGroups.has(path))
+                ? [{ ...item, children }]
+                : [];
+        });
+    }
+
+    const fallback = planDefinitionFallback(retainUnbound(ctx.items, ''), ctx, '', false);
+    walkNodes(fallback, node => {
+        // A fallback fragment may render more fields of a repeat without adding a second row control.
+        if (node.isRepeatTemplate && node.bindPath && boundGroups.has(placementKey(node.bindPath))) {
+            node.props = { ...node.props, allowAdd: false, allowRemove: false };
+        }
+    });
+    return fallback;
+}
+
 function definitionSections(nodes: LayoutNode[], ctx: PlanContext): Section[] {
     const groups = ctx.items.filter(item => item.type === 'group');
     const keys = new Set(groups.map(item => item.key));
@@ -273,7 +308,7 @@ function planSections(ctx: PlanContext): { sections: Section[]; sharedNodes: Lay
         const unplaced = root ? ctx.items.filter(item => !represented.has(item.key)) : [];
         sections = themeSections([...base, ...planDefinitionFallback(unplaced, ctx, '', false)], ctx);
     }
-    sections ??= definitionSections(base, ctx);
+    sections ??= definitionSections(root ? [...base, ...unboundDefinitionNodes(base, ctx)] : base, ctx);
     return { sections: sections.map(section => ({ ...section, container })), sharedNodes };
 }
 

@@ -101,6 +101,23 @@ describe('resolvePageSequence', () => {
         ]);
     });
 
+    it('keeps unbound sibling fields and sections under Definition page ordering', () => {
+        const definition = makeDefinition();
+        const pages = resolvePageSequence(definition, {
+            component: {
+                $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition.url },
+                tree: { component: 'Stack', children: [{ component: 'TextInput', bind: 'organization.name' }] },
+            },
+        });
+
+        expect(describePages(pages)).toEqual([
+            { id: 'organization', title: 'organization', fields: ['organization.name', 'organization.ein', 'contactEmail'] },
+            { id: 'details', title: 'details', fields: ['details.summary'] },
+        ]);
+        expect(pages[0]?.nodes[0]?.bindPath).toBe('organization.name');
+        expect(pages[0]?.nodes[1]?.bindPath).toBe('organization');
+    });
+
     it('uses component pages before theme and definition hints', () => {
         const pages = resolvePageSequence(makeDefinition(), {
             component: {
