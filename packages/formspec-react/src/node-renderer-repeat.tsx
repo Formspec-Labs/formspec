@@ -1,7 +1,7 @@
 'use client';
 
 /** @filedesc Repeat-group and accordion-repeat layout rendering for FormspecNode. */
-import React, { useMemo, useRef, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useCallback, useState, useEffect, useLayoutEffect } from 'react';
 import type { LayoutNode } from '@formspec-org/layout';
 import { chromeText } from './use-chrome-text';
 import { computed, signal } from '@preact/signals-core';
@@ -506,6 +506,7 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
         [node.children, bindKey, count],
     );
     const previousCountRef = useRef(count);
+    const addedRowToFocus = useRef<number | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const addBtnRef = useRef<HTMLButtonElement>(null);
     const [announcement, setAnnouncement] = useState('');
@@ -541,6 +542,24 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
         previousCountRef.current = count;
     }, [allowMultiple, bindKey, count, engine, lockSeeded, lockedCount, upstreamSeededCount]);
 
+    useLayoutEffect(() => {
+        const index = addedRowToFocus.current;
+        if (index === null || index >= count || !relevant) return;
+        const isOpen = allowMultiple ? openIndices.has(index) : openIndex === index;
+        if (!isOpen) return;
+
+        // Closed details cannot focus their children. Wait until the added row has committed open.
+        const row = containerRef.current?.querySelectorAll<HTMLDetailsElement>(
+            ':scope > .formspec-accordion--repeat > .formspec-accordion-item',
+        )[index];
+        if (!row) return;
+        addedRowToFocus.current = null;
+        findEditableFocusTarget(row.querySelector(':scope > .formspec-accordion-content'))?.focus();
+        if (!row.contains(row.ownerDocument.activeElement)) {
+            row.querySelector<HTMLElement>(':scope > summary')?.focus();
+        }
+    }, [allowMultiple, count, openIndex, openIndices, relevant]);
+
     const handleToggle = useCallback((idx: number, open: boolean) => {
         if (allowMultiple) {
             setOpenIndices(prev => {
@@ -557,15 +576,15 @@ export function RepeatAccordion({ node, renderChild }: { node: LayoutNode; rende
     const handleAdd = useCallback(() => {
         if (!canAdd) return;
         userAddingRef.current = true;
-        engine.addRepeatInstance(bindKey);
-        const newCount = count + 1;
+        const index = engine.addRepeatInstance(bindKey);
+        if (index === undefined) {
+            userAddingRef.current = false;
+            return;
+        }
+        addedRowToFocus.current = index;
+        const newCount = index + 1;
         setAnnouncement(`${shortLabel} ${newCount} added. ${newCount} total.`);
-        setTimeout(() => {
-            const items = containerRef.current?.querySelectorAll<HTMLDetailsElement>('.formspec-accordion-item');
-            const last = items?.[items.length - 1];
-            findEditableFocusTarget(last?.querySelector('.formspec-accordion-content') ?? last ?? null)?.focus();
-        }, 0);
-    }, [bindKey, canAdd, count, engine, shortLabel]);
+    }, [bindKey, canAdd, engine, shortLabel]);
 
     const handleRemove = useCallback((idx: number) => {
         engine.removeRepeatInstance(bindKey, idx);
