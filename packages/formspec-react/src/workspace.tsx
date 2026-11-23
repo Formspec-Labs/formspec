@@ -552,17 +552,17 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
     const namedPages = pages.filter(page => page.id);
     const hasMultipleSections = namedPages.length > 1;
     const largestSection = progress.sections.reduce((max, section) => Math.max(max, section.counts.total), 0);
-    const sectionLink = (page: WorkspacePage, label: string) => {
+    const sectionLink = (page: WorkspacePage, label: string, progressId: string | undefined) => {
         const href = page.id && workspaceNavigation?.hrefForSection?.(page.id);
         const current = page === active ? 'location' : undefined;
         const activate = () => navigate(page);
         return href ? (
-            <a href={href} aria-current={current} data-formspec-section={page.id} onClick={event => {
+            <a href={href} aria-current={current} aria-describedby={progressId} data-formspec-section={page.id} onClick={event => {
                 if (!isPlainClick(event)) return;
                 event.preventDefault();
                 activate();
             }}>{label}</a>
-        ) : <button type="button" aria-current={current} data-formspec-section={page.id} onClick={activate}>{label}</button>;
+        ) : <button type="button" aria-current={current} aria-describedby={progressId} data-formspec-section={page.id} onClick={activate}>{label}</button>;
     };
     const trailingShared = root.children.filter(node => !content.has(node) && node.component !== 'ValidationSummary');
 
@@ -671,6 +671,7 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
                                         const filled = sectionCounts?.filled ?? 0;
                                         const toFix = sectionCounts?.toFix ?? 0;
                                         const toCheck = sectionCounts?.toCheck ?? 0;
+                                        const progressId = total > 0 ? `${navBodyId}-progress-${i}` : undefined;
                                         const barScale = largestSection > 0 && total > 0
                                             ? Math.max(Math.sqrt(total / largestSection), 0.16)
                                             : 0;
@@ -681,7 +682,8 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
                                                 className="formspec-workspace__section-item"
                                                 data-current={page === active ? 'true' : undefined}
                                             >
-                                                {sectionLink(page, titles[i])}
+                                                {sectionLink(page, titles[i], progressId)}
+                                                {progressId && <span id={progressId} hidden>{chrome('workspace.filled', { filled, total })}</span>}
                                                 {(total > 0 || toFix > 0 || toCheck > 0) && (
                                                     <div className="formspec-workspace__section-meta" aria-hidden="true">
                                                         {total > 0 && (

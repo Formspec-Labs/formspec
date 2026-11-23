@@ -122,6 +122,28 @@ it('uses the tracker’s filled and total parameters in the authored locale', ()
     expect(host.querySelector('aside')?.textContent).toContain('Respondidas: 1 de 6');
 });
 
+it.each(['button', 'a'])('describes section progress separately from the %s name', (tag) => {
+    const engine = createFormEngine(definition);
+    engine.loadLocale({
+        $formspecLocale: '2.1', version: '1.0.0', locale: 'es', target: { kind: 'definition', url: definition.url },
+        strings: { '$ui.workspace.filled': 'Respondidas: {{$filled}} de {{$total}}' },
+    });
+    engine.setLocale('es');
+    const hrefForSection = tag === 'a' ? (id: string) => `#${id}` : undefined;
+    const host = actRender(<FormspecForm engine={engine} hrefForSection={hrefForSection} />);
+    const control = host.querySelector(`${tag}[data-formspec-section="intro"]`)!;
+    expect(control.textContent).toBe('Introduction');
+    const id = control.getAttribute('aria-describedby');
+    expect(id).toBeTruthy();
+    const description = document.getElementById(id!);
+    expect(description?.hidden).toBe(true);
+    expect(description?.textContent).toBe('Respondidas: 0 de 1');
+    expect(control.parentElement?.querySelector('.formspec-workspace__section-meta')?.getAttribute('aria-hidden')).toBe('true');
+    act(() => engine.setValue('intro.name', 'Confirmed'));
+    expect(description?.textContent).toBe('Respondidas: 1 de 1');
+    expect(control.textContent).toBe('Introduction');
+});
+
 it('focuses the selected heading on entry only for the addressed workspace', () => {
     const ordinary = actRender(<FormspecForm definition={definition} />);
     expect(ordinary.contains(document.activeElement)).toBe(false);
