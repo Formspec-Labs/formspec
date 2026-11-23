@@ -48,6 +48,10 @@ if (process.env.FORMSPEC_WALK_SR === 'os') {
   nativeTest.use({ headless: false });
   nativeTest('native date speech names the required date and announces its error after Enter', async ({ page, screenReader }, info) => {
     const { root, due, optional } = await open(page);
+    const userAgent = await page.evaluate(() => navigator.userAgent);
+    const onMac = process.platform === 'darwin';
+    expect(userAgent).toMatch(onMac ? /Macintosh/ : /Windows NT/);
+    await expect(due).toHaveAccessibleName(onMac ? 'Due date Required' : 'Due date *');
     await screenReader.navigateToWebContent();
     const announce = expect.configure({ soft: true });
     const listen = async (stage: string, action: () => Promise<void>) => {
@@ -59,7 +63,7 @@ if (process.env.FORMSPEC_WALK_SR === 'os') {
     announce(optionalSpeech).toMatch(/(?=.*\bfollow-up date\b)(?=.*\b(?:date edit|edit text|stepper)\b)/i);
     announce(optionalSpeech).not.toMatch(/\brequired\b/i);
     let requiredSpeech: string;
-    if (process.platform === 'darwin') {
+    if (onMac) {
       // Tab into the first date segment from the preceding form control.
       await page.getByRole('button', { name: /Evidence.*Upload a file/i }).focus();
       requiredSpeech = await listen('required-date', () => page.keyboard.press('Tab'));
