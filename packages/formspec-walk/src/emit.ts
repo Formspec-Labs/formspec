@@ -90,7 +90,7 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
     push(' * A failure reads as a list of what contradicted the documents.');
     push(' */');
     push("import { test as base } from '@playwright/test';");
-    push(`import { Walk${options.axe ? ', checkAccessibility' : ''} } from ${q(from)};`);
+    push(`import { Walk, orderFieldPaths${options.axe ? ', checkAccessibility' : ''} } from ${q(from)};`);
     push();
     push(`const PAGE = ${q(options.url)};`);
     const identity = options.formId ? `, expectedDefinition: ${JSON.stringify({ url: definition.url, version: definition.version })}` : '';
@@ -123,19 +123,25 @@ export function emitSpec(plan: Plan, definition: FormDefinition, options: EmitOp
     push('        const fields = [');
     for (const f of plan.fields) push(`            { path: ${q(f.path)}, label: ${text(f.label)} },`);
     push('        ];');
+    push('        const labels = new Map(fields.map(f => [f.path, f.label]));');
     push('        const groups = [');
     for (const g of plan.groups) {
         if (!g.label.text) continue;
-        const first = plan.fields.find((f) => f.groups.some((pg) => pg.path === g.path));
-        if (first) push(`            { label: ${text(g.label)}, firstField: ${q(first.path)} },`);
+        if (plan.fields.some(f => f.groups.some(pg => pg.path === g.path))) {
+            push(`            { path: ${q(g.path)}, label: ${text(g.label)} },`);
+        }
     }
     push('        ];');
     push('        while (await walk.previousStep()) { /* Start at the first page. */ }');
     push('        do {');
     push('            const live = await walk.state();');
-    push("            const here = (p: string) => live.filter((f) => f.path.replace(/\\[\\d+\\]/g, '') === p).map((f) => f.path);");
-    push('            await walk.readingOrder(fields.flatMap((f) => here(f.path).map((path) => ({ path, label: f.label }))), groups.flatMap((g) => here(g.firstField).slice(0, 1).map((firstField) => ({ label: g.label, firstField }))));');
-    push('            await walk.tabOrder(fields.flatMap((f) => here(f.path)));');
+    push('            const ordered = orderFieldPaths([...labels.keys()], live.filter(f => f.relevant && f.inDom).map(f => f.path));');
+    push("            const authoredPath = (path: string) => path.replace(/\\[\\d+\\]/g, '');");
+    push('            await walk.readingOrder(ordered.map(path => ({ path, label: labels.get(authoredPath(path))! })), groups.flatMap(g => {');
+    push("                const firstField = ordered.find(path => authoredPath(path).startsWith(g.path + '.'));");
+    push('                return firstField ? [{ label: g.label, firstField }] : [];');
+    push('            }));');
+    push('            await walk.tabOrder(ordered);');
     push('        } while (await walk.nextStep());');
     push('        walk.expectClean();');
     push('    });');

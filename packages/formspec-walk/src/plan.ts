@@ -1,6 +1,6 @@
 /** @filedesc Definition → accessibility walk plan: the names, states and structure a rendered form must present, from the documents alone. */
 import { UI_STRINGS, fillUiParams, planDefinitionLayout, type LayoutNode } from '@formspec-org/layout';
-import type { ComponentDocument, FormDefinition, FormItem, LocaleDocument, OptionEntry, ThemeDocument } from '@formspec-org/types';
+import { Path, PathSegmentKind, type ComponentDocument, type FormDefinition, type FormItem, type LocaleDocument, type OptionEntry, type ThemeDocument } from '@formspec-org/types';
 
 /** A string the documents promise. `pattern` stands in when the source interpolates `{{…}}` at runtime. */
 export interface ExpectedText {
@@ -95,6 +95,41 @@ export function expected(raw: string): ExpectedText {
 export function matches(actual: string, want: ExpectedText): boolean {
     const a = actual.replace(/\s+/g, ' ').trim();
     return want.pattern ? want.pattern.test(a) : a === want.text;
+}
+
+/** Expand the Definition's field order one concrete row at a time, including nested repeats. */
+export function orderFieldPaths(authored: readonly string[], live: readonly string[]): string[] {
+    const fields = new Set(authored);
+    const positions = new Map<string, number>();
+    for (const path of authored) {
+        let prefix = '';
+        for (const key of path.split('.')) {
+            prefix = prefix ? `${prefix}.${key}` : key;
+            if (!positions.has(prefix)) positions.set(prefix, positions.size);
+        }
+    }
+    const ranked = live.flatMap(path => {
+        const parsed = Path.parse(path);
+        if (!fields.has(parsed.stripIndices())) return [];
+        let prefix = '';
+        const rank: number[] = [];
+        for (const segment of parsed.segments) {
+            if (segment.kind === PathSegmentKind.Exact) {
+                prefix = prefix ? `${prefix}.${segment.key}` : segment.key;
+                rank.push(positions.get(prefix)!);
+            } else if (segment.kind === PathSegmentKind.Indexed) {
+                rank.push(segment.index);
+            }
+        }
+        return [{ path, rank }];
+    });
+    ranked.sort((a, b) => {
+        for (let i = 0; i < Math.min(a.rank.length, b.rank.length); i += 1) {
+            if (a.rank[i] !== b.rank[i]) return a.rank[i] - b.rank[i];
+        }
+        return a.rank.length - b.rank.length;
+    });
+    return ranked.map(field => field.path);
 }
 
 /** Locale §3.1 string cascade for one Definition-targeted document: a key wins, else the inline text. */

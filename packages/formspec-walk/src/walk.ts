@@ -1,7 +1,7 @@
 /** @filedesc The generic walk: every check the plan asks for, over every wizard step, in one run. */
 import type { Page } from '@playwright/test';
 import { Walk, type FieldWant, type OpenOptions } from './checks.js';
-import type { Plan, PlanField } from './plan.js';
+import { orderFieldPaths, type Plan, type PlanField } from './plan.js';
 
 export interface WalkReport {
     locale: string;
@@ -32,27 +32,23 @@ export async function walkDefinition(page: Page, plan: Plan, options: OpenOption
         uncovered: walk.uncovered, intentionallyHidden: walk.intentionallyHidden, findings: walk.findings };
     for (const u of plan.uncovered) walk.uncover(u);
     const byBase = new Map(plan.fields.map((f) => [f.path, f]));
-    const order = new Map(plan.fields.map((f, i) => [f.path, i]));
+    const authoredPaths = [...byBase.keys()];
     const covered = new Set<string>();
     const everVisible = new Set<string>();
 
     while (await walk.previousStep()) { /* A form can open on a later authored tab. */ }
     do {
         report.steps += 1;
-        // Plan order, instances by index — the engine lists paths alphabetically.
-        const live = (await walk.state())
-            .filter((f) => order.has(baseOf(f.path)))
-            .sort((a, b) => (order.get(baseOf(a.path))! - order.get(baseOf(b.path))!) || a.path.localeCompare(b.path, undefined, { numeric: true }));
-        const visible = live.filter((f) => f.relevant && f.inDom);
-        for (const f of visible) everVisible.add(f.path);
+        const visible = orderFieldPaths(authoredPaths, (await walk.state()).filter(f => f.relevant && f.inDom).map(f => f.path));
+        for (const path of visible) everVisible.add(path);
 
         // Every group heads its first visible field on this step.
         const groups = new Map<string, { label: Plan['groups'][number]['label']; firstField: string }>();
-        for (const f of visible) for (const g of byBase.get(baseOf(f.path))!.groups) if (g.label.text && !groups.has(g.path)) groups.set(g.path, { label: g.label, firstField: f.path });
-        await walk.readingOrder(visible.map((f) => ({ path: f.path, label: byBase.get(baseOf(f.path))!.label })), [...groups.values()]);
+        for (const path of visible) for (const g of byBase.get(baseOf(path))!.groups) if (g.label.text && !groups.has(g.path)) groups.set(g.path, { label: g.label, firstField: path });
+        await walk.readingOrder(visible.map(path => ({ path, label: byBase.get(baseOf(path))!.label })), [...groups.values()]);
 
-        await walk.tabOrder(visible.map((f) => f.path), Object.fromEntries(visible.map((f) => [f.path, fieldWant(byBase.get(baseOf(f.path))!)])));
-        for (const f of visible) { covered.add(baseOf(f.path)); report.fields += 1; }
+        await walk.tabOrder(visible, Object.fromEntries(visible.map(path => [path, fieldWant(byBase.get(baseOf(path))!)])));
+        for (const path of visible) { covered.add(baseOf(path)); report.fields += 1; }
 
     } while (await walk.nextStep());
 

@@ -1,5 +1,5 @@
 /** @filedesc @formspec-org/walk — the Definition walk: checks derived from a Definition, Locale and Theme, run generically or emitted as a readable spec. */
-export { derivePlan, expected, matches, stripMarkdown } from './plan.js';
+export { derivePlan, expected, matches, orderFieldPaths, stripMarkdown } from './plan.js';
 export type { ExpectedText, Plan, PlanDocuments, PlanField, PlanGroup, PlanOption, PlanRepeat } from './plan.js';
 export { Walk, DEFAULT_WALK_ROOT_SELECTOR } from './checks.js';
 export type { FieldWant, LiveField, OpenOptions, RepeatWant, RevealWant, SummaryRowWant, Text } from './checks.js';

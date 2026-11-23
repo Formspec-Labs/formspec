@@ -5,7 +5,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import type { FormDefinition, LocaleDocument } from '@formspec-org/types';
-import { derivePlan, emitSpec, expected, matches, stripMarkdown } from '../src/index.js';
+import { derivePlan, emitSpec, expected, matches, orderFieldPaths, stripMarkdown } from '../src/index.js';
 // @ts-expect-error — untyped CLI bin module exported for unit testing
 import { planA11yChecks, readPackageForms } from '../bin/formspec-walk.mjs';
 
@@ -180,6 +180,14 @@ afterAll(() => {
 });
 
 describe('plan derivation', () => {
+    it('orders concrete outer and inner rows numerically within the Definition tree', () => {
+        const paths = ['people[10].name', 'people[2].addresses[3].zip', 'people[2].name',
+            'people[2].addresses[2].zip', 'people[2].addresses[2].street'];
+        expect(orderFieldPaths(['people.name', 'people.addresses.street', 'people.addresses.zip'], paths)).toEqual([
+            'people[2].name', 'people[2].addresses[2].street', 'people[2].addresses[2].zip',
+            'people[2].addresses[3].zip', 'people[10].name',
+        ]);
+    });
     it('reads labels, required, options, groups and repeat chrome from the Definition alone', () => {
         const plan = derivePlan(KITCHEN_SINK);
         const byPath = new Map(plan.fields.map((f) => [f.path, f]));

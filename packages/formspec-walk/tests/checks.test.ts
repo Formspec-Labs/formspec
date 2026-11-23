@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { chromium, type Browser } from '@playwright/test';
 import { renderHostPage } from '@formspec-org/webcomponent/host';
 import { afterAll, beforeAll, expect, it } from 'vitest';
-import { Walk } from '../src/index.js';
+import { orderFieldPaths, Walk } from '../src/index.js';
 import virtualBuild from '../src/virtual-build.cjs';
 
 const date = (key: string) => ({ key, type: 'field', dataType: 'date', label: 'Visit date:' });
@@ -26,13 +26,20 @@ const definition = {
         { path: 'hidden', relevant: 'false' }, { path: 'unknown', relevant: "$kind = 'unknown'" },
     ],
 };
+const orderDefinition = { ...definition, binds: [], items: [{
+    key: 'visits', type: 'group', label: 'Visits', repeatable: true, minRepeat: 2, children: [
+        { key: 'lastName', type: 'field', dataType: 'string', label: 'Last name' },
+        { key: 'firstName', type: 'field', dataType: 'string', label: 'First name' },
+    ],
+}] };
 
 let browser: Browser;
 const http = createServer((req, res) => {
     if (req.url === '/reader.js') {
         res.writeHead(200, { 'content-type': 'text/javascript' }).end(readFileSync(virtualBuild.virtualBrowserBuild()));
     } else {
-        res.writeHead(200, { 'content-type': 'text/html' }).end(renderHostPage({ definition } as never));
+        res.writeHead(200, { 'content-type': 'text/html' })
+            .end(renderHostPage({ definition: req.url === '/ordered' ? orderDefinition : definition } as never));
     }
 });
 beforeAll(async () => {
@@ -41,15 +48,33 @@ beforeAll(async () => {
 });
 afterAll(async () => { await browser?.close(); http.close(); });
 
-async function open() {
+async function open(path = '/') {
     const page = await browser.newPage({ bypassCSP: true });
     const url = `http://127.0.0.1:${(http.address() as { port: number }).port}/`;
-    await page.goto(url);
+    await page.goto(new URL(path, url).href);
     // Vitest rewrites dynamic imports in page.evaluate callbacks. Load the same reader as a browser module.
     await page.addScriptTag({ type: 'module', content: "import { virtual } from '/reader.js'; window.__formspecVirtualScreenReader = virtual;" });
     await page.waitForFunction(() => Boolean(window.__formspecVirtualScreenReader));
     return { page, walk: await Walk.open(page, {}) };
 }
+
+it('reads and tabs through one complete repeat row before the next', async () => {
+    const { page, walk } = await open('/ordered');
+    const authored = ['visits.lastName', 'visits.firstName'];
+    const label = (path: string) => path.endsWith('.lastName') ? 'Last name' : 'First name';
+    try {
+        const live = (await walk.state()).map(f => f.path);
+        const oldFieldOrder = authored.flatMap(p => live.filter(path => path.replace(/\[\d+\]/g, '') === p));
+        await walk.readingOrder(oldFieldOrder.map(path => ({ path, label: label(path) })));
+        expect(walk.findings).toContain('visits[0].firstName: read before the field the Definition puts ahead of it');
+        const fixed = await Walk.open(page, {});
+        const ordered = orderFieldPaths(authored, live);
+        expect(ordered).toEqual(['visits[0].lastName', 'visits[0].firstName', 'visits[1].lastName', 'visits[1].firstName']);
+        await fixed.readingOrder(ordered.map(path => ({ path, label: label(path) })));
+        await fixed.tabOrder(ordered);
+        fixed.expectClean();
+    } finally { await page.close(); }
+});
 
 it('checks a disabled choice in reading order without requiring focus and leaves optional wording alone', async () => {
     const { page, walk } = await open();
