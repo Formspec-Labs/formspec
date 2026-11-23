@@ -113,3 +113,20 @@ it('reuses a proven reveal for siblings and restores the original draft', () => 
         engine.dispose();
     }
 });
+
+it('checks a named value beyond the search budget of a large choice list', () => {
+    const options = Array.from({ length: 300 }, (_, i) => ({ value: 'option-' + i, label: 'Option ' + i }));
+    const engine = createFormEngine({
+        $formspec: '1.0', url: 'urn:example:large-choice', version: '1.0.0', title: 'Large choice',
+        items: [{ key: 'picks', type: 'field', dataType: 'multiChoice', label: 'Pick', options },
+            { key: 'detail', type: 'field', dataType: 'string', label: 'Detail' }],
+        binds: [{ path: 'detail', relevant: "selected($picks ?? [], 'option-299')" }],
+    });
+    try {
+        const recipe = revealSearch(engine, 'detail', {});
+        expect(recipe?.map(({ path, value }) => ({ path, value }))).toEqual([{ path: 'picks', value: ['option-299'] }]);
+        expect(engine.isPathRelevant('detail')).toBe(true);
+    } finally {
+        engine.dispose();
+    }
+});

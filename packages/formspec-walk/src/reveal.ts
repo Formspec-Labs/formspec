@@ -55,9 +55,13 @@ export function revealSearch(
 
     // Only what can be enumerated: a choice's options, a boolean's two values. A date or a text has no
     // value the documents name, so it is never guessed.
-    function* candidates(dep: string): Iterable<unknown> {
+    function* candidates(dep: string, expression: string): Iterable<unknown> {
         const field = engine.getFieldVM(dep);
-        const opts = optionValues[baseOf(dep)] ?? engine.getOptions(dep)?.map((o) => o.value) ?? [];
+        const available = optionValues[baseOf(dep)] ?? engine.getOptions(dep)?.map((o) => o.value) ?? [];
+        // Try declared string literals early. Only a live relevance check can accept an answer.
+        const named = available.filter(value => typeof value === 'string'
+            && (expression.includes(`'${value}'`) || expression.includes(JSON.stringify(value))));
+        const opts = named.length ? [...named, ...available.filter(value => !named.includes(value))] : available;
         if (field?.dataType === 'multiChoice') {
             const value = field.value?.value;
             const selected: unknown[] = Array.isArray(value) ? value : [];
@@ -123,7 +127,7 @@ export function revealSearch(
                 const [dep, ...rest] = drivers;
                 const checkpoint = applied.length;
                 if (!enable(dep)) return false;
-                for (const value of candidates(dep)) {
+                for (const value of candidates(dep, why.expression ?? '')) {
                     if (!editsLeft) break;
                     if (!engine.isPathRelevant(dep)) break;
                     const before = applied.length;
