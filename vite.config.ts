@@ -33,6 +33,15 @@ export default defineConfig({
       },
     },
     {
+      name: 'serve-surface-history-fixture',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          req.url = req.url?.replace(/^\/surface-browser-history\/[^?]*/, '/surface-browser.html');
+          next();
+        });
+      },
+    },
+    {
       name: 'serve-examples',
       configureServer(server) {
         const MIME: Record<string, string> = { '.json': 'application/json', '.csv': 'text/csv', '.xml': 'application/xml', '.css': 'text/css' };

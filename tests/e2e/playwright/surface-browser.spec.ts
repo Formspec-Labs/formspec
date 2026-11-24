@@ -114,19 +114,16 @@ test('hash anchors use native focus and keep the routed form through history and
 });
 
 test('history links reload under a base path and modified clicks leave the original page', async ({ page, context }) => {
-  // Serve the app shell for all document addresses under the history mount.
-  await context.route('**/surface-browser-history/**', async route => {
-    const url = new URL('/surface-browser.html', route.request().url());
-    await route.fulfill({ response: await route.fetch({ url: url.href }) });
-  });
   await page.goto('/surface-browser-history/');
   const filing = page.getByRole('link', { name: 'Filing', exact: true });
-  await expect(filing).toHaveAttribute('href', '/surface-browser-history/filing/ny');
+  const destination = '/surface-browser-history/filing/ny';
+  await expect(filing).toHaveAttribute('href', destination);
   const modifier = await page.evaluate(() => navigator.platform.startsWith('Mac') ? 'Meta' : 'Control');
   const [opened] = await Promise.all([
     context.waitForEvent('page'),
     filing.click({ modifiers: [modifier] }),
   ]);
+  await expect(opened).toHaveURL(destination);
   await expect(opened.getByRole('textbox', { name: 'Contact name' })).toBeVisible();
   await expect(page).toHaveURL(/\/surface-browser-history\/$/);
 

@@ -1,14 +1,15 @@
 /** @filedesc Pack the neutral browser fixture and its portable desktop test driver. */
-import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { build } from 'vite';
 
 if (!process.argv[2]) throw new Error('usage: node scripts/pack-native-date-speech.mjs <output directory>');
 const output = resolve(process.argv[2]);
 if (existsSync(output)) throw new Error(`Choose a new output directory: ${output}`);
 
-const packages = new Map();
+const installedModules = realpathSync('node_modules');
+const packages = new Set();
 function include(name, requireFrom) {
   let source = dirname(requireFrom.resolve(name));
   let metadata;
@@ -22,11 +23,8 @@ function include(name, requireFrom) {
     if (parent === source) throw new Error(`Cannot locate the installed manifest for ${name}`);
     source = parent;
   }
-  if (packages.has(name)) {
-    if (packages.get(name) !== source) throw new Error(`The test driver resolves two copies of ${name}`);
-    return;
-  }
-  packages.set(name, source);
+  if (packages.has(source)) return;
+  packages.add(source);
   const childRequire = createRequire(join(source, 'package.json'));
   // All required dependencies, including both of Guidepup's peer dependencies. Platform-specific
   // optional packages (such as fsevents for Playwright watch mode) do not ship in this runner.
@@ -37,8 +35,13 @@ function include(name, requireFrom) {
 }
 
 include('@guidepup/playwright', createRequire(import.meta.url));
-for (const [name, source] of packages) {
-  const target = join(output, 'node_modules', name);
+for (const source of packages) {
+  const path = relative(installedModules, source);
+  if (!path || path === '..' || path.startsWith(`..${sep}`) || isAbsolute(path)) {
+    throw new Error(`The test driver dependency is outside node_modules: ${source}`);
+  }
+  // Preserve each dependency's Node resolution path, including nested versions.
+  const target = join(output, 'node_modules', path);
   mkdirSync(dirname(target), { recursive: true });
   cpSync(source, target, {
     recursive: true,
