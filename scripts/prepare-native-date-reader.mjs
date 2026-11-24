@@ -1,10 +1,12 @@
-/** @filedesc Fetch the OS reader asset pinned by the packed Guidepup driver. */
+/** @filedesc Prepare the OS reader pinned by the packed Guidepup driver. */
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { access, mkdir, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { release } from 'node:os';
+import { homedir, release } from 'node:os';
 import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const cache = process.env.GUIDEPUP_SCREEN_READERS_PATH;
 if (!cache) throw new Error('Set GUIDEPUP_SCREEN_READERS_PATH to the runner’s reader cache');
@@ -33,3 +35,27 @@ if (reader.id === 'nvda') {
   await access(join(extracted, 'nvda.exe'));
 }
 console.log(`Prepared ${reader.name} ${asset.version} from ${asset.repository}`);
+
+if (reader.id === 'voiceover' && process.env.GITHUB_ACTIONS === 'true') {
+  const library = join(homedir(), 'Library');
+  const groupPreferences = join(library, 'Group Containers', 'group.com.apple.VoiceOver', 'Library', 'Preferences');
+  const localPreferences = () => join(
+    existsSync(groupPreferences) ? groupPreferences : join(library, 'Preferences'),
+    'com.apple.VoiceOver4.local.plist',
+  );
+  if (!existsSync(localPreferences())) {
+    // The first launch creates the local preferences that Guidepup reads before it mounts the DMG.
+    execFileSync('/System/Library/CoreServices/VoiceOver.app/Contents/MacOS/VoiceOverStarter', [], {
+      stdio: 'inherit',
+      timeout: 5_000,
+    });
+    const deadline = performance.now() + 10_000;
+    while (!existsSync(localPreferences())) {
+      if (performance.now() >= deadline) {
+        throw new Error(`VoiceOver did not create local preferences within 10 seconds: ${localPreferences()}`);
+      }
+      await delay(100);
+    }
+  }
+  console.log('VoiceOver local preferences are ready');
+}
