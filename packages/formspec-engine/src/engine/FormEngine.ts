@@ -206,6 +206,8 @@ export class FormEngine implements IFormEngine {
     private readonly _labelContextSignal: EngineSignal<string | null>;
 
     private readonly _data: JsonRecord = Object.create(null);
+    /** Undeclared properties captured from loaded Response data, keyed by Response `data` scope path. */
+    private readonly _undeclaredData = new Map<string, Map<string, JsonValue>>();
     private _previousEvalResult: EvalResult | null = null;
     private _fullResult: EvalResult | null = null;
     // Keep the exact rejected input across report profiles and host-only updates.
@@ -491,7 +493,13 @@ export class FormEngine implements IFormEngine {
             this._failedSeedPaths.delete(path);
             for (const pending of created.pending) this._pendingCreationPaths.add(pending);
             this.appendRepeatRow(path, item);
-            this.loadItemsData(item.children ?? [], created.data, `${path}[${index}]`);
+            this.loadItemsData(
+                item.children ?? [],
+                created.data,
+                `${path}[${index}]`,
+                false,
+                `${this.dataPathOfModelPath(path)}[${index}]`,
+            );
             this._evaluate();
         });
         return index;
@@ -546,6 +554,7 @@ export class FormEngine implements IFormEngine {
             path => this._data[path],
             path => this._pendingCreationPaths.has(path) || this._failedSeedPaths.has(path)
                 ? undefined : this.repeats[path].value,
+            scopePath => this._undeclaredData.get(scopePath)?.entries() ?? [],
         );
     }
 
@@ -693,37 +702,194 @@ export class FormEngine implements IFormEngine {
         if (!isJsonRecord(snapshot.data)) throw new TypeError('Draft data must be a JSON object');
     }
 
-    private loadItemsData(items: FormItem[], data: JsonRecord, prefix: string, replace = false): void {
-        for (const item of items) {
-            const present = Object.prototype.hasOwnProperty.call(data, item.key);
-            const path = prefix ? `${prefix}.${item.key}` : item.key;
-            const value = present ? data[item.key] : undefined;
-            if (item.type === 'field') {
-                if ((present || replace) && !this.isCalculated(path)) {
-                    this.storeFieldValue(path, value);
-                    if (replace) this.writeSources[path].value = null;
-                }
-                this.loadItemsData(item.children ?? [], data, path, replace);
-            } else if (item.type === 'group' && (present || replace)) {
-                if (item.repeatable) {
-                    const rows = Array.isArray(value) ? value : [];
-                    if (this.repeats[path].value > rows.length) {
-                        this.clearRepeatSubtree(path, rows.length);
-                        this.repeats[path].value = rows.length;
-                        this._draftEditDirty = true;
-                        this.structureVersion.value += 1;
-                    }
-                    while (this.repeats[path].value < rows.length) {
-                        this.appendRepeatRow(path, item);
-                    }
-                    rows.forEach((row, index) => {
-                        this.loadItemsData(item.children ?? [], isJsonRecord(row) ? row : {}, `${path}[${index}]`, replace);
-                    });
-                } else {
-                    this.loadItemsData(item.children ?? [], isJsonRecord(value) ? value : {}, path, replace);
+    private loadItemsData(
+        items: FormItem[],
+        data: JsonRecord,
+        prefix: string,
+        replace = false,
+        dataScope = '',
+    ): void {
+        if (replace && dataScope === '') {
+            this._undeclaredData.clear();
+        }
+        const fields: Array<{ item: FormItem; modelPath: string }> = [];
+        const fieldByKey = new Map<string, { item: FormItem; modelPath: string }>();
+        const groups: Array<{ item: FormItem; modelPath: string; dataPath: string }> = [];
+        const groupByKey = new Map<string, { item: FormItem; modelPath: string; dataPath: string }>();
+
+        const collectScope = (list: FormItem[], modelPrefix: string): void => {
+            for (const item of list) {
+                if (item.type === 'display') continue;
+                const modelPath = modelPrefix ? `${modelPrefix}.${item.key}` : item.key;
+                if (item.type === 'field') {
+                    const entry = { item, modelPath };
+                    fields.push(entry);
+                    fieldByKey.set(item.key, entry);
+                    collectScope(item.children ?? [], modelPath);
+                } else if (item.type === 'group') {
+                    const dataPath = dataScope ? `${dataScope}.${item.key}` : item.key;
+                    const entry = { item, modelPath, dataPath };
+                    groups.push(entry);
+                    groupByKey.set(item.key, entry);
                 }
             }
+        };
+        collectScope(items, prefix);
+
+        const hasDependentItem = (list: FormItem[], key: string): boolean => list.some(
+            item => (item.type !== 'display' && item.key === key)
+                || (item.type === 'field' && hasDependentItem(item.children ?? [], key)),
+        );
+
+        const fieldValues = new Map<string, JsonValue>();
+        const groupObjects = new Map<string, JsonRecord>();
+        const groupRows = new Map<string, JsonRecord[]>();
+        const undeclared = new Map<string, JsonValue>();
+
+        const placeEntry = (rawKey: string, rawVal: JsonValue): void => {
+            const directField = fieldByKey.get(rawKey);
+            if (directField) {
+                fieldValues.set(directField.modelPath, rawVal);
+                return;
+            }
+            const directGroup = groupByKey.get(rawKey);
+            if (directGroup) {
+                if (directGroup.item.repeatable) {
+                    const rows = groupRows.get(rawKey) ?? [];
+                    if (Array.isArray(rawVal)) {
+                        for (let i = 0; i < rawVal.length; i += 1) {
+                            while (rows.length <= i) rows.push({});
+                            const row = rawVal[i];
+                            if (isJsonRecord(row)) Object.assign(rows[i], row);
+                        }
+                    }
+                    groupRows.set(rawKey, rows);
+                } else {
+                    const obj = groupObjects.get(rawKey) ?? {};
+                    if (isJsonRecord(rawVal)) Object.assign(obj, rawVal);
+                    groupObjects.set(rawKey, obj);
+                }
+                return;
+            }
+            const dot = rawKey.indexOf('.');
+            const segment = dot === -1 ? rawKey : rawKey.slice(0, dot);
+            const rest = dot === -1 ? undefined : rawKey.slice(dot + 1);
+            const indexed = /^([^[\]]+)\[(\d+)\]$/.exec(segment);
+            const name = indexed ? indexed[1] : segment;
+            const index = indexed ? Number(indexed[2]) : undefined;
+
+            const flatGroup = groupByKey.get(name);
+            if (flatGroup) {
+                if (flatGroup.item.repeatable && index !== undefined) {
+                    const rows = groupRows.get(name) ?? [];
+                    while (rows.length <= index) rows.push({});
+                    if (rest !== undefined) {
+                        rows[index][rest] = rawVal;
+                    } else if (isJsonRecord(rawVal)) {
+                        Object.assign(rows[index], rawVal);
+                    }
+                    groupRows.set(name, rows);
+                    return;
+                }
+                if (!flatGroup.item.repeatable && index === undefined && rest !== undefined) {
+                    const obj = groupObjects.get(name) ?? {};
+                    obj[rest] = rawVal;
+                    groupObjects.set(name, obj);
+                    return;
+                }
+            }
+
+            const flatField = fieldByKey.get(name);
+            if (flatField && index === undefined && rest !== undefined) {
+                const nextSeg = rest.includes('.') ? rest.slice(0, rest.indexOf('.')) : rest;
+                const nextName = nextSeg.replace(/\[\d+\]$/, '');
+                if (hasDependentItem(flatField.item.children ?? [], nextName)) {
+                    placeEntry(rest, rawVal);
+                    return;
+                }
+            }
+
+            undeclared.set(rawKey, cloneValue(rawVal));
+        };
+
+        for (const [key, value] of Object.entries(data)) {
+            placeEntry(key, value);
         }
+
+        if (undeclared.size > 0) {
+            let bucket = this._undeclaredData.get(dataScope);
+            if (!bucket) {
+                bucket = new Map();
+                this._undeclaredData.set(dataScope, bucket);
+            }
+            for (const [key, value] of undeclared) {
+                bucket.set(key, value);
+            }
+        }
+
+        for (const { modelPath } of fields) {
+            const present = fieldValues.has(modelPath);
+            if ((present || replace) && !this.isCalculated(modelPath)) {
+                this.storeFieldValue(modelPath, present ? fieldValues.get(modelPath) : undefined);
+                if (replace) this.writeSources[modelPath].value = null;
+            }
+        }
+
+        for (const { item, modelPath, dataPath } of groups) {
+            if (item.repeatable) {
+                const present = groupRows.has(item.key);
+                if (!present && !replace) continue;
+                const rows = groupRows.get(item.key) ?? [];
+                if (this.repeats[modelPath].value > rows.length) {
+                    this.clearRepeatSubtree(modelPath, rows.length);
+                    this.repeats[modelPath].value = rows.length;
+                    this._draftEditDirty = true;
+                    this.structureVersion.value += 1;
+                }
+                while (this.repeats[modelPath].value < rows.length) {
+                    this.appendRepeatRow(modelPath, item);
+                }
+                rows.forEach((row, index) => {
+                    this.loadItemsData(
+                        item.children ?? [],
+                        row,
+                        `${modelPath}[${index}]`,
+                        replace,
+                        `${dataPath}[${index}]`,
+                    );
+                });
+            } else {
+                const present = groupObjects.has(item.key);
+                if (!present && !replace) continue;
+                this.loadItemsData(
+                    item.children ?? [],
+                    groupObjects.get(item.key) ?? {},
+                    modelPath,
+                    replace,
+                    dataPath,
+                );
+            }
+        }
+    }
+
+    /** Translate a Definition model path (which includes scalar field ancestors) to a Response `data` scope path. */
+    private dataPathOfModelPath(modelPath: string): string {
+        if (!modelPath) return '';
+        const parts = modelPath.split('.');
+        let currentModel = '';
+        const dataParts: string[] = [];
+        for (const part of parts) {
+            const indexed = /^([^[\]]+)(\[\d+\])$/.exec(part);
+            const key = indexed ? indexed[1] : part;
+            const suffix = indexed ? indexed[2] : '';
+            const baseModel = currentModel ? `${currentModel}.${key}` : key;
+            const item = this._groupItems.get(toBasePath(baseModel));
+            currentModel = currentModel ? `${currentModel}.${part}` : part;
+            if (item?.type === 'group') {
+                dataParts.push(`${key}${suffix}`);
+            }
+        }
+        return dataParts.join('.');
     }
 
     private creationContext(pendingPaths?: string[]) {
@@ -786,7 +952,24 @@ export class FormEngine implements IFormEngine {
         }
 
         this._rx.batch(() => {
+            const repeatDataPath = this.dataPathOfModelPath(path);
+            const dataPrefix = `${repeatDataPath}[`;
+            const shiftedUndeclared: Array<[string, Map<string, JsonValue>]> = [];
+            for (const [scope, bucket] of this._undeclaredData.entries()) {
+                if (!scope.startsWith(dataPrefix)) continue;
+                const end = scope.indexOf(']', dataPrefix.length);
+                if (end === -1) continue;
+                const row = Number(scope.slice(dataPrefix.length, end));
+                if (row === removedIndex) continue;
+                const nextScope = row > removedIndex
+                    ? `${dataPrefix}${row - 1}${scope.slice(end)}`
+                    : scope;
+                shiftedUndeclared.push([nextScope, new Map(bucket)]);
+            }
             this.clearRepeatSubtree(path);
+            for (const [nextScope, bucket] of shiftedUndeclared) {
+                this._undeclaredData.set(nextScope, bucket);
+            }
             this.repeats[path].value = rows.length;
             for (const [index, row] of rows.entries()) {
                 const rowPath = `${path}[${index}]`;
@@ -2298,6 +2481,19 @@ export class FormEngine implements IFormEngine {
         for (const key of this._itemHelpTextSignals.keys()) {
             if (includesPath(key.slice(key.indexOf(':') + 1))) {
                 this._itemHelpTextSignals.delete(key);
+            }
+        }
+        const repeatDataPath = this.dataPathOfModelPath(rootRepeatPath);
+        const dataPrefix = `${repeatDataPath}[`;
+        for (const scope of [...this._undeclaredData.keys()]) {
+            if (scope.startsWith(dataPrefix)) {
+                const end = scope.indexOf(']', dataPrefix.length);
+                if (end !== -1) {
+                    const row = Number(scope.slice(dataPrefix.length, end));
+                    if (firstIndex === 0 || row >= firstIndex) {
+                        this._undeclaredData.delete(scope);
+                    }
+                }
             }
         }
         clearRepeatIndexedSubtree({

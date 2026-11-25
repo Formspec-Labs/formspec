@@ -346,6 +346,17 @@ export function wasmCoerceFieldValue(
     return wasm().coerceFieldValue(itemJson, bindJson, definitionJson, valueJson);
 }
 
+/** Canonicalize Response `data` against a Definition's declared fields and authored Binds. */
+export function wasmCanonicalizeResponseData<T = import('./interfaces.js').JsonRecord>(
+    definition: unknown,
+    data: T,
+): T {
+    return parseWasmJson(wasm().canonicalizeResponseData(
+        JSON.stringify(definition),
+        JSON.stringify(data),
+    ));
+}
+
 /** Extract field path dependencies from a FEL expression. Returns an array of path strings. */
 export function wasmGetFelDependencies(expression: string): string[] {
     const resultJson = wasm().getFelDependencies(expression);
@@ -464,6 +475,8 @@ type WasmEvaluation = {
     values: any;
     /** The Response projection of `values` after `nonRelevantBehavior`: groups are objects, repeats are arrays of row objects. */
     data: any;
+    /** Sorted Response `data` instance paths present in the input that no Definition Item declares. */
+    undeclaredDataPaths: string[];
     validations: any[];
     explanationFindings?: import('./engine/warning-explanations.js').ExplanationFinding[];
     candidateExplanations?: import('./engine/warning-explanations.js').DraftExplanation[];
@@ -521,7 +534,9 @@ function runWasmEvaluation(
         context ? JSON.stringify(context) : undefined,
         extensions,
     );
-    return parseWasmJson(resultJson);
+    const parsed = parseWasmJson(resultJson) as WasmEvaluation;
+    parsed.undeclaredDataPaths ??= [];
+    return parsed;
 }
 
 /**

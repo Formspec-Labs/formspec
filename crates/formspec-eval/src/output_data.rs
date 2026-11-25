@@ -6,11 +6,11 @@
 //! the evaluated item tree and the post-NRB `values`, so `nonRelevantBehavior` shapes it exactly as
 //! it shapes the serialized output. It is the inverse of [`crate::rebuild::flatten_response_data`].
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use fel_core::exact_json::{Map, Value};
 
-use crate::rebuild::rebuild_item_tree;
+use crate::rebuild::{DataStep, UndeclaredEntry, rebuild_item_tree};
 use crate::scope::RowCounts;
 use crate::types::{ItemInfo, NrbMode};
 
@@ -95,25 +95,20 @@ fn group_matches(item: &ItemInfo, filed: Option<&Value>, evaluated: &Value) -> b
     }
 }
 
-/// Build the nested projection of `values` through the evaluated `items`.
+/// Build the nested projection of `values` through the evaluated `items`, preserving any
+/// undeclared input properties at their exact arrival scopes.
 pub(crate) fn build_output_data(
     items: &[ItemInfo],
     counts: &RowCounts,
     values: &HashMap<String, Value>,
+    undeclared: &[UndeclaredEntry],
     default_nrb: &str,
 ) -> Value {
-    let mut covered = HashSet::new();
     let mut root = Map::new();
     let inherited = NrbMode::from_str_lossy(default_nrb);
-    emit(items, counts, values, inherited, &mut covered, &mut root);
-    // Keys no Item names (additional properties the input carried) keep their place: dotted paths nest.
-    let mut extras: Vec<&String> = values
-        .keys()
-        .filter(|path| !covered.contains(path.as_str()))
-        .collect();
-    extras.sort();
-    for path in extras {
-        insert_extra(&mut root, path, values[path].clone());
+    emit(items, counts, values, inherited, &mut root);
+    for entry in undeclared {
+        insert_undeclared(&mut root, entry);
     }
     Value::Object(root)
 }
@@ -126,27 +121,22 @@ fn emit(
     counts: &RowCounts,
     values: &HashMap<String, Value>,
     inherited: NrbMode,
-    covered: &mut HashSet<String>,
     into: &mut Map<String, Value>,
 ) {
     for item in items {
         let mode = item.nrb.unwrap_or(inherited);
         match (item.item_type.as_str(), item.repeatable) {
-            ("display", _) => {
-                covered.insert(item.path.clone());
-            }
+            ("display", _) => {}
             ("group", false) => {
                 // A group's own path is never an answer: `empty` nulls it in `values`, and that null
                 // must not replace the group's object.
-                covered.insert(item.path.clone());
                 let mut object = Map::new();
-                emit(&item.children, counts, values, mode, covered, &mut object);
+                emit(&item.children, counts, values, mode, &mut object);
                 if !object.is_empty() {
                     into.insert(item.key.clone(), Value::Object(object));
                 }
             }
             ("group", true) => {
-                covered.insert(item.path.clone());
                 // Rows come from the post-NRB `values`, so each leaf's most specific behavior already
                 // applied: `empty` left null leaves, `keep` the answers, `remove` nothing.
                 let count = counts.get(&item.path).copied().unwrap_or(0) as usize;
@@ -166,7 +156,6 @@ fn emit(
                         counts,
                         values,
                         mode,
-                        covered,
                         &mut rows[index],
                     );
                 }
@@ -182,38 +171,52 @@ fn emit(
                 );
             }
             _ => {
-                covered.insert(item.path.clone());
                 if let Some(value) = values.get(&item.path) {
                     into.insert(item.key.clone(), value.clone());
                 }
                 // Dependent questions share the parent's object because a scalar cannot contain children.
-                emit(&item.children, counts, values, mode, covered, into);
+                emit(&item.children, counts, values, mode, into);
             }
         }
     }
 }
 
-fn insert_extra(root: &mut Map<String, Value>, path: &str, value: Value) {
-    if path.contains('[') {
-        root.insert(path.to_string(), value);
-        return;
-    }
-    let mut segments = path.split('.').peekable();
+fn insert_undeclared(root: &mut Map<String, Value>, entry: &UndeclaredEntry) {
     let mut cursor = root;
-    while let Some(segment) = segments.next() {
-        if segments.peek().is_none() {
-            cursor.insert(segment.to_string(), value);
-            return;
+    for step in &entry.scope {
+        match step {
+            DataStep::Group(key) => {
+                if cursor.get(key).is_some_and(|v| !v.is_object()) {
+                    cursor.insert(entry.path.clone(), entry.value.clone());
+                    return;
+                }
+                cursor = cursor
+                    .entry(key.clone())
+                    .or_insert_with(|| Value::Object(Map::new()))
+                    .as_object_mut()
+                    .expect("an object by the check above");
+            }
+            DataStep::RepeatRow(key, index) => {
+                if cursor.get(key).is_some_and(|v| !v.is_array()) {
+                    cursor.insert(entry.path.clone(), entry.value.clone());
+                    return;
+                }
+                let rows = cursor
+                    .entry(key.clone())
+                    .or_insert_with(|| Value::Array(Vec::new()))
+                    .as_array_mut()
+                    .expect("an array by the check above");
+                if rows.len() <= *index {
+                    rows.resize_with(index + 1, || Value::Object(Map::new()));
+                }
+                if !rows[*index].is_object() {
+                    return;
+                }
+                cursor = rows[*index]
+                    .as_object_mut()
+                    .expect("an object by the check above");
+            }
         }
-        // A scalar already sits where a group would nest; keep the dotted spelling.
-        if cursor.get(segment).is_some_and(|v| !v.is_object()) {
-            cursor.insert(path.to_string(), value);
-            return;
-        }
-        cursor = cursor
-            .entry(segment.to_string())
-            .or_insert_with(|| Value::Object(Map::new()))
-            .as_object_mut()
-            .expect("an object by the check above");
     }
+    cursor.insert(entry.key.clone(), entry.value.clone());
 }

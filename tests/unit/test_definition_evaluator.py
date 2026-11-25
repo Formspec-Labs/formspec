@@ -13,16 +13,56 @@ from formspec._rust import evaluate_definition, ProcessingResult
 # ── ProcessingResult + process() scaffold ────────────────────────────────────
 
 class TestProcessingResult:
-    def test_letter_case_is_applied_by_native_input_and_batch_evaluation(self):
+    def test_letter_case_is_applied_by_native_input_and_canonicalizer(self):
+        from formspec import canonicalize_response_data
         from formspec._native import coerce_field_value
 
         field = {'type': 'field', 'key': 'license', 'dataType': 'string'}
         bind = {'path': 'license', 'letterCase': 'upper', 'whitespace': 'trim',
                 'constraint': "$ = 'AB-9'"}
         definition = {'items': [field], 'binds': [bind]}
-        result = evaluate_definition(definition, {'license': ' ab-9 '})
-        assert (result.data, result.valid) == ({'license': 'AB-9'}, True)
+        # Owner ruling Q2: evaluate validates values as given without mutating stored bytes.
+        raw_result = evaluate_definition(definition, {'license': ' ab-9 '})
+        assert (raw_result.data, raw_result.valid) == ({'license': ' ab-9 '}, False)
+        canonical = canonicalize_response_data(definition, {'license': ' ab-9 '})
+        assert canonical == {'license': 'AB-9'}
+        canonical_result = evaluate_definition(definition, canonical)
+        assert (canonical_result.data, canonical_result.valid) == ({'license': 'AB-9'}, True)
         assert coerce_field_value(field, definition, ' ab-9 ', bind=bind) == 'AB-9'
+
+    def test_undeclared_data_paths_and_canonicalize_response_data(self):
+        from formspec import canonicalize_response_data
+
+        definition = {
+            'items': [
+                {'type': 'display', 'key': 'note', 'label': 'Note'},
+                {'type': 'field', 'key': 'amount', 'dataType': 'decimal'},
+                {
+                    'type': 'group',
+                    'key': 'rows',
+                    'repeatable': True,
+                    'children': [{'type': 'field', 'key': 'qty', 'dataType': 'integer'}],
+                },
+            ],
+            'binds': [{'path': 'qty', 'whitespace': 'trim'}],
+        }
+        raw = {
+            'note': '  keep display-key extra  ',
+            'bogus': 'kept',
+            'amount': '12.5',
+            'rows': [{'qty': '3', 'legacy': 'old'}],
+        }
+        canonical = canonicalize_response_data(definition, raw)
+        assert canonical == {
+            'note': '  keep display-key extra  ',
+            'bogus': 'kept',
+            'amount': Decimal('12.5'),
+            'rows': [{'qty': 3, 'legacy': 'old'}],
+        }
+        result = evaluate_definition(definition, canonical)
+        assert result.valid is True
+        assert result.data == canonical
+        assert result.undeclared_data_paths == ['bogus', 'note', 'rows[0].legacy']
 
     def test_process_returns_processing_result(self):
         result = evaluate_definition({}, {})
@@ -579,38 +619,53 @@ class TestRepeatExpansion:
 # ── Whitespace transforms ────────────────────────────────────────────────────
 
 class TestWhitespace:
-    def _process(self, whitespace_mode, data):
-        defn = {
+    def _defn(self, whitespace_mode):
+        return {
             'items': [{'type': 'field', 'key': 'val', 'dataType': 'string'}],
             'binds': [{'path': 'val', 'whitespace': whitespace_mode}],
         }
-        return evaluate_definition(defn, data)
 
     def test_trim(self):
-        result = self._process('trim', {'val': '  hello world  '})
-        assert result.data['val'] == 'hello world'
+        from formspec import canonicalize_response_data
+
+        defn = self._defn('trim')
+        assert canonicalize_response_data(defn, {'val': '  hello world  '}) == {'val': 'hello world'}
+        assert evaluate_definition(defn, {'val': '  hello world  '}).data['val'] == '  hello world  '
 
     def test_normalize(self):
-        result = self._process('normalize', {'val': '  hello   world  '})
-        assert result.data['val'] == 'hello world'
+        from formspec import canonicalize_response_data
+
+        defn = self._defn('normalize')
+        assert canonicalize_response_data(defn, {'val': '  hello   world  '}) == {'val': 'hello world'}
+        assert evaluate_definition(defn, {'val': '  hello   world  '}).data['val'] == '  hello   world  '
 
     def test_remove(self):
-        result = self._process('remove', {'val': ' he llo '})
-        assert result.data['val'] == 'hello'
+        from formspec import canonicalize_response_data
+
+        defn = self._defn('remove')
+        assert canonicalize_response_data(defn, {'val': ' he llo '}) == {'val': 'hello'}
+        assert evaluate_definition(defn, {'val': ' he llo '}).data['val'] == ' he llo '
 
     def test_preserve(self):
-        result = self._process('preserve', {'val': '  hello  '})
-        assert result.data['val'] == '  hello  '
+        from formspec import canonicalize_response_data
+
+        defn = self._defn('preserve')
+        assert canonicalize_response_data(defn, {'val': '  hello  '}) == {'val': '  hello  '}
+        assert evaluate_definition(defn, {'val': '  hello  '}).data['val'] == '  hello  '
 
     def test_no_whitespace_bind(self):
-        result = evaluate_definition({
-            'items': [{'type': 'field', 'key': 'val', 'dataType': 'string'}],
-        }, {'val': '  hello  '})
-        assert result.data['val'] == '  hello  '
+        from formspec import canonicalize_response_data
+
+        defn = {'items': [{'type': 'field', 'key': 'val', 'dataType': 'string'}]}
+        assert canonicalize_response_data(defn, {'val': '  hello  '}) == {'val': '  hello  '}
+        assert evaluate_definition(defn, {'val': '  hello  '}).data['val'] == '  hello  '
 
     def test_non_string_value_unchanged(self):
-        result = self._process('trim', {'val': 42})
-        assert result.data['val'] == 42
+        from formspec import canonicalize_response_data
+
+        defn = self._defn('trim')
+        assert canonicalize_response_data(defn, {'val': 42}) == {'val': 42}
+        assert evaluate_definition(defn, {'val': 42}).data['val'] == 42
 
 
 # ── Relevance evaluation ─────────────────────────────────────────────────────

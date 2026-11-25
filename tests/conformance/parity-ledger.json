@@ -73,14 +73,6 @@
     },
     "clinical-intake.submit-valid": {
       "ts": {
-        "F": {
-          "ticket": "fs-8xnt",
-          "why": "FormEngine drops the undeclared keys currentVisit.appointmentDate and patient.insuranceId on load (F28: FormEngine.ts:451-453) that the evaluator keeps",
-          "problems": [
-            "FormEngine live vs P data patient.insuranceId: absent vs \"INS-5544332\"",
-            "FormEngine live vs P data currentVisit.appointmentDate: absent vs \"2026-03-04\""
-          ]
-        },
         "S": {
           "ticket": "fs-20e3",
           "why": "the example filing is valid with its registry; the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them)",
@@ -92,21 +84,11 @@
           ]
         },
         "F_submit": {
-          "ticket": "fs-8xnt",
-          "why": "FormEngine drops the undeclared keys currentVisit.appointmentDate and patient.insuranceId (F28); registry-dependent findings also differ on the server (fs-20e3)",
+          "ticket": "fs-20e3",
+          "why": "Registry-dependent findings differ on the server (fs-20e3).",
           "problems": [
             "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"patient.email\",\"severity\":\"error\",\"source\":\"external\"}",
-            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"patient.phone\",\"severity\":\"error\",\"source\":\"external\"}",
-            "FormEngine submit vs S data patient.insuranceId: absent vs \"INS-5544332\"",
-            "FormEngine submit vs S data currentVisit.appointmentDate: absent vs \"2026-03-04\""
-          ]
-        },
-        "FR": {
-          "ticket": "fs-8xnt",
-          "why": "FormEngine's filed bytes lack the undeclared keys currentVisit.appointmentDate and patient.insuranceId (F28)",
-          "problems": [
-            "recheck of FormEngine submit data vs S data patient.insuranceId: absent vs \"INS-5544332\"",
-            "recheck of FormEngine submit data vs S data currentVisit.appointmentDate: absent vs \"2026-03-04\""
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"patient.phone\",\"severity\":\"error\",\"source\":\"external\"}"
           ]
         }
       },
@@ -125,16 +107,6 @@
     },
     "grant-application.submit-valid": {
       "ts": {
-        "F": {
-          "ticket": "fs-8xnt",
-          "why": "FormEngine drops undeclared keys (F28/F31).",
-          "problems": [
-            "FormEngine live vs P data applicantType: absent vs \"nonprofit\"",
-            "FormEngine live vs P data isReturning: absent vs false",
-            "FormEngine live vs P data requestedAmount.amount: absent vs \"126000.00\"",
-            "FormEngine live vs P data requestedAmount.currency: absent vs \"USD\""
-          ]
-        },
         "S": {
           "ticket": "fs-20e3",
           "why": "the example filing is valid with its registry; the server legs evaluate with the options every server recheck builds today (trigger and clock, no registry documents), so registry-extension findings differ from the session's: pattern/maxLength/range become UNRESOLVED_EXTENSION and the compatibility/retired/deprecated notices vanish (fs-20e3: FormVersionRecord pins no registry documents; no recheck call site passes them)",
@@ -147,26 +119,12 @@
           ]
         },
         "F_submit": {
-          "ticket": "fs-8xnt",
-          "why": "FormEngine drops undeclared keys (F28/F31). Registry-dependent findings also differ on the server (fs-20e3).",
+          "ticket": "fs-20e3",
+          "why": "Registry-dependent findings differ on the server (fs-20e3).",
           "problems": [
             "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"applicantInfo.contactEmail\",\"severity\":\"error\",\"source\":\"external\"}",
             "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-phone-nanp': no matching registry entry loaded\",\"path\":\"applicantInfo.contactPhone\",\"severity\":\"error\",\"source\":\"external\"}",
-            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-ein': no matching registry entry loaded\",\"path\":\"applicantInfo.ein\",\"severity\":\"error\",\"source\":\"external\"}",
-            "FormEngine submit vs S data applicantType: absent vs \"nonprofit\"",
-            "FormEngine submit vs S data isReturning: absent vs false",
-            "FormEngine submit vs S data requestedAmount.amount: absent vs \"126000.00\"",
-            "FormEngine submit vs S data requestedAmount.currency: absent vs \"USD\""
-          ]
-        },
-        "FR": {
-          "ticket": "fs-8xnt",
-          "why": "FormEngine drops undeclared keys (F28/F31).",
-          "problems": [
-            "recheck of FormEngine submit data vs S data applicantType: absent vs \"nonprofit\"",
-            "recheck of FormEngine submit data vs S data isReturning: absent vs false",
-            "recheck of FormEngine submit data vs S data requestedAmount.amount: absent vs \"126000.00\"",
-            "recheck of FormEngine submit data vs S data requestedAmount.currency: absent vs \"USD\""
+            "FormEngine submit vs S results only there {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-ein': no matching registry entry loaded\",\"path\":\"applicantInfo.ein\",\"severity\":\"error\",\"source\":\"external\"}"
           ]
         }
       },
@@ -266,104 +224,6 @@
             "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-email': no matching registry entry loaded\",\"path\":\"header.customerEmail\",\"severity\":\"error\",\"source\":\"external\"}",
             "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-percentage': no matching registry entry loaded\",\"path\":\"totals.discountPercent\",\"severity\":\"error\",\"source\":\"external\"}",
             "unexpected result {\"code\":\"UNRESOLVED_EXTENSION\",\"constraintKind\":\"constraint\",\"message\":\"Unresolved extension 'x-formspec-percentage': no matching registry entry loaded\",\"path\":\"totals.taxRate\",\"severity\":\"error\",\"source\":\"external\"}"
-          ]
-        }
-      }
-    },
-    "parity.undeclared-keys-kept-in-place": {
-      "ts": {
-        "P": {
-          "ticket": "fs-8xnt",
-          "why": "evaluate re-emits an in-row undeclared key as a flat top-level key \"rows[0].legacy\" (output_data.rs:26-32, N4) and reports no undeclaredDataPaths (Q1)",
-          "problems": [
-            "data \"rows[0].legacy\": \"old\" vs absent (actual vs expected)",
-            "data rows[0].legacy: absent vs \"old\" (actual vs expected)",
-            "undeclaredDataPaths null, expected [\"bogus\",\"rows[0].legacy\"]",
-            "round trip of expected.data \"rows[0].legacy\": \"old\" vs absent",
-            "round trip of expected.data rows[0].legacy: absent vs \"old\""
-          ]
-        },
-        "F": {
-          "ticket": "fs-8xnt",
-          "why": "FormEngine drops undeclared keys on load (FormEngine.ts:451-453, F28/F31)",
-          "problems": [
-            "FormEngine live vs P data bogus: absent vs \"kept\"",
-            "FormEngine live vs P data \"rows[0].legacy\": absent vs \"old\""
-          ]
-        },
-        "noInvention": {
-          "ticket": "fs-8xnt",
-          "why": "the in-row undeclared key moves to a flat top-level key (N4)",
-          "problems": [
-            "P(continuous): added \"rows[0].legacy\" = \"old\"",
-            "P(continuous): removed rows[0].legacy = \"old\"",
-            "P(round trip): added \"rows[0].legacy\" = \"old\"",
-            "P(round trip): removed rows[0].legacy = \"old\""
-          ]
-        }
-      },
-      "rust": {
-        "P": {
-          "ticket": "fs-8xnt",
-          "why": "evaluate re-emits an in-row undeclared key as a flat top-level key \"rows[0].legacy\" (output_data.rs:26-32, N4) and reports no undeclaredDataPaths (Q1)",
-          "problems": [
-            "data rows[0].legacy: absent vs \"old\" (actual vs expected)",
-            "data \"rows[0].legacy\": \"old\" vs absent (actual vs expected)",
-            "undeclaredDataPaths None, expected [\"bogus\",\"rows[0].legacy\"]",
-            "round trip of expected.data rows[0].legacy: absent vs \"old\"",
-            "round trip of expected.data \"rows[0].legacy\": \"old\" vs absent"
-          ]
-        },
-        "noInvention": {
-          "ticket": "fs-8xnt",
-          "why": "the in-row undeclared key moves to a flat top-level key (N4)",
-          "problems": [
-            "P(continuous): added \"rows[0].legacy\" = \"old\"",
-            "P(continuous): removed rows[0].legacy = \"old\"",
-            "P(round trip): added \"rows[0].legacy\" = \"old\"",
-            "P(round trip): removed rows[0].legacy = \"old\""
-          ]
-        }
-      }
-    },
-    "response-data.kitchen-sink": {
-      "ts": {
-        "S": {
-          "ticket": "fs-8xnt",
-          "why": "evaluate applies whitespace trim/normalize to data it is given (recalculate/mod.rs:105, bind_pass.rs:15-29); Core §4.3.1 applies whitespace before the value is stored, and owner ruling Q2 puts it at typing/import",
-          "problems": [
-            "data fullName: \"Shelley Agent\" vs \"  Shelley Agent  \" (actual vs expected)",
-            "data notes: \"alpha beta\" vs \"alpha    beta\" (actual vs expected)"
-          ]
-        },
-        "noInvention": {
-          "ticket": "fs-8xnt",
-          "why": "evaluate changes fullName and notes (whitespace) in the data it is given; canonicalisation belongs at input (Q2)",
-          "problems": [
-            "P(continuous): changed fullName: \"  Shelley Agent  \" -> \"Shelley Agent\"",
-            "P(continuous): changed notes: \"alpha    beta\" -> \"alpha beta\"",
-            "P(submit): changed fullName: \"  Shelley Agent  \" -> \"Shelley Agent\"",
-            "P(submit): changed notes: \"alpha    beta\" -> \"alpha beta\""
-          ]
-        }
-      },
-      "rust": {
-        "S": {
-          "ticket": "fs-8xnt",
-          "why": "evaluate applies whitespace trim/normalize to data it is given (recalculate/mod.rs:105, bind_pass.rs:15-29); Core §4.3.1 applies whitespace before the value is stored, and owner ruling Q2 puts it at typing/import",
-          "problems": [
-            "data fullName: \"Shelley Agent\" vs \"  Shelley Agent  \" (actual vs expected)",
-            "data notes: \"alpha beta\" vs \"alpha    beta\" (actual vs expected)"
-          ]
-        },
-        "noInvention": {
-          "ticket": "fs-8xnt",
-          "why": "evaluate changes fullName and notes (whitespace) in the data it is given; canonicalisation belongs at input (Q2)",
-          "problems": [
-            "P(continuous): changed fullName: \"  Shelley Agent  \" -> \"Shelley Agent\"",
-            "P(continuous): changed notes: \"alpha    beta\" -> \"alpha beta\"",
-            "P(submit): changed fullName: \"  Shelley Agent  \" -> \"Shelley Agent\"",
-            "P(submit): changed notes: \"alpha    beta\" -> \"alpha beta\""
           ]
         }
       }

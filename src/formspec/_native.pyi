@@ -73,6 +73,11 @@ def coerce_field_value(
     bind: dict[str, Any] | None = None,
 ) -> Any: ...
 
+def canonicalize_response_data(
+    definition: dict[str, Any],
+    data: dict[str, Any],
+) -> dict[str, Any]: ...
+
 def resolve_option_sets_on_definition(definition: dict[str, Any]) -> dict[str, Any]: ...
 
 def check_instance_projection(

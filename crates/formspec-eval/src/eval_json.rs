@@ -12,7 +12,7 @@ use fel_core::{
 
 use formspec_core::JsonWireStyle;
 use formspec_core::json_object_to_string_map;
-use formspec_core::wire_keys::evaluation_batch_keys;
+use formspec_core::wire_keys::{evaluation_batch_keys, evaluation_undeclared_data_paths_key};
 
 use crate::extension_constraints_from_registry_documents;
 use crate::types::{
@@ -83,6 +83,7 @@ pub fn evaluation_result_to_host_snapshot_json_value(result: &EvaluationResult) 
 
 fn evaluation_report(result: &EvaluationResult, style: JsonWireStyle) -> Map<String, Value> {
     let (nr_key, ck_key, sid_key) = evaluation_batch_keys(style);
+    let undeclared_key = evaluation_undeclared_data_paths_key(style);
 
     let validations: Vec<Value> = result
         .validations
@@ -97,6 +98,9 @@ fn evaluation_report(result: &EvaluationResult, style: JsonWireStyle) -> Map<Str
         fel_core::exact_json::to_value(&result.values).expect("evaluation values serialize"),
     );
     root.insert("data".into(), result.data.clone());
+    if !result.undeclared_data_paths.is_empty() {
+        root.insert(undeclared_key.into(), json!(result.undeclared_data_paths));
+    }
     if !result.explanation_actions.is_empty() {
         root.insert(
             "explanationFindings".into(),

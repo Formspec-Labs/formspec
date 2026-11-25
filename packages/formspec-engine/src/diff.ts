@@ -27,6 +27,8 @@ export interface EvalResult {
     refused: boolean;
     values: Record<string, unknown>;
     data: Record<string, unknown>;
+    /** Sorted Response `data` instance paths present in the input that no Definition Item declares. */
+    undeclaredDataPaths?: string[];
     validations: EvalValidation[];
     diagnostics: EvalDiagnostic[];
     explanationFindings?: ExplanationFinding[];

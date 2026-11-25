@@ -488,7 +488,7 @@ The canonical structural contract for Response properties is generated from
 | `#/properties/author` | `author` | <code>&#36;ref</code> | no | <code>&#36;ref</code>: <code>#/&#36;defs/Author</code> | Person or system that authored the Response. A human author's id typically identifies a user account. An automated author's id identifies the service or integration. |
 | `#/properties/authored` | `authored` | <code>string</code> | yes | critical | When the Response was last modified (ISO 8601 date-time with timezone). Updated on every save, not just on status transitions. Used for conflict detection, audit trails, and ordering Responses chronologically. |
 | `#/properties/authoredSignatures` | `authoredSignatures` | <code>array</code> | no | — | Canonical authored-signature evidence records attached to this Response. Each entry binds one signer/document act under its named whole-response or section signing profile through signedPayload.digest. These records are distinct from respondent-ledger attestations: they are authored evidence produced at signing time, not later audit-history observations. |
-| `#/properties/data` | `data` | <code>object</code> | yes | critical | The primary Instance — the form data. Structure mirrors the Definition's item tree: field Items produce scalar properties, non-repeatable group Items produce nested objects, repeatable group Items produce arrays of objects, display Items have no representation. Non-relevant fields are handled per the Definition's nonRelevantBehavior setting: 'remove' (default) omits them entirely, 'empty' retains the key with null value, 'keep' retains the last value. Calculated fields (those with a 'calculate' Bind) are included with their computed values. |
+| `#/properties/data` | `data` | <code>object</code> | yes | critical | The primary Instance — the form data. Structure mirrors the Definition's item tree: field Items produce scalar properties, non-repeatable group Items produce nested objects, repeatable group Items produce arrays of objects, display Items have no representation. Non-relevant fields are handled per the Definition's nonRelevantBehavior setting: 'remove' (default) omits them entirely, 'empty' retains the key with null value, 'keep' retains the last value. Calculated fields (those with a 'calculate' Bind) are included with their computed values. Additional properties not declared by any non-display Definition Item (including a saved property sharing a display Item's key) are permitted, preserved in place during evaluation, and reported in EvaluationResult.undeclaredDataPaths; refusing them is host policy at submit. Evaluation validates values as given without canonicalizing stored bytes; input/import canonicalization uses the exported canonicalizer. |
 | `#/properties/definitionUrl` | `definitionUrl` | <code>string</code> | yes | critical | The canonical URL of the Definition this Response was created against. This is the stable logical-form identifier shared across all versions of the same form. Combined with definitionVersion to form the immutable identity reference. MUST match the 'url' property of a known Definition. |
 | `#/properties/definitionVersion` | `definitionVersion` | <code>string</code> | yes | critical | The exact version of the Definition against which this Response was created. Interpretation of the version string is governed by the Definition's versionAlgorithm (default: semver). A Response is always validated against this specific version, never against a newer version — even if one exists (Pinning Rule VP-01). Once set, this value MUST NOT change for the lifetime of the Response. |
 | `#/properties/displayedIssuer` | `displayedIssuer` | <code>object</code> | no | critical | Submit-time pin of the resolved Issuer (post-cascade). Inside the whole-response formspec-response-signing-v1 preimage by the authoredSignatures-only omission rule (specs/core/spec.md §Signed Response Payload). Per-event Issuer pinning is a v1 non-goal. |
@@ -512,6 +512,17 @@ A Response references exactly one Definition by the tuple
 `(definitionUrl, definitionVersion)`. A conformant processor MUST reject a
 Response whose `definitionVersion` does not match any known Definition at the
 given `definitionUrl`.
+
+Response `data` permits additional properties that no non-display Item in the
+pinned Definition declares (including a saved property whose key collides with
+a `display` Item, which has no `data` representation). Evaluation MUST keep
+undeclared properties at the container scope where they arrived without
+relocating or splitting literal keys, and MUST report their sorted instance
+paths in `EvaluationResult.undeclaredDataPaths` (non-blocking); refusing
+undeclared keys is host policy at submit. Evaluation MUST validate Response
+`data` values exactly as given without rewriting stored bytes; value
+canonicalization (whitespace modes, `letterCase`, numeric strings, money, and
+precision) belongs at typing and import through the exported canonicalizer.
 
 ##### Filing-unit Subject
 

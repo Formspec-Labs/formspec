@@ -70,6 +70,14 @@ pub fn evaluation_batch_keys(style: JsonWireStyle) -> (&'static str, &'static st
     }
 }
 
+/// Batch evaluation JSON key for undeclared Response `data` paths.
+pub fn evaluation_undeclared_data_paths_key(style: JsonWireStyle) -> &'static str {
+    match style {
+        JsonWireStyle::JsCamel => "undeclaredDataPaths",
+        JsonWireStyle::PythonSnake => "undeclared_data_paths",
+    }
+}
+
 /// Envelope marker field name for changelog documents.
 /// Identical across wire styles — JSON envelope markers (`$formspec*`) are
 /// never translated to snake_case, they're document-type discriminators

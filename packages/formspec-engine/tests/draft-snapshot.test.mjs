@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
-import { createFormEngine, jsonNumberText } from '../dist/engine-render-entry.js';
+import { canonicalizeResponseData, createFormEngine, jsonNumberText } from '../dist/engine-render-entry.js';
 
 const fixture = parseJsonExact(readFileSync(new URL('../../../tests/fixtures/engine-draft-snapshot.json', import.meta.url), 'utf8'));
 const { definition, snapshot } = fixture;
@@ -284,3 +284,85 @@ for (const { index, expected } of [
     }
   });
 }
+
+test('canonicalizeResponseData coerces declared fields using authored Binds only and keeps extras', () => {
+  const form = {
+    ...definition,
+    items: [
+      { key: 'banner', type: 'display', label: 'Banner' },
+      { key: 'amount', type: 'field', dataType: 'decimal', label: 'Amount' },
+      {
+        key: 'g',
+        type: 'group',
+        label: 'Group',
+        children: [{ key: 'code', type: 'field', dataType: 'string', label: 'Code' }],
+      },
+    ],
+    binds: [
+      { path: 'code', whitespace: 'remove' },
+      { path: 'g.code', whitespace: 'trim', letterCase: 'upper' },
+    ],
+  };
+  const input = {
+    banner: '  keep-display-extra  ',
+    amount: numberText,
+    g: { code: ' ab 9 ', extra: '  keep-group-extra  ' },
+    bogus: '  keep-root-extra  ',
+  };
+  const canonical = canonicalizeResponseData(form, input);
+  assert.equal(canonical.banner, '  keep-display-extra  ');
+  assert.equal(jsonNumberText(canonical.amount), numberText);
+  assert.equal(canonical.g.code, 'AB 9');
+  assert.equal(canonical.g.extra, '  keep-group-extra  ');
+  assert.equal(canonical.bogus, '  keep-root-extra  ');
+});
+
+test('FormEngine preserves undeclared keys across display collisions, flat group members, edits, and row removal', () => {
+  const form = {
+    ...definition,
+    items: [
+      { key: 'banner', type: 'display', label: 'Banner' },
+      { key: 'a', type: 'field', dataType: 'string', label: 'A' },
+      {
+        key: 'g',
+        type: 'group',
+        label: 'Group',
+        children: [{ key: 'x', type: 'field', dataType: 'string', label: 'X' }],
+      },
+      {
+        key: 'rows',
+        type: 'group',
+        label: 'Rows',
+        repeatable: true,
+        children: [{ key: 'v', type: 'field', dataType: 'string', label: 'V' }],
+      },
+    ],
+    binds: [],
+  };
+  const engine = createFormEngine(form, {
+    savedResponseData: {
+      banner: 'saved-on-display',
+      a: 'one',
+      'g.x': 'gx',
+      'g.extra': 'kept-flat-group-extra',
+      rows: [
+        { v: 'r0', legacy: 'drop-with-row-0' },
+        { v: 'r1', legacy: 'shift-to-row-0' },
+      ],
+    },
+  });
+  try {
+    engine.setValue('a', 'updated');
+    engine.removeRepeatInstance('rows', 0);
+    const expected = {
+      banner: 'saved-on-display',
+      a: 'updated',
+      g: { x: 'gx', extra: 'kept-flat-group-extra' },
+      rows: [{ v: 'r1', legacy: 'shift-to-row-0' }],
+    };
+    assert.deepEqual(engine.getDraftSnapshot().data, expected);
+    assert.deepEqual(engine.getResponse({ profile: 'on-submit' }).data, expected);
+  } finally {
+    engine.dispose();
+  }
+});
