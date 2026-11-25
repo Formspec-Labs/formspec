@@ -10,6 +10,7 @@
 
 export type { IProjectCore } from './project-core.js';
 export { RawProject, createRawProject } from './raw-project.js';
+export { exportBundle } from './export-bundle.js';
 export { createChangesetMiddleware } from './changeset-middleware.js';
 export type { ChangesetRecorderControl } from './changeset-middleware.js';
 export { resolveItemLocation } from './handlers/helpers.js';
@@ -119,8 +120,8 @@ export type {
   FELReferenceSet,
   FELFunctionEntry,
   ExpressionLocation,
-  DependencyGraph,
   FieldDependents,
+  AppGraphDiagnostic,
   Diagnostic,
   Diagnostics,
   ResponseSchemaRow,

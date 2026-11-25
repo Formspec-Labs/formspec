@@ -24,7 +24,6 @@ import type {
   FELReferenceSet,
   FELFunctionEntry,
   ExpressionLocation,
-  DependencyGraph,
   FieldDependents,
   Diagnostics,
   ResponseSchemaRow,
@@ -115,7 +114,6 @@ export interface IProjectCore {
   expressionDependencies(expression: string): string[];
   fieldDependents(fieldPath: string): FieldDependents;
   variableDependents(variableName: string): string[];
-  dependencyGraph(): DependencyGraph;
   listRegistries(): RegistrySummary[];
   browseExtensions(filter?: ExtensionFilter): Record<string, unknown>[];
   diffFromBaseline(fromVersion?: string): Change[];

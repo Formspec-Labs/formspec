@@ -34,7 +34,6 @@ export {
 export {
   fieldDependents,
   variableDependents,
-  dependencyGraph,
 } from './dependency-graph.js';
 
 export { statistics } from './statistics.js';

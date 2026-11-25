@@ -1,11 +1,13 @@
 /** @filedesc Core type definitions for project state, commands, queries, and diagnostics. */
-import type { SchemaValidator } from '@formspec-org/engine/fel-tools';
+import type { AppGraphDiagnostic } from '@formspec-org/app-graph';
 import type {
   FormItem, FormDefinition, ComponentDocument, ThemeDocument, MappingDocument,
   ScreenerDocument, ExperienceDocument, ResponseActionsDocument,
   OntologyDocument, RegistryDocument, ReferencesDocument,
   FieldRule, TargetSchema,
 } from '@formspec-org/types';
+
+export type { AppGraphDiagnostic };
 
 // ── Schema-derived types (re-exported from formspec-types) ──────────
 // These are the canonical schema types shared across all packages.
@@ -302,8 +304,6 @@ export interface ProjectOptions {
   maxHistoryDepth?: number;
   /** Middleware functions inserted into the dispatch pipeline. */
   middleware?: Middleware[];
-  /** Optional schema validator. A wrapper around formspec-engine `lintDocument()` is sufficient. When set, diagnose() runs structural validation and populates the structural diagnostics array. Omit in environments where schemas are not available (e.g. browser without bundled schemas). */
-  schemaValidator?: SchemaValidator;
   /** Additional command handlers merged with builtins. Keys override builtins. */
   handlers?: Record<string, CommandHandler>;
 }
@@ -589,21 +589,6 @@ export interface ExpressionLocation {
 }
 
 /**
- * Full dependency graph across all FEL expressions in the project.
- *
- * Nodes are fields, variables, or shapes. Edges indicate that one node's
- * expression references another. Cycles are detected and reported separately.
- */
-export interface DependencyGraph {
-  /** All nodes participating in FEL dependency relationships. */
-  nodes: { id: string; type: 'field' | 'variable' | 'shape' }[];
-  /** Directed edges: `from` references `to` via the named expression property. */
-  edges: { from: string; to: string; via: string }[];
-  /** Groups of node IDs forming circular dependency chains. */
-  cycles: string[][];
-}
-
-/**
  * Reverse lookup: everything that depends on a specific field.
  * Returned by `Project.fieldDependents()`.
  */
@@ -646,21 +631,16 @@ export interface Diagnostic {
 // ── Diagnostics types ───────────────────────────────────────────────
 
 /**
- * Grouped diagnostic results from `Project.diagnostics()`.
+ * Diagnostic results from `Project.diagnose()`.
  *
- * Diagnostics are categorized by check type and include aggregate severity counts
- * for quick status display.
+ * Every exported project document is linted through the stack linter via
+ * `@formspec-org/app-graph`, returning canonical AppGraph diagnostics and
+ * aggregate severity counts.
  */
 export interface Diagnostics {
-  /** Schema and structural validity issues. */
-  structural: Diagnostic[];
-  /** FEL parse errors, unresolved references, and type mismatches. */
-  expressions: Diagnostic[];
-  /** Unresolved extensions and registry-related issues. */
-  extensions: Diagnostic[];
-  /** Cross-artifact consistency problems (e.g. component refs to missing items). */
-  consistency: Diagnostic[];
-  /** Aggregate counts by severity across all categories. */
+  /** Stack linter findings mapped to the AppGraph Diagnostic shape. */
+  diagnostics: AppGraphDiagnostic[];
+  /** Aggregate counts by severity across all linted project documents. */
   counts: { error: number; warning: number; info: number };
 }
 

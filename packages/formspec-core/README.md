@@ -110,9 +110,9 @@ RawProject (facade)
 `fieldPaths()`, `itemAt(path)`, `searchItems(filter)`, `statistics()`, `bindFor(path)`, `componentFor(key)`, `effectivePresentation(key)`, `unboundItems()`, `resolveToken(key)`, `resolveExtension(name)`, `allDataTypes()`, `instanceNames()`, `variableNames()`, `optionSetUsage(name)`, `listRegistries()`, `browseExtensions(filter?)`, `responseSchemaRows()`
 
 **FEL & expressions:**
-`parseFEL(expression, context?)`, `felFunctionCatalog()`, `availableReferences(context?)`, `allExpressions()`, `expressionDependencies(expression)`, `fieldDependents(fieldPath)`, `variableDependents(variableName)`, `dependencyGraph()`
+`parseFEL(expression, context?)`, `felFunctionCatalog()`, `availableReferences(context?)`, `allExpressions()`, `expressionDependencies(expression)`, `fieldDependents(fieldPath)`, `variableDependents(variableName)`
 
-Before calling the synchronous `parseFEL()` editor API, await `initFormspecEngine()` and then `initFormspecEngineTools()` from `@formspec-org/engine`. Passing a target path checks references in that Item's scope. Omitting the context checks syntax and called functions. The editor also suggests corrections for unknown names.
+Before calling the synchronous `parseFEL()` editor API or `diagnose()`, await `initFormspecEngine()` and then `initFormspecEngineTools()` from `@formspec-org/engine`. Passing a target path to `parseFEL()` checks references in that Item's scope; omitting the context checks syntax and called functions. `diagnose()` lints every exported project document through `@formspec-org/app-graph` and returns `{ diagnostics, counts }`.
 
 **Diagnostics & versioning:**
 `diagnose()`, `diffFromBaseline(fromVersion?)`, `previewChangelog()`, `export()`
@@ -186,7 +186,6 @@ const project = createRawProject({
 | `maxHistoryDepth` | `number` | Maximum undo snapshots (default: 50). |
 | `middleware` | `Middleware[]` | Pipeline wrappers applied to every dispatch. |
 | `handlers` | `Record<string, CommandHandler>` | Custom handlers merged over builtins. |
-| `schemaValidator` | `SchemaValidator` | When set, `diagnose()` runs structural validation. Omit in environments without bundled schemas. |
 
 ## Standalone Utilities
 

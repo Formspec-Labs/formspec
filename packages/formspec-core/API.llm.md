@@ -232,6 +232,10 @@ Refuse an id a bundle writer could not use as a file name: empty, `.`/`..`, or c
 path separator or NUL. A tool-supplied id such as `../escaped` would otherwise write
 `<id>.<suffix>.json` outside the bundle folder, past the host's path policy.
 
+## `exportBundle(state: ProjectState): ProjectBundle`
+
+Export the current project state as a cloned, schema-enveloped {@link ProjectBundle}.
+
 ## `COMPONENT_BASE_PROP_NAMES: readonly ["accessibility", "component", "conceptRefs", "cssClass", "extensions", "id", "layout", "responsive", "style", "taskRefs", "unitRef", "when", "x-generation"]`
 
 AUTO-GENERATED — DO NOT EDIT
@@ -1753,8 +1757,6 @@ so type fidelity (money, date) is lost but readability is universal.
 
 ##### `variableDependents(variableName: string): string[]`
 
-##### `dependencyGraph(): DependencyGraph`
-
 ##### `listRegistries(): RegistrySummary[]`
 
 ##### `browseExtensions(filter?: ExtensionFilter): Record<string, unknown>[]`
@@ -1794,13 +1796,12 @@ reference a given field.
 
 Find all bind paths whose FEL expressions reference a given variable.
 
-## `dependencyGraph(state: ProjectState): DependencyGraph`
+## `diagnose(state: ProjectState): Diagnostics`
 
-Build a full dependency graph across all FEL expressions in the project.
+Lint every exported document in the project through the stack linter and
+return canonical AppGraph diagnostics plus severity counts.
 
-## `diagnose(state: ProjectState, schemaValidator?: SchemaValidator): Diagnostics`
-
-On-demand multi-pass validation of the current project state.
+Throws if tools WASM is uninitialised; never silently returns an empty report.
 
 ## `computeDropTargets(state: ProjectState, draggedPaths: string[]): DropTarget[]`
 
@@ -2117,8 +2118,6 @@ corrupt the redo stack.
 ##### `fieldDependents(fieldPath: string): FieldDependents`
 
 ##### `variableDependents(variableName: string): string[]`
-
-##### `dependencyGraph(): DependencyGraph`
 
 ##### `listRegistries(): RegistrySummary[]`
 
@@ -2531,6 +2530,7 @@ Mutations happen exclusively through dispatched commands; never mutate directly.
 - **definition** (`FormDefinition`): The form's structure and behavior: items, binds, shapes, variables, etc.
 - **component** (`ComponentState`): The form's component document and layout structure.
 - **theme** (`ThemeState`): Visual presentation content: tokens, defaults, selectors, page layout.
+- **themeDeclared** (`boolean`): True once a Theme has been supplied or authored. The editor always has working defaults.
 - **mappings** (`Record<string, MappingState>`): Named mapping collection: rules, targetSchema, adapters, etc. keyed by unique ID.
 - **selectedMappingId** (`string`): ID of the mapping currently being edited in the UI.
 - **locales** (`Record<string, LocaleState>`): Loaded locale documents keyed by BCP 47 code.
@@ -2593,7 +2593,6 @@ with a generated URL, blank component/theme/mapping documents, no extensions).
 - **registries** (`unknown[]`): Extension registry documents to load at creation time.
 - **maxHistoryDepth** (`number`): Maximum number of undo snapshots to retain (default: 50). Oldest pruned first.
 - **middleware** (`Middleware[]`): Middleware functions inserted into the dispatch pipeline.
-- **schemaValidator** (`SchemaValidator`): Optional schema validator. A wrapper around formspec-engine `lintDocument()` is sufficient. When set, diagnose() runs structural validation and populates the structural diagnostics array. Omit in environments where schemas are not available (e.g. browser without bundled schemas).
 - **handlers** (`Record<string, CommandHandler>`): Additional command handlers merged with builtins. Keys override builtins.
 
 #### interface `ChangeEvent`
@@ -2762,24 +2761,6 @@ Returned by `Project.allExpressions()` for cross-artifact expression indexing.
 - **artifact** (`'definition' | 'component' | 'mapping'`): Which artifact contains this expression.
 - **location** (`string`): Human-readable location descriptor (e.g. `'binds.age.calculate'`).
 
-#### interface `DependencyGraph`
-
-Full dependency graph across all FEL expressions in the project.
-
-Nodes are fields, variables, or shapes. Edges indicate that one node's
-expression references another. Cycles are detected and reported separately.
-
-- **nodes** (`{
-        id: string;
-        type: 'field' | 'variable' | 'shape';
-    }[]`): All nodes participating in FEL dependency relationships.
-- **edges** (`{
-        from: string;
-        to: string;
-        via: string;
-    }[]`): Directed edges: `from` references `to` via the named expression property.
-- **cycles** (`string[][]`): Groups of node IDs forming circular dependency chains.
-
 #### interface `FieldDependents`
 
 Reverse lookup: everything that depends on a specific field.
@@ -2819,20 +2800,18 @@ Used across structural, expression, extension, and consistency checks.
 
 #### interface `Diagnostics`
 
-Grouped diagnostic results from `Project.diagnostics()`.
+Diagnostic results from `Project.diagnose()`.
 
-Diagnostics are categorized by check type and include aggregate severity counts
-for quick status display.
+Every exported project document is linted through the stack linter via
+`@formspec-org/app-graph`, returning canonical AppGraph diagnostics and
+aggregate severity counts.
 
-- **structural** (`Diagnostic[]`): Schema and structural validity issues.
-- **expressions** (`Diagnostic[]`): FEL parse errors, unresolved references, and type mismatches.
-- **extensions** (`Diagnostic[]`): Unresolved extensions and registry-related issues.
-- **consistency** (`Diagnostic[]`): Cross-artifact consistency problems (e.g. component refs to missing items).
+- **diagnostics** (`AppGraphDiagnostic[]`): Stack linter findings mapped to the AppGraph Diagnostic shape.
 - **counts** (`{
         error: number;
         warning: number;
         info: number;
-    }`): Aggregate counts by severity across all categories.
+    }`): Aggregate counts by severity across all linted project documents.
 
 #### interface `ResponseSchemaRow`
 

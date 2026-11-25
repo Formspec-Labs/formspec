@@ -33,7 +33,6 @@ import type {
   FELReferenceSet,
   FELFunctionEntry,
   ExpressionLocation,
-  DependencyGraph,
   FieldDependents,
   Diagnostics,
   ResponseSchemaRow,
@@ -43,7 +42,6 @@ import type { CommandHandler } from './types.js';
 import { CommandPipeline } from './pipeline.js';
 import {
   createComponentArtifact,
-  getCurrentComponentDocument,
   normalizeComponentState,
 } from './component-documents.js';
 import { HistoryManager } from './history.js';
@@ -71,7 +69,6 @@ import {
   expressionDependencies as _expressionDependencies,
   fieldDependents as _fieldDependents,
   variableDependents as _variableDependents,
-  dependencyGraph as _dependencyGraph,
   statistics as _statistics,
   diagnose as _diagnose,
   diffFromBaseline as _diffFromBaseline,
@@ -80,16 +77,15 @@ import {
   listRegistries as _listRegistries,
   browseExtensions as _browseExtensions,
   resolveExtension as _resolveExtension,
-  serializeToJSON,
 } from './queries/index.js';
 import { evalFELWithTrace, type FelTraceResult } from '@formspec-org/engine/fel-runtime';
-import { exportComponentTree, importComponentTree } from './component-export.js';
+import { importComponentTree } from './component-export.js';
+import { exportBundle } from './export-bundle.js';
 import { indexRegistryPayload, syncAuthoredRegistries } from './registry-index.js';
 import { normalizeBindsFromUnknown } from './definition-binds.js';
 import {
   withComponentEnvelope,
   withMappingEnvelope,
-  withThemeEnvelope,
   viewThemeDocument,
 } from './document-envelopes.js';
 
@@ -206,7 +202,6 @@ export class RawProject implements IProjectCore {
   private _history: HistoryManager<ProjectState, AnyCommand | InternalCommand>;
   private _listeners: Set<ChangeListener> = new Set();
   private _pipeline: CommandPipeline;
-  private _schemaValidator: ProjectOptions['schemaValidator'];
   private _handlers: Readonly<Record<string, CommandHandler>>;
   private _cachedComponent: ComponentDocument | null = null;
   private _cachedComponentForState: ProjectState | null = null;
@@ -214,7 +209,6 @@ export class RawProject implements IProjectCore {
   constructor(options?: ProjectOptions) {
     this._state = createDefaultState(options);
     this._history = new HistoryManager(options?.maxHistoryDepth);
-    this._schemaValidator = options?.schemaValidator;
     this._handlers = options?.handlers
       ? Object.freeze({ ...builtinHandlers, ...options.handlers })
       : builtinHandlers;
@@ -328,7 +322,6 @@ export class RawProject implements IProjectCore {
   expressionDependencies(expression: string): string[] { return _expressionDependencies(this._state, expression); }
   fieldDependents(fieldPath: string): FieldDependents { return _fieldDependents(this._state, fieldPath); }
   variableDependents(variableName: string): string[] { return _variableDependents(this._state, variableName); }
-  dependencyGraph(): DependencyGraph { return _dependencyGraph(this._state); }
   listRegistries(): RegistrySummary[] { return _listRegistries(this._state); }
   browseExtensions(filter?: ExtensionFilter): Record<string, unknown>[] { return _browseExtensions(this._state, filter); }
   diffFromBaseline(fromVersion?: string): Change[] { return _diffFromBaseline(this._state, fromVersion); }
@@ -336,66 +329,12 @@ export class RawProject implements IProjectCore {
   previewMapping(params: import('./types.js').MappingPreviewParams): import('./types.js').MappingPreviewResult {
     return _previewMapping(this._state, params);
   }
-  diagnose(): Diagnostics { return _diagnose(this._state, this._schemaValidator); }
+  diagnose(): Diagnostics { return _diagnose(this._state); }
 
   // ── Export ──────────────────────────────────────────────────────
 
   export(): ProjectBundle {
-    const url = this._state.definition.url;
-
-    // mapping.schema.json requires `rules` minItems 1: a rule-less mapping is authoring
-    // scaffolding (the seeded `default`, a freshly created tab), not a document.
-    const exportMappings: Record<string, MappingDocument> = {};
-    for (const [id, m] of Object.entries(this._state.mappings)) {
-      if (m.rules?.length) exportMappings[id] = withMappingEnvelope(m, url);
-    }
-
-    const componentExport = exportComponentTree(this._state);
-    const bundle: ProjectBundle = {
-      // ADR 0150 §5.2 App Manifest reframe: `definitions` is plural. P0 authoring
-      // still owns a single Definition, so this array is single-element; multi-
-      // definition authoring lands at P1+.
-      definitions: [serializeToJSON(this._state)],
-      // component-spec §1.2: a Component Document overrides Theme widget selection, so a
-      // tree the Definition alone generates is not emitted — its absence lets the theme apply.
-      ...(componentExport.derived ? {} : {
-        component: withComponentEnvelope({ ...this._state.component, tree: componentExport.tree }, url),
-      }),
-      // theme-spec §2.2.1: an absent targetDefinition is bundle scope and stays absent
-      // (never `?? { url }`); the document's own key order is kept.
-      ...(this._state.themeDeclared ? { theme: withThemeEnvelope(this._state.theme) } : {}),
-      mappings: exportMappings,
-    };
-
-    // Locale state is the document (import keeps it whole, `$formspecLocale` included), so
-    // export it whole: picking fields here dropped `formats` and reordered what an author wrote.
-    if (Object.keys(this._state.locales).length > 0) {
-      bundle.locales = { ...this._state.locales };
-    }
-
-    // Single emission policy for standalone sidecars: present iff non-null in state.
-    if (this._state.screener) {
-      bundle.screener = this._state.screener;
-    }
-    if (this._state.experience) {
-      bundle.experience = this._state.experience;
-    }
-    if (this._state.responseActions) {
-      bundle.responseActions = this._state.responseActions;
-    }
-    // Both serialized from authored state, never from the derived `extensions.registries`
-    // rows (the index injects a `url` the author never wrote).
-    if (this._state.ontology) {
-      bundle.ontology = this._state.ontology;
-    }
-    if (Object.keys(this._state.registries).length > 0) {
-      bundle.registries = this._state.registries;
-    }
-    if (this._state.references) {
-      bundle.references = this._state.references;
-    }
-
-    return structuredClone(bundle);
+    return exportBundle(this._state);
   }
 
   // ── History ──────────────────────────────────────────────────────

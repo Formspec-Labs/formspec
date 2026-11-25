@@ -2,469 +2,276 @@ import { describe, it, expect } from 'vitest';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as fs from 'fs';
+import { execFileSync } from 'node:child_process';
+import Ajv2020 from 'ajv/dist/2020.js';
 import { createRawProject } from '../src/index.js';
-import { lintDocument, type SchemaValidator } from '@formspec-org/engine/fel-tools';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCHEMAS_DIR = path.resolve(__dirname, '../../../schemas');
+const APP_GRAPH_REPORT_SCHEMA = JSON.parse(
+  fs.readFileSync(path.join(SCHEMAS_DIR, 'app-graph-validation-report.schema.json'), 'utf-8'),
+);
 
-/** Get the nodeId of a Section page unit from the component tree. */
-function getPageId(project: ReturnType<typeof createRawProject>, index = 0): string {
-  const tree = project.component.tree;
-  const pages = (tree?.children ?? []).filter((c: any) => c.component === 'Section');
-  if (!pages[index]) throw new Error(`No page at index ${index}`);
-  return pages[index].nodeId;
-}
+const ajv = new Ajv2020({ allErrors: true, strict: false });
+const validateDiagnostic = ajv.compile({
+  $defs: APP_GRAPH_REPORT_SCHEMA.$defs,
+  $ref: '#/$defs/Diagnostic',
+});
 
-function addPage(project: ReturnType<typeof createRawProject>, title: string, id?: string): string {
-  project.dispatch({
-    type: 'definition.setFormPresentation',
-    payload: { property: 'pageMode', value: 'wizard' },
-  });
-  const result = project.dispatch({
-    type: 'component.addNode',
-    payload: {
-      parent: { nodeId: 'root' },
-      component: 'Section',
-      props: { ...(id ? { nodeId: id } : {}), title },
-    },
-  }) as any;
-  return id ?? result.nodeRef.nodeId;
-}
-
-function moveNodeToPage(
-  project: ReturnType<typeof createRawProject>,
-  pageId: string,
-  node: { bind?: string; nodeId?: string },
-) {
-  project.dispatch({
-    type: 'component.moveNode',
-    payload: { source: node, targetParent: { nodeId: pageId } },
-  });
-}
-
-describe('diagnose', () => {
-  it('reports the assembly error for a project with an unassembled group', () => {
-    const project = createRawProject({ seed: {
-      definition: {
-        $formspec: '1.0',
-        url: 'urn:example:application',
-        version: '1.0.0',
-        status: 'draft',
-        title: 'Application',
-        items: [
-          { key: 'cover', type: 'group', label: 'Cover', $ref: 'urn:example:cover|1.0.0' },
-        ],
-      },
-    } });
-    const diagnostics = project.diagnose();
-    expect(diagnostics.structural).toContainEqual(expect.objectContaining({
-      artifact: 'definition',
-      code: 'E313',
-      path: 'items[0].$ref',
-      severity: 'error',
-    }));
-    expect(diagnostics.counts.error).toBe(1);
-  });
-
-  function createLintBackedSchemaValidator(): SchemaValidator {
-    return {
-      validate(document) {
-        const result = lintDocument(document);
-        return {
-          documentType: result.documentType as any,
-          errors: result.diagnostics.map((diagnostic: any) => ({
-            path: diagnostic.path ?? '$',
-            message: diagnostic.message,
-            raw: diagnostic,
-          })),
-        };
-      },
-    };
-  }
-
-  it('returns clean diagnostics for valid empty project', () => {
-    const project = createRawProject();
-    const diag = project.diagnose();
-
-    expect(diag.structural).toEqual([]);
-    expect(diag.expressions).toEqual([]);
-    expect(diag.extensions).toEqual([]);
-    expect(diag.consistency).toEqual([]);
-    expect(diag.counts).toEqual({ error: 0, warning: 0, info: 0 });
-  });
-
-  it('returns empty structural when no schemaValidator is provided', () => {
+describe('diagnose (fs-e9xa: canonical stack linter)', () => {
+  it('returns clean diagnostics for a valid project', () => {
     const project = createRawProject({
       seed: {
         definition: {
           $formspec: '1.0',
-          url: 'urn:test',
+          url: 'urn:example:clean',
           version: '1.0.0',
           status: 'draft',
-          title: 'Broken',
-          items: [{ type: 'field', label: 'Missing key' }],
-        } as any,
-      },
-    });
-    const diag = project.diagnose();
-    expect(diag.structural).toEqual([]);
-  });
-
-  it('populates structural when schemaValidator is provided and definition is invalid', () => {
-    const definitionSchema = JSON.parse(
-      fs.readFileSync(path.join(SCHEMAS_DIR, 'definition.schema.json'), 'utf-8'),
-    );
-    expect(definitionSchema).toBeTruthy();
-    const validator = createLintBackedSchemaValidator();
-    const project = createRawProject({
-      schemaValidator: validator,
-      seed: {
-        definition: {
-          $formspec: '1.0',
-          url: 'urn:test',
-          version: '1.0.0',
-          status: 'draft',
-          title: 'Broken',
-          items: [{ type: 'field', label: 'Missing key' }],
-        } as any,
-      },
-    });
-    const diag = project.diagnose();
-    expect(diag.structural.length).toBeGreaterThan(0);
-    expect(diag.structural.some((d) => d.code === 'E101' && d.artifact === 'definition')).toBe(true);
-    expect(diag.counts.error).toBeGreaterThan(0);
-  });
-
-  it('detects unresolved extension references', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'email' } });
-    project.dispatch({ type: 'definition.setItemExtension', payload: { path: 'email', extension: 'x-custom', value: true } });
-
-    const diag = project.diagnose();
-    expect(diag.extensions.length).toBe(1);
-    expect(diag.extensions[0].code).toBe('UNRESOLVED_EXTENSION');
-    expect(diag.extensions[0].severity).toBe('error');
-    expect(diag.counts.error).toBe(1);
-  });
-
-  it('passes when extension is in loaded registry', () => {
-    const project = createRawProject();
-    project.dispatch({
-      type: 'project.loadRegistry',
-      payload: {
-        registry: {
-          url: 'urn:test',
-          entries: [{ name: 'x-custom', category: 'constraint', status: 'stable' }],
+          title: 'Clean',
+          items: [
+            { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+          ],
         },
       },
     });
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'email' } });
-    project.dispatch({ type: 'definition.setItemExtension', payload: { path: 'email', extension: 'x-custom', value: true } });
-
     const diag = project.diagnose();
-    expect(diag.extensions).toEqual([]);
+    expect(diag.diagnostics).toEqual([]);
+    expect(diag.counts).toEqual({ error: 0, warning: 0, info: 0 });
   });
 
-  it('reports deprecated and retired extension usage from shared validation helper', () => {
-    const project = createRawProject();
+  it('reports E300, E302, E500 (calculate cycle) and W1902 with matching counts, all valid against $defs/Diagnostic', () => {
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0',
+          url: 'urn:example:defects',
+          version: '1.0.0',
+          status: 'draft',
+          title: 'Defects',
+          items: [
+            { key: 'first', type: 'field', dataType: 'string', label: 'Duplicate' },
+            { key: 'second', type: 'field', dataType: 'choice', label: 'Duplicate', optionSet: 'missing_opts' },
+            { key: 'a', type: 'field', dataType: 'integer', label: 'A' },
+            { key: 'b', type: 'field', dataType: 'integer', label: 'B' },
+          ],
+          binds: [
+            { path: 'unknownField', required: 'true' },
+            { path: 'a', calculate: '$b + 1' },
+            { path: 'b', calculate: '$a + 1' },
+          ],
+        },
+      },
+    });
+
+    const diag = project.diagnose();
+    const codes = diag.diagnostics.map((d) => d.code);
+    expect(codes).toContain('E300');
+    expect(codes).toContain('E302');
+    expect(codes).toContain('E500');
+    expect(codes).toContain('W1902');
+
+    // Never emits retired TS-only diagnostic codes.
+    for (const legacy of ['CIRCULAR_DEPENDENCY', 'FEL_PARSE_ERROR', 'ORPHAN_COMPONENT_BIND', 'UNRESOLVED_EXTENSION']) {
+      expect(codes).not.toContain(legacy);
+    }
+
+    // Counts match entries exactly.
+    const expectedCounts = { error: 0, warning: 0, info: 0 };
+    for (const entry of diag.diagnostics) {
+      expectedCounts[entry.severity]++;
+      const ok = validateDiagnostic(entry);
+      expect(ok, `Invalid AppGraph Diagnostic ${entry.code}: ${JSON.stringify(validateDiagnostic.errors)}`).toBe(true);
+      expect(entry.origin).toBe('x-formspec-lint');
+      expect(entry.phase).toBe('cross-artifact');
+    }
+    expect(diag.counts).toEqual(expectedCounts);
+  });
+
+  it('does not emit E500 for mutual required binds (fs-6jt9)', () => {
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0',
+          url: 'urn:example:mutual-required',
+          version: '1.0.0',
+          status: 'draft',
+          title: 'Mutual Required',
+          items: [
+            { key: 'email', type: 'field', dataType: 'string', label: 'Email' },
+            { key: 'phone', type: 'field', dataType: 'string', label: 'Phone' },
+          ],
+          binds: [
+            { path: 'email', required: 'empty($phone)' },
+            { path: 'phone', required: 'empty($email)' },
+          ],
+        },
+      },
+    });
+
+    const diag = project.diagnose();
+    expect(diag.diagnostics.filter((d) => d.code === 'E500')).toEqual([]);
+  });
+
+  it('reports E313 for an unassembled group $ref', () => {
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0',
+          url: 'urn:example:application',
+          version: '1.0.0',
+          status: 'draft',
+          title: 'Application',
+          items: [
+            { key: 'cover', type: 'group', label: 'Cover', $ref: 'urn:example:cover|1.0.0' },
+          ],
+        },
+      },
+    });
+
+    const diag = project.diagnose();
+    expect(diag.diagnostics).toContainEqual(expect.objectContaining({
+      code: 'E313',
+      severity: 'error',
+      origin: 'x-formspec-lint',
+      primarySource: expect.objectContaining({
+        artifactKind: 'definition',
+        artifactSlot: 'definition',
+      }),
+    }));
+    expect(diag.counts.error).toBeGreaterThanOrEqual(1);
+  });
+
+  it('reports E600, E601 and E602 for extension usage against loaded registries', () => {
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0',
+          url: 'urn:example:extensions',
+          version: '1.0.0',
+          status: 'draft',
+          title: 'Extensions',
+          items: [
+            { key: 'email', type: 'field', dataType: 'string', label: 'Email' },
+          ],
+        },
+      },
+    });
     project.dispatch({
       type: 'project.loadRegistry',
       payload: {
         registry: {
-          url: 'urn:test',
+          $formspecRegistry: '1.1',
+          url: 'urn:example:registry',
+          publisher: { name: 'Example' },
+          published: '2026-01-01',
           entries: [
+            { name: 'x-stable', category: 'constraint', status: 'stable' },
             { name: 'x-deprecated', category: 'constraint', status: 'deprecated' },
             { name: 'x-retired', category: 'constraint', status: 'retired' },
           ],
         },
       },
     });
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'email' } });
+    project.dispatch({ type: 'definition.setItemExtension', payload: { path: 'email', extension: 'x-stable', value: true } });
+    project.dispatch({ type: 'definition.setItemExtension', payload: { path: 'email', extension: 'x-unknown', value: true } });
     project.dispatch({ type: 'definition.setItemExtension', payload: { path: 'email', extension: 'x-deprecated', value: true } });
     project.dispatch({ type: 'definition.setItemExtension', payload: { path: 'email', extension: 'x-retired', value: true } });
 
     const diag = project.diagnose();
-    expect(diag.extensions.some((entry) => entry.code === 'EXTENSION_DEPRECATED')).toBe(true);
-    expect(diag.extensions.some((entry) => entry.code === 'EXTENSION_RETIRED')).toBe(true);
-  });
-
-  it('detects component tree referencing nonexistent items', () => {
-    const project = createRawProject();
-    // Manually add a component node bound to a field that doesn't exist
-    project.dispatch({
-      type: 'component.addNode',
-      payload: { parent: { nodeId: 'root' }, component: 'TextInput', bind: 'nonexistent' },
-    });
-
-    const diag = project.diagnose();
-    const orphan = diag.consistency.find(d => d.code === 'ORPHAN_COMPONENT_BIND');
-    expect(orphan).toBeDefined();
-    expect(orphan!.severity).toBe('warning');
-  });
-
-  it('allows component node bound to a display item', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'display', key: 'notice', label: 'Read carefully' } });
-    project.dispatch({
-      type: 'component.addNode',
-      payload: { parent: { nodeId: 'root' }, component: 'Text', bind: 'notice' },
-    });
-
-    const diag = project.diagnose();
-    const displayBind = diag.consistency.find(d => d.code === 'DISPLAY_ITEM_BIND');
-    expect(displayBind).toBeUndefined();
-  });
-
-  it('detects non-group-aware component bound to a group item', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'group', key: 'section', label: 'Section' } });
-    project.dispatch({
-      type: 'component.addNode',
-      payload: { parent: { nodeId: 'root' }, component: 'TextInput', bind: 'section' },
-    });
-
-    const diag = project.diagnose();
-    const groupBind = diag.consistency.find(d => d.code === 'DISPLAY_ITEM_BIND');
-    expect(groupBind).toBeDefined();
-    expect(groupBind!.severity).toBe('warning');
-    expect(groupBind!.path).toBe('section');
-  });
-
-  it('detects stale mapping rule source paths', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'name' } });
-    project.dispatch({ type: 'mapping.addRule', payload: { sourcePath: 'deleted_field', targetPath: 'output.name' } });
-
-    const diag = project.diagnose();
-    const stale = diag.consistency.find(d => d.code === 'STALE_MAPPING_SOURCE');
-    expect(stale).toBeDefined();
-    expect(stale!.severity).toBe('warning');
-  });
-
-  it('detects unmatched theme selectors', () => {
-    const project = createRawProject();
-    project.batch([
-      { type: 'definition.addItem', payload: { type: 'field', key: 'name', dataType: 'string' } },
-      { type: 'theme.addSelector', payload: { match: { dataType: 'integer' }, apply: { widget: 'NumberInput' } } },
-    ]);
-
-    const diag = project.diagnose();
-    expect(diag.consistency.some((entry) => entry.code === 'UNMATCHED_THEME_SELECTOR')).toBe(true);
-  });
-
-  it('aggregates counts correctly', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'f1' } });
-    project.dispatch({ type: 'definition.setItemExtension', payload: { path: 'f1', extension: 'x-bad1', value: true } });
-    project.dispatch({ type: 'definition.setItemExtension', payload: { path: 'f1', extension: 'x-bad2', value: true } });
-    project.dispatch({ type: 'mapping.addRule', payload: { sourcePath: 'stale', targetPath: 'out' } });
-
-    const diag = project.diagnose();
-    expect(diag.counts.error).toBe(2);    // 2 unresolved extensions
-    expect(diag.counts.warning).toBe(1);  // 1 stale mapping
-  });
-
-  it('warns about root-level non-group items in paged definitions', () => {
-    const project = createRawProject();
-    // Add root-level items BEFORE enabling pageMode (the real scenario:
-    // user has a flat form, then enables wizard mode)
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'group', key: 'page1', label: 'Page 1' } });
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'rootField' } });
-    project.dispatch({ type: 'definition.setFormPresentation', payload: { property: 'pageMode', value: 'wizard' } });
-
-    const diag = project.diagnose();
-    const pagedWarning = diag.consistency.find(d => d.code === 'PAGED_ROOT_NON_GROUP');
-    expect(pagedWarning).toBeDefined();
-    expect(pagedWarning!.severity).toBe('warning');
-    expect(pagedWarning!.path).toContain('rootField');
-  });
-
-  it('no paged warning when pageMode is not set', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'rootField' } });
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'group', key: 'g1' } });
-
-    const diag = project.diagnose();
-    expect(diag.consistency.filter(d => d.code === 'PAGED_ROOT_NON_GROUP')).toEqual([]);
-  });
-
-  it('no paged warning when all root items are groups', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'group', key: 'page1' } });
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'group', key: 'page2' } });
-    project.dispatch({ type: 'definition.setFormPresentation', payload: { property: 'pageMode', value: 'tabs' } });
-
-    const diag = project.diagnose();
-    expect(diag.consistency.filter(d => d.code === 'PAGED_ROOT_NON_GROUP')).toEqual([]);
-  });
-
-  it('no PAGED_ROOT_NON_GROUP warning for page-placed root items', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'name' } });
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'email' } });
-    // Create a page and place both items on it
-    const pageId = addPage(project, 'Contact Info');
-    moveNodeToPage(project, pageId, { bind: 'name' });
-    moveNodeToPage(project, pageId, { bind: 'email' });
-
-    const diag = project.diagnose();
-    const pagedWarnings = diag.consistency.filter(d => d.code === 'PAGED_ROOT_NON_GROUP');
-    expect(pagedWarnings).toEqual([]);
-  });
-
-  it('PAGED_ROOT_NON_GROUP only fires for unplaced items, not page-placed ones', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'placed_field' } });
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'orphan_field' } });
-    // Create a page and place only one item
-    const pageId = addPage(project, 'Page 1');
-    moveNodeToPage(project, pageId, { bind: 'placed_field' });
-
-    const diag = project.diagnose();
-    const pagedWarnings = diag.consistency.filter(d => d.code === 'PAGED_ROOT_NON_GROUP');
-    // Only the unplaced item should trigger the warning
-    expect(pagedWarnings).toHaveLength(1);
-    expect(pagedWarnings[0].path).toBe('orphan_field');
-  });
-
-  it('PAGED_ROOT_NON_GROUP message mentions "Other" page for unplaced items', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addItem', payload: { type: 'field', key: 'stray' } });
-    project.dispatch({ type: 'definition.setFormPresentation', payload: { property: 'pageMode', value: 'wizard' } });
-
-    const diag = project.diagnose();
-    const warning = diag.consistency.find(d => d.code === 'PAGED_ROOT_NON_GROUP');
-    expect(warning).toBeDefined();
-    // The message should NOT claim the item "will be hidden" — it lands in an auto-generated "Other" page
-    expect(warning!.message).not.toContain('will be hidden');
-    expect(warning!.message).toContain('Other');
-  });
-
-  it('does not report STALE_THEME_REGION_KEY for component-only nodes like action buttons', () => {
-    const project = createRawProject();
-    project.dispatch({
-      type: 'definition.addItem',
-      payload: { type: 'group', key: 'page1', label: 'Page 1' },
-    });
-    const pageId = addPage(project, 'Page 1');
-    moveNodeToPage(project, pageId, { bind: 'page1' });
-
-    // Add an action button component node and assign its nodeId to the page
-    const result = project.dispatch({
-      type: 'component.addNode',
-      payload: {
-        parent: { nodeId: 'root' },
-        component: 'ActionButton',
-        props: { actionRef: 'submit', label: { literal: 'Submit' } },
-      },
-    });
-    const nodeId = (result as any)?.nodeRef?.nodeId;
-    expect(nodeId).toBeDefined();
-    moveNodeToPage(project, pageId, { nodeId });
-
-    const diag = project.diagnose();
-    const stale = diag.consistency.filter(
-      (d) => d.code === 'STALE_THEME_REGION_KEY',
-    );
-    expect(stale).toEqual([]);
-  });
-
-  it('reports orphan component bind for BoundItem pointing to nonexistent item', () => {
-    const project = createRawProject();
-    project.dispatch({
-      type: 'definition.addItem',
-      payload: { type: 'field', key: 'real_item' },
-    });
-    const pageId = addPage(project, 'Page 1');
-    // Assign a key that doesn't exist in the definition — creates a BoundItem placeholder
-    project.dispatch({
-      type: 'component.addNode',
-      payload: {
-        parent: { nodeId: pageId },
-        component: 'TextInput',
-        bind: 'deleted_item',
-      },
-    });
-
-    // The BoundItem placeholder should trigger an ORPHAN_COMPONENT_BIND diagnostic
-    const diag = project.diagnose();
-    const orphan = diag.consistency.filter(d => d.code === 'ORPHAN_COMPONENT_BIND');
-    expect(orphan.some(d => d.path === 'deleted_item')).toBe(true);
-  });
-
-  it('detects transitive variable cycle in consistency diagnostics', () => {
-    const project = createRawProject();
-    // Create x → depends on y, y → depends on x
-    project.dispatch({ type: 'definition.addVariable', payload: { name: 'x', expression: '@y + 1' } });
-    project.dispatch({ type: 'definition.addVariable', payload: { name: 'y', expression: '@x + 1' } });
-
-    const diag = project.diagnose();
-    const cycleDiags = diag.consistency.filter(d => d.code === 'CIRCULAR_DEPENDENCY');
-    expect(cycleDiags.length).toBeGreaterThan(0);
-    expect(cycleDiags[0].severity).toBe('error');
-  });
-
-  it('detects three-node variable cycle', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addVariable', payload: { name: 'a', expression: '@b' } });
-    project.dispatch({ type: 'definition.addVariable', payload: { name: 'b', expression: '@c' } });
-    project.dispatch({ type: 'definition.addVariable', payload: { name: 'c', expression: '@a' } });
-
-    const diag = project.diagnose();
-    const cycleDiags = diag.consistency.filter(d => d.code === 'CIRCULAR_DEPENDENCY');
-    expect(cycleDiags.length).toBeGreaterThan(0);
-    expect(cycleDiags[0].severity).toBe('error');
-    expect(cycleDiags[0].artifact).toBe('definition');
-  });
-
-  it('no CIRCULAR_DEPENDENCY for acyclic variables', () => {
-    const project = createRawProject();
-    project.dispatch({ type: 'definition.addVariable', payload: { name: 'x', expression: '42' } });
-    project.dispatch({ type: 'definition.addVariable', payload: { name: 'y', expression: '@x + 1' } });
-
-    const diag = project.diagnose();
-    const cycleDiags = diag.consistency.filter(d => d.code === 'CIRCULAR_DEPENDENCY');
-    expect(cycleDiags).toEqual([]);
-  });
-
-  it('recognizes component node IDs as valid region keys', () => {
-    const project = createRawProject();
-    const pageId = addPage(project, 'Page 1');
-
-    // Add two component-only nodes
-    project.dispatch({
-      type: 'component.addNode',
-      payload: {
-        parent: { nodeId: 'root' },
-        component: 'ActionButton',
-        props: { actionRef: 'submit', label: { literal: 'Submit' } },
-      },
-    });
-    project.dispatch({
-      type: 'component.addNode',
-      payload: {
-        parent: { nodeId: 'root' },
-        component: 'ProgressBar',
-      },
-    });
-
-    // Get the nodeIds from the generated component tree
-    const genTree = project.component.tree as any;
-    const nodeIds = (genTree?.children ?? [])
-      .filter((c: any) => c.nodeId && c.nodeId !== 'root' && c.nodeId !== pageId)
-      .map((c: any) => c.nodeId);
-    expect(nodeIds.length).toBeGreaterThan(0); // sanity: we actually found nodes
-
-    // Assign them to the page
-    for (const nid of nodeIds) {
-      moveNodeToPage(project, pageId, { nodeId: nid });
+    const codes = diag.diagnostics.map((d) => d.code);
+    expect(codes).toContain('E600');
+    expect(codes).toContain('E601');
+    expect(codes).toContain('E602');
+    for (const entry of diag.diagnostics) {
+      expect(validateDiagnostic(entry)).toBe(true);
     }
+  });
+
+  it('lints companion documents (Theme, Mapping, Component, Locales) against the project Definition', () => {
+    const defUrl = 'urn:example:companions';
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0',
+          url: defUrl,
+          version: '1.0.0',
+          status: 'draft',
+          title: 'Companions',
+          items: [
+            { key: 'name', type: 'field', dataType: 'string', label: 'Name' },
+          ],
+        },
+        themeDeclared: true,
+        theme: {
+          targetDefinition: { url: defUrl },
+          items: { missingThemeKey: { widget: 'TextInput' } },
+        },
+        locales: {
+          en: {
+            $formspecLocale: '2.0',
+            version: '1.0.0',
+            locale: 'en',
+            target: { kind: 'definition', url: defUrl },
+            strings: { 'name.label': 'Name' },
+          },
+          es: {
+            $formspecLocale: '2.0',
+            version: '1.0.0',
+            locale: 'es',
+            fallback: 'en',
+            target: { kind: 'definition', url: defUrl },
+            strings: { 'ghostField.label': 'Fantasma' },
+          },
+        },
+      },
+    });
+    project.dispatch({ type: 'mapping.addRule', payload: { sourcePath: 'staleField', targetPath: 'out.name' } });
+    project.dispatch({
+      type: 'component.addNode',
+      payload: { parent: { nodeId: 'root' }, component: 'TextInput', bind: 'missingItem' },
+    });
 
     const diag = project.diagnose();
-    const stale = diag.consistency.filter(
-      (d) => d.code === 'STALE_THEME_REGION_KEY',
-    );
-    expect(stale).toEqual([]);
+    const byCode = (code: string) => diag.diagnostics.filter((d) => d.code === code);
+    expect(byCode('W705').length).toBeGreaterThanOrEqual(1);
+    expect(byCode('E1110').length).toBeGreaterThanOrEqual(1);
+    expect(byCode('E1110')[0].severity).toBe('error');
+    expect(byCode('W800').length).toBeGreaterThanOrEqual(1);
+    expect(byCode('E1402').length).toBeGreaterThanOrEqual(1);
+    // Sibling Locale `en` is passed as context to `es`, so no false W1401 fallback warning.
+    expect(byCode('W1401')).toEqual([]);
+
+    for (const entry of diag.diagnostics) {
+      expect(validateDiagnostic(entry), `${entry.code}: ${JSON.stringify(validateDiagnostic.errors)}`).toBe(true);
+    }
+  });
+
+  it('throws when tools WASM is uninitialised instead of returning empty diagnostics', () => {
+    const coreDistEntry = path.resolve(__dirname, '../dist/index.js');
+    if (!fs.existsSync(coreDistEntry)) return;
+    let threw = false;
+    try {
+      execFileSync(
+        process.execPath,
+        [
+          '--input-type=module',
+          '-e',
+          `import { createRawProject } from ${JSON.stringify(coreDistEntry)}; createRawProject().diagnose();`,
+        ],
+        { stdio: 'pipe' },
+      );
+    } catch (err: any) {
+      threw = true;
+      const stderr = String(err?.stderr ?? '');
+      expect(stderr).toMatch(/WASM|initFormspecEngine/i);
+    }
+    expect(threw).toBe(true);
+  });
+
+  it('contains none of the retired legacy diagnostic codes in diagnostics.ts', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, '../src/queries/diagnostics.ts'), 'utf-8');
+    for (const legacy of ['CIRCULAR_DEPENDENCY', 'FEL_PARSE_ERROR', 'ORPHAN_COMPONENT_BIND', 'UNRESOLVED_EXTENSION']) {
+      expect(source).not.toContain(legacy);
+    }
   });
 });

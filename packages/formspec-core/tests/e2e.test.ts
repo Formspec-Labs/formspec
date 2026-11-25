@@ -32,13 +32,7 @@ describe('Formspec Studio Core E2E Validation', { timeout: 60_000 }, () => {
     const diag = project.diagnose();
     const ok = diag.counts.error === 0 && diag.counts.warning === 0;
     if (!ok) {
-      const all = [
-        ...diag.structural.map(d => ({ ...d, pass: 'structural' as const })),
-        ...diag.expressions.map(d => ({ ...d, pass: 'expressions' as const })),
-        ...diag.extensions.map(d => ({ ...d, pass: 'extensions' as const })),
-        ...diag.consistency.map(d => ({ ...d, pass: 'consistency' as const })),
-      ];
-      console.error(`[${stepName}] TS diagnose:`, diag.counts, { all });
+      console.error(`[${stepName}] TS diagnose:`, diag.counts, diag.diagnostics);
     }
     expect(diag.counts.error).toBe(0);
     expect(diag.counts.warning).toBe(0);
@@ -196,6 +190,7 @@ describe('Formspec Studio Core E2E Validation', { timeout: 60_000 }, () => {
     project.batch([
       { type: 'definition.duplicateItem', payload: { path: 'page1.firstName' } },
       { type: 'definition.renameItem', payload: { path: 'page1.firstName_1', newKey: 'nickName' } },
+      { type: 'definition.setItemProperty', payload: { path: 'page1.nickName', property: 'label', value: 'Nick Name' } },
     ]);
     validateProject('2-builder-duplicate-rename');
 

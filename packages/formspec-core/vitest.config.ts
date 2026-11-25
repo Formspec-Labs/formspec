@@ -13,6 +13,10 @@ export default defineConfig({
         '../formspec-engine/src/init-formspec-engine.ts',
       ),
       '@formspec-org/engine/render': path.resolve(__dirname, '../formspec-engine/src/engine-render-entry.ts'),
+      '@formspec-org/engine/static-presentation': path.resolve(
+        __dirname,
+        '../formspec-engine/src/static-presentation-entry.ts',
+      ),
       '@formspec-org/engine': path.resolve(__dirname, '../formspec-engine/src/index.ts'),
     },
   },

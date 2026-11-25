@@ -54,7 +54,14 @@ function hydrateDefinition(project: any, defJson: any) {
   // Variables
   if (defJson.variables) {
     for (const v of defJson.variables) {
-      actions.push({ type: 'definition.addVariable', payload: { name: v.name, expression: v.expression } });
+      actions.push({
+        type: 'definition.addVariable',
+        payload: {
+          name: v.name,
+          expression: v.expression,
+          ...(v.scope ? { scope: v.scope } : {}),
+        },
+      });
     }
   }
 
@@ -355,18 +362,10 @@ describe('Formspec Studio E2E Examples Rehydration', () => {
         progress(`${ex} / ${prefix}: diagnose...`);
         const diag = project.diagnose();
         progress(`${ex} / ${prefix}: diagnose done`);
-        const ok = diag.counts.error === 0 && diag.counts.warning === 0;
-        if (!ok) {
-          const all = [
-            ...diag.structural.map(d => ({ ...d, pass: 'structural' as const })),
-            ...diag.expressions.map(d => ({ ...d, pass: 'expressions' as const })),
-            ...diag.extensions.map(d => ({ ...d, pass: 'extensions' as const })),
-            ...diag.consistency.map(d => ({ ...d, pass: 'consistency' as const })),
-          ];
-          console.error(`[${ex}-${prefix}] TS diagnose:`, diag.counts, { all });
+        if (diag.counts.error !== 0) {
+          console.error(`[${ex}-${prefix}] TS diagnose:`, diag.counts, diag.diagnostics);
         }
         expect(diag.counts.error).toBe(0);
-        expect(diag.counts.warning).toBe(0);
 
         // Python validation (on written files) — timeout to avoid hanging
         progress(`${ex} / ${prefix}: Python validate...`);

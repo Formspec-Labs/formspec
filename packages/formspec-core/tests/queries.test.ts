@@ -918,36 +918,6 @@ describe('variableDependents', () => {
   });
 });
 
-describe('dependencyGraph', () => {
-  it('builds a graph of fields, variables, and shapes', () => {
-    const project = createRawProject();
-    project.batch([
-      { type: 'definition.addItem', payload: { type: 'field', key: 'a' } },
-      { type: 'definition.addItem', payload: { type: 'field', key: 'b' } },
-      { type: 'definition.setBind', payload: { path: 'b', properties: { calculate: '$a * 2' } } },
-    ]);
-
-    const graph = project.dependencyGraph();
-    expect(graph.nodes.length).toBeGreaterThanOrEqual(2);
-    expect(graph.edges.length).toBeGreaterThan(0);
-    const edge = graph.edges.find(e => e.from === 'a' && e.to === 'b');
-    expect(edge).toBeDefined();
-  });
-
-  it('detects cycles across bind dependencies', () => {
-    const project = createRawProject();
-    project.batch([
-      { type: 'definition.addItem', payload: { type: 'field', key: 'a' } },
-      { type: 'definition.addItem', payload: { type: 'field', key: 'b' } },
-      { type: 'definition.setBind', payload: { path: 'a', properties: { calculate: '$b + 1' } } },
-      { type: 'definition.setBind', payload: { path: 'b', properties: { calculate: '$a + 1' } } },
-    ]);
-
-    const graph = project.dependencyGraph();
-    expect(graph.cycles.length).toBeGreaterThan(0);
-  });
-});
-
 describe('parseFEL', () => {
   it('validates a well-formed expression', () => {
     const project = createRawProject();
