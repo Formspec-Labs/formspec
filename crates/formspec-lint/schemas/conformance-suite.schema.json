@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://formspec.org/schemas/conformance-suite/1.0",
-  "title": "Formspec Shared Conformance Suite Case",
-  "description": "Canonical shared-case contract for the cross-runtime parity guard. Every case runs in the TypeScript runner (FormEngine and the WASM evaluator) and the native Rust runner (formspec-eval, built as the server builds it); Python binds the same Rust evaluator. Known divergences are listed per case, leg and runner in tests/conformance/parity-ledger.json.",
+  "title": "Formspec Shared Conformance Suite",
+  "description": "Canonical shared-case and suite contract for the cross-runtime parity guard and external conformance runner. Every case runs in the TypeScript runner (FormEngine and the WASM evaluator) and the native Rust runner (formspec-eval, built as the server builds it); Python binds the same Rust evaluator. Known divergences are listed per case, leg and runner in a parity ledger.",
   "$defs": {
     "counts": {
       "type": "object",
@@ -19,14 +19,133 @@
       "required": ["path", "code", "severity", "constraintKind"],
       "description": "A ValidationResult compared on the fields it lists. Omit processor-generated messages; list authored ones (constraintMessage, Shape message)."
     },
+    "resultFilter": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "path": { "type": "string" },
+        "pathPrefix": { "type": "string", "minLength": 1 },
+        "code": { "type": "string", "minLength": 1 },
+        "shapeId": { "type": "string", "minLength": 1 },
+        "severity": { "type": "string", "enum": ["error", "warning", "info"] },
+        "constraintKind": { "type": "string", "minLength": 1 },
+        "message": { "type": "string" },
+        "source": { "type": "string", "minLength": 1 }
+      },
+      "description": "Partial ValidationResult matcher used by absent checks."
+    },
+    "presentMatcher": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string" },
+        "pathPrefix": { "type": "string", "minLength": 1 },
+        "code": { "type": "string", "minLength": 1 },
+        "shapeId": { "type": "string", "minLength": 1 },
+        "severity": { "type": "string", "enum": ["error", "warning", "info"] },
+        "constraintKind": { "type": "string", "minLength": 1 },
+        "message": { "type": "string" },
+        "source": { "type": "string", "minLength": 1 },
+        "count": { "type": "integer", "minimum": 1 }
+      },
+      "anyOf": [
+        { "required": ["path"] },
+        { "required": ["pathPrefix"] },
+        { "required": ["code"] },
+        { "required": ["shapeId"] },
+        { "required": ["severity"] },
+        { "required": ["constraintKind"] },
+        { "required": ["message"] },
+        { "required": ["source"] }
+      ],
+      "description": "Partial ValidationResult matcher used by present checks. Omit count to require at least one match; set count to require an exact match count."
+    },
+    "expectedDataAt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "value": {},
+        "absent": { "type": "boolean" },
+        "comparator": {
+          "type": "string",
+          "enum": ["exact", "exact-decimal", "tolerance", "tolerant-decimal"]
+        },
+        "epsilon": {
+          "oneOf": [
+            { "type": "number", "minimum": 0 },
+            { "type": "string", "pattern": "^\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["absent"],
+            "properties": { "absent": { "const": true } }
+          },
+          "then": { "not": { "required": ["value"] } },
+          "else": { "required": ["value"] }
+        },
+        {
+          "if": {
+            "required": ["comparator"],
+            "properties": { "comparator": { "const": "tolerance" } }
+          },
+          "then": { "required": ["epsilon"] }
+        }
+      ],
+      "description": "Partial check against one concrete Response data path using exact decimal comparison or numeric tolerance."
+    },
+    "expectedState": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "relevant": { "type": "boolean" },
+        "required": { "type": "boolean" },
+        "readonly": { "type": "boolean" }
+      },
+      "description": "Partial check against model-item property states at one concrete Item path."
+    },
     "expectedReport": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["valid", "counts", "results"],
+      "minProperties": 1,
       "properties": {
         "valid": { "type": "boolean" },
         "counts": { "$ref": "#/$defs/counts" },
-        "results": { "type": "array", "items": { "$ref": "#/$defs/expectedResult" } }
+        "results": { "type": "array", "items": { "$ref": "#/$defs/expectedResult" } },
+        "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/expectedDiagnostic" } },
+        "present": { "type": "array", "items": { "$ref": "#/$defs/presentMatcher" } },
+        "absent": { "type": "array", "items": { "$ref": "#/$defs/resultFilter" } },
+        "dataAt": { "type": "array", "items": { "$ref": "#/$defs/expectedDataAt" } },
+        "states": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/expectedState" }
+        }
+      }
+    },
+    "expectedProcessing": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "valid": { "type": "boolean" },
+        "counts": { "$ref": "#/$defs/counts" },
+        "results": { "type": "array", "items": { "$ref": "#/$defs/expectedResult" } },
+        "data": { "type": "object" },
+        "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/expectedDiagnostic" } },
+        "undeclaredDataPaths": { "type": "array", "items": { "type": "string" } },
+        "present": { "type": "array", "items": { "$ref": "#/$defs/presentMatcher" } },
+        "absent": { "type": "array", "items": { "$ref": "#/$defs/resultFilter" } },
+        "dataAt": { "type": "array", "items": { "$ref": "#/$defs/expectedDataAt" } },
+        "states": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/expectedState" }
+        }
       }
     },
     "expectedDiagnostic": {
@@ -39,6 +158,64 @@
         "code": { "type": "string" },
         "shapeId": { "type": "string" }
       }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op"],
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": ["setValue", "addRow", "removeRow", "resume", "deliverInstance"]
+        },
+        "path": { "type": "string", "minLength": 1 },
+        "value": {},
+        "index": { "type": "integer", "minimum": 0 },
+        "name": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "op": { "const": "setValue" } } },
+          "then": {
+            "required": ["path"],
+            "not": { "anyOf": [{ "required": ["index"] }, { "required": ["name"] }] }
+          }
+        },
+        {
+          "if": { "properties": { "op": { "const": "addRow" } } },
+          "then": {
+            "required": ["path"],
+            "not": { "anyOf": [{ "required": ["value"] }, { "required": ["index"] }, { "required": ["name"] }] }
+          }
+        },
+        {
+          "if": { "properties": { "op": { "const": "removeRow" } } },
+          "then": {
+            "required": ["path", "index"],
+            "not": { "anyOf": [{ "required": ["value"] }, { "required": ["name"] }] }
+          }
+        },
+        {
+          "if": { "properties": { "op": { "const": "resume" } } },
+          "then": {
+            "not": {
+              "anyOf": [
+                { "required": ["path"] },
+                { "required": ["value"] },
+                { "required": ["index"] },
+                { "required": ["name"] }
+              ]
+            }
+          }
+        },
+        {
+          "if": { "properties": { "op": { "const": "deliverInstance" } } },
+          "then": {
+            "required": ["name", "value"],
+            "not": { "anyOf": [{ "required": ["path"] }, { "required": ["index"] }] }
+          }
+        }
+      ]
     },
     "standardValidationCode": {
       "type": "string",
@@ -71,291 +248,330 @@
         "EXTENSION_DEPRECATED"
       ],
       "description": "Standard validation result codes that every runtime MUST emit identically. The leading codes are the reserved built-in codes in Core §2.5.1 and validation-result.schema.json. The remaining codes are registry extensions. Shape-level and external codes such as BUDGET_SUM_MISMATCH and EIN_NOT_FOUND are user-defined."
-    }
-  },
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["id", "kind", "expected", "specRefs"],
-  "properties": {
-    "id": {
-      "type": "string",
-      "minLength": 1,
-      "pattern": "^[a-z0-9][a-z0-9._-]*$",
-      "description": "Stable, unique case identifier."
     },
-    "kind": {
-      "type": "string",
-      "enum": [
-        "FEL_EVALUATION",
-        "ENGINE_PROCESSING",
-        "VALIDATION_REPORT",
-        "RESPONSE_VALIDATION",
-        "ITEM_TEXT"
-      ],
-      "description": "Execution mode for this case. ITEM_TEXT compares resolved Item text (Core §4.2.1 text resolution and interpolation) at the listed instance paths: label / hint / description, plus the per-display-context labels / hints / descriptions a case lists (Locale §3.1.2)."
-    },
-    "definitionPath": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Repository-relative path to the form definition fixture."
-    },
-    "registryPaths": {
-      "type": "array",
-      "items": { "type": "string", "minLength": 1 },
-      "minItems": 1,
-      "description": "Optional repository-relative registry fixtures to load."
-    },
-    "localePath": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Repository-relative path to a Locale Document whose strings replace inline Item text for ITEM_TEXT cases (Locale §3.1.1–§3.1.2); runners activate its locale."
-    },
-    "payloadPath": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Repository-relative path to the input payload fixture."
-    },
-    "subject": {
-      "type": "object",
-      "description": "Filing-unit identity supplied by the host. Refusal cases may intentionally supply invalid keys."
-    },
-    "expectedCandidate": {
-      "$ref": "https://formspec.org/schemas/response/1.0",
-      "description": "Complete expected filed Response at the fixture clock, compared as canonical JSON."
-    },
-    "inputData": {
-      "description": "Inline input payload."
-    },
-    "specRefs": {
-      "type": "array",
-      "minItems": 1,
-      "items": { "type": "string", "minLength": 1 },
-      "description": "The spec sections (or owner rulings) `expected` is derived from, e.g. 'Core §4.2.2 minRepeat'. Expected values are derived from these by hand, never by running an engine."
-    },
-    "origin": {
-      "type": "string",
-      "enum": ["new", "saved"],
-      "description": "How the payload enters a session. 'new': a new Response is created with the payload as host prefill (Core §4.2.2.1: host data wins key by key). 'saved': a saved Response resumes as given, with no creation."
-    },
-    "operations": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["op", "path"],
-        "properties": {
-          "op": { "type": "string", "enum": ["setValue", "addRow", "removeRow"] },
-          "path": { "type": "string", "minLength": 1 },
-          "value": {},
-          "index": { "type": "integer", "minimum": 0 }
-        }
-      },
-      "description": "Live-session steps the TypeScript runner replays on FormEngine after loading the payload; `expected` is the state after the last step. The Rust runner evaluates `expected.data` (the filed record) instead."
-    },
-    "site": {
-      "type": "string",
-      "description": "FEL_EVALUATION with a Definition: the instance path the expression is evaluated at, as a component `when` or compileExpression would (empty string for the form root)."
-    },
-    "mode": {
-      "type": "string",
-      "enum": ["continuous", "submit"],
-      "description": "Validation mode to run for processing/report/response kinds."
-    },
-    "skipScreener": {
-      "type": "boolean",
-      "description": "When true, runners should skip screener entry before evaluating the main definition."
-    },
-    "expression": {
-      "type": "string",
-      "minLength": 1,
-      "description": "FEL expression for FEL_EVALUATION cases."
-    },
-    "comparator": {
-      "type": "string",
-      "enum": ["exact", "normalized", "tolerant-decimal"],
-      "description": "Comparison strategy for FEL_EVALUATION cases."
-    },
-    "fields": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["key"],
-        "properties": {
-          "key": { "type": "string", "minLength": 1 },
-          "dataType": { "type": "string", "minLength": 1 },
-          "value": {}
-        }
-      },
-      "description": "Field declarations and values for FEL_EVALUATION cases."
-    },
-    "compareResponseData": {
-      "type": "boolean",
-      "description": "When true, RESPONSE_VALIDATION compares normalized response.data in addition to validation artifacts."
-    },
-    "expected": {
-      "type": "object",
-      "description": "Canonical expected output after shared normalization."
-    },
-    "legacyCoverage": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["path", "check"],
-        "properties": {
-          "path": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Repository-relative path of the replaced legacy test surface."
-          },
-          "check": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Legacy test id/name/check this case replaces."
-          }
-        }
-      },
-      "description": "Optional mapping of this shared case to the legacy checks it replaced."
-    }
-  },
-  "allOf": [
-    {
-      "if": { "required": ["expectedCandidate"] },
-      "then": {
-        "required": ["mode"],
-        "properties": {
-          "mode": { "const": "submit" },
-          "kind": { "enum": ["ENGINE_PROCESSING", "VALIDATION_REPORT", "RESPONSE_VALIDATION"] }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": { "kind": { "const": "FEL_EVALUATION" } },
-        "required": ["kind"]
-      },
-      "then": {
-        "required": ["expression", "comparator"],
-        "properties": {
-          "fields": { "type": "array" }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": { "kind": { "const": "FEL_EVALUATION" } },
-        "required": ["kind", "definitionPath"]
-      },
-      "then": { "required": ["inputData", "origin", "site"], "not": { "required": ["fields"] } }
-    },
-    {
-      "if": {
-        "properties": { "kind": { "enum": ["ENGINE_PROCESSING", "VALIDATION_REPORT", "RESPONSE_VALIDATION"] } },
-        "required": ["kind"]
-      },
-      "then": { "required": ["origin", "mode"] },
-      "else": { "not": { "anyOf": [{ "required": ["operations"] }, { "required": ["mode"] }] } }
-    },
-    {
-      "if": {
-        "properties": { "kind": { "enum": ["ENGINE_PROCESSING", "VALIDATION_REPORT", "RESPONSE_VALIDATION", "ITEM_TEXT"] } },
-        "required": ["kind"]
-      },
-      "then": {
-        "required": ["definitionPath"],
-        "oneOf": [
-          { "required": ["payloadPath"] },
-          { "required": ["inputData"] }
-        ]
-      }
-    },
-    {
-      "if": { "properties": { "kind": { "const": "VALIDATION_REPORT" } }, "required": ["kind"] },
-      "then": { "properties": { "expected": { "$ref": "#/$defs/expectedReport" } } }
-    },
-    {
-      "if": { "properties": { "kind": { "const": "ENGINE_PROCESSING" } }, "required": ["kind"] },
-      "then": {
-        "properties": {
-          "expected": {
+    "caseSharedProperties": {
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "FEL_EVALUATION",
+            "ENGINE_PROCESSING",
+            "VALIDATION_REPORT",
+            "RESPONSE_VALIDATION",
+            "ITEM_TEXT"
+          ],
+          "description": "Execution mode for this case. ITEM_TEXT compares resolved Item text (Core §4.2.1 text resolution and interpolation) at the listed instance paths: label / hint / description, plus the per-display-context labels / hints / descriptions a case lists (Locale §3.1.2)."
+        },
+        "definitionPath": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Root-relative path to the form definition fixture."
+        },
+        "registryPaths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "description": "Optional root-relative registry fixtures to load."
+        },
+        "localePath": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Root-relative path to a Locale Document whose strings replace inline Item text for ITEM_TEXT cases (Locale §3.1.1–§3.1.2); runners activate its locale."
+        },
+        "payloadPath": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Root-relative path to the input payload fixture."
+        },
+        "instances": {
+          "type": "object",
+          "description": "Named instance payloads supplied by the host for @instance() / instance()."
+        },
+        "subject": {
+          "type": "object",
+          "description": "Filing-unit identity supplied by the host. Refusal cases may intentionally supply invalid keys."
+        },
+        "now": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional ISO-8601 instant pinning the evaluation clock for this case."
+        },
+        "expectedCandidate": {
+          "$ref": "https://formspec.org/schemas/response/1.0",
+          "description": "Complete expected filed Response at the fixture clock, compared as canonical JSON."
+        },
+        "inputData": {
+          "description": "Inline input payload."
+        },
+        "specRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "The spec sections (or owner rulings) `expected` is derived from, e.g. 'Core §4.2.2 minRepeat'. Expected values are derived from these by hand, never by running an engine."
+        },
+        "origin": {
+          "type": "string",
+          "enum": ["new", "saved"],
+          "description": "How the payload enters a session. 'new': a new Response is created with the payload as host prefill (Core §4.2.2.1: host data wins key by key). 'saved': a saved Response resumes as given, with no creation."
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/operation" },
+          "description": "Live-session steps the TypeScript runner replays on FormEngine after loading the payload; `expected` is the state after the last step. The Rust runner evaluates the filed record (`expected.data` or browser handoff) with any delivered instances."
+        },
+        "site": {
+          "type": "string",
+          "description": "FEL_EVALUATION with a Definition: the instance path the expression is evaluated at, as a component `when` or compileExpression would (empty string for the form root)."
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["continuous", "submit"],
+          "description": "Validation mode to run for processing/report/response kinds."
+        },
+        "skipScreener": {
+          "type": "boolean",
+          "description": "When true, runners should skip screener entry before evaluating the main definition."
+        },
+        "expression": {
+          "type": "string",
+          "minLength": 1,
+          "description": "FEL expression for FEL_EVALUATION cases."
+        },
+        "comparator": {
+          "type": "string",
+          "enum": ["exact", "normalized", "tolerant-decimal"],
+          "description": "Comparison strategy for FEL_EVALUATION cases."
+        },
+        "fields": {
+          "type": "array",
+          "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["valid", "counts", "results", "data"],
+            "required": ["key"],
             "properties": {
-              "valid": { "type": "boolean" },
-              "counts": { "$ref": "#/$defs/counts" },
-              "results": { "type": "array", "items": { "$ref": "#/$defs/expectedResult" } },
-              "data": { "type": "object" },
-              "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/expectedDiagnostic" } },
-              "undeclaredDataPaths": { "type": "array", "items": { "type": "string" } }
+              "key": { "type": "string", "minLength": 1 },
+              "dataType": { "type": "string", "minLength": 1 },
+              "value": {}
+            }
+          },
+          "description": "Field declarations and values for FEL_EVALUATION cases."
+        },
+        "compareResponseData": {
+          "type": "boolean",
+          "description": "When true, RESPONSE_VALIDATION compares normalized response.data in addition to validation artifacts."
+        },
+        "expected": {
+          "type": "object",
+          "properties": {
+            "present": { "type": "array", "items": { "$ref": "#/$defs/presentMatcher" } },
+            "absent": { "type": "array", "items": { "$ref": "#/$defs/resultFilter" } },
+            "dataAt": { "type": "array", "items": { "$ref": "#/$defs/expectedDataAt" } },
+            "states": {
+              "type": "object",
+              "additionalProperties": { "$ref": "#/$defs/expectedState" }
+            }
+          },
+          "description": "Canonical expected output after shared normalization."
+        },
+        "legacyCoverage": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "check"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Repository-relative path of the replaced legacy test surface."
+              },
+              "check": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Legacy test id/name/check this case replaces."
+              }
+            }
+          },
+          "description": "Optional mapping of this shared case to the legacy checks it replaced."
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "$ref": "#/$defs/caseSharedProperties",
+      "unevaluatedProperties": false,
+      "required": ["id", "kind", "expected", "specRefs"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$",
+          "description": "Stable, unique case identifier."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["expectedCandidate"] },
+          "then": {
+            "required": ["mode"],
+            "properties": {
+              "mode": { "const": "submit" },
+              "kind": { "enum": ["ENGINE_PROCESSING", "VALIDATION_REPORT", "RESPONSE_VALIDATION"] }
             }
           }
-        }
-      }
-    },
-    {
-      "if": { "properties": { "kind": { "const": "RESPONSE_VALIDATION" } }, "required": ["kind"] },
-      "then": {
-        "properties": {
-          "expected": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["report", "response"],
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "FEL_EVALUATION" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "required": ["expression", "comparator"],
             "properties": {
-              "report": { "$ref": "#/$defs/expectedReport" },
-              "response": {
+              "fields": { "type": "array" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "FEL_EVALUATION" } },
+            "required": ["kind", "definitionPath"]
+          },
+          "then": { "required": ["inputData", "origin", "site"], "not": { "required": ["fields"] } }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "enum": ["ENGINE_PROCESSING", "VALIDATION_REPORT", "RESPONSE_VALIDATION"] } },
+            "required": ["kind"]
+          },
+          "then": { "required": ["origin", "mode"] },
+          "else": { "not": { "anyOf": [{ "required": ["operations"] }, { "required": ["mode"] }] } }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "enum": ["ENGINE_PROCESSING", "VALIDATION_REPORT", "RESPONSE_VALIDATION", "ITEM_TEXT"] } },
+            "required": ["kind"]
+          },
+          "then": {
+            "required": ["definitionPath"],
+            "oneOf": [
+              { "required": ["payloadPath"] },
+              { "required": ["inputData"] }
+            ]
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "VALIDATION_REPORT" } }, "required": ["kind"] },
+          "then": { "properties": { "expected": { "$ref": "#/$defs/expectedReport" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "ENGINE_PROCESSING" } }, "required": ["kind"] },
+          "then": { "properties": { "expected": { "$ref": "#/$defs/expectedProcessing" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "RESPONSE_VALIDATION" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "expected": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["validationResults"],
+                "required": ["report", "response"],
                 "properties": {
-                  "validationResults": { "type": "array", "items": { "$ref": "#/$defs/expectedResult" } },
-                  "data": { "type": "object" }
+                  "report": { "$ref": "#/$defs/expectedReport" },
+                  "response": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["validationResults"],
+                    "properties": {
+                      "validationResults": { "type": "array", "items": { "$ref": "#/$defs/expectedResult" } },
+                      "data": { "type": "object" }
+                    }
+                  }
                 }
               }
             }
           }
-        }
-      }
-    },
-    {
-      "if": { "properties": { "kind": { "const": "FEL_EVALUATION" } }, "required": ["kind"] },
-      "then": {
-        "properties": {
-          "expected": { "type": "object", "additionalProperties": false, "required": ["value"], "properties": { "value": {} } }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": { "kind": { "const": "ITEM_TEXT" } },
-        "required": ["kind"]
-      },
-      "then": {
-        "properties": {
-          "expected": {
-            "description": "Resolved Item text by instance path (e.g. 'rows[0].name'). Each entry lists label, and description / hint only when the Item has them; labels / descriptions / hints carry the per-display-context resolutions (Locale §3.1.2), listed only for contexts a Locale or the Definition supplies.",
-            "additionalProperties": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["label"],
-              "properties": {
-                "label": { "type": "string" },
-                "labels": { "type": "object", "additionalProperties": { "type": "string" } },
-                "description": { "type": "string" },
-                "descriptions": { "type": "object", "additionalProperties": { "type": "string" } },
-                "hint": { "type": "string" },
-                "hints": { "type": "object", "additionalProperties": { "type": "string" } }
-              }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "FEL_EVALUATION" } }, "required": ["kind"] },
+          "then": {
+            "properties": {
+              "expected": { "type": "object", "additionalProperties": false, "required": ["value"], "properties": { "value": {} } }
             }
           }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "ITEM_TEXT" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "expected": {
+                "description": "Resolved Item text by instance path (e.g. 'rows[0].name'). Each entry lists label, and description / hint only when the Item has them; labels / descriptions / hints carry the per-display-context resolutions (Locale §3.1.2), listed only for contexts a Locale or the Definition supplies.",
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["label"],
+                  "properties": {
+                    "label": { "type": "string" },
+                    "labels": { "type": "object", "additionalProperties": { "type": "string" } },
+                    "description": { "type": "string" },
+                    "descriptions": { "type": "object", "additionalProperties": { "type": "string" } },
+                    "hint": { "type": "string" },
+                    "hints": { "type": "object", "additionalProperties": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "not": { "required": ["localePath"] }
+          }
+        }
+      ]
+    },
+    "suiteDefaults": {
+      "type": "object",
+      "$ref": "#/$defs/caseSharedProperties",
+      "unevaluatedProperties": false,
+      "description": "Shared defaults merged into every case entry in a suite file."
+    },
+    "suiteCase": {
+      "type": "object",
+      "$ref": "#/$defs/caseSharedProperties",
+      "unevaluatedProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$",
+          "description": "Stable, unique case identifier."
         }
       },
-      "else": {
-        "not": { "required": ["localePath"] }
-      }
+      "description": "A case entry inside a suite document before defaults are merged."
+    },
+    "suite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cases"],
+      "properties": {
+        "description": { "type": "string" },
+        "defaults": { "$ref": "#/$defs/suiteDefaults" },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/suiteCase" }
+        }
+      },
+      "description": "A multi-case conformance suite file with optional shared defaults."
     }
-  ]
+  },
+  "type": "object",
+  "if": { "required": ["cases"] },
+  "then": { "$ref": "#/$defs/suite" },
+  "else": { "$ref": "#/$defs/case" }
 }

@@ -14,11 +14,15 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "formspec-conformance": "./conformance/cli.mjs"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./conformance": "./conformance/index.mjs",
     "./init-formspec-engine": {
       "types": "./dist/init-formspec-engine.d.ts",
       "default": "./dist/init-formspec-engine.js"
@@ -52,6 +56,7 @@
   ],
   "files": [
     "dist",
+    "conformance",
     "wasm-pkg-runtime",
     "wasm-pkg-tools"
   ],
@@ -64,6 +69,7 @@
     "build:ts": "tsc",
     "build": "npm run build:wasm && npm run build:ts",
     "test:unit": "node --experimental-specifier-resolution=node --import ./tests/setup.mjs --test \"tests/**/*.test.mjs\"",
+    "test:conformance": "node --experimental-specifier-resolution=node --import ./tests/setup.mjs --test tests/shared-suite.test.mjs tests/conformance-runner.test.mjs",
     "test:wasm-runtime-isolation": "node --experimental-specifier-resolution=node --test tests/isolation/wasm-runtime-isolation.mjs",
     "test:wasm-tools-import-count": "node --experimental-specifier-resolution=node --test tests/isolation/wasm-tools-import-count.mjs",
     "test:init-entry-runtime-only": "node scripts/verify-init-entry-runtime-only.mjs",
@@ -74,6 +80,8 @@
   "dependencies": {
     "@formspec-org/types": "^0.2.1",
     "@preact/signals-core": "^1.6.0",
+    "ajv": "^8.18.0",
+    "ajv-formats": "^3.0.1",
     "canonicalize": "^3.0.0",
     "semver": "^7.8.1",
     "@formspec-org/integrity-canonical": "^0.1.1",

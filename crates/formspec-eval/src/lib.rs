@@ -76,6 +76,7 @@ pub use output_data::filed_response_data_matches;
 pub use pipeline::{EvaluateFiledError, PreparedDefinition, evaluate, evaluate_filed};
 pub use rebuild::parse_variables;
 pub use rebuild::{expand_repeat_instances, expand_wildcard_path, rebuild_item_tree};
+pub use recalculate::dependency_scope::{DependencyQuery, ReadScope, definition_dependency_scopes};
 pub use recalculate::recalculate;
 pub use registry_constraints::extension_constraints_from_registry_documents;
 pub use revalidate::revalidate;
