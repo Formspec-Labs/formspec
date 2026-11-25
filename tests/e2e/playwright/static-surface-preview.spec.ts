@@ -330,8 +330,10 @@ test('published seeded scenario shows In progress, hydrates answers across reloa
     await page.getByLabel('Contact email').fill('sample@example.test');
     const submitReport = page.getByRole('button', { name: 'Submit report' });
     await submitReport.click();
-    // The button names its own outcome status, so the check survives other status regions on the page.
-    await expect(submitReport).toHaveAccessibleDescription('Completed.');
+    // fs-onrf: one Submit produces a single non-empty status announcement (the Surface Submitted banner).
+    const statusAnnouncements = page.getByRole('status').filter({ hasText: /\S/ });
+    await expect(statusAnnouncements).toHaveCount(1);
+    await expect(statusAnnouncements).toContainText('Submitted');
     await page.reload();
 
     const completedResponseJson = await page.evaluate(async () => {

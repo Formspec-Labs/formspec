@@ -307,6 +307,8 @@ export interface FormspecProviderProps extends WorkspaceNavigationProps {
     showValidationSummary?: boolean;
     /** The embedding draft writer announces Save Draft and autosave outcomes. */
     draftSaveFeedback?: 'external' | undefined;
+    /** The embedding host (e.g., Surface shell) owns and announces Submit action outcomes. */
+    submitFeedback?: 'external' | undefined;
     /** Callback invoked for every declared hostEvent effect. */
     onHostEvent?: (eventName: string, detail: unknown, action: ResponseAction) => void;
     /** Callback for ActionButton actionRef resolution findings. */
@@ -684,7 +686,9 @@ export function FormspecProvider(props: FormspecProviderProps) {
     return (
         <FormspecContext.Provider value={value}>
             <ActionFeedbackProvider engine={engine} responseId={semanticControlScope?.responseId}
-                renderInstanceId={semanticControlScope?.renderInstanceId} draftSaveFeedback={props.draftSaveFeedback}>
+                renderInstanceId={semanticControlScope?.renderInstanceId}
+                draftSaveFeedback={props.draftSaveFeedback}
+                submitFeedback={props.submitFeedback}>
                 <FormspecAutosaveEffect draftSaveFeedback={props.draftSaveFeedback} />
                 <div ref={themeScopeRef} className="formspec-theme-scope" style={THEME_SCOPE_STYLE}>
                     {children}

@@ -21,7 +21,6 @@ mod tests {
     #[cfg(feature = "fel-authoring")]
     use crate::fel::{rewrite_fel_for_assembly_inner, tokenize_fel_inner};
     use crate::fel_context::FelContextHandle;
-    #[cfg(feature = "mapping-api")]
     use crate::mapping::execute_mapping_rules_inner;
     #[cfg(feature = "ontology-api")]
     use crate::ontology::derive_json_ld_context_inner;
@@ -829,7 +828,6 @@ mod tests {
     // ── Finding 67: execute_mapping_rules_inner ────────────────────────
 
     /// Spec: specs/mapping/mapping-spec.md §3 — Mapping execution returns direction, output, rulesApplied, diagnostics.
-    #[cfg(feature = "mapping-api")]
     #[test]
     fn execute_mapping_rules_inner_output_shape() {
         let rules = json!([
@@ -854,7 +852,6 @@ mod tests {
     }
 
     /// Spec: specs/mapping/mapping-spec.md §3 — Invalid direction returns error.
-    #[cfg(feature = "mapping-api")]
     #[test]
     fn execute_mapping_rules_inner_invalid_direction() {
         let result = execute_mapping_rules_inner("[]", "{}", "sideways");

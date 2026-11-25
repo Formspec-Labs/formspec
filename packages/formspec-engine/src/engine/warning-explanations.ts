@@ -1,5 +1,5 @@
 /** @filedesc Draft warning answers and review groups built from the Rust Submit findings. */
-import type { Explanation, GroupedAcknowledgement, InstanceExplanation } from '@formspec-org/types';
+import type { Explanation, FormDefinition, GroupedAcknowledgement, InstanceExplanation } from '@formspec-org/types';
 import type { EvalResult } from '../diff.js';
 import { cloneValue, deepEqual } from '../json-values.js';
 
@@ -97,3 +97,37 @@ export function warningReview(resultFacts: EvalResult, entries: DraftExplanation
     return cloneValue({ findings, groups, instances, entries, candidateEntries, pendingStamps });
 }
 export type ExplanationState = ReturnType<typeof warningReview>;
+
+/**
+ * Matches Rust `revalidate` (`crates/formspec-eval/src/revalidate/mod.rs`): true iff at least one
+ * warning Shape with an id has effective explanation mode `'confirm' | 'explain' | 'acknowledge'`.
+ */
+export function definitionHasWarningExplanations(
+    definition: Pick<FormDefinition, 'shapes' | 'warningExplanation'>,
+): boolean {
+    return (definition.shapes ?? []).some((shape) => {
+        if (shape.severity !== 'warning' || !shape.id) return false;
+        const mode = shape.explanation ?? definition.warningExplanation;
+        return mode === 'confirm' || mode === 'explain' || mode === 'acknowledge';
+    });
+}
+
+export function emptyWarningReview(entries: DraftExplanation[]): ExplanationState {
+    return cloneValue({
+        findings: [] as ExplanationFinding[],
+        groups: [] as ExplanationState['groups'],
+        instances: [] as ExplanationState['instances'],
+        entries,
+        candidateEntries: [] as DraftExplanation[],
+        pendingStamps: false,
+    });
+}
+
+export const EMPTY_WARNING_REVIEW: ExplanationState = Object.freeze({
+    findings: Object.freeze([] as ExplanationFinding[]) as ExplanationFinding[],
+    groups: Object.freeze([] as ExplanationState['groups']) as ExplanationState['groups'],
+    instances: Object.freeze([] as ExplanationState['instances']) as ExplanationState['instances'],
+    entries: Object.freeze([] as DraftExplanation[]) as DraftExplanation[],
+    candidateEntries: Object.freeze([] as DraftExplanation[]) as DraftExplanation[],
+    pendingStamps: false,
+});

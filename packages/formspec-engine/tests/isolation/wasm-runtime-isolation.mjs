@@ -15,7 +15,7 @@ import {
     wasmTokenizeFel,
 } from '../../dist/wasm-bridge-tools.js';
 import { getWasmModule } from '../../dist/wasm-bridge-runtime.js';
-import { isValidResponseAuthored, selectResponses } from '../../dist/index.js';
+import { createMappingEngine, isValidResponseAuthored, selectResponses } from '../../dist/index.js';
 import * as render from '../../dist/engine-render-entry.js';
 
 test('initFormspecEngine leaves tools WASM unloaded', async () => {
@@ -114,6 +114,36 @@ describe('subject identity on the runtime path', () => {
         const engine = render.createFormEngine(definition, { responseSubject: host });
         assert.deepEqual(engine.getResponse().subject, host);
         engine.dispose();
+    });
+
+    it('executes standard prefill Mappings in runtime WASM without loading tools WASM (fs-tco0)', async () => {
+        await initFormspecEngine();
+        const standardMapping = {
+            $formspecMapping: '1.0',
+            version: '1.0.0',
+            definitionRef: 'urn:test:prefill',
+            definitionVersion: '1.0.0',
+            targetSchema: { format: 'json' },
+            direction: 'both',
+            rules: [{ sourcePath: 'displayName', targetPath: 'display_name', transform: 'preserve' }],
+        };
+        const reversed = createMappingEngine(standardMapping).reverse({ display_name: 'Cold Grace' });
+        assert.deepEqual(reversed.diagnostics, []);
+        assert.deepEqual(reversed.output, { displayName: 'Cold Grace' });
+        assert.equal(isWasmToolsReady(), false);
+
+        // External sourceSchema validation still stays in tools WASM until explicitly loaded.
+        const externalSchemaMapping = {
+            ...standardMapping,
+            sourceSchema: {
+                url: 'urn:test:source-schema',
+                version: '1.0.0',
+                schema: { type: 'object', properties: { displayName: { type: 'string' } } },
+            },
+        };
+        const blocked = createMappingEngine(externalSchemaMapping).reverse({ display_name: 'Needs tools' });
+        assert.equal(blocked.diagnostics[0]?.errorCode, 'WASM_NOT_READY');
+        assert.equal(isWasmToolsReady(), false);
     });
 });
 

@@ -15,7 +15,7 @@
 //! - `value_coerce` — `coerceFieldValue` (always)
 //! - `changeset` — changeset dependency analysis (key extraction, connected components)
 //! - `document` — `document-api`: detect type, schema plan; `lint`: `lintDocument*`
-//! - `mapping` — `mapping-api`
+//! - `mapping` — `executeMappingRules`, `executeMappingDocument` (always in runtime WASM; `sourceSchema` validation uses `lint` in tools WASM)
 //! - `response_selection` — `response-selection-api` for preview reads
 //! - `subject` — `subjectIdJson`: filing-unit identity (always, so respondents never need tools)
 //! - `registry` — `registry-api`
@@ -37,7 +37,6 @@ mod extensions;
 mod fel;
 mod fel_context;
 mod json_host;
-#[cfg(feature = "mapping-api")]
 mod mapping;
 #[cfg(feature = "ontology-api")]
 mod ontology;

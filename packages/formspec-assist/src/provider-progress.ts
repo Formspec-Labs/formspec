@@ -1,7 +1,7 @@
 /** @filedesc Maps shared form progress to Assist's tools and page navigation. */
 import type { IFormEngine } from '@formspec-org/engine';
 import {
-  declaresWarningFollowUps, pageProgressIssue, resolvePageSequence, summarizeFormProgress, warningAcknowledgementLegend,
+  pageProgressIssue, resolvePageSequence, summarizeFormProgress, warningAcknowledgementLegend,
   type PageSequenceEntry,
 } from '@formspec-org/layout';
 import { targetDefinitionMatches } from '@formspec-org/types';
@@ -42,9 +42,10 @@ export class ProviderProgress {
 
   private summarize() {
     this.refresh();
-    // The live report carries no explanation errors, so what Submit still needs comes from the explanation
-    // state: at most one Submit evaluation per Assist call, none while the engine's cached state is current.
-    const explanations = declaresWarningFollowUps(this.engine.getDefinition()) ? this.engine.getExplanationState() : null;
+    // The live report carries no explanation errors, so what Submit still needs comes from the engine's
+    // explanation state: zero Submit evaluations when no Shape declares an explanation mode, and cached
+    // while the engine's state is current.
+    const explanations = this.engine.getExplanationState();
     return { summary: summarizeFormProgress(this.pageSequence, this.engine.getEvaluatedFormState(), explanations), explanations };
   }
 

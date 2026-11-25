@@ -46,7 +46,7 @@ lint = ["dep:formspec-lint", "document-api"]
 document-api = []
 # `$ref` / fragment assembly (`assembleDefinition`).
 definition-assembly = []
-# Mapping rule + document execution (`executeMappingRules`, `executeMappingDocument`).
+# Kept for feature compatibility; mapping execution is always in runtime WASM (sourceSchema validation uses `lint`).
 mapping-api = []
 # Preview Response selection, including optional Mapping execution.
 response-selection-api = ["formspec-core/response-selection"]

@@ -52,6 +52,7 @@ export type {
     SchemaValidator,
     SchemaValidatorSchemas,
     SetValueOptions,
+    SubmitEvaluationSnapshot,
     WriteSource,
 } from './interfaces.js';
 export {

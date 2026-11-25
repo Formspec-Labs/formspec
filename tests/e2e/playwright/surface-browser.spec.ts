@@ -45,6 +45,31 @@ test('a subject-declaring form renders its filing unit with runtime WASM and nev
   expect(wasm.filter(name => name.startsWith('formspec_wasm_tools'))).toEqual([]);
 });
 
+test('a cold respondent page with subject, prefill Mapping, draft storage, and Submit never requests tools WASM (fs-tco0)', async ({ page }) => {
+  const wasm: string[] = [];
+  page.on('request', request => {
+    if (request.url().includes('formspec_wasm')) wasm.push(new URL(request.url()).pathname.split('/').pop()!);
+  });
+  await page.goto('/surface-browser.html?subject&prefillMapping#/filing/ny');
+  await expect(page.getByRole('textbox', { name: 'Contact name' })).toHaveValue('ny');
+  await expect(page.getByRole('textbox', { name: 'Prefilled note' })).toHaveValue('Mapped from cold page');
+  await page.getByRole('button', { name: 'Submit filing' }).click();
+  // fs-onrf: one Submit announces once across the entire Surface route (no duplicate renderer or masthead status).
+  const statusNotices = page.locator('.fs-surface-app [role="status"], .fs-surface-app [aria-live="polite"]')
+    .filter({ hasText: /\S/ });
+  await expect(statusNotices).toHaveCount(1);
+  await expect(statusNotices).toContainText('Submitted');
+  await expect(page.getByRole('status').filter({ hasText: /\S/ })).toHaveCount(1);
+  const submitted = await page.evaluate(() => (window as unknown as { __coldPrefillSubmitted?: { status?: string; data?: Record<string, unknown>; subject?: { id?: string; type?: string; keys?: Record<string, unknown> } } }).__coldPrefillSubmitted);
+  expect(submitted?.status).toBe('completed');
+  expect(submitted?.data).toEqual({ contact: 'ny', prefillNote: 'Mapped from cold page' });
+  expect(submitted?.subject?.type).toBe('urn:test:filing-state');
+  expect(submitted?.subject?.keys).toEqual({ state: 'ny' });
+  expect(submitted?.subject?.id).toMatch(/^[0-9a-f]{64}$/);
+  expect(wasm).toContain('formspec_wasm_runtime_bg.wasm');
+  expect(wasm.filter(name => name.startsWith('formspec_wasm_tools'))).toEqual([]);
+});
+
 test('the browser restores appearance and announces one draft save result', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/surface-browser.html#/filing/ny');

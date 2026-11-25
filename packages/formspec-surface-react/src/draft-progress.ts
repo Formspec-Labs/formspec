@@ -1,7 +1,6 @@
 /** @filedesc Read a draft's Submit-profile evaluation with its explanation state and summarize it for trackers. */
 import type { IFormEngine } from '@formspec-org/engine';
 import {
-  declaresWarningFollowUps,
   summarizeFormProgress,
   type ExplanationStateLike,
   type FormProgressSummary,
@@ -15,19 +14,20 @@ export interface SubmitEvaluation {
   explanations: ExplanationStateLike;
 }
 
-const NO_WARNING_ANSWERS: ExplanationStateLike = Object.freeze({ instances: [], groups: [] });
-
 /**
- * Both reads see the same answers and explanation entries, but they are separate Submit evaluations
- * unless the engine's explanation state is already cached for this edit, so the second may read a later
- * clock. A Definition whose warnings ask for no answer has an empty state, so it costs no evaluation.
+ * Reads the Submit-profile evaluated state and matching explanation state from a single Submit
+ * evaluation (`engine.getSubmitEvaluation()`), avoiding a second Submit evaluation and clock skew.
+ * Falls back to separate reads only for minimal test doubles without `getSubmitEvaluation`.
  */
 export function readSubmitEvaluation(
-  engine: Pick<IFormEngine, 'getDefinition' | 'getEvaluatedFormState' | 'getExplanationState'>,
+  engine: Pick<IFormEngine, 'getEvaluatedFormState' | 'getExplanationState' | 'getSubmitEvaluation'>,
 ): SubmitEvaluation {
+  if (typeof engine.getSubmitEvaluation === 'function') {
+    return engine.getSubmitEvaluation();
+  }
   return {
     evaluated: engine.getEvaluatedFormState({ profile: 'on-submit' }),
-    explanations: declaresWarningFollowUps(engine.getDefinition()) ? engine.getExplanationState() : NO_WARNING_ANSWERS,
+    explanations: engine.getExplanationState(),
   };
 }
 
