@@ -246,9 +246,40 @@ describe('diagnose (fs-e9xa: canonical stack linter)', () => {
     }
   });
 
-  it('throws when tools WASM is uninitialised instead of returning empty diagnostics', () => {
+  it('lints exported Experience documents against the project Definition (E1700)', () => {
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0',
+          url: 'urn:example:exp-form',
+          version: '1.0.0',
+          status: 'draft',
+          title: 'Experience Form',
+          items: [{ key: 'name', type: 'field', dataType: 'string', label: 'Name' }],
+        },
+        experience: {
+          $formspecExperience: '1.0',
+          version: '1.0.0',
+          targetDefinition: { url: 'urn:example:wrong-definition' },
+          actors: [{ id: 'applicant', name: 'Applicant' }],
+          tasks: [{ id: 'apply', name: 'Apply', actorRef: 'applicant' }],
+          units: [{ id: 'u1', kind: 'collect', taskRefs: ['apply'], items: ['missingField'] }],
+        } as any,
+      },
+    });
+
+    const diag = project.diagnose();
+    const expDiagnostics = diag.diagnostics.filter((d) => d.primarySource?.artifactKind === 'experience');
+    expect(expDiagnostics.length).toBeGreaterThanOrEqual(1);
+    expect(expDiagnostics.some((d) => d.code === 'E1700' && d.severity === 'error')).toBe(true);
+    for (const entry of diag.diagnostics) {
+      expect(validateDiagnostic(entry), `${entry.code}: ${JSON.stringify(validateDiagnostic.errors)}`).toBe(true);
+    }
+  });
+
+  it('throws when tools WASM is uninitialised instead of returning empty diagnostics', async () => {
     const coreDistEntry = path.resolve(__dirname, '../dist/index.js');
-    if (!fs.existsSync(coreDistEntry)) return;
+    expect(fs.existsSync(coreDistEntry), `Expected built ${coreDistEntry}`).toBe(true);
     let threw = false;
     try {
       execFileSync(

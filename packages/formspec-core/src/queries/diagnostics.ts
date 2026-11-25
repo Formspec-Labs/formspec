@@ -149,6 +149,13 @@ export function diagnose(state: ProjectState): Diagnostics {
     });
   }
 
+  // Experience document — paired with Definition.
+  if (bundle.experience) {
+    lintOne('experience', 'experience', bundle.experience, {
+      definitionDocument: definition,
+    });
+  }
+
   // Response Actions document — paired with Definition and Component (when present).
   if (bundle.responseActions) {
     lintOne('responseActions', 'responseActions', bundle.responseActions, {
