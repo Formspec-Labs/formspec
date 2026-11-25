@@ -20,6 +20,7 @@ import { diffEvalResults, type EvalDiagnostic, type EvalResult, type EvalValidat
 import { FelExtensionFunctions, type FelExtensionFunctionRegistration } from '../extension-functions.js';
 import type {
     SetValueOptions,
+    SubmitEvaluationSnapshot,
     WriteSource,
     EngineReplayApplyResult,
     EngineReplayEvent,
@@ -71,7 +72,7 @@ import {
     resolveOptionSetsOnDefinition,
 } from './definition-setup.js';
 import {
-    isStamped, matchesEntry, sameAnswer, stripExplanationStamp, warningReview, type DraftExplanation, type ExplanationKey, type ExplanationState,
+    definitionHasWarningExplanations, EMPTY_WARNING_REVIEW, emptyWarningReview, isStamped, matchesEntry, sameAnswer, stripExplanationStamp, warningReview, type DraftExplanation, type ExplanationKey, type ExplanationState,
 } from './warning-explanations.js';
 import { captureDraftData } from './draft-snapshot.js';
 import { registerDraftEditVersionSignal } from './draft-edit-signal.js';
@@ -148,9 +149,12 @@ export class FormEngine implements IFormEngine {
     public readonly instanceVersion: EngineSignal<number>;
     public readonly structureVersion: EngineSignal<number>;
     public readonly localeSignal: ReadonlyEngineSignal<number>;
+    public readonly evaluationVersion: ReadonlyEngineSignal<number>;
+    public readonly explanationRefreshVersion: ReadonlyEngineSignal<number>;
 
     private readonly _rx: EngineReactiveRuntime;
     private readonly _evaluationVersion: EngineSignal<number>;
+    private readonly _hasWarningExplanations: boolean;
     private readonly _draftEditVersion: EngineSignal<number>;
     private _draftEditDirty = false;
     private readonly _bindConfigs: Record<string, EngineBindConfig> = {};
@@ -262,13 +266,22 @@ export class FormEngine implements IFormEngine {
         this.instanceVersion = this._rx.signal(0);
         this.structureVersion = this._rx.signal(0);
         this._evaluationVersion = this._rx.signal(0);
+        this.evaluationVersion = this._evaluationVersion;
         this._draftEditVersion = this._rx.signal(0);
         registerDraftEditVersionSignal(this, this._draftEditVersion);
         this._explanationRefreshVersion = this._rx.signal(0);
+        this.explanationRefreshVersion = this._explanationRefreshVersion;
         this._labelContextSignal = this._rx.signal(null);
+        this.definition = cloneValue(definition);
+        this._hasWarningExplanations = definitionHasWarningExplanations(this.definition);
         this._explanationState = this._rx.computed(() => {
-            const evaluationVersion = this._evaluationVersion.value;
             const explanations = this._explanations.value;
+            if (!this._hasWarningExplanations) {
+                return explanations.length === 0
+                    ? EMPTY_WARNING_REVIEW
+                    : freezeSourceMetadata(emptyWarningReview(explanations));
+            }
+            const evaluationVersion = this._evaluationVersion.value;
             const refreshVersion = this._explanationRefreshVersion.value;
             const pending = this._pendingExplanationState;
             this._pendingExplanationState = null;
@@ -280,7 +293,6 @@ export class FormEngine implements IFormEngine {
                 : null;
             return freezeSourceMetadata(reused ?? this.reviewWarnings());
         });
-        this.definition = cloneValue(definition);
         if ([options.responseData, options.savedResponseData, options.draftSnapshot].filter(value => value !== undefined).length > 1) {
             throw new Error('Supply one of responseData, savedResponseData, or draftSnapshot');
         }
@@ -577,7 +589,15 @@ export class FormEngine implements IFormEngine {
         return this._explanationState.value;
     }
 
+    public hasWarningExplanations(): boolean {
+        return this._hasWarningExplanations;
+    }
+
     private reviewWarnings(): ExplanationState {
+        if (!this._hasWarningExplanations) {
+            const entries = this._explanations.value;
+            return entries.length === 0 ? EMPTY_WARNING_REVIEW : emptyWarningReview(entries);
+        }
         return warningReview(this.evaluateResultForTrigger('submit'), this._explanations.value);
     }
 
@@ -1095,18 +1115,45 @@ export class FormEngine implements IFormEngine {
         return Object.keys(this._fieldViewModels).sort();
     }
 
-    /** Read the current field flags and the requested validation profile, which defaults to live. */
-    public getEvaluatedFormState(options: ValidationReportOptions = {}): EvaluatedFormState {
-        // A repeat can add or remove the only field signals between evaluations.
-        this._evaluationVersion.value;
-        const fields = Object.keys(this._fieldViewModels).map(path => ({
+    private collectEvaluatedFields(): EvaluatedFormState['fields'] {
+        return Object.keys(this._fieldViewModels).map(path => ({
             path,
             relevant: this.isPathRelevant(path),
             readonly: this.readonlySignals[path]?.value ?? false,
             required: this.requiredSignals[path]?.value ?? false,
             empty: isEmptyValue(this.signals[path]?.value),
         }));
-        return { fields, report: this.getValidationReport(options) };
+    }
+
+    /** Read the current field flags and the requested validation profile, which defaults to live. */
+    public getEvaluatedFormState(options: ValidationReportOptions = {}): EvaluatedFormState {
+        // A repeat can add or remove the only field signals between evaluations.
+        this._evaluationVersion.value;
+        return { fields: this.collectEvaluatedFields(), report: this.getValidationReport(options) };
+    }
+
+    /**
+     * Evaluate the Submit profile once at one clock and return both the Submit `EvaluatedFormState`
+     * and the matching `ExplanationState`, without mutating signals (safe inside reactive computeds).
+     */
+    public getSubmitEvaluation(): SubmitEvaluationSnapshot {
+        this._evaluationVersion.value;
+        const timestamp = this.nowISO();
+        const result = this.evaluateResultForTrigger('submit', timestamp);
+        const report = buildValidationReportEnvelope(
+            this.collectResponseValidationResults(result, 'submit'),
+            timestamp,
+            this.definition.url,
+            this.definition.version,
+        );
+        const evaluated: EvaluatedFormState = {
+            fields: this.collectEvaluatedFields(),
+            report,
+        };
+        const explanations = this._hasWarningExplanations
+            ? freezeSourceMetadata(warningReview(result, this._explanations.value))
+            : this._explanationState.value;
+        return { evaluated, explanations };
     }
 
     public getResponse(meta?: Parameters<FormEngine['getResponseSnapshot']>[0]): FormResponse {
@@ -1254,14 +1301,11 @@ export class FormEngine implements IFormEngine {
                 const saved = draftEntries.filter(isStamped);
                 if (saved.length) response.explanations = cloneValue(saved);
             }
-            if (
-                submitEvalResult
-                && report?.results.some(r => r.code === 'EXPLANATION_STALE' || r.code === 'EXPLANATION_REQUIRED')
-            ) {
-                // Publish the fresh Submit evaluation to warning controls so clock-only expiry/expansion
-                // immediately reopens accepted groups without a second evaluation.
-                this.refreshExplanationState(warningReview(submitEvalResult, draftEntries));
-            }
+        }
+        if (submitEvalResult && this._hasWarningExplanations && !pendingExplanationStamps) {
+            // Seed the fresh Submit evaluation into warning controls so Submit never triggers a second
+            // Submit evaluation and clock-only expiry/expansion immediately reopens accepted groups.
+            this.refreshExplanationState(warningReview(submitEvalResult, draftEntries));
         }
         return { snapshot: { response, validationReport: report }, pendingExplanationStamps };
     }

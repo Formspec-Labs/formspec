@@ -54,7 +54,7 @@ export function ValidationSummary({
     autoFocus = true,
     className,
 }: ValidationSummaryProps) {
-    const { engine, touchedVersion, latestSubmit } = useFormspecContext();
+    const { engine, touchedVersion, latestSubmit, explanationState: explanationStateSignal } = useFormspecContext();
     const chrome = useChromeText();
     const workspaceJump = useContext(WorkspaceFieldJump);
     const Heading = `h${useHeadingLevel()}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
@@ -66,13 +66,14 @@ export function ValidationSummary({
     useSignal(engine.structureVersion);
     const explanationState = useSignal(useMemo(
         () => computed(() => {
+            if (explanationStateSignal) return explanationStateSignal.value;
             if (typeof engine.getExplanationState !== 'function') return null;
             const liveHasWarn = Object.values(engine.shapeResults ?? {}).some(s => s.value.some(r => r.severity === 'warning'));
             const submitHasWarn = submitted?.validationReport?.results?.some(r => r.severity === 'warning' || r.constraintKind === 'explanation') ?? false;
             if (!liveHasWarn && !submitHasWarn) return null;
             return engine.getExplanationState();
         }),
-        [engine, submitted],
+        [engine, submitted, explanationStateSignal],
     ));
 
     const { rows, explainedSet } = useMemo(() => {

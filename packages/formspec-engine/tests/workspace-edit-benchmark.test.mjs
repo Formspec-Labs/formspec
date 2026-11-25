@@ -263,29 +263,40 @@ describe('Synthetic 450-field workspace benchmark (fs-3kek)', () => {
                 tParseResult += performance.now() - t0;
             }
 
-            // Measure Submit-profile evaluation + getExplanationState
+            // Measure separate Submit reads vs combined getSubmitEvaluation() (single Submit evaluation)
             const submitReportSamples = [];
             const explanationSamples = [];
+            const singleSubmitSamples = [];
             for (let i = 0; i < 5; i++) {
                 engine.setValue('roster.entries[0].q1', 300 + i);
                 const t1 = performance.now();
-                engine.getEvaluatedFormState({ profile: 'on-submit' });
+                const reportOnly = engine.getEvaluatedFormState({ profile: 'on-submit' });
                 submitReportSamples.push(performance.now() - t1);
 
                 const t2 = performance.now();
-                engine.getExplanationState();
+                const explOnly = engine.getExplanationState();
                 explanationSamples.push(performance.now() - t2);
+
+                engine.setValue('roster.entries[0].q1', 310 + i);
+                const t3 = performance.now();
+                const combined = engine.getSubmitEvaluation();
+                singleSubmitSamples.push(performance.now() - t3);
+                assert.equal(combined.evaluated.fields.length, reportOnly.fields.length);
+                assert.equal(combined.explanations.groups.length, explOnly.groups.length);
             }
             const submitStats = summarize(submitReportSamples);
             const explStats = summarize(explanationSamples);
+            const combinedStats = summarize(singleSubmitSamples);
 
             console.log(`  [fs-3kek engine] fields=${fieldCount}, shapes=${definition.shapes.length}, defJSON=${(defBytes / 1024).toFixed(1)}KB, resJSON=${(resBytes / 1024).toFixed(1)}KB`);
             console.log(`  [fs-3kek engine] setValue: mean=${editStats.mean.toFixed(2)}ms p50=${editStats.p50.toFixed(2)}ms p95=${editStats.p95.toFixed(2)}ms`);
             console.log(`  [fs-3kek engine] split(avg): stringifyDef=${(tStringifyDef / runs).toFixed(2)}ms stringifyData=${(tStringifyData / runs).toFixed(2)}ms wasmEval=${(tWasmEval / runs).toFixed(2)}ms parseRes=${(tParseResult / runs).toFixed(2)}ms`);
             console.log(`  [fs-3kek engine] on-submit getEvaluatedFormState: mean=${submitStats.mean.toFixed(2)}ms p50=${submitStats.p50.toFixed(2)}ms`);
             console.log(`  [fs-3kek engine] getExplanationState (uncached): mean=${explStats.mean.toFixed(2)}ms p50=${explStats.p50.toFixed(2)}ms`);
+            console.log(`  [fs-3kek engine] getSubmitEvaluation (single Submit eval): mean=${combinedStats.mean.toFixed(2)}ms p50=${combinedStats.p50.toFixed(2)}ms`);
 
-            assert.equal(engine.signals['roster.entries[0].subtotal'].value, 304);
+            assert.equal(engine.signals['roster.entries[0].subtotal'].value, 314);
+            assert.ok(editStats.p50 < 50, `setValue p50 ${editStats.p50.toFixed(2)}ms exceeded 50ms budget`);
         } finally {
             engine.dispose();
         }
@@ -295,17 +306,21 @@ describe('Synthetic 450-field workspace benchmark (fs-3kek)', () => {
         const definition = buildSyntheticLargeWorkspaceDefinition({ withExplanations: false });
         const engine = new FormEngine(definition);
         try {
+            assert.equal(engine.hasWarningExplanations(), false);
+            const first = engine.getExplanationState();
             const samples = [];
             for (let i = 0; i < 5; i++) {
                 engine.setValue('roster.entries[0].q1', 10 + i);
                 const start = performance.now();
                 const state = engine.getExplanationState();
                 samples.push(performance.now() - start);
+                assert.equal(state, first);
                 assert.equal(state.instances.length, 0);
                 assert.equal(state.groups.length, 0);
             }
             const stats = summarize(samples);
             console.log(`  [fs-3kek engine] no-explanation getExplanationState: mean=${stats.mean.toFixed(2)}ms p50=${stats.p50.toFixed(2)}ms`);
+            assert.ok(stats.p50 < 5, `no-explanation getExplanationState p50 ${stats.p50.toFixed(2)}ms exceeded 5ms fast-path budget`);
         } finally {
             engine.dispose();
         }

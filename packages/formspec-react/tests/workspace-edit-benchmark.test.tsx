@@ -209,8 +209,43 @@ describe('450-field Workspace keystroke benchmark (fs-3kek)', () => {
             console.log(`  [fs-3kek react] clean edit:       mean=${sClean.mean.toFixed(2)}ms p50=${sClean.p50.toFixed(2)}ms p95=${sClean.p95.toFixed(2)}ms explanationReads=${cleanReads}`);
             console.log(`  [fs-3kek react] live-warn edit:   mean=${sLive.mean.toFixed(2)}ms p50=${sLive.p50.toFixed(2)}ms p95=${sLive.p95.toFixed(2)}ms explanationReads=${liveWarnReads}`);
             console.log(`  [fs-3kek react] post-submit edit: mean=${sPost.mean.toFixed(2)}ms p50=${sPost.p50.toFixed(2)}ms p95=${sPost.p95.toFixed(2)}ms explanationReads=${postSubmitReads}`);
+
+            // fs-3kek invariants: zero Submit evaluations during typing (<=1 live eval per edit) and <50ms p50.
+            expect(cleanReads).toBe(0);
+            expect(liveWarnReads).toBe(0);
+            expect(postSubmitReads).toBe(0);
+            expect(sClean.p50).toBeLessThan(50);
+            expect(sLive.p50).toBeLessThan(50);
+            expect(sPost.p50).toBeLessThan(50);
         } finally {
             engine.dispose();
         }
     }, 60_000);
+
+    it('refreshes warning explanation controls once after live-warning edits pause', () => {
+        vi.useFakeTimers();
+        const definition = buildSyntheticLargeWorkspaceDefinition();
+        const engine = createFormEngine(definition);
+        try {
+            const host = actRender(<FormspecForm engine={engine} />);
+            const input = host.querySelector<HTMLInputElement>('[data-name="roster.entries[0].q1"] input')!;
+            const setInput = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+            const reads = vi.spyOn(engine, 'getExplanationState');
+            for (const val of ['600', '601', '602']) {
+                act(() => {
+                    setInput.call(input, val);
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+                act(() => { vi.advanceTimersByTime(100); });
+            }
+            expect(reads).not.toHaveBeenCalled();
+            act(() => { vi.advanceTimersByTime(250); });
+            expect(reads).toHaveBeenCalledTimes(1);
+            const control = host.querySelector('[data-shape-id="liveRangeWarning"][data-explanation-path="roster.entries[0].q1"]');
+            expect(control).not.toBeNull();
+        } finally {
+            engine.dispose();
+            vi.useRealTimers();
+        }
+    }, 30_000);
 });

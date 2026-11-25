@@ -40,16 +40,14 @@ function collectRenderedGroupTargets(
     }
 }
 
-function hasRenderedGroupTarget(context: FormspecContextValue, warningPath: string): boolean {
-    if (!warningPath || warningPath === '#') return false;
+function renderedGroupTargets(context: FormspecContextValue): { exactGroups: Set<string>; repeatGroups: Set<string> } {
     const exactGroups = new Set<string>();
     const repeatGroups = new Set<string>();
     collectRenderedGroupTargets(context.layoutPlan, exactGroups, repeatGroups);
     for (const page of context.workspacePages ?? []) {
         if (page.titleBind) exactGroups.add(stripRepeatIndices(page.titleBind));
     }
-    const normalized = stripRepeatIndices(warningPath);
-    return exactGroups.has(normalized) || repeatGroups.has(normalized);
+    return { exactGroups, repeatGroups };
 }
 
 function submitMayHaveWarnings(submit: FormspecContextValue['latestSubmit']['value'], engine: IFormEngine): boolean {
@@ -62,9 +60,15 @@ function submitMayHaveWarnings(submit: FormspecContextValue['latestSubmit']['val
 
 /** Shapes the live report never evaluates (`timing` submit or demand): only the explanation state names them before Submit. */
 function shapesOutsideLiveReport(engine: IFormEngine): ReadonlySet<string> {
-    return new Set((engine.getDefinition().shapes ?? [])
+    return new Set((engine.getDefinition?.()?.shapes ?? [])
         .filter(shape => (shape.timing ?? 'continuous') !== 'continuous')
         .map(shape => shape.id));
+}
+
+function readSharedExplanationState(context: FormspecContextValue) {
+    // Share the provider's paused/event-driven explanation state so typing never triggers a second
+    // Submit evaluation per keystroke; fall back only for bare test contexts without a provider signal.
+    return context.explanationState ? context.explanationState.value : context.engine.getExplanationState();
 }
 
 function visibleWarnings(context: FormspecContextValue) {
@@ -72,19 +76,22 @@ function visibleWarnings(context: FormspecContextValue) {
     if (cached) return cached;
     const { engine, latestSubmit } = context;
     let outsideLive: ReadonlySet<string> | undefined;
+    let groupTargets: { exactGroups: Set<string>; repeatGroups: Set<string> } | undefined;
     const groups = computed(() => {
         const result = new Map<string, Instance[]>();
         const submit = latestSubmit.value;
         const submitted = submit !== null;
         const live = engine.shapeResults ?? {};
-        const hasLiveWarning = Object.values(live).some(s => s.value.some(r => r.severity === 'warning'));
-        // Otherwise the provider's paused read: a keystroke must not cost a Submit evaluation of its own.
-        const state = hasLiveWarning || submitMayHaveWarnings(submit, engine)
-            ? engine.getExplanationState()
-            : context.explanationState.value;
-        for (const warning of state?.instances ?? []) {
+        const state = readSharedExplanationState(context);
+        const instances = state?.instances ?? [];
+        if (instances.length === 0) return result;
+        const targets = (groupTargets ??= renderedGroupTargets(context));
+        for (const warning of instances) {
             const hasFieldTarget = Boolean(engine.getFieldVM?.(warning.path));
-            const path = (hasFieldTarget || hasRenderedGroupTarget(context, warning.path)) ? warning.path : '';
+            const normalized = warning.path && warning.path !== '#' ? stripRepeatIndices(warning.path) : '';
+            const hasGroupTarget = Boolean(normalized)
+                && (targets.exactGroups.has(normalized) || targets.repeatGroups.has(normalized));
+            const path = (hasFieldTarget || hasGroupTarget) ? warning.path : '';
             // Before Submit a continuous warning answers beside its live warning; a Submit-timing one beside
             // its field, owed or answered, so a Findings row that names it reaches a control.
             if (!submitted && !live[warning.shapeId]?.value.some(r => r.severity === 'warning' && r.path === warning.path)
@@ -110,7 +117,8 @@ export function WarningExplanations({ path = '' }: { path?: string }) {
         const submit = latestSubmit.value;
         if (path !== '' || !submitMayHaveWarnings(submit, engine)) return [] as WarningAcknowledgementGroupView[];
         engine.localeSignal.value;
-        const state = engine.getExplanationState();
+        const state = readSharedExplanationState(context);
+        if (!state) return [] as WarningAcknowledgementGroupView[];
         return readWarningAcknowledgementGroups(state, {
             field: (targetPath) => {
                 const vm = engine.getFieldVM?.(targetPath);

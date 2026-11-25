@@ -2,7 +2,8 @@
 import { createFormEngine, initFormspecEngine } from '@formspec-org/engine';
 import { resolvePageSequence, summarizeFormProgress } from '@formspec-org/layout';
 import type { FormDefinition } from '@formspec-org/types';
-import { beforeAll, expect, it } from 'vitest';
+import { beforeAll, expect, it, vi } from 'vitest';
+import { readSubmitEvaluation, summarizeDraftProgress } from '../src/draft-progress.js';
 
 beforeAll(async () => { await initFormspecEngine(); });
 
@@ -103,4 +104,19 @@ it('keeps counting a none-mode warning that shares the code of an accepted group
 
   engine.acknowledge('SHAPE_FAILED');
   expect(progress(engine)).toMatchObject({ toCheck: 1, ready: true });
+}));
+
+it('readSubmitEvaluation uses a single Submit evaluation via engine.getSubmitEvaluation()', () => withEngine(definition, engine => {
+  const submitSpy = vi.spyOn(engine, 'getSubmitEvaluation');
+  const evaluatedSpy = vi.spyOn(engine, 'getEvaluatedFormState');
+  const explanationSpy = vi.spyOn(engine, 'getExplanationState');
+
+  const combined = readSubmitEvaluation(engine);
+  expect(submitSpy).toHaveBeenCalledTimes(1);
+  expect(evaluatedSpy).not.toHaveBeenCalled();
+  expect(explanationSpy).not.toHaveBeenCalled();
+
+  const summary = summarizeDraftProgress(sections, combined);
+  expect({ toFix: summary.form.toFix, toCheck: summary.form.toCheck, ready: summary.form.ready })
+    .toEqual({ toFix: 0, toCheck: 1, ready: false });
 }));

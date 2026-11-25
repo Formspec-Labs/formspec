@@ -472,6 +472,12 @@ export interface SetValueOptions {
     source?: WriteSource;
 }
 
+/** Evaluated Submit-profile state and warning explanation state derived from one Submit evaluation. */
+export interface SubmitEvaluationSnapshot {
+    evaluated: EvaluatedFormState;
+    explanations: ExplanationState;
+}
+
 export interface IFormEngine {
     readonly signals: Record<string, EngineSignal<FormFieldValue>>;
     readonly relevantSignals: Record<string, EngineSignal<boolean>>;
@@ -520,6 +526,14 @@ export interface IFormEngine {
     getExplanationEntries(): DraftExplanation[];
     /** Review warning firings evaluated against the Submit data. */
     getExplanationState(): ExplanationState;
+    /** Whether any warning Shape on this Definition declares an explanation mode other than `'none'`. */
+    hasWarningExplanations?(): boolean;
+    /** Evaluates Submit once and returns both the Submit `EvaluatedFormState` and `ExplanationState`. */
+    getSubmitEvaluation?(): SubmitEvaluationSnapshot;
+    /** Monotonic signal incremented on each evaluation (live edits, instance updates, repeats). */
+    readonly evaluationVersion?: ReadonlyEngineSignal<number>;
+    /** Monotonic signal incremented when an imperative check refreshes explanation state without mutating entries. */
+    readonly explanationRefreshVersion?: ReadonlyEngineSignal<number>;
     setExplanation(shapeId: string, path: string, answer: { text?: string }): void;
     /** Record a grouped blank-answer acknowledgement for `code`. When `expectedBasis` is given, returns `false` without mutating if a fresh Submit evaluation no longer matches that basis. */
     acknowledge(code: string, options?: { expectedBasis?: string }): boolean;
