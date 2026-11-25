@@ -103,7 +103,6 @@ pub(crate) fn recalculate_phase(
 ) -> Recalculated {
     let fel = Fel::new(options.extensions);
     let mut values = data.clone();
-    bind_pass::normalize_input_text(items, &mut values);
 
     let mut state = ScopeData::for_values(index, &values, options);
     let var_defs = parse_variables(definition);

@@ -36,6 +36,7 @@ __all__ = [
     "well_known_registry_url",
     "generate_changelog",
     "apply_migrations_to_response_data",
+    "canonicalize_response_data",
     "rewrite_fel_for_assembly",
     "canonical_item_path",
     "select_responses_json",

@@ -1,0 +1,65 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:test:conformance:parity:undeclared-scopes",
+  "version": "1.0.0",
+  "title": "Undeclared keys across display items and dependent group scopes",
+  "status": "active",
+  "items": [
+    {
+      "key": "banner",
+      "type": "display",
+      "label": "Static Banner"
+    },
+    {
+      "key": "calcBanner",
+      "type": "display",
+      "label": "Calculated Banner"
+    },
+    {
+      "key": "control",
+      "type": "field",
+      "dataType": "boolean",
+      "label": "Control",
+      "children": [
+        {
+          "key": "dep",
+          "type": "field",
+          "dataType": "string",
+          "label": "Dependent Field"
+        },
+        {
+          "key": "sub",
+          "type": "group",
+          "label": "Dependent Subgroup",
+          "children": [
+            {
+              "key": "s1",
+              "type": "field",
+              "dataType": "string",
+              "label": "Subgroup Field"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "g",
+      "type": "group",
+      "label": "Group",
+      "children": [
+        {
+          "key": "x",
+          "type": "field",
+          "dataType": "string",
+          "label": "X"
+        }
+      ]
+    }
+  ],
+  "binds": [
+    {
+      "path": "calcBanner",
+      "calculate": "'computed'"
+    }
+  ]
+}

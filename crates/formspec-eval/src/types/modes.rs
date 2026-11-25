@@ -75,6 +75,7 @@ impl WhitespaceMode {
     }
 
     /// Apply this normalization mode to `s`.
+    #[cfg(test)]
     pub(crate) fn apply(self, s: &str) -> String {
         match self {
             WhitespaceMode::Trim => s.trim().to_string(),

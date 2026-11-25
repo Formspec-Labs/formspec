@@ -8,6 +8,7 @@ use serde_json::Value;
 
 use formspec_core::{
     JsonWireStyle, apply_migrations_to_response_data as apply_migrations_to_response_data_core,
+    canonicalize_response_data as canonicalize_response_data_core,
     check_instance_projection as check_instance_projection_core,
     coerce_field_value as coerce_field_value_core, detect_document_type,
     resolve_option_sets_on_definition as resolve_option_sets_on_definition_core,
@@ -314,6 +315,19 @@ pub fn coerce_field_value(
         }
     };
     let out = coerce_field_value_core(&item_v, bind_v.as_ref(), &def_v, val_v);
+    crate::convert::exact_json_to_python(py, &out)
+}
+
+/// Canonicalize Response `data` against a Definition's declared fields and authored Binds.
+#[pyfunction]
+pub fn canonicalize_response_data(
+    py: Python,
+    definition: &Bound<'_, PyAny>,
+    data: &Bound<'_, PyAny>,
+) -> PyResult<PyObject> {
+    let def_v: fel_core::exact_json::Value = crate::convert::depythonize_exact(definition)?;
+    let data_v: fel_core::exact_json::Value = crate::convert::depythonize_exact(data)?;
+    let out = canonicalize_response_data_core(&def_v, data_v);
     crate::convert::exact_json_to_python(py, &out)
 }
 

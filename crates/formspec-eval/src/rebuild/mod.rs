@@ -11,7 +11,7 @@ mod tests;
 
 pub(crate) use expressions::{ExtensionCalls, check as check_expressions};
 pub use item_tree::{parse_variables, rebuild_item_tree};
-pub(crate) use nested_data::{FlatInput, flatten_response_data};
+pub(crate) use nested_data::{DataStep, FlatInput, UndeclaredEntry, flatten_response_data};
 #[cfg(test)]
 use repeat_data::detect_repeat_count;
 pub use repeat_data::expand_wildcard_path;

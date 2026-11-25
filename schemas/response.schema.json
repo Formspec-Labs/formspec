@@ -1161,7 +1161,7 @@
     },
     "data": {
       "type": "object",
-      "description": "The primary Instance — the form data. Structure mirrors the Definition's item tree: field Items produce scalar properties, non-repeatable group Items produce nested objects, repeatable group Items produce arrays of objects, display Items have no representation. Non-relevant fields are handled per the Definition's nonRelevantBehavior setting: 'remove' (default) omits them entirely, 'empty' retains the key with null value, 'keep' retains the last value. Calculated fields (those with a 'calculate' Bind) are included with their computed values.",
+      "description": "The primary Instance — the form data. Structure mirrors the Definition's item tree: field Items produce scalar properties, non-repeatable group Items produce nested objects, repeatable group Items produce arrays of objects, display Items have no representation. Non-relevant fields are handled per the Definition's nonRelevantBehavior setting: 'remove' (default) omits them entirely, 'empty' retains the key with null value, 'keep' retains the last value. Calculated fields (those with a 'calculate' Bind) are included with their computed values. Additional properties not declared by any non-display Definition Item (including a saved property sharing a display Item's key) are permitted, preserved in place during evaluation, and reported in EvaluationResult.undeclaredDataPaths; refusing them is host policy at submit. Evaluation validates values as given without canonicalizing stored bytes; input/import canonicalization uses the exported canonicalizer.",
       "additionalProperties": true,
       "examples": [
         {

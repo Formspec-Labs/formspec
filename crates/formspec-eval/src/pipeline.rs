@@ -461,7 +461,12 @@ fn evaluate_prepared(
     let host_values = values.clone();
     apply_nrb(&mut values, &items, default_nrb);
 
-    let data = build_output_data(&items, &index.counts, &values, default_nrb);
+    let data = build_output_data(&items, &index.counts, &values, &flat.undeclared, default_nrb);
+    let undeclared_data_paths: Vec<String> = flat
+        .undeclared
+        .iter()
+        .map(|entry| entry.path.clone())
+        .collect();
     let calculated_paths = order.writer_paths(&items);
 
     let variables = var_values
@@ -478,6 +483,7 @@ fn evaluate_prepared(
         calculated_paths,
         indexed_binds,
         data,
+        undeclared_data_paths,
         validations,
         invalid_paths,
         diagnostics: recalculate_diagnostics
@@ -671,6 +677,7 @@ fn refuse_input(validations: Vec<ValidationResult>) -> EvaluationResult {
         calculated_paths: Vec::new(),
         indexed_binds: Default::default(),
         data: Value::Object(Default::default()),
+        undeclared_data_paths: Vec::new(),
         validations,
         invalid_paths: Vec::new(),
         diagnostics: Vec::new(),

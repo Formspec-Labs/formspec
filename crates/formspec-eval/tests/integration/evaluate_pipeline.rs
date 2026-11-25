@@ -749,7 +749,7 @@ fn test_variable_evaluation_order() {
 // ── Whitespace normalization ─────────────────────────────────
 
 #[test]
-fn letter_case_normalizes_batch_input_before_expressions_and_validation() {
+fn letter_case_is_not_mutated_during_evaluate_and_canonicalizes_at_input() {
     let definition = fel_core::exact_json::from_str(include_str!(
         "../../../../tests/conformance/suite/fixtures/parity-letter-case.definition.json"
     ))
@@ -762,9 +762,20 @@ fn letter_case_normalizes_batch_input_before_expressions_and_validation() {
         "registry": "STRASSE7", "notes": "ος", "preserved": "MiXeD",
         "unchanged": "MiXeD", "offices": [{"code": "AB"}, {"code": "CD"}]
     });
-    let result = evaluate(
+    // Owner ruling Q2: evaluate validates values as given without mutating strings.
+    let uncanonical = evaluate(
         &definition,
         &data.as_object().unwrap().clone().into_iter().collect(),
+        &EvalOptions::default(),
+    );
+    assert_eq!(uncanonical.data, data);
+
+    // Explicit input canonicalization applies whitespace + letterCase, then evaluate validates cleanly.
+    let canonical = formspec_core::canonicalize_response_data(&definition, data);
+    assert_eq!(canonical, expected);
+    let result = evaluate(
+        &definition,
+        &canonical.as_object().unwrap().clone().into_iter().collect(),
         &EvalOptions::default(),
     );
     assert_eq!(result.data, expected);
@@ -772,69 +783,133 @@ fn letter_case_normalizes_batch_input_before_expressions_and_validation() {
 }
 
 #[test]
-fn test_whitespace_trim() {
+fn test_whitespace_not_mutated_during_evaluate_and_canonicalized_at_input() {
     let def = json!({
         "items": [
-            { "key": "name", "dataType": "string" }
+            { "key": "trimmed", "dataType": "string" },
+            { "key": "normalized", "dataType": "string" },
+            { "key": "removed", "dataType": "string" }
         ],
         "binds": {
-            "name": { "whitespace": "trim" }
+            "trimmed": { "whitespace": "trim" },
+            "normalized": { "whitespace": "normalize" },
+            "removed": { "whitespace": "remove" }
         }
     });
 
-    let mut data = HashMap::new();
-    data.insert("name".to_string(), json!("  hello world  "));
+    let raw = json!({
+        "trimmed": "  hello world  ",
+        "normalized": "  hello   world  ",
+        "removed": "AB CD EF"
+    });
+    let data: HashMap<String, Value> = raw.as_object().unwrap().clone().into_iter().collect();
 
+    // Owner ruling Q2: evaluate validates values as given without rewriting stored bytes.
     let result = evaluate(&def, &data, &EvalOptions::default());
+    assert_eq!(result.values.get("trimmed"), Some(&json!("  hello world  ")));
+    assert_eq!(result.values.get("normalized"), Some(&json!("  hello   world  ")));
+    assert_eq!(result.values.get("removed"), Some(&json!("AB CD EF")));
+    assert_eq!(result.data, raw);
+
+    // Canonicalization happens explicitly through formspec_core::canonicalize_response_data.
+    let canonical = formspec_core::canonicalize_response_data(&def, raw);
     assert_eq!(
-        result.values.get("name"),
-        Some(&json!("hello world")),
-        "trim should remove leading/trailing whitespace"
+        canonical,
+        json!({
+            "trimmed": "hello world",
+            "normalized": "hello world",
+            "removed": "ABCDEF"
+        })
     );
 }
 
 #[test]
-fn test_whitespace_normalize() {
+fn test_undeclared_keys_display_collision_flat_group_and_dependent_subgroups() {
     let def = json!({
         "items": [
-            { "key": "name", "dataType": "string" }
+            { "key": "banner", "type": "display", "label": "Banner" },
+            { "key": "calcDisplay", "type": "display", "label": "Calculated Banner" },
+            {
+                "key": "control",
+                "type": "field",
+                "dataType": "boolean",
+                "children": [
+                    { "key": "dep", "type": "field", "dataType": "string" },
+                    {
+                        "key": "sub",
+                        "type": "group",
+                        "children": [
+                            { "key": "s1", "type": "field", "dataType": "string" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "key": "g",
+                "type": "group",
+                "children": [
+                    { "key": "x", "type": "field", "dataType": "string" }
+                ]
+            },
+            {
+                "key": "rows",
+                "type": "group",
+                "repeatable": true,
+                "children": [
+                    { "key": "a2", "type": "field", "dataType": "string" }
+                ]
+            }
         ],
-        "binds": {
-            "name": { "whitespace": "normalize" }
-        }
+        "binds": [
+            { "path": "calcDisplay", "calculate": "'computed'" }
+        ]
     });
 
-    let mut data = HashMap::new();
-    data.insert("name".to_string(), json!("  hello   world  "));
-
-    let result = evaluate(&def, &data, &EvalOptions::default());
-    assert_eq!(
-        result.values.get("name"),
-        Some(&json!("hello world")),
-        "normalize should collapse whitespace runs to single space"
-    );
-}
-
-#[test]
-fn test_whitespace_remove() {
-    let def = json!({
-        "items": [
-            { "key": "code", "dataType": "string" }
-        ],
-        "binds": {
-            "code": { "whitespace": "remove" }
-        }
+    let input = json!({
+        "banner": "saved-on-display-key",
+        "calcDisplay": "saved-on-calculated-display-key",
+        "control": true,
+        "dep": "ok",
+        "sub": { "s1": "v1", "extraSub": "kept-sub" },
+        "g.x": "gx",
+        "g.extraFlat": "kept-flat",
+        "rows[0].a2": "r0",
+        "rows[0].legacy": "kept-row",
+        "literal.dot": "unsplit"
     });
+    let map: HashMap<String, Value> = input.as_object().unwrap().clone().into_iter().collect();
+    let result = evaluate(&def, &map, &EvalOptions::default());
 
-    let mut data = HashMap::new();
-    data.insert("code".to_string(), json!("AB CD EF"));
-
-    let result = evaluate(&def, &data, &EvalOptions::default());
+    assert!(!result.refused, "{:?}", result.validations);
     assert_eq!(
-        result.values.get("code"),
-        Some(&json!("ABCDEF")),
-        "remove should strip all whitespace"
+        result.data,
+        json!({
+            "banner": "saved-on-display-key",
+            "calcDisplay": "saved-on-calculated-display-key",
+            "control": true,
+            "dep": "ok",
+            "sub": { "s1": "v1", "extraSub": "kept-sub" },
+            "g": { "x": "gx", "extraFlat": "kept-flat" },
+            "rows": [{ "a2": "r0", "legacy": "kept-row" }],
+            "literal.dot": "unsplit"
+        })
     );
+    assert_eq!(
+        result.undeclared_data_paths,
+        vec![
+            "banner",
+            "calcDisplay",
+            "g.extraFlat",
+            "literal.dot",
+            "rows[0].legacy",
+            "sub.extraSub",
+        ]
+    );
+
+    // Without saved input on calcDisplay, calculated display item stays absent from data and undeclared.
+    let empty_result = evaluate(&def, &HashMap::new(), &EvalOptions::default());
+    assert_eq!(empty_result.data, json!({ "rows": [] }));
+    assert!(empty_result.undeclared_data_paths.is_empty());
 }
 
 // ── Full processing model integration ────────────────────────

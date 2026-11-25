@@ -204,6 +204,8 @@ pub struct EvaluationResult {
     /// The Response projection of [`Self::values`]: groups are nested objects and repeats arrays of
     /// row objects, after `nonRelevantBehavior`. What a Response stores as `data`.
     pub data: Value,
+    /// Sorted Response `data` instance paths present in the input that no Definition Item declares.
+    pub undeclared_data_paths: Vec<String>,
     /// Validation results.
     pub validations: Vec<ValidationResult>,
     /// Sorted paths that `valid()` reads as invalid in the settled state (Core §3.5.9).

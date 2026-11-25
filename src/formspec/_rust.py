@@ -162,6 +162,8 @@ class ProcessingResult(msgspec.Struct, frozen=True):
     values: dict = msgspec.field(default_factory=dict)
     # The Definition or inputs were refused before Recalculate.
     refused: bool = False
+    # Sorted Response `data` instance paths present in input that no Definition Item declares.
+    undeclared_data_paths: list[str] = msgspec.field(default_factory=list)
     explanation_findings: list[dict] = msgspec.field(default_factory=list)
     candidate_explanations: list[dict] | None = None
 
@@ -708,9 +710,15 @@ def _processing_result(raw: dict) -> ProcessingResult:
         non_relevant=raw.get("nonRelevant", raw.get("non_relevant", [])),
         diagnostics=raw.get("diagnostics", []),
         item_text=raw.get("itemText", {}),
+        undeclared_data_paths=raw.get("undeclaredDataPaths", raw.get("undeclared_data_paths", [])),
         explanation_findings=raw.get("explanationFindings", []),
         candidate_explanations=raw.get("candidateExplanations"),
     )
+
+
+def canonicalize_response_data(definition: dict, data: dict) -> dict:
+    """Canonicalize Response ``data`` against a Definition's declared fields and authored Binds."""
+    return formspec_rust.canonicalize_response_data(definition, data)
 
 
 def evaluate_screener_document(

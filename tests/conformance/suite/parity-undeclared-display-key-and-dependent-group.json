@@ -1,0 +1,53 @@
+{
+  "id": "parity.undeclared-display-key-and-dependent-group",
+  "kind": "ENGINE_PROCESSING",
+  "specRefs": [
+    "Owner ruling Q1 / Core §2.1.6 (S3): saved properties sharing a display Item key and extras in dependent or dotted group scopes stay in place and are reported"
+  ],
+  "definitionPath": "tests/conformance/suite/fixtures/parity-undeclared-scopes.definition.json",
+  "origin": "saved",
+  "mode": "continuous",
+  "inputData": {
+    "banner": "saved-on-display",
+    "calcBanner": "saved-on-calc-display",
+    "control": true,
+    "dep": "ok",
+    "sub": {
+      "s1": "v1",
+      "extraSub": "kept-sub"
+    },
+    "g": {
+      "x": "gx",
+      "a.b": "literal-dot"
+    }
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "results": [],
+    "data": {
+      "banner": "saved-on-display",
+      "calcBanner": "saved-on-calc-display",
+      "control": true,
+      "dep": "ok",
+      "sub": {
+        "s1": "v1",
+        "extraSub": "kept-sub"
+      },
+      "g": {
+        "x": "gx",
+        "a.b": "literal-dot"
+      }
+    },
+    "undeclaredDataPaths": [
+      "banner",
+      "calcBanner",
+      "g.a.b",
+      "sub.extraSub"
+    ]
+  }
+}

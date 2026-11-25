@@ -1482,4 +1482,44 @@ mod tests {
         assert!(FelContextHandle::new_inner("null").is_err());
         assert!(ctx.evaluate_inner("$ (", "", false, None, None).is_err());
     }
+
+    #[test]
+    fn canonicalize_response_data_and_undeclared_paths_through_wasm() {
+        let def = json!({
+            "items": [
+                { "key": "banner", "type": "display", "label": "Banner" },
+                { "key": "amount", "type": "field", "dataType": "decimal", "label": "Amount" },
+                {
+                    "key": "g",
+                    "type": "group",
+                    "label": "Group",
+                    "children": [
+                        { "key": "code", "type": "field", "dataType": "string", "label": "Code" }
+                    ]
+                }
+            ],
+            "binds": [
+                { "path": "g.code", "whitespace": "trim", "letterCase": "upper" },
+                { "path": "code", "whitespace": "remove" }
+            ]
+        })
+        .to_string();
+
+        let raw = r#"{"banner":"  keep  ","amount":"1234567890.123456789","g":{"code":" ab 9 ","extra":"x"}}"#;
+        let canonical = crate::value_coerce::canonicalize_response_data_inner(&def, raw).unwrap();
+        assert!(
+            canonical.contains(r#""amount":1234567890.123456789"#),
+            "exact decimal literal preserved: {canonical}"
+        );
+        let parsed: Value = serde_json::from_str(&canonical).unwrap();
+        assert_eq!(parsed["banner"], json!("  keep  "));
+        assert_eq!(parsed["g"]["code"], json!("AB 9"));
+        assert_eq!(parsed["g"]["extra"], json!("x"));
+
+        let eval_raw = evaluate_definition_inner(&def, &canonical, None, None).unwrap();
+        let eval_val: Value = serde_json::from_str(&eval_raw).unwrap();
+        assert_eq!(eval_val["undeclaredDataPaths"], json!(["banner", "g.extra"]));
+        assert_eq!(eval_val["data"]["banner"], json!("  keep  "));
+        assert_eq!(eval_val["data"]["g"]["extra"], json!("x"));
+    }
 }

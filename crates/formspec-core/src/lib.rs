@@ -111,7 +111,9 @@ pub use schema_validator::{
     SchemaValidationPlan, SchemaValidationResult, detect_document_type, json_pointer_to_jsonpath,
     schema_validation_plan, validate_document,
 };
-pub use value_coerce::coerce_field_value;
+pub use value_coerce::{
+    canonicalize_response_data, coerce_field_value, noncanonical_response_values,
+};
 pub use wire_keys::JsonWireStyle;
 
 #[doc(inline)]
