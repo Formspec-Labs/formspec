@@ -532,6 +532,11 @@ describe('Filed, Returned, and Prerequisite-Blocked lifecycles (P0-1, P0-3, P1-3
     expect(submittedBanner.textContent).toContain('Submitted');
     expect(submittedBanner.textContent).toContain('Review submitted answers');
     expect(container.querySelector('.fs-surface-save-notice')?.textContent).toBe('Submitted in this browser.');
+    // fs-onrf: one Submit produces exactly one non-empty polite live-region announcement across the Surface app.
+    const liveStatusNodes = [...container.querySelectorAll('[role="status"], [aria-live="polite"]')]
+      .filter((el) => (el.textContent?.trim().length ?? 0) > 0);
+    expect(liveStatusNodes).toHaveLength(1);
+    expect(liveStatusNodes[0]).toBe(submittedBanner);
 
     // Clicking "Review submitted answers" right after submitting loads the filed Response cleanly (no unavailable error box).
     const postSubmitReview = submittedBanner.querySelector<HTMLAnchorElement>('a.fs-surface-action-link--primary')!;

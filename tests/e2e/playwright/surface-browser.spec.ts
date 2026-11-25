@@ -54,7 +54,12 @@ test('a cold respondent page with subject, prefill Mapping, draft storage, and S
   await expect(page.getByRole('textbox', { name: 'Contact name' })).toHaveValue('ny');
   await expect(page.getByRole('textbox', { name: 'Prefilled note' })).toHaveValue('Mapped from cold page');
   await page.getByRole('button', { name: 'Submit filing' }).click();
-  await expect(page.locator('[data-action-banner="submitted"]')).toBeVisible();
+  // fs-onrf: one Submit announces once across the entire Surface route (no duplicate renderer or masthead status).
+  const statusNotices = page.locator('.fs-surface-app [role="status"], .fs-surface-app [aria-live="polite"]')
+    .filter({ hasText: /\S/ });
+  await expect(statusNotices).toHaveCount(1);
+  await expect(statusNotices).toContainText('Submitted');
+  await expect(page.getByRole('status').filter({ hasText: /\S/ })).toHaveCount(1);
   const submitted = await page.evaluate(() => (window as unknown as { __coldPrefillSubmitted?: { status?: string; data?: Record<string, unknown>; subject?: { id?: string; type?: string; keys?: Record<string, unknown> } } }).__coldPrefillSubmitted);
   expect(submitted?.status).toBe('completed');
   expect(submitted?.data).toEqual({ contact: 'ny', prefillNote: 'Mapped from cold page' });

@@ -452,6 +452,8 @@ interface BrowserPresentation extends SurfaceFormSession {
   editionPicker: ReactNode;
   appearancePicker: ReactNode;
   saveNotice: string;
+  /** False when another Surface region (such as the Submit outcome banner) already owns the live announcement. */
+  saveNoticeLive?: boolean;
   navigate: (href: string) => boolean | Promise<boolean>;
 }
 
@@ -949,7 +951,14 @@ export function SurfaceAppView(props: SurfaceAppProps & {
                 {hostAppearance === undefined && browser.appearancePicker}
               </div>
             )}
-            {browser && <p className="fs-surface-save-notice" role="status">{browser.saveNotice}</p>}
+            {browser && (
+              <p
+                className="fs-surface-save-notice"
+                role={browser.saveNoticeLive === false ? undefined : "status"}
+              >
+                {browser.saveNotice}
+              </p>
+            )}
           </div>
         </header>
       )}

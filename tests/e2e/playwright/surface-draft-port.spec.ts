@@ -1267,7 +1267,9 @@ test('a year-scoped overview tracker selects the covering multi-year period plan
   await planLink.click();
   await expect(page.getByLabel('Answer')).toHaveValue('Three-year plan');
   await page.getByRole('button', { name: 'Submit report' }).click();
-  await expect(page.locator('.formspec-action-status')).toContainText(/completed/i);
+  const statusAnnouncements = page.getByRole('status').filter({ hasText: /\S/ });
+  await expect(statusAnnouncements).toHaveCount(1);
+  await expect(statusAnnouncements).toContainText('Submitted');
   await page.goto('/surface-drafts.html?form&periodRange&submit#/years/2025');
   await expect(tracker.getByRole('link', { name: 'Period Plan', exact: true }))
     .toHaveAccessibleDescription(/^Filed\b/);

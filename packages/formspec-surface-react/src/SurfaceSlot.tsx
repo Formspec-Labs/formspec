@@ -1960,6 +1960,7 @@ function DefaultSurfaceDefinitionForm(
           ? input => draftWriter.invoke(input, { invoker: responseActionInvoker, current: () => formVisit.current === visit })
           : responseActionInvoker ?? null}
         draftSaveFeedback={draftWriter ? 'external' : undefined}
+        submitFeedback={onActionCompleted || onDefinitionActionResult ? 'external' : undefined}
         {...(semanticControlScope ? { semanticControlScope } : {})}
         emitThemeTokens={false}
         {...(onActionCompleted || onDefinitionActionResult

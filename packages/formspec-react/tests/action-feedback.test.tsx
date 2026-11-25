@@ -40,6 +40,15 @@ describe('semantic action feedback', () => {
         expect(message(container)).toBe(intent === 'review' ? 'Completed.' : '');
     });
 
+    it.each(['submit', 'save-draft', 'review'])('suppresses renderer status for submit when submitFeedback="external" (%s)', async intent => {
+        const onActionResult = vi.fn();
+        const { container } = mount(<FeedbackForm definition={definition} submitFeedback="external"
+            responseActionsDocument={documentFor(intent)} onActionResult={onActionResult} />);
+        await click(container);
+        expect(onActionResult).toHaveBeenCalledWith(expect.objectContaining({ status: 'completed' }));
+        expect(message(container)).toBe(intent === 'submit' ? '' : 'Completed.');
+    });
+
     it.each(['failed', 'unresolved'] as const)('uses canonical save-draft intent for %s, independent of IDs and labels', async status => {
         const onActionResult = vi.fn();
         const responseActionInvoker = vi.fn((input: ResponseActionInvokerInput) => ({
