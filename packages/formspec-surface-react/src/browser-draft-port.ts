@@ -24,8 +24,9 @@ import {
   type FilingLoadResult, type FilingStatusObservation, type MatchedFilingDraftObservation, type MatchedFilingObservation, type PreparedDraftFixture, type PreparedResponseFixtures,
   type ResponseFiling, type ResponseFilingSummary, type ResponseFixtures, type ResponseRecordTools,
 } from '@formspec-org/surface';
-import type { DispositionAuthority, Explanation, FormDefinition, FormResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionDelivery, ResponseSelectionOutcome, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
-import { definitionResponseRequests } from './definition-response-reads.js';
+import type { DispositionAuthority, Explanation, FormDefinition, FormResponse, NewerSelectedResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionDelivery, ResponseSelectionOutcome, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
+import { definitionResponseRequests, type DraftDefinitionResponsePort, type DraftDefinitionResponseRead,
+  type DraftDefinitionResponseResult } from './definition-response-reads.js';
 import { readSubmitEvaluation, summarizeDraftProgress, type SubmitEvaluation } from './draft-progress.js';
 import type { SurfaceDraftFence } from './draft-writer.js';
 
@@ -69,6 +70,16 @@ interface Transaction {
 }
 type RunTransaction = <T>(stores: StoreName[], mode: IDBTransactionMode, work: (tx: Transaction) => Promise<T>) => Promise<T>;
 
+type FilingReference = NewerSelectedResponse & { definitionVersion: string };
+
+export interface OpeningResponseDependency {
+  readonly sourceInstance: string;
+  /** Read the exact filed reference attached to the authorized source. A missing reference refuses opening. */
+  readonly reference: (source: Readonly<FilingReference & {
+    extensions?: FormResponse['extensions'];
+  }>) => Readonly<FilingReference> | undefined;
+}
+
 export interface PreviewFilingStoreOptions {
   scope: string;
   definitions: ReadonlyMap<string, FormDefinition>;
@@ -84,6 +95,8 @@ export interface PreviewFilingStoreOptions {
    */
   /** Delegate the existing open check to the host with the supplied parents. */
   authorizeOpen?: (input: Readonly<DraftStartInput>) => boolean | Promise<boolean>;
+  /** By consuming Definition URL and instance. Both instances must select one completed record at open. */
+  openingResponseDependencies?: ReadonlyMap<string, ReadonlyMap<string, OpeningResponseDependency>>;
   authorize?: (key: DraftKey, relation: 'read' | 'resume' | 'send', selection?: ResponseSelectionRequest) => boolean | Promise<boolean>;
 }
 export interface BrowserFilingStoreOptions extends PreviewFilingStoreOptions {
@@ -94,7 +107,7 @@ export type PreviewFilingSubmitResult =
   | { status: 'denied' | 'unavailable' | 'conflict' | 'invalid-response' | 'duplicate-response' };
 
 export interface PreviewFilingStore {
-  drafts: BrowserDraftPort;
+  drafts: BrowserDraftPort & Partial<DraftDefinitionResponsePort>;
   responses: ResponseSelector & DispositionAuthority;
   submit(fence: Readonly<SurfaceDraftFence>, responseJson: string): Promise<PreviewFilingSubmitResult>;
   ready(): Promise<void>;
@@ -109,6 +122,16 @@ export async function previewResponseRecordTools(): Promise<ResponseRecordTools>
     selectResponses,
     isValidAuthored: isValidResponseAuthored,
   };
+}
+
+function selectsOpeningFiling(selection: ResponseSelection): boolean {
+  return selection.status === 'completed' && selection.cardinality === 'latest' && selection.pin === 'at-open';
+}
+
+function isFilingReference(value: Partial<FilingReference> | undefined): value is FilingReference {
+  return typeof value?.responseId === 'string' && value.responseId.length > 0 &&
+    typeof value.definitionVersion === 'string' && value.definitionVersion.length > 0 &&
+    typeof value.responseHash === 'string' && /^sha256:[0-9a-f]{64}$/.test(value.responseHash);
 }
 
 function storageKey(key: DraftKey): string[] {
@@ -326,7 +349,9 @@ function createFilingStore(
   subscribe: BrowserDraftPort['subscribe'], committed: () => void,
   storageAvailable: () => boolean = () => true,
 ): PreviewFilingStore {
-  const { scope, definitions, catalogs = [] } = options;
+  const { scope, definitions, catalogs = [], openingResponseDependencies } = options;
+  const openingRules = (definitionUrl: string) => openingResponseDependencies?.get(definitionUrl);
+  const hasOpeningRules = (definitionUrl: string) => Boolean(openingRules(definitionUrl)?.size);
   let preparedFromInput: PreparedResponseFixtures | undefined = options.preparedFixtures;
   const fixtureSnapshot: ResponseFixtures | undefined = preparedFromInput ? undefined : options.fixtures && {
     ...(options.fixtures.filings ? { filings: options.fixtures.filings.map(({ responseJson }) => ({ responseJson })) } : {}),
@@ -534,10 +559,9 @@ function createFilingStore(
       const resolutions: Record<string, ResponseSelectionDelivery> = {};
       const pins = Object.create(null) as Record<string, DraftRecord['pins'][string]>;
       if (requests.length > 0) {
-        const outcomes = await selectWithFixtures(base, requests, {
-          snapshot: observed,
-          stagedDrafts: staged.map(entry => ({ id: entry.id, value: entry.editable })),
-        });
+        const selectionOptions = { snapshot: observed, stagedDrafts: staged.map(entry => ({ id: entry.id, value: entry.editable })) };
+        const { outcomes, missingPrerequisite } = await selectScopedDefinition(base, definition, fixture.key, selectionOptions);
+        if (missingPrerequisite) throw new Error(`Seeded draft for "${definition.url}" requires unavailable at-open instance "${missingPrerequisite}".`);
         for (const { key: instance, selection } of requests) {
           const outcome = outcomes.get(instance);
           if (selection.pin === 'at-open' && (outcome?.status !== 'available' || !outcome.pinned)) {
@@ -888,6 +912,10 @@ function createFilingStore(
     stagedDrafts?: readonly StagedDraftEntry[] | undefined;
     snapshot?: SeedSnapshot | undefined;
     trackCandidates?: boolean | undefined;
+    opening?: {
+      rules: ReadonlyMap<string, OpeningResponseDependency>;
+      pins?: DraftRecord['pins'];
+    } | undefined;
   };
 
   async function selectWithFixturesInternal(
@@ -898,7 +926,7 @@ function createFilingStore(
     outcomes: Map<string, ResponseSelectionOutcome>;
     winningCandidates: Map<string, readonly number[]>;
   }> {
-    const { signal, stagedDrafts, snapshot, trackCandidates } = selectOptions;
+    const { signal, stagedDrafts, snapshot, trackCandidates, opening } = selectOptions;
     const unavailable = { status: 'unavailable' } as const;
     signal?.throwIfAborted();
     try {
@@ -1053,13 +1081,14 @@ function createFilingStore(
         record => record.key.definitionUrl);
       const filedByDefinition = new Map([...filingGroups].map(([url, records]) => {
         const dispositions: NonNullable<ResponseSelectionContext['dispositions']>[number][] = [];
-        const unresolved: ResponseSelectionRecord[] = [];
+        const unresolved: SelectionCandidate[] = [];
         const completed = records.map(({ key, responseJson, responseId, responseHash }) => {
           const input = responseSelectionRecord(key, responseJson, 'filing');
           const decision = decisions.get(responsePairKey({ responseId, responseHash }));
           if (decision?.status === 'decided') dispositions.push({ responseId, responseHash, value: decision.disposition });
-          if (decision?.status === 'unavailable') unresolved.push(input);
-          return { key, responseId, responseHash, input };
+          const candidate = { key, responseId, responseHash, input };
+          if (decision?.status === 'unavailable') unresolved.push(candidate);
+          return candidate;
         });
         return [url, { completed, dispositions, unresolved }] as const;
       }));
@@ -1081,7 +1110,21 @@ function createFilingStore(
         return allowed;
       };
       const winningCandidates = new Map<string, readonly number[]>();
-      const results = await Promise.all(admitted.map(async (entry, index) => {
+      const dependencies = new Map<number, { rule: OpeningResponseDependency; sourceIndex: number }>();
+      const requiredSources = new Set<number>();
+      if (opening) {
+        requests.forEach((request, index) => {
+          const rule = opening.rules.get(request.key);
+          if (!rule) return;
+          const sourceIndex = opening.rules.has(rule.sourceInstance) ? -1 : requests.findIndex(source =>
+            source.kind === 'definition' && source.key === rule.sourceInstance && selectsOpeningFiling(source.selection));
+          dependencies.set(index, { rule, sourceIndex });
+          if (sourceIndex !== -1) requiredSources.add(sourceIndex);
+        });
+      }
+      const verifiedSources = new Map<number, FilingReference & { responseJson: string }>();
+      async function selectRequest(index: number, restricted?: Readonly<FilingReference>, retained?: ResponseSelectionDelivery) {
+        const entry = admitted[index];
         const key = requests[index]!.key;
         if (!entry) return [key, unavailable] as const;
         const { definition, selection, context } = entry;
@@ -1113,22 +1156,38 @@ function createFilingStore(
         const current = selection.status === 'current' ? draftsByDefinition.get(definition.url) : [];
         if (!current) return [key, unavailable] as const;
         try {
-          const candidates: readonly SelectionCandidate[] = [...current, ...(filed?.completed ?? [])];
+          const pair = restricted ? responsePairKey(restricted) : undefined;
+          const candidates: readonly SelectionCandidate[] = pair === undefined
+            ? [...current, ...(filed?.completed ?? [])]
+            : (filed?.completed ?? []).filter(candidate => responsePairKey(candidate) === pair);
+          if (restricted && candidates.length !== 1) return [key, unavailable] as const;
           if (selection.disposition && filed?.unresolved.length) {
             const { pin: _pin, ...unpinned } = context;
             const { disposition: _disposition, ...unfiltered } = selection;
             const possible = tools.selectResponses(
-              filed.unresolved, { ...unfiltered, pin: 'none', whenNone: 'empty' }, { ...unpinned, projection: [] },
+              filed.unresolved.filter(candidate => pair === undefined || responsePairKey(candidate) === pair)
+                .map(candidate => candidate.input), { ...unfiltered, pin: 'none', whenNone: 'empty' }, { ...unpinned, projection: [] },
             );
             if (possible.status !== 'available' || !possible.none) return [key, unavailable] as const;
           }
+          const { pin: _pin, ...liveContext } = context;
           const outcome = tools.selectResponses(candidates.map(candidate => candidate.input), selection, {
-            ...context,
+            ...(retained ? liveContext : context),
             ...(selection.disposition && { dispositions: filed?.dispositions ?? [] }),
-            ...(trackCandidates && { includeInputPositions: true }),
+            ...((trackCandidates || requiredSources.has(index)) && { includeInputPositions: true }),
           });
           if (outcome.status !== 'available') return [key, outcome] as const;
+          if (restricted) {
+            const [record, extra] = outcome.records;
+            if (!record || extra || record.definitionVersion !== restricted.definitionVersion || responsePairKey(record) !== pair) {
+              return [key, unavailable] as const;
+            }
+          }
           const { inputPositions, ...publicOutcome } = outcome;
+          if (retained) {
+            const { status: _status, newer: _newer, ...delivery } = publicOutcome;
+            if (!deepEqual(delivery, retained)) return [key, unavailable] as const;
+          }
           const selectedCandidates = inputPositions
             ? inputPositions.flatMap(pos => (candidates[pos] ? [candidates[pos]!] : []))
             : (() => {
@@ -1138,6 +1197,15 @@ function createFilingStore(
               })();
           const allowed = await Promise.all(selectedCandidates.map(record => canRead(record.key)));
           if (allowed.includes(false)) return [key, unavailable] as const;
+          if (requiredSources.has(index) && inputPositions?.length === 1 && publicOutcome.records.length === 1) {
+            const [record] = publicOutcome.records;
+            const [original] = selectedCandidates;
+            if (record?.responseHash && original?.input.kind === 'filing' && original.input.responseJson !== undefined
+                && responsePairKey(original) === responsePairKey(record)) {
+              verifiedSources.set(index, { responseId: record.responseId, responseHash: record.responseHash,
+                definitionVersion: record.definitionVersion, responseJson: original.input.responseJson });
+            }
+          }
           if (trackCandidates && inputPositions) {
             winningCandidates.set(
               key,
@@ -1151,9 +1219,50 @@ function createFilingStore(
         } catch {
           return [key, unavailable] as const;
         }
+      }
+      function retainedPin(index: number): ResponseSelectionDelivery | undefined {
+        const { key } = requests[index]!;
+        return opening?.pins && Object.hasOwn(opening.pins, key) ? opening.pins[key] : undefined;
+      }
+      function pinReference(pin?: ResponseSelectionDelivery): FilingReference | undefined {
+        if (!pin?.pinned || pin.none || !Array.isArray(pin.records)) return undefined;
+        const [record, extra] = pin.records;
+        return !extra && isFilingReference(record) ? record : undefined;
+      }
+      async function selectStoredPin(index: number) {
+        const pin = retainedPin(index);
+        const reference = pinReference(pin);
+        return reference === undefined ? [requests[index]!.key, unavailable] as const : selectRequest(index, reference, pin);
+      }
+      const results = await Promise.all(admitted.map((_, index) => dependencies.has(index)
+        ? undefined : opening?.pins && requiredSources.has(index) ? selectStoredPin(index) : selectRequest(index)));
+      signal?.throwIfAborted();
+      await Promise.all([...dependencies].map(async ([index, { rule, sourceIndex }]) => {
+        const request = requests[index]!;
+        const source = verifiedSources.get(sourceIndex);
+        results[index] = [request.key, unavailable];
+        if (!admitted[index] || request.kind !== 'definition' || !selectsOpeningFiling(request.selection)
+            || results[sourceIndex]?.[1].status !== 'available') return;
+        if (!source) return;
+        try {
+          const { responseJson, ...verified } = source;
+          const { extensions } = tools.parseResponse(responseJson);
+          const reference = rule.reference({ ...verified, ...(extensions && { extensions }) });
+          if (!isFilingReference(reference)) return;
+          if (opening?.pins) {
+            const retained = pinReference(retainedPin(index));
+            if (!retained || retained.definitionVersion !== reference.definitionVersion
+                || responsePairKey(retained) !== responsePairKey(reference)) return;
+            results[index] = await selectStoredPin(index);
+          } else {
+            results[index] = await selectRequest(index, reference);
+          }
+        } catch {
+          return;
+        }
       }));
       signal?.throwIfAborted();
-      return { outcomes: new Map<string, ResponseSelectionOutcome>(results), winningCandidates };
+      return { outcomes: new Map<string, ResponseSelectionOutcome>(results.flatMap(result => result ? [result] : [])), winningCandidates };
     } catch {
       signal?.throwIfAborted();
       return {
@@ -1218,13 +1327,82 @@ function createFilingStore(
     },
   };
 
+  function validConsumerSubject(definition: FormDefinition, key: DraftKey, tools: ResponseRecordTools): boolean {
+    if (!definition.subject) return key.subject === undefined;
+    const subject = key.subject;
+    const fields = Object.entries(definition.subject.keys);
+    return Boolean(subject?.type === definition.subject.type && Object.keys(subject.keys).length === fields.length &&
+      fields.every(([name, field]) => Object.hasOwn(subject.keys, name) &&
+        (field.dataType === 'integer' ? Number.isSafeInteger(subject.keys[name]) : typeof subject.keys[name] === 'string')) &&
+      subject.id === tools.subjectId(subject.type, subject.keys));
+  }
+
+  type DraftWithPins = Pick<StoredDraft, 'pinsJson'>;
+
+  async function selectScopedDefinition(
+    base: FixtureBase, definition: FormDefinition, key: DraftKey,
+    selectionOptions: SelectWithFixturesOptions = {}, stored?: DraftWithPins,
+  ) {
+    const rules = openingRules(definition.url);
+    const required = new Set(rules && [...rules].flatMap(([instance, rule]) => [instance, rule.sourceInstance]));
+    if (rules?.size && !validConsumerSubject(definition, key, base.tools)) throw new Error('Invalid draft subject.');
+    const pins = stored ? parseJsonExact(stored.pinsJson) as DraftRecord['pins'] : undefined;
+    if (stored && (!pins || typeof pins !== 'object' || Array.isArray(pins))) throw new Error('Invalid draft pins.');
+    const requests = definitionResponseRequests(definition, key, pins, required);
+    const outcomes = await selectWithFixtures(base, requests, {
+      ...selectionOptions,
+      ...(rules?.size && { opening: { rules, ...(pins && { pins }) } }),
+    });
+    const missingPrerequisite = [...required].find(name => {
+      const outcome = outcomes.get(name);
+      return outcome?.status !== 'available' || !outcome.pinned;
+    });
+    return { outcomes, required, ...(missingPrerequisite && { missingPrerequisite }) };
+  }
+
+  async function selectDefinitionResponses(
+    input: Readonly<DraftDefinitionResponseRead>, signal?: AbortSignal,
+  ): Promise<DraftDefinitionResponseResult> {
+    try {
+      const { key, definitionVersion, expectedRevision } = structuredClone(input);
+      signal?.throwIfAborted();
+      if (!hasOpeningRules(key.definitionUrl)) return { status: 'unconfigured' };
+      if (!await authorized(key, 'resume')) return { status: 'unavailable' };
+      const definition = definitions.get(key.definitionUrl);
+      if (!definition || definition.version !== definitionVersion ||
+          (expectedRevision === null && Object.values(definition.subject?.keys ?? {}).some(field => field.minted))) {
+        return { status: 'unavailable' };
+      }
+      const base = await settledReady();
+      const readDraft = () => transaction(['editable'], 'readonly', tx => tx.get('editable', storageKey(key)));
+      const stored = await readDraft();
+      if (stored?.unverifiedStartHistory) return { status: 'unavailable' };
+      if ((stored?.revision ?? null) !== expectedRevision || (stored && stored.definitionVersion !== definitionVersion)) {
+        return { status: 'conflict' };
+      }
+      const { outcomes, missingPrerequisite } = await selectScopedDefinition(base, definition, key, { signal }, stored);
+      const current = await readDraft();
+      signal?.throwIfAborted();
+      if (current?.unverifiedStartHistory || current?.revision !== stored?.revision || current?.pinsJson !== stored?.pinsJson
+          || current?.definitionVersion !== stored?.definitionVersion) {
+        return { status: 'conflict' };
+      }
+      return { status: 'resolved', outcomes, ...(missingPrerequisite && { missingPrerequisite }) };
+    } catch {
+      signal?.throwIfAborted();
+      return { status: 'unavailable' };
+    }
+  }
+
   async function openingPins(
     key: DraftKey, definition: FormDefinition | undefined, observed?: { pins: DraftRecord['pins'] | undefined },
   ) {
     const requests = definition
       ? definitionResponseRequests(definition, key).filter(request => request.selection.pin === 'at-open')
       : [];
-    const selections = requests.length ? await responses.select(requests) : undefined;
+    const scoped = definition && hasOpeningRules(definition.url)
+      ? await selectScopedDefinition(await settledReady(), definition, key) : undefined;
+    const selections = scoped?.outcomes ?? (requests.length ? await responses.select(requests) : undefined);
     const pins = Object.create(null) as Record<string, DraftRecord['pins'][string]>;
     let missingPin: string | undefined;
     for (const { key: instance } of requests) {
@@ -1240,11 +1418,12 @@ function createFilingStore(
       }
       pins[instance] = delivery;
     }
-    return { pins, missingPin };
+    return { pins, missingPin: missingPin ?? scoped?.missingPrerequisite };
   }
 
-  const drafts: BrowserDraftPort = {
+  const drafts: PreviewFilingStore['drafts'] = {
     subscribe,
+    ...(openingResponseDependencies?.size && { selectDefinitionResponses }),
     async start(suppliedInput) {
       try {
         const input = structuredClone(suppliedInput);
@@ -1377,6 +1556,7 @@ function createFilingStore(
           const responseKey = responseDraftKey(scope, response, definition, tools);
           if (!sameKey(responseKey, key)) return { status: 'conflict' };
         }
+        if (hasOpeningRules(key.definitionUrl) && definition?.version !== definitionVersion) return { status: 'conflict' };
         const { pins, missingPin } = expectedRevision === null
           ? await openingPins(key, definition, { pins: creationPins }) : { pins: {}, missingPin: undefined };
         // Only closed DraftProgressSummary counts for declared section placements are durable;
@@ -1749,6 +1929,23 @@ function createFilingStore(
           return { status: 'invalid-response' };
         }
         const id = storageKey(key);
+        if (hasOpeningRules(key.definitionUrl)) {
+          const validated = await selectDefinitionResponses({ key, definitionVersion, expectedRevision: fence.revision });
+          if (validated.status === 'conflict') return { status: 'conflict' };
+          if (validated.status !== 'resolved' || validated.missingPrerequisite) return { status: 'unavailable' };
+          const rules = openingRules(key.definitionUrl)!;
+          const required = new Set([...rules].flatMap(([instance, rule]) => [instance, rule.sourceInstance]));
+          const filed = tools.parseResponse(responseJson);
+          for (const instance of required) {
+            const outcome = validated.outcomes.get(instance);
+            if (outcome?.status !== 'available') return { status: 'unavailable' };
+            const [reference, extra] = filed.resolvedInstances?.filter(entry => entry.instance === instance) ?? [];
+            const { records, valueDigest, none, pinned, mapping } = outcome;
+            if (extra || !deepEqual(reference, { instance, records, valueDigest, none, pinned, ...(mapping && { mapping }) })) {
+              return { status: 'invalid-response' };
+            }
+          }
+        }
         const filingId = [scope, filing.responseId];
         const result = await transaction<PreviewFilingSubmitResult>(['editable', 'summaries', 'filings', 'filingSummaries', 'seeds'], 'readwrite', async tx => {
           const previous = await tx.get('editable', id);

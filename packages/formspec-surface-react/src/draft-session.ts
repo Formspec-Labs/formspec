@@ -9,7 +9,7 @@ import type {
   BrowserDraftPort, DataSourceSubject, DraftKey, DraftLoadResult, DraftPort, DraftRecord, DraftSaveInput,
   FilingLoadResult, FilingProgressCounts, MatchedFilingObservation,
 } from '@formspec-org/surface';
-import { definitionResponseRequests, resolveDefinitionReads } from './definition-response-reads.js';
+import { definitionResponseRequests, resolveDefinitionReads, responseDeliveries, type DraftDefinitionResponsePort } from './definition-response-reads.js';
 import { readSubmitEvaluation, summarizeDraftProgress } from './draft-progress.js';
 import type { FormDefinition, FormResponse, ResponseSelector } from '@formspec-org/types';
 import {
@@ -19,7 +19,7 @@ import {
 import type { SurfaceDefinitionFormRenderInput } from './SurfaceSlot.js';
 
 export interface SurfaceDraftStorage {
-  port: DraftPort;
+  port: DraftPort & Partial<DraftDefinitionResponsePort>;
   responses?: ResponseSelector | undefined;
   definitions?: ReadonlyMap<string, FormDefinition> | undefined;
   scope: string;
@@ -81,6 +81,21 @@ export function createDraftSession(
     const result = await storage.port.load(key, version, signal);
     signal.throwIfAborted();
     return result;
+  }
+
+  async function resolveReads(
+    definition: FormDefinition, key: DraftKey, pins: DraftRecord['pins'] | undefined,
+    expectedRevision: string | null | undefined, signal: AbortSignal,
+  ): Promise<{ deliveries: DraftRecord['pins']; scoped?: boolean; missingPrerequisite?: string }> {
+    if (expectedRevision !== undefined && storage.port.selectDefinitionResponses) {
+      const result = await storage.port.selectDefinitionResponses({ key, definitionVersion: definition.version, expectedRevision }, signal);
+      signal.throwIfAborted();
+      if (result.status === 'resolved') return { deliveries: responseDeliveries(result.outcomes), scoped: true,
+        ...(result.missingPrerequisite && { missingPrerequisite: result.missingPrerequisite }) };
+      if (result.status === 'conflict') throw new Error('Draft changed before response instances could be read.');
+      if (result.status !== 'unconfigured') return { deliveries: {}, scoped: true };
+    }
+    return { deliveries: await resolveDefinitionReads(storage.responses, definitionResponseRequests(definition, key, pins), signal) };
   }
 
   async function loadFilingRecord(key: DraftKey, version: string, signal: AbortSignal): Promise<FilingLoadResult> {
@@ -224,20 +239,22 @@ export function createDraftSession(
             draftSnapshot = draft && parseJsonExact(draft.snapshotJson) as FormDraftSnapshot;
             const pins = loaded.status === 'initialized' ? loaded.pins : draft?.pins;
             const requests = definitionResponseRequests(definition, key, pins);
-            resolutions = await resolveDefinitionReads(storage.responses, requests, lifetime.signal);
+            const expectedRevision = loaded.status === 'initialized' ? loaded.revision : draft?.revision ?? null;
+            const read = await resolveReads(definition, key, pins, expectedRevision, lifetime.signal);
+            resolutions = read.deliveries;
             const afterReadsEpoch = commitEpoch.get(id) ?? 0;
             if (afterReadsEpoch !== epoch) {
               epoch = afterReadsEpoch;
               continue;
             }
-            if (loaded.status === 'absent' && !filedResponse && storage.responses) {
+            if (loaded.status === 'absent' && !filedResponse && (storage.responses || read.scoped)) {
               const missingPin = requests.find(req => req.selection.pin === 'at-open' && !resolutions[req.key]?.pinned);
-              if (missingPin) {
-                const upstreamTitle = storage.definitions?.get(missingPin.selection.definition.url)?.title;
-                const requiresAccepted = Boolean(missingPin.selection.disposition?.endsWith(':accepted'));
+              if (missingPin || read.missingPrerequisite) {
+                const upstreamTitle = missingPin && storage.definitions?.get(missingPin.selection.definition.url)?.title;
+                const requiresAccepted = Boolean(missingPin?.selection.disposition?.endsWith(':accepted'));
                 return publish({
                   status: 'pin-unavailable',
-                  instance: missingPin.key,
+                  instance: missingPin?.key ?? read.missingPrerequisite!,
                   ...(upstreamTitle ? { prerequisiteTitle: upstreamTitle } : {}),
                   ...(requiresAccepted ? { requiresAccepted: true } : {}),
                 });
@@ -408,9 +425,10 @@ export function createDraftSession(
       key: DraftKey,
       pins: DraftRecord['pins'] | undefined,
       signal?: AbortSignal,
+      expectedRevision?: string | null,
     ) {
       const mergedSignal = signal ? AbortSignal.any([lifetime.signal, signal]) : lifetime.signal;
-      return resolveDefinitionReads(storage.responses, definitionResponseRequests(definition, key, pins), mergedSignal);
+      return (await resolveReads(definition, key, pins, expectedRevision, mergedSignal)).deliveries;
     },
 
     async acknowledgeWarningGroup({
@@ -501,11 +519,7 @@ export function createDraftSession(
             && 'definitionUrl' in rawSnapshot && 'definitionVersion' in rawSnapshot && 'data' in rawSnapshot
             ? (rawSnapshot as FormDraftSnapshot)
             : undefined;
-          const resolutions = await resolveDefinitionReads(
-            storage.responses,
-            definitionResponseRequests(definition, key, loaded.draft.pins),
-            lifetime.signal,
-          );
+          const { deliveries: resolutions } = await resolveReads(definition, key, loaded.draft.pins, expectedRevision, lifetime.signal);
           // Save strictly from an isolated engine at expectedRevision so edits typed concurrently on a form consumer
           // are never flushed prematurely or discarded on storage conflict/failure.
           const engine = createFormEngine(definition, {

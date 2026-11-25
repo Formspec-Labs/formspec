@@ -19,12 +19,14 @@ import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import type { EffectRequest, FormResponse } from '@formspec-org/types';
 import type { SurfaceSaveNotice } from './SurfaceSlot.js';
 
+import { requireDraftResponsePins, type DraftDefinitionResponsePort } from './definition-response-reads.js';
+
 export type DraftNoticeReporter = (notice: SurfaceSaveNotice, options?: { focusConflict?: boolean }) => void;
 
 export interface DraftWriterOptions {
   engine: IFormEngine;
   key: DraftKey;
-  port: DraftPort;
+  port: DraftPort & Partial<DraftDefinitionResponsePort>;
   initializedRevision?: string | undefined;
   draft?: DraftRecord | undefined;
   creationPins?: DraftRecord['pins'];
@@ -1109,6 +1111,10 @@ export function createDraftWriter(options: DraftWriterOptions) {
       }
       if (kind === 'submit' && signedEdit !== undefined && signedEdit !== editAtStart) {
         throw new Error('Sign this draft before submitting.');
+      }
+      if (port.selectDefinitionResponses && (kind === 'sign' || kind === 'submit')) {
+        await requireDraftResponsePins(port, { key, definitionVersion, expectedRevision: revision });
+        if (!isCurrent()) throw new Error('Draft changed before the filing action.');
       }
       const draft = Object.freeze({ key, definitionVersion, revision, responseJson: latest.draft.responseJson });
       const latestResponse = parseJsonExact(latest.draft.responseJson) as FormResponse;
