@@ -1648,6 +1648,7 @@ The model-item property addressed by a FEL query.
 
 **Methods:**
 
+- `fn function_name(self: Self) -> &'static str` - The FEL function that queries this property.
 - `fn inputs(self: Self) -> &'static [PropertyInput]` - Return the Core dependencies of a model-item property query.
 
 **Traits:** Copy, Eq
@@ -1722,6 +1723,7 @@ Instance values, Definition variables and model-item properties read by FEL.
 - `variable_paths: Vec<(String, Vec<fel_core::ast::PathSegment>)>` - Definition variables with any resolved member/postfix path for Core §2.1.6.
 - `external_reads: Vec<ExternalRead>` - Secondary-instance and `subject()` reads for Core §2.1.6.
 - `properties: Vec<(Property, Read)>` - Model-item properties queried and their targets.
+- `non_field_property_arguments: Vec<Property>` - Queries whose argument is not a `$path` field reference, a definition error (Core §3.5.9).
 
 **Methods:**
 

@@ -52,7 +52,7 @@ re-serializing the form per call.
 
 ### [`formspec_eval`](formspec_eval.md)
 
-*1 constant, 10 modules*
+*1 constant, 11 modules*
 
 ### [`assemble_candidate`](assemble_candidate.md)
 
@@ -69,6 +69,10 @@ re-serializing the form per call.
 ### [`eval_options`](eval_options.md)
 
 *1 struct*
+
+### [`explanations`](explanations.md)
+
+*1 enum, 1 struct, 4 functions*
 
 ### [`host_context`](host_context.md)
 
@@ -167,6 +171,7 @@ re-serializing the form per call.
 **Modules**
 
 - [`convert`](#convert) - Value resolution helpers for dotted paths and nested objects.
+- [`explanations`](#explanations) - Warning answers checked against the resolved reads of submit-profile Shape firings.
 - [`host_context`](#host_context) - Host-resident FEL context for ad-hoc reads: `compileExpression`, Locale `{{}}`, derivation traces.
 - [`interpolation`](#interpolation) - `{{expression}}` interpolation (Locale §3.3.1) for Item text, Locale strings, and Shape messages.
 - [`nrb`](#nrb) - Phase 4: NRB (Non-Relevant Behavior) application.
@@ -194,6 +199,12 @@ Whether new-Response creation is available in this build.
 ## Module: convert
 
 Value resolution helpers for dotted paths and nested objects.
+
+
+
+## Module: explanations
+
+Warning answers checked against the resolved reads of submit-profile Shape firings.
 
 
 
@@ -317,6 +328,7 @@ Why a candidate's Response instance evidence could not be assembled.
 - `TooManyRecords(String)` - A latest-only instance received multiple records.
 - `UnexpectedEmptyMatch(String)` - The declared empty-match policy does not permit a fallback delivery.
 - `InconsistentEmptyMatch(String)` - The host's empty-match flag disagrees with the presence of records.
+- `InvalidExplanations(String)` - The evaluation report's candidate explanations could not be assembled.
 - `Serialize(serde_json::Error)` - The evidence could not be serialized.
 
 **Trait Implementations:**
@@ -350,7 +362,7 @@ Returns an error if the Response is not an object or a required delivery
 is missing or disagrees with its declaration.
 
 ```rust
-fn assemble_candidate(definition: &fel_core::exact_json::Value, response: fel_core::exact_json::Value, _evaluation: &fel_core::exact_json::Value, resolution: &std::collections::BTreeMap<String, formspec_core::instance_resolution::DeliveredSelection>) -> Result<fel_core::exact_json::Value, CandidateAssemblyError>
+fn assemble_candidate(definition: &fel_core::exact_json::Value, response: fel_core::exact_json::Value, evaluation: &fel_core::exact_json::Value, resolution: &std::collections::BTreeMap<String, formspec_core::instance_resolution::DeliveredSelection>) -> Result<fel_core::exact_json::Value, CandidateAssemblyError>
 ```
 
 
@@ -428,7 +440,7 @@ fn resolve_value_by_path(values: &std::collections::HashMap<String, fel_core::ex
 Parsed WASM / JSON evaluation context bundle.
 
 **Fields:**
-- `context: crate::types::EvalContext` - Clock, prior validations, and prior non-relevant paths.
+- `context: crate::types::EvalContext` - Clock, explanations, subject, and prior non-relevant paths.
 - `trigger: crate::types::EvalTrigger` - Shape-rule timing for this batch (`submit` / `continuous` / …).
 - `instances: std::collections::HashMap<String, fel_core::exact_json::Value>` - Named instance payloads merged into the FEL environment.
 - `constraints: Vec<crate::types::ExtensionConstraint>` - Extension constraints derived from optional registry documents in the context object.
@@ -563,6 +575,138 @@ Options for a single definition evaluation ([`crate::pipeline::evaluate`]).
   - `fn fmt(self: &Self, f: & mut fmt::Formatter) -> fmt::Result`
 - **Default**
   - `fn default() -> Self`
+
+---
+
+## Source: formspec_eval/explanations.md
+
+**formspec_eval > explanations**
+
+# Module: explanations
+
+## Contents
+
+**Structs**
+
+- [`ExplanationFinding`](#explanationfinding) - One explainable warning in the settled submit evaluation.
+
+**Enums**
+
+- [`ExplanationMode`](#explanationmode) - The authored action for a warning requiring an answer.
+
+**Functions**
+
+- [`candidate_entries`](#candidate_entries) - Select current and stale entries in saved order, dropping unused entries even at hidden paths.
+- [`group_basis`](#group_basis) - Stamp a group's covered firings in wire order.
+- [`instance_basis`](#instance_basis) - Stamp the basis for one concrete warning.
+- [`reference_digest`](#reference_digest) - Digest one resolved FEL reference without rounding JSON numbers.
+
+---
+
+## formspec_eval::explanations::ExplanationFinding
+
+*Struct*
+
+One explainable warning in the settled submit evaluation.
+
+**Fields:**
+- `shape_id: String` - Authored Shape id.
+- `path: String` - Resolved target, including zero-based repeat indexes.
+- `code: String` - Machine-readable finding code.
+- `mode: ExplanationMode` - Effective action after the Shape override.
+- `inputs: std::collections::BTreeMap<String, String>` - Resolved reference keys and exact value digests.
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> ExplanationFinding`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
+
+
+
+## formspec_eval::explanations::ExplanationMode
+
+*Enum*
+
+The authored action for a warning requiring an answer.
+
+**Variants:**
+- `Confirm` - Per-firing acknowledgement, with optional text.
+- `Explain` - Per-firing explanation with required text.
+- `Acknowledge` - Acknowledgement of the firings sharing a code.
+
+**Traits:** Copy, Eq
+
+**Trait Implementations:**
+
+- **Clone**
+  - `fn clone(self: &Self) -> ExplanationMode`
+- **Debug**
+  - `fn fmt(self: &Self, f: & mut $crate::fmt::Formatter) -> $crate::fmt::Result`
+- **PartialEq**
+  - `fn eq(self: &Self, other: &ExplanationMode) -> bool`
+- **Serialize**
+  - `fn serialize<__S>(self: &Self, __serializer: __S) -> _serde::__private228::Result<<__S as >::Ok, <__S as >::Error>`
+
+
+
+## formspec_eval::explanations::candidate_entries
+
+*Function*
+
+Select current and stale entries in saved order, dropping unused entries even at hidden paths.
+
+```rust
+fn candidate_entries(entries: &[fel_core::exact_json::Value], firings: &[ExplanationFinding]) -> Vec<fel_core::exact_json::Value>
+```
+
+
+
+## formspec_eval::explanations::group_basis
+
+*Function*
+
+Stamp a group's covered firings in wire order.
+
+# Errors
+Returns an error if any firing belongs to another code or mode, or canonicalization fails.
+
+```rust
+fn group_basis<'a, impl IntoIterator<Item = &'a ExplanationFinding>>(code: &str, firings: impl Trait) -> Result<String, String>
+```
+
+
+
+## formspec_eval::explanations::instance_basis
+
+*Function*
+
+Stamp the basis for one concrete warning.
+
+# Errors
+Returns the canonicalizer's refusal for an invalid preimage.
+
+```rust
+fn instance_basis(shape_id: &str, path: &str, inputs: &std::collections::BTreeMap<String, String>) -> Result<String, String>
+```
+
+
+
+## formspec_eval::explanations::reference_digest
+
+*Function*
+
+Digest one resolved FEL reference without rounding JSON numbers.
+
+# Errors
+Returns the canonicalizer's refusal for an invalid value.
+
+```rust
+fn reference_digest(value: &fel_core::exact_json::Value) -> Result<String, String>
+```
 
 ---
 
@@ -1002,14 +1146,14 @@ fn expand_repeat_instances(items: & mut [crate::types::ItemInfo], data: &std::co
 
 Recalculate all computed values with full processing model.
 
-`previous_validations` feed the `valid()` MIP state; `options` supplies the
-clock (`context.now_iso`) and named instances.
+`valid()` reads every path as valid; `options` supplies the clock (`context.now_iso`)
+and named instances.
 
 Returns response values, variable values, and a variable cycle error. Variables
 stay FEL values so a `date`-valued variable reads as a date downstream (Core §4.5).
 
 ```rust
-fn recalculate(items: & mut [crate::types::ItemInfo], data: &std::collections::HashMap<String, fel_core::exact_json::Value>, definition: &fel_core::exact_json::Value, previous_validations: Option<&[crate::types::ValidationResult]>, options: &crate::eval_options::EvalOptions) -> (std::collections::HashMap<String, fel_core::exact_json::Value>, std::collections::HashMap<String, fel_core::Value>, Option<String>)
+fn recalculate(items: & mut [crate::types::ItemInfo], data: &std::collections::HashMap<String, fel_core::exact_json::Value>, definition: &fel_core::exact_json::Value, options: &crate::eval_options::EvalOptions) -> (std::collections::HashMap<String, fel_core::exact_json::Value>, std::collections::HashMap<String, fel_core::Value>, Option<String>)
 ```
 
 ---
@@ -1062,6 +1206,7 @@ Validate all constraints and shapes.
 
 Shapes and the `$formspec` version come from `definition`; `options` supplies
 the trigger, registry extension constraints, clock, repeat counts, and instances.
+`valid()` reads every path as valid.
 
 Returns validation results and, separately, author diagnostics for
 constraint and shape expressions that hit evaluation errors (Core §3.10.2).
@@ -1746,7 +1891,7 @@ fn parse_answer_state(s: &str) -> AnswerState
 **Structs**
 
 - [`EvalContext`](#evalcontext) - Optional runtime context injected into a single evaluation cycle.
-- [`EvalDiagnostic`](#evaldiagnostic) - Evaluation error from a calculate, constraint, or shape expression (Core §3.10.2).
+- [`EvalDiagnostic`](#evaldiagnostic) - Evaluation error from a Definition expression (Core §3.10.2).
 - [`EvalSubject`](#evalsubject) - The parts of `Response.subject` that the evaluator checks and reads.
 - [`EvaluationResult`](#evaluationresult) - Result of the full evaluation cycle.
 - [`ItemText`](#itemtext) - Display text for one Item instance, `{{expression}}` resolved in its scope.
@@ -1766,9 +1911,9 @@ fn parse_answer_state(s: &str) -> AnswerState
 Optional runtime context injected into a single evaluation cycle.
 
 **Fields:**
+- `explanations: Vec<fel_core::exact_json::Value>` - Stored warning answers to compare on Submit.
 - `subject: Option<EvalSubject>` - Current Response identity supplied by the host.
 - `now_iso: Option<String>` - Wall-clock instant for FEL `now()` / date helpers (ISO-8601 string).
-- `previous_validations: Option<Vec<ValidationResult>>` - Prior cycle validation results (e.g. for host-driven revalidation hints).
 - `previous_non_relevant: Option<Vec<String>>` - Paths that were non-relevant in the prior evaluation cycle.
 
 **Trait Implementations:**
@@ -1786,7 +1931,7 @@ Optional runtime context injected into a single evaluation cycle.
 
 *Struct*
 
-Evaluation error from a calculate, constraint, or shape expression (Core §3.10.2).
+Evaluation error from a Definition expression (Core §3.10.2).
 
 The expression evaluated to `null`; in constraint position that passes (§3.8.1).
 The diagnostic is for Definition authors (debug consoles, previews) and MUST NOT
@@ -1794,7 +1939,7 @@ be shown to end users as a validation error, so it never enters
 [`EvaluationResult::validations`].
 
 **Fields:**
-- `path: String` - Resolved path of the bind or shape target (`#` for form-level shapes).
+- `path: String` - Concrete path of the expression target or variable scope (`#` at form level).
 - `expression: String` - FEL expression that raised the error, as evaluated.
 - `shape_id: Option<String>` - Shape ID when a shape expression raised the error.
 - `code: Option<String>` - fel-core diagnostic code, such as `FEL_AMBIGUOUS_ROW_LOOKUP`, when it has one.
@@ -1827,6 +1972,10 @@ Use string keys for larger identifiers.
 **Fields:**
 - `subject_type: Option<String>` - Subject type from the Response.
 - `keys: Option<std::collections::HashMap<String, fel_core::Value>>` - Keys from the Response. An empty map is an explicit singleton key set.
+
+**Methods:**
+
+- `fn for_response(definition: &Value, subject: Option<&Value>) -> Option<Self>` - Bind a stored Response's subject for a Definition recheck.
 
 **Trait Implementations:**
 
@@ -1875,10 +2024,14 @@ When to evaluate shape rules.
 Result of the full evaluation cycle.
 
 **Fields:**
+- `refused: bool` - Evaluation stopped before Recalculate because the Definition or input was refused.
+- `explanation_actions: Vec<fel_core::exact_json::Value>` - Explainable Shape firings from this submit evaluation.
+- `candidate_explanations: Option<Vec<fel_core::exact_json::Value>>` - Entries selected for assembly by the submit evaluation.
 - `values: std::collections::HashMap<String, fel_core::exact_json::Value>` - All field values after recalculation (post-NRB): flat state keyed by path
 - `data: fel_core::exact_json::Value` - The Response projection of [`Self::values`]: groups are nested objects and repeats arrays of
 - `validations: Vec<ValidationResult>` - Validation results.
-- `diagnostics: Vec<EvalDiagnostic>` - Author-facing evaluation errors from calculate, constraint, and shape expressions.
+- `invalid_paths: Vec<String>` - Sorted paths that `valid()` reads as invalid in the settled state (Core §3.5.9).
+- `diagnostics: Vec<EvalDiagnostic>` - Author-facing errors raised while evaluating Definition expressions.
 - `non_relevant: Vec<String>` - Fields marked non-relevant.
 - `variables: std::collections::HashMap<String, fel_core::exact_json::Value>` - Evaluated variable values.
 - `scoped_variables: std::collections::HashMap<String, std::collections::HashMap<String, fel_core::Value>>` - Variables by concrete scope and name, with FEL types.
@@ -2235,6 +2388,7 @@ What kind of rule produced the validation.
 - `Constraint` - Bind `constraint` expression failed.
 - `Type` - Value type does not match field type.
 - `Cardinality` - Repeat min/max violation.
+- `Explanation` - Derived answer to a warning Shape.
 - `Shape` - Cross-field shape rule.
 - `Definition` - Definition-level structural rule.
 
@@ -2315,11 +2469,12 @@ Machine validation code (known codes + definition-authored shape codes).
 - `Required` - Required field has no value.
 - `TypeMismatch` - Value type does not match field definition.
 - `ConstraintFailed` - Constraint expression evaluated to false.
-- `ConstraintParseError` - A Bind constraint calls an undefined function (Core §3.10.1).
+- `UndefinedFunction` - An authored FEL expression calls an undefined function (Core §3.10.1).
 - `SyntaxError` - An authored FEL expression does not conform to the grammar (Core §3.10.1).
-- `ArityMismatch` - A built-in function is called with the wrong number of arguments (Core §3.10.1).
+- `ArityMismatch` - A function is called with the wrong number of arguments (Core §3.10.1).
 - `SeedPredicateScope` - A seed predicate reads an input outside its creation scope.
 - `UnsubscriptedRepeatReference` - A field reference traverses a repeatable group without a subscript.
+- `MipArgumentNotField` - A MIP query takes an argument other than a `$path` field reference (Core §3.5.9).
 - `UnassembledDefinitionReference` - A Group inclusion needs assembly before evaluation.
 - `CalculateTargetConflict` - Multiple calculate Binds can write the same Item.
 - `MinRepeat` - Repeat count below minimum.

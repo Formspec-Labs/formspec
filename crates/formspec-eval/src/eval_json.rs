@@ -211,7 +211,7 @@ fn eval_diagnostic_to_json_object(d: &EvalDiagnostic, shape_id_key: &str) -> Val
 
 /// Parsed WASM / JSON evaluation context bundle.
 pub struct EvalHostContextBundle {
-    /// Clock, prior validations, and prior non-relevant paths.
+    /// Clock, explanations, subject, and prior non-relevant paths.
     pub context: EvalContext,
     /// Shape-rule timing for this batch (`submit` / `continuous` / …).
     pub trigger: EvalTrigger,

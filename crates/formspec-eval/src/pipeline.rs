@@ -393,8 +393,9 @@ fn evaluate_prepared(
             paths.join(", ")
         ))]);
     }
+    let settled_invalid = types::error_paths(&validations);
     let invalid_paths = {
-        let mut paths: Vec<_> = types::error_paths(&validations).into_iter().collect();
+        let mut paths: Vec<_> = settled_invalid.iter().cloned().collect();
         paths.sort_unstable();
         paths
     };
@@ -424,7 +425,7 @@ fn evaluate_prepared(
             &index,
             &values,
             &scoped_variables,
-            &reads,
+            &settled_invalid,
             definition,
             options,
             &mut validations,
