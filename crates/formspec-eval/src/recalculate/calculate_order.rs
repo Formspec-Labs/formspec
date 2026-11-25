@@ -811,7 +811,7 @@ fn read_root(root: &Root, site: &Site<'_>, path: &str) -> Option<String> {
     }
 }
 
-fn representative_row_counts(items: &[ItemInfo], parent: &str, counts: &mut RowCounts) {
+pub(super) fn representative_row_counts(items: &[ItemInfo], parent: &str, counts: &mut RowCounts) {
     for item in items {
         let mut path = if parent.is_empty() {
             item.path.clone()

@@ -7,6 +7,7 @@
 mod bind_pass;
 mod calculate_order;
 mod calculate_pass;
+pub mod dependency_scope;
 pub(crate) mod json_fel;
 mod text_pass;
 pub(crate) mod variables;

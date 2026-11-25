@@ -94,3 +94,63 @@ def test_standard_validation_codes_include_core_reserved_codes(conformance_suite
     standard = conformance_suite_schema["$defs"]["standardValidationCode"]
     assert standard["enum"][: len(reserved)] == reserved
     assert "seven" not in standard["description"].lower()
+
+
+def test_suite_file_defaults_partial_expectations_and_new_operations(
+    conformance_suite_schema: dict, schema_registry: Registry,
+) -> None:
+    validator = Draft202012Validator(conformance_suite_schema, registry=schema_registry)
+    suite = {
+        "defaults": {
+            "kind": "ENGINE_PROCESSING",
+            "definitionPath": "form.json",
+            "origin": "new",
+            "mode": "continuous",
+            "now": "2026-06-01T00:00:00Z",
+            "subject": {"type": "urn:example:unit", "keys": {"cycle": 2}},
+            "instances": {"prior": {"rows": []}},
+            "specRefs": ["Core §4.3"],
+        },
+        "cases": [
+            {
+                "id": "partial.case-1",
+                "inputData": {},
+                "operations": [
+                    {"op": "deliverInstance", "name": "prior", "value": {"rows": [{"n": 1}]}},
+                    {"op": "resume"},
+                ],
+                "expected": {
+                    "present": [{"pathPrefix": "rows", "code": "REQUIRED", "count": 1}],
+                    "absent": [{"path": "total", "code": "REQUIRED"}],
+                    "dataAt": [
+                        {"path": "rate", "value": 0.125, "comparator": "tolerance", "epsilon": "1e-6"},
+                        {"path": "hidden", "absent": True},
+                    ],
+                    "states": {"note": {"relevant": True, "required": False, "readonly": True}},
+                },
+            },
+        ],
+    }
+    validator.validate(suite)
+
+    # `tolerance` requires `epsilon`.
+    bad_tol = {
+        **suite,
+        "cases": [{
+            **suite["cases"][0],
+            "expected": {"dataAt": [{"path": "rate", "value": 1, "comparator": "tolerance"}]},
+        }],
+    }
+    with pytest.raises(ValidationError):
+        validator.validate(bad_tol)
+
+    # `resume` takes no `path`.
+    bad_resume = {
+        **suite,
+        "cases": [{
+            **suite["cases"][0],
+            "operations": [{"op": "resume", "path": "note"}],
+        }],
+    }
+    with pytest.raises(ValidationError):
+        validator.validate(bad_resume)
