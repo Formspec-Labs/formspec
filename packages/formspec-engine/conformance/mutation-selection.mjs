@@ -603,7 +603,6 @@ export function analyzeScopedDependenciesWasm(definition, queries, extractExpr =
   return queries.map((query) => {
     if (!query || query.kind === 'unbounded') return null;
     const roots = [];
-    let checkNrb = false;
 
     if (query.kind === 'fel') {
       const normSite = normalizeConcreteSite(query.site);
@@ -613,7 +612,6 @@ export function analyzeScopedDependenciesWasm(definition, queries, extractExpr =
       const { valid, bounded } = collectExpressionTargets(query.expression, normSite, roots);
       if (!valid || !bounded) return null;
     } else if (query.kind === 'targets') {
-      if (query.dataPaths?.length) checkNrb = true;
       for (const path of query.dataPaths ?? []) {
         const norm = normalizeConcreteSite(path);
         const owner = owningSite(norm);
@@ -692,7 +690,7 @@ export function analyzeScopedDependenciesWasm(definition, queries, extractExpr =
     for (const tmpl of scope.itemPaths) {
       const setName = itemOptionSets.get(tmpl);
       if (setName) scope.optionSets.add(setName);
-      if (checkNrb && itemHasRelevant.has(tmpl)) scope.includeNrb = true;
+      if (itemHasRelevant.has(tmpl)) scope.includeNrb = true;
     }
     return scope;
   });

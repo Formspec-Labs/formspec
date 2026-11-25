@@ -51,55 +51,6 @@ function guardEquivalence(definition, shape) {
   }
 }
 
-/** Infer conservative scope metadata for caller-supplied named mutations from their JSON path. */
-function inferNamedScope(definition, path) {
-  const [root, second] = path;
-  if (root === 'items' && Number.isInteger(second)) {
-    let nodes = definition.items;
-    let prefix = '';
-    let idx = 1;
-    let lastItemPath;
-    while (idx < path.length && Array.isArray(nodes) && Number.isInteger(path[idx])) {
-      const item = nodes[path[idx]];
-      if (!item || typeof item.key !== 'string') break;
-      lastItemPath = prefix ? `${prefix}.${item.key}` : item.key;
-      if (path[idx + 1] === 'children' && Array.isArray(item.children)) {
-        prefix = item.type === 'field' ? prefix : lastItemPath;
-        nodes = item.children;
-        idx += 2;
-      } else {
-        break;
-      }
-    }
-    return lastItemPath ? { target: lastItemPath } : {};
-  }
-  if (root === 'binds') {
-    if (Array.isArray(definition.binds) && Number.isInteger(second)) {
-      const bind = definition.binds[second];
-      return bind?.path ? { target: normalizeTemplatePath(bind.path) } : {};
-    }
-    if (definition.binds && typeof definition.binds === 'object' && typeof second === 'string') {
-      return { target: normalizeTemplatePath(second) };
-    }
-  }
-  if (root === 'shapes' && Number.isInteger(second)) {
-    return { shapeIndex: second };
-  }
-  if (root === 'optionSets' && typeof second === 'string') {
-    return { optionSet: second };
-  }
-  if (root === 'variables' && Number.isInteger(second)) {
-    const variable = definition.variables?.[second];
-    if (variable?.name) {
-      return { variable: `${variable.scope ?? '#'}:${variable.name}` };
-    }
-  }
-  if (root === 'nonRelevantBehavior' && path.length === 1) {
-    return { isGlobalNrb: true };
-  }
-  return {};
-}
-
 /** Generated IDs are JSON Pointers. Named edits use path segments and an optional replacement. */
 export function enumerateMutations(definition, named = []) {
   const mutations = [];

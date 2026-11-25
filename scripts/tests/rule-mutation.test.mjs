@@ -399,6 +399,7 @@ test('large synthetic grouped suite: selected vs exhaustive agree on every first
         assert.deepEqual([...rustScopes[i].shapes].sort(), [...wasmScopes[i].shapes].sort(), `shapes[${i}]`);
         assert.deepEqual([...rustScopes[i].optionSets].sort(), [...wasmScopes[i].optionSets].sort(), `optionSets[${i}]`);
         assert.deepEqual([...rustScopes[i].variables].sort(), [...wasmScopes[i].variables].sort(), `variables[${i}]`);
+        assert.equal(rustScopes[i].includeNrb, wasmScopes[i].includeNrb, `includeNrb[${i}]`);
       }
 
       // Exercise the unified `formspec-conformance mutate` CLI with `--native` on a subset via `--only`.
@@ -418,6 +419,92 @@ test('large synthetic grouped suite: selected vs exhaustive agree on every first
       assert.ok(cliOut.legsCovered.ts.length > 0);
       assert.ok(cliOut.legsCovered.rust.length > 0);
       assert.deepEqual(cliOut.summary, { noticed: 2, survived: 0, equivalent: 0 });
+    }
+  } finally {
+    await fs.rm(root, { force: true, recursive: true });
+  }
+});
+
+test('selected mode catches global nonRelevantBehavior mutations via validation-only witnesses without dataAt', async () => {
+  const root = await fs.mkdtemp(path.join(tmpdir(), 'mutation-nrb-soundness-'));
+  try {
+    const form = {
+      $formspec: '1.0',
+      url: 'urn:example:nrb-soundness',
+      version: '1.0.0',
+      status: 'active',
+      title: 'NRB Soundness',
+      nonRelevantBehavior: 'keep',
+      items: [
+        { key: 'toggle', type: 'field', dataType: 'boolean', label: 'Toggle' },
+        { key: 'hidden', type: 'field', dataType: 'string', label: 'Hidden' },
+        { key: 'visible', type: 'field', dataType: 'string', label: 'Visible' },
+      ],
+      binds: [
+        { path: 'hidden', relevant: '$toggle' },
+      ],
+      shapes: [
+        {
+          id: 'check-hidden',
+          target: 'visible',
+          constraint: 'present($hidden)',
+          severity: 'error',
+          message: 'Hidden value must stay present after filing',
+        },
+      ],
+    };
+    const suite = {
+      defaults: {
+        kind: 'ENGINE_PROCESSING',
+        definitionPath: 'form.json',
+        origin: 'saved',
+        mode: 'submit',
+        specRefs: ['Core §4.3.2 nonRelevantBehavior'],
+      },
+      cases: [
+        {
+          id: 'validation-only-witness',
+          inputData: { toggle: false, hidden: 'kept', visible: 'ok' },
+          // Intentionally validation-only (no `dataAt`): mutating `/nonRelevantBehavior` from keep -> remove
+          // strips `hidden` on submit fixpoint/FR, firing `check-hidden` on `visible`.
+          expected: {
+            absent: [{ path: 'visible', shapeId: 'check-hidden' }],
+          },
+        },
+      ],
+    };
+    await fs.writeFile(path.join(root, 'form.json'), JSON.stringify(form));
+    await fs.writeFile(path.join(root, 'suite.json'), JSON.stringify(suite));
+
+    const selected = await runMutationCoverage({
+      root,
+      suite: 'suite.json',
+      definitionPath: 'form.json',
+      only: ['/nonRelevantBehavior'],
+      workers: 1,
+      exhaustive: false,
+    });
+    const exhaustive = await runMutationCoverage({
+      root,
+      suite: 'suite.json',
+      definitionPath: 'form.json',
+      only: ['/nonRelevantBehavior'],
+      workers: 1,
+      exhaustive: true,
+    });
+
+    assert.equal(exhaustive.results[0].status, 'noticed');
+    assert.equal(exhaustive.results[0].caseId, 'validation-only-witness');
+    assert.equal(selected.results[0].status, 'noticed');
+    assert.equal(selected.results[0].caseId, 'validation-only-witness');
+
+    const nativeBin = findNativeBinary();
+    if (nativeBin) {
+      const queries = buildCaseQueries([{ ...suite.defaults, ...suite.cases[0] }]);
+      const rustScopes = analyzeScopedDependenciesRust(form, queries, nativeBin);
+      const wasmScopes = analyzeScopedDependenciesWasm(form, queries);
+      assert.equal(rustScopes[0].includeNrb, true);
+      assert.equal(wasmScopes[0].includeNrb, true);
     }
   } finally {
     await fs.rm(root, { force: true, recursive: true });

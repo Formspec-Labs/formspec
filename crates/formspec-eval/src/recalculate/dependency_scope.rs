@@ -528,7 +528,6 @@ impl ScopeGraph {
     ) -> Option<ReadScope> {
         let state = ScopeData::default();
         let mut roots = Vec::new();
-        let mut check_nrb = false;
 
         match query {
             DependencyQuery::Unbounded => return None,
@@ -560,9 +559,6 @@ impl ScopeGraph {
                 validation_prefixes,
                 ..
             } => {
-                if !data_paths.is_empty() {
-                    check_nrb = true;
-                }
                 for path in data_paths {
                     let norm = self.normalize_concrete_site(path);
                     let owning = self.owning_site(&norm)?.to_owned();
@@ -669,7 +665,7 @@ impl ScopeGraph {
             if let Some(set_name) = self.item_option_sets.get(tmpl) {
                 scope.option_sets.insert(set_name.clone());
             }
-            if check_nrb && self.item_has_relevant.contains(tmpl) {
+            if self.item_has_relevant.contains(tmpl) {
                 scope.include_nrb = true;
             }
         }
@@ -930,5 +926,57 @@ mod tests {
             }],
         );
         assert_eq!(scopes, vec![None]);
+    }
+
+    #[test]
+    fn includes_global_nrb_for_validation_state_and_fel_queries_without_data_at() {
+        let def = json!({
+            "nonRelevantBehavior": "keep",
+            "items": [
+                { "key": "toggle", "type": "field", "dataType": "boolean" },
+                { "key": "hidden", "type": "field", "dataType": "string" },
+                { "key": "visible", "type": "field", "dataType": "string" },
+                { "key": "unrelated", "type": "field", "dataType": "string" }
+            ],
+            "binds": [
+                { "path": "hidden", "relevant": "$toggle" }
+            ],
+            "shapes": [
+                {
+                    "id": "check-hidden",
+                    "target": "visible",
+                    "constraint": "present($hidden)",
+                    "message": "Hidden must remain present"
+                }
+            ]
+        });
+        let scopes = definition_dependency_scopes(
+            &def,
+            &[
+                // Validation-only target (no dataAt) reading a conditionally relevant field.
+                DependencyQuery::Targets {
+                    data_paths: vec![],
+                    state_paths: vec![],
+                    validation_paths: vec!["visible".into()],
+                    validation_prefixes: vec![],
+                    origin_new: false,
+                },
+                // FEL query (no dataAt) reading a conditionally relevant field.
+                DependencyQuery::Fel {
+                    expression: "$hidden".into(),
+                    site: "".into(),
+                    origin_new: false,
+                },
+                // Unrelated field with no relevance bind in its cone stays false.
+                DependencyQuery::Fel {
+                    expression: "$unrelated".into(),
+                    site: "".into(),
+                    origin_new: false,
+                },
+            ],
+        );
+        assert!(scopes[0].as_ref().unwrap().include_nrb);
+        assert!(scopes[1].as_ref().unwrap().include_nrb);
+        assert!(!scopes[2].as_ref().unwrap().include_nrb);
     }
 }
