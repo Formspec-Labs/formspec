@@ -1,0 +1,33 @@
+{
+  "$formspecResponse": "1.0",
+  "definitionUrl": "https://example.org/forms/warning-explanations",
+  "definitionVersion": "1.0.0",
+  "id": "resp-e906-1",
+  "status": "in-progress",
+  "data": {
+    "amount": 150
+  },
+  "authored": "2026-11-17T12:00:00Z",
+  "explanations": [
+    {
+      "shapeId": "warn_amount",
+      "path": "amount",
+      "basis": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "text": "First explanation",
+      "author": {
+        "id": "user-1"
+      },
+      "recorded": "2026-11-17T12:00:00Z"
+    },
+    {
+      "shapeId": "warn_amount",
+      "path": "amount",
+      "basis": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "text": "Duplicate explanation",
+      "author": {
+        "id": "user-1"
+      },
+      "recorded": "2026-11-17T12:01:00Z"
+    }
+  ]
+}

@@ -1764,6 +1764,18 @@
       "state": "tested"
     },
     {
+      "code": "E906",
+      "pass": 8,
+      "severity": "error",
+      "title": "Duplicate Response explanation identity",
+      "specRef": "specs/core/spec.md#216-response",
+      "suggestedFix": "keep at most one explanation entry per (shapeId, path) or per (code, partyRef) in Response.explanations",
+      "fixtures": [
+        "tests/fixtures/lint/E906-duplicate-explanation-identity.json"
+      ],
+      "state": "tested"
+    },
+    {
       "code": "W900",
       "pass": 10,
       "severity": "warning",

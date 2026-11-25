@@ -11,6 +11,7 @@
 //! - E901: `signedPayload.definitionUrl` != top-level `definitionUrl`
 //! - E902: `signedPayload.definitionVersion` != top-level `definitionVersion`
 //! - E905: Signature method URI not registered in signature-method-registry.json or deprecated (FORMSPEC-SIG-METHOD-REGISTERED-001)
+//! - E906: Duplicate warning explanation identity (`(shapeId, path)` or `(code, partyRef)`) in `explanations[]` (Core §2.1.6)
 //!
 //! Parity target: Python `_pass_signed_payload_validation` in
 //! `src/formspec/validate.py` (SIGNED_PAYLOAD_RESPONSE_ID_MISMATCH and
@@ -164,20 +165,65 @@ fn check_signature_method_registration(i: usize, sig: &Value, diags: &mut Vec<Li
     }
 }
 
-/// Run the Response pass: cross-field signature pin invariants and signature method checks.
-///
-/// Returns no diagnostics for Response documents that omit `authoredSignatures`.
+fn check_duplicate_explanations(doc: &Value, diags: &mut Vec<LintDiagnostic>) {
+    let Some(entries) = doc.get("explanations").and_then(Value::as_array) else {
+        return;
+    };
+    let mut seen_instances: HashSet<(&str, &str)> = HashSet::new();
+    let mut seen_groups: HashSet<(&str, Option<&str>)> = HashSet::new();
+    for (i, entry) in entries.iter().enumerate() {
+        if entry.get("group").and_then(Value::as_bool) == Some(true) {
+            let Some(code) = entry.get("code").and_then(Value::as_str) else {
+                continue;
+            };
+            let party_ref = entry.get("partyRef").and_then(Value::as_str);
+            if !seen_groups.insert((code, party_ref)) {
+                let id_desc = match party_ref {
+                    Some(party) => format!("(code={code:?}, partyRef={party:?})"),
+                    None => format!("(code={code:?})"),
+                };
+                diags.push(with_metadata(LintDiagnostic::error(
+                    crate::LintCode::E906,
+                    8,
+                    format!("$.explanations[{i}]"),
+                    format!("duplicate grouped explanation identity {id_desc}"),
+                )));
+            }
+        } else if let (Some(shape_id), Some(path)) = (
+            entry.get("shapeId").and_then(Value::as_str),
+            entry.get("path").and_then(Value::as_str),
+        ) && !seen_instances.insert((shape_id, path))
+        {
+            diags.push(with_metadata(LintDiagnostic::error(
+                crate::LintCode::E906,
+                8,
+                format!("$.explanations[{i}]"),
+                format!(
+                    "duplicate instance explanation identity (shapeId={shape_id:?}, path={path:?})"
+                ),
+            )));
+        }
+    }
+}
+
+/// Run the Response pass: cross-field signature pin invariants, signature method checks,
+/// and warning explanation identity uniqueness.
 pub fn lint_response(doc: &Value) -> Vec<LintDiagnostic> {
-    let signatures = match doc.get("authoredSignatures").and_then(Value::as_array) {
-        Some(arr) if !arr.is_empty() => arr,
-        _ => return Vec::new(),
+    let mut diags = Vec::new();
+    check_duplicate_explanations(doc, &mut diags);
+
+    let Some(signatures) = doc
+        .get("authoredSignatures")
+        .and_then(Value::as_array)
+        .filter(|arr| !arr.is_empty())
+    else {
+        return diags;
     };
 
     let top_id = doc.get("id").and_then(Value::as_str);
     let top_def_url = doc.get("definitionUrl").and_then(Value::as_str);
     let top_def_ver = doc.get("definitionVersion").and_then(Value::as_str);
 
-    let mut diags = Vec::new();
     for (i, sig) in signatures.iter().enumerate() {
         // E905: Signature method registry validation (FORMSPEC-SIG-METHOD-REGISTERED-001)
         check_signature_method_registration(i, sig, &mut diags);
@@ -455,6 +501,51 @@ mod tests {
             "E905 fixture must emit E905 diagnostic, got {:?}",
             diags.iter().map(|d| &d.code).collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn duplicate_explanation_identities_emit_e906() {
+        let fixture_str = include_str!("../../../tests/fixtures/lint/E906-duplicate-explanation-identity.json");
+        let doc: Value = serde_json::from_str(fixture_str).expect("parse E906 fixture");
+        let diags = lint_response(&doc);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].code, crate::LintCode::E906);
+        assert_eq!(diags[0].path, "$.explanations[1]");
+
+        let mut group_doc = base_response();
+        group_doc["explanations"] = json!([
+            {
+                "code": "BLANK_WARN",
+                "group": true,
+                "paths": ["a"],
+                "basis": format!("sha256:{}", "a".repeat(64)),
+                "author": { "id": "user-1" },
+                "recorded": "2026-11-17T12:00:00Z"
+            },
+            {
+                "code": "BLANK_WARN",
+                "group": true,
+                "paths": ["b"],
+                "basis": format!("sha256:{}", "b".repeat(64)),
+                "author": { "id": "user-1" },
+                "recorded": "2026-11-17T12:01:00Z"
+            }
+        ]);
+        let group_diags = lint_response(&group_doc);
+        assert_eq!(group_diags.len(), 1);
+        assert_eq!(group_diags[0].code, crate::LintCode::E906);
+        assert_eq!(group_diags[0].path, "$.explanations[1]");
+
+        // Distinct partyRef values for the same code are distinct group identities.
+        group_doc["explanations"][0]["partyRef"] = json!("party-a");
+        group_doc["explanations"][1]["partyRef"] = json!("party-b");
+        assert!(lint_response(&group_doc).is_empty());
+
+        // Same partyRef + same code is a duplicate.
+        group_doc["explanations"][1]["partyRef"] = json!("party-a");
+        let party_diags = lint_response(&group_doc);
+        assert_eq!(party_diags.len(), 1);
+        assert_eq!(party_diags[0].code, crate::LintCode::E906);
     }
 }
 
