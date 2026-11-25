@@ -98,6 +98,76 @@ it('keeps a prepared draft current without qualifying it as a filing', async () 
     records: [{ responseId: 'urn:report:filed', responseHash: expect.stringMatching(/^sha256:/) }] });
 });
 
+it('initializes only the exact returned head for an issued subject and fences duplicate attempts', async () => {
+  function revisionFor({ drafts }: ReturnType<typeof createMemoryFilingStore>) {
+    if (!drafts.initializeRevision) throw new Error('The built-in store must support filing revisions.');
+    return drafts.initializeRevision.bind(drafts);
+  }
+  const url = 'urn:test:inspection';
+  const form = definition(url, { owner: { dataType: 'string' }, unit: { dataType: 'string', minted: true } });
+  const defs = new Map([[url, form]]);
+  const tools = await previewResponseRecordTools();
+  const keys = { owner: 'a', unit: 'issued' };
+  const originalJson = await responseText(url, keys, 'urn:inspection:original', 'first reading');
+  const original = prepareResponseFiling(scope, defs, originalJson, 'fixture', tools);
+  const expected = { receiptRef: original.responseId, responseHash: original.responseHash };
+  const fixture = (review: 'returned' | 'accepted') => ({
+    filings: [{ responseJson: originalJson }],
+    decisions: [{ responseId: original.responseId, responseHash: original.responseHash,
+      decision: { status: 'decided' as const, review, disposition: 'urn:decision:' + review, comments: [] } }],
+  });
+  const accepted = createMemoryFilingStore({ scope, definitions: defs, fixtures: fixture('accepted') });
+  expect(await revisionFor(accepted)(original.key, version, expected)).toEqual({ status: 'conflict' });
+  const awaitingReview = createMemoryFilingStore({ scope, definitions: defs, fixtures: { filings: fixture('returned').filings } });
+  expect(await revisionFor(awaitingReview)(original.key, version, expected)).toEqual({ status: 'conflict' });
+  const denied = createMemoryFilingStore({ scope, definitions: defs, fixtures: fixture('returned'),
+    authorize: (_key, relation) => relation === 'read' });
+  expect(await revisionFor(denied)(original.key, version, expected)).toEqual({ status: 'denied' });
+
+  const store = createMemoryFilingStore({ scope, definitions: defs, fixtures: fixture('returned') });
+  const initializeRevision = revisionFor(store);
+  expect(await store.drafts.load(original.key, version)).toEqual({ status: 'absent' });
+  const anotherOwner = { ...keys, owner: 'b' };
+  const anotherKey = { ...original.key, subject: { type: url, keys: anotherOwner, id: tools.subjectId(url, anotherOwner) } };
+  expect(await initializeRevision(anotherKey, version, expected)).toEqual({ status: 'conflict' });
+  expect(await initializeRevision(original.key, '2.0.0', expected)).toEqual({ status: 'conflict' });
+  const staleVersionJson = originalJson.replace('"definitionVersion": "1.0.0"', '"definitionVersion": "0.9.0"');
+  const staleVersion = prepareResponseFiling(scope, defs, staleVersionJson, 'fixture', tools);
+  const staleFixtures = fixture('returned');
+  staleFixtures.filings[0] = { responseJson: staleVersionJson };
+  staleFixtures.decisions[0]!.responseHash = staleVersion.responseHash;
+  const outdated = createMemoryFilingStore({ scope, definitions: defs, fixtures: staleFixtures });
+  expect(await revisionFor(outdated)(original.key, version, { ...expected, responseHash: staleVersion.responseHash }))
+    .toEqual({ status: 'conflict' });
+  expect(await initializeRevision(original.key, version, { ...expected, receiptRef: 'urn:inspection:stale' }))
+    .toEqual({ status: 'conflict' });
+  const attempts = await Promise.all([initializeRevision(original.key, version, expected),
+    initializeRevision(original.key, version, expected)]);
+  expect(attempts.map(attempt => attempt.status).sort()).toEqual(['conflict', 'initialized']);
+  const initialized = await store.drafts.load(original.key, version);
+  if (initialized.status !== 'initialized') throw new Error(initialized.status);
+  expect(await store.drafts.loadFiling(original.key, version)).toMatchObject({ filing: { responseJson: originalJson } });
+
+  const corrected = await responseText(url, keys, 'urn:inspection:corrected', 'corrected reading', '2026-02-01T00:00:00Z');
+  const correctedDraft = JSON.stringify({ ...JSON.parse(corrected), status: 'in-progress' });
+  const save = {
+    key: original.key, definitionVersion: version, responseJson: correctedDraft,
+    snapshotJson: JSON.stringify({ definitionUrl: url, definitionVersion: version, data: { answer: 'corrected reading' } }),
+    summary: null,
+  };
+  expect(await store.drafts.save({ ...save, expectedRevision: 'stale' })).toEqual({ status: 'conflict' });
+  const saved = await store.drafts.save({ ...save, expectedRevision: initialized.revision });
+  if (saved.status !== 'saved') throw new Error(saved.status);
+  expect(await initializeRevision(original.key, version, expected)).toEqual({ status: 'conflict' });
+  expect(await store.drafts.load(original.key, version)).toMatchObject({
+    status: 'loaded', draft: { revision: saved.revision, responseJson: correctedDraft, pins: initialized.pins },
+  });
+  const fence = { key: original.key, definitionVersion: version, revision: saved.revision, responseJson: correctedDraft };
+  expect(await store.submit(fence, corrected)).toMatchObject({ status: 'filed', receiptRef: 'urn:inspection:corrected' });
+  expect(await initializeRevision(original.key, version, expected)).toEqual({ status: 'conflict' });
+  expect(await store.drafts.loadFiling(original.key, version)).toMatchObject({ filing: { responseJson: corrected } });
+});
+
 it('joins decisions by the exact hash and treats missing prior-year reports as an authorized empty result', async () => {
   const tools = await previewResponseRecordTools();
   const planJson = await responseText(plan, period, 'urn:plan:1', 'approved plan');

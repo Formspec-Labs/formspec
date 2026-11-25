@@ -1481,6 +1481,42 @@ function createFilingStore(
         return { status: 'unavailable' };
       }
     },
+    async initializeRevision(suppliedKey, definitionVersion, { receiptRef, responseHash }, signal) {
+      try {
+        signal?.throwIfAborted();
+        const key = structuredClone(suppliedKey);
+        if (!await authorized(key, 'resume') || !await authorized(key, 'read')) return { status: 'denied' };
+        const definition = definitions.get(key.definitionUrl);
+        if (!definition || definition.version !== definitionVersion ||
+          !Object.values(definition.subject?.keys ?? {}).some(field => field.minted)) return { status: 'conflict' };
+        const { tools, filings, decisions } = await settledReady();
+        const subject = key.subject;
+        if (!subject || tools.subjectId(subject.type, subject.keys) !== subject.id) return { status: 'conflict' };
+        const { pins, missingPin } = await openingPins(key, definition);
+        if (missingPin) return { status: 'unavailable' };
+        const id = storageKey(key);
+        signal?.throwIfAborted();
+        const result = await transaction(['editable', 'filings', 'summaries'], 'readwrite', async tx => {
+          const [existing, stored] = await Promise.all([tx.get('editable', id), tx.list('filings', scope)]);
+          signal?.throwIfAborted();
+          if (existing) return { status: 'conflict' } as const;
+          const candidates = [...stored.map(({ value }) => value), ...filings].filter(record => sameKey(record.key, key));
+          const head = selectFilingStatus(key, definition, candidates, decisions, tools);
+          if ((head.status !== 'returned' && head.status !== 'reopened') ||
+            head.receiptRef !== receiptRef || head.responseHash !== responseHash) return { status: 'conflict' } as const;
+          const filed = candidates.find(record => record.responseId === head.receiptRef && record.responseHash === head.responseHash);
+          if (filed?.definitionVersion !== definitionVersion || !deepEqual(filed.key.subject, subject)) return { status: 'conflict' } as const;
+          tx.put('editable', id, { definitionVersion, revision: crypto.randomUUID(), pinsJson: JSON.stringify(pins), subject });
+          tx.put('summaries', id, { definitionVersion, plans: null, subject });
+          return { status: 'initialized' } as const;
+        });
+        if (result.status === 'initialized') committed();
+        return result;
+      } catch {
+        signal?.throwIfAborted();
+        return { status: 'unavailable' };
+      }
+    },
     async load(key, definitionVersion, signal) {
       try {
         signal?.throwIfAborted();

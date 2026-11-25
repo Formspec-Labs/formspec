@@ -221,12 +221,23 @@ export function createDraftSession(
                   filingObservation.status === 'filed'
                   || filingObservation.status === 'accepted'
                   || filingObservation.status === 'closed-without-acceptance';
+                const canInitializeRevision = isMinted && !!browserPort?.initializeRevision
+                  && loadedFiling?.definitionVersion === definition.version
+                  && (filingObservation.status === 'returned' || filingObservation.status === 'reopened');
+                if (canInitializeRevision && browserPort?.initializeRevision
+                  && options?.allowReviseFiled && previous?.status === 'filed') {
+                  const result = await browserPort.initializeRevision(key, definition.version, previous.filing, lifetime.signal);
+                  if (result.status !== 'initialized') {
+                    return publish({ status: result.status === 'denied' ? 'denied' : 'unavailable' });
+                  }
+                  continue;
+                }
                 if (isMinted || (terminalStatus && !options?.allowReviseFiled)) {
                   return publish({
                     status: 'filed',
                     filing: filingObservation,
                     response: filedResponse,
-                    canRevise: !isMinted && filingObservation.status !== 'closed-without-acceptance',
+                    canRevise: canInitializeRevision || (!isMinted && filingObservation.status !== 'closed-without-acceptance'),
                   });
                 }
               } else if (isMinted) {

@@ -261,9 +261,14 @@ export interface DraftPort {
   readSummaries: FilingStatusReader;
 }
 
-/** Browser preview can discard an authorized mismatched revision on confirmation. */
+/** Browser preview operations beyond normal draft reads and saves. */
 export interface BrowserDraftPort extends DraftPort {
   start(input: DraftStartInput): Promise<DraftStartResult>;
+  /** Initialize an editable draft at an issued key, fenced by the returned filing shown to the editor. */
+  initializeRevision?(
+    key: DraftKey, definitionVersion: string, filing: { receiptRef: string; responseHash: Sha256Digest },
+    signal?: AbortSignal,
+  ): Promise<{ status: 'initialized' } | DraftWriteRefusal>;
   restart(key: DraftKey, expectedRevision: string): Promise<DraftRestartResult>;
   subscribe(listener: () => void): () => void;
 }
