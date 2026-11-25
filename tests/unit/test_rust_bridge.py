@@ -80,8 +80,8 @@ def test_evaluate_definition_preserves_response_subject_keys():
 
 
 def test_formspec_rust_exports_expected_contract():
-    # Version 2 requires the receiving Definition and binding for projection checks.
-    assert getattr(formspec_rust, "PY_API_VERSION", None) == 2
+    # Version 3 adds typed/escaped FEL instance-read paths, structured extract_deps, and definition_instance_reads.
+    assert getattr(formspec_rust, "PY_API_VERSION", None) == 3
 
     signature = inspect.signature(formspec_rust.evaluate_def)
     assert list(signature.parameters.keys()) == [

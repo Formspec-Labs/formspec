@@ -279,6 +279,10 @@ const deps = getFELDependencies("countWhere(@instance('catalog').rows, $.open = 
 deps.fields;        // ['wanted']
 deps.instanceReads; // { catalog: ['rows', 'rows[*].open'] }
 
+// Literal object keys containing brackets, dots, or quotes are JSON-quoted inside `[...]`
+// so `instance('source', 'rows[1].code')` (`["rows[1]"].code`) never aliases
+// `@instance('source').rows[1].code` (`rows[1].code`).
+
 // After initFormspecEngineTools(), include creation-time seedFrom and prePopulate:
 const reads = getDefinitionInstanceReads(definition);
 ```

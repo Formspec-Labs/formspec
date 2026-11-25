@@ -116,26 +116,14 @@ When false, inherit master-table submit semantics (`block-on-error`).
 
 #### interface `EvalDiagnostic`
 
-Author-facing FEL error from a calculate, bind constraint or shape expression (Rust `EvalDiagnostic`); never
-shown to respondents. Evaluation errors (Core §3.10.2) yield null; an undefined function (§3.10.1) also fails.
+Author-facing diagnostic from Response creation or FEL evaluation.
 
 - **path** (`string`): Resolved instance path of the bind or shape target (`#` for form-level shapes).
 - **code** (`string`): FEL diagnostic code, such as `FEL_AMBIGUOUS_ROW_LOOKUP`, when the error has one.
 
 #### interface `EvalResult`
 
-- **values**: `Record<string, unknown>`
-- **data**: `Record<string, unknown>`
-- **validations**: `EvalValidation[]`
-- **diagnostics**: `EvalDiagnostic[]`
-- **nonRelevant**: `string[]`
-- **variables**: `Record<string, unknown>`
-- **scopedVariables?**: `Record<string, Record<string, unknown>>`
-- **preservedValues?**: `Record<string, unknown>`
-- **filingOnlyPaths?**: `string[]`
-- **repeatCounts?**: `Record<string, number>`
-- **required**: `Record<string, boolean>`
-- **readonly**: `Record<string, boolean>`
+- **invalidPaths** (`string[]`): Paths that `valid()` reads as invalid in the settled evaluation (Core §3.5.9).
 
 #### interface `EvalDelta`
 
@@ -237,17 +225,40 @@ Appends a row and returns its index; `undefined` when the path is not repeatable
 
 ##### `removeRepeatInstance(itemName: string, index: number): void`
 
-##### `loadResponseData(data: JsonRecord): void`
+##### `loadResponseData(data: JsonRecord, explanations?: DraftExplanation[]): void`
 
 Resume saved Response data with its exact row counts and answered fields.
 
 ##### `getDraftSnapshot(): FormDraftSnapshot`
 
-##### `loadDraftSnapshot(snapshot: FormDraftSnapshot): void`
+##### `loadDraftSnapshot(snapshot: FormDraftSnapshot, explanations?: Explanation[]): void`
+
+##### `getExplanationEntries(): DraftExplanation[]`
+
+##### `getExplanationState(): ExplanationState`
+
+##### `setExplanation(shapeId: string, path: string, answer: {
+        text?: string;
+    }): void`
+
+##### `acknowledge(code: string, options?: {
+        expectedBasis?: string;
+    }): boolean`
+
+##### `removeExplanation(key: ExplanationKey): void`
+
+##### `acceptSavedExplanations(entries: Explanation[], options?: {
+        mergeMissing?: boolean;
+        base?: readonly DraftExplanation[];
+    }): void`
 
 ##### `compileExpression(expression: string, currentItemName?: string): () => FormFieldValue`
 
 ##### `setValue(name: string, value: FormFieldValue, options?: SetValueOptions): void`
+
+##### `hasSubjectRefusal(): boolean`
+
+Whether the evaluator refused the supplied Response subject.
 
 ##### `getValidationReport(): ValidationReport`
 
@@ -285,6 +296,17 @@ Read the current field flags and the requested validation profile, which default
     }`
 
 Capture response data and its requested validation report with one clock.
+
+##### `captureSubmitSnapshot(meta?: Parameters<IFormEngine['getResponse']>[0]): {
+        snapshot: {
+            response: FormResponse;
+            validationReport: ValidationReport | null;
+        };
+        pendingExplanationStamps: boolean;
+    }`
+
+Evaluate Submit once at the current clock and either emit the assembled candidate or return
+an in-progress snapshot with `pendingExplanationStamps: true` when selected explanations lack stamps.
 
 ##### `getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot`
 
@@ -365,9 +387,9 @@ supplied literals (`$label`, `$index`, ...), not form-scope FEL.
 
 ## `resolveOptionSetsOnDefinition(definition: FormDefinition): FormDefinition`
 
-## `validateVariableDefinitionCycles(variableDefs: FormVariable[], resolveScope: (scope?: string) => string): void`
+## `registerDraftEditVersionSignal(engine: object, signal: ReadonlyEngineSignal<number>): void`
 
-## `validateCalculateBindCycles(bindConfigs: Record<string, EngineBindConfig>): void`
+## `getDraftEditVersionSignal(engine: object): ReadonlyEngineSignal<number> | undefined`
 
 ## `captureDraftData(items: FormItem[], fieldValue: (path: string) => JsonValue | undefined, repeatCount: (path: string) => number | undefined): JsonRecord`
 
@@ -462,10 +484,6 @@ Paths stay resolved instance paths with 0-based indexes (Core §4.3.3), exactly 
 
 ## `isEmptyValue(value: unknown): boolean`
 
-## `extractInlineBind(item: FormItem, path: string): EngineBindConfig | null`
-
-## `detectNamedCycle(graph: Map<string, Set<string>>, message: string): void`
-
 ## `topoSortKeys(nodes: T[], graph: Map<string, Set<string>>): T[]`
 
 ## `snapshotSignals(signals: Record<string, EngineSignal<FormFieldValue>>): JsonRecord`
@@ -494,8 +512,6 @@ instance, not to a wildcard collecting all instances.
 
 For nested repeats (e.g., orders[0].items[0].line_total), $items.qty resolves to the
 innermost sibling, and $orders.discount_pct resolves to the enclosing group's concrete path.
-
-## `resolveRelativeDependency(dep: string, parentPath: string, selfPath: string): string | null`
 
 #### type `EngineBindConfig`
 
@@ -533,9 +549,10 @@ Copy an acyclic JSON tree without invoking accessors or accepting non-JSON objec
     values: Record<string, unknown>;
     signals: Record<string, EngineSignal<any>>;
     data: Record<string, any>;
-    bindConfigs: Record<string, EngineBindConfig>;
-    calculatedFields: Set<string>;
-}): void`
+    bindAt: (path: string, basePath: string) => EngineBindConfig | undefined;
+    isCalculated: (path: string, basePath: string) => boolean;
+    refused: boolean;
+}): boolean`
 
 ## `patchDeltaSignalsFromWasm(rx: EngineReactiveRuntime, delta: EvalDelta, options: {
     relevantSignals: Record<string, EngineSignal<boolean>>;
@@ -640,7 +657,7 @@ Keep findings visible in the report produced for evaluated response data.
 
 ## `collectTimedShapeValidationResults(evalResult: EvalResult, shapeTiming: Map<string, EvalShapeTiming>, timing: EvalShapeTiming): ValidationResult[]`
 
-Definition errors precede Shape timing. Keep them in every enabled report.
+Keep refusals alongside findings for the requested Shape timing.
 
 ## `buildValidationReportEnvelope(results: ValidationResult[], timestamp: string, definitionUrl?: string, definitionVersion?: string): ValidationReport`
 
@@ -652,23 +669,96 @@ Compute counts and wrap the evaluator's results in the spec report.
 
 ## `resolvePinnedDefinition(response: PinnedResponseReference, definitions: T[]): T`
 
+## `isStamped(entry: DraftExplanation): entry is Explanation`
+
+## `stripExplanationStamp(entry: DraftExplanation): DraftExplanation`
+
+## `matchesEntry(entry: DraftExplanation, key: ExplanationKey): boolean`
+
+## `sameAnswer(entry: DraftExplanation, other: DraftExplanation): boolean`
+
+## `warningReview(resultFacts: EvalResult, entries: DraftExplanation[]): {
+    findings: ExplanationFinding[];
+    groups: {
+        code: string;
+        basis: string;
+        shapeIds: string[];
+        paths: string[];
+        current: boolean;
+        added: string[];
+        removed: string[];
+    }[];
+    instances: {
+        current: boolean;
+        text: string | undefined;
+        message: string;
+        shapeId: string;
+        path: string;
+        code: string;
+        inputs: Record<string, string>;
+        mode: "confirm" | "explain";
+        basis: string;
+    }[];
+    entries: DraftExplanation[];
+    candidateEntries: DraftExplanation[];
+    pendingStamps: boolean;
+}`
+
+#### type `Pending`
+
+```ts
+type Pending = Omit<T, 'author' | 'recorded'> & {
+    author?: never;
+    recorded?: never;
+};
+```
+
+#### type `DraftExplanation`
+
+A new answer acquires its author and timestamp when the server saves the draft.
+
+```ts
+type DraftExplanation = Explanation | Pending<InstanceExplanation> | Pending<GroupedAcknowledgement>;
+```
+
+#### type `ExplanationKey`
+
+```ts
+type ExplanationKey = {
+    shapeId: string;
+    path: string;
+} | {
+    code: string;
+    partyRef?: string;
+};
+```
+
+#### type `ExplanationFinding`
+
+#### type `ExplanationState`
+
+```ts
+type ExplanationState = ReturnType<typeof warningReview>;
+```
+
 ## `wasmEvaluateDefinitionPayload(options: {
     nowIso: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
-    previousResult: EvalResult | null;
+    previousResult: Pick<EvalResult, 'nonRelevant'> | null;
     instances: Record<string, unknown>;
     registryDocuments: unknown[];
     subjectType?: string | null;
     subjectKeys?: ResponseSubjectKeys;
+    explanations?: DraftExplanation[];
 }): {
     nowIso: string;
     trigger?: 'continuous' | 'submit' | 'demand' | 'disabled';
-    previousValidations: WasmPreviousValidation | undefined;
     previousNonRelevant: string[] | undefined;
     instances: Record<string, unknown>;
     registryDocuments: unknown[];
     subjectType?: string | null;
     subjectKeys?: ResponseSubjectKeys;
+    explanations?: DraftExplanation[];
 }`
 
 Options object consumed by the WASM definition evaluator (JSON-serialized internally).
@@ -678,23 +768,6 @@ Options object consumed by the WASM definition evaluator (JSON-serialized intern
 }): EvalResult`
 
 Append engine-owned validations (e.g. extension hooks) after WASM batch evaluation.
-
-#### type `WasmPreviousValidation`
-
-Subset of validation objects passed back into WASM as previous state.
-
-```ts
-type WasmPreviousValidation = Array<{
-    path: string;
-    severity: string;
-    constraintKind: string;
-    code: string;
-    message: string;
-    source?: string;
-    shapeId?: string;
-    context?: Record<string, unknown>;
-}>;
-```
 
 #### type `EvalShapeTiming`
 
@@ -790,11 +863,11 @@ Split a dotted path into normalized (index-free) segments.
 
 Find the mutable parent/index/item triple for a dotted tree path.
 
-## `getFELDependencies(expression: string): string[]`
-
 ## `normalizeIndexedPath: typeof wasmNormalizeIndexedPath`
 
 ## `itemAtPath: typeof wasmItemAtPath`
+
+## `getFELDependencies: typeof wasmGetFelDependencies`
 
 ## `evalFELWithTrace: typeof wasmEvalFelWithTrace`
 
@@ -984,6 +1057,10 @@ Runtime-first flows do not need this.
 
 Whether the tools WASM module has completed initialization.
 
+## `loadProjectionLinter(): Promise<typeof wasmLintDocument>`
+
+Load the native document linter for hosts performing bundle admission.
+
 #### interface `FELBuiltinFunctionCatalogEntry`
 
 - **name**: `string`
@@ -1143,9 +1220,13 @@ Options for [`FormEngine`](./engine/FormEngine.ts) construction and [`createForm
 - **responseData** (`JsonRecord`): Host prefill for a new Response. Present values win over creation defaults.
 - **savedResponseData** (`JsonRecord`): Resume saved Response data without applying creation defaults.
 - **draftSnapshot** (`FormDraftSnapshot`): Resume an editable snapshot with a Definition pin. Supply only one data input.
-- **responseSubject** (`Omit<NonNullable<FormResponse['subject']>, 'keys'> & {
+- **savedExplanations** (`Explanation[]`): Warning entries from the saved Response paired with these answers.
+- **responseSubject** (`Partial<Omit<NonNullable<FormResponse['subject']>, 'keys'>> & {
         keys?: ResponseSubjectKeys;
-    }`): Host-supplied Response identity, available to FEL from the first evaluation.
+    }`): Host-supplied Response identity, available to FEL from the first evaluation. For a subject-declaring
+Definition the engine derives `id` once from the validated `type` and `keys` and ignores a supplied
+`id`; while the subject is refused (`hasSubjectRefusal()`), Response reads throw and the report keeps the
+typed finding. Otherwise `id` is required and names the host entity.
 - **responseInstanceResolutions** (`Readonly<Record<string, ResponseSelectionDelivery>>`): Available, host-qualified deliveries of Definition Response instances, keyed by instance name.
 
 #### interface `FormDraftSnapshot`
@@ -1155,6 +1236,7 @@ Editable data pinned to a Definition, including hidden answers and exact repeat 
 - **definitionUrl**: `string`
 - **definitionVersion**: `string`
 - **data**: `JsonRecord`
+- **explanations?**: `DraftExplanation[]`
 
 #### interface `RegistryEntry`
 
@@ -1311,17 +1393,44 @@ Appends a row; `undefined` when not repeatable or already at `maxRepeat`.
 
 ##### `removeRepeatInstance(itemName: string, index: number): void`
 
-##### `loadResponseData(data: JsonRecord): void`
+##### `loadResponseData(data: JsonRecord, explanations?: Explanation[]): void`
 
 Resumes saved Response `data`, replacing the current data without creation or repeat padding.
 
-##### `loadDraftSnapshot(snapshot: FormDraftSnapshot): void`
+##### `loadDraftSnapshot(snapshot: FormDraftSnapshot, explanations?: Explanation[]): void`
 
 Restores editable data from a draft pinned to this Definition.
 
 ##### `getDraftSnapshot(): FormDraftSnapshot`
 
 Captures editable data without evaluation. Use exact JSON for persistence.
+
+##### `getExplanationEntries(): DraftExplanation[]`
+
+Read editing state, including pending answers without server stamps.
+
+##### `getExplanationState(): ExplanationState`
+
+Review warning firings evaluated against the Submit data.
+
+##### `setExplanation(shapeId: string, path: string, answer: {
+        text?: string;
+    }): void`
+
+##### `acknowledge(code: string, options?: {
+        expectedBasis?: string;
+    }): boolean`
+
+Record a grouped blank-answer acknowledgement for `code`. When `expectedBasis` is given, returns `false` without mutating if a fresh Submit evaluation no longer matches that basis.
+
+##### `removeExplanation(key: ExplanationKey): void`
+
+##### `acceptSavedExplanations(entries: Explanation[], options?: {
+        mergeMissing?: boolean;
+        base?: readonly DraftExplanation[];
+    }): void`
+
+Apply server stamps to matching edits after an acknowledged draft save, optionally 3-way merging against a reviewed `base`.
 
 ##### `compileExpression(expression: string, currentItemName?: string): () => FormFieldValue`
 
@@ -1379,6 +1488,18 @@ Returns data for the Response profile. Throws if on-submit data do not converge.
 
 Capture data for the Response profile and a report for the validation profile with one clock.
 Throws if on-submit data do not converge.
+
+##### `captureSubmitSnapshot(meta?: Parameters<IFormEngine['getResponse']>[0]): {
+        snapshot: {
+            response: FormResponse;
+            validationReport: ValidationReport | null;
+        };
+        pendingExplanationStamps: boolean;
+    }`
+
+Evaluate Submit once at the current clock and return either the assembled completed candidate
+or an in-progress draft snapshot when selected candidate explanations still need server stamps.
+Preserves unsigned-candidate guards and refreshes visible warning state on pending stamps.
 
 ##### `getDiagnosticsSnapshot(options?: ValidationReportOptions): FormEngineDiagnosticsSnapshot`
 
@@ -1454,7 +1575,7 @@ No FEL interpolation — for chrome strings (Locale §3.1.10 `$ui.<ChromeStringK
 ##### `registerExtensionFunction(name: string, registration: import('./extension-functions.js').FelExtensionFunctionRegistration): void`
 
 Register a FEL extension function (Core §3.12) and re-evaluate. Throws for a FEL built-in or
-reserved word. Unregistered calls stay definition errors (`CONSTRAINT_PARSE_ERROR` on binds).
+reserved word. Unregistered calls produce the Definition finding `UNDEFINED_FUNCTION`.
 
 ##### `migrateResponse(responseData: JsonRecord, fromVersion: string): JsonRecord`
 
@@ -2081,6 +2202,74 @@ can be authorized as one fail-closed decision.
 
 ## `findResponseActionByIntent(document: ResponseActionsDocumentInput | null | undefined, intent: string): ResponseAction | null`
 
+## `isValidResponseActionIntent(intent: unknown): intent is ResponseAction['intent']`
+
+Whether `intent` conforms to `schemas/response-actions.schema.json` `#/$defs/ActionIntent`:
+either a closed standard Validation Mapping intent or an `x-` publisher extension that
+does not shadow a standard intent.
+
+## `isValidDefinitionResponseActionsDocument(document: unknown, definition: {
+    url?: unknown;
+    version?: unknown;
+}): document is ResponseActionsDocument`
+
+Fail-closed schema-faithful validator for a Definition-scoped Response Actions
+document (`schemas/response-actions.schema.json`). Shared by renderer
+auto-placement, Surface slot-supply planning, and automatic `autosave`
+selection so every consumer agrees on whether a document is valid.
+
+## `isBackgroundResponseAction(action: {
+    intent?: unknown;
+} | null | undefined): boolean`
+
+Whether a Response Action represents background/system-initiated behavior
+(`intent === 'autosave'` per Validation Mapping §2) rather than a manual
+respondent control. Renderers MUST NOT synthesize interactive ActionButtons
+for background actions even when they carry a label.
+
+## `autoPlacedDefinitionActions(document: ResponseActionsDocumentInput | null | undefined, definition: {
+    url?: unknown;
+    version?: unknown;
+}): readonly ResponseAction[]`
+
+Select manual response-scoped Actions that a Definition auto-renderer can
+place without inventing a control label. The document itself must be a
+matching, response-scoped document with unique, structurally usable actions;
+one bad action closes the whole auto-placement seam. Background intents
+(`autosave`) are excluded from synthesized manual buttons.
+
+## `resolveAutosaveResponseAction(document: ResponseActionsDocumentInput | null | undefined, definition?: {
+    url?: unknown;
+    version?: unknown;
+} | null): AutosaveActionResolution`
+
+Resolve the single unambiguous draft-checkpoint `autosave` Action for a
+Definition from a complete, schema-valid response-scoped Response Actions
+document. Because `actions[]` order is documentation-only, multiple eligible
+`autosave` Actions fail closed and return an `ambiguous-autosave-action`
+finding independent of array order.
+
+## `findAutosaveResponseAction(document: ResponseActionsDocumentInput | null | undefined, definition?: {
+    url?: unknown;
+    version?: unknown;
+} | null): ResponseAction | null`
+
+Resolve the valid draft-checkpoint `autosave` Action for a Definition, if
+exactly one is published unambiguously in a valid matching response-scoped document.
+
+## `createResponseActionAutosaveController(options: ResponseActionAutosaveOptions): ResponseActionAutosaveController`
+
+Create a per-engine `autosave` controller that preserves unsaved dirty edits
+across `responseActionsDocument` replacements (equivalent re-parsed objects,
+ambiguity corrections `2 -> 1`, and ambiguity cancellations `1 -> 2`).
+
+## `subscribeResponseActionAutosave(options: ResponseActionAutosaveOptions): () => void`
+
+Subscribe to `FormEngine` draft changes after mount and invoke the declared
+`autosave` Response Action with debounce (`400ms` default) and single-flight
+coalescing. Returns a cleanup function that cancels pending timers and
+detaches the reactive subscription.
+
 ## `resolveResponseActionValidationTuple(action: ResponseAction): ValidationOverride`
 
 ## `validationProfileForAction(action: ResponseAction): ValidationProfile`
@@ -2110,7 +2299,13 @@ invariant with subtly different defaults.
 - **kind**: `'actionRef'`
 - **nodeId?**: `string`
 - **target**: `string`
-- **reason?**: `'missing-actionRef' | 'no-response-actions-document' | 'missing-submit-action' | 'ambiguous-actionRef'`
+- **reason?**: `'missing-actionRef' | 'no-response-actions-document' | 'missing-submit-action' | 'ambiguous-actionRef' | 'ambiguous-autosave-action'`
+
+#### interface `AutosaveActionResolution`
+
+- **action**: `ResponseAction | null`
+- **ambiguousActionIds?**: `readonly string[]`
+- **finding?**: `ActionRefFinding`
 
 #### interface `ActionResolution`
 
@@ -2240,6 +2435,33 @@ declared effect. Reference runtime emits in this order:
 - **resolution**: `ActionResolution`
 - **effects**: `readonly PlannedResponseActionEffect[]`
 
+#### interface `ResponseActionAutosaveInvokeContext`
+
+- **document**: `ResponseActionsDocumentInput | null | undefined`
+- **isCurrent**: `() => boolean`
+
+#### interface `ResponseActionAutosaveDocumentChange`
+
+- **previousAction**: `ResponseAction | null`
+- **nextAction**: `ResponseAction | null`
+- **equivalentAction**: `boolean`
+
+#### interface `ResponseActionAutosaveOptions`
+
+- **engine**: `Pick<IFormEngine, 'getDraftSnapshot' | 'getEvaluatedFormState'> & Partial<Pick<IFormEngine, 'getDefinition'>>`
+- **document**: `ResponseActionsDocumentInput | null | undefined`
+- **debounceMs?**: `number | undefined`
+- **onFinding?**: `((finding: ActionRefFinding) => void) | undefined`
+- **onDocumentChange?**: `((change: ResponseActionAutosaveDocumentChange) => void) | undefined`
+- **onEdit?**: `(() => void) | undefined`
+- **invoke**: `(action: ResponseAction, context: ResponseActionAutosaveInvokeContext) => unknown | Promise<unknown>`
+
+#### interface `ResponseActionAutosaveController`
+
+##### `setDocument(document: ResponseActionsDocumentInput | null | undefined): void`
+
+##### `dispose(): void`
+
 #### type `StandardResponseActionIntent`
 
 ```ts
@@ -2348,6 +2570,12 @@ type ScreenerLocaleAdmission = {
 };
 ```
 
+## `isPlainJsonObject(value: unknown): value is Record<string, unknown>`
+
+## `isPlainJsonArray(value: unknown): value is unknown[]`
+
+## `isValidPlainJsonValue(value: unknown, seen?: Set<object>): boolean`
+
 ## `resolveRuntimeValueSelector(selector: RuntimeValueSelector, sources: ServiceRequestSources): JsonValue`
 
 Resolve one closed runtime selector without evaluating code or inherited properties.
@@ -2407,6 +2635,13 @@ The host supplies its maintained common.schema.json SigningContent validator.
 ```ts
 type SigningContentValidator = (value: unknown) => boolean;
 ```
+
+## `createDefinitionLocaleLookup(definition: FormDefinition, documents: readonly LocaleDocument[]): {
+    locales: string[];
+    lookup: (locale: string, key: string) => string | null;
+}`
+
+Look up authored strings without evaluating answers, using the runtime Locale cascade.
 
 ## `createStaticResponseMetadataReader(input: StaticResponseMetadataInput): {
     label(path: string): string;
@@ -2557,9 +2792,7 @@ Apply `migrations` on a definition to flat response data (FEL transforms in Rust
 
 Coerce an inbound field value (whitespace, numeric strings, money, precision).
 
-## `wasmGetFelDependencies(expression: string): string[]`
-
-Extract field path dependencies from a FEL expression. Returns an array of path strings.
+## `wasmGetFelDependencies(expression: string): FELDependencies`
 
 ## `wasmNormalizeIndexedPath(path: string): string`
 
@@ -2577,9 +2810,16 @@ Resolve an item in a nested item tree by dotted path.
 
 Resolve an item's parent path, index, and value in a nested item tree.
 
-## `wasmAssembleCandidate(definition: FormDefinition, response: FormResponse, resolution: Readonly<Record<string, ResponseSelectionDelivery>>): FormResponse`
+## `wasmAssembleCandidate(definition: FormDefinition, response: FormResponse, resolution: Readonly<Record<string, ResponseSelectionDelivery>>, evaluation?: {
+    candidateExplanations?: import('./engine/warning-explanations.js').DraftExplanation[];
+} | null): FormResponse`
 
-Assemble the Response instance evidence before the candidate is signed.
+Assemble the Response instance and explanation evidence before the candidate is signed.
+
+## `wasmResponseSubjectId(subjectType: string, keys: import('./interfaces.js').ResponseSubjectKeys): string`
+
+Derive Core's filing-unit id (`Response.subject.id`) from a subject type and exact typed keys.
+Throws for untyped keys or an integer outside the I-JSON range.
 
 ## `wasmCreateResponse(definition: unknown, data: Record<string, unknown>, context?: WasmCreateOptions, extensions?: FelExtensionHost): WasmCreation`
 
@@ -2669,6 +2909,13 @@ Interpolation result from Rust: resolved text plus one warning per expression le
         message: string;
     }>`
 
+#### interface `FELDependencies`
+
+Static FEL reads from Rust, with paths relative to each named instance.
+
+- **instanceReads** (`Record<string, string[]>`): Known instance names and their sorted paths, with an empty path for a whole-instance read.
+- **selfReads** (`string[]`): Paths relative to the current field, with an empty path for the field itself.
+
 #### interface `WasmCreateOptions`
 
 Sources and Response context available during creation.
@@ -2682,9 +2929,12 @@ Sources and Response context available during creation.
 
 #### interface `WasmCreation`
 
+- **refused**: `boolean`
 - **data**: `import('./interfaces.js').JsonRecord`
 - **pending**: `string[]`
-- **diagnostics**: `string[]`
+- **diagnostics**: `Array<import('./diff.js').EvalDiagnostic & {
+        code: string;
+    }>`
 
 #### type `WasmFelAnalysisResultJson`
 
@@ -2742,6 +2992,10 @@ Vitest/vite-node can rewrite `import.meta.url` to a non-`file:` URL; fall back t
 
 ## `nodeModuleModuleName`
 
+## `getDefinitionInstanceReads(definition: unknown): Record<string, string[]>`
+
+Return each instance's sorted paths across FEL and creation-time declarations.
+
 ## `isWasmToolsReady(): boolean`
 
 Whether the tools WASM module has been initialized and is ready for use.
@@ -2764,9 +3018,17 @@ Exported for unit tests; `initWasmTools` uses this after loading the tools modul
 
 @internal Reset import counter (use only in isolated test processes).
 
-## `responseSubjectId(subjectType: string, keys: NonNullable<NonNullable<FormResponse['subject']>['keys']>): string`
+## `parseVerifiedJsonObject(text: string): {
+    value: Record<string, unknown>;
+    token: object;
+}`
 
-Calculate a filing-unit id from the declared type and exact typed keys.
+Parse exact JSON once and return an unforgeable token proving the text is
+one complete JSON object so `selectResponses` can embed it without re-parsing.
+
+## `attachVerifiedJsonToken(record: ResponseSelectionRecord, token: object): ResponseSelectionRecord`
+
+Associate a previously verified JSON object token with a shallow copy of a selection record.
 
 ## `isValidResponseAuthored(authored: string): boolean`
 
@@ -2785,15 +3047,7 @@ Parse a FEL expression and return whether it's valid.
 
 Tokenize a FEL expression and return positioned token records.
 
-## `wasmExtractDependencies(expression: string): {
-    fields: string[];
-    contextRefs: string[];
-    instanceRefs: string[];
-    mipDeps: string[];
-    hasSelfRef: boolean;
-    hasWildcard: boolean;
-    usesPrevNext: boolean;
-}`
+## `wasmExtractDependencies(expression: string): FELDependencies`
 
 Extract full dependency info from a FEL expression.
 
@@ -2850,7 +3104,25 @@ Execute a mapping transform.
 
 Execute a full mapping document (rules + defaults + autoMap).
 
-## `checkInstanceProjection(source: unknown, consumerSubject: unknown, upstreamDefinitions: readonly unknown[]): InstanceProjectionDiagnostic[]`
+## `analyzeExpressionInDefinition(definition: unknown, expression: string, registryDocuments: readonly unknown[], target?: string, mapping?: boolean): {
+    errors: import("./interfaces.js").FELAnalysisError[];
+    valid: boolean;
+    warnings: string[];
+    references: string[];
+    variables: string[];
+    functions: string[];
+    findings: Array<{
+        name: string;
+        code: string;
+        severity: "error" | "warning";
+        message: string;
+        variableHint: boolean;
+    }>;
+}`
+
+Analyze an expression with the same Definition declarations used by document lint.
+
+## `checkInstanceProjection(source: unknown, projectionConsumer: ProjectionConsumer | null, upstreamDefinitions: readonly unknown[]): InstanceProjectionDiagnostic[]`
 
 Check an instance or catalog source against every eligible upstream Definition.
 
@@ -3004,7 +3276,7 @@ Set `context.upstreamSubject` to null when the upstream Definition has no subjec
     }`): Host input for a Definition-associated Mapping. Requires the paired Definition.
 - **screenerDocument** (`unknown`): Exact paired freestanding Screener for Locale 2.1 item and target checks.
 - **upstreamDefinitions** (`readonly unknown[]`): For an AppGraph projection check, pass all loaded Definitions for the selected URL.
-- **consumerSubject** (`unknown`): Subject declaration of the consuming Definition, or null when there is none.
+- **projectionConsumer** (`ProjectionConsumer | null`): The consuming form and how it receives data, or null for a widget.
 
 #### interface `InstanceProjectionDiagnostic`
 
@@ -3026,5 +3298,21 @@ One thing the JSON-LD context derivation could not honor (Ontology spec §6.2).
 
 ```ts
 type WasmToolsModule = typeof import('../wasm-pkg-tools/formspec_wasm_tools.js');
+```
+
+#### type `ProjectionConsumer`
+
+The receiving Definition and the authored binding for a response read.
+
+```ts
+type ProjectionConsumer = {
+    kind: 'instance';
+    name: string;
+    definition: unknown;
+} | {
+    kind: 'prefill';
+    mapped: boolean;
+    definition: unknown;
+};
 ```
 

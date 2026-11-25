@@ -93,12 +93,15 @@ class DependencySet:
 ```
 
 `extract_dependencies()` returns the same paths as the Rust and TypeScript APIs.
-`instance_reads` maps each statically named instance to its sorted paths. For
-`some(@instance('survey').rows, $.active)`, the paths are `rows` and
-`rows[*].active`. An empty path covers the whole instance, including a read
-whose path depends on runtime data. A computed instance name can only be
-resolved during evaluation. `self_reads` lists paths relative to the current
-field, with an empty path for the field itself.
+`instance_reads` maps each statically named instance to its sorted canonical paths.
+For `some(@instance('survey').rows, $.active)`, the paths are `rows` and
+`rows[*].active`. Literal property keys containing brackets, dots, quotes, or other
+non-identifier characters are JSON-quoted inside `[...]` (for example
+`instance('source', 'rows[1].code')` serializes as `["rows[1]"].code`, staying
+distinct from the array subscript `@instance('source').rows[1].code` -> `rows[1].code`).
+An empty path covers the whole instance, including a read whose path depends on runtime
+data. A computed instance name can only be resolved during evaluation. `self_reads`
+lists paths relative to the current field, with an empty path for the field itself.
 
 ---
 

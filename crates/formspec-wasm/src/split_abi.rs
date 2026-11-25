@@ -13,5 +13,6 @@ use wasm_bindgen::prelude::*;
 pub fn formspec_wasm_split_abi_version() -> String {
     // Magic: paired with formspec-engine bridge expectations; document bumps in ADR 0050.
     // Version 2 passes a receiving Definition and binding to the projection checker.
-    "2".to_string()
+    // Version 3 returns structured FEL dependencies with typed/escaped read paths and exposes definition instance reads.
+    "3".to_string()
 }

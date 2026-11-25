@@ -82,6 +82,28 @@ class TestDependencies:
         assert deps.fields == {"group"}
         assert deps.instance_reads == {"list": ["rows", "rows[*].group"]}
 
+    def test_inventory_distinguishes_object_keys_from_array_subscripts(self):
+        instances = {
+            "source": {
+                "rows": [{"code": "array-member"}],
+                "rows[1]": {"code": "literal-key"},
+                "rows[*]": {"code": "literal-star"},
+            }
+        }
+        literal = "instance('source', 'rows[1].code')"
+        indexed = "@instance('source').rows[1].code"
+        literal_star = "instance('source', 'rows[*].code')"
+        assert to_python(evaluate(literal, instances=instances).value) == "literal-key"
+        assert to_python(evaluate(indexed, instances=instances).value) == "array-member"
+        assert to_python(evaluate(literal_star, instances=instances).value) == "literal-star"
+        literal_reads = extract_dependencies(literal).instance_reads
+        indexed_reads = extract_dependencies(indexed).instance_reads
+        literal_star_reads = extract_dependencies(literal_star).instance_reads
+        assert literal_reads != indexed_reads
+        assert literal_reads == {"source": ['["rows[1]"].code']}
+        assert indexed_reads == {"source": ["rows[1].code"]}
+        assert literal_star_reads == {"source": ['["rows[*]"].code']}
+
     def test_self_ref(self):
         deps = extract_dependencies("$ > 0")
         assert deps.has_self_ref

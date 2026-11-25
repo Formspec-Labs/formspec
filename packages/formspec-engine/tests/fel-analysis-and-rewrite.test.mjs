@@ -38,6 +38,19 @@ test('row predicates keep instance paths separate from ambient fields', () => {
   assert.deepEqual(deps.instanceReads, { list: ['rows', 'rows[*].group'] });
 });
 
+test('literal instance keys stay distinct from array subscripts and wildcards (fs-xe4t)', () => {
+  const literalDeps = getFELDependencies("instance('source', 'rows[1].code')");
+  const indexedDeps = getFELDependencies("@instance('source').rows[1].code");
+  const literalStarDeps = getFELDependencies("instance('source', 'rows[*].code')");
+  const wildcardDeps = getFELDependencies("some(@instance('source').rows, $.code = 'a')");
+
+  assert.notDeepEqual(literalDeps.instanceReads, indexedDeps.instanceReads);
+  assert.deepEqual(literalDeps.instanceReads, { source: ['["rows[1]"].code'] });
+  assert.deepEqual(indexedDeps.instanceReads, { source: ['rows[1].code'] });
+  assert.notDeepEqual(literalStarDeps.instanceReads, wildcardDeps.instanceReads);
+  assert.deepEqual(literalStarDeps.instanceReads, { source: ['["rows[*]"].code'] });
+});
+
 test('rewriteFELReferences rewrites only parsed references', () => {
   const expression = "$old + concat('$old', \"@instance('oldInst')\") /* $old */";
   const result = rewriteFELReferences(expression, {

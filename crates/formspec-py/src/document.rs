@@ -47,7 +47,12 @@ pub fn definition_instance_reads(
         .map_err(pyo3::exceptions::PyValueError::new_err)?;
     Ok(reads
         .into_iter()
-        .map(|(name, paths)| (name, paths.into_iter().collect()))
+        .map(|(name, paths)| {
+            (
+                name,
+                paths.into_iter().map(|path| path.to_canonical_string()).collect(),
+            )
+        })
         .collect())
 }
 

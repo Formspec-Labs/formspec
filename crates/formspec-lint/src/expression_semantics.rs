@@ -2,7 +2,9 @@
 
 use std::collections::{BTreeSet, HashSet};
 
-use fel_core::{Dependencies, Expr, builtin_function_catalog, extract_dependencies};
+use fel_core::{
+    Dependencies, Expr, ReadPath, ReadPathSegment, builtin_function_catalog, extract_dependencies,
+};
 use formspec_core::fel_analysis::RESERVED_CONTEXT_NAMES;
 use formspec_core::path_utils::{Path, PathSegment};
 use formspec_core::repeat_references::resolve_head;
@@ -114,35 +116,39 @@ impl<'a> ExpressionSemantics<'a> {
         }
         if !scope.is_empty() {
             for read in &dependencies.self_reads {
-                if !self.item_members_exist(scope, &Path::parse(read).segments) {
-                    let separator = if read.starts_with('[') { "" } else { "." };
+                if read.is_empty() {
+                    continue;
+                }
+                if !self.item_members_exist(scope, read.segments(), false) {
+                    let rendered = read.to_canonical_string();
+                    let separator = if rendered.starts_with('[') { "" } else { "." };
                     emit(
-                        read,
+                        &rendered,
                         error(
                             LintCode::E402,
                             4,
                             path,
-                            format!("Unknown field reference ${separator}{read}"),
+                            format!("Unknown field reference ${separator}{rendered}"),
                         ),
                     );
                 }
             }
         }
         if let Some(row) = self.repeat_scope(scope) {
-            let reads: BTreeSet<_> = dependencies
-                .context_refs
-                .iter()
-                .filter_map(|reference| reference.strip_prefix("@current."))
-                .collect();
-            for read in reads {
-                if !self.item_members_exist(row, &Path::parse(read).segments) {
+            for read in &dependencies.current_reads {
+                if read.is_empty() {
+                    continue;
+                }
+                if !self.item_members_exist(row, read.segments(), true) {
+                    let rendered = read.to_canonical_string();
+                    let separator = if rendered.starts_with('[') { "" } else { "." };
                     emit(
-                        read,
+                        &rendered,
                         error(
                             LintCode::E402,
                             4,
                             path,
-                            format!("Unknown field reference @current.{read}"),
+                            format!("Unknown field reference @current{separator}{rendered}"),
                         ),
                     );
                 }
@@ -167,7 +173,8 @@ impl<'a> ExpressionSemantics<'a> {
         }
         for (name, reads) in &dependencies.instance_reads {
             if self.document["instances"].get(name).is_none() {
-                if let Some(finding) = self.instance_read_finding(name, "", path, false) {
+                let empty = ReadPath::default();
+                if let Some(finding) = self.instance_read_finding(name, &empty, path, false) {
                     emit(name, finding);
                 }
             } else {
@@ -194,8 +201,8 @@ impl<'a> ExpressionSemantics<'a> {
 
     /// Read a field by lexical scope, then follow only declared group members.
     fn field_exists(&self, scope: &str, field: &str) -> bool {
-        let parsed = Path::parse(field);
-        let Some((PathSegment::Exact(head), tail)) = parsed.segments.split_first() else {
+        let segments = parse_path_to_read_segments(field);
+        let Some((ReadPathSegment::Key(head), tail)) = segments.split_first() else {
             return false;
         };
         resolve_head(
@@ -208,11 +215,19 @@ impl<'a> ExpressionSemantics<'a> {
             scope,
             head,
         )
-        .is_some_and(|item| self.item_members_exist(&item, tail))
+        .is_some_and(|item| self.item_members_exist(&item, tail, false))
     }
 
     /// Follow group children, then inspect the declared field value when reached.
-    fn item_members_exist(&self, path: &str, members: &[PathSegment]) -> bool {
+    ///
+    /// When `row_selected` is true (reads rooted at `@current`), the starting repeatable group
+    /// is already dereferenced to a single row, so an immediate subscript on it is rejected.
+    fn item_members_exist(
+        &self,
+        path: &str,
+        members: &[ReadPathSegment],
+        mut row_selected: bool,
+    ) -> bool {
         let mut path = path.to_owned();
         let mut members = members;
         while let Some((next, tail)) = members.split_first() {
@@ -223,15 +238,17 @@ impl<'a> ExpressionSemantics<'a> {
                 return field_value_contains(data_type, members, false);
             }
             match next {
-                PathSegment::Exact(key) if item.is_group => {
+                ReadPathSegment::Key(key) if item.is_group => {
                     path.push('.');
                     path.push_str(key);
+                    row_selected = false;
                 }
-                PathSegment::Indexed(_) | PathSegment::Wildcard
+                ReadPathSegment::Index(_) | ReadPathSegment::Wildcard
                     if item.is_repeatable
+                        && !row_selected
                         && !matches!(
                             tail.first(),
-                            Some(PathSegment::Indexed(_) | PathSegment::Wildcard)
+                            Some(ReadPathSegment::Index(_) | ReadPathSegment::Wildcard)
                         ) => {}
                 _ => return false,
             }
@@ -269,7 +286,7 @@ impl<'a> ExpressionSemantics<'a> {
     pub(crate) fn check_instance_read(
         &self,
         name: &str,
-        read: &str,
+        read: &ReadPath,
         path: &str,
         diagnostics: &mut Vec<LintDiagnostic>,
     ) {
@@ -279,7 +296,7 @@ impl<'a> ExpressionSemantics<'a> {
     fn instance_read_finding(
         &self,
         name: &str,
-        read: &str,
+        read: &ReadPath,
         path: &str,
         raw_json: bool,
     ) -> Option<LintDiagnostic> {
@@ -299,32 +316,35 @@ impl<'a> ExpressionSemantics<'a> {
         if read.is_empty() || instance.pointer("/response/mapping").is_some() {
             return None;
         }
-        let normalized = Path::parse(read).to_wildcard_string();
+        let normalized = normalize_read_segments(read.segments());
         let column = if instance
             .pointer("/response/cardinality")
             .and_then(Value::as_str)
             == Some("latest-per-subject")
         {
-            normalized
-                .strip_prefix("[*]")
-                .map(|suffix| suffix.trim_start_matches('.'))
+            match normalized.split_first() {
+                Some((ReadPathSegment::Wildcard, tail)) => Some(tail),
+                _ => None,
+            }
         } else {
-            Some(normalized.as_str())
+            Some(normalized.as_slice())
         };
         if column.is_some_and(|column| {
             column.is_empty()
                 || schema.iter().any(|(declared, data_type)| {
-                    path_prefix(column, declared)
-                        || path_prefix(declared, column)
+                    let declared_segs = parse_schema_key_segments(declared);
+                    declared_segs.starts_with(column)
+                        || (column.starts_with(&declared_segs)
                             && data_type.as_str().is_some_and(|kind| {
-                                let members = Path::parse(&column[declared.len()..]);
-                                field_value_contains(kind, &members.segments, raw_json)
-                            })
+                                field_value_contains(kind, &column[declared_segs.len()..], raw_json)
+                            }))
                 })
         }) {
             return None;
         }
-        let message = format!("Path {read:?} on instance {name:?} is outside its declared schema");
+        let rendered = read.to_canonical_string();
+        let message =
+            format!("Path {rendered:?} on instance {name:?} is outside its declared schema");
         Some(if instance.get("response").is_some() {
             error(LintCode::E405, 4, path, message)
         } else {
@@ -334,26 +354,57 @@ impl<'a> ExpressionSemantics<'a> {
 }
 
 /// Core §4.2.3 defines the compound field values. Attachments permit extra host metadata.
-fn field_value_contains(data_type: &str, members: &[PathSegment], raw_json: bool) -> bool {
+pub(crate) fn field_value_contains(
+    data_type: &str,
+    members: &[ReadPathSegment],
+    raw_json: bool,
+) -> bool {
     if members.is_empty() {
         return true;
     }
     match (data_type, members) {
-        ("money", [PathSegment::Exact(key)]) if raw_json => {
+        ("money", [ReadPathSegment::Key(key)]) if raw_json => {
             matches!(key.as_str(), "amount" | "currency")
         }
-        ("multiChoice", [PathSegment::Indexed(_) | PathSegment::Wildcard]) => true,
-        ("attachment", [PathSegment::Exact(key), tail @ ..]) => {
+        ("multiChoice", [ReadPathSegment::Index(_) | ReadPathSegment::Wildcard]) => true,
+        ("attachment", [ReadPathSegment::Key(key), tail @ ..]) => {
             tail.is_empty() || !matches!(key.as_str(), "contentType" | "url" | "data" | "size")
         }
         _ => false,
     }
 }
 
-/// Test a path prefix only at member or subscript boundaries.
-fn path_prefix(prefix: &str, path: &str) -> bool {
-    path.strip_prefix(prefix)
-        .is_some_and(|tail| tail.is_empty() || tail.starts_with(['.', '[']))
+/// Collapse typed array subscripts to wildcards while keeping literal property keys intact.
+fn normalize_read_segments(segments: &[ReadPathSegment]) -> Vec<ReadPathSegment> {
+    segments
+        .iter()
+        .map(|seg| match seg {
+            ReadPathSegment::Key(key) => ReadPathSegment::Key(key.clone()),
+            ReadPathSegment::Index(_) | ReadPathSegment::Wildcard => ReadPathSegment::Wildcard,
+        })
+        .collect()
+}
+
+/// Parse a dotted or canonical path into typed segments (canonical bracket-quoted keys win).
+fn parse_path_to_read_segments(raw: &str) -> Vec<ReadPathSegment> {
+    if let Ok(parsed) = ReadPath::parse_canonical(raw) {
+        return parsed.into_segments();
+    }
+    Path::parse(raw)
+        .segments
+        .into_iter()
+        .map(|seg| match seg {
+            PathSegment::Exact(key) => ReadPathSegment::Key(key),
+            PathSegment::Indexed(i) => ReadPathSegment::Index(i),
+            PathSegment::Wildcard => ReadPathSegment::Wildcard,
+            PathSegment::Special(s) => ReadPathSegment::Key(format!("[{s}]")),
+        })
+        .collect()
+}
+
+/// Parse an instance `schema` key into wildcard-normalized typed segments.
+fn parse_schema_key_segments(declared: &str) -> Vec<ReadPathSegment> {
+    normalize_read_segments(&parse_path_to_read_segments(declared))
 }
 
 /// Check a draft expression against the same declarations as whole-Definition lint.

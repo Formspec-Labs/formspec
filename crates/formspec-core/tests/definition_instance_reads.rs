@@ -36,3 +36,47 @@ fn nested_seed_is_ignored_and_keeps_outer_row_scope() {
         json!({"one":["rows","rows[*].value"]})
     );
 }
+
+#[test]
+fn literal_instance_keys_stay_distinct_from_array_subscripts_in_definition_inventory() {
+    let definition = json!({
+        "instances": {"source": {"data": {}}},
+        "items": [
+            {"type": "field", "key": "literalKey", "dataType": "string",
+             "initialValue": "=instance('source', 'rows[1].code')"},
+            {"type": "field", "key": "arrayMember", "dataType": "string",
+             "initialValue": "=@instance('source').rows[1].code"}
+        ]
+    });
+    assert_eq!(
+        json!(definition_instance_reads(&definition).unwrap()),
+        json!({"source": ["[\"rows[1]\"].code", "rows[1].code"]})
+    );
+}
+
+#[test]
+fn seed_where_predicate_contributes_row_relative_and_instance_reads() {
+    let definition = json!({
+        "instances": {"records": {"data": {}}, "config": {"data": {}}},
+        "items": [
+            {
+                "type": "group", "key": "rows", "repeatable": true,
+                "seedFrom": {
+                    "instance": "records",
+                    "path": "entries",
+                    "where": "empty($.closed) and $.tier = @instance('config').activeTier"
+                },
+                "children": [
+                    {"type": "field", "key": "name", "prePopulate": {"instance": "records", "path": "name"}}
+                ]
+            }
+        ]
+    });
+    assert_eq!(
+        json!(definition_instance_reads(&definition).unwrap()),
+        json!({
+            "config": ["activeTier"],
+            "records": ["entries", "entries[*].closed", "entries[*].name", "entries[*].tier"]
+        })
+    );
+}

@@ -579,13 +579,6 @@ pub fn get_fel_dependencies(expression: &str) -> fel_core::Dependencies {
 /// Context names supplied by FEL rather than Definition variable declarations.
 pub const RESERVED_CONTEXT_NAMES: &[&str] = &["current", "index", "count", "instance"];
 
-fn postfix_base(mut expr: &Expr) -> &Expr {
-    while let Expr::PostfixAccess { expr: inner, .. } = expr {
-        expr = inner;
-    }
-    expr
-}
-
 // ── Expression rewriting ────────────────────────────────────────
 
 /// Options for rewriting references in a FEL expression.

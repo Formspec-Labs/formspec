@@ -439,11 +439,13 @@ impl<'a> Creation<'a> {
         };
         let reads = parsed
             .as_ref()
-            .map(|expr| extract_dependencies(expr).instance_refs);
+            .map(|expr| extract_dependencies(expr).instance_reads);
         if self.options.pending_instances.contains(instance)
-            || reads
-                .as_ref()
-                .is_some_and(|reads| !reads.is_disjoint(&self.options.pending_instances))
+            || reads.as_ref().is_some_and(|reads| {
+                reads
+                    .keys()
+                    .any(|name| self.options.pending_instances.contains(name))
+            })
         {
             self.result.pending.push(location.model.clone());
             return None;
@@ -472,8 +474,7 @@ impl<'a> Creation<'a> {
         if elements.is_empty() {
             return Some(Vec::new());
         }
-        let mut names: Vec<_> = reads.into_iter().collect();
-        names.sort_unstable();
+        let names: Vec<_> = reads.into_keys().collect();
         let mut instances = HashMap::new();
         for name in names {
             let Some(value) = self.evaluation_options.instances.get(&name) else {

@@ -225,3 +225,82 @@ fn repeat_paths_check_the_current_row_and_disallow_double_subscripts() {
             .any(|d| d.message.contains("$rows[1][1].known"))
     );
 }
+
+#[test]
+fn literal_instance_key_cannot_alias_an_array_subscript_in_schema_lint() {
+    let mut doc: Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/lint/E405-unprojected-path.json"
+    ))
+    .unwrap();
+    doc["instances"]["prior"]["schema"] = json!({"rows[*].code": "string"});
+
+    // Array subscript matches `rows[*].code`.
+    doc["items"][0]["initialValue"] = json!("=@instance('prior').rows[1].code");
+    assert!(
+        !lint(&doc).diagnostics.iter().any(|d| d.code == "E405"),
+        "{:?}",
+        lint(&doc).diagnostics
+    );
+
+    // `instance('prior', 'rows[1].code')` reads literal object key "rows[1]", NOT array `rows`.
+    doc["items"][0]["initialValue"] = json!("=instance('prior', 'rows[1].code')");
+    let findings: Vec<_> = lint(&doc)
+        .diagnostics
+        .into_iter()
+        .filter(|d| d.code == "E405")
+        .collect();
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    assert_eq!(
+        findings[0].message,
+        format!(
+            "Path {:?} on instance \"prior\" is outside its declared schema",
+            "[\"rows[1]\"].code"
+        )
+    );
+
+    // Declaring the escaped literal key matches the literal read and rejects the array subscript.
+    doc["instances"]["prior"]["schema"] = json!({"[\"rows[1]\"].code": "string"});
+    assert!(
+        !lint(&doc).diagnostics.iter().any(|d| d.code == "E405"),
+        "{:?}",
+        lint(&doc).diagnostics
+    );
+    doc["items"][0]["initialValue"] = json!("=@instance('prior').rows[1].code");
+    assert!(lint(&doc).diagnostics.iter().any(|d| d.code == "E405"));
+}
+
+#[test]
+fn indexed_current_row_reads_retain_their_suffixes() {
+    let document = json!({
+        "$formspec":"1.0","url":"urn:test:current-indexed","version":"1.0.0","status":"draft",
+        "title":"Indexed current row",
+        "items":[{
+            "key":"rows","type":"group","repeatable":true,"label":"Rows",
+            "children":[
+                {"key":"nested","type":"group","repeatable":true,"label":"Nested","children":[
+                    {"key":"code","type":"field","dataType":"string","label":"Code"}
+                ]},
+                {"key":"check","type":"field","dataType":"string","label":"Check",
+                 "initialValue":"=@current.nested[1].code + @current.nested[1].missing + @current[1].nested"}
+            ]
+        }]
+    });
+    let findings: Vec<_> = lint(&document)
+        .diagnostics
+        .into_iter()
+        .filter(|d| d.code == "E402")
+        .collect();
+    assert_eq!(findings.len(), 2, "{findings:?}");
+    assert!(
+        findings
+            .iter()
+            .any(|d| d.message.contains("@current.nested[1].missing")),
+        "{findings:?}"
+    );
+    assert!(
+        findings
+            .iter()
+            .any(|d| d.message.contains("@current[1].nested")),
+        "{findings:?}"
+    );
+}

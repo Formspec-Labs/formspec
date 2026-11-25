@@ -290,7 +290,7 @@ impl<'a> Analyzer<'a> {
                     if let Some(index) = self.definition_index.as_ref()
                         && let Some(path) = self.definition_path(&effective_path)
                     {
-                        match resolve_item_path(path, index, false) {
+                        match resolve_mapping_item_path(path, index) {
                             Ok(Some(item)) => {
                                 resolved_definition_item = Some(item.full_path.clone());
                             }
@@ -566,7 +566,7 @@ impl<'a> Analyzer<'a> {
                 if let Some(index) = self.definition_index.as_ref()
                     && let Some(path) = self.definition_path(&effective)
                 {
-                    match resolve_item_path(path, index, false) {
+                    match resolve_mapping_item_path(path, index) {
                         Ok(Some(_)) => {}
                         Ok(None) => self.diagnostics.push(error(
                             crate::LintCode::E1112,
@@ -633,7 +633,7 @@ impl<'a> Analyzer<'a> {
         };
         if paths
             .iter()
-            .any(|path| !matches!(resolve_item_path(path, index, false), Ok(Some(_))))
+            .any(|path| !matches!(resolve_mapping_item_path(path, index), Ok(Some(_))))
         {
             return RequirednessInference::unknown(RequirednessUnknownReason::UnresolvedSourcePath);
         }
@@ -1071,6 +1071,69 @@ fn is_parent_child_path(a: &str, b: &str) -> bool {
     b.starts_with(&a_dot) || a.starts_with(&b_dot)
 }
 
+fn resolve_mapping_item_path<'a>(
+    path: &str,
+    index: &'a crate::tree::ItemTreeIndex,
+) -> Result<Option<&'a crate::tree::ItemRef>, String> {
+    if let Some(item) = resolve_item_path(path, index, false)? {
+        return Ok(Some(item));
+    }
+    let segments = parse_form_path(path, false)?;
+    let mut current_path = String::new();
+    let mut current: Option<&crate::tree::ItemRef> = None;
+    for (idx, segment) in segments.iter().enumerate() {
+        match segment {
+            StrictPathSegment::Exact(value) | StrictPathSegment::Special(value) => {
+                if current_path.is_empty() {
+                    current_path = value.clone();
+                    current = index.by_full_path.get(&current_path).or_else(|| {
+                        index.by_key.get(value).filter(|item_ref| {
+                            !index.ambiguous_keys.contains(value)
+                                && item_ref.parent_full_path.is_none()
+                        })
+                    });
+                } else {
+                    current_path.push('.');
+                    current_path.push_str(value);
+                    current = index.by_full_path.get(&current_path);
+                }
+                let Some(item_ref) = current else {
+                    return Ok(None);
+                };
+                if let Some(data_type) = item_ref.data_type.as_deref() {
+                    let remaining: Vec<fel_core::ReadPathSegment> = segments[idx + 1..]
+                        .iter()
+                        .map(|seg| match seg {
+                            StrictPathSegment::Exact(k) | StrictPathSegment::Special(k) => {
+                                fel_core::ReadPathSegment::Key(k.clone())
+                            }
+                            StrictPathSegment::Indexed(n) => fel_core::ReadPathSegment::Index(*n),
+                            StrictPathSegment::Wildcard => fel_core::ReadPathSegment::Wildcard,
+                            StrictPathSegment::Root => unreachable!(),
+                        })
+                        .collect();
+                    return Ok(crate::expression_semantics::field_value_contains(
+                        data_type, &remaining, true,
+                    )
+                    .then_some(item_ref));
+                }
+            }
+            StrictPathSegment::Wildcard | StrictPathSegment::Indexed(_) => {
+                let Some(item_ref) = current else {
+                    return Ok(None);
+                };
+                if !item_ref.is_repeatable {
+                    return Err(format!(
+                        "path uses an index or wildcard on non-repeatable item: {path}"
+                    ));
+                }
+            }
+            StrictPathSegment::Root => return Ok(None),
+        }
+    }
+    Ok(None)
+}
+
 #[cfg(test)]
 mod tests {
     #![allow(clippy::missing_docs_in_private_items)]
@@ -1157,5 +1220,48 @@ mod tests {
             "reverse.condition should be parsed as FEL: {:?}",
             analysis.diagnostics
         );
+    }
+
+    #[test]
+    fn compound_field_subproperties_resolve_against_paired_definition() {
+        let definition = serde_json::json!({
+            "$formspec": "1.0",
+            "url": "urn:test:money-mapping",
+            "version": "1.0.0",
+            "status": "draft",
+            "title": "Money Mapping",
+            "items": [{
+                "key": "budget",
+                "type": "group",
+                "label": "Budget",
+                "children": [{
+                    "key": "requestedAmount",
+                    "type": "field",
+                    "dataType": "money",
+                    "label": "Requested Amount"
+                }]
+            }]
+        });
+        let mapping = serde_json::json!({
+            "$formspecMapping": "1.0",
+            "version": "1.0.0",
+            "definitionRef": "urn:test:money-mapping",
+            "definitionVersion": ">=1.0.0",
+            "targetSchema": { "format": "json" },
+            "rules": [
+                { "sourcePath": "budget.requestedAmount.amount", "targetPath": "amount", "transform": "preserve" },
+                { "sourcePath": "budget.requestedAmount.currency", "targetPath": "currency", "transform": "preserve" },
+                { "sourcePath": "budget.requestedAmount.unknownProp", "targetPath": "bad", "transform": "preserve" }
+            ]
+        });
+
+        let analysis = analyze_mapping(&mapping, Some(&definition));
+        let e1110: Vec<_> = analysis
+            .diagnostics
+            .iter()
+            .filter(|diag| diag.code == crate::LintCode::E1110)
+            .map(|diag| diag.path.as_str())
+            .collect();
+        assert_eq!(e1110, vec!["$.rules[2].sourcePath"]);
     }
 }

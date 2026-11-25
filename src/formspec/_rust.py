@@ -32,7 +32,7 @@ from formspec.fel.types import (  # noqa: E402
     to_python,
 )
 
-EXPECTED_PY_API_VERSION = 2
+EXPECTED_PY_API_VERSION = 3
 _REQUIRED_EXPORTS = (
     "eval_fel_detailed",
     "extract_deps",
