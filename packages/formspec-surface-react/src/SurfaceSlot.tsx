@@ -1011,9 +1011,9 @@ type DefinitionFormDataState =
   | DefinitionFormInitialDataDelivery;
 
 /**
- * Runs only for a binding that names a Mapping, so only a mapped prefill loads tools WASM
- * (Mapping execution lives there until fs-tco0). A failed load rejects, and the loader reports
- * the slot unavailable instead of dropping the prefill.
+ * Standard prefill Mappings execute in runtime WASM (fs-tco0) without requesting the tools WASM.
+ * Only a Mapping declaring an external `sourceSchema` loads tools WASM on demand for JSON Schema validation.
+ * A failed load rejects, and the loader reports the slot unavailable instead of dropping the prefill.
  */
 async function executeDefinitionFormMapping({
   mapping,
@@ -1023,7 +1023,9 @@ async function executeDefinitionFormMapping({
   definition: FormDefinition;
   value: unknown;
 }) {
-  await initFormspecEngineTools();
+  if (mapping.sourceSchema) {
+    await initFormspecEngineTools();
+  }
   const result = createMappingEngine(mapping).reverse(
     value as Parameters<ReturnType<typeof createMappingEngine>['reverse']>[0],
   );

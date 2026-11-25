@@ -16,11 +16,16 @@ const alternatingMode = fixtureOptions.get('alternating');
 const twoForms = fixtureOptions.has('twoForms');
 // The filing unit comes from the route's state; the engine derives its subject id (fs-aght).
 const keyed = fixtureOptions.has('subject');
+const prefillMapping = fixtureOptions.has('prefillMapping');
 const id = 'https://example.test/filing';
 const definition = `${id}/definition`;
 const surface = `${id}/surface`;
 const theme = `${id}/theme`;
 const actions = `${id}/actions`;
+const prefillCatalog = `${id}/data`;
+const prefillMappingUrl = `${id}/mappings/prefill`;
+const prefillSourceRef = 'seed:filing';
+const prefillMappingHandle = 'filingPrefill';
 const trackerMode = new URLSearchParams(location.search).get('tracker');
 const showsTracker = trackerMode !== null;
 const largeTracker = trackerMode === 'large';
@@ -63,7 +68,9 @@ const componentDocument: ComponentDocument = {
       : contactControl,
     ...(showsTracker ? [{ component: 'Section', id: 'certification', title: 'Certification',
       children: supplemental.map(field => ({ component: 'TextInput', bind: `details.${field.key}` })) }] : []),
+    ...(prefillMapping ? [{ component: 'TextInput', bind: 'prefillNote' }] : []),
     { component: 'ActionButton', actionRef: 'save', label: { literal: 'Save draft' } },
+    ...(prefillMapping ? [{ component: 'ActionButton', actionRef: 'submit', label: { literal: 'Submit filing' } }] : []),
   ] },
 };
 const bundle = dereferenceBundleExport({
@@ -72,6 +79,10 @@ const bundle = dereferenceBundleExport({
     definitions: [definition, ...(smallTracker ? [roster, report] : []), ...extraForms.map(({ url }) => url)].map(url => ({ url })),
     surfaces: [{ url: surface }], theme: { url: theme },
     responseActionDocuments: [{ url: actions }],
+    ...(prefillMapping ? {
+      dataSources: [{ url: prefillCatalog, version: '1.0.0' }],
+      mappings: [{ url: prefillMappingUrl, version: '1.0.0', handle: prefillMappingHandle }],
+    } : {}),
   },
   documents: {
     [surface]: {
@@ -82,7 +93,11 @@ const bundle = dereferenceBundleExport({
           ...(showsTracker ? { navigation: { visible: false } } : {}),
           params: [{ name: 'state', type: 'string' }],
           slots: [
-            { id: 'filing', slotType: 'definition-form', binding: { definitionRef: definition, ...(keyed && { subjectKeys: { state: 'state' } }) } },
+            { id: 'filing', slotType: 'definition-form', binding: {
+              definitionRef: definition,
+              ...(keyed && { subjectKeys: { state: 'state' } }),
+              ...(prefillMapping && { initialData: { catalogRef: prefillCatalog, sourceRef: prefillSourceRef, mappingRef: prefillMappingHandle } }),
+            } },
             ...(twoForms ? [{ id: 'additional', slotType: 'definition-form', binding: { definitionRef: definition } }] : []),
           ] },
         ...(smallTracker ? [['roster', 'Eligible entity list', roster], ['report', 'Annual report', report]].map(([key, title, url]) => ({
@@ -148,9 +163,56 @@ const bundle = dereferenceBundleExport({
         ],
       } : {
         description: 'Submit the annual filing and certify the information provided.',
-        items: showsTracker ? [{ key: 'details', type: 'group', label: 'Details', children: [contact, ...supplemental] }] : [contact],
+        items: showsTracker
+          ? [{ key: 'details', type: 'group', label: 'Details', children: [contact, ...supplemental] }]
+          : prefillMapping
+            ? [contact, { key: 'prefillNote', type: 'field', dataType: 'string', label: 'Prefilled note' }]
+            : [contact],
       }),
     },
+    ...(prefillMapping ? {
+      [prefillCatalog]: {
+        $formspecDataSources: '1.0',
+        id: prefillCatalog,
+        version: '1.0.0',
+        sources: [{
+          id: prefillSourceRef,
+          kind: 'definition-response',
+          responseSelection: {
+            definition: { url: definition, compatibleVersions: '^1.0.0' },
+            subject: [],
+            status: 'completed',
+            cardinality: 'latest',
+            pin: 'none',
+          },
+          owner: 'formspec',
+          scope: 'definition',
+          availability: { level: 'definition', definitionRef: definition },
+          runtime: {
+            delivery: 'snapshot',
+            cache: { mode: 'snapshot' },
+            authorizationBoundary: 'host',
+            failureMode: 'block-render',
+            provenance: { kind: 'definition-response', source: 'prefill fixture' },
+          },
+          schema: {
+            type: 'object',
+            properties: { prefill_note: { type: 'string' } },
+            additionalProperties: false,
+          },
+        }],
+      },
+      [prefillMappingUrl]: {
+        $formspecMapping: '1.0',
+        version: '1.0.0',
+        definitionRef: definition,
+        definitionVersion: '1.0.0',
+        targetSchema: { format: 'json' },
+        direction: 'both',
+        conformanceLevel: 'bidirectional',
+        rules: [{ sourcePath: 'prefillNote', targetPath: 'prefill_note', transform: 'preserve' }],
+      },
+    } : {}),
     [roster]: { $formspec: '1.0', url: roster, version: '1.0.0', title: 'Eligible entity list',
       description: 'Identify eligible entities and the areas they serve.', items: [
       { key: 'entities', type: 'group', label: 'Entities', children: [contact] },
@@ -176,17 +238,66 @@ const bundle = dereferenceBundleExport({
         intent: 'save-draft',
         label: { literal: 'Save draft' },
         effects: [{ type: 'hostEvent', eventName: 'draft-saved' }],
-      }],
+      }, ...(prefillMapping ? [{
+        id: 'submit',
+        intent: 'submit',
+        label: { literal: 'Submit filing' },
+        effects: [{ type: 'hostEvent', eventName: 'formspec-submit' }],
+      }] : [])],
     },
   },
 });
 await initFormspecEngine();
+
+const coldPrefillDrafts = new Map<string, { revision: string; snapshotJson: string; responseJson: string }>();
+let coldDraftRevision = 0;
+const coldDraftPort = prefillMapping ? {
+  scope: 'cold-prefill',
+  port: {
+    async load(key: { definitionUrl: string; subject?: { id?: string } }) {
+      const saved = coldPrefillDrafts.get(`${key.definitionUrl}:${key.subject?.id ?? ''}`);
+      return saved ? { status: 'loaded' as const, draft: saved } : { status: 'absent' as const };
+    },
+    async save(input: { key: { definitionUrl: string; subject?: { id?: string } }; snapshotJson: string; responseJson: string }) {
+      const revision = String(++coldDraftRevision);
+      coldPrefillDrafts.set(`${input.key.definitionUrl}:${input.key.subject?.id ?? ''}`, {
+        revision,
+        snapshotJson: input.snapshotJson,
+        responseJson: input.responseJson,
+      });
+      return { status: 'saved' as const, revision };
+    },
+    async readSummaries() {
+      return new Map();
+    },
+  },
+} : undefined;
 
 const mode = location.pathname.startsWith('/surface-browser-history') ? 'history' : 'hash';
 createRoot(document.getElementById('root')!).render(
   <BrowserSurfaceApp bundle={bundle} adapters={{ mode,
         basePath: "/surface-browser-history",
         routeParams: { state: 'ny' },
+        ...(coldDraftPort ? { draftStorage: coldDraftPort } : {}),
+        ...(prefillMapping ? {
+          onDefinitionActionResult: (result) => {
+            if (result.status === 'completed' && result.resolution.action?.intent === 'submit') {
+              (window as unknown as { __coldPrefillSubmitted?: unknown }).__coldPrefillSubmitted = result.detail?.response;
+            }
+          },
+          authorizeDataSource: () => ({ status: 'authorized' as const }),
+          validateDataSourcePayload: () => ({ valid: true as const }),
+          dataSourceLoader: () => ({
+            status: 'loaded' as const,
+            freshness: 'fresh' as const,
+            catalogRef: prefillCatalog,
+            sourceRef: prefillSourceRef,
+            none: false,
+            records: [{ responseId: 'seed-1', definitionVersion: '1.0.0', responseHash: `sha256:${'b'.repeat(64)}` }],
+            valueDigest: `sha256:${'a'.repeat(64)}`,
+            value: { prefill_note: 'Mapped from cold page' },
+          }),
+        } : {}),
         viewerPreferenceKey: fixtureOptions.get('viewer') ?? undefined,
         localeDocuments: fixtureOptions.has('accessibleFields') ? [{
           $formspecLocale: '2.0', version: '1.0.0', locale: 'en',

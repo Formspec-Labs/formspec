@@ -8,6 +8,7 @@ import type {
     MappingDirection,
     RuntimeMappingResult,
 } from '../interfaces.js';
+import { isWasmReady, wasmExecuteMappingDocRuntime } from '../wasm-bridge-runtime.js';
 import { isWasmToolsReady, wasmExecuteMappingDoc } from '../wasm-bridge-tools.js';
 
 interface MappingCSVConfig { delimiter?: string; quote?: string; header?: boolean; lineEnding?: 'crlf' | 'lf'; }
@@ -131,7 +132,22 @@ export class RuntimeMappingEngine implements IRuntimeMappingEngine {
     }
 
     private execute(direction: MappingDirection, source: JsonValue | string): RuntimeMappingResult {
-        if (!isWasmToolsReady()) {
+        const needsToolsValidation = Boolean(this.doc.sourceSchema);
+        if (needsToolsValidation) {
+            if (!isWasmToolsReady()) {
+                return {
+                    direction,
+                    output: {},
+                    appliedRules: 0,
+                    diagnostics: [{
+                        ruleIndex: -1,
+                        errorCode: 'WASM_NOT_READY',
+                        message:
+                            'MappingDocument with sourceSchema requires tools WASM for JSON Schema validation. Call await initFormspecEngineTools() after await initFormspecEngine().',
+                    }],
+                };
+            }
+        } else if (!isWasmReady()) {
             return {
                 direction,
                 output: {},
@@ -140,14 +156,16 @@ export class RuntimeMappingEngine implements IRuntimeMappingEngine {
                     ruleIndex: -1,
                     errorCode: 'WASM_NOT_READY',
                     message:
-                        'RuntimeMappingEngine requires tools WASM. Call await initFormspecEngineTools() after await initFormspecEngine().',
+                        'RuntimeMappingEngine requires runtime WASM. Call await initFormspecEngine().',
                 }],
             };
         }
-        // Delegate to WASM for core rule evaluation
+        // Delegate to WASM for core rule evaluation (runtime WASM for standard Mappings; tools WASM when sourceSchema needs lint validation).
         let wasmResult: { direction: string; output: any; rulesApplied: number; diagnostics: any[] };
         try {
-            wasmResult = wasmExecuteMappingDoc(this.doc, source, direction);
+            wasmResult = needsToolsValidation
+                ? wasmExecuteMappingDoc(this.doc, source, direction)
+                : wasmExecuteMappingDocRuntime(this.doc, source, direction);
         } catch (e) {
             // WASM parser errors (e.g. unknown transform) become diagnostics
             return {

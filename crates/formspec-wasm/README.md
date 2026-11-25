@@ -10,7 +10,7 @@
 | `lint` | **yes** (via `full-wasm`) | `formspec-lint` + `lintDocument` (implies `document-api`). |
 | `document-api` | **yes** | `detectDocumentType`, `jsonPointerToJsonPath`, `planSchemaValidation`. |
 | `definition-assembly` | **yes** | `assembleDefinition` (`$ref` / fragments). |
-| `mapping-api` | **yes** | `executeMappingRules`, `executeMappingDocument`. |
+| `mapping-api` | **yes** | Compatibility no-op; `executeMappingRules` and `executeMappingDocument` are always compiled into runtime WASM (`sourceSchema` JSON Schema validation requires `lint`). |
 | `registry-api` | **yes** | Registry parse/lookup/lifecycle + `validateExtensionUsage`. |
 | `changelog-api` | **yes** | `generateChangelog`. |
 | `fel-authoring` | **yes** | `parseFel`, `tokenizeFel`, `printFel`, `tryLiftConditionGroup`, `extractDependencies`, FEL rewrites, `rewriteFelForAssembly`, `listBuiltinFunctions`. |
@@ -32,7 +32,7 @@ Sibling binding: **[`formspec-py`](../formspec-py/)** (`formspec_rust`) targets 
 | `value_coerce` | `coerceFieldValue` (item/bind/definition/value JSON strings) |
 | `changeset` | Changeset dependency analysis (key extraction, connected components) |
 | `document` | `document-api`: detect/plan/jsonPointer. `lint`: `lintDocument*`. |
-| `mapping` | `mapping-api`: `executeMappingRules` (rules array) + `executeMappingDocument` (mapping document) |
+| `mapping` | Always: `executeMappingRules` (rules array) + `executeMappingDocument` (mapping document; `sourceSchema` validation gated on `lint`) |
 | `registry` | `registry-api`: parse/find/lifecycle/well-known + `validateExtensionUsage` |
 | `changelog` | `changelog-api`: `generateChangelog` |
 | `split_abi` | `formspecWasmSplitAbiVersion` — lockstep marker between paired runtime/tools artifacts |

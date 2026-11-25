@@ -574,6 +574,37 @@ export function wasmSanitizeFelIdentifier(s: string): string {
     return wasm().sanitizeFelIdentifier(s);
 }
 
+/** Execute a MappingRule[] array against source in runtime WASM. */
+export function wasmExecuteMappingRuntime(
+    rules: unknown[],
+    source: unknown,
+    direction: 'forward' | 'reverse',
+): { direction: string; output: any; rulesApplied: number; diagnostics: any[] } {
+    const resultJson = wasm().executeMappingRules(
+        JSON.stringify(rules),
+        JSON.stringify(source),
+        direction,
+    );
+    return parseWasmJson(resultJson);
+}
+
+/**
+ * Execute a Mapping Document in runtime WASM (without loading tools WASM).
+ * Documents with an external `sourceSchema` require tools WASM for JSON Schema validation.
+ */
+export function wasmExecuteMappingDocRuntime(
+    doc: unknown,
+    source: unknown,
+    direction: 'forward' | 'reverse',
+): { direction: string; output: any; rulesApplied: number; diagnostics: any[] } {
+    const resultJson = wasm().executeMappingDocument(
+        JSON.stringify(doc),
+        JSON.stringify(source),
+        direction,
+    );
+    return parseWasmJson(resultJson);
+}
+
 /** Compute dependency groups from recorded changeset entries (JSON round-trip to Rust). */
 export function wasmComputeDependencyGroups(entriesJson: string): Array<{ entries: number[]; reason: string }> {
     const resultJson = wasm().computeDependencyGroups(entriesJson);

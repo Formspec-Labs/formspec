@@ -240,10 +240,19 @@ function profileInput(container: HTMLElement): HTMLInputElement {
 }
 
 describe('mapped initial data on a cold page', () => {
-  function unitBundle(): ResolvedBundle {
+  function unitBundle(invalidTransform = false): ResolvedBundle {
     const candidate = bundle('profileRecord', {
       ...definition, subject: { type: 'urn:unit', keys: { unit: { dataType: 'string' } } },
     });
+    if (invalidTransform && candidate.mappings?.[0]) {
+      candidate.mappings[0] = {
+        ...candidate.mappings[0],
+        document: {
+          ...candidate.mappings[0].document,
+          rules: [{ sourcePath: 'displayName', targetPath: 'display_name', transform: 'unsupported-transform' as never }],
+        },
+      };
+    }
     const route = candidate.surfaces[0]!.routes[0]!;
     route.path = '/units/{unit}';
     route.params = [{ name: 'unit', type: 'string' }];
@@ -268,7 +277,6 @@ describe('mapped initial data on a cold page', () => {
         validateDataSourcePayload={() => ({ valid: true })} setDocumentTitle={false} />);
       await flush();
     });
-    // A mapped prefill waits for the tools WASM to compile on first use; flush React between polls.
     await vi.waitFor(async () => {
       await act(flush);
       expect(container().querySelector('[aria-busy="true"]')).toBeNull();
@@ -277,10 +285,10 @@ describe('mapped initial data on a cold page', () => {
   let host: HTMLElement | undefined;
   const container = () => host!;
 
-  it('loads tools only for the slot whose binding names a Mapping, then prefills it', async () => {
+  it('prefills a standard Mapping on a cold page using runtime WASM only, without loading tools WASM (fs-tco0)', async () => {
     host = document.body.appendChild(document.createElement('div'));
     const root = createRoot(host);
-    const candidate = unitBundle();
+    const candidate = unitBundle(false);
     try {
       vi.mocked(initFormspecEngineTools).mockClear();
       await open(root, candidate, '/plain/A');
@@ -290,23 +298,25 @@ describe('mapped initial data on a cold page', () => {
 
       await open(root, candidate, '/units/A');
       expect(profileInput(host).value).toBe('Mapped Grace');
-      expect(initFormspecEngineTools).toHaveBeenCalled();
-      expect(isFormspecEngineToolsInitialized()).toBe(true);
+      expect(initFormspecEngineTools).not.toHaveBeenCalled();
+      expect(isFormspecEngineToolsInitialized()).toBe(false);
 
       await open(root, candidate, '/units/B');
       expect(profileInput(host).value).toBe('Mapped Grace');
+      expect(initFormspecEngineTools).not.toHaveBeenCalled();
     } finally {
       act(() => root.unmount());
       host.remove();
     }
   });
 
-  it('shows the localized unavailable message when the tools load fails', async () => {
+  it('shows the localized unavailable message when a Mapping fails execution without loading tools WASM', async () => {
     host = document.body.appendChild(document.createElement('div'));
     const root = createRoot(host);
-    vi.mocked(initFormspecEngineTools).mockRejectedValueOnce(new Error('tools WASM failed to load'));
+    vi.mocked(initFormspecEngineTools).mockClear();
     try {
-      await open(root, unitBundle(), '/units/C');
+      await open(root, unitBundle(true), '/units/C');
+      expect(initFormspecEngineTools).not.toHaveBeenCalled();
       expect(host.querySelector('input[name="displayName"]')).toBeNull();
       expect(host.querySelector('[data-probe="slot-unavailable"]')?.textContent)
         .toBe('This part of the page cannot load the information it needs.');
