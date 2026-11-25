@@ -9,4 +9,3 @@ export function resolveOptionSetsOnDefinition(definition: FormDefinition): FormD
         wasmResolveOptionSetsOnDefinition(JSON.stringify(definition)),
     ) as FormDefinition;
 }
-
