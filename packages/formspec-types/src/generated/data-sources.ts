@@ -100,7 +100,7 @@ export type RuntimeBehavior = {
   delivery: 'snapshot' | 'live' | 'draft';
   cache: CacheRule;
   /**
-   * Coarse boundary that owns admission before this source is exposed. Fine-grained actor, route, operation, widget, or field authorization stays forbidden here by decision: runtime data-access authorization is server-side engine territory (ADR 0117, Zanzibar-lineage behind AuthorizationPort), and ADR 0152 covers authoring-time write authority only.
+   * Coarse boundary that owns admission before this source is exposed. Fine-grained actor, route, operation, widget, or field authorization stays forbidden here by decision: runtime data-access authorization is owned by the server-side shared authorization coordinator (ADR 0176), and ADR 0152 covers authoring-time write authority only.
    */
   authorizationBoundary: 'host' | 'formspec-session' | 'module';
   /**
