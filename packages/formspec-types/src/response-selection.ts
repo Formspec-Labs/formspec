@@ -15,6 +15,8 @@ export type ResponseSelectionRecord = {
   scope: string;
   /** Supplied by the store even when an editable draft contains prepared, completed bytes. */
   kind: 'open-draft' | 'filing';
+  /** Host record identity for selection and evidence. Defaults to the authored Response id. */
+  recordId?: string;
   implicitSubjectId?: string;
 } & (
   | { response: FormResponse; responseJson?: never }

@@ -71,6 +71,9 @@ pub struct SelectionRecord {
     pub kind: SelectionRecordKind,
     /// Original Response JSON, including authored signatures.
     pub response: Box<RawValue>,
+    /// Host record identity for selection and evidence. Defaults to the authored Response id.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub record_id: Option<String>,
     /// Server-only respondent identity when the Definition has no subject.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub implicit_subject_id: Option<String>,
@@ -210,7 +213,7 @@ pub enum SelectionSource {
 pub struct SelectionContext {
     /// Storage scope being read.
     pub scope: String,
-    /// Whether the caller authorized the query and checked access to all supplied candidates.
+    /// Whether the caller authorized the query and, for [`select`], all matched records.
     pub authorized: bool,
     /// Where the selection was declared.
     pub source: SelectionSource,
@@ -301,15 +304,62 @@ pub fn select(
     selection: &ResponseSelection,
     context: &SelectionContext,
 ) -> SelectionOutcome {
-    select_available(records, selection, context).unwrap_or(SelectionOutcome::Unavailable)
+    prepare(records, selection, context)
+        .map_or(SelectionOutcome::Unavailable, PreparedSelection::complete)
 }
 
-/// Resolve inputs, match candidates, then deliver either a live read or a retained pin.
-fn select_available(
-    records: &[SelectionRecord],
-    selection: &ResponseSelection,
-    context: &SelectionContext,
-) -> Option<SelectionOutcome> {
+/// Holds matched records pending the host's record-level authorization.
+pub struct PreparedSelection<'a> {
+    matching: Vec<Candidate<'a>>,
+    dispositions: Option<HashSet<(&'a str, &'a Sha256Digest)>>,
+    selection: &'a ResponseSelection,
+    context: &'a SelectionContext,
+}
+
+impl std::fmt::Debug for PreparedSelection<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("PreparedSelection")
+            .field("candidate_count", &self.matching.len())
+            .finish_non_exhaustive()
+    }
+}
+
+/// A validated, explicitly declared subject from a matching Response.
+#[derive(Debug)]
+pub struct CandidateSubject<'a> {
+    /// Filing-unit id verified against the subject type and keys.
+    pub id: &'a str,
+    /// Validated subject keys.
+    pub keys: &'a BTreeMap<String, SubjectKey>,
+}
+
+impl PreparedSelection<'_> {
+    /// Returns original input positions for the host's authorization batch.
+    pub fn candidate_positions(&self) -> impl Iterator<Item = usize> + '_ {
+        self.matching.iter().map(|candidate| candidate.position)
+    }
+
+    /// Returns matching subjects in the same order as the authorization positions.
+    pub fn candidate_subjects(&self) -> impl Iterator<Item = Option<CandidateSubject<'_>>> + '_ {
+        self.matching.iter().map(Candidate::explicit_subject)
+    }
+
+    /// Delivers the result. The host calls this only after authorizing all matches.
+    pub fn complete(self) -> SelectionOutcome {
+        select_available(self).unwrap_or(SelectionOutcome::Unavailable)
+    }
+}
+
+/// Matches records after the host has authorized the query boundary.
+///
+/// The host passes the matching positions to record-level authorization before calling
+/// [`PreparedSelection::complete`]. No answer values or record evidence are returned here.
+pub fn prepare<'a>(
+    records: &'a [SelectionRecord],
+    selection: &'a ResponseSelection,
+    context: &'a SelectionContext,
+) -> Option<PreparedSelection<'a>> {
     if !context.authorized
         || (context.source == SelectionSource::Definition && context.projection.is_none())
     {
@@ -354,11 +404,27 @@ fn select_available(
         {
             continue;
         }
-        if !ranks.insert((candidate.authored.clone(), candidate.response.id.clone())) {
+        if !ranks.insert((candidate.authored.clone(), candidate.record_id().to_owned())) {
             return None;
         }
         matching.push(candidate);
     }
+    Some(PreparedSelection {
+        matching,
+        dispositions,
+        selection,
+        context,
+    })
+}
+
+/// Resolve inputs, match candidates, then deliver either a live read or a retained pin.
+fn select_available(prepared: PreparedSelection<'_>) -> Option<SelectionOutcome> {
+    let PreparedSelection {
+        matching,
+        dispositions,
+        selection,
+        context,
+    } = prepared;
 
     let mut winners: Vec<_> = if selection.status == SelectionStatus::Current
         || selection.cardinality == Cardinality::LatestPerSubject
@@ -405,13 +471,7 @@ fn select_available(
     }
 
     if let (Pin::AtOpen, Some(pin)) = (selection.pin, &context.pin) {
-        return retained(
-            pin,
-            &matching,
-            &winners,
-            selection,
-            context.mapping.as_ref().map(|resolved| &resolved.reference),
-        );
+        return retained(pin, &matching, &winners, selection, context);
     }
     let delivered = deliver(&winners, selection, context)?;
     Some(SelectionOutcome::Available {
@@ -429,8 +489,9 @@ fn retained(
     matching: &[Candidate],
     winners: &[&Candidate],
     selection: &ResponseSelection,
-    current_mapping: Option<&MappingReference>,
+    context: &SelectionContext,
 ) -> Option<SelectionOutcome> {
+    let current_mapping = context.mapping.as_ref().map(|resolved| &resolved.reference);
     if !pin.pinned
         || pin.none != pin.records.is_empty()
         || (selection.cardinality == Cardinality::Latest && pin.records.len() > 1)
@@ -447,7 +508,7 @@ fn retained(
     }
     let mut expected = HashMap::new();
     let mut pinned_records = HashSet::new();
-    for record in &pin.records {
+    for (index, record) in pin.records.iter().enumerate() {
         if (record.response_hash.is_none() && selection.status == SelectionStatus::Completed)
             || expected
                 .insert(
@@ -455,7 +516,7 @@ fn retained(
                         record.response_id.as_str(),
                         record.definition_version.as_str(),
                     ),
-                    record.response_hash.as_ref(),
+                    (index, record.response_hash.as_ref()),
                 )
                 .is_some()
         {
@@ -463,25 +524,48 @@ fn retained(
         }
         pinned_records.insert((record.response_id.as_str(), record.response_hash.as_ref()));
     }
+    let mut pinned_candidates = vec![None; pin.records.len()];
     for candidate in matching {
         let key = (
-            candidate.response.id.as_str(),
+            candidate.record_id(),
             candidate.response.definition_version.as_str(),
         );
-        if let Some(hash) = expected.get(&key)
+        if let Some(&(index, hash)) = expected.get(&key)
             && (hash.is_none()
                 || candidate
                     .evidence()
                     .and_then(|record| record.response_hash)
                     .as_ref()
-                    == *hash)
+                    == hash)
         {
             expected.remove(&key);
+            pinned_candidates[index] = Some(candidate);
         }
     }
     if !expected.is_empty() {
         return None;
     }
+    // A completed, direct pin can be checked against the immutable source. The pin's
+    // own digest alone does not prove that its value came from the named records.
+    let delivered = if selection.status == SelectionStatus::Completed && selection.mapping.is_none()
+    {
+        let pinned: Vec<_> = pinned_candidates.into_iter().collect::<Option<_>>()?;
+        if selection.cardinality == Cardinality::LatestPerSubject {
+            let mut units = HashSet::new();
+            for candidate in &pinned {
+                if !units.insert(candidate.subject_id()?) {
+                    return None;
+                }
+            }
+        }
+        let delivery = deliver(&pinned, selection, context)?;
+        if delivery.value_digest != pin.value_digest || delivery.records != pin.records {
+            return None;
+        }
+        delivery
+    } else {
+        pin.clone()
+    };
     let mut newer = None;
     for winner in winners.iter().filter(|winner| !winner.draft()) {
         let record = winner.evidence()?;
@@ -494,7 +578,7 @@ fn retained(
         }
     }
     Some(SelectionOutcome::Available {
-        delivered: pin.clone(),
+        delivered,
         newer,
         input_positions: None,
     })

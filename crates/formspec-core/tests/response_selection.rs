@@ -102,3 +102,138 @@ fn retained_mapping_requires_the_current_verified_digest() {
     context.as_object_mut().unwrap().remove("mapping");
     assert_eq!(run(&context)["status"], "unavailable");
 }
+
+#[test]
+fn prepare_exposes_every_matching_position_before_delivery() {
+    use formspec_core::response_selection::{SelectionOutcome, prepare};
+    let suite: Value = serde_json::from_str(CASES).unwrap();
+    let records: Vec<_> = serde_json::from_value(serde_json::json!([
+        suite["records"]["wrong-scope"],
+        suite["records"]["old"],
+        suite["records"]["draft"],
+        suite["records"]["filed"]
+    ]))
+    .unwrap();
+    let selection = serde_json::from_value(suite["selection"].clone()).unwrap();
+    let mut context: formspec_core::response_selection::SelectionContext =
+        serde_json::from_value(suite["context"].clone()).unwrap();
+    context.include_input_positions = true;
+    let prepared = prepare(&records, &selection, &context).unwrap();
+    assert_eq!(prepared.candidate_positions().collect::<Vec<_>>(), [1, 3]);
+    // A host drops a prepared selection when record authorization fails.
+    drop(prepared);
+    let result = prepare(&records, &selection, &context).unwrap().complete();
+    let SelectionOutcome::Available {
+        input_positions, ..
+    } = result
+    else {
+        panic!("expected available delivery");
+    };
+    assert_eq!(input_positions.unwrap(), [3]);
+    context.authorized = false;
+    assert!(prepare(&records, &selection, &context).is_none());
+}
+
+#[test]
+fn host_record_id_breaks_ties_and_keys_disposition_evidence() {
+    use serde_json::json;
+
+    let suite: Value = serde_json::from_str(CASES).unwrap();
+    let mut old = suite["records"]["old"].clone();
+    let mut filed = suite["records"]["filed"].clone();
+    old["recordId"] = json!("host-a");
+    filed["recordId"] = json!("host-b");
+    old["response"]["authored"] = filed["response"]["authored"].clone();
+    old["response"]["id"] = json!("client-z");
+    filed["response"]["id"] = json!("client-a");
+    let inputs = json!([filed, old]).to_string();
+    let context = &suite["context"];
+    let select = |inputs: &str, selection: &Value, overrides: &Value| -> Value {
+        let text =
+            select_json(inputs, &selection.to_string(), &merged(context, overrides)).unwrap();
+        serde_json::from_str(&text).unwrap()
+    };
+    let selection = &suite["selection"];
+    let ranked = select(&inputs, selection, &json!({}));
+    assert_eq!(ranked["records"][0]["responseId"], "host-a");
+    assert_eq!(ranked["value"], json!({"result":"old"}));
+    let filed_delivery = select(&json!([filed]).to_string(), selection, &json!({}));
+    let mut disposition_selection = selection.clone();
+    disposition_selection["disposition"] = json!("urn:test:accepted");
+    let dispositions = json!({"dispositions":[{
+        "value":"urn:test:accepted",
+        "responseId":"host-b",
+        "responseHash":filed_delivery["records"][0]["responseHash"],
+    }]});
+    let accepted = select(&inputs, &disposition_selection, &dispositions);
+    assert_eq!(accepted["records"][0]["responseId"], "host-b");
+
+    let mut no_authored_id = old.clone();
+    no_authored_id["response"]
+        .as_object_mut()
+        .unwrap()
+        .remove("id");
+    let selected = select(&json!([no_authored_id]).to_string(), selection, &json!({}));
+    assert_eq!(selected["records"][0]["responseId"], "host-a");
+
+    filed.as_object_mut().unwrap().remove("recordId");
+    let default = select(&json!([filed]).to_string(), selection, &json!({}));
+    assert_eq!(default["records"][0]["responseId"], "client-a");
+}
+
+#[test]
+fn a_completed_list_pin_cannot_contain_two_revisions_of_one_subject() {
+    use formspec_core::subject_key::{SubjectKey, subject_id};
+    use serde_json::json;
+    use std::collections::BTreeMap;
+
+    let suite: Value = serde_json::from_str(CASES).unwrap();
+    let old = &suite["records"]["old"];
+    let mut filing = suite["records"]["filed"].clone();
+    let selection = merged(
+        &suite["selection"],
+        &json!({"cardinality":"latest-per-subject","pin":"at-open"}),
+    );
+    let select = |inputs: Value, context: &Value| -> Value {
+        serde_json::from_str(
+            &select_json(&inputs.to_string(), &selection, &context.to_string()).unwrap(),
+        )
+        .unwrap()
+    };
+    let context = &suite["context"];
+    let evidence = select(json!([filing]), context)["records"][0].clone();
+    // Produce a valid list value and digest from two distinct subjects, then use the actual
+    // evidence of two revisions of one subject. The answer data is identical in both lists.
+    let subject_type = filing["response"]["subject"]["type"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let mut distinct_keys: BTreeMap<String, SubjectKey> =
+        serde_json::from_value(filing["response"]["subject"]["keys"].clone()).unwrap();
+    for value in distinct_keys.values_mut() {
+        if let SubjectKey::String(text) = value {
+            *text = "org-other".to_owned();
+            break;
+        }
+    }
+    let distinct_id = subject_id(&subject_type, &distinct_keys).unwrap();
+    filing["response"]["subject"] = json!({
+        "id": distinct_id,
+        "type": subject_type,
+        "keys": distinct_keys
+    });
+    let mut pin = select(json!([filing, old]), context);
+    assert_eq!(pin["records"].as_array().unwrap().len(), 2);
+    let record = pin["records"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|record| record["responseId"] == evidence["responseId"])
+        .unwrap();
+    *record = evidence;
+    pin.as_object_mut().unwrap().remove("status");
+    let mut pinned_context = context.clone();
+    pinned_context["pin"] = pin;
+    let result = select(json!([suite["records"]["filed"], old]), &pinned_context);
+    assert_eq!(result, json!({"status":"unavailable"}));
+}

@@ -11,9 +11,9 @@ use serde::Deserialize;
 use serde_json::value::RawValue;
 
 use super::{
-    PredicateOp, PredicateSource, ResponseSelection, SelectedRecord, SelectionContext,
-    SelectionRecord, SelectionRecordKind, SelectionSource, SelectionStatus, Sha256Digest,
-    SubjectKeyType,
+    CandidateSubject, PredicateOp, PredicateSource, ResponseSelection, SelectedRecord,
+    SelectionContext, SelectionRecord, SelectionRecordKind, SelectionSource, SelectionStatus,
+    Sha256Digest, SubjectKeyType,
 };
 use crate::compatible_versions::parse_definition_version;
 use crate::subject_key::{SubjectKey, subject_id};
@@ -95,17 +95,22 @@ struct ResponseHeader<'a> {
     definition_url: Cow<'a, str>,
     #[serde(borrow)]
     status: Option<&'a RawValue>,
+    #[serde(borrow)]
+    id: Option<&'a RawValue>,
+    #[serde(borrow)]
+    definition_version: Option<&'a RawValue>,
+    #[serde(borrow)]
+    authored: Option<&'a RawValue>,
+    #[serde(borrow)]
+    subject: Option<&'a RawValue>,
+    #[serde(borrow)]
+    data: Option<&'a RawValue>,
 }
 
 /// A matching Response's selection fields, with data still in its exact wire form.
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub(super) struct ResponseFields<'a> {
-    pub(super) id: String,
     pub(super) definition_version: String,
-    authored: String,
     subject: Option<ResponseSubject>,
-    #[serde(borrow)]
     pub(super) data: &'a RawValue,
 }
 
@@ -140,6 +145,7 @@ pub(super) struct Candidate<'a> {
     pub(super) position: usize,
     implicit_subject_id: Option<&'a str>,
     kind: SelectionRecordKind,
+    record_id: Cow<'a, str>,
     pub(super) response: ResponseFields<'a>,
     pub(super) authored: AuthoredInstant,
     response_hash: OnceCell<Option<Sha256Digest>>,
@@ -169,7 +175,16 @@ impl<'a> Candidate<'a> {
         if record.kind == SelectionRecordKind::OpenDraft && status == RecordStatus::Stopped {
             return Some(None);
         }
-        let response: ResponseFields = serde_json::from_str(json).ok()?;
+        let response = ResponseFields {
+            definition_version: serde_json::from_str(header.definition_version?.get()).ok()?,
+            subject: header
+                .subject
+                .map(|raw| serde_json::from_str(raw.get()))
+                .transpose()
+                .ok()?,
+            data: header.data?,
+        };
+        let authored: String = serde_json::from_str(header.authored?.get()).ok()?;
         if range.is_some_and(|range| {
             !parse_definition_version(&response.definition_version)
                 .is_some_and(|version| range.test(&version))
@@ -204,10 +219,14 @@ impl<'a> Candidate<'a> {
         if record.kind == SelectionRecordKind::Filing && status != RecordStatus::Completed {
             return None;
         }
-        if response.id.is_empty() || !response.data.get().starts_with('{') {
+        let record_id = match record.record_id.as_deref() {
+            Some(id) => Cow::Borrowed(id),
+            None => Cow::Owned(serde_json::from_str(header.id?.get()).ok()?),
+        };
+        if record_id.is_empty() || !response.data.get().starts_with('{') {
             return None;
         }
-        let authored = AuthoredInstant::parse(&response.authored)?;
+        let authored = AuthoredInstant::parse(&authored)?;
         Some(Some(Self {
             input: &record.response,
             position,
@@ -216,10 +235,25 @@ impl<'a> Candidate<'a> {
                 .as_deref()
                 .filter(|id| !id.is_empty()),
             kind: record.kind,
+            record_id,
             response,
             authored,
             response_hash: OnceCell::new(),
         }))
+    }
+
+    /// Identity used for ordering and evidence.
+    pub(super) fn record_id(&self) -> &str {
+        &self.record_id
+    }
+
+    /// The explicit subject already matched against the upstream declaration.
+    pub(super) fn explicit_subject(&self) -> Option<CandidateSubject<'_>> {
+        let subject = self.response.subject.as_ref()?;
+        Some(CandidateSubject {
+            id: &subject.id,
+            keys: subject.keys.as_ref()?,
+        })
     }
 
     /// Identity used for grouping current records and per-subject results.
@@ -255,16 +289,14 @@ impl<'a> Candidate<'a> {
         match dispositions {
             None => Some(true),
             Some(_) if self.draft() => Some(false),
-            Some(dispositions) => {
-                Some(dispositions.contains(&(self.response.id.as_str(), self.hash()?)))
-            }
+            Some(dispositions) => Some(dispositions.contains(&(self.record_id(), self.hash()?))),
         }
     }
 
     /// Record the upstream id, version and immutable proof when supplied.
     pub(super) fn evidence(&self) -> Option<SelectedRecord> {
         Some(SelectedRecord {
-            response_id: self.response.id.clone(),
+            response_id: self.record_id().to_owned(),
             definition_version: self.response.definition_version.clone(),
             response_hash: if self.draft() {
                 None
@@ -343,5 +375,5 @@ pub(super) fn compare_rank(left: &Candidate<'_>, right: &Candidate<'_>) -> Order
     right
         .authored
         .cmp(&left.authored)
-        .then_with(|| left.response.id.cmp(&right.response.id))
+        .then_with(|| left.record_id().cmp(right.record_id()))
 }
