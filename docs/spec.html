@@ -8870,8 +8870,10 @@ all its current firings. Group entries record the covered paths
 <p>An <code>acknowledge</code> Shape MUST declare <code>code</code>.
 When any Shape with a given code has effective mode
 <code>acknowledge</code>, all warning Shapes sharing that code MUST have
-that effective mode. A renderer MAY use the Locale prompt for
-<code>confirm</code> or <code>explain</code> (<a
+that effective mode. A Shape without <code>code</code> shares the
+reserved default <code>SHAPE_FAILED</code> (§2.5.1) for this rule. A
+renderer MAY use the Locale prompt for <code>confirm</code> or
+<code>explain</code> (<a
 href="locale-spec.html#shape-rule-messages-and-explanation-prompts">Locale
 §3.1.6</a>).</p>
 <h4 id="composition-operators">5.2.2 Composition Operators</h4>

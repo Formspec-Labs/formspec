@@ -4640,8 +4640,9 @@ otherwise from `warningExplanation` (§4.1).
 
 An `acknowledge` Shape MUST declare `code`. When any Shape with a given code
 has effective mode `acknowledge`, all warning Shapes sharing that code MUST
-have that effective mode. A renderer MAY use the Locale prompt for `confirm` or
-`explain` ([Locale §3.1.6](../locale/locale-spec.md#shape-rule-messages-and-explanation-prompts)).
+have that effective mode. A Shape without `code` shares the reserved default
+`SHAPE_FAILED` (§2.5.1) for this rule. A renderer MAY use the Locale prompt for
+`confirm` or `explain` ([Locale §3.1.6](../locale/locale-spec.md#shape-rule-messages-and-explanation-prompts)).
 
 #### 5.2.2 Composition Operators
 

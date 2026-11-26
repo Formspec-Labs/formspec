@@ -305,4 +305,46 @@ describe('diagnose (fs-e9xa: canonical stack linter)', () => {
       expect(source).not.toContain(legacy);
     }
   });
+
+  it('surfaces E314, E317, and E318 with their own codes through diagnose() (fs-9a6k)', () => {
+    const project = createRawProject({
+      seed: {
+        definition: {
+          $formspec: '1.0',
+          url: 'urn:example:explanation-modes',
+          version: '1.0.0',
+          status: 'draft',
+          title: 'Explanation Modes',
+          warningExplanation: 'acknowledge',
+          items: [
+            { key: 'a', type: 'field', dataType: 'string', label: 'A' },
+            { key: 'b', type: 'field', dataType: 'string', label: 'B' },
+          ],
+          shapes: [
+            // E314: non-warning Shape with explanation mode other than 'none'
+            { id: 'errExplain', target: 'a', severity: 'error', explanation: 'explain', constraint: 'present($)', message: 'A is required.' },
+            // E317: acknowledge warning Shape without code (inherited from warningExplanation)
+            { id: 'ackMissingCode', target: 'a', severity: 'warning', constraint: 'present($)', message: 'A is blank.' },
+            // E318 (explicit code): acknowledge + none sharing MIXED_CODE
+            { id: 'ackMixed', target: 'a', severity: 'warning', code: 'MIXED_CODE', explanation: 'acknowledge', constraint: 'present($)', message: 'A warning.' },
+            { id: 'noneMixed', target: 'b', severity: 'warning', code: 'MIXED_CODE', explanation: 'none', constraint: 'present($)', message: 'B warning.' },
+            // E318 (reserved default SHAPE_FAILED): acknowledge declares SHAPE_FAILED while code-less none warning shares default SHAPE_FAILED
+            { id: 'ackDefaultCode', target: 'a', severity: 'warning', code: 'SHAPE_FAILED', explanation: 'acknowledge', constraint: 'present($)', message: 'A default warning.' },
+            { id: 'noneDefaultCode', target: 'b', severity: 'warning', explanation: 'none', constraint: 'present($)', message: 'B default warning.' },
+          ],
+        } as any,
+      },
+    });
+
+    const diag = project.diagnose();
+    const codes = diag.diagnostics.map((d) => d.code);
+    expect(codes).toContain('E314');
+    expect(codes).toContain('E317');
+    expect(codes.filter((c) => c === 'E318')).toHaveLength(2);
+    // Acknowledge missing code on a warning Shape MUST surface as E317, not generic E101.
+    expect(diag.diagnostics.filter((d) => d.code === 'E101' && d.path?.includes('shapes[1]'))).toEqual([]);
+    for (const entry of diag.diagnostics) {
+      expect(validateDiagnostic(entry), `${entry.code}: ${JSON.stringify(validateDiagnostic.errors)}`).toBe(true);
+    }
+  });
 });
