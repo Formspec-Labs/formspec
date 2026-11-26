@@ -106,3 +106,110 @@ test('an owed explanation counts once on both screens, its Findings row reaches 
   await expect(owed).toHaveCount(0);
   await nothingOwed(page);
 });
+
+async function expectFilingMapCounts(
+  page: Page,
+  expected: { toFix: number; toCheck: number; status: 'In progress' | 'Ready' },
+) {
+  await open(page, 'Overview');
+  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const row = tracker.locator('.fs-surface-filing__row');
+  await expect(row).toBeVisible();
+  await expect(tracker.locator('.fs-surface-filing__totals div', { hasText: 'To fix' }).locator('dd')).toHaveText(String(expected.toFix));
+  await expect(tracker.locator('.fs-surface-filing__totals div', { hasText: 'To check' }).locator('dd')).toHaveText(String(expected.toCheck));
+  if (expected.toFix) await expect(row.locator('.fs-surface-filing__fix')).toHaveText(`${expected.toFix} to fix`);
+  else await expect(row.locator('.fs-surface-filing__fix')).toHaveCount(0);
+  if (expected.toCheck) await expect(row.locator('.fs-surface-filing__check')).toHaveText(`${expected.toCheck} to check`);
+  else await expect(row.locator('.fs-surface-filing__check')).toHaveCount(0);
+  await expect(row.locator('.fs-surface-filing__status')).toHaveText(expected.status);
+}
+
+test('Submit-timing errors and none-mode Submit-timing warnings match between Filing map and Workspace Findings before and after Submit (fs-hqsy Q1)', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&auto&subject&tracker&submit&submitFindings#/filing/2025');
+  const margin = page.locator('aside.formspec-workspace__findings');
+  const fixBadge = margin.locator('.formspec-workspace__section-badge--fix');
+  const checkBadge = margin.locator('.formspec-workspace__section-badge--check');
+  const items = margin.locator('> ul > li');
+
+  // Before Submit: both Submit-timing error and none-mode Submit-timing warning appear in Workspace Findings.
+  await expect(fixBadge).toHaveText('1 to fix');
+  await expect(checkBadge).toHaveText('1 to check');
+  await expect(items).toHaveText([
+    'Error: Answer: Answer must be valid before submitting.',
+    'Warning: Notes: Notes are recommended.',
+  ]);
+  // Save draft explicitly so Filing map has a current summary before Submit.
+  await page.getByRole('button', { name: 'Save draft' }).click();
+  await expectFilingMapCounts(page, { toFix: 1, toCheck: 1, status: 'In progress' });
+
+  // Press Submit while the Submit-timing error is active -> Submit is refused, both screens still match identically.
+  await open(page, 'Filing');
+  await page.getByRole('button', { name: 'Submit report' }).click();
+  await expect(fixBadge).toHaveText('1 to fix');
+  await expect(checkBadge).toHaveText('1 to check');
+  await expect(items).toHaveText([
+    'Error: Answer: Answer must be valid before submitting.',
+    'Warning: Notes: Notes are recommended.',
+  ]);
+  await expectFilingMapCounts(page, { toFix: 1, toCheck: 1, status: 'In progress' });
+
+  // Fix the Submit-timing error, leaving only the none-mode Submit-timing warning -> both screens show 0 to fix, 1 to check, Ready.
+  await open(page, 'Filing');
+  await answer(page).fill('Valid answer');
+  await expect(fixBadge).toHaveCount(0);
+  await expect(checkBadge).toHaveText('1 to check');
+  await expect(items).toHaveText(['Warning: Notes: Notes are recommended.']);
+  await expectFilingMapCounts(page, { toFix: 0, toCheck: 1, status: 'Ready' });
+
+  // Press Submit with only the advisory none-mode warning -> Submit succeeds and Filing map reports Filed.
+  await open(page, 'Filing');
+  await page.getByRole('button', { name: 'Submit report' }).click();
+  await open(page, 'Overview');
+  const tracker = page.locator('[data-slot-type="filing-status"]');
+  await expect(tracker.getByRole('link', { name: 'Filing', exact: true })).toHaveAccessibleDescription(/^Filed\b/);
+});
+
+test('owed warning follow-ups remain amber "to check" alongside none-mode warnings and block Submit until answered (fs-hqsy Q1+Q2)', async ({ page }) => {
+  await page.goto('/surface-drafts.html?form&auto&subject&review&warnings&tracker&submit&submitFindings#/filing/2025');
+  const margin = page.locator('aside.formspec-workspace__findings');
+  const fixBadge = margin.locator('.formspec-workspace__section-badge--fix');
+  const checkBadge = margin.locator('.formspec-workspace__section-badge--check');
+  const items = margin.locator('> ul > li');
+
+  // Before Submit: 1 to fix (Submit-timing error) + 2 to check (none-mode advisoryNotes + owed UNANSWERED_QUESTIONS).
+  await expect(fixBadge).toHaveText('1 to fix');
+  await expect(checkBadge).toHaveText('2 to check');
+  await expect(items).toHaveCount(3);
+  await page.getByRole('button', { name: 'Save draft' }).click();
+  await expectFilingMapCounts(page, { toFix: 1, toCheck: 2, status: 'In progress' });
+
+  // Fix the hard Submit-timing error -> 0 to fix, 2 to check (both amber 'to check'), still In progress because owed follow-up blocks Submit.
+  await open(page, 'Filing');
+  await answer(page).fill('Valid answer');
+  await expect(fixBadge).toHaveCount(0);
+  await expect(checkBadge).toHaveText('2 to check');
+  await expect(items).toHaveText([
+    'Warning: Notes: Notes are recommended.',
+    'Warning: 1 unanswered question',
+  ]);
+  await expectFilingMapCounts(page, { toFix: 0, toCheck: 2, status: 'In progress' });
+
+  // Attempting Submit with 0 to fix, 2 to check is refused until the owed follow-up is acknowledged; counts stay identical.
+  await open(page, 'Filing');
+  await page.getByRole('button', { name: 'Submit report' }).click();
+  await expect(fixBadge).toHaveCount(0);
+  await expect(checkBadge).toHaveText('2 to check');
+  await expectFilingMapCounts(page, { toFix: 0, toCheck: 2, status: 'In progress' });
+
+  // Acknowledge the owed group follow-up -> both screens drop to 0 to fix, 1 to check (advisory none-mode warning only), Ready.
+  await open(page, 'Filing');
+  await margin.locator('li[data-follow-up="UNANSWERED_QUESTIONS"]').getByRole('link').click();
+  const review = page.locator('fieldset[data-explanation-code="UNANSWERED_QUESTIONS"]');
+  await review.getByRole('button', { name: 'Accept 1 unanswered question' }).click();
+  await expect(review.getByRole('button', { name: 'Accepted 1 unanswered question' })).toBeDisabled();
+  await open(page, 'Filing');
+  await expect(fixBadge).toHaveCount(0);
+  await expect(checkBadge).toHaveText('1 to check');
+  await expect(items).toHaveText(['Warning: Notes: Notes are recommended.']);
+  await expectFilingMapCounts(page, { toFix: 0, toCheck: 1, status: 'Ready' });
+});

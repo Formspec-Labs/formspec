@@ -1043,6 +1043,24 @@ without a filing contributes zero answers and findings and the authored
 question count. A filed form with a confirmed absent draft contributes no
 draft counts and leaves the known totals complete.
 
+**Workspace Findings parity and follow-up categorization (ADR 0175 §4.2, Core
+§5.2.1 & §5.3.1).** Both the Filing map (summarizing the saved Submit-profile
+evaluation at draft save) and the Workspace Findings margin MUST surface the
+same Submit-timing findings — including Submit-timing errors and `none`-mode
+Submit-timing warnings — before and after Submit, so both screens report
+identical `toFix` and `toCheck` counts and finding items for the same draft
+revision. To keep live keystroke latency interactive, the Workspace MUST read
+Submit-timing findings from a single off-keystroke paused Submit evaluation
+(`engine.getSubmitEvaluation()`, refreshed on mount, immediately on Submit or
+warning-answer changes, and once typing pauses) merged onto the live field and
+continuous-validation state, rather than running synchronous Submit evaluations
+per keystroke. Owed warning explanations and group acknowledgements (Core
+§5.3.1) MUST remain under amber `'to check'` (`filingCheckCount`,
+`filingSummaryToCheck`, and `filingHasCheck` in the closed Locale 2.1 string
+inventory §3.0) on both screens, distinguishing warnings from hard errors under
+`'to fix'` even though an unresolved follow-up sets `ready: false`
+(`In progress`) and blocks Submit until answered.
+
 The host's authorized filing status read selects the latest qualifying
 completed Response for the row's filing unit. A completed Response establishes
 Filed (`filed`). A review decision for the exact Response ID and hash

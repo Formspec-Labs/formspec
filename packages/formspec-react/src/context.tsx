@@ -64,7 +64,8 @@ import type {
 import type { WorkspacePage } from '@formspec-org/layout';
 import { useSignal } from './use-signal';
 import { chromeText } from './use-chrome-text';
-import { useExplanationState, type ExplanationState } from './explanation-state';
+import { useSubmitEvaluation, type ExplanationState } from './explanation-state';
+import type { SubmitEvaluationSnapshot } from '@formspec-org/engine';
 
 const platformTheme = buildPlatformTheme();
 
@@ -203,6 +204,11 @@ export interface FormspecContextValue {
     isTouched: (path: string) => boolean;
     /** The latest submit through this provider's form — null before the first. A `submit`-sourced ValidationSummary reads it. */
     latestSubmit: ReadonlyEngineSignal<SubmitResult | null>;
+    /**
+     * @internal The engine's paused Submit evaluation (`evaluated` + `explanations`), read once typing pauses
+     * and at once for an answer or a Submit, so the Findings margin and warning controls share one Submit pass.
+     */
+    submitEvaluation?: ReadonlyEngineSignal<SubmitEvaluationSnapshot | null>;
     /**
      * @internal The engine's explanation state, read once typing pauses and at once for an answer or a Submit,
      * so the warning controls and the Findings margin share one Submit evaluation. Null when nothing asks for one.
@@ -565,7 +571,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
     const touchedVersionSignal = useMemo(() => signal(0), []);
     const latestSubmitSignal = useMemo(() => signal<SubmitResult | null>(null), []);
     const recordSubmit = useCallback((result: SubmitResult) => { latestSubmitSignal.value = result; }, [latestSubmitSignal]);
-    const explanationState = useExplanationState(engine, latestSubmitSignal);
+    const { submitEvaluation, explanationState } = useSubmitEvaluation(engine, latestSubmitSignal);
     const fieldJumpHandlerRef = useRef<((path: string, options?: { notifyRoute?: boolean }) => boolean) | null>(null);
     const registerFieldJump = useCallback((handler: ((path: string, options?: { notifyRoute?: boolean }) => boolean) | null) => {
         fieldJumpHandlerRef.current = handler;
@@ -669,6 +675,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             touchedVersion: touchedVersionSignal,
             isTouched,
             latestSubmit: latestSubmitSignal,
+            submitEvaluation,
             explanationState,
             recordSubmit,
             registryEntries: registryMap,
@@ -680,7 +687,7 @@ export function FormspecProvider(props: FormspecProviderProps) {
             registerFieldJump,
             jumpToField,
         }),
-        [engine, layoutPlan, workspace, workspaceNavigation, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, admittedResponseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, onControlActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, latestSubmitSignal, explanationState, recordSubmit, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation, setShowValidationSummaryAttr, registerFieldJump, jumpToField],
+        [engine, layoutPlan, workspace, workspaceNavigation, components, effectiveThemeDocument, shouldEmitThemeTokens, componentDocument, componentGraph, hostEvidence, admittedResponseActionsDocument, semanticControlScope, onSubmit, onHostEvent, onActionFinding, onActionResult, onControlActionResult, responseActionInvoker, evaluateActionPrecondition, dispatchActionEffect, resolveActionIdempotencyKey, resolveActionRef, currentSemanticResponseBinding, advanceSemanticResponseRevision, touchField, touchAllFields, touchedVersionSignal, isTouched, latestSubmitSignal, submitEvaluation, explanationState, recordSubmit, registryMap, resolveFieldHelp, admitFieldHelpUri, fieldHelpLabel, mergedFormPresentation, setShowValidationSummaryAttr, registerFieldJump, jumpToField],
     );
 
     return (

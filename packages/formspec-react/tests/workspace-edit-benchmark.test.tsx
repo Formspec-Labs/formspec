@@ -173,42 +173,46 @@ describe('450-field Workspace keystroke benchmark (fs-3kek)', () => {
                 return performance.now() - start;
             };
 
+            const submitReads = vi.spyOn(engine, 'getSubmitEvaluation');
             const explanationReads = vi.spyOn(engine, 'getExplanationState');
 
             // Phase 1: clean edits before any live warning or Submit
             const cleanSamples: number[] = [];
+            submitReads.mockClear();
             explanationReads.mockClear();
             for (let i = 0; i < 6; i++) {
                 cleanSamples.push(typeValue(String(10 + i)));
             }
-            const cleanReads = explanationReads.mock.calls.length;
+            const cleanReads = submitReads.mock.calls.length + explanationReads.mock.calls.length;
 
             // Phase 2: live warning active (q1 > 500)
             typeValue('600');
             const liveWarnSamples: number[] = [];
+            submitReads.mockClear();
             explanationReads.mockClear();
             for (let i = 0; i < 6; i++) {
                 liveWarnSamples.push(typeValue(String(601 + i)));
             }
-            const liveWarnReads = explanationReads.mock.calls.length;
+            const liveWarnReads = submitReads.mock.calls.length + explanationReads.mock.calls.length;
 
             // Phase 3: after Submit with warnings (return q1 below live warning threshold)
             typeValue('100');
             const root = host.querySelector<WalkBridgeElement>('[data-formspec-render-root]')!;
             act(() => { root.submit?.({ emitEvent: false }); });
             const postSubmitSamples: number[] = [];
+            submitReads.mockClear();
             explanationReads.mockClear();
             for (let i = 0; i < 6; i++) {
                 postSubmitSamples.push(typeValue(String(101 + i)));
             }
-            const postSubmitReads = explanationReads.mock.calls.length;
+            const postSubmitReads = submitReads.mock.calls.length + explanationReads.mock.calls.length;
 
             const sClean = stats(cleanSamples);
             const sLive = stats(liveWarnSamples);
             const sPost = stats(postSubmitSamples);
-            console.log(`  [fs-3kek react] clean edit:       mean=${sClean.mean.toFixed(2)}ms p50=${sClean.p50.toFixed(2)}ms p95=${sClean.p95.toFixed(2)}ms explanationReads=${cleanReads}`);
-            console.log(`  [fs-3kek react] live-warn edit:   mean=${sLive.mean.toFixed(2)}ms p50=${sLive.p50.toFixed(2)}ms p95=${sLive.p95.toFixed(2)}ms explanationReads=${liveWarnReads}`);
-            console.log(`  [fs-3kek react] post-submit edit: mean=${sPost.mean.toFixed(2)}ms p50=${sPost.p50.toFixed(2)}ms p95=${sPost.p95.toFixed(2)}ms explanationReads=${postSubmitReads}`);
+            console.log(`  [fs-3kek react] clean edit:       mean=${sClean.mean.toFixed(2)}ms p50=${sClean.p50.toFixed(2)}ms p95=${sClean.p95.toFixed(2)}ms submitReads=${cleanReads}`);
+            console.log(`  [fs-3kek react] live-warn edit:   mean=${sLive.mean.toFixed(2)}ms p50=${sLive.p50.toFixed(2)}ms p95=${sLive.p95.toFixed(2)}ms submitReads=${liveWarnReads}`);
+            console.log(`  [fs-3kek react] post-submit edit: mean=${sPost.mean.toFixed(2)}ms p50=${sPost.p50.toFixed(2)}ms p95=${sPost.p95.toFixed(2)}ms submitReads=${postSubmitReads}`);
 
             // fs-3kek invariants: zero Submit evaluations during typing (<=1 live eval per edit).
             // Wall-clock <50ms p50 budget is enforced under FORMSPEC_BENCH_STRICT=1 (uncontested run)
@@ -234,7 +238,8 @@ describe('450-field Workspace keystroke benchmark (fs-3kek)', () => {
             const host = actRender(<FormspecForm engine={engine} />);
             const input = host.querySelector<HTMLInputElement>('[data-name="roster.entries[0].q1"] input')!;
             const setInput = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
-            const reads = vi.spyOn(engine, 'getExplanationState');
+            const submitReads = vi.spyOn(engine, 'getSubmitEvaluation');
+            const explanationReads = vi.spyOn(engine, 'getExplanationState');
             for (const val of ['600', '601', '602']) {
                 act(() => {
                     setInput.call(input, val);
@@ -242,9 +247,11 @@ describe('450-field Workspace keystroke benchmark (fs-3kek)', () => {
                 });
                 act(() => { vi.advanceTimersByTime(100); });
             }
-            expect(reads).not.toHaveBeenCalled();
+            expect(submitReads).not.toHaveBeenCalled();
+            expect(explanationReads).not.toHaveBeenCalled();
             act(() => { vi.advanceTimersByTime(250); });
-            expect(reads).toHaveBeenCalledTimes(1);
+            expect(submitReads).toHaveBeenCalledTimes(1);
+            expect(explanationReads).not.toHaveBeenCalled();
             const control = host.querySelector('[data-shape-id="liveRangeWarning"][data-explanation-path="roster.entries[0].q1"]');
             expect(control).not.toBeNull();
         } finally {

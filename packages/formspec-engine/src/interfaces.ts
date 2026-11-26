@@ -528,6 +528,8 @@ export interface IFormEngine {
     getExplanationState(): ExplanationState;
     /** Whether any warning Shape on this Definition declares an explanation mode other than `'none'`. */
     hasWarningExplanations?(): boolean;
+    /** Whether any Shape on this Definition declares `timing: 'submit'`. */
+    hasSubmitTimingShapes?(): boolean;
     /** Evaluates Submit once and returns both the Submit `EvaluatedFormState` and `ExplanationState`. */
     getSubmitEvaluation?(): SubmitEvaluationSnapshot;
     /** Monotonic signal incremented on each evaluation (live edits, instance updates, repeats). */

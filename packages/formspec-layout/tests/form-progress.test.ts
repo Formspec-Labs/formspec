@@ -574,3 +574,82 @@ it('tags blank required findings as untouchedRequired until surfaced and attribu
     ]);
     expect(submitted.findings.some(f => f.untouchedRequired)).toBe(false);
 });
+
+describe('mergeSubmitTimingFindings (fs-hqsy)', () => {
+    const plan = layout.resolvePageSequence(definition, { component });
+    const row0Amount = 'Accounts[0].rows[0].amount';
+    const row1Amount = 'Accounts[1].rows[0].amount';
+    const fields = [
+        { path: row0Amount, relevant: true, readonly: false, required: false, empty: false },
+        { path: 'note', relevant: true, readonly: false, required: false, empty: false },
+    ];
+    const mkReport = (results: ValidationResult[]) => ({
+        $formspecValidationReport: '1.0' as const,
+        timestamp: '2026-01-01T00:00:00Z',
+        valid: results.every(r => r.severity !== 'error'),
+        results,
+    });
+
+    it('merges Submit-timing errors and none-mode Submit-timing warnings to match the Submit summary', () => {
+        const submitError = result(row0Amount, 'error', 'SUBMIT_ERR', { shapeId: 'submitErr', source: 'shape', constraintKind: 'shape' });
+        const noneWarning = result('note', 'warning', 'ADVISORY', { shapeId: 'advisoryNote', source: 'shape', constraintKind: 'shape' });
+        const liveState = { fields, report: mkReport([]) };
+        const submitState = { fields, report: mkReport([submitError, noneWarning]) };
+        const submitShapeIds = new Set(['submitErr', 'advisoryNote']);
+
+        const merged = layout.mergeSubmitTimingFindings(liveState, submitState, submitShapeIds, null);
+        expect(merged.report?.valid).toBe(false);
+        const fromMerged = layout.summarizeFormProgress(plan, merged, null);
+        const fromSubmit = layout.summarizeFormProgress(plan, submitState, null);
+        expect(fromMerged.form).toEqual(fromSubmit.form);
+        expect(fromMerged.sections).toEqual(fromSubmit.sections);
+        expect(fromMerged.findings.map(f => f.identity)).toEqual(fromSubmit.findings.map(f => f.identity));
+    });
+
+    it('omits explanation-covered Submit-timing warnings (owed or answered) while keeping none-mode warnings sharing the same code', () => {
+        const ackWarning = result(row0Amount, 'warning', 'SHARED_CODE', { shapeId: 'ackShape', source: 'shape', constraintKind: 'shape' });
+        const noneWarning = result('note', 'warning', 'SHARED_CODE', { shapeId: 'noneShape', source: 'shape', constraintKind: 'shape' });
+        const explainWarning = result(row0Amount, 'warning', 'EXPLAIN_CODE', { shapeId: 'explainShape', source: 'shape', constraintKind: 'shape' });
+        const liveState = { fields, report: mkReport([]) };
+        const submitState = { fields, report: mkReport([ackWarning, noneWarning, explainWarning]) };
+        const submitShapeIds = new Set(['ackShape', 'noneShape', 'explainShape']);
+        const explanations: layout.ExplanationStateLike = {
+            instances: [{ shapeId: 'explainShape', path: row0Amount, current: true }],
+            groups: [{ code: 'SHARED_CODE', shapeIds: ['ackShape'], paths: [row0Amount], current: true }],
+        };
+
+        const merged = layout.mergeSubmitTimingFindings(liveState, submitState, submitShapeIds, explanations);
+        expect(merged.report?.results).toEqual([noneWarning]);
+        const summary = layout.summarizeFormProgress(plan, merged, explanations);
+        expect(summary.form).toMatchObject({ toFix: 0, toCheck: 1, followUps: 0, ready: true });
+        expect(summary.findings.map(f => f.result.shapeId)).toEqual(['noneShape']);
+    });
+
+    it('drops stale Submit-timing findings immediately when a field becomes non-relevant or its repeat row is removed', () => {
+        const hiddenErr = result('note', 'error', 'HIDDEN_ERR', { shapeId: 'submitHidden', source: 'shape', constraintKind: 'shape' });
+        const removedRowErr = result(row1Amount, 'error', 'REMOVED_ROW', { shapeId: 'submitRow', source: 'shape', constraintKind: 'shape' });
+        const rootWarn = result('#', 'warning', 'ROOT_WARN', { shapeId: 'submitRoot', source: 'shape', constraintKind: 'shape' });
+        const liveState = {
+            fields: [
+                { path: row0Amount, relevant: true, readonly: false, required: false, empty: false },
+                { path: 'note', relevant: false, readonly: false, required: false, empty: false },
+            ],
+            report: mkReport([]),
+        };
+        const submitState = {
+            fields: [
+                { path: row0Amount, relevant: true, readonly: false, required: false, empty: false },
+                { path: row1Amount, relevant: true, readonly: false, required: false, empty: false },
+                { path: 'note', relevant: true, readonly: false, required: false, empty: false },
+            ],
+            report: mkReport([hiddenErr, removedRowErr, rootWarn]),
+        };
+        const merged = layout.mergeSubmitTimingFindings(
+            liveState,
+            submitState,
+            new Set(['submitHidden', 'submitRow', 'submitRoot']),
+            null,
+        );
+        expect(merged.report?.results).toEqual([rootWarn]);
+    });
+});

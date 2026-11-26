@@ -200,6 +200,59 @@ export function declaresWarningFollowUps({ shapes, warningExplanation }: Pick<Fo
 }
 
 /**
+ * Merge Submit-timing Shape results from a paused Submit evaluation into a live `EvaluatedFormState`
+ * so the Workspace Findings margin matches the Filing map before and after Submit (including
+ * Submit-timing errors and `none`-mode Submit-timing warnings) while keeping live field flags fresh
+ * on every keystroke and avoiding duplicate raw rows for explanation-covered Submit-timing warnings.
+ */
+export function mergeSubmitTimingFindings(
+    liveState: EvaluatedFormState,
+    submitState: EvaluatedFormState | null,
+    submitShapeIds: ReadonlySet<string>,
+    explanationState: ExplanationStateLike | null,
+): EvaluatedFormState {
+    if (!submitState || !liveState.report || !submitState.report || submitShapeIds.size === 0) {
+        return liveState;
+    }
+    const liveRelevant = new Map(liveState.fields.map(field => [field.path, field.relevant]));
+    const submitFieldPaths = new Set(submitState.fields.map(field => field.path));
+    const seen = new Set(liveState.report.results.map(validationResultIdentity));
+    const coveredInstances = new Set<string>();
+    const coveredGroups = new Map<string, { shapeIds: ReadonlySet<string>; paths: ReadonlySet<string> }>();
+    for (const { shapeId, path } of explanationState?.instances ?? []) {
+        coveredInstances.add(instanceKey(shapeId, path));
+    }
+    for (const { code, shapeIds, paths } of explanationState?.groups ?? []) {
+        coveredGroups.set(code, { shapeIds: new Set(shapeIds), paths: new Set(paths) });
+    }
+    const added: ValidationResult[] = [];
+    for (const result of submitState.report.results) {
+        if (result.constraintKind !== 'shape' || result.source === 'external') continue;
+        if (!result.shapeId || !submitShapeIds.has(result.shapeId)) continue;
+        if (liveRelevant.get(result.path) === false) continue;
+        if (submitFieldPaths.has(result.path) && !liveRelevant.has(result.path)) continue;
+        if (result.severity === 'warning') {
+            if (coveredInstances.has(instanceKey(result.shapeId, result.path))) continue;
+            const group = result.code === undefined ? undefined : coveredGroups.get(result.code);
+            if (group && group.shapeIds.has(result.shapeId) && group.paths.has(result.path)) continue;
+        }
+        const identity = validationResultIdentity(result);
+        if (seen.has(identity)) continue;
+        seen.add(identity);
+        added.push(result);
+    }
+    if (added.length === 0) return liveState;
+    return {
+        fields: liveState.fields,
+        report: {
+            ...liveState.report,
+            valid: liveState.report.valid && added.every(result => result.severity !== 'error'),
+            results: [...liveState.report.results, ...added],
+        },
+    };
+}
+
+/**
  * Count one evaluation for progress. `explanationState` is the engine's explanation state, or `null` where
  * no warning asks for an answer: without it an answered follow-up is counted again as its warnings.
  */

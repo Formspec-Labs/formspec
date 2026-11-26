@@ -3,6 +3,7 @@ import React, { act, useState } from 'react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { createAssistProvider } from '@formspec-org/assist';
 import { createFormEngine, initFormspecEngine } from '@formspec-org/engine';
+import { resolvePageSequence, summarizeFormProgress } from '@formspec-org/layout';
 import type { ComponentDocument, FormDefinition, ThemeDocument } from '@formspec-org/types';
 import type { FieldComponentProps } from '../src/component-map';
 import { FormspecProvider, useFormspecContext } from '../src/context';
@@ -650,14 +651,17 @@ describe('owed warning follow-ups in the Findings margin', () => {
         try {
             const engine = createFormEngine(followUps);
             const host = actRender(<FormspecForm engine={engine} />);
-            const reads = vi.spyOn(engine, 'getExplanationState');
+            const submitReads = vi.spyOn(engine, 'getSubmitEvaluation');
+            const explanationReads = vi.spyOn(engine, 'getExplanationState');
             for (const notes of ['N', 'No', 'Not', 'Note', 'Notes']) {
                 act(() => { engine.setValue('followup.notes', notes); });
                 act(() => { vi.advanceTimersByTime(100); });
             }
-            expect(reads).not.toHaveBeenCalled();
+            expect(submitReads).not.toHaveBeenCalled();
+            expect(explanationReads).not.toHaveBeenCalled();
             act(() => { vi.advanceTimersByTime(250); });
-            expect(reads).toHaveBeenCalledTimes(1);
+            expect(submitReads).toHaveBeenCalledTimes(1);
+            expect(explanationReads).not.toHaveBeenCalled();
             expect(margin(host).querySelector('.formspec-workspace__findings-summary')?.textContent).toBe('1 to check');
             expect(rows(host).map(row => row.textContent)).toEqual(['Warning: 1 unanswered question']);
             // An answer is not a keystroke: accepting the group clears it at once.
@@ -712,5 +716,129 @@ describe('owed warning follow-ups in the Findings margin', () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+});
+
+describe('Submit-timing findings parity in the Findings margin (fs-hqsy)', () => {
+    const submitOnlyDef = {
+        $formspec: '1.0', url: 'urn:test:workspace-submit-findings', version: '1.0.0', title: 'Filing',
+        formPresentation: { pageMode: 'workspace' },
+        items: [
+            { key: 'summary', type: 'group', label: 'Summary', children: [
+                { key: 'answer', type: 'field', dataType: 'string', label: 'Answer' },
+            ] },
+            { key: 'followup', type: 'group', label: 'Follow-up', children: [
+                { key: 'notes', type: 'field', dataType: 'string', label: 'Notes' },
+            ] },
+        ],
+        shapes: [
+            { id: 'submitError', target: 'summary.answer', severity: 'error', timing: 'submit',
+                code: 'SUBMIT_ANSWER_REQUIRED', constraint: 'present($) and $ != "Blocked"',
+                message: 'Answer must be valid before submitting.' },
+            { id: 'advisoryNotes', target: 'followup.notes', severity: 'warning', timing: 'submit',
+                explanation: 'none', code: 'ADVISORY_NOTES', constraint: 'present($)',
+                message: 'Notes are recommended.' },
+        ],
+    } as unknown as FormDefinition;
+
+    const margin = (host: ParentNode) => host.querySelector<HTMLElement>('.formspec-workspace__findings')!;
+    const rows = (host: ParentNode) => Array.from(host.querySelectorAll<HTMLLIElement>('.formspec-workspace__findings > ul > li'));
+
+    it('shows Submit-timing errors and none-mode Submit-timing warnings before and after Submit with paused keystroke reads', () => {
+        vi.useFakeTimers();
+        try {
+            const engine = createFormEngine(submitOnlyDef);
+            expect(engine.hasWarningExplanations()).toBe(false);
+            expect(engine.hasSubmitTimingShapes()).toBe(true);
+            const host = actRender(<FormspecForm engine={engine} />);
+
+            // Before Submit: Findings margin matches Submit-profile counts (1 to fix, 1 to check) and renders both rows.
+            const sections = resolvePageSequence(submitOnlyDef);
+            const expectedBefore = summarizeFormProgress(sections, engine.getSubmitEvaluation().evaluated, null);
+            expect(expectedBefore.form).toMatchObject({ toFix: 1, toCheck: 1, ready: false });
+            expect(margin(host).querySelector('.formspec-workspace__section-badge--fix')?.textContent?.trim()).toBe('1 to fix');
+            expect(margin(host).querySelector('.formspec-workspace__section-badge--check')?.textContent?.trim()).toBe('1 to check');
+            expect(rows(host).map(r => r.textContent)).toEqual([
+                'Error: Answer: Answer must be valid before submitting.',
+                'Warning: Notes: Notes are recommended.',
+            ]);
+            // Section rail badges match section-level counts before Submit.
+            const summaryItem = host.querySelector('button[data-formspec-section="summary"]')!.parentElement!;
+            const followupItem = host.querySelector('button[data-formspec-section="followup"]')!.parentElement!;
+            expect(summaryItem.querySelector('.formspec-workspace__section-badge--fix')?.textContent).toBe('1');
+            expect(followupItem.querySelector('.formspec-workspace__section-badge--check')?.textContent).toBe('1');
+
+            // Pressing Submit keeps identical counts and rows (refused Submit).
+            const root = host.querySelector<WalkBridgeElement>('[data-formspec-render-root]')!;
+            const firstSubmit = act(() => root.submit?.({ emitEvent: false }));
+            void firstSubmit;
+            expect(margin(host).querySelector('.formspec-workspace__section-badge--fix')?.textContent?.trim()).toBe('1 to fix');
+            expect(margin(host).querySelector('.formspec-workspace__section-badge--check')?.textContent?.trim()).toBe('1 to check');
+            expect(rows(host)).toHaveLength(2);
+
+            // Rapid typing must NOT trigger synchronous Submit evaluations; after 250ms pause, one read updates counts.
+            const submitReads = vi.spyOn(engine, 'getSubmitEvaluation');
+            for (const value of ['V', 'Va', 'Val', 'Valid']) {
+                act(() => { engine.setValue('summary.answer', value); });
+                act(() => { vi.advanceTimersByTime(100); });
+            }
+            expect(submitReads).not.toHaveBeenCalled();
+            act(() => { vi.advanceTimersByTime(250); });
+            expect(submitReads).toHaveBeenCalledTimes(1);
+
+            const expectedAfterFix = summarizeFormProgress(sections, engine.getSubmitEvaluation().evaluated, null);
+            expect(expectedAfterFix.form).toMatchObject({ toFix: 0, toCheck: 1, ready: true });
+            expect(margin(host).querySelector('.formspec-workspace__section-badge--fix')).toBeNull();
+            expect(margin(host).querySelector('.formspec-workspace__section-badge--check')?.textContent?.trim()).toBe('1 to check');
+            expect(rows(host).map(r => r.textContent)).toEqual(['Warning: Notes: Notes are recommended.']);
+
+            // Jumping from the none-mode warning focuses the Notes control in the Follow-up section.
+            act(() => { rows(host)[0].querySelector('button')!.click(); });
+            expect(document.activeElement).toBe(control(host, 'followup.notes'));
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('keeps owed warning follow-ups under amber "to check" alongside none-mode warnings while hard errors stay under "to fix" (Q2)', () => {
+        const combinedDef = {
+            ...submitOnlyDef,
+            url: 'urn:test:workspace-submit-findings-q2',
+            warningExplanation: 'acknowledge',
+            shapes: [
+                ...(submitOnlyDef.shapes ?? []),
+                { id: 'blankAnswerAck', target: 'followup.notes', severity: 'warning', timing: 'submit',
+                    code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Notes are unanswered.' },
+            ],
+        } as unknown as FormDefinition;
+        const engine = createFormEngine(combinedDef);
+        const host = actRender(<FormspecForm engine={engine} />);
+        const sections = resolvePageSequence(combinedDef);
+        const checkParity = () => {
+            const { evaluated, explanations } = engine.getSubmitEvaluation();
+            return summarizeFormProgress(sections, evaluated, explanations).form;
+        };
+
+        // 1 to fix (submitError), 2 to check (advisoryNotes + owed UNANSWERED_QUESTIONS follow-up)
+        expect(checkParity()).toMatchObject({ toFix: 1, toCheck: 2, followUps: 1, ready: false });
+        expect(margin(host).querySelector('.formspec-workspace__section-badge--fix')?.textContent?.trim()).toBe('1 to fix');
+        expect(margin(host).querySelector('.formspec-workspace__section-badge--check')?.textContent?.trim()).toBe('2 to check');
+
+        // Fix hard error -> 0 to fix, 2 to check, still not ready (owed follow-up blocks Submit).
+        act(() => { engine.setValue('summary.answer', 'Valid'); });
+        const root = host.querySelector<WalkBridgeElement>('[data-formspec-render-root]')!;
+        let submitResult: ReturnType<NonNullable<WalkBridgeElement['submit']>>;
+        act(() => { submitResult = root.submit?.({ emitEvent: false }); });
+        expect(submitResult!.validationReport?.valid).toBe(false);
+        expect(checkParity()).toMatchObject({ toFix: 0, toCheck: 2, followUps: 1, ready: false });
+        expect(margin(host).querySelector('.formspec-workspace__section-badge--fix')).toBeNull();
+        expect(margin(host).querySelector('.formspec-workspace__section-badge--check')?.textContent?.trim()).toBe('2 to check');
+
+        // Acknowledge group -> 0 to fix, 1 to check (advisory none-mode warning only), ready = true.
+        act(() => { engine.acknowledge('UNANSWERED_QUESTIONS'); });
+        expect(checkParity()).toMatchObject({ toFix: 0, toCheck: 1, followUps: 0, ready: true });
+        expect(margin(host).querySelector('.formspec-workspace__section-badge--fix')).toBeNull();
+        expect(margin(host).querySelector('.formspec-workspace__section-badge--check')?.textContent?.trim()).toBe('1 to check');
+        expect(rows(host).map(r => r.textContent)).toEqual(['Warning: Notes: Notes are recommended.']);
     });
 });

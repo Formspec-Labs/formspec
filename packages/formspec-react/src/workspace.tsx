@@ -4,7 +4,7 @@
 import React, { createContext, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { computed } from '@preact/signals-core';
 import {
-    placementCovers, placementKey, readFormProgressFindingRows, readFormProgressFollowUpRows,
+    mergeSubmitTimingFindings, placementCovers, placementKey, readFormProgressFindingRows, readFormProgressFollowUpRows,
     stripSeverityPrefix, summarizeFormProgress, warningAcknowledgementLegend, type LayoutNode, type ProgressFollowUp,
 } from '@formspec-org/layout';
 import type { IFormEngine } from '@formspec-org/engine';
@@ -143,7 +143,7 @@ function useSectionTitle(
 export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: WorkspacePage[] }) {
     const {
         engine, workspaceNavigation, touchField, touchedVersion, isTouched, latestSubmit, registerFieldJump,
-        explanationState: explanationStateSignal,
+        submitEvaluation: submitEvaluationSignal, explanationState: explanationStateSignal,
     } = useFormspecContext();
     const chrome = useChromeText();
     const formTitle = useSignal(useMemo(() => engine.getFormVM(), [engine]).title);
@@ -195,12 +195,31 @@ export function Workspace({ root, pages: allPages }: { root: LayoutNode; pages: 
     useSectionTitle(active?.id ? titles[activeIndex] : undefined,
         workspaceNavigation?.onSectionTitleChange, workspaceNavigation?.updateDocumentTitle);
 
-    const snapshot = useSignal(useMemo(() => computed(() => engine.getEvaluatedFormState()), [engine]));
+    const liveSnapshot = useSignal(useMemo(() => computed(() => engine.getEvaluatedFormState()), [engine]));
     const touchedTick = useSignal(touchedVersion);
     const submitted = useSignal(latestSubmit);
-    // The live report omits Submit-timing Shapes, so what the respondent owes comes from the explanation
-    // state the provider reads once typing pauses (and at once for an answer or a Submit).
+    // The live report omits Submit-timing Shapes, so Submit-timing findings and owed warning answers come
+    // from one paused Submit evaluation (read on mount, once typing pauses, and immediately on answer/Submit).
+    const submitEvaluation = useSignal(useMemo(
+        () => submitEvaluationSignal ?? computed(() => null),
+        [submitEvaluationSignal],
+    ));
     const explanationState = useSignal(explanationStateSignal);
+    const submitShapeIds = useMemo(() => new Set(
+        (engine.getDefinition?.()?.shapes ?? [])
+            .filter((shape): shape is typeof shape & { id: string } =>
+                (shape.timing ?? 'continuous') === 'submit' && typeof shape.id === 'string')
+            .map(shape => shape.id),
+    ), [engine]);
+    const snapshot = useMemo(
+        () => mergeSubmitTimingFindings(
+            liveSnapshot,
+            submitEvaluation?.evaluated ?? null,
+            submitShapeIds,
+            explanationState,
+        ),
+        [liveSnapshot, submitEvaluation, submitShapeIds, explanationState],
+    );
     // Answer edits refresh the snapshot. Search only needs to revisit membership when relevant paths change.
     const relevantPaths = useMemo(() => snapshot.fields.filter(field => field.relevant).map(field => field.path).join('\n'), [snapshot]);
     const relevant = useMemo(() => new Set(relevantPaths ? relevantPaths.split('\n') : []), [relevantPaths]);

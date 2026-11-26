@@ -29,7 +29,10 @@ const idCollision = query.has('idCollision');
 const warnings = query.has('warnings');
 // With `warnings`, an explain-mode warning on Answer: an instance follow-up beside the group acknowledgement.
 const explain = query.has('explain');
-const component: ComponentDocument = warnings ? {
+// Submit-timing error + none-mode Submit-timing warning for Filing map / Workspace Findings parity (fs-hqsy).
+const submitFindings = query.has('submitFindings');
+const useWorkspaceSections = warnings || submitFindings;
+const component: ComponentDocument = useWorkspaceSections ? {
   $formspecComponent: '1.0', version: '1.0.0', targetDefinition: { url: definition },
   formPresentation: { pageMode: 'workspace' },
   tree: { component: 'Stack', children: [
@@ -212,18 +215,26 @@ const source = {
         { key: 'show', type: 'field', dataType: 'boolean', label: 'Show detail' },
         { key: 'detail', type: 'field', dataType: 'string', label: 'Detail',
           ...(hydration && { prePopulate: { instance: 'accepted', path: 'result' } }) },
-        ...(warnings ? [{ key: 'notes', type: 'field', dataType: 'string', label: 'Notes' }] : []),
+        ...(useWorkspaceSections ? [{ key: 'notes', type: 'field', dataType: 'string', label: 'Notes' }] : []),
         { key: 'rows', type: 'group', repeatable: true, label: 'Rows',
           children: [{ key: 'row', type: 'field', dataType: 'string', label: 'Row value' }] },
       ],
-      ...(warnings && {
-        warningExplanation: 'acknowledge',
+      ...(useWorkspaceSections && {
+        ...(warnings && { warningExplanation: 'acknowledge' }),
         shapes: [
-          { id: 'blankAnswer', target: 'answer', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Answer is unanswered.' },
-          { id: 'blankDetail', target: 'detail', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Detail is unanswered.' },
-          { id: 'blankNotes', target: 'notes', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Notes is unanswered.' },
-          ...(explain ? [{ id: 'unusualAnswer', target: 'answer', severity: 'warning', timing: 'submit', explanation: 'explain',
-            code: 'UNUSUAL_ANSWER', constraint: "$ != 'Unusual'", message: 'Answer is unusual.' }] : []),
+          ...(warnings ? [
+            { id: 'blankAnswer', target: 'answer', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Answer is unanswered.' },
+            { id: 'blankDetail', target: 'detail', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Detail is unanswered.' },
+            { id: 'blankNotes', target: 'notes', severity: 'warning', timing: 'submit', code: 'UNANSWERED_QUESTIONS', constraint: 'present($)', message: 'Notes is unanswered.' },
+            ...(explain ? [{ id: 'unusualAnswer', target: 'answer', severity: 'warning', timing: 'submit', explanation: 'explain',
+              code: 'UNUSUAL_ANSWER', constraint: "$ != 'Unusual'", message: 'Answer is unusual.' }] : []),
+          ] : []),
+          ...(submitFindings ? [
+            { id: 'submitError', target: 'answer', severity: 'error', timing: 'submit', code: 'ANSWER_REQUIRED_AT_SUBMIT',
+              constraint: "present($) and $ != 'Blocked'", message: 'Answer must be valid before submitting.' },
+            { id: 'advisoryNotes', target: 'notes', severity: 'warning', timing: 'submit', explanation: 'none',
+              code: 'ADVISORY_NOTES', constraint: 'present($)', message: 'Notes are recommended.' },
+          ] : []),
         ],
       }),
       binds: hydration ? [{ path: 'answer', calculate: "@instance('roster').result & '/' & @instance('sibling').result" }]
