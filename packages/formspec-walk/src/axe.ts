@@ -396,10 +396,37 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
     /** Index of the page showing now. */
     const active = async () => panelSelector ? (await pager()).index : 0;
 
+    /** Wait two animation frames so DOM/Lit/custom-element updates flush without sleeping 100 ms. */
+    const settleDom = () => page.evaluate(() =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+
+    /** Wait up to 150 ms for the active panel index to change after a navigation click. */
+    const waitForPageChange = (fromIndex: number) => page.evaluate(({ sel, panelSel, from }) => {
+        const currentIndex = () => {
+            const container = document.querySelector(sel);
+            if (!container) return -1;
+            const nodes = Array.from(container.querySelectorAll(panelSel));
+            const cur = nodes.findIndex(panel => panel.checkVisibility());
+            const step = (nodes[cur] as HTMLElement | undefined)?.dataset;
+            return Number(step?.stepIndex ?? cur);
+        };
+        const immediate = currentIndex();
+        if (immediate !== from) return immediate;
+        return new Promise<number>((resolve) => {
+            const deadline = performance.now() + 150;
+            const tick = () => {
+                const cur = currentIndex();
+                if (cur !== from || performance.now() >= deadline) return resolve(cur);
+                requestAnimationFrame(tick);
+            };
+            requestAnimationFrame(tick);
+        });
+    }, { sel: rootSelector, panelSel: panelSelector!, from: fromIndex });
+
     /** Show page `index`: tabs by clicking its tab, a wizard by its Next / Previous buttons. */
     const goTo = async (index: number): Promise<void> => {
+        let now = await active();
         for (let guard = 0; guard <= drawn * 2; guard += 1) {
-            const now = await active();
             if (now === index) return;
             if (mode === 'tabs') {
                 await page.locator(`${rootSelector} ${TAB}`).nth(index).click();
@@ -410,13 +437,14 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
                 }
                 await button.first().click();
             }
-            await page.waitForTimeout(100);
-            if ((await active()) === now) {
+            const next = await waitForPageChange(now);
+            if (next === now) {
                 if (mode === 'wizard' && index > now && await root.locator(`${WIZARD_PANEL}:visible [aria-invalid="true"]:visible`).count()) {
                     throw new PageCoverageError(`Wizard validation kept the form on page ${now + 1}; page ${index + 1} was not reached`, result);
                 }
                 throw new RendererError(`the form stayed on page ${now + 1} when asked to show page ${index + 1}`);
             }
+            now = next;
         }
         throw new RendererError(`page ${index + 1} was not reached`);
     };
@@ -440,7 +468,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
         added.push(...step.added);
         step.stuck.forEach((p) => stuck.add(p));
         if (!step.added.length) break;
-        await page.waitForTimeout(100);
+        await settleDom();
     }
     for (const path of stuck) {
         result.needsReview.push(reviewFinding('page-load', 'formspec-unreached-repeat', `Repeatable group ${path} has no rows and cannot take one, so the fields inside it were not checked`, path));
@@ -451,17 +479,90 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
     }, { sel: rootSelector, rows: added });
 
     const scannedFields = new Set<string>();
-    const visibleFields = () => root.locator('[data-name]:visible').evaluateAll(nodes =>
-        nodes.filter(node => !node.closest('[aria-hidden="true"],[inert]'))
-            .map(node => node.getAttribute('data-name')!));
+    const includeSelector = options.root && !options.scanWholePage ? options.root : null;
+    const visibleFields = () => page.evaluate((sel) => {
+        const container = document.querySelector(sel);
+        if (!container) return [] as string[];
+        const out: string[] = [];
+        for (const node of container.querySelectorAll('[data-name]')) {
+            if ((node as HTMLElement).checkVisibility({ checkVisibilityCSS: true })
+                && !node.closest('[aria-hidden="true"],[inert]')) {
+                const name = node.getAttribute('data-name');
+                if (name) out.push(name);
+            }
+        }
+        return out;
+    }, rootSelector);
+    // Reuse the injected window.axe runtime on single-frame pages instead of re-injecting the
+    // ~560 KB axe-core bundle over CDP on every page/tab/reveal state. Multi-frame pages continue
+    // through AxeBuilder so child frames are scanned identically.
+    let axeInjected = false;
     const analyse = async (id: string, kind: AxeState['kind'], step: number) => {
         const started = performance.now();
-        const scan = new AxeBuilder({ page }).withTags([...WCAG_TAGS]);
-        if (options.root && !options.scanWholePage) scan.include(options.root);
-        // A field must be visible on both sides of the completed scan to count as covered.
-        const before = new Set(await visibleFields());
-        const axe = await scan.analyze();
-        const fieldPaths = (await visibleFields()).filter(path => before.has(path) && !scannedFields.has(path));
+        let axe: AxeResultsLike;
+        let before: Set<string>;
+        let afterList: string[];
+        if (axeInjected && page.frames().length === 1) {
+            const direct = await page.evaluate(async ({ rootSel, incSel, tags }) => {
+                const readVisible = () => {
+                    const container = document.querySelector(rootSel);
+                    if (!container) return [] as string[];
+                    const out: string[] = [];
+                    for (const node of container.querySelectorAll('[data-name]')) {
+                        if ((node as HTMLElement).checkVisibility({ checkVisibilityCSS: true })
+                            && !node.closest('[aria-hidden="true"],[inert]')) {
+                            const name = node.getAttribute('data-name');
+                            if (name) out.push(name);
+                        }
+                    }
+                    return out;
+                };
+                const axeGlobal = (window as unknown as {
+                    axe?: { run: (ctx: unknown, opts: unknown) => Promise<AxeResultsLike> };
+                }).axe;
+                if (!axeGlobal?.run) return null;
+                const beforeNames = readVisible();
+                const context = incSel ? document.querySelector(incSel) ?? document : document;
+                const run = await axeGlobal.run(context, {
+                    runOnly: { type: 'tag', values: tags },
+                    resultTypes: ['violations', 'incomplete'],
+                });
+                const afterNames = readVisible();
+                return {
+                    axe: {
+                        violations: run.violations,
+                        incomplete: run.incomplete,
+                        testEngine: run.testEngine,
+                    },
+                    beforeNames,
+                    afterNames,
+                };
+            }, { rootSel: rootSelector, incSel: includeSelector, tags: [...WCAG_TAGS] });
+            if (direct) {
+                before = new Set(direct.beforeNames);
+                axe = direct.axe;
+                afterList = direct.afterNames;
+            } else {
+                axeInjected = false;
+                const scan = new AxeBuilder({ page }).withTags([...WCAG_TAGS]);
+                if (includeSelector) scan.include(includeSelector);
+                before = new Set(await visibleFields());
+                axe = await scan.analyze();
+                afterList = await visibleFields();
+                axeInjected = await page.evaluate(() => typeof (window as { axe?: { run?: unknown } }).axe?.run === 'function');
+            }
+        } else {
+            const scan = new AxeBuilder({ page }).withTags([...WCAG_TAGS]);
+            if (includeSelector) scan.include(includeSelector);
+            // A field must be visible on both sides of the completed scan to count as covered.
+            before = new Set(await visibleFields());
+            axe = await scan.analyze();
+            afterList = await visibleFields();
+            if (page.frames().length === 1) {
+                axeInjected = await page.evaluate(() => typeof (window as { axe?: { run?: unknown } }).axe?.run === 'function');
+            }
+        }
+        const fieldPaths = afterList.filter(path => before.has(path) && !scannedFields.has(path));
         for (const path of fieldPaths) scannedFields.add(path);
         result.axeVersion ??= axe.testEngine?.version ?? null;
         result.states.push({ id, kind, step, axeMs: Math.round(performance.now() - started),
@@ -481,7 +582,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
     }, { sel: rootSelector, recipe });
     const submit = async () => {
         await page.evaluate((selector) => (document.querySelector(selector) as any).submit({ emitEvent: false }), rootSelector);
-        await page.waitForTimeout(100);
+        await settleDom();
     };
     const rememberDrawn = async () => {
         for (const id of await readRenderedIds()) renderedIds.add(id);
@@ -513,7 +614,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
             const recipe = await search(path);
             if (!recipe?.length) continue;
             try {
-                await page.waitForTimeout(100);
+                await settleDom();
                 await rememberDrawn();
                 if (!await show()) continue;
                 if (kind === 'validation-errors') {
@@ -596,7 +697,7 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
                 continue;
             }
             try {
-                await page.waitForTimeout(100);
+                await settleDom();
                 let pageIndex: number;
                 if (workspace) {
                     await rememberDrawn();
@@ -611,10 +712,40 @@ export async function runAxePass(page: Page, options: AxePassOptions = {}): Prom
                 } else {
                     const target = root.locator(`[data-name=${JSON.stringify(path)}]:visible`);
                     pageIndex = await active();
-                    // A later step's field may have no DOM node until that step mounts.
-                    for (let i = 0; i < pageCount && !await target.count(); i += 1) {
-                        await goTo(i);
-                        pageIndex = i;
+                    if (!await target.count()) {
+                        // First check whether the revealed control is already mounted in a known panel
+                        // (true for webcomponent wizards and tabs) to jump directly in O(1) instead of
+                        // flipping linearly from page 0 on every reveal.
+                        const knownPanel = panelSelector
+                            ? await page.evaluate(({ sel, panelSel, fieldPath }) => {
+                                const container = document.querySelector(sel);
+                                if (!container) return -1;
+                                const panels = Array.from(container.querySelectorAll(panelSel));
+                                for (let idx = 0; idx < panels.length; idx += 1) {
+                                    const panel = panels[idx] as HTMLElement;
+                                    for (const el of panel.querySelectorAll('[data-name]')) {
+                                        if (el.getAttribute('data-name') === fieldPath) {
+                                            return Number(panel.dataset.stepIndex ?? idx);
+                                        }
+                                    }
+                                }
+                                return -1;
+                            }, { sel: rootSelector, panelSel: panelSelector, fieldPath: path })
+                            : -1;
+                        if (knownPanel >= 0 && knownPanel < pageCount) {
+                            await goTo(knownPanel);
+                            pageIndex = knownPanel;
+                        }
+                        // A lazy-mounted step's field may have no DOM node until that step mounts.
+                        // Search forward from the current page (wrapping around) rather than rewinding to 0.
+                        if (!await target.count()) {
+                            const start = pageIndex;
+                            for (let offset = 1; offset < pageCount && !await target.count(); offset += 1) {
+                                const candidate = (start + offset) % pageCount;
+                                await goTo(candidate);
+                                pageIndex = candidate;
+                            }
+                        }
                     }
                     if (!await target.count()) throw new RendererError(`field ${path} was revealed but is visible on no page`);
                 }
