@@ -6,12 +6,13 @@
 #[path = "../../conformance/mod.rs"]
 mod conformance;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use conformance::{
     Caller, Evaluator, Outcome, inventions, load_suite, parse, read_json, repo_root, run_case,
+    run_case_with_server_registries,
 };
-use formspec_eval::{EvalContext, EvalTrigger, filed_response_data_matches};
+use formspec_eval::{EvalContext, EvalTrigger, ResolvedOptionLists, filed_response_data_matches};
 
 /// The runner's name in the ledger.
 const RUNNER: &str = "rust";
@@ -29,7 +30,12 @@ fn no_invention_allows_empty_repeat_under_a_field() {
         definition: &definition,
         registries: Vec::new(),
         context: EvalContext::default(),
+        raw_subject: None,
         instances: HashMap::new(),
+        server_instances: HashMap::new(),
+        resolved_instances: BTreeMap::new(),
+        resolved_options: ResolvedOptionLists::default(),
+        supply_server_registries: false,
         inventions: Vec::new(),
     };
     for (filed, expected) in [
@@ -262,4 +268,39 @@ fn native_adapter_supports_partial_expectations_wrapped_decimals_states_and_suit
     assert!(fail_legs["P"][0].contains("dataAt rate:"));
 
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Proves the canonical `recheck_eval_options` helper clears all five `fs-20e3` registry cases
+/// on the server leg `S` once servers forward pinned `registryPaths` documents.
+#[test]
+fn recheck_eval_options_clears_all_registry_suite_cases() {
+    let root = repo_root();
+    let cases = load_suite(&root.join("tests/conformance/suite"));
+    let registry_case_ids = [
+        "all-codes.validation-report",
+        "clinical-intake.submit-valid",
+        "grant-application.submit-valid",
+        "grant-report.short-submit-valid",
+        "invoice.single-submit-valid",
+    ];
+    let mut checked = 0;
+    for (_, case) in &cases {
+        let id = case["id"].as_str().expect("case id");
+        if !registry_case_ids.contains(&id) {
+            continue;
+        }
+        let legs = run_case_with_server_registries(&root, case);
+        assert_eq!(
+            legs["S"],
+            Vec::<String>::new(),
+            "{id}: server leg S failed even with recheck_eval_options(registry_documents)"
+        );
+        assert_eq!(
+            legs["noInvention"],
+            Vec::<String>::new(),
+            "{id}: noInvention failed"
+        );
+        checked += 1;
+    }
+    assert_eq!(checked, registry_case_ids.len());
 }

@@ -1,10 +1,10 @@
-// ADR-0023 Exception: Tests the remoteOptions data-loading infrastructure contract
-// (fetch + 500 error fallback). Requires a mock server; not representable in domain data.
+// ADR-0023 Exception: Tests the remote options data-loading infrastructure contract
+// (URI options fetch + 500 error surfacing). Requires a mock server; not representable in domain data.
 import { test, expect } from '@playwright/test';
 import { gotoHarness, HARNESS_ORIGIN, mountDefinition, submitAndGetResponse } from '../e2e/browser/helpers/harness';
 
 test.describe('Components: Remote Options Binding', () => {
-  test('loads bind.remoteOptions data into Select at runtime', async ({ page }) => {
+  test('loads URI Item.options data into Select at runtime', async ({ page }) => {
     await gotoHarness(page);
 
     await page.route('**/api/options/states', async (route) => {
@@ -22,6 +22,7 @@ test.describe('Components: Remote Options Binding', () => {
       $formspec: '1.0',
       url: 'http://example.org/remote-options-select',
       version: '1.0.0',
+      status: 'active',
       title: 'Remote Select',
       items: [
         {
@@ -29,11 +30,8 @@ test.describe('Components: Remote Options Binding', () => {
           type: 'field',
           dataType: 'choice',
           label: 'State',
-          options: [{ value: 'fallback', label: 'Fallback' }],
+          options: `${HARNESS_ORIGIN}/api/options/states`,
         },
-      ],
-      binds: [
-        { path: 'state', remoteOptions: `${HARNESS_ORIGIN}/api/options/states` },
       ],
     });
 
@@ -54,14 +52,13 @@ test.describe('Components: Remote Options Binding', () => {
     await expect(select).toBeVisible();
     await expect(page.locator('option[value="ca"]')).toHaveText('California');
     await expect(page.locator('option[value="ny"]')).toHaveText('New York');
-    await expect(page.locator('option[value="fallback"]')).toHaveCount(0);
 
     await select.selectOption('ny');
     const response = await submitAndGetResponse<{ data: { state: string } }>(page);
     expect(response.data.state).toBe('ny');
   });
 
-  test('surfaces remote options failure and preserves fallback option list', async ({ page }) => {
+  test('surfaces remote options failure when URL optionSet fetch returns 500', async ({ page }) => {
     await gotoHarness(page);
 
     await page.route('**/api/options/countries', async (route) => {
@@ -72,18 +69,21 @@ test.describe('Components: Remote Options Binding', () => {
       $formspec: '1.0',
       url: 'http://example.org/remote-options-failure',
       version: '1.0.0',
+      status: 'active',
       title: 'Remote Select Failure',
+      optionSets: {
+        countries: {
+          source: `${HARNESS_ORIGIN}/api/options/countries`,
+        },
+      },
       items: [
         {
           key: 'country',
           type: 'field',
           dataType: 'choice',
           label: 'Country',
-          options: [{ value: 'us', label: 'United States' }],
+          optionSet: 'countries',
         },
-      ],
-      binds: [
-        { path: 'country', remoteOptions: `${HARNESS_ORIGIN}/api/options/countries` },
       ],
     });
 
@@ -100,7 +100,6 @@ test.describe('Components: Remote Options Binding', () => {
       };
     });
 
-    await expect(page.locator('option[value="us"]')).toHaveText('United States');
-    await expect(page.locator('.formspec-remote-options-status')).toContainText('fallback');
+    await expect(page.locator('.formspec-remote-options-status')).toContainText('500');
   });
 });

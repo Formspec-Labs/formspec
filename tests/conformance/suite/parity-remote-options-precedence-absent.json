@@ -1,0 +1,43 @@
+{
+  "id": "parity.remote-options-precedence-absent",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-remote-options-precedence.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "item": "inline",
+    "other": "zz"
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 2,
+      "warning": 0,
+      "info": 0
+    },
+    "data": {
+      "item": "inline",
+      "other": "zz"
+    },
+    "results": [
+      {
+        "path": "item",
+        "code": "OPTIONS_UNAVAILABLE",
+        "constraintKind": "type",
+        "severity": "error",
+        "source": "bind"
+      },
+      {
+        "path": "other",
+        "code": "OPTIONS_UNAVAILABLE",
+        "constraintKind": "type",
+        "severity": "error",
+        "source": "bind"
+      }
+    ]
+  },
+  "specRefs": [
+    "Core §4.2.3 Choice Field Options (optionSet precedence)",
+    "Core §4.6.2 Normative Option Membership for Remote Lists"
+  ]
+}

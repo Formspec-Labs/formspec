@@ -1,0 +1,134 @@
+{
+  "id": "parity.warning-grouped-acknowledge",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/fixtures/explanations/first-slice.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "partner": "Library",
+    "attendance": 50
+  },
+  "explanations": [
+    {
+      "code": "WORKSHOP_NOT_ANSWERED",
+      "group": true,
+      "paths": [
+        "venue",
+        "outcome",
+        "topic"
+      ],
+      "basis": "sha256:0b0d7e0b918a990b36ae75b8ee18bfe8c367ca27bf5ac745bfc758f18105d6b1",
+      "author": {
+        "id": "workshop-preparer"
+      },
+      "recorded": "2026-01-20T12:00:00Z"
+    }
+  ],
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 3,
+      "info": 0
+    },
+    "data": {
+      "partner": "Library",
+      "attendance": 50
+    },
+    "results": [
+      {
+        "path": "venue",
+        "code": "WORKSHOP_NOT_ANSWERED",
+        "constraintKind": "shape",
+        "severity": "warning",
+        "source": "shape",
+        "shapeId": "venueBlank",
+        "message": "Venue was left blank."
+      },
+      {
+        "path": "topic",
+        "code": "WORKSHOP_NOT_ANSWERED",
+        "constraintKind": "shape",
+        "severity": "warning",
+        "source": "shape",
+        "shapeId": "topicBlank",
+        "message": "Topic was left blank."
+      },
+      {
+        "path": "outcome",
+        "code": "WORKSHOP_NOT_ANSWERED",
+        "constraintKind": "shape",
+        "severity": "warning",
+        "source": "shape",
+        "shapeId": "outcomeBlank",
+        "message": "Outcome was left blank."
+      }
+    ]
+  },
+  "expectedCandidate": {
+    "$formspecResponse": "1.0",
+    "definitionUrl": "https://example.org/forms/community-workshop",
+    "definitionVersion": "1.0.0",
+    "status": "completed",
+    "authored": "2026-11-17T12:00:00.000Z",
+    "data": {
+      "partner": "Library",
+      "attendance": 50
+    },
+    "validationResults": [
+      {
+        "$formspecValidationResult": "1.0",
+        "path": "venue",
+        "severity": "warning",
+        "constraintKind": "shape",
+        "code": "WORKSHOP_NOT_ANSWERED",
+        "message": "Venue was left blank.",
+        "constraint": "present($)",
+        "source": "shape",
+        "shapeId": "venueBlank"
+      },
+      {
+        "$formspecValidationResult": "1.0",
+        "path": "topic",
+        "severity": "warning",
+        "constraintKind": "shape",
+        "code": "WORKSHOP_NOT_ANSWERED",
+        "message": "Topic was left blank.",
+        "constraint": "present($)",
+        "source": "shape",
+        "shapeId": "topicBlank"
+      },
+      {
+        "$formspecValidationResult": "1.0",
+        "path": "outcome",
+        "severity": "warning",
+        "constraintKind": "shape",
+        "code": "WORKSHOP_NOT_ANSWERED",
+        "message": "Outcome was left blank.",
+        "constraint": "present($)",
+        "source": "shape",
+        "shapeId": "outcomeBlank"
+      }
+    ],
+    "explanations": [
+      {
+        "code": "WORKSHOP_NOT_ANSWERED",
+        "group": true,
+        "paths": [
+          "outcome",
+          "topic",
+          "venue"
+        ],
+        "basis": "sha256:0b0d7e0b918a990b36ae75b8ee18bfe8c367ca27bf5ac745bfc758f18105d6b1",
+        "author": {
+          "id": "workshop-preparer"
+        },
+        "recorded": "2026-01-20T12:00:00Z"
+      }
+    ]
+  },
+  "specRefs": [
+    "Core §2.1.6 Grouped Warning Acknowledgements",
+    "ADR 0173 §5 Candidate Assembly"
+  ]
+}

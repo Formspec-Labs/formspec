@@ -46,6 +46,7 @@ mod eval_options;
 mod output_data;
 mod pipeline;
 mod registry_constraints;
+mod resolved_options;
 mod runtime_context;
 mod scope;
 
@@ -68,8 +69,9 @@ pub use eval_json::{
     EvalHostContextBundle, eval_context_from_json_object, eval_host_context_from_json_map,
     evaluation_result_to_host_snapshot_json_value, evaluation_result_to_json_value,
     evaluation_result_to_json_value_styled, item_text_request_from_json_object,
+    resolved_option_lists_from_json_object,
 };
-pub use eval_options::EvalOptions;
+pub use eval_options::{EvalOptions, recheck_eval_options};
 pub use host_context::HostFelContext;
 pub use nrb::{apply_nrb, resolve_nrb};
 pub use output_data::filed_response_data_matches;
@@ -78,7 +80,11 @@ pub use rebuild::parse_variables;
 pub use rebuild::{expand_repeat_instances, expand_wildcard_path, rebuild_item_tree};
 pub use recalculate::dependency_scope::{DependencyQuery, ReadScope, definition_dependency_scopes};
 pub use recalculate::recalculate;
-pub use registry_constraints::extension_constraints_from_registry_documents;
+pub use registry_constraints::{
+    RegistryConstraintsError, extension_constraints_from_registry_documents,
+    validated_extension_constraints_from_registry_documents,
+};
+pub use resolved_options::ResolvedOptionLists;
 pub use revalidate::revalidate;
 pub use screener_eval::evaluate_screener_document;
 #[doc(inline)]
@@ -89,6 +95,6 @@ pub use screener_qualification::{
 pub use types::{
     AnswerInput, AnswerState, DeterminationRecord, EvalContext, EvalDiagnostic, EvalSubject,
     EvalTrigger, EvaluationResult, ExtensionConstraint, InputEntry, ItemInfo, ItemText,
-    ItemTextRequest, NrbMode, OverrideBlock, PhaseResult, RouteResult, ScreenerRef,
-    ValidationResult, ValidityBlock, VariableDef, WhitespaceMode, parse_answer_state,
+    ItemTextRequest, NrbMode, OverrideBlock, PhaseResult, RemoteOptionSource, RouteResult,
+    ScreenerRef, ValidationResult, ValidityBlock, VariableDef, WhitespaceMode, parse_answer_state,
 };

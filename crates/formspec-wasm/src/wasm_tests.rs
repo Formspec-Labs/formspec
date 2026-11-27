@@ -1515,8 +1515,95 @@ mod tests {
 
         let eval_raw = evaluate_definition_inner(&def, &canonical, None, None).unwrap();
         let eval_val: Value = serde_json::from_str(&eval_raw).unwrap();
-        assert_eq!(eval_val["undeclaredDataPaths"], json!(["banner", "g.extra"]));
+        assert_eq!(
+            eval_val["undeclaredDataPaths"],
+            json!(["banner", "g.extra"])
+        );
         assert_eq!(eval_val["data"]["banner"], json!("  keep  "));
         assert_eq!(eval_val["data"]["g"]["extra"], json!("x"));
+    }
+
+    #[test]
+    fn evaluate_definition_enforces_remote_option_lists_from_context() {
+        let def = json!({
+            "$formspec": "1.0",
+            "url": "urn:test:wasm:remote-options",
+            "version": "1.0.0",
+            "status": "active",
+            "title": "WASM Remote Options",
+            "optionSets": {
+                "codes": {
+                    "source": "https://catalog.example.test/codes",
+                    "valueField": "code",
+                    "labelField": "label"
+                }
+            },
+            "items": [
+                {
+                    "key": "code",
+                    "type": "field",
+                    "dataType": "choice",
+                    "label": "Code",
+                    "optionSet": "codes",
+                    "options": [{ "value": "inline", "label": "Inline" }]
+                },
+                {
+                    "key": "tag",
+                    "type": "field",
+                    "dataType": "choice",
+                    "label": "Tag",
+                    "options": "https://catalog.example.test/tags"
+                }
+            ]
+        })
+        .to_string();
+        let data = json!({ "code": "zz", "tag": "zz" }).to_string();
+
+        // Absent resolvedOptions -> OPTIONS_UNAVAILABLE for both remote fields.
+        let absent_ctx = json!({ "trigger": "submit" }).to_string();
+        let absent_raw = evaluate_definition_inner(&def, &data, Some(absent_ctx), None).unwrap();
+        let absent: Value = serde_json::from_str(&absent_raw).unwrap();
+        let absent_codes: Vec<_> = absent["validations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| (v["path"].as_str().unwrap(), v["code"].as_str().unwrap()))
+            .collect();
+        assert_eq!(
+            absent_codes,
+            vec![
+                ("code", "OPTIONS_UNAVAILABLE"),
+                ("tag", "OPTIONS_UNAVAILABLE")
+            ]
+        );
+
+        // Supplied resolvedOptions -> out-of-list produces TYPE_MISMATCH.
+        let supplied_ctx = json!({
+            "trigger": "submit",
+            "resolvedOptions": {
+                "optionSets": { "codes": ["a", "b"] },
+                "uris": { "https://catalog.example.test/tags": [{ "value": "x", "label": "X" }] }
+            }
+        })
+        .to_string();
+        let supplied_raw =
+            evaluate_definition_inner(&def, &data, Some(supplied_ctx.clone()), None).unwrap();
+        let supplied: Value = serde_json::from_str(&supplied_raw).unwrap();
+        let supplied_codes: Vec<_> = supplied["validations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| (v["path"].as_str().unwrap(), v["code"].as_str().unwrap()))
+            .collect();
+        assert_eq!(
+            supplied_codes,
+            vec![("code", "TYPE_MISMATCH"), ("tag", "TYPE_MISMATCH")]
+        );
+
+        // In-list values pass cleanly.
+        let ok_data = json!({ "code": "a", "tag": "x" }).to_string();
+        let ok_raw = evaluate_definition_inner(&def, &ok_data, Some(supplied_ctx), None).unwrap();
+        let ok: Value = serde_json::from_str(&ok_raw).unwrap();
+        assert_eq!(ok["validations"].as_array().unwrap().len(), 0);
     }
 }

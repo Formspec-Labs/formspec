@@ -113,10 +113,16 @@ def locale_schema() -> dict:
 
 
 @pytest.fixture(scope="session")
+def response_selection_schema() -> dict:
+    return load_schema("response-selection.schema.json")
+
+
+@pytest.fixture(scope="session")
 def schema_registry(
     common_schema: dict,
     definition_schema: dict,
     response_schema: dict,
+    response_selection_schema: dict,
     issuer_schema: dict,
     intake_handoff_schema: dict,
     validation_report_schema: dict,
@@ -134,6 +140,7 @@ def schema_registry(
         common_schema,
         definition_schema,
         response_schema,
+        response_selection_schema,
         issuer_schema,
         intake_handoff_schema,
         validation_report_schema,

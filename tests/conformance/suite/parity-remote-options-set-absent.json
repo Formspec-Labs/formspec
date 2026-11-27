@@ -1,0 +1,34 @@
+{
+  "id": "parity.remote-options-set-absent",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-remote-options-set.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "region": "north"
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "data": {
+      "region": "north"
+    },
+    "results": [
+      {
+        "path": "region",
+        "code": "OPTIONS_UNAVAILABLE",
+        "constraintKind": "type",
+        "severity": "error",
+        "source": "bind"
+      }
+    ]
+  },
+  "specRefs": [
+    "Core §2.5.1 Reserved Validation Codes",
+    "Core §4.6.2 Normative Option Membership for Remote Lists"
+  ]
+}

@@ -217,11 +217,44 @@
         }
       ]
     },
+    "resolvedOptionValues": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "required": ["value", "label"],
+            "properties": {
+              "value": { "type": "string" },
+              "label": { "type": "string" }
+            }
+          }
+        ]
+      },
+      "description": "Allowed option values supplied by the host, either as value strings or {value, label} entries."
+    },
+    "resolvedOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "optionSets": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/resolvedOptionValues" }
+        },
+        "uris": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/resolvedOptionValues" }
+        }
+      },
+      "description": "Host-supplied resolved option lists for remote optionSets (keyed by optionSet name) and URI-string Item.options (keyed by URI) (Core §4.6, §4.2.3)."
+    },
     "standardValidationCode": {
       "type": "string",
       "enum": [
         "REQUIRED",
         "TYPE_MISMATCH",
+        "OPTIONS_UNAVAILABLE",
         "MIN_REPEAT",
         "MAX_REPEAT",
         "CONSTRAINT_FAILED",
@@ -286,6 +319,23 @@
         "instances": {
           "type": "object",
           "description": "Named instance payloads supplied by the host for @instance() / instance()."
+        },
+        "resolvedInstances": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "https://formspec.org/schemas/response-selection/1.0#/$defs/ResponseSelectionDelivery"
+          },
+          "description": "Host-delivered Response instance selections keyed by Definition instance name, reusing ResponseSelectionDelivery (ADR 0172)."
+        },
+        "explanations": {
+          "type": "array",
+          "items": {
+            "$ref": "https://formspec.org/schemas/response/1.0#/$defs/Explanation"
+          },
+          "description": "Stored Response warning explanation entries supplied to evaluation and candidate assembly (ADR 0173)."
+        },
+        "resolvedOptions": {
+          "$ref": "#/$defs/resolvedOptions"
         },
         "subject": {
           "type": "object",

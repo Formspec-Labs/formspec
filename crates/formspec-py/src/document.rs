@@ -14,10 +14,10 @@ use formspec_core::{
     resolve_option_sets_on_definition as resolve_option_sets_on_definition_core,
 };
 use formspec_eval::{
-    AnswerInput, AnswerState, EvalContext, EvalOptions, eval_context_from_json_object, evaluate,
-    evaluate_filed, evaluate_screener_document, evaluation_result_to_json_value_styled,
-    extension_constraints_from_registry_documents, item_text_request_from_json_object,
-    parse_answer_state,
+    AnswerInput, AnswerState, EvalContext, EvalOptions, ResolvedOptionLists,
+    eval_context_from_json_object, evaluate, evaluate_filed, evaluate_screener_document,
+    evaluation_result_to_json_value_styled, extension_constraints_from_registry_documents,
+    item_text_request_from_json_object, parse_answer_state, resolved_option_lists_from_json_object,
 };
 use formspec_lint::{LintMode, LintOptions, lint_result_to_json_value, lint_with_options};
 
@@ -245,8 +245,8 @@ pub fn evaluate_def(
         None => HashMap::new(),
     };
 
-    let (eval_context, item_text) = match context {
-        None => (EvalContext::default(), None),
+    let (eval_context, item_text, resolved_option_lists) = match context {
+        None => (EvalContext::default(), None, ResolvedOptionLists::default()),
         Some(ctx_any) => {
             let ctx_val: fel_core::exact_json::Value = crate::convert::depythonize_exact(ctx_any)?;
             let map = ctx_val
@@ -256,6 +256,8 @@ pub fn evaluate_def(
                 eval_context_from_json_object(map)
                     .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?,
                 item_text_request_from_json_object(map),
+                resolved_option_lists_from_json_object(map)
+                    .map_err(|e| pyo3::exceptions::PyValueError::new_err(e))?,
             )
         }
     };
@@ -267,7 +269,8 @@ pub fn evaluate_def(
         .trigger(eval_trigger)
         .extension_constraints(constraints)
         .instances(instances_map)
-        .context(eval_context);
+        .context(eval_context)
+        .resolved_option_lists(resolved_option_lists);
     if let Some(extensions) = &extensions {
         options = options.extensions(extensions);
     }

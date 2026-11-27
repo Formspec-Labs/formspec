@@ -621,6 +621,17 @@ def lint(
 # ── Evaluation ───────────────────────────────────────────────────
 
 
+def _merge_resolved_options(
+    context: dict | None,
+    resolved_options: dict | None,
+) -> dict | None:
+    if resolved_options is None:
+        return context
+    merged = dict(context) if context is not None else {}
+    merged["resolvedOptions"] = resolved_options
+    return merged
+
+
 def evaluate_definition(
     definition: dict,
     data: dict,
@@ -630,6 +641,7 @@ def evaluate_definition(
     instances: dict[str, dict] | None = None,
     context: dict | None = None,
     extension_functions: Mapping[str, Callable[..., Any]] | None = None,
+    resolved_options: dict | None = None,
 ) -> ProcessingResult:
     """Evaluate existing Response data using the Rust batch evaluator.
 
@@ -654,6 +666,8 @@ def evaluate_definition(
             Wrap opaque callables to declare their arity. Arguments arrive as Python values.
             An exception during a call yields null and an author diagnostic. Registering a
             FEL built-in name raises ValueError.
+        resolved_options: Optional host-supplied resolved option lists for remote ``optionSets``
+            and URI-string ``Item.options`` (``{"optionSets": {...}, "uris": {...}}``).
     """
     raw = formspec_rust.evaluate_def(
         definition,
@@ -661,7 +675,7 @@ def evaluate_definition(
         mode,
         registry_documents,
         instances,
-        context,
+        _merge_resolved_options(context, resolved_options),
         dict(extension_functions) if extension_functions is not None else None,
     )
     return _processing_result(raw)
@@ -675,6 +689,7 @@ def evaluate_filed(
     instances: dict[str, dict] | None = None,
     context: dict | None = None,
     extension_functions: Mapping[str, Callable[..., Any]] | None = None,
+    resolved_options: dict | None = None,
 ) -> ProcessingResult:
     """Prepare stable Response data and its submit verdict using one clock.
 
@@ -690,7 +705,7 @@ def evaluate_filed(
         "submit",
         registry_documents,
         instances,
-        context,
+        _merge_resolved_options(context, resolved_options),
         dict(extension_functions) if extension_functions is not None else None,
         settle=True,
     )

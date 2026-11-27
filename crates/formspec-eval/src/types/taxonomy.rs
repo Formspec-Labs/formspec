@@ -170,6 +170,8 @@ pub enum ValidationCode {
     Required,
     /// Value type does not match field definition.
     TypeMismatch,
+    /// Remote option list for a `choice` or `multiChoice` field was not supplied by the host.
+    OptionsUnavailable,
     /// Constraint expression evaluated to false.
     ConstraintFailed,
     /// An authored FEL expression calls an undefined function (Core §3.10.1).
@@ -220,6 +222,7 @@ impl ValidationCode {
         match s {
             "REQUIRED" => Self::Required,
             "TYPE_MISMATCH" => Self::TypeMismatch,
+            "OPTIONS_UNAVAILABLE" => Self::OptionsUnavailable,
             "CONSTRAINT_FAILED" => Self::ConstraintFailed,
             "UNDEFINED_FUNCTION" => Self::UndefinedFunction,
             "SYNTAX_ERROR" => Self::SyntaxError,
@@ -249,6 +252,7 @@ impl ValidationCode {
         Cow::Borrowed(match self {
             ValidationCode::Required => "REQUIRED",
             ValidationCode::TypeMismatch => "TYPE_MISMATCH",
+            ValidationCode::OptionsUnavailable => "OPTIONS_UNAVAILABLE",
             ValidationCode::ConstraintFailed => "CONSTRAINT_FAILED",
             ValidationCode::UndefinedFunction => "UNDEFINED_FUNCTION",
             ValidationCode::SyntaxError => "SYNTAX_ERROR",

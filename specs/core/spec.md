@@ -1986,7 +1986,8 @@ codes override the generic defaults.
 | Code | constraintKind | Triggered When |
 |------|---------------|---------------|
 | `REQUIRED` | `required` | A required field is null, empty string, or empty array. |
-| `TYPE_MISMATCH` | `type` | Value cannot be interpreted as the field's `dataType`. |
+| `TYPE_MISMATCH` | `type` | Value cannot be interpreted as the field's `dataType`, or is not a member of the field's resolved option list. |
+| `OPTIONS_UNAVAILABLE` | `type` | A `choice` or `multiChoice` field references a remote option source (a URL-backed `optionSet` or a URI-string `options`) and the host did not supply a resolved option list (§4.2.3, §4.6). |
 | `MIN_REPEAT` | `cardinality` | Fewer repeat instances than `minRepeat`. |
 | `MAX_REPEAT` | `cardinality` | More repeat instances than `maxRepeat`. |
 | `CONSTRAINT_FAILED` | `constraint` | Bind `constraint` returned `false`. |
@@ -3776,8 +3777,8 @@ Field-specific properties:
 | `precision` | integer | **0..1** (OPTIONAL) | Number of decimal places. Applicable only when `dataType` is `"decimal"`. Implementations SHOULD round or constrain input to this precision. |
 | `prefix` | string | **0..1** (OPTIONAL) | Display prefix rendered before the input (e.g., `"$"`). This is a presentation hint only; the prefix MUST NOT appear in the stored data value. |
 | `suffix` | string | **0..1** (OPTIONAL) | Display suffix rendered after the input (e.g., `"%"`). This is a presentation hint only; the suffix MUST NOT appear in the stored data value. |
-| `options` | array \| string (URI) | **0..1** (OPTIONAL) | Applicable when `dataType` is `"choice"` or `"multiChoice"`. If an array, each element MUST be an object with at least `value` (string, REQUIRED) and `label` (string, REQUIRED) properties. If a string, it MUST be a URI referencing an external option set. |
-| `optionSet` | string | **0..1** (OPTIONAL) | Name of a top-level option set declared in `optionSets` (§4.6). Applicable when `dataType` is `"choice"` or `"multiChoice"`. When both `options` and `optionSet` are present, `optionSet` takes precedence. |
+| `options` | array \| string (URI) | **0..1** (OPTIONAL) | Applicable when `dataType` is `"choice"` or `"multiChoice"`. If an array, each element MUST be an object with at least `value` (string, REQUIRED) and `label` (string, REQUIRED) properties. If a string, it MUST be a URI referencing an external option set; option membership is normative against the host-supplied resolved list for that URI, and an absent list for a non-empty value MUST emit `OPTIONS_UNAVAILABLE` (§2.5.1, §4.6) rather than accepting arbitrary values. |
+| `optionSet` | string | **0..1** (OPTIONAL) | Name of a top-level option set declared in `optionSets` (§4.6). Applicable when `dataType` is `"choice"` or `"multiChoice"`. When both `options` and `optionSet` are present, `optionSet` takes precedence — including when the referenced option set is URL-backed (`source`), in which case an absent host-supplied list MUST emit `OPTIONS_UNAVAILABLE` rather than falling back to inline `options` or accepting arbitrary values. |
 | `initialValue` | any \| string | **0..1** (OPTIONAL) | Initial value assigned to an absent field when a new Response is created or a new repeat instance is added, after any applicable pre-population. May be a **literal value** (any JSON value conforming to the field's `dataType`) or an **expression string** prefixed with `=` (e.g., `"=today()"`, `"=@instance('entity').name"`). An expression-based `initialValue` is evaluated **once** at creation time and is NOT re-evaluated when dependencies change (use `calculate` on a Bind for continuous recalculation). Distinct from the Bind `default` property (see §4.3). |
 | `semanticType` | string | **0..1** (OPTIONAL) | Domain meaning annotation. Purely metadata — MUST NOT affect validation, calculation, or any behavioral semantics. The value MAY be a freeform namespaced identifier (e.g., `"us-gov:ein"`), a URI (e.g., `"https://schema.org/birthDate"`), or the name of a loaded registry entry with `category: "concept"` (e.g., `"x-onto-ein"`). When the value matches a loaded concept registry entry, processors SHOULD resolve it to the entry's concept metadata (URI, equivalents, display name). Unresolved values are not errors — `semanticType` remains a freeform string for processors that do not support concept resolution. Supports intelligent widget selection, data classification, cross-form alignment, and interoperability mapping. |
 | `prePopulate` | object | **0..1** (OPTIONAL) | Pre-population declaration (`instance`, `path`, `editable` default `true`; `editable: false` locks the field). Takes precedence over `initialValue`, including while its source is pending. Absolute `path` is instance-root (MAY be `initialValue: "=@instance('name').path"`). Relative `path` under matching `seedFrom` is element-relative and MUST NOT be rewritten as `initialValue` (§4.2.2.1). |
@@ -4382,6 +4383,33 @@ An OptionSet is defined by one of:
 
 A `choice` or `multiChoice` field references a named option set via the
 `optionSet` property on the Field item (§4.2.3).
+
+#### 4.6.2 Normative Option Membership for Remote Lists
+
+Option membership is normative whether an option list is declared inline,
+referenced via a URL-backed `optionSet` (`source`), or referenced via a
+URI-string `Item.options` (§4.2.3). Evaluators remain pure and perform no
+network I/O: the host supplies resolved option lists alongside evaluation
+options, keyed by `optionSet` name and by URI, and filing hosts MUST retain
+and forward the trusted resolved option snapshot to every authoritative
+recheck.
+
+1. When a resolved option list is supplied for a remote `choice` or
+   `multiChoice` field, any non-empty value whose selected value (or any
+   element of a `multiChoice` array) is not in the supplied list MUST emit
+   an error-severity `ValidationResult` with `constraintKind: "type"` and
+   code `TYPE_MISMATCH` (including when the supplied list is empty).
+2. When no resolved option list is supplied for a relevant remote `choice` or
+   `multiChoice` field that carries a structurally well-typed non-empty value,
+   the processor MUST emit an error-severity `ValidationResult` with
+   `constraintKind: "type"`, `source: "bind"`, and reserved code
+   `OPTIONS_UNAVAILABLE` (§2.5.1). Processors MUST NOT collapse an absent
+   remote list to an unrestricted field and MUST NOT fall back to inline
+   `options` when `optionSet` takes precedence (§4.2.3).
+3. Non-relevant fields (§2.5.4) and empty/null values (§3.8.1) do not emit
+   `OPTIONS_UNAVAILABLE`. Declared `optionSets` entries that no answered
+   field references (for example, sets referenced only by a display Summary)
+   do not emit `OPTIONS_UNAVAILABLE`.
 
 ### 4.7 Screener Routing *(Deprecated)*
 

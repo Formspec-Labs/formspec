@@ -97,6 +97,7 @@ fn evaluate_definition_json(
                 extension_constraints: bundle.constraints,
                 instances: bundle.instances,
                 context: bundle.context,
+                resolved_option_lists: bundle.resolved_option_lists,
                 extensions,
                 item_text: bundle.item_text,
             }

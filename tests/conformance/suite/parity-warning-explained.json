@@ -1,0 +1,95 @@
+{
+  "id": "parity.warning-explained",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/fixtures/explanations/first-slice.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "venue": "Hall",
+    "topic": "Orientation",
+    "outcome": "Completed",
+    "partner": "Library",
+    "attendance": 125
+  },
+  "explanations": [
+    {
+      "shapeId": "largeEvent",
+      "path": "attendance",
+      "basis": "sha256:6069d3472800158b45172e20905064bdc872e653b6a0676191f83ae0e2240656",
+      "text": "The workshop included a second session.",
+      "author": {
+        "id": "workshop-preparer"
+      },
+      "recorded": "2026-01-20T12:00:00Z"
+    }
+  ],
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 1,
+      "info": 0
+    },
+    "data": {
+      "venue": "Hall",
+      "topic": "Orientation",
+      "outcome": "Completed",
+      "partner": "Library",
+      "attendance": 125
+    },
+    "results": [
+      {
+        "path": "attendance",
+        "code": "HIGH_ATTENDANCE",
+        "constraintKind": "shape",
+        "severity": "warning",
+        "source": "shape",
+        "shapeId": "largeEvent",
+        "message": "Attendance exceeded 100."
+      }
+    ]
+  },
+  "expectedCandidate": {
+    "$formspecResponse": "1.0",
+    "definitionUrl": "https://example.org/forms/community-workshop",
+    "definitionVersion": "1.0.0",
+    "status": "completed",
+    "authored": "2026-11-17T12:00:00.000Z",
+    "data": {
+      "venue": "Hall",
+      "topic": "Orientation",
+      "outcome": "Completed",
+      "partner": "Library",
+      "attendance": 125
+    },
+    "validationResults": [
+      {
+        "$formspecValidationResult": "1.0",
+        "path": "attendance",
+        "severity": "warning",
+        "constraintKind": "shape",
+        "code": "HIGH_ATTENDANCE",
+        "message": "Attendance exceeded 100.",
+        "constraint": "$ <= 100",
+        "source": "shape",
+        "shapeId": "largeEvent"
+      }
+    ],
+    "explanations": [
+      {
+        "shapeId": "largeEvent",
+        "path": "attendance",
+        "basis": "sha256:6069d3472800158b45172e20905064bdc872e653b6a0676191f83ae0e2240656",
+        "text": "The workshop included a second session.",
+        "author": {
+          "id": "workshop-preparer"
+        },
+        "recorded": "2026-01-20T12:00:00Z"
+      }
+    ]
+  },
+  "specRefs": [
+    "Core §2.1.6 Warning Explanations",
+    "ADR 0173 §5 Candidate Assembly"
+  ]
+}

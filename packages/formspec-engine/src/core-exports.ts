@@ -45,6 +45,8 @@ export type {
     PinnedResponseReference,
     RegistryEntry,
     RemoteOptionsState,
+    ResolvedOptionListsInput,
+    ResolvedOptionListsSnapshot,
     RewriteMap,
     RuntimeMappingResult,
     SchemaValidationError,
@@ -166,8 +168,8 @@ export type {
 
 /** @deprecated Use `FormItem` from `@formspec-org/types`. Removed in v1. */
 export type FormspecItem = FormItem;
-/** @deprecated Use `FormBind` from `@formspec-org/types` (and the engine's `RemoteOptionsState` for remote options). Removed in v1. */
-export type FormspecBind = FormBind & { remoteOptions?: string };
+/** @deprecated Use `FormBind` from `@formspec-org/types` (and URI `Item.options` / URL-backed `optionSets` for remote options). Removed in v1. */
+export type FormspecBind = FormBind;
 /** @deprecated Use `FormShape` from `@formspec-org/types`. Removed in v1. */
 export type FormspecShape = FormShape;
 /** @deprecated Use `FormVariable` from `@formspec-org/types`. Removed in v1. */
@@ -218,6 +220,7 @@ export { clampJsonNumber, stepJsonNumber } from './numeric-input.js';
 export { cloneValue as cloneJsonValue } from './json-values.js';
 
 export {
+    wasmAssembleCandidate as assembleCandidate,
     wasmCanonicalizeResponseData as canonicalizeResponseData,
     wasmCreateResponse as createResponse,
     wasmCreateRepeatRow as createRepeatRow,

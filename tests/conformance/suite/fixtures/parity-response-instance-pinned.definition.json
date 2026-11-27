@@ -1,0 +1,41 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:parity-response-instance-pinned",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Pinned Response Instance Creation Parity",
+  "subject": {
+    "type": "urn:example:unit",
+    "keys": {
+      "code": { "dataType": "string" },
+      "period": { "dataType": "integer" }
+    }
+  },
+  "instances": {
+    "baseline": {
+      "schema": { "type": "object" },
+      "response": {
+        "definition": {
+          "url": "urn:example:upstream:baseline",
+          "compatibleVersions": ">=1.0.0 <2.0.0"
+        },
+        "subject": [
+          { "key": "code", "op": "eq", "from": { "subject": "code" } },
+          { "key": "period", "op": "eq", "from": { "subject": "period" }, "offset": -1 }
+        ],
+        "status": "completed",
+        "cardinality": "latest",
+        "pin": "at-open"
+      }
+    }
+  },
+  "items": [
+    {
+      "key": "amount",
+      "type": "field",
+      "dataType": "integer",
+      "label": "Amount",
+      "prePopulate": { "instance": "baseline", "path": "amount" }
+    }
+  ]
+}

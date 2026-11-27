@@ -12,6 +12,7 @@ use fel_core::exact_json::Value;
 
 use crate::eval_options::EvalOptions;
 use crate::fel_eval::Fel;
+use crate::resolved_options::ResolvedOptionLists;
 use crate::types::{EvalDiagnostic, EvalTrigger, ExtensionConstraint, ItemInfo, ValidationResult};
 
 use crate::scope::{AggregateMemo, ScopeData, ScopeIndex, ScopedVariables};
@@ -96,6 +97,7 @@ pub(crate) fn revalidate_scoped(
             .iter()
             .map(|c| (c.name.as_str(), c))
             .collect(),
+        resolved_option_lists: &options.resolved_option_lists,
         formspec_version: definition
             .get("$formspec")
             .and_then(Value::as_str)
@@ -277,6 +279,8 @@ struct Validation<'a> {
     shapes_by_id: HashMap<String, &'a Value>,
     /// Registry extension constraints by extension name.
     ext_by_name: HashMap<&'a str, &'a ExtensionConstraint>,
+    /// Host-supplied resolved option lists for remote option sets and URI options.
+    resolved_option_lists: &'a ResolvedOptionLists,
     /// Definition `$formspec` version, for extension compatibility ranges.
     formspec_version: &'a str,
     /// FEL evaluation seam.

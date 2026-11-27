@@ -473,6 +473,8 @@ type WasmEvaluationContext = {
     instances?: Record<string, unknown>;
     explanations?: import('./engine/warning-explanations.js').DraftExplanation[];
     registryDocuments?: unknown[];
+    /** Host-supplied resolved option lists for remote `optionSets` and URI-string `Item.options`. */
+    resolvedOptions?: import('./interfaces.js').ResolvedOptionListsInput;
     /** The current Response's subject type. Null means a subject was supplied without a type. */
     subjectType?: string | null;
     /** The current Response's filing-unit keys, available to `subject(key)`. */

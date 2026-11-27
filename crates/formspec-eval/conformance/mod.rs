@@ -11,13 +11,17 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use fel_core::exact_json::{Map, Value};
+use formspec_core::instance_resolution::DeliveredSelection;
 use formspec_core::json_object_to_string_map;
+use formspec_core::subject_key::subject_id_json;
 use formspec_eval::{
     CreateOptions, EvalContext, EvalOptions, EvalTrigger, EvaluationResult, HostFelContext,
-    ItemTextRequest, create_response, eval_context_from_json_object, evaluate, evaluate_filed,
-    evaluation_result_to_json_value, extension_constraints_from_registry_documents,
-    filed_response_data_matches,
+    ItemTextRequest, ResolvedOptionLists, assemble_candidate, create_response,
+    eval_context_from_json_object, evaluate, evaluate_filed, evaluation_result_to_json_value,
+    extension_constraints_from_registry_documents, filed_response_data_matches,
+    recheck_eval_options,
 };
+use integrity_canonical::canonical_json_from_bytes;
 use rust_decimal::Decimal;
 
 /// Default evaluation clock when a case omits `now`.
@@ -50,15 +54,37 @@ fn merge_case_defaults(defaults: Option<&Map<String, Value>>, raw_case: &Value) 
     };
     let mut merged = defaults.clone();
     for (k, v) in case_obj {
-        if k == "instances"
-            && let (Some(def_inst), Some(case_inst)) = (
-                merged.get("instances").and_then(Value::as_object),
-                v.as_object(),
-            )
+        if (k == "instances" || k == "resolvedInstances")
+            && let (Some(def_inst), Some(case_inst)) =
+                (merged.get(k).and_then(Value::as_object), v.as_object())
         {
             let mut combined = def_inst.clone();
             for (ik, iv) in case_inst {
                 combined.insert(ik.clone(), iv.clone());
+            }
+            merged.insert(k.clone(), Value::Object(combined));
+        } else if k == "resolvedOptions"
+            && let (Some(def_opts), Some(case_opts)) = (
+                merged.get("resolvedOptions").and_then(Value::as_object),
+                v.as_object(),
+            )
+        {
+            let mut combined = def_opts.clone();
+            for (sub, sub_val) in case_opts {
+                if (sub == "optionSets" || sub == "uris")
+                    && let (Some(def_sub), Some(case_sub)) = (
+                        combined.get(sub).and_then(Value::as_object),
+                        sub_val.as_object(),
+                    )
+                {
+                    let mut sub_map = def_sub.clone();
+                    for (sk, sv) in case_sub {
+                        sub_map.insert(sk.clone(), sv.clone());
+                    }
+                    combined.insert(sub.clone(), Value::Object(sub_map));
+                } else {
+                    combined.insert(sub.clone(), sub_val.clone());
+                }
             }
             merged.insert(k.clone(), Value::Object(combined));
         } else {
@@ -107,8 +133,7 @@ pub(super) fn load_suite(suite_path: &Path) -> Vec<(String, Value)> {
         for file in files {
             let text = std::fs::read_to_string(suite_path.join(&file))
                 .unwrap_or_else(|e| panic!("{file}: {e}"));
-            let doc: Value =
-                serde_json::from_str(&text).unwrap_or_else(|e| panic!("{file}: {e}"));
+            let doc: Value = serde_json::from_str(&text).unwrap_or_else(|e| panic!("{file}: {e}"));
             out.extend(expand_suite_document(&file, doc));
         }
         return out;
@@ -303,59 +328,307 @@ pub(super) struct Evaluator<'a> {
     pub(super) definition: &'a Value,
     pub(super) registries: Vec<Value>,
     pub(super) context: EvalContext,
+    pub(super) raw_subject: Option<Value>,
     pub(super) instances: HashMap<String, Value>,
+    pub(super) server_instances: HashMap<String, Value>,
+    pub(super) resolved_instances: BTreeMap<String, DeliveredSelection>,
+    pub(super) resolved_options: ResolvedOptionLists,
+    pub(super) supply_server_registries: bool,
     pub(super) inventions: Vec<String>,
+}
+
+fn format_authored_iso(now: &str) -> String {
+    chrono::DateTime::parse_from_rfc3339(now)
+        .map(|dt| {
+            dt.with_timezone(&chrono::Utc)
+                .to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+        })
+        .unwrap_or_else(|_| now.to_owned())
+}
+
+fn candidate_problems(label: &str, actual: &Value, expected: &Value) -> Vec<String> {
+    let actual_bytes = canonical_json_from_bytes(actual.to_string().as_bytes())
+        .expect("canonical actual candidate");
+    let expected_bytes = canonical_json_from_bytes(expected.to_string().as_bytes())
+        .expect("canonical expected candidate");
+    if actual_bytes == expected_bytes {
+        return Vec::new();
+    }
+    let mut keys: Vec<String> = Vec::new();
+    if let (Some(a), Some(e)) = (actual.as_object(), expected.as_object()) {
+        for k in a.keys().chain(e.keys()) {
+            if !keys.contains(k) {
+                keys.push(k.clone());
+            }
+        }
+        keys.sort();
+        keys.retain(|k| match (a.get(k), e.get(k)) {
+            (Some(av), Some(ev)) => {
+                canonical_json_from_bytes(av.to_string().as_bytes()).ok()
+                    != canonical_json_from_bytes(ev.to_string().as_bytes()).ok()
+            }
+            _ => true,
+        });
+    }
+    if keys.is_empty() {
+        vec![label.to_string()]
+    } else {
+        vec![format!("{label} (fields: {})", keys.join(", "))]
+    }
+}
+
+fn is_stamped_explanation(entry: &Value) -> bool {
+    entry.get("author").is_some_and(|v| !v.is_null())
+        && entry.get("recorded").is_some_and(|v| !v.is_null())
 }
 
 impl Evaluator<'_> {
     fn options(&self, trigger: EvalTrigger, caller: Caller) -> EvalOptions<'static> {
-        let mut options = EvalOptions::default()
-            .trigger(trigger)
-            .instances(self.instances.clone());
         if matches!(caller, Caller::Session) {
-            options = options.context(self.context.clone()).extension_constraints(
-                extension_constraints_from_registry_documents(&self.registries),
-            );
+            EvalOptions::default()
+                .trigger(trigger)
+                .instances(self.instances.clone())
+                .context(self.context.clone())
+                .extension_constraints(extension_constraints_from_registry_documents(
+                    &self.registries,
+                ))
+                .resolved_option_lists(self.resolved_options.clone())
         } else {
-            options.context.now_iso = self.context.now_iso.clone();
+            let regs = if self.supply_server_registries {
+                self.registries.as_slice()
+            } else {
+                &[]
+            };
+            recheck_eval_options(
+                trigger,
+                self.context.now_iso.clone(),
+                self.server_instances.clone(),
+                regs,
+                ResolvedOptionLists::default(),
+            )
+            .expect("valid suite registry documents")
         }
-        options
     }
 
-    fn check_filed(&mut self, data: &Value, expected: &Value, caller: Caller) -> Vec<String> {
+    fn has_session_only_inputs(&self, expected_candidate: Option<&Value>) -> bool {
+        self.context.subject.is_some()
+            || !self.context.explanations.is_empty()
+            || !self.resolved_instances.is_empty()
+            || !self.resolved_options.is_empty()
+            || expected_candidate.is_some()
+    }
+
+    fn assemble_response_candidate(
+        &self,
+        result: &EvaluationResult,
+        caller: Caller,
+    ) -> Result<Value, String> {
+        let eval_json = evaluation_result_to_json_value(result);
+        let has_errors = result
+            .validations
+            .iter()
+            .any(|v| v.severity.as_wire_str() == "error");
+        let status = if has_errors {
+            "in-progress"
+        } else {
+            "completed"
+        };
+        let definition_url = self.definition["url"]
+            .as_str()
+            .unwrap_or("http://example.org/form");
+        let definition_version = self.definition["version"].as_str().unwrap_or("1.0.0");
+        let authored = format_authored_iso(self.context.now_iso.as_deref().unwrap_or(DEFAULT_NOW));
+        let validation_results: Vec<Value> = eval_json["validations"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|entry| {
+                let mut obj = entry.as_object().expect("validation result object").clone();
+                obj.insert(
+                    "$formspecValidationResult".into(),
+                    Value::String("1.0".into()),
+                );
+                Value::Object(obj)
+            })
+            .collect();
+
+        let mut response_map = Map::new();
+        response_map.insert("$formspecResponse".into(), Value::String("1.0".into()));
+        response_map.insert("definitionUrl".into(), Value::String(definition_url.into()));
+        response_map.insert(
+            "definitionVersion".into(),
+            Value::String(definition_version.into()),
+        );
+        response_map.insert("status".into(), Value::String(status.into()));
+        response_map.insert("data".into(), result.data.clone());
+        response_map.insert("authored".into(), Value::String(authored));
+        response_map.insert("validationResults".into(), Value::Array(validation_results));
+
+        if matches!(caller, Caller::Session)
+            && let Some(raw_subject) = &self.raw_subject
+        {
+            let mut subject_val = raw_subject.clone();
+            if self.definition.get("subject").is_some()
+                && !result.refused
+                && let Some(subj_obj) = subject_val.as_object_mut()
+                && let (Some(stype), Some(keys)) = (
+                    subj_obj
+                        .get("type")
+                        .and_then(Value::as_str)
+                        .map(str::to_owned),
+                    subj_obj.get("keys"),
+                )
+            {
+                let derived = subject_id_json(&stype, &keys.to_string())?;
+                subj_obj.insert("id".into(), Value::String(derived));
+            }
+            response_map.insert("subject".into(), subject_val);
+        }
+
+        let mut response = Value::Object(response_map);
+        let has_response_instances = self.definition["instances"]
+            .as_object()
+            .is_some_and(|map| map.values().any(|inst| inst["response"].is_object()));
+        let draft_explanations: &[Value] = if matches!(caller, Caller::Session) {
+            &self.context.explanations
+        } else {
+            &[]
+        };
+        let resolutions: BTreeMap<String, DeliveredSelection> = if matches!(caller, Caller::Session)
+        {
+            self.resolved_instances.clone()
+        } else {
+            BTreeMap::new()
+        };
+
+        if status == "completed" {
+            if has_response_instances || !draft_explanations.is_empty() {
+                let eval_for_assembly = if !draft_explanations.is_empty() {
+                    let entries = eval_json
+                        .get("candidateExplanations")
+                        .and_then(Value::as_array)
+                        .ok_or("Submit evaluation did not assemble the warning explanations")?;
+                    let saved: Vec<Value> = entries
+                        .iter()
+                        .filter(|e| is_stamped_explanation(e))
+                        .cloned()
+                        .collect();
+                    if saved.len() != entries.len() {
+                        return Err(
+                            "Save pending warning answers and load their server stamps before emitting this Response"
+                                .into(),
+                        );
+                    }
+                    if let Some(obj) = response.as_object_mut() {
+                        obj.insert(
+                            "explanations".into(),
+                            Value::Array(draft_explanations.to_vec()),
+                        );
+                    }
+                    let mut assembled_eval = Map::new();
+                    assembled_eval.insert("candidateExplanations".into(), Value::Array(saved));
+                    Value::Object(assembled_eval)
+                } else {
+                    Value::Null
+                };
+                response =
+                    assemble_candidate(self.definition, response, &eval_for_assembly, &resolutions)
+                        .map_err(|error| error.to_string())?;
+            }
+        } else if !draft_explanations.is_empty() {
+            let saved: Vec<Value> = draft_explanations
+                .iter()
+                .filter(|e| is_stamped_explanation(e))
+                .cloned()
+                .collect();
+            if !saved.is_empty()
+                && let Some(obj) = response.as_object_mut()
+            {
+                obj.insert("explanations".into(), Value::Array(saved));
+            }
+        }
+        Ok(response)
+    }
+
+    fn check_filed(
+        &mut self,
+        data: &Value,
+        expected: &Value,
+        expected_candidate: Option<&Value>,
+        caller: Caller,
+    ) -> Vec<String> {
         let options = self.options(EvalTrigger::Submit, caller);
         let result = evaluate_filed(self.definition, &json_object_to_string_map(data), &options)
             .expect("suite filing should settle");
         let verdict = Outcome::from_evaluation(&result);
-        let again = self.run("S(fixpoint)", &verdict.data, EvalTrigger::Submit, caller);
+        let fixpoint_label = if matches!(caller, Caller::Server) {
+            "S(fixpoint)"
+        } else {
+            "P(fixpoint)"
+        };
+        let (again_raw, again) =
+            self.run_raw(fixpoint_label, &verdict.data, EvalTrigger::Submit, caller);
         let mut problems = against_expected(&verdict, expected);
         problems.extend(between_legs("fixpoint", &again, &verdict));
+        if let Some(want_candidate) = expected_candidate {
+            match self.assemble_response_candidate(&result, caller) {
+                Ok(got_candidate) => {
+                    problems.extend(candidate_problems(
+                        "complete filed Response differs from the fixture",
+                        &got_candidate,
+                        want_candidate,
+                    ));
+                    match self.assemble_response_candidate(&again_raw, caller) {
+                        Ok(fix_candidate) => {
+                            problems.extend(candidate_problems(
+                                "fixpoint complete filed Response differs from settled candidate",
+                                &fix_candidate,
+                                &got_candidate,
+                            ));
+                        }
+                        Err(err) => {
+                            problems.push(format!("fixpoint candidate assembly failed: {err}"));
+                        }
+                    }
+                }
+                Err(err) => {
+                    problems.push(format!("candidate assembly failed: {err}"));
+                }
+            }
+        }
         problems
     }
 
-    fn check_submit_legs(&mut self, legs: &mut Legs, data: &Value, expected: &Value) {
-        if self.context.subject.is_some() {
+    fn check_submit_legs(
+        &mut self,
+        legs: &mut Legs,
+        data: &Value,
+        expected: &Value,
+        expected_candidate: Option<&Value>,
+    ) {
+        if self.has_session_only_inputs(expected_candidate) {
             legs.insert(
                 "P".to_string(),
-                self.check_filed(data, expected, Caller::Session),
+                self.check_filed(data, expected, expected_candidate, Caller::Session),
             );
         }
         legs.insert(
             "S".to_string(),
-            self.check_filed(data, expected, Caller::Server),
+            self.check_filed(data, expected, expected_candidate, Caller::Server),
         );
     }
 
-    pub(super) fn run(
+    fn run_raw(
         &mut self,
         label: &str,
         data: &Value,
         trigger: EvalTrigger,
         caller: Caller,
-    ) -> Outcome {
+    ) -> (EvaluationResult, Outcome) {
         let fields = json_object_to_string_map(data);
         let options = self.options(trigger, caller);
-        let outcome = Outcome::from_evaluation(&evaluate(self.definition, &fields, &options));
+        let raw = evaluate(self.definition, &fields, &options);
+        let outcome = Outcome::from_evaluation(&raw);
         let problems = inventions(self.definition, data, &outcome);
         if !problems.is_empty() && filed_response_data_matches(self.definition, data, &outcome.data)
         {
@@ -366,7 +639,17 @@ impl Evaluator<'_> {
         for problem in problems {
             self.inventions.push(format!("{label}: {problem}"));
         }
-        outcome
+        (raw, outcome)
+    }
+
+    pub(super) fn run(
+        &mut self,
+        label: &str,
+        data: &Value,
+        trigger: EvalTrigger,
+        caller: Caller,
+    ) -> Outcome {
+        self.run_raw(label, data, trigger, caller).1
     }
 }
 
@@ -431,9 +714,9 @@ fn parse_concrete_path(path_expr: &str) -> Vec<Seg> {
                 .find(']')
                 .map(|off| i + 1 + off)
                 .unwrap_or_else(|| panic!("malformed dataAt path: {path_expr}"));
-            let idx: usize = path_expr[i + 1..close]
-                .parse()
-                .unwrap_or_else(|_| panic!("expected non-negative integer index in path: {path_expr}"));
+            let idx: usize = path_expr[i + 1..close].parse().unwrap_or_else(|_| {
+                panic!("expected non-negative integer index in path: {path_expr}")
+            });
             segs.push(Seg::Index(idx));
             i = close + 1;
             continue;
@@ -931,7 +1214,30 @@ fn case_context(case: &Value) -> EvalContext {
             host.insert("subjectKeys".into(), keys.clone());
         }
     }
+    if let Some(explanations) = case.get("explanations") {
+        host.insert("explanations".into(), explanations.clone());
+    }
     eval_context_from_json_object(&host).expect("suite context")
+}
+
+fn case_resolved_instances(case: &Value) -> BTreeMap<String, DeliveredSelection> {
+    let Some(map) = case.get("resolvedInstances").and_then(Value::as_object) else {
+        return BTreeMap::new();
+    };
+    map.iter()
+        .map(|(name, raw)| {
+            let delivery: DeliveredSelection = serde_json::from_str(&raw.to_string())
+                .unwrap_or_else(|e| panic!("invalid resolvedInstances.{name}: {e}"));
+            (name.clone(), delivery)
+        })
+        .collect()
+}
+
+fn case_resolved_options(case: &Value) -> ResolvedOptionLists {
+    let Some(raw) = case.get("resolvedOptions") else {
+        return ResolvedOptionLists::default();
+    };
+    ResolvedOptionLists::from_json_value(raw).expect("valid suite resolvedOptions")
 }
 
 fn case_instances(case: &Value) -> HashMap<String, Value> {
@@ -939,6 +1245,30 @@ fn case_instances(case: &Value) -> HashMap<String, Value> {
         .get("instances")
         .map(json_object_to_string_map)
         .unwrap_or_default();
+    if let Some(ops) = case.get("operations").and_then(Value::as_array) {
+        for op in ops {
+            if op["op"].as_str() == Some("deliverInstance") {
+                let name = op["name"].as_str().expect("deliverInstance name");
+                map.insert(name.to_owned(), op["value"].clone());
+            }
+        }
+    }
+    map
+}
+
+fn case_session_instances(
+    case: &Value,
+    resolved_instances: &BTreeMap<String, DeliveredSelection>,
+) -> HashMap<String, Value> {
+    let mut map = case
+        .get("instances")
+        .map(json_object_to_string_map)
+        .unwrap_or_default();
+    for (name, delivery) in resolved_instances {
+        let value = fel_core::exact_json::from_str(delivery.value.get())
+            .unwrap_or_else(|e| panic!("invalid resolvedInstances.{name}.value: {e}"));
+        map.insert(name.clone(), value);
+    }
     if let Some(ops) = case.get("operations").and_then(Value::as_array) {
         for op in ops {
             if op["op"].as_str() == Some("deliverInstance") {
@@ -994,6 +1324,7 @@ fn run_processing(
     case: &Value,
     filed_data: Option<&Value>,
     definition_override: Option<&Value>,
+    supply_server_registries: bool,
     legs: &mut Legs,
 ) {
     let definition = load_definition(root, case, definition_override);
@@ -1007,10 +1338,18 @@ fn run_processing(
                 .collect()
         })
         .unwrap_or_default();
+    let resolved_instances = case_resolved_instances(case);
+    let session_instances = case_session_instances(case, &resolved_instances);
+    let server_instances = case_instances(case);
     let mut evaluator = Evaluator {
         definition: &definition,
         context: case_context(case),
-        instances: case_instances(case),
+        raw_subject: case.get("subject").cloned(),
+        instances: session_instances,
+        server_instances,
+        resolved_instances,
+        resolved_options: case_resolved_options(case),
+        supply_server_registries,
         registries,
         inventions: Vec::new(),
     };
@@ -1028,6 +1367,7 @@ fn run_processing(
     } else {
         case["expected"].clone()
     };
+    let expected_candidate = case.get("expectedCandidate");
     let submit = case["mode"].as_str() == Some("submit");
     let mode = if submit {
         EvalTrigger::Submit
@@ -1047,7 +1387,7 @@ fn run_processing(
             &fallback_payload
         };
         if submit {
-            evaluator.check_submit_legs(legs, target_data, &expected);
+            evaluator.check_submit_legs(legs, target_data, &expected, expected_candidate);
         } else {
             let recheck = evaluator.run("P(expected.data)", target_data, mode, Caller::Session);
             let mut problems = against_expected(&recheck, &expected);
@@ -1080,7 +1420,7 @@ fn run_processing(
         if submit {
             let in_session =
                 evaluator.run("P(submit)", &payload, EvalTrigger::Submit, Caller::Session);
-            evaluator.check_submit_legs(legs, &in_session.data, &expected);
+            evaluator.check_submit_legs(legs, &in_session.data, &expected, expected_candidate);
         } else {
             let mut problems = against_expected(&live, &expected);
             if let Some(data) = expected.get("data") {
@@ -1093,12 +1433,7 @@ fn run_processing(
 }
 
 /// Core §4.2.1 Item text, resolved by the evaluator's text pass, compared exactly per path.
-fn run_item_text(
-    root: &Path,
-    case: &Value,
-    definition_override: Option<&Value>,
-    legs: &mut Legs,
-) {
+fn run_item_text(root: &Path, case: &Value, definition_override: Option<&Value>, legs: &mut Legs) {
     let definition = load_definition(root, case, definition_override);
     let locale_strings = case
         .get("localePath")
@@ -1245,6 +1580,17 @@ pub(super) fn run_case(root: &Path, case: &Value) -> Legs {
     run_case_with_overrides(root, case, None, None)
 }
 
+pub(super) fn run_case_with_server_registries(root: &Path, case: &Value) -> Legs {
+    let mut legs = Legs::new();
+    match case["kind"].as_str() {
+        Some("ENGINE_PROCESSING" | "VALIDATION_REPORT" | "RESPONSE_VALIDATION") => {
+            run_processing(root, case, None, None, true, &mut legs);
+        }
+        _ => return run_case(root, case),
+    }
+    legs
+}
+
 pub(super) fn run_case_with_overrides(
     root: &Path,
     case: &Value,
@@ -1256,7 +1602,14 @@ pub(super) fn run_case_with_overrides(
         Some("FEL_EVALUATION") => run_fel(root, case, definition_override, &mut legs),
         Some("ITEM_TEXT") => run_item_text(root, case, definition_override, &mut legs),
         Some("ENGINE_PROCESSING" | "VALIDATION_REPORT" | "RESPONSE_VALIDATION") => {
-            run_processing(root, case, filed_data, definition_override, &mut legs);
+            run_processing(
+                root,
+                case,
+                filed_data,
+                definition_override,
+                false,
+                &mut legs,
+            );
         }
         other => panic!("unsupported case kind {other:?}"),
     }

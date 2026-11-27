@@ -1,0 +1,83 @@
+{
+  "id": "parity.response-instance-pinned-create",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-response-instance-pinned.definition.json",
+  "subject": {
+    "type": "urn:example:unit",
+    "keys": {
+      "code": "u-01",
+      "period": 2026
+    },
+    "id": "b9adc7683837bdb5cffc489fa0878e2dfaa2c6c14babf57004d8733c448bb42c"
+  },
+  "resolvedInstances": {
+    "baseline": {
+      "records": [
+        {
+          "responseId": "resp-baseline-2025",
+          "definitionVersion": "1.0.0",
+          "responseHash": "sha256:66b6bcb3d4a12f8c278e4e3d66225124829c1bf033980b5caa42a9991aa38146"
+        }
+      ],
+      "valueDigest": "sha256:08990cb3478f8cdecb52dc8cef1240e46469f56112894c3199b5c13394962fe6",
+      "none": false,
+      "pinned": true,
+      "value": {
+        "amount": 500
+      }
+    }
+  },
+  "origin": "new",
+  "mode": "submit",
+  "inputData": {},
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "data": {
+      "amount": 500
+    },
+    "results": []
+  },
+  "expectedCandidate": {
+    "$formspecResponse": "1.0",
+    "definitionUrl": "urn:example:parity-response-instance-pinned",
+    "definitionVersion": "1.0.0",
+    "status": "completed",
+    "authored": "2026-11-17T12:00:00.000Z",
+    "subject": {
+      "type": "urn:example:unit",
+      "keys": {
+        "code": "u-01",
+        "period": 2026
+      },
+      "id": "b9adc7683837bdb5cffc489fa0878e2dfaa2c6c14babf57004d8733c448bb42c"
+    },
+    "data": {
+      "amount": 500
+    },
+    "validationResults": [],
+    "resolvedInstances": [
+      {
+        "instance": "baseline",
+        "records": [
+          {
+            "responseId": "resp-baseline-2025",
+            "definitionVersion": "1.0.0",
+            "responseHash": "sha256:66b6bcb3d4a12f8c278e4e3d66225124829c1bf033980b5caa42a9991aa38146"
+          }
+        ],
+        "valueDigest": "sha256:08990cb3478f8cdecb52dc8cef1240e46469f56112894c3199b5c13394962fe6",
+        "none": false,
+        "pinned": true
+      }
+    ]
+  },
+  "specRefs": [
+    "Core §4.2.2.1 New Response Creation (prePopulate)",
+    "ADR 0172 §5 Pinned Instance Candidate Assembly"
+  ]
+}

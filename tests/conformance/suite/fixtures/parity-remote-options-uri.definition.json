@@ -1,0 +1,16 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:parity-remote-options-uri",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Remote URI Options Parity",
+  "items": [
+    {
+      "key": "code",
+      "type": "field",
+      "dataType": "choice",
+      "label": "Code",
+      "options": "urn:example:options:codes"
+    }
+  ]
+}

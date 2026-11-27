@@ -21,7 +21,7 @@ pub use evaluation::{
     ItemTextRequest, ValidationResult,
 };
 pub use extensions::ExtensionConstraint;
-pub use item_tree::{ItemInfo, MipState};
+pub use item_tree::{ItemInfo, MipState, RemoteOptionSource};
 pub use modes::{ExcludedValueMode, NrbMode, WhitespaceMode};
 pub use taxonomy::{ConstraintKind, Severity, ValidationCode, ValidationSource};
 

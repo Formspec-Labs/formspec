@@ -32,8 +32,12 @@ use formspec_core::{
     DefinitionItemKeyPolicy, DefinitionItemVisitCtx, visit_definition_items_json_shallow,
 };
 
-use crate::types::{ExcludedValueMode, ItemInfo, MipState, NrbMode, VariableDef, WhitespaceMode};
+use crate::types::{
+    ExcludedValueMode, ItemInfo, MipState, NrbMode, RemoteOptionSource, VariableDef, WhitespaceMode,
+};
 use formspec_core::BindTargets;
+use std::collections::HashSet;
+use std::sync::Arc;
 
 pub(super) fn bool_or_string_expr(value: &Value) -> Option<String> {
     match value {
@@ -164,6 +168,8 @@ fn build_item_info_from_ctx(
         })
         .unwrap_or_default();
 
+    let (option_values, option_source) = resolve_item_option_binding(item, sets);
+
     let mut info = ItemInfo {
         key,
         path,
@@ -193,15 +199,8 @@ fn build_item_info_from_ctx(
         repeatable: is_repeatable_group(item["type"].as_str(), item["repeatable"].as_bool()),
         repeat_min: item.get("minRepeat").and_then(|v| v.as_u64()),
         repeat_max: item.get("maxRepeat").and_then(|v| v.as_u64()),
-        option_values: formspec_core::effective_item_options(item, sets)
-            .and_then(|v| v.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|opt| opt.get("value").and_then(Value::as_str).map(String::from))
-                    .collect::<std::collections::HashSet<_>>()
-                    .into()
-            })
-            .unwrap_or_default(),
+        option_values,
+        option_source,
         accept_types: item
             .get("accept")
             .and_then(|v| v.as_array())
@@ -240,6 +239,55 @@ fn build_item_info_from_ctx(
     };
     apply_bind(&mut info, &bind);
     info
+}
+
+/// Resolve a Field item's inline option values or remote option reference (Core §4.2.3, §4.6).
+///
+/// When both `optionSet` and `options` are present and `optionSet` names a declared top-level
+/// set, `optionSet` takes precedence — even when the named set is URL-backed (`source`).
+fn resolve_item_option_binding(
+    item: &Value,
+    sets: Option<&Map<String, Value>>,
+) -> (Arc<HashSet<String>>, Option<RemoteOptionSource>) {
+    if let Some(name) = item.get("optionSet").and_then(Value::as_str)
+        && let Some(entry) = sets.and_then(|map| map.get(name))
+    {
+        if let Some(source) = entry
+            .get("source")
+            .and_then(Value::as_str)
+            .filter(|uri| !uri.is_empty())
+        {
+            return (
+                Arc::default(),
+                Some(RemoteOptionSource::OptionSet {
+                    name: name.to_owned(),
+                    source: source.to_owned(),
+                }),
+            );
+        }
+        let values = entry
+            .get("options")
+            .unwrap_or(entry)
+            .as_array()
+            .map(|arr| extract_option_values(arr))
+            .unwrap_or_default();
+        return (values, None);
+    }
+
+    match item.get("options") {
+        Some(Value::Array(arr)) => (extract_option_values(arr), None),
+        Some(Value::String(uri)) if !uri.is_empty() => {
+            (Arc::default(), Some(RemoteOptionSource::Uri(uri.clone())))
+        }
+        _ => (Arc::default(), None),
+    }
+}
+
+fn extract_option_values(arr: &[Value]) -> Arc<HashSet<String>> {
+    arr.iter()
+        .filter_map(|opt| opt.get("value").and_then(Value::as_str).map(String::from))
+        .collect::<HashSet<_>>()
+        .into()
 }
 
 pub(super) fn apply_bind(item: &mut ItemInfo, bind: &Map<String, Value>) {

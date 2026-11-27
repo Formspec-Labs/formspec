@@ -188,7 +188,7 @@ Structured JSON objects, not booleans. Every ValidationResult entry has:
 - `shapeId` (OPTIONAL): Shape failure or instance explanation result
 - `constraint` (OPTIONAL): the failed FEL expression
 
-**Standard codes**: `REQUIRED`, `TYPE_MISMATCH`, `MIN_REPEAT`, `MAX_REPEAT`, `CONSTRAINT_FAILED`, `SHAPE_FAILED`, `EXTERNAL_FAILED`.
+**Standard codes**: `REQUIRED`, `TYPE_MISMATCH`, `OPTIONS_UNAVAILABLE`, `MIN_REPEAT`, `MAX_REPEAT`, `CONSTRAINT_FAILED`, `SHAPE_FAILED`, `EXTERNAL_FAILED`.
 
 In `on-submit`, `explanation` findings use `source: "shape"` and `EXPLANATION_REQUIRED` or `EXPLANATION_STALE` (errors) or `EXPLANATION_UNUSED` (info). The processor emits at most one group finding per code, using `path: "#"` and `context.code`. Explanation errors use `block-on-error` and the original warning keeps its severity (Core §5.3.1).
 
@@ -321,7 +321,7 @@ Creation runs once for a new Response. Host prefill wins key by key, including `
 
 To read the current source record after removal or resume, copy a stable key with relative `prePopulate` and use keyed FEL lookup (§4.4.2). Comparing with the value at creation requires a captured value or pinned source version.
 
-**Field-specific**: `dataType` (REQUIRED), `precision`, `prefix`/`suffix` (display only), `options` (array of `{value, label}` or URI), `optionSet` (reference to top-level named set), `initialValue` (literal or `=expression`, evaluated once), `semanticType` (metadata annotation), `prePopulate` (creation-time source value with an optional readonly lock), `children` (for dependent sub-questions).
+**Field-specific**: `dataType` (REQUIRED), `precision`, `prefix`/`suffix` (display only), `options` (array of `{value, label}` or URI; membership is normative against host-supplied lists and an absent remote list emits `OPTIONS_UNAVAILABLE`), `optionSet` (reference to top-level named set; takes precedence over `options` including when URL-backed), `initialValue` (literal or `=expression`, evaluated once), `semanticType` (metadata annotation), `prePopulate` (creation-time source value with an optional readonly lock), `children` (for dependent sub-questions).
 
 **Extended dataTypes** (beyond conceptual model): `string`, `text`, `integer`, `decimal`, `boolean`, `date`, `dateTime`, `time`, `uri`, `attachment`, `choice`, `multiChoice`, `money`.
 
@@ -372,7 +372,7 @@ Variables must not form circular dependencies. Evaluation respects dependency gr
 
 ### Option Sets
 
-Named reusable option lists in top-level `optionSets`. Either inline `options` (array of `{value, label}`) or external via `source` URI with `valueField`/`labelField` mapping. Referenced by fields via `optionSet` property.
+Named reusable option lists in top-level `optionSets`. Either inline `options` (array of `{value, label}`) or external via `source` URI with `valueField`/`labelField` mapping. Referenced by fields via `optionSet` property. Option membership is normative for inline and remote lists alike: the host supplies resolved option lists keyed by `optionSet` name and by URI, out-of-list answers emit `TYPE_MISMATCH`, and an absent remote list for an answered relevant field emits `OPTIONS_UNAVAILABLE` (never silent acceptance or inline fallback).
 
 ### Screener Routing
 

@@ -1,0 +1,34 @@
+{
+  "id": "parity.remote-options-uri-absent",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-remote-options-uri.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "code": "a1"
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "data": {
+      "code": "a1"
+    },
+    "results": [
+      {
+        "path": "code",
+        "code": "OPTIONS_UNAVAILABLE",
+        "constraintKind": "type",
+        "severity": "error",
+        "source": "bind"
+      }
+    ]
+  },
+  "specRefs": [
+    "Core §4.2.3 Choice Field Options",
+    "Core §4.6.2 Normative Option Membership for Remote Lists"
+  ]
+}

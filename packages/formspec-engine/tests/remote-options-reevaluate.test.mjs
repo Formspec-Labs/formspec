@@ -1,4 +1,4 @@
-/** @filedesc Remote options must trigger re-evaluation so validation runs against resolved options. */
+/** @filedesc Remote options must trigger re-evaluation so validation transitions from OPTIONS_UNAVAILABLE to normative membership. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FormEngine } from '../dist/index.js';
@@ -6,9 +6,7 @@ import { FormEngine } from '../dist/index.js';
 const originalFetch = globalThis.fetch;
 
 test('validation report changes after remote options resolve', async () => {
-  // Track how many times _evaluate is called
   let evaluateCallCount = 0;
-  const OriginalFormEngine = FormEngine;
 
   globalThis.fetch = async () => ({
     ok: true,
@@ -18,21 +16,26 @@ test('validation report changes after remote options resolve', async () => {
     ]),
   });
 
-  try {
-    const engine = new FormEngine({
-      $formspec: '1.0',
-      url: 'http://example.org/remote-reeval',
-      version: '1.0.0',
-      title: 'Remote Re-eval',
-      items: [
-        { key: 'status', type: 'field', dataType: 'choice', label: 'Status' },
-      ],
-      binds: [
-        { path: 'status', remoteOptions: 'https://api.example.org/options/status' },
-      ],
-    });
+  const engine = new FormEngine({
+    $formspec: '1.0',
+    url: 'http://example.org/remote-reeval',
+    version: '1.0.0',
+    status: 'active',
+    title: 'Remote Re-eval',
+    items: [
+      {
+        key: 'status',
+        type: 'field',
+        dataType: 'choice',
+        label: 'Status',
+        options: 'https://api.example.org/options/status',
+      },
+    ],
+  }, { savedResponseData: { status: 'alpha' } });
 
-    // Patch _evaluate to count calls
+  try {
+    assert.equal(engine.getValidationReport({ profile: 'live' }).results[0]?.code, 'OPTIONS_UNAVAILABLE');
+
     const originalEvaluate = engine._evaluate.bind(engine);
     engine._evaluate = function (...args) {
       evaluateCallCount++;
@@ -40,16 +43,15 @@ test('validation report changes after remote options resolve', async () => {
     };
 
     const countBefore = evaluateCallCount;
-
-    // Wait for remote options to resolve
     await engine.waitForRemoteOptions();
 
-    // _evaluate() should have been called at least once after options resolved
     assert.ok(
       evaluateCallCount > countBefore,
       `_evaluate() must be called after remote options resolve (calls before: ${countBefore}, after: ${evaluateCallCount})`,
     );
+    assert.equal(engine.getValidationReport({ profile: 'live' }).valid, true);
   } finally {
+    engine.dispose();
     globalThis.fetch = originalFetch;
   }
 });
