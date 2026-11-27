@@ -4,6 +4,7 @@
 import { jsonValueText, clampJsonNumber } from '@formspec-org/engine';
 import React, { useCallback, useMemo, useState } from 'react';
 import { computed, signal as createSignal } from '@preact/signals-core';
+import { formatExactCurrency } from './defaults/fields/controls/currency-format';
 import { useChromeText } from './use-chrome-text';
 import type { LayoutNode, ValidationSummaryComp } from '@formspec-org/layout';
 import type { FormItem } from '@formspec-org/types';
@@ -307,16 +308,14 @@ function formatMoney(value: unknown, locale = 'en-US'): string {
     if (value == null) return '\u2014';
     if (typeof value === 'object' && value !== null && 'amount' in value) {
         const money = value as { amount: unknown; currency?: string };
-        try {
-            return new Intl.NumberFormat(locale, {
-                style: 'currency',
-                currency: money.currency || 'USD',
-            }).format(jsonValueText(money.amount) as unknown as number);
-        } catch {
-            return jsonValueText(money.amount);
-        }
+        return formatExactCurrency(jsonValueText(money.amount), money.currency || 'USD', locale);
     }
     return jsonValueText(value);
+}
+
+function decorateExactValue(text: string, prefix?: string, suffix?: string): string {
+    if (!text) return text;
+    return `${prefix ?? ''}${text}${suffix ?? ''}`;
 }
 
 function SummaryItem({
@@ -330,10 +329,11 @@ function SummaryItem({
 }) {
     const { engine } = useFormspecContext();
     const rawValue = useSignal(bind ? (engine.signals[bind] ?? NO_VALUE) : NO_VALUE);
+    const fieldDef = bind ? findItemByKey(engine.getDefinition().items ?? [], bind) : null;
     const displayValue = rawValue != null
         ? (typeof rawValue === 'object' && rawValue !== null && 'amount' in (rawValue as object)
             ? formatMoney(rawValue)
-            : jsonValueText(rawValue))
+            : decorateExactValue(jsonValueText(rawValue), fieldDef?.prefix, fieldDef?.suffix))
         : '\u2014';
 
     return (
@@ -402,17 +402,20 @@ function DataTableCell({
 
     if (!isEditable) {
         let displayValue = rawValue != null ? jsonValueText(rawValue) : '';
+        let formattedMoney = false;
         if (dataType === 'money' && rawValue != null && typeof rawValue === 'object') {
-            try {
-                const money = rawValue as { amount?: unknown; currency?: string };
-                displayValue = new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: money.currency || fieldDef?.currency || column.currency || defaultCurrency,
-                }).format(jsonValueText(money.amount ?? rawValue) as unknown as number);
-            } catch { /* fall through */ }
+            const money = rawValue as { amount?: unknown; currency?: string };
+            displayValue = formatExactCurrency(
+                jsonValueText(money.amount ?? rawValue),
+                money.currency || fieldDef?.currency || column.currency || defaultCurrency,
+            );
+            formattedMoney = true;
         } else if ((dataType === 'choice' || dataType === 'select') && choices.length > 0) {
             const match = choices.find((c) => c.value === rawValue);
             if (match) displayValue = match.label;
+        }
+        if (!formattedMoney && displayValue !== '') {
+            displayValue = decorateExactValue(displayValue, prefix, suffix);
         }
         return <td {...metadataAttrs} data-name={signalPath}>{displayValue}</td>;
     }
@@ -475,7 +478,7 @@ function DataTableCell({
                     onChange={(e) => {
                         const value = e.target.value.trim();
                         if (!value) {
-                            engine.setValue(signalPath, null);
+                            engine.setValue(signalPath, dataType === 'money' ? undefined : null);
                             return;
                         }
                         let next: any = value;

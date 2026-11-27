@@ -8,15 +8,31 @@ import { record, stringProp } from './surface-widgets.js';
 import { routeTargets } from './component-routes.js';
 import { renderingSlots } from './surface-definition-slots.js';
 
+export interface DefinitionPublicationReportsOptions {
+  /**
+   * Retain each Definition's scoped `renderedNeedTrace.nodes` array instead of emitting the
+   * compact publication proof (`nodes: []`, `inventory: 'omitted'`, `nodeCount`).
+   *
+   * Defaults to `false` so per-Definition publication payloads remain bounded while preserving
+   * `status`, canonical `definitions`/`locales`/`components` digests, phases, diagnostics,
+   * schema results, and evidence results.
+   */
+  includeNodes?: boolean;
+}
+
 /**
- * Retains the admission evidence from the whole bundle, with each form's trace inventory
- * and its redundant-anchor warnings. A refused graph produces no publication records.
+ * Retains the admission evidence from the whole bundle, with each form's bound trace proof
+ * and its redundant-anchor warnings. Emits a compact publication proof (`nodes: []`,
+ * `inventory: 'omitted'`, `nodeCount`) by default; pass `{ includeNodes: true }` to retain
+ * scoped per-node inventory entries. A refused graph produces no publication records.
  */
 export function definitionPublicationReports(
   { report, artifactResolutionReport }: AppGraphReportProducerResult,
+  options: DefinitionPublicationReportsOptions = {},
 ): AppGraphValidationReport[] {
   const trace = report.renderedNeedTrace;
   if (!trace || !report.ok || report.diagnostics.some(diagnostic => diagnostic.severity === 'error')) return [];
+  const includeNodes = options.includeNodes === true;
   const { handles } = artifactResolutionGraphInput(artifactResolutionReport);
   return trace.definitions.map(definition => {
     const documentSlots = new Set<string>();
@@ -55,6 +71,24 @@ export function definitionPublicationReports(
     const includes = (source?: AppGraphSourcePointer) => source?.artifactSlot !== undefined
       && (documentSlots.has(source.artifactSlot)
         || surfacePointers.get(source.artifactSlot)?.has(source.jsonPointer ?? ''));
+    const scopedNodes = trace.nodes.filter(node => includes(node.source));
+    const renderedNeedTrace = trace.status === 'not-applicable'
+      ? { status: trace.status, definitions: [definition], nodes: [] }
+      : includeNodes
+        ? {
+            status: trace.status,
+            definitions: [definition],
+            nodes: scopedNodes,
+            inventory: 'full' as const,
+            nodeCount: scopedNodes.length,
+          }
+        : {
+            status: trace.status,
+            definitions: [definition],
+            nodes: [],
+            inventory: 'omitted' as const,
+            nodeCount: scopedNodes.length,
+          };
     return createAppGraphReport({
       artifactCount: report.summary.artifacts,
       loadedArtifactCount: report.summary.loadedArtifacts,
@@ -64,9 +98,7 @@ export function definitionPublicationReports(
       support: report.support,
       diagnostics: report.diagnostics.filter(diagnostic =>
         diagnostic.code !== RENDERED_NEED_TRACE_CODES.redundant || includes(diagnostic.primarySource)),
-      renderedNeedTrace: {
-        status: trace.status, definitions: [definition], nodes: trace.nodes.filter(node => includes(node.source)),
-      },
+      renderedNeedTrace,
     });
   });
 }

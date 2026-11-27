@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import canonicalize from "canonicalize";
+import { jsonNumberText } from "@formspec-org/engine";
 import type { Explanation } from "@formspec-org/types";
 import { getDraftReviewIrrelevantPaths, isQualifiedDraftReview } from '../internal/draft-review-qualification.js';
 import {
@@ -148,24 +149,24 @@ function lookupBindHint(bindHints: Map<string, BindHint> | undefined, path: stri
   );
 }
 
-function isMoneyObject(value: unknown): value is { amount: string | number; currency: string } {
+function isMoneyObject(value: unknown): value is { amount: unknown; currency: string } {
   if (!object(value)) return false;
   const keys = Object.keys(value);
   if (keys.length !== 2 || !own(value, "amount") || !own(value, "currency")) return false;
   const { amount, currency } = value;
   const validAmount =
-    (typeof amount === "number" && Number.isFinite(amount)) ||
+    jsonNumberText(amount) !== undefined ||
     (typeof amount === "string" && /^-?\d+(?:\.\d+)?$/.test(amount.trim()));
   return validAmount && typeof currency === "string" && /^[A-Z]{3}$/.test(currency);
 }
 
 function formatMoneyValue(
-  amount: string | number,
+  amount: unknown,
   currency: string,
   locale: string,
   options?: { lossless?: boolean }
 ): string {
-  const rawStr = typeof amount === "number" ? String(amount) : amount.trim();
+  const rawStr = jsonNumberText(amount) ?? (typeof amount === "string" ? amount.trim() : String(amount));
   const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(rawStr);
   const effectiveLocale = locale || "en-US";
   if (match) {
@@ -211,8 +212,8 @@ function formatMoneyValue(
       return `${currency} ${rawStr}`;
     }
   }
-  const num = typeof amount === "number" ? amount : Number(rawStr);
-  if (!Number.isFinite(num)) return `${currency} ${String(amount)}`;
+  const num = Number(rawStr);
+  if (!Number.isFinite(num)) return `${currency} ${rawStr}`;
   try {
     return new Intl.NumberFormat(effectiveLocale, {
       style: "currency",
@@ -256,11 +257,12 @@ function formatDateValue(value: string, locale: string): string {
 }
 
 function isYearIntegerField(
-  value: number,
+  rawDigits: string,
   node: Extract<ReviewNode, { kind: "value" }>
 ): boolean {
+  if (!/^\d{4}$/.test(rawDigits)) return false;
+  const value = Number(rawDigits);
   if (
-    !Number.isInteger(value) ||
     value < 1900 ||
     value > 2199 ||
     node.currency ||
@@ -281,27 +283,52 @@ function isYearIntegerField(
   );
 }
 
+/**
+ * Format an exact decimal/integer string with locale integer grouping via BigInt while preserving
+ * every stored fractional digit verbatim (never rounds through IEEE-754 float or fixed max decimals).
+ */
+function formatExactDecimalText(
+  rawDigits: string,
+  effectiveLocale: string,
+): string {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(rawDigits);
+  if (!match) return rawDigits;
+  const [, sign, intPart, fracPart] = match;
+  let groupedInt = intPart!;
+  let decimalSep = ".";
+  try {
+    groupedInt = new Intl.NumberFormat(effectiveLocale, {
+      useGrouping: true,
+    }).format(BigInt(intPart!));
+    if (fracPart !== undefined) {
+      const parts = new Intl.NumberFormat(effectiveLocale).formatToParts(1.1);
+      decimalSep = parts.find((part) => part.type === "decimal")?.value ?? ".";
+    }
+  } catch {
+    groupedInt = intPart!;
+    decimalSep = ".";
+  }
+  return fracPart !== undefined
+    ? `${sign}${groupedInt}${decimalSep}${fracPart}`
+    : `${sign}${groupedInt}`;
+}
+
 function formatNumericValue(
-  value: number,
+  rawDigits: string,
   node: Extract<ReviewNode, { kind: "value" }>,
-  locale: string
+  locale: string,
+  options?: { lossless?: boolean }
 ): string {
   if (node.currency || node.prefix === "$") {
-    return formatMoneyValue(value, node.currency ?? "USD", locale);
+    return formatMoneyValue(rawDigits, node.currency ?? "USD", locale, options);
   }
-  if (isYearIntegerField(value, node)) {
-    return String(value);
+  if (isYearIntegerField(rawDigits, node)) {
+    return rawDigits;
   }
   const effectiveLocale = locale || "en-US";
-  let formatted: string;
-  try {
-    formatted = new Intl.NumberFormat(effectiveLocale, {
-      maximumFractionDigits: node.precision ?? 4,
-    }).format(value);
-  } catch {
-    formatted = String(value);
-  }
+  const formatted = formatExactDecimalText(rawDigits, effectiveLocale);
   const inferredPercent =
+    !options?.lossless &&
     !node.suffix &&
     node.dataType === "decimal" &&
     /(?:\(%|\bpercentage\b|%)/i.test(node.label);
@@ -761,10 +788,11 @@ function Value({
       </span>
     );
   }
-  if (typeof v === "number" && isDraftReview) {
+  const numericText = jsonNumberText(v);
+  if (numericText !== undefined) {
     return (
       <span className="fs-response-review-number">
-        {formatNumericValue(v, node, locale ?? "en-US")}
+        {formatNumericValue(numericText, node, locale ?? "en-US", { lossless: !isDraftReview })}
       </span>
     );
   }

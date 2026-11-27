@@ -55,6 +55,34 @@ export function formatMoneyDisplay(raw: string, currencyCode: string): string {
     return `${sign}${groupedInt}.${paddedFrac}`;
 }
 
+/** Resolve ISO 4217 currency code (e.g. "USD") to its narrow symbol (e.g. "$"). */
+export function toCurrencySymbol(code: string, locale = 'en-US'): string {
+    try {
+        const parts = new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: code.toUpperCase(),
+            currencyDisplay: 'narrowSymbol',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).formatToParts(1);
+        return parts.find(p => p.type === 'currency')?.value ?? code;
+    } catch {
+        return code;
+    }
+}
+
+/** Losslessly format a monetary amount with its narrow currency symbol without IEEE-754 float rounding. */
+export function formatExactCurrency(raw: string, currencyCode: string, locale = 'en-US'): string {
+    const trimmed = raw.trim();
+    if (!trimmed) return raw;
+    if (!/^[+-]?\d+(?:\.\d+)?$/.test(trimmed)) return raw;
+    const formatted = formatMoneyDisplay(trimmed, currencyCode);
+    const sign = formatted.startsWith('-') || formatted.startsWith('+') ? formatted[0]! : '';
+    const magnitude = sign ? formatted.slice(1) : formatted;
+    const symbol = toCurrencySymbol(currencyCode, locale);
+    return `${sign}${symbol}${magnitude}`;
+}
+
 /** Strip thousands commas (and optional pasted currency symbol/whitespace) when the entry is numeric. */
 export function normalizeMoneyInput(raw: string, currencySymbol: string): string {
     if (raw === '') return '';
@@ -62,6 +90,7 @@ export function normalizeMoneyInput(raw: string, currencySymbol: string): string
     if (currencySymbol && candidate.startsWith(currencySymbol)) {
         candidate = candidate.slice(currencySymbol.length).trim();
     }
+    if (candidate === '') return '';
     const withoutCommas = candidate.replace(/,/g, '');
     if (/^[+-]?(?:\d+\.?\d*|\.\d*)$/.test(withoutCommas)) {
         return withoutCommas;

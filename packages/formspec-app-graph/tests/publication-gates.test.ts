@@ -265,21 +265,210 @@ it('sends each Definition its own trace and Surface mounts within the Source bod
   expect(bytes(result.report)).toBeGreaterThan(2 ** 21);
   const reports = definitionPublicationReports(result);
   expect(reports).toHaveLength(defs.length);
+  const fullScopedReports = definitionPublicationReports(result, { includeNodes: true });
+  expect(fullScopedReports).toHaveLength(defs.length);
   for (const [index, report] of reports.entries()) {
     expect(validateReport(JSON.parse(JSON.stringify(report))), validateReport.errors?.[0]?.message).toBe(true);
     expect(report.renderedNeedTrace?.definitions.map(d => d.url)).toEqual([defs[index].url]);
-    const nodes = report.renderedNeedTrace!.nodes;
-    expect(nodes.filter(n => n.kind === 'definition-item')).toHaveLength(641);
-    expect(nodes.filter(n => n.kind === 'surface-slot').map(n => n.source.jsonPointer))
+    expect(report.renderedNeedTrace?.inventory).toBe('omitted');
+    expect(report.renderedNeedTrace?.nodes).toEqual([]);
+    const fullNodes = fullScopedReports[index]!.renderedNeedTrace!.nodes;
+    expect(report.renderedNeedTrace?.nodeCount).toBe(fullNodes.length);
+    expect(fullScopedReports[index]!.renderedNeedTrace?.inventory).toBe('full');
+    expect(validateReport(JSON.parse(JSON.stringify(fullScopedReports[index]))), validateReport.errors?.[0]?.message).toBe(true);
+    expect(fullNodes.filter(n => n.kind === 'definition-item')).toHaveLength(641);
+    expect(fullNodes.filter(n => n.kind === 'surface-slot').map(n => n.source.jsonPointer))
       .toEqual(index === 0
         ? ['/routes/0/slots/0', '/routes/2/slots/0', '/routes/3/slots/0']
         : index === 1 ? ['/routes/0/slots/1', '/routes/1/slots/0', '/routes/2/slots/0', '/routes/3/slots/0', '/routes/3/slots/1'] : []);
-    expect(nodes.some(n => n.source.artifactKind === 'component')).toBe(index < 2);
-    expect(nodes.some(n => n.source.artifactKind === 'locale')).toBe(index === 0);
+    expect(fullNodes.some(n => n.source.artifactKind === 'component')).toBe(index < 2);
+    expect(fullNodes.some(n => n.source.artifactKind === 'locale')).toBe(index === 0);
     expect(bytes({
       definition: defs[index], locale_documents: index === 0 ? [docs[localeUrl]] : [],
       app_graph_validation_report: report, runtime_config: {}, created_by: 'publisher',
     })).toBeLessThan(2 ** 21);
   }
   expect(definitionPublicationReports({ ...result, report: { ...result.report, ok: false } })).toEqual([]);
+});
+
+it('keeps a single large Definition publish payload well under 2 MiB via compact publication proof while retaining full authoring nodes', async () => {
+  const anchor = 'need:collect-name@1';
+  const generation = { 'x-generation': { anchors: [anchor] } };
+  const needs = {
+    $formspecNeeds: '1.0',
+    version: '1.0.0',
+    needs: [{
+      id: 'collect-name',
+      status: 'adopted',
+      revision: 1,
+      adoptedBy: { kind: 'human', id: 'reviewer' },
+      ungroundedReason: { code: 'not-yet-researched', explanation: 'Test fixture.' },
+    }],
+  };
+  const itemCount = 1600;
+  const largeDefUrl = 'https://example.gov/definitions/large-schedule';
+  const siblingDefUrl = 'https://example.gov/definitions/summary-schedule';
+  const largeCompUrl = 'https://example.gov/components/large-schedule';
+  const largeLocaleUrl = 'https://example.gov/locales/large-schedule-es';
+  const surfaceUrl = 'https://example.gov/surfaces/large-publish';
+
+  const largeDef = {
+    $formspec: '1.0',
+    url: largeDefUrl,
+    version: '1.0.0',
+    title: 'Large Schedule',
+    ...generation,
+    items: [{
+      key: 'section',
+      type: 'group',
+      label: 'Schedule Entries',
+      children: Array.from({ length: itemCount }, (_, i) => ({
+        key: `metric_${i}`,
+        type: 'field',
+        dataType: 'decimal',
+        label: `Metric ${i}`,
+        ...(i === 0 ? generation : {}),
+      })),
+    }],
+  };
+  const siblingDef = {
+    $formspec: '1.0',
+    url: siblingDefUrl,
+    version: '1.0.0',
+    title: 'Summary Schedule',
+    ...generation,
+    items: [{ key: 'note', type: 'field', dataType: 'string', label: 'Note', ...generation }],
+  };
+  const largeComp = {
+    $formspecComponent: '1.2',
+    url: largeCompUrl,
+    version: '1.0.0',
+    targetDefinition: { url: largeDefUrl, version: '1.0.0' },
+    tree: {
+      component: 'Stack',
+      id: 'schedule-layout',
+      ...generation,
+      children: Array.from({ length: itemCount }, (_, i) => ({
+        component: 'NumberInput',
+        id: `metric_input_${i}`,
+        bind: `section.metric_${i}`,
+      })),
+    },
+  };
+  const largeLocale = {
+    $formspecLocale: '2.0',
+    url: largeLocaleUrl,
+    version: '1.0.0',
+    locale: 'es',
+    target: { kind: 'definition', url: largeDefUrl },
+    strings: Object.fromEntries(Array.from({ length: 200 }, (_, i) => [`section.metric_${i}.label`, `Métrica ${i}`])),
+    stringGeneration: Object.fromEntries(Array.from({ length: 200 }, (_, i) => [`section.metric_${i}.label`, { anchors: [anchor] }])),
+  };
+  const surface = {
+    $formspecSurface: '0.2',
+    id: 'large-publish',
+    entry: 'main',
+    ...generation,
+    routes: [{
+      id: 'main',
+      path: '/',
+      navigation: { visible: true, ...generation },
+      ...generation,
+      slots: [
+        { id: 'large-slot', slotType: 'definition-form', binding: { definitionRef: largeDefUrl }, ...generation },
+        { id: 'sibling-slot', slotType: 'definition-form', binding: { definitionRef: siblingDefUrl }, ...generation },
+      ],
+    }],
+  };
+
+  const result = await produceBundleExportAppGraphValidationReport({
+    manifest: {
+      $formspecBundle: '2.5',
+      id: 'https://example.gov/apps/large-publish',
+      version: '1.0.0',
+      definitions: [
+        { url: largeDefUrl, version: '1.0.0' },
+        { url: siblingDefUrl, version: '1.0.0' },
+      ],
+      components: [{ url: largeCompUrl, version: '1.0.0', handle: 'large-schedule' }],
+      locales: [{ url: largeLocaleUrl, version: '1.0.0', locale: 'es' }],
+      surfaces: [{ url: surfaceUrl, version: '1.0.0' }],
+      theme: { url: themeUrl, version: '1.0.0' },
+      needs: { url: needsUrl, version: '1.0.0' },
+    },
+    documents: {
+      [largeDefUrl]: largeDef,
+      [siblingDefUrl]: siblingDef,
+      [largeCompUrl]: largeComp,
+      [largeLocaleUrl]: largeLocale,
+      [surfaceUrl]: surface,
+      [themeUrl]: { ...theme, targetDefinition: { url: largeDefUrl }, ...generation },
+      [needsUrl]: needs,
+    },
+    ...permissive,
+    renderedNeedTrace: whenDeclared,
+  });
+
+  expect(result.report.ok).toBe(true);
+  expect(result.report.diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
+  // Primary authoring report preserves the full node inventory for authoring/inspection tools.
+  expect(result.report.renderedNeedTrace?.nodes.length).toBeGreaterThan(itemCount * 2);
+  expect(result.report.renderedNeedTrace?.inventory).toBeUndefined();
+
+  const bytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
+  const fullScoped = definitionPublicationReports(result, { includeNodes: true })
+    .find((r) => r.renderedNeedTrace?.definitions[0]?.url === largeDefUrl)!;
+  const compactScoped = definitionPublicationReports(result)
+    .find((r) => r.renderedNeedTrace?.definitions[0]?.url === largeDefUrl)!;
+
+  // Confirm the non-compact single-Definition publish payload genuinely overflows the 2 MiB Source cap.
+  const fullPublishPayload = {
+    definition: largeDef,
+    component_document: largeComp,
+    locale_documents: [largeLocale],
+    app_graph_validation_report: fullScoped,
+    runtime_config: {},
+    created_by: 'publisher',
+  };
+  expect(bytes(fullPublishPayload)).toBeGreaterThan(2 ** 21);
+
+  // Compact publication proof stays comfortably well under the 2 MiB cap while preserving every required proof field.
+  const compactPublishPayload = {
+    definition: largeDef,
+    component_document: largeComp,
+    locale_documents: [largeLocale],
+    app_graph_validation_report: compactScoped,
+    runtime_config: {},
+    created_by: 'publisher',
+  };
+  expect(bytes(compactPublishPayload)).toBeLessThan(1_500_000);
+  expect(bytes(compactScoped)).toBeLessThan(100_000);
+  expect(validateReport(JSON.parse(JSON.stringify(compactScoped))), validateReport.errors?.[0]?.message).toBe(true);
+  expect(compactScoped.ok).toBe(true);
+  expect(compactScoped.phases).toEqual(result.report.phases);
+  expect(compactScoped.schemaResults).toEqual(result.report.schemaResults);
+  expect(compactScoped.evidenceResults).toEqual(result.report.evidenceResults);
+  expect(compactScoped.renderedNeedTrace).toEqual({
+    status: 'completed',
+    inventory: 'omitted',
+    nodeCount: fullScoped.renderedNeedTrace!.nodes.length,
+    definitions: [{
+      url: largeDefUrl,
+      version: '1.0.0',
+      sha256: digest(largeDef),
+      locales: [{ url: largeLocaleUrl, sha256: digest(largeLocale) }],
+      components: [{ url: largeCompUrl, sha256: digest(largeComp) }],
+    }],
+    nodes: [],
+  });
+  // Redundant-anchor warnings remain scoped to the large Definition (sibling redundant warning excluded).
+  expect(compactScoped.diagnostics.some((d) =>
+    d.code === 'APP-GRAPH-RENDERED-NEED-REDUNDANT' && d.primarySource?.artifactSlot === 'definitions[0]')).toBe(true);
+  expect(compactScoped.diagnostics.some((d) =>
+    d.code === 'APP-GRAPH-RENDERED-NEED-REDUNDANT' && d.primarySource?.artifactSlot === 'definitions[1]')).toBe(false);
+
+  // Schema enforces the compact invariant: inventory="omitted" must not carry non-empty nodes.
+  const invalidCompact = JSON.parse(JSON.stringify(compactScoped));
+  invalidCompact.renderedNeedTrace.nodes = [fullScoped.renderedNeedTrace!.nodes[0]];
+  expect(validateReport(invalidCompact)).toBe(false);
 });

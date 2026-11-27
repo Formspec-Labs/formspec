@@ -1,28 +1,17 @@
 /** @filedesc MoneyInput amount + currency adornment. */
 'use client';
 import React from 'react';
-import { jsonValueText } from '@formspec-org/engine';
+import { jsonNumberText, jsonValueText } from '@formspec-org/engine';
 import { useChromeText } from '../../../use-chrome-text';
 import type { CommonInputProps } from '../field-control-types';
-import { formatMoneyDisplay, normalizeMoneyInput, useCurrencyDraft } from './currency-format';
+import {
+    formatMoneyDisplay,
+    normalizeMoneyInput,
+    toCurrencySymbol,
+    useCurrencyDraft,
+} from './currency-format';
 
 export { formatMoneyDisplay, normalizeMoneyInput };
-
-/** Resolve ISO 4217 currency code (e.g. "USD") to its narrow symbol (e.g. "$"). */
-function toCurrencySymbol(code: string): string {
-    try {
-        const parts = new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: code.toUpperCase(),
-            currencyDisplay: 'narrowSymbol',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).formatToParts(1);
-        return parts.find(p => p.type === 'currency')?.value ?? code;
-    } catch {
-        return code;
-    }
-}
 
 /** Round-trip raw canonical decimal text for money amount input (matches web component bind sync). */
 function formatMoneyAmountForInput(amount: unknown): string {
@@ -51,7 +40,7 @@ export function MoneyInputControl({
     if (rawValue != null) {
         if (typeof rawValue === 'object' && rawValue !== null && 'amount' in rawValue) {
             amountStr = formatMoneyAmountForInput((rawValue as { amount?: unknown }).amount);
-        } else if (typeof rawValue === 'number') {
+        } else if (jsonNumberText(rawValue) !== undefined) {
             amountStr = formatMoneyAmountForInput(rawValue);
         }
     }
@@ -61,7 +50,7 @@ export function MoneyInputControl({
         currencyCode,
         currencySymbol: currency,
         isReadonly,
-        onCommit: (amount) => field.setValue({ amount, currency: currencyCode }),
+        onCommit: (amount) => field.setValue(amount === null ? undefined : { amount, currency: currencyCode }),
         onBlur: common.onBlur,
     });
 

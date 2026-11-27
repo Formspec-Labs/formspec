@@ -235,11 +235,16 @@ export interface AppGraphTracedDefinition extends AppGraphCoveredDocument {
   components: AppGraphCoveredDocument[];
 }
 
+/** Whether `renderedNeedTrace.nodes` carries the full per-node inventory or omits it for compact publication proof. */
+export type AppGraphRenderedNeedTraceInventoryMode = 'full' | 'omitted';
+
 /** Report record of a strict rendered-Need trace run; the server checks it instead of re-running the rule. */
 export interface AppGraphRenderedNeedTraceRecord {
   status: 'completed' | 'not-applicable';
   definitions: AppGraphTracedDefinition[];
   nodes: RenderedNeedTraceNode[];
+  inventory?: AppGraphRenderedNeedTraceInventoryMode;
+  nodeCount?: number;
 }
 
 export interface AppGraphSchemaResult {

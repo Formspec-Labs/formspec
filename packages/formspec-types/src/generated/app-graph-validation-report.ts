@@ -63,7 +63,7 @@ export type Origin =
  */
 export type PhaseStatusValue = 'completed' | 'skipped' | 'not-run';
 /**
- * Record of the strict rendered-Need trace (Needs spec S10.3), present only when the caller requested it and the cross-artifact phase completed. `completed`: the trace rule ran over the loaded graph and its findings are in `diagnostics`. `not-applicable`: the caller requested it only when declared, and the graph pairs no Needs Document and carries no Need trace. `definitions` lists each loaded Definition the run covered, bound to its content by canonical digest together with the Locales and Components that target it; a server checks a published version's documents against these digests instead of re-running the rule.
+ * Record of the strict rendered-Need trace (Needs spec S10.3), present only when the caller requested it and the cross-artifact phase completed. `completed`: the trace rule ran over the loaded graph and its findings are in `diagnostics`. `not-applicable`: the caller requested it only when declared, and the graph pairs no Needs Document and carries no Need trace. `definitions` lists each loaded Definition the run covered, bound to its content by canonical digest together with the Locales and Components that target it; a server checks a published version's documents against these digests instead of re-running the rule. Scoped publication proofs may omit the per-node inventory (`inventory: "omitted"`, `nodes: []`, and `nodeCount` recording the verified node count) while retaining every required proof field.
  *
  * This interface was referenced by `AppGraphValidationReport`'s JSON-Schema
  * via the `definition` "RenderedNeedTraceRecord".
@@ -72,9 +72,17 @@ export type RenderedNeedTraceRecord = {
   status: 'completed' | 'not-applicable';
   definitions: TracedDefinition[];
   /**
-   * Inventory with each node's effective publication trace per the App Graph owner table. Nodes MUST be sorted by source.artifactSlot, then source.jsonPointer (the pair is unique per inventoried node), in ascending Unicode code point order. Empty when status is not-applicable. This is trace evidence, not Need satisfaction or runtime authorization.
+   * Inventory with each node's effective publication trace per the App Graph owner table. Nodes MUST be sorted by source.artifactSlot, then source.jsonPointer (the pair is unique per inventoried node), in ascending Unicode code point order. Empty when status is not-applicable or when inventory is omitted for a compact publication proof. This is trace evidence, not Need satisfaction or runtime authorization.
    */
   nodes: RenderedNeedTraceNode[];
+  /**
+   * Whether `nodes` contains the complete per-node trace inventory (`full`, the default when absent) or was omitted for a compact publication proof (`omitted`, where `nodes` MUST be empty and `nodeCount` records how many verified nodes were omitted).
+   */
+  inventory?: 'full' | 'omitted';
+  /**
+   * Total number of verified trace nodes covered by this record. When `inventory` is `omitted`, records the exact count of scoped nodes omitted from `nodes`.
+   */
+  nodeCount?: number;
 };
 /**
  * SHA-256 over the document's RFC 8785 (JCS) canonical bytes, written sha256:<hex>: the hash Source computes for a published Definition.
