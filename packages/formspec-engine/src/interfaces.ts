@@ -237,6 +237,18 @@ export interface RemoteOptionsState {
     error: string | null;
 }
 
+/** Host-supplied resolved option lists for remote `optionSets` and URI-string `Item.options` (Core §4.6, §4.2.3). */
+export interface ResolvedOptionListsInput {
+    optionSets?: Readonly<Record<string, ReadonlyArray<string | OptionEntry>>>;
+    uris?: Readonly<Record<string, ReadonlyArray<string | OptionEntry>>>;
+}
+
+/** Canonical value-only snapshot of resolved remote option lists suitable for recheck forwarding. */
+export interface ResolvedOptionListsSnapshot {
+    optionSets: Record<string, string[]>;
+    uris: Record<string, string[]>;
+}
+
 export type EngineNowInput = Date | string | number;
 
 export interface FormEngineRuntimeContext {
@@ -307,6 +319,8 @@ export interface FormEngineOptions {
     responseSubject?: Partial<Omit<NonNullable<FormResponse['subject']>, 'keys'>> & { keys?: ResponseSubjectKeys };
     /** Available, host-qualified deliveries of Definition Response instances, keyed by instance name. */
     responseInstanceResolutions?: Readonly<Record<string, ResponseSelectionDelivery>>;
+    /** Host-supplied resolved option lists for remote `optionSets` and URI-string `Item.options`. */
+    resolvedOptions?: ResolvedOptionListsInput;
 }
 
 /** Editable data pinned to a Definition, including hidden answers and exact repeat arrays. */
@@ -505,6 +519,7 @@ export interface IFormEngine {
     getOptionsState(path: string): RemoteOptionsState;
     getOptionsStateSignal(path: string): EngineSignal<RemoteOptionsState> | undefined;
     waitForRemoteOptions(): Promise<void>;
+    getResolvedOptions?(): ResolvedOptionListsSnapshot;
     waitForInstanceSources(): Promise<Readonly<Record<string, InstanceSourceLoadOutcome>>>;
 
     setInstanceValue(name: string, path: string | undefined, value: FormFieldValue): void;

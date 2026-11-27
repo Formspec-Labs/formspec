@@ -31,7 +31,6 @@ import {
 } from '../wasm-bridge-runtime.js';
 
 export type EngineBindConfig = FormBind & {
-    remoteOptions?: string;
     precision?: number;
     disabledDisplay?: 'hidden' | 'protected';
 };
@@ -40,7 +39,10 @@ export type EngineBindConfig = FormBind & {
 type MutableJsonPath = Record<string | number, FormFieldValue | JsonValue[] | JsonRecord>;
 
 type RuntimeNowInput = Date | string | number;
-export function normalizeRemoteOptions(payload: unknown): OptionEntry[] {
+export function normalizeRemoteOptions(
+    payload: unknown,
+    mapping?: { valueField?: string; labelField?: string },
+): OptionEntry[] {
     const record = payload !== null && typeof payload === 'object'
         ? payload as Record<string, unknown>
         : null;
@@ -52,13 +54,15 @@ export function normalizeRemoteOptions(payload: unknown): OptionEntry[] {
     if (!options) {
         throw new Error('Remote options response must be an array or { options: [...] }');
     }
+    const valueField = mapping?.valueField || 'value';
+    const labelField = mapping?.labelField || 'label';
     return options
         .filter((option): option is Record<string, unknown> =>
-            !!option && typeof option === 'object' && 'value' in option && 'label' in option)
+            !!option && typeof option === 'object' && valueField in option && labelField in option)
         .map((option) => {
             const base: OptionEntry = {
-                value: String(option.value),
-                label: String(option.label),
+                value: String(option[valueField]),
+                label: String(option[labelField]),
                 ...(option['x-generation'] && typeof option['x-generation'] === 'object'
                     ? { 'x-generation': option['x-generation'] as OptionEntry['x-generation'] }
                     : {}),

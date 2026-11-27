@@ -15,6 +15,7 @@ use formspec_core::json_object_to_string_map;
 use formspec_core::wire_keys::{evaluation_batch_keys, evaluation_undeclared_data_paths_key};
 
 use crate::extension_constraints_from_registry_documents;
+use crate::resolved_options::ResolvedOptionLists;
 use crate::types::{
     EvalContext, EvalDiagnostic, EvalSubject, EvalTrigger, EvaluationResult, ExtensionConstraint,
     ItemText, ItemTextRequest, ValidationResult,
@@ -223,6 +224,8 @@ pub struct EvalHostContextBundle {
     pub instances: HashMap<String, Value>,
     /// Extension constraints derived from optional registry documents in the context object.
     pub constraints: Vec<ExtensionConstraint>,
+    /// Host-supplied resolved option lists for remote `optionSets` and URI-string `Item.options`.
+    pub resolved_option_lists: ResolvedOptionLists,
     /// Item text request from `itemText: { localeStrings? }`, when present.
     pub item_text: Option<ItemTextRequest>,
 }
@@ -236,8 +239,29 @@ pub fn eval_host_context_from_json_map(
         trigger: parse_eval_trigger(ctx_obj)?,
         instances: parse_instances(ctx_obj),
         constraints: parse_registry_documents(ctx_obj),
+        resolved_option_lists: resolved_option_lists_from_json_object(ctx_obj)?,
         item_text: item_text_request_from_json_object(ctx_obj),
     })
+}
+
+/// Parse optional `resolvedOptions` / `resolved_options` from a host context JSON object.
+///
+/// Returns an empty [`ResolvedOptionLists`] when the key is omitted or null.
+///
+/// # Errors
+///
+/// Returns an error if the value is present and malformed.
+pub fn resolved_option_lists_from_json_object(
+    ctx_obj: &Map<String, Value>,
+) -> Result<ResolvedOptionLists, String> {
+    let Some(raw) = ctx_obj
+        .get("resolvedOptions")
+        .or_else(|| ctx_obj.get("resolved_options"))
+        .filter(|value| !value.is_null())
+    else {
+        return Ok(ResolvedOptionLists::default());
+    };
+    ResolvedOptionLists::from_json_value(raw)
 }
 
 /// The Item text request in a host context object: `itemText: { localeStrings? }` (Core §4.2.1).

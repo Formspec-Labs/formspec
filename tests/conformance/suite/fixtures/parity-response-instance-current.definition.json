@@ -1,0 +1,39 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:parity-response-instance-current",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Current Response Instance Parity",
+  "subject": {
+    "type": "urn:example:unit",
+    "keys": {
+      "code": { "dataType": "string" },
+      "period": { "dataType": "integer" }
+    }
+  },
+  "instances": {
+    "draft": {
+      "schema": { "type": "object" },
+      "response": {
+        "definition": {
+          "url": "urn:example:upstream:worksheet",
+          "compatibleVersions": ">=1.0.0 <2.0.0"
+        },
+        "subject": [
+          { "key": "code", "op": "eq", "from": { "subject": "code" } },
+          { "key": "period", "op": "eq", "from": { "subject": "period" } }
+        ],
+        "status": "current",
+        "cardinality": "latest",
+        "pin": "none"
+      }
+    }
+  },
+  "items": [
+    { "key": "current", "type": "field", "dataType": "integer", "label": "Current" },
+    { "key": "delta", "type": "field", "dataType": "integer", "label": "Delta" }
+  ],
+  "binds": [
+    { "path": "delta", "calculate": "$current - @instance('draft').total" }
+  ]
+}

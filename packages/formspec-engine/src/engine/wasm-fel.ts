@@ -2,7 +2,7 @@
 
 import type { EvalResult, EvalValidation } from '../diff.js';
 import type { DraftExplanation } from './warning-explanations.js';
-import type { ResponseSubjectKeys } from '../interfaces.js';
+import type { ResolvedOptionListsInput, ResponseSubjectKeys } from '../interfaces.js';
 
 // --- wasmEvaluateDefinition payload -------------------------------------------------------------
 
@@ -13,6 +13,7 @@ export function wasmEvaluateDefinitionPayload(options: {
     previousResult: Pick<EvalResult, 'nonRelevant'> | null;
     instances: Record<string, unknown>;
     registryDocuments: unknown[];
+    resolvedOptions?: ResolvedOptionListsInput;
     subjectType?: string | null;
     subjectKeys?: ResponseSubjectKeys;
     explanations?: DraftExplanation[];
@@ -22,16 +23,22 @@ export function wasmEvaluateDefinitionPayload(options: {
     previousNonRelevant: string[] | undefined;
     instances: Record<string, unknown>;
     registryDocuments: unknown[];
+    resolvedOptions?: ResolvedOptionListsInput;
     subjectType?: string | null;
     subjectKeys?: ResponseSubjectKeys;
     explanations?: DraftExplanation[];
 } {
+    const hasResolvedOptions = options.resolvedOptions !== undefined && (
+        Object.keys(options.resolvedOptions.optionSets ?? {}).length > 0
+        || Object.keys(options.resolvedOptions.uris ?? {}).length > 0
+    );
     return {
         nowIso: options.nowIso,
         ...(options.trigger !== undefined ? { trigger: options.trigger } : {}),
         previousNonRelevant: options.previousResult?.nonRelevant,
         instances: options.instances,
         registryDocuments: options.registryDocuments,
+        ...(hasResolvedOptions ? { resolvedOptions: options.resolvedOptions } : {}),
         subjectType: options.subjectType,
         subjectKeys: options.subjectKeys,
         explanations: options.explanations,

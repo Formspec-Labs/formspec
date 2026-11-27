@@ -340,4 +340,55 @@ test('preserves expectedCandidate canonical JSON mismatch detection and refused-
     (legs.get('F_submit') ?? []).some((p) => p.includes('complete filed Response differs')),
     `expected canonical candidate mismatch on F_submit, got: ${JSON.stringify(Object.fromEntries(legs))}`,
   );
+  assert.ok(
+    (legs.get('P') ?? []).some((p) => p.includes('complete filed Response differs')),
+    `expected canonical candidate mismatch on P, got: ${JSON.stringify(Object.fromEntries(legs))}`,
+  );
+});
+
+test('whole-Response candidate checks catch tampered resolvedInstances and explanations on both P and F_submit', async () => {
+  const instCase = parseJsonExact(
+    fs.readFileSync(path.join(repoRoot, 'tests', 'conformance', 'suite', 'parity-response-instance-completed.json'), 'utf8'),
+  );
+  const tamperedInst = {
+    ...instCase,
+    expectedCandidate: {
+      ...instCase.expectedCandidate,
+      resolvedInstances: [{
+        ...instCase.expectedCandidate.resolvedInstances[0],
+        pinned: true,
+      }],
+    },
+  };
+  const instLegs = await runCase(tamperedInst, repoRoot);
+  assert.ok((instLegs.get('P') ?? []).some((p) => p.includes('fields: resolvedInstances')), JSON.stringify(Object.fromEntries(instLegs)));
+  assert.ok((instLegs.get('F_submit') ?? []).some((p) => p.includes('fields: resolvedInstances')), JSON.stringify(Object.fromEntries(instLegs)));
+
+  const expCase = parseJsonExact(
+    fs.readFileSync(path.join(repoRoot, 'tests', 'conformance', 'suite', 'parity-warning-grouped-acknowledge.json'), 'utf8'),
+  );
+  const tamperedExp = {
+    ...expCase,
+    expectedCandidate: {
+      ...expCase.expectedCandidate,
+      explanations: [{
+        ...expCase.expectedCandidate.explanations[0],
+        paths: ['venue', 'topic', 'outcome'],
+      }],
+    },
+  };
+  const expLegs = await runCase(tamperedExp, repoRoot);
+  assert.ok((expLegs.get('P') ?? []).some((p) => p.includes('fields: explanations')), JSON.stringify(Object.fromEntries(expLegs)));
+  assert.ok((expLegs.get('F_submit') ?? []).some((p) => p.includes('fields: explanations')), JSON.stringify(Object.fromEntries(expLegs)));
+});
+
+test('serverRegistries option clears fs-20e3 registry discrepancies on the server leg', async () => {
+  const regCase = parseJsonExact(
+    fs.readFileSync(path.join(repoRoot, 'tests', 'conformance', 'suite', 'all-codes-validation.json'), 'utf8'),
+  );
+  const legs = await runCase(regCase, repoRoot, { serverRegistries: true });
+  assert.deepEqual(legs.get('S'), []);
+  assert.deepEqual(legs.get('F_submit'), []);
+  assert.deepEqual(legs.get('FR'), []);
+  assert.deepEqual(legs.get('noInvention'), []);
 });

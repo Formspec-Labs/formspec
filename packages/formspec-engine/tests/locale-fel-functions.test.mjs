@@ -164,7 +164,9 @@ test('FormEngine refusal prevents instance and remote option loads', async (t) =
   });
   const definition = minDef({
     instances: { sourceData: { source: 'formspec-fn:fixture' } },
-    binds: [{ path: 'name', remoteOptions: 'https://example.org/options' }],
+    items: [
+      { key: 'name', type: 'field', dataType: 'choice', label: 'Name', options: 'https://example.org/options' },
+    ],
   });
 
   // The refusal is available in reports. It still prevents both source loads.

@@ -6,6 +6,20 @@ use std::{collections::HashSet, sync::Arc};
 
 use super::modes::{ExcludedValueMode, NrbMode, WhitespaceMode};
 
+/// Remote option list reference for a `choice` or `multiChoice` field (Core §4.2.3, §4.6).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RemoteOptionSource {
+    /// Named `optionSets` entry backed by an external `source` URI.
+    OptionSet {
+        /// Key in `definition.optionSets`.
+        name: String,
+        /// External `source` URI declared on the option set.
+        source: String,
+    },
+    /// External URI supplied directly in `Item.options`.
+    Uri(String),
+}
+
 /// Relevance, requirement, and readonly evaluation state (MIP).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MipState {
@@ -83,8 +97,10 @@ pub struct ItemInfo {
     pub repeat_min: Option<u64>,
     /// Maximum repeat count (for repeatable groups).
     pub repeat_max: Option<u64>,
-    /// Valid option values for choice/multiChoice fields.
+    /// Valid inline option values for choice/multiChoice fields.
     pub option_values: Arc<HashSet<String>>,
+    /// Remote option source when a choice/multiChoice field references a URL-backed optionSet or URI options.
+    pub option_source: Option<RemoteOptionSource>,
     /// Accepted MIME types for attachment fields (e.g. ["image/*", "application/pdf"]).
     pub accept_types: Vec<String>,
     /// Extension names declared on this item (only enabled ones, value=true).
@@ -128,6 +144,7 @@ impl Default for ItemInfo {
             repeat_min: None,
             repeat_max: None,
             option_values: Arc::default(),
+            option_source: None,
             accept_types: Vec::new(),
             extensions: Vec::new(),
             pre_populate_instance: None,

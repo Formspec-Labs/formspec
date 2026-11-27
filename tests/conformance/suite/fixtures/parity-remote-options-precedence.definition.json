@@ -1,0 +1,34 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:parity-remote-options-precedence",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Remote OptionSet Precedence Parity",
+  "optionSets": {
+    "catalog": {
+      "source": "urn:example:options:catalog"
+    }
+  },
+  "items": [
+    {
+      "key": "item",
+      "type": "field",
+      "dataType": "choice",
+      "label": "Item",
+      "options": [
+        { "value": "inline", "label": "Inline" }
+      ],
+      "optionSet": "catalog"
+    },
+    {
+      "key": "other",
+      "type": "field",
+      "dataType": "choice",
+      "label": "Other",
+      "options": [
+        { "value": "inline", "label": "Inline" }
+      ],
+      "optionSet": "catalog"
+    }
+  ]
+}

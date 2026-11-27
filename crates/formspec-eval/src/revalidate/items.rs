@@ -13,9 +13,10 @@ use fel_core::parse;
 
 use crate::convert::resolve_value_by_path;
 use crate::interpolation::interpolate_fel;
+use crate::resolved_options::ResolvedOptionLists;
 use crate::types::{
-    ConstraintKind, ExtensionConstraint, ItemInfo, Severity, ValidationCode, ValidationResult,
-    ValidationSource,
+    ConstraintKind, ExtensionConstraint, ItemInfo, RemoteOptionSource, Severity, ValidationCode,
+    ValidationResult, ValidationSource,
 };
 
 use crate::value_predicate::is_empty_bind_value;
@@ -61,105 +62,103 @@ impl Validation<'_> {
         if !is_empty_bind_value(&val)
             && let Some(ref dt) = item.data_type
         {
-            let mismatch = match dt.as_str() {
-                // String-family: must be a JSON string
-                "string" | "text" => !val.is_string(),
-                "choice" => !val.as_str().map_or(false, |s| {
-                    item.option_values.is_empty() || item.option_values.contains(s)
-                }),
+            if matches!(dt.as_str(), "choice" | "multiChoice") {
+                validate_choice_membership(
+                    item,
+                    dt.as_str(),
+                    &val,
+                    self.resolved_option_lists,
+                    &mut findings.results,
+                );
+            } else {
+                let mismatch = match dt.as_str() {
+                    // String-family: must be a JSON string
+                    "string" | "text" => !val.is_string(),
 
-                // Numeric: integer must be whole, decimal any number
-                "integer" => !val
-                    .as_decimal()
-                    .is_some_and(|number| number.fract().is_zero()),
-                "number" | "decimal" => val.as_decimal().is_none(),
+                    // Numeric: integer must be whole, decimal any number
+                    "integer" => !val
+                        .as_decimal()
+                        .is_some_and(|number| number.fract().is_zero()),
+                    "number" | "decimal" => val.as_decimal().is_none(),
 
-                "boolean" => !val.is_boolean(),
+                    "boolean" => !val.is_boolean(),
 
-                // Date: string in YYYY-MM-DD format with valid ranges
-                "date" => !val.as_str().map_or(false, is_valid_date),
+                    // Date: string in YYYY-MM-DD format with valid ranges
+                    "date" => !val.as_str().map_or(false, is_valid_date),
 
-                // DateTime: string in ISO 8601 date-time format
-                "dateTime" => !val.as_str().map_or(false, is_valid_datetime),
+                    // DateTime: string in ISO 8601 date-time format
+                    "dateTime" => !val.as_str().map_or(false, is_valid_datetime),
 
-                // Time: string in HH:MM:SS format
-                "time" => !val.as_str().map_or(false, is_valid_time),
+                    // Time: string in HH:MM:SS format
+                    "time" => !val.as_str().map_or(false, is_valid_time),
 
-                // URI: string with a scheme component
-                "uri" => !val.as_str().map_or(false, is_valid_uri),
+                    // URI: string with a scheme component
+                    "uri" => !val.as_str().map_or(false, is_valid_uri),
 
-                // multiChoice: array where every element is a string (and in options if defined)
-                "multiChoice" => !val.as_array().map_or(false, |arr| {
-                    arr.iter().all(|v| {
-                        v.as_str().map_or(false, |s| {
-                            item.option_values.is_empty() || item.option_values.contains(s)
-                        })
-                    })
-                }),
-
-                // money: object with amount (string or number) + currency (string, 3 uppercase letters)
-                // Spec requires string amounts in responses, but we accept numeric for Postel's Law.
-                "money" => {
-                    !val.as_object().map_or(false, |obj| {
-                        let amount_ok = obj.get("amount").map_or(false, |a| {
-                            // Accept string decimal
-                            a.as_str().map_or(false, |s| {
-                                !s.is_empty()
-                                    && s.bytes()
-                                        .all(|b| b.is_ascii_digit() || b == b'.' || b == b'-')
-                                    && rust_decimal::Decimal::from_str_exact(s).is_ok()
-                            })
-                            // Also accept numeric (Postel's Law — inbound values may use numbers)
-                            || a.is_number()
-                        });
-                        let currency_ok = obj
-                            .get("currency")
-                            .and_then(Value::as_str)
-                            .map_or(false, |s| {
-                                s.len() == 3 && s.bytes().all(|b| b.is_ascii_uppercase())
-                            });
-                        amount_ok && currency_ok
-                    })
-                }
-
-                // attachment: object with contentType (string).
-                // url/data completeness is a submission-level check, not a type check.
-                // If the item declares accepted MIME types, contentType must match one.
-                "attachment" => {
-                    !val.as_object().map_or(false, |obj| {
-                        let ct = obj.get("contentType").and_then(Value::as_str);
-                        ct.map_or(false, |s| {
-                            if item.accept_types.is_empty() {
-                                !s.is_empty()
-                            } else {
-                                item.accept_types.iter().any(|accepted| {
-                                    // Support wildcard like "image/*"
-                                    if let Some(prefix) = accepted.strip_suffix("/*") {
-                                        s.starts_with(prefix)
-                                            && s.as_bytes().get(prefix.len()) == Some(&b'/')
-                                    } else {
-                                        s == accepted
-                                    }
+                    // money: object with amount (string or number) + currency (string, 3 uppercase letters)
+                    // Spec requires string amounts in responses, but we accept numeric for Postel's Law.
+                    "money" => {
+                        !val.as_object().map_or(false, |obj| {
+                            let amount_ok = obj.get("amount").map_or(false, |a| {
+                                // Accept string decimal
+                                a.as_str().map_or(false, |s| {
+                                    !s.is_empty()
+                                        && s.bytes()
+                                            .all(|b| b.is_ascii_digit() || b == b'.' || b == b'-')
+                                        && rust_decimal::Decimal::from_str_exact(s).is_ok()
                                 })
-                            }
+                                // Also accept numeric (Postel's Law — inbound values may use numbers)
+                                || a.is_number()
+                            });
+                            let currency_ok = obj
+                                .get("currency")
+                                .and_then(Value::as_str)
+                                .map_or(false, |s| {
+                                    s.len() == 3 && s.bytes().all(|b| b.is_ascii_uppercase())
+                                });
+                            amount_ok && currency_ok
                         })
-                    })
-                }
+                    }
 
-                _ => false,
-            };
-            if mismatch {
-                findings.results.push(ValidationResult {
-                    path: item.path.clone(),
-                    severity: Severity::Error,
-                    constraint_kind: ConstraintKind::Type,
-                    code: ValidationCode::TypeMismatch,
-                    message: format!("Invalid {dt}"),
-                    constraint: None,
-                    source: Some(ValidationSource::Bind),
-                    shape_id: None,
-                    context: None,
-                });
+                    // attachment: object with contentType (string).
+                    // url/data completeness is a submission-level check, not a type check.
+                    // If the item declares accepted MIME types, contentType must match one.
+                    "attachment" => {
+                        !val.as_object().map_or(false, |obj| {
+                            let ct = obj.get("contentType").and_then(Value::as_str);
+                            ct.map_or(false, |s| {
+                                if item.accept_types.is_empty() {
+                                    !s.is_empty()
+                                } else {
+                                    item.accept_types.iter().any(|accepted| {
+                                        // Support wildcard like "image/*"
+                                        if let Some(prefix) = accepted.strip_suffix("/*") {
+                                            s.starts_with(prefix)
+                                                && s.as_bytes().get(prefix.len()) == Some(&b'/')
+                                        } else {
+                                            s == accepted
+                                        }
+                                    })
+                                }
+                            })
+                        })
+                    }
+
+                    _ => false,
+                };
+                if mismatch {
+                    findings.results.push(ValidationResult {
+                        path: item.path.clone(),
+                        severity: Severity::Error,
+                        constraint_kind: ConstraintKind::Type,
+                        code: ValidationCode::TypeMismatch,
+                        message: format!("Invalid {dt}"),
+                        constraint: None,
+                        source: Some(ValidationSource::Bind),
+                        shape_id: None,
+                        context: None,
+                    });
+                }
             }
         }
 
@@ -272,6 +271,102 @@ impl Validation<'_> {
         }
 
         self.validate_items(&item.children, findings);
+    }
+}
+
+// ── Choice / multiChoice option membership ────────────────────────
+
+/// Enforce `choice` / `multiChoice` structural type and normative option membership (Core §4.2.3, §4.6).
+///
+/// Remote option lists (`optionSets[name].source` or URI-string `Item.options`) require a host-supplied
+/// resolved list in `resolved_option_lists`; when absent, emit `OPTIONS_UNAVAILABLE` instead of
+/// silently accepting arbitrary values.
+fn validate_choice_membership(
+    item: &ItemInfo,
+    dt: &str,
+    val: &Value,
+    resolved_option_lists: &ResolvedOptionLists,
+    results: &mut Vec<ValidationResult>,
+) {
+    let type_mismatch = || ValidationResult {
+        path: item.path.clone(),
+        severity: Severity::Error,
+        constraint_kind: ConstraintKind::Type,
+        code: ValidationCode::TypeMismatch,
+        message: format!("Invalid {dt}"),
+        constraint: None,
+        source: Some(ValidationSource::Bind),
+        shape_id: None,
+        context: None,
+    };
+
+    let selected: Vec<&str> = match dt {
+        "choice" => match val.as_str() {
+            Some(s) => vec![s],
+            None => {
+                results.push(type_mismatch());
+                return;
+            }
+        },
+        "multiChoice" => match val.as_array() {
+            Some(arr) => {
+                let mut out = Vec::with_capacity(arr.len());
+                for entry in arr {
+                    match entry.as_str() {
+                        Some(s) => out.push(s),
+                        None => {
+                            results.push(type_mismatch());
+                            return;
+                        }
+                    }
+                }
+                out
+            }
+            None => {
+                results.push(type_mismatch());
+                return;
+            }
+        },
+        _ => return,
+    };
+
+    if let Some(remote) = &item.option_source {
+        let resolved = match remote {
+            RemoteOptionSource::OptionSet { name, source } => {
+                resolved_option_lists.resolve_option_set(name, Some(source.as_str()))
+            }
+            RemoteOptionSource::Uri(uri) => resolved_option_lists.resolve_uri(uri),
+        };
+        let Some(allowed) = resolved else {
+            let message = match remote {
+                RemoteOptionSource::OptionSet { name, .. } => format!(
+                    "Options unavailable for optionSet '{name}': no resolved option list supplied"
+                ),
+                RemoteOptionSource::Uri(uri) => {
+                    format!("Options unavailable for '{uri}': no resolved option list supplied")
+                }
+            };
+            results.push(ValidationResult {
+                path: item.path.clone(),
+                severity: Severity::Error,
+                constraint_kind: ConstraintKind::Type,
+                code: ValidationCode::OptionsUnavailable,
+                message,
+                constraint: None,
+                source: Some(ValidationSource::Bind),
+                shape_id: None,
+                context: None,
+            });
+            return;
+        };
+        if !selected.iter().all(|s| allowed.contains(*s)) {
+            results.push(type_mismatch());
+        }
+        return;
+    }
+
+    if !item.option_values.is_empty() && !selected.iter().all(|s| item.option_values.contains(*s)) {
+        results.push(type_mismatch());
     }
 }
 

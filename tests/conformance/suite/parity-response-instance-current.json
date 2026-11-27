@@ -1,0 +1,85 @@
+{
+  "id": "parity.response-instance-current",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-response-instance-current.definition.json",
+  "subject": {
+    "type": "urn:example:unit",
+    "keys": {
+      "code": "u-01",
+      "period": 2026
+    },
+    "id": "b9adc7683837bdb5cffc489fa0878e2dfaa2c6c14babf57004d8733c448bb42c"
+  },
+  "resolvedInstances": {
+    "draft": {
+      "records": [
+        {
+          "responseId": "draft-worksheet-2026",
+          "definitionVersion": "1.0.0"
+        }
+      ],
+      "valueDigest": "sha256:78f52fb851f92345e8d74c627b5affa2790094bb3a252e23ca473f36cf4e0d4e",
+      "none": false,
+      "pinned": false,
+      "value": {
+        "total": 25
+      }
+    }
+  },
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "current": 65
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "data": {
+      "current": 65,
+      "delta": 40
+    },
+    "results": []
+  },
+  "expectedCandidate": {
+    "$formspecResponse": "1.0",
+    "definitionUrl": "urn:example:parity-response-instance-current",
+    "definitionVersion": "1.0.0",
+    "status": "completed",
+    "authored": "2026-11-17T12:00:00.000Z",
+    "subject": {
+      "type": "urn:example:unit",
+      "keys": {
+        "code": "u-01",
+        "period": 2026
+      },
+      "id": "b9adc7683837bdb5cffc489fa0878e2dfaa2c6c14babf57004d8733c448bb42c"
+    },
+    "data": {
+      "current": 65,
+      "delta": 40
+    },
+    "validationResults": [],
+    "resolvedInstances": [
+      {
+        "instance": "draft",
+        "records": [
+          {
+            "responseId": "draft-worksheet-2026",
+            "definitionVersion": "1.0.0"
+          }
+        ],
+        "valueDigest": "sha256:78f52fb851f92345e8d74c627b5affa2790094bb3a252e23ca473f36cf4e0d4e",
+        "none": false,
+        "pinned": false
+      }
+    ]
+  },
+  "specRefs": [
+    "Core §2.1.6 Response Selection",
+    "ADR 0172 §5 Candidate Assembly (current draft)"
+  ]
+}

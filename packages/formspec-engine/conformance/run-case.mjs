@@ -1,7 +1,14 @@
 /** @filedesc Execute a single conformance case across FormEngine and the WASM evaluator. */
 import path from 'node:path';
 import { canonicalJsonBytes } from '@formspec-org/integrity-canonical';
-import { FormEngine, createResponse, evaluateDefinition, evaluateFiled } from '../dist/index.js';
+import {
+  FormEngine,
+  assembleCandidate,
+  createResponse,
+  evaluateDefinition,
+  evaluateFiled,
+  responseSubjectId,
+} from '../dist/index.js';
 import { isJsonRecord as isPlainObject } from '../dist/json-values.js';
 import {
   againstExpected,
@@ -75,15 +82,19 @@ function statesFromEngine(engine) {
 
 /**
  * Until FormEngine loads Response instances itself (fs-mgom), inline case-supplied instances that do
- * not declare an external `source` on a cloned Definition copy for FormEngine.
+ * not declare an external `source` or a `resolvedInstances` delivery on a cloned Definition copy.
  */
-function prepareEngineDefinition(definition, activeInstances) {
+function prepareEngineDefinition(definition, activeInstances, resolvedInstances) {
   if (!activeInstances || Object.keys(activeInstances).length === 0) {
     return clone(definition);
   }
   const copy = clone(definition);
   const declared = isPlainObject(copy.instances) ? copy.instances : (copy.instances = {});
   for (const [name, value] of Object.entries(activeInstances)) {
+    if (resolvedInstances && Object.hasOwn(resolvedInstances, name)) {
+      // Response instances with full deliveries are passed via `responseInstanceResolutions`.
+      continue;
+    }
     const existing = declared[name];
     if (isPlainObject(existing) && typeof existing.source === 'string' && existing.source.length > 0) {
       // Source-backed instances are served through `instanceSourceResolver`.
@@ -150,16 +161,19 @@ async function openEngineSession(caseDoc, definition, payload, root, now) {
       }
       return { status: 'unavailable', reason: 'Suite fixture source unavailable' };
     };
-    const engineDef = prepareEngineDefinition(definition, activeInstances);
+    const engineDef = prepareEngineDefinition(definition, activeInstances, caseDoc.resolvedInstances);
     const baseOptions = {
       registryEntries,
       responseSubject: caseDoc.subject,
+      ...(caseDoc.resolvedInstances ? { responseInstanceResolutions: clone(caseDoc.resolvedInstances) } : {}),
+      ...(caseDoc.resolvedOptions ? { resolvedOptions: clone(caseDoc.resolvedOptions) } : {}),
+      ...(savedExplanations ? { savedExplanations: clone(savedExplanations) } : {}),
       runtimeContext: { now },
       instanceSourceResolver,
     };
     let engine;
     if (initMode === 'draftSnapshot') {
-      engine = new FormEngine(engineDef, { ...baseOptions, draftSnapshot: initData, savedExplanations });
+      engine = new FormEngine(engineDef, { ...baseOptions, draftSnapshot: initData });
     } else if (initMode === 'new') {
       engine = new FormEngine(engineDef, { ...baseOptions, responseData: clone(initData) });
     } else {
@@ -168,7 +182,7 @@ async function openEngineSession(caseDoc, definition, payload, root, now) {
     return { engine, pendingDeliveries };
   }
 
-  let { engine, pendingDeliveries } = createSession(caseDoc.origin, payload, operations, undefined);
+  let { engine, pendingDeliveries } = createSession(caseDoc.origin, payload, operations, caseDoc.explanations);
   if (caseDoc.skipScreener && typeof engine.skipScreener === 'function') {
     engine.skipScreener();
   }
@@ -242,6 +256,97 @@ function bytesEqual(left, right) {
   return true;
 }
 
+function candidateProblems(label, actual, expected) {
+  if (bytesEqual(canonicalJsonBytes(actual), canonicalJsonBytes(expected))) {
+    return [];
+  }
+  const keys = [];
+  if (isPlainObject(actual) && isPlainObject(expected)) {
+    const allKeys = [...new Set([...Object.keys(actual), ...Object.keys(expected)])].sort();
+    for (const key of allKeys) {
+      const hasA = Object.hasOwn(actual, key) && actual[key] !== undefined;
+      const hasE = Object.hasOwn(expected, key) && expected[key] !== undefined;
+      if (hasA !== hasE || (hasA && !bytesEqual(canonicalJsonBytes(actual[key]), canonicalJsonBytes(expected[key])))) {
+        keys.push(key);
+      }
+    }
+  }
+  return [keys.length > 0 ? `${label} (fields: ${keys.join(', ')})` : label];
+}
+
+function isStampedExplanation(entry) {
+  return entry?.author !== undefined && entry?.author !== null
+    && entry?.recorded !== undefined && entry?.recorded !== null;
+}
+
+function assembleCandidateFromEvaluation(definition, evalRaw, now, {
+  subject,
+  resolvedInstances,
+  explanations,
+  server,
+}) {
+  try {
+    const timestamp = new Date(now).toISOString();
+    const validationResults = (evalRaw.validations ?? []).map((entry) => ({
+      ...clone(entry),
+      $formspecValidationResult: '1.0',
+    }));
+    const hasErrors = validationResults.some((entry) => entry.severity === 'error');
+    const status = hasErrors ? 'in-progress' : 'completed';
+    const response = {
+      $formspecResponse: '1.0',
+      definitionUrl: definition.url ?? 'http://example.org/form',
+      definitionVersion: definition.version ?? '1.0.0',
+      status,
+      data: clone(evalRaw.data),
+      authored: timestamp,
+      validationResults,
+    };
+    if (!server && subject) {
+      const subjectCopy = clone(subject);
+      if (definition.subject && !evalRaw.refused) {
+        subjectCopy.id = responseSubjectId(subjectCopy.type, subjectCopy.keys);
+      }
+      response.subject = subjectCopy;
+    }
+
+    const hasResponseInstances = Object.values(definition.instances ?? {}).some((inst) => Boolean(inst?.response));
+    const draftExplanations = !server && Array.isArray(explanations) ? explanations : [];
+    const resolutions = !server && isPlainObject(resolvedInstances) ? resolvedInstances : {};
+
+    if (status === 'completed') {
+      if (hasResponseInstances || draftExplanations.length > 0) {
+        let evalForAssembly = null;
+        if (draftExplanations.length > 0) {
+          const entries = evalRaw.candidateExplanations;
+          if (!Array.isArray(entries)) {
+            return { ok: false, error: 'Submit evaluation did not assemble the warning explanations' };
+          }
+          const saved = entries.filter(isStampedExplanation);
+          if (saved.length !== entries.length) {
+            return {
+              ok: false,
+              error: 'Save pending warning answers and load their server stamps before emitting this Response',
+            };
+          }
+          response.explanations = clone(draftExplanations);
+          evalForAssembly = { candidateExplanations: saved };
+        }
+        return {
+          ok: true,
+          value: assembleCandidate(clone(definition), response, clone(resolutions), evalForAssembly),
+        };
+      }
+    } else if (draftExplanations.length > 0) {
+      const saved = draftExplanations.filter(isStampedExplanation);
+      if (saved.length > 0) response.explanations = clone(saved);
+    }
+    return { ok: true, value: response };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 async function runProcessingCase(caseDoc, root, options, legs) {
   const now = caseDoc.now ?? DEFAULT_NOW;
   const definition = loadDefinition(caseDoc, root, options);
@@ -256,15 +361,49 @@ async function runProcessingCase(caseDoc, root, options, legs) {
   const subjectContext = caseDoc.subject
     ? { subjectType: caseDoc.subject.type ?? null, subjectKeys: caseDoc.subject.keys }
     : {};
+  const explanationsContext = Array.isArray(caseDoc.explanations) && caseDoc.explanations.length > 0
+    ? { explanations: clone(caseDoc.explanations) }
+    : {};
+  const resolvedOptionsContext = isPlainObject(caseDoc.resolvedOptions)
+    ? { resolvedOptions: clone(caseDoc.resolvedOptions) }
+    : {};
+  const hasSessionOnlyInputs = Boolean(
+    caseDoc.subject
+    || (isPlainObject(caseDoc.resolvedInstances) && Object.keys(caseDoc.resolvedInstances).length > 0)
+    || (Array.isArray(caseDoc.explanations) && caseDoc.explanations.length > 0)
+    || isPlainObject(caseDoc.resolvedOptions)
+    || caseDoc.expectedCandidate !== undefined,
+  );
 
   const { engine, activeInstances } = await openEngineSession(caseDoc, definition, payload, root, now);
-  const instanceContext = Object.keys(activeInstances).length > 0 ? { instances: clone(activeInstances) } : {};
+  const sessionInstances = clone(activeInstances);
+  if (isPlainObject(caseDoc.resolvedInstances)) {
+    for (const [name, delivery] of Object.entries(caseDoc.resolvedInstances)) {
+      if (!Object.hasOwn(sessionInstances, name)) {
+        sessionInstances[name] = clone(delivery.value);
+      }
+    }
+  }
+  const serverInstanceContext = Object.keys(activeInstances).length > 0 ? { instances: clone(activeInstances) } : {};
+  const sessionInstanceContext = Object.keys(sessionInstances).length > 0 ? { instances: clone(sessionInstances) } : {};
 
-  // The session loads registry and subject inputs. The server legs still omit those inputs
-  // (fs-20e3 and fs-hrx7) so known parity discrepancies remain visible.
+  // The session loads registry, subject, resolvedInstances, explanations, and resolvedOptions.
+  // The server legs omit those inputs until Wave 2-B wires deployed server call sites so known
+  // parity discrepancies remain visible in parity-ledger.json.
   const evalOptions = (server) => (server
-    ? { nowIso: now, ...instanceContext }
-    : { nowIso: now, registryDocuments: documents, ...subjectContext, ...instanceContext });
+    ? {
+      nowIso: now,
+      ...(options?.serverRegistries ? { registryDocuments: documents } : {}),
+      ...serverInstanceContext,
+    }
+    : {
+      nowIso: now,
+      registryDocuments: documents,
+      ...subjectContext,
+      ...sessionInstanceContext,
+      ...explanationsContext,
+      ...resolvedOptionsContext,
+    });
 
   const evaluate = (label, data, trigger, { server = false } = {}) => {
     const context = { ...evalOptions(server), trigger };
@@ -273,26 +412,59 @@ async function runProcessingCase(caseDoc, root, options, legs) {
     return {
       ...outcome(raw.validations, raw.data, raw.undeclaredDataPaths, statesFromEvaluation(raw)),
       diagnostics: raw.diagnostics,
+      raw,
     };
   };
+
+  const assembleForLeg = (evalRaw, server) => assembleCandidateFromEvaluation(definition, evalRaw, now, {
+    subject: caseDoc.subject,
+    resolvedInstances: caseDoc.resolvedInstances,
+    explanations: caseDoc.explanations,
+    server,
+  });
 
   const settle = (data, { server = true } = {}) => {
     const raw = evaluateFiled(clone(definition), clone(data), evalOptions(server));
     const verdict = {
       ...outcome(raw.validations, raw.data, raw.undeclaredDataPaths, statesFromEvaluation(raw)),
       diagnostics: raw.diagnostics,
+      raw,
     };
     const again = evaluate(server ? 'S(fixpoint)' : 'P(fixpoint)', verdict.data, 'submit', { server });
-    return { verdict, problems: [...againstExpected(verdict, expected), ...betweenLegs('fixpoint', again, verdict)] };
+    const problems = [...againstExpected(verdict, expected), ...betweenLegs('fixpoint', again, verdict)];
+    let candidate = null;
+    if (caseDoc.expectedCandidate) {
+      candidate = assembleForLeg(raw, server);
+      if (candidate.ok) {
+        problems.push(...candidateProblems(
+          'complete filed Response differs from the fixture',
+          candidate.value,
+          caseDoc.expectedCandidate,
+        ));
+        const fixCandidate = assembleForLeg(again.raw, server);
+        if (fixCandidate.ok) {
+          problems.push(...candidateProblems(
+            'fixpoint complete filed Response differs from settled candidate',
+            fixCandidate.value,
+            candidate.value,
+          ));
+        } else {
+          problems.push(`fixpoint candidate assembly failed: ${fixCandidate.error}`);
+        }
+      } else {
+        problems.push(`candidate assembly failed: ${candidate.error}`);
+      }
+    }
+    return { verdict, candidate, problems };
   };
 
   const checkSubmitLegs = (data) => {
-    const server = settle(data);
+    const server = settle(data, { server: true });
     legs.set('S', server.problems);
-    if (!caseDoc.subject) return server.verdict;
+    if (!hasSessionOnlyInputs) return server;
     const session = settle(data, { server: false });
     legs.set('P', session.problems);
-    return session.verdict;
+    return session;
   };
 
   const roundTrip = (data) => dataDiff(evaluate('P(round trip)', data, 'continuous').data, data)
@@ -345,19 +517,49 @@ async function runProcessingCase(caseDoc, root, options, legs) {
       filedData = filedOutcome.data;
       const recheckTarget = 'data' in expected ? expected.data : filedData;
       if (submit) {
-        checkSubmitLegs(recheckTarget);
+        const reference = checkSubmitLegs(recheckTarget);
         legs.set('F', liveProblems);
-        legs.set('F_submit', againstExpected(filedOutcome, expected));
+        const fSubmit = againstExpected(filedOutcome, expected);
+        if (caseDoc.expectedCandidate) {
+          fSubmit.push(...candidateProblems(
+            'complete filed Response differs from the fixture',
+            filedOutcome.response,
+            caseDoc.expectedCandidate,
+          ));
+          if (reference.candidate?.ok) {
+            fSubmit.push(...candidateProblems(
+              `${hasSessionOnlyInputs ? 'FormEngine submit vs P' : 'FormEngine submit vs S'} complete filed Response differs`,
+              filedOutcome.response,
+              reference.candidate.value,
+            ));
+          }
+        }
+        legs.set('F_submit', fSubmit);
+        const frEval = evaluate('FR', filedData, 'submit', { server: true });
+        const frProblems = againstExpected(frEval, expected);
+        if (caseDoc.expectedCandidate && reference.candidate?.ok) {
+          const frCand = assembleForLeg(frEval.raw, true);
+          if (frCand.ok) {
+            frProblems.push(...candidateProblems(
+              `recheck of FormEngine submit data vs ${hasSessionOnlyInputs ? 'P' : 'S'} complete filed Response differs`,
+              frCand.value,
+              reference.candidate.value,
+            ));
+          } else {
+            frProblems.push(`recheck of FormEngine submit data vs ${hasSessionOnlyInputs ? 'P' : 'S'} candidate assembly failed: ${frCand.error}`);
+          }
+        }
+        legs.set('FR', frProblems);
       } else {
         const pProblems = againstExpected(evaluate('P(expected.data)', recheckTarget, 'continuous'), expected);
         if ('data' in expected) pProblems.push(...roundTrip(expected.data));
         legs.set('P', pProblems);
         legs.set('F', [...againstExpected(liveSession, expected), ...liveProblems]);
+        legs.set('FR', againstExpected(evaluate('FR', filedData, 'continuous', { server: true }), expected));
       }
-      legs.set('FR', againstExpected(evaluate('FR', filedData, submit ? 'submit' : 'continuous', { server: true }), expected));
     } else {
       const sessionInput = caseDoc.origin === 'new'
-        ? createResponse(definition, payload, { nowIso: now, ...subjectContext, ...instanceContext }).data
+        ? createResponse(definition, payload, { nowIso: now, ...subjectContext, ...sessionInstanceContext }).data
         : payload;
       const live = evaluate('P(continuous)', sessionInput, 'continuous');
       if (!submit) {
@@ -377,31 +579,46 @@ async function runProcessingCase(caseDoc, root, options, legs) {
         const reference = checkSubmitLegs(inSession.data);
         const session = engineOutcome(engine, 'on-submit');
         filedData = session.data;
-        const fSubmit = betweenLegs(caseDoc.subject ? 'FormEngine submit vs P' : 'FormEngine submit vs S',
-          session, reference, { data: compareDraftData });
+        const refLabel = hasSessionOnlyInputs ? 'P' : 'S';
+        const fSubmit = betweenLegs(`FormEngine submit vs ${refLabel}`,
+          session, reference.verdict, { data: compareDraftData });
         if (caseDoc.kind === 'RESPONSE_VALIDATION') {
           const filedResults = outcome(session.response.validationResults ?? [], session.data);
           fSubmit.push(...againstExpected(filedResults, { results: caseDoc.expected.response.validationResults ?? [] })
             .map((p) => `Response.validationResults ${p}`));
         }
+        if (caseDoc.expectedCandidate) {
+          fSubmit.push(...candidateProblems(
+            'complete filed Response differs from the fixture',
+            session.response,
+            caseDoc.expectedCandidate,
+          ));
+          if (reference.candidate?.ok) {
+            fSubmit.push(...candidateProblems(
+              `FormEngine submit vs ${refLabel} complete filed Response differs`,
+              session.response,
+              reference.candidate.value,
+            ));
+          }
+        }
         legs.set('F_submit', fSubmit);
         const filed = evaluate('FR', session.data, 'submit', { server: true });
-        legs.set('FR', betweenLegs(`recheck of FormEngine submit data vs ${caseDoc.subject ? 'P' : 'S'}`, filed, reference));
+        const frProblems = betweenLegs(`recheck of FormEngine submit data vs ${refLabel}`, filed, reference.verdict);
+        if (caseDoc.expectedCandidate && reference.candidate?.ok) {
+          const frCand = assembleForLeg(filed.raw, true);
+          if (frCand.ok) {
+            frProblems.push(...candidateProblems(
+              `recheck of FormEngine submit data vs ${refLabel} complete filed Response differs`,
+              frCand.value,
+              reference.candidate.value,
+            ));
+          } else {
+            frProblems.push(`recheck of FormEngine submit data vs ${refLabel} candidate assembly failed: ${frCand.error}`);
+          }
+        }
+        legs.set('FR', frProblems);
       } else {
         filedData = engineResult.data;
-      }
-    }
-
-    if (caseDoc.expectedCandidate) {
-      const candidate = engine.getResponse({ profile: 'on-submit' });
-      const sameCandidate = bytesEqual(
-        canonicalJsonBytes(candidate),
-        canonicalJsonBytes(caseDoc.expectedCandidate),
-      );
-      if (!sameCandidate) {
-        const targetLeg = legs.get('F_submit') ?? [];
-        targetLeg.push('complete filed Response differs from the fixture');
-        legs.set('F_submit', targetLeg);
       }
     }
   } finally {

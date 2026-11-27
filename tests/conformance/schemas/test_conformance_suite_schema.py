@@ -154,3 +154,80 @@ def test_suite_file_defaults_partial_expectations_and_new_operations(
     }
     with pytest.raises(ValidationError):
         validator.validate(bad_resume)
+
+
+def test_suite_schema_accepts_resolved_instances_explanations_and_resolved_options(
+    conformance_suite_schema: dict, schema_registry: Registry,
+) -> None:
+    validator = Draft202012Validator(conformance_suite_schema, registry=schema_registry)
+    digest = "sha256:" + "a" * 64
+    case = {
+        "id": "parity.schema-probe",
+        "kind": "ENGINE_PROCESSING",
+        "definitionPath": "form.json",
+        "origin": "saved",
+        "mode": "submit",
+        "specRefs": ["Core §4.6.2", "ADR 0172 §5", "ADR 0173 §5"],
+        "inputData": {"code": "z"},
+        "resolvedOptions": {
+            "optionSets": {"regions": ["north", "south"]},
+            "uris": {"urn:example:options:codes": ["a", "b"]},
+        },
+        "resolvedInstances": {
+            "prior": {
+                "records": [
+                    {
+                        "responseId": "resp-1",
+                        "definitionVersion": "1.0.0",
+                        "responseHash": digest,
+                    },
+                ],
+                "valueDigest": digest,
+                "none": False,
+                "pinned": True,
+                "value": {"total": 10},
+            },
+        },
+        "explanations": [
+            {
+                "shapeId": "warn-high",
+                "path": "amount",
+                "basis": digest,
+                "text": "Confirmed value",
+                "author": {"id": "user-1"},
+                "recorded": "2026-11-17T12:00:00.000Z",
+            },
+        ],
+        "expected": {
+            "valid": False,
+            "counts": {"error": 1, "warning": 0, "info": 0},
+            "results": [
+                {
+                    "path": "code",
+                    "code": "OPTIONS_UNAVAILABLE",
+                    "constraintKind": "type",
+                    "severity": "error",
+                    "source": "bind",
+                },
+            ],
+        },
+    }
+    validator.validate(case)
+
+    # Malformed delivery (missing required `valueDigest`) is refused by reused ResponseSelectionDelivery.
+    bad_delivery = {
+        **case,
+        "resolvedInstances": {
+            "prior": {"records": [], "none": True, "pinned": False, "value": None},
+        },
+    }
+    with pytest.raises(ValidationError):
+        validator.validate(bad_delivery)
+
+    # Unstamped explanation is refused by reused Response Explanation schema.
+    bad_explanation = {
+        **case,
+        "explanations": [{"shapeId": "warn-high", "path": "amount", "basis": digest, "text": "x"}],
+    }
+    with pytest.raises(ValidationError):
+        validator.validate(bad_explanation)

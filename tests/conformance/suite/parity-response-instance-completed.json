@@ -1,0 +1,87 @@
+{
+  "id": "parity.response-instance-completed",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-response-instance-completed.definition.json",
+  "subject": {
+    "type": "urn:example:unit",
+    "keys": {
+      "code": "u-01",
+      "period": 2026
+    },
+    "id": "b9adc7683837bdb5cffc489fa0878e2dfaa2c6c14babf57004d8733c448bb42c"
+  },
+  "resolvedInstances": {
+    "prior": {
+      "records": [
+        {
+          "responseId": "resp-prior-2025",
+          "definitionVersion": "1.0.0",
+          "responseHash": "sha256:130d282e50dc59b5a0c89822a9980a1dc0db7bc18c34fb42c5440c3adeaa478a"
+        }
+      ],
+      "valueDigest": "sha256:1d041b07618db126750c0956203433411f5fa0159b42da3d0be2b8dfc543e288",
+      "none": false,
+      "pinned": false,
+      "value": {
+        "total": 40
+      }
+    }
+  },
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "current": 65
+  },
+  "expected": {
+    "valid": true,
+    "counts": {
+      "error": 0,
+      "warning": 0,
+      "info": 0
+    },
+    "data": {
+      "current": 65,
+      "delta": 25
+    },
+    "results": []
+  },
+  "expectedCandidate": {
+    "$formspecResponse": "1.0",
+    "definitionUrl": "urn:example:parity-response-instance-completed",
+    "definitionVersion": "1.0.0",
+    "status": "completed",
+    "authored": "2026-11-17T12:00:00.000Z",
+    "subject": {
+      "type": "urn:example:unit",
+      "keys": {
+        "code": "u-01",
+        "period": 2026
+      },
+      "id": "b9adc7683837bdb5cffc489fa0878e2dfaa2c6c14babf57004d8733c448bb42c"
+    },
+    "data": {
+      "current": 65,
+      "delta": 25
+    },
+    "validationResults": [],
+    "resolvedInstances": [
+      {
+        "instance": "prior",
+        "records": [
+          {
+            "responseId": "resp-prior-2025",
+            "definitionVersion": "1.0.0",
+            "responseHash": "sha256:130d282e50dc59b5a0c89822a9980a1dc0db7bc18c34fb42c5440c3adeaa478a"
+          }
+        ],
+        "valueDigest": "sha256:1d041b07618db126750c0956203433411f5fa0159b42da3d0be2b8dfc543e288",
+        "none": false,
+        "pinned": false
+      }
+    ]
+  },
+  "specRefs": [
+    "Core §2.1.6 Response Selection",
+    "ADR 0172 §5 Candidate Assembly (completed)"
+  ]
+}

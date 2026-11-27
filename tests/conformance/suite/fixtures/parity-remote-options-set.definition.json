@@ -1,0 +1,23 @@
+{
+  "$formspec": "1.0",
+  "url": "urn:example:parity-remote-options-set",
+  "version": "1.0.0",
+  "status": "active",
+  "title": "Remote OptionSet Parity",
+  "optionSets": {
+    "regions": {
+      "source": "urn:example:options:regions",
+      "valueField": "code",
+      "labelField": "name"
+    }
+  },
+  "items": [
+    {
+      "key": "region",
+      "type": "field",
+      "dataType": "choice",
+      "label": "Region",
+      "optionSet": "regions"
+    }
+  ]
+}

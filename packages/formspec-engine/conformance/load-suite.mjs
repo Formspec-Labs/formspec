@@ -17,6 +17,7 @@ const CANONICAL_SCHEMAS = [
   'validation-result.schema.json',
   'verification-receipt.schema.json',
   'definition.schema.json',
+  'response-selection.schema.json',
   'response.schema.json',
 ];
 
@@ -79,6 +80,31 @@ function mergeCaseWithDefaults(defaults, rawCase) {
   const merged = { ...clone(defaults), ...clone(rawCase) };
   if (isPlainObject(defaults.instances) && isPlainObject(rawCase.instances)) {
     merged.instances = { ...clone(defaults.instances), ...clone(rawCase.instances) };
+  }
+  if (isPlainObject(defaults.resolvedInstances) && isPlainObject(rawCase.resolvedInstances)) {
+    merged.resolvedInstances = { ...clone(defaults.resolvedInstances), ...clone(rawCase.resolvedInstances) };
+  }
+  if (isPlainObject(defaults.resolvedOptions) && isPlainObject(rawCase.resolvedOptions)) {
+    merged.resolvedOptions = {
+      ...clone(defaults.resolvedOptions),
+      ...clone(rawCase.resolvedOptions),
+      ...(isPlainObject(defaults.resolvedOptions.optionSets) || isPlainObject(rawCase.resolvedOptions.optionSets)
+        ? {
+          optionSets: {
+            ...clone(defaults.resolvedOptions.optionSets ?? {}),
+            ...clone(rawCase.resolvedOptions.optionSets ?? {}),
+          },
+        }
+        : {}),
+      ...(isPlainObject(defaults.resolvedOptions.uris) || isPlainObject(rawCase.resolvedOptions.uris)
+        ? {
+          uris: {
+            ...clone(defaults.resolvedOptions.uris ?? {}),
+            ...clone(rawCase.resolvedOptions.uris ?? {}),
+          },
+        }
+        : {}),
+    };
   }
   if (Object.hasOwn(rawCase, 'inputData') && !Object.hasOwn(rawCase, 'payloadPath')) {
     delete merged.payloadPath;

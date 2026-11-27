@@ -1,0 +1,39 @@
+{
+  "id": "parity.remote-options-set-supplied",
+  "kind": "ENGINE_PROCESSING",
+  "definitionPath": "tests/conformance/suite/fixtures/parity-remote-options-set.definition.json",
+  "origin": "saved",
+  "mode": "submit",
+  "inputData": {
+    "region": "invalid"
+  },
+  "resolvedOptions": {
+    "optionSets": {
+      "regions": ["north", "south"]
+    }
+  },
+  "expected": {
+    "valid": false,
+    "counts": {
+      "error": 1,
+      "warning": 0,
+      "info": 0
+    },
+    "data": {
+      "region": "invalid"
+    },
+    "results": [
+      {
+        "path": "region",
+        "code": "TYPE_MISMATCH",
+        "constraintKind": "type",
+        "severity": "error",
+        "source": "bind"
+      }
+    ]
+  },
+  "specRefs": [
+    "Core §4.6 Option Sets",
+    "Core §4.6.2 Normative Option Membership for Remote Lists"
+  ]
+}
