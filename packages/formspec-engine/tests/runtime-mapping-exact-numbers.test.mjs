@@ -120,34 +120,36 @@ test('XML preserve emits flat exact numeric text and attributes without nested r
   assert.ok(result.output.includes(`<meta seq="${UNSAFE_INT}"><rate>${HIGH_PREC_DEC}</rate></meta>`), result.output);
 });
 
-test('repeat rows preserve exact decimals, unsafe integers, zero, and blanks in JSON and XML', () => {
+test('repeat rows (array.each innerRules) preserve exact decimals, unsafe integers, zero, and blanks in JSON and XML', () => {
   const rowsSource = parseJsonExact(
     `{"rows":[{"d":${HIGH_PREC_DEC},"big":${UNSAFE_INT},"z":0,"blank":""},{"d":0.3333333333333333333333333333,"big":${OVER_U64_INT},"z":0,"blank":null}]}`,
   );
+  // Use renamed targetPaths (d->rate, big->seq, z->zeroVal, blank->blankVal) so whole-array fallback cannot mask innerRules.
   const rules = [{
     sourcePath: 'rows',
     targetPath: 'entries',
     transform: 'preserve',
     array: {
       mode: 'each',
-      rules: [
-        { sourcePath: 'd', targetPath: 'd', transform: 'preserve' },
-        { sourcePath: 'big', targetPath: 'big', transform: 'preserve' },
-        { sourcePath: 'z', targetPath: 'z', transform: 'preserve' },
-        { sourcePath: 'blank', targetPath: 'blank', transform: 'preserve' },
+      innerRules: [
+        { sourcePath: 'd', targetPath: 'rate', transform: 'preserve' },
+        { sourcePath: 'big', targetPath: 'seq', transform: 'preserve' },
+        { sourcePath: 'z', targetPath: 'zeroVal', transform: 'preserve' },
+        { sourcePath: 'blank', targetPath: 'blankVal', transform: 'preserve' },
       ],
     },
   }];
 
   const jsonResult = new RuntimeMappingEngine({ rules }).forward(rowsSource);
   assert.deepEqual(jsonResult.diagnostics, []);
-  assert.equal(jsonNumberText(jsonResult.output.entries[0].d), HIGH_PREC_DEC);
-  assert.equal(jsonNumberText(jsonResult.output.entries[0].big), UNSAFE_INT);
-  assert.equal(jsonResult.output.entries[0].z, 0);
-  assert.equal(jsonResult.output.entries[0].blank, '');
-  assert.equal(jsonNumberText(jsonResult.output.entries[1].d), '0.3333333333333333333333333333');
-  assert.equal(jsonNumberText(jsonResult.output.entries[1].big), OVER_U64_INT);
-  assert.equal(jsonResult.output.entries[1].blank, null);
+  assert.equal(jsonNumberText(jsonResult.output.entries[0].rate), HIGH_PREC_DEC);
+  assert.equal(jsonNumberText(jsonResult.output.entries[0].seq), UNSAFE_INT);
+  assert.equal(jsonResult.output.entries[0].zeroVal, 0);
+  assert.equal(jsonResult.output.entries[0].blankVal, '');
+  assert.equal('d' in jsonResult.output.entries[0], false);
+  assert.equal(jsonNumberText(jsonResult.output.entries[1].rate), '0.3333333333333333333333333333');
+  assert.equal(jsonNumberText(jsonResult.output.entries[1].seq), OVER_U64_INT);
+  assert.equal(jsonResult.output.entries[1].blankVal, null);
 
   const xmlResult = new RuntimeMappingEngine({
     adapters: { xml: { rootElement: 'report', declaration: false, indent: 0 } },
@@ -158,16 +160,68 @@ test('repeat rows preserve exact decimals, unsafe integers, zero, and blanks in 
   assert.equal(xmlResult.output.includes('<rawJSON>'), false, xmlResult.output);
   assert.ok(
     xmlResult.output.includes(
-      `<entries><d>${HIGH_PREC_DEC}</d><big>${UNSAFE_INT}</big><z>0</z><blank></blank></entries>`,
+      `<entries><rate>${HIGH_PREC_DEC}</rate><seq>${UNSAFE_INT}</seq><zeroVal>0</zeroVal><blankVal></blankVal></entries>`,
     ),
     xmlResult.output,
   );
   assert.ok(
     xmlResult.output.includes(
-      `<entries><d>0.3333333333333333333333333333</d><big>${OVER_U64_INT}</big><z>0</z><blank></blank></entries>`,
+      `<entries><rate>0.3333333333333333333333333333</rate><seq>${OVER_U64_INT}</seq><zeroVal>0</zeroVal><blankVal></blankVal></entries>`,
     ),
     xmlResult.output,
   );
+});
+
+test('conditional preserve and conditional non-preserve overwrite work accurately at top-level and inside array.each innerRules', () => {
+  const src = parseJsonExact(`{"d":${HIGH_PREC_DEC},"big":${UNSAFE_INT}}`);
+
+  // Higher-priority preserve overwritten by lower-priority conditional constant referencing @source.d > 0.
+  const overwrittenBySourceCond = new RuntimeMappingEngine({
+    rules: [
+      { sourcePath: 'd', targetPath: 'x', transform: 'preserve', priority: 10 },
+      { targetPath: 'x', transform: 'constant', expression: '1', condition: '@source.d > 0', priority: 5 },
+      { sourcePath: 'd', targetPath: 'y', transform: 'preserve', priority: 10 },
+      { targetPath: 'y', transform: 'constant', expression: '1', condition: '@target.y > 0', priority: 5 },
+      { sourcePath: 'd', targetPath: 'kept', transform: 'preserve', priority: 10 },
+      { targetPath: 'kept', transform: 'constant', expression: '1', condition: '@source.d < 0', priority: 5 },
+      { sourcePath: 'absentKey', targetPath: 'kept', transform: 'preserve', priority: 1 },
+    ],
+  }).forward(src);
+  assert.deepEqual(overwrittenBySourceCond.diagnostics, []);
+  assert.equal(overwrittenBySourceCond.output.x, 1);
+  assert.equal(JSON.stringify(overwrittenBySourceCond.output.x), '1');
+  assert.equal(overwrittenBySourceCond.output.y, 1);
+  assert.equal(JSON.stringify(overwrittenBySourceCond.output.y), '1');
+  assert.equal(jsonNumberText(overwrittenBySourceCond.output.kept), HIGH_PREC_DEC);
+
+  // Conditional preserve + conditional overwrite inside array.each innerRules.
+  const rowsSrc = parseJsonExact(
+    `{"rows":[{"d":${HIGH_PREC_DEC},"big":${UNSAFE_INT}},{"d":-2.000000000000000000005,"big":${NEG_UNSAFE_INT}}]}`,
+  );
+  const arrayConditional = new RuntimeMappingEngine({
+    rules: [{
+      sourcePath: 'rows',
+      targetPath: 'items',
+      transform: 'preserve',
+      array: {
+        mode: 'each',
+        innerRules: [
+          { sourcePath: 'd', targetPath: 'positiveRate', transform: 'preserve', condition: '@source.d > 0' },
+          { sourcePath: 'd', targetPath: 'clamped', transform: 'preserve', priority: 10 },
+          { targetPath: 'clamped', transform: 'constant', expression: '1', condition: '@source.d > 0', priority: 5 },
+          { sourcePath: 'big', targetPath: 'seq', transform: 'preserve' },
+        ],
+      },
+    }],
+  }).forward(rowsSrc);
+  assert.deepEqual(arrayConditional.diagnostics, []);
+  assert.equal(jsonNumberText(arrayConditional.output.items[0].positiveRate), HIGH_PREC_DEC);
+  assert.equal(arrayConditional.output.items[0].clamped, 1);
+  assert.equal(JSON.stringify(arrayConditional.output.items[0].clamped), '1');
+  assert.equal(jsonNumberText(arrayConditional.output.items[0].seq), UNSAFE_INT);
+  assert.equal('positiveRate' in arrayConditional.output.items[1], false);
+  assert.equal(jsonNumberText(arrayConditional.output.items[1].clamped), '-2.000000000000000000005');
+  assert.equal(jsonNumberText(arrayConditional.output.items[1].seq), NEG_UNSAFE_INT);
 });
 
 test('reverse, autoMap, sourceSchema, and conditional preserve rules maintain exact precision without clobbering constants', () => {

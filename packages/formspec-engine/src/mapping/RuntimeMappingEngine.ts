@@ -214,7 +214,8 @@ function mergeExactNumericLeaves(
 }
 
 function lookupSourcePath(source: unknown, path: string): unknown {
-    const tokens = path.match(/[^.[\]]+|\[\d+\]/g);
+    const normalized = path.endsWith('[*]') ? path.slice(0, -3) : path;
+    const tokens = normalized.match(/[^.[\]]+|\[\d+\]/g);
     if (!tokens) return undefined;
     let current: any = source;
     for (const token of tokens) {
@@ -231,44 +232,379 @@ function lookupSourcePath(source: unknown, path: string): unknown {
     return current;
 }
 
-function mergeMatchingExactValues(actual: any, exactSource: unknown): any {
+function mergeMatchingExactValues(actual: any, exactSource: unknown, mask: any): any {
+    if (mask === true) return actual;
     if (isRawJson(exactSource) && jsonNumberText(exactSource) !== undefined) {
         return numericLeafMatchesExact(actual, exactSource) ? exactSource : actual;
     }
     if (Array.isArray(actual) && Array.isArray(exactSource) && actual.length === exactSource.length) {
         for (let i = 0; i < actual.length; i += 1) {
-            actual[i] = mergeMatchingExactValues(actual[i], exactSource[i]);
+            actual[i] = mergeMatchingExactValues(actual[i], exactSource[i], Array.isArray(mask) ? mask[i] : undefined);
         }
         return actual;
     }
     if (isJsonRecord(actual) && isJsonRecord(exactSource)) {
         for (const key of Object.keys(actual)) {
             if (Object.prototype.hasOwnProperty.call(exactSource, key)) {
-                actual[key] = mergeMatchingExactValues(actual[key], exactSource[key]);
+                actual[key] = mergeMatchingExactValues(
+                    actual[key],
+                    exactSource[key],
+                    isJsonRecord(mask) ? mask[key] : undefined,
+                );
             }
         }
     }
     return actual;
 }
 
-function applyConditionalProbe(actual: any, probe: any, sentinel: string, exactSource: unknown): any {
+function recordOverwritePositions(probe: any, sentinel: string, mask: any): any {
+    if (probe === sentinel) return true;
+    if (mask === true) return true;
+    if (Array.isArray(probe)) {
+        const nextMask = Array.isArray(mask) ? mask : [];
+        for (let i = 0; i < probe.length; i += 1) {
+            const child = recordOverwritePositions(probe[i], sentinel, nextMask[i]);
+            if (child !== undefined) nextMask[i] = child;
+        }
+        return nextMask.length > 0 ? nextMask : undefined;
+    }
+    if (isJsonRecord(probe)) {
+        const nextMask: Record<string, any> = isJsonRecord(mask) ? mask : {};
+        let touched = Object.keys(nextMask).length > 0;
+        for (const key of Object.keys(probe)) {
+            const child = recordOverwritePositions(probe[key], sentinel, nextMask[key]);
+            if (child !== undefined) {
+                nextMask[key] = child;
+                touched = true;
+            }
+        }
+        return touched ? nextMask : undefined;
+    }
+    return mask;
+}
+
+function applyMaskedProbe(
+    actual: any,
+    probe: any,
+    sentinel: string,
+    mask: any,
+    onMatch: (actualNode: any, maskNode: any) => any,
+): any {
+    if (mask === true) return actual;
     if (probe === sentinel) {
-        return mergeMatchingExactValues(actual, exactSource);
+        return onMatch(actual, mask);
     }
     if (Array.isArray(actual) && Array.isArray(probe) && actual.length === probe.length) {
         for (let i = 0; i < actual.length; i += 1) {
-            actual[i] = applyConditionalProbe(actual[i], probe[i], sentinel, exactSource);
+            actual[i] = applyMaskedProbe(
+                actual[i],
+                probe[i],
+                sentinel,
+                Array.isArray(mask) ? mask[i] : undefined,
+                onMatch,
+            );
         }
         return actual;
     }
     if (isJsonRecord(actual) && isJsonRecord(probe)) {
         for (const key of Object.keys(actual)) {
             if (Object.prototype.hasOwnProperty.call(probe, key)) {
-                actual[key] = applyConditionalProbe(actual[key], probe[key], sentinel, exactSource);
+                actual[key] = applyMaskedProbe(
+                    actual[key],
+                    probe[key],
+                    sentinel,
+                    isJsonRecord(mask) ? mask[key] : undefined,
+                    onMatch,
+                );
             }
         }
     }
     return actual;
+}
+
+function rulesHaveAnyCondition(rules: readonly any[]): boolean {
+    return rules.some(rule => {
+        if (!rule) return false;
+        if (rule.condition) return true;
+        const inner = rule.array?.innerRules;
+        return Array.isArray(inner) && rulesHaveAnyCondition(inner);
+    });
+}
+
+function activeRuleTransform(rule: any, direction: MappingDirection): string | undefined {
+    return direction === 'reverse' && rule.reverse?.transform ? rule.reverse.transform : rule.transform;
+}
+
+function buildEffectiveRules(doc: any, source: unknown, direction: MappingDirection): any[] {
+    const baseRules = Array.isArray(doc.rules) ? [...doc.rules] : [];
+    if (doc.autoMap && direction === 'forward' && isJsonRecord(source)) {
+        const covered = new Set<string>();
+        for (const rule of baseRules) {
+            if (typeof rule?.sourcePath === 'string') {
+                covered.add(rule.sourcePath);
+                const top = rule.sourcePath.split('.')[0];
+                if (top) covered.add(top);
+            }
+        }
+        for (const key of Object.keys(source)) {
+            if (!covered.has(key)) {
+                baseRules.push({
+                    sourcePath: key,
+                    targetPath: key,
+                    transform: 'preserve',
+                    priority: -1,
+                    bidirectional: true,
+                });
+            }
+        }
+    }
+    return baseRules;
+}
+
+function sortRulesInExecutionOrder(rules: readonly any[], direction: MappingDirection): any[] {
+    return rules
+        .filter(rule => !(direction === 'reverse' && rule?.bidirectional === false))
+        .map((rule, index) => ({ rule, index }))
+        .sort((a, b) => {
+            const pa = direction === 'reverse'
+                ? (a.rule?.reversePriority ?? a.rule?.priority ?? 0)
+                : (a.rule?.priority ?? 0);
+            const pb = direction === 'reverse'
+                ? (b.rule?.reversePriority ?? b.rule?.priority ?? 0)
+                : (b.rule?.priority ?? 0);
+            return pb - pa || a.index - b.index;
+        })
+        .map(entry => entry.rule);
+}
+
+function patchRuleToConstant(rule: any, direction: MappingDirection, sentinel: string): any {
+    const constantPatch = { transform: 'constant', expression: JSON.stringify(sentinel), array: undefined };
+    if (direction === 'reverse' && rule.reverse) {
+        return { ...rule, array: undefined, reverse: { ...rule.reverse, ...constantPatch } };
+    }
+    return { ...rule, ...constantPatch };
+}
+
+function ruleSkipsAbsentSource(rule: any, source: unknown, direction: MappingDirection): boolean {
+    const hasInner = Array.isArray(rule?.array?.innerRules) && rule.array.innerRules.length > 0;
+    if (hasInner) return false;
+    const transform = activeRuleTransform(rule, direction);
+    if (transform !== 'preserve' && transform !== 'coerce' && transform !== 'valueMap') return false;
+    const srcPath = direction === 'forward' ? rule.sourcePath : rule.targetPath;
+    if (typeof srcPath !== 'string' || !srcPath) return rule.default === undefined;
+    return lookupSourcePath(source, srcPath) === undefined && rule.default === undefined;
+}
+
+function collectLaterOverwrites(
+    orderedRules: readonly any[],
+    afterIndex: number,
+    docBase: Record<string, unknown>,
+    source: JsonValue | string,
+    direction: MappingDirection,
+    prefix: string,
+): any {
+    let mask: any = undefined;
+    for (let j = afterIndex + 1; j < orderedRules.length; j += 1) {
+        const laterRule = orderedRules[j];
+        if (!laterRule) continue;
+        const transform = activeRuleTransform(laterRule, direction);
+        if (transform === 'drop') continue;
+        if (ruleSkipsAbsentSource(laterRule, source, direction)) continue;
+
+        const tgtPath = direction === 'forward' ? laterRule.targetPath : laterRule.sourcePath;
+        if (typeof tgtPath !== 'string' || !tgtPath) continue;
+
+        // For valueMap with drop/error unmapped strategies, check whether the rule actually emits a value
+        // on real @source/@target before marking its target as overwritten.
+        if (transform === 'valueMap') {
+            const vmCheckKey = `${prefix}vmcheck_${j}__`;
+            const vmProbeRule = direction === 'forward'
+                ? { ...laterRule, targetPath: vmCheckKey }
+                : { ...laterRule, sourcePath: vmCheckKey };
+            try {
+                const vmProbe = wasmExecuteMappingDocRuntime(
+                    { ...docBase, autoMap: false, defaults: undefined, rules: [...orderedRules.slice(0, j), vmProbeRule] },
+                    source,
+                    direction,
+                );
+                if (!isJsonRecord(vmProbe.output) || !Object.prototype.hasOwnProperty.call(vmProbe.output, vmCheckKey)) {
+                    continue;
+                }
+            } catch {
+                continue;
+            }
+        }
+
+        const overwriteSentinel = `${prefix}over_${afterIndex}_${j}__`;
+        const probeRules = [
+            ...orderedRules.slice(0, j),
+            patchRuleToConstant(laterRule, direction, overwriteSentinel),
+        ];
+        try {
+            const overwriteProbe = wasmExecuteMappingDocRuntime(
+                { ...docBase, autoMap: false, defaults: undefined, rules: probeRules },
+                source,
+                direction,
+            );
+            mask = recordOverwritePositions(overwriteProbe.output, overwriteSentinel, mask);
+        } catch {
+            // Keep conservative mask if probing fails.
+        }
+    }
+    return mask;
+}
+
+function applyIndexedExactRestoration(
+    actualObj: any,
+    innerRules: readonly any[],
+    sourceArray: readonly unknown[],
+): any {
+    if (!isJsonRecord(actualObj)) return actualObj;
+    for (const inner of innerRules) {
+        const sp = inner?.sourcePath;
+        const tp = inner?.targetPath;
+        if (typeof sp !== 'string' || typeof tp !== 'string' || !tp) continue;
+        const dotIdx = sp.indexOf('.');
+        const idxStr = dotIdx === -1 ? sp : sp.slice(0, dotIdx);
+        const idx = Number(idxStr);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= sourceArray.length) continue;
+        const elem = sourceArray[idx];
+        const exactVal = dotIdx === -1 ? elem : lookupSourcePath(elem, sp.slice(dotIdx + 1));
+        if (!hasExactNumericLeaf(exactVal)) continue;
+
+        const targetTokens = tp.split('.');
+        let cursor: any = actualObj;
+        for (let k = 0; k < targetTokens.length - 1; k += 1) {
+            if (!isJsonRecord(cursor)) { cursor = undefined; break; }
+            cursor = cursor[targetTokens[k]!];
+        }
+        const leafKey = targetTokens[targetTokens.length - 1]!;
+        if (isJsonRecord(cursor) && Object.prototype.hasOwnProperty.call(cursor, leafKey)) {
+            cursor[leafKey] = mergeMatchingExactValues(cursor[leafKey], exactVal, undefined);
+        }
+    }
+    return actualObj;
+}
+
+function restoreConditionalDocumentExactNumbers(
+    docWithoutSchema: Record<string, unknown>,
+    source: JsonValue | string,
+    direction: MappingDirection,
+    output: any,
+    prefix: string,
+): any {
+    const effectiveRules = buildEffectiveRules(docWithoutSchema, source, direction);
+    const orderedRules = sortRulesInExecutionOrder(effectiveRules, direction);
+
+    for (let pos = 0; pos < orderedRules.length; pos += 1) {
+        const rule = orderedRules[pos];
+        if (!rule) continue;
+        const srcPath = direction === 'forward' ? rule.sourcePath : rule.targetPath;
+        const hasSrcPath = typeof srcPath === 'string' && srcPath.length > 0;
+        const resolved = hasSrcPath ? lookupSourcePath(source, srcPath) : undefined;
+        const effectiveSource = resolved !== undefined && resolved !== null ? resolved : rule.default;
+        const innerRules = Array.isArray(rule.array?.innerRules) ? rule.array.innerRules : [];
+        const arrayMode = innerRules.length > 0 ? rule.array?.mode : undefined;
+        const transform = activeRuleTransform(rule, direction);
+
+        if (arrayMode === 'each' || arrayMode === 'indexed') {
+            if (!Array.isArray(effectiveSource) || !hasExactNumericLeaf(effectiveSource)) continue;
+            const ruleSentinel = `${prefix}arr_${pos}__`;
+            try {
+                const firedProbe = wasmExecuteMappingDocRuntime(
+                    {
+                        ...docWithoutSchema,
+                        autoMap: false,
+                        defaults: undefined,
+                        rules: [...orderedRules.slice(0, pos), patchRuleToConstant(rule, direction, ruleSentinel)],
+                    },
+                    source,
+                    direction,
+                );
+                const overwriteMask = collectLaterOverwrites(
+                    orderedRules, pos, docWithoutSchema, source, direction, prefix,
+                );
+                output = applyMaskedProbe(output, firedProbe.output, ruleSentinel, overwriteMask, (actualNode, maskNode) => {
+                    if (arrayMode === 'each') {
+                        if (!Array.isArray(actualNode) || actualNode.length !== effectiveSource.length) return actualNode;
+                        for (let r = 0; r < actualNode.length; r += 1) {
+                            if (Array.isArray(maskNode) && maskNode[r] === true) continue;
+                            actualNode[r] = restoreExactPreservedNumbers(
+                                { rules: innerRules } as MappingDocument,
+                                effectiveSource[r] as JsonValue,
+                                direction,
+                                actualNode[r],
+                            );
+                        }
+                        return actualNode;
+                    }
+                    return applyIndexedExactRestoration(actualNode, innerRules, effectiveSource);
+                });
+            } catch {
+                // Keep authoritative Pass 1 output if probing fails.
+            }
+            continue;
+        }
+
+        if (transform !== 'preserve' && !(transform === 'valueMap' && rule.valueMap?.unmapped === 'passthrough')) {
+            continue;
+        }
+        if (resolved === undefined && rule.default === undefined) continue;
+        if (!hasExactNumericLeaf(effectiveSource)) continue;
+
+        const ruleSentinel = `${prefix}rule_${pos}__`;
+        try {
+            const firedProbe = wasmExecuteMappingDocRuntime(
+                {
+                    ...docWithoutSchema,
+                    autoMap: false,
+                    defaults: undefined,
+                    rules: [...orderedRules.slice(0, pos), patchRuleToConstant(rule, direction, ruleSentinel)],
+                },
+                source,
+                direction,
+            );
+            const overwriteMask = collectLaterOverwrites(
+                orderedRules, pos, docWithoutSchema, source, direction, prefix,
+            );
+            output = applyMaskedProbe(output, firedProbe.output, ruleSentinel, overwriteMask, (actualNode, maskNode) =>
+                mergeMatchingExactValues(actualNode, effectiveSource, maskNode),
+            );
+        } catch {
+            // Keep authoritative Pass 1 output if probing fails.
+        }
+    }
+
+    // Forward defaults fill paths still null/absent after all rules execute.
+    const defaults = docWithoutSchema.defaults;
+    if (direction === 'forward' && isJsonRecord(defaults) && hasExactNumericLeaf(defaults)) {
+        try {
+            const withoutDefaults = wasmExecuteMappingDocRuntime(
+                { ...docWithoutSchema, autoMap: false, defaults: undefined, rules: orderedRules },
+                source,
+                direction,
+            );
+            for (const [key, defaultVal] of Object.entries(defaults)) {
+                if (!hasExactNumericLeaf(defaultVal)) continue;
+                const prior = lookupSourcePath(withoutDefaults.output, key);
+                if (prior !== undefined && prior !== null) continue;
+                const tokens = key.split('.');
+                let cursor: any = output;
+                for (let k = 0; k < tokens.length - 1; k += 1) {
+                    if (!isJsonRecord(cursor)) { cursor = undefined; break; }
+                    cursor = cursor[tokens[k]!];
+                }
+                const leafKey = tokens[tokens.length - 1]!;
+                if (isJsonRecord(cursor) && Object.prototype.hasOwnProperty.call(cursor, leafKey)) {
+                    cursor[leafKey] = mergeMatchingExactValues(cursor[leafKey], defaultVal, undefined);
+                }
+            }
+        } catch {
+            // Leave Pass 1 defaults intact if probing fails.
+        }
+    }
+
+    return output;
 }
 
 /**
@@ -286,11 +622,22 @@ function restoreExactPreservedNumbers(
     if (!hasExactNumericLeaf(source) && !hasExactNumericLeaf(doc)) return output;
 
     const prefix = chooseSentinelPrefix(doc, source);
-    const exactLeaves: ExactJsonNumber[] = [];
     const { sourceSchema: _ignoredSchema, ...docWithoutSchema } = doc as MappingDocument & { sourceSchema?: unknown };
+    const rules = Array.isArray(docWithoutSchema.rules) ? docWithoutSchema.rules : [];
+
+    // When any rule (top-level or nested inside array.innerRules) declares a FEL condition,
+    // never sentinelize `source` (doing so would alter `@source.*` / `@target.*` conditions and
+    // let an earlier preserve rule clobber a conditional overwrite). Probe each candidate rule
+    // against unmodified numeric `source` with exact execution-order overwrite tracking.
+    if (rulesHaveAnyCondition(rules)) {
+        return restoreConditionalDocumentExactNumbers(docWithoutSchema, source, direction, output, prefix);
+    }
+
+    // Fast path for unconditional documents: a single sentinel provenance pass handles preserve,
+    // autoMap, array.each/indexed, flatten, nest, defaults, and reverse in one WASM call.
+    const exactLeaves: ExactJsonNumber[] = [];
     const sentinelDoc = replaceExactNumericLeaves(docWithoutSchema, exactLeaves, prefix);
     const sentinelSource = replaceExactNumericLeaves(source, exactLeaves, prefix);
-
     if (exactLeaves.length === 0) return output;
 
     try {
@@ -298,42 +645,6 @@ function restoreExactPreservedNumbers(
         output = mergeExactNumericLeaves(output, probe.output, exactLeaves, prefix);
     } catch {
         // Keep authoritative Pass 1 output if provenance probing hits an unsupported shape.
-    }
-
-    // Also handle conditional `preserve` rules whose FEL condition directly inspected a sentinelized
-    // exact-number field (e.g. `@source.d > 0`): probe against the unmodified numeric source.
-    const rules = Array.isArray(doc.rules) ? doc.rules : [];
-    for (let i = 0; i < rules.length; i += 1) {
-        const rule = rules[i] as any;
-        if (!rule || !rule.condition || rule.array) continue;
-        if (direction === 'reverse' && rule.bidirectional === false) continue;
-        const activeTransform = direction === 'reverse' && rule.reverse?.transform
-            ? rule.reverse.transform
-            : rule.transform;
-        if (activeTransform !== 'preserve') continue;
-        const srcPath = direction === 'forward' ? rule.sourcePath : rule.targetPath;
-        if (typeof srcPath !== 'string' || !srcPath || srcPath.includes('*')) continue;
-        const exactSource = lookupSourcePath(source, srcPath);
-        if (!hasExactNumericLeaf(exactSource)) continue;
-
-        const condSentinel = `${prefix}cond_${i}__`;
-        const condRules = rules.map((entry, idx) => {
-            if (idx !== i) return entry;
-            const constantPatch = { transform: 'constant', expression: JSON.stringify(condSentinel) };
-            return direction === 'reverse' && (entry as any).reverse
-                ? { ...entry, reverse: { ...(entry as any).reverse, ...constantPatch } }
-                : { ...entry, ...constantPatch };
-        });
-        try {
-            const condProbe = wasmExecuteMappingDocRuntime(
-                { ...docWithoutSchema, rules: condRules },
-                source,
-                direction,
-            );
-            output = applyConditionalProbe(output, condProbe.output, condSentinel, exactSource);
-        } catch {
-            // Leave authoritative Pass 1 output intact if probing fails.
-        }
     }
 
     return output;

@@ -372,7 +372,10 @@
         },
         {
           "if": { "properties": { "inventory": { "const": "omitted" } }, "required": ["inventory"] },
-          "then": { "properties": { "nodes": { "type": "array", "maxItems": 0 } } }
+          "then": {
+            "required": ["nodeCount"],
+            "properties": { "nodes": { "type": "array", "maxItems": 0 } }
+          }
         }
       ]
     },

@@ -467,8 +467,12 @@ it('keeps a single large Definition publish payload well under 2 MiB via compact
   expect(compactScoped.diagnostics.some((d) =>
     d.code === 'APP-GRAPH-RENDERED-NEED-REDUNDANT' && d.primarySource?.artifactSlot === 'definitions[1]')).toBe(false);
 
-  // Schema enforces the compact invariant: inventory="omitted" must not carry non-empty nodes.
+  // Schema enforces the compact invariants: inventory="omitted" requires empty nodes and nodeCount.
   const invalidCompact = JSON.parse(JSON.stringify(compactScoped));
   invalidCompact.renderedNeedTrace.nodes = [fullScoped.renderedNeedTrace!.nodes[0]];
   expect(validateReport(invalidCompact)).toBe(false);
+
+  const missingNodeCount = JSON.parse(JSON.stringify(compactScoped));
+  delete missingNodeCount.renderedNeedTrace.nodeCount;
+  expect(validateReport(missingNodeCount)).toBe(false);
 });
