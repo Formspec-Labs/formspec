@@ -4390,9 +4390,14 @@ Option membership is normative whether an option list is declared inline,
 referenced via a URL-backed `optionSet` (`source`), or referenced via a
 URI-string `Item.options` (§4.2.3). Evaluators remain pure and perform no
 network I/O: the host supplies resolved option lists alongside evaluation
-options, keyed by `optionSet` name and by URI, and filing hosts MUST retain
-and forward the trusted resolved option snapshot to every authoritative
-recheck.
+options, keyed by `optionSet` name (`optionSets`) and by URI (`uris`), and
+filing hosts MUST retain and forward the trusted resolved option snapshot to
+every authoritative recheck. For a URL-backed named `optionSet`, evaluators
+check `optionSets[name]` first and then `uris[source]`. When a filing host or
+workflow processor pins a resolved option snapshot by digest, the canonical
+digest is computed over the canonical JSON encoding of the sorted `optionSets`
+and `uris` sets under domain tag `formspec.option-snapshot.v1`; a digest
+mismatch MUST fail closed before accepting the Response.
 
 1. When a resolved option list is supplied for a remote `choice` or
    `multiChoice` field, any non-empty value whose selected value (or any
@@ -6230,6 +6235,21 @@ general requirements apply:
 
 5. Custom constraints MUST NOT produce false-positive validation
    results when unsupported — processors MUST fail rather than skip.
+
+**Pinned Extension Registry Documents for Authoritative Rechecks.** When a
+Definition relies on Extension Registry custom `dataType` constraints (such as
+`pattern`, `maxLength`, `minimum`, or `maximum`), publishers and filing hosts
+MUST pin the governing Extension Registry documents alongside the published
+Definition version and pass those exact pinned documents into every
+authoritative server or workflow recheck. Evaluators MUST NOT perform network
+discovery to fetch Extension Registry documents during recheck. Authoritative
+recheck qualification MUST parse pinned registry documents while preserving
+exact decimal `minimum`/`maximum` bounds (without IEEE-754 floating-point
+rounding) and MUST fail closed on malformed registry documents or entries,
+duplicate extension names across the supplied registry set, unsupported
+constraint keys outside `{pattern, maxLength, minimum, maximum}`, invalid
+regular expressions, non-integer or negative `maxLength`, non-decimal numeric
+bounds, or inverted ranges (`minimum > maximum`).
 
 ***
 

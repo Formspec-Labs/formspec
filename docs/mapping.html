@@ -918,7 +918,7 @@ association for an external source.</p>
 <p>The following table enumerates all recognized properties.</p>
 <!-- schema-ref:start id=mapping-top-level schema=schemas/mapping.schema.json pointers=# -->
 <!-- generated:schema-ref id=mapping-top-level -->
-<table style="width:100%;">
+<table style="width:99%;">
 <colgroup>
 <col style="width: 16%" />
 <col style="width: 16%" />
@@ -2145,6 +2145,23 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb12-1"><a href=
 executed in reverse, the engine MUST copy the value from the original
 <code>targetPath</code> back to the original <code>sourcePath</code>
 with no additional configuration.</p>
+<p><strong>Exact lexical numeric preservation.</strong> When a
+<code>preserve</code> rule copies a JSON numeric value — including
+arbitrary-precision decimals beyond IEEE-754 binary64 precision,
+integers outside the IEEE-754 safe integer range
+(<code>|n| &gt; 2^53 - 1</code>), and explicit lexical trailing zeros
+(such as <code>12.50</code> or <code>0.00</code>) — the engine MUST
+preserve its exact lexical numeric representation losslessly without
+silent binary floating-point rounding or coercion to a JSON string. This
+guarantee MUST hold across forward and reverse execution,
+<code>autoMap: true</code>, <code>sourceSchema</code> mappings,
+<code>array</code> operations (<code>each</code> <code>innerRules</code>
+and whole-array copies), and conditional <code>preserve</code> rules.
+When a subsequent rule in execution order (including a conditional
+non-<code>preserve</code> rule referencing <code>@source.*</code> or
+<code>@target.*</code>) overwrites the same <code>targetPath</code>,
+normal last-write-wins precedence applies and the overwriting rule’s
+value MUST NOT be clobbered by an earlier preserved numeric token.</p>
 <p>When source and target types are incompatible, implementations SHOULD
 attempt implicit coercion and SHOULD emit a diagnostic warning.</p>
 <h3 id="drop-discard">4.3 <code>drop</code> — Discard</h3>
@@ -3192,6 +3209,14 @@ Intermediate objects and arrays MUST be created automatically.</p>
 </table>
 <div class="sourceCode" id="cb34"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span> <span class="dt">&quot;adapters&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;json&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;pretty&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span> <span class="dt">&quot;nullHandling&quot;</span><span class="fu">:</span> <span class="st">&quot;omit&quot;</span> <span class="fu">}</span> <span class="fu">}</span> <span class="fu">}</span></span></code></pre></div>
+<p><strong>Exact numeric serialization.</strong> Preserved JSON numeric
+values (including arbitrary-precision decimals, integers with
+<code>|n| &gt; 2^53 - 1</code>, and lexical trailing zeros) MUST
+serialize as unquoted JSON numbers retaining their exact source digits
+verbatim, including when <code>pretty</code>, <code>sortKeys</code>, or
+<code>nullHandling: "omit"</code> is active. Processors MUST NOT round
+preserved numbers through IEEE-754 binary64 or leak internal raw-number
+wrapper objects into JSON output.</p>
 <h3 id="xml-adapter-mapping-extended">6.3 XML Adapter (Mapping
 Extended)</h3>
 <p>The XML adapter serializes internal JSON as an XML 1.0 document.</p>
@@ -3278,6 +3303,14 @@ class="sourceCode xml"><code class="sourceCode xml"><span id="cb36-1"><a href="#
 <span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">customer</span>&gt;Acme Corp&lt;/<span class="kw">customer</span>&gt;</span>
 <span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">notes</span>&gt;<span class="bn">&lt;![CDATA[</span>Handle with care &amp; urgency<span class="bn">]]&gt;</span>&lt;/<span class="kw">notes</span>&gt;</span>
 <span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">Order</span>&gt;</span></code></pre></div>
+<p><strong>Exact numeric serialization.</strong> Preserved numeric
+values (including arbitrary-precision decimals, integers with
+<code>|n| &gt; 2^53 - 1</code>, and lexical trailing zeros) MUST
+serialize directly as flat element text content or XML attribute values
+— including within repeated elements produced by <code>array</code>
+rules — without silent floating-point rounding and without emitting
+nested internal wrapper elements (such as
+<code>&lt;rawJSON&gt;</code>).</p>
 <h3 id="csv-adapter-mapping-extended">6.4 CSV Adapter (Mapping
 Extended)</h3>
 <p>The CSV adapter serializes internal JSON as <a
@@ -3335,9 +3368,17 @@ rows.</p>
 <p><strong>Example.</strong> Source with <code>orderId: "ORD-99"</code>
 and repeat items
 <code>[{sku:"A1", qty:2}, {sku:"B3", qty:5}]</code>:</p>
-<pre class="csv"><code>order_id,sku,quantity
-ORD-99,A1,2
-ORD-99,B3,5</code></pre>
+<div class="sourceCode" id="cb37"><pre
+class="sourceCode csv"><code class="sourceCode csv"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>order_id,sku<span class="va">,</span>quantity</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>ORD-99,A1<span class="va">,</span>2</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>ORD-99,B3<span class="va">,</span>5</span></code></pre></div>
+<p><strong>Exact numeric serialization.</strong> Preserved numeric
+values (including arbitrary-precision decimals, integers with
+<code>|n| &gt; 2^53 - 1</code>, and lexical trailing zeros) MUST be
+treated as scalar column values — never dropped as non-scalar objects —
+and MUST serialize verbatim into their CSV cells without silent
+floating-point rounding, alongside <code>0</code>, empty string, and
+<code>null</code> (empty cell) values.</p>
 <h3 id="custom-adapters">6.5 Custom Adapters</h3>
 <p>Implementations MAY register custom adapters by string identifier.
 Custom identifiers MUST begin with the <code>x-</code> prefix.

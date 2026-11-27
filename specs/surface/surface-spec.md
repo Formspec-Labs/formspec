@@ -540,8 +540,10 @@ Surface through `routeRef` and `slotRef`. The review route MUST declare and
 address the same parameters used by the form slot's `subjectKeys`. An optional
 `x-generation` records the binding's direct Need trace. This binding owns all
 three inputs and is mutually exclusive with `dataBindings`. The [Surface
-Shell](surface-shell-spec.md) defines how the shell reads the committed draft
-and derives the presentation from the Definition and active Locale.
+Shell](surface-shell-spec.md) defines how the shell reads the committed draft,
+derives the presentation from the Definition and active Locale, and preserves
+exact numeric, percentage, and monetary precision across review phases
+(`draft-review`, `before-sign`, `before-submit`, and `accepted-record`).
 
 A module widget that selects Responses by subject keys MUST use catalog
 `from.routeParam` predicates with the active route parameters. The runtime

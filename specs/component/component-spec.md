@@ -1180,6 +1180,11 @@ integers, decimals, and monetary values (when paired with prefix/suffix).
 - MUST propagate `required`, `readOnly`, and `relevant` from the
   bound item.
 - MUST display validation errors from the bound item.
+- MUST preserve exact entered and stored numeric precision losslessly
+  (including arbitrary-precision decimals, integers outside the IEEE-754
+  safe integer range `|n| > 2^53 - 1`, and bound item `prefix`/`suffix`
+  adornments such as `"%"`) without silent floating-point rounding in
+  both editable draft and read-only states.
 - When `min` or `max` is specified, MUST constrain the stepper
   controls accordingly.
 
@@ -2054,8 +2059,10 @@ discarded.
 #### Description
 
 A currency-aware numeric input that displays a currency symbol and
-formatted number. Stores the raw numeric value without currency
-formatting.
+formatted number. Stores canonical unformatted data (`{ amount, currency }`
+with an exact decimal string `amount` for `money` fields, or an unformatted
+numeric value for `decimal`/`integer` fields) without currency formatting
+characters.
 
 #### Props
 
@@ -2070,9 +2077,21 @@ formatting.
 
 - MUST render a numeric input with the currency symbol.
 - MUST format the displayed value according to the locale's
-  currency conventions.
-- MUST store the raw numeric value (without formatting characters)
-  in the data.
+  currency conventions (thousands grouping and currency minor-unit
+  minimum fraction padding when blurred or read-only) directly from
+  exact decimal text without IEEE-754 floating-point conversion,
+  preserving all entered fractional digits verbatim (including more
+  than two decimal places and negative amounts) across editable draft
+  and read-only states.
+- MUST store the raw unformatted value (`{ amount, currency }` for
+  `money` fields; raw numeric value for `decimal`/`integer` fields)
+  without formatting characters in the data.
+- Clearing the control (to an empty string, whitespace only, or a bare
+  currency symbol) MUST store true absence (`undefined`, omitting the
+  property from `Response.data`) and MUST NOT write a malformed empty
+  object such as `{ amount: "", currency }`. Clearing an optional
+  `money` field therefore produces no `TYPE_MISMATCH` finding, and
+  clearing a required `money` field produces `REQUIRED`.
 - MUST propagate `required`, `readOnly`, and `relevant` state.
 - MUST display validation errors.
 
@@ -2412,6 +2431,10 @@ Each item object in the `items` array supports:
 - For each entry in `items`, MUST display the `label` and the
   current value of the bound item.
 - Values MUST be formatted according to the item's `dataType`.
+  Numeric, percentage (with item `prefix`/`suffix`), and `money` values
+  MUST be rendered losslessly from their exact decimal representation
+  without IEEE-754 floating-point rounding or truncation of stored
+  fractional digits.
 - When `optionSet` is set on an item, renderers MUST look up the
   bound value in the named option set and display the matching
   `label`. If no match is found, the raw value SHOULD be displayed.
@@ -2543,6 +2566,12 @@ MAY use `bind` to reference a repeatable group.
 - MUST create one row per repeat instance.
 - MUST render one cell per column definition, displaying the
   value of the bound field within that repeat instance.
+- Clearing an editable `money`-typed cell MUST store true absence
+  (`undefined`, omitting the property from `Response.data`) rather than
+  writing `{ amount: "", currency }`. Editable and read-only numeric,
+  percentage (with item `prefix`/`suffix`), and `money` cells MUST
+  preserve exact decimal precision losslessly without silent
+  floating-point rounding.
 - When `allowAdd` is `true`, MUST provide an "Add" affordance,
   subject to `maxRepeat` constraints.
 - When `allowRemove` is `true`, MUST provide per-row "Remove"

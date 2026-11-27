@@ -8429,9 +8429,17 @@ inline, referenced via a URL-backed <code>optionSet</code>
 (<code>source</code>), or referenced via a URI-string
 <code>Item.options</code> (§4.2.3). Evaluators remain pure and perform
 no network I/O: the host supplies resolved option lists alongside
-evaluation options, keyed by <code>optionSet</code> name and by URI, and
-filing hosts MUST retain and forward the trusted resolved option
-snapshot to every authoritative recheck.</p>
+evaluation options, keyed by <code>optionSet</code> name
+(<code>optionSets</code>) and by URI (<code>uris</code>), and filing
+hosts MUST retain and forward the trusted resolved option snapshot to
+every authoritative recheck. For a URL-backed named
+<code>optionSet</code>, evaluators check <code>optionSets[name]</code>
+first and then <code>uris[source]</code>. When a filing host or workflow
+processor pins a resolved option snapshot by digest, the canonical
+digest is computed over the canonical JSON encoding of the sorted
+<code>optionSets</code> and <code>uris</code> sets under domain tag
+<code>formspec.option-snapshot.v1</code>; a digest mismatch MUST fail
+closed before accepting the Response.</p>
 <ol type="1">
 <li>When a resolved option list is supplied for a remote
 <code>choice</code> or <code>multiChoice</code> field, any non-empty
@@ -10945,6 +10953,23 @@ Instance data.</p></li>
 results when unsupported — processors MUST fail rather than
 skip.</p></li>
 </ol>
+<p><strong>Pinned Extension Registry Documents for Authoritative
+Rechecks.</strong> When a Definition relies on Extension Registry custom
+<code>dataType</code> constraints (such as <code>pattern</code>,
+<code>maxLength</code>, <code>minimum</code>, or <code>maximum</code>),
+publishers and filing hosts MUST pin the governing Extension Registry
+documents alongside the published Definition version and pass those
+exact pinned documents into every authoritative server or workflow
+recheck. Evaluators MUST NOT perform network discovery to fetch
+Extension Registry documents during recheck. Authoritative recheck
+qualification MUST parse pinned registry documents while preserving
+exact decimal <code>minimum</code>/<code>maximum</code> bounds (without
+IEEE-754 floating-point rounding) and MUST fail closed on malformed
+registry documents or entries, duplicate extension names across the
+supplied registry set, unsupported constraint keys outside
+<code>{pattern, maxLength, minimum, maximum}</code>, invalid regular
+expressions, non-integer or negative <code>maxLength</code>, non-decimal
+numeric bounds, or inverted ranges (<code>minimum &gt; maximum</code>).</p>
 <hr />
 <h3 id="concept-and-vocabulary-registry-entries">8.1.1 Concept and
 Vocabulary Registry Entries</h3>

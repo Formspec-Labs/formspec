@@ -238,6 +238,7 @@ data report, not an execution plan.
 | `diagnostics` | yes | Unified diagnostics from native validator phases and imported resolver/module/surface-local phases. |
 | `phases` | yes | Ordered phase statuses with `completed`, `skipped`, or `not-run` status and skip reason when applicable. |
 | `support` | no | Optional echo of supported bundle versions, artifact kinds, schema versions, and feature flags used for the run. |
+| `renderedNeedTrace` | no | Optional `RenderedNeedTraceRecord` emitted when strict rendered-Need tracing was requested and the cross-artifact phase completed (§7). Full authoring reports retain per-node traces (`inventory: "full"` or omitted); per-Definition scoped publication proofs MAY omit `nodes` (`inventory: "omitted"`, `nodes: []`, required `nodeCount`) while preserving status and canonical document digests. |
 
 Reports MUST be deterministic for the same request and support profile. They
 MUST NOT contain fetched source payloads, rendered Component output, effect
@@ -431,7 +432,10 @@ generators SHOULD NOT write redundant anchors (Needs §8). The existing
 unchanged. The usable-outcome rule `rendered-node.direct-need-trace` above
 continues to credit direct traces only.
 
-The completed report MUST include `renderedNeedTrace.nodes[]`. Each record
+The completed report MUST include `renderedNeedTrace.nodes[]` (empty only when
+`status` is `not-applicable` or when `inventory` is `"omitted"` for a compact
+publication proof). In a full authoring report (`inventory: "full"`, the default
+when `inventory` is omitted), each `nodes[]` record
 contains the node's `source` (including its `artifactSlot` and document-local
 `jsonPointer`), `kind`, `label`, and `effective: {needIds, via}`. The node's
 `source` and each `via` entry use the same source-pointer shape; the empty
@@ -452,10 +456,26 @@ sort nodes by `source.artifactSlot`, then `source.jsonPointer` (the pair is uniq
 sort `needIds` lexicographically; and sort `via` by `artifactSlot`, then `jsonPointer`.
 Source-pointer identity for deduplication is the pair (`artifactSlot`, `jsonPointer`);
 optional document evidence does not create a second node identity. A
-`not-applicable` record contains `nodes: []`. Consumers MUST read this
-effective trace rather than compute a second inheritance implementation.
-The existing `definitions`, `locales`, and `components` canonical digest
-bindings and the server proof in Needs §10.3 rule 4 remain unchanged.
+`not-applicable` record contains `nodes: []`.
+
+Per-Definition scoped publication reports MAY omit the per-node inventory to
+emit a **compact publication proof** bounded for server publication payloads:
+`renderedNeedTrace.inventory` MUST be `"omitted"`, `renderedNeedTrace.nodes`
+MUST be `[]`, and `renderedNeedTrace.nodeCount` MUST be a non-negative integer
+recording the exact count of verified scoped trace nodes omitted from `nodes`
+(a server verifying a Need-traced Definition requires `nodeCount > 0`;
+[Needs §10.3](../needs/needs-spec.md#103-publication-trace)). A compact
+publication proof MUST retain `ok`, `summary`, `phases`, `schemaResults`,
+`evidenceResults`, scoped `diagnostics` (including any scoped
+`APP-GRAPH-RENDERED-NEED-REDUNDANT` warnings), `renderedNeedTrace.status:
+"completed"`, and the canonical `definitions`, `locales`, and `components`
+digests. Full authoring reports and opt-in full scoped reports (`inventory:
+"full"`) retain populated `nodes[]` and MAY include `nodeCount` equal to
+`nodes.length`. Authoring and review consumers that inspect per-node traces MUST
+consume full reports (`inventory: "full"`) rather than compute a second
+inheritance implementation. The existing `definitions`, `locales`, and
+`components` canonical digest bindings and the server proof in Needs §10.3 rule
+4 remain authoritative.
 
 For a Surface 0.4 filing-status slot, graph validation MUST resolve each entry
 to one same-Surface route and one Definition-form slot. It MUST reject missing

@@ -76,9 +76,10 @@ unsupported numeric input. Native form evaluation reports rejected input through
 Invalid text entered through controls stays in the model and fails validation.
 
 This change covers form evaluation, coercion, instances, extension callbacks,
-response migration, response assembly, and the updated browser consumers.
-Mapping APIs, screener score-threshold arithmetic (which still uses binary floats),
-and legacy server ports that already receive parsed numeric views
-remain separate limits. These changes cannot restore digits previously lost in
-storage or a caller's float conversion. Local checks do not establish a hosted
-deployment or qualify every native signing/history path.
+response migration, response assembly, Mapping `preserve` execution and JSON/CSV/XML
+serialization, and the updated browser render and review consumers.
+Non-`preserve` Mapping arithmetic/coercions, screener score-threshold arithmetic
+(which still uses binary floats), and legacy server ports that already receive
+parsed numeric views remain separate limits. These changes cannot restore digits
+previously lost in storage or a caller's float conversion. Local checks do not
+establish a hosted deployment or qualify every native signing/history path.

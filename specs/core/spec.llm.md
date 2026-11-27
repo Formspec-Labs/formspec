@@ -372,7 +372,7 @@ Variables must not form circular dependencies. Evaluation respects dependency gr
 
 ### Option Sets
 
-Named reusable option lists in top-level `optionSets`. Either inline `options` (array of `{value, label}`) or external via `source` URI with `valueField`/`labelField` mapping. Referenced by fields via `optionSet` property. Option membership is normative for inline and remote lists alike: the host supplies resolved option lists keyed by `optionSet` name and by URI, out-of-list answers emit `TYPE_MISMATCH`, and an absent remote list for an answered relevant field emits `OPTIONS_UNAVAILABLE` (never silent acceptance or inline fallback).
+Named reusable option lists in top-level `optionSets`. Either inline `options` (array of `{value, label}`) or external via `source` URI with `valueField`/`labelField` mapping. Referenced by fields via `optionSet` property. Option membership is normative for inline and remote lists alike: the host supplies resolved option lists keyed by `optionSet` name (`optionSets`) and by URI (`uris`, checking `optionSets[name]` before `uris[source]`), filing hosts retain and forward the trusted snapshot (canonical digest domain `formspec.option-snapshot.v1`) to every authoritative recheck, out-of-list answers emit `TYPE_MISMATCH`, and an absent remote list for an answered relevant field emits `OPTIONS_UNAVAILABLE` (never silent acceptance or inline fallback).
 
 ### Screener Routing
 
@@ -465,7 +465,7 @@ All extension identifiers must be prefixed with `x-`.
 - **Extension properties**: `extensions` object on any Formspec object; processors must preserve unrecognized extensions on round-trip
 - **Extension namespaces**: `x-{org}-{domain}` convention, should include `version`
 
-Custom data types, functions, and constraints are declared via the **Extension Registry** (see `extension-registry.llm.md`) rather than inline in definitions. The registry provides structured metadata for discovery and validation.
+Custom data types, functions, and constraints are declared via the **Extension Registry** (see `extension-registry.llm.md`) rather than inline in definitions. The registry provides structured metadata for discovery and validation. Publishers and filing hosts MUST pin governing Extension Registry documents alongside published Definitions and supply them to every authoritative recheck; recheck qualification preserves exact decimal bounds and fails closed on malformed registries, duplicate extension names, unsupported constraint keys, invalid patterns/lengths/bounds, or inverted ranges.
 
 Extensions must NOT alter core semantics (required, relevant, readonly, calculate, FEL evaluation, valid flag).
 

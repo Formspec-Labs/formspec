@@ -1089,6 +1089,8 @@ The `preserve` transform copies the source value to the target path without modi
 
 `preserve` is always auto-reversible. When a mapping is executed in reverse, the engine MUST copy the value from the original `targetPath` back to the original `sourcePath` with no additional configuration.
 
+**Exact lexical numeric preservation.** When a `preserve` rule copies a JSON numeric value — including arbitrary-precision decimals beyond IEEE-754 binary64 precision, integers outside the IEEE-754 safe integer range (`|n| > 2^53 - 1`), and explicit lexical trailing zeros (such as `12.50` or `0.00`) — the engine MUST preserve its exact lexical numeric representation losslessly without silent binary floating-point rounding or coercion to a JSON string. This guarantee MUST hold across forward and reverse execution, `autoMap: true`, `sourceSchema` mappings, `array` operations (`each` `innerRules` and whole-array copies), and conditional `preserve` rules. When a subsequent rule in execution order (including a conditional non-`preserve` rule referencing `@source.*` or `@target.*`) overwrites the same `targetPath`, normal last-write-wins precedence applies and the overwriting rule's value MUST NOT be clobbered by an earlier preserved numeric token.
+
 When source and target types are incompatible, implementations SHOULD attempt implicit coercion and SHOULD emit a diagnostic warning.
 
 ### 4.3 `drop` — Discard
@@ -1776,6 +1778,14 @@ automatically.
 { "adapters": { "json": { "pretty": true, "nullHandling": "omit" } } }
 ```
 
+**Exact numeric serialization.** Preserved JSON numeric values (including
+arbitrary-precision decimals, integers with `|n| > 2^53 - 1`, and lexical
+trailing zeros) MUST serialize as unquoted JSON numbers retaining their exact
+source digits verbatim, including when `pretty`, `sortKeys`, or
+`nullHandling: "omit"` is active. Processors MUST NOT round preserved numbers
+through IEEE-754 binary64 or leak internal raw-number wrapper objects into JSON
+output.
+
 ### 6.3 XML Adapter (Mapping Extended)
 
 The XML adapter serializes internal JSON as an XML 1.0 document.
@@ -1817,6 +1827,13 @@ Namespace prefixes use colon notation in paths (`xsi:type`). The
 </Order>
 ```
 
+**Exact numeric serialization.** Preserved numeric values (including
+arbitrary-precision decimals, integers with `|n| > 2^53 - 1`, and lexical
+trailing zeros) MUST serialize directly as flat element text content or XML
+attribute values — including within repeated elements produced by `array`
+rules — without silent floating-point rounding and without emitting nested
+internal wrapper elements (such as `<rawJSON>`).
+
 ### 6.4 CSV Adapter (Mapping Extended)
 
 The CSV adapter serializes internal JSON as [RFC 4180] delimited text.
@@ -1846,6 +1863,13 @@ order_id,sku,quantity
 ORD-99,A1,2
 ORD-99,B3,5
 ```
+
+**Exact numeric serialization.** Preserved numeric values (including
+arbitrary-precision decimals, integers with `|n| > 2^53 - 1`, and lexical
+trailing zeros) MUST be treated as scalar column values — never dropped as
+non-scalar objects — and MUST serialize verbatim into their CSV cells without
+silent floating-point rounding, alongside `0`, empty string, and `null` (empty
+cell) values.
 
 ### 6.5 Custom Adapters
 

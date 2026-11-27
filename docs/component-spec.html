@@ -688,7 +688,7 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="
 <h3 id="top-level-properties">2.1 Top-Level Properties</h3>
 <!-- schema-ref:start id=component-top-level schema=schemas/component.schema.json pointers=# -->
 <!-- generated:schema-ref id=component-top-level -->
-<table style="width:100%;">
+<table style="width:99%;">
 <colgroup>
 <col style="width: 16%" />
 <col style="width: 16%" />
@@ -2398,6 +2398,12 @@ prefix/suffix).</p>
 <li>MUST propagate <code>required</code>, <code>readOnly</code>, and
 <code>relevant</code> from the bound item.</li>
 <li>MUST display validation errors from the bound item.</li>
+<li>MUST preserve exact entered and stored numeric precision losslessly
+(including arbitrary-precision decimals, integers outside the IEEE-754
+safe integer range <code>|n| &gt; 2^53 - 1</code>, and bound item
+<code>prefix</code>/<code>suffix</code> adornments such as
+<code>"%"</code>) without silent floating-point rounding in both
+editable draft and read-only states.</li>
 <li>When <code>min</code> or <code>max</code> is specified, MUST
 constrain the stepper controls accordingly.</li>
 </ul>
@@ -3700,8 +3706,11 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb33-1"><a href=
 NumberInput</p>
 <h4 id="description-20">Description</h4>
 <p>A currency-aware numeric input that displays a currency symbol and
-formatted number. Stores the raw numeric value without currency
-formatting.</p>
+formatted number. Stores canonical unformatted data
+(<code>{ amount, currency }</code> with an exact decimal string
+<code>amount</code> for <code>money</code> fields, or an unformatted
+numeric value for <code>decimal</code>/<code>integer</code> fields)
+without currency formatting characters.</p>
 <h4 id="props-20">Props</h4>
 <table>
 <colgroup>
@@ -3758,9 +3767,23 @@ empty.</td>
 <ul>
 <li>MUST render a numeric input with the currency symbol.</li>
 <li>MUST format the displayed value according to the locale’s currency
-conventions.</li>
-<li>MUST store the raw numeric value (without formatting characters) in
-the data.</li>
+conventions (thousands grouping and currency minor-unit minimum fraction
+padding when blurred or read-only) directly from exact decimal text
+without IEEE-754 floating-point conversion, preserving all entered
+fractional digits verbatim (including more than two decimal places and
+negative amounts) across editable draft and read-only states.</li>
+<li>MUST store the raw unformatted value
+(<code>{ amount, currency }</code> for <code>money</code> fields; raw
+numeric value for <code>decimal</code>/<code>integer</code> fields)
+without formatting characters in the data.</li>
+<li>Clearing the control (to an empty string, whitespace only, or a bare
+currency symbol) MUST store true absence (<code>undefined</code>,
+omitting the property from <code>Response.data</code>) and MUST NOT
+write a malformed empty object such as
+<code>{ amount: "", currency }</code>. Clearing an optional
+<code>money</code> field therefore produces no
+<code>TYPE_MISMATCH</code> finding, and clearing a required
+<code>money</code> field produces <code>REQUIRED</code>.</li>
 <li>MUST propagate <code>required</code>, <code>readOnly</code>, and
 <code>relevant</code> state.</li>
 <li>MUST display validation errors.</li>
@@ -4317,7 +4340,11 @@ layout.</li>
 <li>For each entry in <code>items</code>, MUST display the
 <code>label</code> and the current value of the bound item.</li>
 <li>Values MUST be formatted according to the item’s
-<code>dataType</code>.</li>
+<code>dataType</code>. Numeric, percentage (with item
+<code>prefix</code>/<code>suffix</code>), and <code>money</code> values
+MUST be rendered losslessly from their exact decimal representation
+without IEEE-754 floating-point rounding or truncation of stored
+fractional digits.</li>
 <li>When <code>optionSet</code> is set on an item, renderers MUST look
 up the bound value in the named option set and display the matching
 <code>label</code>. If no match is found, the raw value SHOULD be
@@ -4535,6 +4562,13 @@ REQUIRED — item key within the repeat group).</td>
 <li>MUST create one row per repeat instance.</li>
 <li>MUST render one cell per column definition, displaying the value of
 the bound field within that repeat instance.</li>
+<li>Clearing an editable <code>money</code>-typed cell MUST store true
+absence (<code>undefined</code>, omitting the property from
+<code>Response.data</code>) rather than writing
+<code>{ amount: "", currency }</code>. Editable and read-only numeric,
+percentage (with item <code>prefix</code>/<code>suffix</code>), and
+<code>money</code> cells MUST preserve exact decimal precision
+losslessly without silent floating-point rounding.</li>
 <li>When <code>allowAdd</code> is <code>true</code>, MUST provide an
 “Add” affordance, subject to <code>maxRepeat</code> constraints.</li>
 <li>When <code>allowRemove</code> is <code>true</code>, MUST provide
@@ -4947,11 +4981,12 @@ Grammar (ABNF)</h3>
 <p>Parameter interpolation uses <code>{paramName}</code> syntax within
 string-valued props. The following ABNF grammar defines the
 interpolation syntax:</p>
-<pre class="abnf"><code>interpolated-string = *( literal-segment / param-ref / escaped-brace )
-literal-segment     = 1*( %x00-7A / %x7C-7C / %x7E-10FFFF )  ; any char except { }
-param-ref           = &quot;{&quot; param-name &quot;}&quot;
-param-name          = ALPHA *( ALPHA / DIGIT / &quot;_&quot; )
-escaped-brace       = &quot;{{&quot; / &quot;}}&quot;</code></pre>
+<div class="sourceCode" id="cb48"><pre
+class="sourceCode abnf"><code class="sourceCode abnf"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="kw">interpolated-string</span> <span class="va">=</span> <span class="op">*</span><span class="in">(</span> literal-segment <span class="cf">/</span> param-ref <span class="cf">/</span> escaped-brace <span class="in">)</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="kw">literal-segment</span>     <span class="va">=</span> <span class="dv">1</span><span class="op">*</span><span class="in">(</span> <span class="fu">%x</span><span class="ss">00</span><span class="fu">-</span><span class="ss">7A</span> <span class="cf">/</span> <span class="fu">%x</span><span class="ss">7C</span><span class="fu">-</span><span class="ss">7C</span> <span class="cf">/</span> <span class="fu">%x</span><span class="ss">7E</span><span class="fu">-</span><span class="ss">10FFFF</span> <span class="in">)</span>  <span class="co">; any char except { }</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a><span class="kw">param-ref</span>           <span class="va">=</span> <span class="st">&quot;{&quot;</span> param-name <span class="st">&quot;}&quot;</span></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a><span class="kw">param-name</span>          <span class="va">=</span> <span class="pp">ALPHA</span> <span class="op">*</span><span class="in">(</span> <span class="pp">ALPHA</span> <span class="cf">/</span> <span class="pp">DIGIT</span> <span class="cf">/</span> <span class="st">&quot;_&quot;</span> <span class="in">)</span></span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a><span class="kw">escaped-brace</span>       <span class="va">=</span> <span class="st">&quot;{{&quot;</span> <span class="cf">/</span> <span class="st">&quot;}}&quot;</span></span></code></pre></div>
 <p>Rules:</p>
 <ol type="1">
 <li><code>{paramName}</code> is replaced with the corresponding
@@ -6477,7 +6512,7 @@ DataType ↔︎ Component Compatibility</h2>
 <p>The following matrix shows which Input components are compatible with
 each Definition <code>dataType</code>. A ✓ indicates compatibility.
 Components marked (P) are Progressive; all others are Core.</p>
-<table style="width:100%;">
+<table style="width:99%;">
 <colgroup>
 <col style="width: 7%" />
 <col style="width: 7%" />

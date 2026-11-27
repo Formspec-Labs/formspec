@@ -826,6 +826,22 @@ only runtime extension point inside a route.
   also makes review unavailable. The supplier reads only committed data and
   creates no draft. Data Sources `delivery: draft` supplies only `Response.data`.
   Filed and federal review retain their existing qualified sources and authority.
+
+  **Lossless numeric, percentage, and monetary review formatting.** Across all
+  read-only `ResponseReview` presentation phases — `draft-review`,
+  `before-sign`, `before-submit`, and `accepted-record` — scalar numeric values
+  (`decimal` and `integer`, including arbitrary-precision decimals and integers
+  outside the IEEE-754 safe range `|n| > 2^53 - 1`), percentage values (with
+  declared `suffix` or `prefix`), and `money` values (`{ amount, currency }` or
+  currency-prefixed numeric fields) MUST be formatted directly from their exact
+  lexical decimal representation without IEEE-754 floating-point rounding,
+  without truncating stored fractional digits, and without falling back to raw
+  structured JSON (`<pre>`) blocks. Integer-part locale grouping MAY use exact
+  arbitrary-precision integer formatting while preserving every stored
+  fractional digit verbatim; in `before-sign`, `before-submit`, and
+  `accepted-record` phases, exact stored decimal digits (including trailing
+  zeros) MUST be preserved losslessly for faithful review of the committed
+  bytes.
 - **Actions.** Registry 1.1 declares each output as
   `{name, description?}` in `widgetShape.actionOutputs[]`. Surface 0.2 binds
   that exact name through
