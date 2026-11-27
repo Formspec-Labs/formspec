@@ -1,0 +1,42 @@
+{
+  "id": "ceremony-prepare-producer",
+  "description": "SigningCeremony@0.1 draft dataBinding declares a typed producer binding an upstream route, Definition, and response-scoped prepare Action. Unrelated prepare requests elsewhere do not satisfy the binding.",
+  "cases": [
+    {
+      "id": "valid-same-definition",
+      "expected": { "diagnostics": [] }
+    },
+    {
+      "id": "valid-cross-definition-with-mapping-relation",
+      "expected": { "diagnostics": [] }
+    },
+    {
+      "id": "missing-producer",
+      "expected": { "diagnostics": [{ "code": "E612", "reason": "ceremony-prepare-producer-missing" }] }
+    },
+    {
+      "id": "missing-upstream-route",
+      "expected": { "diagnostics": [{ "code": "E612", "reason": "ceremony-prepare-route-unresolved" }] }
+    },
+    {
+      "id": "missing-upstream-definition-on-route",
+      "expected": { "diagnostics": [{ "code": "E612", "reason": "ceremony-prepare-definition-unresolved" }] }
+    },
+    {
+      "id": "cross-definition-without-relation",
+      "expected": { "diagnostics": [{ "code": "E612", "reason": "ceremony-prepare-cross-definition-unrelated" }] }
+    },
+    {
+      "id": "missing-operation",
+      "expected": { "diagnostics": [{ "code": "E612", "reason": "ceremony-prepare-operation" }] }
+    },
+    {
+      "id": "wrong-operation-sign",
+      "expected": { "diagnostics": [{ "code": "E612", "reason": "ceremony-prepare-operation" }] }
+    },
+    {
+      "id": "unrelated-prepare-elsewhere",
+      "expected": { "diagnostics": [{ "code": "E612", "reason": "ceremony-prepare-operation" }] }
+    }
+  ]
+}

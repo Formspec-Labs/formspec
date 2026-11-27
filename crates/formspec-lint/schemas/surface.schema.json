@@ -724,6 +724,55 @@
         }
       }
     },
+    "WidgetDataProducerRelation": {
+      "type": "object",
+      "required": ["kind", "mappingRef"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "mapping",
+          "description": "Declared cross-Definition transformation relation backed by an App Manifest Mapping."
+        },
+        "mappingRef": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_\\-]*$",
+          "description": "Exact App Manifest mappings[].handle whose loaded Mapping connects the upstream producer Definition to the downstream signing Definition."
+        }
+      }
+    },
+    "WidgetDataProducer": {
+      "type": "object",
+      "required": ["routeRef", "definitionRef", "actionRef"],
+      "additionalProperties": false,
+      "properties": {
+        "routeRef": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$",
+          "description": "Route id within the enclosing Surface that hosts the upstream producer context."
+        },
+        "definitionRef": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:.+",
+          "description": "Canonical Definition URL mounted on routeRef whose Response is produced by actionRef."
+        },
+        "actionRef": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z][A-Za-z0-9-]*$",
+          "description": "Exact actions[].id from one loaded Response Actions document invoked in routeRef's context to produce this input."
+        },
+        "relation": {
+          "$ref": "#/$defs/WidgetDataProducerRelation",
+          "description": "Explicit cross-Definition relation required when definitionRef differs from the downstream target Definition."
+        },
+        "x-generation": {
+          "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",
+          "description": "Optional direct generation provenance for this producer reference."
+        }
+      }
+    },
     "WidgetDataBinding": {
       "type": "object",
       "required": ["catalogRef", "sourceRef"],
@@ -739,6 +788,10 @@
           "type": "string",
           "pattern": "^(host|response|resource|query|conversation|route):[a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*$",
           "description": "Data Sources 1.0 source id. App-graph validation resolves it only within catalogRef; unqualified source lookup is forbidden."
+        },
+        "producer": {
+          "$ref": "#/$defs/WidgetDataProducer",
+          "description": "Optional upstream producer binding identifying the route, Definition, and response-scoped Response Action whose effect produces the value delivered by this source. Required on the draft input of delivery contract @formspec-org/surface-react/SigningCeremony@0.1."
         },
         "x-generation": {
           "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation",

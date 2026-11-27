@@ -80,18 +80,28 @@ function describePath(path: string, source: WarningAcknowledgementSource): Warni
     };
 }
 
+/** Built-in grouped acknowledgement code for non-relevant held answers excluded at Submit. */
+export const HIDDEN_ANSWERS_OMITTED_CODE = 'HIDDEN_ANSWERS_OMITTED';
+
 function unansweredQuestions(count: number): string {
     return count === 1 ? '1 unanswered question' : `${count} unanswered questions`;
 }
 
-/** A group's heading: the first authored `explanationPrompt` among its Shapes, else how many questions it covers. */
+function hiddenAnswersCount(count: number): string {
+    return count === 1 ? '1 hidden answer' : `${count} hidden answers`;
+}
+
+/** A group's heading: the first authored `explanationPrompt` among its Shapes, else a clear count. */
 export function warningAcknowledgementLegend(
-    group: Pick<WarningAcknowledgementGroupInput, 'shapeIds' | 'paths'>,
+    group: Pick<WarningAcknowledgementGroupInput, 'shapeIds' | 'paths'> & { code?: string },
     resolveText: WarningAcknowledgementSource['resolveText'],
 ): string {
     for (const shapeId of group.shapeIds ?? []) {
         const resolved = resolveText(`$shape.${shapeId}.explanationPrompt`, '');
         if (resolved) return resolved;
+    }
+    if (group.code === HIDDEN_ANSWERS_OMITTED_CODE) {
+        return `${hiddenAnswersCount(group.paths.length)} excluded from filing`;
     }
     return unansweredQuestions(group.paths.length);
 }
@@ -107,7 +117,10 @@ export function readWarningAcknowledgementGroups(
     if (groups.length === 0) return [];
     const rowTemplate = source.lookupUi?.('validationSummary.row') ?? UI_STRINGS['validationSummary.row'];
     return groups.map((group) => {
-        const noun = unansweredQuestions(group.paths.length);
+        const isHidden = group.code === HIDDEN_ANSWERS_OMITTED_CODE;
+        const noun = isHidden
+            ? hiddenAnswersCount(group.paths.length)
+            : unansweredQuestions(group.paths.length);
         const legend = warningAcknowledgementLegend(group, source.resolveText);
         const items = group.paths.map((path) => describePath(path, source));
         const hasChanges = !group.current && hasStoredGroupEntry(state.entries, group.code);
@@ -120,17 +133,19 @@ export function readWarningAcknowledgementGroups(
             : [];
         const addedText = added.length > 0
             ? fillUiParams(rowTemplate, {
-                label: 'Newly unanswered',
+                label: isHidden ? 'Newly excluded' : 'Newly unanswered',
                 message: added.map((item) => item.label).join(', '),
             })
             : null;
         const removedText = removed.length > 0
             ? fillUiParams(rowTemplate, {
-                label: 'Now answered',
+                label: isHidden ? 'No longer excluded' : 'Now answered',
                 message: removed.map((item) => item.label).join(', '),
             })
             : null;
-        const buttonLabel = group.current ? `Accepted ${noun}` : `Accept ${noun}`;
+        const buttonLabel = isHidden
+            ? (group.current ? `Acknowledged ${noun}` : `Acknowledge ${noun}`)
+            : (group.current ? `Accepted ${noun}` : `Accept ${noun}`);
         return {
             code: group.code,
             ...(group.basis !== undefined ? { basis: group.basis } : {}),

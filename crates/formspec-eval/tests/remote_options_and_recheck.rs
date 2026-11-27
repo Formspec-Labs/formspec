@@ -98,8 +98,9 @@ fn url_backed_option_set_absent_emits_options_unavailable_not_silent_acceptance(
         vec![
             ("region", "OPTIONS_UNAVAILABLE".into(), "error"),
             ("tags", "OPTIONS_UNAVAILABLE".into(), "error"),
+            ("#", "EXPLANATION_REQUIRED".into(), "error"),
         ],
-        "non-relevant hiddenChoice must be suppressed; answered remote fields must emit OPTIONS_UNAVAILABLE"
+        "non-relevant hiddenChoice must not emit OPTIONS_UNAVAILABLE, and its held value triggers hidden-answer acknowledgement"
     );
 }
 

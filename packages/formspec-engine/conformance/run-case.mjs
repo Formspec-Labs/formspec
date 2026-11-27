@@ -248,6 +248,20 @@ function engineOutcome(engine, profile) {
   return { ...outcome(report.results, response.data, undefined, statesFromEngine(engine)), response };
 }
 
+function isHiddenAnswersExplanation(result) {
+  return result?.constraintKind === 'explanation'
+    && result?.context?.code === 'HIDDEN_ANSWERS_OMITTED';
+}
+
+function stripHiddenAnswerExplanations(leg) {
+  const results = (leg.results ?? []).filter((result) => !isHiddenAnswersExplanation(result));
+  const counts = { error: 0, warning: 0, info: 0 };
+  for (const result of results) {
+    if (result.severity in counts) counts[result.severity] += 1;
+  }
+  return { ...leg, results, counts, valid: counts.error === 0 };
+}
+
 function bytesEqual(left, right) {
   if (left.length !== right.length) return false;
   for (let i = 0; i < left.length; i += 1) {
@@ -433,7 +447,10 @@ async function runProcessingCase(caseDoc, root, options, legs) {
       raw,
     };
     const again = evaluate(server ? 'S(fixpoint)' : 'P(fixpoint)', verdict.data, 'submit', { server });
-    const problems = [...againstExpected(verdict, expected), ...betweenLegs('fixpoint', again, verdict)];
+    const problems = [
+      ...againstExpected(verdict, expected),
+      ...betweenLegs('fixpoint', stripHiddenAnswerExplanations(again), stripHiddenAnswerExplanations(verdict)),
+    ];
     let candidate = null;
     if (caseDoc.expectedCandidate) {
       candidate = assembleForLeg(raw, server);
@@ -577,8 +594,7 @@ async function runProcessingCase(caseDoc, root, options, legs) {
       }
       legs.set('F', liveProblems);
       if (submit) {
-        const inSession = evaluate('P(submit)', sessionInput, 'submit');
-        const reference = checkSubmitLegs(inSession.data);
+        const reference = checkSubmitLegs(sessionInput);
         const session = engineOutcome(engine, 'on-submit');
         filedData = session.data;
         const refLabel = hasSessionOnlyInputs ? 'P' : 'S';
@@ -605,7 +621,11 @@ async function runProcessingCase(caseDoc, root, options, legs) {
         }
         legs.set('F_submit', fSubmit);
         const filed = evaluate('FR', session.data, 'submit', { server: true });
-        const frProblems = betweenLegs(`recheck of FormEngine submit data vs ${refLabel}`, filed, reference.verdict);
+        const frProblems = betweenLegs(
+          `recheck of FormEngine submit data vs ${refLabel}`,
+          stripHiddenAnswerExplanations(filed),
+          stripHiddenAnswerExplanations(reference.verdict),
+        );
         if (caseDoc.expectedCandidate && reference.candidate?.ok) {
           const frCand = assembleForLeg(filed.raw, true);
           if (frCand.ok) {

@@ -60,6 +60,7 @@ export async function loadDraftReviewInputs(
   const { definition, subject } = plan;
   const draft = await session.readCommitted(definition, subject, { afterPendingSaves: true, signal });
   let response: import('@formspec-org/types').FormResponse;
+  let draftSnapshot: FormDraftSnapshot | undefined;
   let revision: string;
   let key: import('@formspec-org/surface').DraftKey;
   let pins: import('@formspec-org/surface').DraftRecord['pins'] | undefined;
@@ -68,6 +69,7 @@ export async function loadDraftReviewInputs(
 
   if (draft.status === 'loaded') {
     response = draft.response;
+    draftSnapshot = draft.draftSnapshot;
     revision = draft.revision;
     key = draft.key;
     pins = draft.pins;
@@ -110,7 +112,10 @@ export async function loadDraftReviewInputs(
       : undefined;
     signal.throwIfAborted();
     const engine = createFormEngine(definition, {
-      savedResponseData: response.data as FormDraftSnapshot['data'], loadExternalSources: false,
+      ...(!isFiledRecord && draftSnapshot
+        ? { draftSnapshot }
+        : { savedResponseData: response.data as FormDraftSnapshot['data'] }),
+      loadExternalSources: false,
       ...(responseInstanceResolutions && { responseInstanceResolutions }),
       ...(response.explanations && { savedExplanations: response.explanations }),
       ...(key.subject && { responseSubject: key.subject }),

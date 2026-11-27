@@ -31,12 +31,28 @@ export interface ReceiptFact {
 export interface ReceiptPanelData {
   /** The reference the person quotes. Falls back to a route parameter. */
   caseRef?: string;
-  /** ISO timestamp of the submission, if the host knows one. */
+  /** Durable receipt identifier issued by the service. */
+  receiptId?: string;
+  /** ISO 8601 server acceptance timestamp, if the host knows one. */
   submittedAt?: string;
+  /** Content fingerprint / cryptographic digest of the accepted Response. */
+  fingerprint?: string;
   /** Who issued the receipt. */
   issuer?: string;
   /** Anything else worth keeping — one row each. */
   facts?: readonly ReceiptFact[];
+}
+
+const ISO_DATE_TIME_RE =
+  /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$/;
+
+function isValidIsoDateTime(value: string): boolean {
+  if (!ISO_DATE_TIME_RE.test(value)) return false;
+  if (!Number.isFinite(Date.parse(value))) return false;
+  const [datePart] = value.split(/[Tt]/);
+  const [year, month, day] = datePart!.split('-').map(Number);
+  const utc = new Date(Date.UTC(year!, month! - 1, day!));
+  return utc.getUTCFullYear() === year && utc.getUTCMonth() === month! - 1 && utc.getUTCDate() === day;
 }
 
 function readReceiptInput(data: unknown): ReceiptPanelData {
@@ -58,10 +74,17 @@ function readReceiptInput(data: unknown): ReceiptPanelData {
     : [];
   const parsed: ReceiptPanelData = {};
   const caseRef = text('caseRef');
-  const submittedAt = text('submittedAt');
+  const receiptId = text('receiptId');
+  const rawSubmittedAt = text('submittedAt');
+  const submittedAt = rawSubmittedAt !== undefined && isValidIsoDateTime(rawSubmittedAt)
+    ? rawSubmittedAt
+    : undefined;
+  const fingerprint = text('fingerprint');
   const issuer = text('issuer');
   if (caseRef !== undefined) parsed.caseRef = caseRef;
+  if (receiptId !== undefined) parsed.receiptId = receiptId;
   if (submittedAt !== undefined) parsed.submittedAt = submittedAt;
+  if (fingerprint !== undefined) parsed.fingerprint = fingerprint;
   if (issuer !== undefined) parsed.issuer = issuer;
   if (facts.length > 0) parsed.facts = facts;
   return parsed;
@@ -81,7 +104,9 @@ export function ReceiptPanel({ data, route, config }: SurfaceWidgetProps) {
 
   const rows: ReceiptFact[] = [
     ...(caseRef ? [{ label: 'Your reference', value: caseRef }] : []),
+    ...(parsed.receiptId ? [{ label: 'Receipt ID', value: parsed.receiptId }] : []),
     ...(parsed.submittedAt ? [{ label: 'Sent', value: formatWhen(parsed.submittedAt) }] : []),
+    ...(parsed.fingerprint ? [{ label: 'Fingerprint', value: parsed.fingerprint }] : []),
     ...(parsed.issuer ? [{ label: 'Issued by', value: parsed.issuer }] : []),
     ...(parsed.facts ?? []),
   ];

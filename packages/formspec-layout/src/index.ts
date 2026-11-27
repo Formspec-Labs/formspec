@@ -111,7 +111,7 @@ export {
     dedupeSeverityPrefix,
 } from './validation-summary.js';
 export type { ValidationSummaryComp, ValidationSummaryRow, ValidationSummarySource } from './validation-summary.js';
-export { readWarningAcknowledgementGroups, warningAcknowledgementLegend } from './warning-acknowledgement.js';
+export { HIDDEN_ANSWERS_OMITTED_CODE, readWarningAcknowledgementGroups, warningAcknowledgementLegend } from './warning-acknowledgement.js';
 export type {
     WarningAcknowledgementGroupInput,
     WarningAcknowledgementGroupView,

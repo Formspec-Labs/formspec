@@ -221,6 +221,93 @@ export const draftPortConformance = {
       selection.newer?.responseId === pins.newerResponseId, 'selection did not retain the pin and identify the newer filing');
   },
 
+  async 'explicitly re-pins an at-open filing against its expected revision'({ port, deny, key: address = key, pins }: DraftPortFixture) {
+    check(pins, 'supply a Definition with an at-open Response instance');
+    check(port.repinDraft, 'adapter must implement explicit revision-checked repinDraft');
+    await pins.addInitial();
+    const initialData = { carried: 'from-initial', note: 'unrelated-keep' };
+    const created = await port.save({
+      ...saveInput(null, 'from-initial', address, { editable: initialData, filtered: initialData }),
+      creationPins: await creationPins(pins),
+    });
+    check(created.status === 'saved', 'initial pinned draft save failed');
+    const loaded = await port.load(address, '1.0.0');
+    check(loaded.status === 'loaded', 'initial pinned draft did not load');
+    const priorPin = loaded.draft.pins[pins.instance];
+    check(priorPin && priorPin.pinned && priorPin.records[0]?.responseId === pins.initialResponseId, 'missing initial pin');
+
+    await pins.addNewer();
+
+    // Refuse stale draft revision.
+    const staleRev = await port.repinDraft({
+      key: address,
+      definitionVersion: '1.0.0',
+      expectedRevision: 'stale-revision',
+      instances: [{ instance: pins.instance, priorValueDigest: priorPin.valueDigest, priorRecords: priorPin.records }],
+    });
+    check(staleRev.status === 'conflict', 'repinDraft admitted a stale draft revision');
+
+    // Refuse wrong prior valueDigest.
+    const wrongDigest = await port.repinDraft({
+      key: address,
+      definitionVersion: '1.0.0',
+      expectedRevision: created.revision,
+      instances: [{ instance: pins.instance, priorValueDigest: 'sha256:' + '0'.repeat(64) }],
+    });
+    check(wrongDigest.status === 'conflict', 'repinDraft admitted a mismatched prior valueDigest');
+
+    // Refuse wrong prior receipt records.
+    const wrongRecords = await port.repinDraft({
+      key: address,
+      definitionVersion: '1.0.0',
+      expectedRevision: created.revision,
+      instances: [{
+        instance: pins.instance,
+        priorValueDigest: priorPin.valueDigest,
+        priorRecords: [{ responseId: 'urn:wrong:receipt', definitionVersion: '1.0.0' }],
+      }],
+    });
+    check(wrongRecords.status === 'conflict', 'repinDraft admitted mismatched prior records');
+
+    // Explicit revision-checked re-pin with selected-field refill preserves unrelated answers.
+    const repinned = await port.repinDraft({
+      key: address,
+      definitionVersion: '1.0.0',
+      expectedRevision: created.revision,
+      instances: [{ instance: pins.instance, priorValueDigest: priorPin.valueDigest, priorRecords: priorPin.records }],
+      refillFields: ['carried'],
+      refillValues: { carried: 'from-newer' },
+    });
+    check(repinned.status === 'repinned', 'explicit repinDraft failed');
+    check(repinned.draft.revision !== created.revision, 'repinDraft reused the old draft revision');
+    const updatedPin = repinned.draft.pins[pins.instance];
+    check(updatedPin && updatedPin.pinned && updatedPin.records[0]?.responseId === pins.newerResponseId,
+      'repinDraft did not replace the pin with the newer filing');
+    const updatedSnap = JSON.parse(repinned.draft.snapshotJson) as { data: Record<string, unknown> };
+    const updatedResp = JSON.parse(repinned.draft.responseJson) as { data: Record<string, unknown> };
+    check(updatedSnap.data.carried === 'from-newer' && updatedSnap.data.note === 'unrelated-keep',
+      'repinDraft did not refill only selected fields while preserving unrelated snapshot answers');
+    check(updatedResp.data.carried === 'from-newer' && updatedResp.data.note === 'unrelated-keep',
+      'repinDraft did not refill only selected fields while preserving unrelated response answers');
+
+    const reloaded = await port.load(address, '1.0.0');
+    check(reloaded.status === 'loaded' && reloaded.draft.revision === repinned.draft.revision &&
+      JSON.stringify(reloaded.draft.pins[pins.instance]) === JSON.stringify(updatedPin),
+    'reloaded draft did not retain the repinned revision and pin');
+    const selectionAfter = await pins.select(updatedPin);
+    check(selectionAfter.status === 'available' && selectionAfter.records[0]?.responseId === pins.newerResponseId &&
+      selectionAfter.newer === undefined, 'repinned selection still reported an outdated filing');
+
+    await deny();
+    const denied = await port.repinDraft({
+      key: address,
+      definitionVersion: '1.0.0',
+      expectedRevision: repinned.draft.revision,
+      instances: [{ instance: pins.instance, priorValueDigest: updatedPin.valueDigest }],
+    });
+    check(denied.status === 'denied', 'denied caller was allowed to re-pin draft');
+  },
+
 };
 
 /** Run against a fresh store with the input Definition and authorized parents. */

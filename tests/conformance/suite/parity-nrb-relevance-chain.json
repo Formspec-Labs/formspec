@@ -7,9 +7,19 @@
   "mode": "submit",
   "inputData": { "x": 5, "y": 6, "z": 7 },
   "expected": {
-    "valid": true,
-    "counts": { "error": 0, "warning": 0, "info": 0 },
-    "results": [],
+    "valid": false,
+    "counts": { "error": 1, "warning": 0, "info": 0 },
+    "results": [
+      {
+        "path": "#",
+        "code": "EXPLANATION_REQUIRED",
+        "severity": "error",
+        "constraintKind": "explanation",
+        "source": "shape",
+        "context": { "code": "HIDDEN_ANSWERS_OMITTED" },
+        "message": "Hidden answers excluded from filing must be acknowledged."
+      }
+    ],
     "data": {}
   }
 }

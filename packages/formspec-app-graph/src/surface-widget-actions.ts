@@ -1,5 +1,6 @@
 /** @filedesc Surface module-widget action binding and transition checks. */
 
+import { targetDefinitionMatches } from '@formspec-org/types';
 import type {
   AppGraphContext,
   AppGraphDiagnostic,
@@ -129,11 +130,12 @@ export function widgetActionOwnershipMatches(
   });
 }
 
-/** The maintained ceremony maps its Sign output to a response-scoped signing request. */
-function ceremonySignMatches(contribution: RegistryWidgetEntry, output: string,
-  reference: ResponseActionReferences['actions'][number]): boolean {
-  if (output !== 'sign' || stringProp(widgetShape(contribution), 'deliveryContractId')
-      !== '@formspec-org/surface-react/SigningCeremony@0.1') return true;
+const SIGNING_CEREMONY_DELIVERY_CONTRACT_ID = '@formspec-org/surface-react/SigningCeremony@0.1';
+
+function serviceRequestOperationMatches(
+  reference: ResponseActionReferences['actions'][number],
+  expectedOperation: 'prepare' | 'sign',
+): boolean {
   if (reference.scope !== 'response') return false;
   const document = record(reference.handle.document);
   const action = recordArray(ownProp(document, 'actions'))[reference.actionIndex];
@@ -148,7 +150,206 @@ function ceremonySignMatches(contribution: RegistryWidgetEntry, output: string,
     const operation = stringProp(matches[0], 'operation');
     if (operation !== undefined) operations.push(operation);
   }
-  return operations.length === 1 && operations[0] === 'sign';
+  return operations.length === 1 && operations[0] === expectedOperation;
+}
+
+/** The maintained ceremony maps its Sign output to a response-scoped signing request. */
+function ceremonySignMatches(contribution: RegistryWidgetEntry, output: string,
+  reference: ResponseActionReferences['actions'][number]): boolean {
+  if (output !== 'sign' || stringProp(widgetShape(contribution), 'deliveryContractId')
+      !== SIGNING_CEREMONY_DELIVERY_CONTRACT_ID) return true;
+  return serviceRequestOperationMatches(reference, 'sign');
+}
+
+function routeMountsDefinition(
+  surfaceRoutes: readonly JsonRecord[],
+  route: JsonRecord,
+  definitionRef: string,
+): boolean {
+  const routesById = new Map<string, JsonRecord[]>();
+  for (const candidate of surfaceRoutes) {
+    const id = stringProp(candidate, 'id');
+    if (id) routesById.set(id, [...(routesById.get(id) ?? []), candidate]);
+  }
+  const visited = new Set<JsonRecord>();
+  const walk = (candidate: JsonRecord): boolean => {
+    if (visited.has(candidate)) return false;
+    visited.add(candidate);
+    for (const slot of recordArray(ownProp(candidate, 'slots'))) {
+      const slotType = stringProp(slot, 'slotType');
+      const binding = record(ownProp(slot, 'binding'));
+      if (slotType === 'definition-form' && stringProp(binding, 'definitionRef') === definitionRef) {
+        return true;
+      }
+      if (slotType === 'embed-route') {
+        const ref = stringProp(binding, 'routeRef');
+        const matches = ref ? routesById.get(ref) ?? [] : [];
+        if (matches.length === 1 && walk(matches[0]!)) return true;
+      }
+    }
+    return false;
+  };
+  return walk(route);
+}
+
+function mappingRelatesDefinitions(
+  context: AppGraphContext,
+  mappingRef: string,
+  upstreamDefinitionUrl: string,
+  downstreamDefinitionUrl: string,
+): boolean {
+  const manifestMappings = recordArray(ownProp(record(context.manifest.document), 'mappings'))
+    .filter(entry => stringProp(entry, 'handle') === mappingRef);
+  if (manifestMappings.length !== 1) return false;
+  const mappingUrl = stringProp(manifestMappings[0], 'url');
+  if (!mappingUrl) return false;
+  const loadedMappings = handlesByKind(context.handles, 'mapping')
+    .filter(handle => handle.ref?.url === mappingUrl);
+  if (loadedMappings.length !== 1) return false;
+  const doc = record(loadedMappings[0]!.document);
+  const defRef = stringProp(doc, 'definitionRef');
+  const targetUrl = stringProp(record(ownProp(doc, 'targetSchema')), 'url');
+  if (!defRef || !targetUrl) return false;
+  return (defRef === upstreamDefinitionUrl && targetUrl === downstreamDefinitionUrl)
+    || (defRef === downstreamDefinitionUrl && targetUrl === upstreamDefinitionUrl);
+}
+
+function ceremonyDraftProducerDiagnostic(
+  context: AppGraphContext,
+  widget: SurfaceWidgetSlot,
+  contribution: RegistryWidgetEntry,
+  references: ResponseActionReferences,
+): AppGraphDiagnostic | null {
+  if (stringProp(widgetShape(contribution), 'deliveryContractId') !== SIGNING_CEREMONY_DELIVERY_CONTRACT_ID) {
+    return null;
+  }
+  const dataBindings = record(ownProp(widget.binding, 'dataBindings'));
+  const draftBinding = record(ownProp(dataBindings, 'draft'));
+  const hasDraftInput = recordArray(ownProp(widgetShape(contribution), 'dataInputs'))
+    .some(input => stringProp(input, 'name') === 'draft');
+  if (!draftBinding) {
+    return null;
+  }
+  if (!hasDraftInput && !ownProp(draftBinding, 'producer')) {
+    return null;
+  }
+  const basePointer = `/routes/${widget.routeIndex}/slots/${widget.slotIndex}/binding/dataBindings/draft`;
+  const fail = (
+    reason: string,
+    message: string,
+    pointer: string,
+    details: Record<string, unknown> = {},
+    relatedSources?: AppGraphDiagnostic['relatedSources'],
+  ): AppGraphDiagnostic => ({
+    code: 'E612',
+    severity: 'error',
+    phase: 'cross-artifact',
+    origin: 'app-graph-validator',
+    message,
+    primarySource: diagnosticSourceForHandle(widget.surface, pointer),
+    ...(relatedSources && relatedSources.length > 0 ? { relatedSources } : {}),
+    details: {
+      reason,
+      surfaceRef: widget.surfaceRef,
+      routeId: widget.routeId,
+      slotId: widget.slotId,
+      moduleId: widget.moduleId,
+      widgetName: widget.widgetName,
+      ...details,
+    },
+  });
+
+  const producer = record(ownProp(draftBinding, 'producer'));
+  if (!producer) {
+    return fail(
+      'ceremony-prepare-producer-missing',
+      'Signing ceremony draft binding must declare a typed producer referencing its upstream route, Definition, and Prepare action.',
+      basePointer,
+    );
+  }
+  const routeRef = stringProp(producer, 'routeRef');
+  const definitionRef = stringProp(producer, 'definitionRef');
+  const actionRef = stringProp(producer, 'actionRef');
+
+  const surfaceRoutes = routesForSurface(widget.surface);
+  const routeMatches = routeRef ? surfaceRoutes.filter(r => stringProp(r, 'id') === routeRef) : [];
+  if (routeMatches.length !== 1) {
+    return fail(
+      'ceremony-prepare-route-unresolved',
+      `Signing ceremony draft producer routeRef '${routeRef ?? '<missing>'}' does not resolve to one route in this Surface.`,
+      `${basePointer}/producer/routeRef`,
+      { routeRef },
+    );
+  }
+  const upstreamRoute = routeMatches[0]!;
+
+  const defResolution = definitionRef ? exactDefinitionResolution(context, definitionRef) : undefined;
+  const defDoc = record(defResolution?.definition?.document);
+  const defUrl = stringProp(defDoc, 'url');
+  const defVersion = stringProp(defDoc, 'version');
+  if (!definitionRef || !defResolution || defResolution.status !== 'resolved' || !defUrl || !defVersion
+      || !routeMountsDefinition(surfaceRoutes, upstreamRoute, definitionRef)) {
+    return fail(
+      'ceremony-prepare-definition-unresolved',
+      `Signing ceremony draft producer definitionRef '${definitionRef ?? '<missing>'}' must resolve to a manifested Definition mounted on route '${routeRef}'.`,
+      `${basePointer}/producer/definitionRef`,
+      { routeRef, definitionRef },
+    );
+  }
+
+  const actionCandidates = actionRef ? actionMatches(references, actionRef) : [];
+  if (actionCandidates.length !== 1) {
+    return fail(
+      'ceremony-prepare-action-unresolved',
+      `Signing ceremony draft producer actionRef '${actionRef ?? '<missing>'}' does not resolve to one loaded Response Actions action.`,
+      `${basePointer}/producer/actionRef`,
+      { routeRef, definitionRef, actionRef },
+    );
+  }
+  const prepAction = actionCandidates[0]!;
+  const prepDoc = record(prepAction.handle.document);
+  const prepTarget = record(ownProp(prepDoc, 'targetDefinition'));
+  const targetUrl = stringProp(prepTarget, 'url');
+  const targetVersions = stringProp(prepTarget, 'compatibleVersions');
+  const targetMatches = prepAction.scope === 'response'
+    && targetUrl === definitionRef
+    && targetDefinitionMatches(
+      { url: targetUrl, ...(targetVersions ? { compatibleVersions: targetVersions } : {}) },
+      { url: defUrl, version: defVersion },
+    );
+  if (!targetMatches || !serviceRequestOperationMatches(prepAction, 'prepare')) {
+    return fail(
+      'ceremony-prepare-operation',
+      `Signing ceremony draft producer actionRef '${actionRef}' must be a response-scoped Action for '${definitionRef}' with one signing request whose operation is prepare.`,
+      `${basePointer}/producer/actionRef`,
+      { routeRef, definitionRef, actionRef },
+      [diagnosticSourceForHandle(prepAction.handle, `/actions/${prepAction.actionIndex}`)],
+    );
+  }
+
+  // Determine the ceremony's downstream signing Definition URL (from its Sign action binding, if bound).
+  const actionBindings = record(ownProp(widget.binding, 'actionBindings'));
+  const signActionRef = stringProp(record(ownProp(actionBindings, 'sign')), 'actionRef');
+  const signMatches = signActionRef ? actionMatches(references, signActionRef) : [];
+  const downstreamDefinitionUrl = signMatches.length === 1 && signMatches[0]!.scope === 'response'
+    ? signMatches[0]!.targetDefinition
+    : undefined;
+  if (downstreamDefinitionUrl && downstreamDefinitionUrl !== definitionRef) {
+    const relation = record(ownProp(producer, 'relation'));
+    const mappingRef = stringProp(relation, 'kind') === 'mapping'
+      ? stringProp(relation, 'mappingRef')
+      : undefined;
+    if (!mappingRef || !mappingRelatesDefinitions(context, mappingRef, definitionRef, downstreamDefinitionUrl)) {
+      return fail(
+        'ceremony-prepare-cross-definition-unrelated',
+        `Signing ceremony draft producer targets Definition '${definitionRef}' while Sign targets '${downstreamDefinitionUrl}' without a valid declared Mapping relation.`,
+        `${basePointer}/producer`,
+        { routeRef, definitionRef, downstreamDefinitionUrl, ...(mappingRef ? { mappingRef } : {}) },
+      );
+    }
+  }
+
+  return null;
 }
 
 function validActionsForWidget(
@@ -162,6 +363,7 @@ function validActionsForWidget(
   if (!contribution) return [];
   const outputs = declaredActionOutputs(contribution);
   const bindings = record(ownProp(widget.binding, 'actionBindings'));
+  const draftProducerInvalid = ceremonyDraftProducerDiagnostic(context, widget, contribution, references) !== null;
   return Object.entries(bindings ?? {}).flatMap(([outputName, value]) => {
     const actionRef = stringProp(record(value), 'actionRef');
     const matches = actionRef ? actionMatches(references, actionRef) : [];
@@ -170,6 +372,7 @@ function validActionsForWidget(
       && actionRef
       && matches.length === 1
       && ceremonySignMatches(contribution, outputName, matches[0]!)
+      && !(outputName === 'sign' && draftProducerInvalid)
       && widgetActionOwnershipMatches(context, widget, contribution, record(value), matches[0]!)
     )
       ? [{ widget, outputName, actionRef }]
@@ -187,6 +390,8 @@ function widgetActionBindingDiagnostics(
     for (const widget of surfaceWidgetSlots(surface)) {
       const contribution = resolvedWidgetContributionFromEntries(widget, entries);
       if (!contribution) continue;
+      const producerDiagnostic = ceremonyDraftProducerDiagnostic(context, widget, contribution, references);
+      if (producerDiagnostic) diagnostics.push(producerDiagnostic);
       const outputs = declaredActionOutputs(contribution);
       const bindings = record(ownProp(widget.binding, 'actionBindings'));
       for (const [outputName, value] of Object.entries(bindings ?? {})) {

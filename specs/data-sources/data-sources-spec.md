@@ -420,9 +420,14 @@ this source MUST include the read evidence defined below alongside the value.
 | `none` | True for a successful empty match, with empty `records`. False requires at least one selected record. |
 | `newer` | For a pinned selection, include `{responseId, responseHash}` when a fresh selection would choose a different completed record. Keep the pinned value and records in the result. |
 
+For a pinned selection, `newer` reports `{responseId, responseHash}` when a fresh selection would choose another completed record while keeping the pinned value and records intact. Replacing a pin is an explicit, revision-checked draft operation (`repinDraft`, [Core §4.4.1](../core/spec.md#441-instance-properties)), never a silent mutation during load.
+
 The `records` array supplies identity for a catalog selection. A selection
 result MUST omit `recordId`. Other source deliveries, including the session
-draft, may use `recordId` for owner-produced record identity. An unavailable
+draft and a signing ceremony `draft` input backed by an upstream `producer`
+([Surface §4](../surface/surface-spec.md#module-widget-configuration-data-and-actions)),
+may use `recordId` or structured `{ id, version, responseHash }` fields for
+owner-produced record identity and committed draft revision. An unavailable
 response selection carries no read evidence.
 
 A loaded result MAY also carry an owner-produced `revision` as a string or

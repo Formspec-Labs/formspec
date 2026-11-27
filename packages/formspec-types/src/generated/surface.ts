@@ -472,7 +472,40 @@ export interface WidgetDataBinding {
    * Data Sources 1.0 source id. App-graph validation resolves it only within catalogRef; unqualified source lookup is forbidden.
    */
   sourceRef: string;
+  producer?: WidgetDataProducer;
   'x-generation'?: Generation;
+}
+/**
+ * Optional upstream producer binding identifying the route, Definition, and response-scoped Response Action whose effect produces the value delivered by this source. Required on the draft input of delivery contract @formspec-org/surface-react/SigningCeremony@0.1.
+ */
+export interface WidgetDataProducer {
+  /**
+   * Route id within the enclosing Surface that hosts the upstream producer context.
+   */
+  routeRef: string;
+  /**
+   * Canonical Definition URL mounted on routeRef whose Response is produced by actionRef.
+   */
+  definitionRef: string;
+  /**
+   * Exact actions[].id from one loaded Response Actions document invoked in routeRef's context to produce this input.
+   */
+  actionRef: string;
+  relation?: WidgetDataProducerRelation;
+  'x-generation'?: Generation;
+}
+/**
+ * Explicit cross-Definition relation required when definitionRef differs from the downstream target Definition.
+ */
+export interface WidgetDataProducerRelation {
+  /**
+   * Declared cross-Definition transformation relation backed by an App Manifest Mapping.
+   */
+  kind: 'mapping';
+  /**
+   * Exact App Manifest mappings[].handle whose loaded Mapping connects the upstream producer Definition to the downstream signing Definition.
+   */
+  mappingRef: string;
 }
 /**
  * This interface was referenced by `undefined`'s JSON-Schema

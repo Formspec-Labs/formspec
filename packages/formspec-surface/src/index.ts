@@ -276,6 +276,7 @@ export type { FilingStatusPlan, ResolvedFilingStatusLinks } from './filing-statu
 export {
   matchesFilingSubjectPredicates,
   type BrowserDraftPort, type CurrentDraftProgress, type DraftKey, type DraftLoadResult, type DraftPort, type DraftRecord,
+  type DraftRepinInput, type DraftRepinInstanceRequest, type DraftRepinResult,
   type DraftStartInput, type DraftStartResult, type DraftRestartResult, type DraftSaveInput, type DraftSaveResult, type DraftSectionPlacement,
   type FilingDraftObservation, type FilingDraftQuery, type FilingLoadResult, type FilingObservation, type FilingProgressCounts, type FilingStatusObservation, type FilingStatusReader,
   type FilingSubjectMatch, type FilingSubjectPredicate, type MatchedFilingDraftObservation, type MatchedFilingObservation,

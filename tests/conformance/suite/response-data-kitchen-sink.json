@@ -53,9 +53,9 @@
   },
   "mode": "submit",
   "expected": {
-    "valid": true,
+    "valid": false,
     "counts": {
-      "error": 0,
+      "error": 1,
       "warning": 1,
       "info": 0
     },
@@ -69,6 +69,17 @@
         "source": "shape",
         "constraint": "$budget > $grandTotal + 100",
         "shapeId": "budget_warning"
+      },
+      {
+        "path": "#",
+        "severity": "error",
+        "constraintKind": "explanation",
+        "code": "EXPLANATION_REQUIRED",
+        "message": "Hidden answers excluded from filing must be acknowledged.",
+        "source": "shape",
+        "context": {
+          "code": "HIDDEN_ANSWERS_OMITTED"
+        }
       }
     ],
     "data": {

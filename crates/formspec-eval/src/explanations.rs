@@ -11,6 +11,12 @@ use serde_json::json;
 
 use crate::types::{ConstraintKind, Severity, ValidationCode, ValidationResult, ValidationSource};
 
+/// Built-in grouped acknowledgement code for non-relevant held answers excluded at Submit (`fs-2cbq`).
+pub const HIDDEN_ANSWERS_CODE: &str = "HIDDEN_ANSWERS_OMITTED";
+
+/// Synthetic shape identifier used in the group basis preimage for [`HIDDEN_ANSWERS_CODE`].
+pub const HIDDEN_ANSWERS_SHAPE_ID: &str = "formspec:hidden-answers";
+
 /// The authored action for a warning requiring an answer.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -103,6 +109,32 @@ pub fn group_basis<'a>(
     )
 }
 
+/// Build grouped acknowledgement findings for non-relevant held answers removed under `remove`.
+///
+/// Each held path contributes one [`ExplanationMode::Acknowledge`] finding under
+/// [`HIDDEN_ANSWERS_CODE`] and [`HIDDEN_ANSWERS_SHAPE_ID`] whose sole basis input is
+/// `path -> reference_digest(value)`.
+///
+/// # Errors
+/// Returns the canonicalizer's refusal if any held value cannot be digested.
+pub fn hidden_answer_findings(
+    held: &BTreeMap<String, Value>,
+) -> Result<Vec<ExplanationFinding>, String> {
+    let mut findings = Vec::with_capacity(held.len());
+    for (path, value) in held {
+        let mut inputs = BTreeMap::new();
+        inputs.insert(path.clone(), reference_digest(value)?);
+        findings.push(ExplanationFinding {
+            shape_id: HIDDEN_ANSWERS_SHAPE_ID.to_owned(),
+            path: path.clone(),
+            code: HIDDEN_ANSWERS_CODE.to_owned(),
+            mode: ExplanationMode::Acknowledge,
+            inputs,
+        });
+    }
+    Ok(findings)
+}
+
 #[derive(Clone, Copy)]
 enum Status {
     Required,
@@ -112,20 +144,33 @@ enum Status {
 
 impl Status {
     fn result(self, shape: Option<&str>, path: &str, code: Option<&str>) -> ValidationResult {
+        let is_hidden = code == Some(HIDDEN_ANSWERS_CODE);
         let (wire_code, message, severity) = match self {
             Self::Required => (
                 "EXPLANATION_REQUIRED",
-                "An answer to this warning is required.",
+                if is_hidden {
+                    "Hidden answers excluded from filing must be acknowledged."
+                } else {
+                    "An answer to this warning is required."
+                },
                 Severity::Error,
             ),
             Self::Stale => (
                 "EXPLANATION_STALE",
-                "The answers covered by this warning have changed.",
+                if is_hidden {
+                    "Hidden answers excluded from filing have changed and must be acknowledged again."
+                } else {
+                    "The answers covered by this warning have changed."
+                },
                 Severity::Error,
             ),
             Self::Unused => (
                 "EXPLANATION_UNUSED",
-                "This warning no longer requires an answer.",
+                if is_hidden {
+                    "No hidden answers are excluded from filing."
+                } else {
+                    "This warning no longer requires an answer."
+                },
                 Severity::Info,
             ),
         };

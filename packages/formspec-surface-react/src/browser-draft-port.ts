@@ -20,7 +20,7 @@ import { resolvePageSequence, type PageSequenceEntry } from '@formspec-org/layou
 import {
   canonicalDraftProgress, canonicalFiniteJson, matchesFilingSubjectPredicates, prepareResponseFiling, prepareResponseFixtures, responseDraftKey, responsePairKey, responseSelectionRecord,
   catalogResponseDigest, catalogResponseProjection, catalogResponseSelection, resolveDataSourceDescriptor, selectFilingStatus, selectFilingSummaryStatus, toResponseFilingSummary,
-  type BrowserDraftPort, type CurrentDraftProgress, type DraftStartInput, type DraftStartResult, type DataSourceCatalogHandle, type DraftKey, type DraftRecord, type DraftSaveInput, type DraftSectionPlacement,
+  type BrowserDraftPort, type CurrentDraftProgress, type DraftRepinInput, type DraftRepinResult, type DraftStartInput, type DraftStartResult, type DataSourceCatalogHandle, type DraftKey, type DraftRecord, type DraftSaveInput, type DraftSectionPlacement,
   type FilingLoadResult, type FilingStatusObservation, type MatchedFilingDraftObservation, type MatchedFilingObservation, type PreparedDraftFixture, type PreparedResponseFixtures,
   type ResponseFiling, type ResponseFilingSummary, type ResponseFixtures, type ResponseRecordTools,
 } from '@formspec-org/surface';
@@ -132,6 +132,47 @@ function isFilingReference(value: Partial<FilingReference> | undefined): value i
   return typeof value?.responseId === 'string' && value.responseId.length > 0 &&
     typeof value.definitionVersion === 'string' && value.definitionVersion.length > 0 &&
     typeof value.responseHash === 'string' && /^sha256:[0-9a-f]{64}$/.test(value.responseHash);
+}
+
+function isSafeRefillPath(path: string): boolean {
+  if (typeof path !== 'string' || path.length === 0) return false;
+  const segments = path.split('.');
+  return segments.every(
+    segment => segment.length > 0 && segment !== '__proto__' && segment !== 'constructor' && segment !== 'prototype',
+  );
+}
+
+function readDottedPath(root: Record<string, unknown>, path: string): unknown {
+  let cursor: unknown = root;
+  for (const segment of path.split('.')) {
+    if (!cursor || typeof cursor !== 'object' || Array.isArray(cursor) || !Object.hasOwn(cursor, segment)) {
+      return undefined;
+    }
+    cursor = (cursor as Record<string, unknown>)[segment];
+  }
+  return cursor;
+}
+
+function writeDottedPath(root: Record<string, unknown>, path: string, value: unknown): void {
+  const segments = path.split('.');
+  let cursor = root;
+  for (let i = 0; i < segments.length - 1; i += 1) {
+    const segment = segments[i]!;
+    const existing = Object.hasOwn(cursor, segment) ? cursor[segment] : undefined;
+    if (!existing || typeof existing !== 'object' || Array.isArray(existing)) {
+      const next: Record<string, unknown> = {};
+      cursor[segment] = next;
+      cursor = next;
+    } else {
+      cursor = existing as Record<string, unknown>;
+    }
+  }
+  const leaf = segments[segments.length - 1]!;
+  if (value === undefined) {
+    delete cursor[leaf];
+  } else {
+    cursor[leaf] = value;
+  }
 }
 
 function storageKey(key: DraftKey): string[] {
@@ -1663,6 +1704,204 @@ function createFilingStore(
         if (result.status === 'saved') committed();
         return result;
       } catch {
+        return { status: 'unavailable' };
+      }
+    },
+
+    async repinDraft(suppliedInput: DraftRepinInput, signal?: AbortSignal): Promise<DraftRepinResult> {
+      try {
+        signal?.throwIfAborted();
+        const key = structuredClone(suppliedInput.key);
+        const definitionVersion = suppliedInput.definitionVersion;
+        const expectedRevision = suppliedInput.expectedRevision;
+        const instances = structuredClone(suppliedInput.instances);
+        const refillFields = suppliedInput.refillFields ? [...suppliedInput.refillFields] : undefined;
+        const refillValues = suppliedInput.refillValues !== undefined
+          ? parseJsonExact(JSON.stringify(suppliedInput.refillValues)) as Record<string, unknown>
+          : undefined;
+        if (!await authorized(key, 'resume')) return { status: 'denied' };
+        signal?.throwIfAborted();
+        const base = await settledReady();
+        signal?.throwIfAborted();
+        const definition = definitions.get(key.definitionUrl);
+        if (!definition || definition.version !== definitionVersion || instances.length === 0) {
+          return { status: 'conflict' };
+        }
+        const requestedNames = new Set<string>();
+        for (const req of instances) {
+          if (!req.instance || requestedNames.has(req.instance)) return { status: 'conflict' };
+          if (definition.instances?.[req.instance]?.response?.pin !== 'at-open') return { status: 'conflict' };
+          requestedNames.add(req.instance);
+        }
+        if (refillFields && !refillFields.every(isSafeRefillPath)) {
+          return { status: 'conflict' };
+        }
+        const id = storageKey(key);
+        const previous = await transaction(['editable'], 'readonly', tx => tx.get('editable', id));
+        signal?.throwIfAborted();
+        if (previous?.unverifiedStartHistory) return { status: 'unavailable' };
+        if (
+          !previous
+          || !('responseJson' in previous)
+          || previous.definitionVersion !== definitionVersion
+          || previous.revision !== expectedRevision
+        ) {
+          return { status: 'conflict' };
+        }
+        const prevResponse = parseJsonExact(previous.responseJson) as FormResponse;
+        if (prevResponse.status !== 'in-progress' || (prevResponse.authoredSignatures?.length ?? 0) > 0) {
+          return { status: 'conflict' };
+        }
+        const prevSnapshot = parseJsonExact(previous.snapshotJson) as FormDraftSnapshot;
+        const storedPins = parseJsonExact(previous.pinsJson) as DraftRecord['pins'];
+        if (!storedPins || typeof storedPins !== 'object' || Array.isArray(storedPins)) {
+          return { status: 'conflict' };
+        }
+        for (const req of instances) {
+          const prior = Object.hasOwn(storedPins, req.instance) ? storedPins[req.instance] : undefined;
+          if (!prior || !prior.pinned || prior.valueDigest !== req.priorValueDigest) {
+            return { status: 'conflict' };
+          }
+          if (req.priorRecords !== undefined && !deepEqual(prior.records, req.priorRecords)) {
+            return { status: 'conflict' };
+          }
+        }
+
+        const retainedPins = Object.fromEntries(
+          Object.entries(storedPins).filter(([name]) => !requestedNames.has(name)),
+        );
+        const scoped = hasOpeningRules(definition.url)
+          ? await selectScopedDefinition(base, definition, key, { signal })
+          : undefined;
+        const selectionRequests = definitionResponseRequests(definition, key, retainedPins, requestedNames);
+        const outcomes = scoped?.outcomes ?? await responses.select(selectionRequests, signal);
+        signal?.throwIfAborted();
+
+        const nextPins: Record<string, DraftRecord['pins'][string]> = { ...retainedPins };
+        for (const name of requestedNames) {
+          const outcome = outcomes.get(name);
+          if (outcome?.status !== 'available' || !outcome.pinned) {
+            return { status: 'pin-unavailable', instance: name };
+          }
+          const { status: _status, newer: _newer, ...delivery } = outcome;
+          nextPins[name] = delivery;
+        }
+        if (scoped?.missingPrerequisite) {
+          return { status: 'pin-unavailable', instance: scoped.missingPrerequisite };
+        }
+
+        const nextResolutions: Record<string, ResponseSelectionDelivery> = { ...nextPins };
+        for (const [name, outcome] of outcomes.entries()) {
+          if (Object.hasOwn(nextResolutions, name)) continue;
+          if (outcome.status === 'available') {
+            const { status: _status, newer: _newer, ...delivery } = outcome;
+            nextResolutions[name] = delivery;
+          }
+        }
+
+        const nextData = parseJsonExact(JSON.stringify(prevSnapshot.data ?? {})) as Record<string, unknown>;
+        if (refillFields && refillFields.length > 0) {
+          const needsEngineCreation = refillFields.some(
+            fieldPath => !refillValues || !Object.hasOwn(refillValues, fieldPath),
+          );
+          let createdData: Record<string, unknown> | undefined;
+          if (needsEngineCreation) {
+            const freshEngine = createFormEngine(definition, {
+              responseInstanceResolutions: nextResolutions,
+              ...(key.subject && { responseSubject: key.subject }),
+            });
+            try {
+              createdData = parseJsonExact(JSON.stringify(freshEngine.getDraftSnapshot().data)) as Record<string, unknown>;
+            } finally {
+              freshEngine.dispose();
+            }
+          }
+          for (const fieldPath of refillFields) {
+            const nextValue = refillValues && Object.hasOwn(refillValues, fieldPath)
+              ? refillValues[fieldPath]
+              : readDottedPath(createdData ?? {}, fieldPath);
+            writeDottedPath(nextData, fieldPath, nextValue);
+          }
+        }
+
+        const evaluationEngine = createFormEngine(definition, {
+          responseInstanceResolutions: nextResolutions,
+          ...(key.subject && { responseSubject: key.subject }),
+          draftSnapshot: {
+            definitionUrl: definition.url,
+            definitionVersion,
+            data: nextData as FormDraftSnapshot['data'],
+            ...(prevSnapshot.explanations && { explanations: prevSnapshot.explanations }),
+          },
+          ...(prevResponse.explanations && { savedExplanations: prevResponse.explanations }),
+        });
+        let nextSnapshotJson: string;
+        let nextResponseJson: string;
+        let evaluated: SubmitEvaluation;
+        try {
+          const updatedSnap = evaluationEngine.getDraftSnapshot();
+          const currentExplanations = evaluationEngine.getExplanationEntries();
+          const persistedSnap = currentExplanations.length > 0
+            ? { ...updatedSnap, explanations: currentExplanations }
+            : updatedSnap;
+          nextSnapshotJson = JSON.stringify(persistedSnap);
+          const updatedResp = evaluationEngine.getResponse({
+            ...(prevResponse.id ? { id: prevResponse.id } : {}),
+            ...(prevResponse.author && { author: prevResponse.author }),
+            profile: 'off',
+          });
+          nextResponseJson = JSON.stringify({
+            ...updatedResp,
+            ...(prevResponse.authored ? { authored: prevResponse.authored } : {}),
+          });
+          evaluated = readSubmitEvaluation(evaluationEngine);
+        } finally {
+          evaluationEngine.dispose();
+        }
+        const plans = await buildSectionSummaries(definition, evaluated, options.sectionPlans);
+        signal?.throwIfAborted();
+
+        const nextPinsJson = JSON.stringify(nextPins);
+        const result = await transaction<DraftRepinResult>(['editable', 'summaries'], 'readwrite', async tx => {
+          const current = await tx.get('editable', id);
+          if (current?.unverifiedStartHistory) return { status: 'unavailable' };
+          if (
+            !current
+            || !('responseJson' in current)
+            || current.revision !== expectedRevision
+            || current.definitionVersion !== definitionVersion
+            || current.pinsJson !== previous.pinsJson
+          ) {
+            return { status: 'conflict' };
+          }
+          const existingSummary = await tx.get('summaries', id);
+          const revision = crypto.randomUUID();
+          tx.put('editable', id, {
+            revision,
+            definitionVersion,
+            snapshotJson: nextSnapshotJson,
+            responseJson: nextResponseJson,
+            pinsJson: nextPinsJson,
+          });
+          tx.put('summaries', id, {
+            definitionVersion,
+            plans,
+            ...(existingSummary?.subject ? { subject: existingSummary.subject } : key.subject ? { subject: structuredClone(key.subject) } : {}),
+          });
+          return {
+            status: 'repinned',
+            draft: {
+              revision,
+              snapshotJson: nextSnapshotJson,
+              responseJson: nextResponseJson,
+              pins: nextPins,
+            },
+          };
+        });
+        if (result.status === 'repinned') committed();
+        return result;
+      } catch {
+        signal?.throwIfAborted();
         return { status: 'unavailable' };
       }
     },

@@ -219,7 +219,14 @@ fn validity_that_settles_late_still_hides_constraint_and_shape() {
     ]});
     assert_eq!(
         settled_answer(&def, &[("x", json!(1))]),
-        expect(&[("w", "REQUIRED"), ("y", "REQUIRED")], &["x"])
+        expect(
+            &[
+                ("#", "EXPLANATION_REQUIRED"),
+                ("w", "REQUIRED"),
+                ("y", "REQUIRED")
+            ],
+            &["x"]
+        )
     );
     assert_eq!(
         settled_answer(&def, &[("y", json!(1)), ("x", json!(1))]),

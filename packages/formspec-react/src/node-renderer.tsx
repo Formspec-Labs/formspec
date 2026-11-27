@@ -228,6 +228,15 @@ function ActionButtonNode({ node }: { node: LayoutNode }) {
             ...(resolveActionIdempotencyKey ? { resolveIdempotencyKey: resolveActionIdempotencyKey } : {}),
         };
         const finish = (result: ResponseActionInvocationResult<SubmitResult>) => {
+            if (result.detail && result.detail !== submittedDetail) {
+                submittedDetail = result.detail;
+                recordSubmit(result.detail);
+                const report = result.detail.validationReport;
+                const scope = controlRef.current?.closest<HTMLElement>('.formspec-theme-scope');
+                if (scope && result.status === 'blocked' && report && !report.valid) {
+                    focusFirstInvalidField(scope, report.results);
+                }
+            }
             onActionResult?.(result);
             onControlActionResult?.(result, { nodeId: node.id });
             if (result.finding) {

@@ -501,14 +501,22 @@ export function Wizard({ node, children }: LayoutComponentProps): React.JSX.Elem
                 clearActive();
                 if (!isCurrent()) return null;
                 const invocation = 'invocation' in res ? res.invocation : res;
+                if (invocation.detail && invocation.detail !== submittedDetail) {
+                    submittedDetail = invocation.detail;
+                    recordSubmit(invocation.detail);
+                    const report = invocation.detail.validationReport;
+                    if (invocation.status === 'blocked' && report && !report.valid) {
+                        focusInvalidResult(report.results);
+                    }
+                }
                 onActionResult?.(invocation);
                 if (!isCurrent()) return invocation;
                 if (invocation.finding) {
                     onActionFinding?.(invocation.finding);
                     if (!isCurrent()) return invocation;
                 }
-                if (invocation.status === 'completed' && dispatchedFormspecSubmit && (submittedDetail || invocation.detail)) {
-                    onSubmit?.(submittedDetail ?? invocation.detail!);
+                if (invocation.status === 'completed' && dispatchedFormspecSubmit && (invocation.detail || submittedDetail)) {
+                    onSubmit?.(invocation.detail ?? submittedDetail!);
                 } else if (!invocation.detail && invocation.status === 'failed') {
                     setPendingSaveNotice(invocation.failureReason || (hasUnstampedDraft ? pendingNotice : 'Submission could not be prepared.'));
                 }

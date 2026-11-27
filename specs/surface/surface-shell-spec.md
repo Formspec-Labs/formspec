@@ -816,8 +816,34 @@ only runtime extension point inside a route.
   Locale. The widget's `copy` configuration supplies its text for that language.
   The engine evaluates label templates at review time from bundled data and the
   committed Response without fetching external instances or options. The stored
-  Response supplies the displayed answers. Include the committed revision and
+  Response supplies the displayed answers. When the draft store also persists an
+  editable draft snapshot (`snapshotJson`), the review step initializes its
+  evaluation engine from that editable snapshot so non-relevant held answers
+  removed under `remove` behavior surface under the built-in grouped
+  acknowledgement (`HIDDEN_ANSWERS_OMITTED`, Core §2.1.6) and can be
+  acknowledged once at Submit without exposing omitted values in the filed
+  Response. Include the committed revision and
   `draft-review` phase. This phase grants display only.
+
+  **Draft re-pin and single-capture assembly.** When a draft pins an `at-open`
+  response instance and a newer completed record becomes available, the host
+  exposes explicit, revision-checked re-pin through `DraftPort.repinDraft` (Core
+  §4.4.1), verifying authorization, expected revision, unsigned status, and
+  prior pin digest/receipts before atomically replacing pins, optionally
+  refilling only selected fields while preserving unrelated answers, and
+  rechecking explanation bases. Before Prepare, Sign, or Submit, the shell's
+  draft coordinator refreshes non-pinned response instances and assembles the
+  filing candidate once in the `on-submit` profile without overwriting editable
+  `DraftRecord.responseJson` with the completed candidate; the action gate and
+  UI consume validation results from that exact single capture.
+
+  **Declarative receipt presentation.** When presenting an issued filing receipt
+  in `ReceiptPanel`, the host SHOULD derive `receiptId`, `submittedAt` (from the
+  server's `accepted_at`), `fingerprint` (from `response_hash`), and `caseRef`
+  from the respondent-scoped server receipt via a declarative Mapping
+  (`schemas/mapping.schema.json`), preserving server acceptance time through
+  reload and omitting missing or malformed timestamps gracefully without
+  substituting the client clock.
 
   A refused read makes the whole widget unavailable and reports
   `WIDGET-DATA-REQUIRED-UNAVAILABLE` with a typed reason. Preserve `absent`,

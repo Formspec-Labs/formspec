@@ -2,7 +2,7 @@
 
 use crate::eval_options::EvalOptions;
 
-use crate::nrb::apply_nrb;
+use crate::nrb::{apply_nrb, collect_held_non_relevant_values};
 use crate::output_data::build_output_data;
 use crate::rebuild;
 use crate::rebuild_item_tree;
@@ -20,7 +20,7 @@ use formspec_core::BindTargets;
 use formspec_core::assembler::unassembled_definition_references;
 use formspec_core::subject_key::SubjectKey;
 use std::cell::RefCell;
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 
 /// Definition work shared across evaluations of different Response data.
@@ -210,10 +210,16 @@ pub fn evaluate_filed(
     let prepared = prepared_definition(definition);
     let mut options = options.clone();
     options.trigger = types::EvalTrigger::Submit;
-    let mut result = match evaluate_prepared(&prepared, data, &options) {
+    let mut accumulated_held = BTreeMap::new();
+    let mut result = match evaluate_prepared_with_held(&prepared, data, &options, None) {
         Ok(result) => result,
         Err(findings) => return Ok(refuse_input(findings)),
     };
+    for (path, value) in &result.held_non_relevant_values {
+        accumulated_held
+            .entry(path.clone())
+            .or_insert_with(|| value.clone());
+    }
     let previous_non_relevant = options.context.previous_non_relevant.take();
     if previous_non_relevant.is_none_or(|paths| paths.is_empty())
         && filed_data_is_stable(data, &result.data)
@@ -227,10 +233,20 @@ pub fn evaluate_filed(
             unreachable!("evaluation always produces a Response data object");
         };
         let input = output.into_iter().collect();
-        result = match evaluate_prepared(&prepared, &input, &options) {
+        result = match evaluate_prepared_with_held(
+            &prepared,
+            &input,
+            &options,
+            Some(&accumulated_held),
+        ) {
             Ok(result) => result,
             Err(findings) => return Ok(refuse_input(findings)),
         };
+        for (path, value) in &result.held_non_relevant_values {
+            accumulated_held
+                .entry(path.clone())
+                .or_insert_with(|| value.clone());
+        }
         if filed_data_is_stable(&input, &result.data) {
             return Ok(result);
         }
@@ -251,6 +267,15 @@ fn evaluate_prepared(
     prepared: &PreparedDefinition,
     data: &HashMap<String, Value>,
     options: &EvalOptions,
+) -> Result<EvaluationResult, Vec<ValidationResult>> {
+    evaluate_prepared_with_held(prepared, data, options, None)
+}
+
+fn evaluate_prepared_with_held(
+    prepared: &PreparedDefinition,
+    data: &HashMap<String, Value>,
+    options: &EvalOptions,
+    extra_held: Option<&BTreeMap<String, Value>>,
 ) -> Result<EvaluationResult, Vec<ValidationResult>> {
     let definition = &prepared.definition;
     let mut options = options.clone();
@@ -417,10 +442,25 @@ fn evaluate_prepared(
     let mut non_relevant = Vec::new();
     types::collect_non_relevant(&items, &mut non_relevant);
 
+    let default_nrb = definition
+        .get("nonRelevantBehavior")
+        .and_then(|v| v.as_str())
+        .unwrap_or("remove");
+    let calculated_paths = order.writer_paths(&items);
+    let mut held_non_relevant_values =
+        collect_held_non_relevant_values(&values, &items, default_nrb, &calculated_paths);
+    if let Some(extra) = extra_held {
+        for (path, value) in extra {
+            held_non_relevant_values
+                .entry(path.clone())
+                .or_insert_with(|| value.clone());
+        }
+    }
+
     let mut explanation_actions = Vec::new();
     let mut candidate_explanations = None;
     if options.trigger == types::EvalTrigger::Submit {
-        let explanation_findings = crate::revalidate::explanation_findings(
+        let mut explanation_findings = crate::revalidate::explanation_findings(
             &items,
             &index,
             &values,
@@ -430,6 +470,12 @@ fn evaluate_prepared(
             options,
             &mut validations,
         );
+        if !held_non_relevant_values.is_empty() {
+            match crate::explanations::hidden_answer_findings(&held_non_relevant_values) {
+                Ok(hidden) => explanation_findings.extend(hidden),
+                Err(message) => validations.push(type_error("#", message)),
+            }
+        }
         match crate::explanations::action_rows(&explanation_findings) {
             Ok(actions) => explanation_actions = actions,
             Err(message) => validations.push(type_error("#", message)),
@@ -454,10 +500,6 @@ fn evaluate_prepared(
     let mut readonly = HashMap::new();
     types::collect_mip_state(&items, &mut required, &mut readonly);
 
-    let default_nrb = definition
-        .get("nonRelevantBehavior")
-        .and_then(|v| v.as_str())
-        .unwrap_or("remove");
     let host_values = values.clone();
     apply_nrb(&mut values, &items, default_nrb);
 
@@ -467,7 +509,6 @@ fn evaluate_prepared(
         .iter()
         .map(|entry| entry.path.clone())
         .collect();
-    let calculated_paths = order.writer_paths(&items);
 
     let variables = var_values
         .iter()
@@ -491,6 +532,7 @@ fn evaluate_prepared(
             .chain(diagnostics)
             .collect(),
         non_relevant,
+        held_non_relevant_values,
         variables,
         scoped_variables,
         row_counts: index.counts,
@@ -682,6 +724,7 @@ fn refuse_input(validations: Vec<ValidationResult>) -> EvaluationResult {
         invalid_paths: Vec::new(),
         diagnostics: Vec::new(),
         non_relevant: Vec::new(),
+        held_non_relevant_values: BTreeMap::new(),
         variables: HashMap::new(),
         scoped_variables: HashMap::new(),
         row_counts: HashMap::new(),

@@ -16,7 +16,7 @@
   "expected": {
     "valid": false,
     "counts": {
-      "error": 1,
+      "error": 2,
       "warning": 0,
       "info": 0
     },
@@ -27,6 +27,15 @@
         "severity": "error",
         "constraintKind": "constraint",
         "message": "y must equal c"
+      },
+      {
+        "path": "#",
+        "code": "EXPLANATION_REQUIRED",
+        "severity": "error",
+        "constraintKind": "explanation",
+        "source": "shape",
+        "context": { "code": "HIDDEN_ANSWERS_OMITTED" },
+        "message": "Hidden answers excluded from filing must be acknowledged."
       }
     ],
     "data": {

@@ -169,7 +169,7 @@ export type ResolvedInstance = {
  */
 export type PresentationHash = string;
 /**
- * A response to a warning Shape under Core §2.1.6. Entry identity, sorted group paths, effective mode, and basis matching are checked against the pinned Definition and submit-profile findings.
+ * A response to a warning Shape or built-in hidden-answer omission group (code HIDDEN_ANSWERS_OMITTED) under Core §2.1.6. Entry identity, sorted group paths, effective mode, and basis matching are checked against the pinned Definition and submit-profile findings.
  *
  * This interface was referenced by `undefined`'s JSON-Schema
  * via the `definition` "Explanation".
@@ -511,7 +511,7 @@ export interface InstanceExplanation {
 }
 export interface GroupedAcknowledgement {
   /**
-   * The shared code of the acknowledged warning Shapes.
+   * The shared code of the acknowledged warning Shapes, or the built-in code HIDDEN_ANSWERS_OMITTED for non-relevant held answers excluded under remove behavior at submit.
    */
   code: string;
   group: true;

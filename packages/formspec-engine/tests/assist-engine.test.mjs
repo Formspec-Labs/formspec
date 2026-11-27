@@ -105,7 +105,10 @@ test('evaluated state adds no edit evaluation and includes submit-only findings 
   const noSubmit = new FormEngine({ ...definition, shapes: definition.shapes.filter(shape => shape.timing !== 'submit') });
   const noSubmitCalls = t.mock.method(noSubmit, 'evaluateResultForTrigger');
   assert.deepEqual(noSubmit.getEvaluatedFormState({ profile: 'on-submit' }).report.results.filter(result => result.shapeId).map(result => result.shapeId), ['continuous']);
-  assert.deepEqual(noSubmit.getValidationReport({ profile: 'on-submit' }).results, noSubmit.getValidationReport().results);
+  assert.deepEqual(
+    noSubmit.getValidationReport({ profile: 'on-submit' }).results.filter(result => result.code !== 'EXPLANATION_REQUIRED'),
+    noSubmit.getValidationReport().results,
+  );
   // A form without submit-timed Shapes can still have different draft and filed verdicts.
   assert.deepEqual(noSubmitCalls.mock.calls.map(call => call.arguments[0]), ['submit', 'submit']);
 });

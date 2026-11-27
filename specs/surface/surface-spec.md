@@ -525,6 +525,30 @@ Each `dataBindings` property name MUST exactly match one
 identity is the pair `(catalogRef, sourceRef)`; processors MUST NOT perform
 unqualified source lookup.
 
+A `dataBindings` entry MAY declare a typed `producer` object
+(`{ routeRef, definitionRef, actionRef, relation?, x-generation? }`) identifying
+the upstream route in the same Surface, its mounted Definition URL, and the
+response-scoped Response Action whose effect produces the delivered input. For
+delivery contract `@formspec-org/surface-react/SigningCeremony@0.1`, the `draft`
+data binding MUST declare `producer`. App-graph validation MUST resolve
+`producer.routeRef` to exactly one route in the same Surface, prove that
+`producer.definitionRef` resolves to a manifested, loaded Definition mounted on
+that route (directly or via `embed-route`), resolve `producer.actionRef` to
+exactly one loaded response-scoped Response Action targeting that Definition in
+that route's context, and require that the Action's own referenced
+`serviceRequest` effects declare exactly one signing operation, `prepare`
+([Response Actions §6.6](../response-actions/response-actions-spec.md#66-service-requests)).
+An unrelated `operation: "prepare"` request elsewhere in the catalog MUST NOT
+satisfy the binding. When `producer.definitionRef` differs from the ceremony's
+downstream signing Definition, `producer.relation` MUST declare
+`{ kind: "mapping", mappingRef }` resolving to an App Manifest Mapping that
+connects the upstream and downstream Definitions; otherwise validation fails
+with `E612`. When Prepare succeeds, the host MUST relate its returned committed
+draft identity (`draft_id`), committed unsigned revision (`draft_version`), and
+committed canonical Response digest (`responseHash`) directly to the delivered
+`draft` input (`{ id, version, responseHash }`) and preserve optimistic draft
+revision fences across Sign and Submit.
+
 App-graph validation MUST prove that the input is declared, the catalog is
 manifested, the source exists, and the source's availability covers the exact
 use. An availability selector at app, exact Surface, exact route, exact slot, or
@@ -668,7 +692,7 @@ closes the v0.2 slot-type list at five values:
 |---|---|---|
 | `definition-form` | `{ definitionRef: string, presentation?: string, initialData?: DefinitionFormInitialDataBinding, subjectKeys?: Record<string, string> }` | The bound Definition form. |
 | `experience-unit` | `{ experienceRef?: string, unitRef: string }` | Review-only Experience reasoning. Customer renderers emit no slot DOM or copy; explicit authoring/debug mode may show the resolved title and Needs. |
-| `module-widget`   | `{ moduleId: string, widgetName: string, config?: object, dataBindings?: Record<inputName, {catalogRef, sourceRef}>, actionBindings?: Record<outputName, {actionRef}> }` | A widget supplied by a declared module. |
+| `module-widget`   | `{ moduleId: string, widgetName: string, config?: object, dataBindings?: Record<inputName, {catalogRef, sourceRef, producer?}>, actionBindings?: Record<outputName, {actionRef}> }` | A widget supplied by a declared module. |
 | `static-content`  | `{ kind: heading\|text\|image\|divider, content: string, alt?: string, level?: 1..6 }`, with `alt` required exactly for `image` | Inline literal content or an authored image reference. |
 | `embed-route`     | `{ routeRef: string, mode?: string, params?: RouteParamMap }` | Another route from this Surface (modal/panel/dialog). |
 

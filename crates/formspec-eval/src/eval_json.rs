@@ -57,6 +57,13 @@ pub fn evaluation_result_to_host_snapshot_json_value(result: &EvaluationResult) 
     root.insert("invalidPaths".into(), json!(result.invalid_paths));
     root.insert("repeatCounts".into(), json!(result.row_counts));
     root.insert("calculatedPaths".into(), json!(result.calculated_paths));
+    if !result.held_non_relevant_values.is_empty() {
+        root.insert(
+            "heldNonRelevantValues".into(),
+            fel_core::exact_json::to_value(&result.held_non_relevant_values)
+                .expect("held non-relevant values serialize"),
+        );
+    }
     if !result.indexed_binds.is_empty() {
         root.insert(
             "indexedBinds".into(),

@@ -497,6 +497,7 @@ type WasmEvaluation = {
     candidateExplanations?: import('./engine/warning-explanations.js').DraftExplanation[];
     diagnostics: import('./diff.js').EvalDiagnostic[];
     nonRelevant: string[];
+    heldNonRelevantValues?: Record<string, unknown>;
     variables: any;
     required: Record<string, boolean>;
     readonly: Record<string, boolean>;

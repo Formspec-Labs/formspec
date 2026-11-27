@@ -1,5 +1,10 @@
 /** @filedesc Runtime JSON admission and detached metadata for host instance sources. */
 import { isRawJson, jsonNumberText, isJsonRecord } from '../json-values.js';
+import type {
+    NewerSelectedResponse,
+    ResolvedInstanceRecord,
+    ResponseSelectionMapping,
+} from '@formspec-org/types';
 import type { InstanceSourceResult, JsonValue } from '../interfaces.js';
 
 export function sourceErrorMessage(error: unknown): string {
@@ -37,10 +42,63 @@ export function cloneSourceJson(value: unknown, ancestors = new Set<object>()): 
     }
 }
 
+function readRecords(value: JsonValue): ResolvedInstanceRecord[] {
+    if (!Array.isArray(value)) throw new Error('Invalid instance source records');
+    return value.map((entry) => {
+        if (
+            !isJsonRecord(entry)
+            || typeof entry.responseId !== 'string'
+            || typeof entry.definitionVersion !== 'string'
+            || (entry.responseHash !== undefined && typeof entry.responseHash !== 'string')
+        ) {
+            throw new Error('Invalid instance source record entry');
+        }
+        return {
+            responseId: entry.responseId,
+            definitionVersion: entry.definitionVersion,
+            ...(entry.responseHash !== undefined ? { responseHash: entry.responseHash } : {}),
+        };
+    });
+}
+
+function readMapping(value: JsonValue): ResponseSelectionMapping {
+    if (!isJsonRecord(value) || typeof value.url !== 'string' || typeof value.digest !== 'string') {
+        throw new Error('Invalid instance source mapping');
+    }
+    return { url: value.url, digest: value.digest };
+}
+
+function readNewer(value: JsonValue): NewerSelectedResponse {
+    if (!isJsonRecord(value) || typeof value.responseId !== 'string' || typeof value.responseHash !== 'string') {
+        throw new Error('Invalid instance source newer reference');
+    }
+    return { responseId: value.responseId, responseHash: value.responseHash };
+}
+
 export function readSourceResult(value: unknown): InstanceSourceResult {
     const result = cloneSourceJson(value);
     if (!isJsonRecord(result)) throw new Error('Invalid instance source result');
-    if (result.status === 'loaded' && Object.prototype.hasOwnProperty.call(result, 'value')) return { status: 'loaded', value: result.value };
+    if (result.status === 'loaded' && Object.prototype.hasOwnProperty.call(result, 'value')) {
+        if (result.valueDigest !== undefined && typeof result.valueDigest !== 'string') {
+            throw new Error('Invalid instance source valueDigest');
+        }
+        if (result.none !== undefined && typeof result.none !== 'boolean') {
+            throw new Error('Invalid instance source none flag');
+        }
+        if (result.pinned !== undefined && typeof result.pinned !== 'boolean') {
+            throw new Error('Invalid instance source pinned flag');
+        }
+        return {
+            status: 'loaded',
+            value: result.value,
+            ...(result.records !== undefined ? { records: readRecords(result.records) } : {}),
+            ...(result.valueDigest !== undefined ? { valueDigest: result.valueDigest } : {}),
+            ...(result.none !== undefined ? { none: result.none } : {}),
+            ...(result.pinned !== undefined ? { pinned: result.pinned } : {}),
+            ...(result.mapping !== undefined ? { mapping: readMapping(result.mapping) } : {}),
+            ...(result.newer !== undefined ? { newer: readNewer(result.newer) } : {}),
+        };
+    }
     if (result.status === 'unavailable' && (result.reason === undefined || typeof result.reason === 'string')) {
         return { status: 'unavailable', ...(result.reason === undefined ? {} : { reason: result.reason }) };
     }

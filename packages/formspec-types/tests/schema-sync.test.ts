@@ -316,7 +316,10 @@ describe('generated types — tightness against permissive intersections', () =>
     );
 
     expect(surfaceSrc).toMatch(
-      /export interface WidgetDataBinding \{[\s\S]*?'x-generation'\?: Generation;[\s\S]*?\n\}/m,
+      /export interface WidgetDataBinding \{[\s\S]*?producer\?: WidgetDataProducer;[\s\S]*?'x-generation'\?: Generation;[\s\S]*?\n\}/m,
+    );
+    expect(surfaceSrc).toMatch(
+      /export interface WidgetDataProducer \{[\s\S]*?routeRef: string;[\s\S]*?definitionRef: string;[\s\S]*?actionRef: string;[\s\S]*?relation\?: WidgetDataProducerRelation;[\s\S]*?'x-generation'\?: Generation;[\s\S]*?\n\}/m,
     );
     expect(surfaceSrc).toMatch(
       /export interface WidgetActionBinding \{[\s\S]*?'x-generation'\?: Generation;[\s\S]*?\n\}/m,
@@ -337,7 +340,7 @@ describe('generated types — tightness against permissive intersections', () =>
       /export interface SurfaceScenarioActionOutcome \{[\s\S]*?'x-generation'\?: Generation;/m,
     );
     expect(indexSrc).toContain(
-      'WidgetDataBinding, DefinitionFormInitialDataBinding, WidgetActionBindings, WidgetActionBinding',
+      'WidgetDataBinding, WidgetDataProducer, WidgetDataProducerRelation, DefinitionFormInitialDataBinding, WidgetActionBindings, WidgetActionBinding',
     );
   });
 

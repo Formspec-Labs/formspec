@@ -1630,7 +1630,42 @@ by <code>(shapeId, path)</code> in UTF-8 byte order.</td>
 <p>For each <code>acknowledge</code> code, the union of the group
 entries’ stored <code>paths</code> MUST equal the set of current firing
 paths. Each entry’s <code>basis</code> MUST match the firings at its own
-<code>paths</code>. <a
+<code>paths</code>.</p>
+<h5
+id="hidden-answer-omission-acknowledgement-hidden_answers_omitted">Hidden-Answer
+Omission Acknowledgement (<code>HIDDEN_ANSWERS_OMITTED</code>)</h5>
+<p>When a respondent edits a draft so that a field holding a non-empty
+user answer becomes non-relevant under <code>remove</code> non-relevant
+behavior (§5.6), the editable draft snapshot MUST preserve the held
+value through save, reload, and later re-relevance (unhiding), while the
+assembled filed Response MUST omit all non-relevant held values.</p>
+<p>At <code>on-submit</code> evaluation (§2.4, §5.3.1), every
+non-display, non-calculated leaf field path that carries a non-empty
+held value (any value other than <code>null</code>, <code>""</code>,
+<code>[]</code>, or <code>{}</code>; boolean <code>false</code> and
+numeric <code>0</code> are non-empty) and is removed by
+<code>remove</code> non-relevant behavior produces a built-in grouped
+acknowledgement finding with:</p>
+<ul>
+<li><code>code</code>: <code>"HIDDEN_ANSWERS_OMITTED"</code></li>
+<li>synthetic <code>shapeId</code>:
+<code>"formspec:hidden-answers"</code></li>
+<li>effective mode: <code>"acknowledge"</code></li>
+<li><code>inputs</code>: <code>[[path, refDigest(heldValue)]]</code>
+using <code>formspec.explanation.ref.v1</code> over the exact held value
+(with <code>path</code> in resolved dot/index notation, no
+<code>$</code> prefix)</li>
+</ul>
+<p>All such held paths form a single grouped acknowledgement entry whose
+<code>paths</code> are sorted in UTF-8 byte order and whose
+<code>basis</code> is computed by the standard group basis hash
+(<code>formspec.explanation.group-basis.v1</code>) over
+<code>{code: "HIDDEN_ANSWERS_OMITTED", firings}</code>. Adding,
+removing, or changing any held path or value changes <code>paths</code>
+or <code>basis</code> and invalidates any earlier acknowledgement
+(<code>EXPLANATION_STALE</code>), requiring a fresh grouped
+acknowledgement before Submit or Sign succeeds.</p>
+<p><a
 href="../../tests/conformance/fixtures/explanations/basis-vectors.json"><code>basis-vectors.json</code></a>
 pins the encoded bytes and digests for both forms.</p>
 <h5 id="response-instance-ownership">Response Instance Ownership</h5>
@@ -8241,14 +8276,45 @@ schemes, including integer and date versions.</p>
 <p>For <code>pin: "at-open"</code>, the server MUST select and record a
 pin with <code>pinned: true</code> at draft open; an unavailable pin
 MUST refuse opening and name the missing filing. Browser creation
-receives the pinned value as an instance; the server does not use the
-<code>create</code> feature. Later loads MUST return exactly the pinned
-records and report <code>newer: {responseId, responseHash}</code> when a
-fresh selection would choose another completed record. Re-pin is an
-explicit, authorized draft operation through
-<code>assemble_candidate</code>; any offered refill uses the prefill
-Mapping only for the preparer’s selected fields. It MUST NOT edit a
-signed Response.</p>
+receives the pinned value as an instance so <code>initialValue</code>
+and <code>seedFrom</code> see the server-recorded pin; the server does
+not use the <code>create</code> feature. For response-backed secondary
+instances, the host instance resolver request carries the declared
+<code>response</code> (<code>ResponseSelection</code>) and the consuming
+filing-unit <code>subject</code>, and a loaded resolution carries
+<code>records</code>, <code>valueDigest</code>, <code>none</code>,
+<code>pinned</code>, optional <code>mapping</code>, and optional
+<code>newer</code>. Later loads MUST return exactly the pinned records
+and report <code>newer: {responseId, responseHash}</code> when a fresh
+selection would choose another completed record.</p>
+<p>Re-pin is an explicit, authorized, revision-checked draft operation
+(<code>repinDraft</code> / <code>POST /drafts/{draft_id}/repin</code>)
+through <code>assemble_candidate</code>. A re-pin request MUST assert
+the caller’s expected draft revision
+(<code>expected_draft_version</code> or
+<code>draftFence.revision</code>) and the prior pinned
+<code>valueDigest</code> (and prior pinned records when non-empty). The
+server or preview port MUST verify caller authorization, expected
+revision, unsigned <code>in-progress</code> status, and prior pin
+receipt/digest; atomically replace the pinned selection records and
+<code>valueDigest</code> with the fresh selection; apply any requested
+refill exclusively to the preparer’s selected fields while preserving
+all unrelated answers; recheck explanation and acknowledgement bases
+against the updated state; leave every prior completed filing
+byte-identical; and refuse stale revisions, signed or filed targets,
+mismatched prior receipts or digests, or unavailable fresh selections
+(<code>409 Conflict</code> on HTTP, typed refusal on
+<code>DraftPort</code>). It MUST NOT edit a signed Response.</p>
+<p>Before Sign or Submit, the browser runtime (<code>FormEngine</code>
+and draft writer) MUST refresh non-pinned response instances, assemble
+the filing candidate once in the <code>on-submit</code> profile
+(<code>assemble_candidate</code>) so <code>resolvedInstances</code> and
+verified <code>explanations</code> are captured from that exact
+evaluation without overwriting the editable draft snapshot
+(<code>DraftRecord.responseJson</code> / <code>draft_snapshot</code>)
+with the completed candidate, and supply the validation report from that
+exact single capture to the action gate and UI without running a
+separate stale or drifted validation pass.</p>
 <h4 id="referencing-instances-in-expressions">4.4.2 Referencing
 Instances in Expressions</h4>
 <p>Instance data is accessed in FEL expressions via the
@@ -9512,9 +9578,16 @@ profile and feed each pass’s output <code>data</code> into the next pass
 until the output equals the input. A single pass can leave answers whose
 relevance depends on an answer pruned in that pass. A later pass sees
 answers omitted from its input as <code>null</code> and recomputes
-calculations. All passes use the same evaluation time. The filer MUST
-use the settled evaluation’s <code>data</code> and validation results,
-including any external validation results under §5.7.</p>
+calculations. All passes use the same evaluation time. Across
+convergence passes, the processor MUST accumulate every non-display,
+non-calculated leaf field path whose non-empty held value was removed
+under <code>remove</code> non-relevant behavior and evaluate the
+built-in grouped <code>HIDDEN_ANSWERS_OMITTED</code> acknowledgement
+(§2.1.6, §5.3.1) against that complete omitted set on the settled pass,
+while ensuring the settled <code>data</code> omits every removed held
+value. The filer MUST use the settled evaluation’s <code>data</code> and
+validation results, including any external validation results under
+§5.7.</p>
 <p>When rechecking a submitted Response, the processor MUST evaluate the
 filed <code>data</code> in the submit profile and refuse the Response if
 re-evaluation changes its data. For this comparison, an omitted declared
@@ -10969,7 +11042,8 @@ registry documents or entries, duplicate extension names across the
 supplied registry set, unsupported constraint keys outside
 <code>{pattern, maxLength, minimum, maximum}</code>, invalid regular
 expressions, non-integer or negative <code>maxLength</code>, non-decimal
-numeric bounds, or inverted ranges (<code>minimum &gt; maximum</code>).</p>
+numeric bounds, or inverted ranges
+(<code>minimum &gt; maximum</code>).</p>
 <hr />
 <h3 id="concept-and-vocabulary-registry-entries">8.1.1 Concept and
 Vocabulary Registry Entries</h3>
@@ -11119,11 +11193,24 @@ service-key signature MUST be described as delegated service-key
 signing; it does not prove possession of a personal signing key.</p>
 <p>Recognition of this extension does not change core
 required/relevant/readonly, calculation, or validation behavior.
-Application signing and Submit admission policy remains explicit. Sign
+Application signing and Submit admission policy remains explicit. When
+an upstream Prepare action (<code>operation: "prepare"</code>, <a
+href="../response-actions/response-actions-spec.md#66-service-requests">Response
+Actions §6.6</a>) saves the filing candidate for a signing ceremony, its
+response supplies the committed unsigned draft identity
+(<code>draft_id</code>), committed unsigned revision
+(<code>draft_version</code>), and canonical Response
+(<code>canonical_response</code>). The host MUST bind that exact draft
+identity, committed revision, and canonical Response digest
+(<code>responseHash</code>) into the signing ceremony’s delivered
+<code>draft</code> input (<code>{ id, version, responseHash }</code>)
+and <code>response</code> input, and MUST supply that exact revision as
+the optimistic draft revision fence on Sign and Submit. Any intervening
+edit or stale revision MUST be refused before signing or filing. Sign
 and Submit are separate actions: Sign returns a persisted signed
-Response; Submit uses that exact current Response and performs its own
-admission checks. Widget completion feedback alone is not evidence of
-persisted, verified signing.</p>
+Response with its committed revision; Submit uses that exact current
+Response and performs its own admission checks. Widget completion
+feedback alone is not evidence of persisted, verified signing.</p>
 <h3 id="extension-namespaces">8.5 Extension Namespaces</h3>
 <p>Organizations publishing multiple related extensions SHOULD use a
 namespace convention to group them under a single

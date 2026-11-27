@@ -222,6 +222,7 @@ fn compare_value(
 // --- Outcomes --------------------------------------------------------------------------------
 
 /// What a leg produced: sorted results without envelope markers, Response data, and MIP states.
+#[derive(Clone)]
 pub(super) struct Outcome {
     pub(super) results: Vec<Value>,
     pub(super) diagnostics: Vec<Value>,
@@ -575,7 +576,13 @@ impl Evaluator<'_> {
         let (again_raw, again) =
             self.run_raw(fixpoint_label, &verdict.data, EvalTrigger::Submit, caller);
         let mut problems = against_expected(&verdict, expected);
-        problems.extend(between_legs("fixpoint", &again, &verdict));
+        let verdict_for_fixpoint = strip_hidden_answer_explanations(&verdict);
+        let again_for_fixpoint = strip_hidden_answer_explanations(&again);
+        problems.extend(between_legs(
+            "fixpoint",
+            &again_for_fixpoint,
+            &verdict_for_fixpoint,
+        ));
         if let Some(want_candidate) = expected_candidate {
             match self.assemble_response_candidate(&result, caller) {
                 Ok(got_candidate) => {
@@ -657,6 +664,23 @@ impl Evaluator<'_> {
     ) -> Outcome {
         self.run_raw(label, data, trigger, caller).1
     }
+}
+
+fn is_hidden_answers_explanation(result: &Value) -> bool {
+    result["constraintKind"].as_str() == Some("explanation")
+        && result
+            .get("context")
+            .and_then(|c| c.get("code"))
+            .and_then(Value::as_str)
+            == Some(formspec_eval::explanations::HIDDEN_ANSWERS_CODE)
+}
+
+fn strip_hidden_answer_explanations(outcome: &Outcome) -> Outcome {
+    let mut stripped = outcome.clone();
+    stripped
+        .results
+        .retain(|result| !is_hidden_answers_explanation(result));
+    stripped
 }
 
 fn matches_path_prefix(actual_path: &str, prefix: &str) -> bool {
@@ -1426,9 +1450,7 @@ fn run_processing(
             Caller::Session,
         );
         if submit {
-            let in_session =
-                evaluator.run("P(submit)", &payload, EvalTrigger::Submit, Caller::Session);
-            evaluator.check_submit_legs(legs, &in_session.data, &expected, expected_candidate);
+            evaluator.check_submit_legs(legs, &payload, &expected, expected_candidate);
         } else {
             let mut problems = against_expected(&live, &expected);
             if let Some(data) = expected.get("data") {

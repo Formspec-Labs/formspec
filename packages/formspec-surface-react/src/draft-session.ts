@@ -36,7 +36,14 @@ export async function deriveDraftSubject(subject: DataSourceSubject | undefined)
 export type FiledObservation = Extract<MatchedFilingObservation, { receiptRef: string }>;
 
 type CommittedDraft =
-  | { status: 'loaded'; response: FormResponse; pins?: DraftRecord['pins']; revision: string; key: DraftKey }
+  | {
+      status: 'loaded';
+      response: FormResponse;
+      draftSnapshot?: FormDraftSnapshot;
+      pins?: DraftRecord['pins'];
+      revision: string;
+      key: DraftKey;
+    }
   | { status: 'initialized' | 'absent' | 'denied' | 'version-mismatch' | 'unavailable' | 'save-failed' };
 
 type CommittedFiling =
@@ -83,6 +90,20 @@ export function createDraftSession(
     return result;
   }
 
+  function recordedPinsForDefinition(
+    definition: FormDefinition,
+    pins: DraftRecord['pins'] | undefined,
+  ): DraftRecord['pins'] {
+    if (!pins) return {};
+    return Object.fromEntries(
+      Object.entries(definition.instances ?? {}).flatMap(([name, instance]) => {
+        if (!instance.response || instance.response.pin !== 'at-open') return [];
+        const delivery = Object.hasOwn(pins, name) ? pins[name] : undefined;
+        return delivery ? [[name, delivery]] : [];
+      }),
+    );
+  }
+
   async function resolveReads(
     definition: FormDefinition, key: DraftKey, pins: DraftRecord['pins'] | undefined,
     expectedRevision: string | null | undefined, signal: AbortSignal,
@@ -94,6 +115,9 @@ export function createDraftSession(
         ...(result.missingPrerequisite && { missingPrerequisite: result.missingPrerequisite }) };
       if (result.status === 'conflict') throw new Error('Draft changed before response instances could be read.');
       if (result.status !== 'unconfigured') return { deliveries: {}, scoped: true };
+    }
+    if (!storage.responses) {
+      return { deliveries: recordedPinsForDefinition(definition, pins) };
     }
     return { deliveries: await resolveDefinitionReads(storage.responses, definitionResponseRequests(definition, key, pins), signal) };
   }
@@ -402,7 +426,26 @@ export function createDraftSession(
         const result = await load(key, definition.version, signal);
         if (result.status !== 'loaded') return { status: result.status };
         const response = parseJsonExact(result.draft.responseJson) as FormResponse;
-        return { status: 'loaded', response, pins: result.draft.pins, revision: result.draft.revision, key };
+        let draftSnapshot: FormDraftSnapshot | undefined;
+        if (result.draft.snapshotJson) {
+          try {
+            const rawSnapshot = parseJsonExact(result.draft.snapshotJson);
+            if (rawSnapshot && typeof rawSnapshot === 'object' && !Array.isArray(rawSnapshot)
+              && 'definitionUrl' in rawSnapshot && 'definitionVersion' in rawSnapshot && 'data' in rawSnapshot) {
+              draftSnapshot = rawSnapshot as FormDraftSnapshot;
+            }
+          } catch {
+            draftSnapshot = undefined;
+          }
+        }
+        return {
+          status: 'loaded',
+          response,
+          ...(draftSnapshot ? { draftSnapshot } : {}),
+          pins: result.draft.pins,
+          revision: result.draft.revision,
+          key,
+        };
       } catch {
         return { status: 'unavailable' };
       }

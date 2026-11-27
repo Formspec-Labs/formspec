@@ -1116,7 +1116,9 @@ function ReviewBody({
     const stamp = <>{entry.author.name ?? entry.author.id} · <time dateTime={entry.recorded}>{entry.recorded}</time></>;
     if ('group' in entry) {
       const count = entry.paths.length;
-      const summaryLabel = `${count} ${count === 1 ? 'question' : 'questions'} left unanswered (${entry.code})`;
+      const summaryLabel = entry.code === 'HIDDEN_ANSWERS_OMITTED'
+        ? `${count} hidden ${count === 1 ? 'answer' : 'answers'} excluded from filing (${entry.code})`
+        : `${count} ${count === 1 ? 'question' : 'questions'} left unanswered (${entry.code})`;
       groups.push(<details key={JSON.stringify([entry.code, entry.partyRef])} data-explanation-code={entry.code}>
         <summary>{summaryLabel} — accepted by {entry.author.name ?? entry.author.id} at <time dateTime={entry.recorded}>{entry.recorded}</time></summary>
         <ul>{entry.paths.map(path => <li key={path}>{path === '#' ? c.copy.heading : p.fields[path]!.label}</li>)}</ul>

@@ -359,7 +359,12 @@ MUST reference at most one request marked with a signing operation. Processors
 use the resolved request's operation to apply the
 [draft revision check](#draft-revision-check). The Action's effective
 [validation tuple](#5-validation-trigger-mapping) determines whether the
-processor saves the Response as a draft checkpoint.
+processor saves the Response as a draft checkpoint. When a signing ceremony's
+`draft` data binding declares a `producer` pointing to an upstream Prepare
+Action ([Surface §4](../surface/surface-spec.md#module-widget-configuration-data-and-actions)),
+the host relates the Prepare response's committed draft identity (`draft_id`)
+and committed unsigned revision (`draft_version`) directly to the delivered
+ceremony `draft` input (`{ id, version, responseHash }`).
 
 <!-- schema-ref:start id=response-actions-service-requests schema=schemas/response-actions.schema.json pointers=#/$defs/ServiceRequestEffect,#/$defs/RuntimeRequestCatalog,#/$defs/RuntimeRequest,#/$defs/HttpJsonRequest,#/$defs/RuntimeValueSelector,#/$defs/RuntimeRequestOutput -->
 <!-- generated:schema-ref id=response-actions-service-requests -->

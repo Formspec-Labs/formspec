@@ -34,6 +34,8 @@ export interface EvalResult {
     explanationFindings?: ExplanationFinding[];
     candidateExplanations?: DraftExplanation[];
     nonRelevant: string[];
+    /** Non-display, non-calculated leaf paths with non-empty values omitted under `remove` NRB. */
+    heldNonRelevantValues?: Record<string, unknown>;
     /** Paths that `valid()` reads as invalid in the settled evaluation (Core §3.5.9). */
     invalidPaths: string[];
     variables: Record<string, unknown>;

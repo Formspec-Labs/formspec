@@ -2,7 +2,7 @@
 #![allow(clippy::missing_docs_in_private_items)]
 
 use fel_core::exact_json::Value;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::types::{
     ItemInfo, NrbMode, find_item_by_path, parent_path, strip_indices, to_wildcard_path,
@@ -87,6 +87,61 @@ fn collect_non_relevant_with_nrb(
             out.push((item.path.clone(), mode));
         }
         collect_non_relevant_with_nrb(&item.children, mode, out);
+    }
+}
+
+/// Whether a held value is considered empty and therefore does not require hidden-answer
+/// acknowledgement (`null`, `""`, `[]`, `{}`). Boolean `false` and numeric `0` are non-empty.
+pub fn is_empty_held_value(value: &Value) -> bool {
+    match value {
+        Value::Null => true,
+        Value::String(s) => s.is_empty(),
+        Value::Array(items) => items.is_empty(),
+        Value::Object(map) => map.is_empty(),
+        Value::Bool(_) | Value::Number(_) => false,
+    }
+}
+
+/// Collect every non-display, non-calculated leaf field path whose effective NRB mode is
+/// [`NrbMode::Remove`] and whose pre-NRB settled value is non-empty, sorted in UTF-8 byte order.
+pub fn collect_held_non_relevant_values(
+    values: &HashMap<String, Value>,
+    items: &[ItemInfo],
+    definition_default: &str,
+    calculated_paths: &[String],
+) -> BTreeMap<String, Value> {
+    let calculated: HashSet<&str> = calculated_paths.iter().map(String::as_str).collect();
+    let mut held = BTreeMap::new();
+    collect_held_recursive(
+        values,
+        items,
+        NrbMode::from_str_lossy(definition_default),
+        &calculated,
+        &mut held,
+    );
+    held
+}
+
+fn collect_held_recursive(
+    values: &HashMap<String, Value>,
+    items: &[ItemInfo],
+    inherited: NrbMode,
+    calculated: &HashSet<&str>,
+    out: &mut BTreeMap<String, Value>,
+) {
+    for item in items {
+        let mode = item.nrb.unwrap_or(inherited);
+        if !item.mip.relevant
+            && mode == NrbMode::Remove
+            && item.item_type != "display"
+            && item.item_type != "group"
+            && !calculated.contains(item.path.as_str())
+            && let Some(value) = values.get(&item.path)
+            && !is_empty_held_value(value)
+        {
+            out.insert(item.path.clone(), value.clone());
+        }
+        collect_held_recursive(values, &item.children, mode, calculated, out);
     }
 }
 

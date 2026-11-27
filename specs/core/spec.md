@@ -742,6 +742,36 @@ hexadecimal characters. Use the following domains and values.
 For each `acknowledge` code, the union of the group entries' stored `paths`
 MUST equal the set of current firing paths. Each entry's `basis` MUST match
 the firings at its own `paths`.
+
+##### Hidden-Answer Omission Acknowledgement (`HIDDEN_ANSWERS_OMITTED`)
+
+When a respondent edits a draft so that a field holding a non-empty user answer
+becomes non-relevant under `remove` non-relevant behavior (§5.6), the editable
+draft snapshot MUST preserve the held value through save, reload, and later
+re-relevance (unhiding), while the assembled filed Response MUST omit all
+non-relevant held values.
+
+At `on-submit` evaluation (§2.4, §5.3.1), every non-display, non-calculated leaf
+field path that carries a non-empty held value (any value other than `null`,
+`""`, `[]`, or `{}`; boolean `false` and numeric `0` are non-empty) and is
+removed by `remove` non-relevant behavior produces a built-in grouped
+acknowledgement finding with:
+
+- `code`: `"HIDDEN_ANSWERS_OMITTED"`
+- synthetic `shapeId`: `"formspec:hidden-answers"`
+- effective mode: `"acknowledge"`
+- `inputs`: `[[path, refDigest(heldValue)]]` using `formspec.explanation.ref.v1`
+  over the exact held value (with `path` in resolved dot/index notation, no `$`
+  prefix)
+
+All such held paths form a single grouped acknowledgement entry whose `paths`
+are sorted in UTF-8 byte order and whose `basis` is computed by the standard
+group basis hash (`formspec.explanation.group-basis.v1`) over
+`{code: "HIDDEN_ANSWERS_OMITTED", firings}`. Adding, removing, or changing any
+held path or value changes `paths` or `basis` and invalidates any earlier
+acknowledgement (`EXPLANATION_STALE`), requiring a fresh grouped acknowledgement
+before Submit or Sign succeeds.
+
 [`basis-vectors.json`](../../tests/conformance/fixtures/explanations/basis-vectors.json)
 pins the encoded bytes and digests for both forms.
 
@@ -4260,13 +4290,39 @@ identifiers from other schemes, including integer and date versions.
 
 For `pin: "at-open"`, the server MUST select and record a pin with
 `pinned: true` at draft open; an unavailable pin MUST refuse opening and name
-the missing filing. Browser creation receives the pinned value as an instance;
-the server does not use the `create` feature. Later loads MUST return exactly
-the pinned records and report `newer: {responseId, responseHash}` when a fresh
-selection would choose another completed record. Re-pin is an explicit,
-authorized draft operation through `assemble_candidate`; any offered refill
-uses the prefill Mapping only for the preparer's selected fields. It MUST NOT
+the missing filing. Browser creation receives the pinned value as an instance
+so `initialValue` and `seedFrom` see the server-recorded pin; the server does
+not use the `create` feature. For response-backed secondary instances, the host
+instance resolver request carries the declared `response` (`ResponseSelection`)
+and the consuming filing-unit `subject`, and a loaded resolution carries
+`records`, `valueDigest`, `none`, `pinned`, optional `mapping`, and optional
+`newer`. Later loads MUST return exactly the pinned records and report
+`newer: {responseId, responseHash}` when a fresh selection would choose another
+completed record.
+
+Re-pin is an explicit, authorized, revision-checked draft operation (`repinDraft`
+/ `POST /drafts/{draft_id}/repin`) through `assemble_candidate`. A re-pin
+request MUST assert the caller's expected draft revision (`expected_draft_version`
+or `draftFence.revision`) and the prior pinned `valueDigest` (and prior pinned
+records when non-empty). The server or preview port MUST verify caller
+authorization, expected revision, unsigned `in-progress` status, and prior pin
+receipt/digest; atomically replace the pinned selection records and
+`valueDigest` with the fresh selection; apply any requested refill exclusively to
+the preparer's selected fields while preserving all unrelated answers; recheck
+explanation and acknowledgement bases against the updated state; leave every
+prior completed filing byte-identical; and refuse stale revisions, signed or
+filed targets, mismatched prior receipts or digests, or unavailable fresh
+selections (`409 Conflict` on HTTP, typed refusal on `DraftPort`). It MUST NOT
 edit a signed Response.
+
+Before Sign or Submit, the browser runtime (`FormEngine` and draft writer) MUST
+refresh non-pinned response instances, assemble the filing candidate once in the
+`on-submit` profile (`assemble_candidate`) so `resolvedInstances` and verified
+`explanations` are captured from that exact evaluation without overwriting the
+editable draft snapshot (`DraftRecord.responseJson` / `draft_snapshot`) with the
+completed candidate, and supply the validation report from that exact single
+capture to the action gate and UI without running a separate stale or drifted
+validation pass.
 
 #### 4.4.2 Referencing Instances in Expressions
 
@@ -4920,9 +4976,14 @@ Before filing a Response, the processor MUST evaluate in the submit profile
 and feed each pass's output `data` into the next pass until the output equals
 the input. A single pass can leave answers whose relevance depends on an
 answer pruned in that pass. A later pass sees answers omitted from its input
-as `null` and recomputes calculations. All passes use the same evaluation time. The filer
-MUST use the settled evaluation's `data` and validation results, including
-any external validation results under §5.7.
+as `null` and recomputes calculations. All passes use the same evaluation time.
+Across convergence passes, the processor MUST accumulate every non-display,
+non-calculated leaf field path whose non-empty held value was removed under
+`remove` non-relevant behavior and evaluate the built-in grouped
+`HIDDEN_ANSWERS_OMITTED` acknowledgement (§2.1.6, §5.3.1) against that complete
+omitted set on the settled pass, while ensuring the settled `data` omits every
+removed held value. The filer MUST use the settled evaluation's `data` and
+validation results, including any external validation results under §5.7.
 
 When rechecking a submitted Response, the processor MUST evaluate the filed
 `data` in the submit profile and refuse the Response if re-evaluation changes
@@ -6401,10 +6462,20 @@ service-key signing; it does not prove possession of a personal signing key.
 
 Recognition of this extension does not change core required/relevant/readonly,
 calculation, or validation behavior. Application signing and Submit admission
-policy remains explicit. Sign and Submit are separate actions: Sign returns a
-persisted signed Response; Submit uses that exact current Response and performs
-its own admission checks. Widget completion feedback alone is not evidence of
-persisted, verified signing.
+policy remains explicit. When an upstream Prepare action (`operation: "prepare"`,
+[Response Actions §6.6](../response-actions/response-actions-spec.md#66-service-requests))
+saves the filing candidate for a signing ceremony, its response supplies the
+committed unsigned draft identity (`draft_id`), committed unsigned revision
+(`draft_version`), and canonical Response (`canonical_response`). The host MUST
+bind that exact draft identity, committed revision, and canonical Response
+digest (`responseHash`) into the signing ceremony's delivered `draft` input
+(`{ id, version, responseHash }`) and `response` input, and MUST supply that
+exact revision as the optimistic draft revision fence on Sign and Submit. Any
+intervening edit or stale revision MUST be refused before signing or filing.
+Sign and Submit are separate actions: Sign returns a persisted signed Response
+with its committed revision; Submit uses that exact current Response and
+performs its own admission checks. Widget completion feedback alone is not
+evidence of persisted, verified signing.
 
 ### 8.5 Extension Namespaces
 

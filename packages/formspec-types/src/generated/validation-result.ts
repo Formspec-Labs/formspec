@@ -31,7 +31,7 @@ export interface ValidationResult {
    * - 'constraint': A Bind 'constraint' expression evaluated to false (e.g., '$ > 0' on a negative value). Standard code: CONSTRAINT_FAILED.
    * - 'shape': A named Validation Shape's constraint or composition evaluated to invalid. Standard code: SHAPE_FAILED. The shapeId property identifies which Shape.
    * - 'external': Injected by an external system (server-side API, third-party validator, business rule engine). Standard code: EXTERNAL_FAILED. The source property will be 'external' and sourceId identifies the system.
-   * - 'explanation': Derived by the submit-profile check for a warning Shape answer. Codes: EXPLANATION_REQUIRED, EXPLANATION_STALE, EXPLANATION_UNUSED. See Core §5.3.1.
+   * - 'explanation': Derived by the submit-profile check for a warning Shape answer or built-in hidden-answer omission group (HIDDEN_ANSWERS_OMITTED). Codes: EXPLANATION_REQUIRED, EXPLANATION_STALE, EXPLANATION_UNUSED. See Core §5.3.1.
    * - 'definition': An error in the authored Definition. Standard codes: SYNTAX_ERROR, UNDEFINED_FUNCTION, ARITY_MISMATCH, SEED_PREDICATE_SCOPE, UNSUBSCRIPTED_REPEAT_REFERENCE, MIP_ARGUMENT_NOT_FIELD, UNASSEMBLED_DEFINITION_REFERENCE, CIRCULAR_DEPENDENCY.
    */
   constraintKind:

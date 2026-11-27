@@ -73,7 +73,7 @@ pub use eval_json::{
 };
 pub use eval_options::{EvalOptions, recheck_eval_options};
 pub use host_context::HostFelContext;
-pub use nrb::{apply_nrb, resolve_nrb};
+pub use nrb::{apply_nrb, collect_held_non_relevant_values, is_empty_held_value, resolve_nrb};
 pub use output_data::filed_response_data_matches;
 pub use pipeline::{EvaluateFiledError, PreparedDefinition, evaluate, evaluate_filed};
 pub use rebuild::parse_variables;

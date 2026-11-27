@@ -104,12 +104,13 @@ it('debounces programmatic edits and commits the filtered Response with the late
   resumed.setValue('show', true);
   expect(resumed.signals.hidden.value).toBe('retained');
   expect(resumed.repeats.rows.value).toBe(1);
-  // answer, show and rows[0].answer are relevant and editable; hidden is not relevant. Two are filled.
-  expect(input.summary?.progress.form).toEqual({ total: 3, filled: 2, toFix: 0, toCheck: 0, ready: true });
+  // answer, show and rows[0].answer are relevant and editable; hidden holds a removed non-relevant value
+  // that requires one grouped acknowledgement (fs-2cbq) before the form is ready to file.
+  expect(input.summary?.progress.form).toEqual({ total: 3, filled: 2, toFix: 0, toCheck: 1, ready: false });
   const assist = createAssistProvider({ engine, registerWebMCP: false });
   cleanup.push(() => assist.dispose());
-  const { total, filled, ready } = assist.getProgress();
-  expect(input.summary?.progress.form).toMatchObject({ total, filled, ready });
+  const { total, filled } = assist.getProgress();
+  expect(input.summary?.progress.form).toMatchObject({ total, filled });
 });
 
 it('requires an authored autosave, and explicit Save uses the same writer', async () => {

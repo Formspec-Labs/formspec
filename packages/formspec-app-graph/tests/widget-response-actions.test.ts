@@ -1,5 +1,6 @@
 /** @filedesc Qualified module-widget Response ownership and transition admission. */
 import corpus from '../../../tests/conformance/fixtures/app-graph-validator/ceremony-sign-operation.case.json';
+import prepareCorpus from '../../../tests/conformance/fixtures/app-graph-validator/ceremony-prepare-producer.case.json';
 import { describe, expect, it } from 'vitest';
 import { validateSurfaceWidgetActions, validateSurfaceResponseActionTriggers, type AppGraphContext,
   type ResolvedArtifactHandle } from '../src/index.js';
@@ -76,5 +77,203 @@ describe('signing ceremony Sign output', () => {
     expect(validateSurfaceResponseActionTriggers(context).some(finding => finding.code === 'E611'))
       .toBe(expected.diagnostics.length > 0);
     expect(validateSurfaceWidgetActions(fixture('sign', 'urn:other:widget').context)).toEqual([]);
+  });
+});
+
+function ceremonyPrepareFixture(options: {
+  producer?: Record<string, unknown> | null;
+  includeUpstreamRoute?: boolean;
+  upstreamDefinitionUrl?: string;
+  mountUpstreamDefinition?: boolean;
+  prepareOperation?: string;
+  includeUnrelatedPrepare?: boolean;
+  includeMappingRelation?: boolean;
+  signDefinitionUrl?: string;
+} = {}) {
+  const upstreamUrl = options.upstreamDefinitionUrl ?? 'urn:def:intake';
+  const signUrl = options.signDefinitionUrl ?? upstreamUrl;
+  const defs: ResolvedArtifactHandle[] = [
+    handle('definition', upstreamUrl, { url: upstreamUrl, version: '1.0.0' }),
+  ];
+  const manifestDefs: Array<{ url: string }> = [{ url: upstreamUrl }];
+  if (signUrl !== upstreamUrl) {
+    defs.push(handle('definition', signUrl, { url: signUrl, version: '1.0.0' }));
+    manifestDefs.push({ url: signUrl });
+  }
+  const mappings: ResolvedArtifactHandle[] = [];
+  const manifestMappings: Array<{ handle: string; url: string }> = [];
+  if (options.includeMappingRelation) {
+    manifestMappings.push({ handle: 'intakeToSign', url: 'urn:mapping:intake-to-sign' });
+    mappings.push(handle('mapping', 'urn:mapping:intake-to-sign', {
+      $formspecMapping: '1.0',
+      version: '1.0.0',
+      definitionRef: upstreamUrl,
+      definitionVersion: '1.0.0',
+      targetSchema: { format: 'json', url: signUrl },
+      rules: [],
+    }));
+  }
+  const draftBinding: Record<string, unknown> = {
+    catalogRef: 'urn:data',
+    sourceRef: 'host:draft',
+  };
+  if (options.producer !== null) {
+    draftBinding.producer = options.producer ?? {
+      routeRef: 'intake',
+      definitionRef: upstreamUrl,
+      actionRef: 'prepare',
+      ...(options.includeMappingRelation ? { relation: { kind: 'mapping', mappingRef: 'intakeToSign' } } : {}),
+    };
+  }
+  const requests: Array<Record<string, unknown>> = [
+    { id: 'prep-req', ...(options.prepareOperation !== undefined ? { operation: options.prepareOperation } : {}) },
+    { id: 'sign-req', operation: 'sign' },
+  ];
+  if (options.includeUnrelatedPrepare) {
+    requests.push({ id: 'unrelated-prep', operation: 'prepare' });
+  }
+  const prepareActionDoc = {
+    scope: 'response',
+    targetDefinition: { url: upstreamUrl, compatibleVersions: '1.0.0' },
+    actions: [
+      { id: 'prepare', intent: 'review', effects: [{ type: 'serviceRequest', requestRef: 'prep-req' }] },
+      ...(signUrl === upstreamUrl
+        ? [{ id: 'sign', intent: 'x-sign', effects: [{ type: 'serviceRequest', requestRef: 'sign-req' }] }]
+        : []),
+    ],
+    'x-formspec-runtime': { requests },
+  };
+  const actionHandles = [handle('responseActions', 'urn:actions', prepareActionDoc)];
+  if (signUrl !== upstreamUrl) {
+    actionHandles.push(handle('responseActions', 'urn:actions:sign', {
+      scope: 'response',
+      targetDefinition: { url: signUrl, compatibleVersions: '1.0.0' },
+      actions: [{ id: 'sign', intent: 'x-sign', effects: [{ type: 'serviceRequest', requestRef: 'sign-req' }] }],
+      'x-formspec-runtime': { requests: [{ id: 'sign-req', operation: 'sign' }] },
+    }));
+  }
+  const routes: Array<Record<string, unknown>> = [];
+  if (options.includeUpstreamRoute !== false) {
+    routes.push({
+      id: 'intake',
+      slots: options.mountUpstreamDefinition === false
+        ? []
+        : [{ id: 'form', slotType: 'definition-form', binding: { definitionRef: upstreamUrl } }],
+      transitions: [{ trigger: 'prepare', to: 'ceremony' }],
+    });
+  }
+  routes.push({
+    id: 'ceremony',
+    slots: [{
+      id: 'signing',
+      slotType: 'module-widget',
+      binding: {
+        moduleId: 'x-module',
+        widgetName: 'SigningCeremony',
+        dataBindings: {
+          response: { catalogRef: 'urn:data', sourceRef: 'host:response' },
+          draft: draftBinding,
+        },
+        actionBindings: {
+          sign: { actionRef: 'sign', responseInput: 'response' },
+        },
+      },
+    }],
+    transitions: [{ trigger: 'sign', to: 'done' }],
+  });
+  routes.push({ id: 'done', slots: [] });
+
+  const context: AppGraphContext = {
+    manifest: handle('appManifest', 'urn:app', {
+      definitions: manifestDefs,
+      dataSources: [{ url: 'urn:data' }],
+      ...(manifestMappings.length ? { mappings: manifestMappings } : {}),
+    }),
+    handles: [
+      ...defs,
+      ...mappings,
+      handle('registry', 'urn:registry', {
+        entries: [
+          { name: 'x-module', category: 'module', contributes: ['x-ceremony'] },
+          {
+            name: 'x-ceremony',
+            category: 'widget',
+            widgetShape: {
+              widgetName: 'SigningCeremony',
+              deliveryContractId: '@formspec-org/surface-react/SigningCeremony@0.1',
+              dataInputs: [
+                { name: 'response', required: true },
+                { name: 'draft', required: true },
+              ],
+              actionOutputs: [{ name: 'sign' }],
+            },
+          },
+        ],
+      }),
+      handle('dataSources', 'urn:data', {
+        id: 'urn:data',
+        sources: [
+          {
+            id: 'host:response',
+            schema: { $ref: 'https://formspec.org/schemas/response/1.0' },
+            availability: { level: 'route', surfaceRef: 'urn:surface', routeRef: 'ceremony' },
+          },
+          {
+            id: 'host:draft',
+            schema: { type: 'object' },
+            availability: { level: 'route', surfaceRef: 'urn:surface', routeRef: 'ceremony' },
+          },
+        ],
+      }),
+      ...actionHandles,
+      handle('surface', 'urn:surface', { routes }),
+    ],
+    schemaResults: [],
+    evidenceResults: [],
+  };
+  return context;
+}
+
+describe('signing ceremony draft producer binding (fs-wqof)', () => {
+  it.each(prepareCorpus.cases)('validates $id', ({ id, expected }) => {
+    const context = (() => {
+      switch (id) {
+        case 'valid-same-definition':
+          return ceremonyPrepareFixture({ prepareOperation: 'prepare' });
+        case 'valid-cross-definition-with-mapping-relation':
+          return ceremonyPrepareFixture({
+            prepareOperation: 'prepare',
+            upstreamDefinitionUrl: 'urn:def:intake',
+            signDefinitionUrl: 'urn:def:signing',
+            includeMappingRelation: true,
+          });
+        case 'missing-producer':
+          return ceremonyPrepareFixture({ prepareOperation: 'prepare', producer: null });
+        case 'missing-upstream-route':
+          return ceremonyPrepareFixture({ prepareOperation: 'prepare', includeUpstreamRoute: false });
+        case 'missing-upstream-definition-on-route':
+          return ceremonyPrepareFixture({ prepareOperation: 'prepare', mountUpstreamDefinition: false });
+        case 'cross-definition-without-relation':
+          return ceremonyPrepareFixture({
+            prepareOperation: 'prepare',
+            upstreamDefinitionUrl: 'urn:def:intake',
+            signDefinitionUrl: 'urn:def:signing',
+            includeMappingRelation: false,
+          });
+        case 'missing-operation':
+          return ceremonyPrepareFixture({ prepareOperation: undefined });
+        case 'wrong-operation-sign':
+          return ceremonyPrepareFixture({ prepareOperation: 'sign' });
+        case 'unrelated-prepare-elsewhere':
+          return ceremonyPrepareFixture({ prepareOperation: undefined, includeUnrelatedPrepare: true });
+        default:
+          throw new Error(`Unhandled case ${id}`);
+      }
+    })();
+
+    const findings = validateSurfaceWidgetActions(context);
+    expect(findings.map(({ code, details }) => ({ code, reason: details?.reason }))).toEqual(expected.diagnostics);
+    expect(validateSurfaceResponseActionTriggers(context).some(f => f.code === 'E611'))
+      .toBe(expected.diagnostics.length > 0);
   });
 });

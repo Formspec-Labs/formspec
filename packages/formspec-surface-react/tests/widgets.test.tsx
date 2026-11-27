@@ -973,6 +973,47 @@ describe('ReceiptPanel', () => {
     );
     expect(container.querySelector('[data-probe="receipt-facts"]')).toBeNull();
   });
+
+  it('renders receiptId, valid server acceptance time, and fingerprint, and omits missing or malformed submittedAt', () => {
+    const valid = render(
+      <ReceiptPanel
+        {...props({
+          data: {
+            receipt: {
+              caseRef: 'CASE-42',
+              receiptId: 'rcpt-2026-0042',
+              submittedAt: '2026-04-15T14:30:00Z',
+              fingerprint: 'sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
+            },
+          },
+        })}
+      />,
+    );
+    const validRows = [...valid.querySelectorAll('.fs-surface-receipt__row')].map(textOf);
+    expect(validRows[0]).toBe('Your referenceCASE-42');
+    expect(validRows[1]).toBe('Receipt IDrcpt-2026-0042');
+    expect(validRows[2]).toMatch(/^Sent.+/);
+    expect(validRows[3]).toBe('Fingerprintsha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789');
+
+    const malformed = render(
+      <ReceiptPanel
+        {...props({
+          data: {
+            receipt: {
+              receiptId: 'rcpt-2026-0043',
+              submittedAt: 'not-a-timestamp',
+              fingerprint: 'sha256:1111111111111111111111111111111111111111111111111111111111111111',
+            },
+          },
+        })}
+      />,
+    );
+    const malformedRows = [...malformed.querySelectorAll('.fs-surface-receipt__row')].map(textOf);
+    expect(malformedRows).toEqual([
+      'Receipt IDrcpt-2026-0043',
+      'Fingerprintsha256:1111111111111111111111111111111111111111111111111111111111111111',
+    ]);
+  });
 });
 
 describe('QueueTable', () => {

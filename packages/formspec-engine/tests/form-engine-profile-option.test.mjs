@@ -72,7 +72,10 @@ test('profile=on-submit recomputes constraints after hidden inputs are removed',
   assert.equal(engine.getValidationReport().valid, true);
   const report = engine.getValidationReport({ profile: 'on-submit' });
   assert.equal(report.valid, false);
-  assert.deepEqual(report.results.map(({ path, code }) => [path, code]), [['y', 'CONSTRAINT_FAILED']]);
+  assert.deepEqual(report.results.map(({ path, code }) => [path, code]), [
+    ['y', 'CONSTRAINT_FAILED'],
+    ['#', 'EXPLANATION_REQUIRED'],
+  ]);
   assert.equal(engine.getValidationReport().valid, true);
   assert.deepEqual(engine.getDraftSnapshot().data, { show: false, x: 5, y: 6 });
 
@@ -94,8 +97,11 @@ test('the submit snapshot and getResponse agree with a fresh recheck of the file
   assert.deepEqual(snapshot.validationReport, engine.getValidationReport({ profile: 'on-submit' }));
   assert.equal(response.status, 'in-progress');
   assert.equal(snapshot.validationReport.valid, false);
-  assert.deepEqual(response.validationResults.map(({ path, code }) => [path, code]),
-    recheck.validations.map(({ path, code }) => [path, code]));
+  assert.deepEqual(
+    response.validationResults.filter(({ code }) => code !== 'EXPLANATION_REQUIRED').map(({ path, code }) => [path, code]),
+    recheck.validations.map(({ path, code }) => [path, code]),
+  );
+  assert.equal(response.validationResults.some(({ path, code }) => path === '#' && code === 'EXPLANATION_REQUIRED'), true);
 });
 
 test('a draft Response keeps its own data even when its report settles cascading relevance', () => {
@@ -115,7 +121,12 @@ test('a draft Response keeps its own data even when its report settles cascading
   // The action validates for submit but persists a draft using the Response profile.
   assert.deepEqual(response.data, { y: 6, z: 7 });
   assert.deepEqual(engine.getResponse({ profile: 'on-submit' }).data, {});
-  assert.equal(validationReport.valid, true);
+  assert.equal(validationReport.valid, false);
+  assert.deepEqual(validationReport.results.map(({ path, code }) => [path, code]), [
+    ['#', 'EXPLANATION_REQUIRED'],
+  ]);
+  assert.equal(engine.acknowledge('HIDDEN_ANSWERS_OMITTED'), true);
+  assert.equal(engine.getValidationReport({ profile: 'on-submit' }).valid, true);
   assert.equal(response.status, 'in-progress');
   assert.equal(Object.hasOwn(response, 'validationResults'), false);
   assert.deepEqual(engine.getDraftSnapshot().data, { x: 5, y: 6, z: 7 });

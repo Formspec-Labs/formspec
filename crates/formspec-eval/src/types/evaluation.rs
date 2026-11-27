@@ -2,7 +2,7 @@
 
 use super::taxonomy::{ConstraintKind, Severity, ValidationCode, ValidationSource};
 use fel_core::exact_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// Validation result for a single field.
 #[derive(Debug, Clone, PartialEq)]
@@ -217,6 +217,9 @@ pub struct EvaluationResult {
     pub diagnostics: Vec<EvalDiagnostic>,
     /// Fields marked non-relevant.
     pub non_relevant: Vec<String>,
+    /// Non-display, non-calculated leaf field paths holding non-empty pre-NRB values that are
+    /// excluded under `remove` non-relevant behavior, sorted by UTF-8 path order (`fs-2cbq`).
+    pub held_non_relevant_values: BTreeMap<String, Value>,
     /// Evaluated variable values.
     pub variables: HashMap<String, Value>,
     /// Variables by concrete scope and name, with FEL types.

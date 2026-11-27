@@ -73,3 +73,40 @@ it('canonicalDraftProgress preserves own section keys including __proto__ and re
     sections: { main: { total: 1, filled: 0, toFix: null, toCheck: null } },
   });
 });
+
+it('rejects a port whose repinDraft admits a stale revision', async () => {
+  const pin1 = {
+    records: [{ responseId: 'urn:list:1', definitionVersion: '1.0.0' }],
+    valueDigest: 'sha256:' + 'a'.repeat(64),
+    none: false,
+    pinned: true,
+    value: { answer: '1' },
+  };
+  let stored: DraftRecord | null = null;
+  const port: DraftPort = {
+    async save(input) {
+      stored = {
+        revision: 'rev-1',
+        pins: input.creationPins ?? {},
+        snapshotJson: input.snapshotJson,
+        responseJson: input.responseJson,
+      };
+      return { status: 'saved', revision: 'rev-1' };
+    },
+    load: async () => (stored ? { status: 'loaded', draft: stored } : { status: 'absent' }),
+    repinDraft: async () => ({ status: 'repinned', draft: stored! }),
+    readSummaries: async () => new Map(),
+  };
+  await expect(draftPortConformance['explicitly re-pins an at-open filing against its expected revision']({
+    port,
+    deny() {},
+    pins: {
+      instance: 'list',
+      initialResponseId: 'urn:list:1',
+      newerResponseId: 'urn:list:2',
+      addInitial: async () => {},
+      addNewer: async () => {},
+      select: async () => ({ status: 'available', ...pin1 }),
+    },
+  })).rejects.toThrow('repinDraft admitted a stale draft revision');
+});

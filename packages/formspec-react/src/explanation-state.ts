@@ -52,23 +52,26 @@ export function useSubmitEvaluation(
         );
     }, [engine]);
     const reads = needsExplanations || needsSubmitShapes;
+    const tracksHidden = typeof engine.getHeldNonRelevantPaths === 'function';
 
     const readSnapshot = useCallback((): {
         submit: SubmitEvaluationSnapshot | null;
         explanations: ExplanationState | null;
     } => {
-        if (!reads) return { submit: null, explanations: null };
+        const activeHeld = (engine.getHeldNonRelevantPaths?.().length ?? 0) > 0;
+        const activeExplanations = needsExplanations || activeHeld;
+        if (!reads && !activeHeld) return { submit: null, explanations: null };
         if (typeof engine.getSubmitEvaluation === 'function') {
             const snapshot = engine.getSubmitEvaluation();
             return {
                 submit: snapshot,
-                explanations: needsExplanations ? snapshot.explanations : null,
+                explanations: activeExplanations ? snapshot.explanations : null,
             };
         }
-        const explanations = needsExplanations && typeof engine.getExplanationState === 'function'
+        const explanations = activeExplanations && typeof engine.getExplanationState === 'function'
             ? engine.getExplanationState()
             : null;
-        const evaluated = needsSubmitShapes && typeof engine.getEvaluatedFormState === 'function'
+        const evaluated = (needsSubmitShapes || activeHeld) && typeof engine.getEvaluatedFormState === 'function'
             ? engine.getEvaluatedFormState({ profile: 'on-submit' })
             : null;
         return {
@@ -86,7 +89,7 @@ export function useSubmitEvaluation(
     }, [readSnapshot]);
 
     useEffect(() => {
-        if (!reads) return;
+        if (!reads && !tracksHidden) return;
         let timer: ReturnType<typeof setTimeout> | undefined;
         let started = false;
         const read = () => {
@@ -110,6 +113,10 @@ export function useSubmitEvaluation(
             const submitChanged = submit !== lastSubmitVal;
             lastSubmitVal = submit;
             if (!started) return;
+            const hasHeld = untracked(() => (engine.getHeldNonRelevantPaths?.().length ?? 0) > 0);
+            if (!reads && !hasHeld && signals.explanationState.peek() === null && signals.submitEvaluation.peek() === null) {
+                return;
+            }
             if (
                 submitChanged
                 && submit?.validationReport
@@ -125,19 +132,25 @@ export function useSubmitEvaluation(
             } else {
                 engine.getEvaluatedFormState?.({ profile: 'off' });
             }
+            const hasHeld = untracked(() => (engine.getHeldNonRelevantPaths?.().length ?? 0) > 0);
             if (!started) return;
+            if (!reads && !hasHeld && signals.explanationState.peek() === null && signals.submitEvaluation.peek() === null) {
+                return;
+            }
             clearTimeout(timer);
             timer = setTimeout(read, EXPLANATION_READ_PAUSE_MS);
         });
         started = true;
         // An edit between the render's read and this effect would otherwise wait for the next one.
-        read();
+        if (reads || untracked(() => (engine.getHeldNonRelevantPaths?.().length ?? 0) > 0)) {
+            read();
+        }
         return () => {
             stopAnswers();
             stopEdits();
             clearTimeout(timer);
         };
-    }, [engine, reads, latestSubmit, readSnapshot, signals]);
+    }, [engine, reads, tracksHidden, latestSubmit, readSnapshot, signals]);
 
     return signals;
 }
