@@ -467,3 +467,99 @@ describe('POST /print', () => {
         expect((await printed({ documents: {}, receipt })).status).toBe(400);
     });
 });
+
+describe('large multi-section form timing and violation parity', () => {
+    function buildLargeSyntheticForm(
+        pageMode: 'wizard' | 'tabs' | 'continuous',
+        seedViolation?: { pageViolationSection?: number; revealViolationSection?: number },
+    ) {
+        const items: unknown[] = [];
+        const binds: unknown[] = [];
+        const shapes: unknown[] = [];
+        for (let s = 1; s <= 15; s += 1) {
+            const children: unknown[] = [
+                { key: `s${s}_enable`, type: 'field', dataType: 'boolean', label: `Section ${s} details toggle` },
+            ];
+            for (let f = 1; f <= 26; f += 1) {
+                const key = `s${s}_field_${f}`;
+                const isChoice = f % 5 === 0;
+                const isDecimal = !isChoice && f % 4 === 0;
+                const isDate = !isChoice && !isDecimal && f % 7 === 0;
+                const isUnlabelledPage = f === 3 && seedViolation?.pageViolationSection === s;
+                const isUnlabelledReveal = f === 2 && seedViolation?.revealViolationSection === s;
+                const item: Record<string, unknown> = {
+                    key,
+                    type: 'field',
+                    dataType: isChoice ? 'choice' : isDecimal ? 'decimal' : isDate ? 'date' : 'string',
+                    label: isUnlabelledPage || isUnlabelledReveal ? '' : `Section ${s} item ${f}`,
+                };
+                if (isChoice) {
+                    item.options = [
+                        { value: 'a', label: 'Option A' },
+                        { value: 'b', label: 'Option B' },
+                    ];
+                }
+                if (isDecimal) item.precision = 2;
+                children.push(item);
+                if (f === 1) binds.push({ path: `sec_${s}.${key}`, required: 'true' });
+                if (f === 2) binds.push({ path: `sec_${s}.${key}`, relevant: `$sec_${s}.s${s}_enable = true` });
+            }
+            if (s <= 5) {
+                children.push({
+                    key: `entries_${s}`,
+                    type: 'group',
+                    label: `Section ${s} entries`,
+                    repeatable: true,
+                    minRepeat: 0,
+                    maxRepeat: 5,
+                    children: [
+                        { key: 'title', type: 'field', dataType: 'string', label: 'Entry title' },
+                        { key: 'amount', type: 'field', dataType: 'decimal', precision: 2, label: 'Entry amount' },
+                        { key: 'notes', type: 'field', dataType: 'text', label: 'Entry notes' },
+                    ],
+                });
+                binds.push({ path: `sec_${s}.entries_${s}[*].title`, required: 'true' });
+            }
+            items.push({ key: `sec_${s}`, type: 'group', label: `Section ${s}`, children });
+            shapes.push({
+                id: `shape_sec_${s}`,
+                target: `sec_${s}`,
+                message: `Section ${s} check`,
+                constraint: 'true',
+                severity: 'error',
+            });
+        }
+        return {
+            $formspec: '1.0',
+            status: 'active',
+            url: `urn:test:large-synthetic-${pageMode}`,
+            version: '1.0.0',
+            title: `Large Synthetic Form (${pageMode})`,
+            formPresentation: { pageMode },
+            items,
+            binds,
+            shapes,
+        };
+    }
+
+    it('completes a 420-field 15-section wizard form well within the 60 s deadline', async () => {
+        const report = await server.check({ definition: buildLargeSyntheticForm('wizard') as never });
+        expect(report.failure).toBeUndefined();
+        expect(report.status).toBe('completed');
+        expect(report.pages).toMatchObject({ kind: 'wizard', expectedMin: 15, drawn: 15, visited: 15, revealedFields: 15 });
+        expect(report.violations).toEqual([]);
+        expect(report.totalMs).toBeLessThan(45_000);
+    }, 60_000);
+
+    it.each(['wizard', 'tabs'] as const)('preserves full violation parity on later pages and revealed fields in a 420-field %s', async (mode) => {
+        const report = await server.check({
+            definition: buildLargeSyntheticForm(mode, { pageViolationSection: 12, revealViolationSection: 14 }) as never,
+        });
+        expect(report.failure).toBeUndefined();
+        expect(report.status).toBe('completed');
+        expect(report.pages).toMatchObject({ kind: mode, visited: 15, revealedFields: 15 });
+        expect(report.violations.some((v) => v.state === 'page-12' && v.rule === 'label')).toBe(true);
+        expect(report.violations.some((v) => v.state === 'errors-12' && v.rule === 'label')).toBe(true);
+        expect(report.violations.some((v) => v.state === 'reveal-sec_14.s14_field_2' && v.rule === 'label')).toBe(true);
+    }, 60_000);
+});
