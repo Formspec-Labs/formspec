@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use conformance::{
     Caller, Evaluator, Outcome, inventions, load_suite, parse, read_json, repo_root, run_case,
-    run_case_with_server_registries,
+    run_case_with_server_pins, run_case_with_server_registries,
 };
 use formspec_eval::{EvalContext, EvalTrigger, ResolvedOptionLists, filed_response_data_matches};
 
@@ -36,6 +36,7 @@ fn no_invention_allows_empty_repeat_under_a_field() {
         resolved_instances: BTreeMap::new(),
         resolved_options: ResolvedOptionLists::default(),
         supply_server_registries: false,
+        supply_server_resolved_options: false,
         inventions: Vec::new(),
     };
     for (filed, expected) in [
@@ -303,4 +304,60 @@ fn recheck_eval_options_clears_all_registry_suite_cases() {
         checked += 1;
     }
     assert_eq!(checked, registry_case_ids.len());
+}
+
+/// Proves the canonical `recheck_eval_options` helper clears all `fs-20e3` registry and `fs-oxsy`
+/// remote-option cases on the server leg `S` once servers forward pinned registries and trusted
+/// resolved option snapshots.
+#[test]
+fn recheck_eval_options_clears_all_registry_and_remote_option_suite_cases() {
+    let root = repo_root();
+    let ledger = read_json(&root, "tests/conformance/parity-ledger.json");
+    let cases = load_suite(&root.join("tests/conformance/suite"));
+    let mut ledger_pinned_ids = Vec::new();
+    for (case_id, runners) in ledger["entries"].as_object().expect("ledger entries") {
+        let is_target_ticket = runners.as_object().is_some_and(|by_runner| {
+            by_runner.values().any(|legs| {
+                legs.as_object().is_some_and(|by_leg| {
+                    by_leg.values().any(|entry| {
+                        matches!(entry["ticket"].as_str(), Some("fs-20e3" | "fs-oxsy"))
+                    })
+                })
+            })
+        });
+        if is_target_ticket {
+            ledger_pinned_ids.push(case_id.as_str());
+        }
+    }
+    let mut checked_ids = Vec::new();
+    for (_, case) in &cases {
+        let id = case["id"].as_str().expect("case id");
+        let has_registries = case["registryPaths"]
+            .as_array()
+            .is_some_and(|paths| !paths.is_empty());
+        let has_remote_options =
+            case.get("resolvedOptions").is_some() || id.starts_with("parity.remote-options-");
+        if !has_registries && !has_remote_options && !ledger_pinned_ids.contains(&id) {
+            continue;
+        }
+        let legs = run_case_with_server_pins(&root, case);
+        assert_eq!(
+            legs["S"],
+            Vec::<String>::new(),
+            "{id}: server leg S failed even with recheck_eval_options(registry_documents, resolved_option_lists)"
+        );
+        assert_eq!(
+            legs["noInvention"],
+            Vec::<String>::new(),
+            "{id}: noInvention failed"
+        );
+        checked_ids.push(id);
+    }
+    assert_eq!(checked_ids.len(), 10);
+    for id in ledger_pinned_ids {
+        assert!(
+            checked_ids.contains(&id),
+            "ledger case {id} was not covered by pinned server recheck"
+        );
+    }
 }

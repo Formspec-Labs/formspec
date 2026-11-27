@@ -371,7 +371,7 @@ async function runProcessingCase(caseDoc, root, options, legs) {
     caseDoc.subject
     || (isPlainObject(caseDoc.resolvedInstances) && Object.keys(caseDoc.resolvedInstances).length > 0)
     || (Array.isArray(caseDoc.explanations) && caseDoc.explanations.length > 0)
-    || isPlainObject(caseDoc.resolvedOptions)
+    || (isPlainObject(caseDoc.resolvedOptions) && !options?.serverResolvedOptions)
     || caseDoc.expectedCandidate !== undefined,
   );
 
@@ -388,12 +388,14 @@ async function runProcessingCase(caseDoc, root, options, legs) {
   const sessionInstanceContext = Object.keys(sessionInstances).length > 0 ? { instances: clone(sessionInstances) } : {};
 
   // The session loads registry, subject, resolvedInstances, explanations, and resolvedOptions.
-  // The server legs omit those inputs until Wave 2-B wires deployed server call sites so known
-  // parity discrepancies remain visible in parity-ledger.json.
+  // The server legs omit those inputs unless opted in (or until Stage 2 wires formspec-server's
+  // FormVersionRecord.registry_documents_json and trusted option snapshots) so remaining
+  // Source-side parity discrepancies stay visible in parity-ledger.json.
   const evalOptions = (server) => (server
     ? {
       nowIso: now,
       ...(options?.serverRegistries ? { registryDocuments: documents } : {}),
+      ...(options?.serverResolvedOptions ? resolvedOptionsContext : {}),
       ...serverInstanceContext,
     }
     : {

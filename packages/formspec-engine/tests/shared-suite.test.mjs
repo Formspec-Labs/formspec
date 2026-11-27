@@ -80,3 +80,36 @@ for (const { file, doc } of CASES) {
     assert.deepEqual(violations, [], `${doc.id} (${RUNNER}; specRefs: ${doc.specRefs.join('; ')})\n  ${violations.join('\n  ')}`);
   });
 }
+
+test('server-leg registry and resolved-option pins clear all fs-20e3 and fs-oxsy suite cases', async () => {
+  const ledgerPinnedIds = new Set(
+    Object.entries(LEDGER.entries ?? {})
+      .filter(([, runners]) =>
+        Object.values(runners ?? {}).some((legs) =>
+          Object.values(legs ?? {}).some(
+            (entry) => entry?.ticket === 'fs-20e3' || entry?.ticket === 'fs-oxsy',
+          ),
+        ),
+      )
+      .map(([caseId]) => caseId),
+  );
+  const checkedIds = new Set();
+  for (const { doc } of CASES) {
+    const hasRegistries = Array.isArray(doc.registryPaths) && doc.registryPaths.length > 0;
+    const hasRemoteOptions =
+      doc.resolvedOptions !== undefined || doc.id.startsWith('parity.remote-options-');
+    if (!hasRegistries && !hasRemoteOptions && !ledgerPinnedIds.has(doc.id)) continue;
+    const legs = await runCase(doc, repoRoot, {
+      serverRegistries: true,
+      serverResolvedOptions: true,
+    });
+    for (const [leg, problems] of legs) {
+      assert.deepEqual(problems, [], `${doc.id} (${RUNNER} pinned leg ${leg})`);
+    }
+    checkedIds.add(doc.id);
+  }
+  assert.equal(checkedIds.size, 10);
+  for (const id of ledgerPinnedIds) {
+    assert.ok(checkedIds.has(id), `ledger case ${id} was not covered by pinned server recheck`);
+  }
+});

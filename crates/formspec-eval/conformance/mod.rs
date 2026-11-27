@@ -334,6 +334,7 @@ pub(super) struct Evaluator<'a> {
     pub(super) resolved_instances: BTreeMap<String, DeliveredSelection>,
     pub(super) resolved_options: ResolvedOptionLists,
     pub(super) supply_server_registries: bool,
+    pub(super) supply_server_resolved_options: bool,
     pub(super) inventions: Vec<String>,
 }
 
@@ -399,12 +400,17 @@ impl Evaluator<'_> {
             } else {
                 &[]
             };
+            let resolved_options = if self.supply_server_resolved_options {
+                self.resolved_options.clone()
+            } else {
+                ResolvedOptionLists::default()
+            };
             recheck_eval_options(
                 trigger,
                 self.context.now_iso.clone(),
                 self.server_instances.clone(),
                 regs,
-                ResolvedOptionLists::default(),
+                resolved_options,
             )
             .expect("valid suite registry documents")
         }
@@ -1325,6 +1331,7 @@ fn run_processing(
     filed_data: Option<&Value>,
     definition_override: Option<&Value>,
     supply_server_registries: bool,
+    supply_server_resolved_options: bool,
     legs: &mut Legs,
 ) {
     let definition = load_definition(root, case, definition_override);
@@ -1350,6 +1357,7 @@ fn run_processing(
         resolved_instances,
         resolved_options: case_resolved_options(case),
         supply_server_registries,
+        supply_server_resolved_options,
         registries,
         inventions: Vec::new(),
     };
@@ -1584,7 +1592,18 @@ pub(super) fn run_case_with_server_registries(root: &Path, case: &Value) -> Legs
     let mut legs = Legs::new();
     match case["kind"].as_str() {
         Some("ENGINE_PROCESSING" | "VALIDATION_REPORT" | "RESPONSE_VALIDATION") => {
-            run_processing(root, case, None, None, true, &mut legs);
+            run_processing(root, case, None, None, true, false, &mut legs);
+        }
+        _ => return run_case(root, case),
+    }
+    legs
+}
+
+pub(super) fn run_case_with_server_pins(root: &Path, case: &Value) -> Legs {
+    let mut legs = Legs::new();
+    match case["kind"].as_str() {
+        Some("ENGINE_PROCESSING" | "VALIDATION_REPORT" | "RESPONSE_VALIDATION") => {
+            run_processing(root, case, None, None, true, true, &mut legs);
         }
         _ => return run_case(root, case),
     }
@@ -1607,6 +1626,7 @@ pub(super) fn run_case_with_overrides(
                 case,
                 filed_data,
                 definition_override,
+                false,
                 false,
                 &mut legs,
             );
