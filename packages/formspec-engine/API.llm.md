@@ -33,9 +33,7 @@ type FormspecItem = FormItem;
 @deprecated Use `FormBind` from `@formspec-org/types` (and the engine's `RemoteOptionsState` for remote options). Removed in v1.
 
 ```ts
-type FormspecBind = FormBind & {
-    remoteOptions?: string;
-};
+type FormspecBind = FormBind;
 ```
 
 #### type `FormspecShape`
@@ -517,7 +515,6 @@ innermost sibling, and $orders.discount_pct resolves to the enclosing group's co
 
 ```ts
 type EngineBindConfig = FormBind & {
-    remoteOptions?: string;
     precision?: number;
     disabledDisplay?: 'hidden' | 'protected';
 };

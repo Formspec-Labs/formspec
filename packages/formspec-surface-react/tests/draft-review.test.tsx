@@ -140,9 +140,13 @@ it('uses bundled wording without requesting external instances or options', asyn
   const external = {
     ...definition,
     instances: { lookup: { source: 'https://example.test/lookup', data: { name: 'Bundled' } } },
-    items: [{ key: 'answer', type: 'field', dataType: 'choice', label: 'Answer for {{@instance("lookup").name}}',
-      options: [{ value: 'yes', label: 'Bundled yes' }] }],
-    binds: [{ path: 'answer', remoteOptions: 'https://example.test/options' }],
+    items: [
+      { key: 'answer', type: 'field', dataType: 'choice', label: 'Answer for {{@instance("lookup").name}}',
+        options: [{ value: 'yes', label: 'Bundled yes' }] },
+      { key: 'externalChoice', type: 'field', dataType: 'choice', label: 'External choice',
+        options: 'https://example.test/options' },
+    ],
+    binds: [],
   };
   const load = vi.fn<DraftPort['load']>(async key => ({ status: 'loaded', draft: {
     revision: 'saved-revision', snapshotJson: '{}', responseJson: JSON.stringify({

@@ -373,7 +373,6 @@ interface FormspecBind {
   constraintMessage?: string;
   default?: any;
   nonRelevantBehavior?: 'remove' | 'empty' | 'keep';
-  remoteOptions?: string;
   whitespace?: 'trim' | 'normalize' | 'remove';
   precision?: number;
 }

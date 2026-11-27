@@ -26,7 +26,7 @@ export interface ValidationResult {
    * The category of constraint that produced this result. Values:
    *
    * - 'required': A required field (Bind required=true) is null, empty string, or empty array. Standard code: REQUIRED.
-   * - 'type': The field's value does not conform to its declared dataType (e.g., 'abc' in an integer field). Standard code: TYPE_MISMATCH.
+   * - 'type': The field's value does not conform to its declared dataType (e.g., 'abc' in an integer field) or its remote option list was not supplied by the host. Standard codes: TYPE_MISMATCH, OPTIONS_UNAVAILABLE.
    * - 'cardinality': A repeatable group violates its minRepeat or maxRepeat bounds. Standard codes: MIN_REPEAT, MAX_REPEAT.
    * - 'constraint': A Bind 'constraint' expression evaluated to false (e.g., '$ > 0' on a negative value). Standard code: CONSTRAINT_FAILED.
    * - 'shape': A named Validation Shape's constraint or composition evaluated to invalid. Standard code: SHAPE_FAILED. The shapeId property identifies which Shape.
@@ -51,7 +51,8 @@ export interface ValidationResult {
    * A machine-readable identifier for this class of finding. Enables programmatic handling: suppressing known warnings, mapping to external error catalogs, localization key lookups, analytics grouping, and API-level error routing. The standard built-in codes below are RESERVED (core spec §2.5.1) and processors MUST use them for corresponding built-in constraints:
    *
    * - REQUIRED — required field is null, empty string, or empty array
-   * - TYPE_MISMATCH — value cannot be interpreted as the field's dataType
+   * - TYPE_MISMATCH — value cannot be interpreted as the field's dataType, or is not in the field's resolved option list
+   * - OPTIONS_UNAVAILABLE — a choice or multiChoice field references a remote option source (URL-backed optionSet or URI-string options) and no resolved option list was supplied by the host
    * - MIN_REPEAT — fewer repeat instances than minRepeat
    * - MAX_REPEAT — more repeat instances than maxRepeat
    * - CONSTRAINT_FAILED — Bind constraint returned false
