@@ -109,7 +109,7 @@ fn shared_suite_parity_guard() {
     let mut observed = Vec::new();
     for (file, case) in &cases {
         let id = case["id"].as_str().expect("case id");
-        let legs = run_case(&root, case);
+        let legs = run_case_with_server_pins(&root, case);
         let listed = ledger["entries"][id][RUNNER]
             .as_object()
             .cloned()
@@ -354,10 +354,8 @@ fn recheck_eval_options_clears_all_registry_and_remote_option_suite_cases() {
         checked_ids.push(id);
     }
     assert_eq!(checked_ids.len(), 10);
-    for id in ledger_pinned_ids {
-        assert!(
-            checked_ids.contains(&id),
-            "ledger case {id} was not covered by pinned server recheck"
-        );
-    }
+    assert!(
+        ledger_pinned_ids.is_empty(),
+        "parity-ledger.json must have 0 remaining fs-20e3 or fs-oxsy entries: {ledger_pinned_ids:?}"
+    );
 }

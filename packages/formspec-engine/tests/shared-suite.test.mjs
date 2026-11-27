@@ -71,7 +71,10 @@ test('parity ledger entries name an existing case, a runner, a ticket and a reas
 
 for (const { file, doc } of CASES) {
   test(`shared suite: ${file}`, async () => {
-    const legs = await runCase(doc, repoRoot);
+    const legs = await runCase(doc, repoRoot, {
+      serverRegistries: true,
+      serverResolvedOptions: true,
+    });
     for (const [leg, problems] of legs) {
       if (problems.length > 0) (OBSERVED[doc.id] ??= {})[leg] = problems;
     }
@@ -109,7 +112,9 @@ test('server-leg registry and resolved-option pins clear all fs-20e3 and fs-oxsy
     checkedIds.add(doc.id);
   }
   assert.equal(checkedIds.size, 10);
-  for (const id of ledgerPinnedIds) {
-    assert.ok(checkedIds.has(id), `ledger case ${id} was not covered by pinned server recheck`);
-  }
+  assert.equal(
+    ledgerPinnedIds.size,
+    0,
+    `parity-ledger.json must have 0 remaining fs-20e3 or fs-oxsy entries: ${[...ledgerPinnedIds].join(', ')}`,
+  );
 });
