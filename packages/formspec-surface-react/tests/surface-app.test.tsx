@@ -3718,7 +3718,7 @@ describe("nested Overview hub navigation", () => {
         slots: [
           {
             id: "year-map",
-            slotType: "filing-status",
+            slotType: "form-status",
             binding: {
               groups: [
                 {
@@ -3745,7 +3745,7 @@ describe("nested Overview hub navigation", () => {
         slots: [
           {
             id: "member-map",
-            slotType: "filing-status",
+            slotType: "form-status",
             binding: {
               groups: [
                 {
@@ -3775,7 +3775,7 @@ describe("nested Overview hub navigation", () => {
     ],
   } as unknown as SurfaceDocument;
 
-  it("nests explicit parent routes and inferred filing-status hub children with collapsible hubs that keep links mounted", () => {
+  it("nests explicit parent routes and inferred form-status hub children with collapsible hubs that keep links mounted", () => {
     const nestedBundle: ResolvedBundle = {
       ...bundle,
       surfaces: [nestedSurface],
@@ -3818,18 +3818,18 @@ describe("nested Overview hub navigation", () => {
       routes: [
         {
           id: "year-hub",
-          path: "/years/{ffy}",
+          path: "/years/{period}",
           title: "Year Overview",
           slots: [
             {
               id: "year-map",
-              slotType: "filing-status",
+              slotType: "form-status",
               binding: {
                 groups: [
                   {
                     id: "agencies",
                     label: "Agency reports",
-                    repeat: { sourceRef: "agencies", memberParam: "uei", memberLabelField: "name" },
+                    repeat: { sourceRef: "agencies", memberParam: "orgId", memberLabelField: "name" },
                     forms: [{ routeRef: "agency-spending", slotRef: "form" }],
                   },
                 ],
@@ -3839,12 +3839,12 @@ describe("nested Overview hub navigation", () => {
         },
         {
           id: "agency-hub",
-          path: "/years/{ffy}/agencies/{uei}",
+          path: "/years/{period}/agencies/{orgId}",
           title: "Agency Overview",
           slots: [
             {
               id: "agency-map",
-              slotType: "filing-status",
+              slotType: "form-status",
               binding: {
                 groups: [
                   {
@@ -3860,7 +3860,7 @@ describe("nested Overview hub navigation", () => {
         },
         {
           id: "agency-spending",
-          path: "/years/{ffy}/agencies/{uei}/spending",
+          path: "/years/{period}/agencies/{orgId}/spending",
           title: "Agency Spending",
           routeClass: "intake",
           slots: [],
@@ -3871,7 +3871,7 @@ describe("nested Overview hub navigation", () => {
       <SurfaceApp
         bundle={{ ...bundle, surfaces: [hierarchySurface] }}
         location="/years/2025"
-        routeParams={{ ffy: "2025", uei: "ORG001" }}
+        routeParams={{ period: "2025", orgId: "ORG001" }}
         onNavigate={() => {}}
         setDocumentTitle={false}
       />

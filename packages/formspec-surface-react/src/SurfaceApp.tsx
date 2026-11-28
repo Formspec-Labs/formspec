@@ -114,7 +114,7 @@ import {
 } from "./diagnostic-delivery.js";
 import { needTraceAttributes } from "./need-trace.js";
 import { useSurfaceThemeTokens } from "./surface-theme.js";
-import type { FilingStatusOptions } from "./FilingStatus.js";
+import type { FormStatusOptions } from "./FormStatus.js";
 import { isPlainLinkClick } from "./browser-location.js";
 
 export interface SurfaceTransitionOutcome {
@@ -316,10 +316,10 @@ export interface SurfaceAppProps extends UseSurfaceAppInput {
   onWidgetActionReport?:
     | ((report: SurfaceWidgetActionReport) => void)
     | undefined;
-  /** Reads authorized draft progress across the filing tracker in one batch. */
-  readSummaries?: FilingStatusOptions["readSummaries"];
+  /** Reads authorized draft progress across the form-status tracker in one batch. */
+  readSummaries?: FormStatusOptions["readSummaries"];
   /** Change when a committed observation should be read again. */
-  filingDraftRevision?: FilingStatusOptions["revision"];
+  filingDraftRevision?: FormStatusOptions["revision"];
   /** Stable opaque viewer identity for browser preferences on a shared browser profile. */
   viewerPreferenceKey?: string | undefined;
   /** Pure selection of an admitted Component for both the form and its tracker links. */
@@ -981,7 +981,7 @@ export function SurfaceAppView(props: SurfaceAppProps & {
               formSession={formSession}
               overviewDestination={overviewDestination}
               bandPreferenceScope={JSON.stringify([bundle.manifest.id, props.viewerPreferenceKey, browser?.previewScope])}
-              filingStatus={{
+              formStatus={{
                 readSummaries: props.readSummaries,
                 revision: props.filingDraftRevision,
                 navigate: (href) => browser ? browser.navigate(href) : onNavigate(href),
@@ -1091,14 +1091,14 @@ interface NavTree {
   ancestorHubKeys: Map<SurfaceRouteHandle, string[]>;
 }
 
-function filingStatusGroupRouteRefs(
+function formStatusGroupRouteRefs(
   handle: SurfaceRouteHandle,
   repeatOnly: boolean
 ): { isFilingHub: boolean; refs: string[] } {
   const refs: string[] = [];
   let isFilingHub = false;
   for (const slot of handle.route.slots ?? []) {
-    if (slot.slotType !== "filing-status") continue;
+    if (slot.slotType !== "form-status") continue;
     const binding = slot.binding as { groups?: unknown } | undefined;
     if (!binding || typeof binding !== "object" || !Array.isArray(binding.groups)) continue;
     isFilingHub = true;
@@ -1185,7 +1185,7 @@ function resolveOverviewDestination(
     }
   }
 
-  // 2. Nearest addressable filing-status overview hub in the same surface and scope
+  // 2. Nearest addressable form-status overview hub in the same surface and scope
   //    (path prefix affinity -> direct reference -> repeat reference -> entry -> declaration order).
   const candidates: Array<{
     href: string;
@@ -1204,8 +1204,8 @@ function resolveOverviewDestination(
     ) {
       return;
     }
-    const nonRepeat = filingStatusGroupRouteRefs(candidate, false);
-    const repeat = filingStatusGroupRouteRefs(candidate, true);
+    const nonRepeat = formStatusGroupRouteRefs(candidate, false);
+    const repeat = formStatusGroupRouteRefs(candidate, true);
     if (!nonRepeat.isFilingHub && !repeat.isFilingHub) return;
     const href = resolveCandidateHref(candidate);
     if (href === undefined) return;
@@ -1263,11 +1263,11 @@ function buildNavTree(routes: readonly SurfaceRouteHandle[]): NavTree {
     }
   }
 
-  // Pass 2: score filing-status hub candidates (path prefix affinity -> non-repeat -> declared order)
+  // Pass 2: score form-status hub candidates (path prefix affinity -> non-repeat -> declared order)
   const candidatesByChild = new Map<SurfaceRouteHandle, Array<{ hub: SurfaceRouteHandle; nonRepeat: boolean; affinity: number; hubOrder: number }>>();
   routes.forEach((hub, hubOrder) => {
     for (const repeatOnly of [false, true]) {
-      const { isFilingHub, refs } = filingStatusGroupRouteRefs(hub, repeatOnly);
+      const { isFilingHub, refs } = formStatusGroupRouteRefs(hub, repeatOnly);
       if (isFilingHub) filingHubs.add(hub);
       for (const routeRef of refs) {
         if (routeRef === hub.routeId) continue;

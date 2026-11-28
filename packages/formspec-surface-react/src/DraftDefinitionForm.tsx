@@ -98,7 +98,7 @@ export function DraftDefinitionForm({
     let release: (() => void) | undefined;
     const opening = latest.current;
     const ready = async () => {
-      // The planned subject names the filing unit; a renderer-supplied id never keys the draft.
+      // The planned subject names the subject; a renderer-supplied id never keys the draft.
       const subject = await deriveDraftSubject(opening.plan.subject);
       if (!active) return;
       const key: DraftKey = { scope: session.scope, definitionUrl: definition.url, subject };
@@ -235,7 +235,7 @@ export function DraftDefinitionForm({
         </p>
         {filing.sample && (
           <p className="fs-surface-filing__meta">
-            {strings(filing.sample === 'fixture' ? 'filingFixture' : 'filingPreviewSubmit')}
+            {strings(filing.sample === 'fixture' ? 'formStatusFixture' : 'formStatusPreviewSubmit')}
           </p>
         )}
         {filing.comments.length > 0 && (

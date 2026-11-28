@@ -14,7 +14,7 @@ export type SurfaceDocument = {
   [k: string]: unknown;
 } & {
   /**
-   * Surface specification version. Screener slots require 0.3 or later. Filing-status slots, draft-start slots and draft-review bindings require 0.4.
+   * Surface specification version. Screener slots require 0.3 or later. Form-status slots, draft-start slots and draft-review bindings require 0.4.
    */
   $formspecSurface: '0.2' | '0.3' | '0.4';
   /**
@@ -60,7 +60,7 @@ export type Slot = {
    */
   id: string;
   /**
-   * Closed slot-type taxonomy; 0.3 adds native Screener presentation and 0.4 adds filing-status and draft-start. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.
+   * Closed slot-type taxonomy; 0.3 adds native Screener presentation and 0.4 adds form-status and draft-start. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.
    */
   slotType:
     | 'definition-form'
@@ -69,7 +69,7 @@ export type Slot = {
     | 'static-content'
     | 'embed-route'
     | 'screener'
-    | 'filing-status'
+    | 'form-status'
     | 'draft-start';
   /**
    * OPTIONAL renderer hint naming a layout position (e.g. 'left', 'main', 'right', 'header'). Author-defined; renderers consume per their layout model. v0.2 carries no normative position vocabulary.
@@ -91,9 +91,9 @@ export type Slot = {
  * An explicit value, a parameter on the declaring route, or a field on the current repeat row.
  *
  * This interface was referenced by `undefined`'s JSON-Schema
- * via the `definition` "FilingStatusParamSource".
+ * via the `definition` "FormStatusParamSource".
  */
-export type FilingStatusParamSource =
+export type FormStatusParamSource =
   | {
       rowField: string;
     }
@@ -331,12 +331,12 @@ export interface DraftStartBinding {
   label: string;
 }
 /**
- * An ordered overview of Definition forms in this Surface. Each group represents one filing unit.
+ * An ordered overview of Definition forms in this Surface. Each group represents one subject.
  *
  * This interface was referenced by `undefined`'s JSON-Schema
- * via the `definition` "FilingStatusBinding".
+ * via the `definition` "FormStatusBinding".
  */
-export interface FilingStatusBinding {
+export interface FormStatusBinding {
   /**
    * Show this tracker in a collapsible band on every route of this Surface. Omit to show it inline on its declaring route.
    */
@@ -344,31 +344,31 @@ export interface FilingStatusBinding {
   /**
    * @minItems 1
    */
-  groups: [FilingStatusGroup, ...FilingStatusGroup[]];
+  groups: [FormStatusGroup, ...FormStatusGroup[]];
   'x-generation'?: Generation;
 }
 /**
  * This interface was referenced by `undefined`'s JSON-Schema
- * via the `definition` "FilingStatusGroup".
+ * via the `definition` "FormStatusGroup".
  */
-export interface FilingStatusGroup {
+export interface FormStatusGroup {
   /**
    * Stable id unique within this tracker.
    */
   id: string;
   label: string;
-  repeat?: FilingStatusRepeat;
+  repeat?: FormStatusRepeat;
   /**
    * @minItems 1
    */
-  forms: [FilingStatusEntry, ...FilingStatusEntry[]];
+  forms: [FormStatusEntry, ...FormStatusEntry[]];
   'x-generation'?: Generation;
 }
 /**
  * This interface was referenced by `undefined`'s JSON-Schema
- * via the `definition` "FilingStatusRepeat".
+ * via the `definition` "FormStatusRepeat".
  */
-export interface FilingStatusRepeat {
+export interface FormStatusRepeat {
   catalogRef: string;
   sourceRef: string;
   /**
@@ -377,16 +377,16 @@ export interface FilingStatusRepeat {
   rowsField?: string;
   labelField: string;
   /**
-   * Label for members with a confirmed outstanding filing.
+   * Label for members with a confirmed outstanding form.
    */
   waitingLabel: string;
   'x-generation'?: Generation;
 }
 /**
  * This interface was referenced by `undefined`'s JSON-Schema
- * via the `definition` "FilingStatusEntry".
+ * via the `definition` "FormStatusEntry".
  */
-export interface FilingStatusEntry {
+export interface FormStatusEntry {
   routeRef: string;
   /**
    * Id of a Definition-form slot on the referenced route.
@@ -394,32 +394,32 @@ export interface FilingStatusEntry {
   slotRef: string;
   hint?: string;
   /**
-   * Authored sources for parameters declared by the target route. Required for every target route parameter unless `subject` selects the filing unit and the target Definition-form slot binds the remaining parameters through `subjectKeys`.
+   * Authored sources for parameters declared by the target route. Required for every target route parameter unless `subject` selects the subject and the target Definition-form slot binds the remaining parameters through `subjectKeys`.
    */
   params?: {
-    [k: string]: FilingStatusParamSource;
+    [k: string]: FormStatusParamSource;
   };
   /**
-   * Predicates over keys declared by the target Definition subject, selecting the single matching filing unit in scope and populating target route parameters bound by the destination slot's `subjectKeys`.
+   * Predicates over keys declared by the target Definition subject, selecting the single matching subject in scope and populating target route parameters bound by the destination slot's `subjectKeys`.
    *
    * @minItems 1
    */
-  subject?: [FilingStatusSubjectPredicate, ...FilingStatusSubjectPredicate[]];
+  subject?: [FormStatusSubjectPredicate, ...FormStatusSubjectPredicate[]];
   'x-generation'?: Generation;
 }
 /**
  * Typed comparison against a key declared by the target Definition subject.
  *
  * This interface was referenced by `undefined`'s JSON-Schema
- * via the `definition` "FilingStatusSubjectPredicate".
+ * via the `definition` "FormStatusSubjectPredicate".
  */
-export interface FilingStatusSubjectPredicate {
+export interface FormStatusSubjectPredicate {
   /**
    * Key declared by the target Definition subject.
    */
   key: string;
   /**
-   * Compare the candidate unit's subject key against the resolved source value plus any offset. `le` and `ge` apply only to integer keys; `eq` preserves the declared key type.
+   * Compare the candidate subject's key against the resolved source value plus any offset. `le` and `ge` apply only to integer keys; `eq` preserves the declared key type.
    */
   op: 'eq' | 'le' | 'ge';
   /**

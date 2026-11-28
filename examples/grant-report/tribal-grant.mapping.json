@@ -1,15 +1,15 @@
 {
     "$formspecMapping": "1.0",
     "version": "1.0.0",
-    "definitionRef": "https://acf.hhs.gov/formspec/csbg/tribal-short",
+    "definitionRef": "https://example.org/formspec/annual-report/tribal-short",
     "definitionVersion": ">=3.0.0 <4.0.0",
     "direction": "forward",
     "targetSchema": {
         "format": "xml",
-        "rootElement": "CSBGAnnualReport",
-        "name": "HHS OLDC CSBG Tribal XML",
+        "rootElement": "AnnualReport",
+        "name": "Annual Report XML",
         "namespaces": {
-            "": "http://acf.hhs.gov/schemas/csbg/2026"
+            "": "https://example.org/schemas/annual-report/2026"
         }
     },
     "rules": [

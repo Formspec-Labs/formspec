@@ -201,7 +201,7 @@ export function declaresWarningFollowUps({ shapes, warningExplanation }: Pick<Fo
 
 /**
  * Merge Submit-timing Shape results from a paused Submit evaluation into a live `EvaluatedFormState`
- * so the Workspace Findings margin matches the Filing map before and after Submit (including
+ * so the Workspace Findings margin matches the form-status tracker before and after Submit (including
  * Submit-timing errors and `none`-mode Submit-timing warnings) while keeping live field flags fresh
  * on every keystroke and avoiding duplicate raw rows for explanation-covered Submit-timing warnings.
  */

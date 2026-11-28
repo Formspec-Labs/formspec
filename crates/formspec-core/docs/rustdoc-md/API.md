@@ -246,7 +246,7 @@ Python, and batch evaluators. Human overview: crate `README.md`. Markdown API ex
 - [`runtime_mapping`](#runtime_mapping) - Bidirectional mapping engine for transforming data between formats.
 - [`schema_validator`](#schema_validator) - Schema validation with document type detection and validation dispatch.
 - [`seed_predicate`](#seed_predicate) - Static checks for a creation-time repeat seed predicate.
-- [`subject_key`](#subject_key) - Typed keys and canonical identity for Formspec filing units.
+- [`subject_key`](#subject_key) - Typed keys and canonical identity for Formspec subjects.
 - [`validation_report`](#validation_report) - Assemble validation-report candidates from qualified public findings.
 - [`value_coerce`](#value_coerce) - Inbound field coercion (parity with TS `coerceFieldValue` in `formspec-engine` helpers).
 - [`wire_keys`](#wire_keys) - Centralized JSON field names for host bindings (`JsonWireStyle`).
@@ -532,9 +532,9 @@ Static checks for a creation-time repeat seed predicate.
 
 ## Module: subject_key
 
-Typed keys and canonical identity for Formspec filing units.
+Typed keys and canonical identity for Formspec subjects.
 
-A subject-declaring Definition names its filing unit by a type URI and typed keys
+A subject-declaring Definition names its subject by a type URI and typed keys
 (Core §2.1.6). [`subject_id`] derives the unit's `Response.subject.id` from them. Both
 the respondent runtime and the Response selector use this module, so it compiles
 without the `response-selection` feature.
@@ -5260,7 +5260,7 @@ fn parse_seed_predicate<V>(definition: &V, source: &str) -> Result<fel_core::Exp
 
 **Functions**
 
-- [`subject_id`](#subject_id) - Derives the unprefixed filing-unit id from its type and typed keys.
+- [`subject_id`](#subject_id) - Derives the unprefixed subject id from its type and typed keys.
 - [`subject_id_json`](#subject_id_json) - Derives the subject id from JSON text for the subject keys.
 
 ---
@@ -5300,7 +5300,7 @@ A filed unit's typed key value.
 
 *Function*
 
-Derives the unprefixed filing-unit id from its type and typed keys.
+Derives the unprefixed subject id from its type and typed keys.
 
 The id is the lowercase hex SHA-256 of the `formspec.subject.id.v1` domain-separated
 canonical JSON of `{type, keys}`, so key order never changes it.

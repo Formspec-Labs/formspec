@@ -389,23 +389,23 @@ mod tests {
 
     #[test]
     fn evaluate_definition_inner_preserves_subject_key_types() {
-        let definition = json!({"subject": {"type": "urn:example:agency-year", "keys": {
-            "serial": {"dataType": "integer"}, "uei": {"dataType": "string"}
+        let definition = json!({"subject": {"type": "urn:example:org-period", "keys": {
+            "serial": {"dataType": "integer"}, "orgId": {"dataType": "string"}
         }}, "items": [
-            {"key": "uei", "type": "field", "dataType": "string"},
+            {"key": "orgId", "type": "field", "dataType": "string"},
             {"key": "year", "type": "field", "dataType": "integer"}
         ], "binds": [
-            {"path": "uei", "calculate": "subject('uei')"},
+            {"path": "orgId", "calculate": "subject('orgId')"},
             {"path": "year", "calculate": "subject('serial')"}
         ]});
-        let context = r#"{"subjectType":"urn:example:agency-year","subjectKeys":{"uei":"00123","serial":9007199254740991}}"#;
+        let context = r#"{"subjectType":"urn:example:org-period","subjectKeys":{"orgId":"00123","serial":9007199254740991}}"#;
         let output =
             evaluate_definition_inner(&definition.to_string(), "{}", Some(context.into()), None)
                 .unwrap();
         let value: Value = serde_json::from_str(&output).unwrap();
         assert_eq!(
             value["data"],
-            json!({"uei": "00123", "year": 9_007_199_254_740_991_i64})
+            json!({"orgId": "00123", "year": 9_007_199_254_740_991_i64})
         );
     }
 
@@ -434,13 +434,13 @@ mod tests {
 
     #[test]
     fn evaluate_definition_inner_refuses_out_of_range_subject_keys() {
-        let definition = json!({"subject": {"type": "urn:example:agency-year", "keys": {
+        let definition = json!({"subject": {"type": "urn:example:org-period", "keys": {
             "serial": {"dataType": "integer"}
         }}, "items": [{"key": "year", "type": "field", "dataType": "integer"}],
             "binds": [{"path": "year", "calculate": "subject('serial')"}]})
         .to_string();
         for serial in [9_007_199_254_740_993_i64, -9_007_199_254_740_992_i64] {
-            let context = json!({"subjectType": "urn:example:agency-year",
+            let context = json!({"subjectType": "urn:example:org-period",
                 "subjectKeys": {"serial": serial}})
             .to_string();
             let output = evaluate_definition_inner(&definition, "{}", Some(context), None).unwrap();
@@ -458,21 +458,21 @@ mod tests {
 
     #[test]
     fn evaluate_definition_inner_refuses_subject_keys_in_shared_order() {
-        let definition = json!({"subject": {"type": "urn:example:agency-year", "keys": {
-            "ffy": {"dataType": "integer"}, "uei": {"dataType": "string"}
+        let definition = json!({"subject": {"type": "urn:example:org-period", "keys": {
+            "period": {"dataType": "integer"}, "orgId": {"dataType": "string"}
         }}, "items": []});
-        let context = r#"{"subjectType":"urn:example:agency-year","subjectKeys":{
-            "uei":100000000000000000000000000000000,"ffy":"2026"
+        let context = r#"{"subjectType":"urn:example:org-period","subjectKeys":{
+            "orgId":100000000000000000000000000000000,"period":"2026"
         }}"#;
         let output =
             evaluate_definition_inner(&definition.to_string(), "{}", Some(context.into()), None)
                 .unwrap();
         let result: Value = serde_json::from_str(&output).unwrap();
         assert_eq!(result["validations"].as_array().unwrap().len(), 1);
-        assert_eq!(result["validations"][0]["path"], "#subjectKeys.ffy");
+        assert_eq!(result["validations"][0]["path"], "#subjectKeys.orgId");
         assert_eq!(
             result["validations"][0]["message"],
-            "Subject key must be an integer"
+            "Subject key must be a string"
         );
     }
 

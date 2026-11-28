@@ -1,4 +1,4 @@
-//! Filing-unit identity, exported by both the runtime and the tools WASM builds.
+//! Subject identity, exported by both the runtime and the tools WASM builds.
 // Rust guideline compliant 2026-02-21
 
 use wasm_bindgen::prelude::*;

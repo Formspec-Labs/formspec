@@ -9,7 +9,7 @@ function fixture() {
   const formSlot = { id: 'capture', slotType: 'definition-form', binding: { definitionRef: 'urn:definition' } };
   const group = { id: 'annual', label: 'Annual forms', forms: [form], ...anchor };
   const binding = { groups: [group], ...anchor };
-  const tracker = { id: 'tracker', slotType: 'filing-status', binding, ...anchor };
+  const tracker = { id: 'tracker', slotType: 'form-status', binding, ...anchor };
   const apply = { id: 'apply', path: '/apply/{unit}', params: [{ name: 'unit', type: 'string' }], slots: [formSlot] };
   const surface = {
     $formspecSurface: '0.4', id: 'app', entry: 'home',
@@ -26,7 +26,7 @@ function fixture() {
 }
 
 it('accepts exact tracker references', () => {
-  expect(graph.validateFilingStatusTargets(fixture().context)).toEqual([]);
+  expect(graph.validateFormStatusTargets(fixture().context)).toEqual([]);
 });
 
 it.each([
@@ -43,7 +43,7 @@ it.each([
 ] as const)('refuses a %s', (_case, alter) => {
   const f = fixture();
   alter(f);
-  expect(graph.validateFilingStatusTargets(f.context)).toHaveLength(1);
+  expect(graph.validateFormStatusTargets(f.context)).toHaveLength(1);
 });
 
 it('requires a direct anchor on each tracker node under the strict profile', () => {
@@ -71,7 +71,7 @@ it('refuses a group that mixes distinct singleton filing units', () => {
     artifactKind: 'definition', status: 'loaded', ref: { url },
     document: { subject: { type: url, keys: {} } },
   }));
-  expect(graph.validateFilingStatusTargets({
+  expect(graph.validateFormStatusTargets({
     ...f.context,
     handles: [...f.context.handles, ...definitions as unknown as AppGraphContext['handles']],
   })).toEqual([expect.objectContaining({ details: { reason: 'mixed-subject-mappings' } })]);
@@ -85,7 +85,7 @@ it.each(['north', '01', '9007199254740992'])('refuses literal %s for an integer 
     artifactKind: 'definition', status: 'loaded', ref: { url: 'urn:definition' },
     document: { subject: { type: 'urn:annual', keys: { year: { dataType: 'integer' } } } },
   } as AppGraphContext['handles'][number];
-  expect(graph.validateFilingStatusTargets({
+  expect(graph.validateFormStatusTargets({
     ...f.context, handles: [...f.context.handles, definition],
   })).toEqual([expect.objectContaining({ details: { reason: 'invalid-subject-value' } })]);
 });
@@ -94,15 +94,15 @@ it('refuses two parameter sources when their resolved values name the same row',
   const f = fixture();
   const source = { ...f.surface.routes[0]!, params: [{ name: 'state' }] };
   f.group.forms.push({ ...f.form, params: { unit: { routeParam: 'state' } } } as unknown as typeof f.form);
-  expect(graph.resolveFilingStatusTargets([f.apply], source, f.binding).issues).toEqual([]);
-  expect(graph.resolveFilingStatusTargets([f.apply], source, f.binding, { state: 'north' }).issues)
+  expect(graph.resolveFormStatusTargets([f.apply], source, f.binding).issues).toEqual([]);
+  expect(graph.resolveFormStatusTargets([f.apply], source, f.binding, { state: 'north' }).issues)
     .toEqual([expect.objectContaining({ reason: 'duplicate-target' })]);
 });
 
 it('refuses a repeating group that cannot distinguish the subjects of its members', () => {
   const f = fixture();
   Object.assign(f.group, { repeat: { catalogRef: 'urn:roster', sourceRef: 'members', labelField: 'name', waitingLabel: 'Waiting for' } });
-  expect(graph.validateFilingStatusTargets(f.context).map(issue => issue.details?.reason))
+  expect(graph.validateFormStatusTargets(f.context).map(issue => issue.details?.reason))
     .toContain('ambiguous-repeat');
 });
 
@@ -126,13 +126,13 @@ it('validates the qualified roster shape and the row field bound to the typed su
         document: { id: 'urn:roster', sources: [source] } },
     ],
   } as unknown as AppGraphContext;
-  expect(graph.validateFilingStatusTargets(context)).toEqual([]);
+  expect(graph.validateFormStatusTargets(context)).toEqual([]);
   code.type = 'string';
-  expect(graph.validateFilingStatusTargets(context)).toEqual(expect.arrayContaining([
+  expect(graph.validateFormStatusTargets(context)).toEqual(expect.arrayContaining([
     expect.objectContaining({ details: { reason: 'invalid-repeat-source' } }),
   ]));
   code.type = 'object';
-  expect(graph.validateFilingStatusTargets(context)).toEqual(expect.arrayContaining([
+  expect(graph.validateFormStatusTargets(context)).toEqual(expect.arrayContaining([
     expect.objectContaining({ details: { reason: 'invalid-repeat-source' } }),
   ]));
 });
@@ -141,24 +141,24 @@ function periodPlanFixture() {
   const planEntry = {
     routeRef: 'plan', slotRef: 'form',
     subject: [
-      { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' } },
-      { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' } },
+      { key: 'first_period', op: 'le', from: { routeParam: 'period' } },
+      { key: 'last_period', op: 'ge', from: { routeParam: 'period' } },
     ],
     ...anchor,
   };
   const planSlot = {
     id: 'form', slotType: 'definition-form',
-    binding: { definitionRef: 'urn:plan', subjectKeys: { first_ffy: 'first_ffy', last_ffy: 'last_ffy' } },
+    binding: { definitionRef: 'urn:plan', subjectKeys: { first_period: 'first_period', last_period: 'last_period' } },
   };
   const group = { id: 'period', label: 'Period plan', forms: [planEntry], ...anchor };
   const binding = { groups: [group], ...anchor };
-  const tracker = { id: 'tracker', slotType: 'filing-status', binding, ...anchor };
+  const tracker = { id: 'tracker', slotType: 'form-status', binding, ...anchor };
   const overview = {
-    id: 'overview', path: '/years/{ffy}', params: [{ name: 'ffy', type: 'string' }], slots: [tracker],
+    id: 'overview', path: '/years/{period}', params: [{ name: 'period', type: 'string' }], slots: [tracker],
   };
   const planRoute = {
-    id: 'plan', path: '/plans/{first_ffy}/{last_ffy}',
-    params: [{ name: 'first_ffy', type: 'string' }, { name: 'last_ffy', type: 'string' }],
+    id: 'plan', path: '/plans/{first_period}/{last_period}',
+    params: [{ name: 'first_period', type: 'string' }, { name: 'last_period', type: 'string' }],
     slots: [planSlot],
   };
   const surface = { $formspecSurface: '0.4', id: 'app', entry: 'overview', routes: [overview, planRoute] };
@@ -167,7 +167,7 @@ function periodPlanFixture() {
     document: {
       subject: {
         type: 'urn:period-plan',
-        keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' } },
+        keys: { first_period: { dataType: 'integer' }, last_period: { dataType: 'integer' } },
       },
     },
   };
@@ -186,25 +186,25 @@ function periodPlanFixture() {
 
 it('validates subject-key range predicates against target route subjectKeys and Definition key types', () => {
   const valid = periodPlanFixture();
-  expect(graph.validateFilingStatusTargets(valid.context)).toEqual([]);
+  expect(graph.validateFormStatusTargets(valid.context)).toEqual([]);
 
   // Accepts combining direct params for a known route parameter with subject range predicates.
   const combined = periodPlanFixture();
   combined.overview.params.push({ name: 'org', type: 'string' });
-  combined.planRoute.path = '/orgs/{org}/plans/{first_ffy}/{last_ffy}';
+  combined.planRoute.path = '/orgs/{org}/plans/{first_period}/{last_period}';
   combined.planRoute.params.push({ name: 'org', type: 'string' });
   Object.assign(combined.planSlot.binding.subjectKeys, { org: 'org' });
   Object.assign(combined.planDefinition.document.subject.keys, { org: { dataType: 'string' } });
   Object.assign(combined.planEntry, { params: { org: { routeParam: 'org' } } });
-  expect(graph.validateFilingStatusTargets(combined.context)).toEqual([]);
+  expect(graph.validateFormStatusTargets(combined.context)).toEqual([]);
 
   const cases: readonly [string, (f: ReturnType<typeof periodPlanFixture>) => void, string][] = [
     ['range operator on string key', f => {
-      f.planDefinition.document.subject.keys.first_ffy = { dataType: 'string' } as never;
+      f.planDefinition.document.subject.keys.first_period = { dataType: 'string' } as never;
     }, 'invalid-subject-predicate'],
     ['offset on string key', f => {
-      f.planDefinition.document.subject.keys.first_ffy = { dataType: 'string' } as never;
-      f.planEntry.subject[0] = { key: 'first_ffy', op: 'eq', from: { routeParam: 'ffy' }, offset: -1 } as never;
+      f.planDefinition.document.subject.keys.first_period = { dataType: 'string' } as never;
+      f.planEntry.subject[0] = { key: 'first_period', op: 'eq', from: { routeParam: 'period' }, offset: -1 } as never;
     }, 'invalid-subject-predicate'],
     ['undeclared subject key', f => {
       f.planEntry.subject[0]!.key = 'unknown_key';
@@ -213,7 +213,7 @@ it('validates subject-key range predicates against target route subjectKeys and 
       Reflect.deleteProperty(f.planDefinition.document, 'subject');
     }, 'invalid-subject-predicate'],
     ['duplicate key across params and subject', f => {
-      Object.assign(f.planEntry, { params: { first_ffy: { value: '2024' } } });
+      Object.assign(f.planEntry, { params: { first_period: { value: '2024' } } });
     }, 'invalid-subject-predicate'],
     ['invalid integer literal in subject predicate', f => {
       f.planEntry.subject[0]!.from = { value: 'not-an-integer' } as never;
@@ -232,8 +232,8 @@ it('validates subject-key range predicates against target route subjectKeys and 
       f.group.forms.push({
         ...structuredClone(f.planEntry), slotRef: 'second',
         subject: [
-          { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' }, offset: -1 },
-          { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' } },
+          { key: 'first_period', op: 'le', from: { routeParam: 'period' }, offset: -1 },
+          { key: 'last_period', op: 'ge', from: { routeParam: 'period' } },
         ] as never,
       });
     }, 'mixed-subject-mappings'],
@@ -242,7 +242,7 @@ it('validates subject-key range predicates against target route subjectKeys and 
     const f = periodPlanFixture();
     mutate(f);
     expect(
-      graph.validateFilingStatusTargets(f.context).map(d => d.details?.reason),
+      graph.validateFormStatusTargets(f.context).map(d => d.details?.reason),
       label,
     ).toContain(expectedReason);
   }
@@ -259,12 +259,12 @@ it.each([true, false])('refuses an incompatible loaded Definition version regard
   const strDef = structuredClone(intDef);
   Object.assign(strDef.ref, { version: '1.0.0' });
   Object.assign(strDef.document, { version: '1.0.0' });
-  strDef.document.subject.keys.first_ffy = { dataType: 'string' } as never;
+  strDef.document.subject.keys.first_period = { dataType: 'string' } as never;
   const context = {
     ...f.context,
     handles: [f.context.handles[0]!, ...(stringsLast ? [intDef, strDef] : [strDef, intDef])],
   } as unknown as AppGraphContext;
-  const issues = graph.validateFilingStatusTargets(context);
+  const issues = graph.validateFormStatusTargets(context);
   expect(issues).toEqual(expect.arrayContaining([
     expect.objectContaining({
       details: { reason: 'invalid-subject-predicate' },
@@ -281,8 +281,8 @@ it('points repeat-row predicate field type mismatches directly at the offending 
     catalogRef: 'urn:roster', sourceRef: 'response:years', rowsField: 'rows', labelField: 'name', waitingLabel: 'Waiting',
   };
   f.planEntry.subject = [
-    { key: 'first_ffy', op: 'le', from: { rowField: 'year' } },
-    { key: 'last_ffy', op: 'ge', from: { rowField: 'year' } },
+    { key: 'first_period', op: 'le', from: { rowField: 'year' } },
+    { key: 'last_period', op: 'ge', from: { rowField: 'year' } },
   ] as never;
   const yearField = { type: 'integer' };
   const catalogHandle = {
@@ -311,9 +311,9 @@ it('points repeat-row predicate field type mismatches directly at the offending 
     manifest: { document: { dataSources: [{ url: 'urn:roster' }] } },
     handles: [...f.context.handles, catalogHandle],
   } as unknown as AppGraphContext;
-  expect(graph.validateFilingStatusTargets(context)).toEqual([]);
+  expect(graph.validateFormStatusTargets(context)).toEqual([]);
   yearField.type = 'string';
-  expect(graph.validateFilingStatusTargets(context)).toEqual(expect.arrayContaining([
+  expect(graph.validateFormStatusTargets(context)).toEqual(expect.arrayContaining([
     expect.objectContaining({
       details: { reason: 'invalid-repeat-source' },
       primarySource: expect.objectContaining({

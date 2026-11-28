@@ -132,7 +132,7 @@ enum RecordStatus {
     Stopped,
 }
 
-/// A group key cannot conflate declared filing units and implicit respondents.
+/// A group key cannot conflate declared subjects and implicit respondents.
 #[derive(PartialEq, Eq, Hash)]
 pub(super) enum FilingUnit<'a> {
     Explicit(Option<&'a str>, &'a str),

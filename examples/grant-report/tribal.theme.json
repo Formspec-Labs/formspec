@@ -2,10 +2,10 @@
     "$formspecTheme": "1.0",
     "version": "1.0.0",
     "targetDefinition": {
-        "url": "https://acf.hhs.gov/formspec/csbg/tribal-short",
+        "url": "https://example.org/formspec/annual-report/tribal-short",
         "compatibleVersions": ">=3.0.0 <4.0.0"
     },
-    "description": "USWDS-aligned theme for CSBG grant forms. Uses US Web Design System tokens and Public Sans typeface.",
+    "description": "USWDS-aligned theme for annual report forms. Uses US Web Design System tokens and Public Sans typeface.",
     "tokens": {
         "color.primary": "#005EA2",
         "color.primaryDark": "#1A4480",

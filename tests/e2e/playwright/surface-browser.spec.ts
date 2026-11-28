@@ -389,9 +389,9 @@ test('Definition Walk finds the right empty repeat when two workspace sections u
   }
 });
 
-test('filing-status exposes task progress and opens its section disclosure by keyboard', async ({ page }) => {
+test('form-status exposes task progress and opens its section disclosure by keyboard', async ({ page }) => {
   await page.goto('/surface-browser.html?tracker');
-  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const tracker = page.locator('[data-slot-type="form-status"]');
   const task = tracker.getByRole('link', { name: 'Filing', exact: true });
   await expect(task).toHaveAccessibleDescription('In progress');
   await expect(tracker.getByText('Have the contact details ready.')).toBeVisible();
@@ -446,7 +446,7 @@ test('filing-status exposes task progress and opens its section disclosure by ke
 
 test('a pointer click on a strip segment follows its section link', async ({ page }) => {
   await page.goto('/surface-browser.html?tracker');
-  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const tracker = page.locator('[data-slot-type="form-status"]');
   const section = tracker.locator('details a').filter({ hasText: /^Certification\b/ });
   const href = await section.getAttribute('href');
   await tracker.locator('.fs-surface-filing__strip').first().locator('.fs-surface-filing__segment').nth(1).click();
@@ -544,7 +544,7 @@ for (const [variant, formCount] of [['small', 3], ['large', 12]] as const) {
         const closedHeight = await height();
         const summary = firstRow.locator('summary');
         // The visible count also carries the form name for assistive technology.
-        await expect(summary).toHaveAccessibleName('Sections (10) Eligible entity list');
+        await expect(summary).toHaveAccessibleName('Sections (10) Organization roster');
         await summary.click();
         expect(await height()).toBeGreaterThan(closedHeight);
         const linkLines = await firstRow.locator('.fs-surface-filing__sections li').evaluateAll(
@@ -564,7 +564,7 @@ test('the authored tracker band follows navigation and remembers a viewer’s di
   await page.goto('/surface-browser.html?tracker=band');
   const band = page.locator('details[data-filing-band]');
   await expect(band).toHaveCount(1);
-  await expect(page.locator('[data-slot-type="filing-status"]')).toHaveCount(1);
+  await expect(page.locator('[data-slot-type="form-status"]')).toHaveCount(1);
   await band.getByRole('link', { name: 'Filing', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Filing', exact: true })).toBeVisible();
   await expect(band).toHaveCount(1);
@@ -576,7 +576,7 @@ test('the authored tracker band follows navigation and remembers a viewer’s di
   await band.locator(':scope > summary').press('Enter');
   await expect(task).toBeHidden();
   await page.reload();
-  await expect(band.locator(':scope > summary')).toHaveText('Filing map');
+  await expect(band.locator(':scope > summary')).toHaveText('Form status');
   await expect(band).not.toHaveAttribute('open', '');
   await page.goto('/surface-browser.html?tracker=band&viewer=second');
   await expect(band).toHaveAttribute('open', '');
@@ -586,7 +586,7 @@ test('an untitled tracker band has a named keyboard disclosure', async ({ page }
   await page.goto('/surface-browser.html?tracker=band&untitled');
   const band = page.locator('details[data-filing-band]');
   const disclosure = band.locator(':scope > summary');
-  await expect(disclosure).toHaveText('Filing map');
+  await expect(disclosure).toHaveText('Form status');
   await disclosure.press('Space');
   await expect(band.getByRole('link', { name: 'Filing', exact: true })).toBeHidden();
 });

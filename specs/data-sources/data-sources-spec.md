@@ -246,9 +246,9 @@ Schema validation verifies selector shape. Cross-artifact resolution - for examp
 | `draft`    | source `kind: "definition-response"` and `cache.mode: "draft"` |
 
 `delivery: "draft"` reads the session's own draft. A snapshot or live
-selection with `status: "current"` reads a matching filing unit's open draft,
-or its latest completed Response when it has no open draft. The unit may
-belong to another respondent and is subject to that unit's read authorization.
+selection with `status: "current"` reads a matching subject's open draft,
+or its latest completed Response when it has no open draft. The subject may
+belong to another respondent and is subject to that subject's read authorization.
 
 `runtime.cache.mode` is one of:
 
@@ -380,7 +380,7 @@ is:
   route/session generation; plus the exact Definition URL for a
   `definition-form` consumer or module id and widget name for a module-widget
   consumer; and
-- the consuming filing-unit subject, including typed keys, when a selector
+- the consuming subject, including typed keys, when a selector
   uses `from.subject`. Supply the active route parameters for predicates using
   `from.routeParam`.
 

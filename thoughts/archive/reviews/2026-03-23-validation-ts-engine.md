@@ -105,7 +105,7 @@ This aligns `execute()` with every other tools-tier function. Any callers that c
 await expect(page.locator('#export-result-content')).not.toBeEmpty();
 ```
 
-This is the weakest possible content assertion: it only verifies that some non-empty string appeared. For JSON export with input `{"orgName":"Community Health Partners"}`, the WASM mapping engine produces a deterministic output. The same is true for CSV (a flat `orgName,Community Health Partners` row) and XML (a `<CSBGAnnualReport>...</CSBGAnnualReport>` envelope derived from `tribal-grant.mapping.json`).
+This is the weakest possible content assertion: it only verifies that some non-empty string appeared. For JSON export with input `{"orgName":"Community Health Partners"}`, the WASM mapping engine produces a deterministic output. The same is true for CSV (a flat `orgName,Community Health Partners` row) and XML (a `<AnnualReport>...</AnnualReport>` envelope derived from `tribal-grant.mapping.json`).
 
 The assertions do not verify:
 - That JSON output is valid JSON

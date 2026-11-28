@@ -13,7 +13,7 @@
     "$formspecSurface": {
       "type": "string",
       "enum": ["0.2", "0.3", "0.4"],
-      "description": "Surface specification version. Screener slots require 0.3 or later. Filing-status slots, draft-start slots and draft-review bindings require 0.4.",
+      "description": "Surface specification version. Screener slots require 0.3 or later. Form-status slots, draft-start slots and draft-review bindings require 0.4.",
       "examples": ["0.2"],
       "x-lm": {
         "critical": true,
@@ -66,7 +66,7 @@
   },
   "allOf": [
     {"if": {"properties": {"$formspecSurface": {"const": "0.2"}}, "required": ["$formspecSurface"]}, "then": {"properties": {"routes": {"items": {"properties": {"slots": {"items": {"properties": {"slotType": {"not": {"const": "screener"}}}}}}}}}}},
-    {"if": {"properties": {"$formspecSurface": {"enum": ["0.2", "0.3"]}}, "required": ["$formspecSurface"]}, "then": {"properties": {"routes": {"items": {"properties": {"slots": {"items": {"properties": {"slotType": {"not": {"enum": ["filing-status", "draft-start"]}}, "binding": {"not": {"required": ["draftReview"]}}}}}}}}}}}
+    {"if": {"properties": {"$formspecSurface": {"enum": ["0.2", "0.3"]}}, "required": ["$formspecSurface"]}, "then": {"properties": {"routes": {"items": {"properties": {"slots": {"items": {"properties": {"slotType": {"not": {"enum": ["form-status", "draft-start"]}}, "binding": {"not": {"required": ["draftReview"]}}}}}}}}}}}
   ],
   "$defs": {
     "Route": {
@@ -196,11 +196,11 @@
             "static-content",
             "embed-route",
             "screener",
-            "filing-status",
+            "form-status",
             "draft-start"
           ],
           "examples": ["definition-form", "module-widget", "embed-route"],
-          "description": "Closed slot-type taxonomy; 0.3 adds native Screener presentation and 0.4 adds filing-status and draft-start. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.",
+          "description": "Closed slot-type taxonomy; 0.3 adds native Screener presentation and 0.4 adds form-status and draft-start. Each value pins a binding shape (see allOf gates below). Extensions land via the module Registry's `slot-type` contribution category in a future revision.",
           "x-lm": {
             "critical": true,
             "intent": "Closed slot-type discriminator pinning binding shape per ADR 0150 §6.2"
@@ -253,7 +253,7 @@
                       "$ref": "#/$defs/RouteParam/properties/name"
                     },
                     "description": "Maps each key declared by the bound Definition subject to a parameter declared by the containing route. App-graph validation checks the exact key set and route parameter references. The runtime converts integer keys using the Definition type. An empty map is valid for a per-scope singleton.",
-                    "examples": [{ "ffy": "year", "uei": "agencyId" }, {}]
+                    "examples": [{ "period": "period", "orgId": "orgId" }, {}]
                   },
                   "initialData": {
                     "$ref": "#/$defs/DefinitionFormInitialDataBinding",
@@ -464,11 +464,11 @@
         },
         {
           "if": {
-            "properties": { "slotType": { "const": "filing-status" } },
+            "properties": { "slotType": { "const": "form-status" } },
             "required": ["slotType"]
           },
           "then": {
-            "properties": { "binding": { "$ref": "#/$defs/FilingStatusBinding" } }
+            "properties": { "binding": { "$ref": "#/$defs/FormStatusBinding" } }
           }
         }
       ]
@@ -478,13 +478,13 @@
       "additionalProperties": false,
       "required": ["routeRef", "slotRef", "label"],
       "properties": {
-        "routeRef": { "$ref": "#/$defs/FilingStatusEntry/properties/routeRef" },
-        "slotRef": { "$ref": "#/$defs/FilingStatusEntry/properties/slotRef" },
+        "routeRef": { "$ref": "#/$defs/FormStatusEntry/properties/routeRef" },
+        "slotRef": { "$ref": "#/$defs/FormStatusEntry/properties/slotRef" },
         "label": { "type": "string", "minLength": 1, "description": "Visible label for the control that starts a new draft." }
       }
     },
-    "FilingStatusBinding": {
-      "description": "An ordered overview of Definition forms in this Surface. Each group represents one filing unit.",
+    "FormStatusBinding": {
+      "description": "An ordered overview of Definition forms in this Surface. Each group represents one subject.",
       "type": "object",
       "additionalProperties": false,
       "required": ["groups"],
@@ -493,12 +493,12 @@
         "groups": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/FilingStatusGroup" }
+          "items": { "$ref": "#/$defs/FormStatusGroup" }
         },
         "x-generation": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation" }
       }
     },
-    "FilingStatusRepeat": {
+    "FormStatusRepeat": {
       "type": "object",
       "additionalProperties": false,
       "required": ["catalogRef", "sourceRef", "labelField", "waitingLabel"],
@@ -507,27 +507,27 @@
         "sourceRef": { "type": "string", "minLength": 1 },
         "rowsField": { "type": "string", "minLength": 1, "description": "Select this array property when the catalog delivers an object." },
         "labelField": { "type": "string", "minLength": 1 },
-        "waitingLabel": { "type": "string", "minLength": 1, "description": "Label for members with a confirmed outstanding filing." },
+        "waitingLabel": { "type": "string", "minLength": 1, "description": "Label for members with a confirmed outstanding form." },
         "x-generation": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation" }
       }
     },
-    "FilingStatusGroup": {
+    "FormStatusGroup": {
       "type": "object",
       "additionalProperties": false,
       "required": ["id", "label", "forms"],
       "properties": {
         "id": { "type": "string", "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$", "description": "Stable id unique within this tracker." },
         "label": { "type": "string", "minLength": 1 },
-        "repeat": { "$ref": "#/$defs/FilingStatusRepeat" },
+        "repeat": { "$ref": "#/$defs/FormStatusRepeat" },
         "forms": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/FilingStatusEntry" }
+          "items": { "$ref": "#/$defs/FormStatusEntry" }
         },
         "x-generation": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation" }
       }
     },
-    "FilingStatusEntry": {
+    "FormStatusEntry": {
       "type": "object",
       "additionalProperties": false,
       "required": ["routeRef", "slotRef"],
@@ -538,14 +538,14 @@
         "params": {
           "type": "object",
           "propertyNames": { "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$" },
-          "additionalProperties": { "$ref": "#/$defs/FilingStatusParamSource" },
-          "description": "Authored sources for parameters declared by the target route. Required for every target route parameter unless `subject` selects the filing unit and the target Definition-form slot binds the remaining parameters through `subjectKeys`."
+          "additionalProperties": { "$ref": "#/$defs/FormStatusParamSource" },
+          "description": "Authored sources for parameters declared by the target route. Required for every target route parameter unless `subject` selects the subject and the target Definition-form slot binds the remaining parameters through `subjectKeys`."
         },
         "subject": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/FilingStatusSubjectPredicate" },
-          "description": "Predicates over keys declared by the target Definition subject, selecting the single matching filing unit in scope and populating target route parameters bound by the destination slot's `subjectKeys`.",
+          "items": { "$ref": "#/$defs/FormStatusSubjectPredicate" },
+          "description": "Predicates over keys declared by the target Definition subject, selecting the single matching subject in scope and populating target route parameters bound by the destination slot's `subjectKeys`.",
           "examples": [[
             { "key": "start_year", "op": "le", "from": { "routeParam": "year" } },
             { "key": "end_year", "op": "ge", "from": { "routeParam": "year" } }
@@ -554,7 +554,7 @@
         "x-generation": { "$ref": "https://formspec.org/schemas/common/1.0#/$defs/Generation" }
       }
     },
-    "FilingStatusSubjectPredicate": {
+    "FormStatusSubjectPredicate": {
       "description": "Typed comparison against a key declared by the target Definition subject.",
       "type": "object",
       "additionalProperties": false,
@@ -568,10 +568,10 @@
         "op": {
           "type": "string",
           "enum": ["eq", "le", "ge"],
-          "description": "Compare the candidate unit's subject key against the resolved source value plus any offset. `le` and `ge` apply only to integer keys; `eq` preserves the declared key type."
+          "description": "Compare the candidate subject's key against the resolved source value plus any offset. `le` and `ge` apply only to integer keys; `eq` preserves the declared key type."
         },
         "from": {
-          "$ref": "#/$defs/FilingStatusParamSource",
+          "$ref": "#/$defs/FormStatusParamSource",
           "description": "Explicit value, declaring-route parameter, or repeat-row field compared against the target subject key."
         },
         "offset": {
@@ -586,7 +586,7 @@
         { "key": "end_year", "op": "ge", "from": { "routeParam": "year" } }
       ]
     },
-    "FilingStatusParamSource": {
+    "FormStatusParamSource": {
       "description": "An explicit value, a parameter on the declaring route, or a field on the current repeat row.",
       "oneOf": [
         {

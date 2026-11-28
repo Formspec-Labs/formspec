@@ -9,7 +9,7 @@ const answer = (page: Page) => page.getByRole('textbox', { name: 'Answer', exact
 /** Leave by the app's own link, as a respondent does, so the form commits its pending edit first. */
 async function filingMap(page: Page, owed: number) {
   await open(page, 'Overview');
-  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const tracker = page.locator('[data-slot-type="form-status"]');
   const row = tracker.locator('.fs-surface-filing__row');
   await expect(row).toBeVisible();
   await expect(tracker.locator('.fs-surface-filing__totals div', { hasText: 'To check' }).locator('dd')).toHaveText(String(owed));
@@ -112,7 +112,7 @@ async function expectFilingMapCounts(
   expected: { toFix: number; toCheck: number; status: 'In progress' | 'Ready' },
 ) {
   await open(page, 'Overview');
-  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const tracker = page.locator('[data-slot-type="form-status"]');
   const row = tracker.locator('.fs-surface-filing__row');
   await expect(row).toBeVisible();
   await expect(tracker.locator('.fs-surface-filing__totals div', { hasText: 'To fix' }).locator('dd')).toHaveText(String(expected.toFix));
@@ -165,7 +165,7 @@ test('Submit-timing errors and none-mode Submit-timing warnings match between Fi
   await open(page, 'Filing');
   await page.getByRole('button', { name: 'Submit report' }).click();
   await open(page, 'Overview');
-  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const tracker = page.locator('[data-slot-type="form-status"]');
   await expect(tracker.getByRole('link', { name: 'Filing', exact: true })).toHaveAccessibleDescription(/^Filed\b/);
 });
 

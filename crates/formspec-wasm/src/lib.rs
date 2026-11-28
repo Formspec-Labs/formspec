@@ -17,7 +17,7 @@
 //! - `document` — `document-api`: detect type, schema plan; `lint`: `lintDocument*`
 //! - `mapping` — `executeMappingRules`, `executeMappingDocument` (always in runtime WASM; `sourceSchema` validation uses `lint` in tools WASM)
 //! - `response_selection` — `response-selection-api` for preview reads
-//! - `subject` — `subjectIdJson`: filing-unit identity (always, so respondents never need tools)
+//! - `subject` — `subjectIdJson`: subject identity (always, so respondents never need tools)
 //! - `registry` — `registry-api`
 //! - `ontology` — `ontology-api`: `deriveJsonLdContext` (Ontology §6.2)
 //! - `changelog` — `changelog-api`

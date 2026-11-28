@@ -408,11 +408,11 @@ export interface FormDefinition {
     [k: string]: AttestableDocument;
   };
   /**
-   * Filing-unit subject declaration: a type URI and named string or integer keys; an empty key set declares a per-scope singleton. Authorization parents are derived from stored key values for each check, never persisted as duplicate relationships. Scope is not a key.
+   * Subject declaration: a type URI and named string or integer keys; an empty key set declares a per-scope singleton. Authorization parents are derived from stored key values for each check, never persisted as duplicate relationships. Scope is not a key.
    */
   subject?: {
     /**
-     * Canonical URI of the filing-unit type.
+     * Canonical URI of the subject type.
      */
     type: string;
     keys: {
@@ -422,11 +422,11 @@ export interface FormDefinition {
          */
         dataType: 'string' | 'integer';
         /**
-         * Authorization object type derived from this stored string key value, for example agency. Requires dataType string.
+         * Authorization object type derived from this stored string key value, for example organization. Requires dataType string.
          */
         authorizationParent?: string;
         /**
-         * When true, the draft store assigns this opaque scoped string identifier, which has no ordering or offset semantics. A fresh value carries no grant, so the key cannot declare authorizationParent. A supplied value can continue a unit minted in the same scope under the same authorization parents.
+         * When true, the draft store assigns this opaque scoped string identifier, which has no ordering or offset semantics. A fresh value carries no grant, so the key cannot declare authorizationParent. A supplied value can continue a subject minted in the same scope under the same authorization parents.
          */
         minted?: boolean;
       };

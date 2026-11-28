@@ -63,15 +63,15 @@ def test_surface_publishable_fixture_validates_and_lints_clean() -> None:
     assert codes(doc, registries=[STRICT_REGISTRY]) == set()
 
 
-def test_native_lint_accepts_surface_filing_status_only_in_0_4() -> None:
+def test_native_lint_accepts_surface_form_status_only_in_0_4() -> None:
     doc = {
         "$formspecSurface": "0.4",
-        "id": "filing",
+        "id": "forms",
         "entry": "overview",
         "routes": [
             {
                 "id": "overview", "path": "/", "slots": [
-                    {"id": "tracker", "slotType": "filing-status", "binding": {"groups": [
+                    {"id": "tracker", "slotType": "form-status", "binding": {"groups": [
                         {"id": "annual", "label": "Annual forms", "forms": [
                             {"routeRef": "apply", "slotRef": "capture"}
                         ]}

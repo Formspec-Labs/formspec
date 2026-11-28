@@ -184,7 +184,7 @@
     },
     "subject": {
       "type": "object",
-      "description": "Filing-unit subject declaration: a type URI and named string or integer keys; an empty key set declares a per-scope singleton. Authorization parents are derived from stored key values for each check, never persisted as duplicate relationships. Scope is not a key.",
+      "description": "Subject declaration: a type URI and named string or integer keys; an empty key set declares a per-scope singleton. Authorization parents are derived from stored key values for each check, never persisted as duplicate relationships. Scope is not a key.",
       "required": [
         "type",
         "keys"
@@ -195,7 +195,7 @@
           "type": "string",
           "format": "uri",
           "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s{}]+$",
-          "description": "Canonical URI of the filing-unit type."
+          "description": "Canonical URI of the subject type."
         },
         "keys": {
           "type": "object",
@@ -219,12 +219,12 @@
               "authorizationParent": {
                 "type": "string",
                 "minLength": 1,
-                "description": "Authorization object type derived from this stored string key value, for example agency. Requires dataType string."
+                "description": "Authorization object type derived from this stored string key value, for example organization. Requires dataType string."
               },
               "minted": {
                 "type": "boolean",
                 "default": false,
-                "description": "When true, the draft store assigns this opaque scoped string identifier, which has no ordering or offset semantics. A fresh value carries no grant, so the key cannot declare authorizationParent. A supplied value can continue a unit minted in the same scope under the same authorization parents."
+                "description": "When true, the draft store assigns this opaque scoped string identifier, which has no ordering or offset semantics. A fresh value carries no grant, so the key cannot declare authorizationParent. A supplied value can continue a subject minted in the same scope under the same authorization parents."
               }
             },
             "dependentSchemas": {
@@ -249,14 +249,14 @@
       },
       "examples": [
         {
-          "type": "urn:example:subject:agency-year",
+          "type": "urn:example:subject:org-period",
           "keys": {
-            "ffy": {
+            "period": {
               "dataType": "integer"
             },
-            "uei": {
+            "orgId": {
               "dataType": "string",
-              "authorizationParent": "agency"
+              "authorizationParent": "organization"
             }
           }
         }
@@ -354,17 +354,17 @@
               },
               "subject": [
                 {
-                  "key": "uei",
+                  "key": "orgId",
                   "op": "eq",
                   "from": {
-                    "subject": "uei"
+                    "subject": "orgId"
                   }
                 },
                 {
-                  "key": "ffy",
+                  "key": "period",
                   "op": "eq",
                   "from": {
-                    "subject": "ffy"
+                    "subject": "period"
                   },
                   "offset": -1
                 }
@@ -376,7 +376,7 @@
             },
             "schema": {
               "expenditures.employment": "money",
-              "agencies[*].uei": "string"
+              "organizations[*].orgId": "string"
             },
             "data": {}
           }
@@ -1975,17 +1975,17 @@
               },
               "subject": [
                 {
-                  "key": "uei",
+                  "key": "orgId",
                   "op": "eq",
                   "from": {
-                    "subject": "uei"
+                    "subject": "orgId"
                   }
                 },
                 {
-                  "key": "ffy",
+                  "key": "period",
                   "op": "eq",
                   "from": {
-                    "subject": "ffy"
+                    "subject": "period"
                   },
                   "offset": -1
                 }

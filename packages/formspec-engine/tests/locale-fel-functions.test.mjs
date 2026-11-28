@@ -57,31 +57,31 @@ test('locale() can be used in conditional expressions', () => {
 });
 
 test('subject() reads the same response keys during live, submit, and ad-hoc evaluation', () => {
-  const { type, id } = subjectVector('agency-year');
+  const { type, id } = subjectVector('org-period');
   const definition = minDef({
-    subject: { type, keys: { ffy: { dataType: 'integer' }, uei: { dataType: 'string' } } },
+    subject: { type, keys: { period: { dataType: 'integer' }, orgId: { dataType: 'string' } } },
     items: [
-      { key: 'uei', type: 'field', dataType: 'string' },
+      { key: 'orgId', type: 'field', dataType: 'string' },
       { key: 'year', type: 'field', dataType: 'integer' },
     ],
-    binds: [{ path: 'year', calculate: "subject('ffy')" }],
+    binds: [{ path: 'year', calculate: "subject('period')" }],
   });
-  const subject = { id: 'filing-unit', type, keys: { uei: 'A', ffy: 2026 } };
+  const subject = { id: 'filing-unit', type, keys: { orgId: 'A', period: 2026 } };
   const engine = new FormEngine(definition, {
     responseSubject: subject,
-    responseData: { uei: 'editable' },
-    runtimeContext: { meta: { uei: 'metadata' } },
+    responseData: { orgId: 'editable' },
+    runtimeContext: { meta: { orgId: 'metadata' } },
   });
-  subject.keys.uei = 'mutated by caller';
+  subject.keys.orgId = 'mutated by caller';
   assert.equal(engine.signals.year.value, 2026);
-  assert.equal(engine.compileExpression("subject('uei')")(), 'A');
+  assert.equal(engine.compileExpression("subject('orgId')")(), 'A');
   assert.equal(engine.compileExpression("subject('missing')")(), null);
-  assert.equal(engine.compileExpression("runtimeMeta('uei')")(), 'metadata');
+  assert.equal(engine.compileExpression("runtimeMeta('orgId')")(), 'metadata');
   const response = engine.getResponse({ profile: 'on-submit' });
   assert.equal(response.status, 'completed');
-  assert.deepEqual(response.data, { uei: 'editable', year: 2026 });
+  assert.deepEqual(response.data, { orgId: 'editable', year: 2026 });
   // The engine replaces the supplied placeholder id with Core's (fs-aght).
-  assert.deepEqual(response.subject, { id, type, keys: { uei: 'A', ffy: 2026 } });
+  assert.deepEqual(response.subject, { id, type, keys: { orgId: 'A', period: 2026 } });
 });
 
 test('subject() round-trips the largest I-JSON integer', () => {
@@ -100,11 +100,11 @@ test('subject() round-trips the largest I-JSON integer', () => {
 });
 
 test('getResponse() requires filing-unit identity before evaluation', () => {
-  const { type, keys, id } = subjectVector('agency-year');
-  const definition = minDef({ subject: { type, keys: { ffy: { dataType: 'integer' }, uei: { dataType: 'string' } } } });
+  const { type, keys, id } = subjectVector('org-period');
+  const definition = minDef({ subject: { type, keys: { period: { dataType: 'integer' }, orgId: { dataType: 'string' } } } });
   const subject = { id: 'filing-unit', type, keys };
   const unbound = new FormEngine(definition);
-  assert.equal(unbound.compileExpression("subject('uei')")(), null);
+  assert.equal(unbound.compileExpression("subject('orgId')")(), null);
   assert.throws(() => unbound.getResponse({ subject }), /responseSubject/);
   // A keyless late subject would put an unchecked host id on a declared filing unit (fs-aght).
   assert.throws(() => unbound.getResponse({ subject: { id: subject.id, type } }), /responseSubject/);
@@ -115,18 +115,18 @@ test('getResponse() requires filing-unit identity before evaluation', () => {
 });
 
 test('FormEngine reports invalid filing-unit identity', async (t) => {
-  const type = 'urn:example:subject:agency-year';
-  const definition = minDef({ subject: { type, keys: { ffy: { dataType: 'integer' }, uei: { dataType: 'string' } } } });
+  const type = 'urn:example:subject:org-period';
+  const definition = minDef({ subject: { type, keys: { period: { dataType: 'integer' }, orgId: { dataType: 'string' } } } });
   const cases = [
-    ['undeclared subject keys', minDef(), { type, keys: { uei: 'A' } }, /#subjectKeys\.uei/],
-    ['wrong key type', definition, { type, keys: { ffy: '2026', uei: 'A' } }, /#subjectKeys\.ffy: Subject key must be an integer/],
-    ['wrong subject type', definition, { type: 'urn:example:other', keys: { ffy: 2026 } }, /#subjectType/],
-    ['missing key', definition, { type, keys: { ffy: 2026 } }, /#subjectKeys\.uei: Declared subject key is missing/],
-    ['extra key', definition, { type, keys: { extra: 'B', ffy: 2026, uei: 'A' } }, /#subjectKeys\.extra/],
-    ['invalid key name', definition, { type, keys: { ffy: 2026, 'not a key': 'B', uei: 'A' } }, /#subjectKeys\.not a key: Invalid subject key name/],
-    ['two invalid keys', definition, { type, keys: { uei: false, ffy: null } }, /#subjectKeys\.ffy: Subject key must be an integer/],
-    ['integer above the I-JSON range', definition, { type, keys: { ffy: JSON.rawJSON('9007199254740993'), uei: 'A' } }, /#subjectKeys\.ffy: Integer subject key must be in the I-JSON range/],
-    ['integer below the I-JSON range', definition, { type, keys: { ffy: -9007199254740992, uei: 'A' } }, /#subjectKeys\.ffy: Integer subject key must be in the I-JSON range/],
+    ['undeclared subject keys', minDef(), { type, keys: { orgId: 'A' } }, /#subjectKeys\.orgId/],
+    ['wrong key type', definition, { type, keys: { period: '2026', orgId: 'A' } }, /#subjectKeys\.period: Subject key must be an integer/],
+    ['wrong subject type', definition, { type: 'urn:example:other', keys: { period: 2026 } }, /#subjectType/],
+    ['missing key', definition, { type, keys: { period: 2026 } }, /#subjectKeys\.orgId: Declared subject key is missing/],
+    ['extra key', definition, { type, keys: { extra: 'B', period: 2026, orgId: 'A' } }, /#subjectKeys\.extra/],
+    ['invalid key name', definition, { type, keys: { period: 2026, 'not a key': 'B', orgId: 'A' } }, /#subjectKeys\.not a key: Invalid subject key name/],
+    ['two invalid keys', definition, { type, keys: { orgId: false, period: null } }, /#subjectKeys\.orgId: Subject key must be a string/],
+    ['integer above the I-JSON range', definition, { type, keys: { period: JSON.rawJSON('9007199254740993'), orgId: 'A' } }, /#subjectKeys\.period: Integer subject key must be in the I-JSON range/],
+    ['integer below the I-JSON range', definition, { type, keys: { period: -9007199254740992, orgId: 'A' } }, /#subjectKeys\.period: Integer subject key must be in the I-JSON range/],
     ['missing subject type and keys', definition, {}, /#subjectType/],
     ['missing key set', definition, { type }, /#subjectKeys: Subject must supply a keys object/],
   ];
@@ -150,7 +150,7 @@ test('FormEngine accepts an explicit singleton and an unkeyed host entity', () =
   const singleton = new FormEngine(minDef({ subject: { type, keys: {} } }), { responseSubject: subject });
   // Core's singleton id, not the supplied placeholder (fs-aght).
   assert.deepEqual(singleton.getResponse().subject, { ...subject, id });
-  assert.equal(singleton.compileExpression("subject('uei')")(), null);
+  assert.equal(singleton.compileExpression("subject('orgId')")(), null);
 
   const hostEntity = { id: 'host-entity', type: 'Grant' };
   assert.deepEqual(new FormEngine(minDef()).getResponse({ subject: hostEntity }).subject, hostEntity);
@@ -171,13 +171,13 @@ test('FormEngine refusal prevents instance and remote option loads', async (t) =
 
   // The refusal is available in reports. It still prevents both source loads.
   const engine = new FormEngine(definition, {
-    responseSubject: { id: 'filing-unit', keys: { uei: 'A' } },
+    responseSubject: { id: 'filing-unit', keys: { orgId: 'A' } },
     instanceSourceResolver: () => {
       calls.push('instance source');
       return { status: 'loaded', value: {} };
     },
   });
-  assert.equal(engine.getValidationReport().results[0].path, '#subjectKeys.uei');
+  assert.equal(engine.getValidationReport().results[0].path, '#subjectKeys.orgId');
   await engine.waitForInstanceSources();
   assert.deepEqual(calls, []);
   engine.dispose();

@@ -31,7 +31,7 @@ const DEFINITION_REF = 'https://example.test/definitions/application';
 const SURFACE_REF = 'https://example.test/surfaces/respondent';
 const HELP_NEED = 'need:understand-contact-email@1';
 const FILING_YEAR_SUBJECT_TYPE = 'urn:example:filing-year';
-const FILING_YEAR_2026_SUBJECT_ID = '1ed4d947987ad3ecc9fc167c00591f238bb6f58548dd0c438f204dd795778d0a';
+const FILING_YEAR_2026_SUBJECT_ID = 'a33b0d52e9ace3cf3b8c0b0ae97270feaea286925ee94d90fad941c35da92587';
 
 beforeAll(async () => {
   await engine.initFormspecEngine();
@@ -96,7 +96,7 @@ function fixture(withSubmit = false): ResolvedBundle {
   };
 }
 
-function filingYearFixture(key = 'ffy'): ResolvedBundle {
+function filingYearFixture(key = 'period'): ResolvedBundle {
   const bundle = fixture(true);
   const definition = bundle.definitions.get(DEFINITION_REF)!;
   definition.subject = { type: FILING_YEAR_SUBJECT_TYPE, keys: { [key]: { dataType: 'integer' } } };
@@ -112,7 +112,7 @@ function filingYearFixture(key = 'ffy'): ResolvedBundle {
   return bundle;
 }
 
-describe('filing-unit subject in the default Definition form', () => {
+describe('subject in the default Definition form', () => {
   function mount() {
     const container = document.body.appendChild(document.createElement('div'));
     const root = createRoot(container);
@@ -159,7 +159,7 @@ describe('filing-unit subject in the default Definition form', () => {
     expect(container.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe('2026');
     expect(onDefinitionActionResult.mock.lastCall?.[0].detail.response).toMatchObject({
       data: { year: 2026 },
-      subject: { type: FILING_YEAR_SUBJECT_TYPE, keys: { ffy: 2026 }, id: FILING_YEAR_2026_SUBJECT_ID },
+      subject: { type: FILING_YEAR_SUBJECT_TYPE, keys: { period: 2026 }, id: FILING_YEAR_2026_SUBJECT_ID },
     });
 
     const name = container.querySelector<HTMLInputElement>('input[type="text"]')!;
@@ -176,7 +176,7 @@ describe('filing-unit subject in the default Definition form', () => {
     expect(container.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe('2027');
     expect(onDefinitionActionResult.mock.lastCall?.[0].detail.response).toMatchObject({
       data: { year: 2027 },
-      subject: { type: FILING_YEAR_SUBJECT_TYPE, keys: { ffy: 2027 }, id: '920f0b3c9bf4ab59358e70a0e75cd4d6858d273cba465ae4cdc1188d1fcd2d86' },
+      subject: { type: FILING_YEAR_SUBJECT_TYPE, keys: { period: 2027 }, id: '1744a30434562b55bfc67857fdd41850f98c9694cc7bea309d2cb7fbf0ffe0ba' },
     });
   });
 
@@ -211,7 +211,7 @@ describe('filing-unit subject in the default Definition form', () => {
       expect(container.querySelector<HTMLInputElement>('input[type="number"]')?.value).toBe('2026');
       if (delegating) {
         expect(renderer.mock.lastCall?.[0].responseSubject).toEqual({
-          type: FILING_YEAR_SUBJECT_TYPE, keys: { ffy: 2026 }, id: FILING_YEAR_2026_SUBJECT_ID,
+          type: FILING_YEAR_SUBJECT_TYPE, keys: { period: 2026 }, id: FILING_YEAR_2026_SUBJECT_ID,
         });
       }
 
@@ -232,11 +232,11 @@ describe('filing-unit subject in the default Definition form', () => {
     }
   });
 
-  it('keeps the page mounted when the engine refuses the ffy-year key', async () => {
+  it('keeps the page mounted when the engine refuses the period-year key', async () => {
     const container = document.body.appendChild(document.createElement('div'));
     const onUncaughtError = vi.fn();
     const root = createRoot(container, { onUncaughtError });
-    const bundle = filingYearFixture('ffy-year');
+    const bundle = filingYearFixture('period-year');
     bundle.surfaces[0]!.routes[0]!.title = 'Annual filing';
 
     try {
@@ -255,7 +255,7 @@ describe('filing-unit subject in the default Definition form', () => {
   it('uses the host strings when a delegating renderer supplies a refused key value', async () => {
     const renderer: SurfaceDefinitionFormRenderer = input => renderDefaultDefinitionForm({
       ...input,
-      responseSubject: { type: FILING_YEAR_SUBJECT_TYPE, keys: { ffy: '2026' }, id: FILING_YEAR_2026_SUBJECT_ID },
+      responseSubject: { type: FILING_YEAR_SUBJECT_TYPE, keys: { period: '2026' }, id: FILING_YEAR_2026_SUBJECT_ID },
     });
     const container = render(<SurfaceApp bundle={filingYearFixture()} location="/units/2026" onNavigate={() => {}}
       renderDefinitionForm={renderer} strings={{ slotUnavailableWidgetData: 'Formulario no disponible' }}

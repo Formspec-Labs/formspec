@@ -6,7 +6,7 @@
     "title": "Subject recheck",
     "status": "active",
     "subject": {
-      "type": "urn:test:filing-unit",
+      "type": "urn:test:subject",
       "keys": {
         "serial": {
           "dataType": "integer"
@@ -40,12 +40,12 @@
     "status": "completed",
     "authored": "2025-04-01T12:00:00Z",
     "subject": {
-      "type": "urn:test:filing-unit",
+      "type": "urn:test:subject",
       "keys": {
         "serial": 9007199254740991,
         "tag": "9007199254740993"
       },
-      "id": "9d2581175b8534a12024fe1fbd133719b142939f610b5b2014bfb86b2920830f"
+      "id": "46f5e97cb0395cde2a229af51190a9bfb43bf62721bc458731f4b953c78021f3"
     },
     "data": {
       "serial": 9007199254740991

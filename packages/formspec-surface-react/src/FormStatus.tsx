@@ -1,8 +1,8 @@
-/** @filedesc Presents an authored filing task list from a batch of draft observations. */
+/** @filedesc Presents an authored form-status task list from a batch of draft observations. */
 import { Fragment, useEffect, useId, useMemo, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import {
-  type CurrentDraftProgress, type FilingDraftQuery, type FilingProgressCounts, type FilingStatusObservation, type FilingStatusReader,
-  type FilingStatusPlan, type HeadingLevel, type SlotPlan, type SurfaceStringKey, type SurfaceStrings,
+  type CurrentDraftProgress, type FormStatusQuery, type FormProgressCounts, type FormStatusObservation, type StatusReader,
+  type FormStatusPlan, type HeadingLevel, type SlotPlan, type SurfaceStringKey, type SurfaceStrings,
 } from '@formspec-org/surface';
 import { currentEffectDataSourcePorts, type EffectDataSourcePorts } from './data-source-effect.js';
 import { selectDataSourceRevisions, type DataSourceRevisionSelector } from './data-source-revision.js';
@@ -12,32 +12,32 @@ import { needTraceAttributes } from './need-trace.js';
 import { presentedRouteLabel, type SurfaceRouteTitleResolver } from './title-presentation.js';
 import { FormattedReceiptRef } from './receipt-ref.js';
 
-type Observation = FilingStatusObservation | {
+type Observation = FormStatusObservation | {
   readonly draft: { readonly status: 'loading' };
   readonly filing: { readonly status: 'unavailable' };
 };
-type DraftReads = (query: FilingDraftQuery) => Observation;
+type DraftReads = (query: FormStatusQuery) => Observation;
 const unavailable = { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } } as const;
 
-export interface FilingStatusNavigation {
+export interface FormStatusNavigation {
   navigate: (href: string) => void | boolean | Promise<void | boolean>;
   formatHref?: ((href: string) => string | undefined) | undefined;
   resolveRouteTitle?: SurfaceRouteTitleResolver | undefined;
 }
 
-export interface FilingStatusOptions extends FilingStatusNavigation {
-  readSummaries?: FilingStatusReader | undefined;
+export interface FormStatusOptions extends FormStatusNavigation {
+  readSummaries?: StatusReader | undefined;
   revision?: string | number | undefined;
 }
 
-export interface FilingStatusViewContext extends Partial<FilingStatusNavigation> {
+export interface FormStatusViewContext extends Partial<FormStatusNavigation> {
   observe: DraftReads;
-  rosters?: ReadonlyMap<FilingStatusPlan, FilingStatusPlan> | undefined;
+  rosters?: ReadonlyMap<FormStatusPlan, FormStatusPlan> | undefined;
 }
 
-export function useFilingDraftObservations(
+export function useFormStatusObservations(
   slots: readonly SlotPlan<unknown>[],
-  readSummaries: FilingStatusReader | undefined,
+  readSummaries: StatusReader | undefined,
   previewScope: string | undefined,
   revision: string | number | undefined,
   generation: string | undefined,
@@ -46,11 +46,11 @@ export function useFilingDraftObservations(
   selectRevision: DataSourceRevisionSelector | undefined,
 ) {
   const trackers = useMemo(() => {
-    const plans = new Set<FilingStatusPlan>();
+    const plans = new Set<FormStatusPlan>();
     function visit(items: readonly SlotPlan<unknown>[]) {
       for (const slot of items) {
         if (slot.slotType === 'embed-route') visit(slot.slots);
-        if (slot.slotType === 'filing-status') plans.add(slot.tracker);
+        if (slot.slotType === 'form-status') plans.add(slot.tracker);
       }
     }
     visit(slots);
@@ -65,7 +65,7 @@ export function useFilingDraftObservations(
   const visit = useMemo(() => ({ rosters, failures: revisions.map(result => new Set(result.failures.map(request => request.descriptor))) }),
     [rosters, revisionKey, generation, draftRevision, revision, previewScope, loader, authorize, validatePayload]);
   const [delivery, setDelivery] = useState<{
-    visit: typeof visit; plans: ReadonlyMap<FilingStatusPlan, FilingStatusPlan>;
+    visit: typeof visit; plans: ReadonlyMap<FormStatusPlan, FormStatusPlan>;
   }>();
   useEffect(() => {
     if (!visit.rosters.length) return;
@@ -90,7 +90,7 @@ export function useFilingDraftObservations(
   }, [visit]);
   const expanded = delivery?.visit === visit ? delivery.plans : undefined;
   const queries = useMemo(() => {
-    const unique = new Map<string, FilingDraftQuery>();
+    const unique = new Map<string, FormStatusQuery>();
     if (rosters.length && !expanded) return [];
     for (const tracker of trackers) {
       const plan = expanded?.get(tracker) ?? tracker;
@@ -106,14 +106,14 @@ export function useFilingDraftObservations(
     [queries, readSummaries, previewScope, revision, generation, draftRevision]);
   const [completed, setCompleted] = useState<{
     request: typeof request;
-    observations: ReadonlyMap<string, FilingStatusObservation>;
+    observations: ReadonlyMap<string, FormStatusObservation>;
   }>();
 
   useEffect(() => {
     if (!request.readSummaries || request.queries.length === 0) return;
     const read = request.readSummaries;
     const controller = new AbortController();
-    const result = (observations: ReadonlyMap<string, FilingStatusObservation>) => {
+    const result = (observations: ReadonlyMap<string, FormStatusObservation>) => {
       if (!controller.signal.aborted) setCompleted({ request, observations });
     };
     void Promise.resolve()
@@ -126,7 +126,7 @@ export function useFilingDraftObservations(
 
   const observe: DraftReads = (query) => {
     if (!readSummaries) return unavailable;
-    let observation: FilingStatusObservation | undefined;
+    let observation: FormStatusObservation | undefined;
     if (completed?.request === request) {
       observation = completed.observations.get(query.key) ?? unavailable;
     } else if (
@@ -150,15 +150,15 @@ export function useFilingDraftObservations(
   return { observe, rosters: expanded };
 }
 
-function filingLinkFor(destination: string | undefined, navigation: Partial<FilingStatusNavigation> | undefined) {
+function formStatusLinkFor(destination: string | undefined, navigation: Partial<FormStatusNavigation> | undefined) {
   if (destination === undefined) return undefined;
   const href = navigation?.formatHref ? navigation.formatHref(destination) : destination;
   return href === undefined ? undefined : { href, destination };
 }
 
-function FilingLink({ link, navigation, describedBy, className, style, children, ...anchorProps }: {
-  link: ReturnType<typeof filingLinkFor>;
-  navigation: Partial<FilingStatusNavigation> | undefined;
+function FormStatusLink({ link, navigation, describedBy, className, style, children, ...anchorProps }: {
+  link: ReturnType<typeof formStatusLinkFor>;
+  navigation: Partial<FormStatusNavigation> | undefined;
   describedBy?: string;
   children: ReactNode;
 } & Pick<ComponentPropsWithoutRef<'a'>, 'className' | 'style' | 'tabIndex' | 'title' | 'onMouseDown'>) {
@@ -170,45 +170,45 @@ function FilingLink({ link, navigation, describedBy, className, style, children,
   }}>{children}</a>;
 }
 
-function filingFillCount({ filled, total }: FilingProgressCounts, text: SurfaceStrings) {
-  return text('filingFillCount', { filled: String(filled), total: String(total) });
+function formStatusFillCount({ filled, total }: FormProgressCounts, text: SurfaceStrings) {
+  return text('formStatusFillCount', { filled: String(filled), total: String(total) });
 }
 
-function filingFindings(counts: FilingProgressCounts, text: SurfaceStrings) {
+function formStatusFindings(counts: FormProgressCounts, text: SurfaceStrings) {
   const findings: { kind?: 'fix' | 'check'; label: string }[] = [];
   if (counts.toFix !== null && counts.toFix > 0) {
-    findings.push({ kind: 'fix', label: text('filingFixCount', { count: String(counts.toFix) }) });
+    findings.push({ kind: 'fix', label: text('formStatusFixCount', { count: String(counts.toFix) }) });
   }
   if (counts.toCheck !== null && counts.toCheck > 0) {
-    findings.push({ kind: 'check', label: text('filingCheckCount', { count: String(counts.toCheck) }) });
+    findings.push({ kind: 'check', label: text('formStatusCheckCount', { count: String(counts.toCheck) }) });
   }
-  if (counts.toFix === null || counts.toCheck === null) findings.push({ label: text('filingChecksUnavailable') });
+  if (counts.toFix === null || counts.toCheck === null) findings.push({ label: text('formStatusChecksUnavailable') });
   return findings;
 }
 
 const observationLabel = {
-  loading: 'filingLoading',
-  absent: 'filingNotStarted',
-  denied: 'filingDenied',
-  stale: 'filingStale',
-  unavailable: 'filingUnavailable',
+  loading: 'formStatusLoading',
+  absent: 'formStatusNotStarted',
+  denied: 'formStatusDenied',
+  stale: 'formStatusStale',
+  unavailable: 'formStatusUnavailable',
 } as const;
 
-type Row = Extract<FilingStatusPlan, { status: 'ready' }>['groups'][number]['rows'][number];
+type Row = Extract<FormStatusPlan, { status: 'ready' }>['groups'][number]['rows'][number];
 const filingLabel = {
-  filed: 'filingFiled', returned: 'filingReturned', accepted: 'filingAccepted',
-  'closed-without-acceptance': 'filingClosedWithoutAcceptance', reopened: 'filingReopened',
+  filed: 'formStatusFiled', returned: 'formStatusReturned', accepted: 'formStatusAccepted',
+  'closed-without-acceptance': 'formStatusClosedWithoutAcceptance', reopened: 'formStatusReopened',
 } as const;
 
 const refusalLabel = {
-  'route-address-unavailable': 'filingAddressUnavailable',
-  'definition-unresolved': 'filingDefinitionUnavailable',
+  'route-address-unavailable': 'formStatusAddressUnavailable',
+  'definition-unresolved': 'formStatusDefinitionUnavailable',
   'slot-unresolved': 'slotUnavailableDefinitionForm',
-  'subject-unavailable': 'filingSubjectUnavailable',
-  'invalid-binding': 'filingUnavailable',
+  'subject-unavailable': 'formStatusSubjectUnavailable',
+  'invalid-binding': 'formStatusUnavailable',
 } as const satisfies Record<Extract<Row, { status: 'disabled' }>['reason'], SurfaceStringKey>;
 
-function sectionFinding(counts: FilingProgressCounts | undefined) {
+function sectionFinding(counts: FormProgressCounts | undefined) {
   if (counts && counts.toFix !== null && counts.toFix > 0) return 'fix';
   if (counts && counts.toCheck !== null && counts.toCheck > 0) return 'check';
   return undefined;
@@ -226,11 +226,11 @@ function observationProgress(observation: Observation): CurrentDraftProgress | u
   return undefined;
 }
 
-function FilingRow({ row, observation, largest, context, text }: {
+function FormStatusRow({ row, observation, largest, context, text }: {
   row: Row;
   observation: Observation;
   largest: number;
-  context?: FilingStatusViewContext | undefined;
+  context?: FormStatusViewContext | undefined;
   text: SurfaceStrings;
 }) {
   const statusId = useId();
@@ -241,10 +241,10 @@ function FilingRow({ row, observation, largest, context, text }: {
     : row.status === 'disabled' && row.routeRef;
   const status = row.status === 'disabled' ? text(refusalLabel[row.reason])
     : draft.status === 'absent' && filing.status === 'none' && row.weight > 0
-      ? text('filingNotStartedWithSize', { count: String(row.weight) })
+      ? text('formStatusNotStartedWithSize', { count: String(row.weight) })
     : draft.status === 'current'
-      ? text(draft.form.ready === null ? 'filingReadinessUnavailable' : draft.form.ready ? 'filingReady' : 'filingInProgress')
-    : draft.status === 'absent' && filing.status !== 'none' ? text('filingUnavailable')
+      ? text(draft.form.ready === null ? 'formStatusReadinessUnavailable' : draft.form.ready ? 'formStatusReady' : 'formStatusInProgress')
+    : draft.status === 'absent' && filing.status !== 'none' ? text('formStatusUnavailable')
     : text(observationLabel[draft.status]);
   const completedReceipt =
     receipt && (receipt.status === 'filed' || receipt.status === 'accepted') && draft.status !== 'current'
@@ -255,11 +255,11 @@ function FilingRow({ row, observation, largest, context, text }: {
       : activeProgress && Object.hasOwn(activeProgress.sections, section.id)
         ? activeProgress.sections[section.id] : undefined;
     const countLabels = counts
-      ? [filingFillCount(counts, text), ...filingFindings(counts, text).map(finding => finding.label)]
+      ? [formStatusFillCount(counts, text), ...formStatusFindings(counts, text).map(finding => finding.label)]
       : completedReceipt
         ? [text(filingLabel[completedReceipt.status])]
         : [];
-    return { ...section, link: filingLinkFor(section.href, context), counts, countLabels };
+    return { ...section, link: formStatusLinkFor(section.href, context), counts, countLabels };
   }) : [];
   const segments = sections.filter(section => section.weight > 0);
   const filingState = receipt ? receipt.status
@@ -267,12 +267,12 @@ function FilingRow({ row, observation, largest, context, text }: {
     : draft.status === 'current' ? (draft.form.ready === null ? 'unavailable' : draft.form.ready ? 'ready' : 'in-progress')
     : draft.status;
   const receiptReferenceParts = receipt
-    ? text('filingReceiptReference', { reference: '\u0000' }).split('\u0000')
+    ? text('formStatusReceiptReference', { reference: '\u0000' }).split('\u0000')
     : undefined;
   return <li className="fs-surface-filing__row" data-filing-status={filingState} {...needTraceAttributes(row.needAnchors)}>
     <div className="fs-surface-filing__form">
-      {label && <FilingLink link={row.status === 'ready' ? filingLinkFor(row.href, context) : undefined}
-        navigation={context} describedBy={statusId}>{label}</FilingLink>}
+      {label && <FormStatusLink link={row.status === 'ready' ? formStatusLinkFor(row.href, context) : undefined}
+        navigation={context} describedBy={statusId}>{label}</FormStatusLink>}
       {row.description && <p>{row.description}</p>}
       {row.hint && <p>{row.hint}</p>}
     </div>
@@ -286,25 +286,25 @@ function FilingRow({ row, observation, largest, context, text }: {
             : counts && counts.total > 0 ? Math.min(100, 100 * counts.filled / counts.total) : 0;
           const finding = sectionFinding(counts);
           const title = countLabels.length > 0 ? `${label}: ${countLabels.join(', ')}` : label;
-          return <FilingLink key={id} link={link} navigation={context} className="fs-surface-filing__segment"
+          return <FormStatusLink key={id} link={link} navigation={context} className="fs-surface-filing__segment"
             style={{ flexGrow: weight }} tabIndex={-1} title={title}
             onMouseDown={event => event.preventDefault()}>
             <span className="fs-surface-filing__fill" style={{ inlineSize: `${percent}%` }} />
             {finding && <span className="fs-surface-filing__mark" data-finding={finding} />}
-          </FilingLink>;
+          </FormStatusLink>;
         })}
       </div>}
       <details>
         <summary>
-          {text('filingSections', { count: String(sections.length) })}
+          {text('formStatusSections', { count: String(sections.length) })}
           {label && <span className="fs-surface-visually-hidden"> {label}</span>}
         </summary>
         <ul className="fs-surface-filing__sections" role="list">
           {sections.map(({ id, label, link, countLabels }) => <li key={id}>
-            <FilingLink link={link} navigation={context}>
+            <FormStatusLink link={link} navigation={context}>
               {label}
               {countLabels.length > 0 && <span className="fs-surface-visually-hidden"> {countLabels.join(' ')}</span>}
-            </FilingLink>
+            </FormStatusLink>
           </li>)}
         </ul>
       </details>
@@ -325,29 +325,29 @@ function FilingRow({ row, observation, largest, context, text }: {
               {receiptReferenceParts[1]}
             </>
           ) : (
-            text('filingReceiptReference', { reference: receipt.receiptRef })
+            text('formStatusReceiptReference', { reference: receipt.receiptRef })
           )}
         </div>
-        {receipt.sample && <div className="fs-surface-filing__meta">{text(receipt.sample === 'fixture' ? 'filingFixture' : 'filingPreviewSubmit')}</div>}
-        {receipt.review === 'unavailable' && <div className="fs-surface-filing__meta">{text('filingReviewUnavailable')}</div>}
+        {receipt.sample && <div className="fs-surface-filing__meta">{text(receipt.sample === 'fixture' ? 'formStatusFixture' : 'formStatusPreviewSubmit')}</div>}
+        {receipt.review === 'unavailable' && <div className="fs-surface-filing__meta">{text('formStatusReviewUnavailable')}</div>}
         {receipt.comments.map((comment, index) => <p key={index} className="fs-surface-filing__comment">{comment}</p>)}
       </>}
       {activeProgress && <div className="fs-surface-filing__counts">
-        <span>{filingFillCount(activeProgress.form, text)}</span>
-        {filingFindings(activeProgress.form, text).map(({ kind, label }) => (
+        <span>{formStatusFillCount(activeProgress.form, text)}</span>
+        {formStatusFindings(activeProgress.form, text).map(({ kind, label }) => (
           <span key={kind ?? 'unavailable'} className={kind && `fs-surface-filing__${kind}`}>{label}</span>
         ))}
-        {sections.some(section => section.counts === undefined) && <span>{text('filingSectionCountsUnavailable')}</span>}
+        {sections.some(section => section.counts === undefined) && <span>{text('formStatusSectionCountsUnavailable')}</span>}
       </div>}
     </div>
   </li>;
 }
 
 const legend = [
-  { key: 'filingAnswered', filled: true },
-  { key: 'filingStillToAnswer' },
-  { key: 'filingHasFix', finding: 'fix' },
-  { key: 'filingHasCheck', finding: 'check' },
+  { key: 'formStatusAnswered', filled: true },
+  { key: 'formStatusStillToAnswer' },
+  { key: 'formStatusHasFix', finding: 'fix' },
+  { key: 'formStatusHasCheck', finding: 'check' },
 ] as const;
 
 function subjectKeyString(subject: { readonly type: string; readonly keys: Readonly<Record<string, string | number>> } | null): string {
@@ -396,15 +396,15 @@ interface ResolvedTrackerRow {
   unitKey?: string | undefined;
 }
 
-export function FilingStatus({ plan: originalPlan, context, level, text }: {
-  plan: FilingStatusPlan;
-  context?: FilingStatusViewContext | undefined;
+export function FormStatus({ plan: originalPlan, context, level, text }: {
+  plan: FormStatusPlan;
+  context?: FormStatusViewContext | undefined;
   level: HeadingLevel;
   text: SurfaceStrings;
 }) {
   const plan = context?.rosters?.get(originalPlan) ?? originalPlan;
-  if (plan.status === 'roster') return <p>{text('filingLoading')}</p>;
-  if (plan.status === 'unresolved') return <p>{text('filingUnavailable')}</p>;
+  if (plan.status === 'roster') return <p>{text('formStatusLoading')}</p>;
+  if (plan.status === 'unresolved') return <p>{text('formStatusUnavailable')}</p>;
   const resolvedGroups = plan.groups.map(group => {
     let rows = group.rows.map((plannedRow): ResolvedTrackerRow => {
       if (plannedRow.status !== 'ready') {
@@ -498,7 +498,7 @@ export function FilingStatus({ plan: originalPlan, context, level, text }: {
     for (const entry of group.rows) {
       if (entry.destinationTuple !== undefined) {
         if (seenDestinations.has(entry.destinationTuple)) {
-          return <p>{text('filingUnavailable')}</p>;
+          return <p>{text('formStatusUnavailable')}</p>;
         }
         seenDestinations.add(entry.destinationTuple);
       }
@@ -509,7 +509,7 @@ export function FilingStatus({ plan: originalPlan, context, level, text }: {
     if (group.member && memberSubject !== undefined) {
       const seenForRepeat = seenRepeatGroupSubjects.get(group.member.groupId) ?? new Set<string>();
       if (seenForRepeat.has(memberSubject)) {
-        return <p>{text('filingUnavailable')}</p>;
+        return <p>{text('formStatusUnavailable')}</p>;
       }
       seenForRepeat.add(memberSubject);
       seenRepeatGroupSubjects.set(group.member.groupId, seenForRepeat);
@@ -587,24 +587,24 @@ export function FilingStatus({ plan: originalPlan, context, level, text }: {
     {(known > 0 || completedUnits > 0) && <div className="fs-surface-filing__totals">
       <dl>
         {known > 0 && <div>
-          <dt>{text('filingAnswered')}</dt>
-          <dd>{text('filingSummaryAnswered', { filled: String(totals.filled), total: String(totals.total) })}</dd>
+          <dt>{text('formStatusAnswered')}</dt>
+          <dd>{text('formStatusSummaryAnswered', { filled: String(totals.filled), total: String(totals.total) })}</dd>
         </div>}
         {completedUnits > 0 && <div>
-          <dt>{text('filingFiled')}</dt>
-          <dd data-filing-completed="">{text('filingSummaryAnswered', { filled: String(completedUnits), total: String(totalUnits) })}</dd>
+          <dt>{text('formStatusFiled')}</dt>
+          <dd data-filing-completed="">{text('formStatusSummaryAnswered', { filled: String(completedUnits), total: String(totalUnits) })}</dd>
         </div>}
         {totals.toFix !== null && <div>
-          <dt>{text('filingSummaryToFix')}</dt>
+          <dt>{text('formStatusSummaryToFix')}</dt>
           <dd data-finding={totals.toFix > 0 ? 'fix' : undefined}>{totals.toFix}</dd>
         </div>}
         {totals.toCheck !== null && <div>
-          <dt>{text('filingSummaryToCheck')}</dt>
+          <dt>{text('formStatusSummaryToCheck')}</dt>
           <dd data-finding={totals.toCheck > 0 ? 'check' : undefined}>{totals.toCheck}</dd>
         </div>}
       </dl>
-      {partial && <p>{text('filingSomeProgressUnavailable')}</p>}
-      {known > 0 && (totals.toFix === null || totals.toCheck === null) && <p>{text('filingChecksUnavailable')}</p>}
+      {partial && <p>{text('formStatusSomeProgressUnavailable')}</p>}
+      {known > 0 && (totals.toFix === null || totals.toCheck === null) && <p>{text('formStatusChecksUnavailable')}</p>}
     </div>}
     {largest > 0 && <div className="fs-surface-filing__key">
       <ul className="fs-surface-filing__legend" role="list">
@@ -616,7 +616,7 @@ export function FilingStatus({ plan: originalPlan, context, level, text }: {
           {text(item.key)}
         </li>)}
       </ul>
-      <p>{text('filingLegendCaption')}</p>
+      <p>{text('formStatusLegendCaption')}</p>
     </div>}
     {[...authoredGroups].map(([id, { entries, waiting }]) => {
       const first = entries[0]!;
@@ -628,12 +628,12 @@ export function FilingStatus({ plan: originalPlan, context, level, text }: {
         </div>}
         {entries.map(group => <Fragment key={group.id}>
           {group.member && <Heading level={nextLevel(level)}>{group.member.label}</Heading>}
-          {group.unavailable && <p>{text('filingUnavailable')}</p>}
+          {group.unavailable && <p>{text('formStatusUnavailable')}</p>}
           {!group.unavailable && group.rows.length === 0 && (
             <p className="fs-surface-filing__empty">None added yet.</p>
           )}
           {group.rows.length > 0 && <ul className="fs-surface-filing__tasks" role="list">
-            {group.rows.map(({ row, observation }) => <FilingRow key={row.key} row={row} observation={observation}
+            {group.rows.map(({ row, observation }) => <FormStatusRow key={row.key} row={row} observation={observation}
               largest={largest} context={context} text={text} />)}
           </ul>}
         </Fragment>)}

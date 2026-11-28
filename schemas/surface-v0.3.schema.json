@@ -243,7 +243,7 @@
                       "$ref": "#/$defs/RouteParam/properties/name"
                     },
                     "description": "Maps each key declared by the bound Definition subject to a parameter declared by the containing route. App-graph validation checks the exact key set and route parameter references. The runtime converts integer keys using the Definition type. An empty map is valid for a per-scope singleton.",
-                    "examples": [{ "ffy": "year", "uei": "agencyId" }, {}]
+                    "examples": [{ "period": "period", "orgId": "orgId" }, {}]
                   },
                   "initialData": {
                     "$ref": "#/$defs/DefinitionFormInitialDataBinding",

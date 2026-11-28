@@ -10,7 +10,7 @@ import {
   type PageSequenceEntry, type ProgressCounts,
 } from '@formspec-org/layout';
 import { readSubmitEvaluation, summarizeDraftProgress } from './draft-progress.js';
-import { filingAction, type DraftFencedAction, type DraftKey, type DraftPort, type DraftRecord, type DraftSaveInput, type FilingProgressCounts } from '@formspec-org/surface';
+import { filingAction, type DraftFencedAction, type DraftKey, type DraftPort, type DraftRecord, type DraftSaveInput, type FormProgressCounts } from '@formspec-org/surface';
 export type { DraftFencedAction } from '@formspec-org/surface';
 import type {
   ResponseActionInvokerInput, ResponseActionInvokerResult, ResponseActionsDocument, SubmitResult,
@@ -115,7 +115,7 @@ export async function readCommittedExplanationsAtRevision(
   }
 }
 
-function counts({ total, filled, toFix, toCheck }: ProgressCounts): FilingProgressCounts {
+function counts({ total, filled, toFix, toCheck }: ProgressCounts): FormProgressCounts {
   return { total, filled, toFix, toCheck };
 }
 

@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
-import { dereferenceBundleExport, type DataSourceAuthorizer, type DataSourceLoader, type FilingStatusReader } from '@formspec-org/surface';
+import { dereferenceBundleExport, type DataSourceAuthorizer, type DataSourceLoader, type StatusReader } from '@formspec-org/surface';
 import { SurfaceApp } from '../src/SurfaceApp.js';
 
 const source = {
@@ -28,7 +28,7 @@ const bundle = dereferenceBundleExport({
       ] },
     ] },
     'urn:surface': { $formspecSurface: '0.4', id: 'app', entry: 'home', routes: [
-      { id: 'home', path: '/', slots: [{ id: 'tracker', slotType: 'filing-status', binding: { groups: [
+      { id: 'home', path: '/', slots: [{ id: 'tracker', slotType: 'form-status', binding: { groups: [
         { id: 'directory', label: 'Directory', forms: [{ routeRef: 'directory', slotRef: 'form' }] },
         { id: 'reports', label: 'Unit reports', repeat: {
           catalogRef: 'urn:roster', sourceRef: 'response:members', rowsField: 'units', labelField: 'name', waitingLabel: 'Waiting for',
@@ -50,7 +50,7 @@ it('reads fixed and expanded forms together and names only confirmed waiting mem
     value: { units: members.map(name => ({ name, id: name.toLowerCase() })) } }));
   const authorize = vi.fn<DataSourceAuthorizer>(() => ({ status: 'authorized' }));
   const validate = vi.fn(() => ({ valid: true as const }));
-  const read = vi.fn<FilingStatusReader>(async queries => new Map(queries.map(query => [query.key, {
+  const read = vi.fn<StatusReader>(async queries => new Map(queries.map(query => [query.key, {
     draft: query.subject?.keys.unit === 'north'
       ? { status: 'current', form: { filled: 1, total: 1, toFix: 0, toCheck: 0, ready: true }, sections: {} }
       : { status: query.subject?.keys.unit === 'west' ? 'denied' : 'absent' },

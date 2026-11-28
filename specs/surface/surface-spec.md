@@ -33,7 +33,7 @@ primitive. It defines the semantic rules that are not expressible in
 
 A Surface document names routes inside an app and binds slots on those routes.
 Slots compose Definition forms, Experience units, module widgets, static
-content, native Screeners, filing-status trackers, draft-start controls, and nested route references. Surface is inward composition: it
+content, native Screeners, form-status trackers, draft-start controls, and nested route references. Surface is inward composition: it
 describes what can be rendered within an app after the app has been selected.
 The companion [Surface Shell Specification](surface-shell-spec.md) defines how
 a runtime composes, resolves, renders, and diagnoses published Surface
@@ -101,7 +101,7 @@ Every route declared in `routes[]` MUST be reachable from the document's
 - from Surface 0.3, each reachable native `screener` slot's
   `binding.allowedTargets` entry using `surface:<route-id>`, when it names a
   route in the same Surface, and
-- in Surface 0.4, each reachable `draft-start` binding's or `filing-status` entry's `routeRef`.
+- in Surface 0.4, each reachable `draft-start` binding's or `form-status` entry's `routeRef`.
   A band's links participate on every reachable route whose parameters supply
   the entry's `routeParam` references. This walk checks possible destinations. A
   repeated link also depends on an authorized roster delivery at runtime.
@@ -109,7 +109,7 @@ Every route declared in `routes[]` MUST be reachable from the document's
 A route that is not reached by this walk is invalid and MUST be reported as
 `E606` (`SURFACE-ROUTE-UNREACHABLE`). Producers SHOULD either add a transition
 from a reachable route, embed the route via an `embed-route` slot, declare an
-authored native Screener destination or filing-status entry, or remove the unreachable route.
+authored native Screener destination or form-status entry, or remove the unreachable route.
 
 ### Route Parameters
 
@@ -274,7 +274,7 @@ text, image, alternative text, divider, runtime-data choice, or action mapping
 independently of the slot container and title. A standard structured widget
 additionally checks its panel root, every block, every authored field or table
 column, and every action presentation. Every loaded Data Sources `sources[]`
-entry is also one checked node. A filing-status slot, its binding, each group, and each entry require direct anchors. Parent, slot, catalog, source, widget-config,
+entry is also one checked node. A form-status slot, its binding, each group, and each entry require direct anchors. Parent, slot, catalog, source, widget-config,
 and Response Action metadata do not authorize a related untraced node.
 
 Preview scenarios remain outside `AppGraphContext` because they are not App
@@ -330,9 +330,9 @@ Cross-document slot bindings, such as `definition-form.binding.definitionRef`
 and `experience-unit.binding.unitRef`, are resolved by the app/bundle graph and
 are outside this Surface-local rule.
 
-### Filing-status binding
+### Form-status binding
 
-Surface 0.4 adds `filing-status`. An optional `binding.placement: "band"` places
+Surface 0.4 adds `form-status`. An optional `binding.placement: "band"` places
 the tracker above the route content on every page of the declaring Surface.
 Omission retains inline placement. Each band appears once, including on its
 declaring route and pages that embed it. The declaring route MUST declare each
@@ -359,7 +359,7 @@ subject keys, while `eq` preserves the declared key type (`string` or
 in both `params` and `subject[]`, and `params` MUST still supply any remaining
 non-subject parameters of the target route. An embedded tracker uses the
 parameters admitted for its enclosing authored route. A group represents one
-filing unit. Its subject-keyed forms MUST agree on the subject type and sources
+subject. Its subject-keyed forms MUST agree on the subject type and sources
 or predicates of its typed keys. A preview group may consist entirely of forms without authored subjects.
 
 A group MAY declare `repeat` with an exact Data Sources `catalogRef` and
@@ -435,15 +435,15 @@ evidence and revision metadata stay outside the form fields.
 
 ### Definition-form subject keys
 
-A `definition-form` slot binds the filing unit with `subjectKeys`. Each
+A `definition-form` slot binds the subject with `subjectKeys`. Each
 property names a key in the bound Definition's `subject.keys` and each value
 names a parameter in the containing route's `params[]`. The example binds
-two keys on the route `/years/{year}/agencies/{agencyId}`.
+two keys on the route `/periods/{period}/orgs/{orgId}`.
 
 ```json
 {
-  "definitionRef": "https://example.gov/definitions/grant-application",
-  "subjectKeys": { "ffy": "year", "uei": "agencyId" }
+  "definitionRef": "https://example.org/definitions/annual-report",
+  "subjectKeys": { "period": "period", "orgId": "orgId" }
 }
 ```
 
@@ -458,12 +458,12 @@ Definition without a subject declaration MUST omit `subjectKeys`.
 Route parameter values remain strings. When the Definition declares a
 `string` key, use the resolved parameter as-is. For an `integer` key, require
 the canonical decimal spelling `0` or `-?[1-9][0-9]*` and use exact base-10
-conversion. For example, reject `02026` and `+2026` so each filing unit has one
+conversion. For example, reject `02026` and `+2026` so each subject has one
 URL spelling for its integer keys. A missing or malformed value, or
 an integer outside the Internet JSON (I-JSON) range ±(2^53−1), MUST make the
 binding unavailable before draft lookup. Pass the typed keys to the server's
-authorized find-or-create operation. The server determines the filing-unit
-identity and applies access policy. See [Core §2.1.6](../core/spec.md#filing-unit-subject)
+authorized find-or-create operation. The server determines the subject
+identity and applies access policy. See [Core §2.1.6](../core/spec.md#subject-identity)
 and [ADR 0172 §11 item 9](../../../thoughts/adr/0172-subject-keyed-response-selection.md#11-amendments).
 
 A draft-review route MUST declare the same subject parameters as the form
@@ -800,11 +800,11 @@ Definition/App targets MUST NOT be redirected to a Screener. Locale 2.1 may targ
 the selected Screener. No task, draft, provider, signing or agency verification
 authority follows from a successful Screener destination.
 
-### 5.3 Filing-status slots (v0.4)
+### 5.3 Form-status slots (v0.4)
 
 The canonical schema URI is `https://formspec.org/schemas/surface/0.4`.
 The 0.3 schema remains at its published URI.
-Surface 0.4 retains the native Screener slot and adds filing-status slots,
+Surface 0.4 retains the native Screener slot and adds form-status slots,
 draft-start slots, and draft review bindings as defined in §4. Surface 0.2
 and 0.3 MUST refuse all three additions.
 Outcome Verification retains the revisions pinned in this document.
@@ -877,7 +877,7 @@ A Surface document is conformance-coherent when:
    failure makes the widget unavailable; action invocation uses one stable id,
    Response Actions retry/replay semantics, obsolete-completion refusal, and
    at-most-once transition navigation.
-9. Filing-status entries resolve under §4 and satisfy the strict Need trace profile when active.
+9. Form-status entries resolve under §4 and satisfy the strict Need trace profile when active.
 
 A non-form app (a bundle with `definitions: []` and a `surfaces: [...]`
 declaring routes with `experience-unit` / `module-widget` /

@@ -1,13 +1,13 @@
 /** @filedesc Create on activation and navigate only after the store returns a complete subject. */
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { draftStartHref, type DraftStartPlan, type SurfaceStrings } from '@formspec-org/surface';
-import type { FilingStatusNavigation } from './FilingStatus.js';
+import type { FormStatusNavigation } from './FormStatus.js';
 import { deriveDraftSubject, type DraftSession } from './draft-session.js';
 
 export function DraftStart({ plan, session, navigate, strings }: {
   plan: DraftStartPlan;
   session: DraftSession;
-  navigate: FilingStatusNavigation['navigate'];
+  navigate: FormStatusNavigation['navigate'];
   strings: SurfaceStrings;
 }) {
   const visit = useRef<{ attemptId?: string; busy: boolean }>({ busy: false });

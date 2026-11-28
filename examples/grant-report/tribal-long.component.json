@@ -2,7 +2,7 @@
     "$formspecComponent": "1.0",
     "version": "1.0.4",
     "targetDefinition": {
-        "url": "https://acf.hhs.gov/formspec/csbg/tribal-long",
+        "url": "https://example.org/formspec/annual-report/tribal-long",
         "compatibleVersions": ">=3.0.0 <4.0.0"
     },
     "tree": {
@@ -22,9 +22,9 @@
                     },
                     {
                         "component": "Card",
-                        "title": "CSBG Program Contact",
+                        "title": "Program Contact",
                         "children": [
-                            { "component": "Heading", "text": "CSBG Program Contact", "level": 3 },
+                            { "component": "Heading", "text": "Program Contact", "level": 3 },
                             { "component": "TextInput", "bind": "basicInfo.contactName" },
                             { "component": "TextInput", "bind": "basicInfo.contactTitle" },
                             { "component": "TextInput", "bind": "basicInfo.phone" },

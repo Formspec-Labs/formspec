@@ -435,7 +435,7 @@ describe('a review delivery that arrives after the route', () => {
 });
 
 it.each(['/form/2026', '/review/2026'])('keeps a subject-refused draft unavailable on %s', async path => {
-  const subjectKey = 'ffy-year';
+  const subjectKey = 'period-year';
   const bundle = reviewBundle(undefined, {
     ...definition, subject: { ...definition.subject, keys: { [subjectKey]: { dataType: 'integer' } } },
   }, subjectKey);

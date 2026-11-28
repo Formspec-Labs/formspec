@@ -2,62 +2,62 @@
   "domain": "formspec.subject.id.v1",
   "vectors": [
     {
-      "name": "agency-year",
-      "type": "urn:example:subject:agency-year",
-      "keys": {"ffy": 2026, "uei": "A"},
-      "id": "caa277818d95f7d8b3a85fb92be6d600536d7c66dfd11216a6c0bbaabecfa9e7"
+      "name": "org-period",
+      "type": "urn:example:subject:org-period",
+      "keys": {"period": 2026, "orgId": "A"},
+      "id": "1cf7cea220e9c8d02f003647d0e6723256cf338b141ce468b689edc64ce21e9f"
     },
     {
       "name": "reordered keys",
-      "type": "urn:example:subject:agency-year",
-      "keys": {"uei": "A", "ffy": 2026},
-      "id": "caa277818d95f7d8b3a85fb92be6d600536d7c66dfd11216a6c0bbaabecfa9e7"
+      "type": "urn:example:subject:org-period",
+      "keys": {"orgId": "A", "period": 2026},
+      "id": "1cf7cea220e9c8d02f003647d0e6723256cf338b141ce468b689edc64ce21e9f"
     },
     {
-      "name": "string year is a different identity",
-      "type": "urn:example:subject:agency-year",
-      "keys": {"ffy": "2026", "uei": "A"},
-      "id": "f2baf45b6bd4877cd1945bd6c30c8ac1b0656a174ee2110b7ab809a72697d32c"
+      "name": "string period is a different identity",
+      "type": "urn:example:subject:org-period",
+      "keys": {"period": "2026", "orgId": "A"},
+      "id": "35f76e52116b0c5a42269e5e482f7b1b98e796fe14f0bf41097c9cb72693f5ac"
     },
     {
       "name": "integer bounds",
       "type": "urn:example:subject:plan",
-      "keys": {"first_ffy": -9007199254740991, "last_ffy": 9007199254740991},
-      "id": "a2a4768208ae8f9ac37ece9d91a36f53b60925d3130ca5bc4e2020cb236aff76"
+      "keys": {"first_period": -9007199254740991, "last_period": 9007199254740991},
+      "id": "0afa1fb05dc9fa066c8345314fc28571423a404e138b1edc7e59c1276e7879f1"
     },
     {
       "name": "per-scope singleton",
-      "type": "urn:example:subject:agency-list",
+      "type": "urn:example:subject:org-list",
       "keys": {},
-      "id": "c0fe209b9448cb7a8e25e6cd84aa5b363274fa3c7b6819f5c56fd49fa56c63ba"
+      "id": "6c204db0b48e6d8aa863c9eb7d918e8e3ed6fbc780d8556bc9235baae7c7e49b"
     },
     {
       "name": "Unicode string",
-      "type": "urn:example:subject:agency-year",
-      "keys": {"ffy": 2026, "uei": "Ä"},
-      "id": "9483554ee22c5bab32d6efd3728adfbefa7170c319a149ce8d130f15056c8812"
+      "type": "urn:example:subject:org-period",
+      "keys": {"period": 2026, "orgId": "Ä"},
+      "id": "9334a2c3530aa58ed598c7c5ea1ff84bc63a485d0c92adcc0cb9d86e691376e8"
     },
     {
       "name": "type separates identity",
-      "type": "urn:example:subject:agency-year",
-      "keys": {"ffy": 2026, "uei": "A"},
-      "id": "caa277818d95f7d8b3a85fb92be6d600536d7c66dfd11216a6c0bbaabecfa9e7"
+      "type": "urn:example:subject:other-org-period",
+      "keys": {"period": 2026, "orgId": "A"},
+      "id": "842702eeda1e59c59f0629502fab5ea9452bf21b1b5d3e9ea19740ed99d4424f"
     }
   ],
   "refusals": [
     {
       "name": "integer exceeds the I-JSON maximum",
-      "type": "urn:example:subject:agency-year",
+      "type": "urn:example:subject:org-period",
       "keys": {
-        "ffy": 9007199254740993
+        "period": 9007199254740993
       },
       "expectedError": "I-JSON integer range"
     },
     {
       "name": "integer below the I-JSON minimum",
-      "type": "urn:example:subject:agency-year",
+      "type": "urn:example:subject:org-period",
       "keys": {
-        "ffy": -9007199254740993
+        "period": -9007199254740993
       },
       "expectedError": "I-JSON integer range"
     }

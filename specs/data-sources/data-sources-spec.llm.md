@@ -28,7 +28,7 @@ Source schema: `schemas/data-sources.schema.json`
 - App Manifest v2.1 introduces `dataSources[]` sibling references by URL/version; v2.0 manifests remain valid but cannot carry `dataSources[]`.
 - Each source declares a closed source family, owner, scope, availability selector, runtime delivery/cache/failure/provenance behavior, and coarse authorization boundary.
 - Surface, route, or slot availability MUST include a Surface URL because App Manifests may compose multiple Surfaces and route ids are not graph-global.
-- Snapshot and live definition-response sources use Core's ResponseSelection for app consumers. The session draft uses definitionRef; a current selection can read another filing unit.
+- Snapshot and live definition-response sources use Core's ResponseSelection for app consumers. The session draft uses definitionRef; a current selection can read another subject.
 - Selected payloads carry records, valueDigest, none, and a newer notice when an open-time pin differs from a newly eligible completed record.
 - The catalog never embeds local fixture paths, widget payload folklore, or runtime data. Cross-artifact resolution belongs to `ArtifactResolver` and `AppGraphValidator`.
 

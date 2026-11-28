@@ -31,8 +31,8 @@ fn instance() -> Value {
         "response": {
             "definition": {"url": "urn:example:report", "compatibleVersions": ">=1.0.0 <2.0.0"},
             "subject": [
-                {"key": "uei", "op": "eq", "from": {"subject": "agency"}},
-                {"key": "ffy", "op": "eq", "from": {"subject": "year"}, "offset": -1}
+                {"key": "orgId", "op": "eq", "from": {"subject": "org"}},
+                {"key": "period", "op": "eq", "from": {"subject": "year"}, "offset": -1}
             ],
             "status": "completed", "cardinality": "latest", "pin": "none"
         },
@@ -42,15 +42,15 @@ fn instance() -> Value {
 
 fn consumer_subject() -> Value {
     json!({"type": "urn:example:program-year", "keys": {
-        "agency": {"dataType": "string"}, "year": {"dataType": "integer"}
+        "org": {"dataType": "string"}, "year": {"dataType": "integer"}
     }})
 }
 
 fn upstream() -> Value {
     json!({
         "$formspec": "1.0", "url": "urn:example:report", "version": "1.0.0", "title": "Report",
-        "subject": {"type": "urn:example:agency-year", "keys": {
-            "uei": {"dataType": "string"}, "ffy": {"dataType": "integer"}
+        "subject": {"type": "urn:example:org-period", "keys": {
+            "orgId": {"dataType": "string"}, "period": {"dataType": "integer"}
         }},
         "items": [
             {"key": "totals", "type": "group", "label": "Totals", "children": [
@@ -263,7 +263,7 @@ fn reports_subject_type_and_key_map_drift_across_eligible_versions() {
 
     let mut instance = instance();
     instance["response"]["subject"] = json!([
-        {"key": "uei", "op": "eq", "from": {"subject": "agency"}}
+        {"key": "orgId", "op": "eq", "from": {"subject": "org"}}
     ]);
     let diagnostics = check_instance_projection(
         &instance,
@@ -323,7 +323,7 @@ fn distinguishes_subject_key_type_drift_from_authorization_metadata() {
 fn reports_incompatible_consumer_key_type_on_equality() {
     let instance = instance();
     let consumer_subject = json!({"type": "urn:example:program-year", "keys": {
-        "agency": {"dataType": "integer"}, "year": {"dataType": "integer"}
+        "org": {"dataType": "integer"}, "year": {"dataType": "integer"}
     }});
     let diagnostics = check_instance_projection(&instance, Some(&consumer_subject), &[upstream()]);
     assert_eq!(diagnostics.len(), 1);
@@ -541,7 +541,7 @@ fn reports_each_catalog_source_defect_once_across_three_versions() {
         "kind": "definition-response",
         "responseSelection": {
             "definition": {"url": "urn:example:report", "compatibleVersions": "^1.0.0"},
-            "subject": [{"key": "ffy", "op": "eq", "from": {"subject": "absent"}}],
+            "subject": [{"key": "period", "op": "eq", "from": {"subject": "absent"}}],
         },
         "schema": {"$ref": "urn:example:record"},
     });

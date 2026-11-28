@@ -78,13 +78,13 @@ describe('subject identity on the runtime path', () => {
 
     it('keeps typed refusals and derives no id for a refused subject', async () => {
         await initFormspecEngine();
-        const type = 'urn:example:subject:agency-year';
-        const definition = declaring(type, { ffy: 2026, uei: 'A' });
+        const type = 'urn:example:subject:org-period';
+        const definition = declaring(type, { period: 2026, orgId: 'A' });
         const cases = [
-            ['wrong key type', definition, { ffy: '2026', uei: 'A' }, '#subjectKeys.ffy'],
-            ['missing key', definition, { ffy: 2026 }, '#subjectKeys.uei'],
-            ['undeclared key', definition, { extra: 'B', ffy: 2026, uei: 'A' }, '#subjectKeys.extra'],
-            ['integer outside the I-JSON range', definition, { ffy: JSON.rawJSON('9007199254740993'), uei: 'A' }, '#subjectKeys.ffy'],
+            ['wrong key type', definition, { period: '2026', orgId: 'A' }, '#subjectKeys.period'],
+            ['missing key', definition, { period: 2026 }, '#subjectKeys.orgId'],
+            ['undeclared key', definition, { extra: 'B', period: 2026, orgId: 'A' }, '#subjectKeys.extra'],
+            ['integer outside the I-JSON range', definition, { period: JSON.rawJSON('9007199254740993'), orgId: 'A' }, '#subjectKeys.period'],
         ];
         for (const [name, form, keys, path] of cases) {
             const engine = render.createFormEngine(form, { responseSubject: { type, keys, id: 'f'.repeat(64) } });

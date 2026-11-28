@@ -3,15 +3,15 @@
   "url": "urn:example:forms:module-2",
   "version": "1.0.0",
   "status": "active",
-  "title": "Agency service capacity",
+  "title": "Organization service capacity",
   "subject": {
-    "type": "urn:example:subject:agency-year",
+    "type": "urn:example:subject:org-period",
     "keys": {
-      "uei": {
+      "orgId": {
         "dataType": "string",
-        "authorizationParent": "agency"
+        "authorizationParent": "organization"
       },
-      "ffy": {
+      "period": {
         "dataType": "integer"
       }
     }
@@ -20,7 +20,7 @@
     {
       "key": "capacity",
       "type": "field",
-      "label": "People the agency can serve",
+      "label": "People the organization can serve",
       "dataType": "integer"
     },
     {

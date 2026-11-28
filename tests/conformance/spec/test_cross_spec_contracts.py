@@ -230,7 +230,7 @@ class TestDefinitionTopLevel:
             "items", "binds", "shapes", "instances", "variables",
             "nonRelevantBehavior", "optionSets", "migrations", "issuer",
             "metadata", "fees", "extensions", "formPresentation",
-            "documents", "modules", "subject",  # ADR 0172 filing-unit declaration.
+            "documents", "modules", "subject",  # ADR 0172 subject declaration.
             "parties", "multiParty",
             "warningExplanation",  # ADR 0173 Definition-wide warning answer default.
             "x-generation",
@@ -491,7 +491,7 @@ class TestSubjectKeyedResponseSelection:
 
     def test_s2_1_6__subject_identity_encoding_and_scope(self):
         content = (SPEC_DIR / "core/spec.md").read_text()
-        section = content.split("##### Filing-unit Subject", 1)[1].split("##### ", 1)[0]
+        section = content.split("##### Subject Identity", 1)[1].split("##### ", 1)[0]
         for term in ["formspec.subject.id.v1", "integrity-canonical-json-v1", "64",
                      "lowercase", "empty key set", "scope", "index", "authorization"]:
             assert term in section, term
@@ -592,22 +592,22 @@ def _subject_keyed_surface():
         "entry": "intake",
         "routes": [{
             "id": "intake",
-            "path": "/years/{year}/agencies/{agencyId}",
-            "params": [{"name": "year", "type": "string"},
-                       {"name": "agencyId", "type": "string"}],
+            "path": "/periods/{period}/orgs/{orgId}",
+            "params": [{"name": "period", "type": "string"},
+                       {"name": "orgId", "type": "string"}],
             "slots": [{
                 "id": "form",
                 "slotType": "definition-form",
                 "binding": {
-                    "definitionRef": "urn:example:forms:grant-application",
-                    "subjectKeys": {"ffy": "year", "uei": "agencyId"},
+                    "definitionRef": "urn:example:forms:annual-report",
+                    "subjectKeys": {"period": "period", "orgId": "orgId"},
                 },
             }],
         }],
     }
 
 
-@pytest.mark.parametrize("keys", [{"ffy": "year", "uei": "agencyId"}, {}])
+@pytest.mark.parametrize("keys", [{"period": "period", "orgId": "orgId"}, {}])
 def test_surface_subject_keys_admit_route_names_and_singleton(keys):
     schema = _load("surface.schema.json")
     document = _subject_keyed_surface()
@@ -616,7 +616,7 @@ def test_surface_subject_keys_admit_route_names_and_singleton(keys):
 
 
 @pytest.mark.parametrize("keys", [
-    [], {"ffy": 2026}, {"ffy": ""}, {"ffy": "{year}"}, {"bad-key": "year"},
+    [], {"period": 2026}, {"period": ""}, {"period": "{period}"}, {"bad-key": "period"},
 ])
 def test_surface_subject_keys_reject_non_identifier_bindings(keys):
     schema = _load("surface.schema.json")

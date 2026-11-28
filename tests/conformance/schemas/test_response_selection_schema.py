@@ -38,8 +38,8 @@ def _selection_schema():
 
 @pytest.mark.parametrize("name,valid", [
     ("valid-response-instance.definition.json", True),
-    ("agency-year/module-2.definition.json", True),
-    ("agency-year/people-served.definition.json", True),
+    ("org-period/module-2.definition.json", True),
+    ("org-period/people-served.definition.json", True),
     ("valid-subject.definition.json", True),
     ("invalid-doubly-sourced.definition.json", False),
 ])
@@ -68,20 +68,20 @@ def test_subject_keys_reject_non_scalars(value):
 @pytest.mark.parametrize("data_type", ["attachment", "money", "multiChoice", "unknown", "text", "decimal", "boolean", "date", "dateTime", "time", "uri", "choice"])
 def test_subject_declaration_rejects_non_scalar_types(data_type):
     doc = _fixture("valid-subject.definition.json")
-    doc["subject"]["keys"]["ffy"]["dataType"] = data_type
+    doc["subject"]["keys"]["period"]["dataType"] = data_type
     assert _errors(DEFINITION, doc)
 
 
 def test_authorization_parent_requires_a_string_key():
     doc = _fixture("valid-subject.definition.json")
-    doc["subject"]["keys"]["ffy"]["authorizationParent"] = "year"
+    doc["subject"]["keys"]["period"]["authorizationParent"] = "year"
     assert _errors(DEFINITION, doc)
 
 
 @pytest.mark.parametrize("key, valid", [
     ({"dataType": "string", "minted": True}, True),
     ({"dataType": "integer", "minted": True}, False),
-    ({"dataType": "string", "minted": True, "authorizationParent": "agency"}, False),
+    ({"dataType": "string", "minted": True, "authorizationParent": "organization"}, False),
     ({"dataType": "string", "minted": "true"}, False),
 ])
 def test_minted_subject_key_declaration(key, valid):
@@ -130,14 +130,14 @@ def test_response_instance_requires_projection_schema():
     assert _errors(DEFINITION, doc)
 
 
-@pytest.mark.parametrize("path", ["agencies[*].uei", "totals.employment", "uei"])
+@pytest.mark.parametrize("path", ["organizations[*].orgId", "totals.employment", "orgId"])
 def test_response_projection_accepts_field_paths(path):
     doc = _fixture("valid-response-instance.definition.json")
     doc["instances"]["priorYear"]["schema"] = {path: "string"}
     assert not _errors(DEFINITION, doc)
 
 
-@pytest.mark.parametrize("path,data_type", [("agencies[0].uei", "string"), ("a..b", "string"), ("", "string"), ("uei", "unknown")])
+@pytest.mark.parametrize("path,data_type", [("organizations[0].orgId", "string"), ("a..b", "string"), ("", "string"), ("orgId", "unknown")])
 def test_response_projection_rejects_invalid_paths_and_types(path, data_type):
     doc = _fixture("valid-response-instance.definition.json")
     doc["instances"]["priorYear"]["schema"] = {path: data_type}
@@ -166,10 +166,10 @@ def test_instance_source_rejects_non_literal_uri_without_format_checker(source):
 
 
 @pytest.mark.parametrize("op", ["eq", "le", "ge"])
-@pytest.mark.parametrize("origin", [{"subject": "ffy"}, {"routeParam": "year"}])
+@pytest.mark.parametrize("origin", [{"subject": "period"}, {"routeParam": "year"}])
 def test_shared_selection_predicates(op, origin):
     selection = _selection()
-    selection["subject"] = [{"key": "ffy", "op": op, "from": origin, "offset": -1}]
+    selection["subject"] = [{"key": "period", "op": op, "from": origin, "offset": -1}]
     assert not _errors(_selection_schema(), selection)
 
 
@@ -193,10 +193,10 @@ def test_selection_rejects_unknown_vocabulary(field, value):
 
 
 @pytest.mark.parametrize("predicate", [
-    {"key": "ffy", "op": "lt", "from": {"subject": "ffy"}},
-    {"key": "ffy", "op": "eq", "from": {"subject": "ffy", "routeParam": "year"}},
-    {"key": "ffy", "op": "eq", "from": {}},
-    {"key": "ffy", "op": "eq", "from": {"subject": "ffy"}, "offset": 0.5},
+    {"key": "period", "op": "lt", "from": {"subject": "period"}},
+    {"key": "period", "op": "eq", "from": {"subject": "period", "routeParam": "year"}},
+    {"key": "period", "op": "eq", "from": {}},
+    {"key": "period", "op": "eq", "from": {"subject": "period"}, "offset": 0.5},
 ])
 def test_selection_rejects_invalid_predicates(predicate):
     selection = _selection()

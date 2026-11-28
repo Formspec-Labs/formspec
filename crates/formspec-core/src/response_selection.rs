@@ -328,7 +328,7 @@ impl std::fmt::Debug for PreparedSelection<'_> {
 /// A validated, explicitly declared subject from a matching Response.
 #[derive(Debug)]
 pub struct CandidateSubject<'a> {
-    /// Filing-unit id verified against the subject type and keys.
+    /// Subject id verified against the subject type and keys.
     pub id: &'a str,
     /// Validated subject keys.
     pub keys: &'a BTreeMap<String, SubjectKey>,

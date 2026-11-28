@@ -1,13 +1,13 @@
 {
     "$formspec": "1.0",
-    "url": "https://acf.hhs.gov/formspec/csbg/tribal-short",
+    "url": "https://example.org/formspec/annual-report/tribal-short",
     "version": "3.0.0",
     "status": "active",
-    "title": "CSBG Tribal Annual Report — Short Form",
+    "title": "Regional Annual Report — Short Form",
     "name": "tribal-annual-report-short",
-    "description": "Annual report for tribal organizations receiving CSBG funding. Covers basic organization information, expenditure categories, amounts, and service descriptions.",
+    "description": "Annual report for tribal organizations submitting annual program reports. Covers basic organization information, expenditure categories, amounts, and service descriptions.",
     "derivedFrom": {
-        "url": "https://acf.hhs.gov/formspec/csbg/tribal-base",
+        "url": "https://example.org/formspec/annual-report/tribal-base",
         "version": "3.0.0"
     },
     "extensions": {
@@ -45,7 +45,7 @@
                     "dataType": "string",
                     "label": "Full name",
                     "labels": {
-                        "review": "CSBG Program Contact"
+                        "review": "Program Contact"
                     }
                 },
                 {

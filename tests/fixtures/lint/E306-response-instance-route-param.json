@@ -13,10 +13,10 @@
         },
         "subject": [
           {
-            "key": "uei",
+            "key": "orgId",
             "op": "eq",
             "from": {
-              "routeParam": "agencyId"
+              "routeParam": "orgId"
             }
           }
         ],
@@ -25,7 +25,7 @@
         "pin": "none"
       },
       "schema": {
-        "agencies[*].uei": "string"
+        "organizations[*].orgId": "string"
       }
     }
   }

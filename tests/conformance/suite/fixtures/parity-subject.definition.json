@@ -3,7 +3,7 @@
   "url": "urn:example:subject-parity",
   "version": "1.0.0",
   "status": "active",
-  "title": "Filing unit",
+  "title": "Subject",
   "subject": {
     "type": "urn:example:unit",
     "keys": {

@@ -173,15 +173,15 @@ fn repeat_variable_scope_uses_the_item_key() {
 
 #[test]
 fn subject_keys_feed_seed_calculate_and_validation() {
-    let definition = json!({"subject": {"type": "urn:example:agency-year", "keys": {
-        "serial": {"dataType": "integer"}, "uei": {"dataType": "string"}
+    let definition = json!({"subject": {"type": "urn:example:org-period", "keys": {
+        "serial": {"dataType": "integer"}, "orgId": {"dataType": "string"}
     }}, "items": [
-        {"key": "seeded", "type": "field", "dataType": "string", "initialValue": "=subject('uei')"},
+        {"key": "seeded", "type": "field", "dataType": "string", "initialValue": "=subject('orgId')"},
         {"key": "year", "type": "field", "dataType": "integer"}
     ], "binds": [{"path": "year", "calculate": "subject('serial')",
-                 "constraint": "subject('uei') = '00123'"}]});
-    let wire = json!({"subjectType": "urn:example:agency-year",
-        "subjectKeys": {"uei": "00123", "serial": 9_007_199_254_740_991_i64}, "meta": {"uei": "other"}});
+                 "constraint": "subject('orgId') = '00123'"}]});
+    let wire = json!({"subjectType": "urn:example:org-period",
+        "subjectKeys": {"orgId": "00123", "serial": 9_007_199_254_740_991_i64}, "meta": {"orgId": "other"}});
     let context = formspec_eval::eval_context_from_json_object(wire.as_object().unwrap()).unwrap();
     let created = create_response(
         &definition,
@@ -248,77 +248,77 @@ fn subject_keys_reject_an_invalid_native_identity_value() {
 #[test]
 fn subject_inputs_match_the_definition_on_native_and_json_paths() {
     let definition = json!({
-        "subject": {"type": "urn:example:agency-year", "keys": {
-            "ffy": {"dataType": "integer"}, "uei": {"dataType": "string"}
+        "subject": {"type": "urn:example:org-period", "keys": {
+            "period": {"dataType": "integer"}, "orgId": {"dataType": "string"}
         }},
-        "items": [{"key": "agency", "type": "field", "dataType": "string"}],
-        "binds": [{"path": "agency", "calculate": "subject('uei')"}]
+        "items": [{"key": "org", "type": "field", "dataType": "string"}],
+        "binds": [{"path": "org", "calculate": "subject('orgId')"}]
     });
     let mut undeclared = definition.clone();
     undeclared.as_object_mut().unwrap().shift_remove("subject");
-    let matching_type = "urn:example:agency-year";
+    let matching_type = "urn:example:org-period";
     let cases = [
         (
             &undeclared,
             matching_type,
-            json!({"uei": "A"}),
-            "#subjectKeys.uei",
+            json!({"orgId": "A"}),
+            "#subjectKeys.orgId",
             "Subject key is not declared by the Definition",
         ),
         (
             &definition,
             matching_type,
-            json!({"ffy": "2026", "uei": "A"}),
-            "#subjectKeys.ffy",
+            json!({"period": "2026", "orgId": "A"}),
+            "#subjectKeys.period",
             "Subject key must be an integer",
         ),
         (
             &definition,
             "urn:example:other",
-            json!({"ffy": 2026, "uei": "A"}),
+            json!({"period": 2026, "orgId": "A"}),
             "#subjectType",
-            "Subject type must match the Definition's declaration (urn:example:agency-year)",
+            "Subject type must match the Definition's declaration (urn:example:org-period)",
         ),
         (
             &definition,
             matching_type,
-            json!({"uei": "A"}),
-            "#subjectKeys.ffy",
+            json!({"orgId": "A"}),
+            "#subjectKeys.period",
             "Declared subject key is missing",
         ),
         (
             &definition,
             matching_type,
-            json!({"extra": "B", "ffy": 2026, "uei": "A"}),
+            json!({"extra": "B", "period": 2026, "orgId": "A"}),
             "#subjectKeys.extra",
             "Subject key is not declared by the Definition",
         ),
         (
             &definition,
             matching_type,
-            json!({"ffy": 2026, "not a key": "B", "uei": "A"}),
+            json!({"period": 2026, "not a key": "B", "orgId": "A"}),
             "#subjectKeys.not a key",
             "Invalid subject key name",
         ),
         (
             &definition,
             matching_type,
-            json!({"uei": false, "ffy": null}),
-            "#subjectKeys.ffy",
-            "Subject key must be an integer",
+            json!({"orgId": false, "period": null}),
+            "#subjectKeys.orgId",
+            "Subject key must be a string",
         ),
         (
             &definition,
             matching_type,
-            json!({"uei": "A", "ffy": 9_007_199_254_740_993_i64}),
-            "#subjectKeys.ffy",
+            json!({"orgId": "A", "period": 9_007_199_254_740_993_i64}),
+            "#subjectKeys.period",
             "Integer subject key must be in the I-JSON range",
         ),
         (
             &definition,
             matching_type,
-            json!({"uei": "A", "ffy": -9_007_199_254_740_992_i64}),
-            "#subjectKeys.ffy",
+            json!({"orgId": "A", "period": -9_007_199_254_740_992_i64}),
+            "#subjectKeys.period",
             "Integer subject key must be in the I-JSON range",
         ),
     ];

@@ -56,7 +56,7 @@ import type {
   ResponseActionsDocument,
 } from '@formspec-org/types';
 import { Heading } from './heading.js';
-import { FilingStatus, useFilingDraftObservations, type FilingStatusOptions } from './FilingStatus.js';
+import { FormStatus, useFormStatusObservations, type FormStatusOptions } from './FormStatus.js';
 import {
   SurfaceSlotFrame,
   type SurfaceDefinitionFormRenderInput,
@@ -83,7 +83,7 @@ import { needTraceAttributes } from './need-trace.js';
 import { useSurfaceThemeTokens } from './surface-theme.js';
 
 export interface SurfaceRouteViewProps {
-  filingStatus?: FilingStatusOptions | undefined;
+  formStatus?: FormStatusOptions | undefined;
   bandPreferenceScope?: string | undefined;
   formSession?: SurfaceFormSession | undefined;
   overviewDestination?: string | undefined;
@@ -154,7 +154,7 @@ export interface SurfaceRouteViewProps {
 
 export function SurfaceRouteView({
   plan,
-  filingStatus,
+  formStatus,
   bandPreferenceScope,
   resolveRouteTitle,
   strings,
@@ -195,16 +195,16 @@ export function SurfaceRouteView({
   const { handle, grant, params } = plan;
   const text = strings ?? resolveSurfaceStrings();
   const port = formSession?.drafts?.port;
-  const suppliedReader = filingStatus?.readSummaries;
+  const suppliedReader = formStatus?.readSummaries;
   const readSummaries = useMemo(() => suppliedReader ?? port?.readSummaries.bind(port), [suppliedReader, port]);
   const draftScope = suppliedReader ? formSession?.previewScope : formSession?.drafts?.scope;
   const observedSlots = useMemo(() => plan.bands?.length
     ? [...plan.bands.map(band => band.slot), ...plan.slots] : plan.slots, [plan.bands, plan.slots]);
-  const filingReads = useFilingDraftObservations(
-    observedSlots, readSummaries, draftScope, filingStatus?.revision, runtimeGeneration, formSession?.draftRevision,
+  const statusReads = useFormStatusObservations(
+    observedSlots, readSummaries, draftScope, formStatus?.revision, runtimeGeneration, formSession?.draftRevision,
     { loader: dataSourceLoader, authorize: authorizeDataSource, validatePayload: validateDataSourcePayload }, dataSourceRevision,
   );
-  const filingStatusContext = { ...filingStatus, ...filingReads };
+  const formStatusContext = { ...formStatus, ...statusReads };
 
   useSurfaceThemeTokens(container, grant.themeDocument);
 
@@ -366,9 +366,9 @@ export function SurfaceRouteView({
 
       {plan.bands?.map(({ routeId, slot }) => {
         const preference = JSON.stringify([bandPreferenceScope, plan.surfaceRef ?? handle.surfaceId, routeId, slot.slotId]);
-        return <TrackerBand key={preference} preference={preference} title={slot.title?.trim() ? slot.title : text('filingMap')}>
+        return <TrackerBand key={preference} preference={preference} title={slot.title?.trim() ? slot.title : text('formStatusMap')}>
           <div data-slot={slot.slotId} data-slot-type={slot.slotType} {...needTraceAttributes(slot.needAnchors)}>
-            <FilingStatus plan={slot.tracker} context={filingStatusContext} level={slot.headingBaseLevel} text={text} />
+            <FormStatus plan={slot.tracker} context={formStatusContext} level={slot.headingBaseLevel} text={text} />
           </div>
         </TrackerBand>;
       })}
@@ -387,7 +387,7 @@ export function SurfaceRouteView({
           <SurfaceSlotFrame
             key={slotPlan.slotId}
             plan={slotPlan}
-            filingStatus={filingStatusContext}
+            formStatus={formStatusContext}
             screenerCompletion={screenerCompletion}
               checkScreenerTarget={checkScreenerTarget}
               onScreenerTarget={onScreenerTarget}

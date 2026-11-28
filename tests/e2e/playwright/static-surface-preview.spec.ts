@@ -182,7 +182,7 @@ test('published seeded scenario shows In progress, hydrates answers across reloa
             title: 'Overview',
             slots: [{
               id: 'tracker',
-              slotType: 'filing-status',
+              slotType: 'form-status',
               binding: {
                 groups: [{
                   id: 'annual',

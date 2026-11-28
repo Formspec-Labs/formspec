@@ -64,7 +64,7 @@ export type FormResponse = {
   id?: string;
   author?: Author;
   /**
-   * The entity this Response concerns, distinct from its author. For a subject-declaring Definition this is the filing unit: type and typed keys are required and id is derived canonically from (type, keys). An implicit respondent identity is server-only and is never serialized here.
+   * The entity this Response concerns, distinct from its author. For a subject-declaring Definition this is the subject: type and typed keys are required and id is derived canonically from (type, keys). An implicit respondent identity is server-only and is never serialized here.
    */
   subject?: {
     /**
@@ -72,7 +72,7 @@ export type FormResponse = {
      */
     id: string;
     /**
-     * Filing-unit type URI matching the Definition subject declaration, or a host entity type when the Definition declares no subject.
+     * Subject type URI matching the Definition subject declaration, or a host entity type when the Definition declares no subject.
      */
     type?: string;
     /**

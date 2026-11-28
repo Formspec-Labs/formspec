@@ -34,7 +34,7 @@ import { planRoute, type RoutePlan, type SlotPlan, type SurfaceDefinitionCompone
 import type { HeadingLevel, SurfaceStaticAssetResolver } from './static-content.js';
 import type { SurfaceStringOverrides, SurfaceStrings } from './strings.js';
 import type { ThemeAuthority, ThemeGrant } from './theme-authority.js';
-import type { FilingSectionLocaleLookup } from './filing-status.js';
+import type { FormStatusSectionLocaleLookup } from './form-status.js';
 import {
   planTransitions,
   slotSuppliedTriggers,
@@ -60,7 +60,7 @@ export interface SurfaceRoutePlanInput<TComponent> {
   /** Exact manifest URL for the matched Surface document. */
   surfaceRef?: string | undefined;
   resolveDefinitionComponent?: SurfaceDefinitionComponentResolver | undefined;
-  resolveDefinitionLocaleString?: FilingSectionLocaleLookup | undefined;
+  resolveDefinitionLocaleString?: FormStatusSectionLocaleLookup | undefined;
   responseActions?: readonly ResponseActionsDocumentLike[] | undefined;
   themeAuthority: ThemeAuthority;
   /** Whether the host supplied a Response Actions executor. Never assumed. */
@@ -117,7 +117,7 @@ export function planMatchedRoute<TComponent>(
     params: input.params,
     experiences: input.experiences,
     screenerHandles: input.screenerHandles,
-    filingStatus: { app: input.app, themeAuthority: input.themeAuthority, resolveDefinitionLocaleString: input.resolveDefinitionLocaleString },
+    formStatus: { app: input.app, themeAuthority: input.themeAuthority, resolveDefinitionLocaleString: input.resolveDefinitionLocaleString },
     experienceHandles: input.experienceHandles,
     definitions: input.definitions,
     registryEntries: input.registryEntries,

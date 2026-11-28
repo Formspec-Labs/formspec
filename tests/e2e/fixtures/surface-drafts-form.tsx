@@ -156,18 +156,18 @@ const source = {
     [surface]: {
       $formspecSurface: tracker || review || minted ? '0.4' : '0.2', id: 'drafts', entry: minted || periodRange ? 'overview' : 'form',
       ...(review && { modules: [{ id: reviewModule, version: '1.0.0' }] }), routes: [
-        { id: 'overview', path: periodRange ? '/years/{ffy}' : minted || useRoster ? '/overview/{year}' : '/overview', title: 'Overview', routeClass: 'intake',
-          ...(periodRange ? { params: [{ name: 'ffy', type: 'string' }] } : (minted || useRoster) && { params: [{ name: 'year', type: 'string' }] }),
+        { id: 'overview', path: periodRange ? '/years/{period}' : minted || useRoster ? '/overview/{year}' : '/overview', title: 'Overview', routeClass: 'intake',
+          ...(periodRange ? { params: [{ name: 'period', type: 'string' }] } : (minted || useRoster) && { params: [{ name: 'year', type: 'string' }] }),
           slots: minted ? [{
             id: 'start', slotType: 'draft-start', binding: { label: 'New filing', routeRef: 'form', slotRef: 'form' },
           }] : tracker ? [{
-          id: 'tracker', slotType: 'filing-status', binding: { ...(useRoster && { placement: 'band' }), groups: [{
+          id: 'tracker', slotType: 'form-status', binding: { ...(useRoster && { placement: 'band' }), groups: [{
             id: 'reports', label: 'Reports', forms: [{
               routeRef: 'form', slotRef: 'form',
               ...(periodRange
                 ? { subject: [
-                    { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' } },
-                    { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' } },
+                    { key: 'first_period', op: 'le', from: { routeParam: 'period' } },
+                    { key: 'last_period', op: 'ge', from: { routeParam: 'period' } },
                   ] }
                 : keyed && { params: { year: { value: useRoster ? '2099' : '2025' } } }),
             }],
@@ -177,18 +177,18 @@ const source = {
             }, forms: [{ routeRef: 'form', slotRef: 'form', params: { year: { rowField: 'year' } } }],
           }] : [])] },
         }] : [] },
-        { id: 'form', path: periodRange ? '/plans/{first_ffy}/{last_ffy}' : minted ? '/filing/{year}/{unit}' : keyed ? '/filing/{year}' : '/filing',
+        { id: 'form', path: periodRange ? '/plans/{first_period}/{last_period}' : minted ? '/filing/{year}/{unit}' : keyed ? '/filing/{year}' : '/filing',
           title: periodRange ? 'Period Plan' : 'Filing', routeClass: 'intake',
           ...(periodRange ? {
             navigation: { visible: false, label: 'Period Plan' },
-            params: [{ name: 'first_ffy', type: 'string' }, { name: 'last_ffy', type: 'string' }],
+            params: [{ name: 'first_period', type: 'string' }, { name: 'last_period', type: 'string' }],
           } : keyed && { params: [{ name: 'year', type: 'string' }, ...(minted ? [{ name: 'unit', type: 'string' }] : [])] }),
           ...(authoredAutosave && { transitions: [{ trigger: 'autosave', to: 'overview' }] }),
           ...(idCollision && { transitions: [{ trigger: 'save-draft', to: 'overview' }] }),
           slots: [{ id: 'form', slotType: 'definition-form', binding: {
             definitionRef: definition,
             ...(periodRange
-              ? { subjectKeys: { first_ffy: 'first_ffy', last_ffy: 'last_ffy' } }
+              ? { subjectKeys: { first_period: 'first_period', last_period: 'last_period' } }
               : keyed && { subjectKeys: { year: 'year', ...(minted && { unit: 'unit' }) } }),
           } }] },
         ...(useRoster ? [{ id: 'help', path: '/help', title: 'Help', routeClass: 'intake', slots: [] }] : []),
@@ -205,7 +205,7 @@ const source = {
       nonRelevantBehavior: 'remove',
       ...(periodRange
         ? { subject: { type: 'urn:test:period-plan', keys: {
-            first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' },
+            first_period: { dataType: 'integer' }, last_period: { dataType: 'integer' },
           } } }
         : keyed && { subject: { type: 'urn:test:filing-year', keys: {
             year: { dataType: 'integer' }, ...(minted && { unit: { dataType: 'string', minted: true } }),
@@ -278,7 +278,7 @@ if (query.has('form')) {
     const preview = await createSurfacePreviewEdition({ scope, source, scenario: keyed ? {
       $formspecSurfaceScenario: '0.1', version: '1',
       initialPath: periodRange ? '/years/2025' : minted ? '/overview/2025' : '/filing/2025',
-      ...(periodRange ? { routeParams: { ffy: '2025' } } : !useRoster && { routeParams: { year: '2025' } }),
+      ...(periodRange ? { routeParams: { period: '2025' } } : !useRoster && { routeParams: { year: '2025' } }),
       defaultProfile: 'local', profiles: { local: {
         authorization: { default: 'authorized' }, sources: [],
         ...(query.has('seed') && { drafts: [{

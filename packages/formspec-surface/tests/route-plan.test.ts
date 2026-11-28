@@ -137,19 +137,19 @@ describe('definition-form filing-unit identity', () => {
       id: 'r', path: '/reports/{year}/{agency}', title: 'Report',
       params: [{ name: 'year', type: 'string' }, { name: 'agency', type: 'string' }],
       slots: [slot({ id: 'form', slotType: 'definition-form', binding: {
-        definitionRef: DEF, subjectKeys: { ffy: 'year', uei: 'agency' },
+        definitionRef: DEF, subjectKeys: { period: 'year', orgId: 'agency' },
       } })],
     }),
   ]);
   const definitions = new Map([[DEF, {
     ...definition,
-    subject: { type: 'urn:agency-year', keys: { ffy: { dataType: 'integer' }, uei: { dataType: 'string' } } },
+    subject: { type: 'urn:org-period', keys: { period: { dataType: 'integer' }, orgId: { dataType: 'string' } } },
   }]]);
 
   // Integer keys have one URL spelling. String keys still preserve leading zeros.
-  it.each([['2026', 2026], ['0', 0], ['-2026', -2026]])('passes canonical typed keys for %s', (year, ffy) => {
+  it.each([['2026', 2026], ['0', 0], ['-2026', -2026]])('passes canonical typed keys for %s', (year, period) => {
     expect(planFor(filing, 'r', { definitions, params: { year, agency: '00A' } }).slots[0])
-      .toMatchObject({ status: 'ready', subject: { type: 'urn:agency-year', keys: { ffy, uei: '00A' } } });
+      .toMatchObject({ status: 'ready', subject: { type: 'urn:org-period', keys: { period, orgId: '00A' } } });
   });
 
   it.each([undefined, '2e3', '2026.0', '+2026', ' 2026', '9007199254740993', '02026', '-02026', '00', '-0'])(

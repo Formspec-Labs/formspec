@@ -177,7 +177,7 @@
       "pass": 1,
       "severity": "error",
       "title": "Authorization parent on a non-string subject key",
-      "specRef": "specs/core/spec.md#filing-unit-subject-declaration",
+      "specRef": "specs/core/spec.md#subject-declaration",
       "suggestedFix": "declare authorizationParent on the string key whose value identifies the authorization object",
       "fixtures": [
         "tests/fixtures/lint/E309-subject-key-authorization-parent.json"
@@ -189,7 +189,7 @@
       "pass": 1,
       "severity": "error",
       "title": "Invalid subject key data type",
-      "specRef": "specs/core/spec.md#filing-unit-subject-declaration",
+      "specRef": "specs/core/spec.md#subject-declaration",
       "suggestedFix": "declare dataType as string or integer for the subject key",
       "fixtures": [
         "tests/fixtures/lint/E311-subject-key-invalid-type.json"
@@ -201,7 +201,7 @@
       "pass": 1,
       "severity": "error",
       "title": "Invalid minted subject key declaration",
-      "specRef": "specs/core/spec.md#filing-unit-subject-declaration",
+      "specRef": "specs/core/spec.md#subject-declaration",
       "suggestedFix": "use a boolean for minted and, when true, declare a string key without authorizationParent",
       "fixtures": [
         "tests/fixtures/lint/E312-subject-key-invalid-minted.json"

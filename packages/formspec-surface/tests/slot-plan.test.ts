@@ -521,20 +521,20 @@ it('plans one band per page, including when the page embeds its declaring route'
       slot({ id: 'embedded', slotType: 'embed-route', binding: { routeRef: 'overview' } }),
     ] }),
     route({ id: 'overview', path: '/overview', slots: [
-      slot({ id: 'tracker', slotType: 'filing-status', binding: {
+      slot({ id: 'tracker', slotType: 'form-status', binding: {
         placement: 'band', groups: [{ id: 'unit', label: 'Unit', forms: [{ routeRef: 'overview', slotRef: 'form' }] }],
       } }),
       slot({ id: 'form', slotType: 'definition-form', binding: { definitionRef: 'https://example.test/def' } }),
     ] }),
   ], { $formspecSurface: '0.4' });
   const app = composeSurfaceApp([pages]);
-  const filingStatus = { app, themeAuthority: createThemeAuthority() };
+  const formStatus = { app, themeAuthority: createThemeAuthority() };
   for (const handle of app.routes) {
-    const plan = planRoute({ ...contextFor(pages, handle.routeId), handle, filingStatus });
+    const plan = planRoute({ ...contextFor(pages, handle.routeId), handle, formStatus });
     expect(plan.bands).toMatchObject([{ routeId: 'overview', slot: {
       slotId: 'tracker', tracker: { status: 'ready', groups: [{ rows: [{ href: '/overview?slot=form' }] }] },
     } }]);
-    expect(plan.slots.some(slot => slot.slotType === 'filing-status')).toBe(false);
+    expect(plan.slots.some(slot => slot.slotType === 'form-status')).toBe(false);
     const embedded = plan.slots.find(slot => slot.slotType === 'embed-route');
     if (embedded) expect(embedded.slots.map(slot => slot.slotId)).toEqual(['form']);
   }
@@ -573,7 +573,7 @@ describe('the draft review route a form slot links its Findings to', () => {
     const app = composeSurfaceApp([pages]);
     const planned = planRoute({
       ...contextFor(pages, 'filing'), handle: app.routes.find(candidate => candidate.routeId === 'filing')!,
-      params: { year: '2025' }, filingStatus: { app, themeAuthority: createThemeAuthority() }, registryEntries: registry,
+      params: { year: '2025' }, formStatus: { app, themeAuthority: createThemeAuthority() }, registryEntries: registry,
       widgets: createWidgetRegistry({
         modules: [{ moduleId: 'x-review', widgets: { ResponseReview: Banner } }, { moduleId: 'x-other', widgets: { Banner } }],
         registryEntries: registry,

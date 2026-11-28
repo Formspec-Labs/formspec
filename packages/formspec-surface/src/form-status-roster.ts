@@ -1,26 +1,26 @@
-/** @filedesc Expands qualified roster rows into ordinary subject-keyed filing destinations. */
+/** @filedesc Expands qualified roster rows into ordinary subject-keyed form-status destinations. */
 import { generationNeedAnchors } from './need-trace.js';
-import { filingRepeatFieldsValid, filingRepeatSubjectBound, resolveFilingStatusTargets } from '@formspec-org/app-graph';
-import type { FilingStatusEntry, FilingStatusGroup } from '@formspec-org/types';
+import { formStatusRepeatFieldsValid, formStatusRepeatSubjectBound, resolveFormStatusTargets } from '@formspec-org/app-graph';
+import type { FormStatusEntry, FormStatusGroup } from '@formspec-org/types';
 import { type WidgetDataInputPlan, dataSourceLoadRequest, loadWidgetDataInputs, resolveDataSourceDescriptor } from './data-source-loader.js';
-import type { FilingPlanInput, FilingStatusGroupPlan, FilingStatusPlan } from './filing-status.js';
+import type { FormStatusPlanInput, FormStatusGroupPlan, FormStatusPlan } from './form-status.js';
 
 function own(value: unknown, field: string): unknown {
   if (!value || typeof value !== 'object' || Array.isArray(value) || !Object.hasOwn(value, field)) return undefined;
   return (value as Record<string, unknown>)[field];
 }
 
-function resolveMemberSource(source: FilingStatusEntry['params'] extends Record<string, infer S> | undefined ? S : never, member: unknown) {
+function resolveMemberSource(source: FormStatusEntry['params'] extends Record<string, infer S> | undefined ? S : never, member: unknown) {
   if (!('rowField' in source)) return source;
   const value = own(member, source.rowField);
   if (!(typeof value === 'string' && value.length) && !Number.isSafeInteger(value)) return undefined;
   return { value: String(value) };
 }
 
-function memberForms(group: FilingStatusGroup, member: unknown): FilingStatusGroup['forms'] | undefined {
-  const forms: FilingStatusEntry[] = [];
+function memberForms(group: FormStatusGroup, member: unknown): FormStatusGroup['forms'] | undefined {
+  const forms: FormStatusEntry[] = [];
   for (const entry of group.forms) {
-    let params: FilingStatusEntry['params'];
+    let params: FormStatusEntry['params'];
     if (entry.params !== undefined) {
       params = {};
       for (const [name, source] of Object.entries(entry.params)) {
@@ -29,7 +29,7 @@ function memberForms(group: FilingStatusGroup, member: unknown): FilingStatusGro
         params[name] = resolved;
       }
     }
-    let subject: FilingStatusEntry['subject'];
+    let subject: FormStatusEntry['subject'];
     if (entry.subject !== undefined) {
       const predicates = [];
       for (const predicate of entry.subject) {
@@ -52,12 +52,12 @@ function memberForms(group: FilingStatusGroup, member: unknown): FilingStatusGro
   return first && [first, ...rest];
 }
 
-export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: unknown) => FilingStatusPlan): FilingStatusPlan | undefined {
+export function planFormStatusRoster(input: FormStatusPlanInput, planFixed: (binding: unknown) => FormStatusPlan): FormStatusPlan | undefined {
   const binding = input.binding;
   const authored = own(binding, 'groups');
   if (!Array.isArray(authored) || !authored.some(group => own(group, 'repeat') !== undefined)) return;
-  const refuse = (reason: string): FilingStatusPlan => ({ status: 'unresolved', reason });
-  const template = resolveFilingStatusTargets(input.handle.surface.routes, input.bindingRoute, binding);
+  const refuse = (reason: string): FormStatusPlan => ({ status: 'unresolved', reason });
+  const template = resolveFormStatusTargets(input.handle.surface.routes, input.bindingRoute, binding);
   if (template.issues.length) return refuse(template.issues[0]!.reason);
   const context = {
     surfaceId: input.handle.surfaceId, surfaceRef: input.surfaceRef, routeId: input.handle.routeId,
@@ -78,8 +78,8 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
       const ref = own(slot.binding, 'definitionRef');
       return { entry, binding: slot.binding, definition: typeof ref === 'string' ? input.definitions.get(ref) : undefined };
     });
-    if (!filingRepeatFieldsValid(group, descriptor.source.schema, forms)) return refuse('invalid-repeat-source');
-    if (!forms.every(form => filingRepeatSubjectBound(form.entry, form.binding, form.definition))) return refuse('ambiguous-repeat');
+    if (!formStatusRepeatFieldsValid(group, descriptor.source.schema, forms)) return refuse('invalid-repeat-source');
+    if (!forms.every(form => formStatusRepeatSubjectBound(form.entry, form.binding, form.definition))) return refuse('ambiguous-repeat');
     const source = descriptor.source;
     const definition = source.definitionRef && input.definitions.get(source.definitionRef);
     // A draft read needs the producer's subject. Empty-key subjects are scoped
@@ -105,9 +105,9 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
         });
         return [sourceInput.name, delivery] as const;
       })));
-      const groups: FilingStatusGroup[] = [];
+      const groups: FormStatusGroup[] = [];
       const unavailable = new Set<string>();
-      const members = new Map<string, NonNullable<FilingStatusGroupPlan['member']>>();
+      const members = new Map<string, NonNullable<FormStatusGroupPlan['member']>>();
       const expandedIds = new Map<string, string[]>();
       for (const { group } of template.groups) {
         const { repeat, ...fixedGroup } = group;
@@ -157,7 +157,7 @@ export function planFilingRoster(input: FilingPlanInput, planFixed: (binding: un
         keys.add(identity);
         subjects.set(member.groupId, keys);
       }
-      const ordered = template.groups.flatMap(({ group }): FilingStatusGroupPlan[] => {
+      const ordered = template.groups.flatMap(({ group }): FormStatusGroupPlan[] => {
         const refused = unavailable.has(group.id);
         if (!refused) {
           const fixed = planned.get(group.id);

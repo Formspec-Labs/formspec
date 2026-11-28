@@ -1,4 +1,4 @@
-//! Diagnose Definition-local response instances and filing-unit subject declarations.
+//! Diagnose Definition-local response instances and subject declarations.
 // Rust guideline compliant 2026-02-21
 
 use jsonschema::{ValidationError, error::ValidationErrorKind};

@@ -16,7 +16,7 @@ const validate = ajv.compile(schema);
 const document = (version: string, params: unknown = { unit: { value: 'north' } }) => ({
   $formspecSurface: version, id: 'app', entry: 'home',
   routes: [{ id: 'home', path: '/', slots: [{
-    id: 'filings', slotType: 'filing-status',
+    id: 'filings', slotType: 'form-status',
     binding: { groups: [{ id: 'annual', label: 'Annual forms', forms: [{ routeRef: 'apply', slotRef: 'form', params }] }] },
   }] }],
 });
@@ -48,13 +48,13 @@ it('admits an authored band and refuses unknown placements', () => {
 it('admits declarative subject-key range predicates and closes predicate operators and fields', () => {
   const withRange = {
     $formspecSurface: '0.4', id: 'app', entry: 'overview',
-    routes: [{ id: 'overview', path: '/years/{ffy}', params: [{ name: 'ffy', type: 'string' }], slots: [{
-      id: 'filings', slotType: 'filing-status',
+    routes: [{ id: 'overview', path: '/years/{period}', params: [{ name: 'period', type: 'string' }], slots: [{
+      id: 'filings', slotType: 'form-status',
       binding: { groups: [{ id: 'period', label: 'Period plan', forms: [{
         routeRef: 'plan', slotRef: 'form',
         subject: [
-          { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' } },
-          { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' }, offset: 0 },
+          { key: 'first_period', op: 'le', from: { routeParam: 'period' } },
+          { key: 'last_period', op: 'ge', from: { routeParam: 'period' }, offset: 0 },
         ],
       }] }] },
     }] }],
@@ -67,12 +67,12 @@ it('admits declarative subject-key range predicates and closes predicate operato
   }
   for (const invalidSubject of [
     [],
-    [{ key: 'first_ffy', op: 'lte', from: { routeParam: 'ffy' } }],
-    [{ key: 'first-ffy', op: 'le', from: { routeParam: 'ffy' } }],
-    [{ key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' }, offset: 1.5 }],
-    [{ key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' }, offset: 9007199254740992 }],
-    [{ key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' }, offset: -9007199254740992 }],
-    [{ key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' }, extra: true }],
+    [{ key: 'first_period', op: 'lte', from: { routeParam: 'period' } }],
+    [{ key: 'first-period', op: 'le', from: { routeParam: 'period' } }],
+    [{ key: 'first_period', op: 'le', from: { routeParam: 'period' }, offset: 1.5 }],
+    [{ key: 'first_period', op: 'le', from: { routeParam: 'period' }, offset: 9007199254740992 }],
+    [{ key: 'first_period', op: 'le', from: { routeParam: 'period' }, offset: -9007199254740992 }],
+    [{ key: 'first_period', op: 'le', from: { routeParam: 'period' }, extra: true }],
   ]) {
     const candidate = structuredClone(withRange);
     (candidate.routes[0]!.slots[0]!.binding.groups[0]!.forms[0] as Record<string, unknown>).subject = invalidSubject;
@@ -80,7 +80,7 @@ it('admits declarative subject-key range predicates and closes predicate operato
   }
 });
 
-it('rejects denied draft or filing states on matched FilingStatusObservation in TypeScript', () => {
+it('rejects denied draft or filing states on matched FormStatusObservation in TypeScript', () => {
   const packageRoot = fileURLToPath(new URL('..', import.meta.url));
   const tscBin = fileURLToPath(new URL('../../../node_modules/.bin/tsc', import.meta.url));
   execFileSync(

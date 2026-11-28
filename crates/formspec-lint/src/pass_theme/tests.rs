@@ -1363,7 +1363,7 @@ fn fill_label_pairs_name_the_foreground_both_appearances_draw() {
             .all(|pair| pair.foreground_token != "color.dark.primaryForeground")
     );
 
-    // A private app's filing theme's values: a dark label chosen for its light
+    // Representative host theme values: a dark label chosen for its light
     // `color.dark.primary` tint measured 2.02:1 on the saturated primary fill.
     let theme = json!({
         "tokens": {

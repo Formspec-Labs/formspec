@@ -2,7 +2,7 @@
 import { act } from 'react';
 import { expect, it, vi } from 'vitest';
 import { initFormspecEngine } from '@formspec-org/engine';
-import { dereferenceBundleExport, type FilingDraftObservation, type FilingStatusObservation, type FilingStatusReader } from '@formspec-org/surface';
+import { dereferenceBundleExport, type FormStatusDraftObservation, type FormStatusObservation, type StatusReader } from '@formspec-org/surface';
 import { BrowserSurfaceApp } from '../src/BrowserSurfaceApp.js';
 import { SurfaceApp } from '../src/SurfaceApp.js';
 import { render } from './render.js';
@@ -19,7 +19,7 @@ const definition = {
   }],
 };
 function filingBundle({ shadowApplication = false, version = '0.4', duplicate = false, reportSize = 1 } = {}) {
-  const tracker = { id: 'filing-map', slotType: 'filing-status', binding: {
+  const tracker = { id: 'filing-map', slotType: 'form-status', binding: {
     groups: [{ id: 'annual', label: 'Annual filings', forms: [
       { routeRef: 'application', slotRef: 'form', hint: 'Keep your totals handy.',
         ...(shadowApplication ? { params: { unit: { value: 'north' } } } : {}) },
@@ -54,16 +54,16 @@ function filingBundle({ shadowApplication = false, version = '0.4', duplicate = 
   });
 }
 
-function draftResults(entries: [string, FilingDraftObservation][]): ReadonlyMap<string, FilingStatusObservation> {
+function draftResults(entries: [string, FormStatusDraftObservation][]): ReadonlyMap<string, FormStatusObservation> {
   return new Map(entries.map(([key, draft]) => [key, { draft, filing: { status: 'none' } }]));
 }
 
-function mount(reader?: FilingStatusReader) {
+function mount(reader?: StatusReader) {
   return render(<SurfaceApp bundle={filingBundle()} location="/" onNavigate={() => {}} readSummaries={reader} />);
 }
 
 it('renders an accessible task and section list with partial counts and independent findings', async () => {
-  const read = vi.fn<FilingStatusReader>(async (queries) => draftResults([
+  const read = vi.fn<StatusReader>(async (queries) => draftResults([
     [queries[0]!.key, { status: 'current', form: { ...counts, ready: false }, sections: { details: counts } }],
     [queries[1]!.key, { status: 'absent' }],
     [queries[2]!.key, { status: 'unavailable' }],
@@ -124,7 +124,7 @@ it('keeps very small forms at eight percent of the strip width', () => {
 });
 
 it('keeps denied and stale results distinct from confirmed absence', async () => {
-  const read: FilingStatusReader = async queries => draftResults([
+  const read: StatusReader = async queries => draftResults([
     [queries[0]!.key, { status: 'denied' }],
     [queries[1]!.key, { status: 'stale' }],
   ]);
@@ -192,7 +192,7 @@ it('uses the same admitted Component for tracker sections and the form', () => {
 });
 
 it('disables unreachable forms and missing Definitions while reading the remaining row', async () => {
-  const read = vi.fn<FilingStatusReader>(async () => new Map());
+  const read = vi.fn<StatusReader>(async () => new Map());
   const resolved = filingBundle({ shadowApplication: true });
   const definitions = new Map(resolved.definitions);
   definitions.delete('urn:renewal');
@@ -213,12 +213,12 @@ it('disables unreachable forms and missing Definitions while reading the remaini
 
 it.each([['old dialect', { version: '0.3' }, 'surface-version-unsupported'], ['duplicate target', { duplicate: true }, 'duplicate-target']] as const)(
   'refuses the tracker for %s', async (_case, options, reason) => {
-    const read = vi.fn<FilingStatusReader>(async () => new Map());
+    const read = vi.fn<StatusReader>(async () => new Map());
     const onDiagnostics = vi.fn();
     const dom = render(<SurfaceApp bundle={filingBundle(options)} location="/" onNavigate={() => {}}
       readSummaries={read} onDiagnostics={onDiagnostics} />);
     await act(async () => {});
-    expect(dom.querySelector('[data-slot-type="filing-status"]')?.textContent).toBe('Progress unavailable');
+    expect(dom.querySelector('[data-slot-type="form-status"]')?.textContent).toBe('Progress unavailable');
     expect(onDiagnostics).toHaveBeenCalledWith(expect.arrayContaining([expect.objectContaining({ details: { reason } })]));
     expect(read).not.toHaveBeenCalled();
   },
@@ -233,8 +233,8 @@ it('uses the active app and Definition Locales for tracker text', async () => {
       strings: { 'details.label': 'Renseignements', '$form.description': 'Saisissez les totaux annuels.' } },
     { $formspecLocale: '2.1', locale: 'fr', version: '1.0.0', target: { kind: 'app', url: 'urn:filing-app' },
       strings: {
-        '$module.x-formspec-surface.shell.filingLegendCaption': 'Chaque bande représente un formulaire.',
-        '$module.x-formspec-surface.shell.filingSections': 'Rubriques ({{$count}})',
+        '$module.x-formspec-surface.shell.formStatusLegendCaption': 'Chaque bande représente un formulaire.',
+        '$module.x-formspec-surface.shell.formStatusSections': 'Rubriques ({{$count}})',
       } },
   ] }} />);
   const application = dom.querySelector('details a[href="#/application?slot=form&section=details"]');
@@ -265,7 +265,7 @@ it('keeps the receipt and Filed state visible during a review outage', async () 
 });
 
 it('keeps overview totals complete when a filing has no current draft', async () => {
-  const dom = mount(async ([first, second, third]) => new Map<string, FilingStatusObservation>([
+  const dom = mount(async ([first, second, third]) => new Map<string, FormStatusObservation>([
     [first!.key, { draft: { status: 'current', form: { ...counts, ready: false }, sections: {} }, filing: { status: 'none' } }],
     [second!.key, { draft: { status: 'absent' }, filing: { status: 'filed', review: 'available',
       receiptRef: 'urn:filing', responseHash: 'sha256:' + 'a'.repeat(64), comments: [] } }],
@@ -283,14 +283,14 @@ function periodOverviewBundle() {
     title: 'Period Plan',
     subject: {
       type: 'urn:period-plan',
-      keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' } },
+      keys: { first_period: { dataType: 'integer' }, last_period: { dataType: 'integer' } },
     },
   };
   const annualDef = {
     ...definition,
     url: 'urn:annual-report',
     title: 'Annual Report',
-    subject: { type: 'urn:annual-report', keys: { ffy: { dataType: 'integer' } } },
+    subject: { type: 'urn:annual-report', keys: { period: { dataType: 'integer' } } },
   };
   return dereferenceBundleExport({
     manifest: {
@@ -302,9 +302,9 @@ function periodOverviewBundle() {
         $formspecSurface: '0.4', id: 'app', entry: 'overview',
         routes: [
           {
-            id: 'overview', path: '/years/{ffy}', params: [{ name: 'ffy', type: 'string' }],
+            id: 'overview', path: '/years/{period}', params: [{ name: 'period', type: 'string' }],
             slots: [{
-              id: 'filing-map', slotType: 'filing-status',
+              id: 'filing-map', slotType: 'form-status',
               binding: {
                 groups: [
                   {
@@ -312,35 +312,35 @@ function periodOverviewBundle() {
                     forms: [{
                       routeRef: 'plan', slotRef: 'form',
                       subject: [
-                        { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' } },
-                        { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' } },
+                        { key: 'first_period', op: 'le', from: { routeParam: 'period' } },
+                        { key: 'last_period', op: 'ge', from: { routeParam: 'period' } },
                       ],
                     }],
                   },
                   {
                     id: 'annual', label: 'Annual report',
-                    forms: [{ routeRef: 'annual', slotRef: 'form', params: { ffy: { routeParam: 'ffy' } } }],
+                    forms: [{ routeRef: 'annual', slotRef: 'form', params: { period: { routeParam: 'period' } } }],
                   },
                 ],
               },
             }],
           },
           {
-            id: 'plan', path: '/plans/{first_ffy}/{last_ffy}', routeClass: 'intake',
-            params: [{ name: 'first_ffy', type: 'string' }, { name: 'last_ffy', type: 'string' }],
+            id: 'plan', path: '/plans/{first_period}/{last_period}', routeClass: 'intake',
+            params: [{ name: 'first_period', type: 'string' }, { name: 'last_period', type: 'string' }],
             navigation: { visible: false, label: 'Period plan' },
             slots: [{
               id: 'form', slotType: 'definition-form',
-              binding: { definitionRef: planDef.url, subjectKeys: { first_ffy: 'first_ffy', last_ffy: 'last_ffy' } },
+              binding: { definitionRef: planDef.url, subjectKeys: { first_period: 'first_period', last_period: 'last_period' } },
             }],
           },
           {
-            id: 'annual', path: '/years/{ffy}/annual', routeClass: 'intake',
-            params: [{ name: 'ffy', type: 'string' }],
+            id: 'annual', path: '/years/{period}/annual', routeClass: 'intake',
+            params: [{ name: 'period', type: 'string' }],
             navigation: { visible: false, label: 'Annual report' },
             slots: [{
               id: 'form', slotType: 'definition-form',
-              binding: { definitionRef: annualDef.url, subjectKeys: { ffy: 'ffy' } },
+              binding: { definitionRef: annualDef.url, subjectKeys: { period: 'period' } },
             }],
           },
         ],
@@ -361,7 +361,7 @@ it('links a year-scoped overview entry to the matched multi-year plan unit and h
     location="/years/2025"
     onNavigate={navigate}
     readSummaries={async (queries) => new Map(queries.map(query => query.subjectMatch ? [query.key, {
-      subject: { type: 'urn:period-plan', keys: { first_ffy: 2024, last_ffy: 2026 } },
+      subject: { type: 'urn:period-plan', keys: { first_period: 2024, last_period: 2026 } },
       subjectMatch: 'matched' as const,
       draft: { status: 'current' as const, form: { ...counts, ready: false }, sections: { details: counts } },
       filing: { status: 'returned' as const, receiptRef: 'urn:plan:2024-2026', responseHash: hash, review: 'available' as const, comments: ['Update budget'] },
@@ -396,7 +396,7 @@ it('links a year-scoped overview entry to the matched multi-year plan unit and h
     expect(disabled?.textContent).toBe('Period plan');
     expect(rows[0]!.querySelector('a')).toBeNull();
     expect(rows[0]!.querySelector(`[id="${disabled?.getAttribute('aria-describedby')}"]`)?.textContent)
-      .toBe('Filing unit unavailable');
+      .toBe('Subject unavailable');
     expect(rows[1]!.querySelector('a[href="/years/2025/annual?slot=form"]')).not.toBeNull();
   }
 });
@@ -415,7 +415,7 @@ it.each([0, 1])('counts one flat question for unsectioned group %i without gener
       query.key,
       {
         ...(query.subjectMatch
-          ? { subjectMatch: 'matched' as const, subject: { type: 'urn:period-plan', keys: { first_ffy: 2024, last_ffy: 2026 } } }
+          ? { subjectMatch: 'matched' as const, subject: { type: 'urn:period-plan', keys: { first_period: 2024, last_period: 2026 } } }
           : {}),
         draft: { status: 'absent' as const },
         filing: { status: 'none' as const },
@@ -431,11 +431,11 @@ it.each([0, 1])('counts one flat question for unsectioned group %i without gener
 it('requires confirmed matched subject on range rows, verifies decoded URL params, and refuses colliding resolved units across groups or roster members', async () => {
   const match = {
     subjectMatch: 'matched' as const,
-    subject: { type: 'urn:period-plan', keys: { first_ffy: 2024, last_ffy: 2026 } },
+    subject: { type: 'urn:period-plan', keys: { first_period: 2024, last_period: 2026 } },
   };
   const absent = { draft: { status: 'absent' as const }, filing: { status: 'none' as const } };
   const hash = ('sha256:' + 'a'.repeat(64)) as `sha256:${string}`;
-  const mountRange = async (bundle: ReturnType<typeof periodOverviewBundle>, observation: FilingStatusObservation) => {
+  const mountRange = async (bundle: ReturnType<typeof periodOverviewBundle>, observation: FormStatusObservation) => {
     const dom = render(<SurfaceApp
       bundle={bundle}
       location="/years/2025"
@@ -482,7 +482,7 @@ it('requires confirmed matched subject on range rows, verifies decoded URL param
 
   // Destination URL missing a subject parameter marker fails decoded URL subject round-trip.
   const truncatedPathBundle = periodOverviewBundle();
-  (truncatedPathBundle.surfaces[0]!.routes[1] as { path: string }).path = '/plans/{first_ffy}';
+  (truncatedPathBundle.surfaces[0]!.routes[1] as { path: string }).path = '/plans/{first_period}';
   const truncatedDom = await mountRange(truncatedPathBundle, { ...match, ...absent });
   expect(truncatedDom.querySelector('a[href="/plans/2024?slot=form"]')).toBeNull();
 
@@ -504,7 +504,7 @@ it('requires confirmed matched subject on range rows, verifies decoded URL param
   (conflictingGroupBundle.surfaces[0]!.routes[1]!.slots as any[]).push({
     ...structuredClone(conflictingGroupBundle.surfaces[0]!.routes[1]!.slots[0]!),
     id: 'second',
-    binding: { definitionRef: 'urn:period-budget', subjectKeys: { first_ffy: 'first_ffy', last_ffy: 'last_ffy' } },
+    binding: { definitionRef: 'urn:period-budget', subjectKeys: { first_period: 'first_period', last_period: 'last_period' } },
   });
   const firstGroupForms = (conflictingGroupBundle.surfaces[0]!.routes[0]!.slots[0]!.binding as { groups: any[] }).groups[0].forms;
   firstGroupForms.push({ ...structuredClone(firstGroupForms[0]), slotRef: 'second' });
@@ -517,7 +517,7 @@ it('requires confirmed matched subject on range rows, verifies decoded URL param
       const start = q.definitionUrl === 'urn:period-plan' ? 2024 : 2025;
       return [q.key, {
         subjectMatch: 'matched' as const,
-        subject: { type: 'urn:period-plan', keys: { first_ffy: start, last_ffy: start + 2 } },
+        subject: { type: 'urn:period-plan', keys: { first_period: start, last_period: start + 2 } },
         ...absent,
       }];
     }))}
@@ -548,7 +548,7 @@ it('requires confirmed matched subject on range rows, verifies decoded URL param
         ] },
       ] },
       'urn:surface': { $formspecSurface: '0.4', id: 'app', entry: 'home', routes: [
-        { id: 'home', path: '/', slots: [{ id: 'tracker', slotType: 'filing-status', binding: { groups: [
+        { id: 'home', path: '/', slots: [{ id: 'tracker', slotType: 'form-status', binding: { groups: [
           { id: 'directory', label: 'Directory', forms: [{ routeRef: 'directory', slotRef: 'form' }] },
           { id: 'reports', label: 'Unit reports', repeat: {
             catalogRef: 'urn:roster', sourceRef: 'response:members', rowsField: 'units', labelField: 'name', waitingLabel: 'Waiting for',
@@ -597,14 +597,14 @@ it('requires confirmed matched subject on range rows, verifies decoded URL param
   expect(collidingRosterDom.querySelectorAll('a[href="/report/2024/2026?slot=form"]').length).toBe(0);
 
   // Explicit denial on a confirmed matched range observation disables the row and suppresses links, receipts, comments, and counts.
-  const deniedDraftObservation: FilingStatusObservation = {
+  const deniedDraftObservation: FormStatusObservation = {
     // @ts-expect-error matched observations cannot carry denied draft status
     subjectMatch: 'matched',
     subject: match.subject,
     draft: { status: 'denied' },
     filing: { status: 'filed', receiptRef: 'urn:denied:leak', responseHash: hash, review: 'available', comments: ['Denied leak'] },
   };
-  const deniedFilingObservation: FilingStatusObservation = {
+  const deniedFilingObservation: FormStatusObservation = {
     // @ts-expect-error matched observations cannot carry denied filing status
     subjectMatch: 'matched',
     subject: match.subject,
@@ -627,7 +627,7 @@ it('requires confirmed matched subject on range rows, verifies decoded URL param
   (dualLayoutBundle.surfaces[0]!.routes as any[]).push({
     ...structuredClone(planRoute),
     id: 'plan-alt',
-    path: '/plans-alt/{first_ffy}/{last_ffy}',
+    path: '/plans-alt/{first_period}/{last_period}',
   });
   (dualLayoutBundle.surfaces[0]!.routes[0]!.slots[0]!.binding as { groups: any[] }).groups = [{
     id: 'plan', label: 'Period plan',
@@ -635,15 +635,15 @@ it('requires confirmed matched subject on range rows, verifies decoded URL param
       {
         routeRef: 'plan', slotRef: 'form',
         subject: [
-          { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' } },
-          { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' } },
+          { key: 'first_period', op: 'le', from: { routeParam: 'period' } },
+          { key: 'last_period', op: 'ge', from: { routeParam: 'period' } },
         ],
       },
       {
         routeRef: 'plan-alt', slotRef: 'form',
         subject: [
-          { key: 'first_ffy', op: 'le', from: { routeParam: 'ffy' } },
-          { key: 'last_ffy', op: 'ge', from: { routeParam: 'ffy' } },
+          { key: 'first_period', op: 'le', from: { routeParam: 'period' } },
+          { key: 'last_period', op: 'ge', from: { routeParam: 'period' } },
         ],
       },
     ],
@@ -775,7 +775,7 @@ it('exposes returned status badge and reviewer comment callout hooks', async () 
 
 it('renders filled strips, finding marks, counts, and KPI totals for returned and reopened filings without an editable draft', async () => {
   const hash = ('sha256:' + 'd'.repeat(64)) as `sha256:${string}`;
-  const dom = mount(async ([first, second, third]) => new Map<string, FilingStatusObservation>([
+  const dom = mount(async ([first, second, third]) => new Map<string, FormStatusObservation>([
     [first!.key, {
       draft: { status: 'absent' },
       filing: {
@@ -852,13 +852,13 @@ it('places the compact strip legend right beneath the top summary band and above
 });
 
 it('retains previous observations across same-session revision refreshes without flashing Loading progress', async () => {
-  let resolveSecond!: (value: ReadonlyMap<string, FilingStatusObservation>) => void;
-  const secondPromise = new Promise<ReadonlyMap<string, FilingStatusObservation>>(resolve => {
+  let resolveSecond!: (value: ReadonlyMap<string, FormStatusObservation>) => void;
+  const secondPromise = new Promise<ReadonlyMap<string, FormStatusObservation>>(resolve => {
     resolveSecond = resolve;
   });
   let call = 0;
-  let lastQueries: Parameters<FilingStatusReader>[0] = [];
-  const reader: FilingStatusReader = vi.fn(async (queries) => {
+  let lastQueries: Parameters<StatusReader>[0] = [];
+  const reader: StatusReader = vi.fn(async (queries) => {
     call += 1;
     lastQueries = queries;
     if (call === 1) {

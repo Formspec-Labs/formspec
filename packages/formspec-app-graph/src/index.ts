@@ -209,13 +209,13 @@ export {
 export { parseRouteSubjectKey } from './surface-definition-slots.js';
 export { resolveDraftReviewTarget } from './surface-draft-review.js';
 export {
-  filingRepeatFieldsValid,
-  filingRepeatSubjectBound,
-  filingStatusEntries,
-  resolveFilingStatusTargets,
-  validateFilingStatusTargets,
-  type FilingStatusIssue,
-  type FilingStatusTarget,
-  type ResolvedFilingStatusPredicate,
-} from './filing-status-targets.js';
+  formStatusRepeatFieldsValid,
+  formStatusRepeatSubjectBound,
+  formStatusEntries,
+  resolveFormStatusTargets,
+  validateFormStatusTargets,
+  type FormStatusIssue,
+  type FormStatusTarget,
+  type ResolvedFormStatusPredicate,
+} from './form-status-targets.js';
 export { resolveDraftStartTarget } from './draft-start-target.js';

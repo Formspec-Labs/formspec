@@ -610,7 +610,7 @@ export interface IFormEngine {
     getResponse(meta?: {
         id?: string;
         author?: { id: string; name?: string };
-        /** Unkeyed subject metadata. Supply filing-unit identity through `FormEngineOptions.responseSubject`. */
+        /** Unkeyed subject metadata. Supply subject identity through `FormEngineOptions.responseSubject`. */
         subject?: { id: string; type?: string };
         authoredSignatures?: AuthoredSignatureInput[];
         profile?: ValidationProfile;

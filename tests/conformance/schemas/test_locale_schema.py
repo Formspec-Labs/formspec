@@ -141,10 +141,10 @@ class TestLocaleSchema:
         _validate(doc)
 
     @pytest.mark.parametrize(("key", "value"), [
-        ("filingLegendCaption", "Chaque bande représente un formulaire."),
-        ("filingSections", "Rubriques ({{$count}})"),
+        ("formStatusLegendCaption", "Chaque bande représente un formulaire."),
+        ("formStatusSections", "Rubriques ({{$count}})"),
     ])
-    def test_filing_chrome_requires_a_locale_2_1_app_target(self, key: str, value: str) -> None:
+    def test_form_status_chrome_requires_a_locale_2_1_app_target(self, key: str, value: str) -> None:
         doc = _minimal_locale()
         doc["target"] = {"kind": "app", "url": "https://example.gov/apps/intake"}
         doc["strings"] = {

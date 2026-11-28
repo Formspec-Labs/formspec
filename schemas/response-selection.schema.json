@@ -427,17 +427,17 @@
           },
           "subject": [
             {
-              "key": "uei",
+              "key": "orgId",
               "op": "eq",
               "from": {
-                "subject": "uei"
+                "subject": "orgId"
               }
             },
             {
-              "key": "ffy",
+              "key": "period",
               "op": "eq",
               "from": {
-                "subject": "ffy"
+                "subject": "period"
               },
               "offset": -1
             }

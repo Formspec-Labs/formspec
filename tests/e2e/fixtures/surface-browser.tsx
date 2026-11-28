@@ -3,7 +3,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { invokeResponseAction } from '@formspec-org/engine';
 import { initFormspecEngine } from '@formspec-org/engine/init-formspec-engine';
-import { dereferenceBundleExport, type FilingDraftObservation, type FilingStatusReader } from '@formspec-org/surface';
+import { dereferenceBundleExport, type FormStatusDraftObservation, type StatusReader } from '@formspec-org/surface';
 import type { ComponentDocument } from '@formspec-org/types';
 import { BrowserSurfaceApp, renderDefaultDefinitionForm } from '../../../packages/formspec-surface-react/src/index';
 import '../../../packages/formspec-surface-react/src/formspec-surface.css';
@@ -14,7 +14,7 @@ const fixtureOptions = new URLSearchParams(location.search);
 const workspace = fixtureOptions.has('workspace');
 const alternatingMode = fixtureOptions.get('alternating');
 const twoForms = fixtureOptions.has('twoForms');
-// The filing unit comes from the route's state; the engine derives its subject id (fs-aght).
+// The subject comes from the route's state; the engine derives its subject id (fs-aght).
 const keyed = fixtureOptions.has('subject');
 const prefillMapping = fixtureOptions.has('prefillMapping');
 const id = 'https://example.test/filing';
@@ -33,7 +33,7 @@ const smallTracker = showsTracker && !largeTracker;
 const extraForms = largeTracker ? scaleForms : [];
 const roster = `${id}/roster`;
 const report = `${id}/report`;
-const tracker = { id: 'tracker', slotType: 'filing-status', ...(trackerMode === 'band' && !fixtureOptions.has('untitled') && { title: 'Filing map' }), binding: { ...(trackerMode === 'band' && { placement: 'band' }), groups: [{
+const tracker = { id: 'tracker', slotType: 'form-status', ...(trackerMode === 'band' && !fixtureOptions.has('untitled') && { title: 'Form status' }), binding: { ...(trackerMode === 'band' && { placement: 'band' }), groups: [{
   id: 'annual', label: 'Annual forms', forms: largeTracker ? extraForms.map(({ routeRef }) => ({ routeRef: `scale-${routeRef}`, slotRef: 'filing' })) : [{
     routeRef: 'form', slotRef: 'filing', hint: 'Have the contact details ready.', params: { state: { value: 'ny' } },
   }, { routeRef: 'roster', slotRef: 'filing' }, { routeRef: 'report', slotRef: 'filing' }],
@@ -43,7 +43,7 @@ const supplemental = ['officer', 'submissionDate'].map(key => ({ ...contact, key
 const reportSections = [['people', 'People served', 7], ['outcomes', 'Outcomes', 4], ['notes', 'Notes', 1]] as const;
 const counts = { total: 4, filled: 2, toFix: 1, toCheck: 2 };
 const complete = (total: number) => ({ total, filled: total, toFix: 0, toCheck: 0 });
-const observations = new Map<string, FilingDraftObservation>([
+const observations = new Map<string, FormStatusDraftObservation>([
   [definition, alternatingMode || workspace ? { status: 'absent' } : { status: 'current', form: { total: 5, filled: 2, toFix: 1, toCheck: 3, ready: false }, sections: {
     'report-details': counts,
     'certification': { total: 1, filled: 0, toFix: 0, toCheck: 1 },
@@ -53,7 +53,7 @@ const observations = new Map<string, FilingDraftObservation>([
     sections: Object.fromEntries(reportSections.map(([key, , size]) => [key, complete(size)])) }],
   ...extraForms.map(({ url, observation }) => [url, observation] as const),
 ]);
-const readTracker: FilingStatusReader = async queries => new Map(queries.map(query => {
+const readTracker: StatusReader = async queries => new Map(queries.map(query => {
   const draft = observations.get(query.definitionUrl);
   return [query.key, draft
     ? { draft, filing: { status: 'none' } }
@@ -100,7 +100,7 @@ const bundle = dereferenceBundleExport({
             } },
             ...(twoForms ? [{ id: 'additional', slotType: 'definition-form', binding: { definitionRef: definition } }] : []),
           ] },
-        ...(smallTracker ? [['roster', 'Eligible entity list', roster], ['report', 'Annual report', report]].map(([key, title, url]) => ({
+        ...(smallTracker ? [['roster', 'Organization roster', roster], ['report', 'Annual report', report]].map(([key, title, url]) => ({
           id: key, path: `/${key}`, title, routeClass: 'intake', navigation: { visible: false },
           slots: [{ id: 'filing', slotType: 'definition-form', binding: { definitionRef: url } }],
         })) : []),
@@ -213,9 +213,9 @@ const bundle = dereferenceBundleExport({
         rules: [{ sourcePath: 'prefillNote', targetPath: 'prefill_note', transform: 'preserve' }],
       },
     } : {}),
-    [roster]: { $formspec: '1.0', url: roster, version: '1.0.0', title: 'Eligible entity list',
-      description: 'Identify eligible entities and the areas they serve.', items: [
-      { key: 'entities', type: 'group', label: 'Entities', children: [contact] },
+    [roster]: { $formspec: '1.0', url: roster, version: '1.0.0', title: 'Organization roster',
+      description: 'Identify participating organizations and the regions they cover.', items: [
+      { key: 'entities', type: 'group', label: 'Organizations', children: [contact] },
     ] },
     [report]: { $formspec: '1.0', url: report, version: '1.0.0', title: 'Annual report',
       description: 'Report people served and outcomes for the filing period.',

@@ -142,7 +142,7 @@ getResponse(meta?: { id?, author?, subject?, profile? }): object
 // Returns { definitionUrl, definitionVersion, status, data, validationResults, authored }.
 // status: 'completed' only when profile is 'on-submit' and the report is valid.
 // Non-relevant fields handled per nonRelevantBehavior: remove (default) | empty | keep.
-// subject: an unkeyed host entity, only when the Definition declares no subject. A filing unit
+// subject: an unkeyed host entity, only when the Definition declares no subject. A subject
 // enters through the responseSubject option; the engine derives its id (runtime WASM).
 
 getValidationReport(options?: { profile?: 'live' | 'on-submit' | 'on-demand' | 'off' }): ValidationReport | null

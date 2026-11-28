@@ -7,7 +7,7 @@ import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import { resolvePageSequence, type PageSequenceEntry, type ProgressCounts } from '@formspec-org/layout';
 import type {
   BrowserDraftPort, DataSourceSubject, DraftKey, DraftLoadResult, DraftPort, DraftRecord, DraftSaveInput,
-  FilingLoadResult, FilingProgressCounts, MatchedFilingObservation,
+  FilingLoadResult, FormProgressCounts, MatchedFilingObservation,
 } from '@formspec-org/surface';
 import { definitionResponseRequests, resolveDefinitionReads, responseDeliveries, type DraftDefinitionResponsePort } from './definition-response-reads.js';
 import { readSubmitEvaluation, summarizeDraftProgress } from './draft-progress.js';
@@ -26,7 +26,7 @@ export interface SurfaceDraftStorage {
   author?: { id: string; name?: string };
 }
 
-/** Key a draft by Core's filing-unit id; runtime WASM only. */
+/** Key a draft by Core's subject id; runtime WASM only. */
 export async function deriveDraftSubject(subject: DataSourceSubject | undefined): Promise<DraftKey['subject']> {
   if (!subject) return undefined;
   await initFormspecEngine();
@@ -71,7 +71,7 @@ function sessionKey(key: DraftKey, version: string): string {
   return JSON.stringify([key.scope, key.definitionUrl, key.subject?.id ?? null, version]);
 }
 
-function progressCounts({ total, filled, toFix, toCheck }: ProgressCounts): FilingProgressCounts {
+function progressCounts({ total, filled, toFix, toCheck }: ProgressCounts): FormProgressCounts {
   return { total, filled, toFix, toCheck };
 }
 

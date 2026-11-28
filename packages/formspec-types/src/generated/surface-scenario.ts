@@ -256,7 +256,7 @@ export interface UndecidedDisposition {
   status: 'none' | 'unavailable';
 }
 /**
- * Preview-only in-progress draft seeded into the preview DraftPort. Supplies initial draft answers for one FormDefinition (and optional subject) so filing-status trackers show In Progress or Ready status and opening the form hydrates the saved answers.
+ * Preview-only in-progress draft seeded into the preview DraftPort. Supplies initial draft answers for one FormDefinition (and optional subject) so form-status trackers show In Progress or Ready status and opening the form hydrates the saved answers.
  *
  * This interface was referenced by `SurfacePreviewScenario`'s JSON-Schema
  * via the `definition` "SurfaceScenarioDraft".
@@ -292,7 +292,7 @@ export interface SurfaceScenarioDraft {
  */
 export interface SurfaceScenarioDraftSubject {
   /**
-   * Canonical URI of the filing-unit subject type matching the target FormDefinition's subject.type.
+   * Canonical URI of the subject type matching the target FormDefinition's subject.type.
    */
   type: string;
   /**

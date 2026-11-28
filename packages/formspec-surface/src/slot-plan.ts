@@ -41,7 +41,7 @@ import type { SurfaceRoute } from './route-path.js';
 import { resolvePageSequence } from '@formspec-org/layout';
 import { formHref, matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
 import { planDraftStart, type DraftStartPlan } from './draft-start.js';
-import { planFilingStatus, type FilingSectionLocaleLookup, type FilingStatusPlan } from './filing-status.js';
+import { planFormStatus, type FormStatusSectionLocaleLookup, type FormStatusPlan } from './form-status.js';
 import type { ThemeAuthority } from './theme-authority.js';
 import {
   planExperienceUnit,
@@ -107,7 +107,7 @@ export type SlotPlan<TComponent> = SlotPlanBase &
       }
     | { slotType: 'screener'; screener?: ScreenerDocumentHandle; allowedTargets: readonly string[]; status: 'ready' | 'unresolved'; reason?: string }
     | { slotType: 'draft-start'; start: DraftStartPlan | undefined }
-    | { slotType: 'filing-status'; tracker: FilingStatusPlan }
+    | { slotType: 'form-status'; tracker: FormStatusPlan }
     | { slotType: 'experience-unit'; unit: ExperienceUnitPlan }
     | {
         slotType: 'module-widget';
@@ -144,7 +144,7 @@ export type SlotPlan<TComponent> = SlotPlanBase &
 
 const KNOWN_SLOT_TYPES = {
   'screener': true,
-  'filing-status': true,
+  'form-status': true,
   'draft-start': true,
   'definition-form': true,
   'experience-unit': true,
@@ -166,7 +166,7 @@ export interface SlotPlanContext<TComponent> {
   params?: Readonly<Record<string, string>> | undefined;
   screenerHandles?: readonly ScreenerDocumentHandle[] | undefined;
   resolveDefinitionComponent?: SurfaceDefinitionComponentResolver | undefined;
-  filingStatus?: { app: SurfaceApp; themeAuthority: ThemeAuthority; resolveDefinitionLocaleString?: FilingSectionLocaleLookup | undefined };
+  formStatus?: { app: SurfaceApp; themeAuthority: ThemeAuthority; resolveDefinitionLocaleString?: FormStatusSectionLocaleLookup | undefined };
   experiences: readonly ExperienceDocument[];
   /** Exact manifested source identity for qualified Experience bindings. */
   experienceHandles?: readonly ExperienceDocumentHandle[] | undefined;
@@ -236,12 +236,12 @@ export type DraftReviewPlan =
 export interface RoutePlan<TComponent> {
   handle: SurfaceRouteHandle;
   slots: readonly SlotPlan<TComponent>[];
-  bands?: readonly { routeId: string; slot: Extract<SlotPlan<TComponent>, { slotType: 'filing-status' }> }[];
+  bands?: readonly { routeId: string; slot: Extract<SlotPlan<TComponent>, { slotType: 'form-status' }> }[];
   diagnostics: readonly SurfaceDiagnostic[];
 }
 
 function isTrackerBand(slot: SurfaceSlot, handle: SurfaceRouteHandle): boolean {
-  return handle.surface.$formspecSurface === '0.4' && slot.slotType === 'filing-status'
+  return handle.surface.$formspecSurface === '0.4' && slot.slotType === 'form-status'
     && ownRecord(slot, 'binding')?.placement === 'band';
 }
 
@@ -255,7 +255,7 @@ export function planRoute<TComponent>(context: SlotPlanContext<TComponent>): Rou
   const bands = context.handle.surface.routes.flatMap(route =>
     route.slots.filter(slot => isTrackerBand(slot, context.handle)).flatMap(slot => {
       const planned = planSlot(slot, context, base, visited, diagnostics, route);
-      return planned.slotType === 'filing-status' ? [{ routeId: route.id, slot: planned }] : [];
+      return planned.slotType === 'form-status' ? [{ routeId: route.id, slot: planned }] : [];
     }),
   );
   return { handle: context.handle, slots, bands, diagnostics };
@@ -314,15 +314,15 @@ function planSlot<TComponent>(
       return { ...shared, slotType: 'screener', ...(handle ? { screener: handle } : {}), allowedTargets, status: reason ? 'unresolved' : 'ready', ...(reason ? { reason } : {}) };
     }
     case 'draft-start': {
-      const start = context.filingStatus && planDraftStart(context.filingStatus.app, context.handle,
+      const start = context.formStatus && planDraftStart(context.formStatus.app, context.handle,
         bindingRoute, binding, context.definitions, context.params ?? {});
       if (!start) diagnostics.push(surfaceDiagnostic('SLOT-BINDING-INCOMPLETE',
         'The new draft target or its parent parameters are unavailable.', site));
       return { ...shared, slotType: 'draft-start', start };
     }
-    case 'filing-status': {
-      const tracker: FilingStatusPlan = context.filingStatus ? planFilingStatus({
-        ...context.filingStatus,
+    case 'form-status': {
+      const tracker: FormStatusPlan = context.formStatus ? planFormStatus({
+        ...context.formStatus,
         slotId: slot.id,
         dataSources: context.dataSources,
         handle: context.handle,
@@ -335,16 +335,16 @@ function planSlot<TComponent>(
         surfaceRef: context.surfaceRef,
       }) : { status: 'unresolved', reason: 'route-table-unavailable' };
       if (tracker.status === 'unresolved') diagnostics.push(surfaceDiagnostic(
-        'SLOT-BINDING-INCOMPLETE', 'The filing tracker cannot resolve its form links.', site,
+        'SLOT-BINDING-INCOMPLETE', 'The form-status tracker cannot resolve its form links.', site,
         { reason: tracker.reason },
       ));
       else if (tracker.status === 'ready') for (const group of tracker.groups) for (const row of group.rows) {
         if (row.status === 'disabled') diagnostics.push(surfaceDiagnostic(
-          'SLOT-BINDING-INCOMPLETE', 'A filing tracker form is unavailable.', site,
+          'SLOT-BINDING-INCOMPLETE', 'A form-status tracker form is unavailable.', site,
           { reason: row.reason, entry: row.key },
         ));
       }
-      return { ...shared, slotType: 'filing-status', tracker };
+      return { ...shared, slotType: 'form-status', tracker };
     }
     case 'definition-form': {
       const definitionRef = typeof binding.definitionRef === 'string' ? binding.definitionRef : '';
@@ -380,7 +380,7 @@ function planSlot<TComponent>(
         if (subject === false) {
           diagnostics.push(surfaceDiagnostic(
             'SLOT-BINDING-INCOMPLETE',
-            'The form cannot open because its filing-unit keys do not match the route parameters.',
+            'The form cannot open because its subject keys do not match the route parameters.',
             site,
             { reason: 'subject-keys-invalid' },
           ));
@@ -392,7 +392,7 @@ function planSlot<TComponent>(
         });
         if (component) plan.componentDocument = component;
         if (subject) plan.subject = subject;
-        const draftReviewHref = context.filingStatus && planDraftReviewHref(context, context.filingStatus.app, bindingRoute.id, slot.id, site, diagnostics);
+        const draftReviewHref = context.formStatus && planDraftReviewHref(context, context.formStatus.app, bindingRoute.id, slot.id, site, diagnostics);
         if (draftReviewHref !== undefined) plan.draftReviewHref = draftReviewHref;
         if (binding.initialData !== undefined) {
           const initialData = planDefinitionFormInitialData({
@@ -751,19 +751,19 @@ function planDraftReview<TComponent>(context: SlotPlanContext<TComponent>, bindi
   if (subject === false) return { status: 'unresolved', reason: 'subject-keys-invalid' };
   let targetFormHref: string | undefined;
   let sections: readonly DraftReviewSectionLink[] | undefined;
-  if (context.filingStatus) {
+  if (context.formStatus) {
     const review = ownRecord(binding, 'draftReview');
     const routeRef = review && ownString(review, 'routeRef');
     const slotRef = review && ownString(review, 'slotRef');
     const destination = routeRef
-      ? context.filingStatus.app.routes.find(
+      ? context.formStatus.app.routes.find(
           candidate => candidate.surface === context.handle.surface && candidate.routeId === routeRef,
         )
       : undefined;
     if (destination && slotRef) {
       const link = routeHref(destination, context.params ?? {});
-      if (!link.refusal && matchRoute(context.filingStatus.app, link.href).match?.handle === destination) {
-        const theme = context.filingStatus.themeAuthority.grantFor(destination.route, {
+      if (!link.refusal && matchRoute(context.formStatus.app, link.href).match?.handle === destination) {
+        const theme = context.formStatus.themeAuthority.grantFor(destination.route, {
           surfaceId: destination.surfaceId,
           routeId: destination.routeId,
         }).themeDocument;

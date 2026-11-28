@@ -56,7 +56,7 @@ describe('static preview inputs', () => {
       .rejects.toThrow('no resolved entry');
   });
 
-  it('shows In progress on the filing-status tracker and hydrates saved draft answers on open', async () => {
+  it('shows In progress on the form-status tracker and hydrates saved draft answers on open', async () => {
     window.history.replaceState(null, '', '/preview/');
     const surfaceUrl = 'https://example.test/surface';
     const reportUrl = 'https://example.test/definitions/report';
@@ -81,7 +81,7 @@ describe('static preview inputs', () => {
               title: 'Overview',
               slots: [{
                 id: 'tracker',
-                slotType: 'filing-status',
+                slotType: 'form-status',
                 binding: {
                   groups: [{
                     id: 'annual',

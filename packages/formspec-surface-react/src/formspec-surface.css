@@ -2113,7 +2113,7 @@ th[data-cell-kind="status"] {
 }
 
 @media (min-width: 70rem) {
-  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p)):not(:has(dl > div:nth-child(4)))) > .fs-surface-route__title {
+  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="form-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p)):not(:has(dl > div:nth-child(4)))) > .fs-surface-route__title {
     box-sizing: border-box;
     padding-inline-end: 23rem;
     min-block-size: 3.5rem;
@@ -2122,7 +2122,7 @@ th[data-cell-kind="status"] {
     border-block-end: 2px solid var(--fs-surface-ink);
   }
 
-  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p)):not(:has(dl > div:nth-child(4)))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"] > .fs-surface-filing > .fs-surface-filing__totals {
+  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="form-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p)):not(:has(dl > div:nth-child(4)))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="form-status"] > .fs-surface-filing > .fs-surface-filing__totals {
     position: absolute;
     inset-block-start: clamp(1.25rem, 2.75vw, 2rem);
     inset-inline-end: clamp(1.25rem, 2.75vw, 2rem);
@@ -2133,11 +2133,11 @@ th[data-cell-kind="status"] {
     background: transparent;
   }
 
-  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p)):not(:has(dl > div:nth-child(4)))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"] > .fs-surface-filing > .fs-surface-filing__key {
+  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="form-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p)):not(:has(dl > div:nth-child(4)))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="form-status"] > .fs-surface-filing > .fs-surface-filing__key {
     margin-block-start: -0.5rem;
   }
 
-  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p)):not(:has(dl > div:nth-child(4)))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="filing-status"] > .fs-surface-filing > .fs-surface-filing__totals + .fs-surface-filing__group {
+  .fs-surface-route:has(> .fs-surface-route__title + .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="form-status"]:not(:has(> .fs-surface-slot__title)) > .fs-surface-filing > .fs-surface-filing__totals:not(:has(p)):not(:has(dl > div:nth-child(4)))) > .fs-surface-route__slots > .fs-surface-slot:first-child[data-slot-type="form-status"] > .fs-surface-filing > .fs-surface-filing__totals + .fs-surface-filing__group {
     margin-block-start: 0;
   }
 }

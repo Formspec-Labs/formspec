@@ -4,11 +4,11 @@ import type { SurfaceStringKey, SurfaceStrings } from '@formspec-org/surface';
 import type { FiledObservation } from './draft-session.js';
 
 const FILING_STATUS_STRING_KEYS = {
-  filed: 'filingFiled',
-  returned: 'filingReturned',
-  accepted: 'filingAccepted',
-  'closed-without-acceptance': 'filingClosedWithoutAcceptance',
-  reopened: 'filingReopened',
+  filed: 'formStatusFiled',
+  returned: 'formStatusReturned',
+  accepted: 'formStatusAccepted',
+  'closed-without-acceptance': 'formStatusClosedWithoutAcceptance',
+  reopened: 'formStatusReopened',
 } as const satisfies Record<FiledObservation['status'], SurfaceStringKey>;
 
 export function filingStatusLabel(

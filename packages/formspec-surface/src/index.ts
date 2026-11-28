@@ -272,14 +272,14 @@ export {
 
 export * from "./screener-slot.js";
 
-export type { FilingStatusPlan, ResolvedFilingStatusLinks } from './filing-status.js';
+export type { FormStatusPlan, ResolvedFormStatusLinks } from './form-status.js';
 export {
-  matchesFilingSubjectPredicates,
+  matchesFormSubjectPredicates,
   type BrowserDraftPort, type CurrentDraftProgress, type DraftKey, type DraftLoadResult, type DraftPort, type DraftRecord,
   type DraftRepinInput, type DraftRepinInstanceRequest, type DraftRepinResult,
   type DraftStartInput, type DraftStartResult, type DraftRestartResult, type DraftSaveInput, type DraftSaveResult, type DraftSectionPlacement,
-  type FilingDraftObservation, type FilingDraftQuery, type FilingLoadResult, type FilingObservation, type FilingProgressCounts, type FilingStatusObservation, type FilingStatusReader,
-  type FilingSubjectMatch, type FilingSubjectPredicate, type MatchedFilingDraftObservation, type MatchedFilingObservation,
+  type FormStatusDraftObservation, type FormStatusQuery, type FilingLoadResult, type FilingObservation, type FormProgressCounts, type FormStatusObservation, type StatusReader,
+  type FormSubjectMatch, type FormSubjectPredicate, type MatchedFormStatusDraftObservation, type MatchedFilingObservation,
 } from './draft-port.js';
 export { canonicalDraftProgress } from './draft-port.js';
 

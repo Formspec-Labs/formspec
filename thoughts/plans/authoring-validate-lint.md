@@ -7,7 +7,7 @@
 - Wireframes `formspec_wireframes_validate`;
 - every AppGraph publish gate.
 
-Today two of them report green on documents the linter rejects. Authors learn of those defects only at server publish, or by writing their own wrappers; a private filing app wrote three (a private app F5 and F33; `port-review.json` plan entry RC-NO-LINTER).
+Today two of them report green on documents the linter rejects. Authors learn of those defects only at server publish, or by writing their own wrappers; downstream multi-form deployments had to maintain three local wrappers (`port-review.json` plan entry RC-NO-LINTER).
 
 **Status.** Revision 2, partly implemented. **Landed on formspec main (not pushed):** fs-6jt9 as 4152fd19 and fs-i29t as d6f8773c, each after an independent review. **Still open:** E304 waits for the evaluator plan's §3.2.2 spec commit; fs-ebrt has gone to another agent, and fs-e9xa follows it. **Follow-ups:** fs-isg6, fs-dlre, fs-0ksc, fs-rgj1. This revision folds in:
 - the independent pre-review, which approved with named changes, no blockers, and endorsed D3;
@@ -62,7 +62,7 @@ fs-dmgz was extended, not duplicated.
 - On a Definition with an undefined option set, two sibling fields labelled "Name", mutual `required` binds and a bind on an unknown path:
   - validate_form returns `counts {error:1}`: the TS `CIRCULAR_DEPENDENCY c -> d` only;
   - `lintDocument` on the exported Definition reports E101, E300, E302, E500 and W1902.
-- A private app's plan: diagnose() gives 0/0/0; lint gives 4 W1902. Another private form: 0 against 3 info W902.
+- A multi-form deployment plan: diagnose() gives 0/0/0; lint gives 4 W1902. Another multi-form Definition: 0 against 3 info W902.
 
 **F33c detail.**
 - `formspec-mcp-wireframes/src/server.ts:3203-3207` wires only `localeLintValidator`, which takes Locale handles only (`app-graph/src/locale-lint.ts:116`).
@@ -87,7 +87,7 @@ The first call pays 360 ms of schema warm-up. All 55 passport-bundle documents l
 
 *Fallout.*
 - The three seed bundles give no errors when every document is linted.
-- The private app's Definitions give no errors.
+- Representative multi-form Definitions give no errors.
 - A fresh Studio project, and a Studio-authored tree with pages, an Accordion and a group, lint clean.
 - Themes with tokens are the exception (§3): a 5-token theme gives W708 ×4, including spec-sanctioned prefixes, and W709 ×50 (info).
 
@@ -337,7 +337,7 @@ The native validators are listed at `app-graph/src/validator.ts:335-355`. The fs
 
 - `~/.codex/skills/form-stack-integration/references/authoring-and-validation.md:51,80,91`. Line 91 says lint and validate "each report defects the other misses", which becomes false.
 - The in-repo checkpoint copy under `thoughts/plans/benefits-scenarios/.../form-stack-integration-skill-checkpoint-v1` is another agent's work in progress; coordinate.
-- In the private app, the project's own owner retires its three `lint.mjs` wrappers and `cross-check.mjs` check 1.
+- Downstream host deployments retire their local `lint.mjs` wrappers and `cross-check.mjs` check 1.
 
 ## 5. Tests to write first (RED), at the layer where each bug lives
 
@@ -402,7 +402,7 @@ For both accept-all and per-group merges:
 
 **Composed end-to-end check on the real path, last**
 1. Run the MCP probes against the rebuilt dists; validate_form and Wireframes validate should report the lint codes.
-2. Replay the private app's injected-defect plan with `npm run replay` in mcp-wireframes; the unbound placeholder must be refused.
+2. Replay an injected-defect plan with `npm run replay` in mcp-wireframes; the unbound placeholder must be refused.
 
 ## 6. Contract changes and every consumer inside the stack
 
@@ -410,7 +410,7 @@ For both accept-all and per-group merges:
 |---|---|---|---|
 | C1 | `@formspec-org/core` `Diagnostics` / `IProjectCore.diagnose()` | Four buckets plus counts → `{diagnostics: AppGraphDiagnostic[], counts}`; throws without tools WASM | core: raw-project, project-core, types, queries, README:113,116,187, 3 test files. studio-core: project, vocabulary-gated-core, proposal-manager, re-exports, README:74, tests. mcp: query, changeset, bootstrap/lifecycle (counts), output schemas, tests and demos. chat: chat-session and 2 test files. Studio UI: ChatPanel, StatusBar/UnifiedStudio (counts), status-bar test. API.llm.md ×4. |
 | C2 | core removals | `dependencyGraph()`, `DependencyGraph`, `ProjectOptions.schemaValidator` | `vocabulary-gated-core.ts:121`, `queries.test.ts:930,946`, `index.ts:122`, core `README.md:113,187`. |
-| C3 | MCP tool outputs | validate_form (no response), publish_form validate, lifecycle validate, query audit → `{diagnostics, counts}`; the merge refusal lists new errors | mcp tests and demos, chat, `README:108`, tool descriptions, the form-stack-integration skill (outside the repo, plus a checkpoint copy in flight), a private app wrappers. |
+| C3 | MCP tool outputs | validate_form (no response), publish_form validate, lifecycle validate, query audit → `{diagnostics, counts}`; the merge refusal lists new errors | mcp tests and demos, chat, `README:108`, tool descriptions, the form-stack-integration skill (outside the repo, plus a checkpoint copy in flight), downstream host wrappers. |
 | C4 | app-graph lint port | §2 D2 renames (unreleased); `documentLintDiagnostics`; `AppGraphLintDiagnostic` gains `suggestedFix`/`specRef`; `validateThemeTokenRegistry` deleted | app-graph index and tests; mcp `app-graph-publish.ts`; Wireframes `server.ts`; deployment-tools `validate.ts`; the pending changeset; token-registry-spec §5. formspec-server's e2e support calls `publishFormVersionWithAppGraphReport` unchanged; its reports gain lint entries. |
 | C5 | `WireframesMcpServerOptions.localeLinter` | → `documentLinter`, required (package not on npm) | `server.ts`, `replay-tool-calls.ts` (serve-stdio and replay), 3 tests, deployment-tools `validate.ts:856`, README, tool description, tool catalog. |
 | C6 | Behaviour of validate and the publish gates | Lint errors in every bundle document except Surface and Experience are refused; no false W1401; no doubled theme-token warning | Export follows `validationPassed`; the seed packages' errors are unchanged. |
@@ -434,7 +434,7 @@ For both accept-all and per-group merges:
   Mitigations:
   - Rebuild WASM only with `npm run build:wasm --workspace=@formspec-org/engine` (Makefile:49). It runs in the pinned image and `scripts/in-wasm-image.mjs` copies the working tree, so run it once, in an agreed window, after the evaluator's Rust tree is committed.
   - Never run `build:wasm:tools` (it uses the wasm-pack on PATH), the formspec root `npm run build`, or `make api-docs` in the shared tree.
-- **R3. Python registry test.** `formspec/.venv` and `_native.abi3.so` were rebuilt by a `uv` the stack did not choose (a private app's findings). Rebuild through the stack's own target before trusting `test_lint_rule_registry.py`. Never run `uv`.
+- **R3. Python registry test.** `formspec/.venv` and `_native.abi3.so` were rebuilt by a `uv` the stack did not choose. Rebuild through the stack's own target before trusting `test_lint_rule_registry.py`. Never run `uv`.
 - **R4. Visible chat change.** The dead chat audit comes alive, so the auto-fix approval flow (`queueAutoFixApproval`) fires on lint issues for the first time. Expected, but visible.
 - **R5. Lockfiles.** See §9, Q6.
 - **R6. Severity changes.** E1110 and E400 now block merges and Studio publish (§2 D4).

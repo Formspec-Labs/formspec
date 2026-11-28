@@ -1201,8 +1201,8 @@ never be blocked by validation status (VE-05) — only the transition to
 <td>no</td>
 <td>—</td>
 <td>The entity this Response concerns, distinct from its author. For a
-subject-declaring Definition this is the filing unit: type and typed
-keys are required and id is derived canonically from (type, keys). An
+subject-declaring Definition this is the subject: type and typed keys
+are required and id is derived canonically from (type, keys). An
 implicit respondent identity is server-only and is never serialized
 here.</td>
 </tr>
@@ -1243,25 +1243,25 @@ validate Response <code>data</code> values exactly as given without
 rewriting stored bytes; value canonicalization (whitespace modes,
 <code>letterCase</code>, numeric strings, money, and precision) belongs
 at typing and import through the exported canonicalizer.</p>
-<h5 id="filing-unit-subject">Filing-unit Subject</h5>
+<h5 id="subject-identity">Subject Identity</h5>
 <p>When the Definition declares <code>subject</code> (§4.1), each
 Response MUST carry <code>subject: {id, type, keys}</code>.
 <code>type</code> MUST equal the declaration’s type, and
 <code>keys</code> MUST contain exactly the declared keys with values of
 their declared <code>string</code> or <code>integer</code> data types.
-Keys identify the filing unit independently of editable answers and of
-the person completing the form. For such a Definition,
+Keys identify the subject independently of editable answers and of the
+person completing the form. For such a Definition,
 <code>subject.id</code> MUST be the lowercase hexadecimal SHA-256 of
 <code>{"type": T, "keys": K}</code>, encoded with
 <code>integrity-canonical-json-v1</code> using the integrity-stack
 domain-separated canonical bytes: the UTF-8 domain tag
 <code>formspec.subject.id.v1</code>, one NUL byte, then the canonical
 JSON bytes. The identifier is exactly 64 hex characters, with no prefix.
-Equal typed keys and type identify the same unit regardless of JSON
+Equal typed keys and type identify the same subject regardless of JSON
 property order. This is a meaning change from a host entity identifier
-to a filing-unit identifier. <code>Response.id</code> still identifies
-the individual Response; multiple Definitions and Responses MAY concern
-the same filing unit.</p>
+to a subject identifier. <code>Response.id</code> still identifies the
+individual Response; multiple Definitions and Responses MAY concern the
+same subject.</p>
 <p>Integer subject key values MUST be in the interoperable Internet JSON
 (I-JSON) range from −(2^53−1) to 2^53−1 inclusive. Processors MUST
 refuse an out-of-range integer. Identifiers that can exceed the range or
@@ -5032,9 +5032,9 @@ formatting.</td>
 <p>The processor reads <code>subject()</code> from Response identity
 (§2.1.6), independently of editable answers and runtime metadata.</p>
 <p>For example,
-<code>some(@instance('agencyList').agencies, $.uei = subject('uei'))</code>
+<code>some(@instance('orgList').organizations, $.orgId = subject('orgId'))</code>
 checks whether the delivered list contains a row matching the form’s
-filing unit. The instance’s declared projection is the data minimization
+subject. The instance’s declared projection is the data minimization
 boundary. The server authorizes and selects Responses before FEL reads
 the delivered rows.</p>
 <h3 id="dependency-tracking">3.6 Dependency Tracking</h3>
@@ -6148,10 +6148,10 @@ existing Responses remain valid.</td>
 <td><code>object</code></td>
 <td>no</td>
 <td>—</td>
-<td>Filing-unit subject declaration: a type URI and named string or
-integer keys; an empty key set declares a per-scope singleton.
-Authorization parents are derived from stored key values for each check,
-never persisted as duplicate relationships. Scope is not a key.</td>
+<td>Subject declaration: a type URI and named string or integer keys; an
+empty key set declares a per-scope singleton. Authorization parents are
+derived from stored key values for each check, never persisted as
+duplicate relationships. Scope is not a key.</td>
 </tr>
 <tr>
 <td><code>#/properties/title</code></td>
@@ -6243,20 +6243,19 @@ unrecognized top-level properties unless the property name begins with
 <code>x-</code>. Processors MUST preserve <code>x-*</code> extension
 properties during round-tripping but MUST NOT assign core semantics to
 unrecognized extensions.</p>
-<h4 id="filing-unit-subject-declaration">Filing-unit Subject
-Declaration</h4>
-<p>The OPTIONAL top-level <code>subject</code> declares a filing-unit
-type URI and named keys. Each key MUST declare <code>dataType</code> as
+<h4 id="subject-declaration">Subject Declaration</h4>
+<p>The OPTIONAL top-level <code>subject</code> declares a subject type
+URI and named keys. Each key MUST declare <code>dataType</code> as
 <code>string</code> or <code>integer</code>. A per-scope singleton
 declares <code>keys: {}</code> and takes relations through the scope
-parent (§2.1.6). The following Definition identifies a child unit within
-a parent and period:</p>
+parent (§2.1.6). The following Definition identifies a child record
+within a parent and period:</p>
 <div class="sourceCode" id="cb34"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;subject&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;urn:example:subject:child-unit&quot;</span><span class="fu">,</span></span>
 <span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;keys&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;parent&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span> <span class="dt">&quot;authorizationParent&quot;</span><span class="fu">:</span> <span class="st">&quot;agency&quot;</span> <span class="fu">},</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;parent&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span> <span class="dt">&quot;authorizationParent&quot;</span><span class="fu">:</span> <span class="st">&quot;organization&quot;</span> <span class="fu">},</span></span>
 <span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;year&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;integer&quot;</span> <span class="fu">},</span></span>
 <span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;unit_id&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;dataType&quot;</span><span class="fu">:</span> <span class="st">&quot;string&quot;</span><span class="fu">,</span> <span class="dt">&quot;minted&quot;</span><span class="fu">:</span> <span class="kw">true</span> <span class="fu">}</span></span>
 <span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
@@ -6264,9 +6263,9 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb34-1"><a href=
 <span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p><code>authorizationParent</code>, when present, MUST be on a
 <code>string</code> key and names the authorization object type for that
-key’s value. The example derives <code>agency:&lt;parent&gt;</code> as a
-parent of the filing unit. The scope supplies its own parent and MUST
-NOT be declared as a key.</p>
+key’s value. The example derives
+<code>organization:&lt;parent&gt;</code> as a parent of the subject. The
+scope supplies its own parent and MUST NOT be declared as a key.</p>
 <p><code>minted: true</code> declares a key the draft store assigns. It
 MUST be a <code>string</code> because it is an opaque scoped identifier
 with no ordering or offset semantics. It MUST NOT declare
@@ -8135,9 +8134,9 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb44-1"><a href=
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;instances&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;priorYear&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
 <span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;response&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;definition&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://example.gov/forms/annual-report&quot;</span> <span class="fu">},</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;definition&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;url&quot;</span><span class="fu">:</span> <span class="st">&quot;https://example.org/forms/annual-report&quot;</span> <span class="fu">},</span></span>
 <span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;subject&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;ffy&quot;</span><span class="fu">,</span> <span class="dt">&quot;op&quot;</span><span class="fu">:</span> <span class="st">&quot;eq&quot;</span><span class="fu">,</span> <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;subject&quot;</span><span class="fu">:</span> <span class="st">&quot;ffy&quot;</span> <span class="fu">},</span> <span class="dt">&quot;offset&quot;</span><span class="fu">:</span> <span class="dv">-1</span> <span class="fu">}</span></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span> <span class="dt">&quot;key&quot;</span><span class="fu">:</span> <span class="st">&quot;period&quot;</span><span class="fu">,</span> <span class="dt">&quot;op&quot;</span><span class="fu">:</span> <span class="st">&quot;eq&quot;</span><span class="fu">,</span> <span class="dt">&quot;from&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;subject&quot;</span><span class="fu">:</span> <span class="st">&quot;period&quot;</span> <span class="fu">},</span> <span class="dt">&quot;offset&quot;</span><span class="fu">:</span> <span class="dv">-1</span> <span class="fu">}</span></span>
 <span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span><span class="fu">,</span></span>
 <span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;completed&quot;</span><span class="fu">,</span> <span class="dt">&quot;whenNone&quot;</span><span class="fu">:</span> <span class="st">&quot;empty&quot;</span><span class="fu">,</span></span>
 <span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;cardinality&quot;</span><span class="fu">:</span> <span class="st">&quot;latest&quot;</span><span class="fu">,</span> <span class="dt">&quot;pin&quot;</span><span class="fu">:</span> <span class="st">&quot;none&quot;</span></span>
@@ -8235,7 +8234,7 @@ also serve as fallback for either <code>source</code> or
 no content source, MUST be rejected.</p>
 <p>A response instance MUST declare <code>schema</code> keyed by
 FieldRef paths, using <code>[*]</code> for repeat traversal, for example
-<code>agencies[*].uei</code>. The delivered data MUST be upstream
+<code>organizations[*].orgId</code>. The delivered data MUST be upstream
 <code>Response.data</code> projected to exactly those paths, retaining
 the nested object and array structure. Unlisted upstream paths MUST NOT
 enter the Mapping or, without a Mapping, the delivered value. A declared
@@ -8281,7 +8280,7 @@ and <code>seedFrom</code> see the server-recorded pin; the server does
 not use the <code>create</code> feature. For response-backed secondary
 instances, the host instance resolver request carries the declared
 <code>response</code> (<code>ResponseSelection</code>) and the consuming
-filing-unit <code>subject</code>, and a loaded resolution carries
+<code>subject</code>, and a loaded resolution carries
 <code>records</code>, <code>valueDigest</code>, <code>none</code>,
 <code>pinned</code>, optional <code>mapping</code>, and optional
 <code>newer</code>. Later loads MUST return exactly the pinned records
@@ -8298,7 +8297,7 @@ server or preview port MUST verify caller authorization, expected
 revision, unsigned <code>in-progress</code> status, and prior pin
 receipt/digest; atomically replace the pinned selection records and
 <code>valueDigest</code> with the fresh selection; apply any requested
-refill exclusively to the preparer’s selected fields while preserving
+refill exclusively to the respondent’s selected fields while preserving
 all unrelated answers; recheck explanation and acknowledgement bases
 against the updated state; leave every prior completed filing
 byte-identical; and refuse stale revisions, signed or filed targets,

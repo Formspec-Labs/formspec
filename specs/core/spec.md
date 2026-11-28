@@ -500,7 +500,7 @@ The canonical structural contract for Response properties is generated from
 | `#/properties/resolvedDocuments` | `resolvedDocuments` | <code>array</code> | no | — | Exact document variants resolved from the pinned Definition. Duplicate document/locale identities refuse. Passive selections alone do not establish assent, fetching, viewing or reading; declared-document assent uses the typed signed root commitment. |
 | `#/properties/resolvedInstances` | `resolvedInstances` | <code>array</code> | no | — | What was read from response instances. assemble_candidate is the only writer; browser assembles before Sign and server re-runs at Sign and Submit, refusing differences. Evidence is inside the signed Response. |
 | `#/properties/status` | `status` | <code>&#36;ref</code> | yes | <code>&#36;ref</code>: <code>#/&#36;defs/ResponseStatus</code>; critical | The current lifecycle status of this Response. 'in-progress': actively being edited, MAY contain validation errors. 'completed': all error-severity validation results resolved, form submitted — a Response with one or more error-severity results MUST NOT be marked completed. 'amended': previously completed, reopened for modification. 'stopped': abandoned before completion, data preserved for audit. Saving data MUST never be blocked by validation status (VE-05) — only the transition to 'completed' requires zero error-level results. |
-| `#/properties/subject` | `subject` | <code>object</code> | no | — | The entity this Response concerns, distinct from its author. For a subject-declaring Definition this is the filing unit: type and typed keys are required and id is derived canonically from (type, keys). An implicit respondent identity is server-only and is never serialized here. |
+| `#/properties/subject` | `subject` | <code>object</code> | no | — | The entity this Response concerns, distinct from its author. For a subject-declaring Definition this is the subject: type and typed keys are required and id is derived canonically from (type, keys). An implicit respondent identity is server-only and is never serialized here. |
 | `#/properties/validationResults` | `validationResults` | <code>array</code> | no | — | The most recent set of ValidationResult entries for this Response. Includes results from all sources: bind constraints, validation shapes, required checks, type checks, and external validation. Only error-severity results block the transition to 'completed' status. Warning and info results are advisory. Non-relevant fields MUST NOT produce results. When persisted alongside the Response, this array represents a snapshot — it may be stale if the data has changed since the last validation run. |
 <!-- schema-ref:end -->
 
@@ -524,22 +524,22 @@ undeclared keys is host policy at submit. Evaluation MUST validate Response
 canonicalization (whitespace modes, `letterCase`, numeric strings, money, and
 precision) belongs at typing and import through the exported canonicalizer.
 
-##### Filing-unit Subject
+##### Subject Identity
 
 When the Definition declares `subject` (§4.1), each Response MUST carry
 `subject: {id, type, keys}`. `type` MUST equal the declaration's type, and
 `keys` MUST contain exactly the declared keys with values of their declared
-`string` or `integer` data types. Keys identify the filing unit independently of editable
+`string` or `integer` data types. Keys identify the subject independently of editable
 answers and of the person completing the form. For such a Definition,
 `subject.id` MUST be the lowercase hexadecimal SHA-256 of
 `{"type": T, "keys": K}`, encoded with `integrity-canonical-json-v1` using the
 integrity-stack domain-separated canonical bytes: the UTF-8 domain tag
 `formspec.subject.id.v1`, one NUL byte, then the canonical JSON bytes.
 The identifier is exactly 64 hex characters, with no prefix. Equal typed keys
-and type identify the same unit regardless of JSON property order. This is a
-meaning change from a host entity identifier to a filing-unit identifier.
+and type identify the same subject regardless of JSON property order. This is a
+meaning change from a host entity identifier to a subject identifier.
 `Response.id` still identifies the individual Response; multiple Definitions
-and Responses MAY concern the same filing unit.
+and Responses MAY concern the same subject.
 
 Integer subject key values MUST be in the interoperable Internet JSON
 (I-JSON) range from −(2^53−1) to 2^53−1 inclusive. Processors MUST refuse an
@@ -2592,9 +2592,9 @@ with Unicode CLDR cardinal plural rules.
 The processor reads `subject()` from Response identity (§2.1.6), independently
 of editable answers and runtime metadata.
 
-For example, `some(@instance('agencyList').agencies, $.uei = subject('uei'))`
-checks whether the delivered list contains a row matching the form's filing
-unit. The instance's declared projection is the data minimization boundary.
+For example, `some(@instance('orgList').organizations, $.orgId = subject('orgId'))`
+checks whether the delivered list contains a row matching the form's subject.
+The instance's declared projection is the data minimization boundary.
 The server authorizes and selects Responses before FEL reads the delivered rows.
 
 ### 3.6 Dependency Tracking
@@ -3229,7 +3229,7 @@ generated from `schemas/definition.schema.json`:
 | `#/properties/parties` | `parties` | <code>array</code> | no | critical | EXT-28 / ADR-0155 §4: multi-party intake role-slot declarations. Each entry declares a stable party-role slot bound at Definition authoring time. Runtime binds identities to slots; runtime MUST NOT invent new role slots. The role-class taxonomy is closed (`coEqual` \| `asymmetricPrimary` \| `asymmetricSecondary` \| `guardianFor`); domain-specific party metadata uses `extensions`. See core spec §4.8. |
 | `#/properties/shapes` | `shapes` | <code>array</code> | no | — | Named, composable validation rule sets (inspired by W3C SHACL). Shapes provide cross-field and form-level validation beyond per-field Bind constraints. Each Shape targets a data path, evaluates a FEL constraint expression, and produces structured ValidationResult entries with severity, message, and code on failure. Shapes compose via 'and', 'or', 'not', 'xone' operators. Only error-severity results block submission; warnings and info are advisory. |
 | `#/properties/status` | `status` | <code>string</code> | yes | enum: <code>"draft"</code>, <code>"active"</code>, <code>"retired"</code>; critical | Definition lifecycle state. Transitions: draft → active → retired. Backward transitions are forbidden for the same version. 'draft': under development, not for production. 'active': in production, content is immutable. 'retired': no longer used for new data collection, but existing Responses remain valid. |
-| `#/properties/subject` | `subject` | <code>object</code> | no | — | Filing-unit subject declaration: a type URI and named string or integer keys; an empty key set declares a per-scope singleton. Authorization parents are derived from stored key values for each check, never persisted as duplicate relationships. Scope is not a key. |
+| `#/properties/subject` | `subject` | <code>object</code> | no | — | Subject declaration: a type URI and named string or integer keys; an empty key set declares a per-scope singleton. Authorization parents are derived from stored key values for each check, never persisted as duplicate relationships. Scope is not a key. |
 | `#/properties/title` | `title` | <code>string</code> | yes | critical | Human-readable definition title. Displayed by authoring tools and form renderers. |
 | `#/properties/url` | `url` | <code>string</code> | yes | critical | Canonical URI identifier of the logical form. Stable across versions — all versions of the same form share this URL. Combined with 'version' to form the immutable identity tuple. Referenced by Responses via definitionUrl. |
 | `#/properties/variables` | `variables` | <code>array</code> | no | — | Named computed values with lexical scoping, continuously recalculated when dependencies change. Variables provide intermediate calculations reusable across Binds, Shapes, and other expressions without repetition. Referenced in FEL expressions as @variableName. MUST NOT form circular dependencies. |
@@ -3247,12 +3247,12 @@ top-level properties unless the property name begins with `x-`. Processors
 MUST preserve `x-*` extension properties during round-tripping but MUST NOT
 assign core semantics to unrecognized extensions.
 
-#### Filing-unit Subject Declaration
+#### Subject Declaration
 
-The OPTIONAL top-level `subject` declares a filing-unit type URI and named
+The OPTIONAL top-level `subject` declares a subject type URI and named
 keys. Each key MUST declare `dataType` as `string` or `integer`. A per-scope
 singleton declares `keys: {}` and takes relations through the scope parent
-(§2.1.6). The following Definition identifies a child unit within a parent
+(§2.1.6). The following Definition identifies a child record within a parent
 and period:
 
 ```json
@@ -3260,7 +3260,7 @@ and period:
   "subject": {
     "type": "urn:example:subject:child-unit",
     "keys": {
-      "parent": { "dataType": "string", "authorizationParent": "agency" },
+      "parent": { "dataType": "string", "authorizationParent": "organization" },
       "year": { "dataType": "integer" },
       "unit_id": { "dataType": "string", "minted": true }
     }
@@ -3270,7 +3270,7 @@ and period:
 
 `authorizationParent`, when present, MUST be on a `string` key and names the
 authorization object type for that key's value. The example derives
-`agency:<parent>` as a parent of the filing unit. The scope supplies its own
+`organization:<parent>` as a parent of the subject. The scope supplies its own
 parent and MUST NOT be declared as a key.
 
 `minted: true` declares a key the draft store assigns. It MUST be a
@@ -4212,9 +4212,9 @@ property name serves as the instance's identifier.
   "instances": {
     "priorYear": {
       "response": {
-        "definition": { "url": "https://example.gov/forms/annual-report" },
+        "definition": { "url": "https://example.org/forms/annual-report" },
         "subject": [
-          { "key": "ffy", "op": "eq", "from": { "subject": "ffy" }, "offset": -1 }
+          { "key": "period", "op": "eq", "from": { "subject": "period" }, "offset": -1 }
         ],
         "status": "completed", "whenNone": "empty",
         "cardinality": "latest", "pin": "none"
@@ -4252,7 +4252,7 @@ An Instance MUST declare exactly one of `source`, `response`, or `data` alone.
 with both external sources, or with no content source, MUST be rejected.
 
 A response instance MUST declare `schema` keyed by FieldRef paths, using `[*]`
-for repeat traversal, for example `agencies[*].uei`. The delivered data MUST be
+for repeat traversal, for example `organizations[*].orgId`. The delivered data MUST be
 upstream `Response.data` projected to exactly those paths, retaining the nested
 object and array structure. Unlisted upstream paths MUST NOT enter the Mapping
 or, without a Mapping, the delivered value. A declared Mapping is applied
@@ -4294,7 +4294,7 @@ the missing filing. Browser creation receives the pinned value as an instance
 so `initialValue` and `seedFrom` see the server-recorded pin; the server does
 not use the `create` feature. For response-backed secondary instances, the host
 instance resolver request carries the declared `response` (`ResponseSelection`)
-and the consuming filing-unit `subject`, and a loaded resolution carries
+and the consuming `subject`, and a loaded resolution carries
 `records`, `valueDigest`, `none`, `pinned`, optional `mapping`, and optional
 `newer`. Later loads MUST return exactly the pinned records and report
 `newer: {responseId, responseHash}` when a fresh selection would choose another
@@ -4308,7 +4308,7 @@ records when non-empty). The server or preview port MUST verify caller
 authorization, expected revision, unsigned `in-progress` status, and prior pin
 receipt/digest; atomically replace the pinned selection records and
 `valueDigest` with the fresh selection; apply any requested refill exclusively to
-the preparer's selected fields while preserving all unrelated answers; recheck
+the respondent's selected fields while preserving all unrelated answers; recheck
 explanation and acknowledgement bases against the updated state; leave every
 prior completed filing byte-identical; and refuse stale revisions, signed or
 filed targets, mismatched prior receipts or digests, or unavailable fresh

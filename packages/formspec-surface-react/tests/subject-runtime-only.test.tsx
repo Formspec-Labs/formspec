@@ -24,30 +24,30 @@ import { renderDefaultDefinitionForm, type SurfaceDefinitionFormRenderer } from 
 // Core's shared vector: the engine must reproduce it from the route's typed keys alone.
 const vector = JSON.parse(readFileSync(
   resolve(import.meta.dirname, '../../../tests/conformance/fixtures/subject-id/vectors.json'), 'utf8',
-)).vectors.find((entry: { name: string }) => entry.name === 'agency-year') as {
-  type: string; keys: { ffy: number; uei: string }; id: string;
+)).vectors.find((entry: { name: string }) => entry.name === 'org-period') as {
+  type: string; keys: { period: number; orgId: string }; id: string;
 };
-const definitionUrl = 'https://example.test/definitions/agency-year';
+const definitionUrl = 'https://example.test/definitions/org-period';
 
 function bundle(): ResolvedBundle {
-  const surfaceRef = 'https://example.test/surfaces/agency-year';
+  const surfaceRef = 'https://example.test/surfaces/org-period';
   const surface = {
-    $formspecSurface: '0.2', id: 'agency-year', entry: 'filing', routes: [{
-      id: 'filing', path: '/filing/{uei}/{ffy}', title: 'Filing', routeClass: 'intake',
-      params: [{ name: 'uei', type: 'string' }, { name: 'ffy', type: 'string' }],
+    $formspecSurface: '0.2', id: 'org-period', entry: 'filing', routes: [{
+      id: 'filing', path: '/filing/{orgId}/{period}', title: 'Filing', routeClass: 'intake',
+      params: [{ name: 'orgId', type: 'string' }, { name: 'period', type: 'string' }],
       slots: [{ id: 'form', slotType: 'definition-form', binding: {
-        definitionRef: definitionUrl, subjectKeys: { ffy: 'ffy', uei: 'uei' },
+        definitionRef: definitionUrl, subjectKeys: { period: 'period', orgId: 'orgId' },
       } }],
     }],
   } as unknown as SurfaceDocument;
   const definition = {
     $formspec: '1.0', url: definitionUrl, version: '1.0.0', title: 'Agency year',
-    subject: { type: vector.type, keys: { ffy: { dataType: 'integer' }, uei: { dataType: 'string' } } },
+    subject: { type: vector.type, keys: { period: { dataType: 'integer' }, orgId: { dataType: 'string' } } },
     items: [
       { type: 'field', key: 'year', dataType: 'integer', label: 'Filing year' },
       { type: 'field', key: 'name', dataType: 'string', label: 'Name' },
     ],
-    binds: [{ path: 'year', calculate: "subject('ffy')" }],
+    binds: [{ path: 'year', calculate: "subject('period')" }],
   } as unknown as FormDefinition;
   const actions = {
     $formspecResponseActions: '1.0', version: '1.0.0', targetDefinition: { url: definitionUrl },
@@ -63,7 +63,7 @@ function bundle(): ResolvedBundle {
   } as unknown as ResolvedBundle;
 }
 
-const path = `/filing/${vector.keys.uei}/${vector.keys.ffy}`;
+const path = `/filing/${vector.keys.orgId}/${vector.keys.period}`;
 
 beforeAll(async () => {
   await initFormspecEngine();

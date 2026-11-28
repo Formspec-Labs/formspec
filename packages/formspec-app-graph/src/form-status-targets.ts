@@ -1,9 +1,9 @@
-/** @filedesc Resolves Surface filing-status references for validation and planning. */
+/** @filedesc Resolves Surface form-status references for validation and planning. */
 import type {
-  FilingStatusEntry,
-  FilingStatusGroup,
-  FilingStatusParamSource,
-  FilingStatusSubjectPredicate,
+  FormStatusEntry,
+  FormStatusGroup,
+  FormStatusParamSource,
+  FormStatusSubjectPredicate,
 } from '@formspec-org/types';
 import { parseRouteSubjectKey } from './surface-definition-slots.js';
 import { bindingFailure } from './data-sources.js';
@@ -22,24 +22,24 @@ export interface TargetRoute {
   slots: readonly TargetSlot[];
 }
 
-export interface ResolvedFilingStatusPredicate {
+export interface ResolvedFormStatusPredicate {
   key: string;
-  op: FilingStatusSubjectPredicate['op'];
-  from: FilingStatusParamSource;
+  op: FormStatusSubjectPredicate['op'];
+  from: FormStatusParamSource;
   value?: string;
   offset?: number;
 }
 
-export interface FilingStatusTarget<R, S> {
-  entry: FilingStatusEntry;
+export interface FormStatusTarget<R, S> {
+  entry: FormStatusEntry;
   route: R;
   slot: S;
   params: Readonly<Record<string, string>>;
-  subject?: readonly ResolvedFilingStatusPredicate[];
+  subject?: readonly ResolvedFormStatusPredicate[];
   pointer: string;
 }
 
-export interface FilingStatusIssue {
+export interface FormStatusIssue {
   pointer: string;
   key?: string;
   reason: 'invalid-binding' | 'duplicate-group' | 'route-unresolved' | 'slot-unresolved'
@@ -60,7 +60,7 @@ function resolveParamSource(
   hasRepeat: boolean,
   sourceParams: ReadonlySet<string | undefined>,
   currentParams: Readonly<Record<string, string>> | undefined,
-): { normalized: FilingStatusParamSource; value?: string } | 'invalid-shape' | 'invalid-parameters' {
+): { normalized: FormStatusParamSource; value?: string } | 'invalid-shape' | 'invalid-parameters' {
   const parameter = record(raw);
   if (!parameter || Object.keys(parameter).length !== 1) return 'invalid-shape';
   if (Object.prototype.hasOwnProperty.call(parameter, 'value')) {
@@ -98,7 +98,7 @@ export function resolveLocalDefinitionForm<R extends TargetRoute>(routes: readon
 }
 
 /** Walk entries by their authored owner. Used for reverse references in editors. */
-export function filingStatusEntries(binding: unknown): readonly Pick<FilingStatusEntry, 'routeRef' | 'slotRef'>[] {
+export function formStatusEntries(binding: unknown): readonly Pick<FormStatusEntry, 'routeRef' | 'slotRef'>[] {
   const groups = record(binding)?.groups;
   if (!Array.isArray(groups)) return [];
   return groups.flatMap((group: unknown) => {
@@ -116,14 +116,14 @@ export function filingStatusEntries(binding: unknown): readonly Pick<FilingStatu
  * Validate exact local targets and bind their parameters. A caller supplying
  * current params also checks for collisions that can only appear at runtime.
  */
-export function resolveFilingStatusTargets<R extends TargetRoute>(
+export function resolveFormStatusTargets<R extends TargetRoute>(
   routes: readonly R[], source: TargetRoute, binding: unknown,
   currentParams?: Readonly<Record<string, string>>,
 ): {
-  groups: { group: FilingStatusGroup; pointer: string; targets: FilingStatusTarget<R, R['slots'][number]>[] }[];
-  issues: FilingStatusIssue[];
+  groups: { group: FormStatusGroup; pointer: string; targets: FormStatusTarget<R, R['slots'][number]>[] }[];
+  issues: FormStatusIssue[];
 } {
-  const issues: FilingStatusIssue[] = [];
+  const issues: FormStatusIssue[] = [];
   const authored = record(binding)?.groups;
   if (!Array.isArray(authored) || authored.length === 0) {
     return { groups: [], issues: [{ pointer: '', reason: 'invalid-binding' }] };
@@ -133,7 +133,7 @@ export function resolveFilingStatusTargets<R extends TargetRoute>(
   const sourceParams = new Set(source.params?.map(param => param.name));
   const groups = authored.flatMap((value: unknown, groupIndex) => {
     const groupPointer = `/groups/${groupIndex}`;
-    const group = record(value) as FilingStatusGroup | undefined;
+    const group = record(value) as FormStatusGroup | undefined;
     if (!group || typeof group.id !== 'string' || typeof group.label !== 'string'
         || !Array.isArray(group.forms) || group.forms.length === 0) {
       issues.push({ pointer: groupPointer, reason: 'invalid-binding' });
@@ -150,10 +150,10 @@ export function resolveFilingStatusTargets<R extends TargetRoute>(
     if (groupIds.has(group.id)) issues.push({ pointer: groupPointer, reason: 'duplicate-group' });
     groupIds.add(group.id);
 
-    const targets: FilingStatusTarget<R, R['slots'][number]>[] = [];
+    const targets: FormStatusTarget<R, R['slots'][number]>[] = [];
     group.forms.forEach((entry, index) => {
       const pointer = `${groupPointer}/forms/${index}`;
-      const refuse = (reason: FilingStatusIssue['reason']) => issues.push({ pointer, reason });
+      const refuse = (reason: FormStatusIssue['reason']) => issues.push({ pointer, reason });
       if (!record(entry) || typeof entry.routeRef !== 'string' || typeof entry.slotRef !== 'string') {
         refuse('invalid-binding');
         return;
@@ -208,7 +208,7 @@ export function resolveFilingStatusTargets<R extends TargetRoute>(
       }
 
       const directNames = Object.keys(sources).sort();
-      const directParameters: [string, { normalized: FilingStatusParamSource; value?: string }][] = [];
+      const directParameters: [string, { normalized: FormStatusParamSource; value?: string }][] = [];
       for (const name of directNames) {
         const resolved = resolveParamSource(sources[name], hasRepeat, sourceParams, currentParams);
         if (typeof resolved === 'string') {
@@ -218,7 +218,7 @@ export function resolveFilingStatusTargets<R extends TargetRoute>(
         directParameters.push([name, resolved]);
       }
 
-      const resolvedPredicates: ResolvedFilingStatusPredicate[] = [];
+      const resolvedPredicates: ResolvedFormStatusPredicate[] = [];
       for (const [predicateIndex, rawPredicate] of (entry.subject as unknown[]).entries()) {
         const predicatePointer = `${pointer}/subject/${predicateIndex}`;
         const predicate = record(rawPredicate);
@@ -311,7 +311,7 @@ export function resolveFilingStatusTargets<R extends TargetRoute>(
 }
 
 function subjectSourceIdentity(
-  target: FilingStatusTarget<TargetRoute, TargetSlot>, definition: unknown,
+  target: FormStatusTarget<TargetRoute, TargetSlot>, definition: unknown,
 ): { ok: true; identity: string } | {
   ok: false;
   reason: 'invalid-subject-value' | 'invalid-subject-predicate';
@@ -336,7 +336,7 @@ function subjectSourceIdentity(
   const sources = [];
   for (const key of Object.keys(keys).sort()) {
     const param = mapping?.[key];
-    const source: FilingStatusParamSource | undefined =
+    const source: FormStatusParamSource | undefined =
       typeof param === 'string' && Object.prototype.hasOwnProperty.call(target.entry.params ?? {}, param)
         ? target.entry.params?.[param] : undefined;
     const dataType = record(keys[key])?.dataType;
@@ -371,7 +371,7 @@ function subjectSourceIdentity(
 }
 
 /** Every member must address a distinct authored subject through an entry parameter or predicate. */
-export function filingRepeatSubjectBound(entry: FilingStatusEntry, binding: unknown, definition: unknown): boolean {
+export function formStatusRepeatSubjectBound(entry: FormStatusEntry, binding: unknown, definition: unknown): boolean {
   const keys = record(record(record(definition)?.subject)?.keys);
   const mapping = record(record(binding)?.subjectKeys);
   const boundByParam = Object.keys(keys ?? {}).some(key => {
@@ -385,12 +385,12 @@ export function filingRepeatSubjectBound(entry: FilingStatusEntry, binding: unkn
   );
 }
 
-function filingRepeatFieldIssues(
-  group: FilingStatusGroup,
+function formStatusRepeatFieldIssues(
+  group: FormStatusGroup,
   groupPointer: string,
   schema: unknown,
-  targets: readonly { entry: FilingStatusEntry; binding: unknown; definition: unknown; pointer?: string }[],
-): FilingStatusIssue[] {
+  targets: readonly { entry: FormStatusEntry; binding: unknown; definition: unknown; pointer?: string }[],
+): FormStatusIssue[] {
   const repeat = group.repeat;
   if (!repeat) return [{ pointer: `${groupPointer}/repeat`, reason: 'invalid-repeat-source' }];
   const payload = record(schema);
@@ -402,7 +402,7 @@ function filingRepeatFieldIssues(
   if (item?.type !== 'object' || !fields || record(fields[repeat.labelField])?.type !== 'string') {
     return [{ pointer: `${groupPointer}/repeat`, reason: 'invalid-repeat-source' }];
   }
-  const issues: FilingStatusIssue[] = [];
+  const issues: FormStatusIssue[] = [];
   for (const { entry, binding, definition, pointer } of targets) {
     const formPointer = pointer ?? `${groupPointer}/repeat`;
     const keys = record(record(record(definition)?.subject)?.keys);
@@ -452,14 +452,14 @@ function filingRepeatFieldIssues(
 }
 
 /** Admit only an explicit array of records with the scalar fields the group consumes. */
-export function filingRepeatFieldsValid(
-  group: FilingStatusGroup, schema: unknown,
-  targets: readonly { entry: FilingStatusEntry; binding: unknown; definition: unknown }[],
+export function formStatusRepeatFieldsValid(
+  group: FormStatusGroup, schema: unknown,
+  targets: readonly { entry: FormStatusEntry; binding: unknown; definition: unknown }[],
 ): boolean {
-  return filingRepeatFieldIssues(group, '', schema, targets).length === 0;
+  return formStatusRepeatFieldIssues(group, '', schema, targets).length === 0;
 }
 
-export function validateFilingStatusTargets(context: AppGraphContext): AppGraphDiagnostic[] {
+export function validateFormStatusTargets(context: AppGraphContext): AppGraphDiagnostic[] {
   const diagnostics: AppGraphDiagnostic[] = [];
   const definitionsByUrl = new Map<string | undefined, unknown[]>();
   for (const handle of context.handles) {
@@ -474,19 +474,19 @@ export function validateFilingStatusTargets(context: AppGraphContext): AppGraphD
         || surface?.$formspecSurface !== '0.4' || !Array.isArray(surface.routes)) continue;
     const routes = surface.routes as TargetRoute[];
     routes.forEach((route, routeIndex) => route.slots.forEach((slot, slotIndex) => {
-      if (slot.slotType !== 'filing-status') return;
-      const resolved = resolveFilingStatusTargets(routes, route, slot.binding);
+      if (slot.slotType !== 'form-status') return;
+      const resolved = resolveFormStatusTargets(routes, route, slot.binding);
       const emitted = new Set<string>();
-      const report = ({ pointer, reason, key }: FilingStatusIssue) => {
+      const report = ({ pointer, reason, key }: FormStatusIssue) => {
         const dedupeKey = JSON.stringify([pointer, reason, key ?? null]);
         if (emitted.has(dedupeKey)) return;
         emitted.add(dedupeKey);
         diagnostics.push({
-          code: 'APP-GRAPH-FILING-STATUS-TARGET', severity: 'error', origin: 'app-graph-validator',
+          code: 'APP-GRAPH-FORM-STATUS-TARGET', severity: 'error', origin: 'app-graph-validator',
           phase: 'cross-artifact',
           message: key
-            ? `Filing-status slot '${slot.id}' cannot resolve subject key '${key}' (${reason}).`
-            : `Filing-status slot '${slot.id}' cannot resolve its forms (${reason}).`,
+            ? `Form-status slot '${slot.id}' cannot resolve subject key '${key}' (${reason}).`
+            : `Form-status slot '${slot.id}' cannot resolve its forms (${reason}).`,
           primarySource: diagnosticSourceForHandle(handle, `/routes/${routeIndex}/slots/${slotIndex}/binding${pointer}`),
           details: { reason },
         });
@@ -522,7 +522,7 @@ export function validateFilingStatusTargets(context: AppGraphContext): AppGraphD
           if (failure) {
             report({ pointer: pointer + '/repeat', reason: 'invalid-repeat-source' });
           } else {
-            for (const issue of filingRepeatFieldIssues(group, pointer, descriptor?.schema, forms)) {
+            for (const issue of formStatusRepeatFieldIssues(group, pointer, descriptor?.schema, forms)) {
               report(issue);
             }
           }
@@ -535,7 +535,7 @@ export function validateFilingStatusTargets(context: AppGraphContext): AppGraphD
             : [];
           if (group.repeat) {
             const candidates = loadedDefinitions.length ? loadedDefinitions : [undefined];
-            if (candidates.some(definition => !filingRepeatSubjectBound(target.entry, target.slot.binding, definition))) {
+            if (candidates.some(definition => !formStatusRepeatSubjectBound(target.entry, target.slot.binding, definition))) {
               report({ pointer: target.pointer, reason: 'ambiguous-repeat' });
             }
           }

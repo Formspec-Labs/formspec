@@ -5,11 +5,11 @@
   "status": "draft",
   "title": "Response instance undeclared subject key",
   "subject": {
-    "type": "urn:example:subject:agency-year",
+    "type": "urn:example:subject:org-period",
     "keys": {
-      "uei": {
+      "orgId": {
         "dataType": "string",
-        "authorizationParent": "agency"
+        "authorizationParent": "organization"
       }
     }
   },
@@ -22,7 +22,7 @@
         },
         "subject": [
           {
-            "key": "uei",
+            "key": "orgId",
             "op": "eq",
             "from": {
               "subject": "undeclared"
@@ -34,7 +34,7 @@
         "pin": "none"
       },
       "schema": {
-        "agencies[*].uei": "string"
+        "organizations[*].orgId": "string"
       }
     }
   }

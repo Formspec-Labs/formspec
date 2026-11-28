@@ -602,18 +602,18 @@ exactly:
 `draftOverwritePrompt`, `draftConfirmDiscard`, `draftConfirmOverwrite`,
 `draftCancel`, `draftLoaded`, `draftUnavailable`, `draftVersionMismatch`,
 `draftRestart`, `draftConfirmRestart`, `draftKeep`,
-`filingNotStarted`, `filingNotStartedWithSize`, `filingInProgress`, `filingReady`,
-`filingReadinessUnavailable`, `filingLoading`, `filingDenied`, `filingStale`,
-`filingUnavailable`, `filingAddressUnavailable`, `filingDefinitionUnavailable`,
-`filingSubjectUnavailable`, `filingChecksUnavailable`, `filingSectionCountsUnavailable`,
-`filingFillCount`, `filingSomeProgressUnavailable`, `filingFixCount`, `filingCheckCount`,
-`filingAnswered`, `filingStillToAnswer`, `filingHasFix`, `filingHasCheck`,
-`filingSummaryAnswered`, `filingSummaryToFix`, `filingSummaryToCheck`,
-`filingLegendCaption`, `filingSections`,
-`filingFiled`, `filingReturned`, `filingAccepted`,
-`filingClosedWithoutAcceptance`, `filingReopened`, `filingReceiptReference`,
-`filingFixture`, `filingPreviewSubmit`, and `filingReviewUnavailable`.
-The preview edition, appearance, draft, and filing-status keys require Locale 2.1.
+`formStatusNotStarted`, `formStatusNotStartedWithSize`, `formStatusInProgress`, `formStatusReady`,
+`formStatusReadinessUnavailable`, `formStatusLoading`, `formStatusDenied`, `formStatusStale`,
+`formStatusUnavailable`, `formStatusAddressUnavailable`, `formStatusDefinitionUnavailable`,
+`formStatusSubjectUnavailable`, `formStatusChecksUnavailable`, `formStatusSectionCountsUnavailable`,
+`formStatusFillCount`, `formStatusSomeProgressUnavailable`, `formStatusFixCount`, `formStatusCheckCount`,
+`formStatusAnswered`, `formStatusStillToAnswer`, `formStatusHasFix`, `formStatusHasCheck`,
+`formStatusSummaryAnswered`, `formStatusSummaryToFix`, `formStatusSummaryToCheck`,
+`formStatusLegendCaption`, `formStatusMap`, `formStatusSections`,
+`formStatusFiled`, `formStatusReturned`, `formStatusAccepted`,
+`formStatusClosedWithoutAcceptance`, `formStatusReopened`, `formStatusReceiptReference`,
+`formStatusFixture`, `formStatusPreviewSubmit`, and `formStatusReviewUnavailable`.
+The preview edition, appearance, draft, and form-status keys require Locale 2.1.
 
 The Locale schema and the runtime string inventory MUST contain the same set,
 one-for-one. No processor may add a free-form shell key or accept a compatibility
@@ -675,7 +675,7 @@ The slot renders the bound Definition as a live form.
   changed a mounted form, a later load or refresh MUST NOT reset that form.
   Navigating away may unmount it; revisiting repeats the qualified load and
   restores whatever the source currently selects.
-  A change of the resolved filing unit opens a fresh form; refresh safety applies within one unit.
+  A change of the resolved subject opens a fresh form; refresh safety applies within one subject.
 - **Response identity.** A route MAY carry more than one `definition-form` slot.
   Each live form instance is a separate Response instance owned by the Core
   Response contract ([surface-spec](surface-spec.md) §5.1). A
@@ -851,7 +851,7 @@ only runtime extension point inside a route.
   stored version or revision on refusal. An invalid subject or a failed save
   also makes review unavailable. The supplier reads only committed data and
   creates no draft. Data Sources `delivery: draft` supplies only `Response.data`.
-  Filed and federal review retain their existing qualified sources and authority.
+  Reads of filed Responses and reviewer routes retain their existing qualified sources and authority.
 
   **Lossless numeric, percentage, and monetary review formatting.** Across all
   read-only `ResponseReview` presentation phases — `draft-review`,
@@ -1025,14 +1025,14 @@ The slot renders another route of the **same** Surface inside the host route.
 
 ---
 
-### 3.6 `filing-status`
+### 3.6 `form-status`
 
 For `binding.placement: "band"`, the shell MUST render the declared tracker in a
 disclosure ahead of the matched route's slots, including on the declaring page.
 Embedded routes do not emit additional bands. The same tracker plan, authorized
 batch read and accessibility rules apply in either placement. The slot title
 names the disclosure when authored. Otherwise the shell uses its localized
-filing map label. The browser binding remembers its open
+form-status label. The browser binding remembers its open
 state for the viewer, app, Surface and declaring slot. Hosts that switch signed-in
 viewers within a browser profile supply a stable viewer preference key. With
 storage unavailable the disclosure remains operable.
@@ -1051,10 +1051,10 @@ slot and an identified section. Route parameters supply the existing
 predicates instead of fixed subject parameters, the shell resolves the active
 predicate inputs before calling `readSummaries`, authorizes discovery on the
 subject space before reading counts-only unit metadata, populates the target
-route's `subjectKeys` parameters from a confirmed `matched` filing unit's
+route's `subjectKeys` parameters from a confirmed `matched` subject's
 `subject.keys`, and verifies that the generated href rematches the target route
 and recovers that exact subject from the decoded route parameters; zero or
-multiple matching units disable the row link with `filingSubjectUnavailable`,
+multiple matching subjects disable the row link with `formStatusSubjectUnavailable`,
 while colliding resolved targets or repeated-group subjects make the tracker
 unavailable.
 
@@ -1097,14 +1097,14 @@ Submit-timing findings from a single off-keystroke paused Submit evaluation
 warning-answer changes, and once typing pauses) merged onto the live field and
 continuous-validation state, rather than running synchronous Submit evaluations
 per keystroke. Owed warning explanations and group acknowledgements (Core
-§5.3.1) MUST remain under amber `'to check'` (`filingCheckCount`,
-`filingSummaryToCheck`, and `filingHasCheck` in the closed Locale 2.1 string
+§5.3.1) MUST remain under amber `'to check'` (`formStatusCheckCount`,
+`formStatusSummaryToCheck`, and `formStatusHasCheck` in the closed Locale 2.1 string
 inventory §3.0) on both screens, distinguishing warnings from hard errors under
 `'to fix'` even though an unresolved follow-up sets `ready: false`
 (`In progress`) and blocks Submit until answered.
 
-The host's authorized filing status read selects the latest qualifying
-completed Response for the row's filing unit. A completed Response establishes
+The host's authorized form status read selects the latest qualifying
+completed Response for the row's subject. A completed Response establishes
 Filed (`filed`). A review decision for the exact Response ID and hash
 can establish Returned (`returned`), Accepted (`accepted`), Closed without
 acceptance (`closed-without-acceptance`), or Reopened (`reopened`). Show
@@ -1140,7 +1140,7 @@ The viewing route's Theme grant governs the tracker.
 
 ### 3.7 `draft-start`
 
-Activating the authored control asks the draft store to open a new filing unit.
+Activating the authored control asks the draft store to open a new subject.
 The shell supplies the parent keys and retains the same attempt identifier when
 retrying that activation. The store returns the complete subject and records
 the opening pins before the shell navigates to the target form. Opening the

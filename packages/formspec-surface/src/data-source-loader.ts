@@ -60,7 +60,7 @@ export interface DataSourceActiveContext {
   /** Present for a module-widget consumer. */
   widgetName?: string | undefined;
   params: Readonly<Record<string, string>>;
-  /** Typed keys of the consuming filing unit, when available. */
+  /** Typed keys of the consuming subject, when available. */
   subject?: DataSourceSubject | undefined;
   sessionGeneration?: string | number | undefined;
 }

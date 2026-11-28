@@ -837,49 +837,50 @@ MUST contain these exact suffixes one-for-one:
 | `draftRestart` | none |
 | `draftConfirmRestart` | none |
 | `draftKeep` | none |
-| `filingNotStarted` | none |
-| `filingNotStartedWithSize` | `count` |
-| `filingInProgress` | none |
-| `filingReady` | none |
-| `filingReadinessUnavailable` | none |
-| `filingLoading` | none |
-| `filingDenied` | none |
-| `filingStale` | none |
-| `filingUnavailable` | none |
-| `filingAddressUnavailable` | none |
-| `filingDefinitionUnavailable` | none |
-| `filingSubjectUnavailable` | none |
-| `filingChecksUnavailable` | none |
-| `filingSectionCountsUnavailable` | none |
-| `filingFillCount` | `filled`, `total` |
-| `filingSomeProgressUnavailable` | none |
-| `filingFixCount` | `count` |
-| `filingCheckCount` | `count` |
-| `filingAnswered` | none |
-| `filingStillToAnswer` | none |
-| `filingHasFix` | none |
-| `filingHasCheck` | none |
-| `filingSummaryAnswered` | `filled`, `total` |
-| `filingSummaryToFix` | none |
-| `filingSummaryToCheck` | none |
-| `filingLegendCaption` | none |
-| `filingSections` | `count` |
-| `filingFiled` | none |
-| `filingReturned` | none |
-| `filingAccepted` | none |
-| `filingClosedWithoutAcceptance` | none |
-| `filingReopened` | none |
-| `filingReceiptReference` | `reference` |
-| `filingFixture` | none |
-| `filingPreviewSubmit` | none |
-| `filingReviewUnavailable` | none |
+| `formStatusNotStarted` | none |
+| `formStatusNotStartedWithSize` | `count` |
+| `formStatusInProgress` | none |
+| `formStatusReady` | none |
+| `formStatusReadinessUnavailable` | none |
+| `formStatusLoading` | none |
+| `formStatusDenied` | none |
+| `formStatusStale` | none |
+| `formStatusUnavailable` | none |
+| `formStatusAddressUnavailable` | none |
+| `formStatusDefinitionUnavailable` | none |
+| `formStatusSubjectUnavailable` | none |
+| `formStatusChecksUnavailable` | none |
+| `formStatusSectionCountsUnavailable` | none |
+| `formStatusFillCount` | `filled`, `total` |
+| `formStatusSomeProgressUnavailable` | none |
+| `formStatusFixCount` | `count` |
+| `formStatusCheckCount` | `count` |
+| `formStatusAnswered` | none |
+| `formStatusStillToAnswer` | none |
+| `formStatusHasFix` | none |
+| `formStatusHasCheck` | none |
+| `formStatusSummaryAnswered` | `filled`, `total` |
+| `formStatusSummaryToFix` | none |
+| `formStatusSummaryToCheck` | none |
+| `formStatusLegendCaption` | none |
+| `formStatusMap` | none |
+| `formStatusSections` | `count` |
+| `formStatusFiled` | none |
+| `formStatusReturned` | none |
+| `formStatusAccepted` | none |
+| `formStatusClosedWithoutAcceptance` | none |
+| `formStatusReopened` | none |
+| `formStatusReceiptReference` | `reference` |
+| `formStatusFixture` | none |
+| `formStatusPreviewSubmit` | none |
+| `formStatusReviewUnavailable` | none |
 
 The shell-specific references form a read-only object supplied by the Surface
 processor. They carry strings only and expose no route table, navigation
 function, action executor, Response, or mutable host state. All ordinary FEL
 rules still apply.
 
-The preview edition, appearance, draft, and filing-status keys require Locale 2.1.
+The preview edition, appearance, draft, and form-status keys require Locale 2.1.
 
 These keys are valid only for `target.kind: "app"` and the
 `x-formspec-surface` module. A processor MUST reject an unknown shell suffix and

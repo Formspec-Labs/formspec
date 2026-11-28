@@ -41,37 +41,37 @@ from formspec.fel.types import FelNumber, FelString, is_null
 def test_evaluate_definition_preserves_response_subject_keys():
     definition = {
         "subject": {
-            "type": "urn:example:agency-year",
-            "keys": {"uei": {"dataType": "string"}, "serial": {"dataType": "integer"}},
+            "type": "urn:example:org-period",
+            "keys": {"orgId": {"dataType": "string"}, "serial": {"dataType": "integer"}},
         },
         "items": [
-            {"key": "uei", "type": "field", "dataType": "string"},
+            {"key": "orgId", "type": "field", "dataType": "string"},
             {"key": "year", "type": "field", "dataType": "integer"},
         ],
         "binds": [
-            {"path": "uei", "calculate": "subject('uei')"},
+            {"path": "orgId", "calculate": "subject('orgId')"},
             {"path": "year", "calculate": "subject('serial')"},
         ],
     }
-    subject = {"type": "urn:example:agency-year", "keys": {"uei": "00123", "serial": 9007199254740991}}
+    subject = {"type": "urn:example:org-period", "keys": {"orgId": "00123", "serial": 9007199254740991}}
     result = evaluate_definition(
         definition, {}, context={"subjectType": subject["type"], "subjectKeys": subject["keys"]}
     )
-    assert result.data == {"uei": "00123", "year": 9007199254740991}
+    assert result.data == {"orgId": "00123", "year": 9007199254740991}
     assert type(result.data["year"]) is int
     assert result.diagnostics == []
 
     refused = evaluate_definition(
-        definition, {}, context={"subjectType": subject["type"], "subjectKeys": {"uei": False, "serial": "2026"}}
+        definition, {}, context={"subjectType": subject["type"], "subjectKeys": {"orgId": False, "serial": "2026"}}
     )
     assert refused.data == {}
     assert [(v["path"], v["code"], v["message"]) for v in refused.results] == [
-        ("#subjectKeys.serial", "TYPE_MISMATCH", "Subject key must be an integer")
+        ("#subjectKeys.orgId", "TYPE_MISMATCH", "Subject key must be a string")
     ]
 
     for serial in [9007199254740993, -9007199254740992]:
         refused = evaluate_definition(
-            definition, {}, context={"subjectType": subject["type"], "subjectKeys": {"uei": "00123", "serial": serial}}
+            definition, {}, context={"subjectType": subject["type"], "subjectKeys": {"orgId": "00123", "serial": serial}}
         )
         assert refused.data == {}
         assert [(v["path"], v["code"], v["message"]) for v in refused.results] == [
@@ -407,9 +407,12 @@ def test_evaluate_filed_settles_relevance_chain():
 
     assert evaluate_definition(definition, data, mode="submit").data == {"y": 6, "z": 7}
     filed = evaluate_filed(definition, data)
-    assert filed.valid
+    assert filed.valid == case["expected"]["valid"]
     assert filed.data == case["expected"]["data"]
-    assert evaluate_definition(definition, filed.data, mode="submit") == filed
+    assert [r["code"] for r in filed.results] == [r["code"] for r in case["expected"]["results"]]
+    settled = evaluate_definition(definition, filed.data, mode="submit")
+    assert settled.valid
+    assert settled.data == filed.data
 
 
 def test_evaluate_filed_keeps_a_refusal_for_ambiguous_data():

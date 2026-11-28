@@ -35,12 +35,12 @@ This is the reusable module that both Short and Long forms import via `$ref`.
 ```json
 {
   "$formspec": "1.0",
-  "url": "https://acf.hhs.gov/formspec/csbg/tribal-base",
+  "url": "https://example.org/formspec/annual-report/tribal-base",
   "version": "3.0.0",
   "status": "active",
-  "title": "CSBG Tribal Annual Report — Base Module",
+  "title": "Regional Annual Report — Base Module",
   "name": "tribal-base",
-  "description": "Shared items for CSBG Tribal Annual Report short and long variants.",
+  "description": "Shared items for Regional Annual Report short and long variants.",
   "extensions": ["x-formspec-common"]
 }
 ```
@@ -67,7 +67,7 @@ This is the reusable module that both Short and Long forms import via `$ref`.
       "type": "field",
       "dataType": "string",
       "label": "Full name",
-      "labels": { "review": "CSBG Program Contact" }
+      "labels": { "review": "Program Contact" }
     },
     {
       "key": "contactTitle",
@@ -298,13 +298,13 @@ The `constraint: "$ >= 0"` bind applies to all 9 expenditure fields (use one bin
 ```json
 {
   "$formspec": "1.0",
-  "url": "https://acf.hhs.gov/formspec/csbg/tribal-short",
+  "url": "https://example.org/formspec/annual-report/tribal-short",
   "version": "3.0.0",
   "status": "active",
-  "title": "CSBG Tribal Annual Report — Short Form",
+  "title": "Regional Annual Report — Short Form",
   "name": "tribal-annual-report-short-3.0",
   "derivedFrom": {
-    "url": "https://acf.hhs.gov/formspec/csbg/tribal-base",
+    "url": "https://example.org/formspec/annual-report/tribal-base",
     "version": "3.0.0"
   },
   "extensions": ["x-formspec-common"]
@@ -323,7 +323,7 @@ The Short Form includes the base module via `$ref`:
       "type": "group",
       "label": "Annual Report",
       "$ref": {
-        "url": "https://acf.hhs.gov/formspec/csbg/tribal-base",
+        "url": "https://example.org/formspec/annual-report/tribal-base",
         "version": "3.0.0"
       }
     }
@@ -354,13 +354,13 @@ After assembly, this expands to the full item tree from the base module. No addi
 ```json
 {
   "$formspec": "1.0",
-  "url": "https://acf.hhs.gov/formspec/csbg/tribal-long",
+  "url": "https://example.org/formspec/annual-report/tribal-long",
   "version": "3.0.4",
   "status": "active",
-  "title": "CSBG Tribal Annual Report — Long Form",
+  "title": "Regional Annual Report — Long Form",
   "name": "tribal-annual-report-long-3.0",
   "derivedFrom": {
-    "url": "https://acf.hhs.gov/formspec/csbg/tribal-base",
+    "url": "https://example.org/formspec/annual-report/tribal-base",
     "version": "3.0.0"
   },
   "extensions": ["x-formspec-common"]
@@ -377,7 +377,7 @@ After assembly, this expands to the full item tree from the base module. No addi
       "type": "group",
       "label": "Annual Report",
       "$ref": {
-        "url": "https://acf.hhs.gov/formspec/csbg/tribal-base",
+        "url": "https://example.org/formspec/annual-report/tribal-base",
         "version": "3.0.0"
       }
     },
@@ -502,7 +502,7 @@ After assembly, this expands to the full item tree from the base module. No addi
   "$formspecComponent": "1.0",
   "version": "1.0.0",
   "targetDefinition": {
-    "url": "https://acf.hhs.gov/formspec/csbg/tribal-short",
+    "url": "https://example.org/formspec/annual-report/tribal-short",
     "compatibleVersions": ">=3.0.0 <4.0.0"
   },
   "tree": {
@@ -651,7 +651,7 @@ Same as Short Form + a 4th wizard step for Demographics. The demographics step a
   "$formspecTheme": "1.0",
   "version": "1.0.0",
   "targetDefinition": {
-    "url": "https://acf.hhs.gov/formspec/csbg/tribal-short",
+    "url": "https://example.org/formspec/annual-report/tribal-short",
     "compatibleVersions": ">=3.0.0 <4.0.0"
   },
   "tokens": {
@@ -701,14 +701,14 @@ Maps the grant report response to a government XML reporting format.
 {
   "$formspecMapping": "1.0",
   "version": "1.0.0",
-  "definitionRef": "https://acf.hhs.gov/formspec/csbg/tribal-short",
+  "definitionRef": "https://example.org/formspec/annual-report/tribal-short",
   "definitionVersion": ">=3.0.0 <4.0.0",
   "direction": "forward",
   "targetSchema": {
     "format": "xml",
-    "root_element": "CSBGAnnualReport",
+    "root_element": "AnnualReport",
     "namespaces": {
-      "": "http://acf.hhs.gov/schemas/csbg/2026"
+      "": "https://example.org/schemas/annual-report/2026"
     }
   },
   "rules": [
@@ -744,7 +744,7 @@ Maps the grant report response to a government XML reporting format.
 
 ```json
 {
-  "definitionUrl": "https://acf.hhs.gov/formspec/csbg/tribal-long",
+  "definitionUrl": "https://example.org/formspec/annual-report/tribal-long",
   "fromVersion": "3.0.0",
   "toVersion": "3.0.4",
   "semverImpact": "compatible",
@@ -799,14 +799,14 @@ Maps the grant report response to a government XML reporting format.
 
 ```json
 {
-  "definitionUrl": "https://acf.hhs.gov/formspec/csbg/tribal-short",
+  "definitionUrl": "https://example.org/formspec/annual-report/tribal-short",
   "definitionVersion": "3.0.0",
   "status": "in-progress",
   "authored": "2026-03-04T12:00:00Z",
   "data": {
     "orgName": "Mashpee Wampanoag Tribe",
     "contactName": "Jane Doe",
-    "contactTitle": "CSBG Program Director",
+    "contactTitle": "Program Director",
     "phone": "(508) 477-0208",
     "email": "jdoe@mashpeewampanoag.gov",
     "applicableTopics": ["employment", "housing", "health"],

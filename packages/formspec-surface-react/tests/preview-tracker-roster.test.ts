@@ -1,7 +1,7 @@
 /** @filedesc A keyed roster draft and its filing feed the same preview tracker through the real selector. */
 import { expect, it, vi } from 'vitest';
 import Ajv from 'ajv';
-import type { FilingStatusBinding } from '@formspec-org/types';
+import type { FormStatusBinding } from '@formspec-org/types';
 import { createDraftSession } from '../src/draft-session.js';
 import { readSessionDraft } from '../src/draft-data-source.js';
 import { composeSurfaceApp, createThemeAuthority, createWidgetRegistry, dereferenceBundleExport,
@@ -41,7 +41,7 @@ const bundle = dereferenceBundleExport({
     }] },
     'urn:test:surface': { $formspecSurface: '0.4', id: 'app', entry: 'home', routes: [
       { id: 'home', path: '/overview/{region}', params: [parameter('region')], slots: [
-        { id: 'tracker', slotType: 'filing-status', binding: { groups: [{ id: 'reports', label: 'Reports',
+        { id: 'tracker', slotType: 'form-status', binding: { groups: [{ id: 'reports', label: 'Reports',
           repeat: { catalogRef: catalog, sourceRef: 'response:units', rowsField: 'units', labelField: 'name', waitingLabel: 'Waiting for' },
           forms: [{ routeRef: 'report', slotRef: 'form', params: { unit: { rowField: 'id' } } }],
         }] } },
@@ -78,7 +78,7 @@ it('loads the authorized roster from its keyed draft and then its filed Response
   expect((await fileMember()).status).toBe('filed');
 
   const document = structuredClone(bundle.surfaces[0]!);
-  const binding = document.routes[0]!.slots[0]!.binding as FilingStatusBinding;
+  const binding = document.routes[0]!.slots[0]!.binding as FormStatusBinding;
   const group = binding.groups[0]!;
   group.forms.push({ ...group.forms[0]!, routeRef: 'alternate' });
   document.routes.push({ ...document.routes[1]!, id: 'alternate', path: '/alternate/{unit}' });
@@ -89,7 +89,7 @@ it('loads the authorized roster from its keyed draft and then its filed Response
       dataSources: bundle.dataSources, experiences: [], widgets: createWidgetRegistry(), registryEntries: [],
       themeAuthority: createThemeAuthority() });
     const tracker = plan.slots[0];
-    if (tracker?.slotType !== 'filing-status' || tracker.tracker.status !== 'roster') throw new Error('Expected a roster');
+    if (tracker?.slotType !== 'form-status' || tracker.tracker.status !== 'roster') throw new Error('Expected a roster');
     const result = await tracker.tracker.load({ loader: responseSourceLoader(store.responses),
       authorize: () => ({ status: 'authorized' }), validatePayload: ({ value }) => validate(value) ? { valid: true } : { valid: false } });
     if (result.status !== 'ready') throw new Error(JSON.stringify(result));
@@ -126,7 +126,7 @@ it('loads the authorized roster from its keyed draft and then its filed Response
 it('keeps the fixed band row on Help when the direct draft producer needs a missing route parameter', async () => {
   const document = structuredClone(bundle.surfaces[0]!);
   const home = document.routes[0]!;
-  const binding = home.slots[0]!.binding as FilingStatusBinding;
+  const binding = home.slots[0]!.binding as FormStatusBinding;
   binding.placement = 'band';
   binding.groups.unshift({ id: 'fixed', label: 'Common', forms: [
     { routeRef: 'report', slotRef: 'form', params: { unit: { value: 'common' } } },

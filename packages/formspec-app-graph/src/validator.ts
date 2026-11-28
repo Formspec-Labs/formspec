@@ -44,7 +44,7 @@ import { validateLocaleAssociations } from './locale-associations.js';
 import { validateNeedsCoverage } from './needs-coverage.js';
 import { runRenderedNeedTrace } from './rendered-need-trace.js';
 import { validateDraftStartTargets } from './draft-start-target.js';
-import { validateFilingStatusTargets } from './filing-status-targets.js';
+import { validateFormStatusTargets } from './form-status-targets.js';
 import { validateScreenerSurfaceTargets } from './screener-surface-targets.js';
 import { validateSurfaceDefinitionSlots } from './surface-definition-slots.js';
 import { validateSurfaceExperienceUnits } from './surface-experience-units.js';
@@ -346,7 +346,7 @@ function runCrossArtifactValidators(
     validateLocaleAssociations,
     validateNeedsCoverage,
     validateScreenerSurfaceTargets,
-    validateFilingStatusTargets,
+    validateFormStatusTargets,
     validateDraftStartTargets,
     validateSurfaceDefinitionSlots,
     validateSurfaceExperienceUnits,

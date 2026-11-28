@@ -1,22 +1,22 @@
 /** @filedesc Compiler-checked assertions that matched range observations exclude denied draft/filing states. */
-import type { FilingStatusObservation } from '../../dist/index.js';
+import type { FormStatusObservation } from '../../dist/index.js';
 
 const subject = { type: 'urn:period-plan', keys: { start_year: 2024, end_year: 2026 } };
 
-const okMatched: FilingStatusObservation = {
+const okMatched: FormStatusObservation = {
   subjectMatch: 'matched',
   subject,
   draft: { status: 'absent' },
   filing: { status: 'none' },
 };
 
-const okExactDenied: FilingStatusObservation = {
+const okExactDenied: FormStatusObservation = {
   draft: { status: 'denied' },
   filing: { status: 'denied' },
 };
 
 // @ts-expect-error matched range observations cannot carry a denied draft status
-const badDeniedDraft: FilingStatusObservation = {
+const badDeniedDraft: FormStatusObservation = {
   subjectMatch: 'matched',
   subject,
   draft: { status: 'denied' },
@@ -24,7 +24,7 @@ const badDeniedDraft: FilingStatusObservation = {
 };
 
 // @ts-expect-error matched range observations cannot carry a denied filing status
-const badDeniedFiling: FilingStatusObservation = {
+const badDeniedFiling: FormStatusObservation = {
   subjectMatch: 'matched',
   subject,
   draft: { status: 'absent' },

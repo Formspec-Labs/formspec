@@ -1,4 +1,4 @@
-/** @filedesc Check Core filing-unit identity vectors against integrity-stack canonical JSON. */
+/** @filedesc Check Core subject identity vectors against integrity-stack canonical JSON. */
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { canonicalJsonBytes } from '@formspec-org/integrity-canonical';
@@ -19,7 +19,7 @@ test.each(fixture.vectors)('$name uses the pinned domain-separated subject id', 
 });
 
 test('Response schema example and retained-read fixture use the matching subject id', () => {
-  const expected = fixture.vectors.find((vector) => vector.name === 'type separates identity');
+  const expected = fixture.vectors.find((vector) => vector.name === 'org-period');
   const response = JSON.parse(readFileSync(new URL(
     '../../../tests/fixtures/response-selection/valid-resolved-instances.response.json', import.meta.url,
   ), 'utf8'));

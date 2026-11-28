@@ -6,7 +6,7 @@
 //! - **E606 / `SURFACE-ROUTE-UNREACHABLE`**: every declared route is reachable
 //!   from the surface's `entry` route by walking transitions[].to and
 //!   embed-route slot bindings (binding.routeRef), and native 0.3 Screener
-//!   allowedTargets and native 0.4 filing-status destinations. Unreachable routes are
+//!   allowedTargets and native 0.4 form-status destinations. Unreachable routes are
 //!   dead code in the surface — they can never be navigated to.
 //! - **E607 / `SURFACE-SLOT-BINDING-UNRESOLVED`**: every slot's binding
 //!   refers to an in-document target where applicable. For `embed-route`
@@ -57,7 +57,7 @@ pub(crate) fn lint_surface(doc: &Value) -> Vec<LintDiagnostic> {
         check_screener_route_params(routes, entry, &mut diagnostics);
     }
     if dialect == Some("0.4") {
-        check_filing_status_route_params(routes, &mut diagnostics);
+        check_form_status_route_params(routes, &mut diagnostics);
     }
     if let Some(entry_id) = entry {
         check_route_reachability(routes, entry_id, &route_ids, dialect, &mut diagnostics);
@@ -416,8 +416,8 @@ fn is_route_param_name(name: &str) -> bool {
     chars.all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-')
 }
 
-fn is_filing_band(slot: &Value) -> bool {
-    slot["slotType"] == "filing-status" && slot["binding"]["placement"] == "band"
+fn is_form_status_band(slot: &Value) -> bool {
+    slot["slotType"] == "form-status" && slot["binding"]["placement"] == "band"
 }
 
 fn resolve_unique_definition_slot<'a>(
@@ -445,7 +445,7 @@ fn resolve_unique_definition_slot<'a>(
     Some((target_route, target_slot))
 }
 
-fn filing_entry_param_sources(entry: &Value) -> impl Iterator<Item = &Value> {
+fn form_status_entry_param_sources(entry: &Value) -> impl Iterator<Item = &Value> {
     let param_sources = entry
         .get("params")
         .and_then(Value::as_object)
@@ -460,7 +460,7 @@ fn filing_entry_param_sources(entry: &Value) -> impl Iterator<Item = &Value> {
     param_sources.chain(subject_sources)
 }
 
-fn filing_entry_target_issue(
+fn form_status_entry_target_issue(
     target_route: &Value,
     target_slot: &Value,
     entry: &Value,
@@ -482,7 +482,7 @@ fn filing_entry_target_issue(
             return Some((
                 String::new(),
                 format!(
-                    "Filing-status entry targeting route {target_id:?} supplies undeclared target route params: {} (SURFACE-ROUTE-PARAM-MISSING).",
+                    "Form-status entry targeting route {target_id:?} supplies undeclared target route params: {} (SURFACE-ROUTE-PARAM-MISSING).",
                     undeclared.join(", ")
                 ),
             ));
@@ -497,7 +497,7 @@ fn filing_entry_target_issue(
         return Some((
             String::new(),
             format!(
-                "Filing-status entry targeting route {target_id:?} is missing required route params: {} (SURFACE-ROUTE-PARAM-MISSING).",
+                "Form-status entry targeting route {target_id:?} is missing required route params: {} (SURFACE-ROUTE-PARAM-MISSING).",
                 missing.join(", ")
             ),
         ));
@@ -512,7 +512,7 @@ fn filing_entry_target_issue(
         return Some((
             ".subject".to_string(),
             format!(
-                "Filing-status entry targeting route {target_id:?} declares subject predicates, but target slot has no non-empty subjectKeys binding (SURFACE-ROUTE-PARAM-MISSING)."
+                "Form-status entry targeting route {target_id:?} declares subject predicates, but target slot has no non-empty subjectKeys binding (SURFACE-ROUTE-PARAM-MISSING)."
             ),
         ));
     };
@@ -525,7 +525,7 @@ fn filing_entry_target_issue(
             return Some((
                 format!(".subject[{pred_idx}]"),
                 format!(
-                    "Filing-status entry targeting route {target_id:?} references subject key {key:?} not bound in target slot subjectKeys (SURFACE-ROUTE-PARAM-MISSING)."
+                    "Form-status entry targeting route {target_id:?} references subject key {key:?} not bound in target slot subjectKeys (SURFACE-ROUTE-PARAM-MISSING)."
                 ),
             ));
         };
@@ -533,7 +533,7 @@ fn filing_entry_target_issue(
             return Some((
                 format!(".subject[{pred_idx}]"),
                 format!(
-                    "Filing-status entry targeting route {target_id:?} cannot bind subject key {key:?} in both params[{mapped_param:?}] and subject[] (SURFACE-ROUTE-PARAM-MISSING)."
+                    "Form-status entry targeting route {target_id:?} cannot bind subject key {key:?} in both params[{mapped_param:?}] and subject[] (SURFACE-ROUTE-PARAM-MISSING)."
                 ),
             ));
         }
@@ -545,7 +545,7 @@ fn filing_entry_target_issue(
             return Some((
                 ".subject".to_string(),
                 format!(
-                    "Filing-status entry targeting route {target_id:?} relies on invalid subjectKeys[{key:?}] binding (SURFACE-ROUTE-PARAM-MISSING)."
+                    "Form-status entry targeting route {target_id:?} relies on invalid subjectKeys[{key:?}] binding (SURFACE-ROUTE-PARAM-MISSING)."
                 ),
             ));
         };
@@ -556,7 +556,7 @@ fn filing_entry_target_issue(
             return Some((
                 ".subject".to_string(),
                 format!(
-                    "Filing-status entry targeting route {target_id:?} requires subjectKeys[{key:?}] to map to a distinct parameter declared on {target_id:?} (SURFACE-ROUTE-PARAM-MISSING)."
+                    "Form-status entry targeting route {target_id:?} requires subjectKeys[{key:?}] to map to a distinct parameter declared on {target_id:?} (SURFACE-ROUTE-PARAM-MISSING)."
                 ),
             ));
         }
@@ -572,7 +572,7 @@ fn filing_entry_target_issue(
         return Some((
             String::new(),
             format!(
-                "Filing-status entry targeting route {target_id:?} is missing required non-subject route params: {} (SURFACE-ROUTE-PARAM-MISSING).",
+                "Form-status entry targeting route {target_id:?} is missing required non-subject route params: {} (SURFACE-ROUTE-PARAM-MISSING).",
                 missing.join(", ")
             ),
         ));
@@ -580,14 +580,14 @@ fn filing_entry_target_issue(
     None
 }
 
-fn check_filing_status_route_params(routes: &[Value], diagnostics: &mut Vec<LintDiagnostic>) {
+fn check_form_status_route_params(routes: &[Value], diagnostics: &mut Vec<LintDiagnostic>) {
     for (route_idx, route) in routes.iter().enumerate() {
         let host_params = declared_route_params(route);
         let Some(slots) = route.get("slots").and_then(Value::as_array) else {
             continue;
         };
         for (slot_idx, slot) in slots.iter().enumerate() {
-            if slot.get("slotType").and_then(Value::as_str) != Some("filing-status") {
+            if slot.get("slotType").and_then(Value::as_str) != Some("form-status") {
                 continue;
             }
             let Some(groups) = slot
@@ -617,7 +617,7 @@ fn check_filing_status_route_params(routes: &[Value], diagnostics: &mut Vec<Lint
                                             PASS,
                                             &param_path,
                                             format!(
-                                                "Filing-status entry references undeclared host routeParam {param:?} (SURFACE-ROUTE-PARAM-MISSING)."
+                                                "Form-status entry references undeclared host routeParam {param:?} (SURFACE-ROUTE-PARAM-MISSING)."
                                             ),
                                         ),
                                     ));
@@ -629,7 +629,7 @@ fn check_filing_status_route_params(routes: &[Value], diagnostics: &mut Vec<Lint
                                         crate::LintCode::E610,
                                         PASS,
                                         &param_path,
-                                        "Filing-status entry uses rowField outside a repeated group (SURFACE-ROUTE-PARAM-MISSING).",
+                                        "Form-status entry uses rowField outside a repeated group (SURFACE-ROUTE-PARAM-MISSING).",
                                     ),
                                 ));
                             }
@@ -653,7 +653,7 @@ fn check_filing_status_route_params(routes: &[Value], diagnostics: &mut Vec<Lint
                                             PASS,
                                             &pred_path,
                                             format!(
-                                                "Filing-status predicate on key {pred_key:?} references undeclared host routeParam {param:?} (SURFACE-ROUTE-PARAM-MISSING)."
+                                                "Form-status predicate on key {pred_key:?} references undeclared host routeParam {param:?} (SURFACE-ROUTE-PARAM-MISSING)."
                                             ),
                                         ),
                                     ));
@@ -666,7 +666,7 @@ fn check_filing_status_route_params(routes: &[Value], diagnostics: &mut Vec<Lint
                                         PASS,
                                         &pred_path,
                                         format!(
-                                            "Filing-status predicate on key {pred_key:?} uses rowField outside a repeated group (SURFACE-ROUTE-PARAM-MISSING)."
+                                            "Form-status predicate on key {pred_key:?} uses rowField outside a repeated group (SURFACE-ROUTE-PARAM-MISSING)."
                                         ),
                                     ),
                                 ));
@@ -685,7 +685,7 @@ fn check_filing_status_route_params(routes: &[Value], diagnostics: &mut Vec<Lint
                         continue;
                     };
                     if let Some((suffix, issue)) =
-                        filing_entry_target_issue(target_route, target_slot, entry)
+                        form_status_entry_target_issue(target_route, target_slot, entry)
                     {
                         diagnostics.push(crate::metadata::with_metadata(LintDiagnostic::error(
                             crate::LintCode::E610,
@@ -700,7 +700,7 @@ fn check_filing_status_route_params(routes: &[Value], diagnostics: &mut Vec<Lint
     }
 }
 
-fn filing_targets<'a, 'b>(
+fn form_status_targets<'a, 'b>(
     routes: &'a [Value],
     slot: &'a Value,
     declaring_params: &'b [&'b str],
@@ -719,7 +719,7 @@ fn filing_targets<'a, 'b>(
                 .map(move |entry| (has_repeat, entry))
         })
         .filter(move |(has_repeat, entry)| {
-            filing_entry_param_sources(entry).all(|source| {
+            form_status_entry_param_sources(entry).all(|source| {
                 source
                     .get("routeParam")
                     .and_then(Value::as_str)
@@ -735,7 +735,7 @@ fn filing_targets<'a, 'b>(
                     resolve_unique_definition_slot(routes, route_ref, slot_ref)
                 })
                 .is_some_and(|(target_route, target_slot)| {
-                    filing_entry_target_issue(target_route, target_slot, entry).is_none()
+                    form_status_entry_target_issue(target_route, target_slot, entry).is_none()
                 })
         })
         .filter_map(|(_, entry)| entry["routeRef"].as_str())
@@ -777,7 +777,7 @@ fn check_route_reachability(
                     .as_array()
                     .into_iter()
                     .flatten()
-                    .filter(|slot| is_filing_band(slot))
+                    .filter(|slot| is_form_status_band(slot))
                     .map(move |slot| (declaring_params.clone(), slot))
             })
             .collect()
@@ -810,7 +810,7 @@ fn check_route_reachability(
             .and_then(Value::as_array)
             .into_iter()
             .flatten()
-            .filter(|slot| !is_filing_band(slot))
+            .filter(|slot| !is_form_status_band(slot))
         {
             let targets = match slot.get("slotType").and_then(Value::as_str) {
                 Some("embed-route") => slot["binding"]["routeRef"].as_str().into_iter().collect(),
@@ -820,8 +820,8 @@ fn check_route_reachability(
                 Some("draft-start") if dialect == Some("0.4") => {
                     slot["binding"]["routeRef"].as_str().into_iter().collect()
                 }
-                Some("filing-status") if dialect == Some("0.4") => {
-                    filing_targets(routes, slot, &host_params, &host_params).collect()
+                Some("form-status") if dialect == Some("0.4") => {
+                    form_status_targets(routes, slot, &host_params, &host_params).collect()
                 }
                 _ => Vec::new(),
             };
@@ -832,7 +832,7 @@ fn check_route_reachability(
             }
         }
         for (declaring_params, band_slot) in &bands {
-            for target in filing_targets(routes, band_slot, declaring_params, &host_params) {
+            for target in form_status_targets(routes, band_slot, declaring_params, &host_params) {
                 if route_ids.contains(target) && visited.insert(target.to_string()) {
                     queue.push_back(target.to_string());
                 }
@@ -851,7 +851,7 @@ fn check_route_reachability(
                 PASS,
                 &format!("$.routes[{route_idx}]"),
                 &format!(
-                    "Route {route_id:?} is not reachable from the surface's entry route {entry_id:?} via transitions[].to, embed-route bindings, native Screener allowedTargets, or filing-status links (SURFACE-ROUTE-UNREACHABLE)."
+                    "Route {route_id:?} is not reachable from the surface's entry route {entry_id:?} via transitions[].to, embed-route bindings, native Screener allowedTargets, or form-status links (SURFACE-ROUTE-UNREACHABLE)."
                 ),
             )));
         }
@@ -886,13 +886,13 @@ mod tests {
     }
 
     #[test]
-    fn filing_status_reaches_the_form_only_in_surface_0_4() {
+    fn form_status_reaches_the_form_only_in_surface_0_4() {
         let mut surface = serde_json::json!({
             "$formspecSurface": "0.4", "id": "app", "entry": "home",
             "routes": [
                 { "id": "home", "path": "/", "slots": [
-                    { "id": "tracker", "slotType": "filing-status", "binding": {
-                        "groups": [{ "id": "annual", "label": "Annual filings", "forms": [
+                    { "id": "tracker", "slotType": "form-status", "binding": {
+                        "groups": [{ "id": "annual", "label": "Annual forms", "forms": [
                             { "routeRef": "apply", "slotRef": "form" }
                         ]}]
                     }}
@@ -921,7 +921,7 @@ mod tests {
                 {"id": "home", "path": "/", "slots": []},
                 {"id": "overview", "path": "/overview", "slots": [
                     {"id": "form", "slotType": "definition-form", "binding": {"definitionRef": "urn:form"}},
-                    {"id": "tracker", "slotType": "filing-status", "binding": {
+                    {"id": "tracker", "slotType": "form-status", "binding": {
                         "placement": "band",
                         "groups": [{"id": "annual", "label": "Forms", "forms": [{"routeRef": "overview", "slotRef": "form"}]}]
                     }}
@@ -948,7 +948,7 @@ mod tests {
             "routes": [
                 {"id": "home", "path": "/", "slots": []},
                 {"id": "overview", "path": "/overview/{member}", "params": [{"name": "member", "type": "string"}],
-                 "slots": [{"id": "tracker", "slotType": "filing-status", "binding": {
+                 "slots": [{"id": "tracker", "slotType": "form-status", "binding": {
                     "placement": "band", "groups": [{"id": "annual", "label": "Forms", "forms": [
                         {"routeRef": "form", "slotRef": "editor", "params": {"member": {"routeParam": "member"}}}
                     ]}]
@@ -970,32 +970,32 @@ mod tests {
     }
 
     #[test]
-    fn filing_status_subject_predicates_reach_multi_key_routes_and_check_route_params() {
+    fn form_status_subject_predicates_reach_multi_key_routes_and_check_route_params() {
         let mut doc = serde_json::json!({
             "$formspecSurface": "0.4", "id": "app", "entry": "overview",
             "routes": [
                 {
-                    "id": "overview", "path": "/years/{ffy}",
-                    "params": [{"name": "ffy", "type": "string"}],
-                    "slots": [{"id": "tracker", "slotType": "filing-status", "binding": {
+                    "id": "overview", "path": "/periods/{period}",
+                    "params": [{"name": "period", "type": "string"}],
+                    "slots": [{"id": "tracker", "slotType": "form-status", "binding": {
                         "groups": [{"id": "period", "label": "Period plan", "forms": [{
                             "routeRef": "plan", "slotRef": "form",
                             "subject": [
-                                {"key": "first_ffy", "op": "le", "from": {"routeParam": "ffy"}},
-                                {"key": "last_ffy", "op": "ge", "from": {"routeParam": "ffy"}}
+                                {"key": "first_period", "op": "le", "from": {"routeParam": "period"}},
+                                {"key": "last_period", "op": "ge", "from": {"routeParam": "period"}}
                             ]
                         }]}]
                     }}]
                 },
                 {
-                    "id": "plan", "path": "/plans/{first_ffy}/{last_ffy}",
+                    "id": "plan", "path": "/plans/{first_period}/{last_period}",
                     "params": [
-                        {"name": "first_ffy", "type": "string"},
-                        {"name": "last_ffy", "type": "string"}
+                        {"name": "first_period", "type": "string"},
+                        {"name": "last_period", "type": "string"}
                     ],
                     "slots": [{"id": "form", "slotType": "definition-form", "binding": {
                         "definitionRef": "urn:plan",
-                        "subjectKeys": {"first_ffy": "first_ffy", "last_ffy": "last_ffy"}
+                        "subjectKeys": {"first_period": "first_period", "last_period": "last_period"}
                     }}]
                 }
             ]
@@ -1011,8 +1011,8 @@ mod tests {
 
         // Restore valid host param, then add an extra non-subject target route param unsupplied by params.
         doc["routes"][0]["slots"][0]["binding"]["groups"][0]["forms"][0]["subject"][0]["from"] =
-            serde_json::json!({"routeParam": "ffy"});
-        doc["routes"][1]["path"] = serde_json::json!("/plans/{region}/{first_ffy}/{last_ffy}");
+            serde_json::json!({"routeParam": "period"});
+        doc["routes"][1]["path"] = serde_json::json!("/plans/{region}/{first_period}/{last_period}");
         doc["routes"][1]["params"].as_array_mut().unwrap().push(
             serde_json::json!({"name": "region", "type": "string"}),
         );
@@ -1020,7 +1020,7 @@ mod tests {
         assert!(missing_target.iter().any(|d| d.code == crate::LintCode::E610));
 
         // Restore valid target route, then verify safe-integer offset bounds in schema validation.
-        doc["routes"][1]["path"] = serde_json::json!("/plans/{first_ffy}/{last_ffy}");
+        doc["routes"][1]["path"] = serde_json::json!("/plans/{first_period}/{last_period}");
         doc["routes"][1]["params"].as_array_mut().unwrap().pop();
         for safe_offset in [-9_007_199_254_740_991_i64, 9_007_199_254_740_991_i64] {
             doc["routes"][0]["slots"][0]["binding"]["groups"][0]["forms"][0]["subject"][0]["offset"] =
@@ -1038,28 +1038,28 @@ mod tests {
             "$formspecSurface": "0.4", "id": "app", "entry": "overview",
             "routes": [
                 {
-                    "id": "overview", "path": "/years/{ffy}",
-                    "params": [{"name": "ffy", "type": "string"}],
+                    "id": "overview", "path": "/periods/{period}",
+                    "params": [{"name": "period", "type": "string"}],
                     "transitions": [{"trigger": "next", "to": "settings"}],
                     "slots": [{"id": "homeform", "slotType": "definition-form", "binding": {"definitionRef": "urn:home"}}]
                 },
                 {
-                    "id": "plan", "path": "/plans/{first_ffy}/{last_ffy}",
-                    "params": [{"name": "first_ffy", "type": "string"}, {"name": "last_ffy", "type": "string"}],
+                    "id": "plan", "path": "/plans/{first_period}/{last_period}",
+                    "params": [{"name": "first_period", "type": "string"}, {"name": "last_period", "type": "string"}],
                     "slots": [{"id": "form", "slotType": "definition-form", "binding": {
                         "definitionRef": "urn:plan",
-                        "subjectKeys": {"first_ffy": "first_ffy", "last_ffy": "last_ffy"}
+                        "subjectKeys": {"first_period": "first_period", "last_period": "last_period"}
                     }}]
                 },
                 {
                     "id": "settings", "path": "/settings",
-                    "slots": [{"id": "tracker", "slotType": "filing-status", "binding": {
+                    "slots": [{"id": "tracker", "slotType": "form-status", "binding": {
                         "placement": "band",
                         "groups": [{"id": "period", "label": "Period plan", "forms": [{
                             "routeRef": "plan", "slotRef": "form",
                             "subject": [
-                                {"key": "first_ffy", "op": "le", "from": {"routeParam": "ffy"}},
-                                {"key": "last_ffy", "op": "ge", "from": {"routeParam": "ffy"}}
+                                {"key": "first_period", "op": "le", "from": {"routeParam": "period"}},
+                                {"key": "last_period", "op": "ge", "from": {"routeParam": "period"}}
                             ]
                         }]}]
                     }}]

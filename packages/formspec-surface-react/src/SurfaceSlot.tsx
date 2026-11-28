@@ -99,7 +99,7 @@ import { loadDraftReviewInputs, type DraftReviewDelivery, type DraftReviewReadyD
 import type { DraftActionInvoker, DraftWriter } from './draft-writer.js';
 import { readSubmitEvaluation, summarizeDraftProgress } from './draft-progress.js';
 import { Heading, nextLevel } from './heading.js';
-import { FilingStatus, type FilingStatusViewContext } from './FilingStatus.js';
+import { FormStatus, type FormStatusViewContext } from './FormStatus.js';
 import { FormattedReceiptRef, filingStatusLabel } from './receipt-ref.js';
 import type {
   SurfaceWidget,
@@ -179,7 +179,7 @@ export interface SurfaceDefinitionFormRenderInput {
   route: SurfaceWidgetRouteContext;
   /** Resolved shell strings for the active locale. */
   strings: SurfaceStrings;
-  /** The filing-unit type and typed keys, with the ID derived by Core in runtime WASM. */
+  /** The subject type and typed keys, with the ID derived by Core in runtime WASM. */
   responseSubject?: (NonNullable<FormEngineOptions['responseSubject']> & { id: string }) | undefined;
   responseActionsDocument: ReactResponseActionsDocument | undefined;
   referencesDocuments: readonly ReferencesDocument[];
@@ -321,7 +321,7 @@ export function createSurfaceSemanticControlScopeResolver(
 }
 
 export interface SurfaceSlotProps {
-  filingStatus?: FilingStatusViewContext | undefined;
+  formStatus?: FormStatusViewContext | undefined;
   formSession?: SurfaceFormSession | undefined;
   activeSection?: string | undefined;
   focusField?: string | undefined;
@@ -542,7 +542,7 @@ export function SurfaceSlotFrame(props: SurfaceSlotProps) {
 
 export function SurfaceSlot({
   plan,
-  filingStatus,
+  formStatus,
   grant,
   route,
   strings,
@@ -604,14 +604,14 @@ export function SurfaceSlot({
     case 'draft-start': {
       const start = plan.start;
       const session = formSession?.drafts;
-      const navigate = filingStatus?.navigate;
+      const navigate = formStatus?.navigate;
       if (!start || !session?.port.start || !navigate) return <UnavailableSlot>{strings('draftUnavailable')}</UnavailableSlot>;
       const identity = JSON.stringify([runtimeGeneration, route.routeId, plan.slotId, start.destination.routeId,
         start.slotId, start.definitionUrl, start.definitionVersion, start.params, start.subject, session.scope]);
       return <DraftStart key={identity} plan={start} session={session} navigate={navigate} strings={strings} />;
     }
-    case 'filing-status':
-      return <FilingStatus plan={plan.tracker} context={filingStatus}
+    case 'form-status':
+      return <FormStatus plan={plan.tracker} context={formStatus}
         level={plan.title === undefined ? plan.headingBaseLevel : nextLevel(plan.headingBaseLevel)} text={strings} />;
     case 'screener': {
       if (plan.status !== 'ready' || !plan.screener) return <UnavailableSlot>{plan.reason ?? 'screener-unavailable'}</UnavailableSlot>;
@@ -625,7 +625,7 @@ export function SurfaceSlot({
       if (plan.status === 'unresolved' || plan.definition === undefined) {
         return <UnavailableSlot>{strings('slotUnavailableDefinitionForm')}</UnavailableSlot>;
       }
-      // Form state belongs to the resolved filing unit, even on the same route and slot.
+      // Form state belongs to the resolved subject, even on the same route and slot.
       const subjectKey = plan.subject && canonicalFiniteJson({
         type: plan.subject.type,
         keys: plan.subject.keys,
@@ -672,12 +672,12 @@ export function SurfaceSlot({
           draftStrings: strings,
           reportSave: formSession.reportSave,
           overviewDestination: overviewDestination ?? formSession.entryPath,
-          navigate: formSession.navigate ?? filingStatus?.navigate,
+          navigate: formSession.navigate ?? formStatus?.navigate,
         }),
         ...(!formSession && overviewDestination !== undefined && {
           overviewDestination,
         }),
-        ...(filingStatus?.formatHref && { formatHref: filingStatus.formatHref }),
+        ...(formStatus?.formatHref && { formatHref: formStatus.formatHref }),
         ...(reviewDestination && { reviewDestination }),
         ...(plan.draftReviewHref !== undefined && { draftReviewDestination: plan.draftReviewHref }),
         ...(onSlotDraftAvailabilityChange && {
@@ -810,7 +810,7 @@ export function SurfaceSlot({
           strings={strings}
           dataSourceLoader={dataSourceLoader}
           draftSession={plan.draftReview ? formSession?.drafts : undefined}
-          filingStatus={plan.draftReview ? filingStatus : undefined}
+          formStatus={plan.draftReview ? formStatus : undefined}
           reportSave={plan.draftReview ? formSession?.reportSave : undefined}
           localeDocuments={plan.draftReview ? localeDocuments : undefined}
           activeLocale={plan.draftReview ? activeLocale : undefined}
@@ -870,7 +870,7 @@ export function SurfaceSlot({
             <SurfaceSlotFrame
               key={child.slotId}
               plan={child}
-              filingStatus={filingStatus}
+              formStatus={formStatus}
               grant={grant}
               route={route}
               strings={strings}
@@ -2060,7 +2060,7 @@ interface SurfaceWidgetSlotProps {
   strings: SurfaceStrings;
   dataSourceLoader?: DataSourceLoader | undefined;
   draftSession?: DraftSession | undefined;
-  filingStatus?: FilingStatusViewContext | undefined;
+  formStatus?: FormStatusViewContext | undefined;
   reportSave?: ((notice: SurfaceSaveNotice) => void) | undefined;
   localeDocuments?: readonly LocaleDocument[] | undefined;
   activeLocale?: string | undefined;
@@ -2100,7 +2100,7 @@ function SurfaceWidgetSlot({
   strings,
   dataSourceLoader,
   draftSession,
-  filingStatus,
+  formStatus,
   reportSave,
   localeDocuments,
   activeLocale,
@@ -2596,7 +2596,7 @@ function SurfaceWidgetSlot({
     );
     const reviewBackDest = plan.draftReview?.status === 'ready' ? plan.draftReview.formHref : undefined;
     const reviewBackHref = reviewBackDest !== undefined
-      ? (filingStatus?.formatHref ? filingStatus.formatHref(reviewBackDest) : reviewBackDest)
+      ? (formStatus?.formatHref ? formStatus.formatHref(reviewBackDest) : reviewBackDest)
       : undefined;
     return stateView(technicalFailure ? 'error' : 'unavailable', (
       <div
@@ -2611,9 +2611,9 @@ function SurfaceWidgetSlot({
               className="fs-surface-action-link fs-surface-action-link--secondary"
               href={reviewBackHref}
               onClick={event => {
-                if (!filingStatus?.navigate || !isPlainLinkClick(event)) return;
+                if (!formStatus?.navigate || !isPlainLinkClick(event)) return;
                 event.preventDefault();
-                void filingStatus.navigate(reviewBackDest);
+                void formStatus.navigate(reviewBackDest);
               }}
             >
               Back to form
@@ -2644,7 +2644,7 @@ function SurfaceWidgetSlot({
   const reviewValidation = draftReviewReady?.delivery.validationSummary;
   const reviewFormDest = draftReviewReady?.plan.formHref;
   const reviewFormHref = reviewFormDest !== undefined
-    ? (filingStatus?.formatHref ? filingStatus.formatHref(reviewFormDest) : reviewFormDest)
+    ? (formStatus?.formatHref ? formStatus.formatHref(reviewFormDest) : reviewFormDest)
     : undefined;
   const validationParts: string[] = [];
   if (reviewValidation) {
@@ -2695,9 +2695,9 @@ function SurfaceWidgetSlot({
               className="fs-surface-action-link fs-surface-action-link--secondary"
               href={reviewFormHref}
               onClick={event => {
-                if (!filingStatus?.navigate || !isPlainLinkClick(event)) return;
+                if (!formStatus?.navigate || !isPlainLinkClick(event)) return;
                 event.preventDefault();
-                void filingStatus.navigate(reviewFormDest);
+                void formStatus.navigate(reviewFormDest);
               }}
             >
               Back to form
@@ -2723,7 +2723,7 @@ function SurfaceWidgetSlot({
           plan={draftReviewReady.plan}
           delivery={draftReviewReady.delivery}
           draftSession={draftSession}
-          filingStatus={filingStatus}
+          formStatus={formStatus}
           reportSave={reportSave}
           focusAcknowledgement={focusAcknowledgement}
           onSaved={retryDataLoad}
@@ -2737,7 +2737,7 @@ function DraftReviewWarningAcknowledgements({
   plan,
   delivery,
   draftSession,
-  filingStatus,
+  formStatus,
   reportSave,
   focusAcknowledgement,
   onSaved,
@@ -2745,7 +2745,7 @@ function DraftReviewWarningAcknowledgements({
   plan: Extract<NonNullable<ModuleWidgetPlan['draftReview']>, { status: 'ready' }>;
   delivery: DraftReviewReadyDelivery;
   draftSession: DraftSession;
-  filingStatus: FilingStatusViewContext | undefined;
+  formStatus: FormStatusViewContext | undefined;
   reportSave: ((notice: SurfaceSaveNotice) => void) | undefined;
   focusAcknowledgement: string | undefined;
   onSaved: () => void;
@@ -2804,7 +2804,7 @@ function DraftReviewWarningAcknowledgements({
               {group.items.map(item => {
                 const destination = item.jumpHref ?? undefined;
                 const href = destination !== undefined
-                  ? (filingStatus?.formatHref ? filingStatus.formatHref(destination) : destination)
+                  ? (formStatus?.formatHref ? formStatus.formatHref(destination) : destination)
                   : undefined;
                 return (
                   <li key={item.path}>
@@ -2812,9 +2812,9 @@ function DraftReviewWarningAcknowledgements({
                       <a
                         href={href}
                         onClick={event => {
-                          if (!filingStatus?.navigate || !isPlainLinkClick(event)) return;
+                          if (!formStatus?.navigate || !isPlainLinkClick(event)) return;
                           event.preventDefault();
-                          void filingStatus.navigate(destination);
+                          void formStatus.navigate(destination);
                         }}
                       >
                         {item.label}

@@ -1,7 +1,7 @@
-//! Typed keys and canonical identity for Formspec filing units.
+//! Typed keys and canonical identity for Formspec subjects.
 //!
-//! A subject-declaring Definition names its filing unit by a type URI and typed keys
-//! (Core §2.1.6). [`subject_id`] derives the unit's `Response.subject.id` from them. Both
+//! A subject-declaring Definition names its subject by a type URI and typed keys
+//! (Core §2.1.6). [`subject_id`] derives the subject's `Response.subject.id` from them. Both
 //! the respondent runtime and the Response selector use this module, so it compiles
 //! without the `response-selection` feature.
 // Rust guideline compliant 2026-02-21
@@ -70,7 +70,7 @@ pub(crate) fn json_integer(raw: &RawValue) -> Result<i64, String> {
         .ok_or_else(|| "expected a signed 64-bit JSON integer".to_owned())
 }
 
-/// Derives the unprefixed filing-unit id from its type and typed keys.
+/// Derives the unprefixed subject id from its type and typed keys.
 ///
 /// The id is the lowercase hex SHA-256 of the `formspec.subject.id.v1` domain-separated
 /// canonical JSON of `{type, keys}`, so key order never changes it.

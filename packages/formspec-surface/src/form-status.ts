@@ -1,76 +1,76 @@
-/** @filedesc Plans exact filing-status destinations and section links without opening forms. */
-import { parseRouteSubjectKey, resolveFilingStatusTargets } from '@formspec-org/app-graph';
+/** @filedesc Plans exact form-status destinations and section links without opening forms. */
+import { parseRouteSubjectKey, resolveFormStatusTargets } from '@formspec-org/app-graph';
 import { fillUiParams, resolvePageSequence, UI_STRINGS } from '@formspec-org/layout';
 import type { ComponentDocument, FormDefinition, ThemeDocument } from '@formspec-org/types';
 import { formHref, matchRoute, routeHref, type SurfaceApp, type SurfaceRouteHandle } from './composition.js';
-import { planFilingRoster } from './filing-roster.js';
+import { planFormStatusRoster } from './form-status-roster.js';
 import type { DataSourceCatalogHandle, DataSourceLoadRequest, LoadWidgetDataInputsRequest, DataSourceSubject } from './data-source-loader.js';
-import { matchesFilingSubjectPredicates, type FilingDraftQuery, type FilingSubjectMatch, type FilingSubjectPredicate } from './draft-port.js';
+import { matchesFormSubjectPredicates, type FormStatusQuery, type FormSubjectMatch, type FormSubjectPredicate } from './draft-port.js';
 import { generationNeedAnchors } from './need-trace.js';
 import type { SurfaceDefinitionComponentResolver } from './slot-plan.js';
 import type { SurfaceRoute } from './route-path.js';
 import type { ThemeAuthority } from './theme-authority.js';
 
-export type FilingSectionLocaleLookup = (definition: FormDefinition, key: string) => string | null;
+export type FormStatusSectionLocaleLookup = (definition: FormDefinition, key: string) => string | null;
 
-export interface FilingStatusSectionPlan {
+export interface FormStatusSectionPlan {
   id: string;
   label: string;
   href?: string | undefined;
   weight: number;
 }
 
-export interface ResolvedFilingStatusLinks {
+export interface ResolvedFormStatusLinks {
   href: string;
   params: Readonly<Record<string, string>>;
   sections: Readonly<Record<string, string>>;
 }
 
-interface FilingStatusEntryPlan {
+interface FormStatusEntryPlan {
   key: string;
   hint?: string;
   description?: string;
   needAnchors: readonly string[];
 }
 
-export type FilingStatusRowPlan = FilingStatusEntryPlan & (
+export type FormStatusRowPlan = FormStatusEntryPlan & (
   | {
       status: 'ready';
       slotId: string;
       params?: Readonly<Record<string, string>> | undefined;
       href?: string | undefined;
-      resolveLinks?: ((subject: DataSourceSubject) => ResolvedFilingStatusLinks | undefined) | undefined;
+      resolveLinks?: ((subject: DataSourceSubject) => ResolvedFormStatusLinks | undefined) | undefined;
       route: SurfaceRouteHandle;
-      query: FilingDraftQuery;
-      sections: readonly FilingStatusSectionPlan[];
+      query: FormStatusQuery;
+      sections: readonly FormStatusSectionPlan[];
       fieldTemplates: readonly string[];
       weight: number;
     }
-  | { status: 'disabled'; route?: SurfaceRouteHandle; routeRef: string; reason: FilingStatusRowRefusal }
+  | { status: 'disabled'; route?: SurfaceRouteHandle; routeRef: string; reason: FormStatusRowRefusal }
 );
 
-type FilingStatusRowRefusal = 'route-address-unavailable' | 'definition-unresolved' | 'slot-unresolved' | 'subject-unavailable' | 'invalid-binding';
+type FormStatusRowRefusal = 'route-address-unavailable' | 'definition-unresolved' | 'slot-unresolved' | 'subject-unavailable' | 'invalid-binding';
 
-export interface FilingStatusGroupPlan {
+export interface FormStatusGroupPlan {
   id: string;
   label: string;
   needAnchors: readonly string[];
   unavailable?: boolean;
   member?: { groupId: string; label: string; waitingLabel: string };
-  rows: readonly FilingStatusRowPlan[];
+  rows: readonly FormStatusRowPlan[];
 }
 
-export type FilingStatusPlan =
-  | { status: 'ready'; groups: readonly FilingStatusGroupPlan[]; needAnchors: readonly string[] }
+export type FormStatusPlan =
+  | { status: 'ready'; groups: readonly FormStatusGroupPlan[]; needAnchors: readonly string[] }
   | { status: 'roster'; requests: readonly DataSourceLoadRequest[];
-      load(ports: Pick<LoadWidgetDataInputsRequest, 'loader' | 'authorize' | 'validatePayload'>, sessionGeneration?: string): Promise<FilingStatusPlan> }
+      load(ports: Pick<LoadWidgetDataInputsRequest, 'loader' | 'authorize' | 'validatePayload'>, sessionGeneration?: string): Promise<FormStatusPlan> }
   | { status: 'unresolved'; reason: string };
 
 function subjectIdentity(subject: DataSourceSubject | undefined): unknown {
   return subject ? [subject.type, Object.entries(subject.keys).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)] : null;
 }
 
-export interface FilingPlanInput {
+export interface FormStatusPlanInput {
   slotId: string;
   dataSources?: readonly DataSourceCatalogHandle[] | undefined;
   app: SurfaceApp;
@@ -81,7 +81,7 @@ export interface FilingPlanInput {
   definitions: ReadonlyMap<string, FormDefinition>;
   themeAuthority: ThemeAuthority;
   resolveDefinitionComponent?: SurfaceDefinitionComponentResolver | undefined;
-  resolveDefinitionLocaleString?: FilingSectionLocaleLookup | undefined;
+  resolveDefinitionLocaleString?: FormStatusSectionLocaleLookup | undefined;
   surfaceRef?: string | undefined;
   resolveSubject: (
     definition: FormDefinition, binding: Record<string, unknown>, route: SurfaceRoute,
@@ -89,9 +89,9 @@ export interface FilingPlanInput {
   ) => DataSourceSubject | false | undefined;
 }
 
-export function planFilingStatus(input: FilingPlanInput): FilingStatusPlan {
+export function planFormStatus(input: FormStatusPlanInput): FormStatusPlan {
   if (input.handle.surface.$formspecSurface !== '0.4') return { status: 'unresolved', reason: 'surface-version-unsupported' };
-  return planFilingRoster(input, binding => planFixed({ ...input, binding })) ?? planFixed(input);
+  return planFormStatusRoster(input, binding => planFixed({ ...input, binding })) ?? planFixed(input);
 }
 
 // Correlation IDs live only as long as their Definition. Interning the full placements
@@ -99,7 +99,7 @@ export function planFilingStatus(input: FilingPlanInput): FilingStatusPlan {
 const placementIds = new WeakMap<FormDefinition, Map<string, number>>();
 let nextPlacement = 0;
 
-function placementId(definition: FormDefinition, sections: FilingDraftQuery['sections']) {
+function placementId(definition: FormDefinition, sections: FormStatusQuery['sections']) {
   const ids = placementIds.get(definition) ?? new Map<string, number>();
   placementIds.set(definition, ids);
   const content = JSON.stringify(sections);
@@ -110,10 +110,10 @@ function placementId(definition: FormDefinition, sections: FilingDraftQuery['sec
   return id;
 }
 
-function planFixed(input: FilingPlanInput): FilingStatusPlan {
+function planFixed(input: FormStatusPlanInput): FormStatusPlan {
   const { handle, app } = input;
-  const unresolved = (reason: string): FilingStatusPlan => ({ status: 'unresolved', reason });
-  const result = resolveFilingStatusTargets(handle.surface.routes, input.bindingRoute, input.binding, input.params);
+  const unresolved = (reason: string): FormStatusPlan => ({ status: 'unresolved', reason });
+  const result = resolveFormStatusTargets(handle.surface.routes, input.bindingRoute, input.binding, input.params);
   const duplicate = result.issues.find(issue => issue.reason === 'duplicate-group' || issue.reason === 'duplicate-target');
   if (duplicate) return unresolved(duplicate.reason);
   if (!result.groups.length) return unresolved('invalid-binding');
@@ -156,14 +156,14 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
     bySlot.set(slotId, result);
     return result;
   }
-  const groups: FilingStatusGroupPlan[] = [];
+  const groups: FormStatusGroupPlan[] = [];
   for (const { group, pointer, targets } of result.groups) {
     const byPointer = new Map(targets.map(target => [target.pointer, target]));
     const groupSubjects = new Set<string>();
-    const rows = group.forms.map((entry, index): FilingStatusRowPlan => {
+    const rows = group.forms.map((entry, index): FormStatusRowPlan => {
       const key = `${pointer}/forms/${index}`;
       const common = { key, ...(typeof entry?.hint === 'string' ? { hint: entry.hint } : {}), needAnchors: generationNeedAnchors(entry) };
-      const disabled = (reason: FilingStatusRowRefusal, route?: SurfaceRouteHandle): FilingStatusRowPlan => ({
+      const disabled = (reason: FormStatusRowRefusal, route?: SurfaceRouteHandle): FormStatusRowPlan => ({
         ...common, status: 'disabled', reason, ...(route ? { route } : {}),
         routeRef: typeof entry?.routeRef === 'string' ? entry.routeRef : '',
       });
@@ -202,7 +202,7 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
             return disabled('subject-unavailable', destination);
           }
         }
-        const predicates: FilingSubjectPredicate[] = [];
+        const predicates: FormSubjectPredicate[] = [];
         for (const [subjKey, paramName] of Object.entries(mapping)) {
           if (typeof paramName !== 'string' || !Object.hasOwn(params, paramName)) continue;
           const field = declaration.keys[subjKey];
@@ -226,13 +226,13 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
           predicates.push({ key: predicate.key, op: predicate.op, value });
         }
         predicates.sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
-        const subjectMatch: FilingSubjectMatch = { type: declaration.type, predicates };
+        const subjectMatch: FormSubjectMatch = { type: declaration.type, predicates };
         groupSubjects.add(JSON.stringify(['match', subjectMatch.type, subjectMatch.predicates]));
 
         const placement = placementFor(destination, slot.id, definition);
         const { sequence, sections } = placement;
         const queryKey = JSON.stringify([definition.url, definition.version, ['match', subjectMatch.type, subjectMatch.predicates], placement.id]);
-        const segments: FilingStatusSectionPlan[] = sequence.flatMap(({ id, title, titleBind, titleLocaleKey, fieldTemplates }, sectionIndex) => {
+        const segments: FormStatusSectionPlan[] = sequence.flatMap(({ id, title, titleBind, titleLocaleKey, fieldTemplates }, sectionIndex) => {
           if (id === undefined) return [];
           const localeKey = titleBind === undefined ? titleLocaleKey : `${titleBind}.label`;
           const localized = localeKey === undefined ? null : input.resolveDefinitionLocaleString?.(definition, localeKey);
@@ -251,7 +251,7 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
           route: destination,
           ...(description === undefined ? {} : { description }),
           resolveLinks(matchedSubject: DataSourceSubject) {
-            if (!matchesFilingSubjectPredicates(definition, matchedSubject, subjectMatch)) return undefined;
+            if (!matchesFormSubjectPredicates(definition, matchedSubject, subjectMatch)) return undefined;
             const fullParams: Record<string, string> = { ...params };
             for (const [subjKey, paramName] of Object.entries(mapping)) {
               if (typeof paramName !== 'string' || !Object.hasOwn(matchedSubject.keys, subjKey)) return undefined;
@@ -315,7 +315,7 @@ function planFixed(input: FilingPlanInput): FilingStatusPlan {
       };
     });
     const finalRows = groupSubjects.size > 1
-      ? rows.map((row): FilingStatusRowPlan => row.status === 'ready'
+      ? rows.map((row): FormStatusRowPlan => row.status === 'ready'
         ? {
             key: row.key,
             ...(row.hint === undefined ? {} : { hint: row.hint }),

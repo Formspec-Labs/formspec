@@ -215,7 +215,7 @@ Hosts that need their existing draft/submit runtime use
 `renderDefinitionForm`. Its single input contains the resolved form slot plan,
 route theme grant, route context, localized `strings`, and the Response Actions
 document targeting that Definition. The callback receives any loaded `initialData`
-and the resolved filing unit as `responseSubject`, with its type, typed keys, and
+and the resolved subject as `responseSubject`, with its type, typed keys, and
 Core-derived ID (runtime WASM; tools are never loaded for it). Pass
 `responseSubject` to `createFormEngine` before the first evaluation so `subject()`
 can read the keys; the engine derives the Response's ID itself. Singletons have `keys: {}`. A Definition without a subject receives

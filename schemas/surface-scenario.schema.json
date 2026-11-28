@@ -281,7 +281,7 @@
           "type": "string",
           "format": "uri",
           "pattern": "^[A-Za-z][A-Za-z0-9+.-]*:[^\\s{}]+$",
-          "description": "Canonical URI of the filing-unit subject type matching the target FormDefinition's subject.type.",
+          "description": "Canonical URI of the subject type matching the target FormDefinition's subject.type.",
           "examples": [
             "https://example.test/definitions/annual-report"
           ]
@@ -315,7 +315,7 @@
     },
     "SurfaceScenarioDraft": {
       "type": "object",
-      "description": "Preview-only in-progress draft seeded into the preview DraftPort. Supplies initial draft answers for one FormDefinition (and optional subject) so filing-status trackers show In Progress or Ready status and opening the form hydrates the saved answers.",
+      "description": "Preview-only in-progress draft seeded into the preview DraftPort. Supplies initial draft answers for one FormDefinition (and optional subject) so form-status trackers show In Progress or Ready status and opening the form hydrates the saved answers.",
       "required": [
         "definitionUrl",
         "data"

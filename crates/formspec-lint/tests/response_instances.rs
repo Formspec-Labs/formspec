@@ -1,4 +1,4 @@
-//! Exercise filing-unit declarations and response instances through the public linter.
+//! Exercise subject declarations and response instances through the public linter.
 // Rust guideline compliant 2026-02-21
 
 use formspec_lint::{LintSeverity, lint};
@@ -96,7 +96,7 @@ fn response_instance_requires_a_projection_schema() {
 #[test]
 fn response_projection_requires_wildcard_paths_and_core_data_types() {
     for schema in [
-        json!({"agencies[0].uei": "string"}),
+        json!({"organizations[0].orgId": "string"}),
         json!({"expenditures.employment": "unknown"}),
     ] {
         let mut doc = definition();
@@ -117,8 +117,8 @@ fn response_projection_requires_wildcard_paths_and_core_data_types() {
 #[test]
 fn authorization_parent_requires_a_declared_string_key() {
     let mut doc = definition();
-    doc["subject"]["keys"]["ffy"]["authorizationParent"] = json!("year");
-    assert_error(&doc, "E309", "$.subject.keys.ffy.authorizationParent");
+    doc["subject"]["keys"]["period"]["authorizationParent"] = json!("year");
+    assert_error(&doc, "E309", "$.subject.keys.period.authorizationParent");
 }
 
 #[test]
@@ -134,18 +134,18 @@ fn integer_predicate_checks_belong_to_cross_definition_validation() {
 #[test]
 fn subject_key_requires_a_string_or_integer_data_type() {
     let mut doc = definition();
-    doc["subject"]["keys"]["ffy"]["dataType"] = json!("decimal");
-    assert_error(&doc, "E311", "$.subject.keys.ffy.dataType");
+    doc["subject"]["keys"]["period"]["dataType"] = json!("decimal");
+    assert_error(&doc, "E311", "$.subject.keys.period.dataType");
 
-    doc["subject"]["keys"]["ffy"] = json!({});
-    assert_error(&doc, "E311", "$.subject.keys.ffy.dataType");
+    doc["subject"]["keys"]["period"] = json!({});
+    assert_error(&doc, "E311", "$.subject.keys.period.dataType");
 }
 
 #[test]
 fn non_string_subject_key_data_type_reports_once() {
     let mut doc = definition();
-    doc["subject"]["keys"]["ffy"]["dataType"] = json!(42);
-    assert_error(&doc, "E311", "$.subject.keys.ffy.dataType");
+    doc["subject"]["keys"]["period"]["dataType"] = json!(42);
+    assert_error(&doc, "E311", "$.subject.keys.period.dataType");
     let result = lint(&doc);
     assert_eq!(result.diagnostics.len(), 1, "{:#?}", result.diagnostics);
 }
@@ -159,7 +159,7 @@ fn misdeclared_minted_keys_get_authored_diagnostics() {
             "minted requires a string subject key",
         ),
         (
-            json!({"dataType":"string","minted":true,"authorizationParent":"agency"}),
+            json!({"dataType":"string","minted":true,"authorizationParent":"organization"}),
             "A minted subject key cannot declare authorizationParent",
         ),
         (
@@ -167,9 +167,9 @@ fn misdeclared_minted_keys_get_authored_diagnostics() {
             "minted must be a boolean",
         ),
     ] {
-        doc["subject"]["keys"]["ffy"] = key;
+        doc["subject"]["keys"]["period"] = key;
         let result = lint(&doc);
-        assert_error(&doc, "E312", "$.subject.keys.ffy.minted");
+        assert_error(&doc, "E312", "$.subject.keys.period.minted");
         assert!(
             result
                 .diagnostics

@@ -30,7 +30,7 @@ pub struct CreateOptions<'a> {
     pub pending_paths: Option<HashSet<String>>,
     /// Wall-clock instant for expression initial values.
     pub now_iso: Option<String>,
-    /// Current filing-unit identity for FEL subject lookups.
+    /// Current subject identity for FEL subject lookups.
     pub subject: Option<EvalSubject>,
     /// Host FEL extension functions.
     pub extensions: Option<&'a dyn ExtensionFunctions>,

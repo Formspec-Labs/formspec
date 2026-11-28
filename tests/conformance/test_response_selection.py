@@ -1,4 +1,4 @@
-"""Shared Core Response selection and filing-unit identity vectors."""
+"""Shared Core Response selection and subject identity vectors."""
 
 from decimal import Decimal
 import json

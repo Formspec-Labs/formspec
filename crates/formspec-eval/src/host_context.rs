@@ -432,18 +432,18 @@ mod tests {
         let mut ctx = context();
         // ADR 0172 caps integer subject keys at the I-JSON limit.
         let snapshot = json!({
-            "subjectKeys": {"uei": "00123", "serial": 9_007_199_254_740_991_i64},
-            "meta": {"uei": "metadata"}
+            "subjectKeys": {"orgId": "00123", "serial": 9_007_199_254_740_991_i64},
+            "meta": {"orgId": "metadata"}
         });
         ctx.load(snapshot.as_object().unwrap()).unwrap();
-        assert_eq!(eval(&ctx, "subject('uei')", ""), json!("00123"));
+        assert_eq!(eval(&ctx, "subject('orgId')", ""), json!("00123"));
         assert_eq!(
             eval(&ctx, "subject('serial')", ""),
             json!(9_007_199_254_740_991_i64)
         );
         assert_eq!(eval(&ctx, "subject('missing')", ""), json!(null));
         ctx.load(json!({}).as_object().unwrap()).unwrap();
-        assert_eq!(eval(&ctx, "subject('uei')", ""), json!(null));
+        assert_eq!(eval(&ctx, "subject('orgId')", ""), json!(null));
     }
 
     #[test]

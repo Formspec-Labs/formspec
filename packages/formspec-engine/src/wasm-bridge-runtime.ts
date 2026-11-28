@@ -431,7 +431,7 @@ export function wasmAssembleCandidate(
 }
 
 /**
- * Derive Core's filing-unit id (`Response.subject.id`) from a subject type and exact typed keys.
+ * Derive Core's subject id (`Response.subject.id`) from a subject type and exact typed keys.
  * Throws for untyped keys or an integer outside the I-JSON range.
  */
 export function wasmResponseSubjectId(
@@ -477,7 +477,7 @@ type WasmEvaluationContext = {
     resolvedOptions?: import('./interfaces.js').ResolvedOptionListsInput;
     /** The current Response's subject type. Null means a subject was supplied without a type. */
     subjectType?: string | null;
-    /** The current Response's filing-unit keys, available to `subject(key)`. */
+    /** The current Response's subject keys, available to `subject(key)`. */
     subjectKeys?: import('./interfaces.js').ResponseSubjectKeys;
     /** Ask for resolved Item text (Core §4.2.1); `localeStrings` are cascade-resolved Locale strings. */
     itemText?: { localeStrings?: Record<string, string> };

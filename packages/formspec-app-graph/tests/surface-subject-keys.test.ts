@@ -1,4 +1,4 @@
-/** @filedesc Verify filing-unit keys against the loaded Definition and containing route. */
+/** @filedesc Verify subject keys against the loaded Definition and containing route. */
 import { describe, expect, it } from 'vitest';
 import { validateSurfaceDefinitionSlots } from '../src/surface-definition-slots.js';
 import type { ResolvedArtifactHandle } from '../src/types.js';
@@ -35,11 +35,11 @@ function validate(keys: object | undefined, subjectKeys?: object, otherVersionKe
 }
 
 describe('definition-form subjectKeys', () => {
-  const keys = { ffy: { dataType: 'integer' } };
+  const keys = { period: { dataType: 'integer' } };
   it.each([
     [keys, undefined, 'subject-key-unbound'],
     [keys, { wrong: 'year' }, 'subject-key-undeclared'],
-    [keys, { ffy: 'missing' }, 'subject-route-parameter-undeclared'],
+    [keys, { period: 'missing' }, 'subject-route-parameter-undeclared'],
     [undefined, {}, 'subject-not-declared'],
   ])('refuses an incoherent binding %#', (definitionKeys, binding, reason) => {
     expect(validate(definitionKeys, binding)).toContainEqual(expect.objectContaining({
@@ -49,27 +49,27 @@ describe('definition-form subjectKeys', () => {
   });
 
   it('admits full bindings, singleton subjects, and forms with no subject', () => {
-    expect(validate(keys, { ffy: 'year' })).toEqual([]);
+    expect(validate(keys, { period: 'year' })).toEqual([]);
     expect(validate({})).toEqual([]);
     expect(validate({}, {})).toEqual([]);
     expect(validate(undefined)).toEqual([]);
   });
 
   it('checks historical versions even when the app pins one Definition', () => {
-    expect(validate(keys, { ffy: 'year' }, {}, '1.0.0')).toMatchObject([{
+    expect(validate(keys, { period: 'year' }, {}, '1.0.0')).toMatchObject([{
       relatedSources: [{ artifactSlot: 'definitions[1]', jsonPointer: '/subject' }],
-      details: { reason: 'subject-key-undeclared', key: 'ffy' },
+      details: { reason: 'subject-key-undeclared', key: 'period' },
     }]);
   });
 
   it.each([0, 1])('checks the subject binding of loaded version at index %s', index => {
     const extraKey = { ...keys, agency: { dataType: 'string' } };
     const versions = index === 0 ? [extraKey, keys] : [keys, extraKey];
-    expect(validate(versions[0], { ffy: 'year' }, versions[1])).toMatchObject([{
+    expect(validate(versions[0], { period: 'year' }, versions[1])).toMatchObject([{
       code: 'APP-GRAPH-SURFACE-SUBJECT-KEYS',
       relatedSources: [{ artifactSlot: `definitions[${index}]`, jsonPointer: '/subject' }],
       details: { reason: 'subject-key-unbound', key: 'agency' },
     }]);
-    expect(validate(keys, { ffy: 'year' }, keys)).toEqual([]);
+    expect(validate(keys, { period: 'year' }, keys)).toEqual([]);
   });
 });

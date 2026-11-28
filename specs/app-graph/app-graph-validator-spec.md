@@ -318,7 +318,7 @@ app-graph report.
 | Surface draft publishability, local route reachability, unresolved embed-route targets, duplicate route/slot ids | Surface export/local lint | `surface-local` | Imported or pre-run by Surface tools. Cross-artifact checks remain separate. |
 | App Manifest 2.4 entry Surface and selected Surface entry route | `AppGraphValidator` | `cross-artifact` | Selects by exact manifested and loaded Surface URL. It never falls back by array order, local Surface id, filename, or route id after an explicit error. |
 | Surface slots to loaded Definitions, Experience units, Response Actions, and Data Sources | `AppGraphValidator` | `cross-artifact` | Validates relationships across already loaded artifacts. The shared kernel enforces Surface `experience-unit` `unitRef` resolution, URL-exact route-local Definition context, and qualified Data Sources availability. |
-| `definition-form.binding.subjectKeys` | `AppGraphValidator` | `cross-artifact` | Check the exact filing-unit key set against each loaded version of the bound Definition and resolve every mapped parameter on the containing route ([Surface §4](../surface/surface-spec.md#definition-form-subject-keys)). |
+| `definition-form.binding.subjectKeys` | `AppGraphValidator` | `cross-artifact` | Check the exact subject key set against each loaded version of the bound Definition and resolve every mapped parameter on the containing route ([Surface §4](../surface/surface-spec.md#definition-form-subject-keys)). |
 | Experience target Definitions and unit references | `AppGraphValidator` | `cross-artifact` | Checks that references name loaded Definitions and units. |
 | Response Actions targetDefinition and Surface transition trigger references | `AppGraphValidator` | `cross-artifact` | Response Actions remains the executor; validator only checks declared references. The shared kernel rejects Surface transition triggers that are neither loaded Response Actions `actions[*].id` values nor closed-core Response Actions intents declared by exactly one loaded action; it does not promote Runtime Plan commands or direct `x-` extension-intent triggers. |
 | Data Sources catalog identity and availability selectors to loaded Surfaces, routes, slots, Definitions, and admitted modules | `AppGraphValidator` | `cross-artifact` | Catalog URL identity and Surface URL plus route/slot identity are exact. Route ids are not graph-global. Payload fetching, cache behavior, and runtime authorization remain out of scope. |
@@ -477,7 +477,7 @@ inheritance implementation. The existing `definitions`, `locales`, and
 `components` canonical digest bindings and the server proof in Needs §10.3 rule
 4 remain authoritative.
 
-For a Surface 0.4 filing-status slot, graph validation MUST resolve each entry
+For a Surface 0.4 form-status slot, graph validation MUST resolve each entry
 to one same-Surface route and one Definition-form slot. It MUST reject missing
 or unknown parameter sources, repeated groups with the same ID, statically
 duplicate targets, and conflicting subject-key sources within a group.

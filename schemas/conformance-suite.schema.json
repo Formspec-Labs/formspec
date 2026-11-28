@@ -339,7 +339,7 @@
         },
         "subject": {
           "type": "object",
-          "description": "Filing-unit identity supplied by the host. Refusal cases may intentionally supply invalid keys."
+          "description": "Subject identity supplied by the host. Refusal cases may intentionally supply invalid keys."
         },
         "now": {
           "type": "string",

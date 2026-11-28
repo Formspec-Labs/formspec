@@ -5,7 +5,7 @@ import type { DefinitionResponseSelectionRequest, FormDefinition, ResponseSelect
 export interface DraftDefinitionResponseRead {
   key: DraftKey;
   definitionVersion: string;
-  /** Null selects opening reads for a filing unit that still has no draft. */
+  /** Null selects opening reads for a subject that still has no draft. */
   expectedRevision: string | null;
 }
 

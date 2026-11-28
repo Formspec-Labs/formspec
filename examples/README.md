@@ -46,7 +46,7 @@ Patient intake form with triage routing and external data sources.
 
 ## grant-report/
 
-CSBG Tribal Annual Report — demonstrates definition derivation and multi-variant forms. A base definition spawns short and long variants; the long form extends the short with demographic breakdowns.
+Regional Annual Report — demonstrates definition derivation and multi-variant forms. A base definition spawns short and long variants; the long form extends the short with demographic breakdowns.
 
 **Demonstrates:** `derivedFrom` (definition inheritance), multiple definitions sharing one theme, changelog across versions, mapping rules for grant data export.
 

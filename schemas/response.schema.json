@@ -398,17 +398,17 @@
           },
           "subject": [
             {
-              "key": "uei",
+              "key": "orgId",
               "op": "eq",
               "from": {
-                "subject": "uei"
+                "subject": "orgId"
               }
             },
             {
-              "key": "ffy",
+              "key": "period",
               "op": "eq",
               "from": {
-                "subject": "ffy"
+                "subject": "period"
               },
               "offset": -1
             }
@@ -1275,7 +1275,7 @@
     },
     "subject": {
       "type": "object",
-      "description": "The entity this Response concerns, distinct from its author. For a subject-declaring Definition this is the filing unit: type and typed keys are required and id is derived canonically from (type, keys). An implicit respondent identity is server-only and is never serialized here.",
+      "description": "The entity this Response concerns, distinct from its author. For a subject-declaring Definition this is the subject: type and typed keys are required and id is derived canonically from (type, keys). An implicit respondent identity is server-only and is never serialized here.",
       "required": [
         "id"
       ],
@@ -1292,7 +1292,7 @@
         },
         "type": {
           "type": "string",
-          "description": "Filing-unit type URI matching the Definition subject declaration, or a host entity type when the Definition declares no subject.",
+          "description": "Subject type URI matching the Definition subject declaration, or a host entity type when the Definition declares no subject.",
           "examples": [
             "Grant",
             "Patient",
@@ -1316,8 +1316,8 @@
           "description": "String or integer identity keys matching exactly the Definition subject declaration. Integers must lie in the I-JSON interoperable range (RFC 7493 section 2.2). An empty object identifies a per-scope singleton. Scope is not a key.",
           "examples": [
             {
-              "ffy": 2026,
-              "uei": "A"
+              "period": 2026,
+              "orgId": "A"
             }
           ]
         }
@@ -1332,11 +1332,11 @@
           "type": "Patient"
         },
         {
-          "id": "caa277818d95f7d8b3a85fb92be6d600536d7c66dfd11216a6c0bbaabecfa9e7",
-          "type": "urn:example:subject:agency-year",
+          "id": "1cf7cea220e9c8d02f003647d0e6723256cf338b141ce468b689edc64ce21e9f",
+          "type": "urn:example:subject:org-period",
           "keys": {
-            "ffy": 2026,
-            "uei": "A"
+            "period": 2026,
+            "orgId": "A"
           }
         }
       ],

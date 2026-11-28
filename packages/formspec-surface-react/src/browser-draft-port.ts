@@ -18,10 +18,10 @@ import {
 import { parseJsonExact } from '@formspec-org/integrity-canonical';
 import { resolvePageSequence, type PageSequenceEntry } from '@formspec-org/layout';
 import {
-  canonicalDraftProgress, canonicalFiniteJson, matchesFilingSubjectPredicates, prepareResponseFiling, prepareResponseFixtures, responseDraftKey, responsePairKey, responseSelectionRecord,
+  canonicalDraftProgress, canonicalFiniteJson, matchesFormSubjectPredicates, prepareResponseFiling, prepareResponseFixtures, responseDraftKey, responsePairKey, responseSelectionRecord,
   catalogResponseDigest, catalogResponseProjection, catalogResponseSelection, resolveDataSourceDescriptor, selectFilingStatus, selectFilingSummaryStatus, toResponseFilingSummary,
   type BrowserDraftPort, type CurrentDraftProgress, type DraftRepinInput, type DraftRepinResult, type DraftStartInput, type DraftStartResult, type DataSourceCatalogHandle, type DraftKey, type DraftRecord, type DraftSaveInput, type DraftSectionPlacement,
-  type FilingLoadResult, type FilingStatusObservation, type MatchedFilingDraftObservation, type MatchedFilingObservation, type PreparedDraftFixture, type PreparedResponseFixtures,
+  type FilingLoadResult, type FormStatusObservation, type MatchedFormStatusDraftObservation, type MatchedFilingObservation, type PreparedDraftFixture, type PreparedResponseFixtures,
   type ResponseFiling, type ResponseFilingSummary, type ResponseFixtures, type ResponseRecordTools,
 } from '@formspec-org/surface';
 import type { DispositionAuthority, Explanation, FormDefinition, FormResponse, NewerSelectedResponse, ResponseSelection, ResponseSelectionContext, ResponseSelectionDelivery, ResponseSelectionOutcome, ResponseSelectionRecord, ResponseSelectionRequest, ResponseSelector } from '@formspec-org/types';
@@ -256,7 +256,7 @@ async function sectionPlanId(sections: readonly DraftSectionPlacement[]): Promis
   return 'sha256:' + Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function unavailableStatus(): FilingStatusObservation {
+function unavailableStatus(): FormStatusObservation {
   return { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } };
 }
 
@@ -1952,7 +1952,7 @@ function createFilingStore(
 
     async readSummaries(queries, { previewScope, signal }) {
       signal.throwIfAborted();
-      const result = new Map<string, FilingStatusObservation>();
+      const result = new Map<string, FormStatusObservation>();
       try {
         const targetScope = previewScope ?? scope;
         const initialized = await settledReady();
@@ -2012,11 +2012,11 @@ function createFilingStore(
           read: boolean,
           resume: boolean,
           targetPlanId: string,
-        ): { draft: MatchedFilingDraftObservation; filing: MatchedFilingObservation } {
+        ): { draft: MatchedFormStatusDraftObservation; filing: MatchedFilingObservation } {
           if (stored?.unverifiedStartHistory) {
             return { draft: { status: 'unavailable' }, filing: { status: 'unavailable' } };
           }
-          let draft: MatchedFilingDraftObservation = { status: 'unavailable' };
+          let draft: MatchedFormStatusDraftObservation = { status: 'unavailable' };
           let filing: MatchedFilingObservation = { status: 'unavailable' };
           if (resume) {
             if (!stored) {
@@ -2094,7 +2094,7 @@ function createFilingStore(
               const expectedId = initialized.tools.subjectId(subject.type, subject.keys);
               const candidateKey: DraftKey = { scope, definitionUrl, subject };
               if (expectedId !== subject.id || JSON.stringify(id) !== JSON.stringify(storageKey(candidateKey))) {
-                throw new Error('Stored summary metadata does not match its filing unit.');
+                throw new Error('Stored summary metadata does not match its subject.');
               }
               const bucket = allUnits.get(subject.id) ?? { subject, evidence: [], unverified: false };
               bucket.evidence.push({ key: candidateKey, relation: 'resume' });
@@ -2105,7 +2105,7 @@ function createFilingStore(
               const subject = filing.key.subject;
               if (!subject) continue;
               if (initialized.tools.subjectId(subject.type, subject.keys) !== subject.id) {
-                throw new Error('Stored filing summary metadata does not match its filing unit.');
+                throw new Error('Stored filing summary metadata does not match its subject.');
               }
               const bucket = allUnits.get(subject.id) ?? { subject, evidence: [], unverified: false };
               bucket.evidence.push({ key: filing.key, relation: 'read' });
@@ -2126,7 +2126,7 @@ function createFilingStore(
               });
               if (hasPotentialUnresolved) return;
               const matching = [...allUnits.values()].filter(({ subject }) =>
-                matchesFilingSubjectPredicates(definition, subject, match));
+                matchesFormSubjectPredicates(definition, subject, match));
               if (matching.length === 0) {
                 result.set(query.key, {
                   subjectMatch: 'none',

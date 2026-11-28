@@ -1169,14 +1169,14 @@ export async function upgradeVersionThreeFiling(mode: VersionThreeUpgradeMode) {
         type: definitionUrl,
         keys: mode === 'start-extra-issued-key'
           ? {
-              first_ffy: { dataType: 'integer' },
-              last_ffy: { dataType: 'integer' },
+              first_period: { dataType: 'integer' },
+              last_period: { dataType: 'integer' },
               unit: { dataType: 'string', minted: true },
               serial: { dataType: 'string', minted: true },
             }
           : isMinted
-            ? { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } }
-            : { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' } },
+            ? { first_period: { dataType: 'integer' }, last_period: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } }
+            : { first_period: { dataType: 'integer' }, last_period: { dataType: 'integer' } },
       },
     }),
   };
@@ -1186,7 +1186,7 @@ export async function upgradeVersionThreeFiling(mode: VersionThreeUpgradeMode) {
         version: '2.0.0',
         subject: {
           type: definitionUrl,
-          keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' }, region: { dataType: 'string' } },
+          keys: { first_period: { dataType: 'integer' }, last_period: { dataType: 'integer' }, region: { dataType: 'string' } },
         },
       }
     : mode === 'valid-start-same-names-new-type'
@@ -1195,7 +1195,7 @@ export async function upgradeVersionThreeFiling(mode: VersionThreeUpgradeMode) {
           version: '2.0.0',
           subject: {
             type: definitionUrl,
-            keys: { first_ffy: { dataType: 'string' }, last_ffy: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } },
+            keys: { first_period: { dataType: 'string' }, last_period: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } },
           },
         }
       : mode === 'valid-start-real-restart'
@@ -1205,7 +1205,7 @@ export async function upgradeVersionThreeFiling(mode: VersionThreeUpgradeMode) {
               ...definitionV1,
               subject: {
                 type: definitionUrl,
-                keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } },
+                keys: { first_period: { dataType: 'integer' }, last_period: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } },
               },
             }
           : mode === 'start-known-type-change'
@@ -1213,7 +1213,7 @@ export async function upgradeVersionThreeFiling(mode: VersionThreeUpgradeMode) {
                 ...definitionV1,
                 subject: {
                   type: 'urn:test:different-subject-type',
-                  keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } },
+                  keys: { first_period: { dataType: 'integer' }, last_period: { dataType: 'integer' }, unit: { dataType: 'string', minted: true } },
                 },
               }
             : definitionV1;
@@ -1223,10 +1223,10 @@ export async function upgradeVersionThreeFiling(mode: VersionThreeUpgradeMode) {
   };
   const tools = await browser.previewResponseRecordTools();
   const keys = mode === 'start-extra-issued-key'
-    ? { first_ffy: 2024, last_ffy: 2026, unit: 'minted-v3-unit-1', serial: 'extra-serial-1' }
+    ? { first_period: 2024, last_period: 2026, unit: 'minted-v3-unit-1', serial: 'extra-serial-1' }
     : isMinted
-      ? { first_ffy: 2024, last_ffy: 2026, unit: 'minted-v3-unit-1' }
-      : { first_ffy: 2024, last_ffy: 2026 };
+      ? { first_period: 2024, last_period: 2026, unit: 'minted-v3-unit-1' }
+      : { first_period: 2024, last_period: 2026 };
   const subject = isImplicit ? undefined : { type: definitionUrl, keys, id: tools.subjectId(definitionUrl, keys) };
   const filingKey: DraftKey = { scope, definitionUrl, ...(subject ? { subject } : {}) };
   const responseJson = JSON.stringify({
@@ -1254,7 +1254,7 @@ export async function upgradeVersionThreeFiling(mode: VersionThreeUpgradeMode) {
     },
   };
   const startRequestFor = (url: string, requestFields?: Record<string, unknown>) => canonicalFiniteJson(
-    requestFields ?? { definitionUrl: url, version, type: definitionUrl, keys: { first_ffy: 2024, last_ffy: 2026 } },
+    requestFields ?? { definitionUrl: url, version, type: definitionUrl, keys: { first_period: 2024, last_period: 2026 } },
   );
 
   await new Promise<void>((resolve, reject) => {
@@ -1360,7 +1360,7 @@ export async function upgradeVersionThreeFiling(mode: VersionThreeUpgradeMode) {
         } else if (mode === 'start-unknown-version') {
           starts.put({
             request: startRequestFor(definitionUrl, {
-              definitionUrl, version: '9.0.0', type: definitionUrl, keys: { first_ffy: 2024, last_ffy: 2026 },
+              definitionUrl, version: '9.0.0', type: definitionUrl, keys: { first_period: 2024, last_period: 2026 },
             }),
             subject: subject!,
           }, [scope, 'attempt-1']);
@@ -1414,7 +1414,7 @@ export async function upgradeVersionThreeFiling(mode: VersionThreeUpgradeMode) {
           summaries.put({ definitionVersion: version, summary: null }, storageKey);
         } else if (mode === 'start-no-version') {
           starts.put({
-            request: startRequestFor(definitionUrl, { definitionUrl, type: definitionUrl, keys: { first_ffy: 2024, last_ffy: 2026 } }),
+            request: startRequestFor(definitionUrl, { definitionUrl, type: definitionUrl, keys: { first_period: 2024, last_period: 2026 } }),
             subject: subject!,
           }, [scope, 'attempt-1']);
           editable.put({ definitionVersion: version, revision: 'v3-init-noversion', pinsJson: '{}' }, storageKey);
@@ -1491,8 +1491,8 @@ export async function upgradeVersionThreeFiling(mode: VersionThreeUpgradeMode) {
       subjectMatch: {
         type: definitionUrl,
         predicates: [
-          { key: 'first_ffy', op: 'le' as const, value: 2025 },
-          { key: 'last_ffy', op: 'ge' as const, value: 2025 },
+          { key: 'first_period', op: 'le' as const, value: 2025 },
+          { key: 'last_period', op: 'ge' as const, value: 2025 },
         ],
       },
     }]),
@@ -1538,16 +1538,16 @@ export async function upgradeMainFiveStoreV4Database() {
   const planDef: FormDefinition = {
     $formspec: '1.0', url: planUrl, version, title: 'V4 Plan',
     items: [{ key: 'answer', type: 'field', dataType: 'string' }],
-    subject: { type: planUrl, keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' } } },
+    subject: { type: planUrl, keys: { first_period: { dataType: 'integer' }, last_period: { dataType: 'integer' } } },
   };
   const draftDef: FormDefinition = {
     $formspec: '1.0', url: draftUrl, version, title: 'V4 Draft',
     items: [{ key: 'answer', type: 'field', dataType: 'string' }],
-    subject: { type: draftUrl, keys: { first_ffy: { dataType: 'integer' }, last_ffy: { dataType: 'integer' } } },
+    subject: { type: draftUrl, keys: { first_period: { dataType: 'integer' }, last_period: { dataType: 'integer' } } },
   };
   const definitions = new Map([[planUrl, planDef], [draftUrl, draftDef]]);
   const tools = await browser.previewResponseRecordTools();
-  const planKeys = { first_ffy: 2024, last_ffy: 2026 };
+  const planKeys = { first_period: 2024, last_period: 2026 };
   const planSubject = { type: planUrl, keys: planKeys, id: tools.subjectId(planUrl, planKeys) };
   const planKey: DraftKey = { scope, definitionUrl: planUrl, subject: planSubject };
   const firstFilingJson = JSON.stringify({
@@ -1555,7 +1555,7 @@ export async function upgradeMainFiveStoreV4Database() {
     id: 'urn:main-v4:receipt-1', authored: '2026-01-19T00:00:00Z', subject: planSubject, data: { answer: 'filed-in-main-v4' },
   }, null, 2) + '\n';
   const firstAdmitted = prepareResponseFiling(scope, definitions, firstFilingJson, 'preview-submit', tools);
-  const draftKeys = { first_ffy: 2027, last_ffy: 2029 };
+  const draftKeys = { first_period: 2027, last_period: 2029 };
   const draftSubject = { type: draftUrl, keys: draftKeys, id: tools.subjectId(draftUrl, draftKeys) };
   const draftResponseJson = JSON.stringify({
     $formspecResponse: '1.0', definitionUrl: draftUrl, definitionVersion: version, status: 'in-progress',
@@ -1622,8 +1622,8 @@ export async function upgradeMainFiveStoreV4Database() {
       subjectMatch: {
         type: planUrl,
         predicates: [
-          { key: 'first_ffy', op: 'le', value: 2025 },
-          { key: 'last_ffy', op: 'ge', value: 2025 },
+          { key: 'first_period', op: 'le', value: 2025 },
+          { key: 'last_period', op: 'ge', value: 2025 },
         ],
       },
     },
@@ -1633,8 +1633,8 @@ export async function upgradeMainFiveStoreV4Database() {
       subjectMatch: {
         type: draftUrl,
         predicates: [
-          { key: 'first_ffy', op: 'le', value: 2028 },
-          { key: 'last_ffy', op: 'ge', value: 2028 },
+          { key: 'first_period', op: 'le', value: 2028 },
+          { key: 'last_period', op: 'ge', value: 2028 },
         ],
       },
     },

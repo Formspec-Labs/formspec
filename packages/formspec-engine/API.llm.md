@@ -1467,7 +1467,7 @@ Throws if the on-submit data do not converge.
             id: string;
             name?: string;
         };
-        /** Unkeyed subject metadata. Supply filing-unit identity through `FormEngineOptions.responseSubject`. */
+        /** Unkeyed subject metadata. Supply subject identity through `FormEngineOptions.responseSubject`. */
         subject?: {
             id: string;
             type?: string;
@@ -2815,7 +2815,7 @@ Assemble the Response instance and explanation evidence before the candidate is 
 
 ## `wasmResponseSubjectId(subjectType: string, keys: import('./interfaces.js').ResponseSubjectKeys): string`
 
-Derive Core's filing-unit id (`Response.subject.id`) from a subject type and exact typed keys.
+Derive Core's subject id (`Response.subject.id`) from a subject type and exact typed keys.
 Throws for untyped keys or an integer outside the I-JSON range.
 
 ## `wasmCreateResponse(definition: unknown, data: Record<string, unknown>, context?: WasmCreateOptions, extensions?: FelExtensionHost): WasmCreation`

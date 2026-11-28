@@ -585,7 +585,7 @@ it('retains lastSeenParams across navigation in sidebar links and resets when se
             navigation: { label: 'Unit overview', order: 2 },
             slots: [{
               id: 'unit-map',
-              slotType: 'filing-status',
+              slotType: 'form-status',
               binding: {
                 groups: [{
                   id: 'unit-forms',

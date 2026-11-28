@@ -1,11 +1,11 @@
 {
     "$formspec": "1.0",
-    "url": "https://acf.hhs.gov/formspec/csbg/tribal-base",
+    "url": "https://example.org/formspec/annual-report/tribal-base",
     "version": "3.0.0",
     "status": "active",
-    "title": "CSBG Tribal Annual Report — Base Module",
+    "title": "Regional Annual Report — Base Module",
     "name": "tribal-base",
-    "description": "Shared items for CSBG Tribal Annual Report short and long variants. Includes basic organization information, expenditure category selection, expenditure amounts, and expenditure description narratives.",
+    "description": "Shared items for Regional Annual Report short and long variants. Includes basic organization information, expenditure category selection, expenditure amounts, and expenditure description narratives.",
     "extensions": {
         "x-formspec-common": {
             "registryUrl": "https://formspec.org/registries/formspec-common.registry.json",
@@ -40,7 +40,7 @@
                     "dataType": "string",
                     "label": "Full name",
                     "labels": {
-                        "review": "CSBG Program Contact"
+                        "review": "Program Contact"
                     }
                 },
                 {

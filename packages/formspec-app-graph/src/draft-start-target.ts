@@ -3,7 +3,7 @@ import type { FormDefinition } from '@formspec-org/types';
 import type { AppGraphContext, AppGraphDiagnostic } from './types.js';
 import { exactDefinitionResolution } from './data-sources.js';
 import { diagnosticSourceForHandle } from './report.js';
-import { resolveLocalDefinitionForm, type TargetRoute } from './filing-status-targets.js';
+import { resolveLocalDefinitionForm, type TargetRoute } from './form-status-targets.js';
 import { ownProp } from './surface-widgets.js';
 
 function record(value: unknown): Record<string, unknown> | undefined {

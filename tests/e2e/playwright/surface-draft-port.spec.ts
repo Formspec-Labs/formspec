@@ -408,7 +408,7 @@ test('opens the draft for the resolved filing unit', async ({ page }) => {
 
 test('the tracker reads and refreshes the saved subject from a second tab', async ({ page, context }) => {
   await page.goto('/surface-drafts.html?form&subject&tracker#/overview');
-  const task = page.locator('[data-slot-type="filing-status"]').getByRole('link', { name: 'Filing', exact: true });
+  const task = page.locator('[data-slot-type="form-status"]').getByRole('link', { name: 'Filing', exact: true });
   await expect(task).toHaveAccessibleDescription(/^Not started\b/);
   const other = await context.newPage();
   await other.goto('/surface-drafts.html?form&subject&tracker#/filing/2025');
@@ -455,7 +455,7 @@ test('preview Submit produces a labeled filing and receipt that survive reload',
   await page.getByLabel('Answer').fill('annual response');
   await page.getByRole('button', { name: 'Submit report' }).click();
   await page.getByRole('link', { name: 'Overview', exact: true }).click();
-  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const tracker = page.locator('[data-slot-type="form-status"]');
   const task = tracker.getByRole('link', { name: 'Filing', exact: true });
   await expect(task).toHaveAccessibleDescription(/^Filed\b/);
   const receipt = tracker.getByText(/^Receipt reference: urn:uuid:/);
@@ -467,7 +467,7 @@ test('preview Submit produces a labeled filing and receipt that survive reload',
   await expect(task).toHaveAccessibleDescription(/^Filed\b/);
   await expect(receipt).toHaveText(original!);
   await page.goto('/surface-drafts.html?form&subject&tracker&submit#/overview?edition=edition-b');
-  await expect(page.locator('[data-slot-type="filing-status"]').getByRole('link', { name: 'Filing', exact: true }))
+  await expect(page.locator('[data-slot-type="form-status"]').getByRole('link', { name: 'Filing', exact: true }))
     .toHaveAccessibleDescription(/^Not started\b/);
 });
 
@@ -724,7 +724,7 @@ test('only declared section IDs persist for a plan while canonicalDraftProgress 
 
 test('an open tracker refreshes after another tab first imports a scenario draft for its edition', async ({ page, context }) => {
   const fixture = '/surface-drafts.html?form&subject&tracker';
-  const task = (tab: typeof page) => tab.locator('[data-slot-type="filing-status"]').getByRole('link', { name: 'Filing', exact: true });
+  const task = (tab: typeof page) => tab.locator('[data-slot-type="form-status"]').getByRole('link', { name: 'Filing', exact: true });
   await page.goto(`${fixture}#/overview`);
   await expect(task(page)).toHaveAccessibleDescription(/^Not started/);
   const other = await context.newPage();
@@ -739,7 +739,7 @@ test('an open tracker refreshes after another tab first imports a scenario draft
 
 test('a failed seeded edition open after a summary read abort leaves an open tracker unchanged, and a retry updates it once', async ({ page, context }) => {
   const fixture = '/surface-drafts.html?form&subject&tracker';
-  const task = (tab: typeof page) => tab.locator('[data-slot-type="filing-status"]').getByRole('link', { name: 'Filing', exact: true });
+  const task = (tab: typeof page) => tab.locator('[data-slot-type="form-status"]').getByRole('link', { name: 'Filing', exact: true });
   await page.goto(`${fixture}#/overview`);
   await expect(task(page)).toHaveAccessibleDescription('Not started, 4 questions');
   await page.evaluate(() => {
@@ -1224,9 +1224,9 @@ test('a respondent review link carries its field path and focuses the requested 
 
 test('a year-scoped overview tracker selects the covering multi-year period plan without period keys in the overview URL', async ({ page }) => {
   await page.goto('/surface-drafts.html?form&periodRange&submit#/years/2025');
-  const tracker = page.locator('[data-slot-type="filing-status"]');
+  const tracker = page.locator('[data-slot-type="form-status"]');
   const unmatched = tracker.locator('[role="link"][aria-disabled="true"]', { hasText: 'Period Plan' });
-  await expect(unmatched).toHaveAccessibleDescription('Filing unit unavailable');
+  await expect(unmatched).toHaveAccessibleDescription('Subject unavailable');
 
   // Save a 2024-2026 period plan draft on its multi-year route, then verify /years/2025 links directly to it.
   await page.goto('/surface-drafts.html?form&periodRange&submit#/plans/2024/2026');
@@ -1257,10 +1257,10 @@ test('a year-scoped overview tracker selects the covering multi-year period plan
   // A year outside 2024-2026 or another preview edition finds no covering period plan.
   await page.goto('/surface-drafts.html?form&periodRange&submit#/years/2030');
   await expect(tracker.locator('[role="link"][aria-disabled="true"]', { hasText: 'Period Plan' }))
-    .toHaveAccessibleDescription('Filing unit unavailable');
+    .toHaveAccessibleDescription('Subject unavailable');
   await page.goto('/surface-drafts.html?form&periodRange&submit#/years/2025?edition=edition-b');
   await expect(tracker.locator('[role="link"][aria-disabled="true"]', { hasText: 'Period Plan' }))
-    .toHaveAccessibleDescription('Filing unit unavailable');
+    .toHaveAccessibleDescription('Subject unavailable');
 
   // Clicking the resolved link on /years/2025 opens /plans/2024/2026 and submitting updates /years/2025 to Filed.
   await page.goto('/surface-drafts.html?form&periodRange&submit#/years/2025');
@@ -1289,7 +1289,7 @@ test('upgrades a version-3 browser filing or draft into v5 summaries and fails c
   });
   expect(upgradedFiling.range).toMatchObject({
     subjectMatch: 'matched',
-    subject: { type: 'urn:test:v3-plan', keys: { first_ffy: 2024, last_ffy: 2026 } },
+    subject: { type: 'urn:test:v3-plan', keys: { first_period: 2024, last_period: 2026 } },
     filing: { status: 'filed', receiptRef: 'urn:v3:filed', responseHash: upgradedFiling.responseHash },
   });
 
@@ -1303,7 +1303,7 @@ test('upgrades a version-3 browser filing or draft into v5 summaries and fails c
   });
   expect(upgradedDraft.range).toMatchObject({
     subjectMatch: 'matched',
-    subject: { type: 'urn:test:v3-plan', keys: { first_ffy: 2024, last_ffy: 2026 } },
+    subject: { type: 'urn:test:v3-plan', keys: { first_period: 2024, last_period: 2026 } },
     draft: { status: 'current', form: { filled: 1, total: 1, ready: true } },
     filing: { status: 'none' },
   });
@@ -1318,7 +1318,7 @@ test('upgrades a version-3 browser filing or draft into v5 summaries and fails c
   });
   expect(upgradedInitialized.range).toEqual({
     subjectMatch: 'matched',
-    subject: { type: 'urn:test:v3-plan', keys: { first_ffy: 2024, last_ffy: 2026, unit: 'minted-v3-unit-1' } },
+    subject: { type: 'urn:test:v3-plan', keys: { first_period: 2024, last_period: 2026, unit: 'minted-v3-unit-1' } },
     draft: { status: 'unavailable' },
     filing: { status: 'none' },
   });
@@ -1420,7 +1420,7 @@ test('upgrades an existing main 5-store version-4 database to version 5, retaini
   });
   expect(migrated.rangeFiling).toMatchObject({
     subjectMatch: 'matched',
-    subject: { type: 'urn:test:v4-plan', keys: { first_ffy: 2024, last_ffy: 2026 } },
+    subject: { type: 'urn:test:v4-plan', keys: { first_period: 2024, last_period: 2026 } },
     filing: { status: 'filed', receiptRef: 'urn:main-v4:receipt-1', responseHash: migrated.firstHash },
   });
   expect(migrated.exactDraft).toMatchObject({
@@ -1429,7 +1429,7 @@ test('upgrades an existing main 5-store version-4 database to version 5, retaini
   });
   expect(migrated.rangeDraft).toMatchObject({
     subjectMatch: 'matched',
-    subject: { type: 'urn:test:v4-draft', keys: { first_ffy: 2027, last_ffy: 2029 } },
+    subject: { type: 'urn:test:v4-draft', keys: { first_period: 2027, last_period: 2029 } },
     draft: { status: 'current', form: { filled: 1, total: 1, toFix: 0, toCheck: 0, ready: true }, sections: {} },
     filing: { status: 'none' },
   });

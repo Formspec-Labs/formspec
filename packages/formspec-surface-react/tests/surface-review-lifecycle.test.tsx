@@ -6,7 +6,7 @@ import { initFormspecEngine, initFormspecEngineTools, responseSubjectId } from '
 import {
   dereferenceBundleExport,
   prepareResponseFiling,
-  type FilingStatusObservation,
+  type FormStatusObservation,
 } from '@formspec-org/surface';
 import type { FormDefinition, ResponseActionsDocument } from '@formspec-org/types';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -195,7 +195,7 @@ describe('Filed, Returned, and Prerequisite-Blocked lifecycles (P0-1, P0-3, P1-3
               params: [{ name: 'year', type: 'string' }],
               slots: [{
                 id: 'tracker',
-                slotType: 'filing-status',
+                slotType: 'form-status',
                 binding: {
                   groups: [{
                     id: 'core',
@@ -866,7 +866,7 @@ describe('Filing map KPIs, completed strips, shell accessibility, and responsive
       expect(obs.draft.form.ready).toBe(false);
     }
 
-    // Verify completed strips, Filed KPI, URN <wbr> wrapping, and empty-group copy in FilingStatus.
+    // Verify completed strips, Filed KPI, URN <wbr> wrapping, and empty-group copy in FormStatus.
     const trackerBundle = dereferenceBundleExport({
       manifest: {
         $formspecBundle: '2.4',
@@ -889,7 +889,7 @@ describe('Filing map KPIs, completed strips, shell accessibility, and responsive
               navigation: { visible: true, label: 'Year overview' },
               slots: [{
                 id: 'map',
-                slotType: 'filing-status',
+                slotType: 'form-status',
                 binding: {
                   groups: [{
                     id: 'g1',
@@ -919,7 +919,7 @@ describe('Filing map KPIs, completed strips, shell accessibility, and responsive
         routeParams={{ unit: 'north' }}
         onNavigate={navigate}
         readSummaries={async ([query]) =>
-          new Map<string, FilingStatusObservation>([[query!.key, {
+          new Map<string, FormStatusObservation>([[query!.key, {
             draft: { status: 'absent' },
             filing: {
               status: 'accepted',
@@ -1143,7 +1143,7 @@ describe('Filing map KPIs, completed strips, shell accessibility, and responsive
               params: [{ name: 'year', type: 'string' }],
               slots: [{
                 id: 'map',
-                slotType: 'filing-status',
+                slotType: 'form-status',
                 binding: {
                   groups: [
                     {
@@ -1213,7 +1213,7 @@ describe('Filing map KPIs, completed strips, shell accessibility, and responsive
         })}
         authorizeDataSource={() => ({ status: 'authorized' })}
         validateDataSourcePayload={() => ({ valid: true })}
-        readSummaries={async (queries) => new Map<string, FilingStatusObservation>(queries.map((query) => [
+        readSummaries={async (queries) => new Map<string, FormStatusObservation>(queries.map((query) => [
           query.key,
           query.subject?.keys.org === 'ORG002'
             ? {
@@ -1623,7 +1623,7 @@ describe('Filing map KPIs, completed strips, shell accessibility, and responsive
               navigation: { visible: true, label: 'Year overview' },
               slots: [{
                 id: 'year-tracker',
-                slotType: 'filing-status',
+                slotType: 'form-status',
                 binding: {
                   groups: [{
                     id: 'all',
@@ -1641,7 +1641,7 @@ describe('Filing map KPIs, completed strips, shell accessibility, and responsive
               navigation: { visible: true, label: 'Unit overview' },
               slots: [{
                 id: 'unit-tracker',
-                slotType: 'filing-status',
+                slotType: 'form-status',
                 binding: {
                   groups: [{
                     id: 'unit-group',

@@ -1,4 +1,4 @@
-//! Core selection for the synthetic agency-year filing journey (ADR 0172 §7).
+//! Core selection for the synthetic org-period filing journey (ADR 0172 §7).
 #![cfg(feature = "response-selection")]
 
 use formspec_core::{
@@ -9,17 +9,17 @@ use formspec_core::{
 use serde_json::{Value, json};
 
 const MODULE_2: &str =
-    include_str!("../../../tests/fixtures/response-selection/agency-year/module-2.definition.json");
+    include_str!("../../../tests/fixtures/response-selection/org-period/module-2.definition.json");
 const PEOPLE_SERVED: &str = include_str!(
-    "../../../tests/fixtures/response-selection/agency-year/people-served.definition.json"
+    "../../../tests/fixtures/response-selection/org-period/people-served.definition.json"
 );
 
 fn record(
     definition: &Value,
     id: &str,
     kind: SelectionRecordKind,
-    uei: &str,
-    ffy: i64,
+    org_id: &str,
+    period: i64,
     data: Value,
 ) -> Value {
     let status = match kind {
@@ -27,7 +27,7 @@ fn record(
         SelectionRecordKind::Filing => "completed",
     };
     let subject_type = definition["subject"]["type"].as_str().unwrap();
-    let keys = json!({"uei": uei, "ffy": ffy});
+    let keys = json!({"orgId": org_id, "period": period});
     let subject_id = subject_id_json(subject_type, &keys.to_string()).unwrap();
     json!({"scope": "sample", "kind": kind, "response": {
         "$formspecResponse": "1.0",
@@ -43,7 +43,7 @@ fn read(instance: &Value, upstream: &Value, records: &[Value]) -> Value {
     let context = json!({
         "scope": "sample", "authorized": true, "source": "definition",
         "upstreamSubject": upstream["subject"],
-        "consumerSubject": {"uei": "A", "ffy": 2025},
+        "consumerSubject": {"orgId": "A", "period": 2025},
         "projection": paths, "fallback": instance["data"]
     });
     let result = select_json(

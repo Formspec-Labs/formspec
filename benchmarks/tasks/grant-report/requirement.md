@@ -1,6 +1,6 @@
-# Tribal CSBG Annual Report (Base / Short / Long)
+# Regional Annual Report (Base / Short / Long)
 
-Build the CSBG Tribal Annual Report — the yearly program report a tribal grantee submits to the federal funder — as three related definitions that share a base:
+Build the Regional Annual Report — the yearly program report a tribal grantee submits to the federal funder — as three related definitions that share a base:
 
 1. **Base module** (`tribal-base`): shared items used by both variants — grantee identifying information (agency name, EIN, tribal nation served, contact person), reporting period (start and end dates), total funds received and expended for the year, per-category expenditure amounts (employment assistance, education, income management, housing, emergency services, health/social services), and expenditure description narratives. Dollar amounts validated as non-negative currency; the sum of "expended" figures must not exceed "received."
 

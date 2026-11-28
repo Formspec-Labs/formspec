@@ -6,11 +6,11 @@
   "authored": "2026-11-17T12:00:00Z",
   "data": {},
   "subject": {
-    "id": "caa277818d95f7d8b3a85fb92be6d600536d7c66dfd11216a6c0bbaabecfa9e7",
-    "type": "urn:example:subject:agency-year",
+    "id": "1cf7cea220e9c8d02f003647d0e6723256cf338b141ce468b689edc64ce21e9f",
+    "type": "urn:example:subject:org-period",
     "keys": {
-      "ffy": 2026,
-      "uei": "A"
+      "period": 2026,
+      "orgId": "A"
     }
   },
   "resolvedInstances": [

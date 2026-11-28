@@ -1,6 +1,6 @@
 {
     "$formspecChangelog": "1.0",
-    "definitionUrl": "https://acf.hhs.gov/formspec/csbg/tribal-long",
+    "definitionUrl": "https://example.org/formspec/annual-report/tribal-long",
     "fromVersion": "3.0.0",
     "toVersion": "3.0.4",
     "semverImpact": "patch",

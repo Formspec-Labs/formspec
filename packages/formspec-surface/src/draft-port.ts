@@ -5,7 +5,7 @@ import type {
   DraftProgressCounts,
   DraftProgressSummary,
   Explanation,
-  FilingStatusSubjectPredicate,
+  FormStatusSubjectPredicate,
   FormDefinition,
   ResolvedInstanceRecord,
   ResponseSelectionDelivery,
@@ -20,31 +20,31 @@ export interface DraftKey {
   subject?: (DataSourceSubject & { id: string }) | undefined;
 }
 
-export type FilingProgressCounts = Readonly<DraftProgressCounts>;
+export type FormProgressCounts = Readonly<DraftProgressCounts>;
 export interface DraftSectionPlacement {
   id?: string;
   fields: readonly string[];
 }
 
-export interface FilingSubjectPredicate {
+export interface FormSubjectPredicate {
   key: string;
-  op: FilingStatusSubjectPredicate['op'];
+  op: FormStatusSubjectPredicate['op'];
   value: string | number;
 }
 
-export interface FilingSubjectMatch {
+export interface FormSubjectMatch {
   type: string;
-  predicates: readonly FilingSubjectPredicate[];
+  predicates: readonly FormSubjectPredicate[];
 }
 
-export interface FilingDraftQuery {
+export interface FormStatusQuery {
   /** Correlates a result to this Definition, subject, and section plan within the batch. */
   key: string;
   definitionUrl: string;
   definitionVersion: string;
   subject?: DataSourceSubject;
-  /** Selects a single filing unit by subject-key predicates when the URL does not supply every key directly. */
-  subjectMatch?: FilingSubjectMatch;
+  /** Selects a single subject by subject-key predicates when the URL does not supply every key directly. */
+  subjectMatch?: FormSubjectMatch;
   sections: readonly DraftSectionPlacement[];
 }
 
@@ -92,12 +92,12 @@ export function canonicalDraftProgress(
   return { status: 'current', form: { ...formCounts, ready }, sections: Object.fromEntries(sectionEntries) };
 }
 
-export type MatchedFilingDraftObservation =
+export type MatchedFormStatusDraftObservation =
   | CurrentDraftProgress
   | { status: 'absent' | 'stale' | 'unavailable' };
 
-export type FilingDraftObservation =
-  | MatchedFilingDraftObservation
+export type FormStatusDraftObservation =
+  | MatchedFormStatusDraftObservation
   | { status: 'denied' };
 
 export type MatchedFilingObservation =
@@ -117,17 +117,17 @@ export type FilingObservation =
   | MatchedFilingObservation
   | { status: 'denied' };
 
-export type FilingStatusObservation =
+export type FormStatusObservation =
   | {
-      draft: FilingDraftObservation;
+      draft: FormStatusDraftObservation;
       filing: FilingObservation;
       subject?: undefined;
       subjectMatch?: undefined;
     }
   | {
-      draft: MatchedFilingDraftObservation;
+      draft: MatchedFormStatusDraftObservation;
       filing: MatchedFilingObservation;
-      /** Resolved filing unit when the query used `subjectMatch`. */
+      /** Resolved subject when the query used `subjectMatch`. */
       subject: DataSourceSubject;
       subjectMatch: 'matched';
     }
@@ -138,10 +138,10 @@ export type FilingStatusObservation =
       subjectMatch: 'none' | 'ambiguous';
     };
 
-export function matchesFilingSubjectPredicates(
+export function matchesFormSubjectPredicates(
   definition: FormDefinition,
   subject: DataSourceSubject | undefined,
-  match: FilingSubjectMatch,
+  match: FormSubjectMatch,
 ): boolean {
   const declaration = definition.subject;
   if (!declaration || declaration.type !== match.type || !subject || subject.type !== match.type) {
@@ -180,10 +180,10 @@ export function matchesFilingSubjectPredicates(
   return true;
 }
 
-export type FilingStatusReader = (
-  queries: readonly FilingDraftQuery[],
+export type StatusReader = (
+  queries: readonly FormStatusQuery[],
   input: { previewScope: string | undefined; signal: AbortSignal },
-) => Promise<ReadonlyMap<string, FilingStatusObservation>>;
+) => Promise<ReadonlyMap<string, FormStatusObservation>>;
 
 export interface DraftRecord {
   /** Opaque compare-and-save token, unique across discard and recreation. */
@@ -283,13 +283,13 @@ export interface DraftPort {
   start?(input: DraftStartInput): Promise<DraftStartResult>;
   /** Authorize before looking up a draft or disclosing its pin. */
   load(key: DraftKey, definitionVersion: string, signal?: AbortSignal): Promise<DraftLoadResult>;
-  /** Authorize and load the latest completed filing (response JSON + decision observation) for this filing unit. */
+  /** Authorize and load the latest completed filing (response JSON + decision observation) for this subject. */
   loadFiling?(key: DraftKey, definitionVersion: string, signal?: AbortSignal): Promise<FilingLoadResult>;
   /** Compare the revision and commit both draft pieces and progress atomically. */
   save(input: DraftSaveInput): Promise<DraftSaveResult>;
   /** Explicitly re-pin declared `at-open` response instances against the expected draft revision (Core §4260). */
   repinDraft?(input: DraftRepinInput, signal?: AbortSignal): Promise<DraftRepinResult>;
-  readSummaries: FilingStatusReader;
+  readSummaries: StatusReader;
 }
 
 /** Browser preview operations beyond normal draft reads and saves. */
