@@ -1,8 +1,0 @@
----
-"@formspec-org/layout": patch
-"@formspec-org/webcomponent": patch
----
-
-<!-- tier: foundation -->
-
-The default skin keeps each answerable question's message line while it is empty, so a validation message appearing moves nothing: one Required message used to push every later question down 41px, and Save draft, which shows every message at once, moved everything below the first question. The empty line replaces the gap under a stacked question instead of adding to it, so two questions stand one line apart (20.8px), not 41px. `spacing.field` is the floor between stacked questions: a Theme that sets it above one line gets that gap, the message at its top; between everything else it is the gap it always was. The line hangs into the gap only in a column whose gap is the skin's own and only when a visible item follows; a Stack with an authored gap, grid cells, the form root, and read-only, assistant-filled, inline and toggle questions keep it inside the question. The table-cell input, file drop zone, signature Clear button and secondary button draw the input border (`color.input`, held to 3:1 on the card) in both appearances, where their soft borders measured 1.5:1 light and 2.1 to 2.3:1 dark. Dark-mode mixes lighten toward the dark card instead of white. Dark filled buttons label their saturated light-mode fills with `color.primaryForeground`, the colour those fills pair with in both appearances; the token registry drops its three `dark-*-label-on-saturated-*` pairs, which made the linter report E1903 on themes for labels no stylesheet draws, and no platform stylesheet reads `color.dark.primaryForeground`.
